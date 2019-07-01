@@ -46,7 +46,7 @@ sc create gitea start= auto binPath= ""C:\gitea\gitea.exe" web --config "C:\gite
 Do not forget to replace `C:\gitea` with the correct Gitea directory.
 
 Open "Windows Services", search for the service named "gitea", right-click it and click on
-"Run". If everything is OK Gitea will be reachable on `http://localhost:3000` (or the port
+"Run". If everything is OK, Gitea will be reachable on `http://localhost:3000` (or the port
 that was configured).
 
 ## Unregister as a service

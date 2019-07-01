@@ -40,6 +40,14 @@ func TestU2FRegistration_UpdateCounter(t *testing.T) {
 	AssertExistsIf(t, true, &U2FRegistration{ID: 1, Counter: 1})
 }
 
+func TestU2FRegistration_UpdateLargeCounter(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	reg := AssertExistsAndLoadBean(t, &U2FRegistration{ID: 1}).(*U2FRegistration)
+	reg.Counter = 0xffffffff
+	assert.NoError(t, reg.UpdateCounter())
+	AssertExistsIf(t, true, &U2FRegistration{ID: 1, Counter: 0xffffffff})
+}
+
 func TestCreateRegistration(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)

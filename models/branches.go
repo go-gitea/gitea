@@ -19,6 +19,8 @@ import (
 const (
 	// ProtectedBranchRepoID protected Repo ID
 	ProtectedBranchRepoID = "GITEA_REPO_ID"
+	// ProtectedBranchPRID protected Repo PR ID
+	ProtectedBranchPRID = "GITEA_PR_ID"
 )
 
 // ProtectedBranch struct
@@ -61,7 +63,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 
 	in, err := IsUserInTeams(userID, protectBranch.WhitelistTeamIDs)
 	if err != nil {
-		log.Error(1, "IsUserInTeams:", err)
+		log.Error("IsUserInTeams: %v", err)
 		return false
 	}
 	return in
@@ -83,7 +85,7 @@ func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
 
 	in, err := IsUserInTeams(userID, protectBranch.MergeWhitelistTeamIDs)
 	if err != nil {
-		log.Error(1, "IsUserInTeams:", err)
+		log.Error("IsUserInTeams: %v", err)
 		return false
 	}
 	return in
@@ -101,7 +103,7 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
 	reviews, err := GetReviewersByPullID(pr.Issue.ID)
 	if err != nil {
-		log.Error(1, "GetUniqueApprovalsByPullRequestID:", err)
+		log.Error("GetReviewersByPullID: %v", err)
 		return 0
 	}
 
@@ -119,21 +121,21 @@ func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) 
 	}
 	approvalTeamCount, err := UsersInTeamsCount(userIDs, protectBranch.ApprovalsWhitelistTeamIDs)
 	if err != nil {
-		log.Error(1, "UsersInTeamsCount:", err)
+		log.Error("UsersInTeamsCount: %v", err)
 		return 0
 	}
 	return approvalTeamCount + approvals
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID
-func GetProtectedBranchByRepoID(RepoID int64) ([]*ProtectedBranch, error) {
+func GetProtectedBranchByRepoID(repoID int64) ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)
-	return protectedBranches, x.Where("repo_id = ?", RepoID).Desc("updated_unix").Find(&protectedBranches)
+	return protectedBranches, x.Where("repo_id = ?", repoID).Desc("updated_unix").Find(&protectedBranches)
 }
 
 // GetProtectedBranchBy getting protected branch by ID/Name
-func GetProtectedBranchBy(repoID int64, BranchName string) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{RepoID: repoID, BranchName: BranchName}
+func GetProtectedBranchBy(repoID int64, branchName string) (*ProtectedBranch, error) {
+	rel := &ProtectedBranch{RepoID: repoID, BranchName: branchName}
 	has, err := x.Get(rel)
 	if err != nil {
 		return nil, err
@@ -466,6 +468,6 @@ func RemoveOldDeletedBranches() {
 	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)
 	_, err := x.Where("deleted_unix < ?", deleteBefore.Unix()).Delete(new(DeletedBranch))
 	if err != nil {
-		log.Error(4, "DeletedBranchesCleanup: %v", err)
+		log.Error("DeletedBranchesCleanup: %v", err)
 	}
 }

@@ -10,8 +10,9 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/user"
-	api "code.gitea.io/sdk/gitea"
 )
 
 func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, loginName string) {
@@ -56,12 +57,16 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	u := &models.User{
-		Name:      form.Username,
-		FullName:  form.FullName,
-		Email:     form.Email,
-		Passwd:    form.Password,
-		IsActive:  true,
-		LoginType: models.LoginPlain,
+		Name:               form.Username,
+		FullName:           form.FullName,
+		Email:              form.Email,
+		Passwd:             form.Password,
+		MustChangePassword: true,
+		IsActive:           true,
+		LoginType:          models.LoginPlain,
+	}
+	if form.MustChangePassword != nil {
+		u.MustChangePassword = *form.MustChangePassword
 	}
 
 	parseLoginSource(ctx, u, form.SourceID, form.LoginName)
@@ -133,6 +138,10 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 			return
 		}
 		u.HashPassword(form.Password)
+	}
+
+	if form.MustChangePassword != nil {
+		u.MustChangePassword = *form.MustChangePassword
 	}
 
 	u.LoginName = form.LoginName
@@ -280,7 +289,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 
 	if err := models.DeletePublicKey(u, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrKeyNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else if models.IsErrKeyAccessDenied(err) {
 			ctx.Error(403, "", "You do not have access to this key")
 		} else {
@@ -311,8 +320,14 @@ func GetAllUsers(ctx *context.APIContext) {
 		PageSize: -1,
 	})
 	if err != nil {
-		ctx.Error(500, "SearchUsers", err)
+		ctx.Error(500, "GetAllUsers", err)
 		return
 	}
-	ctx.JSON(200, &users)
+
+	results := make([]*api.User, len(users))
+	for i := range users {
+		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+	}
+
+	ctx.JSON(200, &results)
 }

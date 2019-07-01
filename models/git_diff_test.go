@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,21 +17,15 @@ func assertEqual(t *testing.T, s1 string, s2 template.HTML) {
 	}
 }
 
-func assertLineEqual(t *testing.T, d1 *DiffLine, d2 *DiffLine) {
-	if d1 != d2 {
-		t.Errorf("%v should be equal %v", d1, d2)
-	}
-}
-
 func TestDiffToHTML(t *testing.T) {
-	assertEqual(t, "+foo <span class=\"added-code\">bar</span> biz", diffToHTML([]dmp.Diff{
+	assertEqual(t, "foo <span class=\"added-code\">bar</span> biz", diffToHTML([]dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "foo "},
 		{Type: dmp.DiffInsert, Text: "bar"},
 		{Type: dmp.DiffDelete, Text: " baz"},
 		{Type: dmp.DiffEqual, Text: " biz"},
 	}, DiffLineAdd))
 
-	assertEqual(t, "-foo <span class=\"removed-code\">bar</span> biz", diffToHTML([]dmp.Diff{
+	assertEqual(t, "foo <span class=\"removed-code\">bar</span> biz", diffToHTML([]dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "foo "},
 		{Type: dmp.DiffDelete, Text: "bar"},
 		{Type: dmp.DiffInsert, Text: " baz"},
@@ -96,6 +92,59 @@ func ExampleCutDiffAroundLine() {
 + cut off
 + cut off`
 	result := CutDiffAroundLine(strings.NewReader(diff), 4, false, 3)
+	println(result)
+}
+
+func TestParsePatch(t *testing.T) {
+	var diff = `diff --git "a/README.md" "b/README.md"
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`
+	result, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff))
+	if err != nil {
+		t.Errorf("ParsePatch failed: %s", err)
+	}
+	println(result)
+
+	var diff2 = `diff --git "a/A \\ B" "b/A \\ B"
+--- "a/A \\ B"
++++ "b/A \\ B"
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`
+	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff2))
+	if err != nil {
+		t.Errorf("ParsePatch failed: %s", err)
+	}
+	println(result)
+
+	var diff3 = `diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,6 @@
+ # gitea-github-migrator
++
++ Build Status
+- Latest Release
+ Docker Pulls
++ cut off
++ cut off`
+	result, err = ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3))
+	if err != nil {
+		t.Errorf("ParsePatch failed: %s", err)
+	}
 	println(result)
 }
 

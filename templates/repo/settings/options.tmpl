@@ -19,7 +19,11 @@
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.visibility"}}</label>
 						<div class="ui checkbox">
+							{{if .IsAdmin}}
 							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}>
+							{{else}}
+							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}{{if and $.ForcePrivate .Repository.IsPrivate}} readonly{{end}}>
+							{{end}}
 							<label>{{.i18n.Tr "repo.visibility_helper" | Safe}} {{if .Repository.NumForks}}<span class="text red">{{.i18n.Tr "repo.visibility_fork_helper"}}</span>{{end}}</label>
 						</div>
 					</div>
@@ -37,6 +41,22 @@
 					<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
+
+			<div class="ui divider"></div>
+
+			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
+				{{.CsrfTokenHtml}}
+				<div class="inline field">
+					<label for="avatar">{{.i18n.Tr "settings.choose_new_avatar"}}</label>
+					<input name="avatar" type="file" >
+				</div>
+
+				<div class="field">
+					<button class="ui green button">{{$.i18n.Tr "settings.update_avatar"}}</button>
+					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.i18n.Tr "settings.delete_current_avatar"}}</a>
+				</div>
+			</form>
+
 		</div>
 
 		{{if .Repository.IsMirror}}
@@ -58,7 +78,7 @@
 						<label for="interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
 						<input id="interval" name="interval" value="{{.MirrorInterval}}">
 					</div>
-					<div class="field">
+					<div class="field {{if .Err_MirrorAddress}}error{{end}}">
 						<label for="mirror_address">{{.i18n.Tr "repo.mirror_address"}}</label>
 						<input id="mirror_address" name="mirror_address" value="{{.Mirror.FullAddress}}" required>
 						<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
@@ -262,6 +282,10 @@
 						<input name="enable_health_check" type="checkbox" {{if .Repository.IsFsckEnabled}}checked{{end}}>
 						<label>{{.i18n.Tr "repo.settings.admin_enable_health_check"}}</label>
 					</div>
+				</div>
+				<div class="ui checkbox">
+					<input name="enable_close_issues_via_commit_in_any_branch" type="checkbox" {{ if .Repository.CloseIssuesViaCommitInAnyBranch }}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.admin_enable_close_issues_via_commit_in_any_branch"}}</label>
 				</div>
 
 				<div class="ui divider"></div>

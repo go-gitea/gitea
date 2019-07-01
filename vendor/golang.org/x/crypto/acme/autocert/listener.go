@@ -72,11 +72,8 @@ func NewListener(domains ...string) net.Listener {
 // the Manager m's Prompt, Cache, HostPolicy, and other desired options.
 func (m *Manager) Listener() net.Listener {
 	ln := &listener{
-		m: m,
-		conf: &tls.Config{
-			GetCertificate: m.GetCertificate,           // bonus: panic on nil m
-			NextProtos:     []string{"h2", "http/1.1"}, // Enable HTTP/2
-		},
+		m:    m,
+		conf: m.TLSConfig(),
 	}
 	ln.tcpListener, ln.tcpListenErr = net.Listen("tcp", ":443")
 	return ln

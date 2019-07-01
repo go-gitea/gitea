@@ -59,26 +59,26 @@ type Rlimit struct {
 type _Gid_t uint32
 
 type Stat_t struct {
-	Dev           uint64
-	Mode          uint32
-	Pad_cgo_0     [4]byte
-	Ino           uint64
-	Nlink         uint32
-	Uid           uint32
-	Gid           uint32
-	Pad_cgo_1     [4]byte
-	Rdev          uint64
-	Atimespec     Timespec
-	Mtimespec     Timespec
-	Ctimespec     Timespec
-	Birthtimespec Timespec
-	Size          int64
-	Blocks        int64
-	Blksize       uint32
-	Flags         uint32
-	Gen           uint32
-	Spare         [2]uint32
-	Pad_cgo_2     [4]byte
+	Dev     uint64
+	Mode    uint32
+	_       [4]byte
+	Ino     uint64
+	Nlink   uint32
+	Uid     uint32
+	Gid     uint32
+	_       [4]byte
+	Rdev    uint64
+	Atim    Timespec
+	Mtim    Timespec
+	Ctim    Timespec
+	Btim    Timespec
+	Size    int64
+	Blocks  int64
+	Blksize uint32
+	Flags   uint32
+	Gen     uint32
+	Spare   [2]uint32
+	_       [4]byte
 }
 
 type Statfs_t [0]byte
@@ -405,6 +405,13 @@ type Winsize struct {
 	Col    uint16
 	Xpixel uint16
 	Ypixel uint16
+}
+
+type Ptmget struct {
+	Cfd int32
+	Sfd int32
+	Cn  [1024]byte
+	Sn  [1024]byte
 }
 
 const (

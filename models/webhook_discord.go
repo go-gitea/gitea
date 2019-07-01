@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 type (
@@ -347,12 +347,13 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 		text = p.PullRequest.Body
 		color = warnColor
 	case api.HookIssueAssigned:
-		list, err := MakeAssigneeList(&Issue{ID: p.PullRequest.ID})
-		if err != nil {
-			return &DiscordPayload{}, err
+		list := make([]string, len(p.PullRequest.Assignees))
+		for i, user := range p.PullRequest.Assignees {
+			list[i] = user.UserName
 		}
-		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d %s", p.Repository.FullName,
-			list, p.Index, p.PullRequest.Title)
+		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d by %s", p.Repository.FullName,
+			strings.Join(list, ", "),
+			p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 		color = successColor
 	case api.HookIssueUnassigned:
@@ -489,7 +490,7 @@ func getDiscordReleasePayload(p *api.ReleasePayload, meta *DiscordMeta) (*Discor
 		Embeds: []DiscordEmbed{
 			{
 				Title:       title,
-				Description: fmt.Sprintf("%s", p.Release.Note),
+				Description: p.Release.Note,
 				URL:         url,
 				Color:       color,
 				Author: DiscordEmbedAuthor{

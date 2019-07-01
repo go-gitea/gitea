@@ -1,24 +1,30 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package models
 
 import (
+	"crypto/subtle"
 	"time"
 
 	gouuid "github.com/satori/go.uuid"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/util"
 )
 
 // AccessToken represents a personal access token.
 type AccessToken struct {
-	ID   int64 `xorm:"pk autoincr"`
-	UID  int64 `xorm:"INDEX"`
-	Name string
-	Sha1 string `xorm:"UNIQUE VARCHAR(40)"`
+	ID             int64 `xorm:"pk autoincr"`
+	UID            int64 `xorm:"INDEX"`
+	Name           string
+	Token          string `xorm:"-"`
+	TokenHash      string `xorm:"UNIQUE"` // sha256 of token
+	TokenSalt      string
+	TokenLastEight string `xorm:"token_last_eight"`
 
 	CreatedUnix       util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix       util.TimeStamp `xorm:"INDEX updated"`
@@ -34,24 +40,41 @@ func (t *AccessToken) AfterLoad() {
 
 // NewAccessToken creates new access token.
 func NewAccessToken(t *AccessToken) error {
-	t.Sha1 = base.EncodeSha1(gouuid.NewV4().String())
-	_, err := x.Insert(t)
+	salt, err := generate.GetRandomString(10)
+	if err != nil {
+		return err
+	}
+	t.TokenSalt = salt
+	t.Token = base.EncodeSha1(gouuid.NewV4().String())
+	t.TokenHash = hashToken(t.Token, t.TokenSalt)
+	t.TokenLastEight = t.Token[len(t.Token)-8:]
+	_, err = x.Insert(t)
 	return err
 }
 
-// GetAccessTokenBySHA returns access token by given sha1.
-func GetAccessTokenBySHA(sha string) (*AccessToken, error) {
-	if sha == "" {
+// GetAccessTokenBySHA returns access token by given token value
+func GetAccessTokenBySHA(token string) (*AccessToken, error) {
+	if token == "" {
 		return nil, ErrAccessTokenEmpty{}
 	}
-	t := &AccessToken{Sha1: sha}
-	has, err := x.Get(t)
+	if len(token) < 8 {
+		return nil, ErrAccessTokenNotExist{token}
+	}
+	var tokens []AccessToken
+	lastEight := token[len(token)-8:]
+	err := x.Table(&AccessToken{}).Where("token_last_eight = ?", lastEight).Find(&tokens)
 	if err != nil {
 		return nil, err
-	} else if !has {
-		return nil, ErrAccessTokenNotExist{sha}
+	} else if len(tokens) == 0 {
+		return nil, ErrAccessTokenNotExist{token}
 	}
-	return t, nil
+	for _, t := range tokens {
+		tempHash := hashToken(token, t.TokenSalt)
+		if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(tempHash)) == 1 {
+			return &t, nil
+		}
+	}
+	return nil, ErrAccessTokenNotExist{token}
 }
 
 // ListAccessTokens returns a list of access tokens belongs to given user.

@@ -9,14 +9,14 @@ import (
 	"sort"
 	"strings"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	api "code.gitea.io/sdk/gitea"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 // Release represents a release of repository.
@@ -50,12 +50,12 @@ func (r *Release) loadAttributes(e Engine) error {
 		}
 	}
 	if r.Publisher == nil {
-		r.Publisher, err = GetUserByID(r.PublisherID)
+		r.Publisher, err = getUserByID(e, r.PublisherID)
 		if err != nil {
 			return err
 		}
 	}
-	return GetReleaseAttachments(r)
+	return getReleaseAttachments(e, r)
 }
 
 // LoadAttributes load repo and publisher attributes for a release
@@ -199,7 +199,7 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 
 	if !rel.IsDraft {
 		if err := rel.LoadAttributes(); err != nil {
-			log.Error(2, "LoadAttributes: %v", err)
+			log.Error("LoadAttributes: %v", err)
 		} else {
 			mode, _ := AccessLevel(rel.Publisher, rel.Repo)
 			if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
@@ -208,7 +208,7 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 				Repository: rel.Repo.APIFormat(mode),
 				Sender:     rel.Publisher.APIFormat(),
 			}); err != nil {
-				log.Error(2, "PrepareWebhooks: %v", err)
+				log.Error("PrepareWebhooks: %v", err)
 			} else {
 				go HookQueue.Add(rel.Repo.ID)
 			}
@@ -316,6 +316,10 @@ func (s releaseMetaSearch) Less(i, j int) bool {
 
 // GetReleaseAttachments retrieves the attachments for releases
 func GetReleaseAttachments(rels ...*Release) (err error) {
+	return getReleaseAttachments(x, rels...)
+}
+
+func getReleaseAttachments(e Engine, rels ...*Release) (err error) {
 	if len(rels) == 0 {
 		return
 	}
@@ -335,11 +339,10 @@ func GetReleaseAttachments(rels ...*Release) (err error) {
 	sort.Sort(sortedRels)
 
 	// Select attachments
-	err = x.
+	err = e.
 		Asc("release_id").
 		In("release_id", sortedRels.ID).
 		Find(&attachments, Attachment{})
-
 	if err != nil {
 		return err
 	}
@@ -354,7 +357,6 @@ func GetReleaseAttachments(rels ...*Release) (err error) {
 	}
 
 	return
-
 }
 
 type releaseSorter struct {
@@ -409,7 +411,7 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 		Repository: rel.Repo.APIFormat(mode),
 		Sender:     rel.Publisher.APIFormat(),
 	}); err1 != nil {
-		log.Error(2, "PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %v", err)
 	} else {
 		go HookQueue.Add(rel.Repo.ID)
 	}
@@ -432,7 +434,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 	if delTag {
 		_, stderr, err := process.GetManager().ExecDir(-1, repo.RepoPath(),
 			fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID),
-			"git", "tag", "-d", rel.TagName)
+			git.GitExecutable, "tag", "-d", rel.TagName)
 		if err != nil && !strings.Contains(stderr, "not found") {
 			return fmt.Errorf("git tag -d: %v - %s", err, stderr)
 		}
@@ -464,7 +466,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		Repository: rel.Repo.APIFormat(mode),
 		Sender:     rel.Publisher.APIFormat(),
 	}); err != nil {
-		log.Error(2, "PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %v", err)
 	} else {
 		go HookQueue.Add(rel.Repo.ID)
 	}
@@ -493,7 +495,7 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 				return fmt.Errorf("GetTagCommitID: %v", err)
 			}
 			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
-				if err := pushUpdateDeleteTag(repo, gitRepo, rel.TagName); err != nil {
+				if err := pushUpdateDeleteTag(repo, rel.TagName); err != nil {
 					return fmt.Errorf("pushUpdateDeleteTag: %v", err)
 				}
 			} else {

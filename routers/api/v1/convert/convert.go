@@ -6,15 +6,16 @@ package convert
 
 import (
 	"fmt"
+	"time"
+
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-
-	api "code.gitea.io/sdk/gitea"
-
-	"code.gitea.io/git"
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -26,41 +27,45 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 	}
 }
 
-// ToBranch convert a commit and branch to an api.Branch
-func ToBranch(repo *models.Repository, b *models.Branch, c *git.Commit) *api.Branch {
+// ToBranch convert a git.Commit and git.Branch to an api.Branch
+func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit) *api.Branch {
 	return &api.Branch{
 		Name:   b.Name,
 		Commit: ToCommit(repo, c),
 	}
 }
 
-// ToCommit convert a commit to api.PayloadCommit
+// ToTag convert a git.Tag to an api.Tag
+func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
+	return &api.Tag{
+		Name:       t.Name,
+		ID:         t.ID.String(),
+		Commit:     ToCommitMeta(repo, t),
+		ZipballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".zip"),
+		TarballURL: util.URLJoin(repo.HTMLURL(), "archive", t.Name+".tar.gz"),
+	}
+}
+
+// ToCommit convert a git.Commit to api.PayloadCommit
 func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 	authorUsername := ""
 	if author, err := models.GetUserByEmail(c.Author.Email); err == nil {
 		authorUsername = author.Name
 	} else if !models.IsErrUserNotExist(err) {
-		log.Error(4, "GetUserByEmail: %v", err)
+		log.Error("GetUserByEmail: %v", err)
 	}
 
 	committerUsername := ""
 	if committer, err := models.GetUserByEmail(c.Committer.Email); err == nil {
 		committerUsername = committer.Name
 	} else if !models.IsErrUserNotExist(err) {
-		log.Error(4, "GetUserByEmail: %v", err)
-	}
-
-	verif := models.ParseCommitWithSignature(c)
-	var signature, payload string
-	if c.Signature != nil {
-		signature = c.Signature.Signature
-		payload = c.Signature.Payload
+		log.Error("GetUserByEmail: %v", err)
 	}
 
 	return &api.PayloadCommit{
 		ID:      c.ID.String(),
 		Message: c.Message(),
-		URL:     util.URLJoin(repo.Link(), "commit", c.ID.String()),
+		URL:     util.URLJoin(repo.HTMLURL(), "commit", c.ID.String()),
 		Author: &api.PayloadUser{
 			Name:     c.Author.Name,
 			Email:    c.Author.Email,
@@ -71,13 +76,24 @@ func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 			Email:    c.Committer.Email,
 			UserName: committerUsername,
 		},
-		Timestamp: c.Author.When,
-		Verification: &api.PayloadCommitVerification{
-			Verified:  verif.Verified,
-			Reason:    verif.Reason,
-			Signature: signature,
-			Payload:   payload,
-		},
+		Timestamp:    c.Author.When,
+		Verification: ToVerification(c),
+	}
+}
+
+// ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
+func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
+	verif := models.ParseCommitWithSignature(c)
+	var signature, payload string
+	if c.Signature != nil {
+		signature = c.Signature.Signature
+		payload = c.Signature.Payload
+	}
+	return &api.PayloadCommitVerification{
+		Verified:  verif.Verified,
+		Reason:    verif.Reason,
+		Signature: signature,
+		Payload:   payload,
 	}
 }
 
@@ -164,6 +180,15 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 	}
 }
 
+// ToGitHook convert git.Hook to api.GitHook
+func ToGitHook(h *git.Hook) *api.GitHook {
+	return &api.GitHook{
+		Name:     h.Name(),
+		IsActive: h.IsActive,
+		Content:  h.Content,
+	}
+}
+
 // ToDeployKey convert models.DeployKey to api.DeployKey
 func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 	return &api.DeployKey{
@@ -188,6 +213,7 @@ func ToOrganization(org *models.User) *api.Organization {
 		Description: org.Description,
 		Website:     org.Website,
 		Location:    org.Location,
+		Visibility:  org.Visibility.String(),
 	}
 }
 
@@ -199,5 +225,64 @@ func ToTeam(team *models.Team) *api.Team {
 		Description: team.Description,
 		Permission:  team.Authorize.String(),
 		Units:       team.GetUnitNames(),
+	}
+}
+
+// ToUser convert models.User to api.User
+func ToUser(user *models.User, signed, admin bool) *api.User {
+	result := &api.User{
+		ID:        user.ID,
+		UserName:  user.Name,
+		AvatarURL: user.AvatarLink(),
+		FullName:  markup.Sanitize(user.FullName),
+		IsAdmin:   user.IsAdmin,
+		LastLogin: user.LastLoginUnix.AsTime(),
+		Created:   user.CreatedUnix.AsTime(),
+	}
+	if signed && (!user.KeepEmailPrivate || admin) {
+		result.Email = user.Email
+	}
+	return result
+}
+
+// ToAnnotatedTag convert git.Tag to api.AnnotatedTag
+func ToAnnotatedTag(repo *models.Repository, t *git.Tag, c *git.Commit) *api.AnnotatedTag {
+	return &api.AnnotatedTag{
+		Tag:          t.Name,
+		SHA:          t.ID.String(),
+		Object:       ToAnnotatedTagObject(repo, c),
+		Message:      t.Message,
+		URL:          util.URLJoin(repo.APIURL(), "git/tags", t.ID.String()),
+		Tagger:       ToCommitUser(t.Tagger),
+		Verification: ToVerification(c),
+	}
+}
+
+// ToAnnotatedTagObject convert a git.Commit to an api.AnnotatedTagObject
+func ToAnnotatedTagObject(repo *models.Repository, commit *git.Commit) *api.AnnotatedTagObject {
+	return &api.AnnotatedTagObject{
+		SHA:  commit.ID.String(),
+		Type: string(git.ObjectCommit),
+		URL:  util.URLJoin(repo.APIURL(), "git/commits", commit.ID.String()),
+	}
+}
+
+// ToCommitUser convert a git.Signature to an api.CommitUser
+func ToCommitUser(sig *git.Signature) *api.CommitUser {
+	return &api.CommitUser{
+		Identity: api.Identity{
+			Name:  sig.Name,
+			Email: sig.Email,
+		},
+		Date: sig.When.UTC().Format(time.RFC3339),
+	}
+}
+
+// ToCommitMeta convert a git.Tag to an api.CommitMeta
+func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
+	return &api.CommitMeta{
+		SHA: tag.Object.String(),
+		// TODO: Add the /commits API endpoint and use it here (https://developer.github.com/v3/repos/commits/#get-a-single-commit)
+		URL: util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
 	}
 }

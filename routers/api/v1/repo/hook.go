@@ -5,12 +5,12 @@
 package repo
 
 import (
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	api "code.gitea.io/sdk/gitea"
 )
 
 // ListHooks list all hooks of a repository
@@ -239,7 +239,7 @@ func DeleteHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	if err := models.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrWebhookNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "DeleteWebhookByRepoID", err)
 		}

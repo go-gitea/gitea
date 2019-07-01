@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -57,8 +57,9 @@ func (repo *Repository) updateIndexerStatus(sha string) error {
 }
 
 type repoIndexerOperation struct {
-	repo    *Repository
-	deleted bool
+	repo     *Repository
+	deleted  bool
+	watchers []chan<- error
 }
 
 var repoIndexerOperationQueue chan repoIndexerOperation
@@ -113,7 +114,7 @@ func populateRepoIndexer(maxRepoID int64) {
 			Limit(RepositoryListDefaultPageSize).
 			Find(&repos)
 		if err != nil {
-			log.Error(4, "populateRepoIndexer: %v", err)
+			log.Error("populateRepoIndexer: %v", err)
 			return
 		} else if len(repos) == 0 {
 			break
@@ -312,26 +313,30 @@ func nonGenesisChanges(repo *Repository, revision string) (*repoChanges, error) 
 func processRepoIndexerOperationQueue() {
 	for {
 		op := <-repoIndexerOperationQueue
+		var err error
 		if op.deleted {
-			if err := indexer.DeleteRepoFromIndexer(op.repo.ID); err != nil {
-				log.Error(4, "DeleteRepoFromIndexer: %v", err)
+			if err = indexer.DeleteRepoFromIndexer(op.repo.ID); err != nil {
+				log.Error("DeleteRepoFromIndexer: %v", err)
 			}
 		} else {
-			if err := updateRepoIndexer(op.repo); err != nil {
-				log.Error(4, "updateRepoIndexer: %v", err)
+			if err = updateRepoIndexer(op.repo); err != nil {
+				log.Error("updateRepoIndexer: %v", err)
 			}
+		}
+		for _, watcher := range op.watchers {
+			watcher <- err
 		}
 	}
 }
 
 // DeleteRepoFromIndexer remove all of a repository's entries from the indexer
-func DeleteRepoFromIndexer(repo *Repository) {
-	addOperationToQueue(repoIndexerOperation{repo: repo, deleted: true})
+func DeleteRepoFromIndexer(repo *Repository, watchers ...chan<- error) {
+	addOperationToQueue(repoIndexerOperation{repo: repo, deleted: true, watchers: watchers})
 }
 
 // UpdateRepoIndexer update a repository's entries in the indexer
-func UpdateRepoIndexer(repo *Repository) {
-	addOperationToQueue(repoIndexerOperation{repo: repo, deleted: false})
+func UpdateRepoIndexer(repo *Repository, watchers ...chan<- error) {
+	addOperationToQueue(repoIndexerOperation{repo: repo, deleted: false, watchers: watchers})
 }
 
 func addOperationToQueue(op repoIndexerOperation) {

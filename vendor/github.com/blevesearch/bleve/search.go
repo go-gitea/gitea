@@ -17,14 +17,28 @@ package bleve
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/blevesearch/bleve/analysis"
 	"github.com/blevesearch/bleve/analysis/datetime/optional"
+	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/registry"
 	"github.com/blevesearch/bleve/search"
+	"github.com/blevesearch/bleve/search/collector"
 	"github.com/blevesearch/bleve/search/query"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeSearchResult int
+var reflectStaticSizeSearchStatus int
+
+func init() {
+	var sr SearchResult
+	reflectStaticSizeSearchResult = int(reflect.TypeOf(sr).Size())
+	var ss SearchStatus
+	reflectStaticSizeSearchStatus = int(reflect.TypeOf(ss).Size())
+}
 
 var cache = registry.NewCache()
 
@@ -247,6 +261,7 @@ func (h *HighlightRequest) AddField(field string) {
 // Explain triggers inclusion of additional search
 // result score explanations.
 // Sort describes the desired order for the results to be returned.
+// Score controls the kind of scoring performed
 //
 // A special field named "*" can be used to return all fields.
 type SearchRequest struct {
@@ -259,6 +274,7 @@ type SearchRequest struct {
 	Explain          bool              `json:"explain"`
 	Sort             search.SortOrder  `json:"sort"`
 	IncludeLocations bool              `json:"includeLocations"`
+	Score            string            `json:"score,omitempty"`
 }
 
 func (r *SearchRequest) Validate() error {
@@ -308,6 +324,7 @@ func (r *SearchRequest) UnmarshalJSON(input []byte) error {
 		Explain          bool              `json:"explain"`
 		Sort             []json.RawMessage `json:"sort"`
 		IncludeLocations bool              `json:"includeLocations"`
+		Score            string            `json:"score"`
 	}
 
 	err := json.Unmarshal(input, &temp)
@@ -334,6 +351,7 @@ func (r *SearchRequest) UnmarshalJSON(input []byte) error {
 	r.Fields = temp.Fields
 	r.Facets = temp.Facets
 	r.IncludeLocations = temp.IncludeLocations
+	r.Score = temp.Score
 	r.Query, err = query.ParseQuery(temp.Q)
 	if err != nil {
 		return err
@@ -432,6 +450,24 @@ type SearchResult struct {
 	Facets   search.FacetResults            `json:"facets"`
 }
 
+func (sr *SearchResult) Size() int {
+	sizeInBytes := reflectStaticSizeSearchResult + size.SizeOfPtr +
+		reflectStaticSizeSearchStatus
+
+	for _, entry := range sr.Hits {
+		if entry != nil {
+			sizeInBytes += entry.Size()
+		}
+	}
+
+	for k, v := range sr.Facets {
+		sizeInBytes += size.SizeOfString + len(k) +
+			v.Size()
+	}
+
+	return sizeInBytes
+}
+
 func (sr *SearchResult) String() string {
 	rv := ""
 	if sr.Total > 0 {
@@ -487,4 +523,45 @@ func (sr *SearchResult) Merge(other *SearchResult) {
 	}
 
 	sr.Facets.Merge(other.Facets)
+}
+
+// MemoryNeededForSearchResult is an exported helper function to determine the RAM
+// needed to accommodate the results for a given search request.
+func MemoryNeededForSearchResult(req *SearchRequest) uint64 {
+	if req == nil {
+		return 0
+	}
+
+	numDocMatches := req.Size + req.From
+	if req.Size+req.From > collector.PreAllocSizeSkipCap {
+		numDocMatches = collector.PreAllocSizeSkipCap
+	}
+
+	estimate := 0
+
+	// overhead from the SearchResult structure
+	var sr SearchResult
+	estimate += sr.Size()
+
+	var dm search.DocumentMatch
+	sizeOfDocumentMatch := dm.Size()
+
+	// overhead from results
+	estimate += numDocMatches * sizeOfDocumentMatch
+
+	// overhead from facet results
+	if req.Facets != nil {
+		var fr search.FacetResult
+		estimate += len(req.Facets) * fr.Size()
+	}
+
+	// highlighting, store
+	var d document.Document
+	if len(req.Fields) > 0 || req.Highlight != nil {
+		for i := 0; i < (req.Size + req.From); i++ {
+			estimate += (req.Size + req.From) * d.Size()
+		}
+	}
+
+	return uint64(estimate)
 }

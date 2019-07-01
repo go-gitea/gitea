@@ -5,6 +5,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"regexp"
@@ -14,12 +15,12 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
 )
 
 // Issue represents an issue or pull request of repository.
@@ -57,6 +58,10 @@ type Issue struct {
 	Reactions        ReactionList  `xorm:"-"`
 	TotalTrackedTime int64         `xorm:"-"`
 	Assignees        []*User       `xorm:"-"`
+
+	// IsLocked limits commenting abilities to users on an issue
+	// with write access
+	IsLocked bool `xorm:"NOT NULL DEFAULT false"`
 }
 
 var (
@@ -108,7 +113,7 @@ func (issue *Issue) IsTimetrackerEnabled() bool {
 
 func (issue *Issue) isTimetrackerEnabled(e Engine) bool {
 	if err := issue.loadRepo(e); err != nil {
-		log.Error(4, fmt.Sprintf("loadRepo: %v", err))
+		log.Error(fmt.Sprintf("loadRepo: %v", err))
 		return false
 	}
 	return issue.Repo.IsTimetrackerEnabled()
@@ -179,12 +184,21 @@ func (issue *Issue) LoadPullRequest() error {
 }
 
 func (issue *Issue) loadComments(e Engine) (err error) {
+	return issue.loadCommentsByType(e, CommentTypeUnknown)
+}
+
+// LoadDiscussComments loads discuss comments
+func (issue *Issue) LoadDiscussComments() error {
+	return issue.loadCommentsByType(x, CommentTypeComment)
+}
+
+func (issue *Issue) loadCommentsByType(e Engine, tp CommentType) (err error) {
 	if issue.Comments != nil {
 		return nil
 	}
 	issue.Comments, err = findComments(e, FindCommentsOptions{
 		IssueID: issue.ID,
-		Type:    CommentTypeUnknown,
+		Type:    tp,
 	})
 	return err
 }
@@ -257,6 +271,10 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 	}
 
 	if err = issue.loadComments(e); err != nil {
+		return err
+	}
+
+	if err = CommentList(issue.Comments).loadAttributes(e); err != nil {
 		return err
 	}
 	if issue.isTimetrackerEnabled(e) {
@@ -410,23 +428,23 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 	var err error
 
 	if err = issue.loadRepo(x); err != nil {
-		log.Error(4, "loadRepo: %v", err)
+		log.Error("loadRepo: %v", err)
 		return
 	}
 
 	if err = issue.loadPoster(x); err != nil {
-		log.Error(4, "loadPoster: %v", err)
+		log.Error("loadPoster: %v", err)
 		return
 	}
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
 		if err = issue.loadPullRequest(x); err != nil {
-			log.Error(4, "loadPullRequest: %v", err)
+			log.Error("loadPullRequest: %v", err)
 			return
 		}
 		if err = issue.PullRequest.LoadIssue(); err != nil {
-			log.Error(4, "LoadIssue: %v", err)
+			log.Error("LoadIssue: %v", err)
 			return
 		}
 		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
@@ -446,7 +464,7 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 		})
 	}
 	if err != nil {
-		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	} else {
 		go HookQueue.Add(issue.RepoID)
 	}
@@ -571,7 +589,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 	if issue.IsPull {
 		err = issue.PullRequest.LoadIssue()
 		if err != nil {
-			log.Error(4, "LoadIssue: %v", err)
+			log.Error("LoadIssue: %v", err)
 			return
 		}
 		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
@@ -591,7 +609,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		})
 	}
 	if err != nil {
-		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	} else {
 		go HookQueue.Add(issue.RepoID)
 	}
@@ -677,7 +695,6 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 	if _, err := e.ID(issue.ID).Cols(cols...).Update(issue); err != nil {
 		return err
 	}
-	UpdateIssueIndexerCols(issue.ID, cols...)
 	return nil
 }
 
@@ -687,8 +704,14 @@ func UpdateIssueCols(issue *Issue, cols ...string) error {
 }
 
 func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (err error) {
+	// Reload the issue
+	currentIssue, err := getIssueByID(e, issue.ID)
+	if err != nil {
+		return err
+	}
+
 	// Nothing should be performed if current status is same as target status
-	if issue.IsClosed == isClosed {
+	if currentIssue.IsClosed == isClosed {
 		return nil
 	}
 
@@ -801,7 +824,7 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 		err = PrepareWebhooks(issue.Repo, HookEventIssues, apiIssue)
 	}
 	if err != nil {
-		log.Error(4, "PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
+		log.Error("PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
 	} else {
 		go HookQueue.Add(issue.Repo.ID)
 	}
@@ -870,7 +893,7 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 	}
 
 	if err != nil {
-		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	} else {
 		go HookQueue.Add(issue.RepoID)
 	}
@@ -935,7 +958,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		})
 	}
 	if err != nil {
-		log.Error(4, "PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	} else {
 		go HookQueue.Add(issue.RepoID)
 	}
@@ -953,6 +976,36 @@ func (issue *Issue) GetTasksDone() int {
 	return len(issueTasksDonePat.FindAllStringIndex(issue.Content, -1))
 }
 
+// GetLastEventTimestamp returns the last user visible event timestamp, either the creation of this issue or the close.
+func (issue *Issue) GetLastEventTimestamp() util.TimeStamp {
+	if issue.IsClosed {
+		return issue.ClosedUnix
+	}
+	return issue.CreatedUnix
+}
+
+// GetLastEventLabel returns the localization label for the current issue.
+func (issue *Issue) GetLastEventLabel() string {
+	if issue.IsClosed {
+		if issue.IsPull && issue.PullRequest.HasMerged {
+			return "repo.pulls.merged_by"
+		}
+		return "repo.issues.closed_by"
+	}
+	return "repo.issues.opened_by"
+}
+
+// GetLastEventLabelFake returns the localization label for the current issue without providing a link in the username.
+func (issue *Issue) GetLastEventLabelFake() string {
+	if issue.IsClosed {
+		if issue.IsPull && issue.PullRequest.HasMerged {
+			return "repo.pulls.merged_by_fake"
+		}
+		return "repo.issues.closed_by_fake"
+	}
+	return "repo.issues.opened_by_fake"
+}
+
 // NewIssueOptions represents the options of a new issue.
 type NewIssueOptions struct {
 	Repo        *Repository
@@ -963,9 +1016,35 @@ type NewIssueOptions struct {
 	IsPull      bool
 }
 
+// GetMaxIndexOfIssue returns the max index on issue
+func GetMaxIndexOfIssue(repoID int64) (int64, error) {
+	return getMaxIndexOfIssue(x, repoID)
+}
+
+func getMaxIndexOfIssue(e Engine, repoID int64) (int64, error) {
+	var (
+		maxIndex int64
+		has      bool
+		err      error
+	)
+
+	has, err = e.SQL("SELECT COALESCE((SELECT MAX(`index`) FROM issue WHERE repo_id = ?),0)", repoID).Get(&maxIndex)
+	if err != nil {
+		return 0, err
+	} else if !has {
+		return 0, errors.New("Retrieve Max index from issue failed")
+	}
+	return maxIndex, nil
+}
+
 func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
-	opts.Issue.Index = opts.Repo.NextIssueIndex()
+
+	maxIndex, err := getMaxIndexOfIssue(e, opts.Issue.RepoID)
+	if err != nil {
+		return err
+	}
+	opts.Issue.Index = maxIndex + 1
 
 	if opts.Issue.MilestoneID > 0 {
 		milestone, err := getMilestoneByRepoID(e, opts.Issue.RepoID, opts.Issue.MilestoneID)
@@ -1121,7 +1200,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
 	}); err != nil {
-		log.Error(4, "NotifyWatchers: %v", err)
+		log.Error("NotifyWatchers: %v", err)
 	}
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
@@ -1132,7 +1211,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		Repository: repo.APIFormat(mode),
 		Sender:     issue.Poster.APIFormat(),
 	}); err != nil {
-		log.Error(4, "PrepareWebhooks: %v", err)
+		log.Error("PrepareWebhooks: %v", err)
 	} else {
 		go HookQueue.Add(issue.RepoID)
 	}
@@ -1194,6 +1273,17 @@ func getIssuesByIDs(e Engine, issueIDs []int64) ([]*Issue, error) {
 	return issues, e.In("id", issueIDs).Find(&issues)
 }
 
+func getIssueIDsByRepoID(e Engine, repoID int64) ([]int64, error) {
+	var ids = make([]int64, 0, 10)
+	err := e.Table("issue").Where("repo_id = ?", repoID).Find(&ids)
+	return ids, err
+}
+
+// GetIssueIDsByRepoID returns all issue ids by repo id
+func GetIssueIDsByRepoID(repoID int64) ([]int64, error) {
+	return getIssueIDsByRepoID(x, repoID)
+}
+
 // GetIssuesByIDs return issues with the given IDs.
 func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 	return getIssuesByIDs(x, issueIDs)
@@ -1231,12 +1321,16 @@ func sortIssuesSession(sess *xorm.Session, sortType string) {
 		sess.Asc("issue.num_comments")
 	case "priority":
 		sess.Desc("issue.priority")
+	case "nearduedate":
+		sess.Asc("issue.deadline_unix")
+	case "farduedate":
+		sess.Desc("issue.deadline_unix")
 	default:
 		sess.Desc("issue.created_unix")
 	}
 }
 
-func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
+func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	if opts.Page >= 0 && opts.PageSize > 0 {
 		var start int
 		if opts.Page == 0 {
@@ -1295,7 +1389,6 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
 				fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
 		}
 	}
-	return nil
 }
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
@@ -1303,9 +1396,7 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if err := opts.setupSession(sess); err != nil {
-		return nil, err
-	}
+	opts.setupSession(sess)
 
 	countsSlice := make([]*struct {
 		RepoID int64
@@ -1330,15 +1421,14 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if err := opts.setupSession(sess); err != nil {
-		return nil, err
-	}
+	opts.setupSession(sess)
 	sortIssuesSession(sess, opts.SortType)
 
 	issues := make([]*Issue, 0, setting.UI.IssuePagingNum)
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
+	sess.Close()
 
 	if err := IssueList(issues).LoadAttributes(); err != nil {
 		return nil, fmt.Errorf("LoadAttributes: %v", err)
@@ -1640,6 +1730,40 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 	closedResult, _ := closedCountSession.Count(new(Issue))
 
 	return openResult, closedResult
+}
+
+// SearchIssueIDsByKeyword search issues on database
+func SearchIssueIDsByKeyword(kw string, repoID int64, limit, start int) (int64, []int64, error) {
+	var repoCond = builder.Eq{"repo_id": repoID}
+	var subQuery = builder.Select("id").From("issue").Where(repoCond)
+	var cond = builder.And(
+		repoCond,
+		builder.Or(
+			builder.Like{"name", kw},
+			builder.Like{"content", kw},
+			builder.In("id", builder.Select("issue_id").
+				From("comment").
+				Where(builder.And(
+					builder.Eq{"type": CommentTypeComment},
+					builder.In("issue_id", subQuery),
+					builder.Like{"content", kw},
+				)),
+			),
+		),
+	)
+
+	var ids = make([]int64, 0, limit)
+	err := x.Distinct("id").Table("issue").Where(cond).Limit(limit, start).Find(&ids)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	total, err := x.Distinct("id").Table("issue").Where(cond).Count()
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return total, ids, nil
 }
 
 func updateIssue(e Engine, issue *Issue) error {

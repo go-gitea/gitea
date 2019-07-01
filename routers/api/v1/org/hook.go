@@ -5,7 +5,7 @@
 package org
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -164,7 +164,7 @@ func DeleteHook(ctx *context.APIContext) {
 	hookID := ctx.ParamsInt64(":id")
 	if err := models.DeleteWebhookByOrgID(org.ID, hookID); err != nil {
 		if models.IsErrWebhookNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "DeleteWebhookByOrgID", err)
 		}

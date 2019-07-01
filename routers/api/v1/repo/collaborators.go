@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ListCollaborators list a repository's collaborators
@@ -92,7 +92,7 @@ func IsCollaborator(ctx *context.APIContext) {
 	if isColab {
 		ctx.Status(204)
 	} else {
-		ctx.Status(404)
+		ctx.NotFound()
 	}
 }
 

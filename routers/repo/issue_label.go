@@ -22,6 +22,7 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsLabels"] = true
 	ctx.Data["RequireMinicolors"] = true
+	ctx.Data["RequireTribute"] = true
 	ctx.Data["LabelTemplates"] = models.LabelTemplates
 	ctx.HTML(200, tplLabels)
 }
@@ -128,7 +129,6 @@ func DeleteLabel(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/labels",
 	})
-	return
 }
 
 // UpdateIssueLabel change issue's labels

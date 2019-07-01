@@ -14,39 +14,35 @@
 
 package vellum
 
-import (
-	"hash"
-	"hash/fnv"
-)
-
 type registryCell struct {
 	addr int
 	node *builderNode
 }
 
 type registry struct {
-	table     []registryCell
-	tableSize uint
-	mruSize   uint
-	hasher    hash.Hash64
+	builderNodePool *builderNodePool
+	table           []registryCell
+	tableSize       uint
+	mruSize         uint
 }
 
-func newRegistry(tableSize, mruSize int) *registry {
+func newRegistry(p *builderNodePool, tableSize, mruSize int) *registry {
 	nsize := tableSize * mruSize
 	rv := &registry{
-		table:     make([]registryCell, nsize),
-		tableSize: uint(tableSize),
-		mruSize:   uint(mruSize),
-		hasher:    fnv.New64a(),
+		builderNodePool: p,
+		table:           make([]registryCell, nsize),
+		tableSize:       uint(tableSize),
+		mruSize:         uint(mruSize),
 	}
 	return rv
 }
 
 func (r *registry) Reset() {
-	for i := 0; i < len(r.table); i++ {
-		r.table[i] = registryCell{}
+	var empty registryCell
+	for i := range r.table {
+		r.builderNodePool.Put(r.table[i].node)
+		r.table[i] = empty
 	}
-	r.hasher.Reset()
 }
 
 func (r *registry) entry(node *builderNode) (bool, int, *registryCell) {
@@ -57,7 +53,7 @@ func (r *registry) entry(node *builderNode) (bool, int, *registryCell) {
 	start := r.mruSize * uint(bucket)
 	end := start + r.mruSize
 	rc := registryCache(r.table[start:end])
-	return rc.entry(node)
+	return rc.entry(node, r.builderNodePool)
 }
 
 const fnvPrime = 1099511628211
@@ -81,11 +77,12 @@ func (r *registry) hash(b *builderNode) int {
 
 type registryCache []registryCell
 
-func (r registryCache) entry(node *builderNode) (bool, int, *registryCell) {
+func (r registryCache) entry(node *builderNode, pool *builderNodePool) (bool, int, *registryCell) {
 	if len(r) == 1 {
 		if r[0].node != nil && r[0].node.equiv(node) {
 			return true, r[0].addr, nil
 		}
+		pool.Put(r[0].node)
 		r[0].node = node
 		return false, 0, &r[0]
 	}
@@ -98,6 +95,7 @@ func (r registryCache) entry(node *builderNode) (bool, int, *registryCell) {
 	}
 	// no match
 	last := len(r) - 1
+	pool.Put(r[last].node)
 	r[last].node = node // discard LRU
 	r.promote(last)
 	return false, 0, &r[0]

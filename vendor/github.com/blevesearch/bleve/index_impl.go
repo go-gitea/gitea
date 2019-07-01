@@ -50,6 +50,12 @@ const storePath = "store"
 
 var mappingInternalKey = []byte("_mapping")
 
+const SearchQueryStartCallbackKey = "_search_query_start_callback_key"
+const SearchQueryEndCallbackKey = "_search_query_end_callback_key"
+
+type SearchQueryStartCallbackFn func(size uint64) error
+type SearchQueryEndCallbackFn func(size uint64) error
+
 func indexStorePath(path string) string {
 	return path + string(os.PathSeparator) + storePath
 }
@@ -362,8 +368,70 @@ func (i *indexImpl) Search(req *SearchRequest) (sr *SearchResult, err error) {
 	return i.SearchInContext(context.Background(), req)
 }
 
+var documentMatchEmptySize int
+var searchContextEmptySize int
+var facetResultEmptySize int
+var documentEmptySize int
+
+func init() {
+	var dm search.DocumentMatch
+	documentMatchEmptySize = dm.Size()
+
+	var sc search.SearchContext
+	searchContextEmptySize = sc.Size()
+
+	var fr search.FacetResult
+	facetResultEmptySize = fr.Size()
+
+	var d document.Document
+	documentEmptySize = d.Size()
+}
+
+// memNeededForSearch is a helper function that returns an estimate of RAM
+// needed to execute a search request.
+func memNeededForSearch(req *SearchRequest,
+	searcher search.Searcher,
+	topnCollector *collector.TopNCollector) uint64 {
+
+	backingSize := req.Size + req.From + 1
+	if req.Size+req.From > collector.PreAllocSizeSkipCap {
+		backingSize = collector.PreAllocSizeSkipCap + 1
+	}
+	numDocMatches := backingSize + searcher.DocumentMatchPoolSize()
+
+	estimate := 0
+
+	// overhead, size in bytes from collector
+	estimate += topnCollector.Size()
+
+	// pre-allocing DocumentMatchPool
+	estimate += searchContextEmptySize + numDocMatches*documentMatchEmptySize
+
+	// searcher overhead
+	estimate += searcher.Size()
+
+	// overhead from results, lowestMatchOutsideResults
+	estimate += (numDocMatches + 1) * documentMatchEmptySize
+
+	// additional overhead from SearchResult
+	estimate += reflectStaticSizeSearchResult + reflectStaticSizeSearchStatus
+
+	// overhead from facet results
+	if req.Facets != nil {
+		estimate += len(req.Facets) * facetResultEmptySize
+	}
+
+	// highlighting, store
+	if len(req.Fields) > 0 || req.Highlight != nil {
+		// Size + From => number of hits
+		estimate += (req.Size + req.From) * documentEmptySize
+	}
+
+	return uint64(estimate)
+}
+
 // SearchInContext executes a search request operation within the provided
-// Context.  Returns a SearchResult object or an error.
+// Context. Returns a SearchResult object or an error.
 func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr *SearchResult, err error) {
 	i.mutex.RLock()
 	defer i.mutex.RUnlock()
@@ -390,6 +458,7 @@ func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr
 	searcher, err := req.Query.Searcher(indexReader, i.m, search.SearcherOptions{
 		Explain:            req.Explain,
 		IncludeTermVectors: req.IncludeLocations || req.Highlight != nil,
+		Score:              req.Score,
 	})
 	if err != nil {
 		return nil, err
@@ -428,6 +497,24 @@ func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr
 		collector.SetFacetsBuilder(facetsBuilder)
 	}
 
+	memNeeded := memNeededForSearch(req, searcher, collector)
+	if cb := ctx.Value(SearchQueryStartCallbackKey); cb != nil {
+		if cbF, ok := cb.(SearchQueryStartCallbackFn); ok {
+			err = cbF(memNeeded)
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if cb := ctx.Value(SearchQueryEndCallbackKey); cb != nil {
+		if cbF, ok := cb.(SearchQueryEndCallbackFn); ok {
+			defer func() {
+				_ = cbF(memNeeded)
+			}()
+		}
+	}
+
 	err = collector.Collect(ctx, searcher, indexReader)
 	if err != nil {
 		return nil, err
@@ -459,7 +546,8 @@ func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr
 			doc, err := indexReader.Document(hit.ID)
 			if err == nil && doc != nil {
 				if len(req.Fields) > 0 {
-					for _, f := range req.Fields {
+					fieldsToLoad := deDuplicate(req.Fields)
+					for _, f := range fieldsToLoad {
 						for _, docF := range doc.Fields {
 							if f == "*" || docF.Name() == f {
 								var value interface{}
@@ -533,9 +621,7 @@ func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr
 	return &SearchResult{
 		Status: &SearchStatus{
 			Total:      1,
-			Failed:     0,
 			Successful: 1,
-			Errors:     make(map[string]error),
 		},
 		Request:  req,
 		Hits:     hits,
@@ -754,4 +840,17 @@ func (f *indexImplFieldDict) Close() error {
 		return err
 	}
 	return f.indexReader.Close()
+}
+
+// helper function to remove duplicate entries from slice of strings
+func deDuplicate(fields []string) []string {
+	entries := make(map[string]struct{})
+	ret := []string{}
+	for _, entry := range fields {
+		if _, exists := entries[entry]; !exists {
+			entries[entry] = struct{}{}
+			ret = append(ret, entry)
+		}
+	}
+	return ret
 }

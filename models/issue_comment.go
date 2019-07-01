@@ -11,14 +11,14 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/git"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -80,6 +80,10 @@ const (
 	CommentTypeCode
 	// Reviews a pull request by giving general feedback
 	CommentTypeReview
+	// Lock an issue, giving only collaborators access
+	CommentTypeLock
+	// Unlocks a previously locked issue
+	CommentTypeUnlock
 )
 
 // CommentTag defines comment tag type
@@ -150,6 +154,23 @@ func (c *Comment) LoadIssue() (err error) {
 	return
 }
 
+func (c *Comment) loadPoster(e Engine) (err error) {
+	if c.Poster != nil {
+		return nil
+	}
+
+	c.Poster, err = getUserByID(e, c.PosterID)
+	if err != nil {
+		if IsErrUserNotExist(err) {
+			c.PosterID = -1
+			c.Poster = NewGhostUser()
+		} else {
+			log.Error("getUserByID[%d]: %v", c.ID, err)
+		}
+	}
+	return err
+}
+
 // AfterDelete is invoked from XORM after the object is deleted.
 func (c *Comment) AfterDelete() {
 	if c.ID <= 0 {
@@ -167,12 +188,12 @@ func (c *Comment) AfterDelete() {
 func (c *Comment) HTMLURL() string {
 	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
+		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
 	err = c.Issue.loadRepo(x)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
+		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
 	if c.Type == CommentTypeCode {
@@ -196,7 +217,7 @@ func (c *Comment) HTMLURL() string {
 func (c *Comment) IssueURL() string {
 	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
+		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
 
@@ -206,7 +227,7 @@ func (c *Comment) IssueURL() string {
 
 	err = c.Issue.loadRepo(x)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
+		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
 	return c.Issue.HTMLURL()
@@ -216,13 +237,13 @@ func (c *Comment) IssueURL() string {
 func (c *Comment) PRURL() string {
 	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
+		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
 
 	err = c.Issue.loadRepo(x)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
+		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
 
@@ -314,7 +335,7 @@ func (c *Comment) LoadPoster() error {
 			c.PosterID = -1
 			c.Poster = NewGhostUser()
 		} else {
-			log.Error(3, "getUserByID[%d]: %v", c.ID, err)
+			log.Error("getUserByID[%d]: %v", c.ID, err)
 		}
 	}
 	return nil
@@ -329,7 +350,7 @@ func (c *Comment) LoadAttachments() error {
 	var err error
 	c.Attachments, err = getAttachmentsByCommentID(x, c.ID)
 	if err != nil {
-		log.Error(3, "getAttachmentsByCommentID[%d]: %v", c.ID, err)
+		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
 	}
 	return nil
 }
@@ -371,16 +392,23 @@ func (c *Comment) mailParticipants(e Engine, opType ActionType, issue *Issue) (e
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
 
-	content := c.Content
+	if len(c.Content) > 0 {
+		if err = mailIssueCommentToParticipants(e, issue, c.Poster, c.Content, c, mentions); err != nil {
+			log.Error("mailIssueCommentToParticipants: %v", err)
+		}
+	}
 
 	switch opType {
 	case ActionCloseIssue:
-		content = fmt.Sprintf("Closed #%d", issue.Index)
+		ct := fmt.Sprintf("Closed #%d.", issue.Index)
+		if err = mailIssueCommentToParticipants(e, issue, c.Poster, ct, c, mentions); err != nil {
+			log.Error("mailIssueCommentToParticipants: %v", err)
+		}
 	case ActionReopenIssue:
-		content = fmt.Sprintf("Reopened #%d", issue.Index)
-	}
-	if err = mailIssueCommentToParticipants(e, issue, c.Poster, content, c, mentions); err != nil {
-		log.Error(4, "mailIssueCommentToParticipants: %v", err)
+		ct := fmt.Sprintf("Reopened #%d.", issue.Index)
+		if err = mailIssueCommentToParticipants(e, issue, c.Poster, ct, c, mentions); err != nil {
+			log.Error("mailIssueCommentToParticipants: %v", err)
+		}
 	}
 
 	return nil
@@ -415,6 +443,7 @@ func (c *Comment) loadReview(e Engine) (err error) {
 			return err
 		}
 	}
+	c.Review.Issue = c.Issue
 	return nil
 }
 
@@ -423,7 +452,7 @@ func (c *Comment) LoadReview() error {
 	return c.loadReview(x)
 }
 
-func (c *Comment) checkInvalidation(e Engine, doer *User, repo *git.Repository, branch string) error {
+func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
 	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
 	if err != nil {
@@ -439,7 +468,7 @@ func (c *Comment) checkInvalidation(e Engine, doer *User, repo *git.Repository, 
 // CheckInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
 func (c *Comment) CheckInvalidation(repo *git.Repository, doer *User, branch string) error {
-	return c.checkInvalidation(x, doer, repo, branch)
+	return c.checkInvalidation(doer, repo, branch)
 }
 
 // DiffSide returns "previous" if Comment.Line is a LOC of the previous changes and "proposed" if it is a LOC of the proposed changes.
@@ -488,12 +517,12 @@ func (c *Comment) MustAsDiff() *Diff {
 func (c *Comment) CodeCommentURL() string {
 	err := c.LoadIssue()
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "LoadIssue(%d): %v", c.IssueID, err)
+		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
 	err = c.Issue.loadRepo(x)
 	if err != nil { // Silently dropping errors :unamused:
-		log.Error(4, "loadRepo(%d): %v", c.Issue.RepoID, err)
+		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
 	}
 	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
@@ -634,7 +663,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 	// Notify watchers for whatever action comes in, ignore if no action type.
 	if act.OpType > 0 {
 		if err = notifyWatchers(e, act); err != nil {
-			log.Error(4, "notifyWatchers: %v", err)
+			log.Error("notifyWatchers: %v", err)
 		}
 	}
 	return nil
@@ -846,7 +875,7 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 		Repository: repo.APIFormat(mode),
 		Sender:     doer.APIFormat(),
 	}); err != nil {
-		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
 	} else {
 		go HookQueue.Add(repo.ID)
 	}
@@ -873,10 +902,11 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 	// No need for get commit for base branch changes
 	if line > 0 {
 		commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(line))
-		if err != nil {
+		if err == nil {
+			commitID = commit.ID.String()
+		} else if !strings.Contains(err.Error(), "exit status 128 - fatal: no such path") {
 			return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
 		}
-		commitID = commit.ID.String()
 	}
 
 	// Only fetch diff if comment is review comment
@@ -992,32 +1022,6 @@ func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
 	return findComments(x, opts)
 }
 
-// GetCommentsByIssueID returns all comments of an issue.
-func GetCommentsByIssueID(issueID int64) ([]*Comment, error) {
-	return findComments(x, FindCommentsOptions{
-		IssueID: issueID,
-		Type:    CommentTypeUnknown,
-	})
-}
-
-// GetCommentsByIssueIDSince returns a list of comments of an issue since a given time point.
-func GetCommentsByIssueIDSince(issueID, since int64) ([]*Comment, error) {
-	return findComments(x, FindCommentsOptions{
-		IssueID: issueID,
-		Type:    CommentTypeUnknown,
-		Since:   since,
-	})
-}
-
-// GetCommentsByRepoIDSince returns a list of comments for all issues in a repo since a given time point.
-func GetCommentsByRepoIDSince(repoID, since int64) ([]*Comment, error) {
-	return findComments(x, FindCommentsOptions{
-		RepoID: repoID,
-		Type:   CommentTypeUnknown,
-		Since:  since,
-	})
-}
-
 // UpdateComment updates information of comment.
 func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
@@ -1030,7 +1034,11 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	if err := c.LoadIssue(); err != nil {
 		return err
 	}
+
 	if err := c.Issue.LoadAttributes(); err != nil {
+		return err
+	}
+	if err := c.loadPoster(x); err != nil {
 		return err
 	}
 
@@ -1047,7 +1055,7 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 		Repository: c.Issue.Repo.APIFormat(mode),
 		Sender:     doer.APIFormat(),
 	}); err != nil {
-		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
+		log.Error("PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
 	} else {
 		go HookQueue.Add(c.Issue.Repo.ID)
 	}
@@ -1081,6 +1089,7 @@ func DeleteComment(doer *User, comment *Comment) error {
 	if err := sess.Commit(); err != nil {
 		return err
 	}
+	sess.Close()
 
 	if err := comment.LoadPoster(); err != nil {
 		return err
@@ -1088,7 +1097,11 @@ func DeleteComment(doer *User, comment *Comment) error {
 	if err := comment.LoadIssue(); err != nil {
 		return err
 	}
+
 	if err := comment.Issue.LoadAttributes(); err != nil {
+		return err
+	}
+	if err := comment.loadPoster(x); err != nil {
 		return err
 	}
 
@@ -1101,7 +1114,7 @@ func DeleteComment(doer *User, comment *Comment) error {
 		Repository: comment.Issue.Repo.APIFormat(mode),
 		Sender:     doer.APIFormat(),
 	}); err != nil {
-		log.Error(2, "PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
 	} else {
 		go HookQueue.Add(comment.Issue.Repo.ID)
 	}
@@ -1147,6 +1160,11 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 	if err := issue.loadRepo(e); err != nil {
 		return nil, err
 	}
+
+	if err := CommentList(comments).loadPosters(e); err != nil {
+		return nil, err
+	}
+
 	// Find all reviews by ReviewID
 	reviews := make(map[int64]*Review)
 	var ids = make([]int64, 0, len(comments))

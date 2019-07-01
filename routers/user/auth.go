@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -78,8 +77,14 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	}
 
 	isSucceed = true
-	ctx.Session.Set("uid", u.ID)
-	ctx.Session.Set("uname", u.Name)
+	err = ctx.Session.Set("uid", u.ID)
+	if err != nil {
+		return false, err
+	}
+	err = ctx.Session.Set("uname", u.Name)
+	if err != nil {
+		return false, err
+	}
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	return true, nil
 }
@@ -96,7 +101,7 @@ func checkAutoLogin(ctx *context.Context) bool {
 	if len(redirectTo) > 0 {
 		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	} else {
-		redirectTo, _ = url.QueryUnescape(ctx.GetCookie("redirect_to"))
+		redirectTo = ctx.GetCookie("redirect_to")
 	}
 
 	if isSucceed {
@@ -161,6 +166,19 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 		} else if models.IsErrEmailAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignIn, &form)
 			log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
+		} else if models.IsErrUserProhibitLogin(err) {
+			log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
+			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+			ctx.HTML(200, "user/auth/prohibit_login")
+		} else if models.IsErrUserInactive(err) {
+			if setting.Service.RegisterEmailConfirm {
+				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
+				ctx.HTML(200, TplActivate)
+			} else {
+				log.Info("Failed authentication attempt for %s from %s", form.UserName, ctx.RemoteAddr())
+				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+				ctx.HTML(200, "user/auth/prohibit_login")
+			}
 		} else {
 			ctx.ServerError("UserSignIn", err)
 		}
@@ -179,8 +197,16 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	}
 
 	// User needs to use 2FA, save data and redirect to 2FA page.
-	ctx.Session.Set("twofaUid", u.ID)
-	ctx.Session.Set("twofaRemember", form.Remember)
+	err = ctx.Session.Set("twofaUid", u.ID)
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
+	err = ctx.Session.Set("twofaRemember", form.Remember)
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
 
 	regs, err := models.GetU2FRegistrationsByUID(u.ID)
 	if err == nil && len(regs) > 0 {
@@ -371,6 +397,10 @@ func U2FChallenge(ctx *context.Context) {
 		return
 	}
 	challenge, err := u2f.NewChallenge(setting.U2F.AppID, setting.U2F.TrustedFacets)
+	if err != nil {
+		ctx.ServerError("u2f.NewChallenge", err)
+		return
+	}
 	if err = ctx.Session.Set("u2fChallenge", challenge); err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -396,7 +426,7 @@ func U2FSign(ctx *context.Context, signResp u2f.SignResponse) {
 	for _, reg := range regs {
 		r, err := reg.Parse()
 		if err != nil {
-			log.Fatal(4, "parsing u2f registration: %v", err)
+			log.Fatal("parsing u2f registration: %v", err)
 			continue
 		}
 		newCounter, authErr := r.Authenticate(signResp, *challenge, reg.Counter)
@@ -450,23 +480,29 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 			setting.CookieRememberName, u.Name, days, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	}
 
-	ctx.Session.Delete("openid_verified_uri")
-	ctx.Session.Delete("openid_signin_remember")
-	ctx.Session.Delete("openid_determined_email")
-	ctx.Session.Delete("openid_determined_username")
-	ctx.Session.Delete("twofaUid")
-	ctx.Session.Delete("twofaRemember")
-	ctx.Session.Delete("u2fChallenge")
-	ctx.Session.Delete("linkAccount")
-	ctx.Session.Set("uid", u.ID)
-	ctx.Session.Set("uname", u.Name)
+	_ = ctx.Session.Delete("openid_verified_uri")
+	_ = ctx.Session.Delete("openid_signin_remember")
+	_ = ctx.Session.Delete("openid_determined_email")
+	_ = ctx.Session.Delete("openid_determined_username")
+	_ = ctx.Session.Delete("twofaUid")
+	_ = ctx.Session.Delete("twofaRemember")
+	_ = ctx.Session.Delete("u2fChallenge")
+	_ = ctx.Session.Delete("linkAccount")
+	err := ctx.Session.Set("uid", u.ID)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
+	err = ctx.Session.Set("uname", u.Name)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
 
 	// Language setting of the user overwrites the one previously set
 	// If the user does not have a locale set, we save the current one.
 	if len(u.Language) == 0 {
 		u.Language = ctx.Locale.Language()
 		if err := models.UpdateUserCols(u, "language"); err != nil {
-			log.Error(4, fmt.Sprintf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
+			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
 			return setting.AppSubURL + "/"
 		}
 	}
@@ -483,7 +519,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 		return setting.AppSubURL + "/"
 	}
 
-	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
 		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 		if obeyRedirect {
 			ctx.RedirectToFirst(redirectTo)
@@ -551,7 +587,10 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 
 	if u == nil {
 		// no existing user is found, request attach or new account
-		ctx.Session.Set("linkAccountGothUser", gothUser)
+		err = ctx.Session.Set("linkAccountGothUser", gothUser)
+		if err != nil {
+			log.Error(fmt.Sprintf("Error setting session: %v", err))
+		}
 		ctx.Redirect(setting.AppSubURL + "/user/link_account")
 		return
 	}
@@ -561,8 +600,14 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 	_, err = models.GetTwoFactorByUID(u.ID)
 	if err != nil {
 		if models.IsErrTwoFactorNotEnrolled(err) {
-			ctx.Session.Set("uid", u.ID)
-			ctx.Session.Set("uname", u.Name)
+			err = ctx.Session.Set("uid", u.ID)
+			if err != nil {
+				log.Error(fmt.Sprintf("Error setting session: %v", err))
+			}
+			err = ctx.Session.Set("uname", u.Name)
+			if err != nil {
+				log.Error(fmt.Sprintf("Error setting session: %v", err))
+			}
 
 			// Clear whatever CSRF has right now, force to generate a new one
 			ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
@@ -574,7 +619,7 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 				return
 			}
 
-			if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 {
+			if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 {
 				ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 				ctx.RedirectToFirst(redirectTo)
 				return
@@ -588,8 +633,14 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 	}
 
 	// User needs to use 2FA, save data and redirect to 2FA page.
-	ctx.Session.Set("twofaUid", u.ID)
-	ctx.Session.Set("twofaRemember", false)
+	err = ctx.Session.Set("twofaUid", u.ID)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
+	err = ctx.Session.Set("twofaRemember", false)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
 
 	// If U2F is enrolled -> Redirect to U2F instead
 	regs, err := models.GetU2FRegistrationsByUID(u.ID)
@@ -650,6 +701,7 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
+	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
@@ -698,6 +750,7 @@ func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["LinkAccountModeSignIn"] = true
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
@@ -746,9 +799,18 @@ func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
 	}
 
 	// User needs to use 2FA, save data and redirect to 2FA page.
-	ctx.Session.Set("twofaUid", u.ID)
-	ctx.Session.Set("twofaRemember", signInForm.Remember)
-	ctx.Session.Set("linkAccount", true)
+	err = ctx.Session.Set("twofaUid", u.ID)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
+	err = ctx.Session.Set("twofaRemember", signInForm.Remember)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
+	err = ctx.Session.Set("linkAccount", true)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
 
 	// If U2F is enrolled -> Redirect to U2F instead
 	regs, err := models.GetU2FRegistrationsByUID(u.ID)
@@ -766,6 +828,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["LinkAccountModeRegister"] = true
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
@@ -873,7 +936,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		ctx.HTML(200, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
 		return
 	}
@@ -881,17 +944,21 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 	ctx.Redirect(setting.AppSubURL + "/user/login")
 }
 
-// SignOut sign out from login status
-func SignOut(ctx *context.Context) {
-	ctx.Session.Delete("uid")
-	ctx.Session.Delete("uname")
-	ctx.Session.Delete("socialId")
-	ctx.Session.Delete("socialName")
-	ctx.Session.Delete("socialEmail")
+func handleSignOut(ctx *context.Context) {
+	_ = ctx.Session.Delete("uid")
+	_ = ctx.Session.Delete("uname")
+	_ = ctx.Session.Delete("socialId")
+	_ = ctx.Session.Delete("socialName")
+	_ = ctx.Session.Delete("socialEmail")
 	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 	ctx.SetCookie("lang", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true) // Setting the lang cookie will trigger the middleware to reset the language ot previous state.
+}
+
+// SignOut sign out from login status
+func SignOut(ctx *context.Context) {
+	handleSignOut(ctx)
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
@@ -902,7 +969,7 @@ func SignUp(ctx *context.Context) {
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-
+	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 
@@ -918,7 +985,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
 
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
-
+	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 
@@ -1011,7 +1078,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		ctx.HTML(200, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
 		return
 	}
@@ -1038,7 +1105,7 @@ func Activate(ctx *context.Context) {
 				models.SendActivateAccountMail(ctx.Context, ctx.User)
 
 				if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
-					log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+					log.Error("Set cache(MailResendLimit) fail: %v", err)
 				}
 			}
 		} else {
@@ -1067,8 +1134,14 @@ func Activate(ctx *context.Context) {
 
 		log.Trace("User activated: %s", user.Name)
 
-		ctx.Session.Set("uid", user.ID)
-		ctx.Session.Set("uname", user.Name)
+		err = ctx.Session.Set("uid", user.ID)
+		if err != nil {
+			log.Error(fmt.Sprintf("Error setting session: %v", err))
+		}
+		err = ctx.Session.Set("uname", user.Name)
+		if err != nil {
+			log.Error(fmt.Sprintf("Error setting session: %v", err))
+		}
 		ctx.Flash.Success(ctx.Tr("auth.account_activated"))
 		ctx.Redirect(setting.AppSubURL + "/")
 		return
@@ -1094,7 +1167,6 @@ func ActivateEmail(ctx *context.Context) {
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/user/settings/email")
-	return
 }
 
 // ForgotPasswd render the forget pasword page
@@ -1154,7 +1226,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	models.SendResetPasswordMail(ctx.Context, u)
 	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-		log.Error(4, "Set cache(MailResendLimit) fail: %v", err)
+		log.Error("Set cache(MailResendLimit) fail: %v", err)
 	}
 
 	ctx.Data["ResetPwdCodeLives"] = base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
@@ -1162,64 +1234,89 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.HTML(200, tplForgotPassword)
 }
 
-// ResetPasswd render the reset password page
-func ResetPasswd(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
-
+func commonResetPassword(ctx *context.Context) *models.User {
 	code := ctx.Query("code")
-	if len(code) == 0 {
-		ctx.Error(404)
-		return
-	}
+
+	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
 	ctx.Data["Code"] = code
+
+	if nil != ctx.User {
+		ctx.Data["user_signed_in"] = true
+	}
+
+	if len(code) == 0 {
+		ctx.Flash.Error(ctx.Tr("auth.invalid_code"))
+		return nil
+	}
+
+	// Fail early, don't frustrate the user
+	u := models.VerifyUserActiveCode(code)
+	if u == nil {
+		ctx.Flash.Error(ctx.Tr("auth.invalid_code"))
+		return nil
+	}
+
+	// Show the user that they are affecting the account that they intended to
+	ctx.Data["user_email"] = u.Email
+
+	if nil != ctx.User && u.ID != ctx.User.ID {
+		ctx.Flash.Error(ctx.Tr("auth.reset_password_wrong_user", ctx.User.Email, u.Email))
+		return nil
+	}
+
+	return u
+}
+
+// ResetPasswd render the account recovery page
+func ResetPasswd(ctx *context.Context) {
 	ctx.Data["IsResetForm"] = true
+
+	commonResetPassword(ctx)
+
 	ctx.HTML(200, tplResetPassword)
 }
 
-// ResetPasswdPost response from reset password request
+// ResetPasswdPost response from account recovery request
 func ResetPasswdPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
+	u := commonResetPassword(ctx)
 
-	code := ctx.Query("code")
-	if len(code) == 0 {
-		ctx.Error(404)
+	if u == nil {
+		// Flash error has been set
+		ctx.HTML(200, tplResetPassword)
 		return
 	}
-	ctx.Data["Code"] = code
 
-	if u := models.VerifyUserActiveCode(code); u != nil {
-		// Validate password length.
-		passwd := ctx.Query("password")
-		if len(passwd) < setting.MinPasswordLength {
-			ctx.Data["IsResetForm"] = true
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
-			return
-		}
-
-		var err error
-		if u.Rands, err = models.GetUserSalt(); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-		if u.Salt, err = models.GetUserSalt(); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-		u.HashPassword(passwd)
-		u.MustChangePassword = false
-		if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-
-		log.Trace("User password reset: %s", u.Name)
-		ctx.Redirect(setting.AppSubURL + "/user/login")
+	// Validate password length.
+	passwd := ctx.Query("password")
+	if len(passwd) < setting.MinPasswordLength {
+		ctx.Data["IsResetForm"] = true
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
 		return
 	}
+
+	var err error
+	if u.Rands, err = models.GetUserSalt(); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
+	if u.Salt, err = models.GetUserSalt(); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
+
+	u.HashPassword(passwd)
+	u.MustChangePassword = false
+	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "rands", "salt"); err != nil {
+		ctx.ServerError("UpdateUser", err)
+		return
+	}
+
+	log.Trace("User password reset: %s", u.Name)
 
 	ctx.Data["IsResetFailed"] = true
-	ctx.HTML(200, tplResetPassword)
+	remember := len(ctx.Query("remember")) != 0
+	handleSignInFull(ctx, u, remember, true)
 }
 
 // MustChangePassword renders the page to change a user's password
@@ -1281,7 +1378,7 @@ func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form aut
 
 	log.Trace("User updated password: %s", u.Name)
 
-	if redirectTo, _ := url.QueryUnescape(ctx.GetCookie("redirect_to")); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
+	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !util.IsExternalURL(redirectTo) {
 		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
 		ctx.RedirectToFirst(redirectTo)
 		return

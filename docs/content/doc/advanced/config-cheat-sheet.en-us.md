@@ -15,8 +15,8 @@ menu:
 
 # Configuration Cheat Sheet
 
-This is a cheat sheet for the Gitea configuration file. It contains most settings
-that can configured as well as their default values.
+This is a cheat sheet for the Gitea configuration file. It contains most of the settings
+that can be configured as well as their default values.
 
 Any changes to the Gitea configuration file should be made in `custom/conf/app.ini`
 or any corresponding location. When installing from a distribution, this will
@@ -44,7 +44,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `ROOT`: **~/gitea-repositories/**: Root path for storing all repository data. It must be
    an absolute path.
-- `SCRIPT_TYPE`: **bash**: The script type this server supports, usually this is `bash`,
+- `SCRIPT_TYPE`: **bash**: The script type this server supports. Usually this is `bash`,
    but some users report that only `sh` is available.
 - `ANSI_CHARSET`: **\<empty\>**: The default charset for an unrecognized charset.
 - `FORCE_PRIVATE`: **false**: Force every new repository to be private.
@@ -65,10 +65,26 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ACCESS_CONTROL_ALLOW_ORIGIN`: **\<empty\>**: Value for Access-Control-Allow-Origin header,
    default is not to present. **WARNING**: This maybe harmful to you website if you do not
    give it a right value.
+- `DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH`:  **false**: Close an issue if a commit on a non default branch marks it as closed.
 
 ### Repository - Pull Request (`repository.pull-request`)
+
 - `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
  title to mark them as Work In Progress
+
+### Repository - Issue (`repository.issue`)
+
+- `LOCK_REASONS`: **Too heated,Off-topic,Resolved,Spam**: A list of reasons why a Pull Request or Issue can be locked
+
+## CORS (`cors`)
+
+- `ENABLED`: **false**: enable cors headers (disabled by default)
+- `SCHEME`: **http**: scheme of allowed requests
+- `ALLOW_DOMAIN`: **\***: list of requesting domains that are allowed
+- `ALLOW_SUBDOMAIN`: **false**: allow subdomains of headers listed above to request
+- `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: list of methods allowed to request
+- `MAX_AGE`: **10m**: max time to cache response
+- `ALLOW_CREDENTIALS`: **false**: allow request with credentials
 
 ## UI (`ui`)
 
@@ -79,6 +95,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
 - `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
   regardless of the value of `DEFAULT_THEME`.
+- `DEFAULT_SHOW_FULL_NAME`: false: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 
 ### UI - Admin (`ui.admin`)
 
@@ -143,15 +160,22 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `USER`: **root**: Database username.
 - `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
 - `SSL_MODE`: **disable**: For PostgreSQL and MySQL only.
+- `CHARSET`: **utf8**: For MySQL only, either "utf8" or "utf8mb4", default is "utf8". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
-- `DB_RETRY_BACKOFF`: **3s*: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
+- `DB_RETRY_BACKOFF`: **3s**: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
 
 ## Indexer (`indexer`)
 
+- `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently support: bleve or db, if it's db, below issue indexer item will be invalid.
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search.
-- `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space).
+- `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: Issue indexer queue, currently supports:`channel`, `levelqueue`, `redis`.
+- `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this will be the queue will be saved path.
+- `ISSUE_INDEXER_QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: When `ISSUE_INDEXER_QUEUE_TYPE` is `redis`, this will store the redis connection string.
+- `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: Batch queue number.
+
+- `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
@@ -171,6 +195,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DISABLE_GIT_HOOKS`: **false**: Set to `true` to prevent all users (including admin) from creating custom
    git hooks.
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
+- `INTERNAL_TOKEN`: **\<random at every install if no uri set\>**: Secret used to validate communication within Gitea binary.
+- `INTERNAL_TOKEN_URI`: **<empty>**: Instead of defining internal token in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
 
 ## OpenID (`openid`)
 
@@ -202,12 +228,14 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `CAPTCHA_TYPE`: **image**: \[image, recaptcha\]
 - `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha.
 - `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha.
-- `DEFAULT_ENABLE_DEPENDENCIES`: **true** Enable this to have dependencies enabled by default.
-- `ENABLE_USER_HEATMAP`: **true** Enable this to display the heatmap on users profiles.
+- `RECAPTCHA_URL`: **https://www.google.com/recaptcha/**: Set the recaptcha url - allows the use of recaptcha net.
+- `DEFAULT_ENABLE_DEPENDENCIES`: **true**: Enable this to have dependencies enabled by default.
+- `ENABLE_USER_HEATMAP`: **true**: Enable this to display the heatmap on users profiles.
 - `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
   on this instance.
 - `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
-- `AUTO_WATCH_NEW_REPOS`: **true** Enable this to let all organisation users watch new repos when they are created
+- `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
+- `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
 
 ## Webhook (`webhook`)
 
@@ -228,10 +256,15 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
 - `SKIP_VERIFY`: **\<empty\>**: Do not verify the self-signed certificates.
    - **Note:** Gitea only supports SMTP with STARTTLS.
-- `USE_SENDMAIL`: **false** Use the operating system's `sendmail` command instead of SMTP.
+- `SUBJECT_PREFIX`: **\<empty\>**: Prefix to be placed before e-mail subject lines.
+- `MAILER_TYPE`: **smtp**: \[smtp, sendmail, dummy\]
+   - **smtp** Use SMTP to send mail
+   - **sendmail** Use the operating system's `sendmail` command instead of SMTP.
    This is common on linux systems.
+   - **dummy** Send email messages to the log as a testing phase.
    - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`,
-     `FROM` and `SENDMAIL_PATH`.
+     `FROM`, `SUBJECT_PREFIX` and `SENDMAIL_PATH`.
+   - Enabling dummy will ignore all settings except `ENABLED`, `SUBJECT_PREFIX` and `FROM`.
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
    command or full path).
 - ``IS_TLS_ENABLED`` :  **false** : Decide if SMTP connections should use TLS.
@@ -246,7 +279,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Session (`session`)
 
-- `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, mysql\].
+- `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, mysql, couchbase, memcache, nodb, postgres\].
 - `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for others, the connection string.
 - `COOKIE_SECURE`: **false**: Enable this to force using HTTPS for all session access.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
@@ -259,7 +292,16 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DISABLE_GRAVATAR`: **false**: Enable this to use local avatars only.
 - `ENABLE_FEDERATED_AVATAR`: **false**: Enable support for federated avatars (see
    [http://www.libravatar.org](http://www.libravatar.org)).
-- `AVATAR_UPLOAD_PATH`: **data/avatars**: Path to store local and cached files.
+- `AVATAR_UPLOAD_PATH`: **data/avatars**: Path to store user avatar image files.
+- `REPOSITORY_AVATAR_UPLOAD_PATH`: **data/repo-avatars**: Path to store repository avatar image files.
+- `REPOSITORY_AVATAR_FALLBACK`: **none**: How Gitea deals with missing repository avatars
+  - none = no avatar will be displayed
+  - random = random avatar will be generated
+  - image = default image will be used (which is set in `REPOSITORY_AVATAR_DEFAULT_IMAGE`)
+- `REPOSITORY_AVATAR_FALLBACK_IMAGE`: **/img/repo_default.png**: Image used as default repository avatar (if `REPOSITORY_AVATAR_FALLBACK` is set to image and none was uploaded)
+- `AVATAR_MAX_WIDTH`: **4096**: Maximum avatar image width in pixels.
+- `AVATAR_MAX_HEIGHT`: **3072**: Maximum avatar image height in pixels.
+- `AVATAR_MAX_FILE_SIZE`: **1048576** (1Mb): Maximum avatar image file size in bytes.
 
 ## Attachment (`attachment`)
 
@@ -273,8 +315,64 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Log (`log`)
 
 - `ROOT_PATH`: **\<empty\>**: Root path for log files.
-- `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values.
-- `LEVEL`: **Trace**: General log level. \[Trace, Debug, Info, Warn, Error, Critical\]
+- `MODE`: **console**: Logging mode. For multiple modes, use a comma to separate values. You can configure each mode in per mode log subsections `\[log.modename\]`. By default the file mode will log to `$ROOT_PATH/gitea.log`.
+- `LEVEL`: **Info**: General log level. \[Trace, Debug, Info, Warn, Error, Critical, Fatal, None\]
+- `STACKTRACE_LEVEL`: **None**: Default log level at which to log create stack traces. \[Trace, Debug, Info, Warn, Error, Critical, Fatal, None\]
+- `REDIRECT_MACARON_LOG`: **false**: Redirects the Macaron log to its own logger or the default logger.
+- `MACARON`: **file**: Logging mode for the macaron logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.modename.macaron\]`. By default the file mode will log to `$ROOT_PATH/macaron.log`. (If you set this to `,` it will log to default gitea logger.)
+- `ROUTER_LOG_LEVEL`: **Info**: The log level that the router should log at. (If you are setting the access log, its recommended to place this at Debug.)
+- `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default gitea logger.)
+NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect. Configure each mode in per mode log subsections `\[log.modename.router\]`.
+- `ENABLE_ACCESS_LOG`: **false**: Creates an access.log in NCSA common log format, or as per the following template
+- `ACCESS`: **file**: Logging mode for the access logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.modename.access\]`. By default the file mode will log to `$ROOT_PATH/access.log`. (If you set this to `,` it will log to the default gitea logger.)
+- `ACCESS_LOG_TEMPLATE`: **`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**: Sets the template used to create the access log.
+  - The following variables are available:
+  - `Ctx`: the `macaron.Context` of the request.
+  - `Identity`: the SignedUserName or `"-"` if not logged in.
+  - `Start`: the start time of the request.
+  - `ResponseWriter`: the responseWriter from the request.
+  - You must be very careful to ensure that this template does not throw errors or panics as this template runs outside of the panic/recovery script.
+- `ENABLE_XORM_LOG`: **true**: Set whether to perform XORM logging. Please note SQL statement logging can be disabled by setting `LOG_SQL` to false in the `[database]` section.
+
+### Log subsections (`log.name`, `log.name.*`)
+
+- `LEVEL`: **log.LEVEL**: Sets the log-level of this sublogger. Defaults to the `LEVEL` set in the global `[log]` section.
+- `STACKTRACE_LEVEL`: **log.STACKTRACE_LEVEL**: Sets the log level at which to log stack traces.
+- `MODE`: **name**: Sets the mode of this sublogger - Defaults to the provided subsection name. This allows you to have two different file loggers at different levels.
+- `EXPRESSION`: **""**: A regular expression to match either the function name, file or message. Defaults to empty. Only log messages that match the expression will be saved in the logger.
+- `FLAGS`: **stdflags**: A comma separated string representing the log flags. Defaults to `stdflags` which represents the prefix: `2009/01/23 01:23:23 ...a/b/c/d.go:23:runtime.Caller() [I]: message`. `none` means don't prefix log lines. See `modules/log/base.go` for more information.
+- `PREFIX`: **""**: An additional prefix for every log line in this logger. Defaults to empty.
+- `COLORIZE`: **false**: Colorize the log lines by default
+
+### Console log mode (`log.console`, `log.console.*`, or `MODE=console`)
+
+- For the console logger `COLORIZE` will default to `true` if not on windows or the terminal is determined to be able to color.
+- `STDERR`: **false**: Use Stderr instead of Stdout.
+
+### File log mode (`log.file`, `log.file.*` or `MODE=file`)
+
+- `FILE_NAME`: Set the file name for this logger. Defaults as described above. If relative will be relative to the `ROOT_PATH`
+- `LOG_ROTATE`: **true**: Rotate the log files.
+- `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
+- `DAILY_ROTATE`: **true**: Rotate logs daily.
+- `MAX_DAYS`: **7**: Delete the log file after n days
+- `COMPRESS`: **true**: Compress old log files by default with gzip
+- `COMPRESSION_LEVEL`: **-1**: Compression level
+
+### Conn log mode (`log.conn`, `log.conn.*` or `MODE=conn`)
+
+- `RECONNECT_ON_MSG`: **false**: Reconnect host for every single message.
+- `RECONNECT`: **false**: Try to reconnect when connection is lost.
+- `PROTOCOL`: **tcp**: Set the protocol, either "tcp", "unix" or "udp".
+- `ADDR`: **:7020**: Sets the address to connect to.
+
+### SMTP log mode (`log.smtp`, `log.smtp.*` or `MODE=smtp`)
+
+- `USER`: User email address to send from.
+- `PASSWD`: Password for the smtp server.
+- `HOST`: **127.0.0.1:25**: The SMTP host to connect to.
+- `RECEIVERS`: Email addresses to send to.
+- `SUBJECT`: **Diagnostic message from Gitea**
 
 ## Cron (`cron`)
 
@@ -309,8 +407,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. See more on http://git-scm.com/docs/git-gc/
+- `ENABLE_AUTO_GIT_WIRE_PROTOCOL`: **true**: If use git wire protocol version 2 when git version >= 2.18, default is true, set to false when you always want git wire protocol version 1
 
 ## Git - Timeout settings (`git.timeout`)
+- `DEFAUlT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
 - `MIRROR`: **300**: Mirror external repositories timeout seconds.
 - `CLONE`: **300**: Git clone from internal repositories timeout seconds.
@@ -326,7 +426,17 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `ENABLE_SWAGGER`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
-- `DEFAULT_PAGING_NUM`: **30**: Default paging number of api.
+- `DEFAULT_PAGING_NUM`: **30**: Default paging number of API.
+- `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Default and maximum number of items per page for git trees API.
+- `DEFAULT_MAX_BLOB_SIZE`: **10485760**: Default max size of a blob that can be return by the blobs API.
+
+## OAuth2 (`oauth2`)
+
+- `ENABLE`: **true**: Enables OAuth2 provider.
+- `ACCESS_TOKEN_EXPIRATION_TIME`: **3600**: Lifetime of an OAuth2 access token in seconds
+- `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 access token in hours
+- `INVALIDATE_REFRESH_TOKEN`: **false**: Check if refresh token got already used
+- `JWT_SECRET`: **\<empty\>**: OAuth2 authentication secret for access and refresh tokens, change this a unique string.
 
 ## i18n (`i18n`)
 

@@ -1,111 +1,273 @@
-@footer-margin: 40px;
+@font-face {
+    font-family: 'Lato';
+    src: url('../vendor/assets/lato-fonts/lato-regular.eot');
+    src: url('../vendor/assets/lato-fonts/lato-regular.eot?#iefix') format('embedded-opentype'), url('../vendor/assets/lato-fonts/lato-regular.woff2') format('woff2'), url('../vendor/assets/lato-fonts/lato-regular.woff') format('woff'), url('../vendor/assets/lato-fonts/lato-regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Lato';
+    src: url('../vendor/assets/lato-fonts/lato-italic.eot');
+    src: url('../vendor/assets/lato-fonts/lato-italic.eot?#iefix') format('embedded-opentype'), url('../vendor/assets/lato-fonts/lato-italic.woff2') format('woff2'), url('../vendor/assets/lato-fonts/lato-italic.woff') format('woff'), url('../vendor/assets/lato-fonts/lato-italic.ttf') format('truetype');
+    font-weight: 400;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Lato';
+    src: url('../vendor/assets/lato-fonts/lato-bold.eot');
+    src: url('../vendor/assets/lato-fonts/lato-bold.eot?#iefix') format('embedded-opentype'), url('../vendor/assets/lato-fonts/lato-bold.woff2') format('woff2'), url('../vendor/assets/lato-fonts/lato-bold.woff') format('woff'), url('../vendor/assets/lato-fonts/lato-bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Lato';
+    src: url('../vendor/assets/lato-fonts/lato-bolditalic.eot');
+    src: url('../vendor/assets/lato-fonts/lato-bolditalic.eot?#iefix') format('embedded-opentype'), url('../vendor/assets/lato-fonts/lato-bolditalic.woff2') format('woff2'), url('../vendor/assets/lato-fonts/lato-bolditalic.woff') format('woff'), url('../vendor/assets/lato-fonts/lato-bolditalic.ttf') format('truetype');
+    font-weight: 700;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Yu Gothic';
+    src: local('Yu Gothic Medium');
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: 'Yu Gothic';
+    src: local('Yu Gothic Bold');
+    font-weight: 700;
+}
+
+@default-fonts: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, Helvetica, Arial;
+@monospaced-fonts: 'SF Mono', Consolas, Menlo, 'Liberation Mono', Monaco, 'Lucida Console';
+
+.override-fonts(@fonts) {
+    textarea {
+        font-family: @fonts, sans-serif;
+    }
+
+    .markdown:not(code) {
+        font-family: @fonts, sans-serif;
+    }
+
+    /* We're going to just override the semantic fonts here */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5 {
+        font-family: Lato, @fonts, sans-serif;
+    }
+
+    .home .hero h1,
+    .home .hero h2 {
+        font-family: 'PT Sans Narrow', Lato, @fonts, sans-serif;
+    }
+
+    .ui.accordion .title:not(.ui),
+    .ui.button,
+    .ui.card > .content > .header.ui.card > .content > .header,
+    .ui.category.search > .results .category > .name,
+    .ui.form input:not([type]),
+    .ui.form input[type="date"],
+    .ui.form input[type="datetime-local"],
+    .ui.form input[type="email"],
+    .ui.form input[type="file"],
+    .ui.form input[type="number"],
+    .ui.form input[type="password"],
+    .ui.form input[type="search"],
+    .ui.form input[type="tel"],
+    .ui.form input[type="text"],
+    .ui.form input[type="time"],
+    .ui.form input[type="url"],
+    .ui.header,
+    .ui.items > .item > .content > .header,
+    .ui.list .list > .item .header,
+    .ui.list > .item .header,
+    .ui.menu,
+    .ui.message .header,
+    .ui.modal > .header,
+    .ui.popup > .header,
+    .ui.search > .results .result .title,
+    .ui.search > .results > .message .header,
+    body,
+    .ui.input > input,
+    .ui.input input,
+    .ui.statistics .statistic > .value,
+    .ui.statistic > .value,
+    .ui.statistics .statistic > .label,
+    .ui.statistic > .label,
+    .ui.steps .step .title,
+    .ui.text.container,
+    .ui.language > .menu > .item& {
+        font-family: Lato, @fonts, sans-serif;
+    }
+}
+
+.override-fonts(@default-fonts);
 
 body {
-    font-family: "Lato", "Segoe UI", "Microsoft YaHei", Arial, Helvetica, sans-serif !important;
-    background-color: #fff;
-    overflow-y: scroll;
+    background-color: #ffffff;
+    overflow-y: auto;
     -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
 }
+
+@ja-fonts: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Source Han Sans JP', 'Noto Sans CJK JP', 'Droid Sans Japanese', 'Meiryo', 'MS PGothic';
+:lang(ja) {
+    .override-fonts(@default-fonts, @ja-fonts;);
+}
+
+@zh-CN-fonts: 'PingFang SC', 'Hiragino Sans GB', 'Source Han Sans CN', 'Source Han Sans SC', 'Noto Sans CJK SC', 'Microsoft YaHei', 'Heiti SC', SimHei;
+:lang(zh-CN) {
+    .override-fonts(@default-fonts, @zh-CN-fonts;);
+}
+
+@zh-TW-fonts: 'PingFang TC', 'Hiragino Sans TC', 'Source Han Sans TW', 'Source Han Sans TC', 'Noto Sans CJK TC', 'Microsoft JhengHei', 'Heiti TC', PMingLiU;
+:lang(zh-TW) {
+    .override-fonts(@default-fonts, @zh-TW-fonts;);
+}
+
+@zh-HK-fonts: 'PingFang HK', 'Hiragino Sans TC', 'Source Han Sans HK', 'Source Han Sans TC', 'Noto Sans CJK TC', 'Microsoft JhengHei', 'Heiti TC', PMingLiU_HKSCS, PMingLiU;
+:lang(zh-HK) {
+    .override-fonts(@default-fonts, @zh-HK-fonts;);
+}
+
+@ko-fonts: 'Apple SD Gothic Neo', 'NanumBarunGothic', 'Malgun Gothic', 'Gulim', 'Dotum', 'Nanum Gothic', 'Source Han Sans KR', 'Noto Sans CJK KR';
+:lang(ko) {
+    .override-fonts(@default-fonts, @ko-fonts;);
+}
+
 img {
     border-radius: 3px;
 }
+
 table {
     border-collapse: collapse;
 }
-.rounded {
-    border-radius: .28571429rem !important;
+
+a {
+    cursor: pointer;
 }
-pre, code {
-    font: 12px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+
+.rounded {
+    border-radius: 0.28571429rem !important;
+}
+
+.wrap {
+    word-wrap: break-word;
+    word-break: break-all;
+}
+
+pre,
+code,
+.mono {
+    font: 12px @monospaced-fonts, monospace;
+
     &.raw {
         padding: 7px 12px;
         margin: 10px 0;
         background-color: #f8f8f8;
-        border: 1px solid #ddd;
+        border: 1px solid #dddddd;
         border-radius: 3px;
         font-size: 13px;
         line-height: 1.5;
         overflow: auto;
     }
+
     &.wrap {
-        white-space: pre-wrap;       /* CSS 3 */
-//      white-space: -moz-normal;    /* Mozilla, since 1999 */
-//      white-space: -normal;        /* Opera 4-6 */
-//      white-space: -o-normal;      /* Opera 7 */
-
-        -ms-word-break: break-all;
+        white-space: pre-wrap;
         word-break: break-all;
-
-        /* These are technically the same, but use both */
         overflow-wrap: break-word;
         word-wrap: break-word;
     }
 }
+
 .dont-break-out {
-    /* These are technically the same, but use both */
     overflow-wrap: break-word;
     word-wrap: break-word;
-
-    -ms-word-break: break-all;
     word-break: break-all;
-
-    /* Adds a hyphen where the word breaks, if supported (No Blink) */
-    -ms-hyphens: auto;
-    -moz-hyphens: auto;
-    -webkit-hyphens: auto;
     hyphens: auto;
 }
+
 .full.height {
-    padding: 0;
-    margin: 0 0 -@footer-margin 0;
-    min-height: 100%;
+    flex-grow: 1;
+    padding-bottom: 80px;
 }
+
 .following.bar {
     z-index: 900;
     left: 0;
-    width: 100%;
-    margin: 0;
+    margin: 0 !important;
+
     &.light {
         background-color: white;
-        border-bottom: 1px solid #DDDDDD;
+        border-bottom: 1px solid #dddddd;
         box-shadow: 0 2px 3px rgba(0, 0, 0, 0.04);
     }
+
     .column .menu {
         margin-top: 0;
     }
+
     .top.menu a.item.brand {
         padding-left: 0;
     }
+
     .brand .ui.mini.image {
         width: 30px;
     }
+
     .top.menu a.item:hover,
     .top.menu .dropdown.item:hover,
     .top.menu .dropdown.item.active {
         background-color: transparent;
     }
+
     .top.menu a.item:hover {
-        color: rgba(0,0,0,.45);
+        color: rgba(0, 0, 0, 0.45);
     }
+
     .top.menu .menu {
         z-index: 900;
     }
+
     .octicon {
         &.fitted {
             margin-right: 0;
         }
-        margin-right: .75em;
+
+        margin-right: 0.75em;
     }
+
     .searchbox {
-        background-color: rgb(244, 244, 244) !important;
+        background-color: #f4f4f4 !important;
+
         &:focus {
-            background-color: rgb(233, 233, 233) !important;
+            background-color: #e9e9e9 !important;
         }
     }
+
     .text .octicon {
         width: 16px;
         text-align: center;
     }
+
+    #navbar {
+        width: 100vw;
+        min-height: 52px;
+        padding: 0 0.5rem;
+    }
+
+    #navbar .brand {
+        margin: 0;
+    }
+
     @media only screen and (max-width: 767px) {
         #navbar:not(.shown) > *:not(:first-child) {
             display: none;
@@ -119,10 +281,7 @@ pre, code {
     // no, stackable won't work on right menus.
     margin-left: auto;
     display: flex;
-    display: -ms-flexbox;
-    -ms-flex-align: inherit;
     align-items: inherit;
-    -ms-flex-direction: inherit;
     flex-direction: inherit;
 }
 
@@ -130,14 +289,13 @@ pre, code {
     &.left {
         float: left;
     }
+
     &.right {
         float: right;
     }
 
-    &.button, &.menu .item {
-        -moz-user-select: auto;
-        -ms-user-select: auto;
-        -webkit-user-select: auto;
+    &.button,
+    &.menu .item {
         user-select: auto;
     }
 
@@ -171,67 +329,88 @@ pre, code {
 
     /* Overide semantic selector '.ui.menu:not(.vertical) .item > .button' */
     /* This fixes the commit graph button on the commits page */
+
     .menu:not(.vertical) .item > .button.compact {
-        padding: .58928571em 1.125em;
-    }
-    .menu:not(.vertical) .item > .button.small {
-        font-size: .92857143rem;
+        padding: 0.58928571em 1.125em;
     }
 
-    &.dropdown .menu>.item>.floating.label {
+    .menu:not(.vertical) .item > .button.small {
+        font-size: 0.92857143rem;
+    }
+
+    &.menu .ui.dropdown.item .menu .item {
+        margin-right: auto;
+    }
+
+    &.dropdown .menu > .item > .floating.label {
         z-index: 11;
     }
 
-    &.dropdown .menu .menu>.item>.floating.label {
+    &.dropdown .menu .menu > .item > .floating.label {
         z-index: 21;
     }
 
     .text {
         &.red {
             color: #d95c5c !important;
+
             a {
                 color: #d95c5c !important;
+
                 &:hover {
-                    color: #E67777 !important;
+                    color: #e67777 !important;
                 }
             }
         }
+
         &.blue {
             color: #428bca !important;
+
             a {
-                color: #15c !important;
+                color: #1155cc !important;
+
                 &:hover {
                     color: #428bca !important;
                 }
             }
         }
+
         &.black {
-            color: #444;
+            color: #444444;
+
             &:hover {
-                color: #000;
+                color: #000000;
             }
         }
+
         &.grey {
             color: #767676 !important;
+
             a {
-                color: #444 !important;
+                color: #444444 !important;
+
                 &:hover {
-                    color: #000 !important;
+                    color: #000000 !important;
                 }
             }
         }
+
         &.light.grey {
-            color: #888 !important;
+            color: #888888 !important;
         }
+
         &.green {
             color: #6cc644 !important;
         }
+
         &.purple {
             color: #6e5494 !important;
         }
+
         &.yellow {
-            color: #FBBD08 !important;
+            color: #fbbd08 !important;
         }
+
         &.gold {
             color: #a1882b !important;
         }
@@ -239,18 +418,23 @@ pre, code {
         &.left {
             text-align: left !important;
         }
+
         &.right {
             text-align: right !important;
         }
+
         &.small {
             font-size: 0.75em;
         }
+
         &.normal {
             font-weight: normal;
         }
+
         &.bold {
             font-weight: bold;
         }
+
         &.italic {
             font-style: italic;
         }
@@ -279,11 +463,14 @@ pre, code {
         font-weight: bold;
         text-align: left;
         color: black;
+
         .pull-right {
             color: black;
         }
-        &>span, .pull-right>span{
-            color:#21ba45;
+
+        & > span,
+        .pull-right > span {
+            color: #21ba45;
         }
     }
 
@@ -291,26 +478,34 @@ pre, code {
         padding-left: 0.75rem;
         vertical-align: middle;
     }
+
     .warning {
         &.header {
-            background-color: #F9EDBE !important;
-            border-color: #F0C36D;
+            background-color: #f9edbe !important;
+            border-color: #efc16b;
         }
+
         &.segment {
-            border-color: #F0C36D;
+            border-color: #efc16b;
         }
     }
+
     .info {
         &.segment {
             border: 1px solid #c5d5dd;
+
             &.top {
                 background-color: #e6f1f6 !important;
-                h3, h4 {
+
+                h3,
+                h4 {
                     margin-top: 0;
                 }
+
                 h3:last-child {
                     margin-top: 4px;
                 }
+
                 > :last-child {
                     margin-bottom: 0;
                 }
@@ -337,7 +532,7 @@ pre, code {
     }
 
     .sha.label {
-        font-family: Consolas, Menlo, Monaco, "Lucida Console", monospace;
+        font-family: @monospaced-fonts, monospace;
         font-size: 13px;
         padding: 6px 10px 4px 10px;
         font-weight: normal;
@@ -359,27 +554,35 @@ pre, code {
         &.red {
             background-color: #d95c5c !important;
         }
+
         &.blue {
             background-color: #428bca !important;
         }
+
         &.black {
-            background-color: #444;
+            background-color: #444444;
         }
+
         &.grey {
             background-color: #767676 !important;
         }
+
         &.light.grey {
-            background-color: #888 !important;
+            background-color: #888888 !important;
         }
+
         &.green {
             background-color: #6cc644 !important;
         }
+
         &.purple {
             background-color: #6e5494 !important;
         }
+
         &.yellow {
-            background-color: #FBBD08 !important;
+            background-color: #fbbf09 !important;
         }
+
         &.gold {
             background-color: #a1882b !important;
         }
@@ -388,41 +591,29 @@ pre, code {
     .branch-tag-choice {
         line-height: 20px;
     }
+
+    &.pagination.menu {
+        @media only screen and (max-width: 767px) {
+            .item:not(.active):not(.navigation),
+            .item.navigation span.navigation_label {
+                display: none;
+            }
+        }
+    }
 }
 
 .file-comment {
-    font: 12px Consolas,"Liberation Mono",Menlo,Courier,monospace;
-    color: rgba(0,0,0,.87);
+    font: 12px @monospaced-fonts, monospace;
+    color: rgba(0, 0, 0, 0.87);
 
 }
 
-.overflow.menu {
-    .items {
-        max-height: 300px;
-        overflow-y: auto;
-        .item {
-            position: relative;
-            cursor: pointer;
-            display: block;
-            border: none;
-            height: auto;
-            border-top: none;
-            line-height: 1em;
-            color: rgba(0,0,0,.8);
-            padding: .71428571em 1.14285714em !important;
-            font-size: 1rem;
-            text-transform: none;
-            font-weight: 400;
-            box-shadow: none;
-            -webkit-touch-callout: none;
-            &.active {
-                font-weight: 700;
-            }
-            &:hover {
-                background: rgba(0,0,0,.05);
-                color: rgba(0,0,0,.8);
-                z-index: 13;
-            }
+.ui.floating.dropdown {
+    .overflow.menu {
+        .scrolling.menu.items {
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            border-bottom: 1px solid rgba(34, 36, 38, 0.15);
         }
     }
 }
@@ -439,24 +630,29 @@ pre, code {
 }
 
 footer {
-    position: absolute;
     background-color: white;
     border-top: 1px solid #d6d6d6;
-    clear: both;
     width: 100%;
+    flex-basis: 40px;
     color: #888888;
+
     .container {
+        width: 100vw !important;
+        padding: 0 0.5rem;
+
         .fa {
             width: 16px;
             text-align: center;
             color: #428bca;
         }
-        .links >* {
+
+        .links > * {
             border-left: 1px solid #d6d6d6;
             padding-left: 8px;
             margin-left: 5px;
+
             &:first-child {
-                border-left: none;
+                border-left: 0;
             }
         }
     }
@@ -468,7 +664,8 @@ footer {
     }
 
     .ui {
-        &.left, &.right {
+        &.left,
+        &.right {
             line-height: 40px;
         }
     }
@@ -476,13 +673,16 @@ footer {
 
 .hide {
     display: none;
+
     &.show-outdated {
         display: none !important;
     }
+
     &.hide-outdated {
         display: none !important;
     }
 }
+
 .center {
     text-align: center;
 }
@@ -493,20 +693,24 @@ footer {
         width: (2px * @i) !important;
         height: (2px * @i) !important;
     }
+
     .generate-img(@n, (@i + 1));
 }
 
 // Conditional display
 @media only screen and (min-width: 768px) {
-    .mobile-only, .ui.button.mobile-only {
-      display: none;
+    .mobile-only,
+    .ui.button.mobile-only {
+        display: none;
     }
+
     // has the same behaviour of sr-only, hiding the content for
     // non-screenreaders, but is shown on mobile devices.
     .sr-mobile-only {
         .sr-only();
     }
 }
+
 @media only screen and (max-width: 767px) {
     .not-mobile {
         display: none;
@@ -524,6 +728,7 @@ footer {
     clip: rect(0, 0, 0, 0);
     border: 0;
 }
+
 .sr-only-focusable:active,
 .sr-only-focusable:focus {
     position: static;
@@ -551,7 +756,7 @@ footer {
     padding-top: 15px !important;
     margin-top: -15px !important;
     margin-bottom: 15px !important;
-    background-color: #FAFAFA !important;
+    background-color: #fafafa !important;
     border-width: 1px !important;
 }
 
@@ -561,19 +766,24 @@ footer {
         justify-content: left !important;
         padding-bottom: 5px;
     }
+
     .ui.menu.new-menu::-webkit-scrollbar {
         height: 8px;
         display: none;
     }
+
     .ui.menu.new-menu:hover::-webkit-scrollbar {
         display: block;
     }
+
     .ui.menu.new-menu::-webkit-scrollbar-track {
-        background: rgba(0,0,0,0.01);
+        background: rgba(0, 0, 0, 0.01);
     }
+
     .ui.menu.new-menu::-webkit-scrollbar-thumb {
-        background:rgba(0,0,0,0.2);
+        background: rgba(0, 0, 0, 0.2);
     }
+
     .ui.menu.new-menu:after {
         position: absolute;
         margin-top: -15px;
@@ -587,6 +797,7 @@ footer {
         clear: none;
         visibility: visible;
     }
+
     .ui.menu.new-menu a.item:last-child {
         padding-right: 30px !important;
     }
@@ -606,10 +817,9 @@ footer {
     margin-bottom: 2px !important;
 }
 
-#user-heatmap{
+#user-heatmap {
     width: 107%; // Fixes newest contributions not showing
     text-align: center;
-    margin: 40px 0 30px;
 
     svg:not(:root) {
         overflow: inherit;
@@ -647,10 +857,23 @@ footer {
     background-color: #2f6b1b;
 }
 
-.archived-icon{
-    color: lighten(#000, 70%) !important;
+.archived-icon {
+    color: lighten(#000000, 70%) !important;
 }
 
-.archived-icon{
-    color: lighten(#000, 70%) !important;
+.oauth2-authorize-application-box {
+    margin-top: 3em !important;
+}
+
+/* Tab color tweaks */
+.ui.tabular.menu .item {
+    color: rgba(0, 0, 0, 0.5);
+}
+
+.ui.tabular.menu .item:hover {
+    color: rgba(0, 0, 0, 0.8);
+}
+
+.ui.tabular.menu .item.active {
+    color: rgba(0, 0, 0, 0.9);
 }

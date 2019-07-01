@@ -11,10 +11,10 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/util"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
-// ListMilestones list all the opened milestones for a repository
+// ListMilestones list milestones for a repository
 func ListMilestones(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/milestones issue issueGetMilestonesList
 	// ---
@@ -32,10 +32,14 @@ func ListMilestones(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: state
+	//   in: query
+	//   description: Milestone state, Recognised values are open, closed and all. Defaults to "open"
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MilestoneList"
-	milestones, err := models.GetMilestonesByRepoID(ctx.Repo.Repository.ID)
+	milestones, err := models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")))
 	if err != nil {
 		ctx.Error(500, "GetMilestonesByRepoID", err)
 		return
@@ -78,7 +82,7 @@ func GetMilestone(ctx *context.APIContext) {
 	milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrMilestoneNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetMilestoneByRepoID", err)
 		}
@@ -169,7 +173,7 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 	milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrMilestoneNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetMilestoneByRepoID", err)
 		}

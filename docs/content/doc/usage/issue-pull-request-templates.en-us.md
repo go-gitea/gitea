@@ -15,10 +15,10 @@ menu:
 
 # Issue and Pull Request Templates
 
-For some projects there are a standard list of questions that users need to be asked
-for creating an issue, or adding a pull request. Gitea supports adding templates to the
+Some projects have a standard list of questions that users need to answer
+when creating an issue or pull request. Gitea supports adding templates to the
 main branch of the repository so that they can autopopulate the form when users are 
-creating issues, and pull requests. This will cut down on the initial back and forth
+creating issues and pull requests. This will cut down on the initial back and forth
 of getting some clarifying details.
 
 Possible file names for issue templates:

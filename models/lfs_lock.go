@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 	"github.com/go-xorm/xorm"
 )
 
@@ -39,11 +39,11 @@ func (l *LFSLock) AfterLoad(session *xorm.Session) {
 	var err error
 	l.Owner, err = getUserByID(session, l.OwnerID)
 	if err != nil {
-		log.Error(2, "LFS lock AfterLoad failed OwnerId[%d] not found: %v", l.OwnerID, err)
+		log.Error("LFS lock AfterLoad failed OwnerId[%d] not found: %v", l.OwnerID, err)
 	}
 	l.Repo, err = getRepositoryByID(session, l.RepoID)
 	if err != nil {
-		log.Error(2, "LFS lock AfterLoad failed RepoId[%d] not found: %v", l.RepoID, err)
+		log.Error("LFS lock AfterLoad failed RepoId[%d] not found: %v", l.RepoID, err)
 	}
 }
 

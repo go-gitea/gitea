@@ -296,32 +296,28 @@ func expandQuery(m mapping.IndexMapping, query Query) (Query, error) {
 	}
 
 	expand = func(query Query) (Query, error) {
-		switch query.(type) {
+		switch q := query.(type) {
 		case *QueryStringQuery:
-			q := query.(*QueryStringQuery)
 			parsed, err := parseQuerySyntax(q.Query)
 			if err != nil {
 				return nil, fmt.Errorf("could not parse '%s': %s", q.Query, err)
 			}
 			return expand(parsed)
 		case *ConjunctionQuery:
-			q := *query.(*ConjunctionQuery)
 			children, err := expandSlice(q.Conjuncts)
 			if err != nil {
 				return nil, err
 			}
 			q.Conjuncts = children
-			return &q, nil
+			return q, nil
 		case *DisjunctionQuery:
-			q := *query.(*DisjunctionQuery)
 			children, err := expandSlice(q.Disjuncts)
 			if err != nil {
 				return nil, err
 			}
 			q.Disjuncts = children
-			return &q, nil
+			return q, nil
 		case *BooleanQuery:
-			q := *query.(*BooleanQuery)
 			var err error
 			q.Must, err = expand(q.Must)
 			if err != nil {
@@ -335,7 +331,7 @@ func expandQuery(m mapping.IndexMapping, query Query) (Query, error) {
 			if err != nil {
 				return nil, err
 			}
-			return &q, nil
+			return q, nil
 		default:
 			return query, nil
 		}

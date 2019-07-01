@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -11,10 +12,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
 )
 
 var (
@@ -160,8 +162,8 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	// insert units for team
-	var units = make([]TeamUnit, 0, len(allRepUnitTypes))
-	for _, tp := range allRepUnitTypes {
+	var units = make([]TeamUnit, 0, len(AllRepoUnitTypes))
+	for _, tp := range AllRepoUnitTypes {
 		units = append(units, TeamUnit{
 			OrgID:  org.ID,
 			TeamID: t.ID,
@@ -170,7 +172,9 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	if _, err = sess.Insert(&units); err != nil {
-		sess.Rollback()
+		if err := sess.Rollback(); err != nil {
+			log.Error("CreateOrganization: sess.Rollback: %v", err)
+		}
 		return err
 	}
 
@@ -301,7 +305,7 @@ func isOrganizationOwner(e Engine, orgID, uid int64) (bool, error) {
 	if has, err := e.Get(ownerTeam); err != nil {
 		return false, err
 	} else if !has {
-		log.Error(4, "Organization does not have owner team: %d", orgID)
+		log.Error("Organization does not have owner team: %d", orgID)
 		return false, nil
 	}
 	return isTeamMember(e, orgID, ownerTeam.ID, uid)
@@ -364,6 +368,41 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 		And("`team`.authorize=?", AccessModeOwner).
 		Asc("`user`.name").
 		Find(&orgs)
+}
+
+// HasOrgVisible tells if the given user can see the given org
+func HasOrgVisible(org *User, user *User) bool {
+	return hasOrgVisible(x, org, user)
+}
+
+func hasOrgVisible(e Engine, org *User, user *User) bool {
+	// Not SignedUser
+	if user == nil {
+		return org.Visibility == structs.VisibleTypePublic
+	}
+
+	if user.IsAdmin {
+		return true
+	}
+
+	if org.Visibility == structs.VisibleTypePrivate && !org.isUserPartOfOrg(e, user.ID) {
+		return false
+	}
+	return true
+}
+
+// HasOrgsVisible tells if the given user can see at least one of the orgs provided
+func HasOrgsVisible(orgs []*User, user *User) bool {
+	if len(orgs) == 0 {
+		return false
+	}
+
+	for _, org := range orgs {
+		if HasOrgVisible(org, user) {
+			return true
+		}
+	}
+	return false
 }
 
 // GetOwnedOrgsByUserID returns a list of organizations are owned by given user ID.
@@ -445,10 +484,14 @@ func AddOrgUser(orgID, uid int64) error {
 	}
 
 	if _, err := sess.Insert(ou); err != nil {
-		sess.Rollback()
+		if err := sess.Rollback(); err != nil {
+			log.Error("AddOrgUser: sess.Rollback: %v", err)
+		}
 		return err
 	} else if _, err = sess.Exec("UPDATE `user` SET num_members = num_members + 1 WHERE id = ?", orgID); err != nil {
-		sess.Rollback()
+		if err := sess.Rollback(); err != nil {
+			log.Error("AddOrgUser: sess.Rollback: %v", err)
+		}
 		return err
 	}
 
@@ -620,6 +663,8 @@ type AccessibleReposEnvironment interface {
 	RepoIDs(page, pageSize int) ([]int64, error)
 	Repos(page, pageSize int) ([]*Repository, error)
 	MirrorRepos() ([]*Repository, error)
+	AddKeyword(keyword string)
+	SetSort(SearchOrderBy)
 }
 
 type accessibleReposEnv struct {
@@ -627,6 +672,8 @@ type accessibleReposEnv struct {
 	userID  int64
 	teamIDs []int64
 	e       Engine
+	keyword string
+	orderBy SearchOrderBy
 }
 
 // AccessibleReposEnv an AccessibleReposEnvironment for the repositories in `org`
@@ -645,6 +692,7 @@ func (org *User) accessibleReposEnv(e Engine, userID int64) (AccessibleReposEnvi
 		userID:  userID,
 		teamIDs: teamIDs,
 		e:       e,
+		orderBy: SearchOrderByRecentUpdated,
 	}, nil
 }
 
@@ -655,6 +703,9 @@ func (env *accessibleReposEnv) cond() builder.Cond {
 	}
 	if len(env.teamIDs) > 0 {
 		cond = cond.Or(builder.In("team_repo.team_id", env.teamIDs))
+	}
+	if env.keyword != "" {
+		cond = cond.And(builder.Like{"`repository`.lower_name", strings.ToLower(env.keyword)})
 	}
 	return cond
 }
@@ -681,8 +732,8 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
-		GroupBy("`repository`.id,`repository`.updated_unix").
-		OrderBy("updated_unix DESC").
+		GroupBy("`repository`.id,`repository`."+strings.Fields(string(env.orderBy))[0]).
+		OrderBy(string(env.orderBy)).
 		Limit(pageSize, (page-1)*pageSize).
 		Cols("`repository`.id").
 		Find(&repoIDs)
@@ -701,6 +752,7 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*Repository, error) 
 
 	return repos, env.e.
 		In("`repository`.id", repoIDs).
+		OrderBy(string(env.orderBy)).
 		Find(&repos)
 }
 
@@ -711,7 +763,7 @@ func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id AND `repository`.is_mirror=?", true).
 		Where(env.cond()).
 		GroupBy("`repository`.id, `repository`.updated_unix").
-		OrderBy("updated_unix DESC").
+		OrderBy(string(env.orderBy)).
 		Cols("`repository`.id").
 		Find(&repoIDs)
 }
@@ -730,4 +782,12 @@ func (env *accessibleReposEnv) MirrorRepos() ([]*Repository, error) {
 	return repos, env.e.
 		In("`repository`.id", repoIDs).
 		Find(&repos)
+}
+
+func (env *accessibleReposEnv) AddKeyword(keyword string) {
+	env.keyword = keyword
+}
+
+func (env *accessibleReposEnv) SetSort(orderBy SearchOrderBy) {
+	env.orderBy = orderBy
 }

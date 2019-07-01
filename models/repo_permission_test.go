@@ -219,6 +219,17 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
+	// update team information and then check permission
+	team := AssertExistsAndLoadBean(t, &Team{ID: 5}).(*Team)
+	err = UpdateTeamUnits(team, nil)
+	assert.NoError(t, err)
+	perm, err = GetUserRepoPermission(repo, owner)
+	assert.NoError(t, err)
+	for _, unit := range repo.Units {
+		assert.True(t, perm.CanRead(unit.Type))
+		assert.True(t, perm.CanWrite(unit.Type))
+	}
+
 	// org member team tester
 	tester := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	perm, err = GetUserRepoPermission(repo, tester)

@@ -77,6 +77,10 @@ func (p PrefixCoded) Int64() (int64, error) {
 }
 
 func ValidPrefixCodedTerm(p string) (bool, int) {
+	return ValidPrefixCodedTermBytes([]byte(p))
+}
+
+func ValidPrefixCodedTermBytes(p []byte) (bool, int) {
 	if len(p) > 0 {
 		if p[0] < ShiftStartInt64 || p[0] > ShiftStartInt64+63 {
 			return false, 0
