@@ -354,6 +354,7 @@ steps:
     image: techknowlogick/xgo:latest
     commands:
       - export PATH=$PATH:$GOPATH/bin
+      - make generate
       - make release
     environment:
       TAGS: bindata sqlite sqlite_unlock_notify
@@ -455,6 +456,7 @@ steps:
     image: techknowlogick/xgo:latest
     commands:
       - export PATH=$PATH:$GOPATH/bin
+      - make generate
       - make release
     environment:
       TAGS: bindata sqlite sqlite_unlock_notify
@@ -519,12 +521,6 @@ workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
-trigger:
-  branch:
-    - master
-  event:
-    - push
-
 steps:
   - name: build-docs
     pull: always
@@ -544,6 +540,11 @@ steps:
     environment:
       NETLIFY_TOKEN:
         from_secret: netlify_token
+    when:
+      branch:
+        - master
+      event:
+        - push
 
 ---
 kind: pipeline
@@ -563,6 +564,10 @@ steps:
     image: docker:git
     commands:
       - git fetch --tags --force
+    when:
+      event:
+        exclude:
+          - pull_request
 
   - name: dryrun
     pull: always
