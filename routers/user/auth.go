@@ -124,7 +124,6 @@ func SignIn(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["AllowPassword"] = true
 	orderedOAuth2Names, oauth2Providers, err := models.GetActiveOAuth2Providers()
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
@@ -144,7 +143,6 @@ func SignIn(ctx *context.Context) {
 func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	ctx.Data["AllowPassword"] = true
 	orderedOAuth2Names, oauth2Providers, err := models.GetActiveOAuth2Providers()
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
@@ -701,10 +699,10 @@ func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Requ
 
 // LinkAccount shows the page where the user can decide to login or create a new account
 func LinkAccount(ctx *context.Context) {
-	ctx.Data["AllowPassword"] = setting.Service.RequireExternalRegistrationPassword && !setting.Service.AllowOnlyExternalRegistration
+	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationCaptcha || setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
-	ctx.Data["EnableCaptcha"] = setting.Service.RequireExternalRegistrationCaptcha
+	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
@@ -751,11 +749,11 @@ func LinkAccount(ctx *context.Context) {
 
 // LinkAccountPostSignIn handle the coupling of external account with another account using signIn
 func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
-	ctx.Data["AllowPassword"] = !setting.Service.AllowOnlyExternalRegistration
+	ctx.Data["DisablePassword"] = setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["LinkAccountModeSignIn"] = true
-	ctx.Data["EnableCaptcha"] = setting.Service.RequireExternalRegistrationCaptcha
+	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
@@ -832,11 +830,11 @@ func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
 func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterForm) {
 	// TODO Make insecure passwords optional for local accounts also,
 	//      once email-based Second-Factor Auth is available
-	ctx.Data["AllowPassword"] = setting.Service.RequireExternalRegistrationPassword && !setting.Service.AllowOnlyExternalRegistration
+	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationCaptcha || setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["LinkAccountModeRegister"] = true
-	ctx.Data["EnableCaptcha"] = setting.Service.RequireExternalRegistrationCaptcha
+	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
@@ -863,14 +861,18 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		return
 	}
 
-	if setting.Service.RequireExternalRegistrationCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha && !cpt.VerifyReq(ctx.Req) {
-		ctx.Data["Err_Captcha"] = true
-		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplLinkAccount, &form)
-		return
-	}
+	if setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha {
+		var valid bool
+		switch setting.Service.CaptchaType {
+		case setting.ImageCaptcha:
+			valid = cpt.VerifyReq(ctx.Req)
+		case setting.ReCaptcha:
+			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+		default:
+			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
+			return
+		}
 
-	if setting.Service.RequireExternalRegistrationCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
-		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
 		if !valid {
 			ctx.Data["Err_Captcha"] = true
 			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplLinkAccount, &form)
@@ -988,8 +990,6 @@ func SignOut(ctx *context.Context) {
 
 // SignUp render the register page
 func SignUp(ctx *context.Context) {
-	ctx.Data["AllowPassword"] = true
-
 	ctx.Data["Title"] = ctx.Tr("sign_up")
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
@@ -1006,8 +1006,6 @@ func SignUp(ctx *context.Context) {
 
 // SignUpPost response for sign up information submission
 func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterForm) {
-	ctx.Data["AllowPassword"] = true
-
 	ctx.Data["Title"] = ctx.Tr("sign_up")
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
@@ -1028,14 +1026,18 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		return
 	}
 
-	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha && !cpt.VerifyReq(ctx.Req) {
-		ctx.Data["Err_Captcha"] = true
-		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUp, &form)
-		return
-	}
+	if setting.Service.EnableCaptcha {
+		var valid bool
+		switch setting.Service.CaptchaType {
+		case setting.ImageCaptcha:
+			valid = cpt.VerifyReq(ctx.Req)
+		case setting.ReCaptcha:
+			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+		default:
+			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
+			return
+		}
 
-	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
-		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
 		if !valid {
 			ctx.Data["Err_Captcha"] = true
 			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUp, &form)

@@ -26,7 +26,7 @@
 							<input id="email" name="email" type="email" value="{{.email}}" required>
 						</div>
 
-						{{if .AllowPassword}}
+						{{if not .DisablePassword}}
 							<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
 								<label for="password">{{.i18n.Tr "password"}}</label>
 								<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
