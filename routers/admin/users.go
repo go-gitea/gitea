@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/mailer"
+	"code.gitea.io/gitea/services/mailer"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 

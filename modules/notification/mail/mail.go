@@ -7,7 +7,7 @@ package mail
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/mailer"
+	"code.gitea.io/gitea/services/mailer"
 	"code.gitea.io/gitea/modules/notification/base"
 )
 
