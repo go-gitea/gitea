@@ -54,19 +54,20 @@ func NewGiteaLocalUploader(doer *models.User, repoOwner, repoName string) *Gitea
 }
 
 // CreateRepo creates a repository
-func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, includeWiki bool) error {
+func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.MigrateOptions) error {
 	owner, err := models.GetUserByName(g.repoOwner)
 	if err != nil {
 		return err
 	}
 
 	r, err := models.MigrateRepository(g.doer, owner, models.MigrateRepoOptions{
-		Name:        g.repoName,
-		Description: repo.Description,
-		IsMirror:    repo.IsMirror,
-		RemoteAddr:  repo.CloneURL,
-		IsPrivate:   repo.IsPrivate,
-		Wiki:        includeWiki,
+		Name:                 g.repoName,
+		Description:          repo.Description,
+		IsMirror:             repo.IsMirror,
+		RemoteAddr:           repo.CloneURL,
+		IsPrivate:            repo.IsPrivate,
+		Wiki:                 opts.Wiki,
+		SyncReleasesWithTags: !opts.Releases, // if didn't get releases, then sync them from tags
 	})
 	g.repo = r
 	if err != nil {
@@ -198,7 +199,12 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 
 		rels = append(rels, &rel)
 	}
-	return models.InsertReleases(rels...)
+	if err := models.InsertReleases(rels...); err != nil {
+		return err
+	}
+
+	// sync tags to releases in database
+	return models.SyncReleasesWithTags(g.repo, g.gitRepo)
 }
 
 // CreateIssues creates issues
