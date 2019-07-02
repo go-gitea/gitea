@@ -191,6 +191,7 @@ func runServ(c *cli.Context) error {
 	os.Setenv(models.EnvPusherName, results.UserName)
 	os.Setenv(models.EnvPusherID, strconv.FormatInt(results.UserID, 10))
 	os.Setenv(models.ProtectedBranchRepoID, strconv.FormatInt(results.RepoID, 10))
+	os.Setenv(models.ProtectedBranchPRID, fmt.Sprintf("%d", 0))
 
 	//LFS token authentication
 	if verb == lfsAuthenticateVerb {
@@ -238,8 +239,6 @@ func runServ(c *cli.Context) error {
 	} else {
 		gitcmd = exec.Command(verb, repoPath)
 	}
-
-	os.Setenv(models.ProtectedBranchRepoID, fmt.Sprintf("%d", results.RepoID))
 
 	gitcmd.Dir = setting.RepoRootPath
 	gitcmd.Stdout = os.Stdout
