@@ -50,7 +50,17 @@ func GetNote(repo *Repository, commitID string, note *Note) error {
 		return err
 	}
 
-	lastCommits, err := getLastCommitForPaths(commit, "", []string{commitID})
+	commitNodeIndex, commitGraphFile := repo.CommitNodeIndex()
+	if commitGraphFile != nil {
+		defer commitGraphFile.Close()
+	}
+
+	commitNode, err := commitNodeIndex.Get(commit.Hash)
+	if err != nil {
+		return nil
+	}
+
+	lastCommits, err := getLastCommitForPaths(commitNode, "", []string{commitID})
 	if err != nil {
 		return err
 	}
