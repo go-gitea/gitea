@@ -1,14 +1,18 @@
 {
   "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=8"
+  },
   "devDependencies": {
     "autoprefixer": "9.6.0",
-    "eslint": "5.16.0",
+    "eslint": "6.0.1",
     "less": "3.9.0",
     "less-plugin-clean-css": "1.5.1",
     "postcss-cli": "6.1.2",
     "stylelint": "10.1.0",
     "stylelint-config-standard": "18.3.0",
-    "updates": "8.1.0"
+    "updates": "8.2.0"
   },
   "browserslist": [
     "> 1%",
