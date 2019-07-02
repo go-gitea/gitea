@@ -396,18 +396,16 @@ function initCommentForm() {
             hasLabelUpdateAction = $listMenu.data('action') == 'update'; // Update the var
             if (hasLabelUpdateAction) {
                 var promises = [];
-                for (var elementId in labels) {
-                    if (labels.hasOwnProperty(elementId)) {
-                        var label = labels[elementId];
-                        var promise = updateIssuesMeta(
-                            label["update-url"],
-                            label["action"],
-                            label["issue-id"],
-                            elementId
-                        );
-                        promises.push(promise);
-                    }
-                }
+                Object.keys(labels).forEach(function(elementId) {
+                    var label = labels[elementId];
+                    var promise = updateIssuesMeta(
+                        label["update-url"],
+                        label["action"],
+                        label["issue-id"],
+                        elementId
+                    );
+                    promises.push(promise);
+                });
                 Promise.all(promises).then(reload);
             }
         });
