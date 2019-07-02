@@ -432,7 +432,9 @@ gopkg.in/src-d/go-git.v4/config
 gopkg.in/src-d/go-git.v4/plumbing
 gopkg.in/src-d/go-git.v4/plumbing/cache
 gopkg.in/src-d/go-git.v4/plumbing/filemode
+gopkg.in/src-d/go-git.v4/plumbing/format/commitgraph
 gopkg.in/src-d/go-git.v4/plumbing/object
+gopkg.in/src-d/go-git.v4/plumbing/object/commitgraph
 gopkg.in/src-d/go-git.v4/storage/filesystem
 gopkg.in/src-d/go-git.v4/internal/revision
 gopkg.in/src-d/go-git.v4/plumbing/format/gitignore
@@ -455,8 +457,8 @@ gopkg.in/src-d/go-git.v4/utils/merkletrie/index
 gopkg.in/src-d/go-git.v4/utils/merkletrie/noder
 gopkg.in/src-d/go-git.v4/internal/url
 gopkg.in/src-d/go-git.v4/plumbing/format/config
-gopkg.in/src-d/go-git.v4/plumbing/format/diff
 gopkg.in/src-d/go-git.v4/utils/binary
+gopkg.in/src-d/go-git.v4/plumbing/format/diff
 gopkg.in/src-d/go-git.v4/plumbing/format/idxfile
 gopkg.in/src-d/go-git.v4/plumbing/format/objfile
 gopkg.in/src-d/go-git.v4/storage/filesystem/dotgit

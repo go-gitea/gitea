@@ -80,7 +80,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		repo.Description = opts.Description
 	}
 	log.Trace("migrating git data")
-	if err := uploader.CreateRepo(repo, opts.Wiki); err != nil {
+	if err := uploader.CreateRepo(repo, opts); err != nil {
 		return err
 	}
 
