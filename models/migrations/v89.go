@@ -36,4 +36,5 @@ func addOriginalMigrationInfo(x *xorm.Engine) error {
 		return err
 	}
 
+	return nil
 }
