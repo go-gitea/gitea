@@ -463,7 +463,7 @@ func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
 	// Check if a pull request is merged into BaseBranch
 	_, stderr, err := process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("isMerged (git merge-base --is-ancestor): %d", pr.BaseRepo.ID),
 		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
-		"git", "merge-base", "--is-ancestor", headFile, pr.BaseBranch)
+		git.GitExecutable, "merge-base", "--is-ancestor", headFile, pr.BaseBranch)
 
 	if err != nil {
 		// Errors are signaled by a non-zero status that is not 1
@@ -486,7 +486,7 @@ func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
 	// Get the commit from BaseBranch where the pull request got merged
 	mergeCommit, stderr, err := process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("isMerged (git rev-list --ancestry-path --merges --reverse): %d", pr.BaseRepo.ID),
 		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
-		"git", "rev-list", "--ancestry-path", "--merges", "--reverse", cmd)
+		git.GitExecutable, "rev-list", "--ancestry-path", "--merges", "--reverse", cmd)
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v %v", stderr, err)
 	} else if len(mergeCommit) < 40 {
@@ -548,7 +548,7 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 	var stderr string
 	_, stderr, err = process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("testPatch (git read-tree): %d", pr.BaseRepo.ID),
 		[]string{"GIT_DIR=" + pr.BaseRepo.RepoPath(), "GIT_INDEX_FILE=" + indexTmpPath},
-		"git", "read-tree", pr.BaseBranch)
+		git.GitExecutable, "read-tree", pr.BaseBranch)
 	if err != nil {
 		return fmt.Errorf("git read-tree --index-output=%s %s: %v - %s", indexTmpPath, pr.BaseBranch, err, stderr)
 	}
@@ -568,7 +568,7 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 
 	_, stderr, err = process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("testPatch (git apply --check): %d", pr.BaseRepo.ID),
 		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
-		"git", args...)
+		git.GitExecutable, args...)
 	if err != nil {
 		for i := range patchConflicts {
 			if strings.Contains(stderr, patchConflicts[i]) {
@@ -776,6 +776,20 @@ func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequ
 		Find(&prs)
 }
 
+// GetLatestPullRequestByHeadInfo returns the latest pull request (regardless of its status)
+// by given head information (repo and branch).
+func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, error) {
+	pr := new(PullRequest)
+	has, err := x.
+		Where("head_repo_id = ? AND head_branch = ?", repoID, branch).
+		OrderBy("id DESC").
+		Get(pr)
+	if !has {
+		return nil, err
+	}
+	return pr, err
+}
+
 // GetUnmergedPullRequestsByBaseInfo returns all pull requests that are open and has not been merged
 // by given base information (repo and branch).
 func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequest, error) {
@@ -862,7 +876,7 @@ func (pr *PullRequest) UpdatePatch() (err error) {
 	if err = pr.GetHeadRepo(); err != nil {
 		return fmt.Errorf("GetHeadRepo: %v", err)
 	} else if pr.HeadRepo == nil {
-		log.Trace("PullRequest[%d].UpdatePatch: ignored cruppted data", pr.ID)
+		log.Trace("PullRequest[%d].UpdatePatch: ignored corrupted data", pr.ID)
 		return nil
 	}
 
