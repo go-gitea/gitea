@@ -32,9 +32,5 @@ func addOriginalMigrationInfo(x *xorm.Engine) error {
 		OriginalURL string
 	}
 
-	if err := x.Sync2(new(Repository)); err != nil {
-		return err
-	}
-
-	return nil
+	return x.Sync2(new(Repository))
 }
