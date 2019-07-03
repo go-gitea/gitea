@@ -228,7 +228,10 @@ func ToUser(user *models.User, signed, admin bool) *api.User {
 		FullName:  markup.Sanitize(user.FullName),
 		IsAdmin:   user.IsAdmin,
 	}
-	if signed && (!user.KeepEmailPrivate || admin) {
+	// hide primary email if API caller isn't user itself or an admin
+	if !signed || (user.KeepEmailPrivate && !admin) {
+		result.Email = user.GetEmail()
+	} else {
 		result.Email = user.Email
 	}
 	return result

@@ -22,13 +22,13 @@ func appendPrivateInformation(apiKey *api.PublicKey, key *models.PublicKey, defa
 		apiKey.KeyType = "user"
 
 		if defaultUser.ID == key.OwnerID {
-			apiKey.Owner = defaultUser.APIFormat()
+			apiKey.Owner = convert.ToUser(defaultUser, true, true)
 		} else {
 			user, err := models.GetUserByID(key.OwnerID)
 			if err != nil {
 				return apiKey, err
 			}
-			apiKey.Owner = user.APIFormat()
+			apiKey.Owner = convert.ToUser(user, true, true)
 		}
 	} else {
 		apiKey.KeyType = "unknown"
