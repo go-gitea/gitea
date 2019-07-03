@@ -38,8 +38,8 @@ type Source struct {
 	UserBase              string // Base search path for users
 	UserDN                string // Template for the DN of the user for simple auth
 	GroupSearchBase       string // Base search path for groups
-	GroupSearchFilter     string //
-	UserAttributeInGroup  string //
+	GroupSearchFilter     string // Query group filter to validate entry
+	UserAttributeInGroup  string // User attribute inserted into group filter
 	MemberGroupFilter     string // Query group filter to check if user is allowed to log in
 	AdminGroupFilter      string // Query group filter to check if user is admin
 	AttributeUsername     string // Username attribute
