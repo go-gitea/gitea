@@ -197,6 +197,7 @@ func (ls *Source) CheckGroupFilter(l *ldap.Conn, groupSR *ldap.SearchResult, fil
 			return true
 		}
 	}
+	log.Trace("LDAP group search with filter %v found no matching entries", filter)
 	return false
 }
 
@@ -312,8 +313,15 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	}
 
 	var hasAdminGroup = false
-	if len(strings.TrimSpace(ls.UserAttributeInGroup)) > 0 && len(strings.TrimSpace(ls.GroupSearchBase)) > 0 && len(strings.TrimSpace(ls.GroupSearchFilter)) > 0 {
-		groupUID := sr.Entries[0].GetAttributeValue(ls.UserAttributeInGroup)
+	if len(strings.TrimSpace(ls.GroupSearchBase)) > 0 && len(strings.TrimSpace(ls.GroupSearchFilter)) > 0 {
+		var groupUID string
+		if len(strings.TrimSpace(ls.UserAttributeInGroup)) > 0 {
+			groupUID = sr.Entries[0].GetAttributeValue(ls.UserAttributeInGroup)
+		} else {
+			groupUID = sr.Entries[0].DN
+		}
+		log.Trace("User attribute used in LDAP group: %v", groupUID)
+
 		groupFilter, ok := ls.sanitizedGroupQuery(groupUID)
 		if !ok {
 			return nil
@@ -324,11 +332,9 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 
 		sr, err := l.Search(groupSearch)
 		if err != nil {
-			log.Error("LDAP Search failed unexpectedly! (%v)", err)
+			log.Error("LDAP group search failed unexpectedly! (%v)", err)
 			return nil
 		}
-
-		log.Trace("LDAP group search found %i entries", len(sr.Entries))
 
 		if len(strings.TrimSpace(ls.MemberGroupFilter)) > 0 {
 			if !ls.CheckGroupFilter(l, sr, ls.MemberGroupFilter) {
@@ -339,6 +345,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 
 		if len(strings.TrimSpace(ls.AdminGroupFilter)) > 0 {
 			hasAdminGroup = ls.CheckGroupFilter(l, sr, ls.AdminGroupFilter)
+			log.Info("LDAP user is in admin group!")
 		}
 	}
 
