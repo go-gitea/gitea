@@ -420,20 +420,60 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 		return nil, err
 	}
 
-	result := make([]*SearchResult, len(sr.Entries))
+	results := []*SearchResult{}
 
-	for i, v := range sr.Entries {
-		result[i] = &SearchResult{
+	for _, v := range sr.Entries {
+
+		// TODO: Remove code duplication
+		var hasAdminGroup = false
+		if len(strings.TrimSpace(ls.GroupSearchBase)) > 0 && len(strings.TrimSpace(ls.GroupSearchFilter)) > 0 {
+			var groupUID string
+			if len(strings.TrimSpace(ls.UserAttributeInGroup)) > 0 {
+				groupUID = v.GetAttributeValue(ls.UserAttributeInGroup)
+			} else {
+				groupUID = v.DN
+			}
+			log.Trace("User attribute used in LDAP group: %v", groupUID)
+
+			groupFilter, ok := ls.sanitizedGroupQuery(groupUID)
+			if !ok {
+				continue
+			}
+
+			groupSearch := ldap.NewSearchRequest(
+				ls.GroupSearchBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, groupFilter, []string{}, nil)
+
+			sr, err := l.Search(groupSearch)
+			if err != nil {
+				log.Error("LDAP group search failed unexpectedly! (%v)", err)
+				continue
+			}
+
+			if len(strings.TrimSpace(ls.MemberGroupFilter)) > 0 {
+				if !ls.CheckGroupFilter(l, sr, ls.MemberGroupFilter) {
+					log.Error("No group matched the required member group filter!")
+					continue
+				}
+			}
+
+			if len(strings.TrimSpace(ls.AdminGroupFilter)) > 0 {
+				hasAdminGroup = ls.CheckGroupFilter(l, sr, ls.AdminGroupFilter)
+				log.Info("LDAP user is in admin group!")
+			}
+		}
+
+		result := &SearchResult{
 			Username: v.GetAttributeValue(ls.AttributeUsername),
 			Name:     v.GetAttributeValue(ls.AttributeName),
 			Surname:  v.GetAttributeValue(ls.AttributeSurname),
 			Mail:     v.GetAttributeValue(ls.AttributeMail),
-			IsAdmin:  checkAdmin(l, ls, v.DN),
+			IsAdmin:  hasAdminGroup || checkAdmin(l, ls, v.DN),
 		}
 		if isAttributeSSHPublicKeySet {
-			result[i].SSHPublicKey = v.GetAttributeValues(ls.AttributeSSHPublicKey)
+			result.SSHPublicKey = v.GetAttributeValues(ls.AttributeSSHPublicKey)
 		}
+		results = append(results, result)
 	}
 
-	return result, nil
+	return results, nil
 }
