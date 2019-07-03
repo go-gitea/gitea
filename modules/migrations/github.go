@@ -317,6 +317,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		allIssues = append(allIssues, &base.Issue{
 			Title:       *issue.Title,
 			Number:      int64(*issue.Number),
+			PosterID:    *issue.User.ID,
 			PosterName:  *issue.User.Login,
 			PosterEmail: email,
 			Content:     body,
@@ -359,6 +360,7 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 			}
 			allComments = append(allComments, &base.Comment{
 				IssueIndex:  issueNumber,
+				PosterID:    *comment.User.ID,
 				PosterName:  *comment.User.Login,
 				PosterEmail: email,
 				Content:     *comment.Body,

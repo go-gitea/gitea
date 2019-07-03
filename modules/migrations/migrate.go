@@ -127,11 +127,6 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			if err != nil {
 				return err
 			}
-			for _, issue := range issues {
-				if !opts.IgnoreIssueAuthor {
-					issue.Content = fmt.Sprintf("Author: @%s \n\n%s", issue.PosterName, issue.Content)
-				}
-			}
 
 			if err := uploader.CreateIssues(issues...); err != nil {
 				return err
@@ -147,11 +142,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				if err != nil {
 					return err
 				}
-				for _, comment := range comments {
-					if !opts.IgnoreIssueAuthor {
-						comment.Content = fmt.Sprintf("Author: @%s \n\n%s", comment.PosterName, comment.Content)
-					}
-				}
+
 				allComments = append(allComments, comments...)
 
 				if len(allComments) >= 100 {

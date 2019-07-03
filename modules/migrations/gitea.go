@@ -228,17 +228,19 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 
 		var is = models.Issue{
-			RepoID:      g.repo.ID,
-			Repo:        g.repo,
-			Index:       issue.Number,
-			PosterID:    g.doer.ID,
-			Title:       issue.Title,
-			Content:     issue.Content,
-			IsClosed:    issue.State == "closed",
-			IsLocked:    issue.IsLocked,
-			MilestoneID: milestoneID,
-			Labels:      labels,
-			CreatedUnix: util.TimeStamp(issue.Created.Unix()),
+			RepoID:           g.repo.ID,
+			Repo:             g.repo,
+			Index:            issue.Number,
+			PosterID:         g.doer.ID,
+			OriginalAuthor:   issue.PosterName,
+			OriginalAuthorID: issue.PosterID,
+			Title:            issue.Title,
+			Content:          issue.Content,
+			IsClosed:         issue.State == "closed",
+			IsLocked:         issue.IsLocked,
+			MilestoneID:      milestoneID,
+			Labels:           labels,
+			CreatedUnix:      util.TimeStamp(issue.Created.Unix()),
 		}
 		if issue.Closed != nil {
 			is.ClosedUnix = util.TimeStamp(issue.Closed.Unix())
@@ -274,11 +276,13 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		}
 
 		cms = append(cms, &models.Comment{
-			IssueID:     issueID,
-			Type:        models.CommentTypeComment,
-			PosterID:    g.doer.ID,
-			Content:     comment.Content,
-			CreatedUnix: util.TimeStamp(comment.Created.Unix()),
+			IssueID:          issueID,
+			Type:             models.CommentTypeComment,
+			PosterID:         g.doer.ID,
+			OriginalAuthor:   comment.PosterName,
+			OriginalAuthorID: comment.PosterID,
+			Content:          comment.Content,
+			CreatedUnix:      util.TimeStamp(comment.Created.Unix()),
 		})
 
 		// TODO: Reactions
