@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
 // ListCollaborators list a repository's collaborators
@@ -42,7 +43,7 @@ func ListCollaborators(ctx *context.APIContext) {
 	}
 	users := make([]*api.User, len(collaborators))
 	for i, collaborator := range collaborators {
-		users[i] = collaborator.APIFormat()
+		users[i] = convert.ToUser(collaborator.User, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
 	ctx.JSON(200, users)
 }
