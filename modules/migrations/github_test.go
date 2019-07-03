@@ -68,6 +68,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		Owner:       "go-gitea",
 		Description: "Git with a cup of tea, painless self-hosted git service",
 		CloneURL:    "https://github.com/go-gitea/gitea.git",
+		OriginalURL: "https://github.com/go-gitea/gitea",
 	}, repo)
 
 	milestones, err := downloader.GetMilestones()

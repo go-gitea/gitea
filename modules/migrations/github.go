@@ -107,13 +107,13 @@ func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	// convert github repo to stand Repo
 	return &base.Repository{
 		Owner:       g.repoOwner,
 		Name:        gr.GetName(),
 		IsPrivate:   *gr.Private,
 		Description: gr.GetDescription(),
+		OriginalURL: gr.GetHTMLURL(),
 		CloneURL:    gr.GetCloneURL(),
 	}, nil
 }

@@ -12,6 +12,7 @@ type MigrateOptions struct {
 	AuthPassword string
 	Name         string
 	Description  string
+	OriginalURL  string
 
 	Wiki              bool
 	Issues            bool

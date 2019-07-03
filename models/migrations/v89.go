@@ -6,24 +6,32 @@ package migrations
 
 import "github.com/go-xorm/xorm"
 
-func addOriginalAuthorToIssues(x *xorm.Engine) error {
+func addOriginalMigrationInfo(x *xorm.Engine) error {
 	// Issue see models/issue.go
 	type Issue struct {
 		OriginalAuthor   string
 		OriginalAuthorID int64
 	}
 
-	return x.Sync2(new(Issue))
+	if err := x.Sync2(new(Issue)); err != nil {
+		return err
+	}
 
-}
-
-func addOriginalAuthorToIssueComment(x *xorm.Engine) error {
-	// Issue see models/issue.go
+	// Issue see models/issue_comment.go
 	type Comment struct {
 		OriginalAuthor   string
 		OriginalAuthorID int64
 	}
 
-	return x.Sync2(new(Comment))
+	if err := x.Sync2(new(Comment)); err != nil {
+		return err
+	}
+
+	// Issue see models/repo.go
+	type Repository struct {
+		OriginalURL string
+	}
+
+	return x.Sync2(new(Repository))
 
 }
