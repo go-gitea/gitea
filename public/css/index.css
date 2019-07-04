@@ -554,7 +554,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.view.issue .comment-list .event>.octicon:not(.issue-symbol){text-shadow:-2px 0 #fff,0 2px #fff,2px 0 #fff,0 -2px #fff}
 .repository.view.issue .comment-list .event>.octicon.issue-symbol{font-size:20px;margin-left:-35px;margin-right:-1px;margin-top:1px;height:28px;width:28px;border-radius:50%;text-align:center;line-height:28px;background:#eee}
 .repository.view.issue .comment-list .event>.octicon.issue-symbol::before{width:15px;display:inline-block}
-.repository.view.issue .comment-list .event>.octicon.issue-symbol.octicon-circle-slash::before,.repository.view.issue .comment-list .event>.octicon.issue-symbol.octicon-key::before{width:18px}
+.repository.view.issue .comment-list .event>.octicon.issue-symbol.octicon-key::before{width:18px}
+.repository.view.issue .comment-list .event>.octicon.issue-symbol.octicon-circle-slash::before{width:17px}
 .repository.view.issue .comment-list .event>.octicon.issue-symbol.octicon-comment{font-size:21px;line-height:33px}
 .repository.view.issue .comment-list .event>.octicon.issue-symbol.octicon-comment::before{width:20px}
 .repository.view.issue .comment-list .event .octicon{width:30px;float:left;text-align:center}
