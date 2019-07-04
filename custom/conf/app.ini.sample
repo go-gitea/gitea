@@ -783,3 +783,7 @@ IS_INPUT_FILE = false
 ENABLED = false
 ; If you want to add authorization, specify a token here
 TOKEN =
+
+[migration]
+; batch size of save to database when migrating
+SAVE_BATCH_SIZE = 100

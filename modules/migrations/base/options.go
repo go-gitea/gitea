@@ -23,4 +23,6 @@ type MigrateOptions struct {
 	Private           bool
 	Mirror            bool
 	IgnoreIssueAuthor bool // if true will not add original author information before issues or comments content.
+
+	SaveBatchSize int // default 100
 }

@@ -56,6 +56,10 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 		log.Trace("Will migrate from git: %s", opts.RemoteURL)
 	}
 
+	if opts.SaveBatchSize == 0 {
+		opts.SaveBatchSize = 100
+	}
+
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
@@ -123,7 +127,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	if opts.Issues {
 		log.Trace("migrating issues and comments")
 		for i := 1; ; i++ {
-			issues, isEnd, err := downloader.GetIssues(i, 100)
+			issues, isEnd, err := downloader.GetIssues(i, opts.SaveBatchSize)
 			if err != nil {
 				return err
 			}
@@ -141,7 +145,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				continue
 			}
 
-			var allComments = make([]*base.Comment, 0, 100)
+			var allComments = make([]*base.Comment, 0, opts.SaveBatchSize)
 			for _, issue := range issues {
 				comments, err := downloader.GetComments(issue.Number)
 				if err != nil {
@@ -154,11 +158,11 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				}
 				allComments = append(allComments, comments...)
 
-				if len(allComments) >= 100 {
+				if len(allComments) >= opts.SaveBatchSize {
 					if err := uploader.CreateComments(allComments...); err != nil {
 						return err
 					}
-					allComments = make([]*base.Comment, 0, 100)
+					allComments = make([]*base.Comment, 0, opts.SaveBatchSize)
 				}
 			}
 
@@ -177,7 +181,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	if opts.PullRequests {
 		log.Trace("migrating pull requests and comments")
 		for i := 1; ; i++ {
-			prs, err := downloader.GetPullRequests(i, 100)
+			prs, err := downloader.GetPullRequests(i, opts.SaveBatchSize)
 			if err != nil {
 				return err
 			}
@@ -195,7 +199,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				continue
 			}
 
-			var allComments = make([]*base.Comment, 0, 100)
+			var allComments = make([]*base.Comment, 0, opts.SaveBatchSize)
 			for _, pr := range prs {
 				comments, err := downloader.GetComments(pr.Number)
 				if err != nil {
@@ -209,11 +213,11 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 
 				allComments = append(allComments, comments...)
 
-				if len(allComments) >= 100 {
+				if len(allComments) >= opts.SaveBatchSize {
 					if err := uploader.CreateComments(allComments...); err != nil {
 						return err
 					}
-					allComments = make([]*base.Comment, 0, 100)
+					allComments = make([]*base.Comment, 0, opts.SaveBatchSize)
 				}
 			}
 			if len(allComments) > 0 {
@@ -222,7 +226,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				}
 			}
 
-			if len(prs) < 100 {
+			if len(prs) < opts.SaveBatchSize {
 				break
 			}
 		}
