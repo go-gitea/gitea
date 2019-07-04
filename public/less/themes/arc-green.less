@@ -619,8 +619,9 @@ a.ui.basic.green.label:hover {
     border-right-color: #353945;
 }
 
-.repository.view.issue .comment-list:before {
-    background-color: #313c47;
+.repository.view.issue .comment-list:not(.prevent-before-timeline):before,
+.repository.view.issue .comment-list .timeline-line:before {
+    background-color: #3b4954;
 }
 
 .repository .comment.form .content .form:after {
