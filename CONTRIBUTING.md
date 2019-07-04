@@ -71,7 +71,7 @@ Here's how to run the test suite:
 
 - Install the correct version of the drone-cli package.  As of this
   writing, the correct drone-cli version is
-  [0.8.6](https://0-8-0.docs.drone.io/cli-installation/).
+  [1.1.0](https://docs.drone.io/cli/install/).
 - Ensure you have enough free disk space.  You will need at least
   15-20 Gb of free disk space to hold all of the containers drone
   creates (a default AWS or GCE disk size won't work -- see
