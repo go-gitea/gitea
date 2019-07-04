@@ -899,6 +899,38 @@
                 margin: 15px 0 15px 79px;
                 padding-left: 25px;
 
+                & > .octicon.issue-symbol {
+                    font-size: 20px;
+                    margin-left: -35px;
+                    margin-right: -1px;
+                    margin-top: 1px;
+                    height: 28px;
+                    width: 28px;
+                    border-radius: 50%;
+                    text-align: center;
+                    line-height: 28px;
+                    background: #eee;
+
+                    &::before {
+                        width: 15px;
+                        display: inline-block;
+                    }
+
+                    &.octicon-circle-slash::before,
+                    &.octicon-key::before {
+                        width: 18px;
+                    }
+
+                    &.octicon-comment {
+                        font-size: 21px;
+                        line-height: 33px;
+
+                        &::before {
+                            width: 20px;
+                        }
+                    }
+                }
+
                 .octicon {
                     width: 30px;
                     float: left;
@@ -925,15 +957,9 @@
                         font-size: 25px;
                     }
 
-                    &.octicon-comment {
-                        margin-top: 4px;
-                        margin-left: -35px;
-                        font-size: 24px;
-                    }
-
                     &.octicon-eye {
                         margin-top: 3px;
-                        margin-left: -35px;
+                        margin-left: -36px;
                         margin-right: 0;
                         font-size: 22px;
                     }
