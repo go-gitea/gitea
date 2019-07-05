@@ -102,7 +102,9 @@ generate:
 .PHONY: generate-swagger
 generate-swagger:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
+		export GO111MODULE="on"; \
+		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger@latest; \
+		export GO111MODULE="auto"; \
 	fi
 	swagger generate spec -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
