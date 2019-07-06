@@ -161,6 +161,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Disable benchmarking during tag events on DroneIO (#6365)
   * Comments list performance optimization (#5305)
 * ENHANCEMENT
+  * Make captcha and password optional for external accounts (#6606)
   * Detect migrating batch size (#7353)
   * Fix 7255 - wrap long texts on user profile info (#7333)
   * Use commit graph files for listing pages (#7314)
