@@ -952,8 +952,6 @@ func NewContext() {
 	U2F.TrustedFacets, _ = shellquote.Split(sec.Key("TRUSTED_FACETS").MustString(strings.TrimRight(AppURL, "/")))
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
 
-	configMigration()
-
 	zip.Verbose = false
 }
 

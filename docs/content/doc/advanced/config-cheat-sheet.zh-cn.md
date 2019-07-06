@@ -237,10 +237,6 @@ IS_INPUT_FILE = false
 - RENDER_COMMAND: 工具的命令行命令及参数。
 - IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。
 
-## Migration (`migration`)
-
-- `SAVE_BATCH_SIZE`: **100** 当迁移数据时批量提交记录条数
-
 ## Other (`other`)
 
 - `SHOW_FOOTER_BRANDING`: 为真则在页面底部显示Gitea的字样。

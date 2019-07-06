@@ -384,21 +384,20 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	}
 
 	var opts = migrations.MigrateOptions{
-		RemoteURL:     remoteAddr,
-		Name:          form.RepoName,
-		Description:   form.Description,
-		Private:       form.Private || setting.Repository.ForcePrivate,
-		Mirror:        form.Mirror,
-		AuthUsername:  form.AuthUsername,
-		AuthPassword:  form.AuthPassword,
-		Wiki:          form.Wiki,
-		Issues:        form.Issues,
-		Milestones:    form.Milestones,
-		Labels:        form.Labels,
-		Comments:      true,
-		PullRequests:  form.PullRequests,
-		Releases:      form.Releases,
-		SaveBatchSize: setting.Migration.SaveBatchSize,
+		RemoteURL:    remoteAddr,
+		Name:         form.RepoName,
+		Description:  form.Description,
+		Private:      form.Private || setting.Repository.ForcePrivate,
+		Mirror:       form.Mirror,
+		AuthUsername: form.AuthUsername,
+		AuthPassword: form.AuthPassword,
+		Wiki:         form.Wiki,
+		Issues:       form.Issues,
+		Milestones:   form.Milestones,
+		Labels:       form.Labels,
+		Comments:     true,
+		PullRequests: form.PullRequests,
+		Releases:     form.Releases,
 	}
 	if opts.Mirror {
 		opts.Issues = false
