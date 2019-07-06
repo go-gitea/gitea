@@ -234,7 +234,7 @@ var migrations = []Migration{
 	NewMigration("add commit status context field to commit_status", addCommitStatusContext),
 	// v89 -> v90
 	NewMigration("add toc on wiki and markedown", addCanTocOnWikiAndMarkdown),
-	// v89 -> v90
+	// v90 -> v91
 	NewMigration("add pagetoc to wiki", addCanWikiPageToc),
 }
 
