@@ -553,12 +553,18 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.view.issue .comment-list .comment .ui.form textarea{height:200px;font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace}
 .repository.view.issue .comment-list .comment .edit.buttons{margin-top:10px}
 .repository.view.issue .comment-list .event{position:relative;margin:15px 0 15px 79px;padding-left:25px}
+.repository.view.issue .comment-list .event>.octicon:not(.issue-symbol){text-shadow:-2px 0 #fff,0 2px #fff,2px 0 #fff,0 -2px #fff}
+.repository.view.issue .comment-list .event>.octicon.issue-symbol{font-size:20px;margin-left:-35px;margin-right:-1px;margin-top:0!important;height:28px;width:28px;border-radius:50%;text-align:center;line-height:28px;background:#eee}
+.repository.view.issue .comment-list .event>.octicon.issue-symbol::before{width:15px;display:inline-block}
+.repository.view.issue .comment-list .event>.octicon.issue-symbol.octicon-key::before{width:18px}
+.repository.view.issue .comment-list .event>.octicon.issue-symbol.octicon-circle-slash::before{width:17px}
+.repository.view.issue .comment-list .event>.octicon.issue-symbol.octicon-comment{font-size:21px;line-height:33px}
+.repository.view.issue .comment-list .event>.octicon.issue-symbol.octicon-comment::before{width:20px}
 .repository.view.issue .comment-list .event .octicon{width:30px;float:left;text-align:center}
 .repository.view.issue .comment-list .event .octicon.octicon-circle-slash{margin-top:5px;margin-left:-34.5px;font-size:20px;color:#bd2c00}
-.repository.view.issue .comment-list .event .octicon.octicon-primitive-dot{margin-left:-28.5px;margin-right:-1px;font-size:30px;color:#6cc644}
-.repository.view.issue .comment-list .event .octicon.octicon-bookmark{margin-top:3px;margin-left:-31px;margin-right:-1px;font-size:25px}
-.repository.view.issue .comment-list .event .octicon.octicon-comment{margin-top:4px;margin-left:-35px;font-size:24px}
-.repository.view.issue .comment-list .event .octicon.octicon-eye{margin-top:3px;margin-left:-35px;margin-right:0;font-size:22px}
+.repository.view.issue .comment-list .event .octicon.octicon-primitive-dot{margin-top:-1px;margin-left:-28.5px;margin-right:-1px;font-size:30px;color:#6cc644}
+.repository.view.issue .comment-list .event .octicon.octicon-bookmark{margin-top:2px;margin-left:-31px;margin-right:-1px;font-size:25px}
+.repository.view.issue .comment-list .event .octicon.octicon-eye{margin-top:3px;margin-left:-36px;margin-right:0;font-size:22px}
 .repository.view.issue .comment-list .event .octicon.octicon-x{margin-left:-33px;font-size:25px}
 .repository.view.issue .comment-list .event .detail{font-size:.9rem;margin-top:5px;margin-left:35px}
 .repository.view.issue .comment-list .event .detail .octicon.octicon-git-commit{margin-top:2px}

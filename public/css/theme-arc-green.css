@@ -112,6 +112,8 @@ footer{background:#2e323e;border-top:1px solid #313131}
 .repository.view.issue .comment-list .comment .content>.bottom.segment{background:#353945}
 .repository.view.issue .comment-list .comment .content .header{color:#dbdbdb;background-color:#404552;border-bottom:1px solid #353944}
 .repository.view.issue .comment-list .comment .content .merge-section{background-color:#404552;border-top:1px solid #353944}
+.repository.view.issue .comment-list .event>.octicon.issue-symbol{background:#3b4954}
+.repository.view.issue .comment-list .event>.octicon:not(.issue-symbol){text-shadow:-2px 0 #383c4a,0 2px #383c4a,2px 0 #383c4a,0 -2px #383c4a}
 .ui .text.grey a{color:#dbdbdb!important}
 .ui.comments .comment .actions a{color:#dbdbdb}
 .repository.view.issue .comment-list .comment .content .header:after{border-right-color:#404552}
