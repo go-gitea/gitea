@@ -24,40 +24,32 @@ func getDeleteRepoFileOptions(repo *models.Repository) *repofiles.DeleteRepoFile
 		TreePath:     "README.md",
 		Message:      "Deletes README.md",
 		SHA:          "4b4851ad51df6a7d9f25c979345979eaeb5b349f",
-		Author:       nil,
-		Committer:    nil,
+		Author: &repofiles.IdentityOptions{
+			Name:  "Bob Smith",
+			Email: "bob@smith.com",
+		},
+		Committer: nil,
 	}
 }
 
 func getExpectedDeleteFileResponse(u *url.URL) *api.FileResponse {
+	// Just returns fields that don't change, i.e. fields with commit SHAs and dates can't be determined
 	return &api.FileResponse{
 		Content: nil,
 		Commit: &api.FileCommitResponse{
-			CommitMeta: api.CommitMeta{
-				URL: u.String() + "api/v1/repos/user2/repo1/git/commits/65f1bf27bc3bf70f64657658635e66094edbcb4d",
-				SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
-			},
-			HTMLURL: u.String() + "user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d",
 			Author: &api.CommitUser{
 				Identity: api.Identity{
-					Name:  "user1",
-					Email: "address1@example.com",
+					Name:  "Bob Smith",
+					Email: "bob@smith.com",
 				},
-				Date: "2017-03-19T20:47:59Z",
 			},
 			Committer: &api.CommitUser{
 				Identity: api.Identity{
-					Name:  "Ethan Koenig",
-					Email: "ethantkoenig@gmail.com",
+					Name:  "Bob Smith",
+					Email: "bob@smith.com",
 				},
-				Date: "2017-03-19T20:47:59Z",
 			},
-			Parents: []*api.CommitMeta{},
-			Message: "Initial commit\n",
-			Tree: &api.CommitMeta{
-				URL: u.String() + "api/v1/repos/user2/repo1/git/trees/2a2f1d4670728a2e10049e345bd7a276468beab6",
-				SHA: "2a2f1d4670728a2e10049e345bd7a276468beab6",
-			},
+			Message: "Deletes README.md\n",
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
@@ -89,7 +81,12 @@ func testDeleteRepoFile(t *testing.T, u *url.URL) {
 		fileResponse, err := repofiles.DeleteRepoFile(repo, doer, opts)
 		assert.Nil(t, err)
 		expectedFileResponse := getExpectedDeleteFileResponse(u)
-		assert.EqualValues(t, expectedFileResponse, fileResponse)
+		assert.NotNil(t, fileResponse)
+		assert.Nil(t, fileResponse.Content)
+		assert.EqualValues(t, expectedFileResponse.Commit.Message, fileResponse.Commit.Message)
+		assert.EqualValues(t, expectedFileResponse.Commit.Author.Identity, fileResponse.Commit.Author.Identity)
+		assert.EqualValues(t, expectedFileResponse.Commit.Committer.Identity, fileResponse.Commit.Committer.Identity)
+		assert.EqualValues(t, expectedFileResponse.Verification, fileResponse.Verification)
 	})
 
 	t.Run("Verify README.md has been deleted", func(t *testing.T) {
@@ -124,7 +121,12 @@ func testDeleteRepoFileWithoutBranchNames(t *testing.T, u *url.URL) {
 		fileResponse, err := repofiles.DeleteRepoFile(repo, doer, opts)
 		assert.Nil(t, err)
 		expectedFileResponse := getExpectedDeleteFileResponse(u)
-		assert.EqualValues(t, expectedFileResponse, fileResponse)
+		assert.NotNil(t, fileResponse)
+		assert.Nil(t, fileResponse.Content)
+		assert.EqualValues(t, expectedFileResponse.Commit.Message, fileResponse.Commit.Message)
+		assert.EqualValues(t, expectedFileResponse.Commit.Author.Identity, fileResponse.Commit.Author.Identity)
+		assert.EqualValues(t, expectedFileResponse.Commit.Committer.Identity, fileResponse.Commit.Committer.Identity)
+		assert.EqualValues(t, expectedFileResponse.Verification, fileResponse.Verification)
 	})
 }
 

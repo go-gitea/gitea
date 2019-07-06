@@ -8,6 +8,7 @@ package repo
 
 import (
 	"container/list"
+	"crypto/subtle"
 	"fmt"
 	"io"
 	"path"
@@ -321,15 +322,37 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	setMergeTarget(ctx, pull)
 
 	var headGitRepo *git.Repository
+	var headBranchExist bool
+	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
 		headGitRepo, err = git.OpenRepository(pull.HeadRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
 		}
+
+		headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
+
+		if headBranchExist {
+			sha, err := headGitRepo.GetBranchCommitID(pull.HeadBranch)
+			if err != nil {
+				ctx.ServerError("GetBranchCommitID", err)
+				return nil
+			}
+
+			commitStatuses, err := models.GetLatestCommitStatus(repo, sha, 0)
+			if err != nil {
+				ctx.ServerError("GetLatestCommitStatus", err)
+				return nil
+			}
+			if len(commitStatuses) > 0 {
+				ctx.Data["LatestCommitStatuses"] = commitStatuses
+				ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(commitStatuses)
+			}
+		}
 	}
 
-	if pull.HeadRepo == nil || !headGitRepo.IsBranchExist(pull.HeadBranch) {
+	if pull.HeadRepo == nil || !headBranchExist {
 		ctx.Data["IsPullRequestBroken"] = true
 		ctx.Data["HeadTarget"] = "deleted"
 		ctx.Data["NumCommits"] = 0
@@ -749,7 +772,9 @@ func TriggerTask(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	if secret != base.EncodeMD5(owner.Salt) {
+	got := []byte(base.EncodeMD5(owner.Salt))
+	want := []byte(secret)
+	if subtle.ConstantTimeCompare(got, want) != 1 {
 		ctx.Error(404)
 		log.Trace("TriggerTask [%s/%s]: invalid secret", owner.Name, repo.Name)
 		return

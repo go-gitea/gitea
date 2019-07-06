@@ -5,36 +5,62 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/setting"
+	"crypto/sha1"
+	"fmt"
 
 	"github.com/go-xorm/xorm"
 )
 
-func addCanTocOnWikiAndMarkdown(x *xorm.Engine) error {
+func hashContext(context string) string {
+	return fmt.Sprintf("%x", sha1.Sum([]byte(context)))
+}
 
-	type Repository struct {
-		TocWikiFile     bool `xorm:"NOT NULL DEFAULT true"`
-		TocMarkupAlways bool `xorm:"NOT NULL DEFAULT false"`
-		TocMarkupByFlag bool `xorm:"NOT NULL DEFAULT true"`
+func addCommitStatusContext(x *xorm.Engine) error {
+	type CommitStatus struct {
+		ID          int64  `xorm:"pk autoincr"`
+		ContextHash string `xorm:"char(40) index"`
+		Context     string `xorm:"TEXT"`
 	}
 
-	if err := x.Sync2(new(Repository)); err != nil {
+	if err := x.Sync2(new(CommitStatus)); err != nil {
 		return err
 	}
 
-	if _, err := x.Exec("UPDATE repository SET toc_wiki_file = ?",
-		setting.Markdown.DefaultTocWikiFile); err != nil {
-		return err
+	sess := x.NewSession()
+	defer sess.Close()
+
+	var start = 0
+	for {
+		var statuses = make([]*CommitStatus, 0, 100)
+		err := sess.OrderBy("id").Limit(100, start).Find(&statuses)
+		if err != nil {
+			return err
+		}
+		if len(statuses) == 0 {
+			break
+		}
+
+		if err = sess.Begin(); err != nil {
+			return err
+		}
+
+		for _, status := range statuses {
+			status.ContextHash = hashContext(status.Context)
+			if _, err := sess.ID(status.ID).Cols("context_hash").Update(status); err != nil {
+				return err
+			}
+		}
+
+		if err := sess.Commit(); err != nil {
+			return err
+		}
+
+		if len(statuses) < 100 {
+			break
+		}
+
+		start += len(statuses)
 	}
 
-	if _, err := x.Exec("UPDATE repository SET toc_markup_always = ?",
-		setting.Markdown.DefaultTocMarkupAlways); err != nil {
-		return err
-	}
-
-	if _, err := x.Exec("UPDATE repository SET toc_markup_by_flag = ?",
-		setting.Markdown.DefaultTocMarkupByFlag); err != nil {
-		return err
-	}
 	return nil
 }
