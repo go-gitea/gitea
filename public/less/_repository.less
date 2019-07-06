@@ -749,7 +749,7 @@
         }
 
         .comment-list {
-            &:before {
+            &:not(.prevent-before-timeline):before {
                 display: block;
                 content: "";
                 position: absolute;
@@ -761,6 +761,27 @@
                 width: 2px;
                 background-color: #f3f3f3;
                 z-index: -1;
+            }
+
+            .timeline-line {
+                position: relative;
+                display: block;
+                width: 100%;
+                max-width: 100%;
+
+                &:before {
+                    display: block;
+                    content: "";
+                    position: absolute;
+                    margin-top: 12px;
+                    margin-bottom: 14px;
+                    top: 0;
+                    bottom: 0;
+                    left: 82px;
+                    width: 2px;
+                    background-color: #f3f3f3;
+                    z-index: -1;
+                }
             }
 
             .comment {
