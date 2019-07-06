@@ -8,6 +8,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BREAKING
   * Better logging (#6038) (#6095)
 * FEATURE
+  * Content API for Creating, Updating, Deleting Files (#6314)
   * Enable tls-alpn-01: Use certmanager provided TLSConfig for LetsEncrypt (#7229)
   * Add command to convert mysql database from utf8 to utf8mb4 (#7144)
   * Fixes #2738 - Adds the /git/tags API endpoint (#7138)
@@ -28,6 +29,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Implement Default Webhooks (#4299)
   * Telegram webhook (#4227)
 * BUGFIXES
+  * Correctly adjust mirror url (#6593)
+  * Handle early git version's lack of get-url (#7065)
   * Fix icon position in issue view (#7354)
   * Cut timeline length with last element on issue view (#7355)
   * Fix mirror repository webhooks (#7366)
@@ -163,6 +166,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Disable benchmarking during tag events on DroneIO (#6365)
   * Comments list performance optimization (#5305)
 * ENHANCEMENT
+  * Add API Endpoint for Repo Edit (#7006)
+  * Add state param to milestone listing API (#7131)
   * Make captcha and password optional for external accounts (#6606)
   * Detect migrating batch size (#7353)
   * Fix 7255 - wrap long texts on user profile info (#7333)
@@ -279,6 +284,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * UX + Security current user password reset (#5042)
   * Refactor: append, build variable and type switch (#4940)
   * Git statistics in Activity tab (#4724)
+  * Drop the bits argument when generating an ed25519 key (#6504)
 * SECURITY
   * Shadow the password on cache and session config on admin panel (#7300)
 * TESTING
@@ -305,6 +311,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add make version on gitea version (#6485)
   * Fix #6468 - Uses space match and adds newline for all sed flavors (#6473)
   * Move code.gitea.io/git to code.gitea.io/gitea/modules/git (#6364)
+  * Update npm dependencies and various tweaks (#7344)
+  * Fix updated drone file (#7336)
+  * Add 'npm' and 'npm-update' make targets and lockfile (#7246)
 * DOCS
   * Add work path CLI option (#6922)
   * Fix logging documentation (#6904)
@@ -312,16 +321,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix link to Hacking on Gitea on From-Source doc page (#6471)
   * Fix typos in docs command-line examples (#6466)
   * Added docker example for backup (#5846)
-* MISC
-  * Update npm dependencies and various tweaks (#7344)
-  * Fix updated drone file (#7336)
-  * Add 'npm' and 'npm-update' make targets and lockfile (#7246)
-  * Add state param to milestone listing API (#7131)
-  * Handle early git version's lack of get-url (#7065)
-  * Fixes #5960 - Adds API Endpoint for Repo Edit (#7006)
-  * Correctly adjust mirror url (#6593)
-  * Drop the bits argument when generating an ed25519 key (#6504)
-  * Content API for Creating, Updating, Deleting Files (#6314)
 
 ## [1.8.3](https://github.com/go-gitea/gitea/releases/tag/v1.8.3) - 2019-06-17
 * BUGFIXES
