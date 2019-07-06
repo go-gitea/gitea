@@ -39,8 +39,8 @@
 				{{.Issue.OriginalAuthor}}
 				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}</span>
 			{{else}}
-			<a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
-			<span class="pull-desc">{{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}</span>
+				<a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
+				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}</span>
 			{{end}}
 		{{end}}
 	{{else}}
