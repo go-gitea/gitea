@@ -12,9 +12,13 @@
 	<div class="twelve wide column comment-list">
 		<ui class="ui comments">
 			<div class="comment">
+			{{if .Issue.OriginalAuthor }}
+				<span class="avatar"><img src="/img/avatar_default.png"></span>
+			{{else}}
 				<a class="avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
 					<img src="{{.Issue.Poster.RelAvatarLink}}">
 				</a>
+			{{end}}
 				<div class="content">
 					<div class="ui top attached header">
 					{{if .Issue.OriginalAuthor }}

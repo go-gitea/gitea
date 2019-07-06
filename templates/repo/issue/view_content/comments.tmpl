@@ -9,9 +9,13 @@
 	 22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED -->
 	{{if eq .Type 0}}
 		<div class="comment" id="{{.HashTag}}">
+		{{if .OriginalAuthor }}
+			<span class="avatar"><img src="/img/avatar_default.png"></span>
+		{{else}}
 			<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
+		{{end}}
 			<div class="content">
 				<div class="ui top attached header">
 				{{if .OriginalAuthor }}
