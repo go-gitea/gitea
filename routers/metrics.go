@@ -5,6 +5,8 @@
 package routers
 
 import (
+	"crypto/subtle"
+
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"code.gitea.io/gitea/modules/context"
@@ -22,7 +24,9 @@ func Metrics(ctx *context.Context) {
 		ctx.Error(401)
 		return
 	}
-	if header != "Bearer "+setting.Metrics.Token {
+	got := []byte(header)
+	want := []byte("Bearer " + setting.Metrics.Token)
+	if subtle.ConstantTimeCompare(got, want) != 1 {
 		ctx.Error(401)
 		return
 	}
