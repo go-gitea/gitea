@@ -749,7 +749,7 @@
         }
 
         .comment-list {
-            &:before {
+            &:not(.prevent-before-timeline):before {
                 display: block;
                 content: "";
                 position: absolute;
@@ -761,6 +761,27 @@
                 width: 2px;
                 background-color: #f3f3f3;
                 z-index: -1;
+            }
+
+            .timeline-line {
+                position: relative;
+                display: block;
+                width: 100%;
+                max-width: 100%;
+
+                &:before {
+                    display: block;
+                    content: "";
+                    position: absolute;
+                    margin-top: 12px;
+                    margin-bottom: 14px;
+                    top: 0;
+                    bottom: 0;
+                    left: 82px;
+                    width: 2px;
+                    background-color: #f3f3f3;
+                    z-index: -1;
+                }
             }
 
             .comment {
@@ -899,6 +920,45 @@
                 margin: 15px 0 15px 79px;
                 padding-left: 25px;
 
+                & > .octicon:not(.issue-symbol) {
+                    text-shadow: -2px 0 #fff, 0 2px #fff, 2px 0 #fff, 0 -2px #fff;
+                }
+
+                & > .octicon.issue-symbol {
+                    font-size: 20px;
+                    margin-left: -35px;
+                    margin-right: -1px;
+                    margin-top: 0 !important;
+                    height: 28px;
+                    width: 28px;
+                    border-radius: 50%;
+                    text-align: center;
+                    line-height: 28px;
+                    background: #eee;
+
+                    &::before {
+                        width: 15px;
+                        display: inline-block;
+                    }
+
+                    &.octicon-key::before {
+                        width: 18px;
+                    }
+
+                    &.octicon-circle-slash::before {
+                        width: 17px;
+                    }
+
+                    &.octicon-comment {
+                        font-size: 21px;
+                        line-height: 33px;
+
+                        &::before {
+                            width: 20px;
+                        }
+                    }
+                }
+
                 .octicon {
                     width: 30px;
                     float: left;
@@ -912,6 +972,7 @@
                     }
 
                     &.octicon-primitive-dot {
+                        margin-top: -1px;
                         margin-left: -28.5px;
                         margin-right: -1px;
                         font-size: 30px;
@@ -919,21 +980,15 @@
                     }
 
                     &.octicon-bookmark {
-                        margin-top: 3px;
+                        margin-top: 2px;
                         margin-left: -31px;
                         margin-right: -1px;
                         font-size: 25px;
                     }
 
-                    &.octicon-comment {
-                        margin-top: 4px;
-                        margin-left: -35px;
-                        font-size: 24px;
-                    }
-
                     &.octicon-eye {
                         margin-top: 3px;
-                        margin-left: -35px;
+                        margin-left: -36px;
                         margin-right: 0;
                         font-size: 22px;
                     }
