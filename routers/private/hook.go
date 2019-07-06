@@ -31,6 +31,7 @@ func HookPreReceive(ctx *macaron.Context) {
 	userID := ctx.QueryInt64("userID")
 	gitObjectDirectory := ctx.QueryTrim("gitObjectDirectory")
 	gitAlternativeObjectDirectories := ctx.QueryTrim("gitAlternativeObjectDirectories")
+	prID := ctx.QueryInt64("prID")
 
 	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
@@ -85,7 +86,24 @@ func HookPreReceive(ctx *macaron.Context) {
 			}
 		}
 
-		if !protectBranch.CanUserPush(userID) {
+		canPush := protectBranch.CanUserPush(userID)
+		if !canPush && prID > 0 {
+			pr, err := models.GetPullRequestByID(prID)
+			if err != nil {
+				log.Error("Unable to get PullRequest %d Error: %v", prID, err)
+				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"err": fmt.Sprintf("Unable to get PullRequest %d Error: %v", prID, err),
+				})
+				return
+			}
+			if !protectBranch.HasEnoughApprovals(pr) {
+				log.Warn("Forbidden: User %d cannot push to protected branch: %s in %-v and pr #%d does not have enough approvals", userID, branchName, repo, pr.Index)
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": fmt.Sprintf("protected branch %s can not be pushed to and pr #%d does not have enough approvals", branchName, prID),
+				})
+				return
+			}
+		} else if !canPush {
 			log.Warn("Forbidden: User %d cannot push to protected branch: %s in %-v", userID, branchName, repo)
 			ctx.JSON(http.StatusForbidden, map[string]interface{}{
 				"err": fmt.Sprintf("protected branch %s can not be pushed to", branchName),

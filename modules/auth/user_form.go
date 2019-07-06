@@ -79,7 +79,7 @@ func (f *InstallForm) Validate(ctx *macaron.Context, errs binding.Errors) bindin
 type RegisterForm struct {
 	UserName           string `binding:"Required;AlphaDashDot;MaxSize(40)"`
 	Email              string `binding:"Required;Email;MaxSize(254)"`
-	Password           string `binding:"Required;MaxSize(255)"`
+	Password           string `binding:"MaxSize(255)"`
 	Retype             string
 	GRecaptchaResponse string `form:"g-recaptcha-response"`
 }
@@ -129,6 +129,7 @@ func (f *MustChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Err
 // SignInForm form for signing in with user/password
 type SignInForm struct {
 	UserName string `binding:"Required;MaxSize(254)"`
+	// TODO remove required from password for SecondFactorAuthentication
 	Password string `binding:"Required;MaxSize(255)"`
 	Remember bool
 }

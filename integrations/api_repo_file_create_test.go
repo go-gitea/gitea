@@ -28,7 +28,7 @@ func getCreateFileOptions() api.CreateFileOptions {
 		FileOptions: api.FileOptions{
 			BranchName:    "master",
 			NewBranchName: "master",
-			Message:       "Creates new/file.txt",
+			Message:       "Making this new file new/file.txt",
 			Author: api.Identity{
 				Name:  "John Doe",
 				Email: "johndoe@example.com",
@@ -44,21 +44,29 @@ func getCreateFileOptions() api.CreateFileOptions {
 
 func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileResponse {
 	sha := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
+	encoding := "base64"
+	content := "VGhpcyBpcyBuZXcgdGV4dA=="
+	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master"
+	htmlURL := setting.AppURL + "user2/repo1/src/branch/master/" + treePath
+	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha
+	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + treePath
 	return &api.FileResponse{
-		Content: &api.FileContentResponse{
+		Content: &api.ContentsResponse{
 			Name:        filepath.Base(treePath),
 			Path:        treePath,
 			SHA:         sha,
 			Size:        16,
-			URL:         setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath,
-			HTMLURL:     setting.AppURL + "user2/repo1/blob/master/" + treePath,
-			GitURL:      setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
-			DownloadURL: setting.AppURL + "user2/repo1/raw/branch/master/" + treePath,
-			Type:        "blob",
+			Type:        "file",
+			Encoding:    &encoding,
+			Content:     &content,
+			URL:         &selfURL,
+			HTMLURL:     &htmlURL,
+			GitURL:      &gitURL,
+			DownloadURL: &downloadURL,
 			Links: &api.FileLinksResponse{
-				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath,
-				GitURL:  setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha,
-				HTMLURL: setting.AppURL + "user2/repo1/blob/master/" + treePath,
+				Self:    &selfURL,
+				GitURL:  &gitURL,
+				HTMLURL: &htmlURL,
 			},
 		},
 		Commit: &api.FileCommitResponse{
@@ -145,11 +153,24 @@ func TestAPICreateFile(t *testing.T) {
 		var fileResponse api.FileResponse
 		DecodeJSON(t, resp, &fileResponse)
 		expectedSHA := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
-		expectedHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/blob/new_branch/new/file%d.txt", fileID)
+		expectedHTMLURL := fmt.Sprintf(setting.AppURL+"user2/repo1/src/branch/new_branch/new/file%d.txt", fileID)
 		expectedDownloadURL := fmt.Sprintf(setting.AppURL+"user2/repo1/raw/branch/new_branch/new/file%d.txt", fileID)
 		assert.EqualValues(t, expectedSHA, fileResponse.Content.SHA)
-		assert.EqualValues(t, expectedHTMLURL, fileResponse.Content.HTMLURL)
-		assert.EqualValues(t, expectedDownloadURL, fileResponse.Content.DownloadURL)
+		assert.EqualValues(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
+		assert.EqualValues(t, expectedDownloadURL, *fileResponse.Content.DownloadURL)
+		assert.EqualValues(t, createFileOptions.Message+"\n", fileResponse.Commit.Message)
+
+		// Test creating a file without a message
+		createFileOptions = getCreateFileOptions()
+		createFileOptions.Message = ""
+		fileID++
+		treePath = fmt.Sprintf("new/file%d.txt", fileID)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
+		req = NewRequestWithJSON(t, "POST", url, &createFileOptions)
+		resp = session.MakeRequest(t, req, http.StatusCreated)
+		DecodeJSON(t, resp, &fileResponse)
+		expectedMessage := "Add '" + treePath + "'\n"
+		assert.EqualValues(t, expectedMessage, fileResponse.Commit.Message)
 
 		// Test trying to create a file that already exists, should fail
 		createFileOptions = getCreateFileOptions()
