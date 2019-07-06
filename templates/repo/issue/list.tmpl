@@ -234,8 +234,9 @@
 
 					<p class="desc">
 						{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
-
-						{{if gt .Poster.ID 0}}
+						{{if .OriginalAuthor }}
+							{{$.i18n.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor | Safe}}
+						{{else if gt .Poster.ID 0}}
 							{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName | Escape) | Safe}}
 						{{else}}
 							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}

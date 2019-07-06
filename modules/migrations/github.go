@@ -453,6 +453,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			Title:          *pr.Title,
 			Number:         int64(*pr.Number),
 			PosterName:     *pr.User.Login,
+			PosterID:       *pr.User.ID,
 			PosterEmail:    email,
 			Content:        body,
 			Milestone:      milestone,

@@ -2683,3 +2683,13 @@ func (repo *Repository) DeleteAvatar() error {
 	}
 	return sess.Commit()
 }
+
+// GetOriginalURLHostname returns the hostname of a URL or the URL
+func (repo *Repository) GetOriginalURLHostname() string {
+	u, err := url.Parse(repo.OriginalURL)
+	if err != nil {
+		return repo.OriginalURL
+	}
+
+	return u.Host
+}

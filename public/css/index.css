@@ -137,6 +137,9 @@ a{cursor:pointer}
 .ui .background.purple{background-color:#6e5494!important}
 .ui .background.yellow{background-color:#fbbf09!important}
 .ui .background.gold{background-color:#a1882b!important}
+.ui .migrate{color:#888!important;opacity:.5}
+.ui .migrate a{color:#444!important}
+.ui .migrate a:hover{color:#000!important}
 .ui .branch-tag-choice{line-height:20px}
 @media only screen and (max-width:767px){.ui.pagination.menu .item.navigation span.navigation_label,.ui.pagination.menu .item:not(.active):not(.navigation){display:none}
 }

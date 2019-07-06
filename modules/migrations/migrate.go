@@ -6,8 +6,6 @@
 package migrations
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
@@ -173,11 +171,6 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				return err
 			}
 
-			for _, pr := range prs {
-				if !opts.IgnoreIssueAuthor {
-					pr.Content = fmt.Sprintf("Author: @%s \n\n%s", pr.PosterName, pr.Content)
-				}
-			}
 			if err := uploader.CreatePullRequests(prs...); err != nil {
 				return err
 			}
@@ -191,11 +184,6 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				comments, err := downloader.GetComments(pr.Number)
 				if err != nil {
 					return err
-				}
-				for _, comment := range comments {
-					if !opts.IgnoreIssueAuthor {
-						comment.Content = fmt.Sprintf("Author: @%s \n\n%s", comment.PosterName, comment.Content)
-					}
 				}
 
 				allComments = append(allComments, comments...)
