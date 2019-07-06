@@ -118,7 +118,7 @@ footer{background:#2e323e;border-top:1px solid #313131}
 .repository.new.issue .comment.form .content:after{border-right-color:#353945}
 .repository.view.issue .comment-list .comment .content .header:before{border-right-color:#404552}
 .repository.new.issue .comment.form .content:before{border-right-color:#353945}
-.repository.view.issue .comment-list:before{background-color:#313c47}
+.repository.view.issue .comment-list .timeline-line:before,.repository.view.issue .comment-list:not(.prevent-before-timeline):before{background-color:#3b4954}
 .repository .comment.form .content .form:after{border-right-color:#313c47}
 .repository .comment.form .content .form:before{border-right-color:#313c47}
 .ui .text.grey a:hover{color:#dbdbdb!important}
