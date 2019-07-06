@@ -357,19 +357,23 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["OpenID"] = oid
 
-	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha && !cpt.VerifyReq(ctx.Req) {
-		ctx.Data["Err_Captcha"] = true
-		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUpOID, &form)
-		return
-	}
-
-	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
-		err := ctx.Req.ParseForm()
-		if err != nil {
-			ctx.ServerError("", err)
+	if setting.Service.EnableCaptcha {
+		var valid bool
+		switch setting.Service.CaptchaType {
+		case setting.ImageCaptcha:
+			valid = cpt.VerifyReq(ctx.Req)
+		case setting.ReCaptcha:
+			err := ctx.Req.ParseForm()
+			if err != nil {
+				ctx.ServerError("", err)
+				return
+			}
+			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+		default:
+			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
 		}
-		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
+
 		if !valid {
 			ctx.Data["Err_Captcha"] = true
 			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUpOID, &form)
