@@ -524,7 +524,9 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.view.issue .pull .review-item .type-icon{float:right;margin-right:1em}
 .repository.view.issue .pull .review-item .divider{margin:.5rem 0}
 .repository.view.issue .pull .review-item .review-content{padding:1em 0 1em 3.8em}
-.repository.view.issue .comment-list:before{display:block;content:"";position:absolute;margin-top:12px;margin-bottom:14px;top:0;bottom:0;left:96px;width:2px;background-color:#f3f3f3;z-index:-1}
+.repository.view.issue .comment-list:not(.prevent-before-timeline):before{display:block;content:"";position:absolute;margin-top:12px;margin-bottom:14px;top:0;bottom:0;left:96px;width:2px;background-color:#f3f3f3;z-index:-1}
+.repository.view.issue .comment-list .timeline-line{position:relative;display:block;width:100%;max-width:100%}
+.repository.view.issue .comment-list .timeline-line:before{display:block;content:"";position:absolute;margin-top:12px;margin-bottom:14px;top:0;bottom:0;left:82px;width:2px;background-color:#f3f3f3;z-index:-1}
 .repository.view.issue .comment-list .comment .avatar{width:3em}
 .repository.view.issue .comment-list .comment .tag{color:#767676;margin-top:3px;padding:2px 5px;font-size:12px;border:1px solid rgba(0,0,0,.1);border-radius:3px}
 .repository.view.issue .comment-list .comment .actions .item{float:left}
