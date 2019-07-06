@@ -28,6 +28,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Implement Default Webhooks (#4299)
   * Telegram webhook (#4227)
 * BUGFIXES
+  * Fix icon position in issue view (#7354)
+  * Cut timeline length with last element on issue view (#7355)
   * Fix mirror repository webhooks (#7366)
   * Fix api route for hooks (#7346)
   * Fix bug conflict between SyncReleasesWithTags and InsertReleases (#7337)
@@ -73,7 +75,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Handle insecure and ports in go get (#7041)
   * Avoid bad database state after failed migration (#7040)
   * Fix wrong init dependency on markup extensions (#7038)
-  * Disable arm7 builds (#7037)
   * Fix default for allowing new organization creation for new users (#7017)
   * Fix content download and /verify LFS handler expecting wrong content-type (#7015)
   * Fix missing repo description when migrating (#7000)
