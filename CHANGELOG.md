@@ -28,7 +28,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Implement Default Webhooks (#4299)
   * Telegram webhook (#4227)
 * BUGFIXES
-  * Fix api route (#7346)
+  * Fix mirror repository webhooks (#7366)
+  * Fix api route for hooks (#7346)
   * Fix bug conflict between SyncReleasesWithTags and InsertReleases (#7337)
   * Fix pull view ui merge section (#7335)
   * Fix 7303 - remove unnessesary buttons on archived repos (#7326)
