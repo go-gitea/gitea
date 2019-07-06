@@ -8,6 +8,7 @@ package repo
 
 import (
 	"container/list"
+	"crypto/subtle"
 	"fmt"
 	"io"
 	"path"
@@ -771,7 +772,9 @@ func TriggerTask(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	if secret != base.EncodeMD5(owner.Salt) {
+	got := []byte(base.EncodeMD5(owner.Salt))
+	want := []byte(secret)
+	if subtle.ConstantTimeCompare(got, want) != 1 {
 		ctx.Error(404)
 		log.Trace("TriggerTask [%s/%s]: invalid secret", owner.Name, repo.Name)
 		return

@@ -15,7 +15,7 @@ github.com/Unknwon/i18n
 github.com/Unknwon/paginater
 # github.com/andybalholm/cascadia v0.0.0-20161224141413-349dd0209470
 github.com/andybalholm/cascadia
-# github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973
+# github.com/beorn7/perks v1.0.0
 github.com/beorn7/perks/quantile
 # github.com/blevesearch/bleve v0.0.0-20190214220507-05d86ea8f6e3
 github.com/blevesearch/bleve
@@ -88,7 +88,7 @@ github.com/davecgh/go-spew/spew
 # github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952 => github.com/denisenkom/go-mssqldb v0.0.0-20180314172330-6a30f4e59a44
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
-# github.com/dgrijalva/jwt-go v0.0.0-20161101193935-9ed569b5d1ac
+# github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
 # github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712
 github.com/edsrzf/mmap-go
@@ -156,7 +156,7 @@ github.com/go-xorm/xorm
 github.com/gogits/chardet
 # github.com/gogits/cron v0.0.0-20160810035002-7f3990acf183
 github.com/gogits/cron
-# github.com/golang/protobuf v1.2.0
+# github.com/golang/protobuf v1.3.1
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 github.com/golang/snappy
@@ -268,21 +268,19 @@ github.com/pmezard/go-difflib/difflib
 github.com/pquerna/otp/totp
 github.com/pquerna/otp
 github.com/pquerna/otp/hotp
-# github.com/prometheus/client_golang v0.9.0
+# github.com/prometheus/client_golang v0.9.3
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/promhttp
 github.com/prometheus/client_golang/prometheus/internal
-# github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910
+# github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.0.0-20181020173914-7e9e6cabbd39
+# github.com/prometheus/common v0.4.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/model
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
-# github.com/prometheus/procfs v0.0.0-20181005140218-185b4288413d
+# github.com/prometheus/procfs v0.0.0-20190507164030-5867b95ac084
 github.com/prometheus/procfs
-github.com/prometheus/procfs/nfs
-github.com/prometheus/procfs/xfs
-github.com/prometheus/procfs/internal/util
+github.com/prometheus/procfs/internal/fs
 # github.com/russross/blackfriday v0.0.0-20180428102519-11635eb403ff
 github.com/russross/blackfriday
 # github.com/satori/go.uuid v1.2.0
@@ -474,7 +472,7 @@ gopkg.in/src-d/go-git.v4/plumbing/transport/server
 gopkg.in/testfixtures.v2
 # gopkg.in/warnings.v0 v0.1.2
 gopkg.in/warnings.v0
-# gopkg.in/yaml.v2 v2.2.1
+# gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
 # mvdan.cc/xurls/v2 v2.0.0
 mvdan.cc/xurls/v2
