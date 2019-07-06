@@ -53,6 +53,25 @@ func NewGiteaLocalUploader(doer *models.User, repoOwner, repoName string) *Gitea
 	}
 }
 
+// MaxBatchInsertSize returns the table's max batch insert size
+func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
+	switch tp {
+	case "issue":
+		return models.MaxBatchInsertSize(new(models.Issue))
+	case "comment":
+		return models.MaxBatchInsertSize(new(models.Comment))
+	case "milestone":
+		return models.MaxBatchInsertSize(new(models.Milestone))
+	case "label":
+		return models.MaxBatchInsertSize(new(models.Label))
+	case "release":
+		return models.MaxBatchInsertSize(new(models.Release))
+	case "pullrequest":
+		return models.MaxBatchInsertSize(new(models.PullRequest))
+	}
+	return 10
+}
+
 // CreateRepo creates a repository
 func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.MigrateOptions) error {
 	owner, err := models.GetUserByName(g.repoOwner)
