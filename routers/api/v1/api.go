@@ -766,7 +766,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Get("/tags/:sha", context.RepoRef(), repo.GetTag)
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/contents", func() {
-					m.Get("/*", repo.GetFileContents)
+					m.Get("", repo.GetContentsList)
+					m.Get("/*", repo.GetContents)
 					m.Group("/*", func() {
 						m.Post("", bind(api.CreateFileOptions{}), repo.CreateFile)
 						m.Put("", bind(api.UpdateFileOptions{}), repo.UpdateFile)
@@ -797,14 +798,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
 			})
 			m.Combo("/teams", reqToken(), reqOrgMembership()).Get(org.ListTeams).
-				Post(bind(api.CreateTeamOption{}), org.CreateTeam)
+				Post(reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
 					Post(bind(api.CreateHookOption{}), org.CreateHook)
 				m.Combo("/:id").Get(org.GetHook).
-					Patch(reqOrgOwnership(), bind(api.EditHookOption{}), org.EditHook).
-					Delete(reqOrgOwnership(), org.DeleteHook)
-			}, reqToken(), reqOrgMembership())
+					Patch(bind(api.EditHookOption{}), org.EditHook).
+					Delete(org.DeleteHook)
+			}, reqToken(), reqOrgOwnership())
 		}, orgAssignment(true))
 		m.Group("/teams/:teamid", func() {
 			m.Combo("").Get(org.GetTeam).

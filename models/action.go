@@ -24,7 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 // ActionType represents the type of an action.
@@ -896,6 +896,11 @@ func mirrorSyncAction(e Engine, opType ActionType, repo *Repository, refName str
 	}); err != nil {
 		return fmt.Errorf("notifyWatchers: %v", err)
 	}
+
+	defer func() {
+		go HookQueue.Add(repo.ID)
+	}()
+
 	return nil
 }
 

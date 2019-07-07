@@ -216,7 +216,7 @@ func (m *Mirror) runSync() ([]*mirrorSyncResult, bool) {
 
 	_, stderr, err := process.GetManager().ExecDir(
 		timeout, repoPath, fmt.Sprintf("Mirror.runSync: %s", repoPath),
-		"git", gitArgs...)
+		git.GitExecutable, gitArgs...)
 	if err != nil {
 		// sanitize the output, since it may contain the remote address, which may
 		// contain a password
@@ -250,7 +250,7 @@ func (m *Mirror) runSync() ([]*mirrorSyncResult, bool) {
 	if m.Repo.HasWiki() {
 		if _, stderr, err := process.GetManager().ExecDir(
 			timeout, wikiPath, fmt.Sprintf("Mirror.runSync: %s", wikiPath),
-			"git", "remote", "update", "--prune"); err != nil {
+			git.GitExecutable, "remote", "update", "--prune"); err != nil {
 			// sanitize the output, since it may contain the remote address, which may
 			// contain a password
 			message, err := sanitizeOutput(stderr, wikiPath)

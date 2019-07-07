@@ -8,6 +8,7 @@ package repo
 
 import (
 	"container/list"
+	"crypto/subtle"
 	"fmt"
 	"io"
 	"path"
@@ -20,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/pull"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -320,15 +322,37 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	setMergeTarget(ctx, pull)
 
 	var headGitRepo *git.Repository
+	var headBranchExist bool
+	// HeadRepo may be missing
 	if pull.HeadRepo != nil {
 		headGitRepo, err = git.OpenRepository(pull.HeadRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
 		}
+
+		headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
+
+		if headBranchExist {
+			sha, err := headGitRepo.GetBranchCommitID(pull.HeadBranch)
+			if err != nil {
+				ctx.ServerError("GetBranchCommitID", err)
+				return nil
+			}
+
+			commitStatuses, err := models.GetLatestCommitStatus(repo, sha, 0)
+			if err != nil {
+				ctx.ServerError("GetLatestCommitStatus", err)
+				return nil
+			}
+			if len(commitStatuses) > 0 {
+				ctx.Data["LatestCommitStatuses"] = commitStatuses
+				ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(commitStatuses)
+			}
+		}
 	}
 
-	if pull.HeadRepo == nil || !headGitRepo.IsBranchExist(pull.HeadBranch) {
+	if pull.HeadRepo == nil || !headBranchExist {
 		ctx.Data["IsPullRequestBroken"] = true
 		ctx.Data["HeadTarget"] = "deleted"
 		ctx.Data["NumCommits"] = 0
@@ -621,7 +645,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if err = pr.Merge(ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+	if err = pull.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
@@ -773,7 +797,9 @@ func TriggerTask(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	if secret != base.EncodeMD5(owner.Salt) {
+	got := []byte(base.EncodeMD5(owner.Salt))
+	want := []byte(secret)
+	if subtle.ConstantTimeCompare(got, want) != 1 {
 		ctx.Error(404)
 		log.Trace("TriggerTask [%s/%s]: invalid secret", owner.Name, repo.Name)
 		return
