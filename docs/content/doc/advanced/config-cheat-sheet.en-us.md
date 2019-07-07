@@ -197,6 +197,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
 - `INTERNAL_TOKEN`: **\<random at every install if no uri set\>**: Secret used to validate communication within Gitea binary.
 - `INTERNAL_TOKEN_URI`: **<empty>**: Instead of defining internal token in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
+- `PASSWORD_HASH_ALGO`: **pbkdf2**: The hash algorithm to use \[pbkdf2, argon2, scrypt, bcrypt\].
 
 ## OpenID (`openid`)
 
@@ -216,6 +217,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    Requires `Mailer` to be enabled.
 - `DISABLE_REGISTRATION`: **false**: Disable registration, after which only admin can create
    accounts for users.
+- `REQUIRE_EXTERNAL_REGISTRATION_PASSWORD`: **false**: Enable this to force externally created
+   accounts (via GitHub, OpenID Connect, etc) to create a password. Warning: enabling this will
+   decrease security, so you should only enable it if you know what you're doing.
 - `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
 - `ENABLE_NOTIFY_MAIL`: **false**: Enable this to send e-mail to watchers of a repository when
    something happens, like creating issues. Requires `Mailer` to be enabled.
@@ -225,6 +229,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ENABLE_REVERSE_PROXY_EMAIL`: **false**: Enable this to allow to auto-registration with a
    provided email rather than a generated email.
 - `ENABLE_CAPTCHA`: **false**: Enable this to use captcha validation for registration.
+- `REQUIRE_EXTERNAL_REGISTRATION_CAPTCHA`: **false**: Enable this to force captcha validation
+   even for External Accounts (i.e. GitHub, OpenID Connect, etc). You must `ENABLE_CAPTCHA` also.
 - `CAPTCHA_TYPE`: **image**: \[image, recaptcha\]
 - `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha.
 - `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha.
@@ -403,6 +409,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ## Git (`git`)
 
+- `PATH`: **""**: The path of git executable. If empty, Gitea searches through the PATH environment.
 - `MAX_GIT_DIFF_LINES`: **100**: Max number of lines allowed of a single file in diff view.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
@@ -419,7 +426,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ## Metrics (`metrics`)
 
-- `ENABLED`: **false**: Enables /metrics endpoint for prometheus. 
+- `ENABLED`: **false**: Enables /metrics endpoint for prometheus.
 - `TOKEN`: **\<empty\>**: You need to specify the token, if you want to include in the authorization the metrics . The same token need to be used in prometheus parameters `bearer_token` or `bearer_token_file`.
 
 ## API (`api`)

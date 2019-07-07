@@ -65,6 +65,7 @@ func runHookPreReceive(c *cli.Context) error {
 	username := os.Getenv(models.EnvRepoUsername)
 	reponame := os.Getenv(models.EnvRepoName)
 	userID, _ := strconv.ParseInt(os.Getenv(models.EnvPusherID), 10, 64)
+	prID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchPRID), 10, 64)
 
 	buf := bytes.NewBuffer(nil)
 	scanner := bufio.NewScanner(os.Stdin)
@@ -95,6 +96,7 @@ func runHookPreReceive(c *cli.Context) error {
 				UserID:                          userID,
 				GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
 				GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
+				ProtectedBranchID:               prID,
 			})
 			switch statusCode {
 			case http.StatusInternalServerError:

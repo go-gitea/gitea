@@ -12,26 +12,34 @@ import (
 
 // PushingEnvironment returns an os environment to allow hooks to work on push
 func PushingEnvironment(doer *User, repo *Repository) []string {
+	return FullPushingEnvironment(doer, doer, repo, 0)
+}
+
+// FullPushingEnvironment returns an os environment to allow hooks to work on push
+func FullPushingEnvironment(author, committer *User, repo *Repository, prID int64) []string {
 	isWiki := "false"
 	if strings.HasSuffix(repo.Name, ".wiki") {
 		isWiki = "true"
 	}
 
-	sig := doer.NewGitSig()
+	authorSig := author.NewGitSig()
+	committerSig := committer.NewGitSig()
 
 	// We should add "SSH_ORIGINAL_COMMAND=gitea-internal",
 	// once we have hook and pushing infrastructure working correctly
 	return append(os.Environ(),
-		"GIT_AUTHOR_NAME="+sig.Name,
-		"GIT_AUTHOR_EMAIL="+sig.Email,
-		"GIT_COMMITTER_NAME="+sig.Name,
-		"GIT_COMMITTER_EMAIL="+sig.Email,
+		"GIT_AUTHOR_NAME="+authorSig.Name,
+		"GIT_AUTHOR_EMAIL="+authorSig.Email,
+		"GIT_COMMITTER_NAME="+committerSig.Name,
+		"GIT_COMMITTER_EMAIL="+committerSig.Email,
 		EnvRepoName+"="+repo.Name,
 		EnvRepoUsername+"="+repo.MustOwnerName(),
 		EnvRepoIsWiki+"="+isWiki,
-		EnvPusherName+"="+doer.Name,
-		EnvPusherID+"="+fmt.Sprintf("%d", doer.ID),
+		EnvPusherName+"="+committer.Name,
+		EnvPusherID+"="+fmt.Sprintf("%d", committer.ID),
 		ProtectedBranchRepoID+"="+fmt.Sprintf("%d", repo.ID),
+		ProtectedBranchPRID+"="+fmt.Sprintf("%d", prID),
+		"SSH_ORIGINAL_COMMAND=gitea-internal",
 	)
 
 }
