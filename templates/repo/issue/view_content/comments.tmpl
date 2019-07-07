@@ -82,7 +82,7 @@
 		</div>
 	{{else if eq .Type 2}}
 		<div class="event">
-			<span class="octicon octicon-circle-slash"></span>
+			<span class="octicon octicon-circle-slash issue-symbol"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -172,7 +172,7 @@
 			{{$.i18n.Tr "repo.issues.delete_branch_at" (.CommitSHA|Escape) $createdStr | Safe}}
 			</span>
 		</div>
-    {{else if eq .Type 12}}
+	{{else if eq .Type 12}}
 		<div class="event">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
@@ -245,55 +245,55 @@
 		</div>
 	{{else if eq .Type 19}}
 		<div class="event">
-	    	<span class="octicon octicon-primitive-dot"></span>
-	    	<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+			<span class="octicon octicon-primitive-dot"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
-	     	</a>
-	     	<span class="text grey">
-		     	{{$.i18n.Tr "repo.issues.dependency.added_dependency" .Poster.HomeLink (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
-	     	</span>
-	     	<div class="detail">
-		    	<span class="octicon octicon-plus"></span>
+		 	</a>
+		 	<span class="text grey">
+			 	{{$.i18n.Tr "repo.issues.dependency.added_dependency" .Poster.HomeLink (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
+		 	</span>
+		 	<div class="detail">
+				<span class="octicon octicon-plus"></span>
 			 	<span class="text grey"><a href="{{$.RepoLink}}/issues/{{.DependentIssue.Index}}">#{{.DependentIssue.Index}} {{.DependentIssue.Title}}</a></span>
 		 	</div>
-     	</div>
+	 	</div>
 	{{else if eq .Type 20}}
 		<div class="event">
-	     	<span class="octicon octicon-primitive-dot"></span>
-	     	<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-		     	<img src="{{.Poster.RelAvatarLink}}">
-	     	</a>
-	     	<span class="text grey">
-		     	{{$.i18n.Tr "repo.issues.dependency.removed_dependency" .Poster.HomeLink (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
-	     	</span>
-	     	<div class="detail">
-		     	<span class="text grey octicon octicon-trashcan"></span>
+		 	<span class="octicon octicon-primitive-dot"></span>
+		 	<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+			 	<img src="{{.Poster.RelAvatarLink}}">
+		 	</a>
+		 	<span class="text grey">
+			 	{{$.i18n.Tr "repo.issues.dependency.removed_dependency" .Poster.HomeLink (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
+		 	</span>
+		 	<div class="detail">
+			 	<span class="text grey octicon octicon-trashcan"></span>
 			 	<span class="text grey"><a href="{{$.RepoLink}}/issues/{{.DependentIssue.Index}}">#{{.DependentIssue.Index}} {{.DependentIssue.Title}}</a></span>
-	     	</div>
-     	</div>
+		 	</div>
+	 	</div>
 	{{else if eq .Type 22}}
-	    <div class="event" id="{{.HashTag}}">
-	    	<span class="octicon octicon-{{.Review.Type.Icon}}"></span>
-	    	<a class="ui avatar image" href="{{.Poster.HomeLink}}">
-	    		<img src="{{.Poster.RelAvatarLink}}">
-	    	</a>
-	    	<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-	    		{{if eq .Review.Type 1}}
-	    			{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
-	    		{{else if eq .Review.Type 2}}
-	    			{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
-	    		{{else if eq .Review.Type 3}}
-	    			{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
-	    		{{else}}
-	    			{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
-	    		{{end}}
-	    	</span>
-	    	{{if .Content}}
-	    		<div class="detail">
+		<div class="event" id="{{.HashTag}}">
+			<span class="octicon octicon-{{.Review.Type.Icon}} issue-symbol"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{if eq .Review.Type 1}}
+					{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
+				{{else if eq .Review.Type 2}}
+					{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
+				{{else if eq .Review.Type 3}}
+					{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
+				{{else}}
+					{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
+				{{end}}
+			</span>
+			{{if .Content}}
+				<div class="detail">
 					<span class="octicon octicon-quote"></span>
-	    			<span class="text grey">{{.Content}}</span>
-	    		</div>
-	    	{{end}}
+					<span class="text grey">{{.Content}}</span>
+				</div>
+			{{end}}
 			{{ range $filename, $lines := .Review.CodeComments}}
 				{{range $line, $comms := $lines}}
 						<div class="ui segments">
@@ -358,36 +358,34 @@
 						</div>
 				{{end}}
 			{{end}}
-	    </div>
+		</div>
 	{{else if eq .Type 23}}
 		<div class="event">
-			<span class="octicon octicon-lock"
-				style="font-size:20px;margin-left:-28.5px; margin-right: -1px"></span>
+			<span class="octicon octicon-lock issue-symbol"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 
 			{{ if .Content }}
-	    		<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{$.i18n.Tr "repo.issues.lock_with_reason" .Content $createdStr | Safe}}
-	    		</span>
+				</span>
 			{{ else }}
-	    		<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{$.i18n.Tr "repo.issues.lock_no_reason" $createdStr | Safe}}
-	    		</span>
+				</span>
 			{{ end }}
 		</div>
 	{{else if eq .Type 24}}
 		<div class="event">
-			<span class="octicon octicon-key"
-				style="font-size:20px;margin-left:-28.5px; margin-right: -1px"></span>
+			<span class="octicon octicon-key issue-symbol"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 
-	    		<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-	    			{{$.i18n.Tr "repo.issues.unlock_comment" $createdStr | Safe}}
-	    		</span>
+				<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+					{{$.i18n.Tr "repo.issues.unlock_comment" $createdStr | Safe}}
+				</span>
 		</div>
 	{{end}}
 {{end}}
