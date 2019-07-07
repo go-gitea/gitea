@@ -41,8 +41,6 @@ const (
 )
 
 var (
-	// ErrFileTypeForbidden not allowed file type error
-	ErrFileTypeForbidden = errors.New("File type is not allowed")
 	// ErrTooManyFiles upload too many files
 	ErrTooManyFiles = errors.New("Maximum number of files to upload exceeded")
 	// IssueTemplateCandidates issue templates
