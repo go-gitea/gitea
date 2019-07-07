@@ -896,6 +896,11 @@ func mirrorSyncAction(e Engine, opType ActionType, repo *Repository, refName str
 	}); err != nil {
 		return fmt.Errorf("notifyWatchers: %v", err)
 	}
+
+	defer func() {
+		go HookQueue.Add(repo.ID)
+	}()
+
 	return nil
 }
 

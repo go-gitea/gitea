@@ -120,30 +120,12 @@
 											{{range $j, $section := $file.Sections}}
 												{{range $k, $line := $section.Lines}}
 													<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
-														<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}">
-															<span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}"></span>
-														</td>
-														<td class="lines-type-marker">
-															<pre>{{if $line.LeftIdx}}<span class="line-type-marker" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</pre>
-														</td>
-														<td class="lines-code lines-code-old halfwidth">
-															{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 2))}}
-																<a class="ui green button add-code-comment add-code-comment-left" data-path="{{$file.Name}}" data-side="left" data-idx="{{$line.LeftIdx}}">+</a>
-															{{end}}
-															<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
-														</td>
-														<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}">
-															<span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span>
-														</td>
-														<td class="lines-type-marker">
-															<pre>{{if $line.RightIdx}}<span class="line-type-marker" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</pre>
-														</td>
-														<td class="lines-code lines-code-new halfwidth">
-															{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 3))}}
-																<a class="ui green button add-code-comment add-code-comment-right" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}">+</a>
-															{{end}}
-															<pre><code class="wrap {{if $highlightClass}}language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></pre>
-														</td>
+														<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}"></span></td>
+														<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
+														<td class="lines-code lines-code-old halfwidth">{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 2))}}<a class="ui green button add-code-comment add-code-comment-left" data-path="{{$file.Name}}" data-side="left" data-idx="{{$line.LeftIdx}}">+</a>{{end}}<span class="mono wrap{{if $highlightClass}} language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</span></td>
+														<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span></td>
+														<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
+														<td class="lines-code lines-code-new halfwidth">{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 3))}}<a class="ui green button add-code-comment add-code-comment-right" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}">+</a>{{end}}<span class="mono wrap{{if $highlightClass}} language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</span></td>
 													</tr>
 													{{if gt (len $line.Comments) 0}}
 														<tr class="add-code-comment">
@@ -230,17 +212,22 @@
 			document.addEventListener('DOMContentLoaded', function() {
 				$('tr.add-code').each(function() {
 					var prev = $(this).prev();
-					if(prev.is('.del-code') && prev.children().eq(3).text().trim() === '') {
-						while(prev.prev().is('.del-code') && prev.prev().children().eq(3).text().trim() === '') {
+					if(prev.is('.del-code') && prev.children().eq(5).text().trim() === '') {
+						while(prev.prev().is('.del-code') && prev.prev().children().eq(5).text().trim() === '') {
 							prev = prev.prev();
 						}
-						prev.children().eq(2).html($(this).children().eq(2).html());
+						prev.children().eq(3).attr("data-line-num", $(this).children().eq(3).attr("data-line-num"));
 						prev.children().eq(3).html($(this).children().eq(3).html());
+						prev.children().eq(4).html($(this).children().eq(4).html());
+						prev.children().eq(5).html($(this).children().eq(5).html());
 
 						prev.children().eq(0).addClass('del-code');
 						prev.children().eq(1).addClass('del-code');
-						prev.children().eq(2).addClass('add-code');
+						prev.children().eq(2).addClass('del-code');
 						prev.children().eq(3).addClass('add-code');
+						prev.children().eq(4).addClass('add-code');
+						prev.children().eq(5).addClass('add-code');
+
 						$(this).remove();
 					}
 				});

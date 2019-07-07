@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -665,6 +666,15 @@ func UserSignIn(username, password string) (*User, error) {
 		switch user.LoginType {
 		case LoginNoType, LoginPlain, LoginOAuth2:
 			if user.IsPasswordSet() && user.ValidatePassword(password) {
+
+				// Update password hash if server password hash algorithm have changed
+				if user.PasswdHashAlgo != setting.PasswordHashAlgo {
+					user.HashPassword(password)
+					if err := UpdateUserCols(user, "passwd", "passwd_hash_algo"); err != nil {
+						return nil, err
+					}
+				}
+
 				// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
 				// user could be hint to resend confirm email.
 				if user.ProhibitLogin {

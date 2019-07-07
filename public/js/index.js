@@ -396,18 +396,16 @@ function initCommentForm() {
             hasLabelUpdateAction = $listMenu.data('action') == 'update'; // Update the var
             if (hasLabelUpdateAction) {
                 var promises = [];
-                for (var elementId in labels) {
-                    if (labels.hasOwnProperty(elementId)) {
-                        var label = labels[elementId];
-                        var promise = updateIssuesMeta(
-                            label["update-url"],
-                            label["action"],
-                            label["issue-id"],
-                            elementId
-                        );
-                        promises.push(promise);
-                    }
-                }
+                Object.keys(labels).forEach(function(elementId) {
+                    var label = labels[elementId];
+                    var promise = updateIssuesMeta(
+                        label["update-url"],
+                        label["action"],
+                        label["issue-id"],
+                        elementId
+                    );
+                    promises.push(promise);
+                });
                 Promise.all(promises).then(reload);
             }
         });
@@ -1069,8 +1067,8 @@ function initPullRequestReview() {
         var ntr = tr.next();
         if (!ntr.hasClass('add-comment')) {
             ntr = $('<tr class="add-comment">'
-                    + (isSplit ? '<td class="lines-num"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="add-comment-right"></td>'
-                               : '<td class="lines-num"></td><td class="lines-num"></td><td class="add-comment-left add-comment-right"></td>')
+                    + (isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>'
+                               : '<td class="lines-num"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left add-comment-right"></td>')
                     + '</tr>');
             tr.after(ntr);
         }
@@ -1160,7 +1158,40 @@ function initWikiForm() {
             spellChecker: false,
             toolbar: ["bold", "italic", "strikethrough", "|",
                 "heading-1", "heading-2", "heading-3", "heading-bigger", "heading-smaller", "|",
-                "code", "quote", "|",
+                {
+                    name: "code-inline",
+                    action: function(e){
+                        let cm = e.codemirror;
+                        let selection = cm.getSelection();
+                        cm.replaceSelection("`" + selection + "`");
+                        if (!selection) {
+                            let cursorPos = cm.getCursor();
+                            cm.setCursor(cursorPos.line, cursorPos.ch - 1);
+                        }
+                        cm.focus();
+                    },
+                    className: "fa fa-angle-right",
+                    title: "Add Inline Code",
+                },"code", "quote", "|", {
+                    name: "checkbox-empty",
+                    action: function(e){
+                        let cm = e.codemirror;
+                        cm.replaceSelection("\n- [ ] " + cm.getSelection());
+                        cm.focus();
+                    },
+                    className: "fa fa-square-o",
+                    title: "Add Checkbox (empty)",
+                },
+                {
+                    name: "checkbox-checked",
+                    action: function(e){
+                        let cm = e.codemirror;
+                        cm.replaceSelection("\n- [x] " + cm.getSelection());
+                        cm.focus();
+                    },
+                    className: "fa fa-check-square-o",
+                    title: "Add Checkbox (checked)",
+                }, "|",
                 "unordered-list", "ordered-list", "|",
                 "link", "image", "table", "horizontal-rule", "|",
                 "clean-block", "preview", "fullscreen"]
@@ -2847,6 +2878,7 @@ function initTopicbar() {
 
     topicDropdown.dropdown({
         allowAdditions: true,
+        forceSelection: false,
         fields: { name: "description", value: "data-value" },
         saveRemoteData: false,
         label: {
@@ -2864,17 +2896,49 @@ function initTopicbar() {
             throttle: 500,
             cache: false,
             onResponse: function(res) {
-                var formattedResponse = {
+                let formattedResponse = {
                     success: false,
                     results: [],
                 };
+                const stripTags = function (text) {
+                    return text.replace(/<[^>]*>?/gm, "");
+                };
+
+                let query = stripTags(this.urlData.query.trim());
+                let found_query = false;
+                let current_topics = [];
+                topicDropdown.find('div.label.visible.topic,a.label.visible').each(function(_,e){ current_topics.push(e.dataset.value); });
 
                 if (res.topics) {
-                    formattedResponse.success = true;
-                    for (var i=0;i < res.topics.length;i++) {
-                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name})
+                    let found = false;
+                    for (let i=0;i < res.topics.length;i++) {
+                        // skip currently added tags
+                        if (current_topics.indexOf(res.topics[i].Name) != -1){
+                            continue;
+                        }
+
+                        if (res.topics[i].Name.toLowerCase() === query.toLowerCase()){
+                            found_query = true;
+                        }
+                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name});
+                        found = true;
                     }
+                    formattedResponse.success = found;
                 }
+
+                if (query.length > 0 && !found_query){
+                    formattedResponse.success = true;
+                    formattedResponse.results.unshift({"description": query, "data-value": query});
+                } else if (query.length > 0 && found_query) {
+                    formattedResponse.results.sort(function(a, b){
+                        if (a.description.toLowerCase() === query.toLowerCase()) return -1;
+                        if (b.description.toLowerCase() === query.toLowerCase()) return 1;
+                        if (a.description > b.description) return -1;
+                        if (a.description < b.description) return 1;
+                        return 0;
+                    });
+                }
+
 
                 return formattedResponse;
             },
