@@ -23,10 +23,11 @@ import (
 )
 
 const (
-	tplWikiStart base.TplName = "repo/wiki/start"
-	tplWikiView  base.TplName = "repo/wiki/view"
-	tplWikiNew   base.TplName = "repo/wiki/new"
-	tplWikiPages base.TplName = "repo/wiki/pages"
+	tplWikiStart    base.TplName = "repo/wiki/start"
+	tplWikiView     base.TplName = "repo/wiki/view"
+	tplWikiRevision base.TplName = "repo/wiki/revision"
+	tplWikiNew      base.TplName = "repo/wiki/new"
+	tplWikiPages    base.TplName = "repo/wiki/pages"
 )
 
 // MustEnableWiki check if wiki is enabled, if external then redirect
@@ -118,7 +119,7 @@ func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName strin
 	return wikiContentsByEntry(ctx, entry), true
 }
 
-func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *git.TreeEntry) {
+func renderWikiPage(ctx *context.Context, isViewPage bool, isFileHistory bool) (*git.Repository, *git.TreeEntry) {
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
 		if !git.IsErrNotExist(err) {
@@ -177,9 +178,37 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/_pages")
 		return nil, nil
 	}
+
 	data := wikiContentsByEntry(ctx, entry)
 	if ctx.Written() {
 		return nil, nil
+	}
+
+	// get commit count - wiki revisions
+	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
+	ctx.Data["CommitCount"] = commitsCount
+
+	if isFileHistory {
+		// get page
+		page := ctx.QueryInt("page")
+		if page <= 1 {
+			page = 1
+		}
+
+		// get Commit Count
+		commitsHistory, err := wikiRepo.CommitsByFileAndRange("master", pageFilename, page)
+		if err != nil {
+			ctx.ServerError("CommitsByFileAndRange", err)
+			return nil, nil
+		}
+		commitsHistory = models.ValidateCommitsWithEmails(commitsHistory)
+		commitsHistory = models.ParseCommitsWithSignature(commitsHistory)
+
+		ctx.Data["Commits"] = commitsHistory
+
+		pager := context.NewPagination(int(commitsCount), git.CommitsRangeSize, page, 5)
+		pager.SetDefaultParams(ctx)
+		ctx.Data["Page"] = pager
 	}
 
 	if isViewPage {
@@ -221,7 +250,7 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 
-	wikiRepo, entry := renderWikiPage(ctx, true)
+	wikiRepo, entry := renderWikiPage(ctx, true, false)
 	if ctx.Written() {
 		return
 	}
@@ -245,6 +274,39 @@ func Wiki(ctx *context.Context) {
 	ctx.Data["Author"] = lastCommit.Author
 
 	ctx.HTML(200, tplWikiView)
+}
+
+// Wiki renders file revision list of wiki page
+func WikiRevision(ctx *context.Context) {
+	ctx.Data["PageIsWiki"] = true
+	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki) && !ctx.Repo.Repository.IsArchived
+
+	if !ctx.Repo.Repository.HasWiki() {
+		ctx.Data["Title"] = ctx.Tr("repo.wiki")
+		ctx.HTML(200, tplWikiStart)
+		return
+	}
+
+	wikiRepo, entry := renderWikiPage(ctx, false, true)
+	if ctx.Written() {
+		return
+	}
+	if entry == nil {
+		ctx.Data["Title"] = ctx.Tr("repo.wiki")
+		ctx.HTML(200, tplWikiStart)
+		return
+	}
+
+	// Get last change information.
+	wikiPath := entry.Name()
+	lastCommit, err := wikiRepo.GetCommitByPath(wikiPath)
+	if err != nil {
+		ctx.ServerError("GetCommitByPath", err)
+		return
+	}
+	ctx.Data["Author"] = lastCommit.Author
+
+	ctx.HTML(200, tplWikiRevision)
 }
 
 // WikiPages render wiki pages list page
@@ -399,7 +461,7 @@ func EditWiki(ctx *context.Context) {
 		return
 	}
 
-	renderWikiPage(ctx, false)
+	renderWikiPage(ctx, false, false)
 	if ctx.Written() {
 		return
 	}

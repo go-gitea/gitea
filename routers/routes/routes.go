@@ -804,6 +804,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/wiki", func() {
 			m.Get("/?:page", repo.Wiki)
 			m.Get("/_pages", repo.WikiPages)
+			m.Get("/:page/_revision", repo.WikiRevision)
 
 			m.Group("", func() {
 				m.Combo("/_new").Get(repo.NewWiki).
