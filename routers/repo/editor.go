@@ -7,7 +7,6 @@ package repo
 import (
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"path"
 	"strings"
 
@@ -20,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -594,20 +594,11 @@ func UploadFileToServer(ctx *context.Context) {
 	if n > 0 {
 		buf = buf[:n]
 	}
-	fileType := http.DetectContentType(buf)
 
 	if len(setting.Repository.Upload.AllowedTypes) > 0 {
-		allowed := false
-		for _, t := range setting.Repository.Upload.AllowedTypes {
-			t := strings.Trim(t, " ")
-			if t == "*/*" || t == fileType {
-				allowed = true
-				break
-			}
-		}
-
-		if !allowed {
-			ctx.Error(400, ErrFileTypeForbidden.Error())
+		err = upload.VerifyAllowedContentType(buf, setting.Repository.Upload.AllowedTypes)
+		if err != nil {
+			ctx.Error(400, err.Error())
 			return
 		}
 	}

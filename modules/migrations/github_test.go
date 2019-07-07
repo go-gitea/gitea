@@ -269,6 +269,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	assert.EqualValues(t, 35, len(comments))
 	assert.EqualValues(t, []*base.Comment{
 		{
+			IssueIndex: 6,
 			PosterName: "bkcsoft",
 			Created:    time.Date(2016, 11, 02, 18, 59, 48, 0, time.UTC),
 			Content: `I would prefer a solution that is in the backend, unless it's required to have it update without reloading. Unfortunately I can't seem to find anything that does that :unamused: 
@@ -286,6 +287,7 @@ Also this would _require_ caching, since it will fetch huge amounts of data from
 			},
 		},
 		{
+			IssueIndex: 6,
 			PosterName: "joubertredrat",
 			Created:    time.Date(2016, 11, 02, 19, 16, 56, 0, time.UTC),
 			Content: `Yes, this plugin build on front-end, with backend I don't know too, but we can consider make component for this.
@@ -303,6 +305,7 @@ In my case I use ajax to get data, but build on frontend anyway
 			},
 		},
 		{
+			IssueIndex: 6,
 			PosterName: "xinity",
 			Created:    time.Date(2016, 11, 03, 13, 04, 56, 0, time.UTC),
 			Content: `following  @bkcsoft retention strategy in cache is a must if we don't want gitea to waste ressources.
