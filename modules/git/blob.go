@@ -37,6 +37,19 @@ func (b *Blob) Name() string {
 	return b.name
 }
 
+// GetBlobContent Gets the content of the blob as raw text
+func (b *Blob) GetBlobContent() (string, error) {
+	dataRc, err := b.DataAsync()
+	if err != nil {
+		return "", err
+	}
+	defer dataRc.Close()
+	buf := make([]byte, 1024)
+	n, _ := dataRc.Read(buf)
+	buf = buf[:n]
+	return string(buf), nil
+}
+
 // GetBlobContentBase64 Reads the content of the blob with a base64 encode and returns the encoded string
 func (b *Blob) GetBlobContentBase64() (string, error) {
 	dataRc, err := b.DataAsync()
