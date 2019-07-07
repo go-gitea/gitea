@@ -276,7 +276,7 @@ func Wiki(ctx *context.Context) {
 	ctx.HTML(200, tplWikiView)
 }
 
-// Wiki renders file revision list of wiki page
+// WikiRevision renders file revision list of wiki page
 func WikiRevision(ctx *context.Context) {
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(models.UnitTypeWiki) && !ctx.Repo.Repository.IsArchived
