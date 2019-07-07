@@ -108,15 +108,17 @@ func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
 
 // wikiContentsByName returns the contents of a wiki page, along with a boolean
 // indicating whether the page exists. Writes to ctx if an error occurs.
-func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName string) ([]byte, bool) {
-	entry, err := findEntryForFile(commit, models.WikiNameToFilename(wikiName))
-	if err != nil {
+func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName string) ([]byte, *git.TreeEntry, string, bool) {
+	var entry *git.TreeEntry
+	var err error
+	pageFilename := models.WikiNameToFilename(wikiName)
+	if entry, err = findEntryForFile(commit, pageFilename); err != nil {
 		ctx.ServerError("findEntryForFile", err)
-		return nil, false
+		return nil, nil, "", false
 	} else if entry == nil {
-		return nil, false
+		return nil, nil, "", true
 	}
-	return wikiContentsByEntry(ctx, entry), true
+	return wikiContentsByEntry(ctx, entry), entry, pageFilename, false
 }
 
 func renderWikiPage(ctx *context.Context, isViewPage bool, isFileHistory bool) (*git.Repository, *git.TreeEntry) {
@@ -158,30 +160,49 @@ func renderWikiPage(ctx *context.Context, isViewPage bool, isFileHistory bool) (
 		ctx.Data["Pages"] = pages
 	}
 
+	// get requested pagename
 	pageName := models.NormalizeWikiName(ctx.Params(":page"))
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}
 	ctx.Data["PageURL"] = models.WikiNameToSubURL(pageName)
-
 	ctx.Data["old_title"] = pageName
 	ctx.Data["Title"] = pageName
 	ctx.Data["title"] = pageName
 	ctx.Data["RequireHighlightJS"] = true
 
-	pageFilename := models.WikiNameToFilename(pageName)
-	var entry *git.TreeEntry
-	if entry, err = findEntryForFile(commit, pageFilename); err != nil {
-		ctx.ServerError("findEntryForFile", err)
-		return nil, nil
-	} else if entry == nil {
+	//lookup filename in wiki - get filecontent, gitTree entry , real filename
+	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
+	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/_pages")
+	}
+	if entry == nil || ctx.Written() {
 		return nil, nil
 	}
 
-	data := wikiContentsByEntry(ctx, entry)
-	if ctx.Written() {
-		return nil, nil
+	if isViewPage {
+		sidebarContent, _, _, _ := wikiContentsByName(ctx, commit, "_Sidebar")
+		if ctx.Written() {
+			return nil, nil
+		}
+
+		footerContent, _, _, _ := wikiContentsByName(ctx, commit, "_Footer")
+		if ctx.Written() {
+			return nil, nil
+		}
+
+		metas := ctx.Repo.Repository.ComposeMetas()
+		ctx.Data["content"] = markdown.RenderWiki(data, ctx.Repo.RepoLink, metas)
+		ctx.Data["sidebarPresent"] = sidebarContent != nil
+		ctx.Data["sidebarContent"] = markdown.RenderWiki(sidebarContent, ctx.Repo.RepoLink, metas)
+		ctx.Data["footerPresent"] = footerContent != nil
+		ctx.Data["footerContent"] = markdown.RenderWiki(footerContent, ctx.Repo.RepoLink, metas)
+	} else {
+		ctx.Data["content"] = string(data)
+		ctx.Data["sidebarPresent"] = false
+		ctx.Data["sidebarContent"] = ""
+		ctx.Data["footerPresent"] = false
+		ctx.Data["footerContent"] = ""
 	}
 
 	// get commit count - wiki revisions
@@ -209,31 +230,6 @@ func renderWikiPage(ctx *context.Context, isViewPage bool, isFileHistory bool) (
 		pager := context.NewPagination(int(commitsCount), git.CommitsRangeSize, page, 5)
 		pager.SetDefaultParams(ctx)
 		ctx.Data["Page"] = pager
-	}
-
-	if isViewPage {
-		sidebarContent, sidebarPresent := wikiContentsByName(ctx, commit, "_Sidebar")
-		if ctx.Written() {
-			return nil, nil
-		}
-
-		footerContent, footerPresent := wikiContentsByName(ctx, commit, "_Footer")
-		if ctx.Written() {
-			return nil, nil
-		}
-
-		metas := ctx.Repo.Repository.ComposeMetas()
-		ctx.Data["content"] = markdown.RenderWiki(data, ctx.Repo.RepoLink, metas)
-		ctx.Data["sidebarPresent"] = sidebarPresent
-		ctx.Data["sidebarContent"] = markdown.RenderWiki(sidebarContent, ctx.Repo.RepoLink, metas)
-		ctx.Data["footerPresent"] = footerPresent
-		ctx.Data["footerContent"] = markdown.RenderWiki(footerContent, ctx.Repo.RepoLink, metas)
-	} else {
-		ctx.Data["content"] = string(data)
-		ctx.Data["sidebarPresent"] = false
-		ctx.Data["sidebarContent"] = ""
-		ctx.Data["footerPresent"] = false
-		ctx.Data["footerContent"] = ""
 	}
 
 	return wikiRepo, entry
