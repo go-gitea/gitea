@@ -85,6 +85,42 @@ body {
     color: #9e9e9e;
 }
 
+/* firefox scroll bars */
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #87ab63 rgba(255, 255, 255, 0.1);
+}
+
+/* webkit scrollbars */
+
+::-webkit-scrollbar {
+    -webkit-appearance: none !important;
+    width: 10px !important;
+    height: 10px !important;
+}
+
+::-webkit-scrollbar-track {
+    border-radius: 0 !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+::-webkit-scrollbar-thumb {
+    cursor: pointer !important;
+    border-radius: 5px !important;
+    -webkit-transition: color 0.2s ease !important;
+    transition: color 0.2s ease !important;
+    background: #87ab63 !important;
+}
+
+::-webkit-scrollbar-thumb:window-inactive {
+    background: #87ab63 !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #87ab63 !important;
+}
+
 a {
     color: #87ab63;
 }
@@ -595,6 +631,14 @@ a.ui.basic.green.label:hover {
     border-top: 1px solid #353944;
 }
 
+.repository.view.issue .comment-list .event > .octicon.issue-symbol {
+    background: #3b4954;
+}
+
+.repository.view.issue .comment-list .event > .octicon:not(.issue-symbol) {
+    text-shadow: -2px 0 #383c4a, 0 2px #383c4a, 2px 0 #383c4a, 0 -2px #383c4a;
+}
+
 .ui .text.grey a {
     color: #dbdbdb !important;
 }
@@ -619,8 +663,9 @@ a.ui.basic.green.label:hover {
     border-right-color: #353945;
 }
 
-.repository.view.issue .comment-list:before {
-    background-color: #313c47;
+.repository.view.issue .comment-list:not(.prevent-before-timeline):before,
+.repository.view.issue .comment-list .timeline-line:before {
+    background-color: #3b4954;
 }
 
 .repository .comment.form .content .form:after {

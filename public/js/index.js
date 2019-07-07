@@ -396,18 +396,16 @@ function initCommentForm() {
             hasLabelUpdateAction = $listMenu.data('action') == 'update'; // Update the var
             if (hasLabelUpdateAction) {
                 var promises = [];
-                for (var elementId in labels) {
-                    if (labels.hasOwnProperty(elementId)) {
-                        var label = labels[elementId];
-                        var promise = updateIssuesMeta(
-                            label["update-url"],
-                            label["action"],
-                            label["issue-id"],
-                            elementId
-                        );
-                        promises.push(promise);
-                    }
-                }
+                Object.keys(labels).forEach(function(elementId) {
+                    var label = labels[elementId];
+                    var promise = updateIssuesMeta(
+                        label["update-url"],
+                        label["action"],
+                        label["issue-id"],
+                        elementId
+                    );
+                    promises.push(promise);
+                });
                 Promise.all(promises).then(reload);
             }
         });
@@ -1160,7 +1158,40 @@ function initWikiForm() {
             spellChecker: false,
             toolbar: ["bold", "italic", "strikethrough", "|",
                 "heading-1", "heading-2", "heading-3", "heading-bigger", "heading-smaller", "|",
-                "code", "quote", "|",
+                {
+                    name: "code-inline",
+                    action: function(e){
+                        let cm = e.codemirror;
+                        let selection = cm.getSelection();
+                        cm.replaceSelection("`" + selection + "`");
+                        if (!selection) {
+                            let cursorPos = cm.getCursor();
+                            cm.setCursor(cursorPos.line, cursorPos.ch - 1);
+                        }
+                        cm.focus();
+                    },
+                    className: "fa fa-angle-right",
+                    title: "Add Inline Code",
+                },"code", "quote", "|", {
+                    name: "checkbox-empty",
+                    action: function(e){
+                        let cm = e.codemirror;
+                        cm.replaceSelection("\n- [ ] " + cm.getSelection());
+                        cm.focus();
+                    },
+                    className: "fa fa-square-o",
+                    title: "Add Checkbox (empty)",
+                },
+                {
+                    name: "checkbox-checked",
+                    action: function(e){
+                        let cm = e.codemirror;
+                        cm.replaceSelection("\n- [x] " + cm.getSelection());
+                        cm.focus();
+                    },
+                    className: "fa fa-check-square-o",
+                    title: "Add Checkbox (checked)",
+                }, "|",
                 "unordered-list", "ordered-list", "|",
                 "link", "image", "table", "horizontal-rule", "|",
                 "clean-block", "preview", "fullscreen"]

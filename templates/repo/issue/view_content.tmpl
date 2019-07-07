@@ -9,8 +9,8 @@
 	{{end}}
 
 	{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}
-	<div class="twelve wide column comment-list">
-		<ui class="ui comments">
+	<div class="twelve wide column comment-list prevent-before-timeline">
+		<ui class="ui comments timeline-line">
 			<div class="comment">
 				<a class="avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
 					<img src="{{.Issue.Poster.RelAvatarLink}}">
