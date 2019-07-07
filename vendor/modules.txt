@@ -336,12 +336,15 @@ github.com/xanzy/ssh-agent
 github.com/yohcop/openid-go
 # golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
 golang.org/x/crypto/acme/autocert
+golang.org/x/crypto/argon2
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/pbkdf2
+golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh
 golang.org/x/crypto/acme
 golang.org/x/crypto/openpgp
 golang.org/x/crypto/md4
+golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
@@ -372,8 +375,8 @@ golang.org/x/oauth2/internal
 # golang.org/x/sys v0.0.0-20190620070143-6f217b454f45
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
-golang.org/x/sys/unix
 golang.org/x/sys/cpu
+golang.org/x/sys/unix
 # golang.org/x/text v0.3.2
 golang.org/x/text/transform
 golang.org/x/text/encoding
