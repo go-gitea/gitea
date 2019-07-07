@@ -102,7 +102,7 @@ generate:
 .PHONY: generate-swagger
 generate-swagger:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
+		GO111MODULE="on" $(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.19.0; \
 	fi
 	swagger generate spec -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
@@ -392,7 +392,7 @@ js: npm
 
 .PHONY: css
 css: npm
-	npx lesshint public/less/
+	npx stylelint public/less
 	npx lessc --clean-css="--s0 -b" public/less/index.less public/css/index.css
 	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx lessc --clean-css="--s0 -b" public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
 	npx postcss --use autoprefixer --no-map --replace public/css/*

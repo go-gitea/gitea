@@ -198,6 +198,11 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 		return nil, fmt.Errorf("PushUpdate: %v", err)
 	}
 
+	commit, err = t.GetCommit(commitHash)
+	if err != nil {
+		return nil, err
+	}
+
 	file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treePath)
 	if err != nil {
 		return nil, err

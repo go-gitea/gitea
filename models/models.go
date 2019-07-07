@@ -368,3 +368,9 @@ func DumpDatabase(filePath string, dbType string) error {
 	}
 	return x.DumpTablesToFile(tbs, filePath)
 }
+
+// MaxBatchInsertSize returns the table's max batch insert size
+func MaxBatchInsertSize(bean interface{}) int {
+	t := x.TableInfo(bean)
+	return 999 / len(t.ColumnsSeq())
+}
