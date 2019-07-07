@@ -29,11 +29,11 @@ var c = cron.New()
 // Prevent duplicate running tasks.
 var taskStatusTable = sync.NewStatusTable()
 
-// CronFunc defines a cron function
-type CronFunc func()
+// Func defines a cron function body
+type Func func()
 
 // WithUnique wrap a cron func with an unique running check
-func WithUnique(name string, body CronFunc) CronFunc {
+func WithUnique(name string, body Func) Func {
 	return func() {
 		if !taskStatusTable.StartIfNotRunning(name) {
 			return
