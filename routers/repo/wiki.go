@@ -121,7 +121,7 @@ func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName strin
 	return wikiContentsByEntry(ctx, entry), entry, pageFilename, false
 }
 
-func renderWikiPage(ctx *context.Context, isViewPage bool, isFileHistory bool) (*git.Repository, *git.TreeEntry) {
+func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
 		if !git.IsErrNotExist(err) {
@@ -131,33 +131,84 @@ func renderWikiPage(ctx *context.Context, isViewPage bool, isFileHistory bool) (
 	}
 
 	// Get page list.
-	if isViewPage {
-		entries, err := commit.ListEntries()
+	entries, err := commit.ListEntries()
+	if err != nil {
+		ctx.ServerError("ListEntries", err)
+		return nil, nil
+	}
+	pages := make([]PageMeta, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsRegular() {
+			continue
+		}
+		wikiName, err := models.WikiFilenameToName(entry.Name())
 		if err != nil {
-			ctx.ServerError("ListEntries", err)
+			if models.IsErrWikiInvalidFileName(err) {
+				continue
+			}
+			ctx.ServerError("WikiFilenameToName", err)
 			return nil, nil
+		} else if wikiName == "_Sidebar" || wikiName == "_Footer" {
+			continue
 		}
-		pages := make([]PageMeta, 0, len(entries))
-		for _, entry := range entries {
-			if !entry.IsRegular() {
-				continue
-			}
-			wikiName, err := models.WikiFilenameToName(entry.Name())
-			if err != nil {
-				if models.IsErrWikiInvalidFileName(err) {
-					continue
-				}
-				ctx.ServerError("WikiFilenameToName", err)
-				return nil, nil
-			} else if wikiName == "_Sidebar" || wikiName == "_Footer" {
-				continue
-			}
-			pages = append(pages, PageMeta{
-				Name:   wikiName,
-				SubURL: models.WikiNameToSubURL(wikiName),
-			})
+		pages = append(pages, PageMeta{
+			Name:   wikiName,
+			SubURL: models.WikiNameToSubURL(wikiName),
+		})
+	}
+	ctx.Data["Pages"] = pages
+
+	// get requested pagename
+	pageName := models.NormalizeWikiName(ctx.Params(":page"))
+	if len(pageName) == 0 {
+		pageName = "Home"
+	}
+	ctx.Data["PageURL"] = models.WikiNameToSubURL(pageName)
+	ctx.Data["old_title"] = pageName
+	ctx.Data["Title"] = pageName
+	ctx.Data["title"] = pageName
+	ctx.Data["RequireHighlightJS"] = true
+
+	//lookup filename in wiki - get filecontent, gitTree entry , real filename
+	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
+	if noEntry {
+		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/_pages")
+	}
+	if entry == nil || ctx.Written() {
+		return nil, nil
+	}
+
+	sidebarContent, _, _, _ := wikiContentsByName(ctx, commit, "_Sidebar")
+	if ctx.Written() {
+		return nil, nil
+	}
+
+	footerContent, _, _, _ := wikiContentsByName(ctx, commit, "_Footer")
+	if ctx.Written() {
+		return nil, nil
+	}
+
+	metas := ctx.Repo.Repository.ComposeMetas()
+	ctx.Data["content"] = markdown.RenderWiki(data, ctx.Repo.RepoLink, metas)
+	ctx.Data["sidebarPresent"] = sidebarContent != nil
+	ctx.Data["sidebarContent"] = markdown.RenderWiki(sidebarContent, ctx.Repo.RepoLink, metas)
+	ctx.Data["footerPresent"] = footerContent != nil
+	ctx.Data["footerContent"] = markdown.RenderWiki(footerContent, ctx.Repo.RepoLink, metas)
+
+	// get commit count - wiki revisions
+	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
+	ctx.Data["CommitCount"] = commitsCount
+
+	return wikiRepo, entry
+}
+
+func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
+	wikiRepo, commit, err := findWikiRepoCommit(ctx)
+	if err != nil {
+		if !git.IsErrNotExist(err) {
+			ctx.ServerError("GetBranchCommit", err)
 		}
-		ctx.Data["Pages"] = pages
+		return nil, nil
 	}
 
 	// get requested pagename
@@ -180,59 +231,74 @@ func renderWikiPage(ctx *context.Context, isViewPage bool, isFileHistory bool) (
 		return nil, nil
 	}
 
-	if isViewPage {
-		sidebarContent, _, _, _ := wikiContentsByName(ctx, commit, "_Sidebar")
-		if ctx.Written() {
-			return nil, nil
-		}
-
-		footerContent, _, _, _ := wikiContentsByName(ctx, commit, "_Footer")
-		if ctx.Written() {
-			return nil, nil
-		}
-
-		metas := ctx.Repo.Repository.ComposeMetas()
-		ctx.Data["content"] = markdown.RenderWiki(data, ctx.Repo.RepoLink, metas)
-		ctx.Data["sidebarPresent"] = sidebarContent != nil
-		ctx.Data["sidebarContent"] = markdown.RenderWiki(sidebarContent, ctx.Repo.RepoLink, metas)
-		ctx.Data["footerPresent"] = footerContent != nil
-		ctx.Data["footerContent"] = markdown.RenderWiki(footerContent, ctx.Repo.RepoLink, metas)
-	} else {
-		ctx.Data["content"] = string(data)
-		ctx.Data["sidebarPresent"] = false
-		ctx.Data["sidebarContent"] = ""
-		ctx.Data["footerPresent"] = false
-		ctx.Data["footerContent"] = ""
-	}
+	ctx.Data["content"] = string(data)
+	ctx.Data["sidebarPresent"] = false
+	ctx.Data["sidebarContent"] = ""
+	ctx.Data["footerPresent"] = false
+	ctx.Data["footerContent"] = ""
 
 	// get commit count - wiki revisions
 	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
-	if isFileHistory {
-		// get page
-		page := ctx.QueryInt("page")
-		if page <= 1 {
-			page = 1
-		}
-
-		// get Commit Count
-		commitsHistory, err := wikiRepo.CommitsByFileAndRange("master", pageFilename, page)
-		if err != nil {
-			ctx.ServerError("CommitsByFileAndRange", err)
-			return nil, nil
-		}
-		commitsHistory = models.ValidateCommitsWithEmails(commitsHistory)
-		commitsHistory = models.ParseCommitsWithSignature(commitsHistory)
-
-		ctx.Data["Commits"] = commitsHistory
-
-		pager := context.NewPagination(int(commitsCount), git.CommitsRangeSize, page, 5)
-		pager.SetDefaultParams(ctx)
-		ctx.Data["Page"] = pager
+	// get page
+	page := ctx.QueryInt("page")
+	if page <= 1 {
+		page = 1
 	}
 
+	// get Commit Count
+	commitsHistory, err := wikiRepo.CommitsByFileAndRange("master", pageFilename, page)
+	if err != nil {
+		ctx.ServerError("CommitsByFileAndRange", err)
+		return nil, nil
+	}
+	commitsHistory = models.ValidateCommitsWithEmails(commitsHistory)
+	commitsHistory = models.ParseCommitsWithSignature(commitsHistory)
+
+	ctx.Data["Commits"] = commitsHistory
+
+	pager := context.NewPagination(int(commitsCount), git.CommitsRangeSize, page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
+
 	return wikiRepo, entry
+}
+
+func renderEditPage(ctx *context.Context) {
+	_, commit, err := findWikiRepoCommit(ctx)
+	if err != nil {
+		if !git.IsErrNotExist(err) {
+			ctx.ServerError("GetBranchCommit", err)
+		}
+		return
+	}
+
+	// get requested pagename
+	pageName := models.NormalizeWikiName(ctx.Params(":page"))
+	if len(pageName) == 0 {
+		pageName = "Home"
+	}
+	ctx.Data["PageURL"] = models.WikiNameToSubURL(pageName)
+	ctx.Data["old_title"] = pageName
+	ctx.Data["Title"] = pageName
+	ctx.Data["title"] = pageName
+	ctx.Data["RequireHighlightJS"] = true
+
+	//lookup filename in wiki - get filecontent, gitTree entry , real filename
+	data, entry, _, noEntry := wikiContentsByName(ctx, commit, pageName)
+	if noEntry {
+		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/_pages")
+	}
+	if entry == nil || ctx.Written() {
+		return
+	}
+
+	ctx.Data["content"] = string(data)
+	ctx.Data["sidebarPresent"] = false
+	ctx.Data["sidebarContent"] = ""
+	ctx.Data["footerPresent"] = false
+	ctx.Data["footerContent"] = ""
 }
 
 // Wiki renders single wiki page
@@ -246,7 +312,7 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 
-	wikiRepo, entry := renderWikiPage(ctx, true, false)
+	wikiRepo, entry := renderViewPage(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -283,7 +349,7 @@ func WikiRevision(ctx *context.Context) {
 		return
 	}
 
-	wikiRepo, entry := renderWikiPage(ctx, false, true)
+	wikiRepo, entry := renderRevisionPage(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -457,7 +523,7 @@ func EditWiki(ctx *context.Context) {
 		return
 	}
 
-	renderWikiPage(ctx, false, false)
+	renderEditPage(ctx)
 	if ctx.Written() {
 		return
 	}
