@@ -141,9 +141,9 @@ github.com/go-xorm/xorm v0.7.3-0.20190620151208-f1b4f8368459 h1:JGEuhH169J7Wtm1h
 github.com/go-xorm/xorm v0.7.3-0.20190620151208-f1b4f8368459/go.mod h1:UK1YDlWscDspd23xW9HC24749jhvwO6riZ/HUt3gbHQ=
 github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561 h1:deE7ritpK04PgtpyVOS2TYcQEld9qLCD5b5EbVNOuLA=
 github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561/go.mod h1:YgYOrVn3Nj9Tq0EvjmFbphRytDj7JNRoWSStJZWDJTQ=
-github.com/gogits/cron v0.0.0-20160810035002-7f3990acf183 h1:EBTlva3AOSb80G3JSwY6ZMdILEZJ1JKuewrbqrNjWuE=
-github.com/gogits/cron v0.0.0-20160810035002-7f3990acf183/go.mod h1:pX+V62FFmklia2fhP3P4YSY6iJdPO5jIDKFQ5fEd5QE=
 github.com/gogo/protobuf v1.1.1/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
+github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14 h1:yXtpJr/LV6PFu4nTLgfjQdcMdzjbqqXMEnHfq0Or6p8=
+github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14/go.mod h1:jPoNZLWDAqA5N3G5amEoiNbhVrmM+ZQEcnQvNQ2KaZk=
 github.com/golang/protobuf v1.2.0 h1:P3YflyNX/ehuJFLhxviNdFxQPkGK5cDcApsge1SqnvM=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/golang/protobuf v1.3.1 h1:YF8+flBXS5eO826T4nzqPrxfhQThhXl0YzfuUPu4SBg=
