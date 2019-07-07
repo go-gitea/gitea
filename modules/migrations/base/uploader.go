@@ -7,7 +7,8 @@ package base
 
 // Uploader uploads all the informations of one repository
 type Uploader interface {
-	CreateRepo(repo *Repository, includeWiki bool) error
+	MaxBatchInsertSize(tp string) int
+	CreateRepo(repo *Repository, opts MigrateOptions) error
 	CreateMilestones(milestones ...*Milestone) error
 	CreateReleases(releases ...*Release) error
 	CreateLabels(labels ...*Label) error

@@ -53,20 +53,40 @@ func NewGiteaLocalUploader(doer *models.User, repoOwner, repoName string) *Gitea
 	}
 }
 
+// MaxBatchInsertSize returns the table's max batch insert size
+func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
+	switch tp {
+	case "issue":
+		return models.MaxBatchInsertSize(new(models.Issue))
+	case "comment":
+		return models.MaxBatchInsertSize(new(models.Comment))
+	case "milestone":
+		return models.MaxBatchInsertSize(new(models.Milestone))
+	case "label":
+		return models.MaxBatchInsertSize(new(models.Label))
+	case "release":
+		return models.MaxBatchInsertSize(new(models.Release))
+	case "pullrequest":
+		return models.MaxBatchInsertSize(new(models.PullRequest))
+	}
+	return 10
+}
+
 // CreateRepo creates a repository
-func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, includeWiki bool) error {
+func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.MigrateOptions) error {
 	owner, err := models.GetUserByName(g.repoOwner)
 	if err != nil {
 		return err
 	}
 
 	r, err := models.MigrateRepository(g.doer, owner, models.MigrateRepoOptions{
-		Name:        g.repoName,
-		Description: repo.Description,
-		IsMirror:    repo.IsMirror,
-		RemoteAddr:  repo.CloneURL,
-		IsPrivate:   repo.IsPrivate,
-		Wiki:        includeWiki,
+		Name:                 g.repoName,
+		Description:          repo.Description,
+		IsMirror:             repo.IsMirror,
+		RemoteAddr:           repo.CloneURL,
+		IsPrivate:            repo.IsPrivate,
+		Wiki:                 opts.Wiki,
+		SyncReleasesWithTags: !opts.Releases, // if didn't get releases, then sync them from tags
 	})
 	g.repo = r
 	if err != nil {
@@ -198,7 +218,12 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 
 		rels = append(rels, &rel)
 	}
-	return models.InsertReleases(rels...)
+	if err := models.InsertReleases(rels...); err != nil {
+		return err
+	}
+
+	// sync tags to releases in database
+	return models.SyncReleasesWithTags(g.repo, g.gitRepo)
 }
 
 // CreateIssues creates issues

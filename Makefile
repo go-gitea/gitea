@@ -97,12 +97,12 @@ vet:
 
 .PHONY: generate
 generate:
-	GO111MODULE=on $(GO) generate $(PACKAGES)
+	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
 
 .PHONY: generate-swagger
 generate-swagger:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
+		GO111MODULE="on" $(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.19.0; \
 	fi
 	swagger generate spec -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'

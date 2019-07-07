@@ -25,14 +25,17 @@
 							<label for="email">{{.i18n.Tr "email"}}</label>
 							<input id="email" name="email" type="email" value="{{.email}}" required>
 						</div>
-						<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
-							<label for="password">{{.i18n.Tr "password"}}</label>
-							<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
-						</div>
-						<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
-							<label for="retype">{{.i18n.Tr "re_type"}}</label>
-							<input id="retype" name="retype" type="password" value="{{.retype}}" autocomplete="off" required>
-						</div>
+
+						{{if not .DisablePassword}}
+							<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+								<label for="password">{{.i18n.Tr "password"}}</label>
+								<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
+							</div>
+							<div class="required inline field {{if and (.Err_Password) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister))}}error{{end}}">
+								<label for="retype">{{.i18n.Tr "re_type"}}</label>
+								<input id="retype" name="retype" type="password" value="{{.retype}}" autocomplete="off" required>
+							</div>
+						{{end}}
 						{{if and .EnableCaptcha (eq .CaptchaType "image")}}
 							<div class="inline field">
 								<label></label>

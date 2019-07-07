@@ -845,12 +845,13 @@ func (repo *Repository) CloneLink() (cl *CloneLink) {
 
 // MigrateRepoOptions contains the repository migrate options
 type MigrateRepoOptions struct {
-	Name        string
-	Description string
-	IsPrivate   bool
-	IsMirror    bool
-	RemoteAddr  string
-	Wiki        bool // include wiki repository
+	Name                 string
+	Description          string
+	IsPrivate            bool
+	IsMirror             bool
+	RemoteAddr           string
+	Wiki                 bool // include wiki repository
+	SyncReleasesWithTags bool // sync releases from tags
 }
 
 /*
@@ -942,7 +943,7 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		return repo, fmt.Errorf("git.IsEmpty: %v", err)
 	}
 
-	if !repo.IsEmpty {
+	if opts.SyncReleasesWithTags && !repo.IsEmpty {
 		// Try to get HEAD branch and set it as default branch.
 		headBranch, err := gitRepo.GetHEADBranch()
 		if err != nil {

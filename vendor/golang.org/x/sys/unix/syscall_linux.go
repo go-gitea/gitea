@@ -13,7 +13,6 @@ package unix
 
 import (
 	"encoding/binary"
-	"net"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -765,7 +764,7 @@ const px_proto_oe = 0
 
 type SockaddrPPPoE struct {
 	SID    uint16
-	Remote net.HardwareAddr
+	Remote []byte
 	Dev    string
 	raw    RawSockaddrPPPoX
 }
@@ -916,7 +915,7 @@ func anyToSockaddr(fd int, rsa *RawSockaddrAny) (Sockaddr, error) {
 		}
 		sa := &SockaddrPPPoE{
 			SID:    binary.BigEndian.Uint16(pp[6:8]),
-			Remote: net.HardwareAddr(pp[8:14]),
+			Remote: pp[8:14],
 		}
 		for i := 14; i < 14+IFNAMSIZ; i++ {
 			if pp[i] == 0 {
