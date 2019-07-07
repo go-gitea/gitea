@@ -670,6 +670,8 @@ SCHEDULE = @every 24h
 UPDATE_EXISTING = true
 
 [git]
+; The path of git executable. If empty, Gitea searches through the PATH environment.
+PATH =
 ; Disables highlight of added and removed changes
 DISABLE_DIFF_HIGHLIGHT = false
 ; Max number of lines allowed in a single file in diff view
