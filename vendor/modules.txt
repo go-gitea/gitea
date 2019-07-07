@@ -15,6 +15,8 @@ github.com/Unknwon/i18n
 github.com/Unknwon/paginater
 # github.com/andybalholm/cascadia v0.0.0-20161224141413-349dd0209470
 github.com/andybalholm/cascadia
+# github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239
+github.com/anmitsu/go-shlex
 # github.com/beorn7/perks v1.0.0
 github.com/beorn7/perks/quantile
 # github.com/blevesearch/bleve v0.0.0-20190214220507-05d86ea8f6e3
@@ -112,6 +114,8 @@ github.com/facebookgo/grace/gracenet
 github.com/facebookgo/httpdown
 # github.com/facebookgo/stats v0.0.0-20151006221625-1b76add642e4
 github.com/facebookgo/stats
+# github.com/gliderlabs/ssh v0.2.2
+github.com/gliderlabs/ssh
 # github.com/glycerine/go-unsnap-stream v0.0.0-20180323001048-9f0cb55181dd
 github.com/glycerine/go-unsnap-stream
 # github.com/go-macaron/binding v0.0.0-20160711225916-9440f336b443
@@ -353,7 +357,7 @@ golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/ssh/agent
-# golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
+# golang.org/x/net v0.0.0-20190619014844-b5b0513f8c1b
 golang.org/x/net/html/charset
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -365,7 +369,7 @@ golang.org/x/net/internal/socks
 # golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20190618155005-516e3c20635f
+# golang.org/x/sys v0.0.0-20190620070143-6f217b454f45
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
 golang.org/x/sys/unix

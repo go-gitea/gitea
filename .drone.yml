@@ -63,9 +63,11 @@ steps:
 
   - name: build-without-gcc
     pull: always
-    image: golang:1.10 # this step is kept as the lowest version of golang that we support
+    image: golang:1.11 # this step is kept as the lowest version of golang that we support
+    environment:
+      GO111MODULE: on
     commands:
-      - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
+      - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
 
   - name: build
     pull: always
