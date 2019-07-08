@@ -66,11 +66,7 @@
         	</div>
         	{{ else }}
         		<div class="ui warning message">
-        			{{if .Issue.IsPull}}
-        				{{.i18n.Tr "repo.archive.title"}}
-        			{{else}}
-        				{{.i18n.Tr "repo.archive.title"}}
-        			{{end}}
+        			{{.i18n.Tr "repo.archive.title"}}
         		</div>
         	{{ end }}
         	<div class="pullrequest-form" style="display: none">
