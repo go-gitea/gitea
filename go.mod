@@ -128,6 +128,7 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.12.0
 	gopkg.in/stretchr/testify.v1 v1.2.2 // indirect
 	gopkg.in/testfixtures.v2 v2.5.0
+	gopkg.in/yaml.v2 v2.2.2 // indirect
 	mvdan.cc/xurls/v2 v2.0.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a
 	xorm.io/builder v0.3.5

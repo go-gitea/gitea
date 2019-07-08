@@ -478,7 +478,7 @@ gopkg.in/src-d/go-git.v4/plumbing/transport/server
 gopkg.in/testfixtures.v2
 # gopkg.in/warnings.v0 v0.1.2
 gopkg.in/warnings.v0
-# gopkg.in/yaml.v2 v2.2.1
+# gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
 # mvdan.cc/xurls/v2 v2.0.0
 mvdan.cc/xurls/v2
