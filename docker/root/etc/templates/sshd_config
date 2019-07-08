@@ -1,4 +1,4 @@
-Port 22
+Port ${SSH_PORT}
 Protocol 2
 
 AddressFamily any
