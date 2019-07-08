@@ -118,7 +118,7 @@ steps:
 
   - name: tag-pre-condition
     pull: always
-    image: drone:git
+    image: alpine/git
     commands:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
     depends_on:
