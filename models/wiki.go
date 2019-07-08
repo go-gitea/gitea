@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	reservedWikiNames = []string{"_pages", "_new", "_edit", "raw"}
+	reservedWikiNames = []string{"_pages", "_new", "_edit", "_delete", "raw"}
 	wikiWorkingPool   = sync.NewExclusivePool()
 )
 
