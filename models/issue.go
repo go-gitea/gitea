@@ -25,27 +25,29 @@ import (
 
 // Issue represents an issue or pull request of repository.
 type Issue struct {
-	ID              int64       `xorm:"pk autoincr"`
-	RepoID          int64       `xorm:"INDEX UNIQUE(repo_index)"`
-	Repo            *Repository `xorm:"-"`
-	Index           int64       `xorm:"UNIQUE(repo_index)"` // Index in one repository.
-	PosterID        int64       `xorm:"INDEX"`
-	Poster          *User       `xorm:"-"`
-	Title           string      `xorm:"name"`
-	Content         string      `xorm:"TEXT"`
-	RenderedContent string      `xorm:"-"`
-	Labels          []*Label    `xorm:"-"`
-	MilestoneID     int64       `xorm:"INDEX"`
-	Milestone       *Milestone  `xorm:"-"`
-	Priority        int
-	AssigneeID      int64        `xorm:"-"`
-	Assignee        *User        `xorm:"-"`
-	IsClosed        bool         `xorm:"INDEX"`
-	IsRead          bool         `xorm:"-"`
-	IsPull          bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
-	PullRequest     *PullRequest `xorm:"-"`
-	NumComments     int
-	Ref             string
+	ID               int64       `xorm:"pk autoincr"`
+	RepoID           int64       `xorm:"INDEX UNIQUE(repo_index)"`
+	Repo             *Repository `xorm:"-"`
+	Index            int64       `xorm:"UNIQUE(repo_index)"` // Index in one repository.
+	PosterID         int64       `xorm:"INDEX"`
+	Poster           *User       `xorm:"-"`
+	OriginalAuthor   string
+	OriginalAuthorID int64
+	Title            string     `xorm:"name"`
+	Content          string     `xorm:"TEXT"`
+	RenderedContent  string     `xorm:"-"`
+	Labels           []*Label   `xorm:"-"`
+	MilestoneID      int64      `xorm:"INDEX"`
+	Milestone        *Milestone `xorm:"-"`
+	Priority         int
+	AssigneeID       int64        `xorm:"-"`
+	Assignee         *User        `xorm:"-"`
+	IsClosed         bool         `xorm:"INDEX"`
+	IsRead           bool         `xorm:"-"`
+	IsPull           bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
+	PullRequest      *PullRequest `xorm:"-"`
+	NumComments      int
+	Ref              string
 
 	DeadlineUnix util.TimeStamp `xorm:"INDEX"`
 
