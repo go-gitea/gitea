@@ -154,7 +154,10 @@ var (
 	MinPasswordLength     int
 	ImportLocalPaths      bool
 	DisableGitHooks       bool
+
 	PasswordComplexity    map[string]string
+
+	PasswordHashAlgo      string
 
 	// Database settings
 	UseSQLite3       bool
@@ -780,6 +783,7 @@ func NewContext() {
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
+	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
 	InternalToken = loadInternalToken(sec)
 	var dictPC = map[string]string{
 		"lower": "[a-z]+",
