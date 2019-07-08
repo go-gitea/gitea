@@ -137,6 +137,9 @@ a{cursor:pointer}
 .ui .background.purple{background-color:#6e5494!important}
 .ui .background.yellow{background-color:#fbbf09!important}
 .ui .background.gold{background-color:#a1882b!important}
+.ui .migrate{color:#888!important;opacity:.5}
+.ui .migrate a{color:#444!important}
+.ui .migrate a:hover{color:#000!important}
 .ui .branch-tag-choice{line-height:20px}
 @media only screen and (max-width:767px){.ui.pagination.menu .item.navigation span.navigation_label,.ui.pagination.menu .item:not(.active):not(.navigation){display:none}
 }
@@ -295,6 +298,11 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .markdown:not(code) .auto-toc-container{padding:7px;border:1px solid #d4d4d5;border-radius:5px}
 .markdown:not(code) .auto-toc-container h2{padding:.3em;font-size:1.65em}
 .markdown:not(code) .auto-toc-clear{clear:both;margin-bottom:-20px!important}
+.repository.wiki.revisions .ui.container>.ui.stackable.grid{flex-direction:row-reverse}
+.repository.wiki.revisions .ui.container>.ui.stackable.grid>.header{margin-top:0}
+.repository.wiki.revisions .ui.container>.ui.stackable.grid>.header .sub.header{padding-left:52px}
+.file-revisions-btn{display:block;float:left;margin-bottom:2px!important;padding:11px!important;margin-right:10px!important}
+.file-revisions-btn i{-webkit-touch-callout:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
 .home .logo{max-width:220px}
 @media only screen and (max-width:767px){.home .hero h1{font-size:3.5em}
 .home .hero h2{font-size:2em}

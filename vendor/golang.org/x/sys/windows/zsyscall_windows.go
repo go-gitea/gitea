@@ -2517,7 +2517,7 @@ func coCreateGuid(pguid *GUID) (ret error) {
 	return
 }
 
-func coTaskMemFree(address unsafe.Pointer) {
+func CoTaskMemFree(address unsafe.Pointer) {
 	syscall.Syscall(procCoTaskMemFree.Addr(), 1, uintptr(address), 0, 0)
 	return
 }

@@ -77,20 +77,27 @@ func BinVersion() (string, error) {
 	return gitVersion, nil
 }
 
-func init() {
+// SetExecutablePath changes the path of git executable and checks the file permission and version.
+func SetExecutablePath(path string) error {
+	// If path is empty, we use the default value of GitExecutable "git" to search for the location of git.
+	if path != "" {
+		GitExecutable = path
+	}
 	absPath, err := exec.LookPath(GitExecutable)
 	if err != nil {
-		panic(fmt.Sprintf("Git not found: %v", err))
+		return fmt.Errorf("Git not found: %v", err)
 	}
 	GitExecutable = absPath
 
 	gitVersion, err := BinVersion()
 	if err != nil {
-		panic(fmt.Sprintf("Git version missing: %v", err))
+		return fmt.Errorf("Git version missing: %v", err)
 	}
 	if version.Compare(gitVersion, GitVersionRequired, "<") {
-		panic(fmt.Sprintf("Git version not supported. Requires version > %v", GitVersionRequired))
+		return fmt.Errorf("Git version not supported. Requires version > %v", GitVersionRequired)
 	}
+
+	return nil
 }
 
 // Init initializes git module
