@@ -2137,12 +2137,16 @@ $(document).ready(function () {
     });
 
     $('.issue-action').click(function () {
-        var action = this.dataset.action
-        var elementId = this.dataset.elementId
-        var issueIDs = $('.issue-checkbox').children('input:checked').map(function() {
+        let action = this.dataset.action;
+        let elementId = this.dataset.elementId;
+        let issueIDs = $('.issue-checkbox').children('input:checked').map(function() {
             return this.dataset.issueId;
         }).get().join();
-        var url = this.dataset.url
+        let url = this.dataset.url;
+        if (elementId === '0' && url.substr(-9) === '/assignee'){
+            elementId = '';
+            action = 'clear';
+        }
         updateIssuesMeta(url, action, issueIDs, elementId).then(reload);
     });
 

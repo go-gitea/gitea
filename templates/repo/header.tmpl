@@ -46,7 +46,7 @@
 		</div><!-- end grid -->
 	</div><!-- end container -->
 {{end}}
-{{if not .IsDiffCompare}}
+
 	<div class="ui tabs container">
 		<div class="ui tabular stackable menu navbar">
 			{{if .Permission.CanRead $.UnitTypeCode}}
@@ -103,7 +103,5 @@
 		</div>
 	</div>
 	<div class="ui tabs divider"></div>
-{{else}}
-	<div class="ui divider"></div>
-{{end}}
+
 </div>

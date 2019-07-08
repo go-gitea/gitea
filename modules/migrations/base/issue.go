@@ -10,6 +10,7 @@ import "time"
 // Issue is a standard issue information
 type Issue struct {
 	Number      int64
+	PosterID    int64
 	PosterName  string
 	PosterEmail string
 	Title       string
