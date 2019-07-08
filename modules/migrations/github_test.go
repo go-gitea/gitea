@@ -210,10 +210,10 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			Number:     7,
 			Title:      "display page revisions on wiki",
 			Content:    "Hi guys,\r\n\r\nWiki on Gogs is very fine, I liked a lot, but I think that is good idea to be possible see other revisions from page as a page history.\r\n\r\nWhat you think?\r\n\r\nReference: https://github.com/gogits/gogs/issues/2991",
-			Milestone:  "1.x.x",
+			Milestone:  "1.10.0",
 			PosterID:   1520407,
 			PosterName: "joubertredrat",
-			State:      "open",
+			State:      "closed",
 			Created:    time.Date(2016, 11, 02, 18, 57, 32, 0, time.UTC),
 			Labels: []*base.Label{
 				{
