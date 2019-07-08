@@ -68,6 +68,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		Owner:       "go-gitea",
 		Description: "Git with a cup of tea, painless self-hosted git service",
 		CloneURL:    "https://github.com/go-gitea/gitea.git",
+		OriginalURL: "https://github.com/go-gitea/gitea",
 	}, repo)
 
 	milestones, err := downloader.GetMilestones()
@@ -173,6 +174,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 
 	var (
 		closed1 = time.Date(2018, 10, 23, 02, 57, 43, 0, time.UTC)
+		closed7 = time.Date(2019, 7, 8, 8, 20, 23, 0, time.UTC)
 	)
 	assert.EqualValues(t, []*base.Issue{
 		{
@@ -180,6 +182,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			Title:      "Contribution system: History heatmap for user",
 			Content:    "Hi guys,\r\n\r\nI think that is a possible feature, a history heatmap similar to github or gitlab.\r\nActually exists a plugin called Calendar HeatMap. I used this on mine project to heat application log and worked fine here.\r\nThen, is only a idea, what you think? :)\r\n\r\nhttp://cal-heatmap.com/\r\nhttps://github.com/wa0x6e/cal-heatmap\r\n\r\nReference: https://github.com/gogits/gogs/issues/1640",
 			Milestone:  "1.7.0",
+			PosterID:   1520407,
 			PosterName: "joubertredrat",
 			State:      "closed",
 			Created:    time.Date(2016, 11, 02, 18, 51, 55, 0, time.UTC),
@@ -208,9 +211,10 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			Number:     7,
 			Title:      "display page revisions on wiki",
 			Content:    "Hi guys,\r\n\r\nWiki on Gogs is very fine, I liked a lot, but I think that is good idea to be possible see other revisions from page as a page history.\r\n\r\nWhat you think?\r\n\r\nReference: https://github.com/gogits/gogs/issues/2991",
-			Milestone:  "1.x.x",
+			Milestone:  "1.10.0",
+			PosterID:   1520407,
 			PosterName: "joubertredrat",
-			State:      "open",
+			State:      "closed",
 			Created:    time.Date(2016, 11, 02, 18, 57, 32, 0, time.UTC),
 			Labels: []*base.Label{
 				{
@@ -232,12 +236,14 @@ func TestGitHubDownloadRepo(t *testing.T) {
 				Heart:      0,
 				Hooray:     0,
 			},
+			Closed: &closed7,
 		},
 		{
 			Number:     8,
 			Title:      "audit logs",
 			Content:    "Hi,\r\n\r\nI think that is good idea to have user operation log to admin see what the user is doing at Gogs. Similar to example below\r\n\r\n| user | operation | information |\r\n| --- | --- | --- |\r\n| joubertredrat | repo.create | Create repo MyProjectData |\r\n| joubertredrat | user.settings | Edit settings |\r\n| tboerger | repo.fork | Create Fork from MyProjectData to ForkMyProjectData |\r\n| bkcsoft | repo.remove | Remove repo MySource |\r\n| tboerger | admin.auth | Edit auth LDAP org-connection |\r\n\r\nThis resource can be used on user page too, as user activity, set that log row is public (repo._) or private (user._, admin.*) and display only public activity.\r\n\r\nWhat you think?\r\n\r\n[Chat summary from March 14, 2017](https://github.com/go-gitea/gitea/issues/8#issuecomment-286463807)\r\n\r\nReferences:\r\nhttps://github.com/gogits/gogs/issues/3016",
 			Milestone:  "1.x.x",
+			PosterID:   1520407,
 			PosterName: "joubertredrat",
 			State:      "open",
 			Created:    time.Date(2016, 11, 02, 18, 59, 20, 0, time.UTC),
@@ -270,6 +276,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	assert.EqualValues(t, []*base.Comment{
 		{
 			IssueIndex: 6,
+			PosterID:   4726179,
 			PosterName: "bkcsoft",
 			Created:    time.Date(2016, 11, 02, 18, 59, 48, 0, time.UTC),
 			Content: `I would prefer a solution that is in the backend, unless it's required to have it update without reloading. Unfortunately I can't seem to find anything that does that :unamused: 
@@ -288,6 +295,7 @@ Also this would _require_ caching, since it will fetch huge amounts of data from
 		},
 		{
 			IssueIndex: 6,
+			PosterID:   1520407,
 			PosterName: "joubertredrat",
 			Created:    time.Date(2016, 11, 02, 19, 16, 56, 0, time.UTC),
 			Content: `Yes, this plugin build on front-end, with backend I don't know too, but we can consider make component for this.
@@ -306,6 +314,7 @@ In my case I use ajax to get data, but build on frontend anyway
 		},
 		{
 			IssueIndex: 6,
+			PosterID:   1799009,
 			PosterName: "xinity",
 			Created:    time.Date(2016, 11, 03, 13, 04, 56, 0, time.UTC),
 			Content: `following  @bkcsoft retention strategy in cache is a must if we don't want gitea to waste ressources.
@@ -345,6 +354,7 @@ something like in the latest 15days could be enough don't you think ?
 			Title:      "Rename import paths: \"github.com/gogits/gogs\" -> \"github.com/go-gitea/gitea\"",
 			Content:    "",
 			Milestone:  "1.0.0",
+			PosterID:   7011819,
 			PosterName: "andreynering",
 			State:      "closed",
 			Created:    time.Date(2016, 11, 02, 17, 01, 19, 0, time.UTC),
@@ -380,6 +390,7 @@ something like in the latest 15days could be enough don't you think ?
 			Title:      "Fix sender of issue notifications",
 			Content:    "It is the FROM field in mailer configuration that needs be used,\r\nnot the USER field, which is for authentication.\r\n\r\nMigrated from https://github.com/gogits/gogs/pull/3616\r\n",
 			Milestone:  "1.0.0",
+			PosterID:   289678,
 			PosterName: "strk",
 			State:      "closed",
 			Created:    time.Date(2016, 11, 02, 17, 24, 19, 0, time.UTC),
@@ -417,6 +428,7 @@ something like in the latest 15days could be enough don't you think ?
 			Title:      "Use proper url for libravatar dep",
 			Content:    "Fetch go-libravatar from its official source, rather than from an unmaintained fork\r\n",
 			Milestone:  "1.0.0",
+			PosterID:   289678,
 			PosterName: "strk",
 			State:      "closed",
 			Created:    time.Date(2016, 11, 02, 17, 34, 31, 0, time.UTC),

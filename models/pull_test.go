@@ -31,7 +31,15 @@ func TestPullRequest_LoadIssue(t *testing.T) {
 	assert.Equal(t, int64(2), pr.Issue.ID)
 }
 
-// TODO TestPullRequest_APIFormat
+func TestPullRequest_APIFormat(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
+	assert.NoError(t, pr.LoadAttributes())
+	assert.NoError(t, pr.LoadIssue())
+	apiPullRequest := pr.APIFormat()
+	assert.NotNil(t, apiPullRequest)
+	assert.Nil(t, apiPullRequest.Head)
+}
 
 func TestPullRequest_GetBaseRepo(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
