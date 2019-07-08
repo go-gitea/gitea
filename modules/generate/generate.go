@@ -83,9 +83,9 @@ func GetRandomPassword(n int) (string, error) {
 	}
 	buffer[n-1] = spec[index]
 	for i := len(buffer) - 1; i > 0; i-- {
-		j, err1 := randomInt(big.NewInt(int64(i + 1)))
-		if err1 != nil {
-			return "", err1
+		j, err := randomInt(big.NewInt(int64(i + 1)))
+		if err != nil {
+			return "", err
 		}
 		buffer[i], buffer[j] = buffer[j], buffer[i]
 	}

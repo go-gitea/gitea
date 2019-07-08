@@ -155,9 +155,9 @@ var (
 	ImportLocalPaths      bool
 	DisableGitHooks       bool
 
-	PasswordComplexity    map[string]string
+	PasswordComplexity map[string]string
 
-	PasswordHashAlgo      string
+	PasswordHashAlgo string
 
 	// Database settings
 	UseSQLite3       bool
