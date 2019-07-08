@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
@@ -25,12 +24,10 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
-	version "github.com/mcuadros/go-version"
 	"github.com/urfave/cli"
 )
 
 const (
-	accessDenied        = "Repository does not exist or you do not have access"
 	lfsAuthenticateVerb = "git-lfs-authenticate"
 )
 
@@ -47,29 +44,9 @@ var CmdServ = cli.Command{
 	},
 }
 
-func checkLFSVersion() {
-	if setting.LFS.StartServer {
-		//Disable LFS client hooks if installed for the current OS user
-		//Needs at least git v2.1.2
-		binVersion, err := git.BinVersion()
-		if err != nil {
-			fail("LFS server error", "Error retrieving git version: %v", err)
-		}
-
-		if !version.Compare(binVersion, "2.1.2", ">=") {
-			setting.LFS.StartServer = false
-			println("LFS server support needs at least Git v2.1.2, disabled")
-		} else {
-			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
-				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
-		}
-	}
-}
-
 func setup(logPath string) {
-	log.DelLogger("console")
+	_ = log.DelLogger("console")
 	setting.NewContext()
-	checkLFSVersion()
 }
 
 func parseCmd(cmd string) (string, string) {
@@ -112,7 +89,9 @@ func runServ(c *cli.Context) error {
 	}
 
 	if len(c.Args()) < 1 {
-		cli.ShowSubcommandHelp(c)
+		if err := cli.ShowSubcommandHelp(c); err != nil {
+			fmt.Printf("error showing subcommand help: %v\n", err)
+		}
 		return nil
 	}
 
@@ -209,9 +188,10 @@ func runServ(c *cli.Context) error {
 	os.Setenv(models.EnvRepoIsWiki, strconv.FormatBool(results.IsWiki))
 	os.Setenv(models.EnvRepoName, results.RepoName)
 	os.Setenv(models.EnvRepoUsername, results.OwnerName)
-	os.Setenv(models.EnvPusherName, username)
+	os.Setenv(models.EnvPusherName, results.UserName)
 	os.Setenv(models.EnvPusherID, strconv.FormatInt(results.UserID, 10))
 	os.Setenv(models.ProtectedBranchRepoID, strconv.FormatInt(results.RepoID, 10))
+	os.Setenv(models.ProtectedBranchPRID, fmt.Sprintf("%d", 0))
 
 	//LFS token authentication
 	if verb == lfsAuthenticateVerb {
@@ -259,8 +239,6 @@ func runServ(c *cli.Context) error {
 	} else {
 		gitcmd = exec.Command(verb, repoPath)
 	}
-
-	os.Setenv(models.ProtectedBranchRepoID, fmt.Sprintf("%d", results.RepoID))
 
 	gitcmd.Dir = setting.RepoRootPath
 	gitcmd.Stdout = os.Stdout

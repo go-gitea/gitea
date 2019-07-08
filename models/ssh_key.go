@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -24,9 +25,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	"golang.org/x/crypto/ssh"
+	"xorm.io/builder"
 )
 
 const (
@@ -142,7 +143,7 @@ func parseKeyString(content string) (string, error) {
 			if continuationLine || strings.ContainsAny(line, ":-") {
 				continuationLine = strings.HasSuffix(line, "\\")
 			} else {
-				keyContent = keyContent + line
+				keyContent += line
 			}
 		}
 
@@ -359,7 +360,7 @@ func checkKeyFingerprint(e Engine, fingerprint string) error {
 	return nil
 }
 
-func calcFingerprint(publicKeyContent string) (string, error) {
+func calcFingerprintSSHKeygen(publicKeyContent string) (string, error) {
 	// Calculate fingerprint.
 	tmpPath, err := writeTmpKeyFile(publicKeyContent)
 	if err != nil {
@@ -373,6 +374,34 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 		return "", errors.New("not enough output for calculating fingerprint: " + stdout)
 	}
 	return strings.Split(stdout, " ")[1], nil
+}
+
+func calcFingerprintNative(publicKeyContent string) (string, error) {
+	// Calculate fingerprint.
+	pk, _, _, _, err := ssh.ParseAuthorizedKey([]byte(publicKeyContent))
+	if err != nil {
+		return "", err
+	}
+	return ssh.FingerprintSHA256(pk), nil
+}
+
+func calcFingerprint(publicKeyContent string) (string, error) {
+	//Call the method based on configuration
+	var (
+		fnName, fp string
+		err        error
+	)
+	if setting.SSH.StartBuiltinServer {
+		fnName = "calcFingerprintNative"
+		fp, err = calcFingerprintNative(publicKeyContent)
+	} else {
+		fnName = "calcFingerprintSSHKeygen"
+		fp, err = calcFingerprintSSHKeygen(publicKeyContent)
+	}
+	if err != nil {
+		return "", fmt.Errorf("%s: %v", fnName, err)
+	}
+	return fp, nil
 }
 
 func addKey(e Engine, key *PublicKey) (err error) {
@@ -392,7 +421,7 @@ func addKey(e Engine, key *PublicKey) (err error) {
 }
 
 // AddPublicKey adds new public key to database and authorized_keys file.
-func AddPublicKey(ownerID int64, name, content string, LoginSourceID int64) (*PublicKey, error) {
+func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*PublicKey, error) {
 	log.Trace(content)
 
 	fingerprint, err := calcFingerprint(content)
@@ -427,7 +456,7 @@ func AddPublicKey(ownerID int64, name, content string, LoginSourceID int64) (*Pu
 		Content:       content,
 		Mode:          AccessModeWrite,
 		Type:          KeyTypeUser,
-		LoginSourceID: LoginSourceID,
+		LoginSourceID: loginSourceID,
 	}
 	if err = addKey(sess, key); err != nil {
 		return nil, fmt.Errorf("addKey: %v", err)
@@ -491,10 +520,10 @@ func ListPublicKeys(uid int64) ([]*PublicKey, error) {
 }
 
 // ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and login source.
-func ListPublicLdapSSHKeys(uid int64, LoginSourceID int64) ([]*PublicKey, error) {
+func ListPublicLdapSSHKeys(uid int64, loginSourceID int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
 	return keys, x.
-		Where("owner_id = ? AND login_source_id = ?", uid, LoginSourceID).
+		Where("owner_id = ? AND login_source_id = ?", uid, loginSourceID).
 		Find(&keys)
 }
 

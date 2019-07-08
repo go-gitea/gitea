@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/util"
 
 	macaron "gopkg.in/macaron.v1"
@@ -30,6 +31,7 @@ func HookPreReceive(ctx *macaron.Context) {
 	userID := ctx.QueryInt64("userID")
 	gitObjectDirectory := ctx.QueryTrim("gitObjectDirectory")
 	gitAlternativeObjectDirectories := ctx.QueryTrim("gitAlternativeObjectDirectories")
+	prID := ctx.QueryInt64("prID")
 
 	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
@@ -84,7 +86,24 @@ func HookPreReceive(ctx *macaron.Context) {
 			}
 		}
 
-		if !protectBranch.CanUserPush(userID) {
+		canPush := protectBranch.CanUserPush(userID)
+		if !canPush && prID > 0 {
+			pr, err := models.GetPullRequestByID(prID)
+			if err != nil {
+				log.Error("Unable to get PullRequest %d Error: %v", prID, err)
+				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"err": fmt.Sprintf("Unable to get PullRequest %d Error: %v", prID, err),
+				})
+				return
+			}
+			if !protectBranch.HasEnoughApprovals(pr) {
+				log.Warn("Forbidden: User %d cannot push to protected branch: %s in %-v and pr #%d does not have enough approvals", userID, branchName, repo, pr.Index)
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": fmt.Sprintf("protected branch %s can not be pushed to and pr #%d does not have enough approvals", branchName, prID),
+				})
+				return
+			}
+		} else if !canPush {
 			log.Warn("Forbidden: User %d cannot push to protected branch: %s in %-v", userID, branchName, repo)
 			ctx.JSON(http.StatusForbidden, map[string]interface{}{
 				"err": fmt.Sprintf("protected branch %s can not be pushed to", branchName),
@@ -117,7 +136,15 @@ func HookPostReceive(ctx *macaron.Context) {
 	// or other less-standard refs spaces are ignored since there
 	// may be a very large number of them).
 	if strings.HasPrefix(refFullName, git.BranchPrefix) || strings.HasPrefix(refFullName, git.TagPrefix) {
-		if err := models.PushUpdate(branch, models.PushUpdateOptions{
+		repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+		if err != nil {
+			log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"err": fmt.Sprintf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err),
+			})
+			return
+		}
+		if err := repofiles.PushUpdate(repo, branch, models.PushUpdateOptions{
 			RefFullName:  refFullName,
 			OldCommitID:  oldCommitID,
 			NewCommitID:  newCommitID,
@@ -205,5 +232,4 @@ func HookPostReceive(ctx *macaron.Context) {
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"message": false,
 	})
-	return
 }

@@ -154,6 +154,7 @@ var (
 	MinPasswordLength     int
 	ImportLocalPaths      bool
 	DisableGitHooks       bool
+	PasswordHashAlgo      string
 
 	// Database settings
 	UseSQLite3       bool
@@ -297,12 +298,14 @@ var (
 	// API settings
 	API = struct {
 		EnableSwagger          bool
+		SwaggerURL             string
 		MaxResponseItems       int
 		DefaultPagingNum       int
 		DefaultGitTreesPerPage int
 		DefaultMaxBlobSize     int64
 	}{
 		EnableSwagger:          true,
+		SwaggerURL:             "",
 		MaxResponseItems:       50,
 		DefaultPagingNum:       30,
 		DefaultGitTreesPerPage: 1000,
@@ -436,7 +439,7 @@ func forcePathSeparator(path string) {
 // This check is ignored under Windows since SSH remote login is not the main
 // method to login on Windows.
 func IsRunUserMatchCurrentUser(runUser string) (string, bool) {
-	if IsWindows {
+	if IsWindows || SSH.StartBuiltinServer {
 		return "", true
 	}
 
@@ -545,13 +548,14 @@ func NewContext() {
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 
 	Protocol = HTTP
-	if sec.Key("PROTOCOL").String() == "https" {
+	switch sec.Key("PROTOCOL").String() {
+	case "https":
 		Protocol = HTTPS
 		CertFile = sec.Key("CERT_FILE").String()
 		KeyFile = sec.Key("KEY_FILE").String()
-	} else if sec.Key("PROTOCOL").String() == "fcgi" {
+	case "fcgi":
 		Protocol = FCGI
-	} else if sec.Key("PROTOCOL").String() == "unix" {
+	case "unix":
 		Protocol = UnixSocket
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
 		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
@@ -580,17 +584,17 @@ func NewContext() {
 	AppURL = strings.TrimRight(AppURL, "/") + "/"
 
 	// Check if has app suburl.
-	url, err := url.Parse(AppURL)
+	appURL, err := url.Parse(AppURL)
 	if err != nil {
 		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
 	}
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
-	AppSubURL = strings.TrimSuffix(url.Path, "/")
+	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
 	// TODO: Can be replaced with url.Hostname() when minimal GoLang version is 1.8
-	urlHostname := strings.SplitN(url.Host, ":", 2)[0]
+	urlHostname := strings.SplitN(appURL.Host, ":", 2)[0]
 	if urlHostname != Domain && net.ParseIP(urlHostname) == nil {
 		Domain = urlHostname
 	}
@@ -776,6 +780,7 @@ func NewContext() {
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
+	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
 	InternalToken = loadInternalToken(sec)
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
@@ -898,6 +903,10 @@ func NewContext() {
 	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
 		log.Fatal("Failed to map Metrics settings: %v", err)
 	}
+
+	u := *appURL
+	u.Path = path.Join(u.Path, "api", "swagger")
+	API.SwaggerURL = u.String()
 
 	newCron()
 	newGit()

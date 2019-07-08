@@ -80,6 +80,22 @@ func (d *DiffLine) GetCommentSide() string {
 	return d.Comments[0].DiffSide()
 }
 
+// GetLineTypeMarker returns the line type marker
+func (d *DiffLine) GetLineTypeMarker() string {
+	if strings.IndexByte(" +-", d.Content[0]) > -1 {
+		return d.Content[0:1]
+	}
+	return ""
+}
+
+// escape a line's content or return <br> needed for copy/paste purposes
+func getLineContent(content string) string {
+	if len(content) > 0 {
+		return html.EscapeString(content)
+	}
+	return "<br>"
+}
+
 // DiffSection represents a section of a DiffFile.
 type DiffSection struct {
 	Name  string
@@ -87,34 +103,26 @@ type DiffSection struct {
 }
 
 var (
-	addedCodePrefix   = []byte("<span class=\"added-code\">")
-	removedCodePrefix = []byte("<span class=\"removed-code\">")
-	codeTagSuffix     = []byte("</span>")
+	addedCodePrefix   = []byte(`<span class="added-code">`)
+	removedCodePrefix = []byte(`<span class="removed-code">`)
+	codeTagSuffix     = []byte(`</span>`)
 )
 
 func diffToHTML(diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
 	buf := bytes.NewBuffer(nil)
 
-	// Reproduce signs which are cut for inline diff before.
-	switch lineType {
-	case DiffLineAdd:
-		buf.WriteByte('+')
-	case DiffLineDel:
-		buf.WriteByte('-')
-	}
-
 	for i := range diffs {
 		switch {
 		case diffs[i].Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
 			buf.Write(addedCodePrefix)
-			buf.WriteString(html.EscapeString(diffs[i].Text))
+			buf.WriteString(getLineContent(diffs[i].Text))
 			buf.Write(codeTagSuffix)
 		case diffs[i].Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
 			buf.Write(removedCodePrefix)
-			buf.WriteString(html.EscapeString(diffs[i].Text))
+			buf.WriteString(getLineContent(diffs[i].Text))
 			buf.Write(codeTagSuffix)
 		case diffs[i].Type == diffmatchpatch.DiffEqual:
-			buf.WriteString(html.EscapeString(diffs[i].Text))
+			buf.WriteString(getLineContent(diffs[i].Text))
 		}
 	}
 
@@ -173,7 +181,7 @@ func init() {
 // GetComputedInlineDiffFor computes inline diff for the given line.
 func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) template.HTML {
 	if setting.Git.DisableDiffHighlight {
-		return template.HTML(html.EscapeString(diffLine.Content[1:]))
+		return template.HTML(getLineContent(diffLine.Content[1:]))
 	}
 	var (
 		compareDiffLine *DiffLine
@@ -186,19 +194,22 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	case DiffLineAdd:
 		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
-			return template.HTML(html.EscapeString(diffLine.Content))
+			return template.HTML(getLineContent(diffLine.Content[1:]))
 		}
 		diff1 = compareDiffLine.Content
 		diff2 = diffLine.Content
 	case DiffLineDel:
 		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
-			return template.HTML(html.EscapeString(diffLine.Content))
+			return template.HTML(getLineContent(diffLine.Content[1:]))
 		}
 		diff1 = diffLine.Content
 		diff2 = compareDiffLine.Content
 	default:
-		return template.HTML(html.EscapeString(diffLine.Content))
+		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
+			return template.HTML(getLineContent(diffLine.Content[1:]))
+		}
+		return template.HTML(getLineContent(diffLine.Content))
 	}
 
 	diffRecord := diffMatchPatch.DiffMain(diff1[1:], diff2[1:], true)
@@ -384,13 +395,9 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 	// headers + hunk header
 	newHunk := make([]string, headerLines)
 	// transfer existing headers
-	for idx, lof := range hunk[:headerLines] {
-		newHunk[idx] = lof
-	}
+	copy(newHunk, hunk[:headerLines])
 	// transfer last n lines
-	for _, lof := range hunk[len(hunk)-numbersOfLine-1:] {
-		newHunk = append(newHunk, lof)
-	}
+	newHunk = append(newHunk, hunk[len(hunk)-numbersOfLine-1:]...)
 	// calculate newBegin, ... by counting lines
 	for i := len(hunk) - 1; i >= len(hunk)-numbersOfLine; i-- {
 		switch hunk[i][0] {
@@ -582,7 +589,10 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 			diff.Files = append(diff.Files, curFile)
 			if len(diff.Files) >= maxFiles {
 				diff.IsIncomplete = true
-				io.Copy(ioutil.Discard, reader)
+				_, err := io.Copy(ioutil.Discard, reader)
+				if err != nil {
+					return nil, fmt.Errorf("Copy: %v", err)
+				}
 				break
 			}
 			curFileLinesCount = 0
@@ -673,7 +683,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 
 	var cmd *exec.Cmd
 	if len(beforeCommitID) == 0 && commit.ParentCount() == 0 {
-		cmd = exec.Command("git", "show", afterCommitID)
+		cmd = exec.Command(git.GitExecutable, "show", afterCommitID)
 	} else {
 		actualBeforeCommitID := beforeCommitID
 		if len(actualBeforeCommitID) == 0 {
@@ -686,7 +696,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		}
 		diffArgs = append(diffArgs, actualBeforeCommitID)
 		diffArgs = append(diffArgs, afterCommitID)
-		cmd = exec.Command("git", diffArgs...)
+		cmd = exec.Command(git.GitExecutable, diffArgs...)
 	}
 	cmd.Dir = repoPath
 	cmd.Stderr = os.Stderr
@@ -750,23 +760,23 @@ func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiff
 	switch diffType {
 	case RawDiffNormal:
 		if len(startCommit) != 0 {
-			cmd = exec.Command("git", append([]string{"diff", "-M", startCommit, endCommit}, fileArgs...)...)
+			cmd = exec.Command(git.GitExecutable, append([]string{"diff", "-M", startCommit, endCommit}, fileArgs...)...)
 		} else if commit.ParentCount() == 0 {
-			cmd = exec.Command("git", append([]string{"show", endCommit}, fileArgs...)...)
+			cmd = exec.Command(git.GitExecutable, append([]string{"show", endCommit}, fileArgs...)...)
 		} else {
 			c, _ := commit.Parent(0)
-			cmd = exec.Command("git", append([]string{"diff", "-M", c.ID.String(), endCommit}, fileArgs...)...)
+			cmd = exec.Command(git.GitExecutable, append([]string{"diff", "-M", c.ID.String(), endCommit}, fileArgs...)...)
 		}
 	case RawDiffPatch:
 		if len(startCommit) != 0 {
 			query := fmt.Sprintf("%s...%s", endCommit, startCommit)
-			cmd = exec.Command("git", append([]string{"format-patch", "--no-signature", "--stdout", "--root", query}, fileArgs...)...)
+			cmd = exec.Command(git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", "--root", query}, fileArgs...)...)
 		} else if commit.ParentCount() == 0 {
-			cmd = exec.Command("git", append([]string{"format-patch", "--no-signature", "--stdout", "--root", endCommit}, fileArgs...)...)
+			cmd = exec.Command(git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", "--root", endCommit}, fileArgs...)...)
 		} else {
 			c, _ := commit.Parent(0)
 			query := fmt.Sprintf("%s...%s", endCommit, c.ID.String())
-			cmd = exec.Command("git", append([]string{"format-patch", "--no-signature", "--stdout", query}, fileArgs...)...)
+			cmd = exec.Command(git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", query}, fileArgs...)...)
 		}
 	default:
 		return fmt.Errorf("invalid diffType: %s", diffType)

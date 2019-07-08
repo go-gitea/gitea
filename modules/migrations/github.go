@@ -107,13 +107,13 @@ func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	// convert github repo to stand Repo
 	return &base.Repository{
 		Owner:       g.repoOwner,
 		Name:        gr.GetName(),
 		IsPrivate:   *gr.Private,
 		Description: gr.GetDescription(),
+		OriginalURL: gr.GetHTMLURL(),
 		CloneURL:    gr.GetCloneURL(),
 	}, nil
 }
@@ -317,6 +317,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		allIssues = append(allIssues, &base.Issue{
 			Title:       *issue.Title,
 			Number:      int64(*issue.Number),
+			PosterID:    *issue.User.ID,
 			PosterName:  *issue.User.Login,
 			PosterEmail: email,
 			Content:     body,
@@ -358,6 +359,8 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 				reactions = convertGithubReactions(comment.Reactions)
 			}
 			allComments = append(allComments, &base.Comment{
+				IssueIndex:  issueNumber,
+				PosterID:    *comment.User.ID,
 				PosterName:  *comment.User.Login,
 				PosterEmail: email,
 				Content:     *comment.Body,
@@ -416,21 +419,41 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			merged = true
 		}
 
-		var headRepoName string
-		var cloneURL string
+		var (
+			headRepoName string
+			cloneURL     string
+			headRef      string
+			headSHA      string
+		)
 		if pr.Head.Repo != nil {
-			headRepoName = *pr.Head.Repo.Name
-			cloneURL = *pr.Head.Repo.CloneURL
+			if pr.Head.Repo.Name != nil {
+				headRepoName = *pr.Head.Repo.Name
+			}
+			if pr.Head.Repo.CloneURL != nil {
+				cloneURL = *pr.Head.Repo.CloneURL
+			}
+		}
+		if pr.Head.Ref != nil {
+			headRef = *pr.Head.Ref
+		}
+		if pr.Head.SHA != nil {
+			headSHA = *pr.Head.SHA
 		}
 		var mergeCommitSHA string
 		if pr.MergeCommitSHA != nil {
 			mergeCommitSHA = *pr.MergeCommitSHA
 		}
 
+		var headUserName string
+		if pr.Head.User != nil && pr.Head.User.Login != nil {
+			headUserName = *pr.Head.User.Login
+		}
+
 		allPRs = append(allPRs, &base.PullRequest{
 			Title:          *pr.Title,
 			Number:         int64(*pr.Number),
 			PosterName:     *pr.User.Login,
+			PosterID:       *pr.User.ID,
 			PosterEmail:    email,
 			Content:        body,
 			Milestone:      milestone,
@@ -443,10 +466,10 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			MergedTime:     pr.MergedAt,
 			IsLocked:       pr.ActiveLockReason != nil,
 			Head: base.PullRequestBranch{
-				Ref:       *pr.Head.Ref,
-				SHA:       *pr.Head.SHA,
+				Ref:       headRef,
+				SHA:       headSHA,
 				RepoName:  headRepoName,
-				OwnerName: *pr.Head.User.Login,
+				OwnerName: headUserName,
 				CloneURL:  cloneURL,
 			},
 			Base: base.PullRequestBranch{

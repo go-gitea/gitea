@@ -82,6 +82,7 @@ func NewFuncMap() []template.FuncMap {
 		"FileSize":      base.FileSize,
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
+		"MigrationIcon": MigrationIcon,
 		"Add": func(a, b int) int {
 			return a + b
 		},
@@ -343,7 +344,7 @@ func ReplaceLeft(s, oldS, newS string) string {
 
 	// allocating space for the new string
 	curLen := n*newLen + len(s[i:])
-	replacement := make([]byte, curLen, curLen)
+	replacement := make([]byte, curLen)
 
 	j := 0
 	for ; j < n*newLen; j += newLen {
@@ -539,4 +540,14 @@ func TrN(lang string, cnt interface{}, key1, keyN string) string {
 		return key1
 	}
 	return keyN
+}
+
+// MigrationIcon returns a Font Awesome name matching the service an issue/comment was migrated from
+func MigrationIcon(hostname string) string {
+	switch hostname {
+	case "github.com":
+		return "fa-github"
+	default:
+		return "fa-git-alt"
+	}
 }

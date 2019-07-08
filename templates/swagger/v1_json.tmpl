@@ -1570,7 +1570,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/contents/{filepath}": {
+    "/repos/{owner}/{repo}/contents": {
       "get": {
         "produces": [
           "application/json"
@@ -1578,8 +1578,8 @@
         "tags": [
           "repository"
         ],
-        "summary": "Gets the contents of a file or directory in a repository",
-        "operationId": "repoGetFileContents",
+        "summary": "Gets the metadata of all the entries of the root dir",
+        "operationId": "repoGetContentsList",
         "parameters": [
           {
             "type": "string",
@@ -1597,7 +1597,46 @@
           },
           {
             "type": "string",
-            "description": "path of the file to delete",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ContentsListResponse"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/contents/{filepath}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir",
+        "operationId": "repoGetContents",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "path of the dir, file, symlink or submodule in the repo",
             "name": "filepath",
             "in": "path",
             "required": true
@@ -1611,7 +1650,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/FileContentResponse"
+            "$ref": "#/responses/ContentsResponse"
           }
         }
       },
@@ -2032,6 +2071,46 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/git/tags/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the tag of a repository.",
+        "operationId": "GetTag",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "sha of the tag",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/AnnotatedTag"
           }
         }
       }
@@ -3892,6 +3971,12 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "Milestone state, Recognised values are open, closed and all. Defaults to \"open\"",
+            "name": "state",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6756,6 +6841,57 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "AnnotatedTag": {
+      "description": "AnnotatedTag represents an annotated tag",
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "object": {
+          "$ref": "#/definitions/AnnotatedTagObject"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "tag": {
+          "type": "string",
+          "x-go-name": "Tag"
+        },
+        "tagger": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        },
+        "verification": {
+          "$ref": "#/definitions/PayloadCommitVerification"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "AnnotatedTagObject": {
+      "description": "AnnotatedTagObject contains meta information of the tag object",
+      "type": "object",
+      "properties": {
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Attachment": {
       "description": "Attachment a generic attachment",
       "type": "object",
@@ -6834,6 +6970,15 @@
         "issue_url": {
           "type": "string",
           "x-go-name": "IssueURL"
+        },
+        "original_author": {
+          "type": "string",
+          "x-go-name": "OriginalAuthor"
+        },
+        "original_author_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OriginalAuthorID"
         },
         "pull_request_url": {
           "type": "string",
@@ -6916,6 +7061,74 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ContentsResponse": {
+      "description": "ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content",
+      "type": "object",
+      "properties": {
+        "_links": {
+          "$ref": "#/definitions/FileLinksResponse"
+        },
+        "content": {
+          "description": "`content` is populated when `type` is `file`, otherwise null",
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "download_url": {
+          "type": "string",
+          "x-go-name": "DownloadURL"
+        },
+        "encoding": {
+          "description": "`encoding` is populated when `type` is `file`, otherwise null",
+          "type": "string",
+          "x-go-name": "Encoding"
+        },
+        "git_url": {
+          "type": "string",
+          "x-go-name": "GitURL"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "path": {
+          "type": "string",
+          "x-go-name": "Path"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "SHA"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Size"
+        },
+        "submodule_git_url": {
+          "description": "`submodule_git_url` is populated when `type` is `submodule`, otherwise null",
+          "type": "string",
+          "x-go-name": "SubmoduleGitURL"
+        },
+        "target": {
+          "description": "`target` is populated when `type` is `symlink`, otherwise null",
+          "type": "string",
+          "x-go-name": "Target"
+        },
+        "type": {
+          "description": "`type` will be `file`, `dir`, `symlink`, or `submodule`",
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -7147,6 +7360,10 @@
           "type": "string",
           "x-go-name": "Color",
           "example": "#00aabb"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
         },
         "name": {
           "type": "string",
@@ -7678,6 +7895,10 @@
           "type": "string",
           "x-go-name": "Color"
         },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -8074,53 +8295,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "FileContentResponse": {
-      "description": "FileContentResponse contains information about a repo's file stats and content",
-      "type": "object",
-      "properties": {
-        "_links": {
-          "$ref": "#/definitions/FileLinksResponse"
-        },
-        "download_url": {
-          "type": "string",
-          "x-go-name": "DownloadURL"
-        },
-        "git_url": {
-          "type": "string",
-          "x-go-name": "GitURL"
-        },
-        "html_url": {
-          "type": "string",
-          "x-go-name": "HTMLURL"
-        },
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "path": {
-          "type": "string",
-          "x-go-name": "Path"
-        },
-        "sha": {
-          "type": "string",
-          "x-go-name": "SHA"
-        },
-        "size": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Size"
-        },
-        "type": {
-          "type": "string",
-          "x-go-name": "Type"
-        },
-        "url": {
-          "type": "string",
-          "x-go-name": "URL"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "FileDeleteResponse": {
       "description": "FileDeleteResponse contains information about a repo's file that was deleted",
       "type": "object",
@@ -8142,15 +8316,15 @@
       "description": "FileLinksResponse contains the links for a repo's file",
       "type": "object",
       "properties": {
-        "git_url": {
+        "git": {
           "type": "string",
           "x-go-name": "GitURL"
         },
-        "html_url": {
+        "html": {
           "type": "string",
           "x-go-name": "HTMLURL"
         },
-        "url": {
+        "self": {
           "type": "string",
           "x-go-name": "Self"
         }
@@ -8165,7 +8339,7 @@
           "$ref": "#/definitions/FileCommitResponse"
         },
         "content": {
-          "$ref": "#/definitions/FileContentResponse"
+          "$ref": "#/definitions/ContentsResponse"
         },
         "verification": {
           "$ref": "#/definitions/PayloadCommitVerification"
@@ -8504,6 +8678,15 @@
           "format": "int64",
           "x-go-name": "Index"
         },
+        "original_author": {
+          "type": "string",
+          "x-go-name": "OriginalAuthor"
+        },
+        "original_author_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OriginalAuthorID"
+        },
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
         },
@@ -8565,6 +8748,10 @@
           "type": "string",
           "x-go-name": "Color",
           "example": "00aabb"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
         },
         "id": {
           "type": "integer",
@@ -9320,6 +9507,10 @@
           "format": "int64",
           "x-go-name": "OpenIssues"
         },
+        "original_url": {
+          "type": "string",
+          "x-go-name": "OriginalURL"
+        },
         "owner": {
           "$ref": "#/definitions/User"
         },
@@ -9452,18 +9643,11 @@
       "type": "object",
       "properties": {
         "commit": {
-          "type": "object",
-          "properties": {
-            "sha": {
-              "type": "string",
-              "x-go-name": "SHA"
-            },
-            "url": {
-              "type": "string",
-              "x-go-name": "URL"
-            }
-          },
-          "x-go-name": "Commit"
+          "$ref": "#/definitions/CommitMeta"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
         },
         "name": {
           "type": "string",
@@ -9625,6 +9809,11 @@
           "type": "string",
           "x-go-name": "AvatarURL"
         },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "email": {
           "type": "string",
           "format": "email",
@@ -9650,6 +9839,11 @@
           "description": "User locale",
           "type": "string",
           "x-go-name": "Language"
+        },
+        "last_login": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "LastLogin"
         },
         "login": {
           "description": "the user's username",
@@ -9729,6 +9923,12 @@
     "AccessTokenList": {
       "description": "AccessTokenList represents a list of API access token."
     },
+    "AnnotatedTag": {
+      "description": "AnnotatedTag",
+      "schema": {
+        "$ref": "#/definitions/AnnotatedTag"
+      }
+    },
     "Attachment": {
       "description": "Attachment",
       "schema": {
@@ -9780,6 +9980,21 @@
         "$ref": "#/definitions/Commit"
       }
     },
+    "ContentsListResponse": {
+      "description": "ContentsListResponse",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ContentsResponse"
+        }
+      }
+    },
+    "ContentsResponse": {
+      "description": "ContentsResponse",
+      "schema": {
+        "$ref": "#/definitions/ContentsResponse"
+      }
+    },
     "DeployKey": {
       "description": "DeployKey",
       "schema": {
@@ -9802,12 +10017,6 @@
         "items": {
           "$ref": "#/definitions/Email"
         }
-      }
-    },
-    "FileContentResponse": {
-      "description": "FileContentResponse",
-      "schema": {
-        "$ref": "#/definitions/FileContentResponse"
       }
     },
     "FileDeleteResponse": {
@@ -10048,6 +10257,12 @@
         "items": {
           "$ref": "#/definitions/Status"
         }
+      }
+    },
+    "Tag": {
+      "description": "Tag",
+      "schema": {
+        "$ref": "#/definitions/Tag"
       }
     },
     "TagList": {

@@ -24,13 +24,14 @@ const (
 
 // Branch contains the branch information
 type Branch struct {
-	Name          string
-	Commit        *git.Commit
-	IsProtected   bool
-	IsDeleted     bool
-	DeletedBranch *models.DeletedBranch
-	CommitsAhead  int
-	CommitsBehind int
+	Name              string
+	Commit            *git.Commit
+	IsProtected       bool
+	IsDeleted         bool
+	DeletedBranch     *models.DeletedBranch
+	CommitsAhead      int
+	CommitsBehind     int
+	LatestPullRequest *models.PullRequest
 }
 
 // Branches render repository branch page
@@ -131,15 +132,18 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 	}
 
 	// Don't return error below this
-	if err := models.PushUpdate(branchName, models.PushUpdateOptions{
-		RefFullName:  git.BranchPrefix + branchName,
-		OldCommitID:  commit.ID.String(),
-		NewCommitID:  git.EmptySHA,
-		PusherID:     ctx.User.ID,
-		PusherName:   ctx.User.Name,
-		RepoUserName: ctx.Repo.Owner.Name,
-		RepoName:     ctx.Repo.Repository.Name,
-	}); err != nil {
+	if err := repofiles.PushUpdate(
+		ctx.Repo.Repository,
+		branchName,
+		models.PushUpdateOptions{
+			RefFullName:  git.BranchPrefix + branchName,
+			OldCommitID:  commit.ID.String(),
+			NewCommitID:  git.EmptySHA,
+			PusherID:     ctx.User.ID,
+			PusherName:   ctx.User.Name,
+			RepoUserName: ctx.Repo.Owner.Name,
+			RepoName:     ctx.Repo.Repository.Name,
+		}); err != nil {
 		log.Error("Update: %v", err)
 	}
 
@@ -178,12 +182,25 @@ func loadBranches(ctx *context.Context) []*Branch {
 			return nil
 		}
 
+		pr, err := models.GetLatestPullRequestByHeadInfo(ctx.Repo.Repository.ID, branchName)
+		if err != nil {
+			ctx.ServerError("GetLatestPullRequestByHeadInfo", err)
+			return nil
+		}
+		if pr != nil {
+			if err := pr.LoadIssue(); err != nil {
+				ctx.ServerError("pr.LoadIssue", err)
+				return nil
+			}
+		}
+
 		branches[i] = &Branch{
-			Name:          branchName,
-			Commit:        commit,
-			IsProtected:   isProtected,
-			CommitsAhead:  divergence.Ahead,
-			CommitsBehind: divergence.Behind,
+			Name:              branchName,
+			Commit:            commit,
+			IsProtected:       isProtected,
+			CommitsAhead:      divergence.Ahead,
+			CommitsBehind:     divergence.Behind,
+			LatestPullRequest: pr,
 		}
 	}
 

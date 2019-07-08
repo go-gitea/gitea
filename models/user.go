@@ -32,11 +32,14 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"golang.org/x/crypto/argon2"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/ssh"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 // UserType defines the user type
@@ -48,6 +51,13 @@ const (
 
 	// UserTypeOrganization defines an organization
 	UserTypeOrganization
+)
+
+const (
+	algoBcrypt = "bcrypt"
+	algoScrypt = "scrypt"
+	algoArgon2 = "argon2"
+	algoPbkdf2 = "pbkdf2"
 )
 
 const syncExternalUsers = "sync_external_users"
@@ -82,6 +92,7 @@ type User struct {
 	Email            string `xorm:"NOT NULL"`
 	KeepEmailPrivate bool
 	Passwd           string `xorm:"NOT NULL"`
+	PasswdHashAlgo   string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
 
 	// MustChangePassword is an attribute that determines if a user
 	// is to change his/her password after registration.
@@ -214,6 +225,8 @@ func (u *User) APIFormat() *api.User {
 		AvatarURL: u.AvatarLink(),
 		Language:  u.Language,
 		IsAdmin:   u.IsAdmin,
+		LastLogin: u.LastLoginUnix.AsTime(),
+		Created:   u.CreatedUnix.AsTime(),
 	}
 }
 
@@ -428,25 +441,48 @@ func (u *User) NewGitSig() *git.Signature {
 	}
 }
 
-func hashPassword(passwd, salt string) string {
-	tempPasswd := pbkdf2.Key([]byte(passwd), []byte(salt), 10000, 50, sha256.New)
+func hashPassword(passwd, salt, algo string) string {
+	var tempPasswd []byte
+
+	switch algo {
+	case algoBcrypt:
+		tempPasswd, _ = bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
+		return string(tempPasswd)
+	case algoScrypt:
+		tempPasswd, _ = scrypt.Key([]byte(passwd), []byte(salt), 65536, 16, 2, 50)
+	case algoArgon2:
+		tempPasswd = argon2.IDKey([]byte(passwd), []byte(salt), 2, 65536, 8, 50)
+	case algoPbkdf2:
+		fallthrough
+	default:
+		tempPasswd = pbkdf2.Key([]byte(passwd), []byte(salt), 10000, 50, sha256.New)
+	}
+
 	return fmt.Sprintf("%x", tempPasswd)
 }
 
-// HashPassword hashes a password using PBKDF.
+// HashPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO.
 func (u *User) HashPassword(passwd string) {
-	u.Passwd = hashPassword(passwd, u.Salt)
+	u.PasswdHashAlgo = setting.PasswordHashAlgo
+	u.Passwd = hashPassword(passwd, u.Salt, setting.PasswordHashAlgo)
 }
 
 // ValidatePassword checks if given password matches the one belongs to the user.
 func (u *User) ValidatePassword(passwd string) bool {
-	tempHash := hashPassword(passwd, u.Salt)
-	return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1
+	tempHash := hashPassword(passwd, u.Salt, u.PasswdHashAlgo)
+
+	if u.PasswdHashAlgo != algoBcrypt && subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1 {
+		return true
+	}
+	if u.PasswdHashAlgo == algoBcrypt && bcrypt.CompareHashAndPassword([]byte(u.Passwd), []byte(passwd)) == nil {
+		return true
+	}
+	return false
 }
 
 // IsPasswordSet checks if the password is set or left empty
 func (u *User) IsPasswordSet() bool {
-	return !u.ValidatePassword("")
+	return len(u.Passwd) > 0
 }
 
 // UploadAvatar saves custom avatar for user.
@@ -1072,7 +1108,10 @@ func deleteUser(e *xorm.Session, u *User) error {
 	if _, err = e.Delete(&PublicKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deletePublicKeys: %v", err)
 	}
-	rewriteAllPublicKeys(e)
+	err = rewriteAllPublicKeys(e)
+	if err != nil {
+		return err
+	}
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
@@ -1334,6 +1373,19 @@ func GetUserByEmail(email string) (*User, error) {
 		return GetUserByID(emailAddress.UID)
 	}
 
+	// Finally, if email address is the protected email address:
+	if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
+		username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
+		user := &User{LowerName: username}
+		has, err := x.Get(user)
+		if err != nil {
+			return nil, err
+		}
+		if has {
+			return user, nil
+		}
+	}
+
 	return nil, ErrUserNotExist{0, email, 0}
 }
 
@@ -1388,8 +1440,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		} else {
 			exprCond = builder.Expr("org_user.org_id = \"user\".id")
 		}
-		var accessCond = builder.NewCond()
-		accessCond = builder.Or(
+		accessCond := builder.Or(
 			builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
 			builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
 		cond = cond.And(accessCond)
@@ -1499,9 +1550,9 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 }
 
 // addLdapSSHPublicKeys add a users public keys. Returns true if there are changes.
-func addLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []string) bool {
+func addLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
-	for _, sshKey := range SSHPublicKeys {
+	for _, sshKey := range sshPublicKeys {
 		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(sshKey))
 		if err == nil {
 			sshKeyName := fmt.Sprintf("%s-%s", s.Name, sshKey[0:40])
@@ -1523,7 +1574,7 @@ func addLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []string) boo
 }
 
 // synchronizeLdapSSHPublicKeys updates a users public keys. Returns true if there are changes.
-func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []string) bool {
+func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 
 	log.Trace("synchronizeLdapSSHPublicKeys[%s]: Handling LDAP Public SSH Key synchronization for user %s", s.Name, usr.Name)
@@ -1541,7 +1592,7 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []str
 
 	// Get Public Keys from LDAP and skip duplicate keys
 	var ldapKeys []string
-	for _, v := range SSHPublicKeys {
+	for _, v := range sshPublicKeys {
 		sshKeySplit := strings.Split(v, " ")
 		if len(sshKeySplit) > 1 {
 			ldapKey := strings.Join(sshKeySplit[:2], " ")
@@ -1621,9 +1672,13 @@ func SyncExternalUsers() {
 
 			// Find all users with this login type
 			var users []*User
-			x.Where("login_type = ?", LoginLDAP).
+			err = x.Where("login_type = ?", LoginLDAP).
 				And("login_source = ?", s.ID).
 				Find(&users)
+			if err != nil {
+				log.Error("SyncExternalUsers: %v", err)
+				return
+			}
 
 			sr := s.LDAP().SearchEntries()
 			for _, su := range sr {
@@ -1681,7 +1736,7 @@ func SyncExternalUsers() {
 
 					// Check if user data has changed
 					if (len(s.LDAP().AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
-						strings.ToLower(usr.Email) != strings.ToLower(su.Mail) ||
+						!strings.EqualFold(usr.Email, su.Mail) ||
 						usr.FullName != fullName ||
 						!usr.IsActive {
 
@@ -1705,7 +1760,10 @@ func SyncExternalUsers() {
 
 			// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 			if sshKeysNeedUpdate {
-				RewriteAllPublicKeys()
+				err = RewriteAllPublicKeys()
+				if err != nil {
+					log.Error("RewriteAllPublicKeys: %v", err)
+				}
 			}
 
 			// Deactivate users not present in LDAP

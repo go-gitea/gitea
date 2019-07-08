@@ -120,6 +120,7 @@ const (
 	commentCharKey   = "commentChar"
 	windowKey        = "window"
 	mergeKey         = "merge"
+	rebaseKey        = "rebase"
 
 	// DefaultPackWindow holds the number of previous objects used to
 	// generate deltas. The value 10 is the same used by git command.

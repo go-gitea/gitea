@@ -24,7 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 // ActionType represents the type of an action.
@@ -67,7 +67,7 @@ var (
 const issueRefRegexpStr = `(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)+`
 
 func assembleKeywordsPattern(words []string) string {
-	return fmt.Sprintf(`(?i)(?:%s) %s`, strings.Join(words, "|"), issueRefRegexpStr)
+	return fmt.Sprintf(`(?i)(?:%s)(?::?) %s`, strings.Join(words, "|"), issueRefRegexpStr)
 }
 
 func init() {
@@ -896,6 +896,11 @@ func mirrorSyncAction(e Engine, opType ActionType, repo *Repository, refName str
 	}); err != nil {
 		return fmt.Errorf("notifyWatchers: %v", err)
 	}
+
+	defer func() {
+		go HookQueue.Add(repo.ID)
+	}()
+
 	return nil
 }
 

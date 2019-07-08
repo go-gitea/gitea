@@ -76,9 +76,10 @@ type Label struct {
 // APIFormat converts a Label to the api.Label format
 func (label *Label) APIFormat() *api.Label {
 	return &api.Label{
-		ID:    label.ID,
-		Name:  label.Name,
-		Color: strings.TrimLeft(label.Color, "#"),
+		ID:          label.ID,
+		Name:        label.Name,
+		Color:       strings.TrimLeft(label.Color, "#"),
+		Description: label.Description,
 	}
 }
 
@@ -399,14 +400,6 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	}
 
 	return sess.Commit()
-}
-
-func getIssueLabels(e Engine, issueID int64) ([]*IssueLabel, error) {
-	issueLabels := make([]*IssueLabel, 0, 10)
-	return issueLabels, e.
-		Where("issue_id=?", issueID).
-		Asc("label_id").
-		Find(&issueLabels)
 }
 
 func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err error) {

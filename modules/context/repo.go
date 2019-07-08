@@ -455,15 +455,13 @@ func RepoAssignment() macaron.Handler {
 				ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
 				ctx.Repo.PullRequest.Allowed = true
 				ctx.Repo.PullRequest.HeadInfo = ctx.Repo.Owner.Name + ":" + ctx.Repo.BranchName
-			} else {
+			} else if repo.AllowsPulls() {
 				// Or, this is repository accepts pull requests between branches.
-				if repo.AllowsPulls() {
-					ctx.Data["BaseRepo"] = repo
-					ctx.Repo.PullRequest.BaseRepo = repo
-					ctx.Repo.PullRequest.Allowed = true
-					ctx.Repo.PullRequest.SameRepo = true
-					ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
-				}
+				ctx.Data["BaseRepo"] = repo
+				ctx.Repo.PullRequest.BaseRepo = repo
+				ctx.Repo.PullRequest.Allowed = true
+				ctx.Repo.PullRequest.SameRepo = true
+				ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
 			}
 		}
 		ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest

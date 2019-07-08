@@ -21,10 +21,8 @@ import (
 
 // VirtualSessionProvider represents a shadowed session provider implementation.
 type VirtualSessionProvider struct {
-	lock        sync.RWMutex
-	maxlifetime int64
-	rootPath    string
-	provider    session.Provider
+	lock     sync.RWMutex
+	provider session.Provider
 }
 
 // Init initializes the cookie session provider with given root path.
