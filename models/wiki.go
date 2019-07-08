@@ -9,11 +9,14 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
 )
@@ -28,9 +31,17 @@ func NormalizeWikiName(name string) string {
 	return strings.Replace(name, "-", " ", -1)
 }
 
-// WikiNameToSubURL converts a wiki name to its corresponding sub-URL.
+// WikiNameToSubURL converts a wiki name to its corresponding sub-URL. This will escape dangerous letters.
 func WikiNameToSubURL(name string) string {
-	return url.QueryEscape(strings.Replace(name, " ", "-", -1))
+	// remove path up
+	re1 := regexp.MustCompile(`(\.\.\/)`)
+	name = re1.ReplaceAllString(name, "")
+	// trim whitespace and /
+	name = strings.Trim(name, "\n\r\t /")
+	name = url.QueryEscape(name)
+	//restore spaces
+	re3 := regexp.MustCompile(`(?m)(%20|\+)`)
+	return re3.ReplaceAllString(name, "%20")
 }
 
 // WikiNameToFilename converts a wiki name to its corresponding filename.
@@ -39,17 +50,53 @@ func WikiNameToFilename(name string) string {
 	return url.QueryEscape(name) + ".md"
 }
 
+// WikiNameToPathFilename converts a wiki name to its corresponding filename, keep directory paths.
+func WikiNameToPathFilename(name string) string {
+	var restore = [1][2]string{
+		{`(\.\.\/)`, ""}, // remove path up
+	}
+	for _, kv := range restore {
+		loopRe := regexp.MustCompile(kv[0])
+		name = loopRe.ReplaceAllString(name, kv[1])
+	}
+	name = strings.Trim(name, "\n\r\t ./") // trim whitespace and / .
+	return name + ".md"
+}
+
+// FilenameToPathFilename converts a wiki filename to filename with filepath.
+func FilenameToPathFilename(name string) string {
+	// restore spaces and slashes
+	var restore = [4][2]string{
+		{`(?m)%2F`, "/"},      //recover slashes /
+		{`(?m)(%20|\+)`, " "}, //restore spaces
+		{`(?m)(%25)`, "%"},    //restore %
+		{`(?m)(%26)`, "&"},    //restore &
+	}
+	for _, kv := range restore {
+		loopRe := regexp.MustCompile(kv[0])
+		name = loopRe.ReplaceAllString(name, kv[1])
+	}
+	return name
+}
+
+// WikiNameToRawPrefix Get raw file path inside wiki, removes last path element and returns
+func WikiNameToRawPrefix(repositoryName string, wikiPage string) string {
+	a := strings.Split(wikiPage, "/")
+	a = a[:len(a)-1]
+	return util.URLJoin(repositoryName, "wiki", "raw", strings.Join(a, "/"))
+}
+
 // WikiFilenameToName converts a wiki filename to its corresponding page name.
-func WikiFilenameToName(filename string) (string, error) {
+func WikiFilenameToName(filename string) (string, string, error) {
 	if !strings.HasSuffix(filename, ".md") {
-		return "", ErrWikiInvalidFileName{filename}
+		return "", "", ErrWikiInvalidFileName{filename}
 	}
 	basename := filename[:len(filename)-3]
 	unescaped, err := url.QueryUnescape(basename)
 	if err != nil {
-		return "", err
+		return basename, basename, err
 	}
-	return NormalizeWikiName(unescaped), nil
+	return unescaped, basename, nil
 }
 
 // WikiCloneLink returns clone URLs of repository wiki.
@@ -97,6 +144,21 @@ func nameAllowed(name string) error {
 	return nil
 }
 
+// checkNewWikiFilename check filename or file exists inside repository
+func checkNewWikiFilename(repo *git.Repository, name string) (bool, error) {
+	filesInIndex, err := repo.LsFiles(name)
+	if err != nil {
+		log.Error("%v", err)
+		return false, err
+	}
+	for _, file := range filesInIndex {
+		if file == name {
+			return true, ErrWikiAlreadyExist{name}
+		}
+	}
+	return false, nil
+}
+
 // updateWikiPage adds a new page to the repository wiki.
 func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
 	if err = nameAllowed(newWikiName); err != nil {
@@ -136,6 +198,9 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 	}
 
 	gitRepo, err := git.OpenRepository(basePath)
+
+	fmt.Println(reflect.TypeOf(gitRepo))
+
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
@@ -149,30 +214,25 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 	}
 
 	newWikiPath := WikiNameToFilename(newWikiName)
+	newWikiDirPath := WikiNameToPathFilename(newWikiName)
+
 	if isNew {
-		filesInIndex, err := gitRepo.LsFiles(newWikiPath)
-		if err != nil {
-			log.Error("%v", err)
+		// check file already exists - plain structure
+		if _, err := checkNewWikiFilename(gitRepo, newWikiPath); err != nil {
 			return err
 		}
-		for _, file := range filesInIndex {
-			if file == newWikiPath {
-				return ErrWikiAlreadyExist{newWikiPath}
-			}
+
+		// check file already exists - directory structure
+		if _, err := checkNewWikiFilename(gitRepo, newWikiDirPath); err != nil {
+			return err
 		}
 	} else {
+		var found bool
+
+		// check file already exists - plain structure
 		oldWikiPath := WikiNameToFilename(oldWikiName)
-		filesInIndex, err := gitRepo.LsFiles(oldWikiPath)
-		if err != nil {
-			log.Error("%v", err)
+		if found, err = checkNewWikiFilename(gitRepo, oldWikiPath); err != nil && !found {
 			return err
-		}
-		found := false
-		for _, file := range filesInIndex {
-			if file == oldWikiPath {
-				found = true
-				break
-			}
 		}
 		if found {
 			err := gitRepo.RemoveFilesFromIndex(oldWikiPath)
@@ -181,7 +241,22 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 				return err
 			}
 		}
+
+		// check file already exists - directory structure
+		oldWikiDirPath := WikiNameToPathFilename(oldWikiName)
+		if found, err = checkNewWikiFilename(gitRepo, oldWikiDirPath); err != nil && !found {
+			return err
+		}
+		if found {
+			err := gitRepo.RemoveFilesFromIndex(oldWikiDirPath)
+			if err != nil {
+				log.Error("%v", err)
+				return err
+			}
+		}
 	}
+
+	newWikiDirPath = FilenameToPathFilename(newWikiDirPath)
 
 	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
 
@@ -191,7 +266,7 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 		return err
 	}
 
-	if err := gitRepo.AddObjectToIndex("100644", objectHash, newWikiPath); err != nil {
+	if err := gitRepo.AddObjectToIndex("100644", objectHash, newWikiDirPath); err != nil {
 		log.Error("%v", err)
 		return err
 	}
@@ -276,14 +351,12 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiName string) (err error) 
 		return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
 	}
 
+	var found bool
+
+	// check file exists - plain structure
 	wikiPath := WikiNameToFilename(wikiName)
-	filesInIndex, err := gitRepo.LsFiles(wikiPath)
-	found := false
-	for _, file := range filesInIndex {
-		if file == wikiPath {
-			found = true
-			break
-		}
+	if found, err = checkNewWikiFilename(gitRepo, wikiName); err != nil && !found {
+		return err
 	}
 	if found {
 		err := gitRepo.RemoveFilesFromIndex(wikiPath)
@@ -291,7 +364,19 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiName string) (err error) 
 			return err
 		}
 	} else {
-		return os.ErrNotExist
+		// check file exists - plain structure
+		wikiDirPath := WikiNameToPathFilename(wikiName)
+		if found, err = checkNewWikiFilename(gitRepo, wikiDirPath); err != nil && !found {
+			return err
+		}
+		if found {
+			err := gitRepo.RemoveFilesFromIndex(wikiDirPath)
+			if err != nil {
+				return err
+			}
+		} else {
+			return os.ErrNotExist
+		}
 	}
 
 	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here

@@ -7,22 +7,27 @@
 			{{.i18n.Tr "repo.wiki.new_page"}}
 			{{if .PageIsWikiEdit}}
 				<div class="ui right">
-					<a class="ui green small button" href="{{.RepoLink}}/wiki/_new">{{.i18n.Tr "repo.wiki.new_page_button"}}</a>
+					<a class="ui green small button" href="{{.RepoLink}}/wiki/{{.PageURL}}/_new">{{.i18n.Tr "repo.wiki.new_page_button"}}</a>
 				</div>
 			{{end}}
 		</div>
+		{{if .PageIsWikiEdit}}
 		<form class="ui form" action="{{.Link}}" method="post">
+		{{else}}
+		<form class="ui form" action="{{.RepoLink}}/wiki/_new" method="post">
+		{{end}}
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
 				<input name="title" value="{{.title}}" autofocus required>
 			</div>
 			<div class="field">
-				<textarea class="js-quick-submit" id="edit_area" name="content" data-id="wiki-{{.title}}" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.RepoLink}}/wiki" required>{{if .PageIsWikiEdit}}{{.content}}{{else}}{{.i18n.Tr "repo.wiki.welcome"}}{{end}}</textarea>
+				<textarea class="js-quick-submit" id="edit_area" name="content" data-id="wiki-{{.title}}" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.RepoLink}}/wiki/raw/{{.PageURL}}/../" required>{{if .PageIsWikiEdit}}{{.content}}{{else}}{{.i18n.Tr "repo.wiki.welcome"}}{{end}}</textarea>
 			</div>
 			<div class="field">
 				<input name="message" placeholder="{{.i18n.Tr "repo.wiki.default_commit_message"}}">
 			</div>
 			<div class="text right">
+				<a class="ui small red button" href="{{.RepoLink}}/wiki/{{.PageURL}}">{{.i18n.Tr "repo.wiki.abort_edit_page_button"}}</a>
 				<button class="ui green button">
 					{{.i18n.Tr "repo.wiki.save_page"}}
 				</button>

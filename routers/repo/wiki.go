@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -63,7 +64,7 @@ type PageMeta struct {
 
 // findEntryForFile finds the tree entry for a target filepath.
 func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error) {
-	entries, err := commit.ListEntries()
+	entries, err := commit.ListEntriesRecursive()
 	if err != nil {
 		return nil, err
 	}
@@ -111,12 +112,20 @@ func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
 func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName string) ([]byte, *git.TreeEntry, string, bool) {
 	var entry *git.TreeEntry
 	var err error
-	pageFilename := models.WikiNameToFilename(wikiName)
+	// check new file structure with directories
+	pageFilename := models.WikiNameToPathFilename(wikiName)
 	if entry, err = findEntryForFile(commit, pageFilename); err != nil {
 		ctx.ServerError("findEntryForFile", err)
 		return nil, nil, "", false
 	} else if entry == nil {
-		return nil, nil, "", true
+		// check old file structure without directories
+		pageFilename = models.WikiNameToFilename(wikiName)
+		if entry, err = findEntryForFile(commit, pageFilename); err != nil {
+			ctx.ServerError("findEntryForFile", err)
+			return nil, nil, "", false
+		} else if entry == nil {
+			return nil, nil, "", true
+		}
 	}
 	return wikiContentsByEntry(ctx, entry), entry, pageFilename, false
 }
@@ -131,9 +140,9 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	}
 
 	// Get page list.
-	entries, err := commit.ListEntries()
+	entries, err := commit.Tree.ListEntriesRecursive()
 	if err != nil {
-		ctx.ServerError("ListEntries", err)
+		ctx.ServerError("ListEntriesRecursive", err)
 		return nil, nil
 	}
 	pages := make([]PageMeta, 0, len(entries))
@@ -141,25 +150,27 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		if !entry.IsRegular() {
 			continue
 		}
-		wikiName, err := models.WikiFilenameToName(entry.Name())
+		wikiUnescapedName, wikiName, err := models.WikiFilenameToName(entry.Name())
 		if err != nil {
 			if models.IsErrWikiInvalidFileName(err) {
 				continue
 			}
-			ctx.ServerError("WikiFilenameToName", err)
-			return nil, nil
-		} else if wikiName == "_Sidebar" || wikiName == "_Footer" {
+			if _, ok := err.(url.EscapeError); !ok {
+				ctx.ServerError("WikiFilenameToName", err)
+				return nil, nil
+			}
+		} else if wikiUnescapedName == "_Sidebar" || wikiUnescapedName == "_Footer" {
 			continue
 		}
 		pages = append(pages, PageMeta{
-			Name:   wikiName,
+			Name:   wikiUnescapedName,
 			SubURL: models.WikiNameToSubURL(wikiName),
 		})
 	}
 	ctx.Data["Pages"] = pages
 
 	// get requested pagename
-	pageName := models.NormalizeWikiName(ctx.Params(":page"))
+	pageName := ctx.Params(":page")
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}
@@ -189,7 +200,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	}
 
 	metas := ctx.Repo.Repository.ComposeMetas()
-	ctx.Data["content"] = markdown.RenderWiki(data, ctx.Repo.RepoLink, metas)
+	ctx.Data["content"] = markdown.RenderWiki(data, models.WikiNameToRawPrefix(ctx.Repo.RepoLink, pageFilename), metas)
 	ctx.Data["sidebarPresent"] = sidebarContent != nil
 	ctx.Data["sidebarContent"] = markdown.RenderWiki(sidebarContent, ctx.Repo.RepoLink, metas)
 	ctx.Data["footerPresent"] = footerContent != nil
@@ -212,7 +223,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get requested pagename
-	pageName := models.NormalizeWikiName(ctx.Params(":page"))
+	pageName := ctx.Params(":page")
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}
@@ -275,7 +286,7 @@ func renderEditPage(ctx *context.Context) {
 	}
 
 	// get requested pagename
-	pageName := models.NormalizeWikiName(ctx.Params(":page"))
+	pageName := ctx.Params(":page")
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}
@@ -387,31 +398,42 @@ func WikiPages(ctx *context.Context) {
 		return
 	}
 
-	entries, err := commit.ListEntries()
+	entries, err := commit.Tree.ListEntriesRecursive()
 	if err != nil {
-		ctx.ServerError("ListEntries", err)
+		ctx.ServerError("ListEntriesRecursive", err)
 		return
 	}
 	pages := make([]PageMeta, 0, len(entries))
+LoopPages:
 	for _, entry := range entries {
+		blacklistWikifiles := strings.Split(".gitignore,.git", ",")
+		for _, b := range blacklistWikifiles {
+			if entry.Name() == b || strings.HasSuffix(entry.Name(), b) {
+				continue LoopPages
+			}
+		}
+
 		if !entry.IsRegular() {
 			continue
 		}
+
 		c, err := wikiRepo.GetCommitByPath(entry.Name())
 		if err != nil {
 			ctx.ServerError("GetCommit", err)
 			return
 		}
-		wikiName, err := models.WikiFilenameToName(entry.Name())
+		wikiUnescapedName, wikiName, err := models.WikiFilenameToName(entry.Name())
 		if err != nil {
 			if models.IsErrWikiInvalidFileName(err) {
 				continue
 			}
-			ctx.ServerError("WikiFilenameToName", err)
-			return
+			if _, ok := err.(url.EscapeError); !ok {
+				ctx.ServerError("WikiFilenameToName", err)
+				return
+			}
 		}
 		pages = append(pages, PageMeta{
-			Name:        wikiName,
+			Name:        wikiUnescapedName,
 			SubURL:      models.WikiNameToSubURL(wikiName),
 			UpdatedUnix: util.TimeStamp(c.Author.When.Unix()),
 		})
@@ -474,6 +496,13 @@ func NewWiki(ctx *context.Context) {
 
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["title"] = "Home"
+	} else if len(ctx.Params(":page")) != 0 {
+		// create files on same subdiretory like current file
+		wikiName := ctx.Params(":page")
+		// remove current filename
+		a := strings.Split(wikiName, "/")
+		a[len(a)-1] = "New Page"
+		ctx.Data["title"] = strings.Join(a, "/")
 	}
 
 	ctx.HTML(200, tplWikiNew)
@@ -495,7 +524,7 @@ func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 		return
 	}
 
-	wikiName := models.NormalizeWikiName(form.Title)
+	wikiName := form.Title
 	if err := ctx.Repo.Repository.AddWikiPage(ctx.User, wikiName, form.Content, form.Message); err != nil {
 		if models.IsErrWikiReservedName(err) {
 			ctx.Data["Err_Title"] = true
@@ -507,6 +536,12 @@ func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 			ctx.ServerError("AddWikiPage", err)
 		}
 		return
+	}
+
+	// redirect to may changed filename
+	wikiName = models.FilenameToPathFilename(models.WikiNameToPathFilename(wikiName))
+	if strings.HasSuffix(wikiName, ".md") {
+		wikiName = wikiName[:len(wikiName)-3]
 	}
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + models.WikiNameToSubURL(wikiName))
@@ -542,12 +577,18 @@ func EditWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 		return
 	}
 
-	oldWikiName := models.NormalizeWikiName(ctx.Params(":page"))
-	newWikiName := models.NormalizeWikiName(form.Title)
+	oldWikiName := ctx.Params(":page")
+	newWikiName := form.Title
 
 	if err := ctx.Repo.Repository.EditWikiPage(ctx.User, oldWikiName, newWikiName, form.Content, form.Message); err != nil {
 		ctx.ServerError("EditWikiPage", err)
 		return
+	}
+
+	// redirect to may changed filename
+	newWikiName = models.FilenameToPathFilename(models.WikiNameToPathFilename(newWikiName))
+	if strings.HasSuffix(newWikiName, ".md") {
+		newWikiName = newWikiName[:len(newWikiName)-3]
 	}
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + models.WikiNameToSubURL(newWikiName))
@@ -555,7 +596,7 @@ func EditWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 
 // DeleteWikiPagePost delete wiki page
 func DeleteWikiPagePost(ctx *context.Context) {
-	wikiName := models.NormalizeWikiName(ctx.Params(":page"))
+	wikiName := ctx.Params(":page")
 	if len(wikiName) == 0 {
 		wikiName = "Home"
 	}

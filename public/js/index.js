@@ -1126,28 +1126,37 @@ function initTeamSettings() {
 }
 
 function initWikiForm() {
-    var $editArea = $('.repository.wiki textarea#edit_area');
+    let $editArea = $('.repository.wiki textarea#edit_area');
     if ($editArea.length > 0) {
-        var simplemde = new SimpleMDE({
+        let simplemde = new SimpleMDE({
             autoDownloadFontAwesome: false,
             element: $editArea[0],
             forceSync: true,
             previewRender: function (plainText, preview) { // Async method
                 setTimeout(function () {
-                    // FIXME: still send render request when return back to edit mode
-                    $.post($editArea.data('url'), {
-                            "_csrf": csrf,
-                            "mode": "gfm",
-                            "context": $editArea.data('context'),
-                            "text": plainText
-                        },
-                        function (data) {
-                            preview.innerHTML = '<div class="markdown ui segment">' + data + '</div>';
-                            emojify.run($('.editor-preview')[0]);
-                        }
-                    );
-                }, 0);
-
+                    let $toolbar = $(preview).closest('.CodeMirror-wrap').prev();
+                    if (/(editor-preview-active-side)/.test(preview.className) || $toolbar.length > 0 && $toolbar.hasClass('disabled-for-preview') ) {
+                        const render = function () {
+                            $.post($editArea.data('url'), {
+                                    "_csrf": csrf,
+                                    "mode": "gfm",
+                                    "wiki": true,
+                                    "context": decodeURIComponent($editArea.data('context')),
+                                    "text": plainText
+                                },
+                                function (data) {
+                                    preview.innerHTML = '<div class="markdown ui segment">' + data + '</div>';
+                                    emojify.run($('.editor-preview')[0]);
+                                    // run highlighting on preview
+                                    $(preview).find('pre code').each(function (_, e) {
+                                        hljs.highlightBlock(e);
+                                    });
+                                }
+                            );
+                        };
+                        render();
+                    }
+                }, 3); // in some cases the ui need to be updated before this
                 return "Loading...";
             },
             renderingConfig: {
