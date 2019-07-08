@@ -174,6 +174,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 
 	var (
 		closed1 = time.Date(2018, 10, 23, 02, 57, 43, 0, time.UTC)
+		closed7 = time.Date(2019, 7, 8, 8, 20, 23, 0, time.UTC)
 	)
 	assert.EqualValues(t, []*base.Issue{
 		{
@@ -235,6 +236,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 				Heart:      0,
 				Hooray:     0,
 			},
+			Closed: &closed7,
 		},
 		{
 			Number:     8,
