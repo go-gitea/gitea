@@ -203,35 +203,54 @@ func (repo *Repository) commitsByRange(id SHA1, page int) (*list.List, error) {
 
 func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) (*list.List, error) {
 	cmd := NewCommand("log", id.String(), "-100", "-i", prettyLogFormat)
-	if len(opts.Keywords) > 0 {
-		for _, v := range opts.Keywords {
-			cmd.AddArguments("--grep=" + v)
-		}
-	}
+	args := []string{"log", "-i", prettyLogFormat}
 	if len(opts.Authors) > 0 {
 		for _, v := range opts.Authors {
 			cmd.AddArguments("--author=" + v)
+			args = append(args, "--author="+v)
 		}
 	}
 	if len(opts.Committers) > 0 {
 		for _, v := range opts.Committers {
 			cmd.AddArguments("--committer=" + v)
+			args = append(args, "--committer="+v)
 		}
 	}
 	if len(opts.After) > 0 {
 		cmd.AddArguments("--after=" + opts.After)
+		args = append(args, "--after="+opts.After)
 	}
 	if len(opts.Before) > 0 {
 		cmd.AddArguments("--before=" + opts.Before)
+		args = append(args, "--before="+opts.Before)
 	}
 	if opts.All {
 		cmd.AddArguments("--all")
+	}
+	if len(opts.Keywords) > 0 {
+		for _, v := range opts.Keywords {
+			cmd.AddArguments("--grep=" + v)
+		}
 	}
 	stdout, err := cmd.RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
-	return repo.parsePrettyFormatLogToList(stdout)
+	if len(opts.Keywords) > 0 {
+		for _, v := range opts.Keywords {
+			if len(v) >= 4 {
+				hashCmd := NewCommand(args...)
+				hashCmd.AddArguments("-1", v)
+				hashMatching, err := hashCmd.RunInDirBytes(repo.Path)
+				if err != nil || bytes.Contains(stdout, hashMatching) {
+					continue
+				}
+				stdout = append(stdout, hashMatching...)
+				stdout = append(stdout, '\n')
+			}
+		}
+	}
+	return repo.parsePrettyFormatLogToList(bytes.TrimSuffix(stdout, []byte{'\n'}))
 }
 
 func (repo *Repository) getFilesChanged(id1, id2 string) ([]string, error) {
