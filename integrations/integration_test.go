@@ -335,7 +335,7 @@ const NoExpectedStatus = -1
 
 func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
 	recorder := httptest.NewRecorder()
-	mac.ServeHTTP(recorder, req)
+	g.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -347,7 +347,7 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 
 func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
 	recorder := NewNilResponseRecorder()
-	mac.ServeHTTP(recorder, req)
+	g.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
