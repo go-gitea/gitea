@@ -171,7 +171,7 @@ Signed-off-by: Joe Smith <joe.smith@email.com>
 If you set your `user.name` and `user.email` git configs, you can add the
 line to the end of your commit automatically with `git commit -s`.
 
-We assume in good faith that the information you provide is legally biding.
+We assume in good faith that the information you provide is legally binding.
 
 ## Release Cycle
 
