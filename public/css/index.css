@@ -211,6 +211,9 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .ui.tabular.menu .item{color:rgba(0,0,0,.5)}
 .ui.tabular.menu .item:hover{color:rgba(0,0,0,.8)}
 .ui.tabular.menu .item.active{color:rgba(0,0,0,.9)}
+.inline-grouped-list{display:inline-block;vertical-align:top}
+.inline-grouped-list>.ui{display:block;margin-top:5px;margin-bottom:10px}
+.inline-grouped-list>.ui:first-child{margin-top:1px}
 .markdown:not(code){overflow:hidden;font-size:16px;line-height:1.6!important;word-wrap:break-word}
 .markdown:not(code).ui.segment{padding:3em}
 .markdown:not(code).file-view{padding:2em 2em 2em!important}
