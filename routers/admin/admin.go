@@ -19,10 +19,10 @@ import (
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/services/mailer"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/mailer"
 
 	"gitea.com/macaron/macaron"
 	"github.com/unknwon/com"
