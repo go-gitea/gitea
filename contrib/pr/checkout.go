@@ -115,7 +115,7 @@ func runPR() {
 	external.RegisterParsers()
 	markup.Init()
 	g := routes.NewGin()
-	routes.RegisterGinRoutes(g)
+	routes.RegisterRoutes(g)
 
 	log.Printf("[PR] Ready for testing !\n")
 	log.Printf("[PR] Login with user1, user2, user3, ... with pass: password\n")
