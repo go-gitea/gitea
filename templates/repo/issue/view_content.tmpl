@@ -107,6 +107,14 @@
 						</form>
 					</div>
 				</div>
+				{{ else if .Repository.IsArchived }}
+					<div class="ui warning message">
+						{{if .Issue.IsPull}}
+							{{.i18n.Tr "repo.archive.pull.nocomment"}}
+						{{else}}
+							{{.i18n.Tr "repo.archive.issue.nocomment"}}
+						{{end}}
+					</div>
 				{{ end }}
 			{{else}}
 			{{if .Repository.IsArchived}}
