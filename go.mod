@@ -40,8 +40,8 @@ require (
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052 // indirect
 	github.com/facebookgo/stats v0.0.0-20151006221625-1b76add642e4 // indirect
 	github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870 // indirect
-	github.com/gliderlabs/ssh v0.2.2
 	github.com/gin-gonic/gin v1.4.0
+	github.com/gliderlabs/ssh v0.2.2
 	github.com/glycerine/go-unsnap-stream v0.0.0-20180323001048-9f0cb55181dd // indirect
 	github.com/glycerine/goconvey v0.0.0-20190315024820-982ee783a72e // indirect
 	github.com/go-macaron/binding v0.0.0-20160711225916-9440f336b443
@@ -129,11 +129,10 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.12.0
 	gopkg.in/stretchr/testify.v1 v1.2.2 // indirect
 	gopkg.in/testfixtures.v2 v2.5.0
-	gopkg.in/yaml.v2 v2.2.2 // indirect
 	mvdan.cc/xurls/v2 v2.0.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a
 	xorm.io/builder v0.3.5
 	xorm.io/core v0.6.3
 )
 
-replace github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20180314172330-6a30f4e59a44
+replace github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20180315180555-6a30f4e59a44

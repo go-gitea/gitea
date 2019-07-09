@@ -87,7 +87,7 @@ github.com/couchbase/vellum/utf8
 github.com/couchbaselabs/go-couchbase
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952 => github.com/denisenkom/go-mssqldb v0.0.0-20180314172330-6a30f4e59a44
+# github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952 => github.com/denisenkom/go-mssqldb v0.0.0-20180315180555-6a30f4e59a44
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -114,8 +114,6 @@ github.com/facebookgo/grace/gracenet
 github.com/facebookgo/httpdown
 # github.com/facebookgo/stats v0.0.0-20151006221625-1b76add642e4
 github.com/facebookgo/stats
-# github.com/gliderlabs/ssh v0.2.2
-github.com/gliderlabs/ssh
 # github.com/gin-contrib/sse v0.0.0-20190301062529-5545eab6dad3
 github.com/gin-contrib/sse
 # github.com/gin-gonic/gin v1.4.0
@@ -123,6 +121,8 @@ github.com/gin-gonic/gin
 github.com/gin-gonic/gin/binding
 github.com/gin-gonic/gin/internal/json
 github.com/gin-gonic/gin/render
+# github.com/gliderlabs/ssh v0.2.2
+github.com/gliderlabs/ssh
 # github.com/glycerine/go-unsnap-stream v0.0.0-20180323001048-9f0cb55181dd
 github.com/glycerine/go-unsnap-stream
 # github.com/go-macaron/binding v0.0.0-20160711225916-9440f336b443
