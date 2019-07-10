@@ -168,7 +168,7 @@ type Repository struct {
 	IsArchived bool `xorm:"INDEX"`
 	IsMirror   bool `xorm:"INDEX"`
 	*Mirror    `xorm:"-"`
-	Status     RepositoryStatus `xorm:"NOT NULL"`
+	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
 	ExternalMetas map[string]string `xorm:"-"`
 	Units         []*RepoUnit       `xorm:"-"`
@@ -1040,7 +1040,6 @@ func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts structs.Migr
 	}
 
 	if opts.IsMirror {
-
 		if _, err = x.InsertOne(&Mirror{
 			RepoID:         repo.ID,
 			Interval:       setting.Mirror.DefaultInterval,

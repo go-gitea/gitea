@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"runtime"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -43,17 +42,7 @@ func runMigrateTask(t *models.Task) error {
 	defer func() {
 		if e := recover(); e != nil {
 			var buf bytes.Buffer
-			fmt.Fprintf(&buf, "Handler crashed with error: %v", e)
-
-			for i := 1; ; i++ {
-				_, file, line, ok := runtime.Caller(i)
-				if !ok {
-					break
-				} else {
-					fmt.Fprintf(&buf, "\n")
-				}
-				fmt.Fprintf(&buf, "%v:%v", file, line)
-			}
+			fmt.Fprintf(&buf, "Handler crashed with error: %v", log.Stack(2))
 
 			err = errors.New(buf.String())
 		}
@@ -94,6 +83,10 @@ func runMigrateTask(t *models.Task) error {
 	t.Status = structs.TaskStatusRunning
 	if err := t.UpdateCols("start_time", "status"); err != nil {
 		return err
+	}
+
+	if t.Repo.IsBeingCreated() {
+		return fmt.Errorf("Repository %s/%s is being created, task ignored", t.Owner.Name, t.Repo.Name)
 	}
 
 	repo, err := models.MigrateRepositoryGitData(t.Doer, t.Owner, t.Repo, *opts)
