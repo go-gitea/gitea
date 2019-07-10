@@ -45,7 +45,7 @@ require (
 	github.com/glycerine/goconvey v0.0.0-20190315024820-982ee783a72e // indirect
 	github.com/go-macaron/binding v0.0.0-20160711225916-9440f336b443
 	github.com/go-macaron/cache v0.0.0-20151013081102-561735312776
-	github.com/go-macaron/captcha v0.0.0-20151123225153-8aa5919789ab
+	github.com/go-macaron/captcha v0.0.0-20190710000913-8dc5911259df
 	github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9
 	github.com/go-macaron/csrf v0.0.0-20180426211211-503617c6b372
 	github.com/go-macaron/i18n v0.0.0-20160612092837-ef57533c3b0f

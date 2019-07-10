@@ -124,7 +124,7 @@ github.com/go-macaron/binding
 github.com/go-macaron/cache
 github.com/go-macaron/cache/memcache
 github.com/go-macaron/cache/redis
-# github.com/go-macaron/captcha v0.0.0-20151123225153-8aa5919789ab
+# github.com/go-macaron/captcha v0.0.0-20190710000913-8dc5911259df
 github.com/go-macaron/captcha
 # github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9
 github.com/go-macaron/cors
