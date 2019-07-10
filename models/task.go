@@ -196,8 +196,8 @@ func CreateMigrateTask(doer, u *User, opts base.MigrateOptions) (*Task, error) {
 	repo, err := CreateRepository(doer, u, CreateRepoOptions{
 		Name:        opts.Name,
 		Description: opts.Description,
-		IsPrivate:   opts.Private,
-		IsMirror:    opts.Mirror,
+		IsPrivate:   opts.IsPrivate,
+		IsMirror:    opts.IsMirror,
 		Status:      RepositoryBeingMigrated,
 	})
 	if err != nil {

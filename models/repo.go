@@ -32,7 +32,6 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -943,7 +942,7 @@ func CheckCreateRepository(doer, u *User, name string) error {
 }
 
 // MigrateRepository migrates a existing repository from other project hosting.
-func MigrateRepository(doer, u *User, opts structs.MigrateRepoOptions) (*Repository, error) {
+func MigrateRepository(doer, u *User, opts api.MigrateRepoOptions) (*Repository, error) {
 	repo, err := CreateRepository(doer, u, CreateRepoOptions{
 		Name:        opts.Name,
 		Description: opts.Description,
@@ -960,7 +959,7 @@ func MigrateRepository(doer, u *User, opts structs.MigrateRepoOptions) (*Reposit
 }
 
 // MigrateRepositoryGitData starts migrating git related data after created migrating repository
-func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts structs.MigrateRepoOptions) (*Repository, error) {
+func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts api.MigrateRepoOptions) (*Repository, error) {
 	repoPath := RepoPath(u.Name, opts.Name)
 
 	if u.IsOrganization() {
@@ -980,7 +979,7 @@ func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts structs.Migr
 		return repo, fmt.Errorf("Failed to remove %s: %v", repoPath, err)
 	}
 
-	if err = git.Clone(opts.RemoteAddr, repoPath, git.CloneRepoOptions{
+	if err = git.Clone(opts.RemoteURL, repoPath, git.CloneRepoOptions{
 		Mirror:  true,
 		Quiet:   true,
 		Timeout: migrateTimeout,
@@ -990,7 +989,7 @@ func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts structs.Migr
 
 	if opts.Wiki {
 		wikiPath := WikiPath(u.Name, opts.Name)
-		wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
+		wikiRemotePath := wikiRemoteURL(opts.RemoteURL)
 		if len(wikiRemotePath) > 0 {
 			if err := os.RemoveAll(wikiPath); err != nil {
 				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
@@ -1020,7 +1019,7 @@ func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts structs.Migr
 		return repo, fmt.Errorf("git.IsEmpty: %v", err)
 	}
 
-	if opts.SyncReleasesWithTags && !repo.IsEmpty {
+	if !opts.Releases && !repo.IsEmpty {
 		// Try to get HEAD branch and set it as default branch.
 		headBranch, err := gitRepo.GetHEADBranch()
 		if err != nil {

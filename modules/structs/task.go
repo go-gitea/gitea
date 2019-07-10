@@ -33,14 +33,22 @@ const (
 	TaskStatusFinished                   // 4 task is finished
 )
 
-// MigrateRepoOptions contains the repository migrate options
+// MigrateRepoOptions defines the way a repository gets migrated
 type MigrateRepoOptions struct {
-	Name                 string
-	Description          string
-	OriginalURL          string
-	IsPrivate            bool
-	IsMirror             bool
-	RemoteAddr           string
-	Wiki                 bool // include wiki repository
-	SyncReleasesWithTags bool // sync releases from tags
+	Name         string
+	Description  string
+	OriginalURL  string
+	RemoteURL    string
+	AuthUsername string
+	AuthPassword string
+
+	Wiki         bool
+	Issues       bool
+	Milestones   bool
+	Labels       bool
+	Releases     bool
+	Comments     bool
+	PullRequests bool
+	IsPrivate    bool
+	IsMirror     bool
 }

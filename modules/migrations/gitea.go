@@ -92,14 +92,14 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	}
 
 	r, err := models.MigrateRepository(g.doer, owner, structs.MigrateRepoOptions{
-		Name:                 g.repoName,
-		Description:          repo.Description,
-		OriginalURL:          repo.OriginalURL,
-		IsMirror:             repo.IsMirror,
-		RemoteAddr:           remoteAddr,
-		IsPrivate:            repo.IsPrivate,
-		Wiki:                 opts.Wiki,
-		SyncReleasesWithTags: !opts.Releases, // if didn't get releases, then sync them from tags
+		Name:        g.repoName,
+		Description: repo.Description,
+		OriginalURL: repo.OriginalURL,
+		IsMirror:    repo.IsMirror,
+		RemoteURL:   remoteAddr,
+		IsPrivate:   repo.IsPrivate,
+		Wiki:        opts.Wiki,
+		Releases:    opts.Releases, // if didn't get releases, then sync them from tags
 	})
 	g.repo = r
 	if err != nil {

@@ -262,8 +262,8 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		RemoteURL:    remoteAddr,
 		Name:         form.RepoName,
 		Description:  form.Description,
-		Private:      form.Private || setting.Repository.ForcePrivate,
-		Mirror:       form.Mirror,
+		IsPrivate:    form.Private || setting.Repository.ForcePrivate,
+		IsMirror:     form.Mirror,
 		AuthUsername: form.AuthUsername,
 		AuthPassword: form.AuthPassword,
 		Wiki:         form.Wiki,
@@ -274,7 +274,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		PullRequests: form.PullRequests,
 		Releases:     form.Releases,
 	}
-	if opts.Mirror {
+	if opts.IsMirror {
 		opts.Issues = false
 		opts.Milestones = false
 		opts.Labels = false

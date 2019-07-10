@@ -100,7 +100,7 @@ func runMigrateTask(t *models.Task) error {
 	}
 
 	// remoteAddr may contain credentials, so we sanitize it
-	err = util.URLSanitizedError(err, opts.RemoteAddr)
+	err = util.URLSanitizedError(err, opts.RemoteURL)
 	if strings.Contains(err.Error(), "Authentication failed") ||
 		strings.Contains(err.Error(), "could not read Username") {
 		return fmt.Errorf("Authentication failed: %v", err.Error())
