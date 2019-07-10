@@ -113,8 +113,8 @@ github.com/go-macaron/binding v0.0.0-20160711225916-9440f336b443 h1:i801KPR7j76u
 github.com/go-macaron/binding v0.0.0-20160711225916-9440f336b443/go.mod h1:u+H6rwW+HQwUL+w5uaEJSpIlVZDye1o9MB4Su0JfRfM=
 github.com/go-macaron/cache v0.0.0-20151013081102-561735312776 h1:UYIHS1r0WotqB5cIa0PAiV0m6GzD9rDBcn4alp5JgCw=
 github.com/go-macaron/cache v0.0.0-20151013081102-561735312776/go.mod h1:hHAsZm/oBZVcY+S7qdQL6Vbg5VrXF6RuKGuqsszt3Ok=
-github.com/go-macaron/captcha v0.0.0-20151123225153-8aa5919789ab h1:4VFhsA3GE5Wwq1Ymr8KWCmrOWi1wRLEgdj48LPfQjxI=
-github.com/go-macaron/captcha v0.0.0-20151123225153-8aa5919789ab/go.mod h1:j9TJ+0nwUOWBvNnm0bheHIPFf3cC62EQo7n7O6PbjZA=
+github.com/go-macaron/captcha v0.0.0-20190710000913-8dc5911259df h1:MdgvtI3Y1u/DHNj7xUGOqAv+KGoTikjy8xQtCm12L78=
+github.com/go-macaron/captcha v0.0.0-20190710000913-8dc5911259df/go.mod h1:j9TJ+0nwUOWBvNnm0bheHIPFf3cC62EQo7n7O6PbjZA=
 github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9 h1:A0QGzY6UHHEil0I2e7C21JenNNG0mmrj5d9SFWTlgr8=
 github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9/go.mod h1:utmMRnVIrXPSfA9MFcpIYKEpKawjKxf62vv62k4707E=
 github.com/go-macaron/csrf v0.0.0-20180426211211-503617c6b372 h1:acrx8CnDmlKl+BPoOOLEK9Ko+SrWFB5pxRuGkKj4iqo=
