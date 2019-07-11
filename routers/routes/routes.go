@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"text/template"
 	"time"
 
@@ -102,6 +103,16 @@ func RouterHandler(level log.Level) func(ctx *macaron.Context) {
 	}
 }
 
+func createHeaderValueNew(maxAge time.Duration, sendPreloadDirective bool) string {
+	buf := bytes.NewBufferString("max-age=")
+	buf.WriteString(strconv.Itoa(int(maxAge.Seconds())))
+	buf.WriteString("; includeSubDomains")
+	if sendPreloadDirective {
+		buf.WriteString("; preload")
+	}
+	return buf.String()
+}
+
 // NewMacaron initializes Macaron instance.
 func NewMacaron() *macaron.Macaron {
 	gob.Register(&u2f.Challenge{})
@@ -130,6 +141,13 @@ func NewMacaron() *macaron.Macaron {
 	}
 	if setting.Protocol == setting.FCGI {
 		m.SetURLPrefix(setting.AppSubURL)
+	}
+	if setting.HSTS.Enabled {
+		m.Use(func() macaron.Handler {
+			return func(ctx *macaron.Context) {
+				ctx.Resp.Header().Set("Strict-Transport-Security", createHeaderValueNew(setting.HSTS.MaxAge, setting.HSTS.SendPreloadDirective))
+			}
+		})
 	}
 	m.Use(public.Custom(
 		&public.Options{

@@ -910,6 +910,7 @@ func NewContext() {
 
 	newCron()
 	newGit()
+	configHSTS()
 
 	sec = Cfg.Section("mirror")
 	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration(10 * time.Minute)
