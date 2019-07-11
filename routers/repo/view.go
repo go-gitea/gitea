@@ -11,6 +11,7 @@ import (
 	"fmt"
 	gotemplate "html/template"
 	"io/ioutil"
+	"net/url"
 	"path"
 	"strings"
 
@@ -357,6 +358,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 }
 
+func safeURL(address string) string {
+	u, err := url.Parse(address)
+	if err != nil {
+		return address
+	}
+	u.User = nil
+	return u.String()
+}
+
 // Home render repository home page
 func Home(ctx *context.Context) {
 	if len(ctx.Repo.Units) > 0 {
@@ -374,7 +384,7 @@ func Home(ctx *context.Context) {
 
 			ctx.Data["Repo"] = ctx.Repo
 			ctx.Data["MigrateTask"] = task
-			ctx.Data["MigrateConfig"] = cfg
+			ctx.Data["RemoteURL"] = safeURL(cfg.RemoteURL)
 			ctx.HTML(200, tplMigrating)
 			return
 		}

@@ -49,63 +49,61 @@
 		</div><!-- end grid -->
 	</div><!-- end container -->
 {{end}}
-{{if not .Repository.IsBeingCreated}}
 	<div class="ui tabs container">
-		<div class="ui tabular stackable menu navbar">
-			{{if .Permission.CanRead $.UnitTypeCode}}
-			<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL | EscapePound}}{{end}}">
-				<i class="octicon octicon-code"></i> {{.i18n.Tr "repo.code"}}
-			</a>
-			{{end}}
-
-			{{if .Permission.CanRead $.UnitTypeIssues}}
-				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
-					<i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues"}} <span class="ui {{if not .Repository.NumOpenIssues}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenIssues}}</span>
+		{{if not .Repository.IsBeingCreated}}
+			<div class="ui tabular stackable menu navbar">
+				{{if .Permission.CanRead $.UnitTypeCode}}
+				<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL | EscapePound}}{{end}}">
+					<i class="octicon octicon-code"></i> {{.i18n.Tr "repo.code"}}
 				</a>
-			{{end}}
+				{{end}}
 
-			{{if .Permission.CanRead $.UnitTypeExternalTracker}}
-				<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
-					<i class="octicon octicon-link-external"></i> {{.i18n.Tr "repo.issues"}} </span>
-				</a>
-			{{end}}
-
-			{{if and .Repository.CanEnablePulls (.Permission.CanRead $.UnitTypePullRequests)}}
-				<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls">
-					<i class="octicon octicon-git-pull-request"></i> {{.i18n.Tr "repo.pulls"}} <span class="ui {{if not .Repository.NumOpenPulls}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenPulls}}</span>
-				</a>
-			{{end}}
-
-			{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsEmptyRepo) }}
-			<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">
-				<i class="octicon octicon-tag"></i> {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .Repository.NumReleases}}gray{{else}}blue{{end}} small label">{{.Repository.NumReleases}}</span>
-			</a>
-			{{end}}
-
-			{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
-				<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" {{if (.Permission.CanRead $.UnitTypeExternalWiki)}} target="_blank" rel="noopener noreferrer" {{end}}>
-					<i class="octicon octicon-book"></i> {{.i18n.Tr "repo.wiki"}}
-				</a>
-			{{end}}
-
-			{{if and (.Permission.CanReadAny $.UnitTypePullRequests $.UnitTypeIssues $.UnitTypeReleases) (not .IsEmptyRepo)}}
-				<a class="{{if .PageIsActivity}}active{{end}} item" href="{{.RepoLink}}/activity">
-					<i class="octicon octicon-pulse"></i> {{.i18n.Tr "repo.activity"}}
-				</a>
-			{{end}}
-
-			{{template "custom/extra_tabs" .}}
-
-			{{if .Permission.IsAdmin}}
-				<div class="right menu">
-					<a class="{{if .PageIsSettings}}active{{end}} item" href="{{.RepoLink}}/settings">
-						<i class="octicon octicon-tools"></i> {{.i18n.Tr "repo.settings"}}
+				{{if .Permission.CanRead $.UnitTypeIssues}}
+					<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
+						<i class="octicon octicon-issue-opened"></i> {{.i18n.Tr "repo.issues"}} <span class="ui {{if not .Repository.NumOpenIssues}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenIssues}}</span>
 					</a>
-				</div>
-			{{end}}
-		</div>
-	</div>
-{{end}}
-	<div class="ui tabs divider"></div>
+				{{end}}
 
+				{{if .Permission.CanRead $.UnitTypeExternalTracker}}
+					<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
+						<i class="octicon octicon-link-external"></i> {{.i18n.Tr "repo.issues"}} </span>
+					</a>
+				{{end}}
+
+				{{if and .Repository.CanEnablePulls (.Permission.CanRead $.UnitTypePullRequests)}}
+					<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls">
+						<i class="octicon octicon-git-pull-request"></i> {{.i18n.Tr "repo.pulls"}} <span class="ui {{if not .Repository.NumOpenPulls}}gray{{else}}blue{{end}} small label">{{.Repository.NumOpenPulls}}</span>
+					</a>
+				{{end}}
+
+				{{if and (.Permission.CanRead $.UnitTypeReleases) (not .IsEmptyRepo) }}
+				<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">
+					<i class="octicon octicon-tag"></i> {{.i18n.Tr "repo.releases"}} <span class="ui {{if not .Repository.NumReleases}}gray{{else}}blue{{end}} small label">{{.Repository.NumReleases}}</span>
+				</a>
+				{{end}}
+
+				{{if or (.Permission.CanRead $.UnitTypeWiki) (.Permission.CanRead $.UnitTypeExternalWiki)}}
+					<a class="{{if .PageIsWiki}}active{{end}} item" href="{{.RepoLink}}/wiki" {{if (.Permission.CanRead $.UnitTypeExternalWiki)}} target="_blank" rel="noopener noreferrer" {{end}}>
+						<i class="octicon octicon-book"></i> {{.i18n.Tr "repo.wiki"}}
+					</a>
+				{{end}}
+
+				{{if and (.Permission.CanReadAny $.UnitTypePullRequests $.UnitTypeIssues $.UnitTypeReleases) (not .IsEmptyRepo)}}
+					<a class="{{if .PageIsActivity}}active{{end}} item" href="{{.RepoLink}}/activity">
+						<i class="octicon octicon-pulse"></i> {{.i18n.Tr "repo.activity"}}
+					</a>
+				{{end}}
+
+				{{template "custom/extra_tabs" .}}
+
+				{{if .Permission.IsAdmin}}
+					<div class="right menu">
+						<a class="{{if .PageIsSettings}}active{{end}} item" href="{{.RepoLink}}/settings">
+							<i class="octicon octicon-tools"></i> {{.i18n.Tr "repo.settings"}}
+						</a>
+					</div>
+				{{end}}
+			</div>
+		{{end}}
+	</div>
 </div>
