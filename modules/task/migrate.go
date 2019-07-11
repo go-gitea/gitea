@@ -66,14 +66,13 @@ func runMigrateTask(t *models.Task) (err error) {
 		}
 	}()
 
-	var opts *structs.MigrateRepoOption
-	opts, err = t.MigrateConfig()
-	if err != nil {
+	if err := t.LoadRepo(); err != nil {
 		return err
 	}
 
-	if err := t.LoadRepo(); err != nil {
-		return err
+	// if repository is ready, then just finsih the task
+	if t.Repo.Status == models.RepositoryReady {
+		return nil
 	}
 
 	if err := t.LoadDoer(); err != nil {
@@ -85,6 +84,12 @@ func runMigrateTask(t *models.Task) (err error) {
 	t.StartTime = timeutil.TimeStampNow()
 	t.Status = structs.TaskStatusRunning
 	if err := t.UpdateCols("start_time", "status"); err != nil {
+		return err
+	}
+
+	var opts *structs.MigrateRepoOption
+	opts, err = t.MigrateConfig()
+	if err != nil {
 		return err
 	}
 

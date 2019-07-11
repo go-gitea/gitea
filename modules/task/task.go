@@ -29,11 +29,11 @@ func Run(t *models.Task) error {
 
 // Init will start the service to get all unfinished tasks and run them
 func Init() error {
-	var err error
 	switch setting.Task.QueueType {
 	case setting.ChannelQueueType:
 		taskQueue = NewChannelQueue(setting.Task.QueueLength)
 	case setting.RedisQueueType:
+		var err error
 		addrs, pass, idx, err := parseConnStr(setting.Task.QueueConnStr)
 		if err != nil {
 			return err
@@ -52,20 +52,6 @@ func Init() error {
 		}
 	}()
 
-	tasks, err := models.FindTasks(models.FindTaskOptions{
-		Status: int(structs.TaskStatusRunning),
-	})
-
-	if err != nil {
-		return fmt.Errorf("DeliverHooks: %v", err.Error())
-	}
-
-	// Update hook task status.
-	for _, t := range tasks {
-		if err := taskQueue.Push(t); err != nil {
-			return fmt.Errorf("Run Task: %v", err.Error())
-		}
-	}
 	return nil
 }
 
