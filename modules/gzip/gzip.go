@@ -74,7 +74,6 @@ func (wp *WriterPool) Put(w *gzip.Writer) {
 }
 
 var writerPool WriterPool
-var regex regexp.Regexp
 
 // Options represents the configuration for the gzip middleware
 type Options struct {
@@ -116,7 +115,7 @@ func Middleware(options ...Options) macaron.Handler {
 		if rangeHdr := ctx.Req.Header.Get(rangeHeader); rangeHdr != "" {
 
 			match := regex.FindStringSubmatch(rangeHdr)
-			if match != nil && len(match) > 1 {
+			if len(match) > 1 {
 				return
 			}
 		}
@@ -270,9 +269,8 @@ func (proxy *ProxyResponseWriter) Close() error {
 
 	if proxy.writer == nil {
 		err := proxy.startPlain()
-
 		if err != nil {
-			err = fmt.Errorf("GzipMiddleware: write to regular responseWriter at close gets error: %q", err.Error())
+			return fmt.Errorf("GzipMiddleware: write to regular responseWriter at close gets error: %q", err.Error())
 		}
 	}
 

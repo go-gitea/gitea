@@ -8,18 +8,11 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-func addTeamIncludesAllRepositories(x *xorm.Engine) error {
-
-	type Team struct {
-		ID                      int64 `xorm:"pk autoincr"`
-		IncludesAllRepositories bool  `xorm:"NOT NULL DEFAULT false"`
+func addAvatarFieldToRepository(x *xorm.Engine) error {
+	type Repository struct {
+		// ID(10-20)-md5(32) - must fit into 64 symbols
+		Avatar string `xorm:"VARCHAR(64)"`
 	}
 
-	if err := x.Sync2(new(Team)); err != nil {
-		return err
-	}
-
-	_, err := x.Exec("UPDATE `team` SET `includes_all_repositories` = ? WHERE `name`=?",
-		true, "Owners")
-	return err
+	return x.Sync2(new(Repository))
 }

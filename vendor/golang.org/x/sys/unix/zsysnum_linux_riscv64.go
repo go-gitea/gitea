@@ -284,4 +284,9 @@ const (
 	SYS_STATX                  = 291
 	SYS_IO_PGETEVENTS          = 292
 	SYS_RSEQ                   = 293
+	SYS_KEXEC_FILE_LOAD        = 294
+	SYS_PIDFD_SEND_SIGNAL      = 424
+	SYS_IO_URING_SETUP         = 425
+	SYS_IO_URING_ENTER         = 426
+	SYS_IO_URING_REGISTER      = 427
 )

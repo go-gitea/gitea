@@ -147,21 +147,29 @@ func TestHashPasswordDeterministic(t *testing.T) {
 	b := make([]byte, 16)
 	rand.Read(b)
 	u := &User{Salt: string(b)}
-	for i := 0; i < 50; i++ {
-		// generate a random password
-		rand.Read(b)
-		pass := string(b)
+	algos := []string{"pbkdf2", "argon2", "scrypt", "bcrypt"}
+	for j := 0; j < len(algos); j++ {
+		u.PasswdHashAlgo = algos[j]
+		for i := 0; i < 50; i++ {
+			// generate a random password
+			rand.Read(b)
+			pass := string(b)
 
-		// save the current password in the user - hash it and store the result
-		u.HashPassword(pass)
-		r1 := u.Passwd
+			// save the current password in the user - hash it and store the result
+			u.HashPassword(pass)
+			r1 := u.Passwd
 
-		// run again
-		u.HashPassword(pass)
-		r2 := u.Passwd
+			// run again
+			u.HashPassword(pass)
+			r2 := u.Passwd
 
-		// assert equal (given the same salt+pass, the same result is produced)
-		assert.Equal(t, r1, r2)
+			// assert equal (given the same salt+pass, the same result is produced) except bcrypt
+			if u.PasswdHashAlgo == "bcrypt" {
+				assert.NotEqual(t, r1, r2)
+			} else {
+				assert.Equal(t, r1, r2)
+			}
+		}
 	}
 }
 
@@ -260,6 +268,8 @@ func TestCreateUser_Issue5882(t *testing.T) {
 		{&User{Name: "GiteaBot", Email: "GiteaBot@gitea.io", Passwd: passwd, MustChangePassword: false}, false},
 		{&User{Name: "GiteaBot2", Email: "GiteaBot2@gitea.io", Passwd: passwd, MustChangePassword: false}, true},
 	}
+
+	setting.Service.DefaultAllowCreateOrganization = true
 
 	for _, v := range tt {
 		setting.Admin.DisableRegularOrgCreation = v.disableOrgCreation

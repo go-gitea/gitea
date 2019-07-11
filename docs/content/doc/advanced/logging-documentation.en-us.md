@@ -27,7 +27,6 @@ log groups:
 * The Router logger
 * The Access logger
 * The XORM logger
-* A logger called the `GitLogger` which is used during hooks.
 
 There is also the go log logger.
 
@@ -180,21 +179,6 @@ which will not be inherited from the `[log]` or relevant
 * `EXPRESSION` will default to `""`
 * `PREFIX` will default to `""`
 
-### The Hook and Serv "GitLoggers"
-
-These are less well defined loggers. Essentially these should only be
-used within Gitea's subsystems and cannot be configured at present.
-
-They will write log files in:
-
-* `%(ROOT_PATH)/hooks/pre-receive.log`
-* `%(ROOT_PATH)/hooks/update.log`
-* `%(ROOT_PATH)/hooks/post-receive.log`
-* `%(ROOT_PATH)/serv.log`
-* `%(ROOT_PATH)/http.log`
-
-In the future these logs may be rationalised.
-
 ## Log outputs
 
 Gitea provides 4 possible log outputs:
@@ -213,7 +197,7 @@ from `[log.sublogger]`.
 a stacktrace. This value is inherited.
 * `MODE` is the mode of the log output. It will default to the sublogger
 name. Thus `[log.console.macaron]` will default to `MODE = console`.
-* `COLORIZE` will default to `true` for `file` and `console` as
+* `COLORIZE` will default to `true` for `console` as
 described, otherwise it will default to `false`.
 
 ### Non-inherited default values
@@ -274,7 +258,6 @@ Other values:
 * `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
 * `DAILY_ROTATE`: **true**: Rotate logs daily.
 * `MAX_DAYS`: **7**: Delete the log file after n days
-* NB: `COLORIZE`: will default to `true` if not on windows.
 * `COMPRESS`: **true**: Compress old log files by default with gzip
 * `COMPRESSION_LEVEL`: **-1**: Compression level
 

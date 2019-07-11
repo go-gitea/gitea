@@ -6,38 +6,58 @@ package models
 
 import "github.com/go-xorm/xorm"
 
-// InsertIssue insert one issue to database
-func InsertIssue(issue *Issue, labelIDs []int64) error {
+// InsertMilestones creates milestones of repository.
+func InsertMilestones(ms ...*Milestone) (err error) {
+	if len(ms) == 0 {
+		return nil
+	}
+
 	sess := x.NewSession()
-	if err := sess.Begin(); err != nil {
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err := insertIssue(sess, issue, labelIDs); err != nil {
+	// to return the id, so we should not use batch insert
+	for _, m := range ms {
+		if _, err = sess.NoAutoTime().Insert(m); err != nil {
+			return err
+		}
+	}
+
+	if _, err = sess.Exec("UPDATE `repository` SET num_milestones = num_milestones + ? WHERE id = ?", len(ms), ms[0].RepoID); err != nil {
 		return err
 	}
 	return sess.Commit()
 }
 
-func insertIssue(sess *xorm.Session, issue *Issue, labelIDs []int64) error {
-	if issue.MilestoneID > 0 {
-		sess.Incr("num_issues")
-		if issue.IsClosed {
-			sess.Incr("num_closed_issues")
-		}
-		if _, err := sess.ID(issue.MilestoneID).NoAutoTime().Update(new(Milestone)); err != nil {
+// InsertIssues insert issues to database
+func InsertIssues(issues ...*Issue) error {
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	for _, issue := range issues {
+		if err := insertIssue(sess, issue); err != nil {
 			return err
 		}
 	}
+	return sess.Commit()
+}
+
+func insertIssue(sess *xorm.Session, issue *Issue) error {
 	if _, err := sess.NoAutoTime().Insert(issue); err != nil {
 		return err
 	}
-	var issueLabels = make([]IssueLabel, 0, len(labelIDs))
-	for _, labelID := range labelIDs {
+	var issueLabels = make([]IssueLabel, 0, len(issue.Labels))
+	var labelIDs = make([]int64, 0, len(issue.Labels))
+	for _, label := range issue.Labels {
 		issueLabels = append(issueLabels, IssueLabel{
 			IssueID: issue.ID,
-			LabelID: labelID,
+			LabelID: label.ID,
 		})
+		labelIDs = append(labelIDs, label.ID)
 	}
 	if _, err := sess.Insert(issueLabels); err != nil {
 		return err
@@ -61,12 +81,20 @@ func insertIssue(sess *xorm.Session, issue *Issue, labelIDs []int64) error {
 	if issue.IsClosed {
 		sess.Incr("num_closed_issues")
 	}
-	if _, err := sess.In("id", labelIDs).Update(new(Label)); err != nil {
+	if _, err := sess.In("id", labelIDs).NoAutoTime().Update(new(Label)); err != nil {
 		return err
 	}
 
 	if issue.MilestoneID > 0 {
-		if _, err := sess.ID(issue.MilestoneID).SetExpr("completeness", "num_closed_issues * 100 / num_issues").Update(new(Milestone)); err != nil {
+		sess.Incr("num_issues")
+		if issue.IsClosed {
+			sess.Incr("num_closed_issues")
+		}
+
+		if _, err := sess.ID(issue.MilestoneID).
+			SetExpr("completeness", "num_closed_issues * 100 / num_issues").
+			NoAutoTime().
+			Update(new(Milestone)); err != nil {
 			return err
 		}
 	}
@@ -74,71 +102,72 @@ func insertIssue(sess *xorm.Session, issue *Issue, labelIDs []int64) error {
 	return nil
 }
 
-// InsertComment inserted a comment
-func InsertComment(comment *Comment) error {
+// InsertIssueComments inserts many comments of issues.
+func InsertIssueComments(comments []*Comment) error {
+	if len(comments) == 0 {
+		return nil
+	}
+
+	var issueIDs = make(map[int64]bool)
+	for _, comment := range comments {
+		issueIDs[comment.IssueID] = true
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if _, err := sess.NoAutoTime().Insert(comment); err != nil {
+	if _, err := sess.NoAutoTime().Insert(comments); err != nil {
 		return err
 	}
-	if _, err := sess.ID(comment.IssueID).Incr("num_comments").Update(new(Issue)); err != nil {
-		return err
+	for issueID := range issueIDs {
+		if _, err := sess.Exec("UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ?) WHERE id = ?", issueID, issueID); err != nil {
+			return err
+		}
 	}
 	return sess.Commit()
 }
 
-// InsertPullRequest inserted a pull request
-func InsertPullRequest(pr *PullRequest, labelIDs []int64) error {
+// InsertPullRequests inserted pull requests
+func InsertPullRequests(prs ...*PullRequest) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if err := insertIssue(sess, pr.Issue, labelIDs); err != nil {
-		return err
+	for _, pr := range prs {
+		if err := insertIssue(sess, pr.Issue); err != nil {
+			return err
+		}
+		pr.IssueID = pr.Issue.ID
+		if _, err := sess.NoAutoTime().Insert(pr); err != nil {
+			return err
+		}
 	}
-	pr.IssueID = pr.Issue.ID
-	if _, err := sess.NoAutoTime().Insert(pr); err != nil {
-		return err
-	}
+
 	return sess.Commit()
 }
 
-// MigrateRelease migrates release
-func MigrateRelease(rel *Release) error {
+// InsertReleases migrates release
+func InsertReleases(rels ...*Release) error {
 	sess := x.NewSession()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	var oriRel = Release{
-		RepoID:  rel.RepoID,
-		TagName: rel.TagName,
-	}
-	exist, err := sess.Get(&oriRel)
-	if err != nil {
-		return err
-	}
-	if !exist {
+	for _, rel := range rels {
 		if _, err := sess.NoAutoTime().Insert(rel); err != nil {
 			return err
 		}
-	} else {
-		rel.ID = oriRel.ID
-		if _, err := sess.ID(rel.ID).Cols("target, title, note, is_tag, num_commits").Update(rel); err != nil {
+
+		for i := 0; i < len(rel.Attachments); i++ {
+			rel.Attachments[i].ReleaseID = rel.ID
+		}
+
+		if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
 			return err
 		}
-	}
-
-	for i := 0; i < len(rel.Attachments); i++ {
-		rel.Attachments[i].ReleaseID = rel.ID
-	}
-
-	if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
-		return err
 	}
 
 	return sess.Commit()

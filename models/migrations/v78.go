@@ -10,8 +10,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"xorm.io/core"
 )
 
 func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
@@ -48,6 +48,9 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 
 		if len(indexes) >= 1 {
 			_, err = sess.Exec("DROP INDEX IDX_repository_is_bare ON repository")
+			if err != nil {
+				return fmt.Errorf("Drop index failed: %v", err)
+			}
 		}
 	} else {
 		_, err = sess.Exec("DROP INDEX IDX_repository_is_bare ON repository")

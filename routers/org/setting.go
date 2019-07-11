@@ -39,6 +39,7 @@ func Settings(ctx *context.Context) {
 func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
+	ctx.Data["CurrentVisibility"] = structs.VisibleType(ctx.Org.Organization.Visibility)
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplSettingsOptions)

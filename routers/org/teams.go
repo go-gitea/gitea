@@ -6,6 +6,7 @@
 package org
 
 import (
+	"net/http"
 	"path"
 	"strings"
 
@@ -291,7 +292,11 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 				Type:   tp,
 			})
 		}
-		models.UpdateTeamUnits(t, units)
+		err := models.UpdateTeamUnits(t, units)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "LoadIssue", err.Error())
+			return
+		}
 	}
 
 	if ctx.HasError() {

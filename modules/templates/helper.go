@@ -82,6 +82,7 @@ func NewFuncMap() []template.FuncMap {
 		"FileSize":      base.FileSize,
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
+		"MigrationIcon": MigrationIcon,
 		"Add": func(a, b int) int {
 			return a + b
 		},
@@ -125,6 +126,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessage":      RenderCommitMessage,
 		"RenderCommitMessageLink":  RenderCommitMessageLink,
 		"RenderCommitBody":         RenderCommitBody,
+		"RenderNote":               RenderNote,
 		"IsMultilineCommitMessage": IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
@@ -155,8 +157,7 @@ func NewFuncMap() []template.FuncMap {
 			var path []string
 			index := strings.LastIndex(str, "/")
 			if index != -1 && index != len(str) {
-				path = append(path, str[0:index+1])
-				path = append(path, str[index+1:])
+				path = append(path, str[0:index+1], str[index+1:])
 			} else {
 				path = append(path, str)
 			}
@@ -329,10 +330,10 @@ func ToUTF8(content string) string {
 	return res
 }
 
-// ReplaceLeft replaces all prefixes 'old' in 's' with 'new'.
-func ReplaceLeft(s, old, new string) string {
-	oldLen, newLen, i, n := len(old), len(new), 0, 0
-	for ; i < len(s) && strings.HasPrefix(s[i:], old); n++ {
+// ReplaceLeft replaces all prefixes 'oldS' in 's' with 'newS'.
+func ReplaceLeft(s, oldS, newS string) string {
+	oldLen, newLen, i, n := len(oldS), len(newS), 0, 0
+	for ; i < len(s) && strings.HasPrefix(s[i:], oldS); n++ {
 		i += oldLen
 	}
 
@@ -343,11 +344,11 @@ func ReplaceLeft(s, old, new string) string {
 
 	// allocating space for the new string
 	curLen := n*newLen + len(s[i:])
-	replacement := make([]byte, curLen, curLen)
+	replacement := make([]byte, curLen)
 
 	j := 0
 	for ; j < n*newLen; j += newLen {
-		copy(replacement[j:j+newLen], new)
+		copy(replacement[j:j+newLen], newS)
 	}
 
 	copy(replacement[j:], s[i:])
@@ -390,6 +391,17 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 		return template.HTML("")
 	}
 	return template.HTML(strings.Join(body[1:], "\n"))
+}
+
+// RenderNote renders the contents of a git-notes file as a commit message.
+func RenderNote(msg, urlPrefix string, metas map[string]string) template.HTML {
+	cleanMsg := template.HTMLEscapeString(msg)
+	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, "", metas)
+	if err != nil {
+		log.Error("RenderNote: %v", err)
+		return ""
+	}
+	return template.HTML(string(fullMessage))
 }
 
 // IsMultilineCommitMessage checks to see if a commit message contains multiple lines.
@@ -528,4 +540,14 @@ func TrN(lang string, cnt interface{}, key1, keyN string) string {
 		return key1
 	}
 	return keyN
+}
+
+// MigrationIcon returns a Font Awesome name matching the service an issue/comment was migrated from
+func MigrationIcon(hostname string) string {
+	switch hostname {
+	case "github.com":
+		return "fa-github"
+	default:
+		return "fa-git-alt"
+	}
 }

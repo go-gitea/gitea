@@ -313,7 +313,8 @@ func NewTeam(t *Team) (err error) {
 	has, err := x.ID(t.OrgID).Get(new(User))
 	if err != nil {
 		return err
-	} else if !has {
+	}
+	if !has {
 		return ErrOrgNotExist{t.OrgID, ""}
 	}
 
@@ -324,7 +325,8 @@ func NewTeam(t *Team) (err error) {
 		Get(new(Team))
 	if err != nil {
 		return err
-	} else if has {
+	}
+	if has {
 		return ErrTeamAlreadyExist{t.OrgID, t.LowerName}
 	}
 
@@ -335,7 +337,10 @@ func NewTeam(t *Team) (err error) {
 	}
 
 	if _, err = sess.Insert(t); err != nil {
-		sess.Rollback()
+		errRollback := sess.Rollback()
+		if errRollback != nil {
+			log.Error("NewTeam sess.Rollback: %v", errRollback)
+		}
 		return err
 	}
 
@@ -345,7 +350,10 @@ func NewTeam(t *Team) (err error) {
 			unit.TeamID = t.ID
 		}
 		if _, err = sess.Insert(&t.Units); err != nil {
-			sess.Rollback()
+			errRollback := sess.Rollback()
+			if errRollback != nil {
+				log.Error("NewTeam sess.Rollback: %v", errRollback)
+			}
 			return err
 		}
 	}
@@ -360,7 +368,10 @@ func NewTeam(t *Team) (err error) {
 
 	// Update organization number of teams.
 	if _, err = sess.Exec("UPDATE `user` SET num_teams=num_teams+1 WHERE id = ?", t.OrgID); err != nil {
-		sess.Rollback()
+		errRollback := sess.Rollback()
+		if errRollback != nil {
+			log.Error("NewTeam sess.Rollback: %v", errRollback)
+		}
 		return err
 	}
 	return sess.Commit()
@@ -446,7 +457,10 @@ func UpdateTeam(t *Team, authChanged bool) (err error) {
 		}
 
 		if _, err = sess.Insert(&t.Units); err != nil {
-			sess.Rollback()
+			errRollback := sess.Rollback()
+			if errRollback != nil {
+				log.Error("UpdateTeam sess.Rollback: %v", errRollback)
+			}
 			return err
 		}
 	}
@@ -883,7 +897,10 @@ func UpdateTeamUnits(team *Team, units []TeamUnit) (err error) {
 	}
 
 	if _, err = sess.Insert(units); err != nil {
-		sess.Rollback()
+		errRollback := sess.Rollback()
+		if errRollback != nil {
+			log.Error("UpdateTeamUnits sess.Rollback: %v", errRollback)
+		}
 		return err
 	}
 
