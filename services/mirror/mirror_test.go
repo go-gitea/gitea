@@ -28,13 +28,13 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	repoPath := models.RepoPath(user.Name, repo.Name)
 
 	migrationOptions := structs.MigrateRepoOptions{
-		Name:                 "test_mirror",
-		Description:          "Test mirror",
-		IsPrivate:            false,
-		IsMirror:             true,
-		RemoteAddr:           repoPath,
-		Wiki:                 true,
-		SyncReleasesWithTags: true,
+		Name:        "test_mirror",
+		Description: "Test mirror",
+		IsPrivate:   false,
+		IsMirror:    true,
+		RemoteURL:   repoPath,
+		Wiki:        true,
+		Releases:    false,
 	}
 	mirror, err := models.MigrateRepository(user, user, migrationOptions)
 	assert.NoError(t, err)
