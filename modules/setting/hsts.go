@@ -23,7 +23,6 @@ var HSTS = struct {
 
 func configHSTS() {
 	sec := Cfg.Section("hsts")
-	// Check mailer setting.
 	if !sec.Key("ENABLED").MustBool() {
 		return
 	}
