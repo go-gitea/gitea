@@ -120,6 +120,7 @@ func TestDeleteLabel(t *testing.T) {
 }
 
 func TestUpdateIssueLabel_Clear(t *testing.T) {
+	setting.Service.EnableIssues = true
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
