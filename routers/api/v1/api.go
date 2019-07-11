@@ -408,7 +408,7 @@ func orgAssignment(args ...bool) macaron.Handler {
 }
 
 func mustEnableIssues(ctx *context.APIContext) {
-	if !setting.Service.EnableIssues || !ctx.Repo.CanRead(models.UnitTypeIssues) {
+	if !ctx.Repo.CanRead(models.UnitTypeIssues) {
 		if log.IsTrace() {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
