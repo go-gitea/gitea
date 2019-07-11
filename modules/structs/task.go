@@ -32,23 +32,3 @@ const (
 	TaskStatusFailed                     // 3 task is failed
 	TaskStatusFinished                   // 4 task is finished
 )
-
-// MigrateRepoOptions defines the way a repository gets migrated
-type MigrateRepoOptions struct {
-	Name         string
-	Description  string
-	OriginalURL  string
-	RemoteURL    string
-	AuthUsername string
-	AuthPassword string
-
-	Wiki         bool
-	Issues       bool
-	Milestones   bool
-	Labels       bool
-	Releases     bool
-	Comments     bool
-	PullRequests bool
-	IsPrivate    bool
-	IsMirror     bool
-}

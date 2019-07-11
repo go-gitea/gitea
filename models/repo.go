@@ -941,26 +941,9 @@ func CheckCreateRepository(doer, u *User, name string) error {
 	return nil
 }
 
-// MigrateRepository migrates a existing repository from other project hosting.
-func MigrateRepository(doer, u *User, opts api.MigrateRepoOptions) (*Repository, error) {
-	repo, err := CreateRepository(doer, u, CreateRepoOptions{
-		Name:        opts.Name,
-		Description: opts.Description,
-		OriginalURL: opts.OriginalURL,
-		IsPrivate:   opts.IsPrivate,
-		IsMirror:    opts.IsMirror,
-		Status:      RepositoryBeingMigrated,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return MigrateRepositoryGitData(doer, u, repo, opts)
-}
-
 // MigrateRepositoryGitData starts migrating git related data after created migrating repository
-func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts api.MigrateRepoOptions) (*Repository, error) {
-	repoPath := RepoPath(u.Name, opts.Name)
+func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts api.MigrateRepoOption) (*Repository, error) {
+	repoPath := RepoPath(u.Name, opts.RepoName)
 
 	if u.IsOrganization() {
 		t, err := u.GetOwnerTeam()
@@ -979,7 +962,7 @@ func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts api.MigrateR
 		return repo, fmt.Errorf("Failed to remove %s: %v", repoPath, err)
 	}
 
-	if err = git.Clone(opts.RemoteURL, repoPath, git.CloneRepoOptions{
+	if err = git.Clone(opts.CloneAddr, repoPath, git.CloneRepoOptions{
 		Mirror:  true,
 		Quiet:   true,
 		Timeout: migrateTimeout,
@@ -988,8 +971,8 @@ func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts api.MigrateR
 	}
 
 	if opts.Wiki {
-		wikiPath := WikiPath(u.Name, opts.Name)
-		wikiRemotePath := wikiRemoteURL(opts.RemoteURL)
+		wikiPath := WikiPath(u.Name, opts.RepoName)
+		wikiRemotePath := wikiRemoteURL(opts.CloneAddr)
 		if len(wikiRemotePath) > 0 {
 			if err := os.RemoveAll(wikiPath); err != nil {
 				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
@@ -1038,7 +1021,7 @@ func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts api.MigrateR
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
-	if opts.IsMirror {
+	if opts.Mirror {
 		if _, err = x.InsertOne(&Mirror{
 			RepoID:         repo.ID,
 			Interval:       setting.Mirror.DefaultInterval,

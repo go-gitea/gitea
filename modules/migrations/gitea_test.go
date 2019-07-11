@@ -30,9 +30,9 @@ func TestGiteaUploadRepo(t *testing.T) {
 		uploader   = NewGiteaLocalUploader(user, user.Name, repoName)
 	)
 
-	err := migrateRepository(downloader, uploader, structs.MigrateRepoOptions{
-		RemoteURL:    "https://github.com/go-xorm/builder",
-		Name:         repoName,
+	err := migrateRepository(downloader, uploader, structs.MigrateRepoOption{
+		CloneAddr:    "https://github.com/go-xorm/builder",
+		RepoName:     repoName,
 		AuthUsername: "",
 
 		Wiki:         true,
@@ -42,8 +42,8 @@ func TestGiteaUploadRepo(t *testing.T) {
 		Releases:     true,
 		Comments:     true,
 		PullRequests: true,
-		IsPrivate:    true,
-		IsMirror:     false,
+		Private:      true,
+		Mirror:       false,
 	})
 	assert.NoError(t, err)
 

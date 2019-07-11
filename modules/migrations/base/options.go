@@ -8,4 +8,4 @@ package base
 import "code.gitea.io/gitea/modules/structs"
 
 // MigrateOptions defines the way a repository gets migrated
-type MigrateOptions = structs.MigrateRepoOptions
+type MigrateOptions = structs.MigrateRepoOption

@@ -33,12 +33,7 @@ func handleCreateError(owner *models.User, err error, name string) error {
 	}
 }
 
-func runMigrateTask(t *models.Task) error {
-	opts, err := t.MigrateConfig()
-	if err != nil {
-		return err
-	}
-
+func runMigrateTask(t *models.Task) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			var buf bytes.Buffer
@@ -47,27 +42,35 @@ func runMigrateTask(t *models.Task) error {
 			err = errors.New(buf.String())
 		}
 
-		if err != nil {
-			t.EndTime = timeutil.TimeStampNow()
-			t.Status = structs.TaskStatusFailed
-			t.Errors = err.Error()
-			if err := t.UpdateCols("status", "errors", "end_time"); err != nil {
-				log.Error("Task UpdateCols failed: %s", err.Error())
-			} else if t.Repo != nil {
-				if errDelete := models.DeleteRepository(t.Doer, t.OwnerID, t.Repo.ID); errDelete != nil {
-					log.Error("DeleteRepository: %v", errDelete)
-				}
+		if err == nil {
+			err = models.FinishMigrateTask(t)
+			if err == nil {
+				notification.NotifyMigrateRepository(t.Doer, t.Owner, t.Repo)
+				return
 			}
-			return
+
+			log.Error("FinishMigrateTask failed: %s", err.Error())
 		}
 
-		if err := models.FinishMigrateTask(t); err != nil {
+		t.EndTime = timeutil.TimeStampNow()
+		t.Status = structs.TaskStatusFailed
+		t.Errors = err.Error()
+		if err := t.UpdateCols("status", "errors", "end_time"); err != nil {
 			log.Error("Task UpdateCols failed: %s", err.Error())
-			return
 		}
 
-		notification.NotifyMigrateRepository(t.Doer, t.Owner, t.Repo)
+		if t.Repo != nil {
+			if errDelete := models.DeleteRepository(t.Doer, t.OwnerID, t.Repo.ID); errDelete != nil {
+				log.Error("DeleteRepository: %v", errDelete)
+			}
+		}
 	}()
+
+	var opts *structs.MigrateRepoOption
+	opts, err = t.MigrateConfig()
+	if err != nil {
+		return err
+	}
 
 	if err := t.LoadRepo(); err != nil {
 		return err
@@ -85,10 +88,6 @@ func runMigrateTask(t *models.Task) error {
 		return err
 	}
 
-	if t.Repo.IsBeingCreated() {
-		return fmt.Errorf("Repository %s/%s is being created, task ignored", t.Owner.Name, t.Repo.Name)
-	}
-
 	repo, err := models.MigrateRepositoryGitData(t.Doer, t.Owner, t.Repo, *opts)
 	if err == nil {
 		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, t.Owner.Name, repo.Name)
@@ -100,7 +99,7 @@ func runMigrateTask(t *models.Task) error {
 	}
 
 	// remoteAddr may contain credentials, so we sanitize it
-	err = util.URLSanitizedError(err, opts.RemoteURL)
+	err = util.URLSanitizedError(err, opts.CloneAddr)
 	if strings.Contains(err.Error(), "Authentication failed") ||
 		strings.Contains(err.Error(), "could not read Username") {
 		return fmt.Errorf("Authentication failed: %v", err.Error())

@@ -259,11 +259,11 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	}
 
 	var opts = migrations.MigrateOptions{
-		RemoteURL:    remoteAddr,
-		Name:         form.RepoName,
+		CloneAddr:    remoteAddr,
+		RepoName:     form.RepoName,
 		Description:  form.Description,
-		IsPrivate:    form.Private || setting.Repository.ForcePrivate,
-		IsMirror:     form.Mirror,
+		Private:      form.Private || setting.Repository.ForcePrivate,
+		Mirror:       form.Mirror,
 		AuthUsername: form.AuthUsername,
 		AuthPassword: form.AuthPassword,
 		Wiki:         form.Wiki,
@@ -274,7 +274,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		PullRequests: form.PullRequests,
 		Releases:     form.Releases,
 	}
-	if opts.IsMirror {
+	if opts.Mirror {
 		opts.Issues = false
 		opts.Milestones = false
 		opts.Labels = false
@@ -283,7 +283,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		opts.Releases = false
 	}
 
-	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.Name)
+	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName)
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplMigrate, &form)
@@ -310,7 +310,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 
 	err = task.MigrateRepository(ctx.User, ctxUser, opts)
 	if err == nil {
-		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + opts.Name)
+		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + opts.RepoName)
 		return
 	}
 	ctx.ServerError("MigrateRepository", err)

@@ -27,7 +27,7 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
 	var (
 		downloader base.Downloader
-		uploader   = NewGiteaLocalUploader(doer, ownerName, opts.Name)
+		uploader   = NewGiteaLocalUploader(doer, ownerName, opts.RepoName)
 	)
 
 	for _, factory := range factories {
@@ -50,8 +50,8 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 		opts.Comments = false
 		opts.Issues = false
 		opts.PullRequests = false
-		downloader = NewPlainGitDownloader(ownerName, opts.Name, opts.RemoteURL)
-		log.Trace("Will migrate from git: %s", opts.RemoteURL)
+		downloader = NewPlainGitDownloader(ownerName, opts.RepoName, opts.CloneAddr)
+		log.Trace("Will migrate from git: %s", opts.CloneAddr)
 	}
 
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
@@ -72,8 +72,8 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	if err != nil {
 		return err
 	}
-	repo.IsPrivate = opts.IsPrivate
-	repo.IsMirror = opts.IsMirror
+	repo.IsPrivate = opts.Private
+	repo.IsMirror = opts.Mirror
 	if opts.Description != "" {
 		repo.Description = opts.Description
 	}

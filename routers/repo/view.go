@@ -384,7 +384,7 @@ func Home(ctx *context.Context) {
 
 			ctx.Data["Repo"] = ctx.Repo
 			ctx.Data["MigrateTask"] = task
-			ctx.Data["RemoteURL"] = safeURL(cfg.RemoteURL)
+			ctx.Data["CloneAddr"] = safeURL(cfg.CloneAddr)
 			ctx.HTML(200, tplMigrating)
 			return
 		}

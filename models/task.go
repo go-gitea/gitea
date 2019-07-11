@@ -103,9 +103,9 @@ func (task *Task) UpdateCols(cols ...string) error {
 }
 
 // MigrateConfig returns task config when migrate repository
-func (task *Task) MigrateConfig() (*structs.MigrateRepoOptions, error) {
+func (task *Task) MigrateConfig() (*structs.MigrateRepoOption, error) {
 	if task.Type == structs.TaskTypeMigrateRepo {
-		var opts structs.MigrateRepoOptions
+		var opts structs.MigrateRepoOption
 		err := json.Unmarshal([]byte(task.PayloadContent), &opts)
 		if err != nil {
 			return nil, err
@@ -194,10 +194,10 @@ func CreateMigrateTask(doer, u *User, opts base.MigrateOptions) (*Task, error) {
 	}
 
 	repo, err := CreateRepository(doer, u, CreateRepoOptions{
-		Name:        opts.Name,
+		Name:        opts.RepoName,
 		Description: opts.Description,
-		IsPrivate:   opts.IsPrivate,
-		IsMirror:    opts.IsMirror,
+		IsPrivate:   opts.Private,
+		IsMirror:    opts.Mirror,
 		Status:      RepositoryBeingMigrated,
 	})
 	if err != nil {
@@ -230,7 +230,7 @@ func FinishMigrateTask(task *Task) error {
 	if _, err := sess.ID(task.ID).Cols("status", "end_time").Update(task); err != nil {
 		return err
 	}
-	task.Repo.Status = RepositoryBeingMigrated
+	task.Repo.Status = RepositoryReady
 	if _, err := sess.ID(task.RepoID).Cols("status").Update(task.Repo); err != nil {
 		return err
 	}
