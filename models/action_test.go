@@ -174,7 +174,6 @@ func TestRegExp_issueReferenceKeywordsPat(t *testing.T) {
 	}
 }
 
-
 func Test_getIssueFromRef(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
