@@ -63,7 +63,7 @@
 									</td>
 									<td class="right aligned">
 										{{if not .LatestPullRequest}}
-											{{if not .IsDeleted}}
+											{{if and (not .IsDeleted) $.AllowsPulls}}
 											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}">
 												<button id="new-pull-request" class="ui compact basic button">{{$.i18n.Tr "repo.pulls.compare_changes"}}</button>
 											</a>
