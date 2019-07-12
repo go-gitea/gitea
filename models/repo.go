@@ -1320,7 +1320,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("getOwnerTeam: %v", err)
 		} else if err = t.addRepository(e, repo); err != nil {
 			return fmt.Errorf("addRepository: %v", err)
-		} else if err = prepareWebhooks(e, repo, HookEventRepository, &api.RepositoryPayload{
+		} else if err = PrepareWebhooks(repo, HookEventRepository, &api.RepositoryPayload{
 			Action:       api.HookRepoCreated,
 			Repository:   repo.innerAPIFormat(e, AccessModeOwner, false),
 			Organization: u.APIFormat(),
