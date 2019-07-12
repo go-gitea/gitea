@@ -53,6 +53,25 @@ func NewGiteaLocalUploader(doer *models.User, repoOwner, repoName string) *Gitea
 	}
 }
 
+// MaxBatchInsertSize returns the table's max batch insert size
+func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
+	switch tp {
+	case "issue":
+		return models.MaxBatchInsertSize(new(models.Issue))
+	case "comment":
+		return models.MaxBatchInsertSize(new(models.Comment))
+	case "milestone":
+		return models.MaxBatchInsertSize(new(models.Milestone))
+	case "label":
+		return models.MaxBatchInsertSize(new(models.Label))
+	case "release":
+		return models.MaxBatchInsertSize(new(models.Release))
+	case "pullrequest":
+		return models.MaxBatchInsertSize(new(models.PullRequest))
+	}
+	return 10
+}
+
 // CreateRepo creates a repository
 func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.MigrateOptions) error {
 	owner, err := models.GetUserByName(g.repoOwner)
@@ -63,6 +82,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	r, err := models.MigrateRepository(g.doer, owner, models.MigrateRepoOptions{
 		Name:                 g.repoName,
 		Description:          repo.Description,
+		OriginalURL:          repo.OriginalURL,
 		IsMirror:             repo.IsMirror,
 		RemoteAddr:           repo.CloneURL,
 		IsPrivate:            repo.IsPrivate,
@@ -228,17 +248,19 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 
 		var is = models.Issue{
-			RepoID:      g.repo.ID,
-			Repo:        g.repo,
-			Index:       issue.Number,
-			PosterID:    g.doer.ID,
-			Title:       issue.Title,
-			Content:     issue.Content,
-			IsClosed:    issue.State == "closed",
-			IsLocked:    issue.IsLocked,
-			MilestoneID: milestoneID,
-			Labels:      labels,
-			CreatedUnix: util.TimeStamp(issue.Created.Unix()),
+			RepoID:           g.repo.ID,
+			Repo:             g.repo,
+			Index:            issue.Number,
+			PosterID:         g.doer.ID,
+			OriginalAuthor:   issue.PosterName,
+			OriginalAuthorID: issue.PosterID,
+			Title:            issue.Title,
+			Content:          issue.Content,
+			IsClosed:         issue.State == "closed",
+			IsLocked:         issue.IsLocked,
+			MilestoneID:      milestoneID,
+			Labels:           labels,
+			CreatedUnix:      util.TimeStamp(issue.Created.Unix()),
 		}
 		if issue.Closed != nil {
 			is.ClosedUnix = util.TimeStamp(issue.Closed.Unix())
@@ -274,11 +296,13 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		}
 
 		cms = append(cms, &models.Comment{
-			IssueID:     issueID,
-			Type:        models.CommentTypeComment,
-			PosterID:    g.doer.ID,
-			Content:     comment.Content,
-			CreatedUnix: util.TimeStamp(comment.Created.Unix()),
+			IssueID:          issueID,
+			Type:             models.CommentTypeComment,
+			PosterID:         g.doer.ID,
+			OriginalAuthor:   comment.PosterName,
+			OriginalAuthorID: comment.PosterID,
+			Content:          comment.Content,
+			CreatedUnix:      util.TimeStamp(comment.Created.Unix()),
 		})
 
 		// TODO: Reactions
@@ -411,18 +435,20 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		HasMerged:    pr.Merged,
 
 		Issue: &models.Issue{
-			RepoID:      g.repo.ID,
-			Repo:        g.repo,
-			Title:       pr.Title,
-			Index:       pr.Number,
-			PosterID:    g.doer.ID,
-			Content:     pr.Content,
-			MilestoneID: milestoneID,
-			IsPull:      true,
-			IsClosed:    pr.State == "closed",
-			IsLocked:    pr.IsLocked,
-			Labels:      labels,
-			CreatedUnix: util.TimeStamp(pr.Created.Unix()),
+			RepoID:           g.repo.ID,
+			Repo:             g.repo,
+			Title:            pr.Title,
+			Index:            pr.Number,
+			PosterID:         g.doer.ID,
+			OriginalAuthor:   pr.PosterName,
+			OriginalAuthorID: pr.PosterID,
+			Content:          pr.Content,
+			MilestoneID:      milestoneID,
+			IsPull:           true,
+			IsClosed:         pr.State == "closed",
+			IsLocked:         pr.IsLocked,
+			Labels:           labels,
+			CreatedUnix:      util.TimeStamp(pr.Created.Unix()),
 		},
 	}
 
