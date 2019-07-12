@@ -14,10 +14,12 @@ const (
 var HSTS = struct {
 	Enabled              bool
 	MaxAge               time.Duration
+	IncludeSubDomains    bool
 	SendPreloadDirective bool
 }{
 	Enabled:              false,
 	MaxAge:               defaultMaxAge,
+	IncludeSubDomains:    false,
 	SendPreloadDirective: false,
 }
 
@@ -29,5 +31,6 @@ func configHSTS() {
 
 	HSTS.Enabled = true
 	HSTS.MaxAge = sec.Key("MAX_AGE").MustDuration(defaultMaxAge)
+	HSTS.IncludeSubDomains = sec.Key("INCLUDE_SUB_DOMAINS").MustBool()
 	HSTS.SendPreloadDirective = sec.Key("SEND_PRELOAD_DIRECTIVE").MustBool()
 }

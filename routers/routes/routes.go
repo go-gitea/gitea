@@ -103,10 +103,12 @@ func RouterHandler(level log.Level) func(ctx *macaron.Context) {
 	}
 }
 
-func createHeaderValueNew(maxAge time.Duration, sendPreloadDirective bool) string {
+func createHeaderValueNew(maxAge time.Duration, includeSubDomains, sendPreloadDirective bool) string {
 	buf := bytes.NewBufferString("max-age=")
 	buf.WriteString(strconv.Itoa(int(maxAge.Seconds())))
-	buf.WriteString("; includeSubDomains")
+	if includeSubDomains {
+		buf.WriteString("; includeSubDomains")
+	}
 	if sendPreloadDirective {
 		buf.WriteString("; preload")
 	}
@@ -145,7 +147,8 @@ func NewMacaron() *macaron.Macaron {
 	if setting.HSTS.Enabled {
 		m.Use(func() macaron.Handler {
 			return func(ctx *macaron.Context) {
-				ctx.Resp.Header().Set("Strict-Transport-Security", createHeaderValueNew(setting.HSTS.MaxAge, setting.HSTS.SendPreloadDirective))
+				ctx.Resp.Header().Set("Strict-Transport-Security",
+					createHeaderValueNew(setting.HSTS.MaxAge, setting.HSTS.IncludeSubDomains, setting.HSTS.SendPreloadDirective))
 			}
 		})
 	}
