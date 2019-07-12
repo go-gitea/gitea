@@ -2113,6 +2113,7 @@ $(document).ready(function () {
         }).get().join();
         let url = this.dataset.url;
         updateIssuesMeta(url, action, issueIDs, elementId).then(function() {
+            // NOTICE: This reset of checkbox state targets Firefox caching behaviour, as the checkboxes stay checked after reload
             if (action === "close" || action === "open" ){
                 //uncheck all checkboxes
                 $('.issue-checkbox input[type="checkbox"]').each(function(_,e){ e.checked = false; });
@@ -2121,6 +2122,7 @@ $(document).ready(function () {
         });
     });
 
+    // NOTICE: This event trigger targets Firefox caching behaviour, as the checkboxes stay checked after reload
     // trigger ckecked event, if checkboxes are checked on load
     $('.issue-checkbox input[type="checkbox"]:checked').first().each(function(_,e) {
         e.checked = false;
