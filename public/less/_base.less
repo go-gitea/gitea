@@ -159,6 +159,11 @@ a {
     border-radius: 0.28571429rem !important;
 }
 
+.wrap {
+    word-wrap: break-word;
+    word-break: break-all;
+}
+
 pre,
 code,
 .mono {
@@ -580,6 +585,18 @@ code,
 
         &.gold {
             background-color: #a1882b !important;
+        }
+    }
+
+    .migrate {
+        color: #888888 !important;
+        opacity: 0.5;
+        a {
+            color: #444444 !important;
+
+            &:hover {
+                color: #000000 !important;
+            }
         }
     }
 

@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/repofiles"
 
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -57,17 +58,12 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 		Description: form.Description,
 		Context:     form.Context,
 	}
-	if err := models.NewCommitStatus(ctx.Repo.Repository, ctx.User, sha, status); err != nil {
-		ctx.Error(500, "NewCommitStatus", err)
+	if err := repofiles.CreateCommitStatus(ctx.Repo.Repository, ctx.User, sha, status); err != nil {
+		ctx.Error(500, "CreateCommitStatus", err)
 		return
 	}
 
-	newStatus, err := models.GetCommitStatus(ctx.Repo.Repository, sha, status)
-	if err != nil {
-		ctx.Error(500, "GetCommitStatus", err)
-		return
-	}
-	ctx.JSON(201, newStatus.APIFormat())
+	ctx.JSON(201, status.APIFormat())
 }
 
 // GetCommitStatuses returns all statuses for any given commit hash
@@ -140,6 +136,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	statuses, err := models.GetCommitStatuses(repo, sha, page)
 	if err != nil {
 		ctx.Error(500, "GetCommitStatuses", fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %v", repo.FullName(), sha, page, err))
+		return
 	}
 
 	apiStatuses := make([]*api.Status, 0, len(statuses))

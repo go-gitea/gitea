@@ -294,7 +294,7 @@ func NewCallbackCDecl(fn interface{}) uintptr {
 //sys	clsidFromString(lpsz *uint16, pclsid *GUID) (ret error) = ole32.CLSIDFromString
 //sys	stringFromGUID2(rguid *GUID, lpsz *uint16, cchMax int32) (chars int32) = ole32.StringFromGUID2
 //sys	coCreateGuid(pguid *GUID) (ret error) = ole32.CoCreateGuid
-//sys	coTaskMemFree(address unsafe.Pointer) = ole32.CoTaskMemFree
+//sys	CoTaskMemFree(address unsafe.Pointer) = ole32.CoTaskMemFree
 //sys	rtlGetVersion(info *OsVersionInfoEx) (ret error) = ntdll.RtlGetVersion
 
 // syscall interface implementation for other packages
@@ -1302,7 +1302,7 @@ func (t Token) KnownFolderPath(folderID *KNOWNFOLDERID, flags uint32) (string, e
 	if err != nil {
 		return "", err
 	}
-	defer coTaskMemFree(unsafe.Pointer(p))
+	defer CoTaskMemFree(unsafe.Pointer(p))
 	return UTF16ToString((*[(1 << 30) - 1]uint16)(unsafe.Pointer(p))[:]), nil
 }
 
