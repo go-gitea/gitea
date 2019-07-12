@@ -292,7 +292,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .markdown:not(code) .ui.list .list,.markdown:not(code) ol.ui.list ol,.markdown:not(code) ul.ui.list ul{padding-left:2em}
 .repository.wiki.revisions .ui.container>.ui.stackable.grid{flex-direction:row-reverse}
 .repository.wiki.revisions .ui.container>.ui.stackable.grid>.header{margin-top:0}
-.repository.wiki.revisions .ui.container>.ui.stackable.grid>.header .sub.header{padding-left:52px}
+.repository.wiki.revisions .ui.container>.ui.stackable.grid>.header .sub.header{padding-left:52px;word-break:break-word}
 .file-revisions-btn{display:block;float:left;margin-bottom:2px!important;padding:11px!important;margin-right:10px!important}
 .file-revisions-btn i{-webkit-touch-callout:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
 .home .logo{max-width:220px}

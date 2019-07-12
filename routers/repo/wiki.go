@@ -248,9 +248,9 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get Commit Count
-	commitsHistory, err := wikiRepo.CommitsByFileAndRange("master", pageFilename, page)
+	commitsHistory, err := wikiRepo.CommitsByFileAndRangeNoFollow("master", pageFilename, page)
 	if err != nil {
-		ctx.ServerError("CommitsByFileAndRange", err)
+		ctx.ServerError("CommitsByFileAndRangeNoFollow", err)
 		return nil, nil
 	}
 	commitsHistory = models.ValidateCommitsWithEmails(commitsHistory)

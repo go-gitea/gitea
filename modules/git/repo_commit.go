@@ -266,6 +266,16 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
+// CommitsByFileAndRangeNoFollow return the commits according revison file and the page
+func (repo *Repository) CommitsByFileAndRangeNoFollow(revision, file string, page int) (*list.List, error) {
+	stdout, err := NewCommand("log", revision, "--skip="+strconv.Itoa((page-1)*50),
+		"--max-count="+strconv.Itoa(CommitsRangeSize), prettyLogFormat, "--", file).RunInDirBytes(repo.Path)
+	if err != nil {
+		return nil, err
+	}
+	return repo.parsePrettyFormatLogToList(stdout)
+}
+
 // FilesCountBetween return the number of files changed between two commits
 func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (int, error) {
 	stdout, err := NewCommand("diff", "--name-only", startCommitID+"..."+endCommitID).RunInDir(repo.Path)

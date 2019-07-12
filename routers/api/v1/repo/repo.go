@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/convert"
@@ -220,6 +221,8 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 		return
 	}
 
+	notification.NotifyCreateRepository(ctx.User, owner, repo)
+
 	ctx.JSON(201, repo.APIFormat(models.AccessModeOwner))
 }
 
@@ -410,6 +413,8 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 
 	repo, err := migrations.MigrateRepository(ctx.User, ctxUser.Name, opts)
 	if err == nil {
+		notification.NotifyCreateRepository(ctx.User, ctxUser, repo)
+
 		log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
 		ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
 		return
