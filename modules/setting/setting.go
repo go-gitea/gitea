@@ -290,7 +290,8 @@ var (
 	// Time settings
 	TimeFormat string
 
-	CSRFCookieName = "_csrf"
+	CSRFCookieName     = "_csrf"
+	CSRFCookieHTTPOnly = true
 
 	// Mirror settings
 	Mirror struct {
@@ -784,6 +785,8 @@ func NewContext() {
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
+	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
+
 	InternalToken = loadInternalToken(sec)
 	var dictPC = map[string]string{
 		"lower": "[a-z]+",

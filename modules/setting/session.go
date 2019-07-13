@@ -34,6 +34,7 @@ func newSessionService() {
 	SessionConfig.Secure = Cfg.Section("session").Key("COOKIE_SECURE").MustBool(false)
 	SessionConfig.Gclifetime = Cfg.Section("session").Key("GC_INTERVAL_TIME").MustInt64(86400)
 	SessionConfig.Maxlifetime = Cfg.Section("session").Key("SESSION_LIFE_TIME").MustInt64(86400)
+	SessionConfig.Domain = Cfg.Section("session").Key("DOMAIN").String()
 
 	shadowConfig, err := json.Marshal(SessionConfig)
 	if err != nil {

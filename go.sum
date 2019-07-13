@@ -117,10 +117,10 @@ github.com/go-macaron/captcha v0.0.0-20190710000913-8dc5911259df h1:MdgvtI3Y1u/D
 github.com/go-macaron/captcha v0.0.0-20190710000913-8dc5911259df/go.mod h1:j9TJ+0nwUOWBvNnm0bheHIPFf3cC62EQo7n7O6PbjZA=
 github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9 h1:A0QGzY6UHHEil0I2e7C21JenNNG0mmrj5d9SFWTlgr8=
 github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9/go.mod h1:utmMRnVIrXPSfA9MFcpIYKEpKawjKxf62vv62k4707E=
-github.com/go-macaron/csrf v0.0.0-20180426211211-503617c6b372 h1:acrx8CnDmlKl+BPoOOLEK9Ko+SrWFB5pxRuGkKj4iqo=
-github.com/go-macaron/csrf v0.0.0-20180426211211-503617c6b372/go.mod h1:oZGMxI7MBnicI0jJqJvH4qQzyrWKhtiKxLSJKHC+ydc=
-github.com/go-macaron/i18n v0.0.0-20160612092837-ef57533c3b0f h1:wDKrZFc9pYJlqFOf7EzGbFMrSFFtyHt3plr2uTdo8Rg=
-github.com/go-macaron/i18n v0.0.0-20160612092837-ef57533c3b0f/go.mod h1:MePM/dStkAh+PNzAdNSNl4SGDM2EZvZGken+KpJhM7s=
+github.com/go-macaron/csrf v0.0.0-20190131233648-3751b136073c h1:yCyrJuFaxKX/VoV9hHqYXhkFEMtg+Hxsiitk1z/lHfQ=
+github.com/go-macaron/csrf v0.0.0-20190131233648-3751b136073c/go.mod h1:oZGMxI7MBnicI0jJqJvH4qQzyrWKhtiKxLSJKHC+ydc=
+github.com/go-macaron/i18n v0.0.0-20190131234336-56731837a73b h1:p19t0uFyv0zkBwp4dafzU3EcpHilHNffTVDmxpn/M+w=
+github.com/go-macaron/i18n v0.0.0-20190131234336-56731837a73b/go.mod h1:MePM/dStkAh+PNzAdNSNl4SGDM2EZvZGken+KpJhM7s=
 github.com/go-macaron/inject v0.0.0-20160627170012-d8a0b8677191 h1:NjHlg70DuOkcAMqgt0+XA+NHwtu66MkTVVgR4fFWbcI=
 github.com/go-macaron/inject v0.0.0-20160627170012-d8a0b8677191/go.mod h1:VFI2o2q9kYsC4o7VP1HrEVosiZZTd+MVT3YZx4gqvJw=
 github.com/go-macaron/session v0.0.0-20190131233854-0a0a789bf193 h1:z/nqwd+ql/r6Q3QGnwNd6B89UjPytM0be5pDQV9TuWw=
