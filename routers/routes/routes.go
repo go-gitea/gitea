@@ -38,6 +38,7 @@ import (
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/captcha"
+	"github.com/go-macaron/cors"
 	"github.com/go-macaron/csrf"
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
@@ -130,6 +131,9 @@ func NewMacaron() *macaron.Macaron {
 	}
 	if setting.Protocol == setting.FCGI {
 		m.SetURLPrefix(setting.AppSubURL)
+	}
+	if setting.EnableCORS {
+		m.Use(cors.CORS(setting.CORSConfig))
 	}
 	m.Use(public.Custom(
 		&public.Options{
