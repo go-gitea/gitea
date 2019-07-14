@@ -12,7 +12,14 @@
 			<table class="ui very basic striped fixed table single line">
 				<tbody>
 					<tr>
-						<td>{{.DefaultBranch}}</td>
+						<td>
+						{{range $branch := .Branches}}
+							{{if and .IsProtected (eq .Name $.DefaultBranch)}}
+								<i class="octicon octicon-shield"></i>
+							{{end}}
+						{{end}}
+						{{.DefaultBranch}}
+						</td>
 					</tr>
 				</tbody>
 			</table>
@@ -43,6 +50,9 @@
 										<s><a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a></s>
 										<p class="time">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</p>
 									{{else}}
+										{{if .IsProtected}}
+											<i class="octicon octicon-shield"></i>
+										{{end}}
 										<a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a>
 										<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 									{{end}}
