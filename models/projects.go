@@ -4,15 +4,21 @@
 
 package models
 
-import "code.gitea.io/gitea/modules/util"
+import (
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+)
 
 // Project is a kanban board
 type Project struct {
 	ID          int64  `xorm:"pk autoincr"`
 	Title       string `xorm:"INDEX NOT NULL"`
-	Description string `xorm:"NOT NULL"`
+	Description string `xorm:"TEXT"`
 	RepoID      string `xorm:"NOT NULL"`
 	CreatorID   int64  `xorm:"NOT NULL"`
+	IsClosed    bool   `xorm:"INDEX"`
+
+	RenderedContent string `xorm:"-"`
 
 	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
@@ -30,10 +36,26 @@ func ProjectExists(p *Project) bool {
 	return exists
 }
 
-func GetProjects(repoID int64) ([]Project, error) {
+// GetProjects returns a list of all projects that have been created in the
+// repository
+func GetProjects(repoID int64, page int, isClosed bool, sortType string) ([]*Project, error) {
 
-	var projects []Project
+	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
+	sess := x.Where("repo_id = ? AND is_closed = ?", repoID, isClosed)
+	if page > 0 {
+		sess = sess.Limit(setting.UI.IssuePagingNum, (page-1)*setting.UI.IssuePagingNum)
+	}
 
-	err := x.Where("repo_id", repoID).Find(&projects)
-	return projects, err
+	switch sortType {
+	case "oldest":
+		sess.Desc("created_unix")
+	case "recentupdate":
+		sess.Desc("updated_unix")
+	case "leastupdate":
+		sess.Asc("updated_unix")
+	default:
+		sess.Asc("created_unix")
+	}
+
+	return projects, sess.Find(&projects)
 }

@@ -15,9 +15,10 @@ func addProjectsTable(x *xorm.Engine) error {
 	type Project struct {
 		ID          int64  `xorm:"pk autoincr"`
 		Title       string `xorm:"INDEX NOT NULL"`
-		Description string `xorm:"NOT NULL"`
+		Description string `xorm:"TEXT"`
 		RepoID      string `xorm:"NOT NULL"`
 		CreatorID   int64  `xorm:"NOT NULL"`
+		IsClosed    bool   `xorm:"INDEX"`
 
 		CreatedUnix util.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
