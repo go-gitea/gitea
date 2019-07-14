@@ -383,7 +383,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	}
 
 	var head = "unknown repository"
-	if pr.IsForkPullRequest() {
+	if pr.IsForkPullRequest() && pr.State != "closed" {
 		if pr.Head.OwnerName != "" {
 			remote := pr.Head.OwnerName
 			_, ok := g.prHeadCache[remote]
