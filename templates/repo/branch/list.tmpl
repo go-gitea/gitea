@@ -19,7 +19,7 @@
 									<i class="octicon octicon-shield"></i>
 								{{end}}
 								{{$.DefaultBranch}}
-								<p class="info"><i class="octicon octicon-git-commit"></i><a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · {{Safe (EllipsisString (Printf "%s" (RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas)) 72)}} · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
+								<p class="info"><i class="octicon octicon-git-commit"></i><a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 							{{end}}
 						{{end}}
 						</td>
@@ -57,7 +57,7 @@
 											<i class="octicon octicon-shield"></i>
 										{{end}}
 										<a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a>
-										<p class="info"><i class="octicon octicon-git-commit"></i><a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · {{Safe (EllipsisString (Printf "%s" (RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas)) 72)}} · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
+										<p class="info"><i class="octicon octicon-git-commit"></i><a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 									{{end}}
 									</td>
 									<td class="ui">
