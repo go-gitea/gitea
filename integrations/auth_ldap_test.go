@@ -119,6 +119,33 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string) {
 	session.MakeRequest(t, req, http.StatusFound)
 }
 
+func addAuthSourceLDAPWithGroups(t *testing.T) {
+	session := loginUser(t, "user1")
+	csrf := GetCSRF(t, session, "/admin/auths/new")
+	req := NewRequestWithValues(t, "POST", "/admin/auths/new", map[string]string{
+		"_csrf":                   csrf,
+		"type":                    "2",
+		"name":                    "ldap",
+		"host":                    getLDAPServerHost(),
+		"port":                    "389",
+		"bind_dn":                 "uid=gitea,ou=service,dc=planetexpress,dc=com",
+		"bind_password":           "password",
+		"user_base":               "ou=people,dc=planetexpress,dc=com",
+		"filter":                  "(&(objectClass=inetOrgPerson)(uid=%s))",
+		"group_search_base":       "ou=people,dc=planetexpress,dc=com",
+		"group_search_filter":     "(&(objectClass=groupOfNames)(member=%s))",
+		"user_attribute_in_group": "",
+		"member_group_filter":     "(cn=git)",
+		"admin_group_filter":      "(cn=admin_staff)",
+		"attribute_username":      "uid",
+		"attribute_name":          "givenName",
+		"attribute_surname":       "sn",
+		"attribute_mail":          "mail",
+		"is_active":               "on",
+	})
+	session.MakeRequest(t, req, http.StatusFound)
+}
+
 func TestLDAPUserSignin(t *testing.T) {
 	if skipLDAPTests() {
 		t.Skip()
@@ -138,6 +165,27 @@ func TestLDAPUserSignin(t *testing.T) {
 	assert.Equal(t, u.UserName, htmlDoc.GetInputValueByName("name"))
 	assert.Equal(t, u.FullName, htmlDoc.GetInputValueByName("full_name"))
 	assert.Equal(t, u.Email, htmlDoc.GetInputValueByName("email"))
+}
+
+func TestLDAPUserSigninWithGroups(t *testing.T) {
+	if skipLDAPTests() {
+		t.Skip()
+		return
+	}
+	prepareTestEnv(t)
+	addAuthSourceLDAPWithGroups(t)
+
+	for _, u := range gitLDAPUsers {
+		session := loginUserWithPassword(t, u.UserName, u.Password)
+		req := NewRequest(t, "GET", "/user/settings")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		htmlDoc := NewHTMLParser(t, resp.Body)
+
+		assert.Equal(t, u.UserName, htmlDoc.GetInputValueByName("name"))
+		assert.Equal(t, u.FullName, htmlDoc.GetInputValueByName("full_name"))
+		assert.Equal(t, u.Email, htmlDoc.GetInputValueByName("email"))
+	}
 }
 
 func TestLDAPUserSync(t *testing.T) {
@@ -197,6 +245,19 @@ func TestLDAPUserSigninFailed(t *testing.T) {
 	u := otherLDAPUsers[0]
 
 	testLoginFailed(t, u.UserName, u.Password, i18n.Tr("en", "form.username_password_incorrect"))
+}
+
+func TestLDAPUserSigninFailedWithGroups(t *testing.T) {
+	if skipLDAPTests() {
+		t.Skip()
+		return
+	}
+	prepareTestEnv(t)
+	addAuthSourceLDAPWithGroups(t)
+
+	for _, u := range otherLDAPUsers {
+		testLoginFailed(t, u.UserName, u.Password, i18n.Tr("en", "form.username_password_incorrect"))
+	}
 }
 
 func TestLDAPUserSSHKeySync(t *testing.T) {
