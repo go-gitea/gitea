@@ -65,6 +65,7 @@ var (
 )
 
 const issueRefRegexpStr = `(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)+`
+const issueRefRegexpStrNoKeyword = `(?:\s|^|\(|\[)(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`
 
 func assembleKeywordsPattern(words []string) string {
 	return fmt.Sprintf(`(?i)(?:%s)(?::?) %s`, strings.Join(words, "|"), issueRefRegexpStr)
@@ -73,7 +74,7 @@ func assembleKeywordsPattern(words []string) string {
 func init() {
 	issueCloseKeywordsPat = regexp.MustCompile(assembleKeywordsPattern(issueCloseKeywords))
 	issueReopenKeywordsPat = regexp.MustCompile(assembleKeywordsPattern(issueReopenKeywords))
-	issueReferenceKeywordsPat = regexp.MustCompile(issueRefRegexpStr)
+	issueReferenceKeywordsPat = regexp.MustCompile(issueRefRegexpStrNoKeyword)
 }
 
 // Action represents user operation type and other information to
