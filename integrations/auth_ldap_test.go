@@ -185,6 +185,15 @@ func TestLDAPUserSigninWithGroups(t *testing.T) {
 		assert.Equal(t, u.UserName, htmlDoc.GetInputValueByName("name"))
 		assert.Equal(t, u.FullName, htmlDoc.GetInputValueByName("full_name"))
 		assert.Equal(t, u.Email, htmlDoc.GetInputValueByName("email"))
+
+		reqAdmin := NewRequest(t, "GET", "/admin")
+		if u.IsAdmin {
+			adminResp := session.MakeRequest(t, reqAdmin, http.StatusOK)
+			assert.Equal(t, http.StatusOK, adminResp.Code)
+		} else {
+			adminResp := session.MakeRequest(t, reqAdmin, http.StatusForbidden)
+			assert.Equal(t, http.StatusForbidden, adminResp.Code)
+		}
 	}
 }
 
