@@ -38,7 +38,7 @@ var gitLDAPUsers = []ldapUser{
 	{
 		UserName: "hermes",
 		Password: "hermes",
-		FullName: "Conrad Hermes",
+		FullName: "Hermes Conrad",
 		Email:    "hermes@planetexpress.com",
 		SSHKeys: []string{
 			"SHA256:qLY06smKfHoW/92yXySpnxFR10QFrLdRjf/GNPvwcW8",
