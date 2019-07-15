@@ -11,17 +11,27 @@ import (
 
 // Project is a kanban board
 type Project struct {
-	ID          int64  `xorm:"pk autoincr"`
-	Title       string `xorm:"INDEX NOT NULL"`
-	Description string `xorm:"TEXT"`
-	RepoID      int64  `xorm:"NOT NULL"`
-	CreatorID   int64  `xorm:"NOT NULL"`
-	IsClosed    bool   `xorm:"INDEX"`
+	ID              int64  `xorm:"pk autoincr"`
+	Title           string `xorm:"INDEX NOT NULL"`
+	Description     string `xorm:"TEXT"`
+	RepoID          int64  `xorm:"NOT NULL"`
+	CreatorID       int64  `xorm:"NOT NULL"`
+	IsClosed        bool   `xorm:"INDEX"`
+	NumIssues       int
+	NumClosedIssues int
+	NumOpenIssues   int `xorm:"-"`
 
 	RenderedContent string `xorm:"-"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix    util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix    util.TimeStamp `xorm:"INDEX updated"`
+	ClosedDateUnix util.TimeStamp
+}
+
+// AfterLoad is invoked from XORM after setting the value of a field of
+// this object.
+func (p *Project) AfterLoad() {
+	p.NumOpenIssues = p.NumIssues - p.NumClosedIssues
 }
 
 // CreateProject adds a new project entry to the database

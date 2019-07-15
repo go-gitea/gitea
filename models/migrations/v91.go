@@ -13,15 +13,18 @@ import (
 func addProjectsTable(x *xorm.Engine) error {
 
 	type Project struct {
-		ID          int64  `xorm:"pk autoincr"`
-		Title       string `xorm:"INDEX NOT NULL"`
-		Description string `xorm:"TEXT"`
-		RepoID      int64  `xorm:"NOT NULL"`
-		CreatorID   int64  `xorm:"NOT NULL"`
-		IsClosed    bool   `xorm:"INDEX"`
+		ID              int64  `xorm:"pk autoincr"`
+		Title           string `xorm:"INDEX NOT NULL"`
+		Description     string `xorm:"TEXT"`
+		RepoID          int64  `xorm:"NOT NULL"`
+		CreatorID       int64  `xorm:"NOT NULL"`
+		IsClosed        bool   `xorm:"INDEX"`
+		NumIssues       int
+		NumClosedIssues int
 
-		CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+		ClosedDateUnix util.TimeStamp
+		CreatedUnix    util.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix    util.TimeStamp `xorm:"INDEX updated"`
 	}
 
 	return x.Sync(new(Project))
