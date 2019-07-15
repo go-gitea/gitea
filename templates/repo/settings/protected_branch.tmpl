@@ -104,6 +104,28 @@
 					{{end}}
 					</div>
 
+					<div id="require_status_check_contexts" class="ui container fields {{if not .Branch.EnableStatusCheck}}disabled{{end}}">
+						<table class="ui celled table">
+							<thread>
+								<tr><th>
+									{{.i18n.Tr "repo.settings.protect_check_status_contexts"}}
+								</th>
+								</tr>
+							</thread>
+							<tbody>
+							{{range $.branch_status_check_contexts}}
+								<tr><td>
+									<span class="ui checkbox">
+										<input class="enable-whitelist" name="enable_merge_whitelist" type="checkbox" data-target="#merge_whitelist_box" {{if call $.is_context_required .}}checked{{end}}>
+									</span>
+									{{.}}
+									{{if call $.is_context_required .}}<div class="ui label">Required</div>{{end}}
+								</td></tr>
+							{{end}}
+							</tbody>
+						</table>
+					</div>
+
 					<div class="field">
 						<label for="required-approvals">{{.i18n.Tr "repo.settings.protect_required_approvals"}}</label>
 						<input name="required_approvals" id="required-approvals" type="number" value="{{.Branch.RequiredApprovals}}">

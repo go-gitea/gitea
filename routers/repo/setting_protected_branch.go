@@ -7,6 +7,7 @@ package repo
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -125,6 +126,15 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.WhitelistUserIDs), ",")
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.ApprovalsWhitelistUserIDs), ",")
+	c.Data["branch_status_check_contexts"], _ = models.FindRepoStatusCheckContexts(c.Repo.Repository.ID, 4*7*24*time.Hour) // Find last week status check contexts
+	c.Data["is_context_required"] = func(context string) bool {
+		for _, c := range protectBranch.StatusCheckContexts {
+			if c == context {
+				return true
+			}
+		}
+		return false
+	}
 
 	if c.Repo.Owner.IsOrganization() {
 		teams, err := c.Repo.Owner.TeamsWithAccessToRepo(c.Repo.Repository.ID, models.AccessModeRead)
@@ -183,6 +193,12 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 		if strings.TrimSpace(f.MergeWhitelistUsers) != "" {
 			mergeWhitelistUsers, _ = base.StringsToInt64s(strings.Split(f.MergeWhitelistUsers, ","))
 		}
+		if strings.TrimSpace(f.MergeWhitelistTeams) != "" {
+			mergeWhitelistTeams, _ = base.StringsToInt64s(strings.Split(f.MergeWhitelistTeams, ","))
+		}
+		protectBranch.EnableStatusCheck = f.EnableStatusCheck
+		protectBranch.StatusCheckContexts = strings.Split(f.StatusCheckContexts, ",")
+
 		if strings.TrimSpace(f.MergeWhitelistTeams) != "" {
 			mergeWhitelistTeams, _ = base.StringsToInt64s(strings.Split(f.MergeWhitelistTeams, ","))
 		}
