@@ -26,7 +26,7 @@ import (
 	"gopkg.in/macaron.v1"
 )
 
-const _VERSION = "0.3.0"
+const _VERSION = "0.4.0"
 
 func Version() string {
 	return _VERSION
@@ -96,6 +96,8 @@ type Options struct {
 	TmplName string
 	// Configuration section name. Default is "i18n".
 	Section string
+	// Domain used for `lang` cookie. Default is ""
+	CookieDomain string
 }
 
 func prepareOptions(options []Options) Options {
@@ -193,7 +195,7 @@ func I18n(options ...Options) macaron.Handler {
 
 		// Save language information in cookies.
 		if !hasCookie {
-			ctx.SetCookie("lang", curLang.Lang, 1<<31-1, "/"+strings.TrimPrefix(opt.SubURL, "/"))
+			ctx.SetCookie("lang", curLang.Lang, 1<<31-1, "/"+strings.TrimPrefix(opt.SubURL, "/"), opt.CookieDomain)
 		}
 
 		restLangs := make([]LangType, 0, i18n.Count()-1)

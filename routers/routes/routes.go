@@ -181,12 +181,13 @@ func NewMacaron() *macaron.Macaron {
 	}
 
 	m.Use(i18n.I18n(i18n.Options{
-		SubURL:      setting.AppSubURL,
-		Files:       localFiles,
-		Langs:       setting.Langs,
-		Names:       setting.Names,
-		DefaultLang: "en-US",
-		Redirect:    false,
+		SubURL:       setting.AppSubURL,
+		Files:        localFiles,
+		Langs:        setting.Langs,
+		Names:        setting.Names,
+		DefaultLang:  "en-US",
+		Redirect:     false,
+		CookieDomain: setting.SessionConfig.Domain,
 	}))
 	m.Use(cache.Cacher(cache.Options{
 		Adapter:       setting.CacheService.Adapter,
@@ -202,8 +203,9 @@ func NewMacaron() *macaron.Macaron {
 		Cookie:         setting.CSRFCookieName,
 		SetCookie:      true,
 		Secure:         setting.SessionConfig.Secure,
-		CookieHttpOnly: true,
+		CookieHttpOnly: setting.CSRFCookieHTTPOnly,
 		Header:         "X-Csrf-Token",
+		CookieDomain:   setting.SessionConfig.Domain,
 		CookiePath:     setting.AppSubURL,
 	}))
 	m.Use(toolbox.Toolboxer(m, toolbox.Options{
