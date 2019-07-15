@@ -6,6 +6,7 @@ package repo
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -13,7 +14,8 @@ import (
 )
 
 const (
-	tplProjects base.TplName = "repo/projects/list"
+	tplProjects    base.TplName = "repo/projects/list"
+	tplProjectsNew base.TplName = "repo/projects/new"
 
 	projectTemplateKey = "ProjectTemplate"
 )
@@ -31,8 +33,10 @@ func MustEnableProjects(ctx *context.Context) {
 	}
 }
 
-// Projects renders the home page
+// Projects renders the home page of projects
 func Projects(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.kanban_board")
+
 	sortType := ctx.Query("sort")
 
 	isShowClosed := ctx.Query("state") == "closed"
@@ -79,4 +83,34 @@ func Projects(ctx *context.Context) {
 	ctx.Data["SortType"] = sortType
 
 	ctx.HTML(200, tplProjects)
+}
+
+// NewProject render creating a project page
+func NewProject(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
+	ctx.HTML(200, tplProjectsNew)
+}
+
+// NewProjectPost creates a new project
+func NewProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
+
+	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
+
+	if ctx.HasError() {
+		ctx.HTML(200, tplProjectsNew)
+		return
+	}
+
+	if err := models.NewProject(&models.Project{
+		RepoID:      ctx.Repo.Repository.ID,
+		Title:       form.Title,
+		Description: form.Content,
+		CreatorID:   ctx.User.ID,
+	}); err != nil {
+		ctx.ServerError("NewProject", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
+	ctx.Redirect(ctx.Repo.RepoLink + "/projects")
 }

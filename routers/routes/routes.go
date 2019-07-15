@@ -799,9 +799,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/topics", repo.TopicsPost)
 	}, context.RepoAssignment(), context.RepoMustNotBeArchived(), reqRepoAdmin)
 
-	m.Group("/:username/:reponame/projects", func() {
-	}, context.RepoAssignment(), repo.MustEnableProjects, reqRepoProjectsReader)
-
 	m.Group("/:username/:reponame", func() {
 		m.Group("", func() {
 			m.Get("/^:type(issues|pulls)$", repo.Issues)
@@ -811,7 +808,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, context.RepoRef())
 
 		m.Group("/projects", func() {
+
 			m.Get("", repo.Projects)
+			m.Get("/new", repo.NewProject)
+			m.Post("/new", bindIgnErr(auth.CreateProjectForm{}), repo.NewProjectPost)
+
 		}, reqRepoProjectsReader, repo.MustEnableProjects)
 
 		m.Group("/wiki", func() {

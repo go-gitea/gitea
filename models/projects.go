@@ -14,7 +14,7 @@ type Project struct {
 	ID          int64  `xorm:"pk autoincr"`
 	Title       string `xorm:"INDEX NOT NULL"`
 	Description string `xorm:"TEXT"`
-	RepoID      string `xorm:"NOT NULL"`
+	RepoID      int64  `xorm:"NOT NULL"`
 	CreatorID   int64  `xorm:"NOT NULL"`
 	IsClosed    bool   `xorm:"INDEX"`
 
@@ -58,4 +58,24 @@ func GetProjects(repoID int64, page int, isClosed bool, sortType string) ([]*Pro
 	}
 
 	return projects, sess.Find(&projects)
+}
+
+// NewProject creates a new Project
+func NewProject(p *Project) error {
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if _, err := sess.Insert(p); err != nil {
+		return err
+	}
+
+	if _, err := sess.Exec("UPDATE `repository` SET num_projects = num_projects + 1 WHERE id = ?", p.RepoID); err != nil {
+		return err
+	}
+	return sess.Commit()
 }
