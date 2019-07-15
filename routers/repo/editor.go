@@ -670,9 +670,8 @@ func GetUniquePatchBranchName(ctx *context.Context) string {
 		if _, err := ctx.Repo.Repository.GetBranch(branchName); err != nil {
 			if git.IsErrBranchNotExist(err) {
 				return branchName
-			} else {
-				return ""
 			}
+			return ""
 		}
 	}
 	return ""
