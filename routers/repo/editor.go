@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -137,7 +138,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	} else {
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
 	}
-	ctx.Data["new_branch_name"] = ""
+	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
 	ctx.Data["MarkdownFileExts"] = strings.Join(setting.Markdown.FileExtensions, ",")
 	ctx.Data["LineWrapExtensions"] = strings.Join(setting.Repository.Editor.LineWrapExtensions, ",")
@@ -266,6 +267,10 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		} else {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_update_file", form.TreePath, err), tplEditFile, &form)
 		}
+	}
+
+	if form.CommitChoice == frmCommitChoiceNewBranch {
+		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + ctx.Repo.BranchName + "..." + form.NewBranchName)
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
 	}
@@ -335,7 +340,7 @@ func DeleteFile(ctx *context.Context) {
 	} else {
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
 	}
-	ctx.Data["new_branch_name"] = ""
+	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 
 	ctx.HTML(200, tplDeleteFile)
 }
@@ -426,9 +431,23 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 		} else {
 			ctx.ServerError("DeleteRepoFile", err)
 		}
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", ctx.Repo.TreePath))
+	if form.CommitChoice == frmCommitChoiceNewBranch {
+		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + ctx.Repo.BranchName + "..." + form.NewBranchName)
 	} else {
-		ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", ctx.Repo.TreePath))
-		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName))
+		treePath := filepath.Dir(ctx.Repo.TreePath)
+		if len(treePath) > 0 && treePath != "." {
+			// Need to get the latest commit since it changed
+			commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
+			if err == nil && commit != nil {
+				treePath = GetClosestParentWithFiles(treePath, commit)
+			} else {
+				treePath = ""
+			}
+		}
+		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(treePath))
 	}
 }
 
@@ -467,7 +486,7 @@ func UploadFile(ctx *context.Context) {
 	} else {
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
 	}
-	ctx.Data["new_branch_name"] = ""
+	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 
 	ctx.HTML(200, tplUploadFile)
 }
@@ -565,7 +584,11 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		return
 	}
 
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
+	if form.CommitChoice == frmCommitChoiceNewBranch {
+		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + ctx.Repo.BranchName + "..." + form.NewBranchName)
+	} else {
+		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
+	}
 }
 
 func cleanUploadFileName(name string) string {
@@ -635,4 +658,39 @@ func RemoveUploadFileFromServer(ctx *context.Context, form auth.RemoveUploadFile
 
 	log.Trace("Upload file removed: %s", form.File)
 	ctx.Status(204)
+}
+
+// GetUniquePatchBranchName Gets a unquie branch name for a new patch branch
+// It will be in the form of <lowername>-patch-<num> where <num> is the first branch of this format
+// that doesn't already exist
+func GetUniquePatchBranchName(ctx *context.Context) string {
+	prefix := ctx.User.LowerName + "-patch-"
+	for i := 1; i <= 1000; i++ {
+		branchName := fmt.Sprintf("%s%d", prefix, i)
+		if _, err := ctx.Repo.Repository.GetBranch(branchName); err != nil {
+			if git.IsErrBranchNotExist(err) {
+				return branchName
+			} else {
+				return ""
+			}
+		}
+	}
+	return ""
+}
+
+// GetClosestParentWithFiles Recursively gets the path of parent in a tree that has files (used when file in a tree is
+// deleted). Returns "" for the root if no parents other than the root have files
+func GetClosestParentWithFiles(treePath string, commit *git.Commit) string {
+	if len(treePath) == 0 || treePath == "." {
+		return ""
+	}
+	// see if the tree has entries
+	if tree, err := commit.SubTree(treePath); err != nil {
+		// failed to get tree, going up a dir
+		return GetClosestParentWithFiles(filepath.Dir(treePath), commit)
+	} else if entries, err := tree.ListEntries(); err != nil || len(entries) == 0 {
+		// no files in this dir, going up a dir
+		return GetClosestParentWithFiles(filepath.Dir(treePath), commit)
+	}
+	return treePath
 }
