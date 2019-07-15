@@ -4,6 +4,22 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.9.0-RC2](https://github.com/go-gitea/gitea/releases/tag/v1.9.0-rc2) - 2019-07-15
+* BUGFIXES
+  * Fix regex for issues in commit messages (#7444) (#7466)
+  * cmd/serv: actually exit after fatal errors (#7458) (#7460)
+  * Fix an issue with some pages throwing 'not defined' js exceptions #7450 (#7453)
+  * Fix Dropzone.js integration (#7445) (#7448)
+  * Create class for inline positioned lists (#7439) (#7393)
+  * Diff: Fix indentation on unhighlighted code (#7435) (#7443)
+  * jQuery 3 (#7442) (#7425)
+  * Only show "New Pull Request" button if repo allows pulls (#7426) (#7432)
+  * Fix vendor references (#7394) (#7396)
+  * Only return head: null if source branch was deleted (#6705) (#7376)
+  * Add missing template variable on organisation settings (#7386) (#7385)
+  * Fix post parameter on issue list which had unset assignee (#7380) (#7383)
+  * Fix migration tests due to issue 7 being resolved (#7375) (#7381)
+
 ## [1.9.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.9.0-rc1) - 2019-07-06
 * BREAKING
   * Better logging (#6038) (#6095)
