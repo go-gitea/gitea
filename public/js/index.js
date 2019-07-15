@@ -11,7 +11,9 @@ var csrf;
 var suburl;
 
 // Disable Dropzone auto-discover because it's manually initialized
-Dropzone.autoDiscover = false;
+if (typeof(Dropzone) !== "undefined") {
+    Dropzone.autoDiscover = false;
+}
 
 // Polyfill for IE9+ support (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/from)
 if (!Array.from) {

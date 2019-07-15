@@ -5,14 +5,14 @@
     "node": ">=8"
   },
   "devDependencies": {
-    "autoprefixer": "9.6.0",
+    "autoprefixer": "9.6.1",
     "eslint": "6.0.1",
     "less": "3.9.0",
     "less-plugin-clean-css": "1.5.1",
-    "postcss-cli": "6.1.2",
+    "postcss-cli": "6.1.3",
     "stylelint": "10.1.0",
     "stylelint-config-standard": "18.3.0",
-    "updates": "8.2.0"
+    "updates": "8.5.0"
   },
   "browserslist": [
     "> 1%",
