@@ -443,16 +443,6 @@ func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOp
 		return fmt.Errorf("Failed to call 'git update-server-info': %v", err)
 	}
 
-	owner, err := models.GetUserByName(opts.RepoUserName)
-	if err != nil {
-		return fmt.Errorf("GetUserByName: %v", err)
-	}
-
-	repo, err = models.GetRepositoryByName(owner.ID, opts.RepoName)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryByName: %v", err)
-	}
-
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
@@ -509,7 +499,7 @@ func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOp
 
 	if err := models.CommitRepoAction(models.CommitRepoActionOptions{
 		PusherName:  opts.PusherName,
-		RepoOwnerID: owner.ID,
+		RepoOwnerID: repo.OwnerID,
 		RepoName:    repo.Name,
 		RefFullName: opts.RefFullName,
 		OldCommitID: opts.OldCommitID,
