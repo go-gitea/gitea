@@ -66,6 +66,13 @@ func TestGetClosestParentWithFiles(t *testing.T) {
 	gitRepo, _ := git.OpenRepository(repo.RepoPath())
 	commit, _ := gitRepo.GetBranchCommit(branch)
 	expectedTreePath := ""
-	treePath := GetClosestParentWithFiles("dir/dir/dir", commit)
-	assert.Equal(t, expectedTreePath, treePath)
+
+	expectedTreePath = "" // Should return the root dir, empty string, since there are no subdirs in this repo
+	for _, deletedFile := range []string{
+		"dir1/dir2/dir3/file.txt",
+		"file.txt",
+	} {
+		treePath := GetClosestParentWithFiles(deletedFile, commit)
+		assert.Equal(t, expectedTreePath, treePath)
+	}
 }

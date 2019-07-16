@@ -367,7 +367,7 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 		return
 	}
 
-	if branchName != ctx.Repo.BranchName && !canCommit {
+	if branchName == ctx.Repo.BranchName && !canCommit {
 		ctx.Data["Err_NewBranchName"] = true
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
 		ctx.RenderWithErr(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", branchName), tplDeleteFile, &form)
@@ -438,13 +438,18 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + ctx.Repo.BranchName + "..." + form.NewBranchName)
 	} else {
 		treePath := filepath.Dir(ctx.Repo.TreePath)
-		if len(treePath) > 0 && treePath != "." {
+		if treePath == "." {
+			treePath = "" // the file deleted was in the root, so we return the user to the root directory
+		}
+		if len(treePath) > 0 {
 			// Need to get the latest commit since it changed
 			commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
 			if err == nil && commit != nil {
+				// We have the comment, now find what directory we can return the user to
+				// (must have entries)
 				treePath = GetClosestParentWithFiles(treePath, commit)
 			} else {
-				treePath = ""
+				treePath = "" // otherwise return them to the root of the repo
 			}
 		}
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(treePath))
