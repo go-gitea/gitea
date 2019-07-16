@@ -57,7 +57,7 @@ require (
 	github.com/go-xorm/core v0.6.0 // indirect
 	github.com/go-xorm/xorm v0.7.3-0.20190620151208-f1b4f8368459
 	github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
-	github.com/gogits/cron v0.0.0-20160810035002-7f3990acf183
+	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/google/go-cmp v0.3.0 // indirect
 	github.com/google/go-github/v24 v24.0.1
 	github.com/gorilla/context v1.1.1
@@ -111,7 +111,7 @@ require (
 	go.etcd.io/bbolt v1.3.2 // indirect
 	golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
 	golang.org/x/net v0.0.0-20190619014844-b5b0513f8c1b
-	golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
+	golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
 	golang.org/x/sys v0.0.0-20190620070143-6f217b454f45
 	golang.org/x/text v0.3.2
 	golang.org/x/tools v0.0.0-20190620154339-431033348dd0 // indirect
