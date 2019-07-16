@@ -362,7 +362,7 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 		return
 	}
 
-	if branchName != ctx.Repo.BranchName && !canCommit {
+	if branchName == ctx.Repo.BranchName && !canCommit {
 		ctx.Data["Err_NewBranchName"] = true
 		ctx.Data["commit_choice"] = frmCommitChoiceNewBranch
 		ctx.RenderWithErr(ctx.Tr("repo.editor.cannot_commit_to_protected_branch", branchName), tplDeleteFile, &form)
@@ -387,20 +387,20 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 	}); err != nil {
 		// This is where we handle all the errors thrown by repofiles.DeleteRepoFile
 		if git.IsErrNotExist(err) || models.IsErrRepoFileDoesNotExist(err) {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.file_deleting_no_longer_exists", ctx.Repo.TreePath), tplEditFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.file_deleting_no_longer_exists", ctx.Repo.TreePath), tplDeleteFile, &form)
 		} else if models.IsErrFilenameInvalid(err) {
 			ctx.Data["Err_TreePath"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_invalid", ctx.Repo.TreePath), tplEditFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_invalid", ctx.Repo.TreePath), tplDeleteFile, &form)
 		} else if models.IsErrFilePathInvalid(err) {
 			ctx.Data["Err_TreePath"] = true
 			if fileErr, ok := err.(models.ErrFilePathInvalid); ok {
 				switch fileErr.Type {
 				case git.EntryModeSymlink:
-					ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path), tplEditFile, &form)
+					ctx.RenderWithErr(ctx.Tr("repo.editor.file_is_a_symlink", fileErr.Path), tplDeleteFile, &form)
 				case git.EntryModeTree:
-					ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", fileErr.Path), tplEditFile, &form)
+					ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_a_directory", fileErr.Path), tplDeleteFile, &form)
 				case git.EntryModeBlob:
-					ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path), tplEditFile, &form)
+					ctx.RenderWithErr(ctx.Tr("repo.editor.directory_is_a_file", fileErr.Path), tplDeleteFile, &form)
 				default:
 					ctx.ServerError("DeleteRepoFile", err)
 				}
@@ -410,19 +410,19 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 		} else if git.IsErrBranchNotExist(err) {
 			// For when a user deletes a file to a branch that no longer exists
 			if branchErr, ok := err.(git.ErrBranchNotExist); ok {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_does_not_exist", branchErr.Name), tplEditFile, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_does_not_exist", branchErr.Name), tplDeleteFile, &form)
 			} else {
 				ctx.Error(500, err.Error())
 			}
 		} else if models.IsErrBranchAlreadyExists(err) {
 			// For when a user specifies a new branch that already exists
 			if branchErr, ok := err.(models.ErrBranchAlreadyExists); ok {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplEditFile, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplDeleteFile, &form)
 			} else {
 				ctx.Error(500, err.Error())
 			}
 		} else if models.IsErrCommitIDDoesNotMatch(err) {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplEditFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplDeleteFile, &form)
 		} else {
 			ctx.ServerError("DeleteRepoFile", err)
 		}
