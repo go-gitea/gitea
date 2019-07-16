@@ -101,8 +101,10 @@ const (
 type Comment struct {
 	ID               int64 `xorm:"pk autoincr"`
 	Type             CommentType
-	PosterID         int64  `xorm:"INDEX"`
-	Poster           *User  `xorm:"-"`
+	PosterID         int64 `xorm:"INDEX"`
+	Poster           *User `xorm:"-"`
+	OriginalAuthor   string
+	OriginalAuthorID int64
 	IssueID          int64  `xorm:"INDEX"`
 	Issue            *Issue `xorm:"-"`
 	LabelID          int64

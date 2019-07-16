@@ -458,11 +458,6 @@ func (deletedBranch *DeletedBranch) LoadUser() {
 
 // RemoveOldDeletedBranches removes old deleted branches
 func RemoveOldDeletedBranches() {
-	if !taskStatusTable.StartIfNotRunning(`deleted_branches_cleanup`) {
-		return
-	}
-	defer taskStatusTable.Stop(`deleted_branches_cleanup`)
-
 	log.Trace("Doing: DeletedBranchesCleanup")
 
 	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)

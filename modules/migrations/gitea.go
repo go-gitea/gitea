@@ -82,6 +82,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	r, err := models.MigrateRepository(g.doer, owner, models.MigrateRepoOptions{
 		Name:                 g.repoName,
 		Description:          repo.Description,
+		OriginalURL:          repo.OriginalURL,
 		IsMirror:             repo.IsMirror,
 		RemoteAddr:           repo.CloneURL,
 		IsPrivate:            repo.IsPrivate,
@@ -247,17 +248,19 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 
 		var is = models.Issue{
-			RepoID:      g.repo.ID,
-			Repo:        g.repo,
-			Index:       issue.Number,
-			PosterID:    g.doer.ID,
-			Title:       issue.Title,
-			Content:     issue.Content,
-			IsClosed:    issue.State == "closed",
-			IsLocked:    issue.IsLocked,
-			MilestoneID: milestoneID,
-			Labels:      labels,
-			CreatedUnix: util.TimeStamp(issue.Created.Unix()),
+			RepoID:           g.repo.ID,
+			Repo:             g.repo,
+			Index:            issue.Number,
+			PosterID:         g.doer.ID,
+			OriginalAuthor:   issue.PosterName,
+			OriginalAuthorID: issue.PosterID,
+			Title:            issue.Title,
+			Content:          issue.Content,
+			IsClosed:         issue.State == "closed",
+			IsLocked:         issue.IsLocked,
+			MilestoneID:      milestoneID,
+			Labels:           labels,
+			CreatedUnix:      util.TimeStamp(issue.Created.Unix()),
 		}
 		if issue.Closed != nil {
 			is.ClosedUnix = util.TimeStamp(issue.Closed.Unix())
@@ -293,11 +296,13 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		}
 
 		cms = append(cms, &models.Comment{
-			IssueID:     issueID,
-			Type:        models.CommentTypeComment,
-			PosterID:    g.doer.ID,
-			Content:     comment.Content,
-			CreatedUnix: util.TimeStamp(comment.Created.Unix()),
+			IssueID:          issueID,
+			Type:             models.CommentTypeComment,
+			PosterID:         g.doer.ID,
+			OriginalAuthor:   comment.PosterName,
+			OriginalAuthorID: comment.PosterID,
+			Content:          comment.Content,
+			CreatedUnix:      util.TimeStamp(comment.Created.Unix()),
 		})
 
 		// TODO: Reactions
@@ -378,7 +383,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	}
 
 	var head = "unknown repository"
-	if pr.IsForkPullRequest() {
+	if pr.IsForkPullRequest() && pr.State != "closed" {
 		if pr.Head.OwnerName != "" {
 			remote := pr.Head.OwnerName
 			_, ok := g.prHeadCache[remote]
@@ -430,18 +435,20 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		HasMerged:    pr.Merged,
 
 		Issue: &models.Issue{
-			RepoID:      g.repo.ID,
-			Repo:        g.repo,
-			Title:       pr.Title,
-			Index:       pr.Number,
-			PosterID:    g.doer.ID,
-			Content:     pr.Content,
-			MilestoneID: milestoneID,
-			IsPull:      true,
-			IsClosed:    pr.State == "closed",
-			IsLocked:    pr.IsLocked,
-			Labels:      labels,
-			CreatedUnix: util.TimeStamp(pr.Created.Unix()),
+			RepoID:           g.repo.ID,
+			Repo:             g.repo,
+			Title:            pr.Title,
+			Index:            pr.Number,
+			PosterID:         g.doer.ID,
+			OriginalAuthor:   pr.PosterName,
+			OriginalAuthorID: pr.PosterID,
+			Content:          pr.Content,
+			MilestoneID:      milestoneID,
+			IsPull:           true,
+			IsClosed:         pr.State == "closed",
+			IsLocked:         pr.IsLocked,
+			Labels:           labels,
+			CreatedUnix:      util.TimeStamp(pr.Created.Unix()),
 		},
 	}
 

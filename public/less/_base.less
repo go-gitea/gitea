@@ -588,6 +588,18 @@ code,
         }
     }
 
+    .migrate {
+        color: #888888 !important;
+        opacity: 0.5;
+        a {
+            color: #444444 !important;
+
+            &:hover {
+                color: #000000 !important;
+            }
+        }
+    }
+
     .branch-tag-choice {
         line-height: 20px;
     }
@@ -605,7 +617,6 @@ code,
 .file-comment {
     font: 12px @monospaced-fonts, monospace;
     color: rgba(0, 0, 0, 0.87);
-
 }
 
 .ui.floating.dropdown {
@@ -876,4 +887,20 @@ footer {
 
 .ui.tabular.menu .item.active {
     color: rgba(0, 0, 0, 0.9);
+}
+
+/* multiple radio or checkboxes as inline element */
+.inline-grouped-list {
+    display: inline-block;
+    vertical-align: top;
+
+    > .ui {
+        display: block;
+        margin-top: 5px;
+        margin-bottom: 10px;
+
+        &:first-child {
+            margin-top: 1px;
+        }
+    }
 }

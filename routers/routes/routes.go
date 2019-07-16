@@ -184,12 +184,13 @@ func NewMacaron() *macaron.Macaron {
 	}
 
 	m.Use(i18n.I18n(i18n.Options{
-		SubURL:      setting.AppSubURL,
-		Files:       localFiles,
-		Langs:       setting.Langs,
-		Names:       setting.Names,
-		DefaultLang: "en-US",
-		Redirect:    false,
+		SubURL:       setting.AppSubURL,
+		Files:        localFiles,
+		Langs:        setting.Langs,
+		Names:        setting.Names,
+		DefaultLang:  "en-US",
+		Redirect:     false,
+		CookieDomain: setting.SessionConfig.Domain,
 	}))
 	m.Use(cache.Cacher(cache.Options{
 		Adapter:       setting.CacheService.Adapter,
@@ -205,8 +206,9 @@ func NewMacaron() *macaron.Macaron {
 		Cookie:         setting.CSRFCookieName,
 		SetCookie:      true,
 		Secure:         setting.SessionConfig.Secure,
-		CookieHttpOnly: true,
+		CookieHttpOnly: setting.CSRFCookieHTTPOnly,
 		Header:         "X-Csrf-Token",
+		CookieDomain:   setting.SessionConfig.Domain,
 		CookiePath:     setting.AppSubURL,
 	}))
 	m.Use(toolbox.Toolboxer(m, toolbox.Options{
@@ -668,7 +670,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
 		})
-	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.UnitTypes(), context.RepoRef())
+	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
 	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), context.UnitTypes(), repo.Action)
 
@@ -807,6 +809,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/wiki", func() {
 			m.Get("/?:page", repo.Wiki)
 			m.Get("/_pages", repo.WikiPages)
+			m.Get("/:page/_revision", repo.WikiRevision)
 
 			m.Group("", func() {
 				m.Combo("/_new").Get(repo.NewWiki).

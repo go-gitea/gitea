@@ -494,3 +494,36 @@
         padding-left: 2em;
     }
 }
+
+.repository.wiki.revisions {
+    .ui.container > .ui.stackable.grid {
+        -ms-flex-direction: row-reverse;
+        flex-direction: row-reverse;
+
+        > .header {
+            margin-top: 0;
+
+            .sub.header {
+                padding-left: 52px;
+                word-break: break-word;
+            }
+        }
+    }
+}
+
+.file-revisions-btn {
+    display: block;
+    float: left;
+    margin-bottom: 2px !important;
+    padding: 11px !important;
+    margin-right: 10px !important;
+
+    i {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+}

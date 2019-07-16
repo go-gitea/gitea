@@ -136,6 +136,7 @@ type Repository struct {
 	Name          string `xorm:"INDEX NOT NULL"`
 	Description   string
 	Website       string
+	OriginalURL   string
 	DefaultBranch string
 
 	NumWatches          int
@@ -847,6 +848,7 @@ func (repo *Repository) CloneLink() (cl *CloneLink) {
 type MigrateRepoOptions struct {
 	Name                 string
 	Description          string
+	OriginalURL          string
 	IsPrivate            bool
 	IsMirror             bool
 	RemoteAddr           string
@@ -878,6 +880,7 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 	repo, err := CreateRepository(doer, u, CreateRepoOptions{
 		Name:        opts.Name,
 		Description: opts.Description,
+		OriginalURL: opts.OriginalURL,
 		IsPrivate:   opts.IsPrivate,
 		IsMirror:    opts.IsMirror,
 	})
@@ -1092,6 +1095,7 @@ func initRepoCommit(tmpPath string, sig *git.Signature) (err error) {
 type CreateRepoOptions struct {
 	Name        string
 	Description string
+	OriginalURL string
 	Gitignores  string
 	License     string
 	Readme      string
@@ -1358,6 +1362,7 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 		Name:                            opts.Name,
 		LowerName:                       strings.ToLower(opts.Name),
 		Description:                     opts.Description,
+		OriginalURL:                     opts.OriginalURL,
 		IsPrivate:                       opts.IsPrivate,
 		IsFsckEnabled:                   !opts.IsMirror,
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
@@ -2051,11 +2056,6 @@ func DeleteRepositoryArchives() error {
 
 // DeleteOldRepositoryArchives deletes old repository archives.
 func DeleteOldRepositoryArchives() {
-	if !taskStatusTable.StartIfNotRunning(archiveCleanup) {
-		return
-	}
-	defer taskStatusTable.Stop(archiveCleanup)
-
 	log.Trace("Doing: ArchiveCleanup")
 
 	if err := x.Where("id > 0").Iterate(new(Repository), deleteOldRepositoryArchives); err != nil {
@@ -2182,23 +2182,8 @@ func SyncRepositoryHooks() error {
 		})
 }
 
-// Prevent duplicate running tasks.
-var taskStatusTable = sync.NewStatusTable()
-
-const (
-	mirrorUpdate   = "mirror_update"
-	gitFsck        = "git_fsck"
-	checkRepos     = "check_repos"
-	archiveCleanup = "archive_cleanup"
-)
-
 // GitFsck calls 'git fsck' to check repository health.
 func GitFsck() {
-	if !taskStatusTable.StartIfNotRunning(gitFsck) {
-		return
-	}
-	defer taskStatusTable.Stop(gitFsck)
-
 	log.Trace("Doing: GitFsck")
 
 	if err := x.
@@ -2267,11 +2252,6 @@ func repoStatsCheck(checker *repoChecker) {
 
 // CheckRepoStats checks the repository stats
 func CheckRepoStats() {
-	if !taskStatusTable.StartIfNotRunning(checkRepos) {
-		return
-	}
-	defer taskStatusTable.Stop(checkRepos)
-
 	log.Trace("Doing: CheckRepoStats")
 
 	checkers := []*repoChecker{
@@ -2677,4 +2657,14 @@ func (repo *Repository) DeleteAvatar() error {
 		log.Trace("DeleteAvatar[%d]: %v", err)
 	}
 	return sess.Commit()
+}
+
+// GetOriginalURLHostname returns the hostname of a URL or the URL
+func (repo *Repository) GetOriginalURLHostname() string {
+	u, err := url.Parse(repo.OriginalURL)
+	if err != nil {
+		return repo.OriginalURL
+	}
+
+	return u.Host
 }

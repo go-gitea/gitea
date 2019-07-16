@@ -265,16 +265,22 @@ func randFloat(from, to float64) float64 {
 	return (to-from)*prng.Float64() + from
 }
 
-func randomPalette() color.Palette {
+func randomPalette(primary color.Palette) color.Palette {
 	p := make([]color.Color, circleCount+1)
 	// Transparent color.
 	p[0] = color.RGBA{0xFF, 0xFF, 0xFF, 0x00}
 	// Primary color.
-	prim := color.RGBA{
-		uint8(randIntn(129)),
-		uint8(randIntn(129)),
-		uint8(randIntn(129)),
-		0xFF,
+	var prim color.RGBA
+	if len(primary) == 0 {
+		prim = color.RGBA{
+			uint8(randIntn(129)),
+			uint8(randIntn(129)),
+			uint8(randIntn(129)),
+			0xFF,
+		}
+	} else {
+		r, g, b, a := primary[randIntn(len(primary)-1)].RGBA()
+		prim = color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)}
 	}
 	p[1] = prim
 	// Circle colors.
@@ -285,10 +291,11 @@ func randomPalette() color.Palette {
 }
 
 // NewImage returns a new captcha image of the given width and height with the
-// given digits, where each digit must be in range 0-9.
-func NewImage(digits []byte, width, height int) *Image {
+// given digits, where each digit must be in range 0-9. The digit's color is
+// chosen by random from the colorPalette.
+func NewImage(digits []byte, width, height int, colorPalette color.Palette) *Image {
 	m := new(Image)
-	m.Paletted = image.NewPaletted(image.Rect(0, 0, width, height), randomPalette())
+	m.Paletted = image.NewPaletted(image.Rect(0, 0, width, height), randomPalette(colorPalette))
 	m.calculateSizes(width, height, len(digits))
 	// Randomly position captcha inside the image.
 	maxx := width - (m.numWidth+m.dotSize)*len(digits) - m.dotSize
