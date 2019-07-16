@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/pull"
+	pull_service "code.gitea.io/gitea/modules/pull"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -566,6 +567,41 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	}
 
 	if !pr.CanAutoMerge() || pr.HasMerged || pr.IsWorkInProgress() {
+		ctx.Status(405)
+		return
+	}
+
+	// check if all required status checks are successful
+	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		ctx.Error(500, "OpenRepository", err)
+		return
+	}
+
+	headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
+	if !headBranchExist {
+		ctx.Error(500, "HeadBranchExist is not exist, cannot merge", nil)
+		return
+	}
+
+	sha, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
+	if err != nil {
+		ctx.Error(500, "GetBranchCommitID", err)
+		return
+	}
+
+	commitStatuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, sha, 0)
+	if err != nil {
+		ctx.Error(500, "GetLatestCommitStatus", err)
+		return
+	}
+
+	if err = pr.LoadProtectedBranch(); err != nil {
+		ctx.Error(500, "GetLatestCommitStatus", err)
+		return
+	}
+
+	if pr.ProtectedBranch.EnableStatusCheck && !pull_service.IsCommitStatusContextSuccess(commitStatuses, pr.ProtectedBranch.StatusCheckContexts) {
 		ctx.Status(405)
 		return
 	}

@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/pull"
+	pull_service "code.gitea.io/gitea/modules/pull"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -350,6 +351,23 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 				ctx.Data["LatestCommitStatuses"] = commitStatuses
 				ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(commitStatuses)
 			}
+
+			if err = pull.LoadProtectedBranch(); err != nil {
+				ctx.ServerError("GetLatestCommitStatus", err)
+				return nil
+			}
+
+			if pull.ProtectedBranch.EnableStatusCheck {
+				ctx.Data["is_context_required"] = func(context string) bool {
+					for _, c := range pull.ProtectedBranch.StatusCheckContexts {
+						if c == context {
+							return true
+						}
+					}
+					return false
+				}
+				ctx.Data["IsRequiredStatusCheckSuccess"] = pull_service.IsCommitStatusContextSuccess(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
+			}
 		}
 	}
 
@@ -604,6 +622,42 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 
 	if pr.IsWorkInProgress() {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+		return
+	}
+
+	// check if all required status checks are successful
+	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		ctx.ServerError("OpenRepository", err)
+		return
+	}
+
+	headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
+	if !headBranchExist {
+		ctx.ServerError("HeadBranchExist is not exist, cannot merge", nil)
+		return
+	}
+
+	sha, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
+	if err != nil {
+		ctx.ServerError("GetBranchCommitID", err)
+		return
+	}
+
+	commitStatuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, sha, 0)
+	if err != nil {
+		ctx.ServerError("GetLatestCommitStatus", err)
+		return
+	}
+
+	if err = pr.LoadProtectedBranch(); err != nil {
+		ctx.ServerError("GetLatestCommitStatus", err)
+		return
+	}
+
+	if pr.ProtectedBranch.EnableStatusCheck && !pull_service.IsCommitStatusContextSuccess(commitStatuses, pr.ProtectedBranch.StatusCheckContexts) {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_status_check"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		return
 	}
