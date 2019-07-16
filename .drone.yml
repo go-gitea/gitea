@@ -605,7 +605,7 @@ steps:
 
   - name: publish
     pull: always
-    image: plugins/docker:18.09
+    image: plugins/docker:linux-amd64
     settings:
       cache_from: gitea/gitea
       auto_tag: true
