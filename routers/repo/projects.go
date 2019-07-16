@@ -136,7 +136,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 				return
 			}
 		}
-		ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=open")
+		ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=open")
 	case "close":
 		if !p.IsClosed {
 			p.ClosedDateUnix = util.TimeStampNow()
