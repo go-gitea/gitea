@@ -660,7 +660,7 @@ func RemoveUploadFileFromServer(ctx *context.Context, form auth.RemoveUploadFile
 	ctx.Status(204)
 }
 
-// GetUniquePatchBranchName Gets a unquie branch name for a new patch branch
+// GetUniquePatchBranchName Gets a unique branch name for a new patch branch
 // It will be in the form of <lowername>-patch-<num> where <num> is the first branch of this format
 // that doesn't already exist
 func GetUniquePatchBranchName(ctx *context.Context) string {
