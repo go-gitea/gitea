@@ -596,7 +596,6 @@ steps:
     pull: always
     image: plugins/docker:linux-amd64
     settings:
-      cache_from: gitea/gitea
       dry_run: true
       repo: gitea/gitea
     when:
@@ -607,7 +606,6 @@ steps:
     pull: always
     image: plugins/docker:linux-amd64
     settings:
-      cache_from: gitea/gitea
       auto_tag: true
       repo: gitea/gitea
       password:
