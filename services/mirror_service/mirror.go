@@ -244,12 +244,6 @@ func Address(m *models.Mirror) string {
 	return util.SanitizeURLCredentials(m.Address, false)
 }
 
-// FullAddress returns mirror address from Git repository config.
-func FullAddress(m *models.Mirror) string {
-	readAddress(m)
-	return m.Address
-}
-
 // Username returns the mirror address username
 func Username(m *models.Mirror) string {
 	readAddress(m)
