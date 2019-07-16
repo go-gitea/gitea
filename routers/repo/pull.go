@@ -357,7 +357,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 				return nil
 			}
 
-			if pull.ProtectedBranch.EnableStatusCheck {
+			if pull.ProtectedBranch != nil && pull.ProtectedBranch.EnableStatusCheck {
 				ctx.Data["is_context_required"] = func(context string) bool {
 					for _, c := range pull.ProtectedBranch.StatusCheckContexts {
 						if c == context {
@@ -656,7 +656,9 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if pr.ProtectedBranch.EnableStatusCheck && !pull_service.IsCommitStatusContextSuccess(commitStatuses, pr.ProtectedBranch.StatusCheckContexts) {
+	if pr.ProtectedBranch != nil &&
+		pr.ProtectedBranch.EnableStatusCheck &&
+		!pull_service.IsCommitStatusContextSuccess(commitStatuses, pr.ProtectedBranch.StatusCheckContexts) {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_status_check"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		return

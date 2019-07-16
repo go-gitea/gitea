@@ -601,7 +601,9 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if pr.ProtectedBranch.EnableStatusCheck && !pull_service.IsCommitStatusContextSuccess(commitStatuses, pr.ProtectedBranch.StatusCheckContexts) {
+	if pr.ProtectedBranch != nil &&
+		pr.ProtectedBranch.EnableStatusCheck &&
+		!pull_service.IsCommitStatusContextSuccess(commitStatuses, pr.ProtectedBranch.StatusCheckContexts) {
 		ctx.Status(405)
 		return
 	}
