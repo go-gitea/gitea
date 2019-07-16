@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -113,4 +114,39 @@ func NewProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
 	ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+}
+
+// ChangeProjectStatus updates the status of a project between "open" and "close"
+func ChangeProjectStatus(ctx *context.Context) {
+	p, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	if err != nil {
+		if models.IsErrProjectNotExist(err) {
+			ctx.NotFound("", err)
+		} else {
+			ctx.ServerError("GetProjectByRepoID", err)
+		}
+		return
+	}
+
+	switch ctx.Params(":action") {
+	case "open":
+		if p.IsClosed {
+			if err = models.ChangeProjectStatus(p, false); err != nil {
+				ctx.ServerError("ChangeProjectStatus", err)
+				return
+			}
+		}
+		ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=open")
+	case "close":
+		if !p.IsClosed {
+			p.ClosedDateUnix = util.TimeStampNow()
+			if err = models.ChangeProjectStatus(p, true); err != nil {
+				ctx.ServerError("ChangeProjectStatus", err)
+				return
+			}
+		}
+		ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=closed")
+	default:
+		ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+	}
 }

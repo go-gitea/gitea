@@ -1233,6 +1233,29 @@ func (err ErrLabelNotExist) Error() string {
 	return fmt.Sprintf("label does not exist [label_id: %d, repo_id: %d]", err.LabelID, err.RepoID)
 }
 
+// __________                   __               __
+// \______   \_______  ____    |__| ____   _____/  |_  ______
+//  |     ___/\_  __ \/  _ \   |  |/ __ \_/ ___\   __\/  ___/
+//  |    |     |  | \(  <_> )  |  \  ___/\  \___|  |  \___ \
+//  |____|     |__|   \____/\__|  |\___  >\___  >__| /____  >
+//                         \______|    \/     \/          \/
+
+// ErrProjectNotExist represents a "ProjectNotExist" kind of error.
+type ErrProjectNotExist struct {
+	ID     int64
+	RepoID int64
+}
+
+// IsErrProjetcNotExist checks if an error is a ErrProjectNotExist
+func IsErrProjectNotExist(err error) bool {
+	_, ok := err.(ErrProjectNotExist)
+	return ok
+}
+
+func (err ErrProjectNotExist) Error() string {
+	return fmt.Sprintf("projects does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
+}
+
 //    _____  .__.__                   __
 //   /     \ |__|  |   ____   _______/  |_  ____   ____   ____
 //  /  \ /  \|  |  | _/ __ \ /  ___/\   __\/  _ \ /    \_/ __ \

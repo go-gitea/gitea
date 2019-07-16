@@ -34,18 +34,6 @@ func (p *Project) AfterLoad() {
 	p.NumOpenIssues = p.NumIssues - p.NumClosedIssues
 }
 
-// CreateProject adds a new project entry to the database
-func CreateProject(p *Project, creator *User) error {
-
-	return nil
-}
-
-// ProjectExists checks if a given project exists
-func ProjectExists(p *Project) bool {
-	exists, _ := x.Exist(p)
-	return exists
-}
-
 // GetProjects returns a list of all projects that have been created in the
 // repository
 func GetProjects(repoID int64, page int, isClosed bool, sortType string) ([]*Project, error) {
@@ -87,5 +75,79 @@ func NewProject(p *Project) error {
 	if _, err := sess.Exec("UPDATE `repository` SET num_projects = num_projects + 1 WHERE id = ?", p.RepoID); err != nil {
 		return err
 	}
+	return sess.Commit()
+}
+
+// GetProjectByRepoID returns the projects in a repository.
+func GetProjectByRepoID(repoID, id int64) (*Project, error) {
+
+	p := &Project{
+		ID:     id,
+		RepoID: repoID,
+	}
+
+	has, err := x.Get(p)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrProjectNotExist{id, repoID}
+	}
+
+	return p, nil
+}
+
+func updateProject(e Engine, p *Project) error {
+	_, err := e.ID(p.ID).AllCols().Update(p)
+	return err
+}
+
+func countRepoProjects(e Engine, repoID int64) (int64, error) {
+	return e.
+		Where("repo_id=?", repoID).
+		Count(new(Project))
+}
+
+func countRepoClosedProjects(e Engine, repoID int64) (int64, error) {
+	return e.
+		Where("repo_id=? AND is_closed=?", repoID, true).
+		Count(new(Project))
+}
+
+// ChangeProjectStatus togggles a project between opened and closed
+func ChangeProjectStatus(p *Project, isClosed bool) error {
+
+	repo, err := GetRepositoryByID(p.RepoID)
+	if err != nil {
+		return err
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	p.IsClosed = isClosed
+	if err = updateProject(sess, p); err != nil {
+		return err
+	}
+
+	numProjects, err := countRepoProjects(sess, repo.ID)
+	if err != nil {
+		return err
+	}
+
+	numClosedProjects, err := countRepoClosedProjects(sess, repo.ID)
+	if err != nil {
+		return err
+	}
+
+	repo.NumProjects = int(numProjects)
+	repo.NumClosedProjects = int(numClosedProjects)
+
+	if _, err = sess.ID(repo.ID).Cols("num_projects, num_closed_projects").Update(repo); err != nil {
+		return err
+	}
+
 	return sess.Commit()
 }
