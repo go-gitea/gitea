@@ -661,8 +661,9 @@ func RemoveUploadFileFromServer(ctx *context.Context, form auth.RemoveUploadFile
 }
 
 // GetUniquePatchBranchName Gets a unique branch name for a new patch branch
-// It will be in the form of <lowername>-patch-<num> where <num> is the first branch of this format
-// that doesn't already exist
+// It will be in the form of <username>-patch-<num> where <num> is the first branch of this format
+// that doesn't already exist. If we exceed 1000 tries or an error is thrown, we just return "" so the user has to
+// type in the branch name themselves (will be an empty field)
 func GetUniquePatchBranchName(ctx *context.Context) string {
 	prefix := ctx.User.LowerName + "-patch-"
 	for i := 1; i <= 1000; i++ {
@@ -671,6 +672,7 @@ func GetUniquePatchBranchName(ctx *context.Context) string {
 			if git.IsErrBranchNotExist(err) {
 				return branchName
 			}
+			log.Error("GetUniquePatchBranchName: %v", err)
 			return ""
 		}
 	}
@@ -678,7 +680,8 @@ func GetUniquePatchBranchName(ctx *context.Context) string {
 }
 
 // GetClosestParentWithFiles Recursively gets the path of parent in a tree that has files (used when file in a tree is
-// deleted). Returns "" for the root if no parents other than the root have files
+// deleted). Returns "" for the root if no parents other than the root have files. If the given treePath isn't a
+// SubTree or it has no entries, we go up one dir and see if we can return the user to that listing.
 func GetClosestParentWithFiles(treePath string, commit *git.Commit) string {
 	if len(treePath) == 0 || treePath == "." {
 		return ""
