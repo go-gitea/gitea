@@ -16,7 +16,7 @@ func addStatusCheckColumnsForProtectedBranches(x *xorm.Engine) error {
 		return err
 	}
 
-	_, err := x.Update(&ProtectedBranch{
+	_, err := x.AllCols().Update(&ProtectedBranch{
 		EnableStatusCheck:   false,
 		StatusCheckContexts: []string{},
 	})
