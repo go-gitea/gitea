@@ -146,7 +146,21 @@ func ChangeProjectStatus(ctx *context.Context) {
 			}
 		}
 		ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=closed")
+
 	default:
 		ctx.Redirect(ctx.Repo.RepoLink + "/projects")
 	}
+}
+
+// DeleteProject delete a project
+func DeleteProject(ctx *context.Context) {
+	if err := models.DeleteProjectByRepoID(ctx.Repo.Repository.ID, ctx.QueryInt64("id")); err != nil {
+		ctx.Flash.Error("DeleteProjectByRepoID: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": ctx.Repo.RepoLink + "/projects",
+	})
 }

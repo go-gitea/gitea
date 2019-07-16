@@ -12,6 +12,13 @@ import (
 
 func addProjectsTable(x *xorm.Engine) error {
 
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
 	type Project struct {
 		ID              int64  `xorm:"pk autoincr"`
 		Title           string `xorm:"INDEX NOT NULL"`
@@ -27,5 +34,17 @@ func addProjectsTable(x *xorm.Engine) error {
 		UpdatedUnix    util.TimeStamp `xorm:"INDEX updated"`
 	}
 
-	return x.Sync(new(Project))
+	type Issue struct {
+		ProjectID int64 `xorm:"INDEX"`
+	}
+
+	if err := x.Sync(new(Project)); err != nil {
+		return err
+	}
+
+	if err := x.Sync2(new(Issue)); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }

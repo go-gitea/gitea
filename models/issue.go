@@ -38,6 +38,7 @@ type Issue struct {
 	RenderedContent  string     `xorm:"-"`
 	Labels           []*Label   `xorm:"-"`
 	MilestoneID      int64      `xorm:"INDEX"`
+	ProjectID        int64      `xorm:"INDEX"`
 	Milestone        *Milestone `xorm:"-"`
 	Priority         int
 	AssigneeID       int64        `xorm:"-"`

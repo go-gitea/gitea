@@ -151,3 +151,52 @@ func ChangeProjectStatus(p *Project, isClosed bool) error {
 
 	return sess.Commit()
 }
+
+// DeleteProjectByRepoID deletes a project from a repository.
+func DeleteProjectByRepoID(repoID, id int64) error {
+	p, err := GetProjectByRepoID(repoID, id)
+	if err != nil {
+		if IsErrProjectNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	repo, err := GetRepositoryByID(p.RepoID)
+	if err != nil {
+		return err
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if _, err = sess.ID(p.ID).Delete(new(Project)); err != nil {
+		return err
+	}
+
+	numProjects, err := countRepoProjects(sess, repo.ID)
+	if err != nil {
+		return err
+	}
+
+	numClosedProjects, err := countRepoClosedProjects(sess, repo.ID)
+	if err != nil {
+		return err
+	}
+
+	repo.NumProjects = int(numProjects)
+	repo.NumClosedProjects = int(numClosedProjects)
+
+	if _, err = sess.ID(repo.ID).Cols("num_projects, num_closed_projects").Update(repo); err != nil {
+		return err
+	}
+
+	if _, err = sess.Exec("UPDATE `issue` SET project_id = 0 WHERE project_id = ?", p.ID); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
