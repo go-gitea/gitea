@@ -60,8 +60,6 @@ const (
 	algoPbkdf2 = "pbkdf2"
 )
 
-const syncExternalUsers = "sync_external_users"
-
 var (
 	// ErrUserNotKeyOwner user does not own this key error
 	ErrUserNotKeyOwner = errors.New("User does not own this public key")
@@ -1643,11 +1641,6 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []str
 
 // SyncExternalUsers is used to synchronize users with external authorization source
 func SyncExternalUsers() {
-	if !taskStatusTable.StartIfNotRunning(syncExternalUsers) {
-		return
-	}
-	defer taskStatusTable.Stop(syncExternalUsers)
-
 	log.Trace("Doing: SyncExternalUsers")
 
 	ls, err := LoginSources()
