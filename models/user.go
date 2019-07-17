@@ -773,7 +773,6 @@ var (
 		"org",
 		"plugins",
 		"pulls",
-		"raw",
 		"repo",
 		"stars",
 		"template",
