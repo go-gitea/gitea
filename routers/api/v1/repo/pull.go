@@ -571,39 +571,13 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	// check if all required status checks are successful
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	isPass, err := pull_service.IsPullCommitStatusPass(pr)
 	if err != nil {
-		ctx.Error(500, "OpenRepository", err)
+		ctx.Error(500, "IsPullCommitStatusPass", err)
 		return
 	}
 
-	headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
-	if !headBranchExist {
-		ctx.Error(500, "HeadBranchExist is not exist, cannot merge", nil)
-		return
-	}
-
-	sha, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
-	if err != nil {
-		ctx.Error(500, "GetBranchCommitID", err)
-		return
-	}
-
-	commitStatuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, sha, 0)
-	if err != nil {
-		ctx.Error(500, "GetLatestCommitStatus", err)
-		return
-	}
-
-	if err = pr.LoadProtectedBranch(); err != nil {
-		ctx.Error(500, "GetLatestCommitStatus", err)
-		return
-	}
-
-	if pr.ProtectedBranch != nil &&
-		pr.ProtectedBranch.EnableStatusCheck &&
-		!pull_service.IsCommitStatusContextSuccess(commitStatuses, pr.ProtectedBranch.StatusCheckContexts) {
+	if !isPass {
 		ctx.Status(405)
 		return
 	}

@@ -5,7 +5,12 @@
 
 package pull
 
-import "code.gitea.io/gitea/models"
+import (
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
+
+	"github.com/pkg/errors"
+)
 
 // IsCommitStatusContextSuccess returns true if all required status check contexts succeed.
 func IsCommitStatusContextSuccess(commitStatuses []*models.CommitStatus, requiredContexts []string) bool {
@@ -26,4 +31,40 @@ func IsCommitStatusContextSuccess(commitStatuses []*models.CommitStatus, require
 		}
 	}
 	return true
+}
+
+// IsPullCommitStatusPass returns if all required status checks PASS
+func IsPullCommitStatusPass(pr *models.PullRequest) (bool, error) {
+	// check if all required status checks are successful
+	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		return false, errors.Wrap(err, "OpenRepository")
+	}
+
+	headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
+	if !headBranchExist {
+		return false, errors.New("HeadBranchExist is not exist, cannot merge")
+	}
+
+	sha, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
+	if err != nil {
+		return false, errors.Wrap(err, "GetBranchCommitID")
+	}
+
+	commitStatuses, err := models.GetLatestCommitStatus(pr.BaseRepo, sha, 0)
+	if err != nil {
+		return false, errors.Wrap(err, "GetLatestCommitStatus")
+	}
+
+	if err = pr.LoadProtectedBranch(); err != nil {
+		return false, errors.Wrap(err, "GetLatestCommitStatus")
+	}
+
+	if pr.ProtectedBranch != nil &&
+		pr.ProtectedBranch.EnableStatusCheck &&
+		!IsCommitStatusContextSuccess(commitStatuses, pr.ProtectedBranch.StatusCheckContexts) {
+		return false, nil
+	}
+
+	return true, nil
 }
