@@ -117,7 +117,7 @@
 							<table class="ui celled table six column">
 								<thead>
 									<tr><th>
-										{{.i18n.Tr "repo.settings.protect_check_status_contexts"}}
+										{{.i18n.Tr "repo.settings.protect_check_status_contexts_list"}}
 									</th>
 									</tr>
 								</thead>
@@ -125,10 +125,10 @@
 								{{range $.branch_status_check_contexts}}
 									<tr><td>
 										<span class="ui checkbox">
-											<input class="enable-whitelist" name="status_check_contexts" value="{{.}}" type="checkbox" {{if and $.is_context_require (call $.is_context_required .)}}checked{{end}}>
+											<input class="enable-whitelist" name="status_check_contexts" value="{{.}}" type="checkbox" {{if $.is_context_require}}{{if call $.is_context_required .}}checked{{end}}{{end}}>
 										</span>
 										{{.}}
-										{{if and $.is_context_required (call $.is_context_required .)}}<div class="ui label right">Required</div>{{end}}
+										{{if $.is_context_required}}{{if call $.is_context_required .}}<div class="ui label right">Required</div>{{end}}{{end}}
 									</td></tr>
 								{{end}}
 								</tbody>

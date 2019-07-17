@@ -126,7 +126,21 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.WhitelistUserIDs), ",")
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.ApprovalsWhitelistUserIDs), ",")
-	c.Data["branch_status_check_contexts"], _ = models.FindRepoStatusCheckContexts(c.Repo.Repository.ID, 4*7*24*time.Hour) // Find last week status check contexts
+	contexts, _ := models.FindRepoStatusCheckContexts(c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
+	for _, context := range protectBranch.StatusCheckContexts {
+		var found bool
+		for _, ctx := range contexts {
+			if ctx == context {
+				found = true
+				break
+			}
+		}
+		if !found {
+			contexts = append(contexts, context)
+		}
+	}
+
+	c.Data["branch_status_check_contexts"] = contexts
 	c.Data["is_context_required"] = func(context string) bool {
 		for _, c := range protectBranch.StatusCheckContexts {
 			if c == context {
