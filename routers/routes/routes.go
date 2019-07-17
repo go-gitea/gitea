@@ -667,7 +667,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
 		})
-	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.UnitTypes(), context.RepoRef())
+	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
 	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), context.UnitTypes(), repo.Action)
 
