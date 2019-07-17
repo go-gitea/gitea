@@ -10,6 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+
+	"gitea.com/lunny/path"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,6 +25,9 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repoPath := models.RepoPath(user.Name, repo.Name)
+
+	assert.NoError(t, path.CopyDir("../../integrations/gitea-repositories-meta/user2/repo1.git", repoPath))
+
 	migrationOptions := models.MigrateRepoOptions{
 		Name:                 "test_mirror",
 		Description:          "Test mirror",
