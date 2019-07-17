@@ -83,5 +83,5 @@ func TestComposeIssueMessage(t *testing.T) {
 	assert.Equal(t, subject[0], issue.mailSubject(), "Subject not equal to issue.mailSubject()")
 	assert.Nil(t, msg.GetHeader("In-Reply-To"))
 	assert.Nil(t, msg.GetHeader("References"))
-	assert.Equal(t, messageID[0], "<user2/repo1/issues/1@localhost>", "References header doesn't match")
+	assert.Equal(t, messageID[0], "<user2/repo1/issues/1@localhost>", "Message-ID header doesn't match")
 }
