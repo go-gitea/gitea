@@ -573,7 +573,6 @@ workspace:
 
 depends_on:
   - testing
-  - translations
 
 trigger:
   ref:
