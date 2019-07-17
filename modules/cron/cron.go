@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
-	"code.gitea.io/gitea/services/mirror_service"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"github.com/gogs/cron"
 )
@@ -52,14 +52,14 @@ func NewContext() {
 		err   error
 	)
 	if setting.Cron.UpdateMirror.Enabled {
-		entry, err = c.AddFunc("Update mirrors", setting.Cron.UpdateMirror.Schedule, WithUnique(mirrorUpdate, mirror_service.MirrorUpdate))
+		entry, err = c.AddFunc("Update mirrors", setting.Cron.UpdateMirror.Schedule, WithUnique(mirrorUpdate, mirror_service.Update))
 		if err != nil {
 			log.Fatal("Cron[Update mirrors]: %v", err)
 		}
 		if setting.Cron.UpdateMirror.RunAtStart {
 			entry.Prev = time.Now()
 			entry.ExecTimes++
-			go WithUnique(mirrorUpdate, mirror_service.MirrorUpdate)()
+			go WithUnique(mirrorUpdate, mirror_service.Update)()
 		}
 	}
 	if setting.Cron.RepoHealthCheck.Enabled {

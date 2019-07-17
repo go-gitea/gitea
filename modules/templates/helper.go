@@ -28,7 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
-	"code.gitea.io/gitea/services/mirror_service"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
 )

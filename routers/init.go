@@ -21,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/services/mailer"
-	"code.gitea.io/gitea/services/mirror_service"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"gitea.com/macaron/macaron"
 )

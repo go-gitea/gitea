@@ -25,10 +25,11 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/mailer"
-	"code.gitea.io/gitea/services/mirror_service"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"github.com/unknwon/com"
 	"mvdan.cc/xurls/v2"
+	
 )
 
 const (

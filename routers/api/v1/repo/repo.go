@@ -20,7 +20,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/convert"
-	"code.gitea.io/gitea/services/mirror_service"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 )
 
 var searchOrderByMap = map[string]map[string]models.SearchOrderBy{

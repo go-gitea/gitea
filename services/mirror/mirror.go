@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package mirror_service
+package mirror
 
 import (
 	"fmt"
@@ -268,8 +268,8 @@ func Password(m *models.Mirror) string {
 }
 
 // MirrorUpdate checks and updates mirror repositories.
-func MirrorUpdate() {
-	log.Trace("Doing: MirrorUpdate")
+func Update() {
+	log.Trace("Doing: Update")
 
 	if err := models.MirrorsIterate(func(idx int, bean interface{}) error {
 		m := bean.(*models.Mirror)
@@ -281,7 +281,7 @@ func MirrorUpdate() {
 		mirrorQueue.Add(m.RepoID)
 		return nil
 	}); err != nil {
-		log.Error("MirrorUpdate: %v", err)
+		log.Error("Update: %v", err)
 	}
 }
 
