@@ -281,7 +281,7 @@ DB_RETRY_BACKOFF = 3s
 ISSUE_INDEXER_TYPE = bleve
 ; Issue indexer storage path, available when ISSUE_INDEXER_TYPE is bleve
 ISSUE_INDEXER_PATH = indexers/issues.bleve
-; Issue indexer queue, currently support: channel or levelqueue, default is levelqueue
+; Issue indexer queue, currently support: channel, levelqueue or redis, default is levelqueue
 ISSUE_INDEXER_QUEUE_TYPE = levelqueue
 ; When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path,
 ; default is indexers/issues.queue
@@ -321,6 +321,8 @@ IMPORT_LOCAL_PATHS = false
 DISABLE_GIT_HOOKS = false
 ; Password Hash algorithm, either "pbkdf2", "argon2", "scrypt" or "bcrypt"
 PASSWORD_HASH_ALGO = pbkdf2
+; Set false to allow JavaScript to read CSRF cookie
+CSRF_COOKIE_HTTP_ONLY = true
 
 [openid]
 ;

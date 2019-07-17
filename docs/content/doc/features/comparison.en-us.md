@@ -62,7 +62,7 @@ _Symbols used in table:_
 | Granular user roles (Code, Issues, Wiki etc) | ✓ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Verified Committer | ✘ | ✘ | ? | ✓ | ✓ | ✓ | ✘ |
 | GPG Signed Commits | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Reject unsigned commits | ✘ | ✘ | ✓ | ✓ | ✓ | ✘ | ✓ |
+| Reject unsigned commits | [✘](https://github.com/go-gitea/gitea/issues/2770) | ✘ | ✓ | ✓ | ✓ | ✘ | ✓ |
 | Repository Activity page | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Branch manager | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Create new branches | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |

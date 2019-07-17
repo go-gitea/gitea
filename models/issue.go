@@ -472,6 +472,18 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 	}
 }
 
+// ReplyReference returns tokenized address to use for email reply headers
+func (issue *Issue) ReplyReference() string {
+	var path string
+	if issue.IsPull {
+		path = "pulls"
+	} else {
+		path = "issues"
+	}
+
+	return fmt.Sprintf("%s/%s/%d@%s", issue.Repo.FullName(), path, issue.Index, setting.Domain)
+}
+
 func (issue *Issue) addLabel(e *xorm.Session, label *Label, doer *User) error {
 	return newIssueLabel(e, issue, label, doer)
 }
