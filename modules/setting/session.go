@@ -11,8 +11,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	// This ensures that VirtualSessionProvider is available
-	_ "code.gitea.io/gitea/modules/session"
 
 	"github.com/go-macaron/session"
 )
