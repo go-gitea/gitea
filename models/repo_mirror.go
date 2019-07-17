@@ -90,7 +90,7 @@ func DeleteMirrorByRepoID(repoID int64) error {
 	return err
 }
 
-// MirrorIterate iterates all mirror repositories.
+// MirrorsIterate iterates all mirror repositories.
 func MirrorsIterate(f func(idx int, bean interface{}) error) error {
 	return x.
 		Where("next_update_unix<=?", time.Now().Unix()).
