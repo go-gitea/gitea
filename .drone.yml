@@ -455,7 +455,6 @@ trigger:
 
 depends_on:
   - testing
-  - translations
 
 steps:
   - name: fetch-tags
