@@ -570,6 +570,15 @@ workspace:
   base: /go
   path: src/code.gitea.io/gitea
 
+depends_on:
+  - testing
+
+trigger:
+  ref:
+  - refs/heads/master
+  - "refs/tags/**"
+  - "refs/pull/**"
+
 steps:
   - name: fetch-tags
     pull: default
@@ -583,56 +592,28 @@ steps:
 
   - name: dryrun
     pull: always
-    image: plugins/docker:18.09
+    image: plugins/docker:linux-amd64
     settings:
-      cache_from: gitea/gitea
       dry_run: true
       repo: gitea/gitea
     when:
       event:
         - pull_request
 
-  - name: release
+  - name: publish
     pull: always
-    image: plugins/docker:18.09
+    image: plugins/docker:linux-amd64
     settings:
-      cache_from: gitea/gitea
+      auto_tag: true
       repo: gitea/gitea
-      tags:
-        - "${DRONE_BRANCH##release/v}"
-    environment:
-      DOCKER_PASSWORD:
+      password:
         from_secret: docker_password
-      DOCKER_USERNAME:
+      username:
         from_secret: docker_username
-    depends_on:
-      - dryrun
     when:
-      branch:
-        - "release/*"
       event:
-        - push
-
-  - name: latest
-    pull: always
-    image: plugins/docker:18.09
-    settings:
-      cache_from: gitea/gitea
-      default_tags: true
-      repo: gitea/gitea
-    environment:
-      DOCKER_PASSWORD:
-        from_secret: docker_password
-      DOCKER_USERNAME:
-        from_secret: docker_username
-    depends_on:
-      - dryrun
-    when:
-      branch:
-        - master
-      event:
-        - push
-        - tag
+        exclude:
+        - pull_request
 
 ---
 kind: pipeline
