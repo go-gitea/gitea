@@ -207,12 +207,6 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 		if strings.TrimSpace(f.MergeWhitelistUsers) != "" {
 			mergeWhitelistUsers, _ = base.StringsToInt64s(strings.Split(f.MergeWhitelistUsers, ","))
 		}
-		if strings.TrimSpace(f.MergeWhitelistTeams) != "" {
-			mergeWhitelistTeams, _ = base.StringsToInt64s(strings.Split(f.MergeWhitelistTeams, ","))
-		}
-		if strings.TrimSpace(f.MergeWhitelistTeams) != "" {
-			mergeWhitelistTeams, _ = base.StringsToInt64s(strings.Split(f.MergeWhitelistTeams, ","))
-		}
 
 		protectBranch.EnableStatusCheck = f.EnableStatusCheck
 		protectBranch.StatusCheckContexts = f.StatusCheckContexts
