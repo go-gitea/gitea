@@ -11,7 +11,7 @@
 		<div class="quick-pull-choice js-quick-pull-choice">
 			<div class="field">
 		 		<div class="ui radio checkbox {{if not .CanCommitToBranch}}disabled{{end}}">
-					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" {{if eq .commit_choice "direct"}}checked{{end}}>
+					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" button_text="{{.i18n.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "direct"}}checked{{end}}>
 					<label>
 						<i class="octicon octicon-git-commit" height="16" width="14"></i>
 						{{.i18n.Tr "repo.editor.commit_directly_to_this_branch" (.BranchName|Escape) | Safe}}
@@ -20,7 +20,7 @@
 			</div>
 			<div class="field">
 				<div class="ui radio checkbox">
-					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
+					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.i18n.Tr "repo.editor.propose_file_change"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
 					<label>
 						<i class="octicon octicon-git-pull-request" height="16" width="12"></i>
 						{{.i18n.Tr "repo.editor.create_new_branch" | Safe}}
@@ -36,8 +36,8 @@
 			</div>
 		</div>
 	</div>
-	<button type="submit" class="ui green button">
-		{{.i18n.Tr "repo.editor.commit_changes"}}
+	<button id="commit-button" type="submit" class="ui green button">
+		{{if eq .commit_choice "commit-to-new-branch"}}{{.i18n.Tr "repo.editor.propose_file_change"}}{{else}}{{.i18n.Tr "repo.editor.commit_changes"}}{{end}}
 	</button>
 	<a class="ui button red" href="{{EscapePound $.BranchLink}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.editor.cancel"}}</a>
 </div>
