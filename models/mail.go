@@ -189,10 +189,10 @@ func composeIssueCommentMessage(issue *Issue, doer *User, content string, commen
 	// Set Message-ID on first message so replies know what to reference
 	if comment == nil {
 		msg.SetHeader("Message-ID", "<"+issue.ReplyReference()+">")
+	} else {
+		msg.SetHeader("In-Reply-To", "<"+issue.ReplyReference()+">")
+		msg.SetHeader("References", "<"+issue.ReplyReference()+">")
 	}
-
-	msg.SetHeader("In-Reply-To", "<"+issue.ReplyReference()+">")
-	msg.SetHeader("References", "<"+issue.ReplyReference()+">")
 
 	return msg
 }

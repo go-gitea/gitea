@@ -49,8 +49,14 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
 	msg := composeIssueCommentMessage(issue, doer, "test body", comment, mailIssueComment, tos, "issue comment")
+
 	subject := msg.GetHeader("Subject")
+	inreplyTo := msg.GetHeader("In-Reply-To")
+	references := msg.GetHeader("References")
+
 	assert.Equal(t, subject[0], "Re: "+issue.mailSubject(), "Comment reply subject should contain Re:")
+	assert.Equal(t, inreplyTo[0], "<user2/repo1/issues/1@localhost>", "In-Reply-To header doesn't match")
+	assert.Equal(t, references[0], "<user2/repo1/issues/1@localhost>", "References header doesn't match")
 
 }
 
@@ -70,6 +76,12 @@ func TestComposeIssueMessage(t *testing.T) {
 
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
 	msg := composeIssueCommentMessage(issue, doer, "test body", nil, mailIssueComment, tos, "issue create")
+
 	subject := msg.GetHeader("Subject")
+	messageID := msg.GetHeader("Message-ID")
+
 	assert.Equal(t, subject[0], issue.mailSubject(), "Subject not equal to issue.mailSubject()")
+	assert.Nil(t, msg.GetHeader("In-Reply-To"))
+	assert.Nil(t, msg.GetHeader("References"))
+	assert.Equal(t, messageID[0], "<user2/repo1/issues/1@localhost>", "References header doesn't match")
 }
