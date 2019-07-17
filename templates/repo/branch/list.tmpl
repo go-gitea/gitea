@@ -12,7 +12,17 @@
 			<table class="ui very basic striped fixed table single line">
 				<tbody>
 					<tr>
-						<td>{{.DefaultBranch}}</td>
+						<td>
+						{{range $branch := .Branches}}
+							{{if eq .Name $.DefaultBranch}}
+								{{if .IsProtected}}
+									<i class="octicon octicon-shield"></i>
+								{{end}}
+								{{$.DefaultBranch}}
+								<p class="info"><i class="octicon octicon-git-commit"></i><a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
+							{{end}}
+						{{end}}
+						</td>
 					</tr>
 				</tbody>
 			</table>
@@ -41,10 +51,13 @@
 									<td>
 									{{if .IsDeleted}}
 										<s><a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a></s>
-										<p class="time">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</p>
+										<p class="info">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</p>
 									{{else}}
+										{{if .IsProtected}}
+											<i class="octicon octicon-shield"></i>
+										{{end}}
 										<a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a>
-										<p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
+										<p class="info"><i class="octicon octicon-git-commit"></i><a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 									{{end}}
 									</td>
 									<td class="ui">
