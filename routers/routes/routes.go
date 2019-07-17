@@ -35,6 +35,9 @@ import (
 	"code.gitea.io/gitea/routers/user"
 	userSetting "code.gitea.io/gitea/routers/user/setting"
 
+	// to registers all internal adapters
+	_ "code.gitea.io/gitea/modules/session"
+
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/captcha"
