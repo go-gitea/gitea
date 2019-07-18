@@ -1275,6 +1275,7 @@ function initEditor() {
             $('.quick-pull-branch-name').hide();
             $('.quick-pull-branch-name input').prop('required',false);
         }
+        $('#commit-button').text($(this).attr('button_text'));
     });
 
     var $editFilename = $("#file-name");
