@@ -18,7 +18,7 @@
 								{{if .IsProtected}}
 									<i class="octicon octicon-shield"></i>
 								{{end}}
-								{{$.DefaultBranch}}
+								<a href="{{$.RepoLink}}/src/branch/{{$.DefaultBranch | EscapePound}}">{{$.DefaultBranch}}</a>
 								<p class="info"><i class="octicon octicon-git-commit"></i><a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 							{{end}}
 						{{end}}

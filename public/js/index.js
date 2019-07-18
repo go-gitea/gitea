@@ -2564,7 +2564,8 @@ function initHeatmap(appElementId, heatmapUser, locale) {
                 isLoading: true,
                 colorRange: [],
                 endDate: null,
-                values: []
+                values: [],
+                totalContributions: 0,
             };
         },
 
@@ -2587,6 +2588,7 @@ function initHeatmap(appElementId, heatmapUser, locale) {
                 $.get(this.suburl + '/api/v1/users/' + userName + '/heatmap', function(chartRawData) {
                     const chartData = [];
                     for (let i = 0; i < chartRawData.length; i++) {
+                        self.totalContributions += chartRawData[i].contributions;
                         chartData[i] = { date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions };
                     }
                     self.values = chartData;
@@ -2607,7 +2609,7 @@ function initHeatmap(appElementId, heatmapUser, locale) {
             }
         },
 
-        template: '<div><div v-show="isLoading"><slot name="loading"></slot></div><calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange" />'
+        template: '<div><div v-show="isLoading"><slot name="loading"></slot></div><h4 class="total-contributions" v-if="!isLoading"><span v-html="totalContributions"></span> total contributions in the last 12 months</h4><calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange" />'
     });
 
     new Vue({
