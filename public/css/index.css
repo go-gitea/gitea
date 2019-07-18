@@ -200,6 +200,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 #user-heatmap svg:not(:root){overflow:inherit;padding:0!important}
 @media only screen and (max-width:1200px){#user-heatmap{display:none}
 }
+#user-heatmap .total-contributions{text-align:left;font-weight:500;margin-top:0}
 .heatmap-color-0{background-color:#f4f4f4}
 .heatmap-color-1{background-color:#d7e5db}
 .heatmap-color-2{background-color:#adc7ab}
