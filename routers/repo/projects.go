@@ -164,3 +164,57 @@ func DeleteProject(ctx *context.Context) {
 		"redirect": ctx.Repo.RepoLink + "/projects",
 	})
 }
+
+// EditProject allows a project to be edited
+func EditProject(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
+	ctx.Data["PageIsProjects"] = true
+	ctx.Data["PageIsEditProjects"] = true
+
+	p, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	if err != nil {
+		if models.IsErrProjectNotExist(err) {
+			ctx.NotFound("", nil)
+		} else {
+			ctx.ServerError("GetProjectByRepoID", err)
+		}
+		return
+	}
+
+	ctx.Data["title"] = p.Title
+	ctx.Data["content"] = p.Description
+
+	ctx.HTML(200, tplProjectsNew)
+}
+
+// EditProjectPost response for edting a project
+func EditProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
+	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
+	ctx.Data["PageIsProjects"] = true
+	ctx.Data["PageIsEditProjects"] = true
+
+	if ctx.HasError() {
+		ctx.HTML(200, tplMilestoneNew)
+		return
+	}
+
+	p, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	if err != nil {
+		if models.IsErrProjectNotExist(err) {
+			ctx.NotFound("", nil)
+		} else {
+			ctx.ServerError("GetProjectByRepoID", err)
+		}
+		return
+	}
+
+	p.Title = form.Title
+	p.Description = form.Content
+	if err = models.UpdateProject(p); err != nil {
+		ctx.ServerError("UpdateProjects", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.projects.edit_success", p.Title))
+	ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+}

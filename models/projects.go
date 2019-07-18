@@ -200,3 +200,9 @@ func DeleteProjectByRepoID(repoID, id int64) error {
 
 	return sess.Commit()
 }
+
+// UpdateProject updates a project
+func UpdateProject(p *Project) error {
+	_, err := x.ID(p.ID).AllCols().Update(p)
+	return err
+}
