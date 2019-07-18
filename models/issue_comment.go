@@ -634,12 +634,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 			act.OpType = ActionReopenPullRequest
 		}
 
-		if opts.Issue.IsPull {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=num_closed_pulls-1 WHERE id=?", opts.Repo.ID)
-		} else {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_issues=num_closed_issues-1 WHERE id=?", opts.Repo.ID)
-		}
-		if err != nil {
+		if err = opts.Issue.updateClosedNum(e); err != nil {
 			return err
 		}
 
@@ -649,12 +644,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 			act.OpType = ActionClosePullRequest
 		}
 
-		if opts.Issue.IsPull {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=num_closed_pulls+1 WHERE id=?", opts.Repo.ID)
-		} else {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_issues=num_closed_issues+1 WHERE id=?", opts.Repo.ID)
-		}
-		if err != nil {
+		if err = opts.Issue.updateClosedNum(e); err != nil {
 			return err
 		}
 	}
