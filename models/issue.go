@@ -1853,12 +1853,14 @@ func (issue *Issue) BlockingDependencies() ([]*Issue, error) {
 func (issue *Issue) updateClosedNum(e Engine) (err error) {
 	if issue.IsPull {
 		_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+			issue.RepoID,
 			true,
 			true,
 			issue.RepoID,
 		)
 	} else {
 		_, err = e.Exec("UPDATE `repository` SET num_closed_issues=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+			issue.RepoID,
 			false,
 			true,
 			issue.RepoID,
