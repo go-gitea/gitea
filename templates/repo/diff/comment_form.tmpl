@@ -30,10 +30,10 @@
 				{{else}}
 					{{if $.root.CurrentReview}}
 						<button name="is_review" value="true" type="submit"
-								class="ui submit green tiny button btn-add-comment">{{$.root.i18n.Tr "repo.diff.comment.add_review_comment"}}</button>
+								class="ui submit green tiny button btn-add-comment" {{if and $.root.IsSigned ($.root.Issue.IsPoster $.root.SignedUser.ID) }}disabled{{ end }}>{{$.root.i18n.Tr "repo.diff.comment.add_review_comment"}}</button>
 					{{else}}
 						<button name="is_review" value="true"  type="submit"
-								class="ui submit green tiny button btn-start-review">{{$.root.i18n.Tr "repo.diff.comment.start_review"}}</button>
+								class="ui submit green tiny button btn-start-review" {{if and $.root.IsSigned ($.root.Issue.IsPoster $.root.SignedUser.ID) }}disabled{{ end }}>{{$.root.i18n.Tr "repo.diff.comment.start_review"}}</button>
 						<button type="submit"
 								class="ui submit tiny basic button btn-add-single">{{$.root.i18n.Tr "repo.diff.comment.add_single_comment"}}</button>
 					{{end}}
