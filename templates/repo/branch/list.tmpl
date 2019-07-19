@@ -95,7 +95,6 @@
 									{{if and $.IsWriter (not $.IsMirror)}}
 										<td class="right aligned">
 										{{if .IsProtected}}
-											<i class="octicon octicon-shield"></i>
 										{{else if .IsDeleted}}
 											<a class="undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID | urlquery}}&name={{.DeletedBranch.Name | urlquery}}"><i class="octicon octicon-reply"></i></a>
 										{{else}}
