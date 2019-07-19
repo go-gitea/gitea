@@ -20,11 +20,11 @@ import (
 
 // IndexerData data stored in the issue indexer
 type IndexerData struct {
-	RepoID   int64
-	Filepath string
-	Content  string
-	IsDelete bool
-	RepoIDs  []int64
+	RepoID   int64   `json:"id"`
+	Filepath string  `json:"id"`
+	Content  string  `json:"id"`
+	IsDelete bool    `json:"id"`
+	RepoIDs  []int64 `json:"id"`
 }
 
 // Match represents on search result
@@ -65,6 +65,10 @@ var (
 // InitIndexer initialize codes indexer, syncReindex is true then reindex until
 // all codes index done.
 func InitIndexer(syncReindex bool) error {
+	var (
+		exist bool
+		err   error
+	)
 	if !setting.Indexer.RepoIndexerEnabled {
 		return nil
 	}
@@ -73,19 +77,25 @@ func InitIndexer(syncReindex bool) error {
 	switch setting.Indexer.RepoType {
 	case "bleve":
 		codesIndexer = NewBleveIndexer(setting.Indexer.RepoPath)
-		exist, err := codesIndexer.Init()
+		exist, err = codesIndexer.Init()
 		if err != nil {
 			return err
 		}
 		populate = !exist
 	case "elastic":
 		// Init elastic search code indexer
+		indexerName := "elastic-indexer"
 
+		codesIndexer, err = NewElesticIndexer(setting.Indexer.RepoConn, indexerName)
+		exist, err = codesIndexer.Init()
+		if err != nil {
+			return err
+		}
+		populate = !exist
 	default:
 		return fmt.Errorf("unknow issue indexer type: %s", setting.Indexer.IssueType)
 	}
 
-	var err error
 	switch setting.Indexer.CodesQueueType {
 	case setting.LevelQueueType:
 		codesIndexerQueue, err = NewLevelQueue(

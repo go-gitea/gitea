@@ -29,6 +29,7 @@ var (
 		RepoIndexerEnabled    bool
 		RepoType              string
 		RepoPath              string
+		RepoConn              string
 		CodesQueueType        string
 		CodesQueueDir         string
 		CodesQueueConnStr     string

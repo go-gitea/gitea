@@ -1928,7 +1928,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	DeleteRepoFromIndexer(repo)
+	// DeleteRepoFromIndexer(repo)
 
 	return nil
 }

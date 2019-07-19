@@ -41,7 +41,7 @@ func PushUpdate(ctx *macaron.Context) {
 		return
 	}
 
-	repo, err := models.GetRepositoryByOwnerAndName(opt.RepoUserName, opt.RepoName)
+	repo, err = models.GetRepositoryByOwnerAndName(opt.RepoUserName, opt.RepoName)
 	if err != nil {
 		ctx.JSON(500, map[string]interface{}{
 			"err": err.Error(),
