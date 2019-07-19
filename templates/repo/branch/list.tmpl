@@ -48,10 +48,10 @@
 							<th class="six wide">{{.i18n.Tr "repo.branch.name"}}</th>
 							<th class="three wide"></th>
 							<th class="two wide"></th>
+							<th class="one wide right alinged"></th>
 							{{if and $.IsWriter (not $.IsMirror)}}
-								<th class="one wide right aligned">{{.i18n.Tr "repo.branch.delete_head"}}</th>
+								<th class="one wide">{{.i18n.Tr "repo.branch.delete_head"}}</th>
 							{{end}}
-							<th class="one wide"></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -99,17 +99,6 @@
 											{{end}}
 										{{end}}
 									</td>
-									{{if and $.IsWriter (not $.IsMirror)}}
-										<td class="right aligned">
-										{{if .IsProtected}}
-											<i class="octicon octicon-shield"></i>
-										{{else if .IsDeleted}}
-											<a class="undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID | urlquery}}&name={{.DeletedBranch.Name | urlquery}}"><i class="octicon octicon-reply"></i></a>
-										{{else}}
-											<a class="delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name | urlquery}}" data-name="{{.Name}}"><i class="trash icon text red"></i></a>
-										{{end}}
-										</td>
-									{{end}}
 									<td class="right aligned">
 									  {{if not .IsDeleted}}
 											<div class="ui basic jump dropdown icon button poping up" style="position:relative;" data-content="{{$.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
@@ -121,6 +110,17 @@
 											</div>
 									  {{end}}
 								  </td>
+									{{if and $.IsWriter (not $.IsMirror)}}
+										<td class="center aligned">
+										{{if .IsProtected}}
+											<i class="octicon octicon-shield"></i>
+										{{else if .IsDeleted}}
+											<a class="undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID | urlquery}}&name={{.DeletedBranch.Name | urlquery}}"><i class="octicon octicon-reply"></i></a>
+										{{else}}
+											<a class="delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name | urlquery}}" data-name="{{.Name}}"><i class="trash icon text red"></i></a>
+										{{end}}
+										</td>
+									{{end}}
 								</tr>
 							{{end}}
 						{{end}}
