@@ -105,9 +105,9 @@
 										<td class="right aligned">
 										{{if .IsProtected}}
 											<i class="octicon octicon-shield"></i>
-											<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
+											<div class="ui basic jump dropdown icon button poping up" style="position: absolute;" data-content="{{$.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
 												<i class="download icon"></i>
-												<div class="menu" style="position:relative;">
+												<div class="menu" style="position: absolute;">
 													<a class="item" href="{{$.RepoLink}}/archive/{{.Name | EscapePound}}.zip"><i class="octicon octicon-file-zip"></i> ZIP</a>
 													<a class="item" href="{{$.RepoLink}}/archive/{{.Name | EscapePound}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
 												</div>
@@ -116,9 +116,9 @@
 											<a class="undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID | urlquery}}&name={{.DeletedBranch.Name | urlquery}}"><i class="octicon octicon-reply"></i></a>
 										{{else}}
 											<a class="delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name | urlquery}}" data-name="{{.Name}}"><i class="trash icon text red"></i></a>
-											<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
+											<div class="ui basic jump dropdown icon button poping up" style="position: absolute;" data-content="{{$.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
 												<i class="download icon"></i>
-												<div class="menu" style="position:relative;">
+												<div class="menu" style="position: absolute;">
 													<a class="item" href="{{$.RepoLink}}/archive/{{.Name | EscapePound}}.zip"><i class="octicon octicon-file-zip"></i> ZIP</a>
 													<a class="item" href="{{$.RepoLink}}/archive/{{.Name | EscapePound}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
 												</div>
