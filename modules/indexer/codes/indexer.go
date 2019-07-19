@@ -78,6 +78,9 @@ func InitIndexer(syncReindex bool) error {
 			return err
 		}
 		populate = !exist
+	case "elastic":
+		// Init elastic search code indexer
+
 	default:
 		return fmt.Errorf("unknow issue indexer type: %s", setting.Indexer.IssueType)
 	}
