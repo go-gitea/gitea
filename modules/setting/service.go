@@ -11,7 +11,7 @@ import (
 )
 
 // Service settings
-var Service struct {
+var Service = struct {
 	DefaultOrgVisibility                    string
 	DefaultOrgVisibilityMode                structs.VisibleType
 	ActiveCodeLives                         int
@@ -52,6 +52,9 @@ var Service struct {
 	// global feature flags
 	EnableWiki   bool
 	EnableIssues bool
+}{
+	EnableWiki:   true,
+	EnableIssues: true,
 }
 
 func newService() {
