@@ -26,7 +26,7 @@
 						<td class="right aligned">
 							<div class="ui basic jump dropdown icon button poping up" style="position: absolute; margin-left: -38px; margin-top: -18px;" data-content="{{$.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
 								<i class="download icon"></i>
-								<div class="menu" style="position:absolute;">
+								<div class="menu">
 									<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.zip"><i class="octicon octicon-file-zip"></i> ZIP</a>
 									<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
 								</div>
@@ -103,7 +103,7 @@
 									  {{if not .IsDeleted}}
 											<div class="ui basic jump dropdown icon button poping up" style="position: absolute; margin-left: -38px; margin-top: -18px;" data-content="{{$.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
 												<i class="download icon"></i>
-												<div class="menu" style="position: absolute;">
+												<div class="menu">
 													<a class="item" href="{{$.RepoLink}}/archive/{{.Name | EscapePound}}.zip"><i class="octicon octicon-file-zip"></i> ZIP</a>
 													<a class="item" href="{{$.RepoLink}}/archive/{{.Name | EscapePound}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
 												</div>
