@@ -1,5 +1,5 @@
 {{if .DiffNotAvailable}}
-	<div class="diff-detail-box diff-box ui sticky">
+	<div class="diff-detail-box diff-box ui">
 		<div>
 			<div class="ui right">
 				{{if .PageIsPullFiles}}
@@ -16,7 +16,7 @@
 	</div>
 	<h4>{{.i18n.Tr "repo.diff.data_not_available"}}</h4>
 {{else}}
-	<div class="diff-detail-box diff-box ui sticky">
+	<div class="diff-detail-box diff-box ui">
 		<div>
 			<i class="fa fa-retweet"></i>
 			{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
