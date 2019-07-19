@@ -626,7 +626,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.branches .commit-divergence .bar{height:4px;position:absolute;background-color:#d4d4d5}
 .repository.branches .commit-divergence .bar.bar-behind{right:0}
 .repository.branches .commit-divergence .bar.bar-ahead{left:0}
-.repository.branches .dlmenu{position:absolute;margin-left:-20px}
+.repository.branches .dlmenu{position:absolute;margin-left:-38px;margin-top:-18px}
 .repository.commits .header .search input{font-weight:400;padding:5px 10px}
 .repository #commits-table thead th:first-of-type{padding-left:15px}
 .repository #commits-table thead .sha{width:140px}
