@@ -318,6 +318,7 @@ func (m *Mirror) runSync() ([]*mirrorSyncResult, bool) {
 	return parseRemoteUpdateOutput(output), true
 }
 
+// RunMirrorSync will invoke Mirror's runSync
 func RunMirrorSync(mirror *Mirror) ([]*mirrorSyncResult, bool) {
 	return mirror.runSync()
 }
