@@ -34,6 +34,8 @@ gitea.com/macaron/session v0.0.0-20190821211443-122c47c5f705 h1:mvkQGAlON1Z6Y8pq
 gitea.com/macaron/session v0.0.0-20190821211443-122c47c5f705/go.mod h1:1ujH0jD6Ca4iK9NL0Q2a7fG2chvXx5hVa7hBfABwpkA=
 gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7 h1:N9QFoeNsUXLhl14mefLzGluqV7w2mGU3u+iZU+jCeWk=
 gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7/go.mod h1:kgsbFPPS4P+acDYDOPDa3N4IWWOuDJt5/INKRUz7aks=
+gitea.com/lunny/path v0.0.0-20190626081327-c422dbab7503 h1:P2F1qHBwPpmoaVy0XKUj+AlKmlUR4ynnd25w2lHHlLs=
+gitea.com/lunny/path v0.0.0-20190626081327-c422dbab7503/go.mod h1:tSoyzxPuCqrllTITMB1hMuUhDqAxAFHFfIAS1B77AaU=
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
