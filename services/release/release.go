@@ -59,7 +59,9 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 	if err != nil {
 		return err
 	} else if isExist {
-		return models.ErrReleaseAlreadyExist{rel.TagName}
+		return models.ErrReleaseAlreadyExist{
+			TagName: rel.TagName,
+		}
 	}
 
 	if err = createTag(gitRepo, rel); err != nil {
