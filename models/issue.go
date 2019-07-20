@@ -472,6 +472,18 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 	}
 }
 
+// ReplyReference returns tokenized address to use for email reply headers
+func (issue *Issue) ReplyReference() string {
+	var path string
+	if issue.IsPull {
+		path = "pulls"
+	} else {
+		path = "issues"
+	}
+
+	return fmt.Sprintf("%s/%s/%d@%s", issue.Repo.FullName(), path, issue.Index, setting.Domain)
+}
+
 func (issue *Issue) addLabel(e *xorm.Session, label *Label, doer *User) error {
 	return newIssueLabel(e, issue, label, doer)
 }
@@ -1836,4 +1848,23 @@ func (issue *Issue) BlockedByDependencies() ([]*Issue, error) {
 // BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
 func (issue *Issue) BlockingDependencies() ([]*Issue, error) {
 	return issue.getBlockingDependencies(x)
+}
+
+func (issue *Issue) updateClosedNum(e Engine) (err error) {
+	if issue.IsPull {
+		_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+			issue.RepoID,
+			true,
+			true,
+			issue.RepoID,
+		)
+	} else {
+		_, err = e.Exec("UPDATE `repository` SET num_closed_issues=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+			issue.RepoID,
+			false,
+			true,
+			issue.RepoID,
+		)
+	}
+	return
 }

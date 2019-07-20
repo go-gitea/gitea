@@ -1306,12 +1306,16 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 		return err
 	}
 
-	u.NumRepos++
 	// Remember visibility preference.
 	u.LastRepoVisibility = repo.IsPrivate
-	if err = updateUser(e, u); err != nil {
+	if err = updateUserCols(e, u, "last_repo_visibility"); err != nil {
 		return fmt.Errorf("updateUser: %v", err)
 	}
+
+	if _, err = e.Incr("num_repos").ID(u.ID).Update(new(User)); err != nil {
+		return fmt.Errorf("increment user total_repos: %v", err)
+	}
+	u.NumRepos++
 
 	// Give access to all members in owner team.
 	if u.IsOrganization() {
@@ -2306,6 +2310,23 @@ func CheckRepoStats() {
 		}
 	}
 	// ***** END: Repository.NumClosedIssues *****
+
+	// ***** START: Repository.NumClosedPulls *****
+	desc = "repository count 'num_closed_pulls'"
+	results, err = x.Query("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true)
+	if err != nil {
+		log.Error("Select %s: %v", desc, err)
+	} else {
+		for _, result := range results {
+			id := com.StrTo(result["id"]).MustInt64()
+			log.Trace("Updating %s: %d", desc, id)
+			_, err = x.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, true, id)
+			if err != nil {
+				log.Error("Update %s[%d]: %v", desc, id, err)
+			}
+		}
+	}
+	// ***** END: Repository.NumClosedPulls *****
 
 	// FIXME: use checker when stop supporting old fork repo format.
 	// ***** START: Repository.NumForks *****

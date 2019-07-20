@@ -200,6 +200,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 #user-heatmap svg:not(:root){overflow:inherit;padding:0!important}
 @media only screen and (max-width:1200px){#user-heatmap{display:none}
 }
+#user-heatmap .total-contributions{text-align:left;font-weight:500;margin-top:0}
 .heatmap-color-0{background-color:#f4f4f4}
 .heatmap-color-1{background-color:#d7e5db}
 .heatmap-color-2{background-color:#adc7ab}
@@ -982,7 +983,8 @@ tbody.commit-list{vertical-align:baseline}
 .ui.repository.list .item .time{font-size:12px;color:grey}
 .ui.repository.list .item .ui.tags{margin-bottom:1em}
 .ui.repository.list .item .ui.avatar.image{width:24px;height:24px}
-.ui.repository.branches .time{font-size:12px;color:grey}
+.ui.repository.branches .info{font-size:12px;color:grey;display:flex;white-space:pre}
+.ui.repository.branches .info .commit-message{max-width:72em;overflow:hidden;text-overflow:ellipsis}
 .ui.user.list .item{padding-bottom:25px}
 .ui.user.list .item:not(:first-child){border-top:1px solid #eee;padding-top:25px}
 .ui.user.list .item .ui.avatar.image{width:40px;height:40px}
