@@ -319,8 +319,9 @@ func (m *Mirror) runSync() ([]*mirrorSyncResult, bool) {
 }
 
 // RunMirrorSync will invoke Mirror's runSync
-func RunMirrorSync(mirror *Mirror) ([]*mirrorSyncResult, bool) {
-	return mirror.runSync()
+func RunMirrorSync(mirror *Mirror) bool {
+	_, ok := mirror.runSync()
+	return ok
 }
 
 func getMirrorByRepoID(e Engine, repoID int64) (*Mirror, error) {

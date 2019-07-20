@@ -144,7 +144,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	err = mirror.GetMirror()
 	assert.NoError(t, err)
 
-	_, ok := models.RunMirrorSync(mirror.Mirror)
+	ok := models.RunMirrorSync(mirror.Mirror)
 	assert.True(t, ok)
 
 	count, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
@@ -155,7 +155,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, models.DeleteReleaseByID(release.ID, user, true))
 
-	_, ok = models.RunMirrorSync(mirror.Mirror)
+	ok = models.RunMirrorSync(mirror.Mirror)
 	assert.True(t, ok)
 
 	count, err = models.GetReleaseCountByRepoID(mirror.ID, findOptions)

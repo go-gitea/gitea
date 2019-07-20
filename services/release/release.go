@@ -28,7 +28,9 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 			rel.TagName = strings.TrimPrefix(rel.TagName, "--")
 			if err = gitRepo.CreateTag(rel.TagName, commit.ID.String()); err != nil {
 				if strings.Contains(err.Error(), "is not a valid tag name") {
-					return models.ErrInvalidTagName{rel.TagName}
+					return models.ErrInvalidTagName{
+						TagName: rel.TagName,
+					}
 				}
 				return err
 			}
