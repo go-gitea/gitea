@@ -47,7 +47,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		{"feaf4ba6bc635fec442f46ddd4512416ec43c2c2", "", map[string]string{
 			"file1.txt": "95bb4d39648ee7e325106df01a621c530863a653",
 			"file2.txt": "8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
-			"foo": "37991dec2c8e592043f47155ce4808d4580f9123",
+			"foo":       "37991dec2c8e592043f47155ce4808d4580f9123",
 		}, "feaf4ba6bc635fec442f46ddd4512416ec43c2c2"},
 	}
 	for _, testCase := range testCases {
