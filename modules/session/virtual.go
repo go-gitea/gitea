@@ -75,11 +75,11 @@ func (o *VirtualSessionProvider) Exist(sid string) bool {
 	return true
 }
 
-// Destory deletes a session by session ID.
-func (o *VirtualSessionProvider) Destory(sid string) error {
+// Destroy deletes a session by session ID.
+func (o *VirtualSessionProvider) Destroy(sid string) error {
 	o.lock.Lock()
 	defer o.lock.Unlock()
-	return o.provider.Destory(sid)
+	return o.provider.Destroy(sid)
 }
 
 // Regenerate regenerates a session store from old session ID to new one.
