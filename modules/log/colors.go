@@ -378,9 +378,9 @@ func (cv *ColoredValue) Format(s fmt.State, c rune) {
 			return
 		}
 	}
-	s.Write([]byte(*cv.colorBytes))
+	s.Write(*cv.colorBytes)
 	fmt.Fprintf(&protectedANSIWriter{w: s}, fmtString(s, c), *(cv.Value))
-	s.Write([]byte(*cv.resetBytes))
+	s.Write(*cv.resetBytes)
 }
 
 // SetColorBytes will allow a user to set the colorBytes of a colored value

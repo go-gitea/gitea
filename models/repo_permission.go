@@ -113,7 +113,7 @@ func (p *Permission) ColorFormat(s fmt.State) {
 				configBytes, err := unit.Config.ToDB()
 				config = string(configBytes)
 				if err != nil {
-					config = string(err.Error())
+					config = err.Error()
 				}
 			}
 			format += "\nUnits[%d]: ID: %d RepoID: %d Type: %-v Config: %s"
