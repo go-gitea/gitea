@@ -43,22 +43,11 @@
 			</h4>
 			<div class="ui attached table segment">
 				<table class="ui very basic striped fixed table single line">
-					<thead>
-						<tr>
-							<th class="six wide">{{.i18n.Tr "repo.branch.name"}}</th>
-							<th class="three wide"></th>
-							<th class="two wide"></th>
-							<th class="one wide right alinged"></th>
-							{{if and $.IsWriter (not $.IsMirror)}}
-								<th class="one wide">{{.i18n.Tr "repo.branch.delete_head"}}</th>
-							{{end}}
-						</tr>
-					</thead>
 					<tbody>
 						{{range $branch := .Branches}}
 							{{if ne .Name $.DefaultBranch}}
 								<tr>
-									<td>
+									<td class="six wide">
 									{{if .IsDeleted}}
 										<s><a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a></s>
 										<p class="info">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</p>
@@ -67,7 +56,7 @@
 										<p class="info"><i class="octicon octicon-git-commit"></i><a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 									{{end}}
 									</td>
-									<td class="ui">
+									<td class="ui three wide">
 										{{if not .IsDeleted}}
 										<div class="commit-divergence">
 											<div class="bar-group">
@@ -81,7 +70,7 @@
 										</div>
 										{{end}}
 									</td>
-									<td class="right aligned">
+									<td class="right aligned two wide">
 										{{if not .LatestPullRequest}}
 											{{if and (not .IsDeleted) $.AllowsPulls}}
 											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}">
@@ -99,7 +88,7 @@
 											{{end}}
 										{{end}}
 									</td>
-									<td class="right aligned">
+									<td class="one wide right alinged">
 									  {{if not .IsDeleted}}
 											<div class="ui basic jump dropdown icon button poping up dlmenu" data-content="{{$.i18n.Tr "repo.branch.download" (.Name | EscapePound)}}" data-variation="tiny inverted" data-position="top right">
 												<i class="download icon"></i>
@@ -111,7 +100,7 @@
 									  {{end}}
 								  </td>
 									{{if and $.IsWriter (not $.IsMirror)}}
-										<td class="center aligned">
+										<td class="center aligned one wide">
 										{{if .IsProtected}}
 											<i class="octicon octicon-shield"></i>
 										{{else if .IsDeleted}}
