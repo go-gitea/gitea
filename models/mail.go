@@ -156,7 +156,13 @@ func composeTplData(subject, body, link string) map[string]interface{} {
 }
 
 func composeIssueCommentMessage(issue *Issue, doer *User, content string, comment *Comment, tplName base.TplName, tos []string, info string) *mailer.Message {
-	subject := issue.mailSubject()
+	var subject string
+	if comment != nil {
+		subject = "Re: " + issue.mailSubject()
+	} else {
+		subject = issue.mailSubject()
+	}
+
 	err := issue.LoadRepo()
 	if err != nil {
 		log.Error("LoadRepo: %v", err)
@@ -179,6 +185,15 @@ func composeIssueCommentMessage(issue *Issue, doer *User, content string, commen
 
 	msg := mailer.NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 	msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
+
+	// Set Message-ID on first message so replies know what to reference
+	if comment == nil {
+		msg.SetHeader("Message-ID", "<"+issue.ReplyReference()+">")
+	} else {
+		msg.SetHeader("In-Reply-To", "<"+issue.ReplyReference()+">")
+		msg.SetHeader("References", "<"+issue.ReplyReference()+">")
+	}
+
 	return msg
 }
 

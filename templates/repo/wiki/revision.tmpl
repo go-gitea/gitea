@@ -31,7 +31,7 @@
 			<div class="ui header eight wide column">
 				<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.back_to_wiki"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}" ><span>{{.revision}}</span> <i class="fa fa-fw fa-file-text-o"></i></a>
 				{{$title}}
-				<div class="ui sub header">
+				<div class="ui sub header wrap">
 					{{$timeSince := TimeSince .Author.When $.Lang}}
 					{{.i18n.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
 				</div>
@@ -52,8 +52,9 @@
 					<table class="ui very basic striped fixed table single line" id="commits-table">
 						<thead>
 							<tr>
-								<th class="eight wide">{{.i18n.Tr "repo.commits.author"}}</th>
-								<th class="four wide sha">SHA1</th>
+								<th class="four wide">{{.i18n.Tr "repo.commits.author"}}</th>
+								<th class="tree wide sha">SHA1</th>
+								<th class="five wide message">{{.i18n.Tr "repo.commits.message"}}</th>
 								<th class="four wide">{{.i18n.Tr "repo.commits.date"}}</th>
 							</tr>
 						</thead>
@@ -85,6 +86,15 @@
 												</div>
 											{{end}}
 										</label>
+									</td>
+									<td class="message">
+										<span class="message-wrapper">
+											<span class="commit-summary has-emoji{{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary}}</span>
+											{{if IsMultilineCommitMessage .Message}}
+											<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
+											<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+											{{end}}
+										</span>
 									</td>
 									<td class="grey text">{{TimeSince .Author.When $.Lang}}</td>
 								</tr>

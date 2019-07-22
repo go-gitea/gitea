@@ -49,7 +49,6 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	}
 
 	defer func() {
-		go models.HookQueue.Add(pr.BaseRepo.ID)
 		go models.AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false)
 	}()
 

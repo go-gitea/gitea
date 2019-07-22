@@ -87,7 +87,7 @@ github.com/couchbase/vellum/utf8
 github.com/couchbaselabs/go-couchbase
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952 => github.com/denisenkom/go-mssqldb v0.0.0-20180314172330-6a30f4e59a44
+# github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952 => github.com/denisenkom/go-mssqldb v0.0.0-20180315180555-6a30f4e59a44
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -124,13 +124,13 @@ github.com/go-macaron/binding
 github.com/go-macaron/cache
 github.com/go-macaron/cache/memcache
 github.com/go-macaron/cache/redis
-# github.com/go-macaron/captcha v0.0.0-20151123225153-8aa5919789ab
+# github.com/go-macaron/captcha v0.0.0-20190710000913-8dc5911259df
 github.com/go-macaron/captcha
 # github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9
 github.com/go-macaron/cors
-# github.com/go-macaron/csrf v0.0.0-20180426211211-503617c6b372
+# github.com/go-macaron/csrf v0.0.0-20190131233648-3751b136073c
 github.com/go-macaron/csrf
-# github.com/go-macaron/i18n v0.0.0-20160612092837-ef57533c3b0f
+# github.com/go-macaron/i18n v0.0.0-20190131234336-56731837a73b
 github.com/go-macaron/i18n
 # github.com/go-macaron/inject v0.0.0-20160627170012-d8a0b8677191
 github.com/go-macaron/inject
@@ -158,8 +158,8 @@ github.com/go-sql-driver/mysql
 github.com/go-xorm/xorm
 # github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
 github.com/gogits/chardet
-# github.com/gogits/cron v0.0.0-20160810035002-7f3990acf183
-github.com/gogits/cron
+# github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
+github.com/gogs/cron
 # github.com/golang/protobuf v1.3.1
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
@@ -369,7 +369,7 @@ golang.org/x/net/context/ctxhttp
 golang.org/x/net/proxy
 golang.org/x/net/context
 golang.org/x/net/internal/socks
-# golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
+# golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sys v0.0.0-20190620070143-6f217b454f45

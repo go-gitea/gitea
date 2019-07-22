@@ -62,9 +62,16 @@
 }
 
 .ui.repository.branches {
-    .time {
+    .info {
         font-size: 12px;
         color: #808080;
+        display: flex;
+        white-space: pre;
+        .commit-message {
+            max-width: 72em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
     }
 }
 
