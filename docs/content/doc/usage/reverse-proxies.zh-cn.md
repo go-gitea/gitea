@@ -54,7 +54,8 @@ server {
     ...
     ProxyPreserveHost On
     ProxyRequests off
-    ProxyPass / http://localhost:3000/
+    AllowEncodedSlashes NoDecode
+    ProxyPass / http://localhost:3000/ nocanon
     ProxyPassReverse / http://localhost:3000/
 </VirtualHost>
 ```
@@ -71,9 +72,10 @@ server {
     <Proxy *>
          Order allow,deny
          Allow from all
+         AllowEncodedSlashes NoDecode
     </Proxy>
 
-    ProxyPass /git http://localhost:3000 # Note: no trailing slash after either /git or port
+    ProxyPass /git http://localhost:3000 nocanon # Note: no trailing slash after either /git or port
     ProxyPassReverse /git http://localhost:3000 # Note: no trailing slash after either /git or port
 </VirtualHost>
 ```
