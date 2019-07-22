@@ -23,8 +23,8 @@
 							{{end}}
 						{{end}}
 						</td>
-						<td class="right aligned">
-							<div class="ui basic jump dropdown icon button poping up dlmenu" data-content="{{$.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
+						<td class="right aligned" style="overflow: visible;">
+							<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
 								<i class="download icon"></i>
 								<div class="menu">
 									<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.zip"><i class="octicon octicon-file-zip"></i> ZIP</a>
@@ -88,9 +88,9 @@
 											{{end}}
 										{{end}}
 									</td>
-									<td class="one wide right alinged">
+									<td class="right alinged one wide" style="overflow: visible;">
 									  {{if not .IsDeleted}}
-											<div class="ui basic jump dropdown icon button poping up dlmenu" data-content="{{$.i18n.Tr "repo.branch.download" (.Name | EscapePound)}}" data-variation="tiny inverted" data-position="top right">
+											<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" (.Name | EscapePound)}}" data-variation="tiny inverted" data-position="top right">
 												<i class="download icon"></i>
 												<div class="menu">
 													<a class="item" href="{{$.RepoLink}}/archive/{{.Name | EscapePound}}.zip"><i class="octicon octicon-file-zip"></i> ZIP</a>
