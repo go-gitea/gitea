@@ -25,7 +25,8 @@
 				<thead>
 					<tr>
 						<th class="three wide">{{.i18n.Tr "repo.settings.lfs_pointers.sha"}}</th>
-						<th class="seven wide">{{.i18n.Tr "repo.settings.lfs_pointers.oid"}}</th>
+						<th class="five wide">{{.i18n.Tr "repo.settings.lfs_pointers.oid"}}</th>
+						<th class="two wide"></th>
 						<th class="two wide">{{.i18n.Tr "repo.settings.lfs_pointers.inRepo"}}</th>
 						<th class="two wide">{{.i18n.Tr "repo.settings.lfs_pointers.exists"}}</th>
 						<th class="two wide">{{.i18n.Tr "repo.settings.lfs_pointers.accessible"}}</th>
@@ -53,6 +54,9 @@
 										</span>
 									{{end}}
 								</span>
+							</td>
+							<td>
+								<a class="ui blue show-panel button" href="{{$.LFSFilesLink}}/find?oid={{.Oid}}&size={{.Size}}&sha={{.SHA}}">{{$.i18n.Tr "repo.settings.lfs_findcommits"}}</a>
 							</td>
 							<td><i class="fa fa{{if .InRepo}}-check{{end}}-square-o"></i></td>
 							<td><i class="fa fa{{if .Exists}}-check{{end}}-square-o"></i></td>

@@ -1,0 +1,45 @@
+{{template "base/head" .}}
+<div class="repository settings lfs">
+	{{template "repo/header" .}}
+	{{template "repo/settings/navbar" .}}
+	<div class="ui container repository file list">
+		{{template "base/alert" .}}
+		<div class="tab-size-8 non-diff-file-content">
+			<h4 class="ui top attached header">
+				<a href="{{.LFSFilesLink}}">{{.i18n.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.Oid}}</span>
+			</h4>
+			<table id="lfs-files-find-table" class="ui attached segment single line table">
+				<tbody>
+					{{range .Results}}
+						<tr>
+							<td>
+								<span class="octicon octicon-file-text"></span>
+								<a href="{{EscapePound $.RepoLink}}/src/commit/{{.SHA}}/{{EscapePound .Name}}" title="{{.Name}}">{{.Name}}</a>
+							</td>
+							<td class="message has-emoji">
+								<span class="truncate">
+									<a href="{{$.RepoLink}}/commit/{{.SHA}}" title="{{.Summary}}">
+										{{.Summary}}
+									</a>
+								</span>
+							</td>
+							<td>
+								<span class="text sha label" title="{{.SHA}}">
+									<a href="{{$.RepoLink}}/src/commit/{{.SHA}}" class="ui detail icon button truncate">
+										{{ShortSha .SHA}}
+									</a>
+								</span>
+							</td>
+							<td>{{TimeSince .When $.Lang}}</td>
+						</tr>
+					{{else}}
+						<tr>
+							<td colspan="4">{{.i18n.Tr "repo.settings.lfs_lfs_file_no_commits"}}</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

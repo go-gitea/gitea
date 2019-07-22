@@ -23,11 +23,16 @@
 						</td>
 						<td>{{FileSize .Size}}</td>
 						<td>{{TimeSince .CreatedUnix.AsTime $.Lang}}</td>
-						<td>
+						<td class="right aligned">
+							<a class="ui blue show-panel button" href="{{$.Link}}/find?oid={{.Oid}}&size={{.Size}}">{{$.i18n.Tr "repo.settings.lfs_findcommits"}}</a>
 							<button class="ui basic show-modal icon button" data-modal="#delete-{{.Oid}}">
 								<i class="octicon octicon-trashcan btn-octicon btn-octicon-danger poping up"  data-content="{{$.i18n.Tr "repo.editor.delete_this_file"}}" data-position="bottom center" data-variation="tiny inverted"></i>
 							</button>
 						</td>
+					</tr>
+				{{else}}
+					<tr>
+						<td colspan="4">{{.i18n.Tr "repo.settings.lfs_no_lfs_files"}}</td>
 					</tr>
 				{{end}}
 			</tbody>

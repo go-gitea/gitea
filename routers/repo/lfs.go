@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -25,13 +26,18 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+
 	"github.com/Unknwon/com"
 	"github.com/mcuadros/go-version"
+	gogit "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 const (
 	tplSettingsLFS         base.TplName = "repo/settings/lfs"
 	tplSettingsLFSFile     base.TplName = "repo/settings/lfs_file"
+	tplSettingsLFSFileFind base.TplName = "repo/settings/lfs_file_find"
 	tplSettingsLFSPointers base.TplName = "repo/settings/lfs_pointers"
 )
 
@@ -159,7 +165,7 @@ func LFSFileGet(ctx *context.Context) {
 // LFSDelete disassociates the provided oid from the repository and if the lfs file is no longer associated with any repositories - deletes it
 func LFSDelete(ctx *context.Context) {
 	if !setting.LFS.StartServer {
-		ctx.NotFound("LFSFileGet", nil)
+		ctx.NotFound("LFSDelete", nil)
 		return
 	}
 	oid := ctx.Params("oid")
@@ -179,6 +185,84 @@ func LFSDelete(ctx *context.Context) {
 		}
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs")
+}
+
+type lfsResult struct {
+	Name    string
+	SHA     string
+	Summary string
+	When    time.Time
+}
+
+// LFSFileFind guesses a sha for the provided oid (or uses the provided sha) and then finds the commits that contain this sha
+func LFSFileFind(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		ctx.NotFound("LFSFind", nil)
+		return
+	}
+	oid := ctx.Query("oid")
+	size := ctx.QueryInt64("size")
+	if len(oid) == 0 || size == 0 {
+		ctx.NotFound("LFSFind", nil)
+		return
+	}
+	sha := ctx.Query("sha")
+	ctx.Data["Title"] = oid
+	ctx.Data["PageIsSettingsLFS"] = true
+	var hash plumbing.Hash
+	if len(sha) == 0 {
+		meta := models.LFSMetaObject{Oid: oid, Size: size}
+		pointer := meta.Pointer()
+		hash = plumbing.ComputeHash(plumbing.BlobObject, []byte(pointer))
+		sha = hash.String()
+	} else {
+		hash = plumbing.NewHash(sha)
+	}
+	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
+	ctx.Data["Oid"] = oid
+	ctx.Data["Size"] = size
+	ctx.Data["SHA"] = sha
+
+	results := make([]lfsResult, 0)
+
+	gogitRepo := ctx.Repo.GitRepo.GoGitRepo()
+
+	commitsIter, err := gogitRepo.Log(&gogit.LogOptions{
+		Order: gogit.LogOrderCommitterTime,
+		All:   true,
+	})
+	if err != nil {
+		log.Error("Failed to get GoGit CommitsIter: %v", err)
+		ctx.ServerError("LFSFind: Iterate Commits", err)
+		return
+	}
+
+	commitsIter.ForEach(func(gitCommit *object.Commit) error {
+		tree, err := gitCommit.Tree()
+		if err != nil {
+			return err
+		}
+		treeWalker := object.NewTreeWalker(tree, true, nil)
+		defer treeWalker.Close()
+		for {
+			name, entry, err := treeWalker.Next()
+			if err == io.EOF {
+				break
+			}
+			if entry.Hash == hash {
+				results = append(results, lfsResult{
+					Name:    name,
+					SHA:     gitCommit.Hash.String(),
+					Summary: strings.Split(strings.TrimSpace(gitCommit.Message), "\n")[0],
+					When:    gitCommit.Author.When,
+				})
+			}
+		}
+		return nil
+	})
+
+	ctx.Data["Results"] = results
+	ctx.HTML(200, tplSettingsLFSFileFind)
 }
 
 // LFSPointerFiles will search the repository for pointer files and report which are missing LFS files in the content store
