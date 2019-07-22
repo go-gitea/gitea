@@ -8,7 +8,7 @@ import (
 	"io"
 
 	"code.gitea.io/gitea/modules/util"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 // LFSMetaObject stores metadata for LFS tracked files.
