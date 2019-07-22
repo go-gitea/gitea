@@ -27,7 +27,7 @@ necessary. To be able to use these, you must have the `"$GOPATH/bin"` directory
 on the executable path. If you don't add the go bin directory to the
 executable path, you will have to manage this yourself.
 
-**Note 2**: Go version 1.9 or higher is required. However, it is recommended to
+**Note 2**: Go version 1.11 or higher is required. However, it is recommended to
 obtain the same version as our continuous integration, see the advice given in
 <a href='{{< relref "doc/advanced/hacking-on-gitea.en-us.md" >}}'>Hacking on
 Gitea</a>

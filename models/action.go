@@ -24,7 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 // ActionType represents the type of an action.
@@ -65,6 +65,7 @@ var (
 )
 
 const issueRefRegexpStr = `(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)+`
+const issueRefRegexpStrNoKeyword = `(?:\s|^|\(|\[)(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`
 
 func assembleKeywordsPattern(words []string) string {
 	return fmt.Sprintf(`(?i)(?:%s)(?::?) %s`, strings.Join(words, "|"), issueRefRegexpStr)
@@ -73,7 +74,7 @@ func assembleKeywordsPattern(words []string) string {
 func init() {
 	issueCloseKeywordsPat = regexp.MustCompile(assembleKeywordsPattern(issueCloseKeywords))
 	issueReopenKeywordsPat = regexp.MustCompile(assembleKeywordsPattern(issueReopenKeywords))
-	issueReferenceKeywordsPat = regexp.MustCompile(issueRefRegexpStr)
+	issueReferenceKeywordsPat = regexp.MustCompile(issueRefRegexpStrNoKeyword)
 }
 
 // Action represents user operation type and other information to
@@ -896,6 +897,11 @@ func mirrorSyncAction(e Engine, opType ActionType, repo *Repository, refName str
 	}); err != nil {
 		return fmt.Errorf("notifyWatchers: %v", err)
 	}
+
+	defer func() {
+		go HookQueue.Add(repo.ID)
+	}()
+
 	return nil
 }
 

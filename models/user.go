@@ -32,11 +32,14 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"golang.org/x/crypto/argon2"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/ssh"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 // UserType defines the user type
@@ -50,7 +53,12 @@ const (
 	UserTypeOrganization
 )
 
-const syncExternalUsers = "sync_external_users"
+const (
+	algoBcrypt = "bcrypt"
+	algoScrypt = "scrypt"
+	algoArgon2 = "argon2"
+	algoPbkdf2 = "pbkdf2"
+)
 
 var (
 	// ErrUserNotKeyOwner user does not own this key error
@@ -82,6 +90,7 @@ type User struct {
 	Email            string `xorm:"NOT NULL"`
 	KeepEmailPrivate bool
 	Passwd           string `xorm:"NOT NULL"`
+	PasswdHashAlgo   string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
 
 	// MustChangePassword is an attribute that determines if a user
 	// is to change his/her password after registration.
@@ -430,25 +439,48 @@ func (u *User) NewGitSig() *git.Signature {
 	}
 }
 
-func hashPassword(passwd, salt string) string {
-	tempPasswd := pbkdf2.Key([]byte(passwd), []byte(salt), 10000, 50, sha256.New)
+func hashPassword(passwd, salt, algo string) string {
+	var tempPasswd []byte
+
+	switch algo {
+	case algoBcrypt:
+		tempPasswd, _ = bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
+		return string(tempPasswd)
+	case algoScrypt:
+		tempPasswd, _ = scrypt.Key([]byte(passwd), []byte(salt), 65536, 16, 2, 50)
+	case algoArgon2:
+		tempPasswd = argon2.IDKey([]byte(passwd), []byte(salt), 2, 65536, 8, 50)
+	case algoPbkdf2:
+		fallthrough
+	default:
+		tempPasswd = pbkdf2.Key([]byte(passwd), []byte(salt), 10000, 50, sha256.New)
+	}
+
 	return fmt.Sprintf("%x", tempPasswd)
 }
 
-// HashPassword hashes a password using PBKDF.
+// HashPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO.
 func (u *User) HashPassword(passwd string) {
-	u.Passwd = hashPassword(passwd, u.Salt)
+	u.PasswdHashAlgo = setting.PasswordHashAlgo
+	u.Passwd = hashPassword(passwd, u.Salt, setting.PasswordHashAlgo)
 }
 
 // ValidatePassword checks if given password matches the one belongs to the user.
 func (u *User) ValidatePassword(passwd string) bool {
-	tempHash := hashPassword(passwd, u.Salt)
-	return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1
+	tempHash := hashPassword(passwd, u.Salt, u.PasswdHashAlgo)
+
+	if u.PasswdHashAlgo != algoBcrypt && subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1 {
+		return true
+	}
+	if u.PasswdHashAlgo == algoBcrypt && bcrypt.CompareHashAndPassword([]byte(u.Passwd), []byte(passwd)) == nil {
+		return true
+	}
+	return false
 }
 
 // IsPasswordSet checks if the password is set or left empty
 func (u *User) IsPasswordSet() bool {
-	return !u.ValidatePassword("")
+	return len(u.Passwd) > 0
 }
 
 // UploadAvatar saves custom avatar for user.
@@ -1609,11 +1641,6 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []str
 
 // SyncExternalUsers is used to synchronize users with external authorization source
 func SyncExternalUsers() {
-	if !taskStatusTable.StartIfNotRunning(syncExternalUsers) {
-		return
-	}
-	defer taskStatusTable.Stop(syncExternalUsers)
-
 	log.Trace("Doing: SyncExternalUsers")
 
 	ls, err := LoginSources()

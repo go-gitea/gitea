@@ -5,8 +5,12 @@
 
 	{{if .PageIsComparePull}}
 		<h2 class="ui header">
-			{{.i18n.Tr "repo.pulls.compare_changes"}}
-			<div class="sub header">{{.i18n.Tr "repo.pulls.compare_changes_desc"}}</div>
+			{{if not .Repository.IsArchived}}
+				{{.i18n.Tr "repo.pulls.compare_changes"}}
+				<div class="sub header">{{.i18n.Tr "repo.pulls.compare_changes_desc"}}</div>
+			{{ else }}
+				{{.i18n.Tr "action.compare_commits_general"}}
+			{{ end }}
 		</h2>
 		<div class="ui segment choose branch">
 			<span class="octicon octicon-git-compare"></span>
@@ -56,9 +60,15 @@
         		{{.i18n.Tr "repo.pulls.has_pull_request" $.RepoLink $.RepoRelPath .PullRequest.Index | Safe}}
         	</div>
         {{else}}
+        	{{if not .Repository.IsArchived}}
         	<div class="ui info message show-form-container">
         		<button class="ui button green show-form">{{.i18n.Tr "repo.pulls.new"}}</button>
         	</div>
+        	{{ else }}
+        		<div class="ui warning message">
+        			{{.i18n.Tr "repo.archive.title"}}
+        		</div>
+        	{{ end }}
         	<div class="pullrequest-form" style="display: none">
         		{{template "repo/issue/new_form" .}}
         	</div>

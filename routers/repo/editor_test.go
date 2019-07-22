@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/test"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -35,5 +37,42 @@ func TestCleanUploadName(t *testing.T) {
 	}
 	for k, v := range kases {
 		assert.EqualValues(t, cleanUploadFileName(k), v)
+	}
+}
+
+func TestGetUniquePatchBranchName(t *testing.T) {
+	models.PrepareTestEnv(t)
+	ctx := test.MockContext(t, "user2/repo1")
+	ctx.SetParams(":id", "1")
+	test.LoadRepo(t, ctx, 1)
+	test.LoadRepoCommit(t, ctx)
+	test.LoadUser(t, ctx, 2)
+	test.LoadGitRepo(t, ctx)
+	expectedBranchName := "user2-patch-1"
+	branchName := GetUniquePatchBranchName(ctx)
+	assert.Equal(t, expectedBranchName, branchName)
+}
+
+func TestGetClosestParentWithFiles(t *testing.T) {
+	models.PrepareTestEnv(t)
+	ctx := test.MockContext(t, "user2/repo1")
+	ctx.SetParams(":id", "1")
+	test.LoadRepo(t, ctx, 1)
+	test.LoadRepoCommit(t, ctx)
+	test.LoadUser(t, ctx, 2)
+	test.LoadGitRepo(t, ctx)
+	repo := ctx.Repo.Repository
+	branch := repo.DefaultBranch
+	gitRepo, _ := git.OpenRepository(repo.RepoPath())
+	commit, _ := gitRepo.GetBranchCommit(branch)
+	expectedTreePath := ""
+
+	expectedTreePath = "" // Should return the root dir, empty string, since there are no subdirs in this repo
+	for _, deletedFile := range []string{
+		"dir1/dir2/dir3/file.txt",
+		"file.txt",
+	} {
+		treePath := GetClosestParentWithFiles(deletedFile, commit)
+		assert.Equal(t, expectedTreePath, treePath)
 	}
 }

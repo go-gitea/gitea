@@ -15,8 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
 
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -101,8 +101,10 @@ const (
 type Comment struct {
 	ID               int64 `xorm:"pk autoincr"`
 	Type             CommentType
-	PosterID         int64  `xorm:"INDEX"`
-	Poster           *User  `xorm:"-"`
+	PosterID         int64 `xorm:"INDEX"`
+	Poster           *User `xorm:"-"`
+	OriginalAuthor   string
+	OriginalAuthorID int64
 	IssueID          int64  `xorm:"INDEX"`
 	Issue            *Issue `xorm:"-"`
 	LabelID          int64
@@ -632,12 +634,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 			act.OpType = ActionReopenPullRequest
 		}
 
-		if opts.Issue.IsPull {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=num_closed_pulls-1 WHERE id=?", opts.Repo.ID)
-		} else {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_issues=num_closed_issues-1 WHERE id=?", opts.Repo.ID)
-		}
-		if err != nil {
+		if err = opts.Issue.updateClosedNum(e); err != nil {
 			return err
 		}
 
@@ -647,12 +644,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 			act.OpType = ActionClosePullRequest
 		}
 
-		if opts.Issue.IsPull {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=num_closed_pulls+1 WHERE id=?", opts.Repo.ID)
-		} else {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_issues=num_closed_issues+1 WHERE id=?", opts.Repo.ID)
-		}
-		if err != nil {
+		if err = opts.Issue.updateClosedNum(e); err != nil {
 			return err
 		}
 	}
