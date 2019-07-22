@@ -23,7 +23,7 @@
 							{{end}}
 						{{end}}
 						</td>
-						<td class="right aligned" style="overflow: visible;">
+						<td class="right aligned download-column">
 							<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
 								<i class="download icon"></i>
 								<div class="menu">
@@ -88,7 +88,7 @@
 											{{end}}
 										{{end}}
 									</td>
-									<td class="right alinged one wide" style="overflow: visible;">
+									<td class="right alinged one wide download-column">
 									  {{if not .IsDeleted}}
 											<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" (.Name | EscapePound)}}" data-variation="tiny inverted" data-position="top right">
 												<i class="download icon"></i>
