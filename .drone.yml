@@ -560,7 +560,7 @@ steps:
 
 ---
 kind: pipeline
-name: docker
+name: docker-linux-amd64
 
 platform:
   os: linux
@@ -605,6 +605,7 @@ steps:
     image: plugins/docker:linux-amd64
     settings:
       auto_tag: true
+      auto_tag_suffix: linux-amd64
       repo: gitea/gitea
       password:
         from_secret: docker_password
@@ -614,6 +615,36 @@ steps:
       event:
         exclude:
         - pull_request
+
+
+---
+kind: pipeline
+name: docker-manifest
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: manifest
+  pull: always
+  image: plugins/manifest
+  settings:
+    auto_tag: true
+    ignore_missing: true
+    spec: docker/manifest.tmpl
+    password:
+      from_secret: docker_password
+    username:
+      from_secret: docker_username
+
+trigger:
+  ref:
+  - refs/heads/master
+  - "refs/tags/**"
+
+depends_on:
+- docker-linux-amd64
 
 ---
 kind: pipeline
