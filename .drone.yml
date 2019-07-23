@@ -596,6 +596,7 @@ steps:
     settings:
       dry_run: true
       repo: gitea/gitea
+      tags: linux-amd64
     when:
       event:
         - pull_request
@@ -656,6 +657,7 @@ steps:
     settings:
       dry_run: true
       repo: gitea/gitea
+      tags: linux-arm64
     when:
       event:
         - pull_request
@@ -685,17 +687,17 @@ platform:
   arch: amd64
 
 steps:
-- name: manifest
-  pull: always
-  image: plugins/manifest
-  settings:
-    auto_tag: true
-    ignore_missing: true
-    spec: docker/manifest.tmpl
-    password:
-      from_secret: docker_password
-    username:
-      from_secret: docker_username
+  - name: manifest
+    pull: always
+    image: plugins/manifest
+    settings:
+      auto_tag: true
+      ignore_missing: true
+      spec: docker/manifest.tmpl
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
 
 trigger:
   ref:
@@ -703,8 +705,8 @@ trigger:
   - "refs/tags/**"
 
 depends_on:
-- docker-linux-amd64
-- docker-linux-arm64
+  - docker-linux-amd64
+  - docker-linux-arm64
 
 ---
 kind: pipeline
