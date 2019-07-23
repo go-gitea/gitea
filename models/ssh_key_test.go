@@ -66,7 +66,7 @@ func Test_CheckPublicKeyString(t *testing.T) {
 		{"ssh-rsa AAAAB3NzaC1yc2EA\r\nAAADAQABAAAAgQDAu7tvI\nvX6ZHrRXuZNfkR3XLHSsuCK9Zn3X58lxBcQzuo5xZgB6vRwwm/QtJuF+zZPtY5hsQILBLmF+\r\nBZ5WpKZp1jBeSjH2G7lxet9kbcH+kIVj0tPFEoyKI9wvW\nqIwC4prx/WVk2wLTJjzBAhyNx\r\nfEq7C9CeiX9pQEbEqJfkKCQ== nocomment\r\n\r\n"},
 		{"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf"},
 		{"\r\nssh-ed25519 \r\nAAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf\r\n\r\n"},
-	}{
+	} {
 		_, err := CheckPublicKeyString(test.content)
 		assert.NoError(t, err)
 	}
