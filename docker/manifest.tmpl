@@ -11,3 +11,9 @@ manifests:
     platform:
       architecture: amd64
       os: linux
+  -
+    image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}linux-arm64
+    platform:
+      architecture: arm64
+      os: linux
+      variant: v8
