@@ -617,6 +617,65 @@ steps:
         - pull_request
 
 
+
+---
+kind: pipeline
+name: docker-linux-arm64
+
+platform:
+  os: linux
+  arch: arm64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+depends_on:
+  - testing
+
+trigger:
+  ref:
+  - refs/heads/master
+  - "refs/tags/**"
+  - "refs/pull/**"
+
+steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+    when:
+      event:
+        exclude:
+          - pull_request
+
+  - name: dryrun
+    pull: always
+    image: plugins/docker:linux-arm64
+    settings:
+      dry_run: true
+      repo: gitea/gitea
+    when:
+      event:
+        - pull_request
+
+  - name: publish
+    pull: always
+    image: plugins/docker:linux-arm64
+    settings:
+      auto_tag: true
+      auto_tag_suffix: linux-arm64
+      repo: gitea/gitea
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
 ---
 kind: pipeline
 name: docker-manifest
@@ -645,6 +704,7 @@ trigger:
 
 depends_on:
 - docker-linux-amd64
+- docker-linux-arm64
 
 ---
 kind: pipeline
