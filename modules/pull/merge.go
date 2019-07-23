@@ -243,9 +243,8 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	env := models.FullPushingEnvironment(
 		headUser,
 		doer,
-		pr.BaseRepo.MustOwnerName(),
+		pr.BaseRepo,
 		pr.BaseRepo.Name,
-		pr.BaseRepo.ID,
 		pr.ID,
 	)
 

@@ -12,11 +12,11 @@ import (
 
 // PushingEnvironment returns an os environment to allow hooks to work on push
 func PushingEnvironment(doer *User, repo *Repository) []string {
-	return FullPushingEnvironment(doer, doer, repo.MustOwnerName(), repo.Name, repo.ID, 0)
+	return FullPushingEnvironment(doer, doer, repo, repo.Name, 0)
 }
 
 // FullPushingEnvironment returns an os environment to allow hooks to work on push
-func FullPushingEnvironment(author, committer *User, ownerName, repoName string, repoID, prID int64) []string {
+func FullPushingEnvironment(author, committer *User, repo *Repository, repoName string, prID int64) []string {
 	isWiki := "false"
 	if strings.HasSuffix(repoName, ".wiki") {
 		isWiki = "true"
@@ -33,11 +33,11 @@ func FullPushingEnvironment(author, committer *User, ownerName, repoName string,
 		"GIT_COMMITTER_NAME="+committerSig.Name,
 		"GIT_COMMITTER_EMAIL="+committerSig.Email,
 		EnvRepoName+"="+repoName,
-		EnvRepoUsername+"="+ownerName,
+		EnvRepoUsername+"="+repo.MustOwnerName(),
 		EnvRepoIsWiki+"="+isWiki,
 		EnvPusherName+"="+committer.Name,
 		EnvPusherID+"="+fmt.Sprintf("%d", committer.ID),
-		ProtectedBranchRepoID+"="+fmt.Sprintf("%d", repoID),
+		ProtectedBranchRepoID+"="+fmt.Sprintf("%d", repo.ID),
 		ProtectedBranchPRID+"="+fmt.Sprintf("%d", prID),
 		"SSH_ORIGINAL_COMMAND=gitea-internal",
 	)

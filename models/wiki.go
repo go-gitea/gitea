@@ -220,9 +220,8 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 		Env: FullPushingEnvironment(
 			doer,
 			doer,
-			repo.MustOwnerName(),
+			repo,
 			repo.Name+".wiki",
-			repo.ID,
 			0,
 		),
 	}); err != nil {
