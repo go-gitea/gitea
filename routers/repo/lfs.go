@@ -246,7 +246,7 @@ func LFSFileFind(ctx *context.Context) {
 		return
 	}
 
-	commitsIter.ForEach(func(gitCommit *object.Commit) error {
+	err = commitsIter.ForEach(func(gitCommit *object.Commit) error {
 		tree, err := gitCommit.Tree()
 		if err != nil {
 			return err
@@ -271,6 +271,11 @@ func LFSFileFind(ctx *context.Context) {
 		}
 		return nil
 	})
+	if err != nil && err != io.EOF {
+		log.Error("Failure in CommitIter.ForEach: %v", err)
+		ctx.ServerError("LFSFind: IterateCommits ForEach", err)
+		return
+	}
 
 	for _, result := range resultsMap {
 		hasParent := false
