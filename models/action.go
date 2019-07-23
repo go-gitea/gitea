@@ -500,7 +500,7 @@ func getIssueFromRef(repo *Repository, ref string) (*Issue, error) {
 		return nil, nil
 	}
 
-	issue, err := GetIssueByIndex(refRepo.ID, int64(issueIndex))
+	issue, err := GetIssueByIndex(refRepo.ID, issueIndex)
 	if err != nil {
 		if IsErrIssueNotExist(err) {
 			return nil, nil
@@ -565,7 +565,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 
 			// issue is from another repo
 			if len(m[1]) > 0 && len(m[2]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(string(m[1]), string(m[2]))
+				refRepo, err = GetRepositoryFromMatch(m[1], m[2])
 				if err != nil {
 					continue
 				}
@@ -602,7 +602,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 
 			// issue is from another repo
 			if len(m[1]) > 0 && len(m[2]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(string(m[1]), string(m[2]))
+				refRepo, err = GetRepositoryFromMatch(m[1], m[2])
 				if err != nil {
 					continue
 				}
@@ -631,7 +631,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 
 			// issue is from another repo
 			if len(m[1]) > 0 && len(m[2]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(string(m[1]), string(m[2]))
+				refRepo, err = GetRepositoryFromMatch(m[1], m[2])
 				if err != nil {
 					continue
 				}
