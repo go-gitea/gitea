@@ -240,7 +240,14 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		headUser = doer
 	}
 
-	env := models.FullPushingEnvironment(headUser, doer, pr.BaseRepo, pr.ID)
+	env := models.FullPushingEnvironment(
+		headUser,
+		doer,
+		pr.BaseRepo.MustOwnerName(),
+		pr.BaseRepo.Name,
+		pr.BaseRepo.ID,
+		pr.ID,
+	)
 
 	// Push back to upstream.
 	if err := git.NewCommand("push", "origin", pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {

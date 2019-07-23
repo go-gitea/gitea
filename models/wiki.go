@@ -217,7 +217,14 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 	if err := git.Push(basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
-		Env:    PushingEnvironment(doer, repo),
+		Env: FullPushingEnvironment(
+			doer,
+			doer,
+			repo.MustOwnerName(),
+			repo.Name+".wiki",
+			repo.ID,
+			0,
+		),
 	}); err != nil {
 		log.Error("%v", err)
 		return fmt.Errorf("Push: %v", err)
