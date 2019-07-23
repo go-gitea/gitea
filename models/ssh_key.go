@@ -96,17 +96,18 @@ func extractTypeFromBase64Key(key string) (string, error) {
 
 // parseKeyString parses any key string in OpenSSH or SSH2 format to clean OpenSSH string (RFC4253).
 func parseKeyString(content string) (string, error) {
-	// Transform all legal line endings to a single "\n".
-	content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
-	// remove trailing newline (and beginning spaces too)
+	// remove whitespace at start and end
 	content = strings.TrimSpace(content)
-	lines := strings.Split(content, "\n")
 
 	var keyType, keyContent, keyComment string
 
-	if len(lines) == 1 {
+	if !strings.Contains(content, "-----BEGIN") {
 		// Parse OpenSSH format.
-		parts := strings.SplitN(lines[0], " ", 3)
+
+		// Remove all newlines
+		content = strings.NewReplacer("\r\n", "", "\n", "").Replace(content)
+
+		parts := strings.SplitN(content, " ", 3)
 		switch len(parts) {
 		case 0:
 			return "", errors.New("empty key")
@@ -133,6 +134,11 @@ func parseKeyString(content string) (string, error) {
 		}
 	} else {
 		// Parse SSH2 file format.
+
+		// Transform all legal line endings to a single "\n".
+		content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
+
+		lines := strings.Split(content, "\n")
 		continuationLine := false
 
 		for _, line := range lines {
