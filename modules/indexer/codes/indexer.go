@@ -84,7 +84,7 @@ func InitIndexer(syncReindex bool) error {
 		populate = !exist
 	case "elastic":
 		// Init elastic search code indexer
-		indexerName := "elastic-indexer"
+		indexerName := "gitea"
 
 		codesIndexer, err = NewElesticIndexer(setting.Indexer.RepoConn, indexerName)
 		exist, err = codesIndexer.Init()

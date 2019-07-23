@@ -47,6 +47,7 @@ var (
 		RepoIndexerEnabled:    false,
 		RepoType:              "bleve",
 		RepoPath:              "indexers/codes.bleve",
+		RepoConn:              "http://127.0.0.1:9200", // in production will be not local host: http://insert-elastic-search-server:9200
 		CodesQueueType:        LevelQueueType,
 		CodesQueueDir:         "indexers/codes.queue",
 		CodesQueueConnStr:     "",

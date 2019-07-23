@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	_Indexer = &ElesticSearchIndexer{}
+	_ Indexer = &ElesticSearchIndexer{}
 )
 
 // ElesticSearchIndexer implements Indexer interface
@@ -26,6 +26,7 @@ type ElesticSearchIndexer struct {
 
 // NewElesticIndexer creates a new elestic search indexer
 func NewElesticIndexer(url, indexerName string) (*ElesticSearchIndexer, error) {
+	ctx := context.Background()
 	client, err := elastic.NewClient(
 		elastic.SetURL(url),
 		elastic.SetSniff(false),
@@ -38,6 +39,15 @@ func NewElesticIndexer(url, indexerName string) (*ElesticSearchIndexer, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//Debug info to make sure Version of Elastic Client is compatible with Elastic Server
+	// Ping the Elasticsearch server to get e.g. the version number
+	info, code, errPing := client.Ping(url).Do(ctx)
+	if errPing != nil {
+		// Handle error
+		panic(err)
+	}
+	fmt.Printf("Elasticsearch returned with code %d and version %s\n", code, info.Version.Number)
 
 	return &ElesticSearchIndexer{
 		client:      client,
@@ -59,7 +69,7 @@ func (e *ElesticSearchIndexer) Init() (bool, error) {
 				"number_of_replicas":0
 			},
 			"mappings":{
-				"indexer_data":{
+				"code":{
 					"properties":{
 						"repo_id":{
 							"type":"number"
@@ -68,7 +78,7 @@ func (e *ElesticSearchIndexer) Init() (bool, error) {
 							"type":"string"
 						},
 						"content":{
-							"type":"string"
+							"type":"text"
 						}
 					}
 				}
@@ -89,14 +99,16 @@ func (e *ElesticSearchIndexer) Init() (bool, error) {
 
 // Index will save the index data
 func (e *ElesticSearchIndexer) Index(repos []*IndexerData) error {
+	ctx := context.Background()
+
 	for _, repo := range repos {
 		//tweet1 := Tweet{User: "olivere", Message: "Take Five", Retweets: 0}
 		_, err := e.client.Index().
 			Index(e.indexerName).
-			Type("indexer_data").
+			Type("code").
 			Id(fmt.Sprintf("%s", repo.RepoID)).
 			BodyJson(repo).
-			Do(context.Background())
+			Do(ctx)
 		if err != nil {
 			return err
 		}
@@ -125,12 +137,12 @@ func (e *ElesticSearchIndexer) Search(repoIDs []int64, keyword string, page, pag
 	// wrong code for code indexing (TODO)
 	termQuery := elastic.NewTermQuery("title", keyword)
 	searchResult, err := e.client.Search().
-		Index(e.indexerName).    // search in index "twitter"
-		Query(termQuery).        // specify the query
-		Sort("id", true).        // sort by "user" field, ascending
+		Index(e.indexerName).      // search in index "twitter"
+		Query(termQuery).          // specify the query
+		Sort("id", true).          // sort by "user" field, ascending
 		From(page).Size(pageSize). // take documents 0-9
-		Pretty(true).            // pretty print request and response JSON
-		Do(context.Background()) // execute
+		Pretty(true).              // pretty print request and response JSON
+		Do(context.Background())   // execute
 	if err != nil {
 		return nil, err
 	}
