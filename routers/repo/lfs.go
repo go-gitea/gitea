@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/pipeline"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -344,18 +345,18 @@ func LFSPointerFiles(ctx *context.Context) {
 		ctx.Data["NumNoExist"] = numNoExist
 		ctx.Data["NumNotAssociated"] = numPointers - numAssociated
 	}()
-	go readCatFileBatch(catFileBatchReader, &wg, pointerChan, ctx.Repo.Repository, ctx.User)
-	go doCatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, basePath)
-	go readCatFileBatchCheckAllObjects(catFileCheckReader, shasToBatchWriter, &wg)
+	go createPointerResultsFromCatFileBatch(catFileBatchReader, &wg, pointerChan, ctx.Repo.Repository, ctx.User)
+	go pipeline.CatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, basePath)
+	go pipeline.BlobsLessThan1024FromCatFileBatchCheck(catFileCheckReader, shasToBatchWriter, &wg)
 	if !version.Compare(binVersion, "2.6.0", ">=") {
 		revListReader, revListWriter := io.Pipe()
 		shasToCheckReader, shasToCheckWriter := io.Pipe()
 		wg.Add(2)
-		go doCatFileBatchCheck(shasToCheckReader, catFileCheckWriter, &wg, basePath)
-		go readRevListAllObjects(revListReader, shasToCheckWriter, &wg)
-		go doRevListAllObjects(revListWriter, &wg, basePath, errChan)
+		go pipeline.CatFileBatchCheck(shasToCheckReader, catFileCheckWriter, &wg, basePath)
+		go pipeline.BlobsFromRevListObjects(revListReader, shasToCheckWriter, &wg)
+		go pipeline.RevListAllObjects(revListWriter, &wg, basePath, errChan)
 	} else {
-		go doCatFileBatchCheckAllObjects(catFileCheckWriter, &wg, basePath, errChan)
+		go pipeline.CatFileBatchCheckAllObjects(catFileCheckWriter, &wg, basePath, errChan)
 	}
 	wg.Wait()
 
@@ -378,122 +379,7 @@ type pointerResult struct {
 	Accessible bool
 }
 
-func doRevListAllObjects(revListWriter *io.PipeWriter, wg *sync.WaitGroup, basePath string, errChan chan<- error) {
-	defer wg.Done()
-	defer revListWriter.Close()
-
-	stderr := new(bytes.Buffer)
-	var errbuf strings.Builder
-	cmd := git.NewCommand("rev-list", "--objects", "--all")
-	if err := cmd.RunInDirPipeline(basePath, revListWriter, stderr); err != nil {
-		log.Error("git rev-list --objects --all [%s]: %v - %s", basePath, err, errbuf.String())
-		err = fmt.Errorf("git rev-list --objects --all [%s]: %v - %s", basePath, err, errbuf.String())
-		_ = revListWriter.CloseWithError(err)
-		errChan <- err
-	}
-}
-
-func readRevListAllObjects(revListReader *io.PipeReader, shasToCheckWriter *io.PipeWriter, wg *sync.WaitGroup) {
-	defer wg.Done()
-	defer revListReader.Close()
-	scanner := bufio.NewScanner(revListReader)
-	defer func() {
-		_ = shasToCheckWriter.CloseWithError(scanner.Err())
-	}()
-	for scanner.Scan() {
-		line := scanner.Text()
-		if len(line) == 0 {
-			continue
-		}
-		fields := strings.Split(line, " ")
-		if len(fields) < 2 || len(fields[1]) == 0 {
-			continue
-		}
-		toWrite := []byte(fields[0] + "\n")
-		for len(toWrite) > 0 {
-			n, err := shasToCheckWriter.Write(toWrite)
-			if err != nil {
-				_ = revListReader.CloseWithError(err)
-				break
-			}
-			toWrite = toWrite[n:]
-		}
-	}
-}
-
-func doCatFileBatchCheck(shasToCheckReader *io.PipeReader, catFileCheckWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
-	defer wg.Done()
-	defer shasToCheckReader.Close()
-	defer catFileCheckWriter.Close()
-
-	stderr := new(bytes.Buffer)
-	var errbuf strings.Builder
-	cmd := git.NewCommand("cat-file", "--batch-check")
-	if err := cmd.RunInDirFullPipeline(tmpBasePath, catFileCheckWriter, stderr, shasToCheckReader); err != nil {
-		_ = catFileCheckWriter.CloseWithError(fmt.Errorf("git cat-file --batch-check [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
-	}
-}
-
-func doCatFileBatchCheckAllObjects(catFileCheckWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string, errChan chan<- error) {
-	defer wg.Done()
-	defer catFileCheckWriter.Close()
-
-	stderr := new(bytes.Buffer)
-	var errbuf strings.Builder
-	cmd := git.NewCommand("cat-file", "--batch-check", "--batch-all-objects")
-	if err := cmd.RunInDirPipeline(tmpBasePath, catFileCheckWriter, stderr); err != nil {
-		log.Error("git cat-file --batch-check --batch-all-object [%s]: %v - %s", tmpBasePath, err, errbuf.String())
-		err = fmt.Errorf("git cat-file --batch-check --batch-all-object [%s]: %v - %s", tmpBasePath, err, errbuf.String())
-		_ = catFileCheckWriter.CloseWithError(err)
-		errChan <- err
-	}
-}
-
-func readCatFileBatchCheckAllObjects(catFileCheckReader *io.PipeReader, shasToBatchWriter *io.PipeWriter, wg *sync.WaitGroup) {
-	defer wg.Done()
-	defer catFileCheckReader.Close()
-	scanner := bufio.NewScanner(catFileCheckReader)
-	defer func() {
-		_ = shasToBatchWriter.CloseWithError(scanner.Err())
-	}()
-	for scanner.Scan() {
-		line := scanner.Text()
-		if len(line) == 0 {
-			continue
-		}
-		fields := strings.Split(line, " ")
-		if len(fields) < 3 || fields[1] != "blob" {
-			continue
-		}
-		size, _ := strconv.Atoi(string(fields[2]))
-		if size > 1024 {
-			continue
-		}
-		toWrite := []byte(fields[0] + "\n")
-		for len(toWrite) > 0 {
-			n, err := shasToBatchWriter.Write(toWrite)
-			if err != nil {
-				_ = catFileCheckReader.CloseWithError(err)
-				break
-			}
-			toWrite = toWrite[n:]
-		}
-	}
-}
-
-func doCatFileBatch(shasToBatchReader *io.PipeReader, catFileBatchWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
-	defer wg.Done()
-	defer shasToBatchReader.Close()
-	defer catFileBatchWriter.Close()
-
-	stderr := new(bytes.Buffer)
-	var errbuf strings.Builder
-	if err := git.NewCommand("cat-file", "--batch").RunInDirFullPipeline(tmpBasePath, catFileBatchWriter, stderr, shasToBatchReader); err != nil {
-		_ = shasToBatchReader.CloseWithError(fmt.Errorf("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
-	}
-}
-
-func readCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pointerChan chan<- pointerResult, repo *models.Repository, user *models.User) {
+func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pointerChan chan<- pointerResult, repo *models.Repository, user *models.User) {
 	defer wg.Done()
 	defer catFileBatchReader.Close()
 	contentStore := lfs.ContentStore{BasePath: setting.LFS.ContentPath}
