@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -175,6 +176,10 @@ func (srv *Server) Serve(serve ServeFunction) error {
 	log.Debug("Waiting for connections to finish... (PID: %d)", syscall.Getpid())
 	srv.wg.Wait()
 	srv.setState(stateTerminate)
+	// use of closed means that the listeners are closed - return nil
+	if err != nil && strings.Contains(err.Error(), "use of closed") {
+		return nil
+	}
 	return err
 }
 

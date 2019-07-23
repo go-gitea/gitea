@@ -212,12 +212,9 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	if err != nil {
-		if strings.Contains(err.Error(), "use of closed") {
-			log.Info("HTTP Listener: %s Closed", listenAddr)
-			log.Close()
-		} else {
-			log.Fatal("Failed to start server: %v", err)
-		}
+		log.Critical("Failed to start server: %v", err)
 	}
+	log.Info("HTTP Listener: %s Closed", listenAddr)
+	log.Close()
 	return nil
 }
