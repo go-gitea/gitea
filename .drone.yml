@@ -730,7 +730,9 @@ depends_on:
   - translations
   - release-version
   - release-master
-  - docker
+  - docker-linux-amd64
+  - docker-linux-arm64
+  - docker-manifest
   - docs
 
 steps:
