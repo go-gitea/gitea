@@ -80,6 +80,9 @@ func (srv *Server) fork() error {
 
 	runningServersForked = true
 
+	// We need to move the file logs to append pids
+	setting.RestartLogsWithPIDSuffix()
+
 	_, err := RestartProcess()
 
 	return err
