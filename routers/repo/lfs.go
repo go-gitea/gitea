@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -188,11 +189,18 @@ func LFSDelete(ctx *context.Context) {
 }
 
 type lfsResult struct {
-	Name    string
-	SHA     string
-	Summary string
-	When    time.Time
+	Name         string
+	SHA          string
+	Summary      string
+	When         time.Time
+	ParentHashes []plumbing.Hash
 }
+
+type lfsResultSlice []lfsResult
+
+func (a lfsResultSlice) Len() int           { return len(a) }
+func (a lfsResultSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a lfsResultSlice) Less(i, j int) bool { return a[j].When.After(a[i].When) }
 
 // LFSFileFind guesses a sha for the provided oid (or uses the provided sha) and then finds the commits that contain this sha
 func LFSFileFind(ctx *context.Context) {
@@ -223,6 +231,7 @@ func LFSFileFind(ctx *context.Context) {
 	ctx.Data["Size"] = size
 	ctx.Data["SHA"] = sha
 
+	resultsMap := map[string]*lfsResult{}
 	results := make([]lfsResult, 0)
 
 	gogitRepo := ctx.Repo.GitRepo.GoGitRepo()
@@ -250,16 +259,32 @@ func LFSFileFind(ctx *context.Context) {
 				break
 			}
 			if entry.Hash == hash {
-				results = append(results, lfsResult{
-					Name:    name,
-					SHA:     gitCommit.Hash.String(),
-					Summary: strings.Split(strings.TrimSpace(gitCommit.Message), "\n")[0],
-					When:    gitCommit.Author.When,
-				})
+				result := lfsResult{
+					Name:         name,
+					SHA:          gitCommit.Hash.String(),
+					Summary:      strings.Split(strings.TrimSpace(gitCommit.Message), "\n")[0],
+					When:         gitCommit.Author.When,
+					ParentHashes: gitCommit.ParentHashes,
+				}
+				resultsMap[gitCommit.Hash.String()+":"+name] = &result
 			}
 		}
 		return nil
 	})
+
+	for _, result := range resultsMap {
+		hasParent := false
+		for _, parentHash := range result.ParentHashes {
+			if _, hasParent = resultsMap[parentHash.String()+":"+result.Name]; hasParent {
+				break
+			}
+		}
+		if !hasParent {
+			results = append(results, *result)
+		}
+	}
+
+	sort.Sort(lfsResultSlice(results))
 
 	ctx.Data["Results"] = results
 	ctx.HTML(200, tplSettingsLFSFileFind)
