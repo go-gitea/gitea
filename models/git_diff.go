@@ -543,7 +543,7 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 
 		// Get new file.
 		if strings.HasPrefix(line, cmdDiffHead) {
-			middle := -1
+			var middle int
 
 			// Note: In case file name is surrounded by double quotes (it happens only in git-shell).
 			// e.g. diff --git "a/xxx" "b/xxx"

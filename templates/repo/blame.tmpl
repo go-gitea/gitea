@@ -2,11 +2,11 @@
 
 	<h4 class="ui top attached header" id="repo-read-file">
 		<div class="ui stackable grid">
-			<div class="ten wide column">
+			<div class="eight wide column">
                 <i class="file text outline icon ui left"></i>
                 <strong>{{.FileName}}</strong> <span class="text grey normal">{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
 			</div>
-			<div class="six wide right aligned column">
+			<div class="eight wide right aligned column">
                 <div class="ui right file-actions">
                     <div class="ui buttons">
                         {{if not .IsViewCommit}}
