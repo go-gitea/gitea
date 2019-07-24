@@ -6,6 +6,7 @@ package repofiles
 
 import (
 	"bytes"
+	"container/list"
 	"fmt"
 	"path"
 	"strings"
@@ -15,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -428,10 +430,93 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 // PushUpdate must be called for any push actions in order to
 // generates necessary push action history feeds and other operations
 func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOptions) error {
-	err := models.PushUpdate(branch, opts)
-	if err != nil {
-		return fmt.Errorf("PushUpdate: %v", err)
+	isNewRef := opts.OldCommitID == git.EmptySHA
+	isDelRef := opts.NewCommitID == git.EmptySHA
+	if isNewRef && isDelRef {
+		return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 	}
+
+	repoPath := models.RepoPath(opts.RepoUserName, opts.RepoName)
+
+	_, err := git.NewCommand("update-server-info").RunInDir(repoPath)
+	if err != nil {
+		return fmt.Errorf("Failed to call 'git update-server-info': %v", err)
+	}
+
+	gitRepo, err := git.OpenRepository(repoPath)
+	if err != nil {
+		return fmt.Errorf("OpenRepository: %v", err)
+	}
+
+	if err = repo.UpdateSize(); err != nil {
+		log.Error("Failed to update size for repository: %v", err)
+	}
+
+	var commits = &models.PushCommits{}
+	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
+		// If is tag reference
+		tagName := opts.RefFullName[len(git.TagPrefix):]
+		if isDelRef {
+			err = models.PushUpdateDeleteTag(repo, tagName)
+			if err != nil {
+				return fmt.Errorf("PushUpdateDeleteTag: %v", err)
+			}
+		} else {
+			// Clear cache for tag commit count
+			cache.Remove(repo.GetCommitsCountCacheKey(tagName, true))
+			err = models.PushUpdateAddTag(repo, gitRepo, tagName)
+			if err != nil {
+				return fmt.Errorf("PushUpdateAddTag: %v", err)
+			}
+		}
+	} else if !isDelRef {
+		// If is branch reference
+
+		// Clear cache for branch commit count
+		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefFullName[len(git.BranchPrefix):], true))
+
+		newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
+		if err != nil {
+			return fmt.Errorf("gitRepo.GetCommit: %v", err)
+		}
+
+		// Push new branch.
+		var l *list.List
+		if isNewRef {
+			l, err = newCommit.CommitsBeforeLimit(10)
+			if err != nil {
+				return fmt.Errorf("newCommit.CommitsBeforeLimit: %v", err)
+			}
+		} else {
+			l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
+			if err != nil {
+				return fmt.Errorf("newCommit.CommitsBeforeUntil: %v", err)
+			}
+		}
+
+		commits = models.ListToPushCommits(l)
+	}
+
+	if err := models.CommitRepoAction(models.CommitRepoActionOptions{
+		PusherName:  opts.PusherName,
+		RepoOwnerID: repo.OwnerID,
+		RepoName:    repo.Name,
+		RefFullName: opts.RefFullName,
+		OldCommitID: opts.OldCommitID,
+		NewCommitID: opts.NewCommitID,
+		Commits:     commits,
+	}); err != nil {
+		return fmt.Errorf("CommitRepoAction: %v", err)
+	}
+
+	pusher, err := models.GetUserByID(opts.PusherID)
+	if err != nil {
+		return err
+	}
+
+	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
+
+	go models.AddTestPullRequestTask(pusher, repo.ID, branch, true)
 
 	if opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
 		models.UpdateRepoIndexer(repo)
