@@ -9,6 +9,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+
+	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
+	_ "github.com/go-macaron/cache/redis"
 )
 
 // Cache represents cache settings

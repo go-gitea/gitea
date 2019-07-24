@@ -6,8 +6,6 @@ package git
 
 import (
 	"io/ioutil"
-
-	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 // NotesRef is the git ref where Gitea will look for git-notes data.
@@ -45,7 +43,7 @@ func GetNote(repo *Repository, commitID string, note *Note) error {
 	}
 	note.Message = d
 
-	commit, err := repo.gogitRepo.CommitObject(plumbing.Hash(notes.ID))
+	commit, err := repo.gogitRepo.CommitObject(notes.ID)
 	if err != nil {
 		return err
 	}

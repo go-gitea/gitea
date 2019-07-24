@@ -31,7 +31,7 @@ func TestRender_StandardLinks(t *testing.T) {
 
 	test := func(input, expected, expectedWiki string) {
 		buffer := RenderString(input, setting.AppSubURL, nil)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 		bufferWiki := RenderWiki([]byte(input), setting.AppSubURL, nil)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(bufferWiki))
 	}
@@ -74,7 +74,7 @@ func TestRender_Images(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer := RenderString(input, setting.AppSubURL, nil)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	url := "../../.images/src/02/train.jpg"

@@ -10,12 +10,10 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 func (repo *Repository) getTree(id SHA1) (*Tree, error) {
-	gogitTree, err := repo.gogitRepo.TreeObject(plumbing.Hash(id))
+	gogitTree, err := repo.gogitRepo.TreeObject(id)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +39,7 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 		return nil, err
 	}
 	resolvedID := id
-	commitObject, err := repo.gogitRepo.CommitObject(plumbing.Hash(id))
+	commitObject, err := repo.gogitRepo.CommitObject(id)
 	if err == nil {
 		id = SHA1(commitObject.TreeHash)
 	}
