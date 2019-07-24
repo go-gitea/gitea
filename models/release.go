@@ -495,8 +495,8 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 				return fmt.Errorf("GetTagCommitID: %v", err)
 			}
 			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
-				if err := pushUpdateDeleteTag(repo, rel.TagName); err != nil {
-					return fmt.Errorf("pushUpdateDeleteTag: %v", err)
+				if err := PushUpdateDeleteTag(repo, rel.TagName); err != nil {
+					return fmt.Errorf("PushUpdateDeleteTag: %v", err)
 				}
 			} else {
 				existingRelTags[strings.ToLower(rel.TagName)] = struct{}{}
@@ -509,7 +509,7 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 	}
 	for _, tagName := range tags {
 		if _, ok := existingRelTags[strings.ToLower(tagName)]; !ok {
-			if err := pushUpdateAddTag(repo, gitRepo, tagName); err != nil {
+			if err := PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
 				return fmt.Errorf("pushUpdateAddTag: %v", err)
 			}
 		}
