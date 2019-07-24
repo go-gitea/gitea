@@ -985,6 +985,7 @@ tbody.commit-list{vertical-align:baseline}
 .ui.repository.list .item .ui.avatar.image{width:24px;height:24px}
 .ui.repository.branches .info{font-size:12px;color:grey;display:flex;white-space:pre}
 .ui.repository.branches .info .commit-message{max-width:72em;overflow:hidden;text-overflow:ellipsis}
+.ui.repository.branches .overflow-visible{overflow:visible}
 .ui.user.list .item{padding-bottom:25px}
 .ui.user.list .item:not(:first-child){border-top:1px solid #eee;padding-top:25px}
 .ui.user.list .item .ui.avatar.image{width:40px;height:40px}
