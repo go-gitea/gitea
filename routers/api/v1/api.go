@@ -43,7 +43,7 @@
 //          type: apiKey
 //          name: Authorization
 //          in: header
-//          description: API tokens must be prepended with "token ".
+//          description: API tokens must be prepended with "token" followed by a space.
 //     SudoParam:
 //          type: apiKey
 //          name: sudo
