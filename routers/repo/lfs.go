@@ -190,14 +190,16 @@ func LFSDelete(ctx *context.Context) {
 }
 
 type lfsResult struct {
-	Name         string
-	SHA          string
-	Summary      string
-	When         time.Time
-	ParentHashes []plumbing.Hash
+	Name           string
+	SHA            string
+	Summary        string
+	When           time.Time
+	ParentHashes   []plumbing.Hash
+	BranchName     string
+	FullCommitName string
 }
 
-type lfsResultSlice []lfsResult
+type lfsResultSlice []*lfsResult
 
 func (a lfsResultSlice) Len() int           { return len(a) }
 func (a lfsResultSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
@@ -233,8 +235,9 @@ func LFSFileFind(ctx *context.Context) {
 	ctx.Data["SHA"] = sha
 
 	resultsMap := map[string]*lfsResult{}
-	results := make([]lfsResult, 0)
+	results := make([]*lfsResult, 0)
 
+	basePath := ctx.Repo.Repository.RepoPath()
 	gogitRepo := ctx.Repo.GitRepo.GoGitRepo()
 
 	commitsIter, err := gogitRepo.Log(&gogit.LogOptions{
@@ -286,11 +289,70 @@ func LFSFileFind(ctx *context.Context) {
 			}
 		}
 		if !hasParent {
-			results = append(results, *result)
+			results = append(results, result)
 		}
 	}
 
 	sort.Sort(lfsResultSlice(results))
+
+	// Should really use a go-git function here but name-rev is not completed and recapitulating it is not simple
+	shasToNameReader, shasToNameWriter := io.Pipe()
+	nameRevStdinReader, nameRevStdinWriter := io.Pipe()
+	errChan := make(chan error, 1)
+	wg := sync.WaitGroup{}
+	wg.Add(3)
+
+	go func() {
+		defer wg.Done()
+		scanner := bufio.NewScanner(nameRevStdinReader)
+		i := 0
+		for scanner.Scan() {
+			line := scanner.Text()
+			if len(line) == 0 {
+				continue
+			}
+			result := results[i]
+			result.FullCommitName = line
+			result.BranchName = strings.Split(line, "~")[0]
+			i++
+		}
+	}()
+	go pipeline.NameRevStdin(shasToNameReader, nameRevStdinWriter, &wg, basePath)
+	go func() {
+		defer wg.Done()
+		defer shasToNameWriter.Close()
+		for _, result := range results {
+			i := 0
+			if i < len(result.SHA) {
+				n, err := shasToNameWriter.Write([]byte(result.SHA)[i:])
+				if err != nil {
+					errChan <- err
+					break
+				}
+				i += n
+			}
+			n := 0
+			for n < 1 {
+				n, err = shasToNameWriter.Write([]byte{'\n'})
+				if err != nil {
+					errChan <- err
+					break
+				}
+
+			}
+
+		}
+	}()
+
+	wg.Wait()
+
+	select {
+	case err, has := <-errChan:
+		if has {
+			ctx.ServerError("LFSPointerFiles", err)
+		}
+	default:
+	}
 
 	ctx.Data["Results"] = results
 	ctx.HTML(200, tplSettingsLFSFileFind)

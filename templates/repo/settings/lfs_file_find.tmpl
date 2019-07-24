@@ -24,17 +24,24 @@
 								</span>
 							</td>
 							<td>
-								<span class="text sha label" title="{{.SHA}}">
-									<a href="{{$.RepoLink}}/src/commit/{{.SHA}}" class="ui detail icon button truncate">
-										{{ShortSha .SHA}}
-									</a>
-								</span>
+								<span class="text grey"><i class="octicon octicon-git-branch"></i>{{.BranchName}}</span>
+							</td>
+							<td>
+								{{if .ParentHashes}}
+									{{$.i18n.Tr "repo.diff.parent"}}
+									{{range .ParentHashes}}
+										<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.String}}">{{ShortSha .String}}</a>
+									{{end}}
+								{{end}}
+								<div class="mobile-only"></div>
+								{{$.i18n.Tr "repo.diff.commit"}}
+								<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.SHA}}">{{ShortSha .SHA}}</a>
 							</td>
 							<td>{{TimeSince .When $.Lang}}</td>
 						</tr>
 					{{else}}
 						<tr>
-							<td colspan="4">{{.i18n.Tr "repo.settings.lfs_lfs_file_no_commits"}}</td>
+							<td colspan="5">{{.i18n.Tr "repo.settings.lfs_lfs_file_no_commits"}}</td>
 						</tr>
 					{{end}}
 				</tbody>
