@@ -39,9 +39,7 @@
 							<th class="six wide">{{.i18n.Tr "repo.branch.name"}}</th>
 							<th class="two wide"></th>
 							<th class="two wide"></th>
-							{{if and $.IsWriter (not $.IsMirror)}}
-								<th class="one wide right aligned">{{.i18n.Tr "repo.branch.delete_head"}}</th>
-							{{end}}
+							<th class="one wide right aligned"></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -92,8 +90,8 @@
 											{{end}}
 										{{end}}
 									</td>
+									<td class="right aligned overflow-visible">
 									{{if and $.IsWriter (not $.IsMirror)}}
-										<td class="right aligned">
 										{{if .IsProtected}}
 											<i class="octicon octicon-shield"></i>
 										{{else if .IsDeleted}}
@@ -101,8 +99,8 @@
 										{{else}}
 											<a class="delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name | urlquery}}" data-name="{{.Name}}"><i class="trash icon text red"></i></a>
 										{{end}}
-										</td>
-									{{end}}
+										{{end}}
+									</td>
 								</tr>
 							{{end}}
 						{{end}}
