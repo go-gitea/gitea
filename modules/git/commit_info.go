@@ -25,7 +25,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 		defer commitGraphFile.Close()
 	}
 
-	c, err := commitNodeIndex.Get(plumbing.Hash(commit.ID))
+	c, err := commitNodeIndex.Get(commit.ID)
 	if err != nil {
 		return nil, nil, err
 	}

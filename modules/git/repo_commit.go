@@ -86,9 +86,9 @@ func convertPGPSignatureForTag(t *object.Tag) *CommitGPGSignature {
 func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	var tagObject *object.Tag
 
-	gogitCommit, err := repo.gogitRepo.CommitObject(plumbing.Hash(id))
+	gogitCommit, err := repo.gogitRepo.CommitObject(id)
 	if err == plumbing.ErrObjectNotFound {
-		tagObject, err = repo.gogitRepo.TagObject(plumbing.Hash(id))
+		tagObject, err = repo.gogitRepo.TagObject(id)
 		if err == nil {
 			gogitCommit, err = repo.gogitRepo.CommitObject(tagObject.Target)
 		}

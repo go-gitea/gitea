@@ -438,7 +438,7 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 
 	name += tail
 	image := false
-	switch ext := filepath.Ext(string(link)); ext {
+	switch ext := filepath.Ext(link); ext {
 	// fast path: empty string, ignore
 	case "":
 		break
@@ -482,7 +482,7 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 			title = props["alt"]
 		}
 		if title == "" {
-			title = path.Base(string(name))
+			title = path.Base(name)
 		}
 		alt := props["alt"]
 		if alt == "" {
