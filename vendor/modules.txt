@@ -87,7 +87,7 @@ github.com/couchbase/vellum/utf8
 github.com/couchbaselabs/go-couchbase
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952 => github.com/denisenkom/go-mssqldb v0.0.0-20180315180555-6a30f4e59a44
+# github.com/denisenkom/go-mssqldb v0.0.0-20190724012636-11b2859924c1 => github.com/denisenkom/go-mssqldb v0.0.0-20180315180555-6a30f4e59a44
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -154,7 +154,7 @@ github.com/go-redis/redis/internal/proto
 github.com/go-redis/redis/internal/util
 # github.com/go-sql-driver/mysql v1.4.1
 github.com/go-sql-driver/mysql
-# github.com/go-xorm/xorm v0.7.3-0.20190620151208-f1b4f8368459
+# github.com/go-xorm/xorm v0.7.4
 github.com/go-xorm/xorm
 # github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
 github.com/gogits/chardet
@@ -207,7 +207,7 @@ github.com/klauspost/compress/flate
 github.com/klauspost/cpuid
 # github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6
 github.com/klauspost/crc32
-# github.com/lafriks/xormstore v1.0.0
+# github.com/lafriks/xormstore v1.1.0
 github.com/lafriks/xormstore
 github.com/lafriks/xormstore/util
 # github.com/lib/pq v1.1.0
