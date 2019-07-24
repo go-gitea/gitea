@@ -7,7 +7,9 @@ package models
 
 import (
 	"bufio"
+	"crypto/rsa"
 	"crypto/x509"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/pem"
@@ -144,7 +146,12 @@ func parseKeyString(content string) (string, error) {
 
 			pub, err := x509.ParsePKIXPublicKey(block.Bytes)
 			if err != nil {
-				return "", fmt.Errorf("failed to parse DER encoded public key: %v", err)
+				var pk rsa.PublicKey
+				_, err2 := asn1.Unmarshal(block.Bytes, &pk)
+				if err2 != nil {
+					return "", fmt.Errorf("failed to parse DER encoded public key as either PKIX or PEM RSA Key: %v %v", err, err2)
+				}
+				pub = &pk
 			}
 
 			sshKey, err := ssh.NewPublicKey(pub)
