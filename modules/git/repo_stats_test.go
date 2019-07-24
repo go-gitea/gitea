@@ -18,6 +18,7 @@ func TestRepository_GetCodeActivityStats(t *testing.T) {
 	assert.NoError(t, err)
 
 	timeFrom, err := time.Parse(time.RFC3339, "2016-01-01T00:00:00+00:00")
+	assert.NoError(t, err)
 
 	code, err := bareRepo1.GetCodeActivityStats(timeFrom, "")
 	assert.NoError(t, err)
