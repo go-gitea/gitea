@@ -212,7 +212,6 @@ type swaggerCommitList struct {
 	Body []api.Commit `json:"body"`
 }
 
-
 // FileResponse
 // swagger:response FileResponse
 type swaggerFileResponse struct {
