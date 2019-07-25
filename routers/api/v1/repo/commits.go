@@ -260,9 +260,9 @@ func GetAllCommits(ctx *context.APIContext) {
 				URL: ctx.Repo.Repository.APIURL() + "/git/commits/" + commit.ID.String(),
 				SHA: commit.ID.String(),
 			},
-			HTMLURL: ctx.Repo.Repository.HTMLURL() + "/commits/" + commit.ID.String(),
+			HTMLURL: ctx.Repo.Repository.HTMLURL() + "/commit/" + commit.ID.String(),
 			RepoCommit: &api.RepoCommit{
-				URL: setting.AppURL + ctx.Link[1:],
+				URL: ctx.Repo.Repository.APIURL() + "/git/commits/" + commit.ID.String(),
 				Author: &api.CommitUser{
 					Identity: api.Identity{
 						Name:  commit.Committer.Name,
@@ -279,7 +279,7 @@ func GetAllCommits(ctx *context.APIContext) {
 				},
 				Message: commit.Summary(),
 				Tree: &api.CommitMeta{
-					URL: ctx.Repo.Repository.APIURL() + "/trees/" + commit.ID.String(),
+					URL: ctx.Repo.Repository.APIURL() + "/git/trees/" + commit.ID.String(),
 					SHA: commit.ID.String(),
 				},
 			},
@@ -300,26 +300,4 @@ func GetAllCommits(ctx *context.APIContext) {
 	ctx.Header().Set("X-HasMore", strconv.FormatBool(page < pageCount))
 
 	ctx.JSON(200, &apiCommits)
-}
-
-// CommitList
-// swagger:response CommitList
-type swaggerCommitList struct {
-	// The current page
-	Page int `json:"X-Page"`
-
-	// Commits per page
-	PerPage int `json:"X-PerPage"`
-
-	// Total commit count
-	Total int `json:"X-Total"`
-
-	// Total number of pages
-	PageCount int `json:"X-PageCount"`
-
-	// True if there is another page
-	HasMore bool `json:"X-HasMore"`
-
-	//in: body
-	Body []api.Commit `json:"body"`
 }
