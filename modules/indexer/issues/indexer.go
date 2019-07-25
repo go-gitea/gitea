@@ -166,7 +166,7 @@ func InitIssueIndexer(syncReindex bool) {
 				go populateIssueIndexer()
 			}
 		}
-		waitChannel <- time.Now().Sub(start)
+		waitChannel <- time.Since(start)
 	}()
 	if syncReindex {
 		<-waitChannel

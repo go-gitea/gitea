@@ -78,7 +78,7 @@ func InitRepoIndexer() {
 		log.Info("Initializing Repository Indexer")
 		indexer.InitRepoIndexer(populateRepoIndexerAsynchronously)
 		go processRepoIndexerOperationQueue()
-		waitChannel <- time.Now().Sub(start)
+		waitChannel <- time.Since(start)
 	}()
 	if setting.Indexer.StartupTimeout > 0 {
 		go func() {
