@@ -9,9 +9,13 @@ branches:
 language: go
 go:
   - "tip"
-  - "1.8"
-  - "1.9"
-  - "1.10"
+  - "1.11"
+  - "1.12"
+  - "1.x"
+
+env:
+  global:
+    - GO111MODULE=on
 
 script: ./test
 

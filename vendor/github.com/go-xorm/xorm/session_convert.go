@@ -640,7 +640,7 @@ func (session *Session) value2Interface(col *core.Column, fieldValue reflect.Val
 		} else if col.SQLType.IsBlob() {
 			var bytes []byte
 			var err error
-			if (k == reflect.Array || k == reflect.Slice) &&
+			if (k == reflect.Slice) &&
 				(fieldValue.Type().Elem().Kind() == reflect.Uint8) {
 				bytes = fieldValue.Bytes()
 			} else {
