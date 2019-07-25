@@ -14,7 +14,7 @@
 						<div class="meta"><a href="{{.HomeLink}}">{{.Name}}</a></div>
 						<div class="meta">{{.FullName}}</div>
 					</div>
-					<div class="ui five wide column center">
+					<div class="ui four wide column center">
 						<div class="meta">
 							{{$.i18n.Tr "org.members.membership_visibility"}}
 						</div>
@@ -35,6 +35,14 @@
 						</div>
 						<div class="meta">
 							<strong>{{if .IsUserOrgOwner $.Org.ID}}<span class="octicon octicon-shield"></span> {{$.i18n.Tr "org.members.owner"}}{{else}}{{$.i18n.Tr "org.members.member"}}{{end}}</strong>
+						</div>
+					</div>
+					<div class="ui one wide column center">
+						<div class="meta">
+							2FA
+						</div>
+						<div class="meta">
+							<strong><span class="octicon {{if .IsTwoFaEnrolled}}octicon-check text green{{else}}octicon-x{{end}}"></span></strong>
 						</div>
 					</div>
 					<div class="ui four wide column">
