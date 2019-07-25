@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"golang.org/x/oauth2/google"
 
 	"code.gitea.io/gitea/modules/setting"
 
@@ -34,13 +37,37 @@ func (u *User) GetAvatarLink() (string, error) {
 func (u *User) getAvatarLinkFromBucket() (string, error) {
 	ctx := context.Background()
 
-	bucket, err := blob.OpenBucket(ctx, setting.FileStorage.Bucket)
+	saKeyFile := filepath.Join(os.Getenv("HOME"), ".config", "gcloud", "application_default_credentials.json")
+	saKey, err := ioutil.ReadFile(saKeyFile)
 	if err != nil {
-		return "", fmt.Errorf("Failed to setup bucket: %v", err)
+		return "", err
+	}
+
+	cfg, err := google.JWTConfigFromJSON(saKey)
+	if err != nil {
+		return "", err
+	}
+
+	saPvtKeyFile := saKeyFile + "-private-key"
+	err = ioutil.WriteFile(saPvtKeyFile, cfg.PrivateKey, 0644)
+	if err != nil {
+		return "", err
+	}
+
+	bucket, err := blob.OpenBucket(ctx, setting.FileStorage.Bucket+"?access_id="+cfg.Email+"&private_key_path="+saPvtKeyFile)
+	if err != nil {
+		return "", fmt.Errorf("failed to setup bucket: %v", err)
 	}
 	exist, err := bucket.Exists(ctx, u.CustomAvatarPath())
 	if exist {
-		return filepath.Join(setting.FileStorage.BucketURL, u.CustomAvatarPath()), nil
+		opts := &blob.SignedURLOptions{
+			Expiry: blob.DefaultSignedURLExpiry,
+		}
+		signedUrl, err := bucket.SignedURL(ctx, u.CustomAvatarPath(), opts)
+		if err != nil {
+			return "", err
+		}
+		return signedUrl, nil
 	}
 	return "", errors.Errorf("file doesn't exist, error %v", err)
 

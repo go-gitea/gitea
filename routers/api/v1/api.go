@@ -75,7 +75,7 @@ import (
 
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cors"
-	macaron "gopkg.in/macaron.v1"
+	"gopkg.in/macaron.v1"
 )
 
 func sudo() macaron.Handler {
