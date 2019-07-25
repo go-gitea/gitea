@@ -191,6 +191,11 @@ func parseKeyString(content string) (string, error) {
 			return "", fmt.Errorf("key type and content does not match: %s - %s", keyType, t)
 		}
 	}
+	// Finally we need to check whether we can actually read the proposed key:
+	_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(keyType + " " + keyContent + " " + keyComment))
+	if err != nil {
+		return "", fmt.Errorf("invalid ssh public key: %v", err)
+	}
 	return keyType + " " + keyContent + " " + keyComment, nil
 }
 
