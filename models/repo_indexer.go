@@ -71,12 +71,14 @@ func InitRepoIndexer() {
 	if !setting.Indexer.RepoIndexerEnabled {
 		return
 	}
-	waitChannel := make(chan struct{})
+	waitChannel := make(chan time.Duration)
 	repoIndexerOperationQueue = make(chan repoIndexerOperation, setting.Indexer.UpdateQueueLength)
 	go func() {
+		start := time.Now()
+		log.Info("Initializing Repository Indexer")
 		indexer.InitRepoIndexer(populateRepoIndexerAsynchronously)
 		go processRepoIndexerOperationQueue()
-		close(waitChannel)
+		waitChannel <- time.Now().Sub(start)
 	}()
 	if setting.Indexer.StartupTimeout > 0 {
 		go func() {
@@ -85,9 +87,10 @@ func InitRepoIndexer() {
 				timeout += setting.GracefulHammerTime
 			}
 			select {
-			case <-waitChannel:
+			case duration := <-waitChannel:
+				log.Info("Repository Indexer Initialization took %v", duration)
 			case <-time.After(timeout):
-				log.Fatal("Timedout starting Repo Indexer")
+				log.Fatal("Repository Indexer Initialization Timed-Out after: %v", timeout)
 			}
 		}()
 

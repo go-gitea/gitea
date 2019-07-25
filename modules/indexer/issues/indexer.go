@@ -5,6 +5,7 @@
 package issues
 
 import (
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -46,31 +47,62 @@ type Indexer interface {
 	Search(kw string, repoID int64, limit, start int) (*SearchResult, error)
 }
 
+type indexerHolder struct {
+	indexer Indexer
+	mutex   sync.RWMutex
+	cond    *sync.Cond
+}
+
+func newIndexerHolder() *indexerHolder {
+	h := &indexerHolder{}
+	h.cond = sync.NewCond(h.mutex.RLocker())
+	return h
+}
+
+func (h *indexerHolder) set(indexer Indexer) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+	h.indexer = indexer
+	h.cond.Broadcast()
+}
+
+func (h *indexerHolder) get() Indexer {
+	h.mutex.RLock()
+	defer h.mutex.RUnlock()
+	if h.indexer == nil {
+		h.cond.Wait()
+	}
+	return h.indexer
+}
+
 var (
 	issueIndexerChannel = make(chan *IndexerData, setting.Indexer.UpdateQueueLength)
 	// issueIndexerQueue queue of issue ids to be updated
 	issueIndexerQueue Queue
-	issueIndexer      Indexer
-	waitChannel       chan struct{}
+	holder            = newIndexerHolder()
 )
 
 // InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
 // all issue index done.
 func InitIssueIndexer(syncReindex bool) {
-	waitChannel = make(chan struct{})
+	waitChannel := make(chan time.Duration)
 	go func() {
+		start := time.Now()
+		log.Info("Initializing Issue Indexer")
 		var populate bool
 		var dummyQueue bool
 		switch setting.Indexer.IssueType {
 		case "bleve":
-			issueIndexer = NewBleveIndexer(setting.Indexer.IssuePath)
+			issueIndexer := NewBleveIndexer(setting.Indexer.IssuePath)
 			exist, err := issueIndexer.Init()
 			if err != nil {
-				log.Fatal("Unable to initialise issueIndexer: %v", err)
+				log.Fatal("Unable to initialize Bleve Issue Indexer: %v", err)
 			}
 			populate = !exist
+			holder.set(issueIndexer)
 		case "db":
-			issueIndexer = &DBIndexer{}
+			issueIndexer := &DBIndexer{}
+			holder.set(issueIndexer)
 			dummyQueue = true
 		default:
 			log.Fatal("Unknown issue indexer type: %s", setting.Indexer.IssueType)
@@ -83,7 +115,7 @@ func InitIssueIndexer(syncReindex bool) {
 			switch setting.Indexer.IssueQueueType {
 			case setting.LevelQueueType:
 				issueIndexerQueue, err = NewLevelQueue(
-					issueIndexer,
+					holder.get(),
 					setting.Indexer.IssueQueueDir,
 					setting.Indexer.IssueQueueBatchNumber)
 				if err != nil {
@@ -94,7 +126,7 @@ func InitIssueIndexer(syncReindex bool) {
 						err)
 				}
 			case setting.ChannelQueueType:
-				issueIndexerQueue = NewChannelQueue(issueIndexer, setting.Indexer.IssueQueueBatchNumber)
+				issueIndexerQueue = NewChannelQueue(holder.get(), setting.Indexer.IssueQueueBatchNumber)
 			case setting.RedisQueueType:
 				addrs, pass, idx, err := parseConnStr(setting.Indexer.IssueQueueConnStr)
 				if err != nil {
@@ -102,7 +134,7 @@ func InitIssueIndexer(syncReindex bool) {
 						setting.Indexer.IssueQueueConnStr,
 						err)
 				}
-				issueIndexerQueue, err = NewRedisQueue(addrs, pass, idx, issueIndexer, setting.Indexer.IssueQueueBatchNumber)
+				issueIndexerQueue, err = NewRedisQueue(addrs, pass, idx, holder.get(), setting.Indexer.IssueQueueBatchNumber)
 				if err != nil {
 					log.Fatal("Unable to create RedisQueue: %s : %v",
 						setting.Indexer.IssueQueueConnStr,
@@ -134,7 +166,7 @@ func InitIssueIndexer(syncReindex bool) {
 				go populateIssueIndexer()
 			}
 		}
-		close(waitChannel)
+		waitChannel <- time.Now().Sub(start)
 	}()
 	if syncReindex {
 		<-waitChannel
@@ -145,9 +177,10 @@ func InitIssueIndexer(syncReindex bool) {
 				timeout += setting.GracefulHammerTime
 			}
 			select {
-			case <-waitChannel:
+			case duration := <-waitChannel:
+				log.Info("Issue Indexer Initialization took %v", duration)
 			case <-time.After(timeout):
-				log.Fatal("Timedout starting Issue Indexer")
+				log.Fatal("Issue Indexer Initialization timed-out after: %v", timeout)
 			}
 		}()
 	}
@@ -230,9 +263,8 @@ func DeleteRepoIssueIndexer(repo *models.Repository) {
 
 // SearchIssuesByKeyword search issue ids by keywords and repo id
 func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
-	<-waitChannel
 	var issueIDs []int64
-	res, err := issueIndexer.Search(keyword, repoID, 1000, 0)
+	res, err := holder.get().Search(keyword, repoID, 1000, 0)
 	if err != nil {
 		return nil, err
 	}
