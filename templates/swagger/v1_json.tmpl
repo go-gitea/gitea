@@ -1561,6 +1561,12 @@
             "name": "ref",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results",
+            "name": "page",
+            "in": "query"
           }
         ],
         "responses": {
@@ -5057,6 +5063,38 @@
             "name": "sha",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "oldest",
+              "recentupdate",
+              "leastupdate",
+              "leastindex",
+              "highestindex"
+            ],
+            "type": "string",
+            "description": "type of sort",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "pending",
+              "success",
+              "error",
+              "failure",
+              "warning"
+            ],
+            "type": "string",
+            "description": "type of state",
+            "name": "state",
+            "in": "query"
           }
         ],
         "responses": {
@@ -10390,6 +10428,7 @@
       "in": "query"
     },
     "AuthorizationHeaderToken": {
+      "description": "API tokens must be prepended with \"token\" followed by a space.",
       "type": "apiKey",
       "name": "Authorization",
       "in": "header"
