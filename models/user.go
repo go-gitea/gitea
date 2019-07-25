@@ -555,7 +555,7 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 // IsTwoFaEnrolled return state of 2FA enrollement
 func (u *User) IsTwoFaEnrolled() bool {
 	_, err := GetTwoFactorByUID(u.ID)
-	return err == nil //If we canno't generate a scratch token what so ever the reason 2FA is not enable
+	return err == nil //If we can't generate a scratch token what so ever the reason -> 2FA is not enable
 }
 
 // IsUserPartOfOrg returns true if user with userID is part of the u organisation.
