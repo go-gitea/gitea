@@ -139,6 +139,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	assert.True(t, ok)
 
 	count, err := GetReleaseCountByRepoID(mirror.ID, findOptions)
+	assert.NoError(t, err)
 	assert.EqualValues(t, initCount+1, count)
 
 	release, err := GetRelease(repo.ID, "v0.2")
@@ -149,5 +150,6 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	assert.True(t, ok)
 
 	count, err = GetReleaseCountByRepoID(mirror.ID, findOptions)
+	assert.NoError(t, err)
 	assert.EqualValues(t, initCount, count)
 }

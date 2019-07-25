@@ -560,7 +560,7 @@ steps:
 
 ---
 kind: pipeline
-name: docker
+name: docker-linux-amd64
 
 platform:
   os: linux
@@ -596,6 +596,7 @@ steps:
     settings:
       dry_run: true
       repo: gitea/gitea
+      tags: linux-amd64
     when:
       event:
         - pull_request
@@ -605,6 +606,7 @@ steps:
     image: plugins/docker:linux-amd64
     settings:
       auto_tag: true
+      auto_tag_suffix: linux-amd64
       repo: gitea/gitea
       password:
         from_secret: docker_password
@@ -614,6 +616,97 @@ steps:
       event:
         exclude:
         - pull_request
+
+
+
+---
+kind: pipeline
+name: docker-linux-arm64
+
+platform:
+  os: linux
+  arch: arm64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+depends_on:
+  - testing
+
+trigger:
+  ref:
+  - refs/heads/master
+  - "refs/tags/**"
+  - "refs/pull/**"
+
+steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+    when:
+      event:
+        exclude:
+          - pull_request
+
+  - name: dryrun
+    pull: always
+    image: plugins/docker:linux-arm64
+    settings:
+      dry_run: true
+      repo: gitea/gitea
+      tags: linux-arm64
+    when:
+      event:
+        - pull_request
+
+  - name: publish
+    pull: always
+    image: plugins/docker:linux-arm64
+    settings:
+      auto_tag: true
+      auto_tag_suffix: linux-arm64
+      repo: gitea/gitea
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+---
+kind: pipeline
+name: docker-manifest
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: manifest
+    pull: always
+    image: plugins/manifest
+    settings:
+      auto_tag: true
+      ignore_missing: true
+      spec: docker/manifest.tmpl
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+
+trigger:
+  ref:
+  - refs/heads/master
+  - "refs/tags/**"
+
+depends_on:
+  - docker-linux-amd64
+  - docker-linux-arm64
 
 ---
 kind: pipeline
@@ -637,7 +730,9 @@ depends_on:
   - translations
   - release-version
   - release-master
-  - docker
+  - docker-linux-amd64
+  - docker-linux-arm64
+  - docker-manifest
   - docs
 
 steps:

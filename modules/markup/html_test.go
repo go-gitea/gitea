@@ -27,7 +27,7 @@ func TestRender_Commits(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer := RenderString(".md", input, setting.AppSubURL, localMetas)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	var sha = "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
@@ -51,7 +51,7 @@ func TestRender_CrossReferences(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer := RenderString("a.md", input, setting.AppSubURL, localMetas)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	test(
@@ -83,7 +83,7 @@ func TestRender_links(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 	// Text that should be turned into URL
 
@@ -160,7 +160,7 @@ func TestRender_email(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 	// Text that should be turned into email link
 
@@ -214,9 +214,9 @@ func TestRender_ShortLinks(t *testing.T) {
 
 	test := func(input, expected, expectedWiki string) {
 		buffer := markdown.RenderString(input, tree, nil)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 		buffer = markdown.RenderWiki([]byte(input), setting.AppSubURL, localMetas)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
 	rawtree := util.URLJoin(AppSubURL, "raw", "master")

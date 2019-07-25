@@ -30,7 +30,7 @@ func Recovery() macaron.Handler {
 	return func(ctx *Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				combinedErr := fmt.Errorf("%s\n%s", err, string(log.Stack(2)))
+				combinedErr := fmt.Errorf("%s\n%s", err, log.Stack(2))
 				ctx.ServerError("PANIC:", combinedErr)
 			}
 		}()
