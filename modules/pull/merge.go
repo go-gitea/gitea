@@ -101,7 +101,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	}
 
 	// Fetch head branch
-	if err := git.NewCommand("fetch", remoteRepoName).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := git.NewCommand("fetch", remoteRepoName, pr.HeadBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 	}
 
@@ -240,7 +240,13 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		headUser = doer
 	}
 
-	env := models.FullPushingEnvironment(headUser, doer, pr.BaseRepo, pr.ID)
+	env := models.FullPushingEnvironment(
+		headUser,
+		doer,
+		pr.BaseRepo,
+		pr.BaseRepo.Name,
+		pr.ID,
+	)
 
 	// Push back to upstream.
 	if err := git.NewCommand("push", "origin", pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {

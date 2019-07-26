@@ -215,7 +215,10 @@ func HTTP(ctx *context.Context) {
 				// Check username and password
 				authUser, err = models.UserSignIn(authUsername, authPasswd)
 				if err != nil {
-					if !models.IsErrUserNotExist(err) {
+					if models.IsErrUserProhibitLogin(err) {
+						ctx.HandleText(http.StatusForbidden, "User is not permitted to login")
+						return
+					} else if !models.IsErrUserNotExist(err) {
 						ctx.ServerError("UserSignIn error: %v", err)
 						return
 					}

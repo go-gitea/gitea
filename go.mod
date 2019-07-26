@@ -3,7 +3,6 @@ module code.gitea.io/gitea
 go 1.12
 
 require (
-	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
 	github.com/RoaringBitmap/roaring v0.4.7 // indirect
 	github.com/Unknwon/cae v0.0.0-20160715032808-c6aac99ea2ca
@@ -26,7 +25,7 @@ require (
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
-	github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952
+	github.com/denisenkom/go-mssqldb v0.0.0-20190724012636-11b2859924c1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712 // indirect
 	github.com/emirpasic/gods v1.12.0
@@ -54,8 +53,7 @@ require (
 	github.com/go-macaron/toolbox v0.0.0-20180818072302-a77f45a7ce90
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
-	github.com/go-xorm/core v0.6.0 // indirect
-	github.com/go-xorm/xorm v0.7.3-0.20190620151208-f1b4f8368459
+	github.com/go-xorm/xorm v0.7.4
 	github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/google/go-cmp v0.3.0 // indirect
@@ -71,7 +69,7 @@ require (
 	github.com/klauspost/compress v0.0.0-20161025140425-8df558b6cb6f
 	github.com/klauspost/cpuid v0.0.0-20160302075316-09cded8978dc // indirect
 	github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6 // indirect
-	github.com/lafriks/xormstore v1.0.0
+	github.com/lafriks/xormstore v1.1.0
 	github.com/lib/pq v1.1.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/lunny/levelqueue v0.0.0-20190217115915-02b525a4418e
@@ -128,11 +126,8 @@ require (
 	gopkg.in/src-d/go-git.v4 v4.12.0
 	gopkg.in/stretchr/testify.v1 v1.2.2 // indirect
 	gopkg.in/testfixtures.v2 v2.5.0
-	gopkg.in/yaml.v2 v2.2.2 // indirect
 	mvdan.cc/xurls/v2 v2.0.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a
 	xorm.io/builder v0.3.5
 	xorm.io/core v0.6.3
 )
-
-replace github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20180315180555-6a30f4e59a44
