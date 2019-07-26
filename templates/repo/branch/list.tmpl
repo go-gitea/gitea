@@ -34,21 +34,11 @@
 			</h4>
 			<div class="ui attached table segment">
 				<table class="ui very basic striped fixed table single line">
-					<thead>
-						<tr>
-							<th class="six wide">{{.i18n.Tr "repo.branch.name"}}</th>
-							<th class="two wide"></th>
-							<th class="two wide"></th>
-							{{if and $.IsWriter (not $.IsMirror)}}
-								<th class="one wide right aligned">{{.i18n.Tr "repo.branch.delete_head"}}</th>
-							{{end}}
-						</tr>
-					</thead>
 					<tbody>
 						{{range $branch := .Branches}}
 							{{if ne .Name $.DefaultBranch}}
 								<tr>
-									<td>
+									<td class="six wide">
 									{{if .IsDeleted}}
 										<s><a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a></s>
 										<p class="info">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</p>
@@ -60,7 +50,7 @@
 										<p class="info"><i class="octicon octicon-git-commit"></i><a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 									{{end}}
 									</td>
-									<td class="ui">
+									<td class="two wide ui">
 										{{if not .IsDeleted}}
 										<div class="commit-divergence">
 											<div class="bar-group">
@@ -74,7 +64,7 @@
 										</div>
 										{{end}}
 									</td>
-									<td class="right aligned">
+									<td class="two wide right aligned">
 										{{if not .LatestPullRequest}}
 											{{if and (not .IsDeleted) $.AllowsPulls}}
 											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}">
@@ -93,7 +83,7 @@
 										{{end}}
 									</td>
 									{{if and $.IsWriter (not $.IsMirror)}}
-										<td class="right aligned">
+										<td class="one wide right aligned">
 										{{if .IsProtected}}
 											<i class="octicon octicon-shield"></i>
 										{{else if .IsDeleted}}
