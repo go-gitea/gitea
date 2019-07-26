@@ -32,6 +32,16 @@ type Repository struct {
 
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
+	gpgSettings  *GPGSettings
+}
+
+// GPGSettings represents the default GPG settings for this repository
+type GPGSettings struct {
+	Sign             bool
+	KeyID            string
+	Email            string
+	Name             string
+	PublicKeyContent string
 }
 
 const prettyLogFormat = `--pretty=format:%H`

@@ -18,6 +18,12 @@ func GetPayloadCommitVerification(commit *git.Commit) *structs.PayloadCommitVeri
 		verification.Signature = commit.Signature.Signature
 		verification.Payload = commit.Signature.Payload
 	}
+	if commitVerification.SigningUser != nil {
+		verification.Signer = &structs.PayloadUser{
+			Name:  commitVerification.SigningUser.Name,
+			Email: commitVerification.SigningUser.Email,
+		}
+	}
 	if verification.Reason != "" {
 		verification.Reason = commitVerification.Reason
 	} else if verification.Verified {

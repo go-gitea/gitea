@@ -253,7 +253,6 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
-	// FIXME: Should we add SSH_ORIGINAL_COMMAND to this
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),
 		"GIT_AUTHOR_NAME="+authorSig.Name,
@@ -263,11 +262,22 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 		"GIT_COMMITTER_EMAIL="+committerSig.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
+
+	args := []string{"commit-tree", treeHash, "-p", "HEAD", "-m", message}
+
+	// Determine if we should sign
+	sign, keyID := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
+	if sign {
+		args = append(args, "-S"+keyID)
+	} else {
+		args = append(args, "--no-gpg-sign")
+	}
+
 	commitHash, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
 		t.basePath,
 		fmt.Sprintf("commitTree (git commit-tree): %s", t.basePath),
 		env,
-		git.GitExecutable, "commit-tree", treeHash, "-p", "HEAD", "-m", message)
+		git.GitExecutable, args...)
 	if err != nil {
 		return "", fmt.Errorf("git commit-tree: %s", stderr)
 	}

@@ -64,6 +64,14 @@ var (
 		Issue struct {
 			LockReasons []string
 		} `ini:"repository.issue"`
+
+		Signing struct {
+			SigningKey    string
+			InitialCommit []string
+			CRUDActions   []string `ini:"CRUD_ACTIONS"`
+			Merges        []string
+			Wiki          []string
+		} `ini:"repository.signing"`
 	}{
 		AnsiCharset:                             "",
 		ForcePrivate:                            false,
@@ -120,6 +128,21 @@ var (
 			LockReasons []string
 		}{
 			LockReasons: strings.Split("Too heated,Off-topic,Spam,Resolved", ","),
+		},
+
+		// Signing settings
+		Signing: struct {
+			SigningKey    string
+			InitialCommit []string
+			CRUDActions   []string `ini:"CRUD_ACTIONS"`
+			Merges        []string
+			Wiki          []string
+		}{
+			SigningKey:    "default",
+			InitialCommit: []string{"always"},
+			CRUDActions:   []string{"pubkey", "twofa", "parentsigned"},
+			Merges:        []string{"pubkey", "twofa", "basesigned", "commitssigned"},
+			Wiki:          []string{"never"},
 		},
 	}
 	RepoRootPath string
