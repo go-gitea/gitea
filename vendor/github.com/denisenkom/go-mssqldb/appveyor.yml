@@ -14,6 +14,8 @@ environment:
   matrix:
     - GOVERSION: 18
       SQLINSTANCE: SQL2016
+    - GOVERSION: 19
+      SQLINSTANCE: SQL2016
     - GOVERSION: 110
       SQLINSTANCE: SQL2016
     - SQLINSTANCE: SQL2014
@@ -25,6 +27,7 @@ install:
   - set PATH=%GOPATH%\bin;%GOROOT%\bin;%PATH%
   - go version
   - go env
+  - go get -u cloud.google.com/go/civil
 
 build_script:
   - go build
@@ -41,5 +44,5 @@ before_test:
  
 
 test_script:
-  - go test -race -coverprofile=coverage.txt -covermode=atomic
+  - go test -race -cpu 4 -coverprofile=coverage.txt -covermode=atomic
   - codecov -f coverage.txt
