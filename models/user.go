@@ -751,6 +751,7 @@ var (
 		"robots.txt",
 		".",
 		"..",
+		".well-known",
 	}
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
