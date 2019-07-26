@@ -97,9 +97,9 @@
 										{{if .IsProtected}}
 											<i class="octicon octicon-shield"></i>
 										{{else if .IsDeleted}}
-											<a class="undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID | urlquery}}&name={{.DeletedBranch.Name | urlquery}}"><i class="octicon octicon-reply"></i></a>
+											<a class="ui basic jump button icon poping up undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID | urlquery}}&name={{.DeletedBranch.Name | urlquery}}" data-content="{{$.i18n.Tr "repo.branch.restore" (.Name | EscapePound)}}" data-variation="tiny inverted" data-position="top right"><i class="octicon octicon-reply text blue"></i></a>
 										{{else}}
-											<a class="delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name | urlquery}}" data-name="{{.Name}}"><i class="trash icon text red"></i></a>
+											<a class="ui basic jump button icon poping up delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name | urlquery}}" data-content="{{$.i18n.Tr "repo.branch.delete" (.Name | EscapePound)}}" data-variation="tiny inverted" data-position="top right" data-name="{{.Name}}"><i class="trash icon text red"></i></a>
 										{{end}}
 										</td>
 									{{end}}
