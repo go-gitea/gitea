@@ -30,6 +30,9 @@ func Members(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Members"] = org.Members
+	ctx.Data["MembersIsPublicMember"] = org.Members.IsPublicMember(org.ID)
+	ctx.Data["MembersIsUserOrgOwner"] = org.Members.IsUserOrgOwner(org.ID)
+	ctx.Data["MembersIsTwoFaEnrolled"] = org.Members.IsTwoFaEnrolled()
 
 	ctx.HTML(200, tplMembers)
 }

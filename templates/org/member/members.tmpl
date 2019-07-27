@@ -5,7 +5,7 @@
 		{{template "base/alert" .}}
 
 		<div class="list">
-			{{range .Members}}
+			{{ range $id, $member := .Members}}
 				<div class="item ui grid">
 					<div class="ui one wide column">
 						<img class="ui avatar" src="{{.SizedRelAvatarLink 48}}">
@@ -19,7 +19,7 @@
 							{{$.i18n.Tr "org.members.membership_visibility"}}
 						</div>
 						<div class="meta">
-							{{ $isPublic := .IsPublicMember $.Org.ID}}
+							{{ $isPublic := index $.MembersIsPublicMember $id}}
 							{{if $isPublic}}
 								<strong>{{$.i18n.Tr "org.members.public"}}</strong>
 								{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}(<a href="{{$.OrgLink}}/members/action/private?uid={{.ID}}">{{$.i18n.Tr "org.members.public_helper"}}</a>){{end}}
@@ -34,7 +34,7 @@
 							{{$.i18n.Tr "org.members.member_role"}}
 						</div>
 						<div class="meta">
-							<strong>{{if .IsUserOrgOwner $.Org.ID}}<span class="octicon octicon-shield"></span> {{$.i18n.Tr "org.members.owner"}}{{else}}{{$.i18n.Tr "org.members.member"}}{{end}}</strong>
+							<strong>{{if index $.MembersIsUserOrgOwner $id}}<span class="octicon octicon-shield"></span> {{$.i18n.Tr "org.members.owner"}}{{else}}{{$.i18n.Tr "org.members.member"}}{{end}}</strong>
 						</div>
 					</div>
 					<div class="ui one wide column center">
@@ -42,7 +42,7 @@
 							2FA
 						</div>
 						<div class="meta">
-							<strong><span class="octicon {{if .IsTwoFaEnrolled}}octicon-check text green{{else}}octicon-x{{end}}"></span></strong>
+							<strong><span class="octicon {{if index $.MembersIsTwoFaEnrolled $id}}octicon-check text green{{else}}octicon-x{{end}}"></span></strong>
 						</div>
 					</div>
 					<div class="ui four wide column">

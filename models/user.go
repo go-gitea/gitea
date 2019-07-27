@@ -142,7 +142,7 @@ type User struct {
 	NumTeams   int
 	NumMembers int
 	Teams      []*Team             `xorm:"-"`
-	Members    []*User             `xorm:"-"`
+	Members    UserList            `xorm:"-"`
 	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 
 	// Preferences
