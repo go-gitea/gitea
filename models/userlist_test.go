@@ -76,10 +76,10 @@ func TestUserListIsTwoFaEnrolled(t *testing.T) {
 		})
 	}
 }
+
 func testUserListIsTwoFaEnrolled(t *testing.T, orgID int64, expected map[int64]bool) {
 	org, err := GetUserByID(orgID)
 	assert.NoError(t, err)
 	assert.NoError(t, org.GetMembers())
 	assert.Equal(t, expected, org.Members.GetTwoFaStatus())
-
 }
