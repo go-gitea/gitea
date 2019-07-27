@@ -5,7 +5,7 @@
 		{{template "base/alert" .}}
 
 		<div class="list">
-			{{ range $id, $member := .Members}}
+			{{ range .Members}}
 				<div class="item ui grid">
 					<div class="ui one wide column">
 						<img class="ui avatar" src="{{.SizedRelAvatarLink 48}}">
@@ -34,7 +34,7 @@
 							{{$.i18n.Tr "org.members.member_role"}}
 						</div>
 						<div class="meta">
-							<strong>{{if index $.MembersIsUserOrgOwner $id}}<span class="octicon octicon-shield"></span> {{$.i18n.Tr "org.members.owner"}}{{else}}{{$.i18n.Tr "org.members.member"}}{{end}}</strong>
+							<strong>{{if index $.MembersIsUserOrgOwner .ID}}<span class="octicon octicon-shield"></span> {{$.i18n.Tr "org.members.owner"}}{{else}}{{$.i18n.Tr "org.members.member"}}{{end}}</strong>
 						</div>
 					</div>
 					<div class="ui one wide column center">
@@ -42,7 +42,7 @@
 							2FA
 						</div>
 						<div class="meta">
-							<strong><span class="octicon {{if index $.MembersIsTwoFaEnrolled $id}}octicon-check text green{{else}}octicon-x{{end}}"></span></strong>
+							<strong><span class="octicon {{if index $.MembersTwoFaStatus .ID}}octicon-check text green{{else}}octicon-x{{end}}"></span></strong>
 						</div>
 					</div>
 					<div class="ui four wide column">

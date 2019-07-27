@@ -17,21 +17,21 @@ func (users UserList) getUserIDs() []int64 {
 }
 
 // IsUserOrgOwner returns true if user is in the owner team of given organization.
-func (users UserList) IsUserOrgOwner(orgID int64) []bool {
-	results := make([]bool, len(users))
+func (users UserList) IsUserOrgOwner(orgID int64) map[int64]bool {
+	results := make(map[int64]bool, len(users))
 	//TODO use directly xorm
-	for i, u := range users {
-		results[i] = u.IsUserOrgOwner(orgID)
+	for _, u := range users {
+		results[u.ID] = u.IsUserOrgOwner(orgID)
 	}
 	return results
 }
 
-// IsTwoFaEnrolled return state of 2FA enrollement
-func (users UserList) IsTwoFaEnrolled() []bool {
-	results := make([]bool, len(users))
+// GetTwoFaStatus return state of 2FA enrollement
+func (users UserList) GetTwoFaStatus() map[int64]bool {
+	results := make(map[int64]bool, len(users))
 	//TODO use directly xorm
-	for i, u := range users {
-		results[i] = u.IsTwoFaEnrolled()
+	for _, u := range users {
+		results[u.ID] = u.IsTwoFaEnrolled()
 	}
 	return results
 }

@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
 func TestUserIsPublicMember(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 

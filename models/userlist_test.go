@@ -39,12 +39,12 @@ func TestUserListIsUserOrgOwner(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	tt := []struct {
 		orgid    int64
-		expected []bool
+		expected map[int64]bool
 	}{
-		{3, []bool{true, false}},
-		{6, []bool{true}},
-		{7, []bool{true}},
-		{25, []bool{true}},
+		{3, map[int64]bool{2: true, 4: false}},
+		{6, map[int64]bool{5: true}},
+		{7, map[int64]bool{5: true}},
+		{25, map[int64]bool{24: true}},
 	}
 	for _, v := range tt {
 		t.Run(fmt.Sprintf("IsUserOrgOwnerOfOrdIg%d", v.orgid), func(t *testing.T) {
@@ -52,7 +52,7 @@ func TestUserListIsUserOrgOwner(t *testing.T) {
 		})
 	}
 }
-func testUserListIsUserOrgOwner(t *testing.T, orgID int64, expected []bool) {
+func testUserListIsUserOrgOwner(t *testing.T, orgID int64, expected map[int64]bool) {
 	org, err := GetUserByID(orgID)
 	assert.NoError(t, err)
 	assert.NoError(t, org.GetMembers())
@@ -63,12 +63,12 @@ func TestUserListIsTwoFaEnrolled(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	tt := []struct {
 		orgid    int64
-		expected []bool
+		expected map[int64]bool
 	}{
-		{3, []bool{false, false}},
-		{6, []bool{false}},
-		{7, []bool{false}},
-		{25, []bool{true}},
+		{3, map[int64]bool{2: false, 4: false}},
+		{6, map[int64]bool{5: false}},
+		{7, map[int64]bool{5: false}},
+		{25, map[int64]bool{24: true}},
 	}
 	for _, v := range tt {
 		t.Run(fmt.Sprintf("IsTwoFaEnrolledOfOrdIg%d", v.orgid), func(t *testing.T) {
@@ -76,10 +76,10 @@ func TestUserListIsTwoFaEnrolled(t *testing.T) {
 		})
 	}
 }
-func testUserListIsTwoFaEnrolled(t *testing.T, orgID int64, expected []bool) {
+func testUserListIsTwoFaEnrolled(t *testing.T, orgID int64, expected map[int64]bool) {
 	org, err := GetUserByID(orgID)
 	assert.NoError(t, err)
 	assert.NoError(t, org.GetMembers())
-	assert.Equal(t, expected, org.Members.IsTwoFaEnrolled())
+	assert.Equal(t, expected, org.Members.GetTwoFaStatus())
 
 }
