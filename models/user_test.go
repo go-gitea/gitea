@@ -5,6 +5,7 @@
 package models
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 	"testing"
@@ -14,6 +15,83 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestUserIsPublicMember(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	tt := []struct {
+		uid      int64
+		orgid    int64
+		expected bool
+	}{
+		{2, 3, true},
+		{4, 3, false},
+		{5, 6, true},
+		{5, 7, false},
+	}
+	for _, v := range tt {
+		t.Run(fmt.Sprintf("UserId%dIsPublicMemberOf%d", v.uid, v.orgid), func(t *testing.T) {
+			testUserIsPublicMember(t, v.uid, v.orgid, v.expected)
+		})
+	}
+}
+
+func testUserIsPublicMember(t *testing.T, uid int64, orgID int64, expected bool) {
+	user, err := GetUserByID(uid)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, user.IsPublicMember(orgID))
+}
+
+func TestIsUserOrgOwner(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	tt := []struct {
+		uid      int64
+		orgid    int64
+		expected bool
+	}{
+		{2, 3, true},
+		{4, 3, false},
+		{5, 6, true},
+		{5, 7, false},
+	}
+	for _, v := range tt {
+		t.Run(fmt.Sprintf("UserId%dIsOrgOwnerOf%d", v.uid, v.orgid), func(t *testing.T) {
+			testIsUserOrgOwner(t, v.uid, v.orgid, v.expected)
+		})
+	}
+}
+
+func testIsUserOrgOwner(t *testing.T, uid int64, orgID int64, expected bool) {
+	user, err := GetUserByID(uid)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, user.IsUserOrgOwner(orgID))
+}
+
+func TestIsTwoFaEnrolled(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	tt := []struct {
+		uid      int64
+		expected bool
+	}{
+		{2, false},
+		{4, false},
+		{5, false},
+		{5, false},
+		//TODO add a 2fa enabled user
+	}
+	for _, v := range tt {
+		t.Run(fmt.Sprintf("UserId%dIsTwoFaEnrolled", v.uid), func(t *testing.T) {
+			testIsTwoFaEnrolled(t, v.uid, v.expected)
+		})
+	}
+}
+
+func testIsTwoFaEnrolled(t *testing.T, uid int64, expected bool) {
+	user, err := GetUserByID(uid)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, user.IsTwoFaEnrolled())
+}
 
 func TestGetUserEmailsByNames(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
