@@ -15,7 +15,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
 func TestUserIsPublicMember(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
@@ -74,10 +73,11 @@ func TestIsTwoFaEnrolled(t *testing.T) {
 		uid      int64
 		expected bool
 	}{
-		{2, true},
+		{2, false},
 		{4, false},
 		{5, false},
 		{5, false},
+		{24, true},
 	}
 	for _, v := range tt {
 		t.Run(fmt.Sprintf("UserId%dIsTwoFaEnrolled", v.uid), func(t *testing.T) {
@@ -160,7 +160,7 @@ func TestSearchUsers(t *testing.T) {
 		[]int64{7, 17})
 
 	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 3, PageSize: 2},
-		[]int64{19})
+		[]int64{19, 25})
 
 	testOrgSuccess(&SearchUserOptions{Page: 4, PageSize: 2},
 		[]int64{})
@@ -172,13 +172,13 @@ func TestSearchUsers(t *testing.T) {
 	}
 
 	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1},
-		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21})
+		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24})
 
 	testUserSuccess(&SearchUserOptions{Page: 1, IsActive: util.OptionalBoolFalse},
 		[]int64{9})
 
 	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1, IsActive: util.OptionalBoolTrue},
-		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21})
+		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24})
 
 	testUserSuccess(&SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", Page: 1, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})

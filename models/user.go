@@ -139,15 +139,18 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	NumTeams   int
-	NumMembers int
-	Teams      []*Team             `xorm:"-"`
-	Members    UserList            `xorm:"-"`
-	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+	NumTeams        int
+	NumMembers      int
+	Teams           []*Team             `xorm:"-"`
+	Members         UserList            `xorm:"-"`
+	MembersIsPublic map[int64]bool      `xorm:"-"`
+	Visibility      structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
 	Theme         string `xorm:"NOT NULL DEFAULT ''"`
+
+	//IsTwoFaEnrolled     bool       `xorm:"-"`
 }
 
 // ColorFormat writes a colored string to identify this struct

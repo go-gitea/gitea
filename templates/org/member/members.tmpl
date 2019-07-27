@@ -19,7 +19,7 @@
 							{{$.i18n.Tr "org.members.membership_visibility"}}
 						</div>
 						<div class="meta">
-							{{ $isPublic := index $.MembersIsPublicMember $id}}
+							{{ $isPublic := index $.MembersIsPublicMember .ID}}
 							{{if $isPublic}}
 								<strong>{{$.i18n.Tr "org.members.public"}}</strong>
 								{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}(<a href="{{$.OrgLink}}/members/action/private?uid={{.ID}}">{{$.i18n.Tr "org.members.public_helper"}}</a>){{end}}

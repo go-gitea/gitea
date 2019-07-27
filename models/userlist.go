@@ -8,16 +8,12 @@ package models
 // This type provide valuable methods to retrieve information for a group of users efficiently.
 type UserList []*User
 
-//TODO paginate
-
-// IsPublicMember returns true if user public his/her membership in given organization.
-func (ul UserList) IsPublicMember(orgID int64) []bool {
-	results := make([]bool, len(ul))
-	//TODO use directly xorm
-	for i, u := range ul {
-		results[i] = u.IsPublicMember(orgID)
+func (users UserList) getUserIDs() []int64 {
+	userIDs := make([]int64, len(users))
+	for _, user := range users {
+		userIDs = append(userIDs, user.ID) //Considering that user id are unique in the list
 	}
-	return results
+	return userIDs
 }
 
 // IsUserOrgOwner returns true if user is in the owner team of given organization.
