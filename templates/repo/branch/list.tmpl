@@ -99,10 +99,10 @@
 												<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound .Name}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
 											</div>
 										</div>
-										{{if and $.IsWriter (not $.IsMirror)}}
-											{{if and .IsDeleted  (not .IsProtected)}}
+										{{if and $.IsWriter (not $.IsMirror) (not .IsProtected)}}
+											{{if .IsDeleted}}
 												<a class="ui basic jump button icon poping up undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID | urlquery}}&name={{.DeletedBranch.Name | urlquery}}" data-content="{{$.i18n.Tr "repo.branch.restore" (.Name | EscapePound)}}" data-variation="tiny inverted" data-position="top right"><i class="octicon octicon-reply text blue"></i></a>
-											{{else if (not .IsProtected)}}
+											{{else}}
 												<a class="ui basic jump button icon poping up delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name | urlquery}}" data-content="{{$.i18n.Tr "repo.branch.delete" (.Name | EscapePound)}}" data-variation="tiny inverted" data-position="top right" data-name="{{.Name}}"><i class="trash icon text red"></i></a>
 											{{end}}
 										{{end}}
