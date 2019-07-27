@@ -53,7 +53,7 @@ func TestIsUserOrgOwner(t *testing.T) {
 		{2, 3, true},
 		{4, 3, false},
 		{5, 6, true},
-		{5, 7, false},
+		{5, 7, true},
 	}
 	for _, v := range tt {
 		t.Run(fmt.Sprintf("UserId%dIsOrgOwnerOf%d", v.uid, v.orgid), func(t *testing.T) {
@@ -74,11 +74,10 @@ func TestIsTwoFaEnrolled(t *testing.T) {
 		uid      int64
 		expected bool
 	}{
-		{2, false},
+		{2, true},
 		{4, false},
 		{5, false},
 		{5, false},
-		//TODO add a 2fa enabled user
 	}
 	for _, v := range tt {
 		t.Run(fmt.Sprintf("UserId%dIsTwoFaEnrolled", v.uid), func(t *testing.T) {
