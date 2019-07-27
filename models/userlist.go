@@ -4,6 +4,8 @@
 
 package models
 
+//UserList is a list of user.
+// This type provide valuable methods to retrieve information for a group of users efficiently.
 type UserList []*User
 
 //TODO paginate
