@@ -301,15 +301,13 @@ type OrgUser struct {
 }
 
 func isOrganizationOwner(e Engine, orgID, uid int64) (bool, error) {
-	ownerTeam := &Team{
-		OrgID: orgID,
-		Name:  ownerTeamName,
-	}
-	if has, err := e.Get(ownerTeam); err != nil {
+	ownerTeam, err := getTeam(e, orgID, ownerTeamName)
+	if err != nil {
+		if err == ErrTeamNotExist {
+			log.Error("Organization does not have owner team: %d", orgID)
+			return false, nil
+		}
 		return false, err
-	} else if !has {
-		log.Error("Organization does not have owner team: %d", orgID)
-		return false, nil
 	}
 	return isTeamMember(e, orgID, ownerTeam.ID, uid)
 }
