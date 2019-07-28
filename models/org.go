@@ -301,7 +301,7 @@ type OrgUser struct {
 }
 
 func isOrganizationOwner(e Engine, orgID, uid int64) (bool, error) {
-	ownerTeam, err := getTeam(e, orgID, ownerTeamName)
+	ownerTeam, err := getOwnerTeam(e, orgID)
 	if err != nil {
 		if err == ErrTeamNotExist {
 			log.Error("Organization does not have owner team: %d", orgID)

@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/modules/log"
 	"fmt"
 )
 
@@ -23,11 +24,41 @@ func (users UserList) getUserIDs() []int64 {
 // IsUserOrgOwner returns true if user is in the owner team of given organization.
 func (users UserList) IsUserOrgOwner(orgID int64) map[int64]bool {
 	results := make(map[int64]bool, len(users))
-	//TODO use directly xorm
-	for _, u := range users {
-		results[u.ID] = u.IsUserOrgOwner(orgID)
+	for _, user := range users {
+		results[user.ID] = false //Set default to false
+	}
+	ownerMaps, err := users.loadOrganizationOwners(x, orgID)
+	if err == nil {
+		for _, owner := range ownerMaps {
+			results[owner.UID] = true
+		}
 	}
 	return results
+}
+
+func (users UserList) loadOrganizationOwners(e Engine, orgID int64) (map[int64]*TeamUser, error) {
+	if len(users) == 0 {
+		return nil, nil
+	}
+	ownerTeam, err := getOwnerTeam(e, orgID)
+	if err != nil {
+		if err == ErrTeamNotExist {
+			log.Error("Organization does not have owner team: %d", orgID)
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	userIDs := users.getUserIDs()
+	ownerMaps := make(map[int64]*TeamUser)
+	err = e.In("uid", userIDs).
+		And("org_id=?", orgID).
+		And("team_id=?", ownerTeam.ID).
+		Find(&ownerMaps)
+	if err != nil {
+		return nil, fmt.Errorf("find team users: %v", err)
+	}
+	return ownerMaps, nil
 }
 
 // GetTwoFaStatus return state of 2FA enrollement

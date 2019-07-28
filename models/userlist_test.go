@@ -52,6 +52,7 @@ func TestUserListIsUserOrgOwner(t *testing.T) {
 		})
 	}
 }
+
 func testUserListIsUserOrgOwner(t *testing.T, orgID int64, expected map[int64]bool) {
 	org, err := GetUserByID(orgID)
 	assert.NoError(t, err)
