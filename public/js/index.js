@@ -242,9 +242,9 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
 }
 
 function initRepoStatusChecker() {
-    var migrating = $("#repo_migrating");
+    const migrating = $("#repo_migrating");
     if (migrating) {
-        var repo_name = migrating.attr('repo');
+        const repo_name = migrating.attr('repo');
         if (typeof repo_name === 'undefined') {
             return
         }
