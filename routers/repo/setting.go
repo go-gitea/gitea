@@ -155,6 +155,9 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 		}
 
+		// Get previous address - error can be ignored, as we will be updating anyway.
+		oldURL, _ := url.Parse(ctx.Repo.Mirror.Address())
+
 		// Validate the form.MirrorAddress
 		u, err := url.Parse(form.MirrorAddress)
 		if err != nil {
@@ -167,6 +170,14 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.Data["Err_MirrorAddress"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, &form)
 			return
+		}
+
+		if form.MirrorUsername != "" {
+			password := form.MirrorPassword
+			if password == "" && oldURL != nil && u.Hostname() == oldURL.Hostname() {
+				password, _ = oldURL.User.Password()
+			}
+			u.User = url.UserPassword(form.MirrorUsername, password)
 		}
 
 		// Now use xurls
