@@ -149,8 +149,6 @@ type User struct {
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
 	Theme         string `xorm:"NOT NULL DEFAULT ''"`
-
-	//IsTwoFaEnrolled     bool       `xorm:"-"`
 }
 
 // ColorFormat writes a colored string to identify this struct
@@ -553,12 +551,6 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 		return false
 	}
 	return isOwner
-}
-
-// IsTwoFaEnrolled return state of 2FA enrollement
-func (u *User) IsTwoFaEnrolled() bool {
-	_, err := GetTwoFactorByUID(u.ID)
-	return err == nil //If we can't generate a scratch token what so ever the reason -> 2FA is not enable
 }
 
 // IsUserPartOfOrg returns true if user with userID is part of the u organisation.

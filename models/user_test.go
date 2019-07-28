@@ -68,31 +68,6 @@ func testIsUserOrgOwner(t *testing.T, uid int64, orgID int64, expected bool) {
 	assert.Equal(t, expected, user.IsUserOrgOwner(orgID))
 }
 
-func TestIsTwoFaEnrolled(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	tt := []struct {
-		uid      int64
-		expected bool
-	}{
-		{2, false},
-		{4, false},
-		{5, false},
-		{5, false},
-		{24, true},
-	}
-	for _, v := range tt {
-		t.Run(fmt.Sprintf("UserId%dIsTwoFaEnrolled", v.uid), func(t *testing.T) {
-			testIsTwoFaEnrolled(t, v.uid, v.expected)
-		})
-	}
-}
-
-func testIsTwoFaEnrolled(t *testing.T, uid int64, expected bool) {
-	user, err := GetUserByID(uid)
-	assert.NoError(t, err)
-	assert.Equal(t, expected, user.IsTwoFaEnrolled())
-}
-
 func TestGetUserEmailsByNames(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
