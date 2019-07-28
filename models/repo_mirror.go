@@ -148,7 +148,7 @@ func (m *Mirror) Username() string {
 	m.readAddress()
 	u, err := url.Parse(m.address)
 	if err != nil {
-		// this shouldn't happen but just return it unsanitised
+		// this shouldn't happen but if it does return ""
 		return ""
 	}
 	return u.User.Username()
