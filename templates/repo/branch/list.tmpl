@@ -29,7 +29,7 @@
 							<th class="six wide">{{.i18n.Tr "repo.branch.name"}}</th>
 							<th class="two wide"></th>
 							<th class="two wide"></th>
-							{{if and $.IsWriter (not $.IsMirror)}}
+							{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived)}}
 								<th class="one wide right aligned">{{.i18n.Tr "repo.branch.delete_head"}}</th>
 							{{end}}
 						</tr>
