@@ -87,10 +87,8 @@ func watchRepoMode(e Engine, watch Watch, mode RepoWatchMode) (err error) {
 		if _, err := e.ID(watch.ID).AllCols().Update(watch); err != nil {
 			return err
 		}
-	} else {
-		if _, err = e.Delete(Watch{ID: watch.ID}); err != nil {
-			return err
-		}
+	} else if _, err = e.Delete(Watch{ID: watch.ID}); err != nil {
+		return err
 	}
 	if repodiff != 0 {
 		_, err = e.Exec("UPDATE `repository` SET num_watches = num_watches + ? WHERE id = ?", repodiff, watch.RepoID)

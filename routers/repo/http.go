@@ -460,7 +460,10 @@ func serviceRPC(h serviceHandler, service string) {
 		return
 	}
 
-	models.WatchIfAuto(userID, repoID, service == "receive-pack")
+	if err = models.WatchIfAuto(userID, repoID, service == "receive-pack"); err != nil {
+		log.Warn("Fail to perform auto watch on user %v for repo %v: %v - %v", userID, repoID, err, stderr)
+		return
+	}
 }
 
 func serviceUploadPack(h serviceHandler) {
