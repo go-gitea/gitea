@@ -756,7 +756,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .segment.reactions .select-reaction{float:none}
 .repository .segment.reactions .select-reaction:not(.active) a{display:none}
 .repository .segment.reactions:hover .select-reaction a{display:block}
-.user-cards .list{padding:0}
+.user-cards .list{padding:0;display:flex;flex-wrap:wrap}
 .user-cards .list .item{list-style:none;width:32%;margin:10px 10px 10px 0;padding-bottom:14px;float:left}
 .user-cards .list .item .avatar{width:48px;height:48px;float:left;display:block;margin-right:10px}
 .user-cards .list .item .name{margin-top:0;margin-bottom:0;font-weight:400}
