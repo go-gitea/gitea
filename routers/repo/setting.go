@@ -172,12 +172,8 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		if form.MirrorUsername != "" {
-			password := form.MirrorPassword
-			if password == "" && oldURL != nil && u.Hostname() == oldURL.Hostname() {
-				password, _ = oldURL.User.Password()
-			}
-			u.User = url.UserPassword(form.MirrorUsername, password)
+		if form.MirrorUsername != "" || form.MirrorPassword != "" {
+			u.User = url.UserPassword(form.MirrorUsername, form.MirrorPassword)
 		}
 
 		// Now use xurls

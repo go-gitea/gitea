@@ -154,6 +154,18 @@ func (m *Mirror) Username() string {
 	return u.User.Username()
 }
 
+// Password returns the mirror address password
+func (m *Mirror) Password() string {
+	m.readAddress()
+	u, err := url.Parse(m.address)
+	if err != nil {
+		// this shouldn't happen but if it does return ""
+		return ""
+	}
+	password, _ := u.User.Password()
+	return password
+}
+
 // SaveAddress writes new address to Git repository config.
 func (m *Mirror) SaveAddress(addr string) error {
 	repoPath := m.Repo.RepoPath()

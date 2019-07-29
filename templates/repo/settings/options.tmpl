@@ -96,7 +96,7 @@
 							<input class="fake" type="password">
 							<div class="inline field {{if .Err_Auth}}error{{end}}">
 								<label for="mirror_password">{{.i18n.Tr "password"}}</label>
-								<input id="mirror_password" name="mirror_password" type="password" value="">
+								<input id="mirror_password" name="mirror_password" type="password" value="{{.Mirror.Password}}" {{if not .mirror_password}}data-need-clear="true"{{end}}>
 							</div>
 						</div>
 					</div>
