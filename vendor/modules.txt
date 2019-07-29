@@ -117,6 +117,8 @@ github.com/facebookgo/grace/gracenet
 github.com/facebookgo/httpdown
 # github.com/facebookgo/stats v0.0.0-20151006221625-1b76add642e4
 github.com/facebookgo/stats
+# github.com/getsentry/sentry-go v0.2.1
+github.com/getsentry/sentry-go
 # github.com/gliderlabs/ssh v0.2.2
 github.com/gliderlabs/ssh
 # github.com/glycerine/go-unsnap-stream v0.0.0-20180323001048-9f0cb55181dd

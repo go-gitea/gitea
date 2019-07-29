@@ -1,0 +1,29 @@
+sudo: false
+
+language: go
+go:
+  - 1.10.x
+  - 1.11.x
+  - 1.12.x
+
+env:
+  - GO111MODULE=on
+
+before_install:
+  - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.15.0
+
+script:
+  - golangci-lint run
+  - go build
+  - go test
+  - go test -race
+
+notifications:
+  webhooks:
+    urls:
+      - https://zeus.ci/hooks/befe9810-9285-11e9-b01a-0a580a281808/public/provider/travis/webhook
+    on_success: always
+    on_failure: always
+    on_start: always
+    on_cancel: always
+    on_error: always

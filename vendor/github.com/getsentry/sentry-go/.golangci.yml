@@ -1,0 +1,9 @@
+linters:
+  enable-all: true
+  disable:
+    - megacheck
+    - stylecheck
+run:
+  skip-dirs:
+    - echo
+    - example/echo

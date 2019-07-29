@@ -1,0 +1,12 @@
+github:
+  owner: getsentry
+  repo: sentry-go
+preReleaseCommand: bash scripts/craft-pre-release.sh
+changelogPolicy: simple
+targets:
+  - name: github
+    tagPrefix: v
+  - name: registry
+    type: sdk
+    config:
+      canonical: "github:getsentry/sentry-go"
