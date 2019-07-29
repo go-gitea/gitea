@@ -60,7 +60,7 @@ func watchRepoMode(e Engine, watch Watch, mode RepoWatchMode) (err error) {
 	if watch.Mode == mode {
 		return nil
 	}
-	if mode == RepoWatchModeAuto && isWatchMode(watch.Mode) {
+	if mode == RepoWatchModeAuto && (watch.Mode == RepoWatchModeDont || isWatchMode(watch.Mode)) {
 		// Don't auto watch if already watching
 		return nil
 	}
