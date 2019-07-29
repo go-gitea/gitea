@@ -6,8 +6,9 @@ package models
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUserListIsPublicMember(t *testing.T) {
@@ -20,6 +21,7 @@ func TestUserListIsPublicMember(t *testing.T) {
 		{6, map[int64]bool{5: true}},
 		{7, map[int64]bool{5: false}},
 		{25, map[int64]bool{24: true}},
+		{22, map[int64]bool{}},
 	}
 	for _, v := range tt {
 		t.Run(fmt.Sprintf("IsPublicMemberOfOrdIg%d", v.orgid), func(t *testing.T) {
@@ -45,6 +47,7 @@ func TestUserListIsUserOrgOwner(t *testing.T) {
 		{6, map[int64]bool{5: true}},
 		{7, map[int64]bool{5: true}},
 		{25, map[int64]bool{24: true}},
+		{22, map[int64]bool{}},
 	}
 	for _, v := range tt {
 		t.Run(fmt.Sprintf("IsUserOrgOwnerOfOrdIg%d", v.orgid), func(t *testing.T) {
@@ -70,6 +73,7 @@ func TestUserListIsTwoFaEnrolled(t *testing.T) {
 		{6, map[int64]bool{5: false}},
 		{7, map[int64]bool{5: false}},
 		{25, map[int64]bool{24: true}},
+		{22, map[int64]bool{}},
 	}
 	for _, v := range tt {
 		t.Run(fmt.Sprintf("IsTwoFaEnrolledOfOrdIg%d", v.orgid), func(t *testing.T) {

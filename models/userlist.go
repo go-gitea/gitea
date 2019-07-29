@@ -5,8 +5,9 @@
 package models
 
 import (
-	"code.gitea.io/gitea/modules/log"
 	"fmt"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 //UserList is a list of user.
