@@ -134,8 +134,8 @@ type Repository struct {
 	Owner         *User  `xorm:"-"`
 	LowerName     string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name          string `xorm:"INDEX NOT NULL"`
-	Description   string
-	Website       string
+	Description   string `xorm:"TEXT"`
+	Website       string `xorm:"VARCHAR(2048)"`
 	DefaultBranch string
 
 	NumWatches          int
