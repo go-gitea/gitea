@@ -64,10 +64,6 @@ func watchRepoMode(e Engine, watch Watch, mode RepoWatchMode) (err error) {
 		// Don't auto watch if already watching
 		return nil
 	}
-	if mode == RepoWatchModeAuto && watch.Mode == RepoWatchModeDont {
-		// Don't auto watch if explicitly not watching
-		return nil
-	}
 
 	hadrec := watch.Mode != RepoWatchModeNone
 	needsrec := mode != RepoWatchModeNone
