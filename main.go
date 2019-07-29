@@ -62,11 +62,6 @@ func main() {
 		}); err != nil {
 			log.Fatal("Sentry failed to connect: %v", err)
 		}
-			Dsn: sentryDSN,
-		})
-		if err != nil {
-			log.Fatal("Sentry failed to connect: %v", err)
-		}
 	}
 
 	app := cli.NewApp()
