@@ -57,9 +57,12 @@ func main() {
 	// Sentry.io logging if user wants to investigate internal errors
 	sentryDSN := os.Getenv("SENTRY_DSN")
 	if sentryDSN != "" {
-		sentry.Init(sentry.ClientOptions{
+		err := sentry.Init(sentry.ClientOptions{
 			Dsn: sentryDSN,
 		})
+		if err != nil {
+			log.Fatal("Sentry failed to connect: %v", err)
+		}
 	}
 
 	app := cli.NewApp()
