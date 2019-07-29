@@ -79,7 +79,7 @@
 											{{end}}
 										{{end}}
 									</td>
-									{{if and $.IsWriter (not $.IsMirror)}}
+									{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived)}}
 										<td class="right aligned">
 										{{if .IsProtected}}
 											<i class="octicon octicon-shield"></i>
