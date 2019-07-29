@@ -204,9 +204,9 @@ func (u *User) UpdateTheme(themeName string) error {
 	return UpdateUserCols(u, "theme")
 }
 
-// getEmail returns an noreply email, if the user has set to keep his
+// GetEmail returns an noreply email, if the user has set to keep his
 // email address private, otherwise the primary email address.
-func (u *User) getEmail() string {
+func (u *User) GetEmail() string {
 	if u.KeepEmailPrivate {
 		return fmt.Sprintf("%s@%s", u.LowerName, setting.Service.NoReplyAddress)
 	}
@@ -219,7 +219,7 @@ func (u *User) APIFormat() *api.User {
 		ID:        u.ID,
 		UserName:  u.Name,
 		FullName:  u.FullName,
-		Email:     u.getEmail(),
+		Email:     u.GetEmail(),
 		AvatarURL: u.AvatarLink(),
 		Language:  u.Language,
 		IsAdmin:   u.IsAdmin,
@@ -434,7 +434,7 @@ func (u *User) GetFollowing(page int) ([]*User, error) {
 func (u *User) NewGitSig() *git.Signature {
 	return &git.Signature{
 		Name:  u.GitName(),
-		Email: u.getEmail(),
+		Email: u.GetEmail(),
 		When:  time.Now(),
 	}
 }
@@ -783,6 +783,7 @@ var (
 		"robots.txt",
 		".",
 		"..",
+		".well-known",
 	}
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
