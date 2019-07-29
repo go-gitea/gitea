@@ -25,6 +25,9 @@ import (
 	_ "github.com/shurcooL/vfsgen"
 
 	"github.com/urfave/cli"
+
+	// internal errors monitoring
+	"github.com/getsentry/sentry-go"
 )
 
 var (
@@ -51,6 +54,14 @@ func init() {
 }
 
 func main() {
+	// check SENTRY_DSN env variable
+	sentryDSN := os.Getenv("SENTRY_DSN")
+	if sentryDSN != "" {
+		sentry.Init(sentry.ClientOptions{
+			Dsn: sentryDSN,
+		})
+	}
+
 	app := cli.NewApp()
 	app.Name = "Gitea"
 	app.Usage = "A painless self-hosted Git service"
