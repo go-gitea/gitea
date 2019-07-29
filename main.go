@@ -54,7 +54,7 @@ func init() {
 }
 
 func main() {
-	// check SENTRY_DSN env variable
+	// Sentry.io logging if user wants to investigate internal errors
 	sentryDSN := os.Getenv("SENTRY_DSN")
 	if sentryDSN != "" {
 		sentry.Init(sentry.ClientOptions{
