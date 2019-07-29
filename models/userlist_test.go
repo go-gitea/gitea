@@ -46,8 +46,8 @@ func TestUserListIsUserOrgOwner(t *testing.T) {
 		{3, map[int64]bool{2: true, 4: false}},
 		{6, map[int64]bool{5: true}},
 		{7, map[int64]bool{5: true}},
-		{25, map[int64]bool{24: true}},
-		{22, map[int64]bool{}},
+		{25, map[int64]bool{}}, // ErrTeamNotExist
+		{22, map[int64]bool{}}, // No member
 	}
 	for _, v := range tt {
 		t.Run(fmt.Sprintf("IsUserOrgOwnerOfOrdIg%d", v.orgid), func(t *testing.T) {
