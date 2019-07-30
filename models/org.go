@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
@@ -481,6 +482,7 @@ func AddOrgUser(orgID, uid int64) error {
 	ou := &OrgUser{
 		UID:   uid,
 		OrgID: orgID,
+		IsPublic: setting.Service.DefaultOrgMemberVisible,
 	}
 
 	if _, err := sess.Insert(ou); err != nil {
