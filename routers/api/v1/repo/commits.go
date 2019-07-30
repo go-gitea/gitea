@@ -125,7 +125,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 
 // GetAllCommits get all commits via
 func GetAllCommits(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/git/commits repository repoGetAllCommits
+	// swagger:operation GET /repos/{owner}/{repo}/commits repository repoGetAllCommits
 	// ---
 	// summary: Get a list of all commits from a repository
 	// produces:

@@ -42,7 +42,7 @@ func TestAPIReposGitCommitList(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	// Test getting commits (Page 1)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/git/commits?token="+token, user.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?token="+token, user.Name)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var apiData []api.Commit
@@ -62,7 +62,7 @@ func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	// Test getting commits (Page=2)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/git/commits?token="+token+"&page=2", user.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?token="+token+"&page=2", user.Name)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var apiData []api.Commit
@@ -79,7 +79,7 @@ func TestAPIReposGitCommitListDifferentBranch(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	// Test getting commits (Page=1, Branch=good-sign)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/git/commits?token="+token+"&sha=good-sign", user.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?token="+token+"&sha=good-sign", user.Name)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var apiData []api.Commit
