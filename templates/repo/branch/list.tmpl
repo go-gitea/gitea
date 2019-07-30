@@ -13,7 +13,7 @@
 				<tbody>
 					<tr>
 						<td>
-						{{range $branch := .Branches}}
+						{{range .Branches}}
 							{{if eq .Name $.DefaultBranch}}
 								{{if .IsProtected}}
 									<i class="octicon octicon-shield"></i>
@@ -44,7 +44,7 @@
 			<div class="ui attached table segment">
 				<table class="ui very basic striped fixed table single line">
 					<tbody>
-						{{range $branch := .Branches}}
+						{{range .Branches}}
 							{{if ne .Name $.DefaultBranch}}
 								<tr>
 									<td class="six wide">
