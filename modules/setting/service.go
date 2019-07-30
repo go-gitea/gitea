@@ -42,7 +42,7 @@ var Service struct {
 	NoReplyAddress                          string
 	EnableUserHeatmap                       bool
 	AutoWatchNewRepos                       bool
-	DefaultOrgMemberVisible					bool
+	DefaultOrgMemberVisible                 bool
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
