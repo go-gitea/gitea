@@ -1401,8 +1401,7 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 		}
 	}
 
-	err = sess.Commit()
-	if err != nil {
+	if err = sess.Commit(); err != nil {
 		return nil, err
 	}
 
