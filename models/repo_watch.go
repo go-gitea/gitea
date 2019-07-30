@@ -218,11 +218,11 @@ func NotifyWatchers(act *Action) error {
 
 func watchIfAuto(e Engine, userID, repoID int64, isWrite bool) error {
 	if isWrite {
-		if !setting.Service.AutoWatchOnClone {
+		if !setting.Service.AutoWatchOnChanges {
 			return nil
 		}
 	} else {
-		if !setting.Service.AutoWatchOnChanges {
+		if !setting.Service.AutoWatchOnClone {
 			return nil
 		}
 	}
