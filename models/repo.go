@@ -1402,6 +1402,9 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 	}
 
 	err = sess.Commit()
+	if err != nil {
+		return nil, err
+	}
 
 	// Add to hook queue for created repo after session commit.
 	if u.IsOrganization() {
