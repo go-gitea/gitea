@@ -13,10 +13,14 @@
 				<tbody>
 					<tr>
 						<td>
-							{{if .IsProtected}}
-								<i class="octicon octicon-shield"></i>
+							{{range $branch := .Branches}}
+								{{if eq .Name $.DefaultBranch}}
+									{{if .IsProtected}}
+										<i class="octicon octicon-shield"></i>
+									{{end}}
+									{{.Name}}
+								{{end}}
 							{{end}}
-							{{.DefaultBranch}}
 						</td>
 					</tr>
 				</tbody>
