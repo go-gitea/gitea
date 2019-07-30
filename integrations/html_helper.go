@@ -19,6 +19,7 @@ type HTMLDoc struct {
 
 // NewHTMLParser parse html file
 func NewHTMLParser(t testing.TB, body *bytes.Buffer) *HTMLDoc {
+	t.Helper()
 	doc, err := goquery.NewDocumentFromReader(body)
 	assert.NoError(t, err)
 	return &HTMLDoc{doc: doc}
