@@ -757,7 +757,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						// TODO: Add m.Get("") for single commit (https://developer.github.com/v3/repos/commits/#get-a-single-commit)
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
-					}, reqRepoReader(models.UnitTypeCode))
+					})
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
