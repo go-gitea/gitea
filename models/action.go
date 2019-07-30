@@ -685,6 +685,17 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	if repo.IsEmpty && opts.NewCommitID != git.EmptySHA && strings.HasPrefix(opts.RefFullName, git.BranchPrefix) {
 		repo.DefaultBranch = refName
 		repo.IsEmpty = false
+		if refName != "master" {
+			gitRepo, err := git.OpenRepository(repo.RepoPath())
+			if err != nil {
+				return err
+			}
+			if err := gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+				if !git.IsErrUnsupportedVersion(err) {
+					return err
+				}
+			}
+		}
 	}
 
 	// Change repository empty status and update last updated time.
