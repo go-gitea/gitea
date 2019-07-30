@@ -85,42 +85,42 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	pushCommits := NewPushCommits()
 	pushCommits.Commits = []*PushCommit{
 		{
-			Sha1:           "abcdef1",
+			Sha1:           "69554a6",
 			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user4@example.com",
-			AuthorName:     "User Four",
-			Message:        "message1",
+			CommitterName:  "User2",
+			AuthorEmail:    "user2@example.com",
+			AuthorName:     "User2",
+			Message:        "not signed commit",
 		},
 		{
-			Sha1:           "abcdef2",
+			Sha1:           "27566bd",
 			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
+			CommitterName:  "User2",
 			AuthorEmail:    "user2@example.com",
-			AuthorName:     "User Two",
-			Message:        "message2",
+			AuthorName:     "User2",
+			Message:        "good signed commit (with not yet validated email)",
 		},
 	}
 	pushCommits.Len = len(pushCommits.Commits)
 
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	payloadCommits, err := pushCommits.ToAPIPayloadCommits(repo.RepoPath(), "/username/reponame")
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 16}).(*Repository)
+	payloadCommits, err := pushCommits.ToAPIPayloadCommits(repo.RepoPath(), "/user2/repo16")
 	assert.NoError(t, err)
 	if assert.Len(t, payloadCommits, 2) {
-		assert.Equal(t, "abcdef1", payloadCommits[0].ID)
-		assert.Equal(t, "message1", payloadCommits[0].Message)
-		assert.Equal(t, "/username/reponame/commit/abcdef1", payloadCommits[0].URL)
-		assert.Equal(t, "User Two", payloadCommits[0].Committer.Name)
+		assert.Equal(t, "69554a6", payloadCommits[0].ID)
+		assert.Equal(t, "not signed commit", payloadCommits[0].Message)
+		assert.Equal(t, "/user2/repo16/commit/69554a6", payloadCommits[0].URL)
+		assert.Equal(t, "User2", payloadCommits[0].Committer.Name)
 		assert.Equal(t, "user2", payloadCommits[0].Committer.UserName)
-		assert.Equal(t, "User Four", payloadCommits[0].Author.Name)
-		assert.Equal(t, "user4", payloadCommits[0].Author.UserName)
+		assert.Equal(t, "User2", payloadCommits[0].Author.Name)
+		assert.Equal(t, "user2", payloadCommits[0].Author.UserName)
 
-		assert.Equal(t, "abcdef2", payloadCommits[1].ID)
-		assert.Equal(t, "message2", payloadCommits[1].Message)
-		assert.Equal(t, "/username/reponame/commit/abcdef2", payloadCommits[1].URL)
-		assert.Equal(t, "User Two", payloadCommits[1].Committer.Name)
+		assert.Equal(t, "27566bd", payloadCommits[1].ID)
+		assert.Equal(t, "good signed commit (with not yet validated email)", payloadCommits[1].Message)
+		assert.Equal(t, "/user2/repo16/commit/27566bd", payloadCommits[1].URL)
+		assert.Equal(t, "User2", payloadCommits[1].Committer.Name)
 		assert.Equal(t, "user2", payloadCommits[1].Committer.UserName)
-		assert.Equal(t, "User Two", payloadCommits[1].Author.Name)
+		assert.Equal(t, "User2", payloadCommits[1].Author.Name)
 		assert.Equal(t, "user2", payloadCommits[1].Author.UserName)
 	}
 }
