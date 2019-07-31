@@ -35,6 +35,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Implement Default Webhooks (#4299)
   * Telegram webhook (#4227)
 * BUGFIXES
+  * Send webhook after commit when creating issue with assignees (#7681) (#7684)
+  * Upgrade macaron/captcha to fix random error problem (#7407) (#7683)
+  * Move add to hook queue for created repo to outside xorm session. (#7682) (#7675)
   * Show protection symbol if needed on default branch (#7660) (#7668)
   * Hide delete/restore button on archived repos (#7660)
   * Fix bug on migrating milestone from github (#7665) (#7666) 
