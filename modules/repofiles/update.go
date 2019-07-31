@@ -497,7 +497,7 @@ func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOp
 		commits = models.ListToPushCommits(l)
 	}
 
-	if err := models.CommitRepoAction(models.CommitRepoActionOptions{
+	if err := CommitRepoAction(CommitRepoActionOptions{
 		PusherName:  opts.PusherName,
 		RepoOwnerID: repo.OwnerID,
 		RepoName:    repo.Name,
