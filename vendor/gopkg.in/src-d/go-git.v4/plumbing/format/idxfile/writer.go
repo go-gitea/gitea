@@ -147,7 +147,7 @@ func (w *Writer) createIndex() (*MemoryIndex, error) {
 		idx.Offset32[bucket] = append(idx.Offset32[bucket], buf.Bytes()...)
 
 		buf.Truncate(0)
-		binary.WriteUint32(buf, uint32(o.CRC32))
+		binary.WriteUint32(buf, o.CRC32)
 		idx.CRC32[bucket] = append(idx.CRC32[bucket], buf.Bytes()...)
 	}
 
