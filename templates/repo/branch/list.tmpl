@@ -13,7 +13,7 @@
 				<tbody>
 					<tr>
 						<td>
-						{{range $branch := .Branches}}
+						{{range .Branches}}
 							{{if eq .Name $.DefaultBranch}}
 								{{if .IsProtected}}
 									<i class="octicon octicon-shield"></i>
@@ -44,7 +44,7 @@
 			<div class="ui attached table segment">
 				<table class="ui very basic striped fixed table single line">
 					<tbody>
-						{{range $branch := .Branches}}
+						{{range .Branches}}
 							{{if ne .Name $.DefaultBranch}}
 								<tr>
 									<td class="six wide">
@@ -101,7 +101,7 @@
 												</div>
 											</div>
 										{{end}}
-										{{if and $.IsWriter (not $.IsMirror) (not .IsProtected)}}
+										{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
 											{{if .IsDeleted}}
 												<a class="ui basic jump button icon poping up undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID | urlquery}}&name={{.DeletedBranch.Name | urlquery}}" data-content="{{$.i18n.Tr "repo.branch.restore" (.Name | EscapePound)}}" data-variation="tiny inverted" data-position="top right"><i class="octicon octicon-reply text blue"></i></a>
 											{{else}}
