@@ -187,7 +187,7 @@ github.com/jaytaylor/html2text
 github.com/jbenet/go-context/io
 # github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657
 github.com/kballard/go-shellquote
-# github.com/kevinburke/ssh_config v0.0.0-20180830205328-81db2a75821e
+# github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd
 github.com/kevinburke/ssh_config
 # github.com/keybase/go-crypto v0.0.0-20170605145657-00ac4db533f6
 github.com/keybase/go-crypto/openpgp
@@ -263,8 +263,6 @@ github.com/msteinert/pam
 github.com/nfnt/resize
 # github.com/oliamb/cutter v0.2.2
 github.com/oliamb/cutter
-# github.com/pelletier/go-buffruneio v0.2.0
-github.com/pelletier/go-buffruneio
 # github.com/philhofer/fwd v1.0.0
 github.com/philhofer/fwd
 # github.com/pkg/errors v0.8.1
@@ -337,7 +335,7 @@ github.com/willf/bitset
 github.com/xanzy/ssh-agent
 # github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 github.com/yohcop/openid-go
-# golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
+# golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 golang.org/x/crypto/acme/autocert
 golang.org/x/crypto/argon2
 golang.org/x/crypto/bcrypt
@@ -363,7 +361,7 @@ golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/ssh/agent
-# golang.org/x/net v0.0.0-20190619014844-b5b0513f8c1b
+# golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
 golang.org/x/net/html/charset
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -375,7 +373,7 @@ golang.org/x/net/internal/socks
 # golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20190620070143-6f217b454f45
+# golang.org/x/sys v0.0.0-20190730183949-1393eb018365
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
 golang.org/x/sys/cpu
@@ -428,13 +426,13 @@ gopkg.in/ldap.v3
 gopkg.in/macaron.v1
 # gopkg.in/redis.v2 v2.3.2
 gopkg.in/redis.v2
-# gopkg.in/src-d/go-billy.v4 v4.3.0
+# gopkg.in/src-d/go-billy.v4 v4.3.2
 gopkg.in/src-d/go-billy.v4/osfs
 gopkg.in/src-d/go-billy.v4
 gopkg.in/src-d/go-billy.v4/util
 gopkg.in/src-d/go-billy.v4/helper/chroot
 gopkg.in/src-d/go-billy.v4/helper/polyfill
-# gopkg.in/src-d/go-git.v4 v4.12.0
+# gopkg.in/src-d/go-git.v4 v4.13.0
 gopkg.in/src-d/go-git.v4
 gopkg.in/src-d/go-git.v4/config
 gopkg.in/src-d/go-git.v4/plumbing
