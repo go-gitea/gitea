@@ -372,6 +372,25 @@
 								{{$.i18n.Tr "repo.pulls.no_merge_helper"}}
 							</div>
 						{{end}}
+						<div class="right">You can also view <a class="show-instruction" href="javascript:;">command line instructions</a></div>
+						<div class="instruct" style="display:none">
+							<div class="ui divider"></div>
+							<p>
+								<h3>Step 1: </h3>From your project repository, check out a new branch and test the changes.
+								<pre><code>
+	git checkout -b {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}} {{.Issue.PullRequest.BaseBranch}}
+	git pull {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.HTMLURL}}{{else}}origin{{end}} {{.Issue.PullRequest.HeadBranch}}
+								</code></pre>
+							</p>
+							<p>
+								<h3>Step 2: </h3>Merge the changes and update on GitHub.
+								<pre><code>
+	git checkout {{.Issue.PullRequest.BaseBranch}}
+	git merge --no-ff {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}}
+	git push origin {{.Issue.PullRequest.BaseBranch}}
+								</code></pre>
+							</p>
+						</div>
 					{{else}}
 						<div class="ui divider"></div>
 						<div class="item text grey">
