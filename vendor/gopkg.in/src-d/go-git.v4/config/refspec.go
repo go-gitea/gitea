@@ -18,7 +18,7 @@ var (
 	ErrRefSpecMalformedWildcard  = errors.New("malformed refspec, mismatched number of wildcards")
 )
 
-// RefSpec is a mapping from local branches to remote references
+// RefSpec is a mapping from local branches to remote references.
 // The format of the refspec is an optional +, followed by <src>:<dst>, where
 // <src> is the pattern for references on the remote side and <dst> is where
 // those references will be written locally. The + tells Git to update the
@@ -125,6 +125,13 @@ func (s RefSpec) Dst(n plumbing.ReferenceName) plumbing.ReferenceName {
 	match := name[ws : len(name)-(len(src)-(ws+1))]
 
 	return plumbing.ReferenceName(dst[0:wd] + match + dst[wd+1:])
+}
+
+func (s RefSpec) Reverse() RefSpec {
+	spec := string(s)
+	separator := strings.Index(spec, refSpecSeparator)
+
+	return RefSpec(spec[separator+1:] + refSpecSeparator + spec[:separator])
 }
 
 func (s RefSpec) String() string {
