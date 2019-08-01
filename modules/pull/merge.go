@@ -155,7 +155,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	}
 
 	sig := doer.NewGitSig()
-	commitTimeStr := time.Now().Format(time.UnixDate)
+	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),

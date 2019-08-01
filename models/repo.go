@@ -1069,7 +1069,7 @@ func CleanUpMigrateInfo(repo *Repository) (*Repository, error) {
 
 // initRepoCommit temporarily changes with work directory.
 func initRepoCommit(tmpPath string, u *User) (err error) {
-	commitTimeStr := time.Now().Format(time.UnixDate)
+	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	sig := u.NewGitSig()
 	// Because this may call hooks we should pass in the environment
@@ -1149,7 +1149,7 @@ func getRepoInitFile(tp, name string) ([]byte, error) {
 }
 
 func prepareRepoCommit(e Engine, repo *Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
-	commitTimeStr := time.Now().Format(time.UnixDate)
+	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
 	// Because this may call hooks we should pass in the environment
