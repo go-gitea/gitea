@@ -81,7 +81,7 @@ a{cursor:pointer}
 .ui.menu,.ui.segment,.ui.vertical.menu{box-shadow:none}
 .ui .menu:not(.vertical) .item>.button.compact{padding:.58928571em 1.125em}
 .ui .menu:not(.vertical) .item>.button.small{font-size:.92857143rem}
-.ui.menu .ui.dropdown.item .menu .item{margin-right:auto}
+.ui.menu .ui.dropdown.item .menu .item{width:100%}
 .ui.dropdown .menu>.item>.floating.label{z-index:11}
 .ui.dropdown .menu .menu>.item>.floating.label{z-index:21}
 .ui .text.red{color:#d95c5c!important}
