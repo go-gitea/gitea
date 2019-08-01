@@ -138,7 +138,7 @@ func readCatFileBatchCheck(catFileCheckReader *io.PipeReader, shasToBatchWriter 
 		if len(fields) < 3 || fields[1] != "blob" {
 			continue
 		}
-		size, _ := strconv.Atoi(string(fields[2]))
+		size, _ := strconv.Atoi(fields[2])
 		if size > 1024 {
 			continue
 		}

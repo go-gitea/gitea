@@ -235,8 +235,10 @@ var migrations = []Migration{
 	// v89 -> v90
 	NewMigration("add original author/url migration info to issues, comments, and repo ", addOriginalMigrationInfo),
 	// v90 -> v91
-	NewMigration("add projects info to database", addProjectsInfo),
+	NewMigration("change length of some repository columns", changeSomeColumnsLengthOfRepo),
 	// v91 -> v92
+	NewMigration("add projects info to database", addProjectsInfo),
+	// v92 -> v93
 	NewMigration("add projects database table", addProjectsTable),
 }
 

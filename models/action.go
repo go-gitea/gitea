@@ -17,7 +17,6 @@ import (
 	"unicode"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -441,6 +440,9 @@ func (pc *PushCommits) ToAPIPayloadCommits(repoLink string) []*api.PayloadCommit
 // AvatarLink tries to match user in database with e-mail
 // in order to show custom avatar, and falls back to general avatar link.
 func (pc *PushCommits) AvatarLink(email string) string {
+	if pc.avatars == nil {
+		pc.avatars = make(map[string]string)
+	}
 	avatar, ok := pc.avatars[email]
 	if ok {
 		return avatar
@@ -500,7 +502,7 @@ func getIssueFromRef(repo *Repository, ref string) (*Issue, error) {
 		return nil, nil
 	}
 
-	issue, err := GetIssueByIndex(refRepo.ID, int64(issueIndex))
+	issue, err := GetIssueByIndex(refRepo.ID, issueIndex)
 	if err != nil {
 		if IsErrIssueNotExist(err) {
 			return nil, nil
@@ -565,7 +567,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 
 			// issue is from another repo
 			if len(m[1]) > 0 && len(m[2]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(string(m[1]), string(m[2]))
+				refRepo, err = GetRepositoryFromMatch(m[1], m[2])
 				if err != nil {
 					continue
 				}
@@ -602,7 +604,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 
 			// issue is from another repo
 			if len(m[1]) > 0 && len(m[2]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(string(m[1]), string(m[2]))
+				refRepo, err = GetRepositoryFromMatch(m[1], m[2])
 				if err != nil {
 					continue
 				}
@@ -631,7 +633,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 
 			// issue is from another repo
 			if len(m[1]) > 0 && len(m[2]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(string(m[1]), string(m[2]))
+				refRepo, err = GetRepositoryFromMatch(m[1], m[2])
 				if err != nil {
 					continue
 				}
@@ -652,189 +654,6 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 			}
 		}
 	}
-	return nil
-}
-
-// CommitRepoActionOptions represent options of a new commit action.
-type CommitRepoActionOptions struct {
-	PusherName  string
-	RepoOwnerID int64
-	RepoName    string
-	RefFullName string
-	OldCommitID string
-	NewCommitID string
-	Commits     *PushCommits
-}
-
-// CommitRepoAction adds new commit action to the repository, and prepare
-// corresponding webhooks.
-func CommitRepoAction(opts CommitRepoActionOptions) error {
-	pusher, err := GetUserByName(opts.PusherName)
-	if err != nil {
-		return fmt.Errorf("GetUserByName [%s]: %v", opts.PusherName, err)
-	}
-
-	repo, err := GetRepositoryByName(opts.RepoOwnerID, opts.RepoName)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryByName [owner_id: %d, name: %s]: %v", opts.RepoOwnerID, opts.RepoName, err)
-	}
-
-	refName := git.RefEndName(opts.RefFullName)
-
-	// Change default branch and empty status only if pushed ref is non-empty branch.
-	if repo.IsEmpty && opts.NewCommitID != git.EmptySHA && strings.HasPrefix(opts.RefFullName, git.BranchPrefix) {
-		repo.DefaultBranch = refName
-		repo.IsEmpty = false
-	}
-
-	// Change repository empty status and update last updated time.
-	if err = UpdateRepository(repo, false); err != nil {
-		return fmt.Errorf("UpdateRepository: %v", err)
-	}
-
-	isNewBranch := false
-	opType := ActionCommitRepo
-	// Check it's tag push or branch.
-	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
-		opType = ActionPushTag
-		if opts.NewCommitID == git.EmptySHA {
-			opType = ActionDeleteTag
-		}
-		opts.Commits = &PushCommits{}
-	} else if opts.NewCommitID == git.EmptySHA {
-		opType = ActionDeleteBranch
-		opts.Commits = &PushCommits{}
-	} else {
-		// if not the first commit, set the compare URL.
-		if opts.OldCommitID == git.EmptySHA {
-			isNewBranch = true
-		} else {
-			opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
-		}
-
-		if err = UpdateIssuesCommit(pusher, repo, opts.Commits.Commits, refName); err != nil {
-			log.Error("updateIssuesCommit: %v", err)
-		}
-	}
-
-	if len(opts.Commits.Commits) > setting.UI.FeedMaxCommitNum {
-		opts.Commits.Commits = opts.Commits.Commits[:setting.UI.FeedMaxCommitNum]
-	}
-
-	data, err := json.Marshal(opts.Commits)
-	if err != nil {
-		return fmt.Errorf("Marshal: %v", err)
-	}
-
-	if err = NotifyWatchers(&Action{
-		ActUserID: pusher.ID,
-		ActUser:   pusher,
-		OpType:    opType,
-		Content:   string(data),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		RefName:   refName,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		return fmt.Errorf("NotifyWatchers: %v", err)
-	}
-
-	defer func() {
-		go HookQueue.Add(repo.ID)
-	}()
-
-	apiPusher := pusher.APIFormat()
-	apiRepo := repo.APIFormat(AccessModeNone)
-
-	var shaSum string
-	var isHookEventPush = false
-	switch opType {
-	case ActionCommitRepo: // Push
-		isHookEventPush = true
-
-		if isNewBranch {
-			gitRepo, err := git.OpenRepository(repo.RepoPath())
-			if err != nil {
-				log.Error("OpenRepository[%s]: %v", repo.RepoPath(), err)
-			}
-
-			shaSum, err = gitRepo.GetBranchCommitID(refName)
-			if err != nil {
-				log.Error("GetBranchCommitID[%s]: %v", opts.RefFullName, err)
-			}
-			if err = PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
-				Ref:     refName,
-				Sha:     shaSum,
-				RefType: "branch",
-				Repo:    apiRepo,
-				Sender:  apiPusher,
-			}); err != nil {
-				return fmt.Errorf("PrepareWebhooks: %v", err)
-			}
-		}
-
-	case ActionDeleteBranch: // Delete Branch
-		isHookEventPush = true
-
-		if err = PrepareWebhooks(repo, HookEventDelete, &api.DeletePayload{
-			Ref:        refName,
-			RefType:    "branch",
-			PusherType: api.PusherTypeUser,
-			Repo:       apiRepo,
-			Sender:     apiPusher,
-		}); err != nil {
-			return fmt.Errorf("PrepareWebhooks.(delete branch): %v", err)
-		}
-
-	case ActionPushTag: // Create
-		isHookEventPush = true
-
-		gitRepo, err := git.OpenRepository(repo.RepoPath())
-		if err != nil {
-			log.Error("OpenRepository[%s]: %v", repo.RepoPath(), err)
-		}
-		shaSum, err = gitRepo.GetTagCommitID(refName)
-		if err != nil {
-			log.Error("GetTagCommitID[%s]: %v", opts.RefFullName, err)
-		}
-		if err = PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
-			Ref:     refName,
-			Sha:     shaSum,
-			RefType: "tag",
-			Repo:    apiRepo,
-			Sender:  apiPusher,
-		}); err != nil {
-			return fmt.Errorf("PrepareWebhooks: %v", err)
-		}
-	case ActionDeleteTag: // Delete Tag
-		isHookEventPush = true
-
-		if err = PrepareWebhooks(repo, HookEventDelete, &api.DeletePayload{
-			Ref:        refName,
-			RefType:    "tag",
-			PusherType: api.PusherTypeUser,
-			Repo:       apiRepo,
-			Sender:     apiPusher,
-		}); err != nil {
-			return fmt.Errorf("PrepareWebhooks.(delete tag): %v", err)
-		}
-	}
-
-	if isHookEventPush {
-		if err = PrepareWebhooks(repo, HookEventPush, &api.PushPayload{
-			Ref:        opts.RefFullName,
-			Before:     opts.OldCommitID,
-			After:      opts.NewCommitID,
-			CompareURL: setting.AppURL + opts.Commits.CompareURL,
-			Commits:    opts.Commits.ToAPIPayloadCommits(repo.HTMLURL()),
-			Repo:       apiRepo,
-			Pusher:     apiPusher,
-			Sender:     apiPusher,
-		}); err != nil {
-			return fmt.Errorf("PrepareWebhooks: %v", err)
-		}
-	}
-
 	return nil
 }
 

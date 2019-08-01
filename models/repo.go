@@ -134,9 +134,9 @@ type Repository struct {
 	Owner         *User  `xorm:"-"`
 	LowerName     string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name          string `xorm:"INDEX NOT NULL"`
-	Description   string
-	Website       string
-	OriginalURL   string
+	Description   string `xorm:"TEXT"`
+	Website       string `xorm:"VARCHAR(2048)"`
+	OriginalURL   string `xorm:"VARCHAR(2048)"`
 	DefaultBranch string
 
 	NumWatches          int
@@ -1336,7 +1336,6 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 		}); err != nil {
 			return fmt.Errorf("prepareWebhooks: %v", err)
 		}
-		go HookQueue.Add(repo.ID)
 	} else if err = repo.recalculateAccesses(e); err != nil {
 		// Organization automatically called this in addRepository method.
 		return fmt.Errorf("recalculateAccesses: %v", err)
@@ -1406,7 +1405,16 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 		}
 	}
 
-	return repo, sess.Commit()
+	if err = sess.Commit(); err != nil {
+		return nil, err
+	}
+
+	// Add to hook queue for created repo after session commit.
+	if u.IsOrganization() {
+		go HookQueue.Add(repo.ID)
+	}
+
+	return repo, err
 }
 
 func countRepositories(userID int64, private bool) int64 {
@@ -2315,6 +2323,23 @@ func CheckRepoStats() {
 	}
 	// ***** END: Repository.NumClosedIssues *****
 
+	// ***** START: Repository.NumClosedPulls *****
+	desc = "repository count 'num_closed_pulls'"
+	results, err = x.Query("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true)
+	if err != nil {
+		log.Error("Select %s: %v", desc, err)
+	} else {
+		for _, result := range results {
+			id := com.StrTo(result["id"]).MustInt64()
+			log.Trace("Updating %s: %d", desc, id)
+			_, err = x.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, true, id)
+			if err != nil {
+				log.Error("Update %s[%d]: %v", desc, id, err)
+			}
+		}
+	}
+	// ***** END: Repository.NumClosedPulls *****
+
 	// FIXME: use checker when stop supporting old fork repo format.
 	// ***** START: Repository.NumForks *****
 	results, err = x.Query("SELECT repo.id FROM `repository` repo WHERE repo.num_forks!=(SELECT COUNT(*) FROM `repository` WHERE fork_id=repo.id)")
@@ -2447,6 +2472,11 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 		log.Error("PrepareWebhooks [repo_id: %d]: %v", oldRepo.ID, err)
 	} else {
 		go HookQueue.Add(oldRepo.ID)
+	}
+
+	// Add to hook queue for created repo after session commit.
+	if u.IsOrganization() {
+		go HookQueue.Add(repo.ID)
 	}
 
 	if err = repo.UpdateSize(); err != nil {

@@ -1413,8 +1413,20 @@ func Reboot(cmd int) (err error) {
 	return reboot(LINUX_REBOOT_MAGIC1, LINUX_REBOOT_MAGIC2, cmd, "")
 }
 
-func ReadDirent(fd int, buf []byte) (n int, err error) {
-	return Getdents(fd, buf)
+func direntIno(buf []byte) (uint64, bool) {
+	return readInt(buf, unsafe.Offsetof(Dirent{}.Ino), unsafe.Sizeof(Dirent{}.Ino))
+}
+
+func direntReclen(buf []byte) (uint64, bool) {
+	return readInt(buf, unsafe.Offsetof(Dirent{}.Reclen), unsafe.Sizeof(Dirent{}.Reclen))
+}
+
+func direntNamlen(buf []byte) (uint64, bool) {
+	reclen, ok := direntReclen(buf)
+	if !ok {
+		return 0, false
+	}
+	return reclen - uint64(unsafe.Offsetof(Dirent{}.Name)), true
 }
 
 //sys	mount(source string, target string, fstype string, flags uintptr, data *byte) (err error)
@@ -1449,6 +1461,8 @@ func Sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 //sys	Acct(path string) (err error)
 //sys	AddKey(keyType string, description string, payload []byte, ringid int) (id int, err error)
 //sys	Adjtimex(buf *Timex) (state int, err error)
+//sys	Capget(hdr *CapUserHeader, data *CapUserData) (err error)
+//sys	Capset(hdr *CapUserHeader, data *CapUserData) (err error)
 //sys	Chdir(path string) (err error)
 //sys	Chroot(path string) (err error)
 //sys	ClockGetres(clockid int32, res *Timespec) (err error)
@@ -1754,8 +1768,6 @@ func OpenByHandleAt(mountFD int, handle FileHandle, flags int) (fd int, err erro
 // Alarm
 // ArchPrctl
 // Brk
-// Capget
-// Capset
 // ClockNanosleep
 // ClockSettime
 // Clone
