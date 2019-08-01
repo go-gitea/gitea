@@ -9,6 +9,40 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// ProjectType is used to represent a project board type
+type ProjectType uint8
+
+type projectTypes struct {
+	ID          uint8
+	Name        string
+	Translation string
+}
+
+const (
+	// None is a project board type that has no predefined columns
+	None ProjectType = iota
+	// BasicKanban is a project board type that has basic predefined columns
+	BasicKanban
+	// BugTriage is a project type that has predefined columns suited to
+	// hunting down bugs
+	BugTriage
+)
+
+// IsProjectTypeValid checks if the project type is valid
+func IsProjectTypeValid(p ProjectType) bool {
+	switch p {
+	case None, BasicKanban, BugTriage:
+		return true
+	default:
+		return false
+	}
+}
+
+// GetProjectsType returns all available project types known to the system
+func GetProjectsType() []projectTypes {
+	return []projectTypes{{}}
+}
+
 // Project is a kanban board
 type Project struct {
 	ID              int64  `xorm:"pk autoincr"`
