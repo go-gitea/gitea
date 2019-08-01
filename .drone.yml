@@ -69,6 +69,16 @@ steps:
     commands:
       - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
 
+  - name: build-linux-386
+    pull: always
+    image: golang:1.12
+    environment:
+      GO111MODULE: on
+      GOOS: linux
+      GOARCH: 386
+    commands:
+      - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
+
   - name: build
     pull: always
     image: golang:1.12
