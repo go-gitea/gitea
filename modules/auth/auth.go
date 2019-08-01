@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"gitea.com/macaron/session"
 	"github.com/Unknwon/com"
 	"github.com/go-macaron/binding"
-	"github.com/go-macaron/session"
 	gouuid "github.com/satori/go.uuid"
 	"gopkg.in/macaron.v1"
 

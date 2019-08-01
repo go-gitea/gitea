@@ -38,12 +38,12 @@ import (
 	// to registers all internal adapters
 	_ "code.gitea.io/gitea/modules/session"
 
+	"gitea.com/macaron/cache"
+	"gitea.com/macaron/session"
 	"github.com/go-macaron/binding"
-	"github.com/go-macaron/cache"
 	"github.com/go-macaron/captcha"
 	"github.com/go-macaron/csrf"
 	"github.com/go-macaron/i18n"
-	"github.com/go-macaron/session"
 	"github.com/go-macaron/toolbox"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"

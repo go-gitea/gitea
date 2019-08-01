@@ -3,6 +3,8 @@ module code.gitea.io/gitea
 go 1.12
 
 require (
+	gitea.com/macaron/cache v0.0.0-20190801013118-abcd497fea65
+	gitea.com/macaron/session v0.0.0-20190801013118-80603dfc0b9d
 	github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
 	github.com/RoaringBitmap/roaring v0.4.7 // indirect
 	github.com/Unknwon/cae v0.0.0-20160715032808-c6aac99ea2ca
@@ -16,18 +18,13 @@ require (
 	github.com/blevesearch/go-porterstemmer v0.0.0-20141230013033-23a2c8e5cf1f // indirect
 	github.com/blevesearch/segment v0.0.0-20160105220820-db70c57796cc // indirect
 	github.com/boombuler/barcode v0.0.0-20161226211916-fe0f26ff6d26 // indirect
-	github.com/bradfitz/gomemcache v0.0.0-20160117192205-fb1f79c6b65a // indirect
 	github.com/chaseadamsio/goorgeous v0.0.0-20170901132237-098da33fde5f
-	github.com/couchbase/gomemcached v0.0.0-20181122193126-5125a94a666c // indirect
-	github.com/couchbase/goutils v0.0.0-20180530154633-e865a1461c8a // indirect
 	github.com/couchbase/vellum v0.0.0-20190111184608-e91b68ff3efe // indirect
-	github.com/couchbaselabs/go-couchbase v0.0.0-20190117181324-d904413d884d // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20190724012636-11b2859924c1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712 // indirect
 	github.com/emirpasic/gods v1.12.0
 	github.com/etcd-io/bbolt v1.3.2 // indirect
 	github.com/ethantkoenig/rupture v0.0.0-20180203182544-0a76f03a811a
@@ -43,13 +40,13 @@ require (
 	github.com/glycerine/go-unsnap-stream v0.0.0-20180323001048-9f0cb55181dd // indirect
 	github.com/glycerine/goconvey v0.0.0-20190315024820-982ee783a72e // indirect
 	github.com/go-macaron/binding v0.0.0-20160711225916-9440f336b443
-	github.com/go-macaron/cache v0.0.0-20151013081102-561735312776
+	github.com/go-macaron/cache v0.0.0-20151013081102-561735312776 // indirect
 	github.com/go-macaron/captcha v0.0.0-20190710000913-8dc5911259df
 	github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9
 	github.com/go-macaron/csrf v0.0.0-20190131233648-3751b136073c
 	github.com/go-macaron/i18n v0.0.0-20190131234336-56731837a73b
 	github.com/go-macaron/inject v0.0.0-20160627170012-d8a0b8677191
-	github.com/go-macaron/session v0.0.0-20190131233854-0a0a789bf193
+	github.com/go-macaron/session v0.0.0-20190131233854-0a0a789bf193 // indirect
 	github.com/go-macaron/toolbox v0.0.0-20180818072302-a77f45a7ce90
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
@@ -69,15 +66,13 @@ require (
 	github.com/klauspost/cpuid v0.0.0-20160302075316-09cded8978dc // indirect
 	github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6 // indirect
 	github.com/lafriks/xormstore v1.1.0
-	github.com/lib/pq v1.1.0
+	github.com/lib/pq v1.2.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/lunny/levelqueue v0.0.0-20190217115915-02b525a4418e
-	github.com/lunny/log v0.0.0-20160921050905-7887c61bf0de // indirect
-	github.com/lunny/nodb v0.0.0-20160621015157-fc1ef06ad4af // indirect
 	github.com/markbates/goth v1.49.0
 	github.com/mattn/go-isatty v0.0.7
 	github.com/mattn/go-oci8 v0.0.0-20190320171441-14ba190cf52d // indirect
-	github.com/mattn/go-sqlite3 v1.10.0
+	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
 	github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a
 	github.com/mschoch/smat v0.0.0-20160514031455-90eadee771ae // indirect
@@ -95,8 +90,6 @@ require (
 	github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b // indirect
 	github.com/shurcooL/sanitized_anchor_name v0.0.0-20160918041101-1dba4b3954bc // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
-	github.com/siddontang/go-snappy v0.0.0-20140704025258-d8f7bb82a96d // indirect
-	github.com/smartystreets/goconvey v0.0.0-20190306220146-200a235640ff // indirect
 	github.com/steveyen/gtreap v0.0.0-20150807155958-0abe01ef9be2 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481 // indirect
@@ -114,13 +107,11 @@ require (
 	golang.org/x/tools v0.0.0-20190730215328-ed3277de2799 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
-	gopkg.in/bufio.v1 v1.0.0-20140618132640-567b2bfa514e // indirect
 	gopkg.in/editorconfig/editorconfig-core-go.v1 v1.2.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-	gopkg.in/ini.v1 v1.42.0
+	gopkg.in/ini.v1 v1.44.0
 	gopkg.in/ldap.v3 v3.0.2
 	gopkg.in/macaron.v1 v1.3.2
-	gopkg.in/redis.v2 v2.3.2 // indirect
 	gopkg.in/src-d/go-billy.v4 v4.3.2
 	gopkg.in/src-d/go-git.v4 v4.13.0
 	gopkg.in/stretchr/testify.v1 v1.2.2 // indirect

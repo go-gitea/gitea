@@ -1,5 +1,17 @@
 # cloud.google.com/go v0.37.4
 cloud.google.com/go/civil
+# gitea.com/macaron/cache v0.0.0-20190801013118-abcd497fea65
+gitea.com/macaron/cache
+gitea.com/macaron/cache/memcache
+gitea.com/macaron/cache/redis
+# gitea.com/macaron/session v0.0.0-20190801013118-80603dfc0b9d
+gitea.com/macaron/session
+gitea.com/macaron/session/couchbase
+gitea.com/macaron/session/memcache
+gitea.com/macaron/session/mysql
+gitea.com/macaron/session/nodb
+gitea.com/macaron/session/postgres
+gitea.com/macaron/session/redis
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
 # github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
@@ -70,14 +82,14 @@ github.com/blevesearch/segment
 github.com/boombuler/barcode
 github.com/boombuler/barcode/qr
 github.com/boombuler/barcode/utils
-# github.com/bradfitz/gomemcache v0.0.0-20160117192205-fb1f79c6b65a
+# github.com/bradfitz/gomemcache v0.0.0-20190329173943-551aad21a668
 github.com/bradfitz/gomemcache/memcache
 # github.com/chaseadamsio/goorgeous v0.0.0-20170901132237-098da33fde5f
 github.com/chaseadamsio/goorgeous
-# github.com/couchbase/gomemcached v0.0.0-20181122193126-5125a94a666c
+# github.com/couchbase/gomemcached v0.0.0-20190515232915-c4b4ca0eb21d
 github.com/couchbase/gomemcached
 github.com/couchbase/gomemcached/client
-# github.com/couchbase/goutils v0.0.0-20180530154633-e865a1461c8a
+# github.com/couchbase/goutils v0.0.0-20190315194238-f9d42b11473b
 github.com/couchbase/goutils/logging
 github.com/couchbase/goutils/scramsha
 # github.com/couchbase/vellum v0.0.0-20190111184608-e91b68ff3efe
@@ -85,7 +97,7 @@ github.com/couchbase/vellum
 github.com/couchbase/vellum/levenshtein2
 github.com/couchbase/vellum/regexp
 github.com/couchbase/vellum/utf8
-# github.com/couchbaselabs/go-couchbase v0.0.0-20190117181324-d904413d884d
+# github.com/couchbaselabs/go-couchbase v0.0.0-20190708161019-23e7ca2ce2b7
 github.com/couchbaselabs/go-couchbase
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
@@ -95,7 +107,7 @@ github.com/denisenkom/go-mssqldb/internal/cp
 github.com/denisenkom/go-mssqldb/internal/querytext
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
-# github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712
+# github.com/edsrzf/mmap-go v1.0.0
 github.com/edsrzf/mmap-go
 # github.com/emirpasic/gods v1.12.0
 github.com/emirpasic/gods/trees/binaryheap
@@ -125,8 +137,6 @@ github.com/glycerine/go-unsnap-stream
 github.com/go-macaron/binding
 # github.com/go-macaron/cache v0.0.0-20151013081102-561735312776
 github.com/go-macaron/cache
-github.com/go-macaron/cache/memcache
-github.com/go-macaron/cache/redis
 # github.com/go-macaron/captcha v0.0.0-20190710000913-8dc5911259df
 github.com/go-macaron/captcha
 # github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9
@@ -139,12 +149,6 @@ github.com/go-macaron/i18n
 github.com/go-macaron/inject
 # github.com/go-macaron/session v0.0.0-20190131233854-0a0a789bf193
 github.com/go-macaron/session
-github.com/go-macaron/session/couchbase
-github.com/go-macaron/session/memcache
-github.com/go-macaron/session/mysql
-github.com/go-macaron/session/nodb
-github.com/go-macaron/session/postgres
-github.com/go-macaron/session/redis
 # github.com/go-macaron/toolbox v0.0.0-20180818072302-a77f45a7ce90
 github.com/go-macaron/toolbox
 # github.com/go-redis/redis v6.15.2+incompatible
@@ -213,7 +217,7 @@ github.com/klauspost/crc32
 # github.com/lafriks/xormstore v1.1.0
 github.com/lafriks/xormstore
 github.com/lafriks/xormstore/util
-# github.com/lib/pq v1.1.0
+# github.com/lib/pq v1.2.0
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
@@ -243,7 +247,7 @@ github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter
 # github.com/mattn/go-isatty v0.0.7
 github.com/mattn/go-isatty
-# github.com/mattn/go-sqlite3 v1.10.0
+# github.com/mattn/go-sqlite3 v1.11.0
 github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
@@ -310,7 +314,7 @@ github.com/steveyen/gtreap
 # github.com/stretchr/testify v1.3.0
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/syndtr/goleveldb v0.0.0-20190203031304-2f17a3356c66
+# github.com/syndtr/goleveldb v1.0.0
 github.com/syndtr/goleveldb/leveldb
 github.com/syndtr/goleveldb/leveldb/cache
 github.com/syndtr/goleveldb/leveldb/comparer
@@ -399,7 +403,7 @@ golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/runes
 golang.org/x/text/internal/tag
-# google.golang.org/appengine v1.4.0
+# google.golang.org/appengine v1.6.1
 google.golang.org/appengine/cloudsql
 google.golang.org/appengine/urlfetch
 google.golang.org/appengine/internal
@@ -412,20 +416,16 @@ google.golang.org/appengine/internal/remote_api
 gopkg.in/alexcesaro/quotedprintable.v3
 # gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175
 gopkg.in/asn1-ber.v1
-# gopkg.in/bufio.v1 v1.0.0-20140618132640-567b2bfa514e
-gopkg.in/bufio.v1
 # gopkg.in/editorconfig/editorconfig-core-go.v1 v1.2.0
 gopkg.in/editorconfig/editorconfig-core-go.v1
 # gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 gopkg.in/gomail.v2
-# gopkg.in/ini.v1 v1.42.0
+# gopkg.in/ini.v1 v1.44.0
 gopkg.in/ini.v1
 # gopkg.in/ldap.v3 v3.0.2
 gopkg.in/ldap.v3
 # gopkg.in/macaron.v1 v1.3.2
 gopkg.in/macaron.v1
-# gopkg.in/redis.v2 v2.3.2
-gopkg.in/redis.v2
 # gopkg.in/src-d/go-billy.v4 v4.3.2
 gopkg.in/src-d/go-billy.v4/osfs
 gopkg.in/src-d/go-billy.v4

@@ -20,11 +20,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"gitea.com/macaron/cache"
+	"gitea.com/macaron/session"
 	"github.com/Unknwon/com"
-	"github.com/go-macaron/cache"
 	"github.com/go-macaron/csrf"
 	"github.com/go-macaron/i18n"
-	"github.com/go-macaron/session"
 	"gopkg.in/macaron.v1"
 )
 
