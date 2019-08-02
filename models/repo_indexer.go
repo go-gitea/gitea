@@ -232,7 +232,7 @@ func addDelete(filename string, repo *Repository, batch rupture.FlushingBatch) e
 }
 
 func isIndexable(entry *git.TreeEntry) bool {
-	return entry.IsRegular()
+	return entry.IsRegular() || entry.IsExecutable()
 }
 
 // parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
