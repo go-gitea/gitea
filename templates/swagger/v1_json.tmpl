@@ -1574,6 +1574,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/EmptyRepository"
           }
         }
       }
@@ -6900,6 +6903,21 @@
     }
   },
   "definitions": {
+    "APIError": {
+      "description": "APIError is an api error with a message",
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "AddCollaboratorOption": {
       "description": "AddCollaboratorOption options when adding a user as a collaborator of a repository",
       "type": "object",
@@ -10138,6 +10156,12 @@
         "items": {
           "$ref": "#/definitions/Email"
         }
+      }
+    },
+    "EmptyRepository": {
+      "description": "EmptyRepository",
+      "schema": {
+        "$ref": "#/definitions/APIError"
       }
     },
     "FileDeleteResponse": {

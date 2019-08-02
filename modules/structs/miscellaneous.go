@@ -45,7 +45,7 @@ type ServerVersion struct {
 	Version string `json:"version"`
 }
 
-// SearchError error of a failed search
+// APIError is an api error with a message
 type APIError struct {
 	Message string `json:"message"`
 	URL     string `json:"url"`
