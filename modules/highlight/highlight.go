@@ -19,14 +19,11 @@ var (
 	}
 
 	// File names that are representing highlight classes.
-	highlightFileNames = map[string]bool{
-		"dockerfile": true,
-		"makefile":   true,
-	}
-
-	// File names and extensions that are not same as highlight classes and may be case sensitive.
-	highlightSpecificNames = map[string]string{
-		"CMakeLists.txt": "cmake",
+	highlightFileNames = map[string]string{
+		"dockerfile":     "dockerfile",
+		"makefile":       "makefile",
+		"gnumakefile":    "makefile",
+		"cmakelists.txt": "cmake",
 	}
 
 	// Extensions that are same as highlight classes.
@@ -87,18 +84,13 @@ func NewContext() {
 // FileNameToHighlightClass returns the best match for highlight class name
 // based on the rule of highlight.js.
 func FileNameToHighlightClass(fname string) string {
-
-	if name, ok := highlightSpecificNames[fname]; ok {
-		return name
-	}
-
 	fname = strings.ToLower(fname)
 	if ignoreFileNames[fname] {
 		return "nohighlight"
 	}
 
-	if highlightFileNames[fname] {
-		return fname
+	if name, ok := highlightFileNames[fname]; ok {
+		return name
 	}
 
 	ext := path.Ext(fname)
