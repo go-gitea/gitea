@@ -662,10 +662,7 @@ func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	// a commit in the repository before making it a link.
 	if ctx.metas["repoPath"] != "" {
 		repo, err := git.OpenRepository(ctx.metas["repoPath"])
-		if err != nil {
-			return
-		}
-		if !repo.IsCommitExist(hash) {
+		if err != nil || !repo.IsCommitExist(hash) {
 			return
 		}
 	}
