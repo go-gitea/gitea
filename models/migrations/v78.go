@@ -37,9 +37,6 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 	if err := dropTableColumns(sess, "repository", "is_bare"); err != nil {
 		return err
 	}
-	if err := sess.Commit(); err != nil {
-		return err
-	}
 
-	return nil
+	return sess.Commit()
 }
