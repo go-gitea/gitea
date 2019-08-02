@@ -188,6 +188,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		baseCommit, err = gitRepo.GetBranchCommit(head.Name)
 		if err != nil {
 			ctx.ServerError("GetCommit", err)
+			return
 		}
 	} else {
 		// get commit specified by sha
