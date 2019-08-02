@@ -161,8 +161,7 @@ func NewFile(ctx *context.Context) {
 func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bool) {
 	canCommit := renderCommitRights(ctx)
 	treeNames, treePaths := getParentTreeFields(form.TreePath)
-	branchName := path.Clean("/" + ctx.Repo.BranchName)[1:]
-	form.NewBranchName = path.Clean("/" + form.NewBranchName)[1:]
+	branchName := ctx.Repo.BranchName
 	if form.CommitChoice == frmCommitChoiceNewBranch {
 		branchName = form.NewBranchName
 	}
