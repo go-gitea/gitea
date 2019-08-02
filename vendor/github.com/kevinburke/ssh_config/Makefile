@@ -1,15 +1,13 @@
 BUMP_VERSION := $(GOPATH)/bin/bump_version
-MEGACHECK := $(GOPATH)/bin/megacheck
+STATICCHECK := $(GOPATH)/bin/staticcheck
 WRITE_MAILMAP := $(GOPATH)/bin/write_mailmap
 
-IGNORES := 'github.com/kevinburke/ssh_config/config.go:U1000 github.com/kevinburke/ssh_config/config.go:S1002 github.com/kevinburke/ssh_config/token.go:U1000'
+$(STATICCHECK):
+	go get honnef.co/go/tools/cmd/staticcheck
 
-$(MEGACHECK):
-	go get honnef.co/go/tools/cmd/megacheck
-
-lint: $(MEGACHECK)
+lint: $(STATICCHECK)
 	go vet ./...
-	$(MEGACHECK) --ignore=$(IGNORES) ./...
+	$(STATICCHECK)
 
 test: lint
 	@# the timeout helps guard against infinite recursion

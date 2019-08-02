@@ -97,7 +97,7 @@ func GetListLockHandler(ctx *context.Context) {
 			})
 			return
 		}
-		lock, err := models.GetLFSLockByID(int64(v))
+		lock, err := models.GetLFSLockByID(v)
 		handleLockListOut(ctx, repository, lock, err)
 		return
 	}

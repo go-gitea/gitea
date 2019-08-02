@@ -234,6 +234,8 @@ var migrations = []Migration{
 	NewMigration("add commit status context field to commit_status", addCommitStatusContext),
 	// v89 -> v90
 	NewMigration("add original author/url migration info to issues, comments, and repo ", addOriginalMigrationInfo),
+	// v90 -> v91
+	NewMigration("change length of some repository columns", changeSomeColumnsLengthOfRepo),
 }
 
 // Migrate database to current version

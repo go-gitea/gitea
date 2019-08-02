@@ -7,8 +7,12 @@ package models
 
 import (
 	"bufio"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -94,19 +98,74 @@ func extractTypeFromBase64Key(key string) (string, error) {
 	return string(b[4 : 4+keyLength]), nil
 }
 
+const ssh2keyStart = "---- BEGIN SSH2 PUBLIC KEY ----"
+
 // parseKeyString parses any key string in OpenSSH or SSH2 format to clean OpenSSH string (RFC4253).
 func parseKeyString(content string) (string, error) {
-	// Transform all legal line endings to a single "\n".
-	content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
-	// remove trailing newline (and beginning spaces too)
+	// remove whitespace at start and end
 	content = strings.TrimSpace(content)
-	lines := strings.Split(content, "\n")
 
 	var keyType, keyContent, keyComment string
 
-	if len(lines) == 1 {
+	if content[:len(ssh2keyStart)] == ssh2keyStart {
+		// Parse SSH2 file format.
+
+		// Transform all legal line endings to a single "\n".
+		content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
+
+		lines := strings.Split(content, "\n")
+		continuationLine := false
+
+		for _, line := range lines {
+			// Skip lines that:
+			// 1) are a continuation of the previous line,
+			// 2) contain ":" as that are comment lines
+			// 3) contain "-" as that are begin and end tags
+			if continuationLine || strings.ContainsAny(line, ":-") {
+				continuationLine = strings.HasSuffix(line, "\\")
+			} else {
+				keyContent += line
+			}
+		}
+
+		t, err := extractTypeFromBase64Key(keyContent)
+		if err != nil {
+			return "", fmt.Errorf("extractTypeFromBase64Key: %v", err)
+		}
+		keyType = t
+	} else {
+		if strings.Contains(content, "-----BEGIN") {
+			// Convert PEM Keys to OpenSSH format
+			// Transform all legal line endings to a single "\n".
+			content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
+
+			block, _ := pem.Decode([]byte(content))
+			if block == nil {
+				return "", fmt.Errorf("failed to parse PEM block containing the public key")
+			}
+
+			pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+			if err != nil {
+				var pk rsa.PublicKey
+				_, err2 := asn1.Unmarshal(block.Bytes, &pk)
+				if err2 != nil {
+					return "", fmt.Errorf("failed to parse DER encoded public key as either PKIX or PEM RSA Key: %v %v", err, err2)
+				}
+				pub = &pk
+			}
+
+			sshKey, err := ssh.NewPublicKey(pub)
+			if err != nil {
+				return "", fmt.Errorf("unable to convert to ssh public key: %v", err)
+			}
+			content = string(ssh.MarshalAuthorizedKey(sshKey))
+		}
 		// Parse OpenSSH format.
-		parts := strings.SplitN(lines[0], " ", 3)
+
+		// Remove all newlines
+		content = strings.NewReplacer("\r\n", "", "\n", "").Replace(content)
+
+		parts := strings.SplitN(content, " ", 3)
 		switch len(parts) {
 		case 0:
 			return "", errors.New("empty key")
@@ -131,27 +190,11 @@ func parseKeyString(content string) (string, error) {
 		} else if keyType != t {
 			return "", fmt.Errorf("key type and content does not match: %s - %s", keyType, t)
 		}
-	} else {
-		// Parse SSH2 file format.
-		continuationLine := false
-
-		for _, line := range lines {
-			// Skip lines that:
-			// 1) are a continuation of the previous line,
-			// 2) contain ":" as that are comment lines
-			// 3) contain "-" as that are begin and end tags
-			if continuationLine || strings.ContainsAny(line, ":-") {
-				continuationLine = strings.HasSuffix(line, "\\")
-			} else {
-				keyContent += line
-			}
-		}
-
-		t, err := extractTypeFromBase64Key(keyContent)
-		if err != nil {
-			return "", fmt.Errorf("extractTypeFromBase64Key: %v", err)
-		}
-		keyType = t
+	}
+	// Finally we need to check whether we can actually read the proposed key:
+	_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(keyType + " " + keyContent + " " + keyComment))
+	if err != nil {
+		return "", fmt.Errorf("invalid ssh public key: %v", err)
 	}
 	return keyType + " " + keyContent + " " + keyComment, nil
 }

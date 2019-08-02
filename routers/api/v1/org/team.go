@@ -257,7 +257,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	}
 	members := make([]*api.User, len(team.Members))
 	for i, member := range team.Members {
-		members[i] = member.APIFormat()
+		members[i] = convert.ToUser(member, ctx.IsSigned, ctx.User.IsAdmin)
 	}
 	ctx.JSON(200, members)
 }
@@ -288,7 +288,7 @@ func GetTeamMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	ctx.JSON(200, u.APIFormat())
+	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
 // AddTeamMember api for add a member to a team

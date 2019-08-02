@@ -78,3 +78,12 @@
   authorize: 1 # read
   num_repos: 1
   num_members: 1
+
+-
+  id: 10
+  org_id: 25
+  lower_name: notowners
+  name: NotOwners
+  authorize: 1 # owner
+  num_repos: 0
+  num_members: 1

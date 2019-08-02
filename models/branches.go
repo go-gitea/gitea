@@ -101,7 +101,7 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 
 // GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
-	reviews, err := GetReviewersByPullID(pr.Issue.ID)
+	reviews, err := GetReviewersByPullID(pr.IssueID)
 	if err != nil {
 		log.Error("GetReviewersByPullID: %v", err)
 		return 0
@@ -458,11 +458,6 @@ func (deletedBranch *DeletedBranch) LoadUser() {
 
 // RemoveOldDeletedBranches removes old deleted branches
 func RemoveOldDeletedBranches() {
-	if !taskStatusTable.StartIfNotRunning(`deleted_branches_cleanup`) {
-		return
-	}
-	defer taskStatusTable.Stop(`deleted_branches_cleanup`)
-
 	log.Trace("Doing: DeletedBranchesCleanup")
 
 	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)
