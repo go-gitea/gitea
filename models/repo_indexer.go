@@ -199,7 +199,7 @@ func addUpdate(update fileUpdate, repo *Repository, batch rupture.FlushingBatch)
 	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
 		return fmt.Errorf("Misformatted git cat-file output: %v", err)
 	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
-		return nil
+		return addDelete(update.Filename, repo, batch)
 	}
 
 	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
