@@ -661,7 +661,11 @@ func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	// Because of this, we check to make sure that a matched hash is actually
 	// a commit in the repository before making it a link.
 	if ctx.metas["repoPath"] != "" {
-		if _, err := git.NewCommand("log", "-1", hash).RunInDirBytes(ctx.metas["repoPath"]); err != nil {
+		repo, err := git.OpenRepository(ctx.metas["repoPath"])
+		if err != nil {
+			return
+		}
+		if !repo.IsCommitExist(hash) {
 			return
 		}
 	}
