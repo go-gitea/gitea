@@ -154,6 +154,14 @@ func GetAllCommits(ctx *context.APIContext) {
 	//     "$ref": "#/responses/CommitList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/EmptyRepository"
+
+	if ctx.Repo.Repository.IsEmpty {
+		err409 := api.APIError{Message: "Git Repository is empty.", URL: setting.API.SwaggerURL}
+		ctx.JSON(409, err409)
+		return
+	}
 
 	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
 	if err != nil {
@@ -176,10 +184,10 @@ func GetAllCommits(ctx *context.APIContext) {
 			ctx.ServerError("GetHEADBranch", err)
 			return
 		}
+
 		baseCommit, err = gitRepo.GetBranchCommit(head.Name)
 		if err != nil {
 			ctx.ServerError("GetCommit", err)
-			return
 		}
 	} else {
 		// get commit specified by sha

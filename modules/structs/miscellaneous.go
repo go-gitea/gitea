@@ -44,3 +44,9 @@ type MarkdownRender string
 type ServerVersion struct {
 	Version string `json:"version"`
 }
+
+// SearchError error of a failed search
+type APIError struct {
+	Message string `json:"message"`
+	URL     string `json:"url"`
+}
