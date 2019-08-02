@@ -231,20 +231,28 @@ func addDelete(filename string, repo *Repository, batch rupture.FlushingBatch) e
 	return indexerUpdate.AddToFlushingBatch(batch)
 }
 
+func isIndexable(entry *git.TreeEntry) bool {
+	return entry.IsRegular()
+}
+
 // parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
 func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
 	entries, err := git.ParseTreeEntries(stdout)
 	if err != nil {
 		return nil, err
 	}
+	var idxCount = 0
 	updates := make([]fileUpdate, len(entries))
-	for i, entry := range entries {
-		updates[i] = fileUpdate{
-			Filename: entry.Name(),
-			BlobSha:  entry.ID.String(),
+	for _, entry := range entries {
+		if isIndexable(entry) {
+			updates[idxCount] = fileUpdate{
+				Filename: entry.Name(),
+				BlobSha:  entry.ID.String(),
+			}
+			idxCount++
 		}
 	}
-	return updates, nil
+	return updates[:idxCount], nil
 }
 
 // genesisChanges get changes to add repo to the indexer for the first time
