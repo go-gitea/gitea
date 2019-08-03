@@ -4,9 +4,15 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.9.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.9.0-rc1) - 2019-07-06
+## [1.9.0](https://github.com/go-gitea/gitea/releases/tag/v1.9.0) - 2019-07-30
 * BREAKING
   * Better logging (#6038) (#6095)
+* SECURITY
+  * Shadow the password on cache and session config on admin panel (#7300)
+  * Fix markdown invoke sequence (#7513) (#7560)
+  * Reserve .well-known username (#7638)
+  * Do not leak secrets via timing side channel (#7364)
+  * Ensure that decryption of cookie actually suceeds (#7363)
 * FEATURE
   * Content API for Creating, Updating, Deleting Files (#6314)
   * Enable tls-alpn-01: Use certmanager provided TLSConfig for LetsEncrypt (#7229)
@@ -29,6 +35,39 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Implement Default Webhooks (#4299)
   * Telegram webhook (#4227)
 * BUGFIXES
+  * Send webhook after commit when creating issue with assignees (#7681) (#7684)
+  * Upgrade macaron/captcha to fix random error problem (#7407) (#7683)
+  * Move add to hook queue for created repo to outside xorm session. (#7682) (#7675)
+  * Show protection symbol if needed on default branch (#7660) (#7668)
+  * Hide delete/restore button on archived repos (#7660)
+  * Fix bug on migrating milestone from github (#7665) (#7666) 
+  * Use flex to fix floating paginate (#7656) (#7662)
+  * Change length of some repository's columns (#7652) (#7655)
+  * Fix wrong email when use gitea as OAuth2 provider (#7640) (#7647)
+  * Fix syntax highlight initialization (#7617) (#7626) 
+  * Fix bug create/edit wiki pages when code master branch protected (#7580) (#7623)
+  * Fix panic on push at #7611 (#7615) (#7618)
+  * Handle ErrUserProhibitLogin in http git (#7586, #7591) (#7590) 
+  * Fix color of split-diff view in dark theme (#7587) (#7589)
+  * Fix file header overflow in file and blame views (#7562) (#7579) 
+  * Malformed URLs in API git/commits response (#7565) (#7567)
+  * Fix empty commits now showing in repo overview (#7521) (#7563)
+  * Fix repository's pull request count error (#7518) (#7524) 
+  * Remove duplicated webhook trigger (#7511) (#7516) 
+  * Handles all redirects for Web UI File CRUD (#7478) (#7507)
+  * Fix regex for issues in commit messages (#7444) (#7466)
+  * cmd/serv: actually exit after fatal errors (#7458) (#7460)
+  * Fix an issue with some pages throwing 'not defined' js exceptions #7450 (#7453)
+  * Fix Dropzone.js integration (#7445) (#7448)
+  * Create class for inline positioned lists (#7439) (#7393)
+  * Diff: Fix indentation on unhighlighted code (#7435) (#7443)
+  * jQuery 3 (#7442) (#7425)
+  * Only show "New Pull Request" button if repo allows pulls (#7426) (#7432)
+  * Fix vendor references (#7394) (#7396)
+  * Only return head: null if source branch was deleted (#6705) (#7376)
+  * Add missing template variable on organisation settings (#7386) (#7385)
+  * Fix post parameter on issue list which had unset assignee (#7380) (#7383)
+  * Fix migration tests due to issue 7 being resolved (#7375) (#7381)
   * Correctly adjust mirror url (#6593)
   * Handle early git version's lack of get-url (#7065)
   * Fix icon position in issue view (#7354)
@@ -166,6 +205,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Disable benchmarking during tag events on DroneIO (#6365)
   * Comments list performance optimization (#5305)
 * ENHANCEMENT
+  * Update Drone docker generation to standard format (#7480) (#7496) (#7504)
   * Add API Endpoint for Repo Edit (#7006)
   * Add state param to milestone listing API (#7131)
   * Make captcha and password optional for external accounts (#6606)
@@ -285,8 +325,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Refactor: append, build variable and type switch (#4940)
   * Git statistics in Activity tab (#4724)
   * Drop the bits argument when generating an ed25519 key (#6504)
-* SECURITY
-  * Shadow the password on cache and session config on admin panel (#7300)
 * TESTING
   * Exclude pull_request from fetch-tags step, fixes #7108 (#7120)
   * Refactor and improve git test (#7086)
