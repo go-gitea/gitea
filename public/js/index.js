@@ -1995,11 +1995,12 @@ function highlight(nodes) {
             // and then do line-per-line replacement to preserve the original HTML structured from the template.
             const wrappedNodes = node.querySelectorAll("ol.linenums li");
             if (wrappedNodes && wrappedNodes.length) {
-                const lines = result.split(/\r?\n/);
+                const lines = result.split(/\r?\n/).map((line, i) => {
+                    const active = wrappedNodes[i].classList.contains("active") ? " active" : "";
+                    return `<li class="L${i + 1}${active}" rel="L${i + 1}">${line}</li>`;
+                });
 
-                for (const [index, node] of Object.entries(wrappedNodes)) {
-                    node.innerHTML = lines[index];
-                }
+                node.innerHTML = `<ol class="linenums">${lines.join("")}<ol>`;
             } else {
                 node.innerHTML = result;
             }
