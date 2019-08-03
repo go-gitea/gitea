@@ -1953,7 +1953,7 @@ function createHighlightWorker() {
     // convert relative URL to absolute for importScripts to accept it
     let url;
     try {
-        url = new URL(window.config.hljsUrl, location.origin).href;
+        url = new URL(window.config.hljsUrl, window.location.origin).href;
     } catch (err) {}
     if (!url) return;
 
