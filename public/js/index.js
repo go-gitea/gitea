@@ -1993,9 +1993,13 @@ function highlight(nodes) {
 
             // highlight.js in a web worker does not accept HTML strings so we have to pass .textContent to it
             // and replicate what the golang templating does by re-adding these ol > li wrappings where necessary.
-            if (node.querySelector("ol.linenums")) {
-                const lines = result.split(/\r?\n/).map((line, i) => `<li class="L${i + 1}" rel="L${i + 1}">${line}</li>`);
-                node.innerHTML = `<ol class="linenums">${lines.join("")}<ol>`;
+            const wrappedNodes = node.querySelectorAll("ol.linenums li");
+            if (wrappedNodes) {
+                const lines = result.split(/\r?\n/);
+
+                for (const [index, node] of Object.entries(wrappedNodes)) {
+                    node.innerHTML = lines[index];
+                }
             } else {
                 node.innerHTML = result;
             }
