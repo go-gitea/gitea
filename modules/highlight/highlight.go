@@ -45,7 +45,6 @@ var (
 		".ini":   {},
 		".json":  {},
 		".java":  {},
-		".js":    {},
 		".less":  {},
 		".lua":   {},
 		".php":   {},
@@ -68,6 +67,11 @@ var (
 		".escript": "erlang",
 		".ex":      "elixir",
 		".exs":     "elixir",
+		".js":      "javascript",
+		".jsx":     "javascript",
+		".mjs":     "javascript",
+		".ts":      "typescript",
+		".tsx":     "typescript",
 	}
 )
 

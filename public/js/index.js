@@ -143,7 +143,7 @@ function initCommentPreviewTab($form) {
                 $previewPanel.html(data);
                 emojify.run($previewPanel[0]);
                 $('pre code', $previewPanel[0]).each(function () {
-                    hljs.highlightBlock(this);
+                    highlight(this);
                 });
             }
         );
@@ -171,7 +171,7 @@ function initEditPreviewTab($form) {
                     $previewPanel.html(data);
                     emojify.run($previewPanel[0]);
                     $('pre code', $previewPanel[0]).each(function () {
-                        hljs.highlightBlock(this);
+                        highlight(this);
                     });
                 }
             );
@@ -862,7 +862,7 @@ function initRepository() {
                                 $renderContent.html(data.content);
                                 emojify.run($renderContent[0]);
                                 $('pre code', $renderContent[0]).each(function () {
-                                    hljs.highlightBlock(this);
+                                    highlight(this);
                                 });
                             }
                         });
@@ -1935,6 +1935,71 @@ function u2fRegisterRequest() {
     });
 }
 
+function createWorker(fn, ...args) {
+    const argsString = args.map(arg => JSON.stringify(arg)).join(", ");
+    const url = URL.createObjectURL(new Blob([`(${fn})(${argsString})`], {type: 'application/javascript'})),
+    worker = new Worker(url);
+    URL.revokeObjectURL(url);
+    return worker;
+}
+
+function randomString() {
+    return Math.random().toString(36).substring(7);
+}
+
+function createHighlightWorker() {
+    if (!window.config || !window.config.hljsUrl) return;
+
+    // convert relative URL to absolute for importScripts to accept it
+    let url;
+    try {
+        url = new URL(window.config.hljsUrl, location.origin).href;
+    } catch (err) {}
+    if (!url) return;
+
+    window.highlightWorker = createWorker(url => {
+        self.importScripts(url);
+        self.onmessage = ({data}) => {
+            const {id, texts} = data;
+            if (!id || !texts || !texts.length) return;
+
+            const results = texts.map(text => {
+                return (self.hljs.highlightAuto(text) || {}).value;
+            });
+            self.postMessage({id, results});
+        }
+    }, url);
+}
+
+function highlight(nodes) {
+    if (!window.highlightWorker) return;
+
+    nodes = [].slice.call(nodes || []);
+    if (!nodes.length) return;
+
+    // requestId is used to identify this particular highlight request so we can prevent race conditions
+    // when parallel highlighting requests do not finish in the order they were sent in.
+    const requestId = randomString();
+
+    function listener({data}) {
+        const {id, results} = data;
+        if (id !== requestId) return;
+
+        window.highlightWorker.removeEventListener("message", listener);
+
+        for (const [index, result] of Object.entries(results)) {
+            // highlight.js in a web worker does not accept HTML strings so we have to pass .textContent to it
+            // and replicate what the golang templating does by re-adding these ol > li wrappings.
+            const lines = result.split(/\r?\n/).map((line, i) => `<li class="L${i + 1}" rel="L${i + 1}">${line}</li>`);
+            nodes[index].classList.add("hljs");
+            nodes[index].innerHTML = `<ol class="linenums">${lines.join("")}<ol>`;
+        }
+    }
+
+    window.highlightWorker.addEventListener("message", listener);
+    window.highlightWorker.postMessage({id: requestId, texts: nodes.map(node => node.textContent)});
+}
+
 function initWipTitle() {
     $(".title_wip_desc > a").click(function (e) {
         e.preventDefault();
@@ -2006,12 +2071,8 @@ $(document).ready(function () {
     });
 
     // Highlight JS
-    if (typeof hljs != 'undefined') {
-        const nodes = [].slice.call(document.querySelectorAll('pre code') || []);
-        for (let i = 0; i < nodes.length; i++) {
-            hljs.highlightBlock(nodes[i]);
-        }
-    }
+    createHighlightWorker();
+    highlight(document.querySelectorAll('pre code'));
 
     // Dropzone
     const $dropzone = $('#dropzone');

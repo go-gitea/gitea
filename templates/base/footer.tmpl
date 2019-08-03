@@ -15,6 +15,9 @@
 	<script src="{{AppSubUrl}}/vendor/plugins/jquery/jquery.min.js?v=3.4.1"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/jquery-migrate/jquery-migrate.min.js?v=3.0.1"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/jquery.areyousure/jquery.are-you-sure.js"></script>
+	<script>
+		window.config = {};
+	</script>
 {{if .RequireSimpleMDE}}
 	<script src="{{AppSubUrl}}/vendor/plugins/simplemde/simplemde.min.js"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/codemirror/addon/mode/loadmode.js"></script>
@@ -31,7 +34,9 @@
 
 <!-- Third-party libraries -->
 {{if .RequireHighlightJS}}
-	<script src="{{AppSubUrl}}/vendor/plugins/highlight/highlight.pack.js"></script>
+	<script>
+		window.config.hljsUrl = "{{AppSubUrl}}/vendor/plugins/highlight/highlight.pack.js";
+	</script>
 {{end}}
 {{if .RequireMinicolors}}
 	<script src="{{AppSubUrl}}/vendor/plugins/jquery.minicolors/jquery.minicolors.min.js"></script>

@@ -18,6 +18,6 @@
     "> 1%",
     "last 2 firefox versions",
     "last 2 safari versions",
-    "ie 11"
+    "not ie 11"
   ]
 }
