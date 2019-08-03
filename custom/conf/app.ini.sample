@@ -296,6 +296,9 @@ REPO_INDEXER_ENABLED = false
 REPO_INDEXER_PATH = indexers/repos.bleve
 UPDATE_BUFFER_LEN = 20
 MAX_FILE_SIZE = 1048576
+; Break camel case names into separate words for indexing.
+; It's imperative to delete any previous indexes from REPO_INDEXER_PATH after changing this setting.
+REPO_INDEXER_CAMEL_CASE = true
 
 [admin]
 ; Disallow regular (non-admin) users from creating organizations.
