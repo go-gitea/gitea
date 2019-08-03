@@ -1937,7 +1937,7 @@ function u2fRegisterRequest() {
 
 function createWorker(fn, ...args) {
     const argsString = args.map(arg => JSON.stringify(arg)).join(", ");
-    const url = URL.createObjectURL(new Blob([`(${fn})(${argsString})`], {type: 'application/javascript'})),
+    const url = URL.createObjectURL(new Blob([`(${fn})(${argsString})`], {type: "application/javascript"})),
     worker = new Worker(url);
     URL.revokeObjectURL(url);
     return worker;
