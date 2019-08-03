@@ -1988,11 +1988,18 @@ function highlight(nodes) {
         window.highlightWorker.removeEventListener("message", listener);
 
         for (const [index, result] of Object.entries(results)) {
+            const node = nodes[index];
+
             // highlight.js in a web worker does not accept HTML strings so we have to pass .textContent to it
-            // and replicate what the golang templating does by re-adding these ol > li wrappings.
-            const lines = result.split(/\r?\n/).map((line, i) => `<li class="L${i + 1}" rel="L${i + 1}">${line}</li>`);
-            nodes[index].classList.add("hljs");
-            nodes[index].innerHTML = `<ol class="linenums">${lines.join("")}<ol>`;
+            // and replicate what the golang templating does by re-adding these ol > li wrappings where necessary.
+            if (node.querySelector("ol.linenums")) {
+                const lines = result.split(/\r?\n/).map((line, i) => `<li class="L${i + 1}" rel="L${i + 1}">${line}</li>`);
+                node.classList.add("hljs");
+                node.innerHTML = `<ol class="linenums">${lines.join("")}<ol>`;
+            } else {
+                node.innerHTML = result;
+            }
+
         }
     }
 
