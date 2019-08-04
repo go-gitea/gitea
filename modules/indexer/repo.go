@@ -107,20 +107,11 @@ func createRepoIndexer(path string, latestVersion int) error {
 	mapping := bleve.NewIndexMapping()
 	if err = addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return err
-	}
-
-	var tokenFilters []string
-	if setting.Indexer.RepoUseCamelCaseTokenizer {
-		tokenFilters = []string{unicodeNormalizeName, camelcase.Name, lowercase.Name, unique.Name}
-	} else {
-		tokenFilters = []string{unicodeNormalizeName, lowercase.Name, unique.Name}
-	}
-
-	if err = mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]interface{}{
+	} else if err = mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]interface{}{
 		"type":          custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     unicode.Name,
-		"token_filters": tokenFilters,
+		"token_filters": []string{unicodeNormalizeName, camelcase.Name, lowercase.Name, unique.Name},
 	}); err != nil {
 		return err
 	}

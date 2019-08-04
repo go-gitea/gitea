@@ -19,17 +19,16 @@ const (
 var (
 	// Indexer settings
 	Indexer = struct {
-		IssueType                 string
-		IssuePath                 string
-		RepoIndexerEnabled        bool
-		RepoPath                  string
-		UpdateQueueLength         int
-		MaxIndexerFileSize        int64
-		IssueQueueType            string
-		IssueQueueDir             string
-		IssueQueueConnStr         string
-		IssueQueueBatchNumber     int
-		RepoUseCamelCaseTokenizer bool
+		IssueType             string
+		IssuePath             string
+		RepoIndexerEnabled    bool
+		RepoPath              string
+		UpdateQueueLength     int
+		MaxIndexerFileSize    int64
+		IssueQueueType        string
+		IssueQueueDir         string
+		IssueQueueConnStr     string
+		IssueQueueBatchNumber int
 	}{
 		IssueType:             "bleve",
 		IssuePath:             "indexers/issues.bleve",
@@ -54,7 +53,6 @@ func newIndexerService() {
 	}
 	Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
 	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
-	Indexer.RepoUseCamelCaseTokenizer = sec.Key("REPO_INDEXER_CAMEL_CASE").MustBool(true)
 	Indexer.IssueQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(LevelQueueType)
 	Indexer.IssueQueueDir = sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(path.Join(AppDataPath, "indexers/issues.queue"))
 	Indexer.IssueQueueConnStr = sec.Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString(path.Join(AppDataPath, ""))
