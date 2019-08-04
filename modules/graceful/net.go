@@ -1,6 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+// This code is heavily inspired by the archived gofacebook/gracenet/net.go handler
 
 package graceful
 
@@ -32,9 +33,11 @@ var (
 )
 
 func getProvidedFDs() (savedErr error) {
+	// Only inherit the provided FDS once but we will save the error so that repeated calls to this function will return the same error
 	once.Do(func() {
 		mutex.Lock()
 		defer mutex.Unlock()
+
 		numFDs := os.Getenv(listenFDs)
 		if numFDs == "" {
 			return
@@ -44,11 +47,13 @@ func getProvidedFDs() (savedErr error) {
 			savedErr = fmt.Errorf("%s is not a number: %s. Err: %v", listenFDs, numFDs, err)
 			return
 		}
+
 		for i := startFD; i < n+startFD; i++ {
-			file := os.NewFile(uintptr(i), "listener")
+			file := os.NewFile(uintptr(i), fmt.Sprintf("listener_FD%d", i))
 
 			l, err := net.FileListener(file)
 			if err == nil {
+				// Close the inherited file if it's a listener
 				if err = file.Close(); err != nil {
 					savedErr = fmt.Errorf("error closing provided socket fd %d: %s", i, err)
 					return
@@ -56,6 +61,7 @@ func getProvidedFDs() (savedErr error) {
 				providedListeners = append(providedListeners, l)
 				continue
 			}
+
 			// If needed we can handle packetconns here.
 			savedErr = fmt.Errorf("Error getting provided socket fd %d: %v", i, err)
 			return
@@ -70,20 +76,20 @@ func getProvidedFDs() (savedErr error) {
 // creates a new one using net.Listen.
 func GetListener(network, address string) (net.Listener, error) {
 	switch network {
-	default:
-		return nil, net.UnknownNetworkError(network)
 	case "tcp", "tcp4", "tcp6":
 		tcpAddr, err := net.ResolveTCPAddr(network, address)
 		if err != nil {
 			return nil, err
 		}
 		return GetListenerTCP(network, tcpAddr)
-	case "unix", "unixpacket", "invalid_unix_net_for_test":
+	case "unix", "unixpacket":
 		unixAddr, err := net.ResolveUnixAddr(network, address)
 		if err != nil {
 			return nil, err
 		}
 		return GetListenerUnix(network, unixAddr)
+	default:
+		return nil, net.UnknownNetworkError(network)
 	}
 }
 
@@ -108,7 +114,7 @@ func GetListenerTCP(network string, address *net.TCPAddr) (*net.TCPListener, err
 		}
 	}
 
-	// make a fresh listener
+	// no provided listener for this address -> make a fresh listener
 	l, err := net.ListenTCP(network, address)
 	if err != nil {
 		return nil, err

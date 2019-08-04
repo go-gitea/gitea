@@ -19,6 +19,7 @@ import (
 // and starts a goroutine that will hammer (stop all running requests) the server
 // after setting.GracefulHammerTime.
 func (srv *Server) shutdown() {
+	// only shutdown if we're running.
 	if srv.getState() != stateRunning {
 		return
 	}
@@ -48,9 +49,10 @@ func (srv *Server) shutdown() {
 // return.
 func (srv *Server) hammerTime(d time.Duration) {
 	defer func() {
-		// we are calling srv.wg.Done() until it panics which means we called
-		// Done() when the counter was already at 0 and we're done.
-		// (and thus Serve() will return and the parent will exit)
+		// We call srv.wg.Done() until it panics.
+		// This happens if we call Done() when the WaitGroup counter is already at 0
+		// So if it panics -> we're done, Serve() will return and the
+		// parent will goroutine will exit.
 		if r := recover(); r != nil {
 			log.Error("WaitGroup at 0: Error: %v", r)
 		}
@@ -59,12 +61,14 @@ func (srv *Server) hammerTime(d time.Duration) {
 		return
 	}
 	time.Sleep(d)
-	log.Warn("[STOP - Hammer Time] Forcefully shutting down parent")
+	log.Warn("Forcefully shutting down parent")
 	for {
 		if srv.getState() == stateTerminate {
 			break
 		}
 		srv.wg.Done()
+
+		// Give other goroutines a chance to finish before we forcibly stop them.
 		runtime.Gosched()
 	}
 }

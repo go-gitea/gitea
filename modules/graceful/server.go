@@ -1,6 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+// This code is highly inspired by endless go
 
 package graceful
 
@@ -166,7 +167,7 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 // handler to reply to them. Handler is typically nil, in which case the
 // DefaultServeMux is used.
 //
-// In addition to the stl Serve behaviour each connection is added to a
+// In addition to the standard Serve behaviour each connection is added to a
 // sync.Waitgroup so that all outstanding connections can be served before shutting
 // down the server.
 func (srv *Server) Serve(serve ServeFunction) error {
@@ -176,7 +177,7 @@ func (srv *Server) Serve(serve ServeFunction) error {
 	log.Debug("Waiting for connections to finish... (PID: %d)", syscall.Getpid())
 	srv.wg.Wait()
 	srv.setState(stateTerminate)
-	// use of closed means that the listeners are closed - return nil
+	// use of closed means that the listeners are closed - i.e. we should be shutting down - return nil
 	if err != nil && strings.Contains(err.Error(), "use of closed") {
 		return nil
 	}
@@ -212,6 +213,7 @@ func newWrappedListener(l net.Listener, srv *Server) *wrappedListener {
 
 func (wl *wrappedListener) Accept() (net.Conn, error) {
 	var c net.Conn
+	// Set keepalive on TCPListeners connections.
 	if tcl, ok := wl.Listener.(*net.TCPListener); ok {
 		tc, err := tcl.AcceptTCP()
 		if err != nil {
@@ -247,7 +249,7 @@ func (wl *wrappedListener) Close() error {
 }
 
 func (wl *wrappedListener) File() (*os.File, error) {
-	// returns a dup(2) - FD_CLOEXEC flag *not* set
+	// returns a dup(2) - FD_CLOEXEC flag *not* set so the listening socket can be passed to child processes
 	return wl.Listener.(filer).File()
 }
 
