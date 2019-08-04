@@ -4,15 +4,17 @@
 
 package migrations
 
-import (
-	"code.gitea.io/gitea/models"
-
-	"github.com/go-xorm/xorm"
-)
+import "github.com/go-xorm/xorm"
 
 func removeLingeringIndexStatus(x *xorm.Engine) error {
 
-	var orphaned []*models.RepoIndexerStatus
+	type RepoIndexerStatus struct {
+		ID        int64  `xorm:"pk autoincr"`
+		RepoID    int64  `xorm:"INDEX"`
+		CommitSha string `xorm:"VARCHAR(40)"`
+	}
+
+	var orphaned []*RepoIndexerStatus
 
 	err := x.
 		Join("LEFT OUTER", "`repository`", "`repository`.id = `repo_indexer_status`.repo_id").
