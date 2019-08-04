@@ -93,6 +93,7 @@ steps:
       - make build
     environment:
       TAGS: bindata sqlite sqlite_unlock_notify
+      GOPROXY: https://goproxy.cn
 
   - name: unit-test
     pull: always
