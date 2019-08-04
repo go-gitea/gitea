@@ -32,7 +32,7 @@ func (c *Commit) MergeBase(other *Commit) ([]*Commit, error) {
 	var res []*Commit
 	inNewerHistory := isInIndexCommitFilter(newerHistory)
 	resIter := NewFilterCommitIter(older, &inNewerHistory, &inNewerHistory)
-	err = resIter.ForEach(func(commit *Commit) error {
+	_ = resIter.ForEach(func(commit *Commit) error {
 		res = append(res, commit)
 		return nil
 	})

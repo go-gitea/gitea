@@ -13,7 +13,7 @@
 				<tbody>
 					<tr>
 						<td>
-						{{range $branch := .Branches}}
+						{{range .Branches}}
 							{{if eq .Name $.DefaultBranch}}
 								{{if .IsProtected}}
 									<i class="octicon octicon-shield"></i>
@@ -22,6 +22,15 @@
 								<p class="info"><i class="octicon octicon-git-commit"></i><a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 							{{end}}
 						{{end}}
+						</td>
+						<td class="right aligned overflow-visible">
+							<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" ($.DefaultBranch|EscapePound)}}" data-variation="tiny inverted" data-position="top right">
+							  <i class="download icon"></i>
+							  <div class="menu">
+							    <a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.zip"><i class="octicon octicon-file-zip"></i> ZIP</a>
+							    <a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
+							  </div>
+							</div>
 						</td>
 					</tr>
 				</tbody>
@@ -34,21 +43,11 @@
 			</h4>
 			<div class="ui attached table segment">
 				<table class="ui very basic striped fixed table single line">
-					<thead>
-						<tr>
-							<th class="six wide">{{.i18n.Tr "repo.branch.name"}}</th>
-							<th class="two wide"></th>
-							<th class="two wide"></th>
-							{{if and $.IsWriter (not $.IsMirror)}}
-								<th class="one wide right aligned">{{.i18n.Tr "repo.branch.delete_head"}}</th>
-							{{end}}
-						</tr>
-					</thead>
 					<tbody>
-						{{range $branch := .Branches}}
+						{{range .Branches}}
 							{{if ne .Name $.DefaultBranch}}
 								<tr>
-									<td>
+									<td class="six wide">
 									{{if .IsDeleted}}
 										<s><a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a></s>
 										<p class="info">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</p>
@@ -60,7 +59,7 @@
 										<p class="info"><i class="octicon octicon-git-commit"></i><a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 									{{end}}
 									</td>
-									<td class="ui">
+									<td class="three wide ui">
 										{{if not .IsDeleted}}
 										<div class="commit-divergence">
 											<div class="bar-group">
@@ -69,12 +68,12 @@
 											</div>
 											<div class="bar-group">
 												<div class="count count-ahead">{{.CommitsAhead}}</div>
-                                            	<div class="bar bar-ahead" style="width: {{percentage .CommitsAhead .CommitsBehind .CommitsAhead}}%"></div>
+												<div class="bar bar-ahead" style="width: {{percentage .CommitsAhead .CommitsBehind .CommitsAhead}}%"></div>
 											</div>
 										</div>
 										{{end}}
 									</td>
-									<td class="right aligned">
+									<td class="two wide right aligned">
 										{{if not .LatestPullRequest}}
 											{{if and (not .IsDeleted) $.AllowsPulls}}
 											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}">
@@ -92,17 +91,24 @@
 											{{end}}
 										{{end}}
 									</td>
-									{{if and $.IsWriter (not $.IsMirror)}}
-										<td class="right aligned">
-										{{if .IsProtected}}
-											<i class="octicon octicon-shield"></i>
-										{{else if .IsDeleted}}
-											<a class="undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID | urlquery}}&name={{.DeletedBranch.Name | urlquery}}"><i class="octicon octicon-reply"></i></a>
-										{{else}}
-											<a class="delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name | urlquery}}" data-name="{{.Name}}"><i class="trash icon text red"></i></a>
+									<td class="two wide right aligned overflow-visible">
+										{{if (not .IsDeleted)}}
+											<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" (.Name|EscapePound)}}" data-variation="tiny inverted" data-position="top right">
+												<i class="download icon"></i>
+												<div class="menu">
+													<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound .Name}}.zip"><i class="octicon octicon-file-zip"></i> ZIP</a>
+													<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound .Name}}.tar.gz"><i class="octicon octicon-file-zip"></i> TAR.GZ</a>
+												</div>
+											</div>
 										{{end}}
-										</td>
-									{{end}}
+										{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
+											{{if .IsDeleted}}
+												<a class="ui basic jump button icon poping up undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID | urlquery}}&name={{.DeletedBranch.Name | urlquery}}" data-content="{{$.i18n.Tr "repo.branch.restore" (.Name | EscapePound)}}" data-variation="tiny inverted" data-position="top right"><i class="octicon octicon-reply text blue"></i></a>
+											{{else}}
+												<a class="ui basic jump button icon poping up delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name | urlquery}}" data-content="{{$.i18n.Tr "repo.branch.delete" (.Name | EscapePound)}}" data-variation="tiny inverted" data-position="top right" data-name="{{.Name}}"><i class="trash icon text red"></i></a>
+											{{end}}
+										{{end}}
+									</td>
 								</tr>
 							{{end}}
 						{{end}}

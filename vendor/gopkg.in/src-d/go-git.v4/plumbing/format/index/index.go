@@ -198,7 +198,7 @@ type ResolveUndoEntry struct {
 }
 
 // EndOfIndexEntry is the End of Index Entry (EOIE) is used to locate the end of
-// the variable length index entries and the begining of the extensions. Code
+// the variable length index entries and the beginning of the extensions. Code
 // can take advantage of this to quickly locate the index extensions without
 // having to parse through all of the index entries.
 //

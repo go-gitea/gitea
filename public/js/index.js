@@ -2007,7 +2007,10 @@ $(document).ready(function () {
 
     // Highlight JS
     if (typeof hljs != 'undefined') {
-        hljs.initHighlightingOnLoad();
+        const nodes = [].slice.call(document.querySelectorAll('pre code') || []);
+        for (let i = 0; i < nodes.length; i++) {
+            hljs.highlightBlock(nodes[i]);
+        }
     }
 
     // Dropzone
