@@ -633,10 +633,11 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository #commits-table thead .shatd{text-align:center}
 .repository #commits-table td.sha .sha.label{margin:0}
 .repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n){background-color:rgba(0,0,0,.02)!important}
-.repository #commits-table td.sha .sha.label.isSigned,.repository #repo-files-table .sha.label.isSigned{border:1px solid #bbb}
-.repository #commits-table td.sha .sha.label.isSigned .detail.icon,.repository #repo-files-table .sha.label.isSigned .detail.icon{background:#fafafa;margin:-6px -10px -4px 0;padding:5px 3px 5px 6px;border-left:1px solid #bbb;border-top-left-radius:0;border-bottom-left-radius:0}
+.repository #commits-table td.sha .sha.label,.repository #repo-files-table .sha.label{border:1px solid #bbb}
+.repository #commits-table td.sha .sha.label .detail.icon,.repository #repo-files-table .sha.label .detail.icon{background:#fafafa;margin:-6px -10px -4px 0;padding:5px 3px 5px 6px;border-left:1px solid #bbb;border-top-left-radius:0;border-bottom-left-radius:0}
 .repository #commits-table td.sha .sha.label.isSigned.isVerified,.repository #repo-files-table .sha.label.isSigned.isVerified{border:1px solid #21ba45;background:rgba(33,186,69,.1)}
-.repository #commits-table td.sha .sha.label.isSigned.isVerified .detail.icon,.repository #repo-files-table .sha.label.isSigned.isVerified .detail.icon{border-left:1px solid rgba(33,186,69,.5)}
+.repository #commits-table td.sha .sha.label.isSigned.isVerified .detail.icon,.repository #repo-files-table .sha.label.isSigned.isVerified .detail.icon{border-left:1px solid #21ba45}
+.repository #commits-table td.sha .sha.label.isSigned.isVerified:hover,.repository #repo-files-table .sha.label.isSigned.isVerified:hover{background:rgba(33,186,69,.3)!important}
 .repository .diff-detail-box{padding:7px 0;background:#fff;line-height:30px}
 .repository .diff-detail-box>div:after{clear:both;content:"";display:block}
 .repository .diff-detail-box ol{clear:both;padding-left:0;margin-top:5px;margin-bottom:28px}
