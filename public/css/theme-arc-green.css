@@ -211,7 +211,9 @@ input{background:#2e323e}
 .ui.basic.blue.button:hover,.ui.basic.blue.buttons .button:hover{box-shadow:0 0 0 1px #87ab63 inset!important;color:#87ab63!important}
 .ui.basic.blue.button:focus,.ui.basic.blue.buttons .button:focus{box-shadow:0 0 0 1px #87ab63 inset!important;color:#87ab63!important}
 .repository.file.list #file-content .code-view .lines-code .hljs,.repository.file.list #file-content .code-view .lines-code ol,.repository.file.list #file-content .code-view .lines-code pre,.repository.file.list #file-content .code-view .lines-num .hljs,.repository.file.list #file-content .code-view .lines-num ol,.repository.file.list #file-content .code-view .lines-num pre{background-color:#2a2e3a}
-a.ui.label:hover,a.ui.labels .label:hover{background-color:#505667;color:#dbdbdb}
+a.ui.label:hover,a.ui.labels .label:hover{background-color:#505667!important;color:#dbdbdb!important}
+.repository #commits-table td.sha .sha.label,.repository #repo-files-table .sha.label{border-color:#888}
+.repository #commits-table td.sha .sha.label.isSigned .detail.icon,.repository #repo-files-table .sha.label.isSigned .detail.icon{background:0 0;border-left-color:#888}
 .repository .label.list .item{border-bottom:1px dashed #4c505c}
 .ui.basic.blue.button,.ui.basic.blue.buttons .button{box-shadow:0 0 0 1px #87ab63 inset!important;color:#87ab63!important}
 .repository.file.list #file-content .code-view .hljs,.repository.file.list #file-content .code-view .lines-code ol,.repository.file.list #file-content .code-view .lines-code pre,.repository.file.list #file-content .code-view .lines-num .hljs,.repository.file.list #file-content .code-view .lines-num ol,.repository.file.list #file-content .code-view .lines-num pre{background-color:#2a2e3a}
