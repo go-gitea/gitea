@@ -19,9 +19,11 @@ var (
 	}
 
 	// File names that are representing highlight classes.
-	highlightFileNames = map[string]bool{
-		"dockerfile": true,
-		"makefile":   true,
+	highlightFileNames = map[string]string{
+		"dockerfile":     "dockerfile",
+		"makefile":       "makefile",
+		"gnumakefile":    "makefile",
+		"cmakelists.txt": "cmake",
 	}
 
 	// Extensions that are same as highlight classes.
@@ -87,8 +89,8 @@ func FileNameToHighlightClass(fname string) string {
 		return "nohighlight"
 	}
 
-	if highlightFileNames[fname] {
-		return fname
+	if name, ok := highlightFileNames[fname]; ok {
+		return name
 	}
 
 	ext := path.Ext(fname)
