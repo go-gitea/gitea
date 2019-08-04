@@ -236,6 +236,8 @@ var migrations = []Migration{
 	NewMigration("add original author/url migration info to issues, comments, and repo ", addOriginalMigrationInfo),
 	// v90 -> v91
 	NewMigration("change length of some repository columns", changeSomeColumnsLengthOfRepo),
+	// v91 -> v92
+	NewMigration("remove orphaned repository index statuses", removeLingeringIndexStatus),
 }
 
 // Migrate database to current version
