@@ -32,7 +32,7 @@ type Issue struct {
 	PosterID         int64       `xorm:"INDEX"`
 	Poster           *User       `xorm:"-"`
 	OriginalAuthor   string
-	OriginalAuthorID int64
+	OriginalAuthorID int64      `xorm:"index"`
 	Title            string     `xorm:"name"`
 	Content          string     `xorm:"TEXT"`
 	RenderedContent  string     `xorm:"-"`
@@ -1946,4 +1946,15 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 	}
 
 	return
+}
+
+// UpdateIssuesMigrations updates issues' migrations information
+func UpdateIssuesMigrations(repoID, originalAuthorID, posterID int64) error {
+	_, err := x.Table("issue").
+		Where("repo_id = ?", repoID).
+		And("original_author_id = ?", originalAuthorID).
+		Update(map[string]interface{}{
+			"poster_id": posterID,
+		})
+	return err
 }

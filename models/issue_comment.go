@@ -1022,3 +1022,14 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 	return fetchCodeComments(x, issue, currentUser)
 }
+
+// UpdateIssuesMigrations updates issues' migrations information
+func UpdateCommentsMigrations(repoID, originalAuthorID, posterID int64) error {
+	_, err := x.Table("comment").
+		Where("issue_id IN (SELECT id FROM issue WHERE repo_id = ?)", repoID).
+		And("original_author_id = ?", originalAuthorID).
+		Update(map[string]interface{}{
+			"poster_id": posterID,
+		})
+	return err
+}
