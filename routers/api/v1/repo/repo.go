@@ -658,30 +658,28 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		} else if unit, err := repo.GetUnit(models.UnitTypeExternalTracker); err == nil {
 			units = append(units, *unit)
 		}
-	} else {
-		if *opts.HasIssues {
-			// We don't currently allow setting individual issue settings through the API,
-			// only can enable/disable issues, so when enabling issues,
-			// we either get the existing config which means it was already enabled,
-			// or create a new config since it doesn't exist.
-			unit, err := repo.GetUnit(models.UnitTypeIssues)
-			var config *models.IssuesConfig
-			if err != nil {
-				// Unit type doesn't exist so we make a new config file with default values
-				config = &models.IssuesConfig{
-					EnableTimetracker:                true,
-					AllowOnlyContributorsToTrackTime: true,
-					EnableDependencies:               true,
-				}
-			} else {
-				config = unit.IssuesConfig()
+	} else if *opts.HasIssues {
+		// We don't currently allow setting individual issue settings through the API,
+		// only can enable/disable issues, so when enabling issues,
+		// we either get the existing config which means it was already enabled,
+		// or create a new config since it doesn't exist.
+		unit, err := repo.GetUnit(models.UnitTypeIssues)
+		var config *models.IssuesConfig
+		if err != nil {
+			// Unit type doesn't exist so we make a new config file with default values
+			config = &models.IssuesConfig{
+				EnableTimetracker:                true,
+				AllowOnlyContributorsToTrackTime: true,
+				EnableDependencies:               true,
 			}
-			units = append(units, models.RepoUnit{
-				RepoID: repo.ID,
-				Type:   models.UnitTypeIssues,
-				Config: config,
-			})
+		} else {
+			config = unit.IssuesConfig()
 		}
+		units = append(units, models.RepoUnit{
+			RepoID: repo.ID,
+			Type:   models.UnitTypeIssues,
+			Config: config,
+		})
 	}
 
 	if opts.HasWiki == nil {
@@ -691,19 +689,17 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		} else if unit, err := repo.GetUnit(models.UnitTypeExternalWiki); err == nil {
 			units = append(units, *unit)
 		}
-	} else {
-		if *opts.HasWiki {
-			// We don't currently allow setting individual wiki settings through the API,
-			// only can enable/disable the wiki, so when enabling the wiki,
-			// we either get the existing config which means it was already enabled,
-			// or create a new config since it doesn't exist.
-			config := &models.UnitConfig{}
-			units = append(units, models.RepoUnit{
-				RepoID: repo.ID,
-				Type:   models.UnitTypeWiki,
-				Config: config,
-			})
-		}
+	} else if *opts.HasWiki {
+		// We don't currently allow setting individual wiki settings through the API,
+		// only can enable/disable the wiki, so when enabling the wiki,
+		// we either get the existing config which means it was already enabled,
+		// or create a new config since it doesn't exist.
+		config := &models.UnitConfig{}
+		units = append(units, models.RepoUnit{
+			RepoID: repo.ID,
+			Type:   models.UnitTypeWiki,
+			Config: config,
+		})
 	}
 
 	if opts.HasPullRequests == nil {
@@ -711,48 +707,46 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
 			units = append(units, *unit)
 		}
-	} else {
-		if *opts.HasPullRequests {
-			// We do allow setting individual PR settings through the API, so
-			// we get the config settings and then set them
-			// if those settings were provided in the opts.
-			unit, err := repo.GetUnit(models.UnitTypePullRequests)
-			var config *models.PullRequestsConfig
-			if err != nil {
-				// Unit type doesn't exist so we make a new config file with default values
-				config = &models.PullRequestsConfig{
-					IgnoreWhitespaceConflicts: false,
-					AllowMerge:                true,
-					AllowRebase:               true,
-					AllowRebaseMerge:          true,
-					AllowSquash:               true,
-				}
-			} else {
-				config = unit.PullRequestsConfig()
+	} else if *opts.HasPullRequests {
+		// We do allow setting individual PR settings through the API, so
+		// we get the config settings and then set them
+		// if those settings were provided in the opts.
+		unit, err := repo.GetUnit(models.UnitTypePullRequests)
+		var config *models.PullRequestsConfig
+		if err != nil {
+			// Unit type doesn't exist so we make a new config file with default values
+			config = &models.PullRequestsConfig{
+				IgnoreWhitespaceConflicts: false,
+				AllowMerge:                true,
+				AllowRebase:               true,
+				AllowRebaseMerge:          true,
+				AllowSquash:               true,
 			}
-
-			if opts.IgnoreWhitespaceConflicts != nil {
-				config.IgnoreWhitespaceConflicts = *opts.IgnoreWhitespaceConflicts
-			}
-			if opts.AllowMerge != nil {
-				config.AllowMerge = *opts.AllowMerge
-			}
-			if opts.AllowRebase != nil {
-				config.AllowRebase = *opts.AllowRebase
-			}
-			if opts.AllowRebaseMerge != nil {
-				config.AllowRebaseMerge = *opts.AllowRebaseMerge
-			}
-			if opts.AllowSquash != nil {
-				config.AllowSquash = *opts.AllowSquash
-			}
-
-			units = append(units, models.RepoUnit{
-				RepoID: repo.ID,
-				Type:   models.UnitTypePullRequests,
-				Config: config,
-			})
+		} else {
+			config = unit.PullRequestsConfig()
 		}
+
+		if opts.IgnoreWhitespaceConflicts != nil {
+			config.IgnoreWhitespaceConflicts = *opts.IgnoreWhitespaceConflicts
+		}
+		if opts.AllowMerge != nil {
+			config.AllowMerge = *opts.AllowMerge
+		}
+		if opts.AllowRebase != nil {
+			config.AllowRebase = *opts.AllowRebase
+		}
+		if opts.AllowRebaseMerge != nil {
+			config.AllowRebaseMerge = *opts.AllowRebaseMerge
+		}
+		if opts.AllowSquash != nil {
+			config.AllowSquash = *opts.AllowSquash
+		}
+
+		units = append(units, models.RepoUnit{
+			RepoID: repo.ID,
+			Type:   models.UnitTypePullRequests,
+			Config: config,
+		})
 	}
 
 	if err := models.UpdateRepositoryUnits(repo, units); err != nil {
