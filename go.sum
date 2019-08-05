@@ -451,8 +451,8 @@ gopkg.in/bufio.v1 v1.0.0-20140618132640-567b2bfa514e/go.mod h1:xsQCaysVCudhrYTfz
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 h1:qIbj1fsPNlZgppZ+VLlY7N33q108Sa+fhmuc+sWQYwY=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
-gopkg.in/editorconfig/editorconfig-core-go.v1 v1.2.0 h1:CO465/foR4+bY1xNYjZEl6l8By1g/iMsImoruxfEt84=
-gopkg.in/editorconfig/editorconfig-core-go.v1 v1.2.0/go.mod h1:s2mQFI9McjArkyCwyEwU//+luQENTnD/Lfb/7Sj3/kQ=
+gopkg.in/editorconfig/editorconfig-core-go.v1 v1.3.0 h1:oxOEwvhxLMpWpN+0pb2r9TWrM0DCFBHxbuIlS27tmFg=
+gopkg.in/editorconfig/editorconfig-core-go.v1 v1.3.0/go.mod h1:s2mQFI9McjArkyCwyEwU//+luQENTnD/Lfb/7Sj3/kQ=
 gopkg.in/fsnotify.v1 v1.4.7 h1:xOHLXZwVvI9hhs+cLKq5+I5onOuwQLhQwiu63xxlHs4=
 gopkg.in/fsnotify.v1 v1.4.7/go.mod h1:Tz8NjZHkW78fSQdbUxIjBTcgA1z1m8ZHf0WmKUhAMys=
 gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df h1:n7WqCuqOuCbNr617RXOY0AWRXxgwEyPp2z+p0+hgMuE=
