@@ -12,8 +12,6 @@ import (
 
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/analysis/analyzer/custom"
-	// Don't break indexes from previous versions created with camelcase
-	_ "github.com/blevesearch/bleve/analysis/token/camelcase"
 	"github.com/blevesearch/bleve/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/analysis/token/unique"
 	"github.com/blevesearch/bleve/analysis/tokenizer/unicode"
@@ -25,7 +23,7 @@ const (
 	repoIndexerAnalyzer = "repoIndexerAnalyzer"
 	repoIndexerDocType  = "repoIndexerDocType"
 
-	repoIndexerLatestVersion = 1
+	repoIndexerLatestVersion = 2
 )
 
 // repoIndexer (thread-safe) index for repository contents
