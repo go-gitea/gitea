@@ -360,3 +360,18 @@ func addOperationToQueue(op repoIndexerOperation) {
 		}()
 	}
 }
+
+// RebuildRepoIndex deletes and rebuilds text indexes for a repo
+func RebuildRepoIndex(repoID int64) error {
+	repo := &Repository{ID: repoID}
+	has, err := x.Get(repo)
+	if err != nil {
+		return err
+	}
+	if !has {
+		return nil
+	}
+	DeleteRepoFromIndexer(repo)
+	UpdateRepoIndexer(repo)
+	return nil
+}

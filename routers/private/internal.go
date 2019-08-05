@@ -81,5 +81,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/hook/post-receive/:owner/:repo", HookPostReceive)
 		m.Get("/serv/none/:keyid", ServNoCommand)
 		m.Get("/serv/command/:keyid/:owner/:repo", ServCommand)
+		m.Post("/maint/rebuild-index/repo/:repoid", RebuildRepoIndex)
 	}, CheckInternalToken)
 }
