@@ -651,7 +651,14 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		})
 	}
 
-	if opts.HasIssues != nil {
+	if opts.HasIssues == nil {
+		// If HasIssues setting not touched, rewrite existing repo unit
+		if unit, err := repo.GetUnit(models.UnitTypeIssues); err == nil {
+			units = append(units, *unit)
+		} else if unit, err := repo.GetUnit(models.UnitTypeExternalTracker); err == nil {
+			units = append(units, *unit)
+		}
+	} else {
 		if *opts.HasIssues {
 			// We don't currently allow setting individual issue settings through the API,
 			// only can enable/disable issues, so when enabling issues,
@@ -677,7 +684,14 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.HasWiki != nil {
+	if opts.HasWiki == nil {
+		// If HasWiki setting not touched, rewrite existing repo unit
+		if unit, err := repo.GetUnit(models.UnitTypeWiki); err == nil {
+			units = append(units, *unit)
+		} else if unit, err := repo.GetUnit(models.UnitTypeExternalWiki); err == nil {
+			units = append(units, *unit)
+		}
+	} else {
 		if *opts.HasWiki {
 			// We don't currently allow setting individual wiki settings through the API,
 			// only can enable/disable the wiki, so when enabling the wiki,
@@ -692,7 +706,12 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.HasPullRequests != nil {
+	if opts.HasPullRequests == nil {
+		// If HasPullRequest setting not touched, rewrite existing repo unit
+		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
+			units = append(units, *unit)
+		}
+	} else {
 		if *opts.HasPullRequests {
 			// We do allow setting individual PR settings through the API, so
 			// we get the config settings and then set them
