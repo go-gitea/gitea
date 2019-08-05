@@ -4,31 +4,13 @@
 
 package migrations
 
-import "github.com/go-xorm/xorm"
+import (
+	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
+)
 
 func removeLingeringIndexStatus(x *xorm.Engine) error {
 
-	type RepoIndexerStatus struct {
-		ID        int64  `xorm:"pk autoincr"`
-		RepoID    int64  `xorm:"INDEX"`
-		CommitSha string `xorm:"VARCHAR(40)"`
-	}
-
-	var orphaned []*RepoIndexerStatus
-
-	err := x.
-		Join("LEFT OUTER", "`repository`", "`repository`.id = `repo_indexer_status`.repo_id").
-		Where("`repository`.id is null").
-		Find(&orphaned)
-	if err != nil {
-		return err
-	}
-
-	for _, o := range orphaned {
-		if _, err = x.ID(o.ID).Delete(new(RepoIndexerStatus)); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	_, err := x.Exec(builder.Delete(builder.NotIn("`repo_id`", builder.Select("`id`").From("`repository`"))).From("`repo_indexer_status`"))
+	return err
 }
