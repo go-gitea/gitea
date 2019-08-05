@@ -373,7 +373,7 @@ golang.org/x/net/internal/socks
 # golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20190730183949-1393eb018365
+# golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
 golang.org/x/sys/cpu
@@ -432,7 +432,7 @@ gopkg.in/src-d/go-billy.v4
 gopkg.in/src-d/go-billy.v4/util
 gopkg.in/src-d/go-billy.v4/helper/chroot
 gopkg.in/src-d/go-billy.v4/helper/polyfill
-# gopkg.in/src-d/go-git.v4 v4.13.0
+# gopkg.in/src-d/go-git.v4 v4.13.1
 gopkg.in/src-d/go-git.v4
 gopkg.in/src-d/go-git.v4/config
 gopkg.in/src-d/go-git.v4/plumbing

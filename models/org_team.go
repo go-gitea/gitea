@@ -362,6 +362,11 @@ func GetTeam(orgID int64, name string) (*Team, error) {
 	return getTeam(x, orgID, name)
 }
 
+// getOwnerTeam returns team by given team name and organization.
+func getOwnerTeam(e Engine, orgID int64) (*Team, error) {
+	return getTeam(e, orgID, ownerTeamName)
+}
+
 func getTeamByID(e Engine, teamID int64) (*Team, error) {
 	t := new(Team)
 	has, err := e.ID(teamID).Get(t)
