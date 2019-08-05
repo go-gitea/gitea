@@ -25,7 +25,7 @@ func removeLingeringIndexStatus(x *xorm.Engine) error {
 	}
 
 	for _, o := range orphaned {
-		if _, err = x.Delete(o); err != nil {
+		if _, err = x.ID(o.ID).Delete(new(RepoIndexerStatus)); err != nil {
 			return err
 		}
 	}
