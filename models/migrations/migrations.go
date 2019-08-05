@@ -237,6 +237,8 @@ var migrations = []Migration{
 	// v90 -> v91
 	NewMigration("change length of some repository columns", changeSomeColumnsLengthOfRepo),
 	// v91 -> v92
+	NewMigration("add index on owner_id of repository and type, review_id of comment", addIndexOnRepositoryAndComment),
+	// v92 -> v93
 	NewMigration("remove orphaned repository index statuses", removeLingeringIndexStatus),
 }
 

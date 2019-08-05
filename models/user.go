@@ -1409,9 +1409,7 @@ type SearchUserOptions struct {
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
-
-	var cond = builder.NewCond()
-	cond = cond.And(builder.Eq{"type": opts.Type})
+	var cond builder.Cond = builder.Eq{"type": opts.Type}
 
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
