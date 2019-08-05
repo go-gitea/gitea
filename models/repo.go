@@ -129,7 +129,7 @@ func NewRepoContext() {
 // Repository represents a git repository.
 type Repository struct {
 	ID            int64  `xorm:"pk autoincr"`
-	OwnerID       int64  `xorm:"UNIQUE(s)"`
+	OwnerID       int64  `xorm:"UNIQUE(s) index"`
 	OwnerName     string `xorm:"-"`
 	Owner         *User  `xorm:"-"`
 	LowerName     string `xorm:"UNIQUE(s) INDEX NOT NULL"`
