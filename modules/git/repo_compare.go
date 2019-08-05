@@ -39,7 +39,7 @@ func (repo *Repository) GetMergeBase(tmpRemote string, base, head string) (strin
 		}
 	}
 
-	stdout, err := NewCommand("merge-base", base, head).RunInDir(repo.Path)
+	stdout, err := NewCommand("merge-base", "--", base, head).RunInDir(repo.Path)
 	return strings.TrimSpace(stdout), base, err
 }
 

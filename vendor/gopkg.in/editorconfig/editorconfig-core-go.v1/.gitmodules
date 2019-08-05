@@ -1,0 +1,3 @@
+[submodule "core-test"]
+	path = core-test
+	url = https://github.com/editorconfig/editorconfig-core-test.git

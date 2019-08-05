@@ -54,7 +54,7 @@ func initDBEngine() (err error) {
 		} else if i == setting.DBConnectRetries-1 {
 			return err
 		}
-		log.Debug("ORM engine initialization attempt #%d/%d failed. Error: %v", i+1, setting.DBConnectRetries, err)
+		log.Error("ORM engine initialization attempt #%d/%d failed. Error: %v", i+1, setting.DBConnectRetries, err)
 		log.Info("Backing off for %d seconds", int64(setting.DBConnectBackoff/time.Second))
 		time.Sleep(setting.DBConnectBackoff)
 	}
