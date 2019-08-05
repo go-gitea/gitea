@@ -414,7 +414,7 @@ gopkg.in/alexcesaro/quotedprintable.v3
 gopkg.in/asn1-ber.v1
 # gopkg.in/bufio.v1 v1.0.0-20140618132640-567b2bfa514e
 gopkg.in/bufio.v1
-# gopkg.in/editorconfig/editorconfig-core-go.v1 v1.2.0
+# gopkg.in/editorconfig/editorconfig-core-go.v1 v1.3.0
 gopkg.in/editorconfig/editorconfig-core-go.v1
 # gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 gopkg.in/gomail.v2
