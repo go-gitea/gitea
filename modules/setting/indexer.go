@@ -76,9 +76,7 @@ func extensionsFromString(from string) map[string]bool {
 		if ext == "." {
 			extmap[""] = true
 		} else {
-			if strings.HasPrefix(ext, ".") {
-				ext = ext[1:]
-			}
+			ext = strings.TrimPrefix(ext, ".")
 			if ext != "" {
 				extmap[ext] = true
 			}
