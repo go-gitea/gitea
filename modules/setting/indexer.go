@@ -31,7 +31,7 @@ var (
 		IssueQueueConnStr     string
 		IssueQueueBatchNumber int
 		FileExtensions        map[string]bool
-		ExcludeExtensions     bool
+		IncludeExtensions     bool
 	}{
 		IssueType:             "bleve",
 		IssuePath:             "indexers/issues.bleve",
@@ -55,7 +55,7 @@ func newIndexerService() {
 		Indexer.RepoPath = path.Join(AppWorkPath, Indexer.RepoPath)
 	}
 	Indexer.FileExtensions = extensionsFromString(sec.Key("REPO_INDEXER_EXTENSIONS").MustString(""))
-	Indexer.ExcludeExtensions = sec.Key("REPO_EXTENSIONS_LIST_EXCLUDE").MustBool(false)
+	Indexer.IncludeExtensions = sec.Key("REPO_EXTENSIONS_LIST_INCLUDE").MustBool(false)
 
 	Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
 	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
@@ -69,10 +69,19 @@ func extensionsFromString(from string) map[string]bool {
 	extmap := make(map[string]bool)
 	for _, ext := range strings.Split(strings.ToLower(from), ",") {
 		ext = strings.TrimSpace(ext)
+		// Accept *.txt, .txt and txt. Also use . to mean no ext
+		if strings.HasPrefix(ext, "*.") {
+			ext = ext[1:]
+		}
 		if ext == "." {
 			extmap[""] = true
-		} else if ext != "" && !strings.Contains(ext, ".") {
-			extmap[ext] = true
+		} else {
+			if strings.HasPrefix(ext, ".") {
+				ext = ext[1:]
+			}
+			if ext != "" {
+				extmap[ext] = true
+			}
 		}
 	}
 	if len(extmap) == 0 {

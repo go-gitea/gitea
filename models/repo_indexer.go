@@ -239,7 +239,7 @@ func isIndexable(entry *git.TreeEntry) bool {
 		if cnt > 1 {
 			ext = strings.ToLower(parts[cnt-1])
 		}
-		if setting.Indexer.FileExtensions[ext] == setting.Indexer.ExcludeExtensions {
+		if setting.Indexer.FileExtensions[ext] != setting.Indexer.IncludeExtensions {
 			return false
 		}
 	}
