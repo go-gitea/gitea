@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"github.com/mcuadros/go-version"
 )
 
 // Merge merges pull request to base repository.
@@ -100,12 +101,12 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return fmt.Errorf("git remote add [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 	}
 
+	trackingBranch := path.Join(remoteRepoName, pr.HeadBranch)
 	// Fetch head branch
-	if err := git.NewCommand("fetch", remoteRepoName, fmt.Sprintf("%s:refs/remotes/%s/%s", pr.HeadBranch, remoteRepoName, pr.HeadBranch)).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := git.NewCommand("fetch", remoteRepoName, pr.HeadBranch+":"+trackingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 	}
 
-	trackingBranch := path.Join(remoteRepoName, pr.HeadBranch)
 	stagingBranch := fmt.Sprintf("%s_%s", remoteRepoName, pr.HeadBranch)
 
 	// Enable sparse-checkout
@@ -123,21 +124,33 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return fmt.Errorf("Writing sparse-checkout file to %s: %v", sparseCheckoutListPath, err)
 	}
 
+	gitConfigCommand := func() *git.Command {
+		binVersion, err := git.BinVersion()
+		if err != nil {
+			log.Fatal("Error retrieving git version: %v", err)
+		}
+
+		if version.Compare(binVersion, "1.9.2", ">=") {
+			return git.NewCommand("config", "--local")
+		}
+		return git.NewCommand("config")
+	}
+
 	// Switch off LFS process (set required, clean and smudge here also)
-	if err := git.NewCommand("config", "--local", "filter.lfs.process", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := gitConfigCommand().AddArguments("filter.lfs.process", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git config [filter.lfs.process -> <> ]: %v", errbuf.String())
 	}
-	if err := git.NewCommand("config", "--local", "filter.lfs.required", "false").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := gitConfigCommand().AddArguments("filter.lfs.required", "false").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git config [filter.lfs.required -> <false> ]: %v", errbuf.String())
 	}
-	if err := git.NewCommand("config", "--local", "filter.lfs.clean", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := gitConfigCommand().AddArguments("filter.lfs.clean", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git config [filter.lfs.clean -> <> ]: %v", errbuf.String())
 	}
-	if err := git.NewCommand("config", "--local", "filter.lfs.smudge", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := gitConfigCommand().AddArguments("filter.lfs.smudge", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git config [filter.lfs.smudge -> <> ]: %v", errbuf.String())
 	}
 
-	if err := git.NewCommand("config", "--local", "core.sparseCheckout", "true").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := gitConfigCommand().AddArguments("core.sparseCheckout", "true").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git config [core.sparsecheckout -> true]: %v", errbuf.String())
 	}
 
