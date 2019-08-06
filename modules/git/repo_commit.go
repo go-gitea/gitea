@@ -117,20 +117,26 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	return commit, nil
 }
 
-// GetCommit returns commit object of by ID string.
-func (repo *Repository) GetCommit(commitID string) (*Commit, error) {
+// ConvertToSHA1 returns a Hash object from a potential ID string
+func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
 	if len(commitID) != 40 {
 		var err error
-		actualCommitID, err := NewCommand("rev-parse", commitID).RunInDir(repo.Path)
+		actualCommitID, err := NewCommand("rev-parse", "--verify", commitID).RunInDir(repo.Path)
 		if err != nil {
-			if strings.Contains(err.Error(), "unknown revision or path") {
-				return nil, ErrNotExist{commitID, ""}
+			if strings.Contains(err.Error(), "unknown revision or path") ||
+				strings.Contains(err.Error(), "fatal: Needed a single revision") {
+				return SHA1{}, ErrNotExist{commitID, ""}
 			}
-			return nil, err
+			return SHA1{}, err
 		}
 		commitID = actualCommitID
 	}
-	id, err := NewIDFromString(commitID)
+	return NewIDFromString(commitID)
+}
+
+// GetCommit returns commit object of by ID string.
+func (repo *Repository) GetCommit(commitID string) (*Commit, error) {
+	id, err := repo.ConvertToSHA1(commitID)
 	if err != nil {
 		return nil, err
 	}
@@ -243,6 +249,7 @@ func (repo *Repository) getFilesChanged(id1, id2 string) ([]string, error) {
 }
 
 // FileChangedBetweenCommits Returns true if the file changed between commit IDs id1 and id2
+// You must ensure that id1 and id2 are valid commit ids.
 func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bool, error) {
 	stdout, err := NewCommand("diff", "--name-only", "-z", id1, id2, "--", filename).RunInDirBytes(repo.Path)
 	if err != nil {
