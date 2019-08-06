@@ -19,6 +19,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -135,6 +136,10 @@ func standardCommitAndPushTest(t *testing.T, dstPath string) (little, big string
 func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS string) {
 	t.Run("LFS", func(t *testing.T) {
 		PrintCurrentTest(t)
+		if !setting.LFS.StartServer {
+			t.Skip()
+			return
+		}
 		prefix := "lfs-data-file-"
 		_, err := git.NewCommand("lfs").AddArguments("install").RunInDir(dstPath)
 		assert.NoError(t, err)
@@ -185,20 +190,24 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, littleSize, resp.Body.Len())
 
-		req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", littleLFS))
-		resp = session.MakeRequest(t, req, http.StatusOK)
-		assert.NotEqual(t, littleSize, resp.Body.Len())
-		assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+		if setting.LFS.StartServer {
+			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", littleLFS))
+			resp = session.MakeRequest(t, req, http.StatusOK)
+			assert.NotEqual(t, littleSize, resp.Body.Len())
+			assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+		}
 
 		if !testing.Short() {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", big))
 			resp = session.MakeRequest(t, req, http.StatusOK)
 			assert.Equal(t, bigSize, resp.Body.Len())
 
-			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", bigLFS))
-			resp = session.MakeRequest(t, req, http.StatusOK)
-			assert.NotEqual(t, bigSize, resp.Body.Len())
-			assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+			if setting.LFS.StartServer {
+				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", bigLFS))
+				resp = session.MakeRequest(t, req, http.StatusOK)
+				assert.NotEqual(t, bigSize, resp.Body.Len())
+				assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+			}
 		}
 	})
 }
@@ -217,18 +226,22 @@ func mediaTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS
 		resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
 		assert.Equal(t, littleSize, resp.Length)
 
-		req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", littleLFS))
-		resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-		assert.Equal(t, littleSize, resp.Length)
+		if setting.LFS.StartServer {
+			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", littleLFS))
+			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+			assert.Equal(t, littleSize, resp.Length)
+		}
 
 		if !testing.Short() {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", big))
 			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
 			assert.Equal(t, bigSize, resp.Length)
 
-			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", bigLFS))
-			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, resp.Length)
+			if setting.LFS.StartServer {
+				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", bigLFS))
+				resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+				assert.Equal(t, bigSize, resp.Length)
+			}
 		}
 	})
 }
