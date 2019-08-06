@@ -24,7 +24,6 @@ github.com/beorn7/perks/quantile
 # github.com/blevesearch/bleve v0.0.0-20190214220507-05d86ea8f6e3
 github.com/blevesearch/bleve
 github.com/blevesearch/bleve/analysis/analyzer/custom
-github.com/blevesearch/bleve/analysis/token/camelcase
 github.com/blevesearch/bleve/analysis/token/lowercase
 github.com/blevesearch/bleve/analysis/token/unicodenorm
 github.com/blevesearch/bleve/analysis/token/unique
