@@ -14,7 +14,6 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -665,7 +664,6 @@ func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	// Because of this, we check to make sure that a matched hash is actually
 	// a commit in the repository before making it a link.
 	if _, err := git.NewCommand("rev-parse", "--verify", hash).RunInDirBytes(ctx.metas["repoPath"]); err != nil {
-		log.Error("sha1CurrentPatternProcessor git rev-parse: %v", err)
 		return
 	}
 
