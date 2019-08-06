@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 	"time"
@@ -36,7 +37,12 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 	err = ssh.GenKeyPair(keyFile)
 	assert.NoError(t, err)
 
+	err = ioutil.WriteFile(path.Join(tmpDir, "ssh"), []byte("#!/bin/bash\n"+
+		"ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"IdentitiesOnly=yes\" -i \""+keyFile+"\" \"$@\""), 0700)
+	assert.NoError(t, err)
+
 	//Setup ssh wrapper
+	os.Setenv("GIT_SSH", path.Join(tmpDir, "ssh"))
 	os.Setenv("GIT_SSH_COMMAND",
 		"ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"IdentitiesOnly=yes\" -i \""+keyFile+"\"")
 	os.Setenv("GIT_SSH_VARIANT", "ssh")
