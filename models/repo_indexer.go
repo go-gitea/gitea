@@ -232,6 +232,17 @@ func addDelete(filename string, repo *Repository, batch rupture.FlushingBatch) e
 }
 
 func isIndexable(entry *git.TreeEntry) bool {
+	if setting.Indexer.FileExtensions != nil {
+		var ext string
+		parts := strings.Split(entry.Name(), ".")
+		cnt := len(parts)
+		if cnt > 1 {
+			ext = strings.ToLower(parts[cnt-1])
+		}
+		if setting.Indexer.FileExtensions[ext] == setting.Indexer.ExcludeExtensions {
+			return false
+		}
+	}
 	return entry.IsRegular() || entry.IsExecutable()
 }
 

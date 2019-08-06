@@ -177,6 +177,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
+- `REPO_INDEXER_EXTENSIONS`: **empty**: A comma separated list of file extensions to include/exclude from the index; a \`.' matches files with no extension. An empty list means include all files, disregarding `REPO_EXTENSIONS_LIST_EXCLUDE`.
+- `REPO_EXTENSIONS_LIST_EXCLUDE`: **false**: If true, `REPO_INDEXER_EXTENSIONS` are the file extensions to exclude rather than include in the index.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
 
