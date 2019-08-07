@@ -166,10 +166,7 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	}
 
 	if len(refs) > 0 {
-		c, err := refs[0].Commit()
-		if err == nil {
-			sha = c.ID.String() //Replace SHA with ref tag
-		}
+		sha = refs[0].Object.String() //Replace SHA with ref id
 	}
 
 	getCommitStatuses(ctx, sha)

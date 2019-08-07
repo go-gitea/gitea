@@ -5,7 +5,9 @@
 package integrations
 
 import (
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"path"
 	"testing"
 
@@ -66,6 +68,27 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	assert.Equal(t, sel.Length(), 1)
 	for _, class := range classes {
 		assert.True(t, sel.HasClass(class))
+	}
+
+	//By SHA
+	req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/"+path.Base(commitURL)+"/statuses")
+	testRepoCommitsWithStatus(t, session.MakeRequest(t, req, http.StatusOK), state)
+	//By Ref
+	req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/heads%2Fmaster/statuses")
+	testRepoCommitsWithStatus(t, session.MakeRequest(t, req, http.StatusOK), state)
+}
+
+func testRepoCommitsWithStatus(t *testing.T, resp *httptest.ResponseRecorder, state string) {
+	decoder := json.NewDecoder(resp.Body)
+	statuses := []*api.Status{}
+	assert.NoError(t, decoder.Decode(&statuses))
+	assert.Len(t, statuses, 1)
+	for _, s := range statuses {
+		assert.Equal(t, api.StatusState(state), s.State)
+		assert.Equal(t, "http://localhost:3003/api/v1/repos/user2/repo1/statuses/65f1bf27bc3bf70f64657658635e66094edbcb4d", s.URL)
+		assert.Equal(t, "http://test.ci/", s.TargetURL)
+		assert.Equal(t, "", s.Description)
+		assert.Equal(t, "testci", s.Context)
 	}
 }
 
