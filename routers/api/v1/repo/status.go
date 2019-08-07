@@ -155,7 +155,24 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/StatusList"
-	getCommitStatuses(ctx, ctx.Params("ref"))
+
+	filter := ctx.Params("ref")
+	sha := filter //By default and will be overridden if we found a good ref match
+
+	refs, lastMethodName, err := getGitRefs(ctx, filter)
+	if err != nil {
+		ctx.Error(500, lastMethodName, err)
+		return
+	}
+
+	if len(refs) > 0 {
+		c, err := refs[0].Commit()
+		if err == nil {
+			sha = c.ID.String() //Replace SHA with ref tag
+		}
+	}
+
+	getCommitStatuses(ctx, sha)
 }
 
 func getCommitStatuses(ctx *context.APIContext, sha string) {
