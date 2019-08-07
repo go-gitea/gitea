@@ -215,6 +215,23 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .inline-grouped-list{display:inline-block;vertical-align:top}
 .inline-grouped-list>.ui{display:block;margin-top:5px;margin-bottom:10px}
 .inline-grouped-list>.ui:first-child{margin-top:1px}
+.lines-num{vertical-align:top;text-align:right!important;color:#999;background:#f5f5f5;width:1%;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
+.lines-num span{line-height:20px!important;padding:0 10px;cursor:pointer;display:block}
+.lines-code,.lines-num{padding:0!important}
+.lines-code .hljs,.lines-code ol,.lines-code pre,.lines-num .hljs,.lines-num ol,.lines-num pre{background-color:#fff;margin:0;padding:0!important}
+.lines-code .hljs li,.lines-code ol li,.lines-code pre li,.lines-num .hljs li,.lines-num ol li,.lines-num pre li{display:block;width:100%}
+.lines-code .hljs li:before,.lines-code ol li:before,.lines-code pre li:before,.lines-num .hljs li:before,.lines-num ol li:before,.lines-num pre li:before{content:' '}
+.lines-commit{vertical-align:top;color:#999;padding:0!important;background:#f5f5f5;width:1%;-moz-user-select:none;-ms-user-select:none;-webkit-user-select:none;user-select:none}
+.lines-commit .blame-info{width:350px;max-width:350px;display:block;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;padding:0 0 0 10px}
+.lines-commit .blame-info .blame-data{display:flex;font-family:-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',Roboto,Helvetica,Arial}
+.lines-commit .blame-info .blame-data .blame-message{flex-grow:2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:20px}
+.lines-commit .blame-info .blame-data .blame-avatar,.lines-commit .blame-info .blame-data .blame-time{flex-shrink:0}
+.lines-commit .ui.avatar.image{height:18px;width:18px}
+.lines-code .bottom-line,.lines-commit .bottom-line,.lines-num .bottom-line{border-bottom:1px solid #eaecef}
+.code-view{overflow:auto;overflow-x:auto;overflow-y:hidden}
+.code-view *{font-size:12px;font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;line-height:20px}
+.code-view table{width:100%}
+.code-view .active{background:#fff866}
 .markdown:not(code){overflow:hidden;font-size:16px;line-height:1.6!important;word-wrap:break-word}
 .markdown:not(code).ui.segment{padding:3em}
 .markdown:not(code).file-view{padding:2em 2em 2em!important}
@@ -473,23 +490,6 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.file.list .non-diff-file-content .plain-text{padding:1em 2em 1em 2em}
 .repository.file.list .non-diff-file-content .plain-text pre{word-break:break-word;white-space:pre-wrap}
 .repository.file.list .non-diff-file-content pre{overflow:auto}
-.repository.file.list .non-diff-file-content .code-view *{font-size:12px;font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;line-height:20px}
-.repository.file.list .non-diff-file-content .code-view table{width:100%}
-.repository.file.list .non-diff-file-content .code-view .lines-num{vertical-align:top;text-align:right;color:#999;background:#f5f5f5;width:1%;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
-.repository.file.list .non-diff-file-content .code-view .lines-num span{line-height:20px;padding:0 10px;cursor:pointer;display:block}
-.repository.file.list .non-diff-file-content .code-view .lines-code,.repository.file.list .non-diff-file-content .code-view .lines-num{padding:0}
-.repository.file.list .non-diff-file-content .code-view .lines-code .hljs,.repository.file.list .non-diff-file-content .code-view .lines-code ol,.repository.file.list .non-diff-file-content .code-view .lines-code pre,.repository.file.list .non-diff-file-content .code-view .lines-num .hljs,.repository.file.list .non-diff-file-content .code-view .lines-num ol,.repository.file.list .non-diff-file-content .code-view .lines-num pre{background-color:#fff;margin:0;padding:0!important}
-.repository.file.list .non-diff-file-content .code-view .lines-code .hljs li,.repository.file.list .non-diff-file-content .code-view .lines-code ol li,.repository.file.list .non-diff-file-content .code-view .lines-code pre li,.repository.file.list .non-diff-file-content .code-view .lines-num .hljs li,.repository.file.list .non-diff-file-content .code-view .lines-num ol li,.repository.file.list .non-diff-file-content .code-view .lines-num pre li{display:block;width:100%}
-.repository.file.list .non-diff-file-content .code-view .lines-code .hljs li.active,.repository.file.list .non-diff-file-content .code-view .lines-code ol li.active,.repository.file.list .non-diff-file-content .code-view .lines-code pre li.active,.repository.file.list .non-diff-file-content .code-view .lines-num .hljs li.active,.repository.file.list .non-diff-file-content .code-view .lines-num ol li.active,.repository.file.list .non-diff-file-content .code-view .lines-num pre li.active{background:#ffd}
-.repository.file.list .non-diff-file-content .code-view .lines-code .hljs li:before,.repository.file.list .non-diff-file-content .code-view .lines-code ol li:before,.repository.file.list .non-diff-file-content .code-view .lines-code pre li:before,.repository.file.list .non-diff-file-content .code-view .lines-num .hljs li:before,.repository.file.list .non-diff-file-content .code-view .lines-num ol li:before,.repository.file.list .non-diff-file-content .code-view .lines-num pre li:before{content:' '}
-.repository.file.list .non-diff-file-content .code-view .lines-commit{vertical-align:top;color:#999;padding:0;background:#f5f5f5;width:1%;-moz-user-select:none;-ms-user-select:none;-webkit-user-select:none;user-select:none}
-.repository.file.list .non-diff-file-content .code-view .lines-commit .blame-info{width:350px;max-width:350px;display:block;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;padding:0 0 0 10px}
-.repository.file.list .non-diff-file-content .code-view .lines-commit .blame-info .blame-data{display:flex;font-family:-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',Roboto,Helvetica,Arial}
-.repository.file.list .non-diff-file-content .code-view .lines-commit .blame-info .blame-data .blame-message{flex-grow:2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:20px}
-.repository.file.list .non-diff-file-content .code-view .lines-commit .blame-info .blame-data .blame-avatar,.repository.file.list .non-diff-file-content .code-view .lines-commit .blame-info .blame-data .blame-time{flex-shrink:0}
-.repository.file.list .non-diff-file-content .code-view .lines-commit .ui.avatar.image{height:18px;width:18px}
-.repository.file.list .non-diff-file-content .code-view .lines-code .bottom-line,.repository.file.list .non-diff-file-content .code-view .lines-commit .bottom-line,.repository.file.list .non-diff-file-content .code-view .lines-num .bottom-line{border-bottom:1px solid #eaecef}
-.repository.file.list .non-diff-file-content .code-view .active{background:#ffd}
 .repository.file.list .sidebar{padding-left:0}
 .repository.file.list .sidebar .octicon{width:16px}
 .repository.file.editor .treepath{width:100%}
@@ -659,10 +659,9 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .diff-file-box .file-body.file-code .lines-num span.fold{display:block;text-align:center}
 .repository .diff-file-box .file-body.file-code .lines-num-old{border-right:1px solid #ddd}
 .repository .diff-file-box .code-diff{font-size:12px}
-.repository .diff-file-box .code-diff td{padding:0 0 0 10px;border-top:0}
-.repository .diff-file-box .code-diff .lines-num{border-color:#d4d4d5;border-right-width:1px;border-right-style:solid;padding:0 5px}
+.repository .diff-file-box .code-diff td{padding:0 0 0 10px!important;border-top:0}
+.repository .diff-file-box .code-diff .lines-num{border-color:#d4d4d5;border-right-width:1px;border-right-style:solid;padding:0 5px!important}
 .repository .diff-file-box .code-diff tbody tr td.halfwidth{width:49%}
-.repository .diff-file-box .code-diff tbody tr td.tag-code,.repository .diff-file-box .code-diff tbody tr.tag-code td{background-color:#f0f0f0!important;border-color:#d3cfcf!important;padding-top:8px;padding-bottom:8px}
 .repository .diff-file-box .code-diff tbody tr .removed-code{background-color:#f99}
 .repository .diff-file-box .code-diff tbody tr .added-code{background-color:#9f9}
 .repository .diff-file-box .code-diff tbody tr [data-line-num]::before{content:attr(data-line-num);text-align:right}
@@ -677,7 +676,6 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .diff-file-box .code-diff-split tbody tr td:nth-child(4){border-left-width:1px;border-left-style:solid}
 .repository .diff-file-box.file-content{clear:right}
 .repository .diff-file-box.file-content img{max-width:100%;padding:5px 5px 0 5px}
-.repository .code-view{overflow:auto;overflow-x:auto;overflow-y:hidden}
 .repository .repo-search-result{padding-top:10px;padding-bottom:10px}
 .repository .repo-search-result .lines-num a{color:inherit}
 .repository.quickstart .guide .item{padding:1em}
@@ -848,6 +846,7 @@ tbody.commit-list{vertical-align:baseline}
 .repo-buttons .disabled-repo-button a.button{opacity:.5;cursor:not-allowed}
 .repo-buttons .disabled-repo-button a.button:hover{background:0 0!important;color:rgba(0,0,0,.6)!important;box-shadow:0 0 0 1px rgba(34,36,38,.15) inset!important}
 .repo-buttons .ui.labeled.button>.label{border-left:0!important;margin:0!important}
+.tag-code,.tag-code td{background-color:#f0f0f0!important;border-color:#d3cfcf!important;padding-top:8px;padding-bottom:8px}
 .CodeMirror{font:14px 'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace}
 .CodeMirror.cm-s-default{border-radius:3px;padding:0!important}
 .CodeMirror .cm-comment{background:inherit!important}
