@@ -22,7 +22,7 @@ BINDATA := modules/{options,public,templates}/bindata.go
 GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
 GOFMT ?= gofmt -s
 
-GOFLAGS := -i -v
+GOFLAGS := -v
 EXTRA_GOFLAGS ?=
 
 MAKE_VERSION := $(shell make -v | head -n 1)
@@ -97,12 +97,12 @@ vet:
 
 .PHONY: generate
 generate:
-	GO111MODULE=on $(GO) generate $(PACKAGES)
+	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
 
 .PHONY: generate-swagger
 generate-swagger:
 	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
+		GO111MODULE="on" $(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.19.0; \
 	fi
 	swagger generate spec -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
@@ -135,6 +135,10 @@ errcheck:
 
 .PHONY: lint
 lint:
+	@echo 'make lint is depricated. Use "make revive" if you want to use the old lint tool, or "make golangci-lint" to run a complete code check.'
+
+.PHONY: revive
+revive:
 	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/mgechev/revive; \
 	fi
@@ -362,36 +366,39 @@ release-compress:
 	fi
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 
-.PHONY: js
-js:
-	@if ([ ! -d "$(PWD)/node_modules" ]); then \
-		echo "node_modules directory is absent, please run 'npm install' first"; \
+npm-check:
+	@hash npm > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		echo "Please install Node.js 8.x or greater with npm"; \
 		exit 1; \
 	fi;
 	@hash npx > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		echo "Please install npm version 5.2+"; \
+		echo "Please install Node.js 8.x or greater with npm"; \
 		exit 1; \
 	fi;
+
+.PHONY: npm
+npm: npm-check
+	npm install --no-save
+
+.PHONY: npm-update
+npm-update: npm-check
+	npx updates -cu
+	rm -rf node_modules package-lock.json
+	npm install --package-lock
+
+.PHONY: js
+js: npm
 	npx eslint public/js
 
 .PHONY: css
-css:
-	@if ([ ! -d "$(PWD)/node_modules" ]); then \
-		echo "node_modules directory is absent, please run 'npm install' first"; \
-		exit 1; \
-	fi;
-	@hash npx > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		echo "Please install npm version 5.2+"; \
-		exit 1; \
-	fi;
-
-	npx lesshint public/less/
+css: npm
+	npx stylelint public/less
 	npx lessc --clean-css="--s0 -b" public/less/index.less public/css/index.css
 	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx lessc --clean-css="--s0 -b" public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
 	npx postcss --use autoprefixer --no-map --replace public/css/*
 
 	@diff=$$(git diff public/css/*); \
-	if ([ ! -z "$CI" ] && [ -n "$$diff" ]); then \
+	if ([ -n "$$CI" ] && [ -n "$$diff" ]); then \
 		echo "Generated files in public/css have changed, please commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
@@ -461,3 +468,11 @@ generate-images:
 .PHONY: pr
 pr:
 	$(GO) run contrib/pr/checkout.go $(PR)
+
+.PHONY: golangci-lint
+golangci-lint:
+	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		export BINARY="golangci-lint"; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.16.0; \
+	fi
+	golangci-lint run

@@ -19,33 +19,35 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
 )
 
 // Issue represents an issue or pull request of repository.
 type Issue struct {
-	ID              int64       `xorm:"pk autoincr"`
-	RepoID          int64       `xorm:"INDEX UNIQUE(repo_index)"`
-	Repo            *Repository `xorm:"-"`
-	Index           int64       `xorm:"UNIQUE(repo_index)"` // Index in one repository.
-	PosterID        int64       `xorm:"INDEX"`
-	Poster          *User       `xorm:"-"`
-	Title           string      `xorm:"name"`
-	Content         string      `xorm:"TEXT"`
-	RenderedContent string      `xorm:"-"`
-	Labels          []*Label    `xorm:"-"`
-	MilestoneID     int64       `xorm:"INDEX"`
-	Milestone       *Milestone  `xorm:"-"`
-	Priority        int
-	AssigneeID      int64        `xorm:"-"`
-	Assignee        *User        `xorm:"-"`
-	IsClosed        bool         `xorm:"INDEX"`
-	IsRead          bool         `xorm:"-"`
-	IsPull          bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
-	PullRequest     *PullRequest `xorm:"-"`
-	NumComments     int
-	Ref             string
+	ID               int64       `xorm:"pk autoincr"`
+	RepoID           int64       `xorm:"INDEX UNIQUE(repo_index)"`
+	Repo             *Repository `xorm:"-"`
+	Index            int64       `xorm:"UNIQUE(repo_index)"` // Index in one repository.
+	PosterID         int64       `xorm:"INDEX"`
+	Poster           *User       `xorm:"-"`
+	OriginalAuthor   string
+	OriginalAuthorID int64
+	Title            string     `xorm:"name"`
+	Content          string     `xorm:"TEXT"`
+	RenderedContent  string     `xorm:"-"`
+	Labels           []*Label   `xorm:"-"`
+	MilestoneID      int64      `xorm:"INDEX"`
+	Milestone        *Milestone `xorm:"-"`
+	Priority         int
+	AssigneeID       int64        `xorm:"-"`
+	Assignee         *User        `xorm:"-"`
+	IsClosed         bool         `xorm:"INDEX"`
+	IsRead           bool         `xorm:"-"`
+	IsPull           bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
+	PullRequest      *PullRequest `xorm:"-"`
+	NumComments      int
+	Ref              string
 
 	DeadlineUnix util.TimeStamp `xorm:"INDEX"`
 
@@ -468,6 +470,18 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 	} else {
 		go HookQueue.Add(issue.RepoID)
 	}
+}
+
+// ReplyReference returns tokenized address to use for email reply headers
+func (issue *Issue) ReplyReference() string {
+	var path string
+	if issue.IsPull {
+		path = "pulls"
+	} else {
+		path = "issues"
+	}
+
+	return fmt.Sprintf("%s/%s/%d@%s", issue.Repo.FullName(), path, issue.Index, setting.Domain)
 }
 
 func (issue *Issue) addLabel(e *xorm.Session, label *Label, doer *User) error {
@@ -1330,7 +1344,7 @@ func sortIssuesSession(sess *xorm.Session, sortType string) {
 	}
 }
 
-func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
+func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	if opts.Page >= 0 && opts.PageSize > 0 {
 		var start int
 		if opts.Page == 0 {
@@ -1389,7 +1403,6 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
 				fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
 		}
 	}
-	return nil
 }
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
@@ -1397,9 +1410,7 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if err := opts.setupSession(sess); err != nil {
-		return nil, err
-	}
+	opts.setupSession(sess)
 
 	countsSlice := make([]*struct {
 		RepoID int64
@@ -1424,15 +1435,14 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if err := opts.setupSession(sess); err != nil {
-		return nil, err
-	}
+	opts.setupSession(sess)
 	sortIssuesSession(sess, opts.SortType)
 
 	issues := make([]*Issue, 0, setting.UI.IssuePagingNum)
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
+	sess.Close()
 
 	if err := IssueList(issues).LoadAttributes(); err != nil {
 		return nil, fmt.Errorf("LoadAttributes: %v", err)
@@ -1838,4 +1848,23 @@ func (issue *Issue) BlockedByDependencies() ([]*Issue, error) {
 // BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
 func (issue *Issue) BlockingDependencies() ([]*Issue, error) {
 	return issue.getBlockingDependencies(x)
+}
+
+func (issue *Issue) updateClosedNum(e Engine) (err error) {
+	if issue.IsPull {
+		_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+			issue.RepoID,
+			true,
+			true,
+			issue.RepoID,
+		)
+	} else {
+		_, err = e.Exec("UPDATE `repository` SET num_closed_issues=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+			issue.RepoID,
+			false,
+			true,
+			issue.RepoID,
+		)
+	}
+	return
 }

@@ -9,10 +9,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
-// TableNameWithSchema will automatically add schema prefix on table name
+// tbNameWithSchema will automatically add schema prefix on table name
 func (engine *Engine) tbNameWithSchema(v string) string {
 	// Add schema name as prefix of table name.
 	// Only for postgres database.

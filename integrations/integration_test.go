@@ -42,7 +42,7 @@ type NilResponseRecorder struct {
 }
 
 func (n *NilResponseRecorder) Write(b []byte) (int, error) {
-	n.Length = n.Length + len(b)
+	n.Length += len(b)
 	return len(b), nil
 }
 
@@ -141,8 +141,7 @@ func initIntegrationTest() {
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
-		rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'",
-			models.DbCfg.Name))
+		rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", models.DbCfg.Name))
 		if err != nil {
 			log.Fatalf("db.Query: %v", err)
 		}
@@ -170,6 +169,7 @@ func initIntegrationTest() {
 }
 
 func prepareTestEnv(t testing.TB, skip ...int) {
+	t.Helper()
 	ourSkip := 2
 	if len(skip) > 0 {
 		ourSkip += skip[0]
@@ -202,6 +202,7 @@ func (s *TestSession) GetCookie(name string) *http.Cookie {
 }
 
 func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
+	t.Helper()
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
@@ -210,7 +211,7 @@ func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatu
 	resp := MakeRequest(t, req, expectedStatus)
 
 	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 	s.jar.SetCookies(baseURL, cr.Cookies())
 
@@ -218,6 +219,7 @@ func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatu
 }
 
 func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
+	t.Helper()
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
@@ -226,7 +228,7 @@ func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Req
 	resp := MakeRequestNilResponseRecorder(t, req, expectedStatus)
 
 	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 	s.jar.SetCookies(baseURL, cr.Cookies())
 
@@ -238,6 +240,7 @@ const userPassword = "password"
 var loginSessionCache = make(map[string]*TestSession, 10)
 
 func emptyTestSession(t testing.TB) *TestSession {
+	t.Helper()
 	jar, err := cookiejar.New(nil)
 	assert.NoError(t, err)
 
@@ -245,6 +248,7 @@ func emptyTestSession(t testing.TB) *TestSession {
 }
 
 func loginUser(t testing.TB, userName string) *TestSession {
+	t.Helper()
 	if session, ok := loginSessionCache[userName]; ok {
 		return session
 	}
@@ -254,6 +258,7 @@ func loginUser(t testing.TB, userName string) *TestSession {
 }
 
 func loginUserWithPassword(t testing.TB, userName, password string) *TestSession {
+	t.Helper()
 	req := NewRequest(t, "GET", "/user/login")
 	resp := MakeRequest(t, req, http.StatusOK)
 
@@ -266,7 +271,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	resp = MakeRequest(t, req, http.StatusFound)
 
 	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 
 	session := emptyTestSession(t)
@@ -279,6 +284,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 }
 
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
+	t.Helper()
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
@@ -295,14 +301,17 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 }
 
 func NewRequest(t testing.TB, method, urlStr string) *http.Request {
+	t.Helper()
 	return NewRequestWithBody(t, method, urlStr, nil)
 }
 
 func NewRequestf(t testing.TB, method, urlFormat string, args ...interface{}) *http.Request {
+	t.Helper()
 	return NewRequest(t, method, fmt.Sprintf(urlFormat, args...))
 }
 
 func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string]string) *http.Request {
+	t.Helper()
 	urlValues := url.Values{}
 	for key, value := range values {
 		urlValues[key] = []string{value}
@@ -313,6 +322,7 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 }
 
 func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
+	t.Helper()
 	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
 	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
@@ -321,6 +331,7 @@ func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *htt
 }
 
 func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
+	t.Helper()
 	request, err := http.NewRequest(method, urlStr, body)
 	assert.NoError(t, err)
 	request.RequestURI = urlStr
@@ -335,6 +346,7 @@ func AddBasicAuthHeader(request *http.Request, username string) *http.Request {
 const NoExpectedStatus = -1
 
 func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
+	t.Helper()
 	recorder := httptest.NewRecorder()
 	mac.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
@@ -347,6 +359,7 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 }
 
 func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
+	t.Helper()
 	recorder := NewNilResponseRecorder()
 	mac.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
@@ -360,6 +373,7 @@ func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedSta
 
 // logUnexpectedResponse logs the contents of an unexpected response.
 func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
+	t.Helper()
 	respBytes := recorder.Body.Bytes()
 	if len(respBytes) == 0 {
 		return
@@ -382,11 +396,13 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 }
 
 func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
+	t.Helper()
 	decoder := json.NewDecoder(resp.Body)
 	assert.NoError(t, decoder.Decode(v))
 }
 
 func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
+	t.Helper()
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)

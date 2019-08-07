@@ -1,0 +1,89 @@
+{{template "base/head" .}}
+<div class="repository diff">
+	{{template "repo/header" .}}
+	<div class="ui container {{if .IsSplitStyle}}fluid padded{{end}}">
+		<div class="ui top attached info clearing segment {{if .Commit.Signature}} isSigned {{if .Verification.Verified }} isVerified {{end}}{{end}}">
+			<a class="ui floated right blue tiny button" href="{{EscapePound .SourcePath}}">
+				{{.i18n.Tr "repo.diff.browse_source"}}
+			</a>
+			<h3 class="has-emoji">{{RenderCommitMessage .Commit.Message $.RepoLink $.Repository.ComposeMetas}}{{template "repo/commit_status" .CommitStatus}}</h3>
+			{{if IsMultilineCommitMessage .Commit.Message}}
+				<pre class="commit-body">{{RenderCommitBody .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+			{{end}}
+			<span class="text grey"><i class="octicon octicon-git-branch"></i>{{.BranchName}}</span>
+		</div>
+		<div class="ui attached info segment {{if .Commit.Signature}} isSigned {{if .Verification.Verified }} isVerified {{end}}{{end}}">
+			<div class="ui stackable grid">
+				<div class="nine wide column">
+					{{if .Author}}
+						<img class="ui avatar image" src="{{.Author.RelAvatarLink}}" />
+					{{if .Author.FullName}}
+					<a href="{{.Author.HomeLink}}"><strong>{{.Author.FullName}}</strong></a> {{if .IsSigned}}<{{.Commit.Author.Email}}>{{end}}
+					{{else}}
+					<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a> {{if .IsSigned}}<{{.Commit.Author.Email}}>{{end}}
+					{{end}}
+					{{else}}
+						<img class="ui avatar image" src="{{AvatarLink .Commit.Author.Email}}" />
+						<strong>{{.Commit.Author.Name}}</strong>
+					{{end}}
+					<span class="text grey" id="authored-time">{{TimeSince .Commit.Author.When $.Lang}}</span>
+				</div>
+				<div class="seven wide right aligned column">
+					<div class="ui horizontal list">
+						{{if .Parents}}
+							<div class="item">
+								{{.i18n.Tr "repo.diff.parent"}}
+							</div>
+							<div class="item">
+								{{range .Parents}}
+									<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.}}">{{ShortSha .}}</a>
+								{{end}}
+							</div>
+						{{end}}
+						<div class="mobile-only"></div>
+						<div class="item">{{.i18n.Tr "repo.diff.commit"}}</div>
+						<div class="item"><span class="ui blue sha label">{{ShortSha .CommitID}}</span></div>
+					</div>
+				</div><!-- end column -->
+			</div><!-- end grid -->
+		</div>
+		{{if .Commit.Signature}}
+			{{if .Verification.Verified }}
+				<div class="ui bottom attached positive message">
+				  <i class="green lock icon"></i>
+					<span>{{.i18n.Tr "repo.commits.signed_by"}}:</span>
+					<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a> <{{.Commit.Committer.Email}}>
+					<span class="pull-right"><span>{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> {{.Verification.SigningKey.KeyID}}</span>
+				</div>
+			{{else}}
+				<div class="ui bottom attached message">
+				  <i class="grey unlock icon"></i>
+				  {{.i18n.Tr .Verification.Reason}}
+				</div>
+			{{end}}
+		{{end}}
+		{{if .Note}}
+			<div class="ui top attached info segment message git-notes">
+				<i class="sticky note icon"></i>
+				{{.i18n.Tr "repo.diff.git-notes"}}:
+				{{if .NoteAuthor}}
+					<a href="{{.NoteAuthor.HomeLink}}">
+						{{if .NoteAuthor.FullName}}
+						  <strong>{{.NoteAuthor.FullName}}</strong>
+						{{else}}
+						  <strong>{{.NoteCommit.Author.Name}}</strong>
+						{{end}}
+					</a>
+				{{else}}
+					<strong>{{.NoteCommit.Author.Name}}</strong>
+				{{end}}
+				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.Lang}}</span>
+			</div>
+			<div class="ui bottom attached info segment git-notes">
+				<pre class="commit-body">{{RenderNote .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
+			</div>
+		{{end}}
+		{{template "repo/diff/box" .}}
+	</div>
+</div>
+{{template "base/footer" .}}

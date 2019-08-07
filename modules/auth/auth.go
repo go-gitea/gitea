@@ -214,10 +214,8 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 				if err = models.UpdateAccessToken(token); err != nil {
 					log.Error("UpdateAccessToken:  %v", err)
 				}
-			} else {
-				if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-					log.Error("GetAccessTokenBySha: %v", err)
-				}
+			} else if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+				log.Error("GetAccessTokenBySha: %v", err)
 			}
 
 			if u == nil {
@@ -299,12 +297,6 @@ func GetMaxSize(field reflect.StructField) string {
 // GetInclude get include in form tag
 func GetInclude(field reflect.StructField) string {
 	return getRuleBody(field, "Include(")
-}
-
-// FIXME: struct contains a struct
-func validateStruct(obj interface{}) binding.Errors {
-
-	return nil
 }
 
 func validate(errs binding.Errors, data map[string]interface{}, f Form, l macaron.Locale) binding.Errors {

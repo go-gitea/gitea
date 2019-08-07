@@ -67,7 +67,10 @@ func (i *connWriter) connect() error {
 	}
 
 	if tcpConn, ok := conn.(*net.TCPConn); ok {
-		tcpConn.SetKeepAlive(true)
+		err = tcpConn.SetKeepAlive(true)
+		if err != nil {
+			return err
+		}
 	}
 
 	i.innerWriter = conn

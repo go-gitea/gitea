@@ -41,7 +41,7 @@ func checkRunMode() {
 func NewServices() {
 	setting.NewServices()
 	mailer.NewContext()
-	cache.NewContext()
+	_ = cache.NewContext()
 }
 
 // In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
@@ -54,7 +54,7 @@ func initDBEngine() (err error) {
 		} else if i == setting.DBConnectRetries-1 {
 			return err
 		}
-		log.Debug("ORM engine initialization attempt #%d/%d failed. Error: %v", i+1, setting.DBConnectRetries, err)
+		log.Error("ORM engine initialization attempt #%d/%d failed. Error: %v", i+1, setting.DBConnectRetries, err)
 		log.Info("Backing off for %d seconds", int64(setting.DBConnectBackoff/time.Second))
 		time.Sleep(setting.DBConnectBackoff)
 	}
@@ -65,6 +65,9 @@ func initDBEngine() (err error) {
 // GlobalInit is for global configuration reload-able.
 func GlobalInit() {
 	setting.NewContext()
+	if err := git.Init(); err != nil {
+		log.Fatal("Git module init failed: %v", err)
+	}
 	setting.CheckLFSVersion()
 	log.Trace("AppPath: %s", setting.AppPath)
 	log.Trace("AppWorkPath: %s", setting.AppWorkPath)

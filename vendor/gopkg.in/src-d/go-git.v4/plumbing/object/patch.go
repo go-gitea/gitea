@@ -278,7 +278,7 @@ func printStat(fileStats []FileStat) string {
 	var scaleFactor float64
 	if longestTotalChange > heightOfHistogram {
 		// Scale down to heightOfHistogram.
-		scaleFactor = float64(longestTotalChange / heightOfHistogram)
+		scaleFactor = longestTotalChange / heightOfHistogram
 	} else {
 		scaleFactor = 1.0
 	}
@@ -321,6 +321,10 @@ func getFileStatsFromFilePatches(filePatches []fdiff.FilePatch) FileStats {
 
 		for _, chunk := range fp.Chunks() {
 			s := chunk.Content()
+			if len(s) == 0 {
+				continue
+			}
+
 			switch chunk.Type() {
 			case fdiff.Add:
 				cs.Addition += strings.Count(s, "\n")

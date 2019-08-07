@@ -1,7 +1,7 @@
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	<h4 class="ui top attached header" id="{{if .ReadmeExist}}repo-readme{{else}}repo-read-file{{end}}">
 		<div class="ui stackable grid">
-			<div class="ten wide column">
+			<div class="eight wide column">
 				{{if .ReadmeExist}}
 					<i class="book icon ui left"></i>
 					{{if .ReadmeInList}}
@@ -14,7 +14,7 @@
 					<strong>{{.FileName}}</strong> <span class="text grey normal">{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
 				{{end}}
 			</div>
-			<div class="six wide right aligned column">
+			<div class="eight wide right aligned column">
 				{{if not .ReadmeInList}}
 					<div class="ui right file-actions">
 						<div class="ui buttons">

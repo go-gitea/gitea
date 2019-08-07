@@ -6,8 +6,6 @@ package git
 
 import (
 	"io/ioutil"
-
-	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 // NotesRef is the git ref where Gitea will look for git-notes data.
@@ -45,12 +43,22 @@ func GetNote(repo *Repository, commitID string, note *Note) error {
 	}
 	note.Message = d
 
-	commit, err := repo.gogitRepo.CommitObject(plumbing.Hash(notes.ID))
+	commit, err := repo.gogitRepo.CommitObject(notes.ID)
 	if err != nil {
 		return err
 	}
 
-	lastCommits, err := getLastCommitForPaths(commit, "", []string{commitID})
+	commitNodeIndex, commitGraphFile := repo.CommitNodeIndex()
+	if commitGraphFile != nil {
+		defer commitGraphFile.Close()
+	}
+
+	commitNode, err := commitNodeIndex.Get(commit.Hash)
+	if err != nil {
+		return nil
+	}
+
+	lastCommits, err := getLastCommitForPaths(commitNode, "", []string{commitID})
 	if err != nil {
 		return err
 	}

@@ -97,6 +97,22 @@
 		</div>
 
 		<h4 class="ui top attached header">
+			{{.i18n.Tr "admin.config.lfs_config"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="dl-horizontal admin-dl-horizontal">
+				<dt>{{.i18n.Tr "admin.config.lfs_enabled"}}</dt>
+				<dd><i class="fa fa{{if .LFS.StartServer}}-check{{end}}-square-o"></i></dd>
+				{{if .LFS.StartServer}}
+					<dt>{{.i18n.Tr "admin.config.lfs_content_path"}}</dt>
+					<dd>{{.LFS.ContentPath}}</dd>
+					<dt>{{.i18n.Tr "admin.config.lfs_http_auth_expiry"}}</dt>
+					<dd>{{.LFS.HTTPAuthExpiry}}</dd>
+				{{end}}
+			</dl>
+		</div>
+
+		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.config.db_config"}}
 		</h4>
 		<div class="ui attached table segment">

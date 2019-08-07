@@ -15,6 +15,7 @@ type PullRequest struct {
 	Number         int64
 	Title          string
 	PosterName     string
+	PosterID       int64
 	PosterEmail    string
 	Content        string
 	Milestone      string

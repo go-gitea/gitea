@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
 type tagContext struct {
@@ -244,6 +244,7 @@ func SQLTypeTagHandler(ctx *tagContext) error {
 // ExtendsTagHandler describes extends tag handler
 func ExtendsTagHandler(ctx *tagContext) error {
 	var fieldValue = ctx.fieldValue
+	var isPtr = false
 	switch fieldValue.Kind() {
 	case reflect.Ptr:
 		f := fieldValue.Type().Elem()
@@ -254,6 +255,7 @@ func ExtendsTagHandler(ctx *tagContext) error {
 				fieldValue = reflect.New(f).Elem()
 			}
 		}
+		isPtr = true
 		fallthrough
 	case reflect.Struct:
 		parentTable, err := ctx.engine.mapType(fieldValue)
@@ -262,6 +264,24 @@ func ExtendsTagHandler(ctx *tagContext) error {
 		}
 		for _, col := range parentTable.Columns() {
 			col.FieldName = fmt.Sprintf("%v.%v", ctx.col.FieldName, col.FieldName)
+
+			var tagPrefix = ctx.col.FieldName
+			if len(ctx.params) > 0 {
+				col.Nullable = isPtr
+				tagPrefix = ctx.params[0]
+				if col.IsPrimaryKey {
+					col.Name = ctx.col.FieldName
+					col.IsPrimaryKey = false
+				} else {
+					col.Name = fmt.Sprintf("%v%v", tagPrefix, col.Name)
+				}
+			}
+
+			if col.Nullable {
+				col.IsAutoIncrement = false
+				col.IsPrimaryKey = false
+			}
+
 			ctx.table.AddColumn(col)
 			for indexName, indexType := range col.Indexes {
 				addIndex(indexName, ctx.table, col, indexType)

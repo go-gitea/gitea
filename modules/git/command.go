@@ -12,6 +12,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/process"
 )
 
 var (
@@ -83,6 +85,9 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 	if err := cmd.Start(); err != nil {
 		return err
 	}
+
+	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), dir), cmd)
+	defer process.GetManager().Remove(pid)
 
 	if err := cmd.Wait(); err != nil {
 		return err

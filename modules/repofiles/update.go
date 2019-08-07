@@ -6,6 +6,7 @@ package repofiles
 
 import (
 	"bytes"
+	"container/list"
 	"fmt"
 	"path"
 	"strings"
@@ -15,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -99,6 +101,10 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 	}
 
 	result, n, err := transform.String(charsetEncoding.NewDecoder(), string(buf))
+	if err != nil {
+		// return default
+		return "UTF-8", false
+	}
 
 	if n > 2 {
 		return encoding, bytes.Equal([]byte(result)[0:3], base.UTF8BOM)
@@ -135,10 +141,8 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
-	} else {
-		if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
-			return nil, models.ErrUserCannotCommit{UserName: doer.LowerName}
-		}
+	} else if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
+		return nil, models.ErrUserCannotCommit{UserName: doer.LowerName}
 	}
 
 	// If FromTreePath is not set, set it to the opts.TreePath
@@ -166,10 +170,10 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	author, committer := GetAuthorAndCommitterUsers(opts.Committer, opts.Author, doer)
 
 	t, err := NewTemporaryUploadRepository(repo)
-	defer t.Close()
 	if err != nil {
-		return nil, err
+		log.Error("%v", err)
 	}
+	defer t.Close()
 	if err := t.Clone(opts.OldBranch); err != nil {
 		return nil, err
 	}
@@ -186,6 +190,13 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// Assigned LastCommitID in opts if it hasn't been set
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
+	} else {
+		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+		if err != nil {
+			return nil, fmt.Errorf("DeleteRepoFile: Invalid last commit ID: %v", err)
+		}
+		opts.LastCommitID = lastCommitID.String()
+
 	}
 
 	encoding := "UTF-8"
@@ -315,7 +326,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	if encoding != "UTF-8" {
 		charsetEncoding, _ := charset.Lookup(encoding)
 		if charsetEncoding != nil {
-			result, _, err := transform.String(charsetEncoding.NewEncoder(), string(content))
+			result, _, err := transform.String(charsetEncoding.NewEncoder(), content)
 			if err != nil {
 				// Look if we can't encode back in to the original we should just stick with utf-8
 				log.Error("Error re-encoding %s (%s) as %s - will stay as UTF-8: %v", opts.TreePath, opts.FromTreePath, encoding, err)
@@ -394,7 +405,8 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	if err = repo.GetOwner(); err != nil {
 		return nil, fmt.Errorf("GetOwner: %v", err)
 	}
-	err = models.PushUpdate(
+	err = PushUpdate(
+		repo,
 		opts.NewBranch,
 		models.PushUpdateOptions{
 			PusherID:     doer.ID,
@@ -409,7 +421,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	if err != nil {
 		return nil, fmt.Errorf("PushUpdate: %v", err)
 	}
-	models.UpdateRepoIndexer(repo)
 
 	commit, err = t.GetCommit(commitHash)
 	if err != nil {
@@ -421,4 +432,101 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err
 	}
 	return file, nil
+}
+
+// PushUpdate must be called for any push actions in order to
+// generates necessary push action history feeds and other operations
+func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOptions) error {
+	isNewRef := opts.OldCommitID == git.EmptySHA
+	isDelRef := opts.NewCommitID == git.EmptySHA
+	if isNewRef && isDelRef {
+		return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
+	}
+
+	repoPath := models.RepoPath(opts.RepoUserName, opts.RepoName)
+
+	_, err := git.NewCommand("update-server-info").RunInDir(repoPath)
+	if err != nil {
+		return fmt.Errorf("Failed to call 'git update-server-info': %v", err)
+	}
+
+	gitRepo, err := git.OpenRepository(repoPath)
+	if err != nil {
+		return fmt.Errorf("OpenRepository: %v", err)
+	}
+
+	if err = repo.UpdateSize(); err != nil {
+		log.Error("Failed to update size for repository: %v", err)
+	}
+
+	var commits = &models.PushCommits{}
+	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
+		// If is tag reference
+		tagName := opts.RefFullName[len(git.TagPrefix):]
+		if isDelRef {
+			err = models.PushUpdateDeleteTag(repo, tagName)
+			if err != nil {
+				return fmt.Errorf("PushUpdateDeleteTag: %v", err)
+			}
+		} else {
+			// Clear cache for tag commit count
+			cache.Remove(repo.GetCommitsCountCacheKey(tagName, true))
+			err = models.PushUpdateAddTag(repo, gitRepo, tagName)
+			if err != nil {
+				return fmt.Errorf("PushUpdateAddTag: %v", err)
+			}
+		}
+	} else if !isDelRef {
+		// If is branch reference
+
+		// Clear cache for branch commit count
+		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefFullName[len(git.BranchPrefix):], true))
+
+		newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
+		if err != nil {
+			return fmt.Errorf("gitRepo.GetCommit: %v", err)
+		}
+
+		// Push new branch.
+		var l *list.List
+		if isNewRef {
+			l, err = newCommit.CommitsBeforeLimit(10)
+			if err != nil {
+				return fmt.Errorf("newCommit.CommitsBeforeLimit: %v", err)
+			}
+		} else {
+			l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
+			if err != nil {
+				return fmt.Errorf("newCommit.CommitsBeforeUntil: %v", err)
+			}
+		}
+
+		commits = models.ListToPushCommits(l)
+	}
+
+	if err := CommitRepoAction(CommitRepoActionOptions{
+		PusherName:  opts.PusherName,
+		RepoOwnerID: repo.OwnerID,
+		RepoName:    repo.Name,
+		RefFullName: opts.RefFullName,
+		OldCommitID: opts.OldCommitID,
+		NewCommitID: opts.NewCommitID,
+		Commits:     commits,
+	}); err != nil {
+		return fmt.Errorf("CommitRepoAction: %v", err)
+	}
+
+	pusher, err := models.GetUserByID(opts.PusherID)
+	if err != nil {
+		return err
+	}
+
+	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
+
+	go models.AddTestPullRequestTask(pusher, repo.ID, branch, true)
+
+	if opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
+		models.UpdateRepoIndexer(repo)
+	}
+	return nil
 }

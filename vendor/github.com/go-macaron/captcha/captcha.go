@@ -19,6 +19,7 @@ package captcha
 import (
 	"fmt"
 	"html/template"
+	"image/color"
 	"path"
 	"strings"
 
@@ -49,6 +50,7 @@ type Captcha struct {
 	ChallengeNums    int
 	Expiration       int64
 	CachePrefix      string
+	ColorPalette     color.Palette
 }
 
 // generate key string
@@ -61,16 +63,21 @@ func (c *Captcha) genRandChars() string {
 	return string(com.RandomCreateBytes(c.ChallengeNums, defaultChars...))
 }
 
-// tempalte func for output html
-func (c *Captcha) CreateHtml() template.HTML {
+// CreateHTML outputs HTML for display and fetch new captcha images.
+func (c *Captcha) CreateHTML() template.HTML {
 	value, err := c.CreateCaptcha()
 	if err != nil {
 		panic(fmt.Errorf("fail to create captcha: %v", err))
 	}
-	return template.HTML(fmt.Sprintf(`<input type="hidden" name="%s" value="%s">
-	<a class="captcha" href="javascript:">
-		<img onclick="this.src=('%s%s%s.png?reload='+(new Date()).getTime())" class="captcha-img" src="%s%s%s.png">
-	</a>`, c.FieldIdName, value, c.SubURL, c.URLPrefix, value, c.SubURL, c.URLPrefix, value))
+	return template.HTML(fmt.Sprintf(`<input type="hidden" name="%[1]s" value="%[2]s">
+	<a class="captcha" href="javascript:" tabindex="-1">
+		<img onclick="this.src=('%[3]s%[4]s%[2]s.png?reload='+(new Date()).getTime())" class="captcha-img" src="%[3]s%[4]s%[2]s.png">
+	</a>`, c.FieldIdName, value, c.SubURL, c.URLPrefix))
+}
+
+// DEPRECATED
+func (c *Captcha) CreateHtml() template.HTML {
+	return c.CreateHTML()
 }
 
 // create a new captcha id
@@ -139,6 +146,9 @@ type Options struct {
 	Expiration int64
 	// Cache key prefix captcha characters. Default is "captcha_".
 	CachePrefix string
+	// ColorPalette holds a collection of primary colors used for
+	// the captcha's text. If not defined, a random color will be generated.
+	ColorPalette color.Palette
 }
 
 func prepareOptions(options []Options) Options {
@@ -192,6 +202,7 @@ func NewCaptcha(opt Options) *Captcha {
 		ChallengeNums:    opt.ChallengeNums,
 		Expiration:       opt.Expiration,
 		CachePrefix:      opt.CachePrefix,
+		ColorPalette:     opt.ColorPalette,
 	}
 }
 
@@ -229,9 +240,10 @@ func Captchaer(options ...Options) macaron.Handler {
 				}
 			}
 
-			if _, err := NewImage([]byte(chars), cpt.StdWidth, cpt.StdHeight).WriteTo(ctx.Resp); err != nil {
+			if _, err := NewImage([]byte(chars), cpt.StdWidth, cpt.StdHeight, cpt.ColorPalette).WriteTo(ctx.Resp); err != nil {
 				panic(fmt.Errorf("write captcha: %v", err))
 			}
+			ctx.Status(200)
 			return
 		}
 
