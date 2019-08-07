@@ -454,7 +454,7 @@ func mustAllowPulls(ctx *context.APIContext) {
 }
 
 func mustEnableIssuesOrPulls(ctx *context.APIContext) {
-	if (!setting.Service.EnableIssues || !ctx.Repo.CanRead(models.UnitTypeIssues)) &&
+	if (!setting.Repository.EnableIssues || !ctx.Repo.CanRead(models.UnitTypeIssues)) &&
 		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(models.UnitTypePullRequests)) {
 		if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
 			if ctx.IsSigned {

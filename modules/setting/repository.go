@@ -64,6 +64,10 @@ var (
 		Issue struct {
 			LockReasons []string
 		} `ini:"repository.issue"`
+
+		// global feature flags
+		EnableWiki   bool
+		EnableIssues bool
 	}{
 		AnsiCharset:                             "",
 		ForcePrivate:                            false,
@@ -121,6 +125,9 @@ var (
 		}{
 			LockReasons: strings.Split("Too heated,Off-topic,Spam,Resolved", ","),
 		},
+
+		EnableWiki:   true,
+		EnableIssues: true,
 	}
 	RepoRootPath string
 	ScriptType   = "bash"
@@ -146,6 +153,10 @@ func newRepository() {
 		RepoRootPath = filepath.Clean(RepoRootPath)
 	}
 	ScriptType = sec.Key("SCRIPT_TYPE").MustString("bash")
+
+	// feature flags
+	Repository.EnableIssues = sec.Key("ENABLE_ISSUES").MustBool(true)
+	Repository.EnableWiki = sec.Key("ENABLE_WIKI").MustBool(true)
 
 	if err = Cfg.Section("repository").MapTo(&Repository); err != nil {
 		log.Fatal("Failed to map Repository settings: %v", err)

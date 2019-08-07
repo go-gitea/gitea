@@ -218,7 +218,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			})
 		}
 
-		if form.EnableWiki && setting.Service.EnableWiki {
+		if form.EnableWiki && setting.Repository.EnableWiki {
 			if form.EnableExternalWiki {
 				if !validation.IsValidExternalURL(form.ExternalWikiURL) {
 					ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))
@@ -242,7 +242,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 		}
 
-		if form.EnableIssues && setting.Service.EnableIssues {
+		if form.EnableIssues && setting.Repository.EnableIssues {
 			if form.EnableExternalTracker {
 				if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
 					ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))

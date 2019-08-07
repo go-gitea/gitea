@@ -109,7 +109,7 @@
 			{{.i18n.Tr "repo.settings.advanced_settings"}}
 		</h4>
 		<div class="ui attached segment">
-			{{if and (not .Service.EnableWiki) (not .Service.EnableIssues) (not .Repository.CanEnablePulls)}}
+			{{if and (not .Repository.EnableWiki) (not .Repository.EnableIssues) (not .Repository.CanEnablePulls)}}
 				<div class="inline field">
 					<label>{{.i18n.Tr "repo.wiki.disabled"}}</label>
 				</div>
@@ -121,7 +121,7 @@
 					{{.CsrfTokenHtml}}
 					<input type="hidden" name="action" value="advanced">
 
-					{{if .Service.EnableWiki}}
+					{{if .Repository.EnableWiki}}
 						{{$isWikiEnabled := or (.Repository.UnitEnabled $.UnitTypeWiki) (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}
 						<div class="inline field">
 							<label>{{.i18n.Tr "repo.wiki"}}</label>
@@ -157,7 +157,7 @@
 
 					<div class="ui divider"></div>
 
-					{{if .Service.EnableIssues}}
+					{{if .Repository.EnableIssues}}
 						{{$isIssuesEnabled := or (.Repository.UnitEnabled $.UnitTypeIssues) (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}
 						<div class="inline field">
 							<label>{{.i18n.Tr "repo.issues"}}</label>

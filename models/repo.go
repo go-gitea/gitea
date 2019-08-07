@@ -1278,7 +1278,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 	var units = make([]RepoUnit, 0, len(DefaultRepoUnits))
 	for _, tp := range DefaultRepoUnits {
 		if tp == UnitTypeIssues {
-			if !setting.Service.EnableIssues {
+			if !setting.Repository.EnableIssues {
 				continue
 			}
 			units = append(units, RepoUnit{
@@ -1291,7 +1291,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 				},
 			})
 		} else if tp == UnitTypeWiki {
-			if !setting.Service.EnableWiki {
+			if !setting.Repository.EnableWiki {
 				continue
 			}
 		} else if tp == UnitTypePullRequests {

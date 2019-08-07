@@ -134,7 +134,7 @@ func TestUpdateIssueLabel_Clear(t *testing.T) {
 }
 
 func TestUpdateIssueLabel_Toggle(t *testing.T) {
-	setting.Service.EnableIssues = true
+	setting.Repository.EnableIssues = true
 	for _, testCase := range []struct {
 		Action      string
 		IssueIDs    []int64

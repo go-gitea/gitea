@@ -11,7 +11,7 @@ import (
 )
 
 // Service settings
-var Service = struct {
+var Service struct {
 	DefaultOrgVisibility                    string
 	DefaultOrgVisibilityMode                structs.VisibleType
 	ActiveCodeLives                         int
@@ -48,13 +48,6 @@ var Service = struct {
 	EnableOpenIDSignUp bool
 	OpenIDWhitelist    []*regexp.Regexp
 	OpenIDBlacklist    []*regexp.Regexp
-
-	// global feature flags
-	EnableWiki   bool
-	EnableIssues bool
-}{
-	EnableWiki:   true,
-	EnableIssues: true,
 }
 
 func newService() {
@@ -89,10 +82,6 @@ func newService() {
 	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
 	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
-
-	// feature flags
-	Service.EnableIssues = sec.Key("ENABLE_ISSUES").MustBool(true)
-	Service.EnableWiki = sec.Key("ENABLE_WIKI").MustBool(true)
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)

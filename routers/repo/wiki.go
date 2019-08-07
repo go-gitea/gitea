@@ -33,7 +33,7 @@ const (
 
 // MustEnableWiki check if wiki is enabled, if external then redirect
 func MustEnableWiki(ctx *context.Context) {
-	if !setting.Service.EnableWiki {
+	if !setting.Repository.EnableWiki {
 		ctx.NotFound("MustEnableWiki", nil)
 		return
 	}
