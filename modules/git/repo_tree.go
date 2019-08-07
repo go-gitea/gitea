@@ -6,10 +6,13 @@
 package git
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/mcuadros/go-version"
 )
 
 func (repo *Repository) getTree(id SHA1) (*Tree, error) {
@@ -61,6 +64,11 @@ type CommitTreeOpts struct {
 
 // CommitTree creates a commit from a given tree id for the user with provided message
 func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOpts) (SHA1, error) {
+	binVersion, err := BinVersion()
+	if err != nil {
+		return SHA1{}, err
+	}
+
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	// Because this may call hooks we should pass in the environment
@@ -78,20 +86,24 @@ func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOp
 		cmd.AddArguments("-p", parent)
 	}
 
-	cmd.AddArguments("-m", opts.Message)
+	messageBytes := new(bytes.Buffer)
+	_, _ = messageBytes.WriteString(opts.Message)
+	_, _ = messageBytes.WriteString("\n")
 
 	if opts.KeyID != "" {
 		cmd.AddArguments(fmt.Sprintf("-S%s", opts.KeyID))
 	}
 
-	if opts.NoGPGSign {
+	if version.Compare(binVersion, "2.0.0", ">=") && opts.NoGPGSign {
 		cmd.AddArguments("--no-gpg-sign")
 	}
 
-	res, err := cmd.RunInDirWithEnv(repo.Path, env)
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	err = cmd.RunInDirTimeoutEnvFullPipeline(env, -1, repo.Path, stdout, stderr, messageBytes)
 
 	if err != nil {
-		return SHA1{}, err
+		return SHA1{}, concatenateError(err, stderr.String())
 	}
-	return NewIDFromString(strings.TrimSpace(res))
+	return NewIDFromString(strings.TrimSpace(stdout.String()))
 }
