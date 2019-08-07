@@ -123,17 +123,21 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return fmt.Errorf("Writing sparse-checkout file to %s: %v", sparseCheckoutListPath, err)
 	}
 
-	gitConfigCommand := func() *git.Command {
+	gitConfigCommand := func() func() *git.Command {
 		binVersion, err := git.BinVersion()
 		if err != nil {
 			log.Fatal("Error retrieving git version: %v", err)
 		}
 
-		if version.Compare(binVersion, "1.9.2", ">=") {
-			return git.NewCommand("config", "--local")
+		if version.Compare(binVersion, "1.8.0", ">=") {
+			return func() *git.Command {
+				return git.NewCommand("config", "--local")
+			}
 		}
-		return git.NewCommand("config")
-	}
+		return func() *git.Command {
+			return git.NewCommand("config")
+		}
+	}()
 
 	// Switch off LFS process (set required, clean and smudge here also)
 	if err := gitConfigCommand().AddArguments("filter.lfs.process", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {

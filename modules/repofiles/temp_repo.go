@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/mcuadros/go-version"
 )
 
 // TemporaryUploadRepository is a type to wrap our upload repositories as a shallow clone
@@ -263,11 +264,15 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 		"GIT_COMMITTER_EMAIL="+committerSig.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
-	commitHash, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
+	messageBytes := new(bytes.Buffer)
+	_, _ = messageBytes.WriteString(message)
+	_, _ = messageBytes.WriteString("\n")
+	commitHash, stderr, err := process.GetManager().ExecDirEnvStdIn(5*time.Minute,
 		t.basePath,
 		fmt.Sprintf("commitTree (git commit-tree): %s", t.basePath),
 		env,
-		git.GitExecutable, "commit-tree", treeHash, "-p", "HEAD", "-m", message)
+		messageBytes,
+		git.GitExecutable, "commit-tree", treeHash, "-p", "HEAD")
 	if err != nil {
 		return "", fmt.Errorf("git commit-tree: %s", stderr)
 	}
@@ -327,6 +332,11 @@ func (t *TemporaryUploadRepository) DiffIndex() (diff *models.Diff, err error) {
 
 // CheckAttribute checks the given attribute of the provided files
 func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...string) (map[string]map[string]string, error) {
+	binVersion, err := git.BinVersion()
+	if err != nil {
+		log.Fatal("Error retrieving git version: %v", err)
+	}
+
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
@@ -334,7 +344,14 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	cmdArgs := []string{"check-attr", "-z", attribute, "--cached", "--"}
+	cmdArgs := []string{"check-attr", "-z", attribute}
+
+	// git check-attr --cached first appears in git 1.8.0
+	if version.Compare(binVersion, "1.8.0", ">=") {
+		cmdArgs = append(cmdArgs, "--cached")
+	}
+	cmdArgs = append(cmdArgs, "--")
+
 	for _, arg := range args {
 		if arg != "" {
 			cmdArgs = append(cmdArgs, arg)
@@ -352,7 +369,7 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 	}
 
 	pid := process.GetManager().Add(desc, cmd)
-	err := cmd.Wait()
+	err = cmd.Wait()
 	process.GetManager().Remove(pid)
 
 	if err != nil {

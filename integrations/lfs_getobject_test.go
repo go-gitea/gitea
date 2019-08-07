@@ -58,6 +58,11 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 
 func doLfs(t *testing.T, content *[]byte, expectGzip bool) {
 	prepareTestEnv(t)
+	setting.CheckLFSVersion()
+	if !setting.LFS.StartServer {
+		t.Skip()
+		return
+	}
 	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
