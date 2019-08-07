@@ -685,12 +685,14 @@ func rewriteAllPublicKeys(e Engine) error {
 			}
 			_, err = t.WriteString(line + "\n")
 			if err != nil {
+				f.Close()
 				return err
 			}
 		}
-		defer f.Close()
+		f.Close()
 	}
 
+	t.Close()
 	return os.Rename(tmpPath, fPath)
 }
 
