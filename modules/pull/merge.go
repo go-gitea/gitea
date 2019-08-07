@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -101,13 +100,13 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return fmt.Errorf("git remote add [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 	}
 
-	trackingBranch := path.Join(remoteRepoName, pr.HeadBranch)
+	trackingBranch := "tracking"
 	// Fetch head branch
 	if err := git.NewCommand("fetch", remoteRepoName, pr.HeadBranch+":"+trackingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 	}
 
-	stagingBranch := fmt.Sprintf("%s_%s", remoteRepoName, pr.HeadBranch)
+	stagingBranch := "staging"
 
 	// Enable sparse-checkout
 	sparseCheckoutList, err := getDiffTree(tmpBasePath, pr.BaseBranch, trackingBranch)
