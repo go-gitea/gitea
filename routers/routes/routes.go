@@ -253,6 +253,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 	}
 
 	m.Use(user.GetNotificationCount)
+	m.Use(func(ctx *context.Context) {
+		ctx.Data["GlobalEnableWiki"] = setting.Repository.EnableWiki
+		ctx.Data["GlobalEnableIssues"] = setting.Repository.EnableIssues
+	})
 
 	// FIXME: not all routes need go through same middlewares.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
