@@ -12,7 +12,7 @@ import (
 // ReadTreeToIndex reads a treeish to the index
 func (repo *Repository) ReadTreeToIndex(treeish string) error {
 	if len(treeish) != 40 {
-		res, err := NewCommand("rev-parse", treeish).RunInDir(repo.Path)
+		res, err := NewCommand("rev-parse", "--verify", treeish).RunInDir(repo.Path)
 		if err != nil {
 			return err
 		}

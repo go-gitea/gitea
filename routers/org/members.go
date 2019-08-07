@@ -19,7 +19,7 @@ const (
 	tplMembers base.TplName = "org/member/members"
 )
 
-// Members render orgnization users page
+// Members render organization users page
 func Members(ctx *context.Context) {
 	org := ctx.Org.Organization
 	ctx.Data["Title"] = org.FullName
@@ -30,11 +30,14 @@ func Members(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Members"] = org.Members
+	ctx.Data["MembersIsPublicMember"] = org.MembersIsPublic
+	ctx.Data["MembersIsUserOrgOwner"] = org.Members.IsUserOrgOwner(org.ID)
+	ctx.Data["MembersTwoFaStatus"] = org.Members.GetTwoFaStatus()
 
 	ctx.HTML(200, tplMembers)
 }
 
-// MembersAction response for operation to a member of orgnization
+// MembersAction response for operation to a member of organization
 func MembersAction(ctx *context.Context) {
 	uid := com.StrTo(ctx.Query("uid")).MustInt64()
 	if uid == 0 {

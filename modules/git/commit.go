@@ -169,6 +169,7 @@ func AddChanges(repoPath string, all bool, files ...string) error {
 	if all {
 		cmd.AddArguments("--all")
 	}
+	cmd.AddArguments("--")
 	_, err := cmd.AddArguments(files...).RunInDir(repoPath)
 	return err
 }
@@ -304,6 +305,7 @@ func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error)
 }
 
 // FileChangedSinceCommit Returns true if the file given has changed since the the past commit
+// YOU MUST ENSURE THAT pastCommit is a valid commit ID.
 func (c *Commit) FileChangedSinceCommit(filename, pastCommit string) (bool, error) {
 	return c.repo.FileChangedBetweenCommits(filename, pastCommit, c.ID.String())
 }

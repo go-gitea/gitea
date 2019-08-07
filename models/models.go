@@ -262,6 +262,7 @@ func NewTestEngine(x *xorm.Engine) (err error) {
 		return fmt.Errorf("Connect to database: %v", err)
 	}
 
+	x.ShowExecTime(true)
 	x.SetMapper(core.GonicMapper{})
 	x.SetLogger(NewXORMLogger(!setting.ProdMode))
 	x.ShowSQL(!setting.ProdMode)
@@ -275,6 +276,7 @@ func SetEngine() (err error) {
 		return fmt.Errorf("Failed to connect to database: %v", err)
 	}
 
+	x.ShowExecTime(true)
 	x.SetMapper(core.GonicMapper{})
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
