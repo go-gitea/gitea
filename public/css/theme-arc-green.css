@@ -1,5 +1,4 @@
 .hljs{display:block;overflow-x:auto;padding:.5em;color:#bababa}
-.repository.file.list .non-diff-file-content .code-view .lines-code ol,.repository.file.list .non-diff-file-content .code-view .lines-num{background-color:#2b2b2b!important}
 .hljs-emphasis,.hljs-strong{color:#a8a8a2}
 .hljs-bullet,.hljs-link,.hljs-literal,.hljs-number,.hljs-quote,.hljs-regexp{color:#6896ba}
 .hljs-code,.hljs-selector-class{color:#a6e22e}
@@ -90,8 +89,8 @@ footer{background:#2e323e;border-top:1px solid #313131}
 .ui.button:hover{background-color:#404552;color:#dbdbdb}
 .ui.table thead th{background:#404552;color:#dbdbdb}
 .repository.file.list #repo-files-table tr:hover{background-color:#393d4a}
-.ui.table{color:#a5a5a5!important;border:1px solid #4c505c;background:#353945}
-.ui.table tbody tr{border-bottom:1px solid #333640;background:#2a2e3a}
+.ui.table{color:#a5a5a5!important;border-color:#4c505c;background:#353945}
+.ui.table tbody tr{border-color:#333640;background:#2a2e3a}
 .ui .text.grey{color:#808084!important}
 .ui.attached.table.segment{background:#353945;color:#dbdbdb!important}
 .markdown:not(code) h2{border-bottom:1px solid #304251}
@@ -137,13 +136,10 @@ footer{background:#2e323e;border-top:1px solid #313131}
 .repository .diff-file-box .code-diff-unified tbody tr.del-code td{background-color:#3c2626!important;border-color:#634343!important}
 .repository .diff-file-box .code-diff-unified tbody tr.add-code td{background-color:#283e2d!important;border-color:#314a37!important}
 .repository .diff-file-box .code-diff tbody tr .added-code{background-color:#3a523a}
-.repository .diff-file-box .code-diff .lines-num{border-right:1px solid #2d2d2d}
-.repository .diff-file-box .file-body.file-code .lines-num{color:#9e9e9e;background:#2e323e}
-.repository .diff-file-box .file-body.file-code .lines-num-old{border-right:1px solid #2d2d2d}
 .hljs-section,.hljs-selector-id,.hljs-title{color:#986c88}
 .hljs-doctag,.hljs-string{color:#8ab398}
 .repository .diff-file-box .code-diff tbody tr .removed-code{background-color:#5f3737}
-.repository .diff-file-box .code-diff tbody tr td.tag-code,.repository .diff-file-box .code-diff tbody tr.tag-code td{background-color:#292727!important}
+.tag-code,.tag-code td{background:#242637!important;border-color:transparent!important}
 .ui.vertical.menu .active.item{background:#4b5162}
 .ui.vertical.menu .item{background:#353945}
 .ui.vertical.menu .header.item{background:#404552}
@@ -205,18 +201,20 @@ input{background:#2e323e}
 .ui.list .list>.item .header,.ui.list>.item .header{color:#dedede}
 .ui.list .list>.item .description,.ui.list>.item .description{color:#9e9e9e}
 .ui.user.list .item .description a{color:#668cb1}
-.repository.file.list #file-content .code-view .lines-num{background:#2e323e}
 .repository.file.list #repo-files-table tbody .octicon.octicon-file-directory,.repository.file.list #repo-files-table tbody .octicon.octicon-file-submodule{color:#7c9b5e}
 .ui.blue.button:focus,.ui.blue.buttons .button:focus{background-color:#a27558}
 .ui.basic.blue.button:hover,.ui.basic.blue.buttons .button:hover{box-shadow:0 0 0 1px #87ab63 inset!important;color:#87ab63!important}
 .ui.basic.blue.button:focus,.ui.basic.blue.buttons .button:focus{box-shadow:0 0 0 1px #87ab63 inset!important;color:#87ab63!important}
-.repository.file.list #file-content .code-view .lines-code .hljs,.repository.file.list #file-content .code-view .lines-code ol,.repository.file.list #file-content .code-view .lines-code pre,.repository.file.list #file-content .code-view .lines-num .hljs,.repository.file.list #file-content .code-view .lines-num ol,.repository.file.list #file-content .code-view .lines-num pre{background-color:#2a2e3a}
+.lines-commit{background:#2e323e!important}
+.bottom-line{border-color:#4e525e!important}
+.lines-num{background:#2e323e!important;color:#9e9e9e!important;border-color:#2d2d2d!important}
+.lines-code .hljs,.lines-code ol,.lines-code pre,.lines-num .hljs,.lines-num ol,.lines-num pre{background-color:#2a2e3a!important}
+.code-view .active{background:#554a00}
 a.ui.label:hover,a.ui.labels .label:hover{background-color:#505667!important;color:#dbdbdb!important}
 .repository #commits-table td.sha .sha.label,.repository #repo-files-table .sha.label{border-color:#888}
 .repository #commits-table td.sha .sha.label.isSigned .detail.icon,.repository #repo-files-table .sha.label.isSigned .detail.icon{background:0 0;border-left-color:#888}
 .repository .label.list .item{border-bottom:1px dashed #4c505c}
 .ui.basic.blue.button,.ui.basic.blue.buttons .button{box-shadow:0 0 0 1px #87ab63 inset!important;color:#87ab63!important}
-.repository.file.list #file-content .code-view .hljs,.repository.file.list #file-content .code-view .lines-code ol,.repository.file.list #file-content .code-view .lines-code pre,.repository.file.list #file-content .code-view .lines-num .hljs,.repository.file.list #file-content .code-view .lines-num ol,.repository.file.list #file-content .code-view .lines-num pre{background-color:#2a2e3a}
 .repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(1),.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(2),.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(3),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(4),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(5),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(6){background-color:#2a2e3a}
 .repository .diff-file-box .code-diff-split tbody tr td.add-code,.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(4),.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(5),.repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(6){background-color:#283e2d!important;border-color:#314a37!important}
 .repository .diff-file-box .code-diff-split tbody tr td.del-code,.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(1),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(2),.repository .diff-file-box .code-diff-split tbody tr.del-code td:nth-child(3){background-color:#3c2626!important;border-color:#634343!important}
