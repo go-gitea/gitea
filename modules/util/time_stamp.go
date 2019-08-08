@@ -35,32 +35,47 @@ func (ts TimeStamp) Year() int {
 
 // AsTime convert timestamp as time.Time in Local locale
 func (ts TimeStamp) AsTime() (tm time.Time) {
-	tm = time.Unix(int64(ts), 0).In(setting.UILocation)
+	return ts.AsTimeInLocation(setting.UILocation)
+}
+
+// AsTimeInLocation convert timestamp as time.Time in Local locale
+func (ts TimeStamp) AsTimeInLocation(loc *time.Location) (tm time.Time) {
+	tm = time.Unix(int64(ts), 0).In(loc)
 	return
 }
 
 // AsTimePtr convert timestamp as *time.Time in Local locale
 func (ts TimeStamp) AsTimePtr() *time.Time {
-	tm := time.Unix(int64(ts), 0).In(setting.UILocation)
+	return ts.AsTimePtrInLocation(setting.UILocation)
+}
+
+// AsTimePtr convert timestamp as *time.Time in Local locale
+func (ts TimeStamp) AsTimePtrInLocation(loc *time.Location) *time.Time {
+	tm := time.Unix(int64(ts), 0).In(loc)
 	return &tm
 }
 
-// Format formats timestamp as
+// Format formats timestamp as given format
 func (ts TimeStamp) Format(f string) string {
-	return ts.AsTime().Format(f)
+	return ts.FormatInLocation(f, setting.UILocation)
+}
+
+// FormatInLocation formats timestamp as given format with spiecific location
+func (ts TimeStamp) FormatInLocation(f string, loc *time.Location) string {
+	return ts.AsTimeInLocation(loc).Format(f)
 }
 
 // FormatLong formats as RFC1123Z
-func (ts TimeStamp) FormatLong() string {
+/*func (ts TimeStamp) FormatLong() string {
 	return ts.Format(time.RFC1123Z)
 }
 
 // FormatShort formats as short
 func (ts TimeStamp) FormatShort() string {
 	return ts.Format("Jan 02, 2006")
-}
+}*/
 
 // IsZero is zero time
 func (ts TimeStamp) IsZero() bool {
-	return ts.AsTime().IsZero()
+	return ts.AsTimeInLocation(time.Local).IsZero()
 }
