@@ -7,17 +7,43 @@ package private
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/indexer/issues"
 
 	macaron "gopkg.in/macaron.v1"
 )
 
-// RebuildRepoIndex rebuild a repository index
+// RebuildRepoIndex rebuilds a repository index
 func RebuildRepoIndex(ctx *macaron.Context) {
 	repoID := ctx.ParamsInt64(":repoid")
-	if err := models.RebuildRepoIndex(repoID); err != nil {
+	toobusy, err := models.RebuildRepoIndex(repoID)
+	if err != nil {
 		ctx.JSON(500, map[string]interface{}{
 			"err": err.Error(),
 		})
+		return
+	}
+
+	if toobusy {
+		ctx.PlainText(503, []byte("too busy"))
+		return
+	}
+
+	ctx.PlainText(200, []byte("success"))
+}
+
+// RebuildIssueIndex rebuilds issue index
+func RebuildIssueIndex(ctx *macaron.Context) {
+	repoID := ctx.ParamsInt64(":repoid")
+	toobusy, err := issues.RebuildIssueIndex(repoID)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+
+	if toobusy {
+		ctx.PlainText(503, []byte("too busy"))
 		return
 	}
 

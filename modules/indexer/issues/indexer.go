@@ -138,24 +138,30 @@ func populateIssueIndexer() {
 		}
 
 		for _, repo := range repos {
-			is, err := models.Issues(&models.IssuesOptions{
-				RepoIDs:  []int64{repo.ID},
-				IsClosed: util.OptionalBoolNone,
-				IsPull:   util.OptionalBoolNone,
-			})
-			if err != nil {
-				log.Error("Issues: %v", err)
-				continue
-			}
-			if err = models.IssueList(is).LoadDiscussComments(); err != nil {
-				log.Error("LoadComments: %v", err)
-				continue
-			}
-			for _, issue := range is {
-				UpdateIssueIndexer(issue)
-			}
+			_ = populateIssueIndexerRepo(repo.ID)
 		}
 	}
+}
+
+// populateIssueIndexerRepo populate the issue indexer with issue data for one repo
+func populateIssueIndexerRepo(repoID int64) error {
+	is, err := models.Issues(&models.IssuesOptions{
+		RepoIDs:  []int64{repoID},
+		IsClosed: util.OptionalBoolNone,
+		IsPull:   util.OptionalBoolNone,
+	})
+	if err != nil {
+		log.Error("Issues: %v", err)
+		return err
+	}
+	if err = models.IssueList(is).LoadDiscussComments(); err != nil {
+		log.Error("LoadComments: %v", err)
+		return err
+	}
+	for _, issue := range is {
+		UpdateIssueIndexer(issue)
+	}
+	return nil
 }
 
 // UpdateIssueIndexer add/update an issue to the issue indexer
@@ -205,4 +211,22 @@ func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
 		issueIDs = append(issueIDs, r.ID)
 	}
 	return issueIDs, nil
+}
+
+// RebuildIssueIndex deletes and rebuilds text indexes for a repo
+func RebuildIssueIndex(repoID int64) (bool, error) {
+	repo, err := models.GetRepositoryByID(repoID)
+	if err != nil {
+		return false, err
+	}
+	if repo == nil {
+		return false, nil
+	}
+	DeleteRepoIssueIndexer(repo)
+	err = populateIssueIndexerRepo(repoID)
+	if err != nil {
+		return false, err
+	}
+	// Currently there's no way to tell if a queue is near full
+	return false, nil
 }

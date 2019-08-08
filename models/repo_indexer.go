@@ -361,17 +361,29 @@ func addOperationToQueue(op repoIndexerOperation) {
 	}
 }
 
+func isQueueNearFull() bool {
+	qcap := cap(repoIndexerOperationQueue)
+	qlen := len(repoIndexerOperationQueue)
+	if qcap <= 3 {
+		return qlen == qcap
+	}
+	return qcap-qlen < 3
+}
+
 // RebuildRepoIndex deletes and rebuilds text indexes for a repo
-func RebuildRepoIndex(repoID int64) error {
+func RebuildRepoIndex(repoID int64) (bool, error) {
+	if isQueueNearFull() {
+		return true, nil
+	}
 	repo := &Repository{ID: repoID}
 	has, err := x.Get(repo)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if !has {
-		return nil
+		return false, nil
 	}
 	DeleteRepoFromIndexer(repo)
 	UpdateRepoIndexer(repo)
-	return nil
+	return false, nil
 }

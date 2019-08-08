@@ -2703,14 +2703,3 @@ func (repo *Repository) GetOriginalURLHostname() string {
 
 	return u.Host
 }
-
-func getAllRepositories(e Engine) ([]*Repository, error) {
-	repos := make([]*Repository, 0, 10)
-	return repos, e.
-		Find(&repos)
-}
-
-// GetAllRepositories returns all repositories, for administrative operations.
-func GetAllRepositories() ([]*Repository, error) {
-	return getAllRepositories(x)
-}
