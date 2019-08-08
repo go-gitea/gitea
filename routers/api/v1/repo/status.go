@@ -159,30 +159,23 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 		return
 	}
 
-	refSHA, lastMethodName, err := searchRefCommit(ctx, "heads", filter) //Search branches
-	if err != nil {
-		ctx.Error(500, lastMethodName, err)
-		return
-	}
-	if refSHA != "" {
-		getCommitStatuses(ctx, refSHA)
-		return
-	}
+	for _, reftype := range []string{"heads", "tags"} { //Search branches and tags
+		refSHA, lastMethodName, err := searchRefCommitByType(ctx, reftype, filter)
+		if err != nil {
+			ctx.Error(500, lastMethodName, err)
+			return
+		}
+		if refSHA != "" {
+			getCommitStatuses(ctx, refSHA)
+			return
+		}
 
-	refSHA, lastMethodName, err = searchRefCommit(ctx, "tags", filter) //Search tags
-	if err != nil {
-		ctx.Error(500, lastMethodName, err)
-		return
-	}
-	if refSHA != "" {
-		getCommitStatuses(ctx, refSHA)
-		return
 	}
 
 	getCommitStatuses(ctx, filter) //By default filter is maybe the raw SHA
 }
 
-func searchRefCommit(ctx *context.APIContext, refType, filter string) (string, string, error) {
+func searchRefCommitByType(ctx *context.APIContext, refType, filter string) (string, string, error) {
 	refs, lastMethodName, err := getGitRefs(ctx, refType+"/"+filter) //Search by type
 	if err != nil {
 		return "", lastMethodName, err
