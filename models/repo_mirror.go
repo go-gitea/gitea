@@ -134,7 +134,7 @@ func (m *Mirror) FullAddress() string {
 func (m *Mirror) SaveAddress(addr string) error {
 	repoPath := m.Repo.RepoPath()
 	// Remove old origin
-	_, err := git.NewCommand("remote", "remove", "origin").RunInDir(repoPath)
+	_, err := git.NewCommand("remote", "rm", "origin").RunInDir(repoPath)
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
