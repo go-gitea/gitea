@@ -183,7 +183,7 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 }
 
 func searchRefCommit(ctx *context.APIContext, refType, filter string) (string, string, error) {
-	refs, lastMethodName, err := getGitRefs(ctx, refType+"/"+filter) //Search branches
+	refs, lastMethodName, err := getGitRefs(ctx, refType+"/"+filter) //Search by type
 	if err != nil {
 		return "", lastMethodName, err
 	}
