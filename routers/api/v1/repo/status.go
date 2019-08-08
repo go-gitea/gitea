@@ -168,7 +168,6 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 		if refSHA != "" {
 			filter = refSHA
 			break
-			return
 		}
 
 	}
