@@ -99,10 +99,10 @@ const (
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID               int64 `xorm:"pk autoincr"`
-	Type             CommentType
-	PosterID         int64 `xorm:"INDEX"`
-	Poster           *User `xorm:"-"`
+	ID               int64       `xorm:"pk autoincr"`
+	Type             CommentType `xorm:"index"`
+	PosterID         int64       `xorm:"INDEX"`
+	Poster           *User       `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
 	IssueID          int64  `xorm:"INDEX"`
@@ -143,7 +143,7 @@ type Comment struct {
 	ShowTag CommentTag `xorm:"-"`
 
 	Review      *Review `xorm:"-"`
-	ReviewID    int64
+	ReviewID    int64   `xorm:"index"`
 	Invalidated bool
 }
 

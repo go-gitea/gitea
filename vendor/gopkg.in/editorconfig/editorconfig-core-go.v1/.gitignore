@@ -24,3 +24,6 @@ _testmain.go
 *.test
 *.prof
 
+# EditorConfig
+
+/editorconfig
