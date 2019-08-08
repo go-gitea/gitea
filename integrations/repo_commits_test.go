@@ -11,6 +11,7 @@ import (
 	"path"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -87,7 +88,7 @@ func testRepoCommitsWithStatus(t *testing.T, resp *httptest.ResponseRecorder, st
 	assert.Len(t, statuses, 1)
 	for _, s := range statuses {
 		assert.Equal(t, api.StatusState(state), s.State)
-		assert.Equal(t, "http://localhost:3003/api/v1/repos/user2/repo1/statuses/65f1bf27bc3bf70f64657658635e66094edbcb4d", s.URL)
+		assert.Equal(t, setting.AppURL+"api/v1/repos/user2/repo1/statuses/65f1bf27bc3bf70f64657658635e66094edbcb4d", s.URL)
 		assert.Equal(t, "http://test.ci/", s.TargetURL)
 		assert.Equal(t, "", s.Description)
 		assert.Equal(t, "testci", s.Context)
