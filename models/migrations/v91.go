@@ -4,47 +4,23 @@
 
 package migrations
 
-import (
-	"code.gitea.io/gitea/modules/util"
+import "github.com/go-xorm/xorm"
 
-	"github.com/go-xorm/xorm"
-)
+func addIndexOnRepositoryAndComment(x *xorm.Engine) error {
+	type Repository struct {
+		ID      int64 `xorm:"pk autoincr"`
+		OwnerID int64 `xorm:"index"`
+	}
 
-func addProjectsTable(x *xorm.Engine) error {
-
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+	if err := x.Sync2(new(Repository)); err != nil {
 		return err
 	}
 
-	type Project struct {
-		ID              int64  `xorm:"pk autoincr"`
-		Title           string `xorm:"INDEX NOT NULL"`
-		Description     string `xorm:"TEXT"`
-		RepoID          int64  `xorm:"NOT NULL"`
-		CreatorID       int64  `xorm:"NOT NULL"`
-		IsClosed        bool   `xorm:"INDEX"`
-		NumIssues       int
-		NumClosedIssues int
-
-		ClosedDateUnix util.TimeStamp
-		CreatedUnix    util.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix    util.TimeStamp `xorm:"INDEX updated"`
+	type Comment struct {
+		ID       int64 `xorm:"pk autoincr"`
+		Type     int   `xorm:"index"`
+		ReviewID int64 `xorm:"index"`
 	}
 
-	type Issue struct {
-		ProjectID int64 `xorm:"INDEX"`
-	}
-
-	if err := x.Sync(new(Project)); err != nil {
-		return err
-	}
-
-	if err := x.Sync2(new(Issue)); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return x.Sync2(new(Comment))
 }
