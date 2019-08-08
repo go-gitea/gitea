@@ -26,7 +26,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 // GetTree find the tree object in the repository.
 func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if len(idStr) != 40 {
-		res, err := NewCommand("rev-parse", idStr).RunInDir(repo.Path)
+		res, err := NewCommand("rev-parse", "--verify", idStr).RunInDir(repo.Path)
 		if err != nil {
 			return nil, err
 		}
@@ -61,7 +61,7 @@ type CommitTreeOpts struct {
 
 // CommitTree creates a commit from a given tree id for the user with provided message
 func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOpts) (SHA1, error) {
-	commitTimeStr := time.Now().Format(time.UnixDate)
+	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),

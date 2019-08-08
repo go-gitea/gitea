@@ -5,6 +5,7 @@
 package models
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 	"testing"
@@ -14,6 +15,58 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestUserIsPublicMember(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	tt := []struct {
+		uid      int64
+		orgid    int64
+		expected bool
+	}{
+		{2, 3, true},
+		{4, 3, false},
+		{5, 6, true},
+		{5, 7, false},
+	}
+	for _, v := range tt {
+		t.Run(fmt.Sprintf("UserId%dIsPublicMemberOf%d", v.uid, v.orgid), func(t *testing.T) {
+			testUserIsPublicMember(t, v.uid, v.orgid, v.expected)
+		})
+	}
+}
+
+func testUserIsPublicMember(t *testing.T, uid int64, orgID int64, expected bool) {
+	user, err := GetUserByID(uid)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, user.IsPublicMember(orgID))
+}
+
+func TestIsUserOrgOwner(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	tt := []struct {
+		uid      int64
+		orgid    int64
+		expected bool
+	}{
+		{2, 3, true},
+		{4, 3, false},
+		{5, 6, true},
+		{5, 7, true},
+	}
+	for _, v := range tt {
+		t.Run(fmt.Sprintf("UserId%dIsOrgOwnerOf%d", v.uid, v.orgid), func(t *testing.T) {
+			testIsUserOrgOwner(t, v.uid, v.orgid, v.expected)
+		})
+	}
+}
+
+func testIsUserOrgOwner(t *testing.T, uid int64, orgID int64, expected bool) {
+	user, err := GetUserByID(uid)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, user.IsUserOrgOwner(orgID))
+}
 
 func TestGetUserEmailsByNames(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
@@ -83,7 +136,7 @@ func TestSearchUsers(t *testing.T) {
 		[]int64{7, 17})
 
 	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 3, PageSize: 2},
-		[]int64{19})
+		[]int64{19, 25})
 
 	testOrgSuccess(&SearchUserOptions{Page: 4, PageSize: 2},
 		[]int64{})
@@ -95,13 +148,13 @@ func TestSearchUsers(t *testing.T) {
 	}
 
 	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1},
-		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21})
+		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24})
 
 	testUserSuccess(&SearchUserOptions{Page: 1, IsActive: util.OptionalBoolFalse},
 		[]int64{9})
 
 	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1, IsActive: util.OptionalBoolTrue},
-		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21})
+		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24})
 
 	testUserSuccess(&SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", Page: 1, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})

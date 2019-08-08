@@ -1272,17 +1272,15 @@
 
     #commits-table td.sha .sha.label,
     #repo-files-table .sha.label {
-        &.isSigned {
-            border: 1px solid #bbbbbb;
+        border: 1px solid #bbbbbb;
 
-            .detail.icon {
-                background: #fafafa;
-                margin: -6px -10px -4px 0;
-                padding: 5px 3px 5px 6px;
-                border-left: 1px solid #bbbbbb;
-                border-top-left-radius: 0;
-                border-bottom-left-radius: 0;
-            }
+        .detail.icon {
+            background: #fafafa;
+            margin: -6px -10px -4px 0;
+            padding: 5px 3px 5px 6px;
+            border-left: 1px solid #bbbbbb;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
         }
 
         &.isSigned.isVerified {
@@ -1290,7 +1288,11 @@
             background: fade(#21ba45, 10%);
 
             .detail.icon {
-                border-left: 1px solid fade(#21ba45, 50%);
+                border-left: 1px solid #21ba45;
+            }
+
+            &:hover {
+                background: fade(#21ba45, 30%) !important;
             }
         }
     }
