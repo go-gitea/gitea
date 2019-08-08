@@ -66,20 +66,17 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 
 	headRepoPath := models.RepoPath(pr.HeadUserName, pr.HeadRepo.Name)
 
-	if err := git.Clone(baseGitRepo.Path, tmpBasePath, git.CloneRepoOptions{
-		Shared:     true,
-		NoCheckout: true,
-		Branch:     pr.BaseBranch,
-	}); err != nil {
-		return fmt.Errorf("git clone: %v", err)
+	if err := git.InitRepository(tmpBasePath, false); err != nil {
+		return fmt.Errorf("git init: %v", err)
 	}
 
 	remoteRepoName := "head_repo"
+	baseBranch := "base"
 
 	// Add head repo remote.
 	addCacheRepo := func(staging, cache string) error {
 		p := filepath.Join(staging, ".git", "objects", "info", "alternates")
-		f, err := os.OpenFile(p, os.O_APPEND|os.O_WRONLY, 0600)
+		f, err := os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 		if err != nil {
 			return err
 		}
@@ -91,11 +88,31 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return nil
 	}
 
-	if err := addCacheRepo(tmpBasePath, headRepoPath); err != nil {
+	if err := addCacheRepo(tmpBasePath, baseGitRepo.Path); err != nil {
 		return fmt.Errorf("addCacheRepo [%s -> %s]: %v", headRepoPath, tmpBasePath, err)
 	}
 
 	var errbuf strings.Builder
+	if err := git.NewCommand("remote", "add", "-t", pr.BaseBranch, "-m", pr.BaseBranch, "origin", baseGitRepo.Path).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git remote add [%s -> %s]: %s", baseGitRepo.Path, tmpBasePath, errbuf.String())
+	}
+
+	if err := git.NewCommand("fetch", "origin", pr.BaseBranch+":"+baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
+	}
+
+	if err := git.NewCommand("fetch", "origin", pr.BaseBranch+":original_"+baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
+	}
+
+	if err := git.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git symbolic-ref HEAD base [%s]: %s", tmpBasePath, errbuf.String())
+	}
+
+	if err := addCacheRepo(tmpBasePath, headRepoPath); err != nil {
+		return fmt.Errorf("addCacheRepo [%s -> %s]: %v", headRepoPath, tmpBasePath, err)
+	}
+
 	if err := git.NewCommand("remote", "add", remoteRepoName, headRepoPath).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git remote add [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 	}
@@ -109,7 +126,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	stagingBranch := "staging"
 
 	// Enable sparse-checkout
-	sparseCheckoutList, err := getDiffTree(tmpBasePath, pr.BaseBranch, trackingBranch)
+	sparseCheckoutList, err := getDiffTree(tmpBasePath, baseBranch, trackingBranch)
 	if err != nil {
 		return fmt.Errorf("getDiffTree: %v", err)
 	}
@@ -232,7 +249,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	if err != nil {
 		return fmt.Errorf("Failed to get full commit id for HEAD: %v", err)
 	}
-	mergeBaseSHA, err := git.GetFullCommitID(tmpBasePath, "origin/"+pr.BaseBranch)
+	mergeBaseSHA, err := git.GetFullCommitID(tmpBasePath, "original_"+baseBranch)
 	if err != nil {
 		return fmt.Errorf("Failed to get full commit id for origin/%s: %v", pr.BaseBranch, err)
 	}
@@ -265,7 +282,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	)
 
 	// Push back to upstream.
-	if err := git.NewCommand("push", "origin", pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
+	if err := git.NewCommand("push", "origin", baseBranch+":"+pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git push: %s", errbuf.String())
 	}
 
