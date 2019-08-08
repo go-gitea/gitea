@@ -97,11 +97,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return fmt.Errorf("git remote add [%s -> %s]: %s", baseGitRepo.Path, tmpBasePath, errbuf.String())
 	}
 
-	if err := git.NewCommand("fetch", "origin", pr.BaseBranch+":"+baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
-		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
-	}
-
-	if err := git.NewCommand("fetch", "origin", pr.BaseBranch+":original_"+baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := git.NewCommand("fetch", "origin", "--no-tags", pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 	}
 
@@ -119,7 +115,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 
 	trackingBranch := "tracking"
 	// Fetch head branch
-	if err := git.NewCommand("fetch", remoteRepoName, pr.HeadBranch+":"+trackingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := git.NewCommand("fetch", "--no-tags", remoteRepoName, pr.HeadBranch+":"+trackingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 	}
 
@@ -196,11 +192,11 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Rebase before merging
-		if err := git.NewCommand("rebase", "-q", pr.BaseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		if err := git.NewCommand("rebase", "-q", baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 			return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
 		// Checkout base branch again
-		if err := git.NewCommand("checkout", pr.BaseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		if err := git.NewCommand("checkout", baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Merge fast forward
@@ -213,11 +209,11 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Rebase before merging
-		if err := git.NewCommand("rebase", "-q", pr.BaseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		if err := git.NewCommand("rebase", "-q", baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 			return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
 		// Checkout base branch again
-		if err := git.NewCommand("checkout", pr.BaseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		if err := git.NewCommand("checkout", baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Prepare merge with commit
