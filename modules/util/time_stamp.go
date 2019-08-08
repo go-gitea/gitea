@@ -49,7 +49,7 @@ func (ts TimeStamp) AsTimePtr() *time.Time {
 	return ts.AsTimePtrInLocation(setting.UILocation)
 }
 
-// AsTimePtr convert timestamp as *time.Time in Local locale
+// AsTimePtrInLocation convert timestamp as *time.Time in customize location
 func (ts TimeStamp) AsTimePtrInLocation(loc *time.Location) *time.Time {
 	tm := time.Unix(int64(ts), 0).In(loc)
 	return &tm
