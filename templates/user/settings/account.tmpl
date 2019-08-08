@@ -7,7 +7,7 @@
 			{{.i18n.Tr "settings.password"}}
 		</h4>
 		<div class="ui attached segment">
-			{{if or (.SignedUser.IsLocal) (.SignedUser.IsOAuth2)}}
+			{{if (.SignedUser.IsLocal) }}
 			<form class="ui form" action="{{AppSubUrl}}/user/settings/account" method="post">
 				{{.CsrfTokenHtml}}
 				{{if .SignedUser.IsPasswordSet}}
