@@ -185,6 +185,7 @@ func searchRefCommitByType(ctx *context.APIContext, refType, filter string) (str
 	}
 	return "", "", nil
 }
+
 func getCommitStatuses(ctx *context.APIContext, sha string) {
 	if len(sha) == 0 {
 		ctx.Error(400, "ref/sha not given", nil)
