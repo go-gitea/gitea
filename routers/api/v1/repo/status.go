@@ -46,10 +46,7 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 	//     "$ref": "#/responses/StatusList"
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {
-		sha = ctx.Params("ref")
-	}
-	if len(sha) == 0 {
-		ctx.Error(400, "ref/sha not given", nil)
+		ctx.Error(400, "sha not given", nil)
 		return
 	}
 	status := &models.CommitStatus{
@@ -157,21 +154,44 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//     "$ref": "#/responses/StatusList"
 
 	filter := ctx.Params("ref")
-	sha := filter //By default and will be overridden if we found a good ref match
+	if len(filter) == 0 {
+		ctx.Error(400, "ref not given", nil)
+		return
+	}
 
-	refs, lastMethodName, err := getGitRefs(ctx, filter)
+	refSHA, lastMethodName, err := searchRefCommit(ctx, "heads", filter) //Search branches
 	if err != nil {
 		ctx.Error(500, lastMethodName, err)
 		return
 	}
-
-	if len(refs) > 0 {
-		sha = refs[0].Object.String() //Replace SHA with ref id
+	if refSHA != "" {
+		getCommitStatuses(ctx, refSHA)
+		return
 	}
 
-	getCommitStatuses(ctx, sha)
+	refSHA, lastMethodName, err = searchRefCommit(ctx, "tags", filter) //Search tags
+	if err != nil {
+		ctx.Error(500, lastMethodName, err)
+		return
+	}
+	if refSHA != "" {
+		getCommitStatuses(ctx, refSHA)
+		return
+	}
+
+	getCommitStatuses(ctx, filter) //By default filter is maybe the raw SHA
 }
 
+func searchRefCommit(ctx *context.APIContext, refType, filter string) (string, string, error) {
+	refs, lastMethodName, err := getGitRefs(ctx, refType+"/"+filter) //Search branches
+	if err != nil {
+		return "", lastMethodName, err
+	}
+	if len(refs) > 0 {
+		return refs[0].Object.String(), "", nil //Return found SHA
+	}
+	return "", "", nil
+}
 func getCommitStatuses(ctx *context.APIContext, sha string) {
 	if len(sha) == 0 {
 		ctx.Error(400, "ref/sha not given", nil)

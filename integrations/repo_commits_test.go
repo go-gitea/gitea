@@ -74,7 +74,9 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/"+path.Base(commitURL)+"/statuses")
 	testRepoCommitsWithStatus(t, session.MakeRequest(t, req, http.StatusOK), state)
 	//By Ref
-	req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/heads%2Fmaster/statuses")
+	req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/master/statuses")
+	testRepoCommitsWithStatus(t, session.MakeRequest(t, req, http.StatusOK), state)
+	req = NewRequest(t, "GET", "/api/v1/repos/user2/repo1/commits/v1.1/statuses")
 	testRepoCommitsWithStatus(t, session.MakeRequest(t, req, http.StatusOK), state)
 }
 
