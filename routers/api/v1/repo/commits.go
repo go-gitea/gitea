@@ -160,8 +160,8 @@ func GetAllCommits(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.JSON(409, api.APIError{
 			Message: "Git Repository is empty.",
-			URL: setting.API.SwaggerURL,
-		}
+			URL:     setting.API.SwaggerURL,
+		})
 		return
 	}
 
