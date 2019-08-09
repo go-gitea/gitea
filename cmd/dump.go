@@ -58,7 +58,6 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 func runDump(ctx *cli.Context) error {
 	setting.NewContext()
 	setting.NewServices() // cannot access session settings otherwise
-	models.LoadConfigs()
 
 	err := models.SetEngine()
 	if err != nil {
@@ -104,8 +103,8 @@ func runDump(ctx *cli.Context) error {
 	}
 
 	targetDBType := ctx.String("database")
-	if len(targetDBType) > 0 && targetDBType != models.DbCfg.Type {
-		log.Printf("Dumping database %s => %s...", models.DbCfg.Type, targetDBType)
+	if len(targetDBType) > 0 && targetDBType != setting.Database.Type {
+		log.Printf("Dumping database %s => %s...", setting.Database.Type, targetDBType)
 	} else {
 		log.Printf("Dumping database...")
 	}

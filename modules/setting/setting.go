@@ -148,16 +148,6 @@ var (
 	DisableGitHooks       bool
 	PasswordHashAlgo      string
 
-	// Database settings
-	UseSQLite3       bool
-	UseMySQL         bool
-	UseMSSQL         bool
-	UsePostgreSQL    bool
-	UseTiDB          bool
-	LogSQL           bool
-	DBConnectRetries int
-	DBConnectBackoff time.Duration
-
 	// UI settings
 	UI = struct {
 		ExplorePagingNum    int
@@ -348,16 +338,19 @@ var (
 	ShowFooterTemplateLoadTime bool
 
 	// Global setting objects
-	Cfg               *ini.File
-	CustomPath        string // Custom directory path
-	CustomConf        string
-	CustomPID         string
-	ProdMode          bool
-	RunUser           string
-	IsWindows         bool
-	HasRobotsTxt      bool
-	InternalToken     string // internal access token
-	IterateBufferSize int
+	Cfg           *ini.File
+	CustomPath    string // Custom directory path
+	CustomConf    string
+	CustomPID     string
+	ProdMode      bool
+	RunUser       string
+	IsWindows     bool
+	HasRobotsTxt  bool
+	InternalToken string // internal access token
+
+	// UILocation is the location on the UI, so that we can display the time on UI.
+	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
+	UILocation = time.Local
 )
 
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
@@ -775,10 +768,6 @@ func NewContext() {
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 
 	InternalToken = loadInternalToken(sec)
-	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
-	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
-	DBConnectRetries = Cfg.Section("database").Key("DB_RETRIES").MustInt(10)
-	DBConnectBackoff = Cfg.Section("database").Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -1037,6 +1026,7 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 
 // NewServices initializes the services
 func NewServices() {
+	InitDBConfig()
 	newService()
 	NewLogServices(false)
 	newCacheService()
