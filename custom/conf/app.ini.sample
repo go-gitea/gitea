@@ -275,6 +275,10 @@ LOG_SQL = true
 DB_RETRIES = 10
 ; Backoff time per DB retry (time.Duration)
 DB_RETRY_BACKOFF = 3s
+; Max idle database connections on connnection pool, default is 0
+MAX_IDLE_CONNS = 0
+; Database connection max life time, default is 3s
+CONN_MAX_LIFETIME = 3s
 
 [indexer]
 ; Issue indexer type, currently support: bleve or db, default is bleve
