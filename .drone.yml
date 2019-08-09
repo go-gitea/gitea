@@ -95,6 +95,7 @@ steps:
       - make build
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
 
   - name: unit-test
