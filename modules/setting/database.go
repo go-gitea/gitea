@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	supportedDatabases = []string{"mysql", "postgres", "mssql"}
+	SupportedDatabases = []string{"mysql", "postgres", "mssql"}
 
 	// EnableSQLite3 use SQLite3, set by build flag
 	EnableSQLite3 bool

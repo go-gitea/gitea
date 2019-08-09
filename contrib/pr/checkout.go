@@ -79,9 +79,9 @@ func runPR() {
 	setting.CheckLFSVersion()
 	//models.LoadConfigs()
 	/*
-		models.DbCfg.Type = "sqlite3"
-		models.DbCfg.Path = ":memory:"
-		models.DbCfg.Timeout = 500
+		setting.Database.Type = "sqlite3"
+		setting.Database.Path = ":memory:"
+		setting.Database.Timeout = 500
 	*/
 	db := setting.Cfg.Section("database")
 	db.NewKey("DB_TYPE", "sqlite3")
