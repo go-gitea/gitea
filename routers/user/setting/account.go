@@ -81,6 +81,12 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
+	// Set Email Notification Preference
+	if ctx.Query("_method") == "NOTIFICATION" {
+		ctx.User.SetEmailNotifications(ctx.QueryBool("enable"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		return
+	}
 
 	if ctx.HasError() {
 		loadAccountData(ctx)

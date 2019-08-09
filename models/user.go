@@ -87,10 +87,11 @@ type User struct {
 	Name      string `xorm:"UNIQUE NOT NULL"`
 	FullName  string
 	// Email is the primary email address (to be used for communication)
-	Email            string `xorm:"NOT NULL"`
-	KeepEmailPrivate bool
-	Passwd           string `xorm:"NOT NULL"`
-	PasswdHashAlgo   string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
+	Email                     string `xorm:"NOT NULL"`
+	KeepEmailPrivate          bool
+	EmailNotificationsEnabled bool   `xorm:"NOT NULL DEFAULT true"`
+	Passwd                    string `xorm:"NOT NULL"`
+	PasswdHashAlgo            string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
 
 	// MustChangePassword is an attribute that determines if a user
 	// is to change his/her password after registration.
@@ -719,6 +720,18 @@ func (u *User) IsMailable() bool {
 	return u.IsActive
 }
 
+// EnabledEmailNotifications checks if the user has
+// enabled receiving notifications by email
+func (u *User) EnabledEmailNotifications() bool {
+	return u.EmailNotificationsEnabled
+}
+
+// SetEmailNotifications sets whether the user
+// would like to receive notifications by email
+func (u *User) SetEmailNotifications(set bool) {
+	u.EmailNotificationsEnabled = set
+}
+
 func isUserExist(e Engine, uid int64, name string) (bool, error) {
 	if len(name) == 0 {
 		return false, nil
@@ -1265,7 +1278,7 @@ func getUserEmailsByNames(e Engine, names []string) []string {
 		if err != nil {
 			continue
 		}
-		if u.IsMailable() {
+		if u.IsMailable() && u.EnabledEmailNotifications() {
 			mails = append(mails, u.Email)
 		}
 	}
