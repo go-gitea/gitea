@@ -1266,9 +1266,7 @@
         }
 
         td.message {
-            display: flex;
-            padding-top: 0;
-            padding-bottom: 0;
+            text-overflow: unset;
         }
 
         &.ui.basic.striped.table tbody tr:nth-child(2n) {
@@ -2310,12 +2308,12 @@ tbody.commit-list {
 .commit-list .message-wrapper {
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: calc(100% - 24px);
+    max-width: calc(100% - 50px);
     display: inline-block;
     vertical-align: middle;
 }
 
-.commit-list .message-wrapper .commit-status-link {
+.commit-list .commit-status-link {
     display: inline-block;
     vertical-align: middle;
 }
