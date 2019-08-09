@@ -17,7 +17,8 @@ import (
 
 var (
 	// SupportedDatabases includes all supported databases type
-	SupportedDatabases = []string{"mysql", "postgres", "mssql"}
+	SupportedDatabases = []string{"MySQL", "PostgreSQL", "MSSQL"}
+	dbTypes            = map[string]string{"MySQL": "mysql", "PostgreSQL": "postgres", "MSSQL": "mssql", "SQLite3": "sqlite3"}
 
 	// EnableSQLite3 use SQLite3, set by build flag
 	EnableSQLite3 bool
@@ -41,7 +42,6 @@ var (
 		UseMySQL          bool
 		UseMSSQL          bool
 		UsePostgreSQL     bool
-		UseTiDB           bool
 		DBConnectRetries  int
 		DBConnectBackoff  time.Duration
 		MaxIdleConns      int
@@ -54,6 +54,11 @@ var (
 	}
 )
 
+// GetDBTypeByName returns the dataase type as it defined on XORM according the given name
+func GetDBTypeByName(name string) string {
+	return dbTypes[name]
+}
+
 // InitDBConfig loads the database settings
 func InitDBConfig() {
 	sec := Cfg.Section("database")
@@ -65,8 +70,6 @@ func InitDBConfig() {
 		Database.UseMySQL = true
 	case "postgres":
 		Database.UsePostgreSQL = true
-	case "tidb":
-		Database.UseTiDB = true
 	case "mssql":
 		Database.UseMSSQL = true
 	}

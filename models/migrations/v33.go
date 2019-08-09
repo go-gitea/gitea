@@ -17,7 +17,7 @@ func removeActionColumns(x *xorm.Engine) error {
 	switch {
 	case setting.Database.UseSQLite3:
 		log.Warn("Unable to drop columns in SQLite")
-	case setting.Database.UseMySQL, setting.Database.UsePostgreSQL, setting.Database.UseMSSQL, setting.Database.UseTiDB:
+	case setting.Database.UseMySQL, setting.Database.UsePostgreSQL, setting.Database.UseMSSQL:
 		if _, err := x.Exec("ALTER TABLE action DROP COLUMN act_user_name"); err != nil {
 			return fmt.Errorf("DROP COLUMN act_user_name: %v", err)
 		} else if _, err = x.Exec("ALTER TABLE action DROP COLUMN repo_user_name"); err != nil {

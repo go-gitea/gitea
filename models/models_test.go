@@ -22,6 +22,7 @@ func TestDumpDatabase(t *testing.T) {
 	assert.NoError(t, err)
 
 	for _, dbType := range setting.SupportedDatabases {
+		dbType = setting.GetDBTypeByName(dbType)
 		assert.NoError(t, DumpDatabase(filepath.Join(dir, dbType+".sql"), dbType))
 	}
 }

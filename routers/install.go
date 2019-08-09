@@ -40,11 +40,7 @@ func InstallInit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("install.install")
 	ctx.Data["PageIsInstall"] = true
 
-	dbOpts := []string{"MySQL", "PostgreSQL", "MSSQL"}
-	if setting.EnableSQLite3 {
-		dbOpts = append(dbOpts, "SQLite3")
-	}
-	ctx.Data["DbOptions"] = dbOpts
+	ctx.Data["DbOptions"] = setting.SupportedDatabases
 }
 
 // Install render installation page
@@ -144,8 +140,8 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 
 	// Pass basic check, now test configuration.
 	// Test database setting.
-	dbTypes := map[string]string{"MySQL": "mysql", "PostgreSQL": "postgres", "MSSQL": "mssql", "SQLite3": "sqlite3"}
-	setting.Database.Type = dbTypes[form.DbType]
+
+	setting.Database.Type = setting.GetDBTypeByName(form.DbType)
 	setting.Database.Host = form.DbHost
 	setting.Database.User = form.DbUser
 	setting.Database.Passwd = form.DbPasswd

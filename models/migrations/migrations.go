@@ -383,7 +383,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
-	case setting.Database.UseMySQL, setting.Database.UseTiDB:
+	case setting.Database.UseMySQL:
 		// Drop indexes on columns first
 		sql := fmt.Sprintf("SHOW INDEX FROM %s WHERE column_name IN ('%s')", tableName, strings.Join(columnNames, "','"))
 		res, err := sess.Query(sql)
