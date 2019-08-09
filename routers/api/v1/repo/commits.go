@@ -158,7 +158,10 @@ func GetAllCommits(ctx *context.APIContext) {
 	//     "$ref": "#/responses/EmptyRepository"
 
 	if ctx.Repo.Repository.IsEmpty {
-		err409 := api.APIError{Message: "Git Repository is empty.", URL: setting.API.SwaggerURL}
+		ctx.JSON(409, api.APIError{
+			Message: "Git Repository is empty.",
+			URL: setting.API.SwaggerURL,
+		}
 		ctx.JSON(409, err409)
 		return
 	}
