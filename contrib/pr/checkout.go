@@ -86,9 +86,9 @@ func runPR() {
 	db := setting.Cfg.Section("database")
 	db.NewKey("DB_TYPE", "sqlite3")
 	db.NewKey("PATH", ":memory:")
-	setting.LogSQL = true
-	models.LoadConfigs()
+
 	routers.NewServices()
+	setting.Database.LogSQL = true
 	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 
 	var helper testfixtures.Helper = &testfixtures.SQLite{}
