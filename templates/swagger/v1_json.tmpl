@@ -33,6 +33,20 @@
         ],
         "summary": "List all organizations",
         "operationId": "adminGetAllOrgs",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/OrganizationList"
@@ -1561,6 +1575,12 @@
             "name": "ref",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results",
+            "name": "page",
+            "in": "query"
           }
         ],
         "responses": {
@@ -5057,6 +5077,38 @@
             "name": "sha",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "oldest",
+              "recentupdate",
+              "leastupdate",
+              "leastindex",
+              "highestindex"
+            ],
+            "type": "string",
+            "description": "type of sort",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "pending",
+              "success",
+              "error",
+              "failure",
+              "warning"
+            ],
+            "type": "string",
+            "description": "type of state",
+            "name": "state",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6971,6 +7023,15 @@
           "type": "string",
           "x-go-name": "IssueURL"
         },
+        "original_author": {
+          "type": "string",
+          "x-go-name": "OriginalAuthor"
+        },
+        "original_author_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OriginalAuthorID"
+        },
         "pull_request_url": {
           "type": "string",
           "x-go-name": "PRURL"
@@ -8669,6 +8730,15 @@
           "format": "int64",
           "x-go-name": "Index"
         },
+        "original_author": {
+          "type": "string",
+          "x-go-name": "OriginalAuthor"
+        },
+        "original_author_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OriginalAuthorID"
+        },
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
         },
@@ -9488,6 +9558,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "OpenIssues"
+        },
+        "original_url": {
+          "type": "string",
+          "x-go-name": "OriginalURL"
         },
         "owner": {
           "$ref": "#/definitions/User"
@@ -10368,6 +10442,7 @@
       "in": "query"
     },
     "AuthorizationHeaderToken": {
+      "description": "API tokens must be prepended with \"token\" followed by a space.",
       "type": "apiKey",
       "name": "Authorization",
       "in": "header"

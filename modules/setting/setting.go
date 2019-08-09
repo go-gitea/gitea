@@ -29,14 +29,6 @@ import (
 
 	"github.com/Unknwon/cae/zip"
 	"github.com/Unknwon/com"
-	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
-	_ "github.com/go-macaron/cache/redis"
-	_ "github.com/go-macaron/session/couchbase" // couchbase plugin for session store
-	_ "github.com/go-macaron/session/memcache"  // memcache plugin for session store
-	_ "github.com/go-macaron/session/mysql"     // mysql plugin for session store
-	_ "github.com/go-macaron/session/nodb"      // nodb plugin for session store
-	_ "github.com/go-macaron/session/postgres"  // postgres plugin for session store
-	_ "github.com/go-macaron/session/redis"     // redis plugin for store session
 	shellquote "github.com/kballard/go-shellquote"
 	version "github.com/mcuadros/go-version"
 	ini "gopkg.in/ini.v1"
@@ -154,6 +146,7 @@ var (
 	MinPasswordLength     int
 	ImportLocalPaths      bool
 	DisableGitHooks       bool
+	PasswordHashAlgo      string
 
 	// Database settings
 	UseSQLite3       bool
@@ -286,7 +279,8 @@ var (
 	// Time settings
 	TimeFormat string
 
-	CSRFCookieName = "_csrf"
+	CSRFCookieName     = "_csrf"
+	CSRFCookieHTTPOnly = true
 
 	// Mirror settings
 	Mirror struct {
@@ -779,6 +773,9 @@ func NewContext() {
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
+	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
+	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
+
 	InternalToken = loadInternalToken(sec)
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
 	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)

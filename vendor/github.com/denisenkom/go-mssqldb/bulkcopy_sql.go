@@ -23,7 +23,7 @@ func (d *Driver) OpenConnection(dsn string) (*Conn, error) {
 	return d.open(context.Background(), dsn)
 }
 
-func (c *Conn) prepareCopyIn(query string) (_ driver.Stmt, err error) {
+func (c *Conn) prepareCopyIn(ctx context.Context, query string) (_ driver.Stmt, err error) {
 	config_json := query[11:]
 
 	bulkconfig := serializableBulkConfig{}
@@ -32,7 +32,7 @@ func (c *Conn) prepareCopyIn(query string) (_ driver.Stmt, err error) {
 		return
 	}
 
-	bulkcopy := c.CreateBulk(bulkconfig.TableName, bulkconfig.ColumnsName)
+	bulkcopy := c.CreateBulkContext(ctx, bulkconfig.TableName, bulkconfig.ColumnsName)
 	bulkcopy.Options = bulkconfig.Options
 
 	ci := &copyin{
@@ -61,12 +61,12 @@ func (ci *copyin) NumInput() int {
 }
 
 func (ci *copyin) Query(v []driver.Value) (r driver.Rows, err error) {
-	return nil, errors.New("ErrNotSupported")
+	panic("should never be called")
 }
 
 func (ci *copyin) Exec(v []driver.Value) (r driver.Result, err error) {
 	if ci.closed {
-		return nil, errors.New("errCopyInClosed")
+		return nil, errors.New("copyin query is closed")
 	}
 
 	if len(v) == 0 {

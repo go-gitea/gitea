@@ -12,12 +12,20 @@
 	<div class="twelve wide column comment-list prevent-before-timeline">
 		<ui class="ui comments timeline-line">
 			<div class="comment">
+			{{if .Issue.OriginalAuthor }}
+				<span class="avatar"><img src="/img/avatar_default.png"></span>
+			{{else}}
 				<a class="avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
 					<img src="{{.Issue.Poster.RelAvatarLink}}">
 				</a>
+			{{end}}
 				<div class="content">
 					<div class="ui top attached header">
+					{{if .Issue.OriginalAuthor }}
+						<span class="text black"><i class="fa {{MigrationIcon .Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .Issue.OriginalAuthor }}</span><span class="text grey"> {{.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}}<span> <span class="text migrate">{{if .Repository.OriginalURL}} ({{$.i18n.Tr "repo.migrated_from" .Repository.OriginalURL .Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+					{{else}}
 						<span class="text grey"><a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a> {{.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}}</span>
+					{{end}}
 						{{if not $.Repository.IsArchived}}
 							<div class="ui right actions">
 								{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) }}
@@ -99,6 +107,14 @@
 						</form>
 					</div>
 				</div>
+				{{ else if .Repository.IsArchived }}
+					<div class="ui warning message">
+						{{if .Issue.IsPull}}
+							{{.i18n.Tr "repo.archive.pull.nocomment"}}
+						{{else}}
+							{{.i18n.Tr "repo.archive.issue.nocomment"}}
+						{{end}}
+					</div>
 				{{ end }}
 			{{else}}
 			{{if .Repository.IsArchived}}

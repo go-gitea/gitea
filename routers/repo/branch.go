@@ -39,6 +39,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["Title"] = "Branches"
 	ctx.Data["IsRepoToolbarBranches"] = true
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
+	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls()
 	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(models.UnitTypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
 	ctx.Data["PageIsViewCode"] = true
@@ -161,6 +162,12 @@ func loadBranches(ctx *context.Context) []*Branch {
 		return nil
 	}
 
+	protectedBranches, err := ctx.Repo.Repository.GetProtectedBranches()
+	if err != nil {
+		ctx.ServerError("GetProtectedBranches", err)
+		return nil
+	}
+
 	branches := make([]*Branch, len(rawBranches))
 	for i := range rawBranches {
 		commit, err := rawBranches[i].GetCommit()
@@ -169,11 +176,13 @@ func loadBranches(ctx *context.Context) []*Branch {
 			return nil
 		}
 
+		var isProtected bool
 		branchName := rawBranches[i].Name
-		isProtected, err := ctx.Repo.Repository.IsProtectedBranch(branchName, ctx.User)
-		if err != nil {
-			ctx.ServerError("IsProtectedBranch", err)
-			return nil
+		for _, b := range protectedBranches {
+			if b.BranchName == branchName {
+				isProtected = true
+				break
+			}
 		}
 
 		divergence, divergenceError := repofiles.CountDivergingCommits(ctx.Repo.Repository, branchName)

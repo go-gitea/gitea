@@ -99,10 +99,12 @@ const (
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID               int64 `xorm:"pk autoincr"`
-	Type             CommentType
-	PosterID         int64  `xorm:"INDEX"`
-	Poster           *User  `xorm:"-"`
+	ID               int64       `xorm:"pk autoincr"`
+	Type             CommentType `xorm:"index"`
+	PosterID         int64       `xorm:"INDEX"`
+	Poster           *User       `xorm:"-"`
+	OriginalAuthor   string
+	OriginalAuthorID int64
 	IssueID          int64  `xorm:"INDEX"`
 	Issue            *Issue `xorm:"-"`
 	LabelID          int64
@@ -141,7 +143,7 @@ type Comment struct {
 	ShowTag CommentTag `xorm:"-"`
 
 	Review      *Review `xorm:"-"`
-	ReviewID    int64
+	ReviewID    int64   `xorm:"index"`
 	Invalidated bool
 }
 
@@ -632,12 +634,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 			act.OpType = ActionReopenPullRequest
 		}
 
-		if opts.Issue.IsPull {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=num_closed_pulls-1 WHERE id=?", opts.Repo.ID)
-		} else {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_issues=num_closed_issues-1 WHERE id=?", opts.Repo.ID)
-		}
-		if err != nil {
+		if err = opts.Issue.updateClosedNum(e); err != nil {
 			return err
 		}
 
@@ -647,12 +644,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 			act.OpType = ActionClosePullRequest
 		}
 
-		if opts.Issue.IsPull {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=num_closed_pulls+1 WHERE id=?", opts.Repo.ID)
-		} else {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_issues=num_closed_issues+1 WHERE id=?", opts.Repo.ID)
-		}
-		if err != nil {
+		if err = opts.Issue.updateClosedNum(e); err != nil {
 			return err
 		}
 	}

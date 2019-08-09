@@ -34,16 +34,15 @@ func TestGiteaUploadRepo(t *testing.T) {
 		Name:         repoName,
 		AuthUsername: "",
 
-		Wiki:              true,
-		Issues:            true,
-		Milestones:        true,
-		Labels:            true,
-		Releases:          true,
-		Comments:          true,
-		PullRequests:      true,
-		Private:           true,
-		Mirror:            false,
-		IgnoreIssueAuthor: false,
+		Wiki:         true,
+		Issues:       true,
+		Milestones:   true,
+		Labels:       true,
+		Releases:     true,
+		Comments:     true,
+		PullRequests: true,
+		Private:      true,
+		Mirror:       false,
 	})
 	assert.NoError(t, err)
 

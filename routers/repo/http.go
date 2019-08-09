@@ -215,7 +215,10 @@ func HTTP(ctx *context.Context) {
 				// Check username and password
 				authUser, err = models.UserSignIn(authUsername, authPasswd)
 				if err != nil {
-					if !models.IsErrUserNotExist(err) {
+					if models.IsErrUserProhibitLogin(err) {
+						ctx.HandleText(http.StatusForbidden, "User is not permitted to login")
+						return
+					} else if !models.IsErrUserNotExist(err) {
 						ctx.ServerError("UserSignIn error: %v", err)
 						return
 					}
@@ -424,7 +427,7 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		log.Error("Fail to serve RPC(%s): %v - %v", service, err, stderr)
+		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
 		return
 	}
 }
