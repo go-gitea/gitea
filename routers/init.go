@@ -105,9 +105,6 @@ func GlobalInit() {
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 Supported")
 	}
-	if setting.EnableTiDB {
-		log.Info("TiDB Supported")
-	}
 	checkRunMode()
 
 	if setting.InstallLock && setting.SSH.StartBuiltinServer {

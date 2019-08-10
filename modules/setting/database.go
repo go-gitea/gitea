@@ -23,9 +23,6 @@ var (
 	// EnableSQLite3 use SQLite3, set by build flag
 	EnableSQLite3 bool
 
-	// EnableTiDB enable TiDB, set by build flag
-	EnableTiDB bool
-
 	// Database holds the database settings
 	Database = struct {
 		Type              string
@@ -124,14 +121,6 @@ func DBConnStr() (string, error) {
 			return "", fmt.Errorf("Failed to create directories: %v", err)
 		}
 		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d", Database.Path, Database.Timeout)
-	case "tidb":
-		if !EnableTiDB {
-			return "", errors.New("this binary version does not build support for TiDB")
-		}
-		if err := os.MkdirAll(path.Dir(Database.Path), os.ModePerm); err != nil {
-			return "", fmt.Errorf("Failed to create directories: %v", err)
-		}
-		connStr = "goleveldb://" + Database.Path
 	default:
 		return "", fmt.Errorf("Unknown database type: %s", Database.Type)
 	}
