@@ -29,7 +29,6 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
-	context2 "github.com/gorilla/context"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -135,7 +134,7 @@ func runPR() {
 	*/
 
 	//Start the server
-	http.ListenAndServe(":8080", context2.ClearHandler(m))
+	http.ListenAndServe(":8080", m)
 
 	log.Printf("[PR] Cleaning up ...\n")
 	/*
