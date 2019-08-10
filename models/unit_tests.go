@@ -65,6 +65,13 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 		fatalTestError("url.Parse: %v\n", err)
 	}
 
+	if err = removeAllWithRetry(setting.RepoRootPath); err != nil {
+		fatalTestError("os.RemoveAll: %v\n", err)
+	}
+	if err = com.CopyDir(filepath.Join(pathToGiteaRoot, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+		fatalTestError("com.CopyDir: %v\n", err)
+	}
+
 	exitStatus := m.Run()
 	if err = removeAllWithRetry(setting.RepoRootPath); err != nil {
 		fatalTestError("os.RemoveAll: %v\n", err)

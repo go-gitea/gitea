@@ -29,13 +29,13 @@ func (repo *Repository) IsTagExist(name string) bool {
 
 // CreateTag create one tag in the repository
 func (repo *Repository) CreateTag(name, revision string) error {
-	_, err := NewCommand("tag", name, revision).RunInDir(repo.Path)
+	_, err := NewCommand("tag", "--", name, revision).RunInDir(repo.Path)
 	return err
 }
 
 // CreateAnnotatedTag create one annotated tag in the repository
 func (repo *Repository) CreateAnnotatedTag(name, message, revision string) error {
-	_, err := NewCommand("tag", "-a", "-m", message, name, revision).RunInDir(repo.Path)
+	_, err := NewCommand("tag", "-a", "-m", message, "--", name, revision).RunInDir(repo.Path)
 	return err
 }
 
@@ -153,7 +153,7 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 
 // GetTagID returns the object ID for a tag (annotated tags have both an object SHA AND a commit SHA)
 func (repo *Repository) GetTagID(name string) (string, error) {
-	stdout, err := NewCommand("show-ref", name).RunInDir(repo.Path)
+	stdout, err := NewCommand("show-ref", "--", name).RunInDir(repo.Path)
 	if err != nil {
 		return "", err
 	}

@@ -236,6 +236,10 @@ var migrations = []Migration{
 	NewMigration("add original author/url migration info to issues, comments, and repo ", addOriginalMigrationInfo),
 	// v90 -> v91
 	NewMigration("change length of some repository columns", changeSomeColumnsLengthOfRepo),
+	// v91 -> v92
+	NewMigration("add index on owner_id of repository and type, review_id of comment", addIndexOnRepositoryAndComment),
+	// v92 -> v93
+	NewMigration("remove orphaned repository index statuses", removeLingeringIndexStatus),
 }
 
 // Migrate database to current version
@@ -325,11 +329,25 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			return err
 		}
 		tableSQL := string(res[0]["sql"])
+
+		// Separate out the column definitions
 		tableSQL = tableSQL[strings.Index(tableSQL, "("):]
+
+		// Remove the required columnNames
 		for _, name := range columnNames {
-			tableSQL = regexp.MustCompile(regexp.QuoteMeta("`"+name+"`")+"[^`,)]*[,)]").ReplaceAllString(tableSQL, "")
+			tableSQL = regexp.MustCompile(regexp.QuoteMeta("`"+name+"`")+"[^`,)]*?[,)]").ReplaceAllString(tableSQL, "")
 		}
 
+		// Ensure the query is ended properly
+		tableSQL = strings.TrimSpace(tableSQL)
+		if tableSQL[len(tableSQL)-1] != ')' {
+			if tableSQL[len(tableSQL)-1] == ',' {
+				tableSQL = tableSQL[:len(tableSQL)-1]
+			}
+			tableSQL += ")"
+		}
+
+		// Find all the columns in the table
 		columns := regexp.MustCompile("`([^`]*)`").FindAllString(tableSQL, -1)
 
 		tableSQL = fmt.Sprintf("CREATE TABLE `new_%s_new` ", tableName) + tableSQL

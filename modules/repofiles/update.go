@@ -190,6 +190,13 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// Assigned LastCommitID in opts if it hasn't been set
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
+	} else {
+		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+		if err != nil {
+			return nil, fmt.Errorf("DeleteRepoFile: Invalid last commit ID: %v", err)
+		}
+		opts.LastCommitID = lastCommitID.String()
+
 	}
 
 	encoding := "UTF-8"
@@ -497,7 +504,7 @@ func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOp
 		commits = models.ListToPushCommits(l)
 	}
 
-	if err := models.CommitRepoAction(models.CommitRepoActionOptions{
+	if err := CommitRepoAction(CommitRepoActionOptions{
 		PusherName:  opts.PusherName,
 		RepoOwnerID: repo.OwnerID,
 		RepoName:    repo.Name,
