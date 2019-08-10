@@ -8133,6 +8133,46 @@
           "type": "string",
           "x-go-name": "Description"
         },
+        "enable_issue_dependencies": {
+          "description": "Enable dependencies for issues and pull requests (Built-in issue tracker)",
+          "type": "boolean",
+          "x-go-name": "EnableIssueDependencies"
+        },
+        "enable_time_tracker": {
+          "description": "Enable time tracking (Built-in issue tracker)",
+          "type": "boolean",
+          "x-go-name": "EnableTimeTracker"
+        },
+        "external_tracker": {
+          "description": "either `true` to enable external issue tracker or `false` to disable it.",
+          "type": "boolean",
+          "x-go-name": "ExternalTracker"
+        },
+        "external_tracker_format": {
+          "description": "External Issue Tracker URL Format. Use the placeholders {user}, {repo} and {index} for the username, repository name and issue index.",
+          "type": "string",
+          "x-go-name": "ExternalTrackerFormat"
+        },
+        "external_tracker_style": {
+          "description": "External Issue Tracker Number Format, either `numeric` or `alphanumeric`",
+          "type": "string",
+          "x-go-name": "ExternalTrackerStyle"
+        },
+        "external_tracker_url": {
+          "description": "URL of external issue tracker.",
+          "type": "string",
+          "x-go-name": "ExternalTrackerURL"
+        },
+        "external_wiki": {
+          "description": "either `true` to enable external wiki or `false` to disable it.",
+          "type": "boolean",
+          "x-go-name": "ExternalWiki"
+        },
+        "external_wiki_url": {
+          "description": "URL of external wiki.",
+          "type": "string",
+          "x-go-name": "ExternalWikiURL"
+        },
         "has_issues": {
           "description": "either `true` to enable issues for this repository or `false` to disable them.",
           "type": "boolean",
@@ -8152,6 +8192,11 @@
           "description": "either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `has_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
+        },
+        "let_only_contributors_track_time": {
+          "description": "Let only contributors track time (Built-in issue tracker)",
+          "type": "boolean",
+          "x-go-name": "LetOnlyContributorsTrackTime"
         },
         "name": {
           "description": "name of the repository",
@@ -9508,6 +9553,38 @@
           "type": "boolean",
           "x-go-name": "Empty"
         },
+        "enable_issue_dependencies": {
+          "type": "boolean",
+          "x-go-name": "EnableIssueDependencies"
+        },
+        "enable_time_tracker": {
+          "type": "boolean",
+          "x-go-name": "EnableTimeTracker"
+        },
+        "external_tracker": {
+          "type": "boolean",
+          "x-go-name": "ExternalTracker"
+        },
+        "external_tracker_format": {
+          "type": "string",
+          "x-go-name": "ExternalTrackerFormat"
+        },
+        "external_tracker_style": {
+          "type": "string",
+          "x-go-name": "ExternalTrackerStyle"
+        },
+        "external_tracker_url": {
+          "type": "string",
+          "x-go-name": "ExternalTrackerURL"
+        },
+        "external_wiki": {
+          "type": "boolean",
+          "x-go-name": "ExternalWiki"
+        },
+        "external_wiki_url": {
+          "type": "string",
+          "x-go-name": "ExternalWikiURL"
+        },
         "fork": {
           "type": "boolean",
           "x-go-name": "Fork"
@@ -9545,6 +9622,10 @@
         "ignore_whitespace_conflicts": {
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
+        },
+        "let_only_contributors_track_time": {
+          "type": "boolean",
+          "x-go-name": "LetOnlyContributorsTrackTime"
         },
         "mirror": {
           "type": "boolean",

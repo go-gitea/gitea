@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 
 	api "code.gitea.io/gitea/modules/structs"
@@ -659,27 +660,77 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			units = append(units, *unit)
 		}
 	} else if *opts.HasIssues {
-		// We don't currently allow setting individual issue settings through the API,
-		// only can enable/disable issues, so when enabling issues,
-		// we either get the existing config which means it was already enabled,
-		// or create a new config since it doesn't exist.
-		unit, err := repo.GetUnit(models.UnitTypeIssues)
-		var config *models.IssuesConfig
-		if err != nil {
-			// Unit type doesn't exist so we make a new config file with default values
-			config = &models.IssuesConfig{
-				EnableTimetracker:                true,
-				AllowOnlyContributorsToTrackTime: true,
-				EnableDependencies:               true,
+		if opts.ExternalTracker != nil && *opts.ExternalTracker {
+
+			var config *models.ExternalTrackerConfig
+			if unit, err := repo.GetUnit(models.UnitTypeExternalTracker); err != nil {
+				// Unit type doesn't exist so we make a new config file, default empty strings
+				config = &models.ExternalTrackerConfig{
+					ExternalTrackerURL:    "",
+					ExternalTrackerFormat: "",
+					ExternalTrackerStyle:  "",
+				}
+			} else {
+				config = unit.ExternalTrackerConfig()
 			}
+
+			// Update values if set and valid
+			if opts.ExternalTrackerURL != nil {
+				if !validation.IsValidExternalURL(*opts.ExternalTrackerURL) {
+					err := fmt.Errorf("External tracker URL not valid")
+					ctx.Error(http.StatusBadRequest, "Invalid external tracker URL", err)
+					return err
+				}
+				config.ExternalTrackerURL = *opts.ExternalTrackerURL
+			}
+			if opts.ExternalTrackerFormat != nil {
+				if len(*opts.ExternalTrackerFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(*opts.ExternalTrackerFormat) {
+					err := fmt.Errorf("External tracker URL format not valid")
+					ctx.Error(http.StatusBadRequest, "Invalid external tracker URL format", err)
+					return err
+				}
+				config.ExternalTrackerFormat = *opts.ExternalTrackerFormat
+			}
+			if opts.ExternalTrackerStyle != nil {
+				config.ExternalTrackerStyle = *opts.ExternalTrackerStyle
+			}
+
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeExternalTracker,
+				Config: config,
+			})
 		} else {
-			config = unit.IssuesConfig()
+			// Default to built-in tracker
+			var config *models.IssuesConfig
+			if unit, err := repo.GetUnit(models.UnitTypeIssues); err != nil {
+				// Unit type doesn't exist so we make a new config file with default values
+				config = &models.IssuesConfig{
+					EnableTimetracker:                true,
+					AllowOnlyContributorsToTrackTime: true,
+					EnableDependencies:               true,
+				}
+			} else {
+				config = unit.IssuesConfig()
+			}
+
+			// Update values if set
+			if opts.EnableTimeTracker != nil {
+				config.EnableTimetracker = *opts.EnableTimeTracker
+			}
+			if opts.LetOnlyContributorsTrackTime != nil {
+				config.AllowOnlyContributorsToTrackTime = *opts.LetOnlyContributorsTrackTime
+			}
+			if opts.EnableIssueDependencies != nil {
+				config.EnableDependencies = *opts.EnableIssueDependencies
+			}
+
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeIssues,
+				Config: config,
+			})
 		}
-		units = append(units, models.RepoUnit{
-			RepoID: repo.ID,
-			Type:   models.UnitTypeIssues,
-			Config: config,
-		})
 	}
 
 	if opts.HasWiki == nil {
@@ -690,16 +741,39 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			units = append(units, *unit)
 		}
 	} else if *opts.HasWiki {
-		// We don't currently allow setting individual wiki settings through the API,
-		// only can enable/disable the wiki, so when enabling the wiki,
-		// we either get the existing config which means it was already enabled,
-		// or create a new config since it doesn't exist.
-		config := &models.UnitConfig{}
-		units = append(units, models.RepoUnit{
-			RepoID: repo.ID,
-			Type:   models.UnitTypeWiki,
-			Config: config,
-		})
+		if opts.ExternalWiki != nil && *opts.ExternalWiki {
+			var config *models.ExternalWikiConfig
+			if unit, err := repo.GetUnit(models.UnitTypeExternalWiki); err != nil {
+				// Unit type doesn't exist so we make a new config file, default empty strings
+				config = &models.ExternalWikiConfig{
+					ExternalWikiURL: "",
+				}
+			} else {
+				config = unit.ExternalWikiConfig()
+			}
+
+			// Update values if set and valid
+			if opts.ExternalWikiURL != nil {
+				if !validation.IsValidExternalURL(*opts.ExternalWikiURL) {
+					err := fmt.Errorf("External wiki URL not valid")
+					ctx.Error(http.StatusBadRequest, "", "Invalid external wiki URL")
+					return err
+				}
+				config.ExternalWikiURL = *opts.ExternalWikiURL
+			}
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeExternalWiki,
+				Config: config,
+			})
+		} else {
+			config := &models.UnitConfig{}
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeWiki,
+				Config: config,
+			})
+		}
 	}
 
 	if opts.HasPullRequests == nil {

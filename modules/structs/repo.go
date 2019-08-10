@@ -42,17 +42,26 @@ type Repository struct {
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	Updated                   time.Time   `json:"updated_at"`
-	Permissions               *Permission `json:"permissions,omitempty"`
-	HasIssues                 bool        `json:"has_issues"`
-	HasWiki                   bool        `json:"has_wiki"`
-	HasPullRequests           bool        `json:"has_pull_requests"`
-	IgnoreWhitespaceConflicts bool        `json:"ignore_whitespace_conflicts"`
-	AllowMerge                bool        `json:"allow_merge_commits"`
-	AllowRebase               bool        `json:"allow_rebase"`
-	AllowRebaseMerge          bool        `json:"allow_rebase_explicit"`
-	AllowSquash               bool        `json:"allow_squash_merge"`
-	AvatarURL                 string      `json:"avatar_url"`
+	Updated                      time.Time   `json:"updated_at"`
+	Permissions                  *Permission `json:"permissions,omitempty"`
+	HasIssues                    bool        `json:"has_issues"`
+	ExternalTracker              bool        `json:"external_tracker"`
+	ExternalTrackerURL           string      `json:"external_tracker_url"`
+	ExternalTrackerFormat        string      `json:"external_tracker_format"`
+	ExternalTrackerStyle         string      `json:"external_tracker_style"`
+	EnableTimeTracker            bool        `json:"enable_time_tracker"`
+	LetOnlyContributorsTrackTime bool        `json:"let_only_contributors_track_time"`
+	EnableIssueDependencies      bool        `json:"enable_issue_dependencies"`
+	HasWiki                      bool        `json:"has_wiki"`
+	ExternalWiki                 bool        `json:"external_wiki"`
+	ExternalWikiURL              string      `json:"external_wiki_url"`
+	HasPullRequests              bool        `json:"has_pull_requests"`
+	IgnoreWhitespaceConflicts    bool        `json:"ignore_whitespace_conflicts"`
+	AllowMerge                   bool        `json:"allow_merge_commits"`
+	AllowRebase                  bool        `json:"allow_rebase"`
+	AllowRebaseMerge             bool        `json:"allow_rebase_explicit"`
+	AllowSquash                  bool        `json:"allow_squash_merge"`
+	AvatarURL                    string      `json:"avatar_url"`
 }
 
 // CreateRepoOption options when creating repository
@@ -93,8 +102,26 @@ type EditRepoOption struct {
 	Private *bool `json:"private,omitempty"`
 	// either `true` to enable issues for this repository or `false` to disable them.
 	HasIssues *bool `json:"has_issues,omitempty"`
+	// either `true` to enable external issue tracker or `false` to disable it.
+	ExternalTracker *bool `json:"external_tracker,omitempty"`
+	// URL of external issue tracker.
+	ExternalTrackerURL *string `json:"external_tracker_url,omitempty"`
+	// External Issue Tracker URL Format. Use the placeholders {user}, {repo} and {index} for the username, repository name and issue index.
+	ExternalTrackerFormat *string `json:"external_tracker_format,omitempty"`
+	// External Issue Tracker Number Format, either `numeric` or `alphanumeric`
+	ExternalTrackerStyle *string `json:"external_tracker_style,omitempty"`
+	// Enable time tracking (Built-in issue tracker)
+	EnableTimeTracker *bool `json:"enable_time_tracker,omitempty"`
+	// Let only contributors track time (Built-in issue tracker)
+	LetOnlyContributorsTrackTime *bool `json:"let_only_contributors_track_time,omitempty"`
+	// Enable dependencies for issues and pull requests (Built-in issue tracker)
+	EnableIssueDependencies *bool `json:"enable_issue_dependencies,omitempty"`
 	// either `true` to enable the wiki for this repository or `false` to disable it.
 	HasWiki *bool `json:"has_wiki,omitempty"`
+	// either `true` to enable external wiki or `false` to disable it.
+	ExternalWiki *bool `json:"external_wiki,omitempty"`
+	// URL of external wiki.
+	ExternalWikiURL *string `json:"external_wiki_url,omitempty"`
 	// sets the default branch for this repository.
 	DefaultBranch *string `json:"default_branch,omitempty"`
 	// either `true` to allow pull requests, or `false` to prevent pull request.
