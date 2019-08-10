@@ -632,6 +632,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository #commits-table thead .sha{width:140px}
 .repository #commits-table thead .shatd{text-align:center}
 .repository #commits-table td.sha .sha.label{margin:0}
+.repository #commits-table td.message{text-overflow:unset}
 .repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n){background-color:rgba(0,0,0,.02)!important}
 .repository #commits-table td.sha .sha.label,.repository #repo-files-table .sha.label{border:1px solid #bbb}
 .repository #commits-table td.sha .sha.label .detail.icon,.repository #repo-files-table .sha.label .detail.icon{background:#fafafa;margin:-6px -10px -4px 0;padding:5px 3px 5px 6px;border-left:1px solid #bbb;border-top-left-radius:0;border-bottom-left-radius:0}
@@ -825,8 +826,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .stats-table .table-cell{display:table-cell}
 .stats-table .table-cell.tiny{height:.5em}
 tbody.commit-list{vertical-align:baseline}
-.commit-list .message-wrapper{overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 24px);display:inline-block;vertical-align:middle}
-.commit-list .message-wrapper .commit-status-link{display:inline-block;vertical-align:middle}
+.commit-list .message-wrapper{overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 50px);display:inline-block;vertical-align:middle}
+.commit-list .commit-status-link{display:inline-block;vertical-align:middle}
 .commit-body{white-space:pre-wrap}
 .git-notes.top{text-align:left}
 .git-notes .commit-body{margin:0}
