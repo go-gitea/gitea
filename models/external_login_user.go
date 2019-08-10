@@ -4,13 +4,32 @@
 
 package models
 
-import "github.com/markbates/goth"
+import (
+	"time"
+
+	"github.com/markbates/goth"
+)
 
 // ExternalLoginUser makes the connecting between some existing user and additional external login sources
 type ExternalLoginUser struct {
-	ExternalID    string `xorm:"pk NOT NULL"`
-	UserID        int64  `xorm:"INDEX NOT NULL"`
-	LoginSourceID int64  `xorm:"pk NOT NULL"`
+	ExternalID        string `xorm:"pk NOT NULL"`
+	UserID            int64  `xorm:"INDEX NOT NULL"`
+	LoginSourceID     int64  `xorm:"pk NOT NULL"`
+	RawData           map[string]interface{}
+	Provider          string `xorm:"index"`
+	Email             string
+	Name              string
+	FirstName         string
+	LastName          string
+	NickName          string
+	Description       string
+	ExternalUserID    string `xorm:"VARCHAR(50) index"`
+	AvatarURL         string
+	Location          string
+	AccessToken       string
+	AccessTokenSecret string
+	RefreshToken      string
+	ExpiresAt         time.Time
 }
 
 // GetExternalLogin checks if a externalID in loginSourceID scope already exists
@@ -71,4 +90,15 @@ func RemoveAccountLink(user *User, loginSourceID int64) (int64, error) {
 func removeAllAccountLinks(e Engine, user *User) error {
 	_, err := e.Delete(&ExternalLoginUser{UserID: user.ID})
 	return err
+}
+
+// GetUserIDByExternalUserID get user id according to provider and userID
+func GetUserIDByExternalUserID(provider string, userID string) (int64, error) {
+	var id int64
+	_, err := x.Select("user_id").Where("provider=?", provider).
+		And("external_user_id=?", userID).Get(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
 }

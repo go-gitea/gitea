@@ -43,6 +43,7 @@ type GiteaLocalUploader struct {
 	issues      sync.Map
 	gitRepo     *git.Repository
 	prHeadCache map[string]struct{}
+	userMap     map[int64]int64 // external user id mapping to user id
 }
 
 // NewGiteaLocalUploader creates an gitea Uploader via gitea API v1
@@ -109,13 +110,15 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	}
 
 	r, err = models.MigrateRepositoryGitData(g.doer, owner, r, structs.MigrateRepoOption{
-		RepoName:    g.repoName,
-		Description: repo.Description,
-		Mirror:      repo.IsMirror,
-		CloneAddr:   remoteAddr,
-		Private:     repo.IsPrivate,
-		Wiki:        opts.Wiki,
-		Releases:    opts.Releases, // if didn't get releases, then sync them from tags
+		RepoName:       g.repoName,
+		Description:    repo.Description,
+		OriginalURL:    repo.OriginalURL,
+		GitServiceType: opts.GitServiceType,
+		Mirror:         repo.IsMirror,
+		CloneAddr:      remoteAddr,
+		Private:        repo.IsPrivate,
+		Wiki:           opts.Wiki,
+		Releases:       opts.Releases, // if didn't get releases, then sync them from tags
 	})
 
 	g.repo = r
@@ -284,20 +287,38 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 
 		var is = models.Issue{
-			RepoID:           g.repo.ID,
-			Repo:             g.repo,
-			Index:            issue.Number,
-			PosterID:         g.doer.ID,
-			OriginalAuthor:   issue.PosterName,
-			OriginalAuthorID: issue.PosterID,
-			Title:            issue.Title,
-			Content:          issue.Content,
-			IsClosed:         issue.State == "closed",
-			IsLocked:         issue.IsLocked,
-			MilestoneID:      milestoneID,
-			Labels:           labels,
-			CreatedUnix:      timeutil.TimeStamp(issue.Created.Unix()),
+			RepoID:      g.repo.ID,
+			Repo:        g.repo,
+			Index:       issue.Number,
+			Title:       issue.Title,
+			Content:     issue.Content,
+			IsClosed:    issue.State == "closed",
+			IsLocked:    issue.IsLocked,
+			MilestoneID: milestoneID,
+			Labels:      labels,
+			CreatedUnix: timeutil.TimeStamp(issue.Created.Unix()),
 		}
+
+		userid, ok := g.userMap[issue.PosterID]
+		if !ok {
+			var err error
+			userid, err = models.GetUserIDByExternalUserID("github", fmt.Sprintf("%v", issue.PosterID))
+			if err != nil {
+				log.Error("GetUserIDByExternalUserID: %v", err)
+			}
+			if userid > 0 {
+				g.userMap[issue.PosterID] = userid
+			}
+		}
+
+		if userid > 0 {
+			is.PosterID = userid
+		} else {
+			is.PosterID = g.doer.ID
+			is.OriginalAuthor = issue.PosterName
+			is.OriginalAuthorID = issue.PosterID
+		}
+
 		if issue.Closed != nil {
 			is.ClosedUnix = timeutil.TimeStamp(issue.Closed.Unix())
 		}
@@ -331,15 +352,34 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			issueID = issueIDStr.(int64)
 		}
 
-		cms = append(cms, &models.Comment{
-			IssueID:          issueID,
-			Type:             models.CommentTypeComment,
-			PosterID:         g.doer.ID,
-			OriginalAuthor:   comment.PosterName,
-			OriginalAuthorID: comment.PosterID,
-			Content:          comment.Content,
-			CreatedUnix:      timeutil.TimeStamp(comment.Created.Unix()),
-		})
+		userid, ok := g.userMap[comment.PosterID]
+		if !ok {
+			var err error
+			userid, err = models.GetUserIDByExternalUserID("github", fmt.Sprintf("%v", comment.PosterID))
+			if err != nil {
+				log.Error("GetUserIDByExternalUserID: %v", err)
+			}
+			if userid > 0 {
+				g.userMap[comment.PosterID] = userid
+			}
+		}
+
+		cm := models.Comment{
+			IssueID:     issueID,
+			Type:        models.CommentTypeComment,
+			Content:     comment.Content,
+			CreatedUnix: timeutil.TimeStamp(comment.Created.Unix()),
+		}
+
+		if userid > 0 {
+			cm.PosterID = userid
+		} else {
+			cm.PosterID = g.doer.ID
+			cm.OriginalAuthor = comment.PosterName
+			cm.OriginalAuthorID = comment.PosterID
+		}
+
+		cms = append(cms, &cm)
 
 		// TODO: Reactions
 	}
@@ -460,6 +500,40 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		head = pr.Head.Ref
 	}
 
+	var issue = models.Issue{
+		RepoID:      g.repo.ID,
+		Repo:        g.repo,
+		Title:       pr.Title,
+		Index:       pr.Number,
+		Content:     pr.Content,
+		MilestoneID: milestoneID,
+		IsPull:      true,
+		IsClosed:    pr.State == "closed",
+		IsLocked:    pr.IsLocked,
+		Labels:      labels,
+		CreatedUnix: timeutil.TimeStamp(pr.Created.Unix()),
+	}
+
+	userid, ok := g.userMap[pr.PosterID]
+	if !ok {
+		var err error
+		userid, err = models.GetUserIDByExternalUserID("github", fmt.Sprintf("%v", pr.PosterID))
+		if err != nil {
+			log.Error("GetUserIDByExternalUserID: %v", err)
+		}
+		if userid > 0 {
+			g.userMap[pr.PosterID] = userid
+		}
+	}
+
+	if userid > 0 {
+		issue.PosterID = userid
+	} else {
+		issue.PosterID = g.doer.ID
+		issue.OriginalAuthor = pr.PosterName
+		issue.OriginalAuthorID = pr.PosterID
+	}
+
 	var pullRequest = models.PullRequest{
 		HeadRepoID:   g.repo.ID,
 		HeadBranch:   head,
@@ -470,22 +544,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		Index:        pr.Number,
 		HasMerged:    pr.Merged,
 
-		Issue: &models.Issue{
-			RepoID:           g.repo.ID,
-			Repo:             g.repo,
-			Title:            pr.Title,
-			Index:            pr.Number,
-			PosterID:         g.doer.ID,
-			OriginalAuthor:   pr.PosterName,
-			OriginalAuthorID: pr.PosterID,
-			Content:          pr.Content,
-			MilestoneID:      milestoneID,
-			IsPull:           true,
-			IsClosed:         pr.State == "closed",
-			IsLocked:         pr.IsLocked,
-			Labels:           labels,
-			CreatedUnix:      timeutil.TimeStamp(pr.Created.Unix()),
-		},
+		Issue: &issue,
 	}
 
 	if pullRequest.Issue.IsClosed && pr.Closed != nil {

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -17,8 +18,10 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/mailer"
@@ -625,6 +628,21 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 				ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
 				ctx.RedirectToFirst(redirectTo)
 				return
+			}
+
+			// update user's migrated comments and issues original id
+			if gothUser.Provider == "github" {
+				ids, err := models.FindMigratedRepositoryIDs(structs.GithubService)
+				if err != nil {
+					log.Error("FindMigratedRepositoryIDs failed: %v", err)
+				} else {
+					for _, id := range ids {
+						userID, _ := strconv.ParseInt(gothUser.UserID, 10, 64)
+						if err = migrations.UpdateGithubMigrations(id, userID, u.ID); err != nil {
+							log.Error("UpdateGithubMigrations repo %v, github user id %v, user id %v failed: %v", id, gothUser.UserID, u.ID, err)
+						}
+					}
+				}
 			}
 
 			ctx.Redirect(setting.AppSubURL + "/")

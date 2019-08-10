@@ -153,6 +153,17 @@ type EditRepoOption struct {
 	Archived *bool `json:"archived,omitempty"`
 }
 
+// GitServiceType
+type GitServiceType int
+
+const (
+	PlainGitService GitServiceType = iota // 0 plain git service
+	GithubService                         // 1 github.com
+	GiteaService                          // 2 gitea service
+	GitlabService                         // 3 gitlab service
+	GogsService                           // 4 gogs service
+)
+
 // MigrateRepoOption options for migrating a repository from an external service
 type MigrateRepoOption struct {
 	// required: true
@@ -166,6 +177,8 @@ type MigrateRepoOption struct {
 	Mirror          bool   `json:"mirror"`
 	Private         bool   `json:"private"`
 	Description     string `json:"description"`
+	OriginalURL     string
+	GitServiceType  GitServiceType
 	Wiki            bool
 	Issues          bool
 	Milestones      bool
