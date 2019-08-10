@@ -352,6 +352,13 @@ func (c *Commit) FileChangedSinceCommit(filename, pastCommit string) (bool, erro
 	return c.repo.FileChangedBetweenCommits(filename, pastCommit, c.ID.String())
 }
 
+// HasFile returns true if the file given exists on this commit
+// This does only mean it's there - it does not mean the file was changed during the commit.
+func (c *Commit) HasFile(filename string) (bool, error) {
+	result, err := c.repo.LsFiles(filename)
+	return result[0] == filename, err
+}
+
 // GetSubModules get all the sub modules of current revision git tree
 func (c *Commit) GetSubModules() (*ObjectCache, error) {
 	if c.submoduleCache != nil {
