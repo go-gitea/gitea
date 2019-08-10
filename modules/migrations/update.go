@@ -13,9 +13,5 @@ func UpdateGithubMigrations(repoID, githubUserID, userID int64) error {
 		return err
 	}
 
-	if err := models.UpdateCommentsMigrations(repoID, githubUserID, userID); err != nil {
-		return err
-	}
-
-	return nil
+	return models.UpdateCommentsMigrations(repoID, githubUserID, userID)
 }

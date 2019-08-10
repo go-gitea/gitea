@@ -153,15 +153,17 @@ type EditRepoOption struct {
 	Archived *bool `json:"archived,omitempty"`
 }
 
-// GitServiceType
+// GitServiceType represents a git service
 type GitServiceType int
 
+// enumerate all GitServiceType
 const (
-	PlainGitService GitServiceType = iota // 0 plain git service
-	GithubService                         // 1 github.com
-	GiteaService                          // 2 gitea service
-	GitlabService                         // 3 gitlab service
-	GogsService                           // 4 gogs service
+	NotMigrated     GitServiceType = iota // 0 not migrated from external sites
+	PlainGitService                       // 1 plain git service
+	GithubService                         // 2 github.com
+	GiteaService                          // 3 gitea service
+	GitlabService                         // 4 gitlab service
+	GogsService                           // 5 gogs service
 )
 
 // MigrateRepoOption options for migrating a repository from an external service

@@ -1023,7 +1023,7 @@ func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 	return fetchCodeComments(x, issue, currentUser)
 }
 
-// UpdateIssuesMigrations updates issues' migrations information
+// UpdateCommentsMigrations updates comments' migrations information
 func UpdateCommentsMigrations(repoID, originalAuthorID, posterID int64) error {
 	_, err := x.Table("comment").
 		Where("issue_id IN (SELECT id FROM issue WHERE repo_id = ?)", repoID).
