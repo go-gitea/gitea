@@ -5,13 +5,7 @@
 package migrations
 
 import (
-	"fmt"
-
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
-
 	"github.com/go-xorm/xorm"
-	"xorm.io/core"
 )
 
 func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
@@ -21,49 +15,8 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 		IsEmpty bool `xorm:"INDEX"`
 	}
 
-	// First remove the index
 	sess := x.NewSession()
 	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	var err error
-	if models.DbCfg.Type == core.POSTGRES || models.DbCfg.Type == core.SQLITE {
-		_, err = sess.Exec("DROP INDEX IF EXISTS IDX_repository_is_bare")
-	} else if models.DbCfg.Type == core.MSSQL {
-		_, err = sess.Exec(`DECLARE @ConstraintName VARCHAR(256)
-		DECLARE @SQL NVARCHAR(256)
-		SELECT @ConstraintName = obj.name FROM sys.columns col LEFT OUTER JOIN sys.objects obj ON obj.object_id = col.default_object_id AND obj.type = 'D' WHERE col.object_id = OBJECT_ID('repository') AND obj.name IS NOT NULL AND col.name = 'is_bare'
-		SET @SQL = N'ALTER TABLE [repository] DROP CONSTRAINT [' + @ConstraintName + N']'
-		EXEC sp_executesql @SQL`)
-		if err != nil {
-			return err
-		}
-	} else if models.DbCfg.Type == core.MYSQL {
-		indexes, err := sess.QueryString(`SHOW INDEX FROM repository WHERE KEY_NAME = 'IDX_repository_is_bare'`)
-		if err != nil {
-			return err
-		}
-
-		if len(indexes) >= 1 {
-			_, err = sess.Exec("DROP INDEX IDX_repository_is_bare ON repository")
-			if err != nil {
-				return fmt.Errorf("Drop index failed: %v", err)
-			}
-		}
-	} else {
-		_, err = sess.Exec("DROP INDEX IDX_repository_is_bare ON repository")
-	}
-
-	if err != nil {
-		return fmt.Errorf("Drop index failed: %v", err)
-	}
-
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -74,20 +27,16 @@ func renameRepoIsBareToIsEmpty(x *xorm.Engine) error {
 	if _, err := sess.Exec("UPDATE repository SET is_empty = is_bare;"); err != nil {
 		return err
 	}
-
-	if models.DbCfg.Type != core.SQLITE {
-		_, err = sess.Exec("ALTER TABLE repository DROP COLUMN is_bare")
-		if err != nil {
-			return fmt.Errorf("Drop column failed: %v", err)
-		}
-	}
-
-	if err = sess.Commit(); err != nil {
+	if err := sess.Commit(); err != nil {
 		return err
 	}
 
-	if models.DbCfg.Type == core.SQLITE {
-		log.Warn("TABLE repository's COLUMN is_bare should be DROP but sqlite is not supported, you could manually do that.")
+	if err := sess.Begin(); err != nil {
+		return err
 	}
-	return nil
+	if err := dropTableColumns(sess, "repository", "is_bare"); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }

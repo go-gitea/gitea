@@ -112,7 +112,7 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 			RepoID:       g.repo.ID,
 			Name:         milestone.Title,
 			Content:      milestone.Description,
-			IsClosed:     milestone.State == "close",
+			IsClosed:     milestone.State == "closed",
 			DeadlineUnix: deadline,
 		}
 		if ms.IsClosed && milestone.Closed != nil {
