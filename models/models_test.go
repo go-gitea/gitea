@@ -21,8 +21,8 @@ func TestDumpDatabase(t *testing.T) {
 	dir, err := ioutil.TempDir(os.TempDir(), "dump")
 	assert.NoError(t, err)
 
-	for _, dbType := range setting.SupportedDatabases {
-		dbType = setting.GetDBTypeByName(dbType)
+	for _, dbName := range setting.SupportedDatabases {
+		dbType := setting.GetDBTypeByName(dbName)
 		assert.NoError(t, DumpDatabase(filepath.Join(dir, dbType+".sql"), dbType))
 	}
 }
