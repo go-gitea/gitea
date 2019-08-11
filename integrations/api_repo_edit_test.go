@@ -233,6 +233,21 @@ func TestAPIRepoEdit(t *testing.T) {
 		assert.Equal(t, *repo1editedOption.ExternalWiki, true)
 		assert.Equal(t, *repo1editedOption.ExternalWikiURL, *repoEditOption.ExternalWikiURL)
 
+		// Do some tests with invalid URL for external tracker and wiki
+		externalURLInvalid := "htp://www.somewebsite.com"
+		externalTrackerFormatInvalid := "http://www.somewebsite.com/{user/{repo}?issue={index}"
+		repoEditOption.ExternalTrackerURL = &externalURLInvalid
+		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
+		resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		repoEditOption.ExternalTrackerURL = &externalURL
+		repoEditOption.ExternalTrackerFormat = &externalTrackerFormatInvalid
+		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
+		resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		repoEditOption.ExternalTrackerFormat = &externalTrackerFormat
+		repoEditOption.ExternalWikiURL = &externalURLInvalid
+		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
+		resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+
 		//Test small repo change through API with issue and wiki option not set; They shall not be touched.
 		*repoEditOption.Description = "small change"
 		repoEditOption.HasIssues = nil
