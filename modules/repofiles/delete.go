@@ -178,10 +178,6 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 		return nil, err
 	}
 
-	if err = repo.GetOwner(); err != nil { //TODO debug if needed anymore
-		return nil, fmt.Errorf("GetOwner: %v", err)
-	}
-
 	commit, err = t.GetCommit(commitHash)
 	if err != nil {
 		return nil, err
