@@ -70,7 +70,7 @@ func TestPullMerge(t *testing.T) {
 
 		hookTasks, err = models.HookTasks(1, 1)
 		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore + 1)
+		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
 }
 
@@ -79,7 +79,7 @@ func TestPullRebase(t *testing.T) {
 		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
-		
+
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -92,7 +92,7 @@ func TestPullRebase(t *testing.T) {
 
 		hookTasks, err = models.HookTasks(1, 1)
 		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore + 1)
+		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
 }
 
@@ -116,7 +116,7 @@ func TestPullRebaseMerge(t *testing.T) {
 
 		hookTasks, err = models.HookTasks(1, 1)
 		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore + 1)
+		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
 }
 
@@ -141,7 +141,7 @@ func TestPullSquash(t *testing.T) {
 
 		hookTasks, err = models.HookTasks(1, 1)
 		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore + 1)
+		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
 }
 
