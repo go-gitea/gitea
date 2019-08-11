@@ -42,7 +42,23 @@ func addProjectsTable(x *xorm.Engine) error {
 		ProjectID int64 `xorm:"INDEX"`
 	}
 
+	type ProjectBoard struct {
+		ID        int64 `xorm:"pk autoincr"`
+		ProjectID int64 `xorm:"INDEX NOT NULL"`
+		Title     string
+
+		// Not really needed but helpful
+		CreatorID int64 `xorm:"NOT NULL"`
+
+		CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	}
+
 	if err := x.Sync(new(Project)); err != nil {
+		return err
+	}
+
+	if err := x.Sync(new(ProjectBoard)); err != nil {
 		return err
 	}
 
