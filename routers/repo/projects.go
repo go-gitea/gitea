@@ -89,6 +89,8 @@ func Projects(ctx *context.Context) {
 // NewProject render creating a project page
 func NewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
+	ctx.Data["ProjectTypes"] = models.GetProjectsConfig()
+
 	ctx.HTML(200, tplProjectsNew)
 }
 

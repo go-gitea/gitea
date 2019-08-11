@@ -12,12 +12,6 @@ import (
 // ProjectType is used to represent a project board type
 type ProjectType uint8
 
-type projectTypes struct {
-	ID          uint8
-	Name        string
-	Translation string
-}
-
 const (
 	// None is a project board type that has no predefined columns
 	None ProjectType = iota
@@ -28,6 +22,20 @@ const (
 	BugTriage
 )
 
+/// ProjectsConfig is used to identify the type of board that is being created
+type ProjectsConfig struct {
+	Type        ProjectType
+	Translation string
+}
+
+func GetProjectsConfig() []ProjectsConfig {
+	return []ProjectsConfig{
+		{None, "repo.projects.type.none"},
+		{BasicKanban, "repo.projects.type.basic_kanban"},
+		{BugTriage, "repo.projects.type.bug_triage"},
+	}
+}
+
 // IsProjectTypeValid checks if the project type is valid
 func IsProjectTypeValid(p ProjectType) bool {
 	switch p {
@@ -36,11 +44,6 @@ func IsProjectTypeValid(p ProjectType) bool {
 	default:
 		return false
 	}
-}
-
-// GetProjectsType returns all available project types known to the system
-func GetProjectsType() []projectTypes {
-	return []projectTypes{{}}
 }
 
 // Project is a kanban board
