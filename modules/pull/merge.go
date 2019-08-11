@@ -292,24 +292,6 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		go models.HookQueue.Add(pr.Issue.Repo.ID)
 	}
 
-	l, err := baseGitRepo.CommitsBetweenIDs(pr.MergedCommitID, pr.MergeBase)
-	if err != nil {
-		log.Error("CommitsBetweenIDs: %v", err)
-		return nil
-	}
-
-	// It is possible that head branch is not fully sync with base branch for merge commits,
-	// so we need to get latest head commit and append merge commit manually
-	// to avoid strange diff commits produced.
-	mergeCommit, err := baseGitRepo.GetBranchCommit(pr.BaseBranch)
-	if err != nil {
-		log.Error("GetBranchCommit: %v", err)
-		return nil
-	}
-	if mergeStyle == models.MergeStyleMerge {
-		l.PushFront(mergeCommit)
-	}
-
 	return nil
 }
 
