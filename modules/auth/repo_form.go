@@ -376,6 +376,7 @@ func (i IssueLockForm) HasValidReason() bool {
 type CreateProjectForm struct {
 	Title   string `binding:"Required;MaxSize(50)"`
 	Content string
+	Type    models.ProjectType
 }
 
 //    _____  .__.__                   __

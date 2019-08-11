@@ -22,12 +22,13 @@ const (
 	BugTriage
 )
 
-/// ProjectsConfig is used to identify the type of board that is being created
+// ProjectsConfig is used to identify the type of board that is being created
 type ProjectsConfig struct {
 	Type        ProjectType
 	Translation string
 }
 
+// GetProjectsConfig retrieves the types of configurations projects could have
 func GetProjectsConfig() []ProjectsConfig {
 	return []ProjectsConfig{
 		{None, "repo.projects.type.none"},
@@ -57,6 +58,7 @@ type Project struct {
 	NumIssues       int
 	NumClosedIssues int
 	NumOpenIssues   int `xorm:"-"`
+	Type            ProjectType
 
 	RenderedContent string `xorm:"-"`
 
@@ -97,6 +99,9 @@ func GetProjects(repoID int64, page int, isClosed bool, sortType string) ([]*Pro
 
 // NewProject creates a new Project
 func NewProject(p *Project) error {
+	if !IsProjectTypeValid(p.Type) {
+		p.Type = None
+	}
 
 	sess := x.NewSession()
 	defer sess.Close()

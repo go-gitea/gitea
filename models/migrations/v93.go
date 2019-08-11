@@ -12,6 +12,8 @@ import (
 
 func addProjectsTable(x *xorm.Engine) error {
 
+	type ProjectType uint8
+
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -28,6 +30,8 @@ func addProjectsTable(x *xorm.Engine) error {
 		IsClosed        bool   `xorm:"INDEX"`
 		NumIssues       int
 		NumClosedIssues int
+
+		Type ProjectType
 
 		ClosedDateUnix util.TimeStamp
 		CreatedUnix    util.TimeStamp `xorm:"INDEX created"`
