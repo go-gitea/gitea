@@ -16,8 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/ethantkoenig/rupture"
-	"golang.org/x/net/html/charset"
-	"golang.org/x/text/transform"
 )
 
 // RepoIndexerStatus status of a repo's entry in the repo indexer
@@ -217,7 +215,7 @@ func addUpdate(update fileUpdate, repo *Repository, batch rupture.FlushingBatch)
 		Op:       indexer.RepoIndexerOpUpdate,
 		Data: &indexer.RepoIndexerData{
 			RepoID:  repo.ID,
-			Content: string(toUTF8DropErrors(fileContents)),
+			Content: string(base.ToUTF8DropErrors(fileContents)),
 		},
 	}
 	return indexerUpdate.AddToFlushingBatch(batch)
@@ -362,37 +360,4 @@ func addOperationToQueue(op repoIndexerOperation) {
 			repoIndexerOperationQueue <- op
 		}()
 	}
-}
-
-// toUTF8DropErrors makes sure the return string is valid utf-8; attempts conversion if possible
-func toUTF8DropErrors(content []byte) []byte {
-	charsetLabel, err := base.DetectEncoding(content)
-	if err != nil || charsetLabel == "UTF-8" {
-		return base.RemoveBOMIfPresent(content)
-	}
-
-	encoding, _ := charset.Lookup(charsetLabel)
-	if encoding == nil {
-		return content
-	}
-
-	// We ignore any non-decodable parts from the file.
-	// Some parts might be lost
-	var decoded []byte
-	decoder := encoding.NewDecoder()
-	idx := 0
-	for {
-		result, n, err := transform.Bytes(decoder, content[idx:])
-		decoded = append(decoded, result...)
-		if err == nil {
-			break
-		}
-		decoded = append(decoded, ' ')
-		idx = idx + n + 1
-		if idx >= len(content) {
-			break
-		}
-	}
-
-	return base.RemoveBOMIfPresent(decoded)
 }

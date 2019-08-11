@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 )
 
 const (
@@ -251,7 +250,7 @@ func Diff(ctx *context.Context) {
 	note := &git.Note{}
 	err = git.GetNote(ctx.Repo.GitRepo, commitID, note)
 	if err == nil {
-		ctx.Data["Note"] = string(templates.ToUTF8WithFallback(note.Message))
+		ctx.Data["Note"] = string(base.ToUTF8WithFallback(note.Message))
 		ctx.Data["NoteCommit"] = note.Commit
 		ctx.Data["NoteAuthor"] = models.ValidateCommitWithEmail(note.Commit)
 	}
