@@ -19,16 +19,17 @@ const (
 var (
 	// Indexer settings
 	Indexer = struct {
-		IssueType             string
-		IssuePath             string
-		RepoIndexerEnabled    bool
-		RepoPath              string
-		UpdateQueueLength     int
-		MaxIndexerFileSize    int64
-		IssueQueueType        string
-		IssueQueueDir         string
-		IssueQueueConnStr     string
-		IssueQueueBatchNumber int
+		IssueType              string
+		IssuePath              string
+		RepoIndexerEnabled     bool
+		RepoPath               string
+		UpdateQueueLength      int
+		MaxIndexerFileSize     int64
+		RepoIndexerDeduplicate bool
+		IssueQueueType         string
+		IssueQueueDir          string
+		IssueQueueConnStr      string
+		IssueQueueBatchNumber  int
 	}{
 		IssueType:             "bleve",
 		IssuePath:             "indexers/issues.bleve",
@@ -51,6 +52,7 @@ func newIndexerService() {
 	if !filepath.IsAbs(Indexer.RepoPath) {
 		Indexer.RepoPath = path.Join(AppWorkPath, Indexer.RepoPath)
 	}
+	Indexer.RepoIndexerDeduplicate = sec.Key("REPO_INDEXER_DEDUPLICATE").MustBool(true)
 	Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
 	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
 	Indexer.IssueQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(LevelQueueType)

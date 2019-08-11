@@ -103,6 +103,10 @@ func createRepoIndexer(path string, latestVersion int) error {
 	textFieldMapping.IncludeInAll = false
 	docMapping.AddFieldMappingsAt("Content", textFieldMapping)
 
+	tokenFilters := []string{unicodeNormalizeName, lowercase.Name}
+	if setting.Indexer.RepoIndexerDeduplicate {
+		tokenFilters = append(tokenFilters, unique.Name)
+	}
 	mapping := bleve.NewIndexMapping()
 	if err = addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return err
@@ -110,7 +114,7 @@ func createRepoIndexer(path string, latestVersion int) error {
 		"type":          custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     unicode.Name,
-		"token_filters": []string{unicodeNormalizeName, lowercase.Name, unique.Name},
+		"token_filters": tokenFilters,
 	}); err != nil {
 		return err
 	}

@@ -180,6 +180,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
+- `REPO_INDEXER_DEDUPLICATE`: **true** Deduplicate terms from the index, reducing the index size while limiting the search capabilities.
 
 ## Security (`security`)
 
