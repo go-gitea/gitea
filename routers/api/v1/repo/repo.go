@@ -678,7 +678,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			if opts.ExternalTrackerURL != nil {
 				if !validation.IsValidExternalURL(*opts.ExternalTrackerURL) {
 					err := fmt.Errorf("External tracker URL not valid")
-					ctx.Error(http.StatusBadRequest, "Invalid external tracker URL", err)
+					ctx.Error(http.StatusUnprocessableEntity, "Invalid external tracker URL", err)
 					return err
 				}
 				config.ExternalTrackerURL = *opts.ExternalTrackerURL
@@ -686,7 +686,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			if opts.ExternalTrackerFormat != nil {
 				if len(*opts.ExternalTrackerFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(*opts.ExternalTrackerFormat) {
 					err := fmt.Errorf("External tracker URL format not valid")
-					ctx.Error(http.StatusBadRequest, "Invalid external tracker URL format", err)
+					ctx.Error(http.StatusUnprocessableEntity, "Invalid external tracker URL format", err)
 					return err
 				}
 				config.ExternalTrackerFormat = *opts.ExternalTrackerFormat
@@ -756,7 +756,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			if opts.ExternalWikiURL != nil {
 				if !validation.IsValidExternalURL(*opts.ExternalWikiURL) {
 					err := fmt.Errorf("External wiki URL not valid")
-					ctx.Error(http.StatusBadRequest, "", "Invalid external wiki URL")
+					ctx.Error(http.StatusUnprocessableEntity, "", "Invalid external wiki URL")
 					return err
 				}
 				config.ExternalWikiURL = *opts.ExternalWikiURL
