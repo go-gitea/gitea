@@ -310,21 +310,6 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		l.PushFront(mergeCommit)
 	}
 
-	p := &api.PushPayload{
-		Ref:        git.BranchPrefix + pr.BaseBranch,
-		Before:     pr.MergeBase,
-		After:      mergeCommit.ID.String(),
-		CompareURL: setting.AppURL + pr.BaseRepo.ComposeCompareURL(pr.MergeBase, pr.MergedCommitID),
-		Commits:    models.ListToPushCommits(l).ToAPIPayloadCommits(pr.BaseRepo.HTMLURL()),
-		Repo:       pr.BaseRepo.APIFormat(mode),
-		Pusher:     pr.HeadRepo.MustOwner().APIFormat(),
-		Sender:     doer.APIFormat(),
-	}
-	if err = models.PrepareWebhooks(pr.BaseRepo, models.HookEventPush, p); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go models.HookQueue.Add(pr.BaseRepo.ID)
-	}
 	return nil
 }
 
