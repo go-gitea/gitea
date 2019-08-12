@@ -203,29 +203,24 @@ func (repo *Repository) commitsByRange(id SHA1, page int) (*list.List, error) {
 
 func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) (*list.List, error) {
 	cmd := NewCommand("log", id.String(), "-100", "-i", prettyLogFormat)
-	args := []string{"log", "-i", prettyLogFormat}
+	var args []string
 	if len(opts.Authors) > 0 {
 		for _, v := range opts.Authors {
-			cmd.AddArguments("--author=" + v)
 			args = append(args, "--author="+v)
 		}
 	}
 	if len(opts.Committers) > 0 {
 		for _, v := range opts.Committers {
-			cmd.AddArguments("--committer=" + v)
 			args = append(args, "--committer="+v)
 		}
 	}
 	if len(opts.After) > 0 {
-		cmd.AddArguments("--after=" + opts.After)
 		args = append(args, "--after="+opts.After)
 	}
 	if len(opts.Before) > 0 {
-		cmd.AddArguments("--before=" + opts.Before)
 		args = append(args, "--before="+opts.Before)
 	}
 	if opts.All {
-		cmd.AddArguments("--all")
 		args = append(args, "--all")
 	}
 	if len(opts.Keywords) > 0 {
@@ -233,15 +228,20 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) (*list
 			cmd.AddArguments("--grep=" + v)
 		}
 	}
+	cmd.AddArguments(args...)
 	stdout, err := cmd.RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
+	if len(stdout) != 0 {
+		stdout = append(stdout, '\n')
+	}
 	if len(opts.Keywords) > 0 {
 		for _, v := range opts.Keywords {
 			if len(v) >= 4 {
-				hashCmd := NewCommand(args...)
-				hashCmd.AddArguments("-1", v)
+				hashCmd := NewCommand("log", "-1", prettyLogFormat)
+				hashCmd.AddArguments(args...)
+				hashCmd.AddArguments(v)
 				hashMatching, err := hashCmd.RunInDirBytes(repo.Path)
 				if err != nil || bytes.Contains(stdout, hashMatching) {
 					continue
