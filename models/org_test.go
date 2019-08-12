@@ -172,7 +172,7 @@ func TestUser_RemoveOrgRepo(t *testing.T) {
 		&Repository{ID: repo.ID})
 }
 
-func TestCreateOrganization(t *testing.T) {
+func TestCreateOrganizationSuccessful(t *testing.T) {
 	// successful creation of org
 	assert.NoError(t, PrepareTestDatabase())
 
@@ -192,7 +192,7 @@ func TestCreateOrganization(t *testing.T) {
 	CheckConsistencyFor(t, &User{}, &Team{})
 }
 
-func TestCreateOrganization2(t *testing.T) {
+func TestCreateOrganizationUnauthorized(t *testing.T) {
 	// unauthorized creation of org
 	assert.NoError(t, PrepareTestDatabase())
 
@@ -210,7 +210,7 @@ func TestCreateOrganization2(t *testing.T) {
 	CheckConsistencyFor(t, &User{}, &Team{})
 }
 
-func TestCreateOrganization3(t *testing.T) {
+func TestCreateOrganizationExisting(t *testing.T) {
 	// create org with same name as existent org
 	assert.NoError(t, PrepareTestDatabase())
 
@@ -223,7 +223,7 @@ func TestCreateOrganization3(t *testing.T) {
 	CheckConsistencyFor(t, &User{}, &Team{})
 }
 
-func TestCreateOrganization4(t *testing.T) {
+func TestCreateOrganizationInvalidName(t *testing.T) {
 	// create org with unusable name
 	assert.NoError(t, PrepareTestDatabase())
 

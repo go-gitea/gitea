@@ -353,7 +353,7 @@ func TestOrgSettingsCreateAndDelete(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusBadRequest)
 
 	//Forbidden
-	session = loginUser(t, "user2")
+	session = loginUser(t, "user5")
 	req = NewRequest(t, "GET", "/org/create")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
