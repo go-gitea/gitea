@@ -156,7 +156,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Database (`database`)
 
 - `DB_TYPE`: **mysql**: The database type in use \[mysql, postgres, mssql, sqlite3\].
-- `HOST`: **127.0.0.1:3306**: Database host address and port.
+- `HOST`: **127.0.0.1:3306**: Database host address and port or absolute path for unix socket \[mysql, postgres\] (ex: /var/run/mysqld/mysqld.sock).
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
 - `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
