@@ -665,11 +665,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			var config *models.ExternalTrackerConfig
 			if unit, err := repo.GetUnit(models.UnitTypeExternalTracker); err != nil {
 				// Unit type doesn't exist so we make a new config file, default empty strings
-				config = &models.ExternalTrackerConfig{
-					ExternalTrackerURL:    "",
-					ExternalTrackerFormat: "",
-					ExternalTrackerStyle:  "",
-				}
+				config = &models.ExternalTrackerConfig{}
 			} else {
 				config = unit.ExternalTrackerConfig()
 			}
@@ -745,9 +741,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			var config *models.ExternalWikiConfig
 			if unit, err := repo.GetUnit(models.UnitTypeExternalWiki); err != nil {
 				// Unit type doesn't exist so we make a new config file, default empty strings
-				config = &models.ExternalWikiConfig{
-					ExternalWikiURL: "",
-				}
+				config = &models.ExternalWikiConfig{}
 			} else {
 				config = unit.ExternalWikiConfig()
 			}
