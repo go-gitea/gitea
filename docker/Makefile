@@ -21,3 +21,8 @@ docker-test:
 .PHONY: docker-test-sqlite
 docker-test-sqlite:
 	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea webhippie/golang:edge make clean generate build test-sqlite
+
+
+.PHONY: docker-test-sqlite\#%
+docker-test-sqlite\#%:
+	docker run -ti --rm -v $(CURDIR):/srv/app/src/code.gitea.io/gitea -w /srv/app/src/code.gitea.io/gitea webhippie/golang:edge make clean generate build test-sqlite\#$*

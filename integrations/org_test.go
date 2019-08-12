@@ -234,22 +234,27 @@ func TestOrgSettingsHooksAdd(t *testing.T) {
 			req := NewRequest(t, "GET", "/org/"+te.Repo+"/settings/hooks/"+te.Type+"/new")
 			resp := session.MakeRequest(t, req, te.GetResult)
 
-			//t.Logf("debug: %s", resp.Body)
 			htmlDoc := NewHTMLParser(t, resp.Body)
+			fmt.Printf("DEBUG: %s", htmlDoc.doc.Find("body").Text())
 			sel := htmlDoc.doc.Find("a.dont-break-out")
 			assert.EqualValues(t, te.HookCountBefore, len(sel.Nodes))
 
 			te.HookData["_csrf"] = GetCSRF(t, session, "/org/"+te.Repo+"/settings/hooks/"+te.Type+"/new")
 			req = NewRequestWithValues(t, "POST", "/org/"+te.Repo+"/settings/hooks/"+te.Type+"/new", te.HookData)
-			session.MakeRequest(t, req, te.PostResult)
+			resp = session.MakeRequest(t, req, te.PostResult)
+			fmt.Printf("DEBUG: %s", resp.Body)
 
 			req = NewRequest(t, "GET", fmt.Sprintf("/org/%s/settings/hooks", te.Repo))
 			resp = session.MakeRequest(t, req, te.GetResult)
-			session.MakeRequest(t, req, te.GetResult)
-			//t.Logf("debug: %s", resp.Body)
+			
 			htmlDoc = NewHTMLParser(t, resp.Body)
+			fmt.Printf("DEBUG: %s", htmlDoc.doc.Find("body").Text())
 			sel = htmlDoc.doc.Find("a.delete-button")
-			assert.EqualValues(t, te.HookCountBefore+1, len(sel.Nodes))
+			fmt.Printf("DEBUG: %v %d %d %d\n", sel.Nodes, te.HookCountBefore, te.HookCountBefore+1, len(sel.Nodes))
+			if len(sel.Nodes) == 0 {
+				fmt.Printf("DEBUG: %s", resp.Body)
+			}
+			assert.Equal(t, te.HookCountBefore+1, len(sel.Nodes))
 			hookEl := sel.Nodes[len(sel.Nodes)-1]
 			hookID := "0"
 			for _, a := range hookEl.Attr {
