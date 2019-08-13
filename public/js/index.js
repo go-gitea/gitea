@@ -797,12 +797,12 @@ function initRepository() {
             return false;
         };
 
-        var changeBranchSelect = function () {
-            var selectionTextField = $('#pull-target-branch');
+        const changeBranchSelect = function () {
+            const selectionTextField = $('#pull-target-branch');
 
-            var baseName = selectionTextField.data('basename');
-            var branchNameNew = $(this).data('branch');
-            var branchNameOld = selectionTextField.data('branch');
+            const baseName = selectionTextField.data('basename');
+            const branchNameNew = $(this).data('branch');
+            const branchNameOld = selectionTextField.data('branch');
 
             // Replace branch name to keep translation from HTML template
             selectionTextField.html(selectionTextField.html().replace(baseName + ':' + branchNameOld, baseName + ':' + branchNameNew));
@@ -814,8 +814,8 @@ function initRepository() {
         $('#cancel-edit-title').click(editTitleToggle);
         $('#save-edit-title').click(editTitleToggle).click(function () {
 
-            var pullrequest_targetbranch_change = function(update_url) {
-                var target_branch = $('#pull-target-branch').data('branch');
+            const pullrequest_targetbranch_change = function(update_url) {
+                const target_branch = $('#pull-target-branch').data('branch');
                 if (target_branch === $('#branch_target').text()) {
                     $editInput.val($issueTitle.text());
                     return false;
@@ -830,7 +830,7 @@ function initRepository() {
                     });
             };
 
-            var pullrequest_target_update_url = $(this).data('target-update-url');
+            const pullrequest_target_update_url = $(this).data('target-update-url');
             if ($editInput.val().length === 0 ||
                 $editInput.val() === $issueTitle.text()) {
                 $editInput.val($issueTitle.text());
