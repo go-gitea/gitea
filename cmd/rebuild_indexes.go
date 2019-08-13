@@ -17,8 +17,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-type rebuildStepFunc func(repoID int64) (bool, error)
-
 // CmdRebuildIndexes represents the available rebuild-indexes sub-command
 var CmdRebuildIndexes = cli.Command{
 	Name:        "rebuild-indexes",
