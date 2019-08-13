@@ -52,9 +52,7 @@ func TestToUTF8WithErr(t *testing.T) {
 }
 
 func TestToUTF8WithFallback(t *testing.T) {
-	var res []byte
-
-	res = ToUTF8WithFallback([]byte{0x41, 0x42, 0x43})
+	res := ToUTF8WithFallback([]byte{0x41, 0x42, 0x43})
 	assert.Equal(t, []byte("ABC"), res)
 
 	res = ToUTF8WithFallback([]byte{0xc3, 0xa1, 0xc3, 0xa9, 0xc3, 0xad, 0xc3, 0xb3, 0xc3, 0xba})
@@ -85,9 +83,7 @@ func TestToUTF8WithFallback(t *testing.T) {
 }
 
 func TestToUTF8(t *testing.T) {
-	var res string
-
-	res = ToUTF8("ABC")
+	res := ToUTF8("ABC")
 	assert.Equal(t, "ABC", res)
 
 	res = ToUTF8("áéíóú")
@@ -118,9 +114,7 @@ func TestToUTF8(t *testing.T) {
 }
 
 func TestToUTF8DropErrors(t *testing.T) {
-	var res []byte
-
-	res = ToUTF8DropErrors([]byte{0x41, 0x42, 0x43})
+	res := ToUTF8DropErrors([]byte{0x41, 0x42, 0x43})
 	assert.Equal(t, []byte("ABC"), res)
 
 	res = ToUTF8DropErrors([]byte{0xc3, 0xa1, 0xc3, 0xa9, 0xc3, 0xad, 0xc3, 0xb3, 0xc3, 0xba})
