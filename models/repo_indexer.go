@@ -370,7 +370,8 @@ func addOperationToQueue(op repoIndexerOperation) {
 
 func rebuildRepoIndex() error {
 	// Make sure no other build is currently running
-	rebuildLock.Lock(); defer rebuildLock.Unlock()
+	rebuildLock.Lock()
+	defer rebuildLock.Unlock()
 	if err := indexer.DropRepoIndex(); err != nil {
 		return err
 	}
