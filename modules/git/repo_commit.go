@@ -202,8 +202,8 @@ func (repo *Repository) commitsByRange(id SHA1, page int) (*list.List, error) {
 }
 
 func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) (*list.List, error) {
-	cmd := NewCommand("log", id.String(), "-100", "-i", prettyLogFormat)
-	var args []string
+	cmd := NewCommand("log", id.String(), "-100", prettyLogFormat)
+	args := []string{"-i"}
 	if len(opts.Authors) > 0 {
 		for _, v := range opts.Authors {
 			args = append(args, "--author="+v)
@@ -251,6 +251,7 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) (*list
 			}
 		}
 	}
+
 	return repo.parsePrettyFormatLogToList(bytes.TrimSuffix(stdout, []byte{'\n'}))
 }
 
