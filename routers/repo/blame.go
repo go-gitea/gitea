@@ -131,14 +131,14 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["FileSize"] = blob.Size()
 	ctx.Data["FileName"] = blob.Name()
 
-	blameReader, err := models.CreateBlameReader(models.RepoPath(userName, repoName), commitID, fileName)
+	blameReader, err := git.CreateBlameReader(models.RepoPath(userName, repoName), commitID, fileName)
 	if err != nil {
 		ctx.NotFound("CreateBlameReader", err)
 		return
 	}
 	defer blameReader.Close()
 
-	blameParts := make([]models.BlamePart, 0)
+	blameParts := make([]git.BlamePart, 0)
 
 	for {
 		blamePart, err := blameReader.NextPart()
@@ -189,10 +189,10 @@ func RefBlame(ctx *context.Context) {
 	ctx.HTML(200, tplBlame)
 }
 
-func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitNames map[string]models.UserCommit) {
+func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]models.UserCommit) {
 	repoLink := ctx.Repo.RepoLink
 
-	var lines = make([]string, 0, 0)
+	var lines = make([]string, 0)
 
 	var commitInfo bytes.Buffer
 	var lineNumbers bytes.Buffer
@@ -236,7 +236,7 @@ func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitName
 
 			//Code line
 			line = gotemplate.HTMLEscapeString(line)
-			if i != len(lines) {
+			if i != len(lines)-1 {
 				line += "\n"
 			}
 			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {

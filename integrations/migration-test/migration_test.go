@@ -13,6 +13,7 @@ import (
 	"path"
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/integrations"
@@ -54,21 +55,6 @@ func initMigrationTest(t *testing.T) {
 	setting.CheckLFSVersion()
 	models.LoadConfigs()
 	setting.NewLogServices(true)
-}
-
-func getDialect() string {
-	dialect := "sqlite"
-	switch {
-	case setting.UseSQLite3:
-		dialect = "sqlite"
-	case setting.UseMySQL:
-		dialect = "mysql"
-	case setting.UsePostgreSQL:
-		dialect = "pgsql"
-	case setting.UseMSSQL:
-		dialect = "mssql"
-	}
-	return dialect
 }
 
 func availableVersions() ([]string, error) {
@@ -120,8 +106,7 @@ func readSQLFromFile(version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	return string(bytes), nil
+	return string(base.RemoveBOMIfPresent(bytes)), nil
 }
 
 func restoreOldDB(t *testing.T, version string) bool {
@@ -196,14 +181,22 @@ func restoreOldDB(t *testing.T, version string) bool {
 		assert.NoError(t, err)
 		defer db.Close()
 
-		_, err = db.Exec("DROP DATABASE IF EXISTS gitea")
+		_, err = db.Exec("DROP DATABASE IF EXISTS [gitea]")
 		assert.NoError(t, err)
 
-		_, err = db.Exec("CREATE DATABASE gitea")
-		assert.NoError(t, err)
-
-		_, err = db.Exec(data)
-		assert.NoError(t, err)
+		statements := strings.Split(data, "\nGO\n")
+		for _, statement := range statements {
+			if len(statement) > 5 && statement[:5] == "USE [" {
+				dbname := statement[5 : len(statement)-1]
+				db.Close()
+				db, err = sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
+					host, port, dbname, models.DbCfg.User, models.DbCfg.Passwd))
+				assert.NoError(t, err)
+				defer db.Close()
+			}
+			_, err = db.Exec(statement)
+			assert.NoError(t, err, "Failure whilst running: %s\nError: %v", statement, err)
+		}
 		db.Close()
 	}
 	return true

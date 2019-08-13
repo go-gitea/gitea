@@ -57,8 +57,9 @@ func (repo *Repository) updateIndexerStatus(sha string) error {
 }
 
 type repoIndexerOperation struct {
-	repo    *Repository
-	deleted bool
+	repo     *Repository
+	deleted  bool
+	watchers []chan<- error
 }
 
 var repoIndexerOperationQueue chan repoIndexerOperation
@@ -198,7 +199,7 @@ func addUpdate(update fileUpdate, repo *Repository, batch rupture.FlushingBatch)
 	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
 		return fmt.Errorf("Misformatted git cat-file output: %v", err)
 	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
-		return nil
+		return addDelete(update.Filename, repo, batch)
 	}
 
 	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
@@ -230,20 +231,28 @@ func addDelete(filename string, repo *Repository, batch rupture.FlushingBatch) e
 	return indexerUpdate.AddToFlushingBatch(batch)
 }
 
+func isIndexable(entry *git.TreeEntry) bool {
+	return entry.IsRegular() || entry.IsExecutable()
+}
+
 // parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
 func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
 	entries, err := git.ParseTreeEntries(stdout)
 	if err != nil {
 		return nil, err
 	}
+	var idxCount = 0
 	updates := make([]fileUpdate, len(entries))
-	for i, entry := range entries {
-		updates[i] = fileUpdate{
-			Filename: entry.Name(),
-			BlobSha:  entry.ID.String(),
+	for _, entry := range entries {
+		if isIndexable(entry) {
+			updates[idxCount] = fileUpdate{
+				Filename: entry.Name(),
+				BlobSha:  entry.ID.String(),
+			}
+			idxCount++
 		}
 	}
-	return updates, nil
+	return updates[:idxCount], nil
 }
 
 // genesisChanges get changes to add repo to the indexer for the first time
@@ -312,26 +321,30 @@ func nonGenesisChanges(repo *Repository, revision string) (*repoChanges, error) 
 func processRepoIndexerOperationQueue() {
 	for {
 		op := <-repoIndexerOperationQueue
+		var err error
 		if op.deleted {
-			if err := indexer.DeleteRepoFromIndexer(op.repo.ID); err != nil {
+			if err = indexer.DeleteRepoFromIndexer(op.repo.ID); err != nil {
 				log.Error("DeleteRepoFromIndexer: %v", err)
 			}
 		} else {
-			if err := updateRepoIndexer(op.repo); err != nil {
+			if err = updateRepoIndexer(op.repo); err != nil {
 				log.Error("updateRepoIndexer: %v", err)
 			}
+		}
+		for _, watcher := range op.watchers {
+			watcher <- err
 		}
 	}
 }
 
 // DeleteRepoFromIndexer remove all of a repository's entries from the indexer
-func DeleteRepoFromIndexer(repo *Repository) {
-	addOperationToQueue(repoIndexerOperation{repo: repo, deleted: true})
+func DeleteRepoFromIndexer(repo *Repository, watchers ...chan<- error) {
+	addOperationToQueue(repoIndexerOperation{repo: repo, deleted: true, watchers: watchers})
 }
 
 // UpdateRepoIndexer update a repository's entries in the indexer
-func UpdateRepoIndexer(repo *Repository) {
-	addOperationToQueue(repoIndexerOperation{repo: repo, deleted: false})
+func UpdateRepoIndexer(repo *Repository, watchers ...chan<- error) {
+	addOperationToQueue(repoIndexerOperation{repo: repo, deleted: false, watchers: watchers})
 }
 
 func addOperationToQueue(op repoIndexerOperation) {

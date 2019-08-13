@@ -6,7 +6,7 @@
 package org
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -189,7 +189,7 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 		var units = make([]*models.TeamUnit, 0, len(form.Units))
 		for _, tp := range unitTypes {
 			units = append(units, &models.TeamUnit{
-				OrgID: ctx.Org.Organization.ID,
+				OrgID: ctx.Org.Team.OrgID,
 				Type:  tp,
 			})
 		}
@@ -257,7 +257,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	}
 	members := make([]*api.User, len(team.Members))
 	for i, member := range team.Members {
-		members[i] = member.APIFormat()
+		members[i] = convert.ToUser(member, ctx.IsSigned, ctx.User.IsAdmin)
 	}
 	ctx.JSON(200, members)
 }
@@ -288,7 +288,7 @@ func GetTeamMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	ctx.JSON(200, u.APIFormat())
+	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
 // AddTeamMember api for add a member to a team

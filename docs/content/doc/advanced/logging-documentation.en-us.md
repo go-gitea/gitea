@@ -27,7 +27,6 @@ log groups:
 * The Router logger
 * The Access logger
 * The XORM logger
-* A logger called the `GitLogger` which is used during hooks.
 
 There is also the go log logger.
 
@@ -66,7 +65,7 @@ multiple subloggers that will log to files.
 
 By default Macaron will log to its own go `log` instance. This writes
 to `os.Stdout`. You can redirect this log to a Gitea configurable logger
-through setting the `ENABLE_MACARON_REDIRECT` setting in the `[log]`
+through setting the `REDIRECT_MACARON_LOG` setting in the `[log]`
 section which you can configure the outputs of by setting the `MACARON`
 value in the `[log]` section of the configuration. `MACARON` defaults
 to `file` if unset.
@@ -89,7 +88,7 @@ log using the value: `MACARON = ,`
 
 There are two types of Router log. By default Macaron send its own
 router log which will be directed to Macaron's go `log`, however if you
-`ENABLE_MACARON_REDIRECT` you will enable Gitea's router log. You can
+`REDIRECT_MACARON_LOG` you will enable Gitea's router log. You can
 disable both types of Router log by setting `DISABLE_ROUTER_LOG`.
 
 If you enable the redirect, you can configure the outputs of this
@@ -180,21 +179,6 @@ which will not be inherited from the `[log]` or relevant
 * `EXPRESSION` will default to `""`
 * `PREFIX` will default to `""`
 
-### The Hook and Serv "GitLoggers"
-
-These are less well defined loggers. Essentially these should only be
-used within Gitea's subsystems and cannot be configured at present.
-
-They will write log files in:
-
-* `%(ROOT_PATH)/hooks/pre-receive.log`
-* `%(ROOT_PATH)/hooks/update.log`
-* `%(ROOT_PATH)/hooks/post-receive.log`
-* `%(ROOT_PATH)/serv.log`
-* `%(ROOT_PATH)/http.log`
-
-In the future these logs may be rationalised.
-
 ## Log outputs
 
 Gitea provides 4 possible log outputs:
@@ -213,7 +197,7 @@ from `[log.sublogger]`.
 a stacktrace. This value is inherited.
 * `MODE` is the mode of the log output. It will default to the sublogger
 name. Thus `[log.console.macaron]` will default to `MODE = console`.
-* `COLORIZE` will default to `true` for `file` and `console` as
+* `COLORIZE` will default to `true` for `console` as
 described, otherwise it will default to `false`.
 
 ### Non-inherited default values
@@ -274,7 +258,6 @@ Other values:
 * `MAX_SIZE_SHIFT`: **28**: Maximum size shift of a single file, 28 represents 256Mb.
 * `DAILY_ROTATE`: **true**: Rotate logs daily.
 * `MAX_DAYS`: **7**: Delete the log file after n days
-* NB: `COLORIZE`: will default to `true` if not on windows.
 * `COMPRESS`: **true**: Compress old log files by default with gzip
 * `COMPRESSION_LEVEL`: **-1**: Compression level
 
@@ -362,6 +345,17 @@ also set the `resetBytes` to the cached `resetBytes`.
 The `colorBytes` and `resetBytes` are not exported to prevent
 accidental overwriting of internal values.
 
+## ColorFormat & ColorFormatted
+
+Structs may implement the `log.ColorFormatted` interface by implementing the `ColorFormat(fmt.State)` function.
+
+If a `log.ColorFormatted` struct is logged with `%-v` format, its `ColorFormat` will be used instead of the usual `%v`. The full `fmt.State` will be passed to allow implementers to look at additional flags.
+
+In order to help implementers provide `ColorFormat` methods. There is a
+`log.ColorFprintf(...)` function in the log module that will wrap values in `log.ColoredValue` and recognise `%-v`.
+
+In general it is recommended not to make the results of this function too verbose to help increase its versatility. Usually this should simply be an `ID`:`Name`. If you wish to make a more verbose result, it is recommended to use `%-+v` as your marker.
+
 ## Log Spoofing protection
 
 In order to protect the logs from being spoofed with cleverly
@@ -392,5 +386,5 @@ func newNewoneLogService() {
 }
 ```
 
-You should then add `newOneLogService` to `NewServices()` in 
+You should then add `newOneLogService` to `NewServices()` in
 `modules/setting/setting.go`

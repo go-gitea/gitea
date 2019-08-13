@@ -12,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // SlackMeta contains the slack metadata
@@ -120,8 +120,8 @@ func getSlackDeletePayload(p *api.DeletePayload, slack *SlackMeta) (*SlackPayloa
 
 // getSlackForkPayload composes Slack payload for forked by a repository.
 func getSlackForkPayload(p *api.ForkPayload, slack *SlackMeta) (*SlackPayload, error) {
-	baseLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.Name)
-	forkLink := SlackLinkFormatter(p.Forkee.HTMLURL, p.Forkee.FullName)
+	baseLink := SlackLinkFormatter(p.Forkee.HTMLURL, p.Forkee.FullName)
+	forkLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("%s is forked to %s", baseLink, forkLink)
 	return &SlackPayload{
 		Channel:  slack.Channel,

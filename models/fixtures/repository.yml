@@ -8,7 +8,8 @@
   num_closed_issues: 1
   num_pulls: 2
   num_closed_pulls: 0
-  num_milestones: 2
+  num_milestones: 3
+  num_closed_milestones: 1
   num_watches: 3
 
 -
@@ -117,7 +118,7 @@
   is_private: false
   num_issues: 0
   num_closed_issues: 0
-  num_pulls: 0
+  num_pulls: 1
   num_closed_pulls: 0
   is_mirror: false
   num_forks: 1
@@ -448,6 +449,50 @@
   lower_name: git_hooks_test
   name: git_hooks_test
   is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+
+-
+  id: 38
+  owner_id: 22
+  lower_name: public_repo_on_limited_org
+  name: public_repo_on_limited_org
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+
+-
+  id: 39
+  owner_id: 22
+  lower_name: private_repo_on_limited_org
+  name: private_repo_on_limited_org
+  is_private: true
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+
+-
+  id: 40
+  owner_id: 23
+  lower_name: public_repo_on_private_org
+  name: public_repo_on_private_org
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+
+-
+  id: 41
+  owner_id: 23
+  lower_name: private_repo_on_private_org
+  name: private_repo_on_private_org
+  is_private: true
   num_stars: 0
   num_forks: 0
   num_issues: 0

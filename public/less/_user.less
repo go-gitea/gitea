@@ -8,6 +8,7 @@
             .username {
                 display: block;
             }
+
             .extra.content {
                 padding: 0;
 
@@ -23,7 +24,8 @@
                             border-bottom: 1px solid #eaeaea;
                         }
 
-                        .octicon {
+                        .octicon,
+                        .fa {
                             margin-left: 1px;
                             margin-right: 5px;
                         }
@@ -58,7 +60,7 @@
             margin-top: 25px;
         }
 
-        #loading-heatmap{
+        #loading-heatmap {
             margin-bottom: 1em;
         }
     }
@@ -81,7 +83,24 @@
         .octicon {
             float: left;
             font-size: 2em;
+
+            &.green {
+                color: #21ba45;
+            }
+
+            &.red {
+                color: #d01919;
+            }
+
+            &.purple {
+                color: #a333c8;
+            }
+
+            &.blue {
+                color: #2185d0;
+            }
         }
+
         .content {
             float: left;
             margin-left: 7px;
@@ -100,29 +119,31 @@
                 cursor: pointer;
             }
         }
-
-        .octicon {
-            &.green {
-                color: #21ba45;
-            }
-            &.red {
-                color: #d01919;
-            }
-            &.purple {
-                color: #a333c8;
-            }
-            &.blue {
-                color: #2185d0;
-            }
-        }
     }
+
     &.link-account:not(.icon) {
         padding-top: 15px;
         padding-bottom: 5px;
     }
+
     &.settings {
         .iconFloat {
             float: left;
         }
+    }
+}
+
+.user-orgs {
+    display: flex;
+    flex-flow: row wrap;
+    padding: 0;
+    margin: -3px !important;
+
+    li {
+        display: flex;
+        border-bottom: 0 !important;
+        padding: 3px !important;
+        width: 20%;
+        max-width: 60px;
     }
 }

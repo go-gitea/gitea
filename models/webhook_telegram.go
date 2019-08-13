@@ -7,18 +7,20 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 type (
 	// TelegramPayload represents
 	TelegramPayload struct {
-		Message   string `json:"text"`
-		ParseMode string `json:"parse_mode"`
+		Message           string `json:"text"`
+		ParseMode         string `json:"parse_mode"`
+		DisableWebPreview bool   `json:"disable_web_page_preview"`
 	}
 
 	// TelegramMeta contains the telegram metadata
@@ -34,6 +36,7 @@ func (p *TelegramPayload) SetSecret(_ string) {}
 // JSONPayload Marshals the TelegramPayload to json
 func (p *TelegramPayload) JSONPayload() ([]byte, error) {
 	p.ParseMode = "HTML"
+	p.DisableWebPreview = true
 	p.Message = markup.Sanitize(p.Message)
 	data, err := json.MarshalIndent(p, "", "  ")
 	if err != nil {
@@ -167,7 +170,7 @@ func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
 
 func getTelegramIssueCommentPayload(p *api.IssueCommentPayload) (*TelegramPayload, error) {
 	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, CommentHashTag(p.Comment.ID))
-	title := fmt.Sprintf(`<a href="%s">#%d %s</a>`, url, p.Issue.Index, p.Issue.Title)
+	title := fmt.Sprintf(`<a href="%s">#%d %s</a>`, url, p.Issue.Index, html.EscapeString(p.Issue.Title))
 	var text string
 	switch p.Action {
 	case api.HookIssueCommentCreated:

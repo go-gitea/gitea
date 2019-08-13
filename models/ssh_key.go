@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,8 +7,12 @@ package models
 
 import (
 	"bufio"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -24,9 +29,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
 	"golang.org/x/crypto/ssh"
+	"xorm.io/builder"
 )
 
 const (
@@ -93,19 +98,74 @@ func extractTypeFromBase64Key(key string) (string, error) {
 	return string(b[4 : 4+keyLength]), nil
 }
 
+const ssh2keyStart = "---- BEGIN SSH2 PUBLIC KEY ----"
+
 // parseKeyString parses any key string in OpenSSH or SSH2 format to clean OpenSSH string (RFC4253).
 func parseKeyString(content string) (string, error) {
-	// Transform all legal line endings to a single "\n".
-	content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
-	// remove trailing newline (and beginning spaces too)
+	// remove whitespace at start and end
 	content = strings.TrimSpace(content)
-	lines := strings.Split(content, "\n")
 
 	var keyType, keyContent, keyComment string
 
-	if len(lines) == 1 {
+	if content[:len(ssh2keyStart)] == ssh2keyStart {
+		// Parse SSH2 file format.
+
+		// Transform all legal line endings to a single "\n".
+		content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
+
+		lines := strings.Split(content, "\n")
+		continuationLine := false
+
+		for _, line := range lines {
+			// Skip lines that:
+			// 1) are a continuation of the previous line,
+			// 2) contain ":" as that are comment lines
+			// 3) contain "-" as that are begin and end tags
+			if continuationLine || strings.ContainsAny(line, ":-") {
+				continuationLine = strings.HasSuffix(line, "\\")
+			} else {
+				keyContent += line
+			}
+		}
+
+		t, err := extractTypeFromBase64Key(keyContent)
+		if err != nil {
+			return "", fmt.Errorf("extractTypeFromBase64Key: %v", err)
+		}
+		keyType = t
+	} else {
+		if strings.Contains(content, "-----BEGIN") {
+			// Convert PEM Keys to OpenSSH format
+			// Transform all legal line endings to a single "\n".
+			content = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(content)
+
+			block, _ := pem.Decode([]byte(content))
+			if block == nil {
+				return "", fmt.Errorf("failed to parse PEM block containing the public key")
+			}
+
+			pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+			if err != nil {
+				var pk rsa.PublicKey
+				_, err2 := asn1.Unmarshal(block.Bytes, &pk)
+				if err2 != nil {
+					return "", fmt.Errorf("failed to parse DER encoded public key as either PKIX or PEM RSA Key: %v %v", err, err2)
+				}
+				pub = &pk
+			}
+
+			sshKey, err := ssh.NewPublicKey(pub)
+			if err != nil {
+				return "", fmt.Errorf("unable to convert to ssh public key: %v", err)
+			}
+			content = string(ssh.MarshalAuthorizedKey(sshKey))
+		}
 		// Parse OpenSSH format.
-		parts := strings.SplitN(lines[0], " ", 3)
+
+		// Remove all newlines
+		content = strings.NewReplacer("\r\n", "", "\n", "").Replace(content)
+
+		parts := strings.SplitN(content, " ", 3)
 		switch len(parts) {
 		case 0:
 			return "", errors.New("empty key")
@@ -130,27 +190,11 @@ func parseKeyString(content string) (string, error) {
 		} else if keyType != t {
 			return "", fmt.Errorf("key type and content does not match: %s - %s", keyType, t)
 		}
-	} else {
-		// Parse SSH2 file format.
-		continuationLine := false
-
-		for _, line := range lines {
-			// Skip lines that:
-			// 1) are a continuation of the previous line,
-			// 2) contain ":" as that are comment lines
-			// 3) contain "-" as that are begin and end tags
-			if continuationLine || strings.ContainsAny(line, ":-") {
-				continuationLine = strings.HasSuffix(line, "\\")
-			} else {
-				keyContent = keyContent + line
-			}
-		}
-
-		t, err := extractTypeFromBase64Key(keyContent)
-		if err != nil {
-			return "", fmt.Errorf("extractTypeFromBase64Key: %v", err)
-		}
-		keyType = t
+	}
+	// Finally we need to check whether we can actually read the proposed key:
+	_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(keyType + " " + keyContent + " " + keyComment))
+	if err != nil {
+		return "", fmt.Errorf("invalid ssh public key: %v", err)
 	}
 	return keyType + " " + keyContent + " " + keyComment, nil
 }
@@ -359,7 +403,7 @@ func checkKeyFingerprint(e Engine, fingerprint string) error {
 	return nil
 }
 
-func calcFingerprint(publicKeyContent string) (string, error) {
+func calcFingerprintSSHKeygen(publicKeyContent string) (string, error) {
 	// Calculate fingerprint.
 	tmpPath, err := writeTmpKeyFile(publicKeyContent)
 	if err != nil {
@@ -373,6 +417,34 @@ func calcFingerprint(publicKeyContent string) (string, error) {
 		return "", errors.New("not enough output for calculating fingerprint: " + stdout)
 	}
 	return strings.Split(stdout, " ")[1], nil
+}
+
+func calcFingerprintNative(publicKeyContent string) (string, error) {
+	// Calculate fingerprint.
+	pk, _, _, _, err := ssh.ParseAuthorizedKey([]byte(publicKeyContent))
+	if err != nil {
+		return "", err
+	}
+	return ssh.FingerprintSHA256(pk), nil
+}
+
+func calcFingerprint(publicKeyContent string) (string, error) {
+	//Call the method based on configuration
+	var (
+		fnName, fp string
+		err        error
+	)
+	if setting.SSH.StartBuiltinServer {
+		fnName = "calcFingerprintNative"
+		fp, err = calcFingerprintNative(publicKeyContent)
+	} else {
+		fnName = "calcFingerprintSSHKeygen"
+		fp, err = calcFingerprintSSHKeygen(publicKeyContent)
+	}
+	if err != nil {
+		return "", fmt.Errorf("%s: %v", fnName, err)
+	}
+	return fp, nil
 }
 
 func addKey(e Engine, key *PublicKey) (err error) {
@@ -392,7 +464,7 @@ func addKey(e Engine, key *PublicKey) (err error) {
 }
 
 // AddPublicKey adds new public key to database and authorized_keys file.
-func AddPublicKey(ownerID int64, name, content string, LoginSourceID int64) (*PublicKey, error) {
+func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*PublicKey, error) {
 	log.Trace(content)
 
 	fingerprint, err := calcFingerprint(content)
@@ -427,7 +499,7 @@ func AddPublicKey(ownerID int64, name, content string, LoginSourceID int64) (*Pu
 		Content:       content,
 		Mode:          AccessModeWrite,
 		Type:          KeyTypeUser,
-		LoginSourceID: LoginSourceID,
+		LoginSourceID: loginSourceID,
 	}
 	if err = addKey(sess, key); err != nil {
 		return nil, fmt.Errorf("addKey: %v", err)
@@ -491,10 +563,10 @@ func ListPublicKeys(uid int64) ([]*PublicKey, error) {
 }
 
 // ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and login source.
-func ListPublicLdapSSHKeys(uid int64, LoginSourceID int64) ([]*PublicKey, error) {
+func ListPublicLdapSSHKeys(uid int64, loginSourceID int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
 	return keys, x.
-		Where("owner_id = ? AND login_source_id = ?", uid, LoginSourceID).
+		Where("owner_id = ? AND login_source_id = ?", uid, loginSourceID).
 		Find(&keys)
 }
 
@@ -613,12 +685,14 @@ func rewriteAllPublicKeys(e Engine) error {
 			}
 			_, err = t.WriteString(line + "\n")
 			if err != nil {
+				f.Close()
 				return err
 			}
 		}
-		defer f.Close()
+		f.Close()
 	}
 
+	t.Close()
 	return os.Rename(tmpPath, fPath)
 }
 

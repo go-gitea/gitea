@@ -7,6 +7,7 @@ package log
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -195,18 +196,19 @@ normalLoop:
 		lasti := i
 
 		if c.mode == escapeAll {
-			for i < end && (bytes[i] >= ' ' || bytes[i] == '\n') {
+			for i < end && (bytes[i] >= ' ' || bytes[i] == '\n' || bytes[i] == '\t') {
 				i++
 			}
 		} else {
-			for i < end && bytes[i] >= ' ' {
+			// Allow tabs if we're not escaping everything
+			for i < end && (bytes[i] >= ' ' || bytes[i] == '\t') {
 				i++
 			}
 		}
 
 		if i > lasti {
 			written, err := c.w.Write(bytes[lasti:i])
-			totalWritten = totalWritten + written
+			totalWritten += written
 			if err != nil {
 				return totalWritten, err
 			}
@@ -241,7 +243,7 @@ normalLoop:
 					if bytes[j] == 'm' {
 						if c.mode == allowColor {
 							written, err := c.w.Write(bytes[i : j+1])
-							totalWritten = totalWritten + written
+							totalWritten += written
 							if err != nil {
 								return totalWritten, err
 							}
@@ -265,6 +267,39 @@ normalLoop:
 	}
 	return totalWritten, nil
 }
+
+// ColorSprintf returns a colored string from a format and arguments
+// arguments will be wrapped in ColoredValues to protect against color spoofing
+func ColorSprintf(format string, args ...interface{}) string {
+	if len(args) > 0 {
+		v := make([]interface{}, len(args))
+		for i := 0; i < len(v); i++ {
+			v[i] = NewColoredValuePointer(&args[i])
+		}
+		return fmt.Sprintf(format, v...)
+	}
+	return format
+}
+
+// ColorFprintf will write to the provided writer similar to ColorSprintf
+func ColorFprintf(w io.Writer, format string, args ...interface{}) (int, error) {
+	if len(args) > 0 {
+		v := make([]interface{}, len(args))
+		for i := 0; i < len(v); i++ {
+			v[i] = NewColoredValuePointer(&args[i])
+		}
+		return fmt.Fprintf(w, format, v...)
+	}
+	return fmt.Fprint(w, format)
+}
+
+// ColorFormatted structs provide their own colored string when formatted with ColorSprintf
+type ColorFormatted interface {
+	// ColorFormat provides the colored representation of the value
+	ColorFormat(s fmt.State)
+}
+
+var colorFormattedType = reflect.TypeOf((*ColorFormatted)(nil)).Elem()
 
 // ColoredValue will Color the provided value
 type ColoredValue struct {
@@ -316,11 +351,36 @@ func NewColoredValueBytes(value interface{}, colorBytes *[]byte) *ColoredValue {
 	}
 }
 
-// Format will format the provided value and protect against ANSI spoofing within the value
+// NewColoredIDValue is a helper function to create a ColoredValue from a Value
+// The Value will be colored with FgCyan
+// If a ColoredValue is provided it is not changed
+func NewColoredIDValue(value interface{}) *ColoredValue {
+	return NewColoredValueBytes(&value, &fgCyanBytes)
+}
+
+// Format will format the provided value and protect against ANSI color spoofing within the value
+// If the wrapped value is ColorFormatted and the format is "%-v" then its ColorString will
+// be used. It is presumed that this ColorString is safe.
 func (cv *ColoredValue) Format(s fmt.State, c rune) {
-	s.Write([]byte(*cv.colorBytes))
+	if c == 'v' && s.Flag('-') {
+		if val, ok := (*cv.Value).(ColorFormatted); ok {
+			val.ColorFormat(s)
+			return
+		}
+		v := reflect.ValueOf(*cv.Value)
+		t := v.Type()
+
+		if reflect.PtrTo(t).Implements(colorFormattedType) {
+			vp := reflect.New(t)
+			vp.Elem().Set(v)
+			val := vp.Interface().(ColorFormatted)
+			val.ColorFormat(s)
+			return
+		}
+	}
+	s.Write(*cv.colorBytes)
 	fmt.Fprintf(&protectedANSIWriter{w: s}, fmtString(s, c), *(cv.Value))
-	s.Write([]byte(*cv.resetBytes))
+	s.Write(*cv.resetBytes)
 }
 
 // SetColorBytes will allow a user to set the colorBytes of a colored value

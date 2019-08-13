@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -57,10 +56,10 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	}
 
 	t, err := NewTemporaryUploadRepository(repo)
-	defer t.Close()
 	if err != nil {
 		return err
 	}
+	defer t.Close()
 	if err := t.Clone(opts.OldBranch); err != nil {
 		return err
 	}
@@ -108,10 +107,8 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 			}
 			infos[i] = uploadInfo
 
-		} else {
-			if objectHash, err = t.HashObject(file); err != nil {
-				return err
-			}
+		} else if objectHash, err = t.HashObject(file); err != nil {
+			return err
 		}
 
 		// Add the object to the index
@@ -178,32 +175,6 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
 		return err
 	}
-
-	// Simulate push event.
-	oldCommitID := opts.LastCommitID
-	if opts.NewBranch != opts.OldBranch {
-		oldCommitID = git.EmptySHA
-	}
-
-	if err = repo.GetOwner(); err != nil {
-		return fmt.Errorf("GetOwner: %v", err)
-	}
-	err = models.PushUpdate(
-		opts.NewBranch,
-		models.PushUpdateOptions{
-			PusherID:     doer.ID,
-			PusherName:   doer.Name,
-			RepoUserName: repo.Owner.Name,
-			RepoName:     repo.Name,
-			RefFullName:  git.BranchPrefix + opts.NewBranch,
-			OldCommitID:  oldCommitID,
-			NewCommitID:  commitHash,
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("PushUpdate: %v", err)
-	}
-	// FIXME: Should we models.UpdateRepoIndexer(repo) here?
 
 	return models.DeleteUploads(uploads...)
 }

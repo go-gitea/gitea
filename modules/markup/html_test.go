@@ -27,7 +27,7 @@ func TestRender_Commits(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer := RenderString(".md", input, setting.AppSubURL, localMetas)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	var sha = "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
@@ -51,7 +51,7 @@ func TestRender_CrossReferences(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer := RenderString("a.md", input, setting.AppSubURL, localMetas)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	test(
@@ -83,7 +83,7 @@ func TestRender_links(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 	// Text that should be turned into URL
 
@@ -160,7 +160,7 @@ func TestRender_email(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 	// Text that should be turned into email link
 
@@ -177,6 +177,9 @@ func TestRender_email(t *testing.T) {
 		"info@gitea.com.",
 		`<p><a href="mailto:info@gitea.com" rel="nofollow">info@gitea.com</a>.</p>`)
 	test(
+		"firstname+lastname@gitea.com",
+		`<p><a href="mailto:firstname+lastname@gitea.com" rel="nofollow">firstname+lastname@gitea.com</a></p>`)
+	test(
 		"send email to info@gitea.co.uk.",
 		`<p>send email to <a href="mailto:info@gitea.co.uk" rel="nofollow">info@gitea.co.uk</a>.</p>`)
 
@@ -190,6 +193,18 @@ func TestRender_email(t *testing.T) {
 	test(
 		"git@try.gitea.io:go-gitea/gitea.git",
 		`<p>git@try.gitea.io:go-gitea/gitea.git</p>`)
+	test(
+		"gitea@3",
+		`<p>gitea@3</p>`)
+	test(
+		"gitea@gmail.c",
+		`<p>gitea@gmail.c</p>`)
+	test(
+		"email@domain@domain.com",
+		`<p>email@domain@domain.com</p>`)
+	test(
+		"email@domain..com",
+		`<p>email@domain..com</p>`)
 }
 
 func TestRender_ShortLinks(t *testing.T) {
@@ -199,9 +214,9 @@ func TestRender_ShortLinks(t *testing.T) {
 
 	test := func(input, expected, expectedWiki string) {
 		buffer := markdown.RenderString(input, tree, nil)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 		buffer = markdown.RenderWiki([]byte(input), setting.AppSubURL, localMetas)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
 	rawtree := util.URLJoin(AppSubURL, "raw", "master")

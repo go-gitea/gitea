@@ -5,6 +5,7 @@
 package session
 
 import (
+	"container/list"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -20,10 +21,8 @@ import (
 
 // VirtualSessionProvider represents a shadowed session provider implementation.
 type VirtualSessionProvider struct {
-	lock        sync.RWMutex
-	maxlifetime int64
-	rootPath    string
-	provider    session.Provider
+	lock     sync.RWMutex
+	provider session.Provider
 }
 
 // Init initializes the cookie session provider with given root path.
@@ -38,7 +37,7 @@ func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 	// This is only slightly more wrong than modules/setting/session.go:23
 	switch opts.Provider {
 	case "memory":
-		o.provider = &session.MemProvider{}
+		o.provider = &MemProvider{list: list.New(), data: make(map[string]*list.Element)}
 	case "file":
 		o.provider = &session.FileProvider{}
 	case "redis":

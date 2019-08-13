@@ -45,7 +45,7 @@
 							{{if .RequestInfo}}
 								<h5>{{$.i18n.Tr "repo.settings.webhook.headers"}}</h5>
 								<pre class="raw"><strong>Request URL:</strong> {{.URL}}
-<strong>Request method:</strong> POST
+<strong>Request method:</strong> {{if .HTTPMethod}}{{.HTTPMethod}}{{else}}POST{{end}}
 {{ range $key, $val := .RequestInfo.Headers }}<strong>{{$key}}:</strong> {{$val}}
 {{end}}</pre>
 								<h5>{{$.i18n.Tr "repo.settings.webhook.payload"}}</h5>

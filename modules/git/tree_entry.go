@@ -40,12 +40,16 @@ type TreeEntry struct {
 	gogitTreeEntry *object.TreeEntry
 	ptree          *Tree
 
-	size  int64
-	sized bool
+	size     int64
+	sized    bool
+	fullName string
 }
 
 // Name returns the name of the entry
 func (te *TreeEntry) Name() string {
+	if te.fullName != "" {
+		return te.fullName
+	}
 	return te.gogitTreeEntry.Name
 }
 
@@ -102,6 +106,11 @@ func (te *TreeEntry) IsLink() bool {
 // IsRegular if the entry is a regular file
 func (te *TreeEntry) IsRegular() bool {
 	return te.gogitTreeEntry.Mode == filemode.Regular
+}
+
+// IsExecutable if the entry is an executable file (not necessarily binary)
+func (te *TreeEntry) IsExecutable() bool {
+	return te.gogitTreeEntry.Mode == filemode.Executable
 }
 
 // Blob returns the blob object the entry

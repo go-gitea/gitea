@@ -133,7 +133,7 @@ func (c *Commit) ParentCount() int {
 
 func isImageFile(data []byte) (string, bool) {
 	contentType := http.DetectContentType(data)
-	if strings.Index(contentType, "image/") != -1 {
+	if strings.Contains(contentType, "image/") {
 		return contentType, true
 	}
 	return contentType, false
@@ -169,6 +169,7 @@ func AddChanges(repoPath string, all bool, files ...string) error {
 	if all {
 		cmd.AddArguments("--all")
 	}
+	cmd.AddArguments("--")
 	_, err := cmd.AddArguments(files...).RunInDir(repoPath)
 	return err
 }
@@ -206,8 +207,7 @@ func CommitChanges(repoPath string, opts CommitChangesOptions) error {
 }
 
 func commitsCount(repoPath, revision, relpath string) (int64, error) {
-	var cmd *Command
-	cmd = NewCommand("rev-list", "--count")
+	cmd := NewCommand("rev-list", "--count")
 	cmd.AddArguments(revision)
 	if len(relpath) > 0 {
 		cmd.AddArguments("--", relpath)
@@ -263,7 +263,7 @@ type SearchCommitsOptions struct {
 	All                 bool
 }
 
-// NewSearchCommitsOptions contruct a SearchCommitsOption from a space-delimited search string
+// NewSearchCommitsOptions construct a SearchCommitsOption from a space-delimited search string
 func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommitsOptions {
 	var keywords, authors, committers []string
 	var after, before string
@@ -305,6 +305,7 @@ func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error)
 }
 
 // FileChangedSinceCommit Returns true if the file given has changed since the the past commit
+// YOU MUST ENSURE THAT pastCommit is a valid commit ID.
 func (c *Commit) FileChangedSinceCommit(filename, pastCommit string) (bool, error) {
 	return c.repo.FileChangedBetweenCommits(filename, pastCommit, c.ID.String())
 }

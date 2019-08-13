@@ -12,6 +12,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/process"
 )
 
 var (
@@ -52,9 +54,15 @@ func (c *Command) AddArguments(args ...string) *Command {
 	return c
 }
 
-// RunInDirTimeoutPipeline executes the command in given directory with given timeout,
+// RunInDirTimeoutEnvPipeline executes the command in given directory with given timeout,
 // it pipes stdout and stderr to given io.Writer.
-func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, stdout, stderr io.Writer) error {
+func (c *Command) RunInDirTimeoutEnvPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer) error {
+	return c.RunInDirTimeoutEnvFullPipeline(env, timeout, dir, stdout, stderr, nil)
+}
+
+// RunInDirTimeoutEnvFullPipeline executes the command in given directory with given timeout,
+// it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin.
+func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader) error {
 	if timeout == -1 {
 		timeout = DefaultCommandExecutionTimeout
 	}
@@ -69,12 +77,17 @@ func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, std
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
+	cmd.Env = env
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
+	cmd.Stdin = stdin
 	if err := cmd.Start(); err != nil {
 		return err
 	}
+
+	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), dir), cmd)
+	defer process.GetManager().Remove(pid)
 
 	if err := cmd.Wait(); err != nil {
 		return err
@@ -83,12 +96,30 @@ func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, std
 	return ctx.Err()
 }
 
+// RunInDirTimeoutPipeline executes the command in given directory with given timeout,
+// it pipes stdout and stderr to given io.Writer.
+func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, stdout, stderr io.Writer) error {
+	return c.RunInDirTimeoutEnvPipeline(nil, timeout, dir, stdout, stderr)
+}
+
+// RunInDirTimeoutFullPipeline executes the command in given directory with given timeout,
+// it pipes stdout and stderr to given io.Writer, and stdin from the given io.Reader
+func (c *Command) RunInDirTimeoutFullPipeline(timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader) error {
+	return c.RunInDirTimeoutEnvFullPipeline(nil, timeout, dir, stdout, stderr, stdin)
+}
+
 // RunInDirTimeout executes the command in given directory with given timeout,
 // and returns stdout in []byte and error (combined with stderr).
 func (c *Command) RunInDirTimeout(timeout time.Duration, dir string) ([]byte, error) {
+	return c.RunInDirTimeoutEnv(nil, timeout, dir)
+}
+
+// RunInDirTimeoutEnv executes the command in given directory with given timeout,
+// and returns stdout in []byte and error (combined with stderr).
+func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir string) ([]byte, error) {
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	if err := c.RunInDirTimeoutPipeline(timeout, dir, stdout, stderr); err != nil {
+	if err := c.RunInDirTimeoutEnvPipeline(env, timeout, dir, stdout, stderr); err != nil {
 		return nil, concatenateError(err, stderr.String())
 	}
 
@@ -101,7 +132,13 @@ func (c *Command) RunInDirTimeout(timeout time.Duration, dir string) ([]byte, er
 // RunInDirPipeline executes the command in given directory,
 // it pipes stdout and stderr to given io.Writer.
 func (c *Command) RunInDirPipeline(dir string, stdout, stderr io.Writer) error {
-	return c.RunInDirTimeoutPipeline(-1, dir, stdout, stderr)
+	return c.RunInDirFullPipeline(dir, stdout, stderr, nil)
+}
+
+// RunInDirFullPipeline executes the command in given directory,
+// it pipes stdout and stderr to given io.Writer.
+func (c *Command) RunInDirFullPipeline(dir string, stdout, stderr io.Writer, stdin io.Reader) error {
+	return c.RunInDirTimeoutFullPipeline(-1, dir, stdout, stderr, stdin)
 }
 
 // RunInDirBytes executes the command in given directory
@@ -113,7 +150,13 @@ func (c *Command) RunInDirBytes(dir string) ([]byte, error) {
 // RunInDir executes the command in given directory
 // and returns stdout in string and error (combined with stderr).
 func (c *Command) RunInDir(dir string) (string, error) {
-	stdout, err := c.RunInDirTimeout(-1, dir)
+	return c.RunInDirWithEnv(dir, nil)
+}
+
+// RunInDirWithEnv executes the command in given directory
+// and returns stdout in string and error (combined with stderr).
+func (c *Command) RunInDirWithEnv(dir string, env []string) (string, error) {
+	stdout, err := c.RunInDirTimeoutEnv(env, -1, dir)
 	if err != nil {
 		return "", err
 	}

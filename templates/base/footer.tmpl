@@ -12,7 +12,8 @@
 
 	{{template "base/footer_content" .}}
 
-	<script src="{{AppSubUrl}}/vendor/plugins/jquery/jquery.min.js"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/jquery/jquery.min.js?v=3.4.1"></script>
+	<script src="{{AppSubUrl}}/vendor/plugins/jquery-migrate/jquery-migrate.min.js?v=3.0.1"></script>
 	<script src="{{AppSubUrl}}/vendor/plugins/jquery.areyousure/jquery.are-you-sure.js"></script>
 {{if .RequireSimpleMDE}}
 	<script src="{{AppSubUrl}}/vendor/plugins/simplemde/simplemde.min.js"></script>
@@ -46,7 +47,7 @@
 {{end}}
 {{if .EnableCaptcha}}
 	{{if eq .CaptchaType "recaptcha"}}
-		<script src="https://www.google.com/recaptcha/api.js" async></script>
+		<script src='{{ URLJoin .RecaptchaURL "api.js"}}' async></script>
 	{{end}}
 {{end}}
 {{if .RequireTribute}}

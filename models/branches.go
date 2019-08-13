@@ -19,6 +19,8 @@ import (
 const (
 	// ProtectedBranchRepoID protected Repo ID
 	ProtectedBranchRepoID = "GITEA_REPO_ID"
+	// ProtectedBranchPRID protected Repo PR ID
+	ProtectedBranchPRID = "GITEA_PR_ID"
 )
 
 // ProtectedBranch struct
@@ -99,7 +101,7 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 
 // GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
-	reviews, err := GetReviewersByPullID(pr.Issue.ID)
+	reviews, err := GetReviewersByPullID(pr.IssueID)
 	if err != nil {
 		log.Error("GetReviewersByPullID: %v", err)
 		return 0
@@ -126,14 +128,14 @@ func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) 
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID
-func GetProtectedBranchByRepoID(RepoID int64) ([]*ProtectedBranch, error) {
+func GetProtectedBranchByRepoID(repoID int64) ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)
-	return protectedBranches, x.Where("repo_id = ?", RepoID).Desc("updated_unix").Find(&protectedBranches)
+	return protectedBranches, x.Where("repo_id = ?", repoID).Desc("updated_unix").Find(&protectedBranches)
 }
 
 // GetProtectedBranchBy getting protected branch by ID/Name
-func GetProtectedBranchBy(repoID int64, BranchName string) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{RepoID: repoID, BranchName: BranchName}
+func GetProtectedBranchBy(repoID int64, branchName string) (*ProtectedBranch, error) {
+	rel := &ProtectedBranch{RepoID: repoID, BranchName: branchName}
 	has, err := x.Get(rel)
 	if err != nil {
 		return nil, err
@@ -456,11 +458,6 @@ func (deletedBranch *DeletedBranch) LoadUser() {
 
 // RemoveOldDeletedBranches removes old deleted branches
 func RemoveOldDeletedBranches() {
-	if !taskStatusTable.StartIfNotRunning(`deleted_branches_cleanup`) {
-		return
-	}
-	defer taskStatusTable.Stop(`deleted_branches_cleanup`)
-
 	log.Trace("Doing: DeletedBranchesCleanup")
 
 	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)

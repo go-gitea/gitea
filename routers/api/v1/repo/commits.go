@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // GetSingleCommit get a commit via
@@ -92,7 +92,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 			URL: setting.AppURL + ctx.Link[1:],
 			SHA: commit.ID.String(),
 		},
-		HTMLURL: ctx.Repo.Repository.HTMLURL() + "/commits/" + commit.ID.String(),
+		HTMLURL: ctx.Repo.Repository.HTMLURL() + "/commit/" + commit.ID.String(),
 		RepoCommit: &api.RepoCommit{
 			URL: setting.AppURL + ctx.Link[1:],
 			Author: &api.CommitUser{
@@ -111,7 +111,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 			},
 			Message: commit.Message(),
 			Tree: &api.CommitMeta{
-				URL: ctx.Repo.Repository.APIURL() + "/trees/" + commit.ID.String(),
+				URL: ctx.Repo.Repository.APIURL() + "/git/trees/" + commit.ID.String(),
 				SHA: commit.ID.String(),
 			},
 		},

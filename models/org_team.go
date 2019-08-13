@@ -34,6 +34,16 @@ type Team struct {
 	Units       []*TeamUnit `xorm:"-"`
 }
 
+// ColorFormat provides a basic color format for a Team
+func (t *Team) ColorFormat(s fmt.State) {
+	log.ColorFprintf(s, "%d:%s (OrgID: %d) %-v",
+		log.NewColoredIDValue(t.ID),
+		t.Name,
+		log.NewColoredIDValue(t.OrgID),
+		t.Authorize)
+
+}
+
 // GetUnits return a list of available units for a team
 func (t *Team) GetUnits() error {
 	return t.getUnits(x)
@@ -277,7 +287,8 @@ func NewTeam(t *Team) (err error) {
 	has, err := x.ID(t.OrgID).Get(new(User))
 	if err != nil {
 		return err
-	} else if !has {
+	}
+	if !has {
 		return ErrOrgNotExist{t.OrgID, ""}
 	}
 
@@ -288,7 +299,8 @@ func NewTeam(t *Team) (err error) {
 		Get(new(Team))
 	if err != nil {
 		return err
-	} else if has {
+	}
+	if has {
 		return ErrTeamAlreadyExist{t.OrgID, t.LowerName}
 	}
 
@@ -299,7 +311,10 @@ func NewTeam(t *Team) (err error) {
 	}
 
 	if _, err = sess.Insert(t); err != nil {
-		sess.Rollback()
+		errRollback := sess.Rollback()
+		if errRollback != nil {
+			log.Error("NewTeam sess.Rollback: %v", errRollback)
+		}
 		return err
 	}
 
@@ -309,14 +324,20 @@ func NewTeam(t *Team) (err error) {
 			unit.TeamID = t.ID
 		}
 		if _, err = sess.Insert(&t.Units); err != nil {
-			sess.Rollback()
+			errRollback := sess.Rollback()
+			if errRollback != nil {
+				log.Error("NewTeam sess.Rollback: %v", errRollback)
+			}
 			return err
 		}
 	}
 
 	// Update organization number of teams.
 	if _, err = sess.Exec("UPDATE `user` SET num_teams=num_teams+1 WHERE id = ?", t.OrgID); err != nil {
-		sess.Rollback()
+		errRollback := sess.Rollback()
+		if errRollback != nil {
+			log.Error("NewTeam sess.Rollback: %v", errRollback)
+		}
 		return err
 	}
 	return sess.Commit()
@@ -339,6 +360,11 @@ func getTeam(e Engine, orgID int64, name string) (*Team, error) {
 // GetTeam returns team by given team name and organization.
 func GetTeam(orgID int64, name string) (*Team, error) {
 	return getTeam(x, orgID, name)
+}
+
+// getOwnerTeam returns team by given team name and organization.
+func getOwnerTeam(e Engine, orgID int64) (*Team, error) {
+	return getTeam(e, orgID, ownerTeamName)
 }
 
 func getTeamByID(e Engine, teamID int64) (*Team, error) {
@@ -402,7 +428,10 @@ func UpdateTeam(t *Team, authChanged bool) (err error) {
 		}
 
 		if _, err = sess.Insert(&t.Units); err != nil {
-			sess.Rollback()
+			errRollback := sess.Rollback()
+			if errRollback != nil {
+				log.Error("UpdateTeam sess.Rollback: %v", errRollback)
+			}
 			return err
 		}
 	}
@@ -731,11 +760,14 @@ func IsUserInTeams(userID int64, teamIDs []int64) (bool, error) {
 }
 
 // UsersInTeamsCount counts the number of users which are in userIDs and teamIDs
-func UsersInTeamsCount(userIDs []int64, teamIDs []int64) (count int64, err error) {
-	if count, err = x.In("uid", userIDs).In("team_id", teamIDs).Count(new(TeamUser)); err != nil {
+func UsersInTeamsCount(userIDs []int64, teamIDs []int64) (int64, error) {
+	var ids []int64
+	if err := x.In("uid", userIDs).In("team_id", teamIDs).
+		Table("team_user").
+		Cols("uid").GroupBy("uid").Find(&ids); err != nil {
 		return 0, err
 	}
-	return
+	return int64(len(ids)), nil
 }
 
 // ___________                  __________
@@ -831,7 +863,10 @@ func UpdateTeamUnits(team *Team, units []TeamUnit) (err error) {
 	}
 
 	if _, err = sess.Insert(units); err != nil {
-		sess.Rollback()
+		errRollback := sess.Rollback()
+		if errRollback != nil {
+			log.Error("UpdateTeamUnits sess.Rollback: %v", errRollback)
+		}
 		return err
 	}
 

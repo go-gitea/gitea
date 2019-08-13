@@ -10,9 +10,9 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/user"
-	api "code.gitea.io/sdk/gitea"
 )
 
 func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, loginName string) {
@@ -91,8 +91,7 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	if form.SendNotify && setting.MailService != nil {
 		models.SendRegisterNotifyMail(ctx.Context.Context, u)
 	}
-
-	ctx.JSON(201, u.APIFormat())
+	ctx.JSON(201, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
 // EditUser api for modifying a user's information
@@ -181,7 +180,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	}
 	log.Trace("Account profile updated by admin (%s): %s", ctx.User.Name, u.Name)
 
-	ctx.JSON(200, u.APIFormat())
+	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
 // DeleteUser api for deleting a user

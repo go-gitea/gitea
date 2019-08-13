@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )

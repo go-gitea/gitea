@@ -294,9 +294,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			// Building code view blocks with line number on server side.
 			var fileContent string
 			if content, err := templates.ToUTF8WithErr(buf); err != nil {
-				if err != nil {
-					log.Error("ToUTF8WithErr: %v", err)
-				}
+				log.Error("ToUTF8WithErr: %v", err)
 				fileContent = string(buf)
 			} else {
 				fileContent = content
@@ -356,11 +354,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	if !models.HasOrgVisible(ctx.Repo.Repository.Owner, ctx.User) {
-		ctx.NotFound("HasOrgVisible", nil)
-		return
-	}
-
 	if len(ctx.Repo.Units) > 0 {
 		var firstUnit *models.Unit
 		for _, repoUnit := range ctx.Repo.Units {
