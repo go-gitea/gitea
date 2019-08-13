@@ -388,6 +388,5 @@ func RebuildRepoIndex() error {
 	if err := rebuildRepoIndex(); err != nil {
 		return err
 	}
-	populateRepoIndexerAsynchronously()
-	return nil
+	return populateRepoIndexerAsynchronously()
 }
