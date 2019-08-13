@@ -11,47 +11,37 @@ import (
 )
 
 // RebuildRepoIndex rebuild a repository index
-func RebuildRepoIndex(repoID int64) (bool, error) {
+func RebuildRepoIndex() error {
 	// Ask for running deliver hook and test pull request tasks.
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/maint/rebuild-repo-index/%d", repoID)
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/maint/rebuild-repo-index")
 	resp, err := newInternalRequest(reqURL, "GET").Response()
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 503 {
-		// Server is too busy; back off a little
-		return true, nil
-	}
-
 	// All 2XX status codes are accepted and others will return an error
 	if resp.StatusCode/100 != 2 {
-		return false, fmt.Errorf("Failed to rebuild indexes for repository: %s", decodeJSONError(resp).Err)
+		return fmt.Errorf("Failed to rebuild repository index: %s", decodeJSONError(resp).Err)
 	}
-	return false, nil
+	return nil
 }
 
 // RebuildIssueIndex rebuild issue index for a repo
-func RebuildIssueIndex(repoID int64) (bool, error) {
+func RebuildIssueIndex() error {
 	// Ask for running deliver hook and test pull request tasks.
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/maint/rebuild-issue-index/%d", repoID)
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/maint/rebuild-issue-index")
 	resp, err := newInternalRequest(reqURL, "GET").Response()
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 503 {
-		// Server is too busy; back off a little
-		return true, nil
-	}
-
 	// All 2XX status codes are accepted and others will return an error
 	if resp.StatusCode/100 != 2 {
-		return false, fmt.Errorf("Failed to rebuild indexes for repository: %s", decodeJSONError(resp).Err)
+		return fmt.Errorf("Failed to rebuild issue index: %s", decodeJSONError(resp).Err)
 	}
-	return false, nil
+	return nil
 }

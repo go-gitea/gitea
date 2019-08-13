@@ -8,8 +8,6 @@ import (
 	"os"
 	"strconv"
 
-	"code.gitea.io/gitea/modules/setting"
-
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/analysis/token/unicodenorm"
 	"github.com/blevesearch/bleve/index/upsidedown"
@@ -47,7 +45,7 @@ const maxBatchSize = 16
 // updates and bleve version updates.  If index needs to be created (or
 // re-created), returns (nil, nil)
 func openIndexer(path string, latestVersion int) (bleve.Index, error) {
-	_, err := os.Stat(setting.Indexer.IssuePath)
+	_, err := os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
 		return nil, nil
 	} else if err != nil {

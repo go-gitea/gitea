@@ -6,13 +6,13 @@ package cmd
 
 import (
 	"fmt"
-	"time"
+	"os"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/indexer"
+	"code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli"
 )
@@ -50,12 +50,10 @@ func runRebuildIndexes(ctx *cli.Context) error {
 
 	if ctx.IsSet("repositories") || ctx.IsSet("all") {
 		rebuildRepositories = true
-		log.Info("Rebuild text indexes for repository content")
 	}
 
 	if ctx.IsSet("issues") || ctx.IsSet("all") {
 		rebuildIssues = true
-		log.Info("Rebuild text indexes for issues")
 	}
 
 	if !rebuildIssues && !rebuildRepositories {
@@ -63,62 +61,39 @@ func runRebuildIndexes(ctx *cli.Context) error {
 		return nil
 	}
 
-	if !rebuildIssues && !setting.Indexer.RepoIndexerEnabled {
-		fmt.Printf("Repository level text indexes are not enabled\n")
-		return nil
+	if rebuildRepositories && !setting.Indexer.RepoIndexerEnabled {
+		fmt.Printf("Repository indexes are not enabled\n")
+		rebuildRepositories = false
 	}
 
-	if err := initDB(); err != nil {
-		fmt.Printf("Error: %v\n", err)
-		return err
+	if rebuildIssues && setting.Indexer.IssueType != "bleve" {
+		log.ColorFprintf(os.Stdout, "Issue index type '%s' does not support or does not require rebuilding\n", setting.Indexer.IssueType)
+		rebuildIssues = false
 	}
 
-	for page := 1; ; page++ {
-		repos, _, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			Page:        page,
-			PageSize:    models.RepositoryListDefaultPageSize,
-			OrderBy:     models.SearchOrderByID,
-			Private:     true,
-			Collaborate: util.OptionalBoolFalse,
-		})
-		if err != nil {
-			log.Error("SearchRepositoryByName: %v", err)
-			return err
-		}
-		if len(repos) == 0 {
-			break
-		}
-
-		for _, repo := range repos {
-			fmt.Printf("Rebuilding text indexes for %s\n", repo.FullName())
-			if rebuildRepositories {
-				if err := rebuildStep(repo.ID, private.RebuildRepoIndex); err != nil {
-					return err
-				}
-			}
-			if rebuildIssues {
-				if err := rebuildStep(repo.ID, private.RebuildIssueIndex); err != nil {
-					return err
-				}
-			}
-		}
+	if rebuildRepositories {
+		attemptRebuild("Rebuild repository indexes", private.RebuildRepoIndex, indexer.DropRepoIndex)
 	}
 
-	fmt.Println("Done")
+	if rebuildIssues {
+		attemptRebuild("Rebuild issue indexes", private.RebuildIssueIndex, issues.DropIssueIndex)
+	}
+
+	fmt.Println("Rebuild done or in process.")
 	return nil
 }
 
-func rebuildStep(repoID int64, fn rebuildStepFunc) error {
-	for {
-		toobusy, err := fn(repoID)
-		if err != nil {
-			fmt.Printf("Internal error: %v\n", err)
-			return err
+func attemptRebuild(msg string, onlineRebuild func() error, offlineDrop func() error) {
+	log.Info(msg)
+	fmt.Printf("%s: attempting through Gitea API...\n", msg)
+	if err := onlineRebuild(); err != nil {
+		// FIXME: there's no good way of knowing if Gitea is running
+		log.ColorFprintf(os.Stdout, "Error (disregard if it's a connection error): %v\n", err)
+		// Attempt a direct delete
+		fmt.Printf("Gitea seems to be down; marking index files for recycling the next time Gitea runs.\n")
+		if err := offlineDrop(); err != nil {
+			log.ColorFprintf(os.Stdout, "Internal error: %v\n", err)
+			log.Fatal("Rebuild indexes: %v", err)
 		}
-		if !toobusy {
-			return nil
-		}
-		fmt.Printf("Server too busy; backing off...\n")
-		time.Sleep(1 * time.Second)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -25,6 +26,10 @@ type RepoIndexerStatus struct {
 	RepoID    int64  `xorm:"INDEX"`
 	CommitSha string `xorm:"VARCHAR(40)"`
 }
+
+var (
+	rebuildLock sync.Mutex
+)
 
 func (repo *Repository) getIndexerStatus() error {
 	if repo.IndexerStatus != nil {
@@ -103,6 +108,8 @@ func populateRepoIndexerAsynchronously() error {
 // populateRepoIndexer populate the repo indexer with pre-existing data. This
 // should only be run when the indexer is created for the first time.
 func populateRepoIndexer(maxRepoID int64) {
+	rebuildLock.Lock()
+	defer rebuildLock.Unlock()
 	log.Info("Populating the repo indexer with existing repositories")
 	// start with the maximum existing repo ID and work backwards, so that we
 	// don't include repos that are created after gitea starts; such repos will
@@ -361,29 +368,25 @@ func addOperationToQueue(op repoIndexerOperation) {
 	}
 }
 
-func isQueueNearFull() bool {
-	qcap := cap(repoIndexerOperationQueue)
-	qlen := len(repoIndexerOperationQueue)
-	if qcap <= 3 {
-		return qlen == qcap
+func rebuildRepoIndex() error {
+	// Make sure no other build is currently running
+	rebuildLock.Lock(); defer rebuildLock.Unlock()
+	if err := indexer.DropRepoIndex(); err != nil {
+		return err
 	}
-	return qcap-qlen < 3
+	// This could abort with Fatal()
+	indexer.InitRepoIndexer(nil)
+	return nil
 }
 
-// RebuildRepoIndex deletes and rebuilds text indexes for a repo
-func RebuildRepoIndex(repoID int64) (bool, error) {
-	if isQueueNearFull() {
-		return true, nil
+// RebuildRepoIndex deletes and rebuilds text indexes for repositories
+func RebuildRepoIndex() error {
+	if !setting.Indexer.RepoIndexerEnabled {
+		return nil
 	}
-	repo := &Repository{ID: repoID}
-	has, err := x.Get(repo)
-	if err != nil {
-		return false, err
+	if err := rebuildRepoIndex(); err != nil {
+		return err
 	}
-	if !has {
-		return false, nil
-	}
-	DeleteRepoFromIndexer(repo)
-	UpdateRepoIndexer(repo)
-	return false, nil
+	populateRepoIndexerAsynchronously()
+	return nil
 }

@@ -6,6 +6,7 @@ package issues
 
 import (
 	"fmt"
+	"sync"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
@@ -43,12 +44,14 @@ type Indexer interface {
 	Index(issue []*IndexerData) error
 	Delete(ids ...int64) error
 	Search(kw string, repoID int64, limit, start int) (*SearchResult, error)
+	Drop(path string) (bool, error)
 }
 
 var (
 	// issueIndexerQueue queue of issue ids to be updated
 	issueIndexerQueue Queue
 	issueIndexer      Indexer
+	issueRebuildLock  sync.Mutex
 )
 
 // InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
@@ -121,6 +124,8 @@ func InitIssueIndexer(syncReindex bool) error {
 
 // populateIssueIndexer populate the issue indexer with issue data
 func populateIssueIndexer() {
+	issueRebuildLock.Lock()
+	defer issueRebuildLock.Unlock()
 	for page := 1; ; page++ {
 		repos, _, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
 			Page:        page,
@@ -213,20 +218,40 @@ func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
 	return issueIDs, nil
 }
 
+func rebuildIssueIndex() (bool, error) {
+	// Make sure no other build is currently running
+	issueRebuildLock.Lock()
+	defer issueRebuildLock.Unlock()
+
+	canrebuild, err := issueIndexer.Drop(setting.Indexer.IssuePath)
+	if !canrebuild || err != nil {
+		return false, err
+	}
+	_, err = issueIndexer.Init()
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // RebuildIssueIndex deletes and rebuilds text indexes for a repo
-func RebuildIssueIndex(repoID int64) (bool, error) {
-	repo, err := models.GetRepositoryByID(repoID)
-	if err != nil {
-		return false, err
+func RebuildIssueIndex() error {
+	// Drop the index in a protected func
+	repopulate, err := rebuildIssueIndex()
+	if !repopulate || err != nil {
+		return err
 	}
-	if repo == nil {
-		return false, nil
+	// Launch repopulation
+	go populateIssueIndexer()
+
+	return nil
+}
+
+// DropIssueIndex deletes text indexes for issues; intended to be used from command line
+func DropIssueIndex() error {
+	if issueIndexer != nil {
+		_, err := issueIndexer.Drop(setting.Indexer.IssuePath)
+		return err
 	}
-	DeleteRepoIssueIndexer(repo)
-	err = populateIssueIndexerRepo(repoID)
-	if err != nil {
-		return false, err
-	}
-	// Currently there's no way to tell if a queue is near full
-	return false, nil
+	return nil
 }

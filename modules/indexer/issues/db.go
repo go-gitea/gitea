@@ -43,3 +43,8 @@ func (db *DBIndexer) Search(kw string, repoID int64, limit, start int) (*SearchR
 	}
 	return &result, nil
 }
+
+// Drop dummy function
+func (db *DBIndexer) Drop(path string) (bool, error) {
+	return false, nil
+}

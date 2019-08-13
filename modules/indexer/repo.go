@@ -86,6 +86,9 @@ func InitRepoIndexer(populateIndexer func() error) {
 	if err = createRepoIndexer(setting.Indexer.RepoPath, repoIndexerLatestVersion); err != nil {
 		log.Fatal("CreateRepoIndexer: %v", err)
 	}
+	if populateIndexer == nil {
+		return
+	}
 	if err = populateIndexer(); err != nil {
 		log.Fatal("PopulateRepoIndex: %v", err)
 	}
@@ -225,4 +228,11 @@ func SearchRepoByKeyword(repoIDs []int64, keyword string, page, pageSize int) (i
 		}
 	}
 	return int64(result.Total), searchResults, nil
+}
+
+// DropRepoIndex marks the index for rebuilding by invalidating its version number
+func DropRepoIndex() error {
+	return rupture.WriteIndexMetadata(setting.Indexer.RepoPath, &rupture.IndexMetadata{
+		Version: -1,
+	})
 }

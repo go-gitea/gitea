@@ -248,3 +248,10 @@ func (b *BleveIndexer) Search(keyword string, repoID int64, limit, start int) (*
 	}
 	return &ret, nil
 }
+
+// Drop marks the index for rebuilding by invalidating its version number
+func (b *BleveIndexer) Drop(path string) (bool, error) {
+	return true, rupture.WriteIndexMetadata(path, &rupture.IndexMetadata{
+		Version: -1,
+	})
+}
