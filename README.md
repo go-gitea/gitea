@@ -4,6 +4,7 @@
 
 [![Build Status](https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg)](https://drone.gitea.io/go-gitea/gitea)
 [![Join the Discord chat at https://discord.gg/NsatcWJ](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/NsatcWJ)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgo-gitea%2Fgitea.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgo-gitea%2Fgitea?ref=badge_shield)
 [![](https://images.microbadger.com/badges/image/gitea/gitea.svg)](https://microbadger.com/images/gitea/gitea "Get your own image badge on microbadger.com")
 [![codecov](https://codecov.io/gh/go-gitea/gitea/branch/master/graph/badge.svg)](https://codecov.io/gh/go-gitea/gitea)
 [![Go Report Card](https://goreportcard.com/badge/code.gitea.io/gitea)](https://goreportcard.com/report/code.gitea.io/gitea)
@@ -99,6 +100,9 @@ We're [working on it](https://github.com/go-gitea/gitea/issues/1029).
 This project is licensed under the MIT License.
 See the [LICENSE](https://github.com/go-gitea/gitea/blob/master/LICENSE) file
 for the full license text.
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgo-gitea%2Fgitea.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgo-gitea%2Fgitea?ref=badge_large)
 
 ## Screenshots
 Looking for an overview of the interface? Check it out!
