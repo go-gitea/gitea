@@ -2,13 +2,23 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package base
+package charset
 
 import (
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
+
+func TestRemoveBOMIfPresent(t *testing.T) {
+	res := RemoveBOMIfPresent([]byte{0xc3, 0xa1, 0xc3, 0xa9, 0xc3, 0xad, 0xc3, 0xb3, 0xc3, 0xba})
+	assert.Equal(t, []byte{0xc3, 0xa1, 0xc3, 0xa9, 0xc3, 0xad, 0xc3, 0xb3, 0xc3, 0xba}, res)
+
+	res = RemoveBOMIfPresent([]byte{0xef, 0xbb, 0xbf, 0xc3, 0xa1, 0xc3, 0xa9, 0xc3, 0xad, 0xc3, 0xb3, 0xc3, 0xba})
+	assert.Equal(t, []byte{0xc3, 0xa1, 0xc3, 0xa9, 0xc3, 0xad, 0xc3, 0xb3, 0xc3, 0xba}, res)
+}
 
 func TestToUTF8WithErr(t *testing.T) {
 	var res string
@@ -142,4 +152,40 @@ func TestToUTF8DropErrors(t *testing.T) {
 
 	res = ToUTF8DropErrors([]byte{0x00, 0x00, 0x00, 0x00})
 	assert.Equal(t, []byte{0x00, 0x00, 0x00, 0x00}, res)
+}
+
+func TestDetectEncoding(t *testing.T) {
+	testSuccess := func(b []byte, expected string) {
+		encoding, err := DetectEncoding(b)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, encoding)
+	}
+	// utf-8
+	b := []byte("just some ascii")
+	testSuccess(b, "UTF-8")
+
+	// utf-8-sig: "hey" (with BOM)
+	b = []byte{0xef, 0xbb, 0xbf, 0x68, 0x65, 0x79}
+	testSuccess(b, "UTF-8")
+
+	// utf-16: "hey<accented G>"
+	b = []byte{0xff, 0xfe, 0x68, 0x00, 0x65, 0x00, 0x79, 0x00, 0xf4, 0x01}
+	testSuccess(b, "UTF-16LE")
+
+	// iso-8859-1: d<accented e>cor<newline>
+	b = []byte{0x44, 0xe9, 0x63, 0x6f, 0x72, 0x0a}
+	encoding, err := DetectEncoding(b)
+	assert.NoError(t, err)
+	// due to a race condition in `chardet` library, it could either detect
+	// "ISO-8859-1" or "IS0-8859-2" here. Technically either is correct, so
+	// we accept either.
+	assert.Contains(t, encoding, "ISO-8859")
+
+	setting.Repository.AnsiCharset = "placeholder"
+	testSuccess(b, "placeholder")
+
+	// invalid bytes
+	b = []byte{0xfa}
+	_, err = DetectEncoding(b)
+	assert.Error(t, err)
 }

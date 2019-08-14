@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -117,7 +118,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		d, _ := ioutil.ReadAll(dataRc)
 		buf = append(buf, d...)
-		if content, err := base.ToUTF8WithErr(buf); err != nil {
+		if content, err := charset.ToUTF8WithErr(buf); err != nil {
 			log.Error("ToUTF8WithErr: %v", err)
 			ctx.Data["FileContent"] = string(buf)
 		} else {

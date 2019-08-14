@@ -2,14 +2,23 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package base
+package charset
 
 import (
+	"bytes"
 	"fmt"
+	"unicode/utf8"
 
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/gogits/chardet"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
 )
+
+// UTF8BOM is the utf-8 byte-order marker
+var UTF8BOM = []byte{'\xef', '\xbb', '\xbf'}
 
 // ToUTF8WithErr converts content to UTF8 encoding
 func ToUTF8WithErr(content []byte) (string, error) {
@@ -96,4 +105,48 @@ func ToUTF8DropErrors(content []byte) []byte {
 	}
 
 	return RemoveBOMIfPresent(decoded)
+}
+
+// RemoveBOMIfPresent removes a UTF-8 BOM from a []byte
+func RemoveBOMIfPresent(content []byte) []byte {
+	if len(content) > 2 && bytes.Equal(content[0:3], UTF8BOM) {
+		return content[3:]
+	}
+	return content
+}
+
+// DetectEncoding detect the encoding of content
+func DetectEncoding(content []byte) (string, error) {
+	if utf8.Valid(content) {
+		log.Debug("Detected encoding: utf-8 (fast)")
+		return "UTF-8", nil
+	}
+
+	textDetector := chardet.NewTextDetector()
+	var detectContent []byte
+	if len(content) < 1024 {
+		// Check if original content is valid
+		if _, err := textDetector.DetectBest(content); err != nil {
+			return "", err
+		}
+		times := 1024 / len(content)
+		detectContent = make([]byte, 0, times*len(content))
+		for i := 0; i < times; i++ {
+			detectContent = append(detectContent, content...)
+		}
+	} else {
+		detectContent = content
+	}
+	result, err := textDetector.DetectBest(detectContent)
+	if err != nil {
+		return "", err
+	}
+	// FIXME: to properly decouple this function the fallback ANSI charset should be passed as an argument
+	if result.Charset != "UTF-8" && len(setting.Repository.AnsiCharset) > 0 {
+		log.Debug("Using default AnsiCharset: %s", setting.Repository.AnsiCharset)
+		return setting.Repository.AnsiCharset, err
+	}
+
+	log.Debug("Detected encoding: %s", result.Charset)
+	return result.Charset, err
 }

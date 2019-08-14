@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -159,7 +160,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				ctx.Data["FileSize"] = fileSize
 			} else {
 				d, _ := ioutil.ReadAll(dataRc)
-				buf = base.ToUTF8WithFallback(append(buf, d...))
+				buf = charset.ToUTF8WithFallback(append(buf, d...))
 
 				if markup.Type(readmeFile.Name()) != "" {
 					ctx.Data["IsMarkup"] = true
@@ -277,7 +278,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 
 		d, _ := ioutil.ReadAll(dataRc)
-		buf = base.ToUTF8WithFallback(append(buf, d...))
+		buf = charset.ToUTF8WithFallback(append(buf, d...))
 
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
@@ -292,7 +293,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		} else {
 			// Building code view blocks with line number on server side.
 			var fileContent string
-			if content, err := base.ToUTF8WithErr(buf); err != nil {
+			if content, err := charset.ToUTF8WithErr(buf); err != nil {
 				log.Error("ToUTF8WithErr: %v", err)
 				fileContent = string(buf)
 			} else {
