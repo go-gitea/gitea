@@ -127,3 +127,15 @@ issues:
       linters:
         - misspell
       text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: models/migrations/v26.go
+      linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: models/migrations/v25.go
+      linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: modules/templates/dynamic.go
+      linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`
