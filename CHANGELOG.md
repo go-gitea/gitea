@@ -21,7 +21,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * API: fix multiple bugs with statuses endpoints (Backport #7785) (#7807)
   * Fix Slack webhook fork message (1.9 release backport) (#7783)
   * Fix approvals counting (#7757) (#7777)
-  * fix rename failed when rewrite public keys (#7761) (#7769)
+  * Fix rename failed when rewrite public keys (#7761) (#7769)
   * Fix dropTableColumns sqlite implementation (#7710) (#7765)
   * Fix repo_index_status lingering when deleting a repository (#7738)
   * Fix milestone completness calculation when migrating (#7725) (#7732)
