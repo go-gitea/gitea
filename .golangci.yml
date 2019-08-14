@@ -151,3 +151,15 @@ issues:
       linters:
         - misspell
       text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: routers/api/v1/utils/hook.go
+      linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: routers/api/v1/user/user.go
+      linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: routers/org/members.go
+      linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'
