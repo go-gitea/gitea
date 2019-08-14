@@ -9,6 +9,7 @@ package base
 type Uploader interface {
 	MaxBatchInsertSize(tp string) int
 	CreateRepo(repo *Repository, opts MigrateOptions) error
+	CreateTopics(topic ...string) error
 	CreateMilestones(milestones ...*Milestone) error
 	CreateReleases(releases ...*Release) error
 	CreateLabels(labels ...*Label) error
