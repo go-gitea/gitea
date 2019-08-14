@@ -9,7 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add pagination for admin api get orgs and fix only list public orgs bug (#7742) (#7752)
 * SECURITY
   * Be more strict with git arguments (#7715) (#7762)
-  * Releases builded with go 1.12.8 to fix security fixes in golang std lib, ref: https://groups.google.com/forum/#!topic/golang-nuts/fCQWxqxP8aA
+  * Release built with go 1.12.8 to fix security fixes in golang std lib, ref: https://groups.google.com/forum/#!topic/golang-nuts/fCQWxqxP8aA
 * BUGFIXES
   * Fix local runs of ssh-requiring integration tests (#7855) (#7857)
   * Fix hook problem (#7856) (#7754)
