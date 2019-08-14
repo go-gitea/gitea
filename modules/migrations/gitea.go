@@ -97,6 +97,11 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	return err
 }
 
+// CreateTopics creates topics
+func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
+	return models.SaveTopics(g.repo.ID, topics...)
+}
+
 // CreateMilestones creates milestones
 func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
 	var mss = make([]*models.Milestone, 0, len(milestones))
