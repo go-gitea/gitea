@@ -38,6 +38,12 @@ func (g *PlainGitDownloader) GetRepoInfo() (*base.Repository, error) {
 	}, nil
 }
 
+// GetTopics returns empty list for plain git repo
+func (g *PlainGitDownloader) GetTopics() ([]string, error) {
+	// convert github repo to stand Repo
+	return []string{}, nil
+}
+
 // GetMilestones returns milestones
 func (g *PlainGitDownloader) GetMilestones() ([]*base.Milestone, error) {
 	return nil, ErrNotSupported
