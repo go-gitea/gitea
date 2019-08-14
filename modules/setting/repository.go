@@ -34,6 +34,9 @@ var (
 		AccessControlAllowOrigin                string
 		UseCompatSSHURI                         bool
 		DefaultCloseIssuesViaCommitsInAnyBranch bool
+		EnableKanbanBoard                       bool
+		ProjectBoardBasicKanbanType             []string
+		ProjectBoardBugTriageType               []string
 
 		// Repository editor settings
 		Editor struct {
@@ -76,6 +79,9 @@ var (
 		AccessControlAllowOrigin:                "",
 		UseCompatSSHURI:                         false,
 		DefaultCloseIssuesViaCommitsInAnyBranch: false,
+		EnableKanbanBoard:                       true,
+		ProjectBoardBasicKanbanType:             strings.Split("Todo, In progress, Done", ","),
+		ProjectBoardBugTriageType:               strings.Split("Needs Triage, High priority, Low priority, Closed", ","),
 
 		// Repository editor settings
 		Editor: struct {

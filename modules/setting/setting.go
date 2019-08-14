@@ -240,7 +240,6 @@ var (
 	// Admin settings
 	Admin struct {
 		DisableRegularOrgCreation bool
-		EnableKanbanBoard         bool
 	}
 
 	// Picture settings

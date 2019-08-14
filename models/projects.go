@@ -7,10 +7,24 @@ package models
 import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"github.com/go-xorm/xorm"
 )
 
 // ProjectType is used to represent a project board type
 type ProjectType uint8
+
+// ProjectBoard is used to represent boards on a kanban project
+type ProjectBoard struct {
+	ID        int64 `xorm:"pk autoincr"`
+	ProjectID int64 `xorm:"INDEX NOT NULL"`
+	Title     string
+
+	// Not really needed but helpful
+	CreatorID int64 `xorm:"NOT NULL"`
+
+	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+}
 
 const (
 	// None is a project board type that has no predefined columns
@@ -117,7 +131,50 @@ func NewProject(p *Project) error {
 	if _, err := sess.Exec("UPDATE `repository` SET num_projects = num_projects + 1 WHERE id = ?", p.RepoID); err != nil {
 		return err
 	}
+
+	if err := createBoardsForProjectsType(sess, p); err != nil {
+		return err
+	}
+
 	return sess.Commit()
+}
+
+func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
+
+	var items []string
+
+	switch project.Type {
+
+	case BugTriage:
+		items = setting.Repository.ProjectBoardBugTriageType
+
+	case BasicKanban:
+		items = setting.Repository.ProjectBoardBasicKanbanType
+
+	case None:
+		fallthrough
+	default:
+		return nil
+	}
+
+	if len(items) == 0 {
+		return nil
+	}
+
+	var boards = make([]ProjectBoard, 0)
+
+	for _, v := range items {
+		boards = append(boards, ProjectBoard{
+			CreatedUnix: util.TimeStampNow(),
+			UpdatedUnix: util.TimeStampNow(),
+			CreatorID:   project.CreatorID,
+			Title:       v,
+			ProjectID:   project.ID,
+		})
+	}
+
+	_, err := sess.Insert(boards)
+	return err
 }
 
 // GetProjectByRepoID returns the projects in a repository.

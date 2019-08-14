@@ -23,7 +23,7 @@ const (
 
 func MustEnableProjects(ctx *context.Context) {
 
-	if !setting.Admin.EnableKanbanBoard {
+	if !setting.Repository.EnableKanbanBoard {
 		ctx.NotFound("EnableKanbanBoard", nil)
 		return
 	}
