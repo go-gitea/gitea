@@ -239,7 +239,7 @@ IS_INPUT_FILE = false
 
 ## Time (`time`)
 - `FORMAT`: 显示在界面上的时间格式。比如： RFC1123 或者 2006-01-02 15:04:05
-- `UI_LOCATION`: 显示在界面上的时区，默认为本地时区。比如： Asia/Shanghai
+- `DEFAULT_UI_LOCATION`: 默认显示在界面上的时区，默认为本地时区。比如： Asia/Shanghai
 
 ## Other (`other`)
 

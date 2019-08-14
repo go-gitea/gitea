@@ -111,7 +111,7 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 			deadline = util.TimeStamp(milestone.Deadline.Unix())
 		}
 		if deadline == 0 {
-			deadline = util.TimeStamp(time.Date(9999, 1, 1, 0, 0, 0, 0, setting.UILocation).Unix())
+			deadline = util.TimeStamp(time.Date(9999, 1, 1, 0, 0, 0, 0, setting.DefaultUILocation).Unix())
 		}
 		var ms = models.Milestone{
 			RepoID:       g.repo.ID,

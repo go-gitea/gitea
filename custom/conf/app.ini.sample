@@ -549,7 +549,7 @@ MAX_FILES = 5
 FORMAT =
 ; Location the UI time display i.e. Asia/Shanghai
 ; Empty means server's location setting
-UI_LOCATION =
+DEFAULT_UI_LOCATION =
 
 [log]
 ROOT_PATH =

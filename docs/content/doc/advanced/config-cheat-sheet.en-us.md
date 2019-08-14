@@ -505,7 +505,7 @@ Two special environment variables are passed to the render command:
 
 ## Time (`time`)
 - `FORMAT`: Time format to diplay on UI. i.e. RFC1123 or 2006-01-02 15:04:05
-- `UI_LOCATION`: Location of time on the UI, so that we can display correct user's time on UI. i.e. Shanghai/Asia
+- `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Shanghai/Asia
 
 ## Other (`other`)
 

@@ -35,7 +35,7 @@ func (ts TimeStamp) Year() int {
 
 // AsTime convert timestamp as time.Time in Local locale
 func (ts TimeStamp) AsTime() (tm time.Time) {
-	return ts.AsTimeInLocation(setting.UILocation)
+	return ts.AsTimeInLocation(setting.DefaultUILocation)
 }
 
 // AsTimeInLocation convert timestamp as time.Time in Local locale
@@ -46,7 +46,7 @@ func (ts TimeStamp) AsTimeInLocation(loc *time.Location) (tm time.Time) {
 
 // AsTimePtr convert timestamp as *time.Time in Local locale
 func (ts TimeStamp) AsTimePtr() *time.Time {
-	return ts.AsTimePtrInLocation(setting.UILocation)
+	return ts.AsTimePtrInLocation(setting.DefaultUILocation)
 }
 
 // AsTimePtrInLocation convert timestamp as *time.Time in customize location
@@ -57,7 +57,7 @@ func (ts TimeStamp) AsTimePtrInLocation(loc *time.Location) *time.Time {
 
 // Format formats timestamp as given format
 func (ts TimeStamp) Format(f string) string {
-	return ts.FormatInLocation(f, setting.UILocation)
+	return ts.FormatInLocation(f, setting.DefaultUILocation)
 }
 
 // FormatInLocation formats timestamp as given format with spiecific location

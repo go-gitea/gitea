@@ -279,7 +279,7 @@ var (
 	// Time settings
 	TimeFormat string
 	// UILocation is the location on the UI, so that we can display the time on UI.
-	UILocation = time.Local
+	DefaultUILocation = time.Local
 
 	CSRFCookieName     = "_csrf"
 	CSRFCookieHTTPOnly = true
@@ -818,15 +818,15 @@ func NewContext() {
 		log.Trace("Custom TimeFormat: %s", TimeFormat)
 	}
 
-	zone := Cfg.Section("time").Key("UI_LOCATION").String()
+	zone := Cfg.Section("time").Key("DEFAULT_UI_LOCATION").String()
 	if zone != "" {
-		UILocation, err = time.LoadLocation(zone)
+		DefaultUILocation, err = time.LoadLocation(zone)
 		if err != nil {
 			log.Fatal("Load time zone failed: %v", err)
 		}
 	}
-	if UILocation == nil {
-		UILocation = time.Local
+	if DefaultUILocation == nil {
+		DefaultUILocation = time.Local
 	}
 
 	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
