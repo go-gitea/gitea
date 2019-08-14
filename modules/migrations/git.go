@@ -40,7 +40,6 @@ func (g *PlainGitDownloader) GetRepoInfo() (*base.Repository, error) {
 
 // GetTopics returns empty list for plain git repo
 func (g *PlainGitDownloader) GetTopics() ([]string, error) {
-	// convert github repo to stand Repo
 	return []string{}, nil
 }
 
