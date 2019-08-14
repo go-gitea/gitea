@@ -13,6 +13,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -646,6 +648,9 @@ func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
 // sha1CurrentPatternProcessor renders SHA1 strings to corresponding links that
 // are assumed to be in the same repository.
 func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
+	if ctx.metas == nil || ctx.metas["user"] == "" || ctx.metas["repo"] == "" || ctx.metas["repoPath"] == "" {
+		return
+	}
 	m := sha1CurrentPattern.FindStringSubmatchIndex(node.Data)
 	if m == nil {
 		return
@@ -657,6 +662,15 @@ func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	// but that is not always the case.
 	// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
 	// as used by git and github for linking and thus we have to do similar.
+	// Because of this, we check to make sure that a matched hash is actually
+	// a commit in the repository before making it a link.
+	if _, err := git.NewCommand("rev-parse", "--verify", hash).RunInDirBytes(ctx.metas["repoPath"]); err != nil {
+		if !strings.Contains(err.Error(), "fatal: Needed a single revision") {
+			log.Debug("sha1CurrentPatternProcessor git rev-parse: %v", err)
+		}
+		return
+	}
+
 	replaceContent(node, m[2], m[3],
 		createCodeLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "commit", hash), base.ShortSha(hash)))
 }
