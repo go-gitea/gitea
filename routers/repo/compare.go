@@ -344,6 +344,13 @@ func CompareDiff(ctx *context.Context) {
 	}
 
 	if ctx.Data["PageIsComparePull"] == true {
+		headBranches, err := headGitRepo.GetBranches()
+		if err != nil {
+			ctx.ServerError("GetBranches", err)
+			return
+		}
+		ctx.Data["HeadBranches"] = headBranches
+
 		pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
 		if err != nil {
 			if !models.IsErrPullRequestNotExist(err) {
@@ -364,13 +371,6 @@ func CompareDiff(ctx *context.Context) {
 				return
 			}
 		}
-
-		headBranches, err := headGitRepo.GetBranches()
-		if err != nil {
-			ctx.ServerError("GetBranches", err)
-			return
-		}
-		ctx.Data["HeadBranches"] = headBranches
 	}
 	beforeCommitID := ctx.Data["BeforeCommitID"].(string)
 	afterCommitID := ctx.Data["AfterCommitID"].(string)
