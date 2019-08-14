@@ -139,3 +139,15 @@ issues:
       linters:
         - misspell
       text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: modules/ssh/ssh.go
+      linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: routers/install.go
+      linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: routers/api/v1/convert/convert.go
+      linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'
