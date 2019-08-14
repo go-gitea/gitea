@@ -115,3 +115,15 @@ issues:
       linters:
         - misspell
       text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: models/migrations/v19.go
+      linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: models/migrations/v21.go
+      linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: models/migrations/v22.go
+      linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'
