@@ -82,6 +82,17 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		return err
 	}
 
+	log.Trace("migrating topics")
+	topics, err := downloader.GetTopics()
+	if err != nil {
+		return err
+	}
+	if len(topics) > 0 {
+		if err := uploader.CreateTopics(topics...); err != nil {
+			return err
+		}
+	}
+
 	if opts.Milestones {
 		log.Trace("migrating milestones")
 		milestones, err := downloader.GetMilestones()
