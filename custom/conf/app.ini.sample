@@ -306,7 +306,7 @@ DISABLE_REGULAR_ORG_CREATION = false
 INSTALL_LOCK = false
 ; !!CHANGE THIS TO KEEP YOUR USER DATA SAFE!!
 SECRET_KEY = !#@FDEWREWR&*(
-; How long to remember that an user is logged in before requiring relogin (in days)
+; How long to remember that a user is logged in before requiring relogin (in days)
 LOGIN_REMEMBER_DAYS = 7
 COOKIE_USERNAME = gitea_awesome
 COOKIE_REMEMBER_NAME = gitea_incredible
