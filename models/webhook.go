@@ -890,7 +890,6 @@ func DeliverHooks() {
 	for _, t := range tasks {
 		if err = t.deliver(); err != nil {
 			log.Error("deliver: %v", err)
-			continue
 		}
 	}
 
