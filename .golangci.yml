@@ -138,4 +138,4 @@ issues:
     - path: modules/templates/dynamic.go
       linters:
         - misspell
-      text: '`Unknwon` is a misspelling of `Unknown`
+      text: '`Unknwon` is a misspelling of `Unknown`'
