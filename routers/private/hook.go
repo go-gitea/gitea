@@ -31,6 +31,7 @@ func HookPreReceive(ctx *macaron.Context) {
 	userID := ctx.QueryInt64("userID")
 	gitObjectDirectory := ctx.QueryTrim("gitObjectDirectory")
 	gitAlternativeObjectDirectories := ctx.QueryTrim("gitAlternativeObjectDirectories")
+	gitQuarantinePath := ctx.QueryTrim("gitQuarantinePath")
 	prID := ctx.QueryInt64("prID")
 
 	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
@@ -63,11 +64,19 @@ func HookPreReceive(ctx *macaron.Context) {
 
 		// detect force push
 		if git.EmptySHA != oldCommitID {
-			env := append(os.Environ(),
-				private.GitAlternativeObjectDirectories+"="+gitAlternativeObjectDirectories,
-				private.GitObjectDirectory+"="+gitObjectDirectory,
-				private.GitQuarantinePath+"="+gitObjectDirectory,
-			)
+			env := os.Environ()
+			if gitAlternativeObjectDirectories != "" {
+				env = append(env,
+					private.GitAlternativeObjectDirectories+"="+gitAlternativeObjectDirectories)
+			}
+			if gitObjectDirectory != "" {
+				env = append(env,
+					private.GitObjectDirectory+"="+gitObjectDirectory)
+			}
+			if gitQuarantinePath != "" {
+				env = append(env,
+					private.GitQuarantinePath+"="+gitQuarantinePath)
+			}
 
 			output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), env)
 			if err != nil {
