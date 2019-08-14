@@ -95,3 +95,11 @@ issues:
       linters:
         - misspell
       text: '`Destory` is a misspelling of `Destroy`'
+    - path: modules/setting/repository.go
+      linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'
+    - path: modules/setting/setting.go
+      linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'
