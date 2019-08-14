@@ -139,11 +139,12 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	NumTeams   int
-	NumMembers int
-	Teams      []*Team             `xorm:"-"`
-	Members    []*User             `xorm:"-"`
-	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+	NumTeams        int
+	NumMembers      int
+	Teams           []*Team             `xorm:"-"`
+	Members         UserList            `xorm:"-"`
+	MembersIsPublic map[int64]bool      `xorm:"-"`
+	Visibility      structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
@@ -204,9 +205,9 @@ func (u *User) UpdateTheme(themeName string) error {
 	return UpdateUserCols(u, "theme")
 }
 
-// getEmail returns an noreply email, if the user has set to keep his
+// GetEmail returns an noreply email, if the user has set to keep his
 // email address private, otherwise the primary email address.
-func (u *User) getEmail() string {
+func (u *User) GetEmail() string {
 	if u.KeepEmailPrivate {
 		return fmt.Sprintf("%s@%s", u.LowerName, setting.Service.NoReplyAddress)
 	}
@@ -219,7 +220,7 @@ func (u *User) APIFormat() *api.User {
 		ID:        u.ID,
 		UserName:  u.Name,
 		FullName:  u.FullName,
-		Email:     u.getEmail(),
+		Email:     u.GetEmail(),
 		AvatarURL: u.AvatarLink(),
 		Language:  u.Language,
 		IsAdmin:   u.IsAdmin,
@@ -434,7 +435,7 @@ func (u *User) GetFollowing(page int) ([]*User, error) {
 func (u *User) NewGitSig() *git.Signature {
 	return &git.Signature{
 		Name:  u.GitName(),
-		Email: u.getEmail(),
+		Email: u.GetEmail(),
 		When:  time.Now(),
 	}
 }
@@ -783,6 +784,7 @@ var (
 		"robots.txt",
 		".",
 		"..",
+		".well-known",
 	}
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
@@ -1407,9 +1409,7 @@ type SearchUserOptions struct {
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
-
-	var cond = builder.NewCond()
-	cond = cond.And(builder.Eq{"type": opts.Type})
+	var cond builder.Cond = builder.Eq{"type": opts.Type}
 
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)

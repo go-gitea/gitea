@@ -370,7 +370,7 @@ func TestUsersInTeamsCount(t *testing.T) {
 		assert.Equal(t, expected, count)
 	}
 
-	test([]int64{2}, []int64{1, 2, 3, 4}, 2)
-	test([]int64{1, 2, 3, 4, 5}, []int64{2, 5}, 2)
-	test([]int64{1, 2, 3, 4, 5}, []int64{2, 3, 5}, 3)
+	test([]int64{2}, []int64{1, 2, 3, 4}, 1)          // only userid 2
+	test([]int64{1, 2, 3, 4, 5}, []int64{2, 5}, 2)    // userid 2,4
+	test([]int64{1, 2, 3, 4, 5}, []int64{2, 3, 5}, 3) // userid 2,4,5
 }

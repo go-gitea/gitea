@@ -190,6 +190,13 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// Assigned LastCommitID in opts if it hasn't been set
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
+	} else {
+		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+		if err != nil {
+			return nil, fmt.Errorf("DeleteRepoFile: Invalid last commit ID: %v", err)
+		}
+		opts.LastCommitID = lastCommitID.String()
+
 	}
 
 	encoding := "UTF-8"
@@ -389,32 +396,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err
 	}
 
-	// Simulate push event.
-	oldCommitID := opts.LastCommitID
-	if opts.NewBranch != opts.OldBranch || oldCommitID == "" {
-		oldCommitID = git.EmptySHA
-	}
-
-	if err = repo.GetOwner(); err != nil {
-		return nil, fmt.Errorf("GetOwner: %v", err)
-	}
-	err = PushUpdate(
-		repo,
-		opts.NewBranch,
-		models.PushUpdateOptions{
-			PusherID:     doer.ID,
-			PusherName:   doer.Name,
-			RepoUserName: repo.Owner.Name,
-			RepoName:     repo.Name,
-			RefFullName:  git.BranchPrefix + opts.NewBranch,
-			OldCommitID:  oldCommitID,
-			NewCommitID:  commitHash,
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("PushUpdate: %v", err)
-	}
-
 	commit, err = t.GetCommit(commitHash)
 	if err != nil {
 		return nil, err
@@ -497,7 +478,7 @@ func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOp
 		commits = models.ListToPushCommits(l)
 	}
 
-	if err := models.CommitRepoAction(models.CommitRepoActionOptions{
+	if err := CommitRepoAction(CommitRepoActionOptions{
 		PusherName:  opts.PusherName,
 		RepoOwnerID: repo.OwnerID,
 		RepoName:    repo.Name,

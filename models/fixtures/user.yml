@@ -366,3 +366,38 @@
   num_members: 0
   num_teams: 0
   visibility: 2
+
+-
+  id: 24
+  lower_name: user24
+  name: user24
+  full_name: "user24"
+  email: user24@example.com
+  keep_email_private: true
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  type: 0 # individual
+  salt: ZogKvWdyEx
+  is_admin: false
+  avatar: avatar24
+  avatar_email: user24@example.com
+  num_repos: 0
+  num_stars: 0
+  num_followers: 0
+  num_following: 0
+  is_active: true
+
+-
+  id: 25
+  lower_name: org25
+  name: org25
+  full_name: "org25"
+  email: org25@example.com
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  type: 1 # organization
+  salt: ZogKvWdyEx
+  is_admin: false
+  avatar: avatar25
+  avatar_email: org25@example.com
+  num_repos: 0
+  num_members: 1
+  num_teams: 1
