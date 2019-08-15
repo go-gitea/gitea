@@ -790,32 +790,34 @@ func NewContext() {
 	AttachmentMaxFiles = sec.Key("MAX_FILES").MustInt(5)
 	AttachmentEnabled = sec.Key("ENABLED").MustBool(true)
 
-	timeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("RFC1123")
-	TimeFormat = map[string]string{
-		"ANSIC":       time.ANSIC,
-		"UnixDate":    time.UnixDate,
-		"RubyDate":    time.RubyDate,
-		"RFC822":      time.RFC822,
-		"RFC822Z":     time.RFC822Z,
-		"RFC850":      time.RFC850,
-		"RFC1123":     time.RFC1123,
-		"RFC1123Z":    time.RFC1123Z,
-		"RFC3339":     time.RFC3339,
-		"RFC3339Nano": time.RFC3339Nano,
-		"Kitchen":     time.Kitchen,
-		"Stamp":       time.Stamp,
-		"StampMilli":  time.StampMilli,
-		"StampMicro":  time.StampMicro,
-		"StampNano":   time.StampNano,
-	}[timeFormatKey]
-	// When the TimeFormatKey does not exist in the previous map e.g.'2006-01-02 15:04:05'
-	if len(TimeFormat) == 0 {
-		TimeFormat = timeFormatKey
-		TestTimeFormat, _ := time.Parse(TimeFormat, TimeFormat)
-		if TestTimeFormat.Format(time.RFC3339) != "2006-01-02T15:04:05Z" {
-			log.Fatal("Can't create time properly, please check your time format has 2006, 01, 02, 15, 04 and 05")
+	timeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("")
+	if timeFormatKey != "" {
+		TimeFormat = map[string]string{
+			"ANSIC":       time.ANSIC,
+			"UnixDate":    time.UnixDate,
+			"RubyDate":    time.RubyDate,
+			"RFC822":      time.RFC822,
+			"RFC822Z":     time.RFC822Z,
+			"RFC850":      time.RFC850,
+			"RFC1123":     time.RFC1123,
+			"RFC1123Z":    time.RFC1123Z,
+			"RFC3339":     time.RFC3339,
+			"RFC3339Nano": time.RFC3339Nano,
+			"Kitchen":     time.Kitchen,
+			"Stamp":       time.Stamp,
+			"StampMilli":  time.StampMilli,
+			"StampMicro":  time.StampMicro,
+			"StampNano":   time.StampNano,
+		}[timeFormatKey]
+		// When the TimeFormatKey does not exist in the previous map e.g.'2006-01-02 15:04:05'
+		if len(TimeFormat) == 0 {
+			TimeFormat = timeFormatKey
+			TestTimeFormat, _ := time.Parse(TimeFormat, TimeFormat)
+			if TestTimeFormat.Format(time.RFC3339) != "2006-01-02T15:04:05Z" {
+				log.Fatal("Can't create time properly, please check your time format has 2006, 01, 02, 15, 04 and 05")
+			}
+			log.Trace("Custom TimeFormat: %s", TimeFormat)
 		}
-		log.Trace("Custom TimeFormat: %s", TimeFormat)
 	}
 
 	zone := Cfg.Section("time").Key("DEFAULT_UI_LOCATION").String()
@@ -823,6 +825,8 @@ func NewContext() {
 		DefaultUILocation, err = time.LoadLocation(zone)
 		if err != nil {
 			log.Fatal("Load time zone failed: %v", err)
+		} else {
+			log.Info("Default UI Location is %v", zone)
 		}
 	}
 	if DefaultUILocation == nil {

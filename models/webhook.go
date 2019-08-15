@@ -23,7 +23,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"github.com/Unknwon/com"
 	gouuid "github.com/satori/go.uuid"
 )
@@ -118,8 +119,8 @@ type Webhook struct {
 	Meta         string     `xorm:"TEXT"` // store hook-specific attributes
 	LastStatus   HookStatus // Last delivery status
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 // AfterLoad updates the webhook object upon setting a column
