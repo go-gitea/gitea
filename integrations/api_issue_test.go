@@ -62,3 +62,69 @@ func TestAPICreateIssue(t *testing.T) {
 		Title:      title,
 	})
 }
+
+func TestAPICreateIssueID(t *testing.T) {
+	prepareTestEnv(t)
+	const body, firstTitle, dupTitle, freeTitle = "apiTestBody", "apiTestTitle-first", "apiTestTitle-dup", "apiTestTitle-free"
+	const firstIndex = int64(3000)
+
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repo.Name, token)
+
+	// Must create with index 3000
+	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
+		Index:    firstIndex,
+		Body:     body,
+		Title:    firstTitle,
+		Assignee: owner.Name,
+	})
+	resp := session.MakeRequest(t, req, http.StatusCreated)
+	var apiIssue api.Issue
+	DecodeJSON(t, resp, &apiIssue)
+	assert.Equal(t, apiIssue.Index, firstIndex)
+	assert.Equal(t, apiIssue.Body, body)
+	assert.Equal(t, apiIssue.Title, firstTitle)
+
+	// Must fail
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
+		Index:    firstIndex,
+		Body:     body,
+		Title:    dupTitle,
+		Assignee: owner.Name,
+	})
+	resp = session.MakeRequest(t, req, http.StatusInternalServerError)
+
+	// Must be the first one created
+	models.AssertExistsAndLoadBean(t, &models.Issue{
+		Index:		firstIndex,
+		RepoID:     repo.ID,
+		AssigneeID: owner.ID,
+		Content:    body,
+		Title:      firstTitle,
+	})
+
+	// Must create with index firstIndex + 1
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
+		Body:     body,
+		Title:    freeTitle,
+		Assignee: owner.Name,
+	})
+	resp= session.MakeRequest(t, req, http.StatusCreated)
+	DecodeJSON(t, resp, &apiIssue)
+	assert.Equal(t, apiIssue.Index, firstIndex + 1)
+	assert.Equal(t, apiIssue.Body, body)
+	assert.Equal(t, apiIssue.Title, freeTitle)
+
+	// Must be the last one created
+	models.AssertExistsAndLoadBean(t, &models.Issue{
+		Index:		firstIndex + 1,
+		RepoID:     repo.ID,
+		AssigneeID: owner.ID,
+		Content:    body,
+		Title:      freeTitle,
+	})
+}
