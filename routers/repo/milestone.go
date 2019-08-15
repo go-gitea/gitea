@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -120,7 +121,7 @@ func NewMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 		RepoID:       ctx.Repo.Repository.ID,
 		Name:         form.Title,
 		Content:      form.Content,
-		DeadlineUnix: util.TimeStamp(deadline.Unix()),
+		DeadlineUnix: timeutil.TimeStamp(deadline.Unix()),
 	}); err != nil {
 		ctx.ServerError("NewMilestone", err)
 		return
@@ -190,7 +191,7 @@ func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	}
 	m.Name = form.Title
 	m.Content = form.Content
-	m.DeadlineUnix = util.TimeStamp(deadline.Unix())
+	m.DeadlineUnix = timeutil.TimeStamp(deadline.Unix())
 	if err = models.UpdateMilestone(m); err != nil {
 		ctx.ServerError("UpdateMilestone", err)
 		return
@@ -223,7 +224,7 @@ func ChangeMilestonStatus(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=open")
 	case "close":
 		if !m.IsClosed {
-			m.ClosedDateUnix = util.TimeStampNow()
+			m.ClosedDateUnix = timeutil.TimeStampNow()
 			if err = models.ChangeMilestoneStatus(m, true); err != nil {
 				ctx.ServerError("ChangeMilestoneStatus", err)
 				return
