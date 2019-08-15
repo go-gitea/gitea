@@ -1,5 +1,6 @@
 # cloud.google.com/go v0.37.4
 cloud.google.com/go/civil
+cloud.google.com/go/compute/metadata
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
 # github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
@@ -236,7 +237,7 @@ github.com/markbates/goth/providers/dropbox
 github.com/markbates/goth/providers/facebook
 github.com/markbates/goth/providers/github
 github.com/markbates/goth/providers/gitlab
-github.com/markbates/goth/providers/gplus
+github.com/markbates/goth/providers/google
 github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter
 # github.com/mattn/go-isatty v0.0.7
@@ -370,7 +371,10 @@ golang.org/x/net/context
 golang.org/x/net/internal/socks
 # golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
 golang.org/x/oauth2
+golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
+golang.org/x/oauth2/jws
+golang.org/x/oauth2/jwt
 # golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
@@ -399,8 +403,11 @@ golang.org/x/text/runes
 golang.org/x/text/internal/tag
 # google.golang.org/appengine v1.4.0
 google.golang.org/appengine/cloudsql
+google.golang.org/appengine
 google.golang.org/appengine/urlfetch
 google.golang.org/appengine/internal
+google.golang.org/appengine/internal/app_identity
+google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/datastore
