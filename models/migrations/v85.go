@@ -7,11 +7,11 @@ package migrations
 import (
 	"fmt"
 
-	"github.com/go-xorm/xorm"
-
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
+
+	"github.com/go-xorm/xorm"
 )
 
 func hashAppToken(x *xorm.Engine) error {
@@ -26,10 +26,10 @@ func hashAppToken(x *xorm.Engine) error {
 		TokenSalt      string
 		TokenLastEight string `xorm:"token_last_eight"`
 
-		CreatedUnix       util.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix       util.TimeStamp `xorm:"INDEX updated"`
-		HasRecentActivity bool           `xorm:"-"`
-		HasUsed           bool           `xorm:"-"`
+		CreatedUnix       timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix       timeutil.TimeStamp `xorm:"INDEX updated"`
+		HasRecentActivity bool               `xorm:"-"`
+		HasUsed           bool               `xorm:"-"`
 	}
 
 	// First remove the index
