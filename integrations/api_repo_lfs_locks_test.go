@@ -108,7 +108,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		if len(test.addTime) > 0 {
 			var lfsLock api.LFSLockResponse
 			DecodeJSON(t, resp, &lfsLock)
-			assert.EqualValues(t, lfsLock.Lock.LockedAt.Round(time.Second).Format(time.RFC3339Nano), lfsLock.Lock.LockedAt.Format(time.RFC3339Nano)) //locked at should be rounded to second
+			assert.EqualValues(t, lfsLock.Lock.LockedAt.Format(time.RFC3339), lfsLock.Lock.LockedAt.Format(time.RFC3339Nano)) //locked at should be rounded to second
 			for _, id := range test.addTime {
 				resultsTests[id].locksTimes = append(resultsTests[id].locksTimes, time.Now())
 			}
@@ -127,7 +127,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		for i, lock := range lfsLocks.Locks {
 			assert.EqualValues(t, test.locksOwners[i].DisplayName(), lock.Owner.Name)
 			assert.WithinDuration(t, test.locksTimes[i], lock.LockedAt, 3*time.Second)
-			assert.EqualValues(t, lock.LockedAt.Round(time.Second).Format(time.RFC3339Nano), lock.LockedAt.Format(time.RFC3339Nano)) //locked at should be rounded to second
+			assert.EqualValues(t, lock.LockedAt.Format(time.RFC3339), lock.LockedAt.Format(time.RFC3339Nano)) //locked at should be rounded to second
 		}
 
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks/verify", test.repo.FullName()), map[string]string{})
