@@ -66,14 +66,14 @@ func (ts TimeStamp) FormatInLocation(f string, loc *time.Location) string {
 }
 
 // FormatLong formats as RFC1123Z
-/*func (ts TimeStamp) FormatLong() string {
+func (ts TimeStamp) FormatLong() string {
 	return ts.Format(time.RFC1123Z)
 }
 
 // FormatShort formats as short
 func (ts TimeStamp) FormatShort() string {
 	return ts.Format("Jan 02, 2006")
-}*/
+}
 
 // IsZero is zero time
 func (ts TimeStamp) IsZero() bool {
