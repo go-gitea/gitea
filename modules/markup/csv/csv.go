@@ -100,7 +100,7 @@ func (Parser) scoreDelimiter(lines []string, delim rune) (score float64) {
 
 		if countLine != countLineMax {
 			if countLineMax != 0 {
-				linesNotEqual += 1
+				linesNotEqual++
 			}
 			countLineMax = math.Max(countLine, countLineMax)
 		}
