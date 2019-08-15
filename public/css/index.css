@@ -489,6 +489,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.file.list .non-diff-file-content .view-raw img{padding:5px 5px 0 5px}
 .repository.file.list .non-diff-file-content .plain-text{padding:1em 2em 1em 2em}
 .repository.file.list .non-diff-file-content .plain-text pre{word-break:break-word;white-space:pre-wrap}
+.repository.file.list .non-diff-file-content .csv{overflow-x:auto}
 .repository.file.list .non-diff-file-content pre{overflow:auto}
 .repository.file.list .sidebar{padding-left:0}
 .repository.file.list .sidebar .octicon{width:16px}
