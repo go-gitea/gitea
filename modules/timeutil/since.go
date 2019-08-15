@@ -147,7 +147,6 @@ func TimeSince(then time.Time, lang string) template.HTML {
 }
 
 func htmlTimeSince(then, now time.Time, lang string) template.HTML {
-	fmt.Printf("2----- %v ------- %v\n", then, then.In(setting.DefaultUILocation).Format(GetTimeFormat(lang)))
 	return template.HTML(fmt.Sprintf(`<span class="time-since" title="%s">%s</span>`,
 		then.In(setting.DefaultUILocation).Format(GetTimeFormat(lang)),
 		timeSince(then, now, lang)))
@@ -159,7 +158,6 @@ func TimeSinceUnix(then TimeStamp, lang string) template.HTML {
 }
 
 func htmlTimeSinceUnix(then, now TimeStamp, lang string) template.HTML {
-	fmt.Printf("1----- %v ------- %v\n", then, then.FormatInLocation(GetTimeFormat(lang), setting.DefaultUILocation))
 	return template.HTML(fmt.Sprintf(`<span class="time-since" title="%s">%s</span>`,
 		then.FormatInLocation(GetTimeFormat(lang), setting.DefaultUILocation),
 		timeSinceUnix(int64(then), int64(now), lang)))
