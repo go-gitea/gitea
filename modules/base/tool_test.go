@@ -64,42 +64,6 @@ func TestShortSha(t *testing.T) {
 	assert.Equal(t, "veryverylo", ShortSha("veryverylong"))
 }
 
-func TestDetectEncoding(t *testing.T) {
-	testSuccess := func(b []byte, expected string) {
-		encoding, err := DetectEncoding(b)
-		assert.NoError(t, err)
-		assert.Equal(t, expected, encoding)
-	}
-	// utf-8
-	b := []byte("just some ascii")
-	testSuccess(b, "UTF-8")
-
-	// utf-8-sig: "hey" (with BOM)
-	b = []byte{0xef, 0xbb, 0xbf, 0x68, 0x65, 0x79}
-	testSuccess(b, "UTF-8")
-
-	// utf-16: "hey<accented G>"
-	b = []byte{0xff, 0xfe, 0x68, 0x00, 0x65, 0x00, 0x79, 0x00, 0xf4, 0x01}
-	testSuccess(b, "UTF-16LE")
-
-	// iso-8859-1: d<accented e>cor<newline>
-	b = []byte{0x44, 0xe9, 0x63, 0x6f, 0x72, 0x0a}
-	encoding, err := DetectEncoding(b)
-	assert.NoError(t, err)
-	// due to a race condition in `chardet` library, it could either detect
-	// "ISO-8859-1" or "IS0-8859-2" here. Technically either is correct, so
-	// we accept either.
-	assert.Contains(t, encoding, "ISO-8859")
-
-	setting.Repository.AnsiCharset = "placeholder"
-	testSuccess(b, "placeholder")
-
-	// invalid bytes
-	b = []byte{0xfa}
-	_, err = DetectEncoding(b)
-	assert.Error(t, err)
-}
-
 func TestBasicAuthDecode(t *testing.T) {
 	_, _, err := BasicAuthDecode("?")
 	assert.Equal(t, "illegal base64 data at input byte 0", err.Error())

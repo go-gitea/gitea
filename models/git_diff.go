@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
@@ -27,7 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
 	"github.com/sergi/go-diff/diffmatchpatch"
-	"golang.org/x/net/html/charset"
+	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
 )
 
@@ -641,9 +641,9 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				buf.WriteString("\n")
 			}
 		}
-		charsetLabel, err := base.DetectEncoding(buf.Bytes())
+		charsetLabel, err := charset.DetectEncoding(buf.Bytes())
 		if charsetLabel != "UTF-8" && err == nil {
-			encoding, _ := charset.Lookup(charsetLabel)
+			encoding, _ := stdcharset.Lookup(charsetLabel)
 			if encoding != nil {
 				d := encoding.NewDecoder()
 				for _, sec := range f.Sections {
