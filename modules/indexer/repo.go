@@ -23,7 +23,7 @@ const (
 	repoIndexerAnalyzer = "repoIndexerAnalyzer"
 	repoIndexerDocType  = "repoIndexerDocType"
 
-	repoIndexerLatestVersion = 2
+	repoIndexerLatestVersion = 3
 )
 
 // repoIndexer (thread-safe) index for repository contents

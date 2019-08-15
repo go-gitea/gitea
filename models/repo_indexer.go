@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
@@ -214,6 +215,7 @@ func addUpdate(update fileUpdate, repo *Repository, batch rupture.FlushingBatch)
 	if err != nil {
 		return err
 	} else if !base.IsTextFile(fileContents) {
+		// FIXME: UTF-16 files will probably fail here
 		return nil
 	}
 	indexerUpdate := indexer.RepoIndexerUpdate{
@@ -221,7 +223,7 @@ func addUpdate(update fileUpdate, repo *Repository, batch rupture.FlushingBatch)
 		Op:       indexer.RepoIndexerOpUpdate,
 		Data: &indexer.RepoIndexerData{
 			RepoID:  repo.ID,
-			Content: string(fileContents),
+			Content: string(charset.ToUTF8DropErrors(fileContents)),
 		},
 	}
 	return indexerUpdate.AddToFlushingBatch(batch)

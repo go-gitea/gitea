@@ -253,6 +253,11 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	milestoneID := ctx.ParamsInt64(":id")
 	milestone, err := models.GetMilestoneByID(milestoneID)
 	if err != nil {
+		if models.IsErrMilestoneNotExist(err) {
+			ctx.NotFound("GetMilestoneByID", err)
+			return
+		}
+
 		ctx.ServerError("GetMilestoneByID", err)
 		return
 	}
