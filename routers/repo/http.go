@@ -26,6 +26,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"github.com/Unknwon/com"
 )
 
 // HTTP implmentation git smart HTTP protocol
