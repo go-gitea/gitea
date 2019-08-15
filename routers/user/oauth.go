@@ -7,7 +7,6 @@ package user
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/go-macaron/binding"
 	"net/url"
 	"strings"
 
@@ -17,9 +16,10 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/go-macaron/binding"
 )
 
 const (
@@ -118,7 +118,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *A
 		}
 	}
 	// generate access token to access the API
-	expirationDate := util.TimeStampNow().Add(setting.OAuth2.AccessTokenExpirationTime)
+	expirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.AccessTokenExpirationTime)
 	accessToken := &models.OAuth2Token{
 		GrantID: grant.ID,
 		Type:    models.TypeAccessToken,
@@ -135,7 +135,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *A
 	}
 
 	// generate refresh token to request an access token after it expired later
-	refreshExpirationDate := util.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime().Unix()
+	refreshExpirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime().Unix()
 	refreshToken := &models.OAuth2Token{
 		GrantID: grant.ID,
 		Counter: grant.Counter,
