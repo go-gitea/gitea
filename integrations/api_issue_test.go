@@ -100,7 +100,7 @@ func TestAPICreateIssueID(t *testing.T) {
 
 	// Must be the first one created
 	models.AssertExistsAndLoadBean(t, &models.Issue{
-		Index:		firstIndex,
+		Index:      firstIndex,
 		RepoID:     repo.ID,
 		AssigneeID: owner.ID,
 		Content:    body,
@@ -113,15 +113,15 @@ func TestAPICreateIssueID(t *testing.T) {
 		Title:    freeTitle,
 		Assignee: owner.Name,
 	})
-	resp= session.MakeRequest(t, req, http.StatusCreated)
+	resp = session.MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, &apiIssue)
-	assert.Equal(t, apiIssue.Index, firstIndex + 1)
+	assert.Equal(t, apiIssue.Index, firstIndex+1)
 	assert.Equal(t, apiIssue.Body, body)
 	assert.Equal(t, apiIssue.Title, freeTitle)
 
 	// Must be the last one created
 	models.AssertExistsAndLoadBean(t, &models.Issue{
-		Index:		firstIndex + 1,
+		Index:      firstIndex + 1,
 		RepoID:     repo.ID,
 		AssigneeID: owner.ID,
 		Content:    body,
