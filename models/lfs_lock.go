@@ -56,7 +56,7 @@ func (l *LFSLock) APIFormat() *api.LFSLock {
 	return &api.LFSLock{
 		ID:       strconv.FormatInt(l.ID, 10),
 		Path:     l.Path,
-		LockedAt: l.Created,
+		LockedAt: l.Created.Round(time.Second),
 		Owner: &api.LFSLockOwner{
 			Name: l.Owner.DisplayName(),
 		},
