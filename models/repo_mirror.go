@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
@@ -34,8 +35,8 @@ type Mirror struct {
 	Interval    time.Duration
 	EnablePrune bool `xorm:"NOT NULL DEFAULT true"`
 
-	UpdatedUnix    util.TimeStamp `xorm:"INDEX"`
-	NextUpdateUnix util.TimeStamp `xorm:"INDEX"`
+	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
+	NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX"`
 
 	address string `xorm:"-"`
 }
@@ -43,8 +44,8 @@ type Mirror struct {
 // BeforeInsert will be invoked by XORM before inserting a record
 func (m *Mirror) BeforeInsert() {
 	if m != nil {
-		m.UpdatedUnix = util.TimeStampNow()
-		m.NextUpdateUnix = util.TimeStampNow()
+		m.UpdatedUnix = timeutil.TimeStampNow()
+		m.NextUpdateUnix = timeutil.TimeStampNow()
 	}
 }
 
@@ -64,7 +65,7 @@ func (m *Mirror) AfterLoad(session *xorm.Session) {
 // ScheduleNextUpdate calculates and sets next update time.
 func (m *Mirror) ScheduleNextUpdate() {
 	if m.Interval != 0 {
-		m.NextUpdateUnix = util.TimeStampNow().AddDuration(m.Interval)
+		m.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(m.Interval)
 	} else {
 		m.NextUpdateUnix = 0
 	}
@@ -277,7 +278,7 @@ func (m *Mirror) runSync() ([]*mirrorSyncResult, bool) {
 		cache.Remove(m.Repo.GetCommitsCountCacheKey(branches[i].Name, true))
 	}
 
-	m.UpdatedUnix = util.TimeStampNow()
+	m.UpdatedUnix = timeutil.TimeStampNow()
 	return parseRemoteUpdateOutput(output), true
 }
 

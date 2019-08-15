@@ -20,13 +20,13 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/util"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
 )
@@ -74,9 +74,9 @@ func NewFuncMap() []template.FuncMap {
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
 		"Str2html":      Str2html,
-		"TimeSince":     base.TimeSince,
-		"TimeSinceUnix": base.TimeSinceUnix,
-		"RawTimeSince":  base.RawTimeSince,
+		"TimeSince":     timeutil.TimeSince,
+		"TimeSinceUnix": timeutil.TimeSinceUnix,
+		"RawTimeSince":  timeutil.RawTimeSince,
 		"FileSize":      base.FileSize,
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,

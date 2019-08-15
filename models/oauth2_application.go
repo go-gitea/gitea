@@ -11,15 +11,14 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/go-xorm/xorm"
-	uuid "github.com/satori/go.uuid"
-
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/go-xorm/xorm"
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -36,8 +35,8 @@ type OAuth2Application struct {
 
 	RedirectURIs []string `xorm:"redirect_uris JSON TEXT"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 // TableName sets the table name to `oauth2_application`
@@ -264,7 +263,7 @@ type OAuth2AuthorizationCode struct {
 	CodeChallenge       string
 	CodeChallengeMethod string
 	RedirectURI         string
-	ValidUntil          util.TimeStamp `xorm:"index"`
+	ValidUntil          timeutil.TimeStamp `xorm:"index"`
 }
 
 // TableName sets the table name to `oauth2_authorization_code`
@@ -348,8 +347,8 @@ type OAuth2Grant struct {
 	Application   *OAuth2Application `xorm:"-"`
 	ApplicationID int64              `xorm:"INDEX unique(user_application)"`
 	Counter       int64              `xorm:"NOT NULL DEFAULT 1"`
-	CreatedUnix   util.TimeStamp     `xorm:"created"`
-	UpdatedUnix   util.TimeStamp     `xorm:"updated"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
 }
 
 // TableName sets the table name to `oauth2_grant`
