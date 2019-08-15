@@ -320,3 +320,54 @@ func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
 	assert.EqualValues(t, 1, total)
 	assert.EqualValues(t, []int64{1}, ids)
 }
+
+func TestIssueCreateWithID(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	index := int64(3000)
+
+	issue := &Issue{
+		Index:    index,
+		RepoID:   repo.ID,
+		Repo:     repo,
+		Title:    "TestIssueCreateWithID",
+		PosterID: 2,
+		Poster:   user,
+		Content:  "Issue body",
+	}
+
+	err := NewIssue(repo, issue, nil, nil, nil)
+	assert.NoError(t, err)
+
+	issue = &Issue{
+		Index:    index,
+		RepoID:   repo.ID,
+		Repo:     repo,
+		Title:    "repeated TestIssueCreateWithID",
+		PosterID: 2,
+		Poster:   user,
+		Content:  "Issue body",
+	}
+
+	err = NewIssue(repo, issue, nil, nil, nil)
+	assert.Error(t, err)
+
+	issue = AssertExistsAndLoadBean(t, &Issue{RepoID: repo.ID, Index: index}).(*Issue)
+
+	assert.Equal(t, "TestIssueCreateWithID", issue.Title)
+
+	issue = &Issue{
+		RepoID:   repo.ID,
+		Repo:     repo,
+		Title:    "sequential TestIssueCreateWithID",
+		PosterID: 2,
+		Poster:   user,
+		Content:  "Issue body",
+	}
+
+	err = NewIssue(repo, issue, nil, nil, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, index+1, issue.Index)
+}

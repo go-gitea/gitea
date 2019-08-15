@@ -189,6 +189,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	}
 
 	issue := &models.Issue{
+		Index:        form.Index,
 		RepoID:       ctx.Repo.Repository.ID,
 		Repo:         ctx.Repo.Repository,
 		Title:        form.Title,

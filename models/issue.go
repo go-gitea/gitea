@@ -1054,11 +1054,13 @@ func getMaxIndexOfIssue(e Engine, repoID int64) (int64, error) {
 func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 
-	maxIndex, err := getMaxIndexOfIssue(e, opts.Issue.RepoID)
-	if err != nil {
-		return err
+	if opts.Issue.Index == 0 {
+		maxIndex, err := getMaxIndexOfIssue(e, opts.Issue.RepoID)
+		if err != nil {
+			return err
+		}
+		opts.Issue.Index = maxIndex + 1
 	}
-	opts.Issue.Index = maxIndex + 1
 
 	if opts.Issue.MilestoneID > 0 {
 		milestone, err := getMilestoneByRepoID(e, opts.Issue.RepoID, opts.Issue.MilestoneID)
