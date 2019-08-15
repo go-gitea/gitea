@@ -9,14 +9,18 @@ import (
 	"encoding/csv"
 	"html"
 	"io"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/util"
 )
 
+var quoteRegexp = regexp.MustCompile(`["'][\s\S]+?["']`)
+
 func init() {
 	markup.RegisterParser(Parser{})
+
 }
 
 // Parser implements markup.Parser for orgmode
@@ -53,7 +57,7 @@ func (p Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]strin
 			tmpBlock.WriteString(html.EscapeString(field))
 			tmpBlock.WriteString("</td>")
 		}
-		tmpBlock.WriteString("<tr>")
+		tmpBlock.WriteString("</tr>")
 	}
 	tmpBlock.WriteString("</table>")
 
@@ -66,6 +70,7 @@ func (p Parser) bestDelimiter(data []byte) rune {
 	maxLines := 10
 	maxBytes := util.Min(len(data), 1e4)
 	text := string(data[:maxBytes])
+	text = quoteRegexp.ReplaceAllLiteralString(text, "")
 	lines := strings.SplitN(text, "\n", maxLines+1)
 	lines = lines[:util.Min(maxLines, len(lines))]
 
