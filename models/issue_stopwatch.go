@@ -8,15 +8,15 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // Stopwatch represents a stopwatch for time tracking.
 type Stopwatch struct {
-	ID          int64          `xorm:"pk autoincr"`
-	IssueID     int64          `xorm:"INDEX"`
-	UserID      int64          `xorm:"INDEX"`
-	CreatedUnix util.TimeStamp `xorm:"created"`
+	ID          int64              `xorm:"pk autoincr"`
+	IssueID     int64              `xorm:"INDEX"`
+	UserID      int64              `xorm:"INDEX"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
 func getStopwatch(e Engine, userID, issueID int64) (sw *Stopwatch, exists bool, err error) {
