@@ -14,9 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
-	"mvdan.cc/xurls/v2"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -24,9 +21,12 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/utils"
+
+	"github.com/Unknwon/com"
+	"mvdan.cc/xurls/v2"
 )
 
 const (
@@ -144,7 +144,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
 			ctx.Repo.Mirror.Interval = interval
 			if interval != 0 {
-				ctx.Repo.Mirror.NextUpdateUnix = util.TimeStampNow().AddDuration(interval)
+				ctx.Repo.Mirror.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(interval)
 			} else {
 				ctx.Repo.Mirror.NextUpdateUnix = 0
 			}

@@ -16,6 +16,7 @@ import (
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	api "code.gitea.io/gitea/modules/structs"
@@ -183,9 +184,9 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	//   "201":
 	//     "$ref": "#/responses/Issue"
 
-	var deadlineUnix util.TimeStamp
+	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
-		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
+		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
 	issue := &models.Issue{
@@ -310,9 +311,9 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 
 	// Update the deadline
-	var deadlineUnix util.TimeStamp
+	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil && !form.Deadline.IsZero() && ctx.Repo.CanWrite(models.UnitTypeIssues) {
-		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
+		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
 	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
@@ -430,12 +431,12 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 		return
 	}
 
-	var deadlineUnix util.TimeStamp
+	var deadlineUnix timeutil.TimeStamp
 	var deadline time.Time
 	if form.Deadline != nil && !form.Deadline.IsZero() {
 		deadline = time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
 			23, 59, 59, 0, form.Deadline.Location())
-		deadlineUnix = util.TimeStamp(deadline.Unix())
+		deadlineUnix = timeutil.TimeStamp(deadline.Unix())
 	}
 
 	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {

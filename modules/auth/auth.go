@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
 )
 
@@ -68,7 +68,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 				}
 				return 0
 			}
-			t.UpdatedUnix = util.TimeStampNow()
+			t.UpdatedUnix = timeutil.TimeStampNow()
 			if err = models.UpdateAccessToken(t); err != nil {
 				log.Error("UpdateAccessToken: %v", err)
 			}
@@ -210,7 +210,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 						return nil, false
 					}
 				}
-				token.UpdatedUnix = util.TimeStampNow()
+				token.UpdatedUnix = timeutil.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
 					log.Error("UpdateAccessToken:  %v", err)
 				}
