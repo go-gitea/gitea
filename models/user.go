@@ -89,7 +89,7 @@ type User struct {
 	// Email is the primary email address (to be used for communication)
 	Email                     string `xorm:"NOT NULL"`
 	KeepEmailPrivate          bool
-	EmailNotificationsEnabled bool   `xorm:"NOT NULL DEFAULT true"`
+	EmailNotificationsEnabled bool   `xorm:"DEFAULT true"`
 	Passwd                    string `xorm:"NOT NULL"`
 	PasswdHashAlgo            string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
 
@@ -730,6 +730,7 @@ func (u *User) EnabledEmailNotifications() bool {
 // would like to receive notifications by email
 func (u *User) SetEmailNotifications(set bool) {
 	u.EmailNotificationsEnabled = set
+	_ = UpdateUser(u)
 }
 
 func isUserExist(e Engine, uid int64, name string) (bool, error) {

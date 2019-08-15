@@ -44,6 +44,19 @@
 			<div class="ui email list">
 				<div class="item">
 					{{.i18n.Tr "settings.email_desc"}}
+					<div class="right floated content">
+						<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
+							{{$.CsrfTokenHtml}}
+							<input name="_method" type="hidden" value="NOTIFICATION">
+							{{if .NotificationsEnabled}}
+							<input name="enable" type="hidden" value="false">
+							<button class="ui blue tiny button">{{$.i18n.Tr "settings.email_notifications.disable"}}</button>
+							{{else}}
+						    <input name="enable" type="hidden" value="true">
+							<button class="ui blue tiny button">{{$.i18n.Tr "settings.email_notifications.enable"}}</button>
+							{{end}}
+						</form>
+					</div>
 				</div>
 				{{range .Emails}}
 					<div class="item">

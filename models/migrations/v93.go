@@ -9,7 +9,7 @@ import "github.com/go-xorm/xorm"
 func addEmailNotificationEnabledToUser(x *xorm.Engine) error {
 	// Issue see models/user.go
 	type User struct {
-		EmailNotificationsEnabled bool `xorm:"NOT NULL DEFAULT true"`
+		EmailNotificationsEnabled bool `xorm:"DEFAULT true"`
 	}
 
 	return x.Sync2(new(User))
