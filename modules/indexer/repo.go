@@ -21,7 +21,7 @@ import (
 const (
 	repoIndexerAnalyzer = "repoIndexerAnalyzer"
 	repoIndexerDocType  = "repoIndexerDocType"
-
+  
 	repoIndexerLatestVersion = 4
 )
 
