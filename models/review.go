@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-xorm/xorm"
 	"xorm.io/builder"
@@ -56,8 +56,8 @@ type Review struct {
 	IssueID    int64  `xorm:"index"`
 	Content    string
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// CodeComments are the initial code comments of the review
 	CodeComments CodeComments `xorm:"-"`
@@ -279,7 +279,7 @@ func UpdateReview(r *Review) error {
 type PullReviewersWithType struct {
 	User              `xorm:"extends"`
 	Type              ReviewType
-	ReviewUpdatedUnix util.TimeStamp `xorm:"review_updated_unix"`
+	ReviewUpdatedUnix timeutil.TimeStamp `xorm:"review_updated_unix"`
 }
 
 // GetReviewersByPullID gets all reviewers for a pull request with the statuses
