@@ -5,7 +5,6 @@
 package base
 
 import (
-	"bytes"
 	"crypto/md5"
 	"crypto/rand"
 	"crypto/sha1"
@@ -26,7 +25,6 @@ import (
 	"strings"
 	"time"
 	"unicode"
-	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -35,11 +33,7 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/Unknwon/i18n"
-	"github.com/gogits/chardet"
 )
-
-// UTF8BOM is the utf-8 byte-order marker
-var UTF8BOM = []byte{'\xef', '\xbb', '\xbf'}
 
 // EncodeMD5 encodes string to md5 hex value.
 func EncodeMD5(str string) string {
@@ -66,49 +60,6 @@ func EncodeSha256(str string) string {
 // It is DEPRECATED and will be removed in the future.
 func ShortSha(sha1 string) string {
 	return TruncateString(sha1, 10)
-}
-
-// DetectEncoding detect the encoding of content
-func DetectEncoding(content []byte) (string, error) {
-	if utf8.Valid(content) {
-		log.Debug("Detected encoding: utf-8 (fast)")
-		return "UTF-8", nil
-	}
-
-	textDetector := chardet.NewTextDetector()
-	var detectContent []byte
-	if len(content) < 1024 {
-		// Check if original content is valid
-		if _, err := textDetector.DetectBest(content); err != nil {
-			return "", err
-		}
-		times := 1024 / len(content)
-		detectContent = make([]byte, 0, times*len(content))
-		for i := 0; i < times; i++ {
-			detectContent = append(detectContent, content...)
-		}
-	} else {
-		detectContent = content
-	}
-	result, err := textDetector.DetectBest(detectContent)
-	if err != nil {
-		return "", err
-	}
-	if result.Charset != "UTF-8" && len(setting.Repository.AnsiCharset) > 0 {
-		log.Debug("Using default AnsiCharset: %s", setting.Repository.AnsiCharset)
-		return setting.Repository.AnsiCharset, err
-	}
-
-	log.Debug("Detected encoding: %s", result.Charset)
-	return result.Charset, err
-}
-
-// RemoveBOMIfPresent removes a UTF-8 BOM from a []byte
-func RemoveBOMIfPresent(content []byte) []byte {
-	if len(content) > 2 && bytes.Equal(content[0:3], UTF8BOM) {
-		return content[3:]
-	}
-	return content
 }
 
 // BasicAuthDecode decode basic auth string
