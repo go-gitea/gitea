@@ -34,7 +34,10 @@ func VerifyAllowedContentType(buf []byte, allowedTypes []string) error {
 	allowed := false
 	for _, t := range allowedTypes {
 		t := strings.Trim(t, " ")
-		if t == "*/*" || t == fileType {
+
+		if t == "*/*" || t == fileType ||
+			// allowed text/plain; charset=utf-8
+			strings.HasPrefix(fileType, t+";") {
 			allowed = true
 			break
 		}
