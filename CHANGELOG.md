@@ -4,6 +4,33 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.9.1](https://github.com/go-gitea/gitea/releases/tag/v1.9.1) - 2019-08-14
+* BREAKING
+  * Add pagination for admin api get orgs and fix only list public orgs bug (#7742) (#7752)
+* SECURITY
+  * Be more strict with git arguments (#7715) (#7762)
+  * Release built with go 1.12.8 to fix security fixes in golang std lib, ref: https://groups.google.com/forum/#!topic/golang-nuts/fCQWxqxP8aA
+* BUGFIXES
+  * Fix local runs of ssh-requiring integration tests (#7855) (#7857)
+  * Fix hook problem (#7856) (#7754)
+  * Use .ExpiredUnix.IsZero to display green color of forever valid gpg key (#7850) (#7846)
+  * Do not fetch all refs (#7797) (#7837)
+  * Fix duplicate call of webhook (#7824) (#7821)
+  * Enable switching to a different source branch when PR already exists (#7823)
+  * Rewrite existing repo units if setting is not included in api body (#7811)
+  * Prevent Commit Status and Message From Overflowing On Branch Page (#7800) (#7808)
+  * API: fix multiple bugs with statuses endpoints (Backport #7785) (#7807)
+  * Fix Slack webhook fork message (1.9 release backport) (#7783)
+  * Fix approvals counting (#7757) (#7777)
+  * Fix rename failed when rewrite public keys (#7761) (#7769)
+  * Fix dropTableColumns sqlite implementation (#7710) (#7765)
+  * Fix repo_index_status lingering when deleting a repository (#7738)
+  * Fix milestone completness calculation when migrating (#7725) (#7732)
+  * Fixes indexed repos keeping outdated indexes when files grow too large (#7731)
+  * Skip non-regular files (e.g. submodules) on repo indexing (#7717)
+  * Improve branches list performance and fix protected branch icon when no-login (#7695) (#7704)
+  * Correct wrong datetime format for git (#7689) (#7690)
+
 ## [1.9.0](https://github.com/go-gitea/gitea/releases/tag/v1.9.0) - 2019-07-30
 * BREAKING
   * Better logging (#6038) (#6095)

@@ -12,17 +12,16 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	"xorm.io/builder"
-
-	api "code.gitea.io/gitea/modules/structs"
-
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
@@ -99,10 +98,10 @@ const (
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID               int64 `xorm:"pk autoincr"`
-	Type             CommentType
-	PosterID         int64 `xorm:"INDEX"`
-	Poster           *User `xorm:"-"`
+	ID               int64       `xorm:"pk autoincr"`
+	Type             CommentType `xorm:"index"`
+	PosterID         int64       `xorm:"INDEX"`
+	Poster           *User       `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
 	IssueID          int64  `xorm:"INDEX"`
@@ -130,8 +129,8 @@ type Comment struct {
 	// Path represents the 4 lines of code cemented by this comment
 	Patch string `xorm:"TEXT"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
 	CommitSHA string `xorm:"VARCHAR(40)"`
@@ -143,7 +142,7 @@ type Comment struct {
 	ShowTag CommentTag `xorm:"-"`
 
 	Review      *Review `xorm:"-"`
-	ReviewID    int64
+	ReviewID    int64   `xorm:"index"`
 	Invalidated bool
 }
 
@@ -711,7 +710,7 @@ func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue 
 	})
 }
 
-func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix util.TimeStamp) (*Comment, error) {
+func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
 
 	var content string
 	var commentType CommentType

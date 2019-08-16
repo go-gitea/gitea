@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	pull_service "code.gitea.io/gitea/modules/pull"
 )
 
 // CreateCodeComment will create a code comment including an pending review if required
@@ -53,7 +54,7 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 			}
 			// No pending review exists
 			// Create a new pending review for this issue & user
-			if review, err = models.CreateReview(models.CreateReviewOptions{
+			if review, err = pull_service.CreateReview(models.CreateReviewOptions{
 				Type:     models.ReviewTypePending,
 				Reviewer: ctx.User,
 				Issue:    issue,
@@ -61,6 +62,7 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 				ctx.ServerError("CreateCodeComment", err)
 				return
 			}
+
 		}
 	}
 	if review.ID == 0 {

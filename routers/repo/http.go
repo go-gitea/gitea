@@ -25,7 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // HTTP implmentation git smart HTTP protocol
@@ -203,7 +203,7 @@ func HTTP(ctx *context.Context) {
 						return
 					}
 				}
-				token.UpdatedUnix = util.TimeStampNow()
+				token.UpdatedUnix = timeutil.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
 					ctx.ServerError("UpdateAccessToken", err)
 				}
@@ -427,7 +427,7 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		log.Error("Fail to serve RPC(%s): %v - %v", service, err, stderr)
+		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
 		return
 	}
 }
