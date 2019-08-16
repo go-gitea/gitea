@@ -508,9 +508,8 @@ func (repo *Repository) mustOwnerName(e Engine) string {
 func (repo *Repository) ComposeMetas() map[string]string {
 	if repo.ExternalMetas == nil {
 		repo.ExternalMetas = map[string]string{
-			"user":     repo.MustOwner().Name,
-			"repo":     repo.Name,
-			"repoPath": repo.RepoPath(),
+			"user": repo.MustOwner().Name,
+			"repo": repo.Name,
 		}
 		unit, err := repo.GetUnit(UnitTypeExternalTracker)
 		if err != nil {

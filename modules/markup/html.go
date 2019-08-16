@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -658,14 +657,6 @@ func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	// but that is not always the case.
 	// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
 	// as used by git and github for linking and thus we have to do similar.
-	// Because of this, we check to make sure that a matched hash is actually
-	// a commit in the repository before making it a link.
-	if ctx.metas["repoPath"] != "" {
-		if _, err := git.NewCommand("log", "-1", hash).RunInDirBytes(ctx.metas["repoPath"]); err != nil {
-			return
-		}
-	}
-
 	replaceContent(node, m[2], m[3],
 		createCodeLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "commit", hash), base.ShortSha(hash)))
 }
