@@ -1055,7 +1055,7 @@ func getMaxIndexOfIssue(e Engine, repoID int64) (int64, error) {
 func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 
-	if opts.Issue.Index == 0 {
+	if opts.IsPull || opts.Issue.Index == 0 {
 		maxIndex, err := getMaxIndexOfIssue(e, opts.Issue.RepoID)
 		if err != nil {
 			return err
