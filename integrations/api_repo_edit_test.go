@@ -146,13 +146,13 @@ func TestAPIRepoEdit(t *testing.T) {
 		// reset repo in db
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, *repoEditOption.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &origRepoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// Test editing a non-existing repo
 		name := "repodoesnotexist"
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{Name: &name})
-		resp = session.MakeRequest(t, req, http.StatusNotFound)
+		_ = session.MakeRequest(t, req, http.StatusNotFound)
 
 		// Test editing repo16 by user4 who does not have write access
 		origRepoEditOption = getRepoEditOptionFromRepo(repo16)
@@ -166,18 +166,18 @@ func TestAPIRepoEdit(t *testing.T) {
 		repoEditOption = getNewRepoEditOption(origRepoEditOption)
 		url = fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo16.Name)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusNotFound)
+		_ = session.MakeRequest(t, req, http.StatusNotFound)
 
 		// Test using access token for a private repo that the user of the token owns
 		origRepoEditOption = getRepoEditOptionFromRepo(repo16)
 		repoEditOption = getNewRepoEditOption(origRepoEditOption)
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, repo16.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		_ = session.MakeRequest(t, req, http.StatusOK)
 		// reset repo in db
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, *repoEditOption.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &origRepoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// Test making a repo public that is private
 		repo16 = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
@@ -188,14 +188,14 @@ func TestAPIRepoEdit(t *testing.T) {
 		}
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, repo16.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		_ = session.MakeRequest(t, req, http.StatusOK)
 		repo16 = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
 		assert.False(t, repo16.IsPrivate)
 		// Make it private again
 		private = true
 		repoEditOption.Private = &private
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// Test using org repo "user3/repo3" where user2 is a collaborator
 		origRepoEditOption = getRepoEditOptionFromRepo(repo3)
@@ -206,7 +206,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		// reset repo in db
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user3.Name, *repoEditOption.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &origRepoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// Test using org repo "user3/repo3" with no user token
 		origRepoEditOption = getRepoEditOptionFromRepo(repo3)

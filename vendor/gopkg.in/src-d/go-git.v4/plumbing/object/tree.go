@@ -288,7 +288,7 @@ func (t *Tree) Encode(o plumbing.EncodedObject) (err error) {
 			return err
 		}
 
-		if _, err = w.Write([]byte(entry.Hash[:])); err != nil {
+		if _, err = w.Write(entry.Hash[:]); err != nil {
 			return err
 		}
 	}

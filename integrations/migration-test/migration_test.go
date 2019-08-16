@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/xorm"
@@ -106,7 +107,7 @@ func readSQLFromFile(version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(base.RemoveBOMIfPresent(bytes)), nil
+	return string(charset.RemoveBOMIfPresent(bytes)), nil
 }
 
 func restoreOldDB(t *testing.T, version string) bool {
@@ -181,11 +182,19 @@ func restoreOldDB(t *testing.T, version string) bool {
 		assert.NoError(t, err)
 		defer db.Close()
 
-		_, err = db.Exec("DROP DATABASE IF EXISTS gitea")
+		_, err = db.Exec("DROP DATABASE IF EXISTS [gitea]")
 		assert.NoError(t, err)
 
 		statements := strings.Split(data, "\nGO\n")
 		for _, statement := range statements {
+			if len(statement) > 5 && statement[:5] == "USE [" {
+				dbname := statement[5 : len(statement)-1]
+				db.Close()
+				db, err = sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
+					host, port, dbname, models.DbCfg.User, models.DbCfg.Passwd))
+				assert.NoError(t, err)
+				defer db.Close()
+			}
 			_, err = db.Exec(statement)
 			assert.NoError(t, err, "Failure whilst running: %s\nError: %v", statement, err)
 		}

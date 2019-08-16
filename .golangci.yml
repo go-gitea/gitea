@@ -95,3 +95,6 @@ issues:
       linters:
         - misspell
       text: '`Destory` is a misspelling of `Destroy`'
+    - linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'

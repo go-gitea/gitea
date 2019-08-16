@@ -3,7 +3,6 @@ module code.gitea.io/gitea
 go 1.12
 
 require (
-	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
 	github.com/RoaringBitmap/roaring v0.4.7 // indirect
 	github.com/Unknwon/cae v0.0.0-20160715032808-c6aac99ea2ca
@@ -26,7 +25,7 @@ require (
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
-	github.com/denisenkom/go-mssqldb v0.0.0-20190121005146-b04fd42d9952
+	github.com/denisenkom/go-mssqldb v0.0.0-20190724012636-11b2859924c1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712 // indirect
 	github.com/emirpasic/gods v1.12.0
@@ -45,20 +44,18 @@ require (
 	github.com/glycerine/goconvey v0.0.0-20190315024820-982ee783a72e // indirect
 	github.com/go-macaron/binding v0.0.0-20160711225916-9440f336b443
 	github.com/go-macaron/cache v0.0.0-20151013081102-561735312776
-	github.com/go-macaron/captcha v0.0.0-20151123225153-8aa5919789ab
+	github.com/go-macaron/captcha v0.0.0-20190710000913-8dc5911259df
 	github.com/go-macaron/cors v0.0.0-20190309005821-6fd6a9bfe14e9
-	github.com/go-macaron/csrf v0.0.0-20180426211211-503617c6b372
-	github.com/go-macaron/i18n v0.0.0-20160612092837-ef57533c3b0f
+	github.com/go-macaron/csrf v0.0.0-20190131233648-3751b136073c
+	github.com/go-macaron/i18n v0.0.0-20190131234336-56731837a73b
 	github.com/go-macaron/inject v0.0.0-20160627170012-d8a0b8677191
 	github.com/go-macaron/session v0.0.0-20190131233854-0a0a789bf193
 	github.com/go-macaron/toolbox v0.0.0-20180818072302-a77f45a7ce90
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
-	github.com/go-xorm/core v0.6.0 // indirect
-	github.com/go-xorm/xorm v0.7.3-0.20190620151208-f1b4f8368459
+	github.com/go-xorm/xorm v0.7.4
 	github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
-	github.com/gogits/cron v0.0.0-20160810035002-7f3990acf183
-	github.com/google/go-cmp v0.3.0 // indirect
+	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/google/go-github/v24 v24.0.1
 	github.com/gorilla/context v1.1.1
 	github.com/issue9/assert v1.3.2 // indirect
@@ -71,7 +68,7 @@ require (
 	github.com/klauspost/compress v0.0.0-20161025140425-8df558b6cb6f
 	github.com/klauspost/cpuid v0.0.0-20160302075316-09cded8978dc // indirect
 	github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6 // indirect
-	github.com/lafriks/xormstore v1.0.0
+	github.com/lafriks/xormstore v1.1.0
 	github.com/lib/pq v1.1.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/lunny/levelqueue v0.0.0-20190217115915-02b525a4418e
@@ -109,30 +106,27 @@ require (
 	github.com/willf/bitset v0.0.0-20180426185212-8ce1146b8621 // indirect
 	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 	go.etcd.io/bbolt v1.3.2 // indirect
-	golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443
-	golang.org/x/net v0.0.0-20190619014844-b5b0513f8c1b
-	golang.org/x/oauth2 v0.0.0-20181101160152-c453e0c75759
-	golang.org/x/sys v0.0.0-20190620070143-6f217b454f45
+	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
+	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
+	golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421
+	golang.org/x/sys v0.0.0-20190801041406-cbf593c0f2f3
 	golang.org/x/text v0.3.2
-	golang.org/x/tools v0.0.0-20190620154339-431033348dd0 // indirect
+	golang.org/x/tools v0.0.0-20190731214159-1e85ed8060aa // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/bufio.v1 v1.0.0-20140618132640-567b2bfa514e // indirect
-	gopkg.in/editorconfig/editorconfig-core-go.v1 v1.2.0
+	gopkg.in/editorconfig/editorconfig-core-go.v1 v1.3.0
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/ini.v1 v1.42.0
 	gopkg.in/ldap.v3 v3.0.2
 	gopkg.in/macaron.v1 v1.3.2
 	gopkg.in/redis.v2 v2.3.2 // indirect
-	gopkg.in/src-d/go-billy.v4 v4.3.0
-	gopkg.in/src-d/go-git.v4 v4.12.0
+	gopkg.in/src-d/go-billy.v4 v4.3.2
+	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/stretchr/testify.v1 v1.2.2 // indirect
 	gopkg.in/testfixtures.v2 v2.5.0
-	gopkg.in/yaml.v2 v2.2.2 // indirect
 	mvdan.cc/xurls/v2 v2.0.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a
 	xorm.io/builder v0.3.5
 	xorm.io/core v0.6.3
 )
-
-replace github.com/denisenkom/go-mssqldb => github.com/denisenkom/go-mssqldb v0.0.0-20180315180555-6a30f4e59a44

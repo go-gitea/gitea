@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
@@ -49,11 +50,11 @@ type Issue struct {
 	NumComments      int
 	Ref              string
 
-	DeadlineUnix util.TimeStamp `xorm:"INDEX"`
+	DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
-	ClosedUnix  util.TimeStamp `xorm:"INDEX"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	ClosedUnix  timeutil.TimeStamp `xorm:"INDEX"`
 
 	Attachments      []*Attachment `xorm:"-"`
 	Comments         []*Comment    `xorm:"-"`
@@ -90,7 +91,7 @@ func (issue *Issue) loadTotalTimes(e Engine) (err error) {
 
 // IsOverdue checks if the issue is overdue
 func (issue *Issue) IsOverdue() bool {
-	return util.TimeStampNow() >= issue.DeadlineUnix
+	return timeutil.TimeStampNow() >= issue.DeadlineUnix
 }
 
 // LoadRepo loads issue's repository
@@ -472,6 +473,18 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 	}
 }
 
+// ReplyReference returns tokenized address to use for email reply headers
+func (issue *Issue) ReplyReference() string {
+	var path string
+	if issue.IsPull {
+		path = "pulls"
+	} else {
+		path = "issues"
+	}
+
+	return fmt.Sprintf("%s/%s/%d@%s", issue.Repo.FullName(), path, issue.Index, setting.Domain)
+}
+
 func (issue *Issue) addLabel(e *xorm.Session, label *Label, doer *User) error {
 	return newIssueLabel(e, issue, label, doer)
 }
@@ -732,7 +745,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 
 	issue.IsClosed = isClosed
 	if isClosed {
-		issue.ClosedUnix = util.TimeStampNow()
+		issue.ClosedUnix = timeutil.TimeStampNow()
 	} else {
 		issue.ClosedUnix = 0
 	}
@@ -979,7 +992,7 @@ func (issue *Issue) GetTasksDone() int {
 }
 
 // GetLastEventTimestamp returns the last user visible event timestamp, either the creation of this issue or the close.
-func (issue *Issue) GetLastEventTimestamp() util.TimeStamp {
+func (issue *Issue) GetLastEventTimestamp() timeutil.TimeStamp {
 	if issue.IsClosed {
 		return issue.ClosedUnix
 	}
@@ -1782,7 +1795,7 @@ func UpdateIssue(issue *Issue) error {
 }
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
-func UpdateIssueDeadline(issue *Issue, deadlineUnix util.TimeStamp, doer *User) (err error) {
+func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *User) (err error) {
 
 	// if the deadline hasn't changed do nothing
 	if issue.DeadlineUnix == deadlineUnix {
@@ -1836,4 +1849,23 @@ func (issue *Issue) BlockedByDependencies() ([]*Issue, error) {
 // BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
 func (issue *Issue) BlockingDependencies() ([]*Issue, error) {
 	return issue.getBlockingDependencies(x)
+}
+
+func (issue *Issue) updateClosedNum(e Engine) (err error) {
+	if issue.IsPull {
+		_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+			issue.RepoID,
+			true,
+			true,
+			issue.RepoID,
+		)
+	} else {
+		_, err = e.Exec("UPDATE `repository` SET num_closed_issues=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+			issue.RepoID,
+			false,
+			true,
+			issue.RepoID,
+		)
+	}
+	return
 }

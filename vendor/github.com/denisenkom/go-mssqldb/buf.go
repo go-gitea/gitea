@@ -101,11 +101,10 @@ func (w *tdsBuffer) Write(p []byte) (total int, err error) {
 		}
 		p = p[copied:]
 	}
-	return
 }
 
 func (w *tdsBuffer) WriteByte(b byte) error {
-	if int(w.wpos) == len(w.wbuf) {
+	if int(w.wpos) == len(w.wbuf) || w.wpos == w.packetSize {
 		if err := w.flush(); err != nil {
 			return err
 		}
@@ -115,15 +114,23 @@ func (w *tdsBuffer) WriteByte(b byte) error {
 	return nil
 }
 
-func (w *tdsBuffer) BeginPacket(packetType packetType) {
-	w.wbuf[1] = 0 // Packet is incomplete. This byte is set again in FinishPacket.
+func (w *tdsBuffer) BeginPacket(packetType packetType, resetSession bool) {
+	status := byte(0)
+	if resetSession {
+		switch packetType {
+		// Reset session can only be set on the following packet types.
+		case packSQLBatch, packRPCRequest, packTransMgrReq:
+			status = 0x8
+		}
+	}
+	w.wbuf[1] = status // Packet is incomplete. This byte is set again in FinishPacket.
 	w.wpos = 8
 	w.wPacketSeq = 1
 	w.wPacketType = packetType
 }
 
 func (w *tdsBuffer) FinishPacket() error {
-	w.wbuf[1] = 1 // Mark this as the last packet in the message.
+	w.wbuf[1] |= 1 // Mark this as the last packet in the message.
 	return w.flush()
 }
 
@@ -136,7 +143,7 @@ func (r *tdsBuffer) readNextPacket() error {
 	if err != nil {
 		return err
 	}
-	if int(h.Size) > len(r.rbuf) {
+	if int(h.Size) > r.packetSize {
 		return errors.New("Invalid packet size, it is longer than buffer size")
 	}
 	if headerSize > int(h.Size) {

@@ -35,6 +35,9 @@ import (
 	"code.gitea.io/gitea/routers/user"
 	userSetting "code.gitea.io/gitea/routers/user/setting"
 
+	// to registers all internal adapters
+	_ "code.gitea.io/gitea/modules/session"
+
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/captcha"
@@ -181,12 +184,13 @@ func NewMacaron() *macaron.Macaron {
 	}
 
 	m.Use(i18n.I18n(i18n.Options{
-		SubURL:      setting.AppSubURL,
-		Files:       localFiles,
-		Langs:       setting.Langs,
-		Names:       setting.Names,
-		DefaultLang: "en-US",
-		Redirect:    false,
+		SubURL:       setting.AppSubURL,
+		Files:        localFiles,
+		Langs:        setting.Langs,
+		Names:        setting.Names,
+		DefaultLang:  "en-US",
+		Redirect:     false,
+		CookieDomain: setting.SessionConfig.Domain,
 	}))
 	m.Use(cache.Cacher(cache.Options{
 		Adapter:       setting.CacheService.Adapter,
@@ -202,8 +206,9 @@ func NewMacaron() *macaron.Macaron {
 		Cookie:         setting.CSRFCookieName,
 		SetCookie:      true,
 		Secure:         setting.SessionConfig.Secure,
-		CookieHttpOnly: true,
+		CookieHttpOnly: setting.CSRFCookieHTTPOnly,
 		Header:         "X-Csrf-Token",
+		CookieDomain:   setting.SessionConfig.Domain,
 		CookiePath:     setting.AppSubURL,
 	}))
 	m.Use(toolbox.Toolboxer(m, toolbox.Options{
@@ -665,7 +670,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
 		})
-	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.UnitTypes(), context.RepoRef())
+	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
 	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), context.UnitTypes(), repo.Action)
 

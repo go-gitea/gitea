@@ -71,6 +71,10 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		OriginalURL: "https://github.com/go-gitea/gitea",
 	}, repo)
 
+	topics, err := downloader.GetTopics()
+	assert.NoError(t, err)
+	assert.Contains(t, topics, "gitea")
+
 	milestones, err := downloader.GetMilestones()
 	assert.NoError(t, err)
 	// before this tool release, we have 39 milestones on github.com/go-gitea/gitea

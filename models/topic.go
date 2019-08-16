@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
 )
@@ -28,8 +28,8 @@ type Topic struct {
 	ID          int64
 	Name        string `xorm:"UNIQUE VARCHAR(25)"`
 	RepoCount   int
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 // RepoTopic represents associated repositories and topics
