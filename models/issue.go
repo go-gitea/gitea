@@ -1061,6 +1061,9 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			return err
 		}
 		opts.Issue.Index = maxIndex + 1
+		if opts.Issue.Index == 0 {
+			return fmt.Errorf("Index numbers depleted")
+		}
 	} else {
 		perm, err := GetUserRepoPermission(opts.Repo, doer)
 		if err != nil {
