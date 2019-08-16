@@ -67,6 +67,8 @@ var (
 
 		Signing struct {
 			SigningKey    string
+			SigningName   string
+			SigningEmail  string
 			InitialCommit []string
 			CRUDActions   []string `ini:"CRUD_ACTIONS"`
 			Merges        []string
@@ -133,12 +135,16 @@ var (
 		// Signing settings
 		Signing: struct {
 			SigningKey    string
+			SigningName   string
+			SigningEmail  string
 			InitialCommit []string
 			CRUDActions   []string `ini:"CRUD_ACTIONS"`
 			Merges        []string
 			Wiki          []string
 		}{
 			SigningKey:    "default",
+			SigningName:   "",
+			SigningEmail:  "",
 			InitialCommit: []string{"always"},
 			CRUDActions:   []string{"pubkey", "twofa", "parentsigned"},
 			Merges:        []string{"pubkey", "twofa", "basesigned", "commitssigned"},

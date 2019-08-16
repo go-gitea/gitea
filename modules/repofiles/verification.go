@@ -24,9 +24,9 @@ func GetPayloadCommitVerification(commit *git.Commit) *structs.PayloadCommitVeri
 			Email: commitVerification.SigningUser.Email,
 		}
 	}
-	if verification.Reason != "" {
-		verification.Reason = commitVerification.Reason
-	} else if verification.Verified {
+	verification.Verified = commitVerification.Verified
+	verification.Reason = commitVerification.Reason
+	if verification.Reason == "" && !verification.Verified {
 		verification.Reason = "unsigned"
 	}
 	return verification

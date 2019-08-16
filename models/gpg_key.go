@@ -659,46 +659,26 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 	}
 
+	if setting.Repository.Signing.SigningKey != "" && setting.Repository.Signing.SigningKey != "default" && setting.Repository.Signing.SigningKey != "none" {
+		// OK we should try the default key
+		gpgSettings := git.GPGSettings{
+			Sign:  true,
+			KeyID: setting.Repository.Signing.SigningKey,
+			Name:  setting.Repository.Signing.SigningName,
+			Email: setting.Repository.Signing.SigningEmail,
+		}
+		if err := gpgSettings.LoadPublicKeyContent(); err != nil {
+			log.Error("Error getting default signing key: %s %v", gpgSettings.KeyID, err)
+		} else if commitVerification := verifyWithGPGSettings(&gpgSettings, sig, c.Signature.Payload, committer, defaultReason, keyID); commitVerification != nil {
+			return commitVerification
+		}
+	}
+
 	defaultGPGSettings, err := c.GetRepositoryDefaultPublicGPGKey(false)
 	if err != nil {
 		log.Error("Error getting default public gpg key: %v", err)
-	}
-	if defaultGPGSettings != nil && defaultGPGSettings.Sign {
-		// OK try to find a key in the db
-		if commitVerification := hashAndVerifyForKeyID(sig, c.Signature.Payload, committer, defaultGPGSettings.KeyID, defaultGPGSettings.Name, defaultGPGSettings.Email); commitVerification != nil {
-			return commitVerification
-		}
-
-		ekey, err := checkArmoredGPGKeyString(defaultGPGSettings.PublicKeyContent)
-		if err != nil {
-			log.Error("Unable to get default signing key: %v", err)
-			return &CommitVerification{
-				CommittingUser: committer,
-				Verified:       false,
-				Reason:         "gpg.error.generate_hash",
-			}
-		}
-		pubkey := ekey.PrimaryKey
-		content, err := base64EncPubKey(pubkey)
-		if err != nil {
-			return &CommitVerification{
-				CommittingUser: committer,
-				Verified:       false,
-				Reason:         "gpg.error.generate_hash",
-			}
-		}
-		k := &GPGKey{
-			Content: content,
-			CanSign: pubkey.CanSign(),
-			KeyID:   pubkey.KeyIdString(),
-		}
-		if keyID == k.KeyID {
-			defaultReason = BadDefaultSignature
-		}
-		if commitVerification := hashAndVerifyWithSubKeys(sig, c.Signature.Payload, k, committer, &User{
-			Name:  defaultGPGSettings.Name,
-			Email: defaultGPGSettings.Email,
-		}, defaultGPGSettings.Email); commitVerification != nil {
+	} else if defaultGPGSettings.Sign {
+		if commitVerification := verifyWithGPGSettings(defaultGPGSettings, sig, c.Signature.Payload, committer, defaultReason, keyID); commitVerification != nil {
 			return commitVerification
 		}
 	}
@@ -712,6 +692,48 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			KeyID: keyID,
 		},
 	}
+}
+
+func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, payload string, committer *User, defaultReason, keyID string) *CommitVerification {
+	// First try to find the key in the db
+	if commitVerification := hashAndVerifyForKeyID(sig, payload, committer, gpgSettings.KeyID, gpgSettings.Name, gpgSettings.Email); commitVerification != nil {
+		return commitVerification
+	}
+
+	// Otherwise we have to parse the key
+	ekey, err := checkArmoredGPGKeyString(gpgSettings.PublicKeyContent)
+	if err != nil {
+		log.Error("Unable to get default signing key: %v", err)
+		return &CommitVerification{
+			CommittingUser: committer,
+			Verified:       false,
+			Reason:         "gpg.error.generate_hash",
+		}
+	}
+	pubkey := ekey.PrimaryKey
+	content, err := base64EncPubKey(pubkey)
+	if err != nil {
+		return &CommitVerification{
+			CommittingUser: committer,
+			Verified:       false,
+			Reason:         "gpg.error.generate_hash",
+		}
+	}
+	k := &GPGKey{
+		Content: content,
+		CanSign: pubkey.CanSign(),
+		KeyID:   pubkey.KeyIdString(),
+	}
+	if keyID == k.KeyID {
+		defaultReason = BadDefaultSignature
+	}
+	if commitVerification := hashAndVerifyWithSubKeys(sig, payload, k, committer, &User{
+		Name:  gpgSettings.Name,
+		Email: gpgSettings.Email,
+	}, gpgSettings.Email); commitVerification != nil {
+		return commitVerification
+	}
+	return nil
 }
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.

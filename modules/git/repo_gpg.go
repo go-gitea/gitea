@@ -12,6 +12,18 @@ import (
 	"code.gitea.io/gitea/modules/process"
 )
 
+// LoadPublicKeyContent will load the key from gpg
+func (gpgSettings *GPGSettings) LoadPublicKeyContent() error {
+	content, stderr, err := process.GetManager().Exec(
+		"gpg -a --export",
+		"gpg", "-a", "--export", gpgSettings.KeyID)
+	if err != nil {
+		return fmt.Errorf("Unable to get default signing key: %s, %s, %v", gpgSettings.KeyID, stderr, err)
+	}
+	gpgSettings.PublicKeyContent = content
+	return nil
+}
+
 // GetDefaultPublicGPGKey will return and cache the default public GPG settings for this repository
 func (repo *Repository) GetDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, error) {
 	if repo.gpgSettings != nil && !forceUpdate {
@@ -39,13 +51,9 @@ func (repo *Repository) GetDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, 
 	defaultName, _ := NewCommand("config", "--get", "user.name").RunInDir(repo.Path)
 	gpgSettings.Name = strings.TrimSpace(defaultName)
 
-	content, stderr, err := process.GetManager().Exec(
-		"gpg -a --export",
-		"gpg", "-a", "--export", gpgSettings.KeyID)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to get default signing key: %s, %s, %v", signingKey, stderr, err)
+	if err := gpgSettings.LoadPublicKeyContent(); err != nil {
+		return nil, err
 	}
-	gpgSettings.PublicKeyContent = content
 	repo.gpgSettings = gpgSettings
 	return repo.gpgSettings, nil
 }
