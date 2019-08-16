@@ -822,7 +822,7 @@ func CommentAsDiff(c *models.Comment) (*Diff, error) {
 func CommentMustAsDiff(c *models.Comment) *Diff {
 	diff, err := CommentAsDiff(c)
 	if err != nil {
-		log.Warn("MustAsDiff: %v", err)
+		log.Warn("CommentMustAsDiff: %v", err)
 	}
 	return diff
 }
