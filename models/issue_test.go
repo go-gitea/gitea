@@ -370,4 +370,20 @@ func TestIssueCreateWithID(t *testing.T) {
 	err = NewIssue(repo, issue, nil, nil, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, index+1, issue.Index)
+
+	user = AssertExistsAndLoadBean(t, &User{ID: 24}).(*User)
+
+	issue = &Issue{
+		Index:    index + 2,
+		RepoID:   repo.ID,
+		Repo:     repo,
+		Title:    "not admin TestIssueCreateWithID",
+		PosterID: 2,
+		Poster:   user,
+		Content:  "Issue body",
+	}
+
+	expectedError := ErrUserDoesNotHaveAccessToRepo{UserID: user.ID, RepoName: repo.Name}.Error()
+	err = NewIssue(repo, issue, nil, nil, nil)
+	assert.EqualError(t, err, expectedError)
 }

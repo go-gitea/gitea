@@ -1061,6 +1061,14 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			return err
 		}
 		opts.Issue.Index = maxIndex + 1
+	} else {
+		perm, err := GetUserRepoPermission(opts.Repo, doer)
+		if err != nil {
+			return err
+		}
+		if !perm.IsAdmin() {
+			return ErrUserDoesNotHaveAccessToRepo{UserID: doer.ID, RepoName: opts.Repo.Name}
+		}
 	}
 
 	if opts.Issue.MilestoneID > 0 {
