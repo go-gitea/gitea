@@ -231,7 +231,7 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return float32(n) * 100 / float32(sum)
 		},
-		"MustAsDiff": gitdiff.CommentMustAsDiff,
+		"CommentMustAsDiff": gitdiff.CommentMustAsDiff,
 	}}
 }
 
