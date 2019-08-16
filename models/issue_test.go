@@ -345,7 +345,7 @@ func TestIssueCreateWithID(t *testing.T) {
 		Index:    index,
 		RepoID:   repo.ID,
 		Repo:     repo,
-		Title:    "repeated TestIssueCreateWithID",
+		Title:    "duplicate TestIssueCreateWithID",
 		PosterID: 2,
 		Poster:   user,
 		Content:  "Issue body",
