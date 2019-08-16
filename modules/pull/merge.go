@@ -20,7 +20,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"github.com/mcuadros/go-version"
 )
 
@@ -287,7 +288,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return fmt.Errorf("GetBranchCommit: %v", err)
 	}
 
-	pr.MergedUnix = util.TimeStampNow()
+	pr.MergedUnix = timeutil.TimeStampNow()
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 

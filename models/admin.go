@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/Unknwon/com"
 )
@@ -26,8 +26,8 @@ const (
 type Notice struct {
 	ID          int64 `xorm:"pk autoincr"`
 	Type        NoticeType
-	Description string         `xorm:"TEXT"`
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	Description string             `xorm:"TEXT"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
 // TrStr returns a translation format string.
