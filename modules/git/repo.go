@@ -192,8 +192,7 @@ func Pull(repoPath string, opts PullRemoteOptions) error {
 	if opts.All {
 		cmd.AddArguments("--all")
 	} else {
-		cmd.AddArguments(opts.Remote)
-		cmd.AddArguments(opts.Branch)
+		cmd.AddArguments("--", opts.Remote, opts.Branch)
 	}
 
 	if opts.Timeout <= 0 {
@@ -218,7 +217,7 @@ func Push(repoPath string, opts PushOptions) error {
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}
-	cmd.AddArguments(opts.Remote, opts.Branch)
+	cmd.AddArguments("--", opts.Remote, opts.Branch)
 	_, err := cmd.RunInDirWithEnv(repoPath, opts.Env)
 	return err
 }

@@ -5,7 +5,7 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-xorm/xorm"
 )
@@ -27,10 +27,10 @@ func addMultipleAssignees(x *xorm.Engine) error {
 		IsPull      bool  `xorm:"INDEX"` // Indicates whether is a pull request or not.
 		NumComments int
 
-		DeadlineUnix util.TimeStamp `xorm:"INDEX"`
-		CreatedUnix  util.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix  util.TimeStamp `xorm:"INDEX updated"`
-		ClosedUnix   util.TimeStamp `xorm:"INDEX"`
+		DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
+		CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
+		ClosedUnix   timeutil.TimeStamp `xorm:"INDEX"`
 	}
 
 	// Updated the comment table
@@ -53,8 +53,8 @@ func addMultipleAssignees(x *xorm.Engine) error {
 		Content         string `xorm:"TEXT"`
 		RenderedContent string `xorm:"-"`
 
-		CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 		// Reference issue in commit message
 		CommitSHA string `xorm:"VARCHAR(40)"`

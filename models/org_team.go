@@ -362,6 +362,11 @@ func GetTeam(orgID int64, name string) (*Team, error) {
 	return getTeam(x, orgID, name)
 }
 
+// getOwnerTeam returns team by given team name and organization.
+func getOwnerTeam(e Engine, orgID int64) (*Team, error) {
+	return getTeam(e, orgID, ownerTeamName)
+}
+
 func getTeamByID(e Engine, teamID int64) (*Team, error) {
 	t := new(Team)
 	has, err := e.ID(teamID).Get(t)
@@ -755,11 +760,14 @@ func IsUserInTeams(userID int64, teamIDs []int64) (bool, error) {
 }
 
 // UsersInTeamsCount counts the number of users which are in userIDs and teamIDs
-func UsersInTeamsCount(userIDs []int64, teamIDs []int64) (count int64, err error) {
-	if count, err = x.In("uid", userIDs).In("team_id", teamIDs).Count(new(TeamUser)); err != nil {
+func UsersInTeamsCount(userIDs []int64, teamIDs []int64) (int64, error) {
+	var ids []int64
+	if err := x.In("uid", userIDs).In("team_id", teamIDs).
+		Table("team_user").
+		Cols("uid").GroupBy("uid").Find(&ids); err != nil {
 		return 0, err
 	}
-	return
+	return int64(len(ids)), nil
 }
 
 // ___________                  __________

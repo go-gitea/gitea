@@ -10,7 +10,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"github.com/go-xorm/xorm"
 )
 
@@ -29,8 +30,8 @@ type Milestone struct {
 	IsOverdue       bool `xorm:"-"`
 
 	DeadlineString string `xorm:"-"`
-	DeadlineUnix   util.TimeStamp
-	ClosedDateUnix util.TimeStamp
+	DeadlineUnix   timeutil.TimeStamp
+	ClosedDateUnix timeutil.TimeStamp
 
 	TotalTrackedTime int64 `xorm:"-"`
 }
@@ -53,7 +54,7 @@ func (m *Milestone) AfterLoad() {
 	}
 
 	m.DeadlineString = m.DeadlineUnix.Format("2006-01-02")
-	if util.TimeStampNow() >= m.DeadlineUnix {
+	if timeutil.TimeStampNow() >= m.DeadlineUnix {
 		m.IsOverdue = true
 	}
 }

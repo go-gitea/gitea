@@ -7,7 +7,7 @@ package migrations
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-xorm/xorm"
 )
@@ -19,7 +19,7 @@ func addPullRequestRebaseWithMerge(x *xorm.Engine) error {
 		RepoID      int64                  `xorm:"INDEX(s)"`
 		Type        int                    `xorm:"INDEX(s)"`
 		Config      map[string]interface{} `xorm:"JSON"`
-		CreatedUnix util.TimeStamp         `xorm:"INDEX CREATED"`
+		CreatedUnix timeutil.TimeStamp     `xorm:"INDEX CREATED"`
 	}
 
 	sess := x.NewSession()

@@ -33,6 +33,20 @@
         ],
         "summary": "List all organizations",
         "operationId": "adminGetAllOrgs",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/OrganizationList"
@@ -1561,6 +1575,12 @@
             "name": "ref",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results",
+            "name": "page",
+            "in": "query"
           }
         ],
         "responses": {
@@ -5057,6 +5077,38 @@
             "name": "sha",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "oldest",
+              "recentupdate",
+              "leastupdate",
+              "leastindex",
+              "highestindex"
+            ],
+            "type": "string",
+            "description": "type of sort",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "pending",
+              "success",
+              "error",
+              "failure",
+              "warning"
+            ],
+            "type": "string",
+            "description": "type of state",
+            "name": "state",
+            "in": "query"
           }
         ],
         "responses": {
@@ -9718,7 +9770,7 @@
       "description": "TimeStamp defines a timestamp",
       "type": "integer",
       "format": "int64",
-      "x-go-package": "code.gitea.io/gitea/modules/util"
+      "x-go-package": "code.gitea.io/gitea/modules/timeutil"
     },
     "TrackedTime": {
       "description": "TrackedTime worked time for an issue / pr",

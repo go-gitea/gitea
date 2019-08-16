@@ -8,6 +8,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
 // ListStargazers list a repository's stargazers
@@ -38,7 +39,7 @@ func ListStargazers(ctx *context.APIContext) {
 	}
 	users := make([]*api.User, len(stargazers))
 	for i, stargazer := range stargazers {
-		users[i] = stargazer.APIFormat()
+		users[i] = convert.ToUser(stargazer, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
 	ctx.JSON(200, users)
 }

@@ -26,7 +26,7 @@ type TrackedTime struct {
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (t *TrackedTime) AfterLoad() {
-	t.Created = time.Unix(t.CreatedUnix, 0).In(setting.UILocation)
+	t.Created = time.Unix(t.CreatedUnix, 0).In(setting.DefaultUILocation)
 }
 
 // APIFormat converts TrackedTime to API format

@@ -21,8 +21,9 @@ const AppSubURL = AppURL + Repo + "/"
 
 // these values should match the Repo const above
 var localMetas = map[string]string{
-	"user": "gogits",
-	"repo": "gogs",
+	"user":     "gogits",
+	"repo":     "gogs",
+	"repoPath": "../../../integrations/gitea-repositories-meta/user13/repo11.git/",
 }
 
 func TestRender_StandardLinks(t *testing.T) {
@@ -103,7 +104,7 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <li><a href="` + baseURLContent + `/Tips" rel="nofollow">Tips</a></li>
 </ul>
 
-<p>See commit <a href="http://localhost:3000/gogits/gogs/commit/fc7f44dadf" rel="nofollow"><code>fc7f44dadf</code></a></p>
+<p>See commit <a href="http://localhost:3000/gogits/gogs/commit/65f1bf27bc" rel="nofollow"><code>65f1bf27bc</code></a></p>
 
 <p>Ideas and codes</p>
 
@@ -194,7 +195,7 @@ var sameCases = []string{
 - [[Links, Language bindings, Engine bindings|Links]]
 - [[Tips]]
 
-See commit fc7f44dadf
+See commit 65f1bf27bc
 
 Ideas and codes
 
