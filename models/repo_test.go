@@ -88,6 +88,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 
 	// Get sample repo and change visibility
 	repo, err := GetRepositoryByID(9)
+	assert.NoError(t, err)
 	repo.IsPrivate = true
 
 	// Update it

@@ -6,8 +6,6 @@
 package migrations
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
@@ -84,6 +82,17 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		return err
 	}
 
+	log.Trace("migrating topics")
+	topics, err := downloader.GetTopics()
+	if err != nil {
+		return err
+	}
+	if len(topics) > 0 {
+		if err := uploader.CreateTopics(topics...); err != nil {
+			return err
+		}
+	}
+
 	if opts.Milestones {
 		log.Trace("migrating milestones")
 		milestones, err := downloader.GetMilestones()
@@ -155,11 +164,6 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			if err != nil {
 				return err
 			}
-			for _, issue := range issues {
-				if !opts.IgnoreIssueAuthor {
-					issue.Content = fmt.Sprintf("Author: @%s \n\n%s", issue.PosterName, issue.Content)
-				}
-			}
 
 			if err := uploader.CreateIssues(issues...); err != nil {
 				return err
@@ -175,11 +179,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				if err != nil {
 					return err
 				}
-				for _, comment := range comments {
-					if !opts.IgnoreIssueAuthor {
-						comment.Content = fmt.Sprintf("Author: @%s \n\n%s", comment.PosterName, comment.Content)
-					}
-				}
+
 				allComments = append(allComments, comments...)
 
 				if len(allComments) >= commentBatchSize {
@@ -212,11 +212,6 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				return err
 			}
 
-			for _, pr := range prs {
-				if !opts.IgnoreIssueAuthor {
-					pr.Content = fmt.Sprintf("Author: @%s \n\n%s", pr.PosterName, pr.Content)
-				}
-			}
 			if err := uploader.CreatePullRequests(prs...); err != nil {
 				return err
 			}
@@ -230,11 +225,6 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				comments, err := downloader.GetComments(pr.Number)
 				if err != nil {
 					return err
-				}
-				for _, comment := range comments {
-					if !opts.IgnoreIssueAuthor {
-						comment.Content = fmt.Sprintf("Author: @%s \n\n%s", comment.PosterName, comment.Content)
-					}
 				}
 
 				allComments = append(allComments, comments...)

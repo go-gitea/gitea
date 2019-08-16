@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
 )
@@ -32,13 +32,13 @@ type Release struct {
 	Title            string
 	Sha1             string `xorm:"VARCHAR(40)"`
 	NumCommits       int64
-	NumCommitsBehind int64          `xorm:"-"`
-	Note             string         `xorm:"TEXT"`
-	IsDraft          bool           `xorm:"NOT NULL DEFAULT false"`
-	IsPrerelease     bool           `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool           `xorm:"NOT NULL DEFAULT false"`
-	Attachments      []*Attachment  `xorm:"-"`
-	CreatedUnix      util.TimeStamp `xorm:"INDEX"`
+	NumCommitsBehind int64              `xorm:"-"`
+	Note             string             `xorm:"TEXT"`
+	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
+	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool               `xorm:"NOT NULL DEFAULT false"`
+	Attachments      []*Attachment      `xorm:"-"`
+	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
 }
 
 func (r *Release) loadAttributes(e Engine) error {
@@ -137,13 +137,13 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.CreatedUnix = util.TimeStamp(commit.Author.When.Unix())
+		rel.CreatedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
 		rel.NumCommits, err = commit.CommitsCount()
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
 		}
 	} else {
-		rel.CreatedUnix = util.TimeStampNow()
+		rel.CreatedUnix = timeutil.TimeStampNow()
 	}
 	return nil
 }
@@ -495,8 +495,8 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 				return fmt.Errorf("GetTagCommitID: %v", err)
 			}
 			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
-				if err := pushUpdateDeleteTag(repo, rel.TagName); err != nil {
-					return fmt.Errorf("pushUpdateDeleteTag: %v", err)
+				if err := PushUpdateDeleteTag(repo, rel.TagName); err != nil {
+					return fmt.Errorf("PushUpdateDeleteTag: %v", err)
 				}
 			} else {
 				existingRelTags[strings.ToLower(rel.TagName)] = struct{}{}
@@ -509,7 +509,7 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 	}
 	for _, tagName := range tags {
 		if _, ok := existingRelTags[strings.ToLower(tagName)]; !ok {
-			if err := pushUpdateAddTag(repo, gitRepo, tagName); err != nil {
+			if err := PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
 				return fmt.Errorf("pushUpdateAddTag: %v", err)
 			}
 		}

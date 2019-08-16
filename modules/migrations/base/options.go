@@ -12,15 +12,15 @@ type MigrateOptions struct {
 	AuthPassword string
 	Name         string
 	Description  string
+	OriginalURL  string
 
-	Wiki              bool
-	Issues            bool
-	Milestones        bool
-	Labels            bool
-	Releases          bool
-	Comments          bool
-	PullRequests      bool
-	Private           bool
-	Mirror            bool
-	IgnoreIssueAuthor bool // if true will not add original author information before issues or comments content.
+	Wiki         bool
+	Issues       bool
+	Milestones   bool
+	Labels       bool
+	Releases     bool
+	Comments     bool
+	PullRequests bool
+	Private      bool
+	Mirror       bool
 }

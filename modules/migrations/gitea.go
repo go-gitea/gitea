@@ -21,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	gouuid "github.com/satori/go.uuid"
 )
@@ -82,6 +82,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	r, err := models.MigrateRepository(g.doer, owner, models.MigrateRepoOptions{
 		Name:                 g.repoName,
 		Description:          repo.Description,
+		OriginalURL:          repo.OriginalURL,
 		IsMirror:             repo.IsMirror,
 		RemoteAddr:           repo.CloneURL,
 		IsPrivate:            repo.IsPrivate,
@@ -96,26 +97,31 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	return err
 }
 
+// CreateTopics creates topics
+func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
+	return models.SaveTopics(g.repo.ID, topics...)
+}
+
 // CreateMilestones creates milestones
 func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
 	var mss = make([]*models.Milestone, 0, len(milestones))
 	for _, milestone := range milestones {
-		var deadline util.TimeStamp
+		var deadline timeutil.TimeStamp
 		if milestone.Deadline != nil {
-			deadline = util.TimeStamp(milestone.Deadline.Unix())
+			deadline = timeutil.TimeStamp(milestone.Deadline.Unix())
 		}
 		if deadline == 0 {
-			deadline = util.TimeStamp(time.Date(9999, 1, 1, 0, 0, 0, 0, setting.UILocation).Unix())
+			deadline = timeutil.TimeStamp(time.Date(9999, 1, 1, 0, 0, 0, 0, setting.DefaultUILocation).Unix())
 		}
 		var ms = models.Milestone{
 			RepoID:       g.repo.ID,
 			Name:         milestone.Title,
 			Content:      milestone.Description,
-			IsClosed:     milestone.State == "close",
+			IsClosed:     milestone.State == "closed",
 			DeadlineUnix: deadline,
 		}
 		if ms.IsClosed && milestone.Closed != nil {
-			ms.ClosedDateUnix = util.TimeStamp(milestone.Closed.Unix())
+			ms.ClosedDateUnix = timeutil.TimeStamp(milestone.Closed.Unix())
 		}
 		mss = append(mss, &ms)
 	}
@@ -169,7 +175,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			IsDraft:      release.Draft,
 			IsPrerelease: release.Prerelease,
 			IsTag:        false,
-			CreatedUnix:  util.TimeStamp(release.Created.Unix()),
+			CreatedUnix:  timeutil.TimeStamp(release.Created.Unix()),
 		}
 
 		// calc NumCommits
@@ -188,7 +194,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 				Name:          asset.Name,
 				DownloadCount: int64(*asset.DownloadCount),
 				Size:          int64(*asset.Size),
-				CreatedUnix:   util.TimeStamp(asset.Created.Unix()),
+				CreatedUnix:   timeutil.TimeStamp(asset.Created.Unix()),
 			}
 
 			// download attachment
@@ -247,20 +253,22 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 
 		var is = models.Issue{
-			RepoID:      g.repo.ID,
-			Repo:        g.repo,
-			Index:       issue.Number,
-			PosterID:    g.doer.ID,
-			Title:       issue.Title,
-			Content:     issue.Content,
-			IsClosed:    issue.State == "closed",
-			IsLocked:    issue.IsLocked,
-			MilestoneID: milestoneID,
-			Labels:      labels,
-			CreatedUnix: util.TimeStamp(issue.Created.Unix()),
+			RepoID:           g.repo.ID,
+			Repo:             g.repo,
+			Index:            issue.Number,
+			PosterID:         g.doer.ID,
+			OriginalAuthor:   issue.PosterName,
+			OriginalAuthorID: issue.PosterID,
+			Title:            issue.Title,
+			Content:          issue.Content,
+			IsClosed:         issue.State == "closed",
+			IsLocked:         issue.IsLocked,
+			MilestoneID:      milestoneID,
+			Labels:           labels,
+			CreatedUnix:      timeutil.TimeStamp(issue.Created.Unix()),
 		}
 		if issue.Closed != nil {
-			is.ClosedUnix = util.TimeStamp(issue.Closed.Unix())
+			is.ClosedUnix = timeutil.TimeStamp(issue.Closed.Unix())
 		}
 		// TODO: add reactions
 		iss = append(iss, &is)
@@ -293,11 +301,13 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		}
 
 		cms = append(cms, &models.Comment{
-			IssueID:     issueID,
-			Type:        models.CommentTypeComment,
-			PosterID:    g.doer.ID,
-			Content:     comment.Content,
-			CreatedUnix: util.TimeStamp(comment.Created.Unix()),
+			IssueID:          issueID,
+			Type:             models.CommentTypeComment,
+			PosterID:         g.doer.ID,
+			OriginalAuthor:   comment.PosterName,
+			OriginalAuthorID: comment.PosterID,
+			Content:          comment.Content,
+			CreatedUnix:      timeutil.TimeStamp(comment.Created.Unix()),
 		})
 
 		// TODO: Reactions
@@ -378,7 +388,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	}
 
 	var head = "unknown repository"
-	if pr.IsForkPullRequest() {
+	if pr.IsForkPullRequest() && pr.State != "closed" {
 		if pr.Head.OwnerName != "" {
 			remote := pr.Head.OwnerName
 			_, ok := g.prHeadCache[remote]
@@ -430,26 +440,28 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		HasMerged:    pr.Merged,
 
 		Issue: &models.Issue{
-			RepoID:      g.repo.ID,
-			Repo:        g.repo,
-			Title:       pr.Title,
-			Index:       pr.Number,
-			PosterID:    g.doer.ID,
-			Content:     pr.Content,
-			MilestoneID: milestoneID,
-			IsPull:      true,
-			IsClosed:    pr.State == "closed",
-			IsLocked:    pr.IsLocked,
-			Labels:      labels,
-			CreatedUnix: util.TimeStamp(pr.Created.Unix()),
+			RepoID:           g.repo.ID,
+			Repo:             g.repo,
+			Title:            pr.Title,
+			Index:            pr.Number,
+			PosterID:         g.doer.ID,
+			OriginalAuthor:   pr.PosterName,
+			OriginalAuthorID: pr.PosterID,
+			Content:          pr.Content,
+			MilestoneID:      milestoneID,
+			IsPull:           true,
+			IsClosed:         pr.State == "closed",
+			IsLocked:         pr.IsLocked,
+			Labels:           labels,
+			CreatedUnix:      timeutil.TimeStamp(pr.Created.Unix()),
 		},
 	}
 
 	if pullRequest.Issue.IsClosed && pr.Closed != nil {
-		pullRequest.Issue.ClosedUnix = util.TimeStamp(pr.Closed.Unix())
+		pullRequest.Issue.ClosedUnix = timeutil.TimeStamp(pr.Closed.Unix())
 	}
 	if pullRequest.HasMerged && pr.MergedTime != nil {
-		pullRequest.MergedUnix = util.TimeStamp(pr.MergedTime.Unix())
+		pullRequest.MergedUnix = timeutil.TimeStamp(pr.MergedTime.Unix())
 		pullRequest.MergedCommitID = pr.MergeCommitSHA
 		pullRequest.MergerID = g.doer.ID
 	}

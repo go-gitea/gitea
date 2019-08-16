@@ -23,7 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
@@ -72,11 +72,11 @@ type PullRequest struct {
 	ProtectedBranch *ProtectedBranch `xorm:"-"`
 	MergeBase       string           `xorm:"VARCHAR(40)"`
 
-	HasMerged      bool           `xorm:"INDEX"`
-	MergedCommitID string         `xorm:"VARCHAR(40)"`
-	MergerID       int64          `xorm:"INDEX"`
-	Merger         *User          `xorm:"-"`
-	MergedUnix     util.TimeStamp `xorm:"updated INDEX"`
+	HasMerged      bool               `xorm:"INDEX"`
+	MergedCommitID string             `xorm:"VARCHAR(40)"`
+	MergerID       int64              `xorm:"INDEX"`
+	Merger         *User              `xorm:"-"`
+	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
 }
 
 // Note: don't try to get Issue because will end up recursive querying.
@@ -189,36 +189,6 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 			return nil
 		}
 	}
-	if baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch); err != nil {
-		log.Error("pr.BaseRepo.GetBranch[%d]: %v", pr.BaseBranch, err)
-		return nil
-	}
-	if baseCommit, err = baseBranch.GetCommit(); err != nil {
-		log.Error("baseBranch.GetCommit[%d]: %v", pr.ID, err)
-		return nil
-	}
-	if headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch); err != nil {
-		log.Error("pr.HeadRepo.GetBranch[%d]: %v", pr.HeadBranch, err)
-		return nil
-	}
-	if headCommit, err = headBranch.GetCommit(); err != nil {
-		log.Error("headBranch.GetCommit[%d]: %v", pr.ID, err)
-		return nil
-	}
-	apiBaseBranchInfo := &api.PRBranchInfo{
-		Name:       pr.BaseBranch,
-		Ref:        pr.BaseBranch,
-		Sha:        baseCommit.ID.String(),
-		RepoID:     pr.BaseRepoID,
-		Repository: pr.BaseRepo.innerAPIFormat(e, AccessModeNone, false),
-	}
-	apiHeadBranchInfo := &api.PRBranchInfo{
-		Name:       pr.HeadBranch,
-		Ref:        pr.HeadBranch,
-		Sha:        headCommit.ID.String(),
-		RepoID:     pr.HeadRepoID,
-		Repository: pr.HeadRepo.innerAPIFormat(e, AccessModeNone, false),
-	}
 
 	if err = pr.Issue.loadRepo(e); err != nil {
 		log.Error("pr.Issue.loadRepo[%d]: %v", pr.ID, err)
@@ -227,6 +197,7 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 
 	apiPullRequest := &api.PullRequest{
 		ID:        pr.ID,
+		URL:       pr.Issue.HTMLURL(),
 		Index:     pr.Index,
 		Poster:    apiIssue.Poster,
 		Title:     apiIssue.Title,
@@ -241,12 +212,67 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		DiffURL:   pr.Issue.DiffURL(),
 		PatchURL:  pr.Issue.PatchURL(),
 		HasMerged: pr.HasMerged,
-		Base:      apiBaseBranchInfo,
-		Head:      apiHeadBranchInfo,
 		MergeBase: pr.MergeBase,
 		Deadline:  apiIssue.Deadline,
 		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
+	}
+	baseBranch, err = pr.BaseRepo.GetBranch(pr.BaseBranch)
+	if err != nil {
+		if git.IsErrBranchNotExist(err) {
+			apiPullRequest.Base = nil
+		} else {
+			log.Error("GetBranch[%s]: %v", pr.BaseBranch, err)
+			return nil
+		}
+	} else {
+		apiBaseBranchInfo := &api.PRBranchInfo{
+			Name:       pr.BaseBranch,
+			Ref:        pr.BaseBranch,
+			RepoID:     pr.BaseRepoID,
+			Repository: pr.BaseRepo.innerAPIFormat(e, AccessModeNone, false),
+		}
+		baseCommit, err = baseBranch.GetCommit()
+		if err != nil {
+			if git.IsErrNotExist(err) {
+				apiBaseBranchInfo.Sha = ""
+			} else {
+				log.Error("GetCommit[%s]: %v", baseBranch.Name, err)
+				return nil
+			}
+		} else {
+			apiBaseBranchInfo.Sha = baseCommit.ID.String()
+		}
+		apiPullRequest.Base = apiBaseBranchInfo
+	}
+
+	headBranch, err = pr.HeadRepo.GetBranch(pr.HeadBranch)
+	if err != nil {
+		if git.IsErrBranchNotExist(err) {
+			apiPullRequest.Head = nil
+		} else {
+			log.Error("GetBranch[%s]: %v", pr.HeadBranch, err)
+			return nil
+		}
+	} else {
+		apiHeadBranchInfo := &api.PRBranchInfo{
+			Name:       pr.HeadBranch,
+			Ref:        pr.HeadBranch,
+			RepoID:     pr.HeadRepoID,
+			Repository: pr.HeadRepo.innerAPIFormat(e, AccessModeNone, false),
+		}
+		headCommit, err = headBranch.GetCommit()
+		if err != nil {
+			if git.IsErrNotExist(err) {
+				apiHeadBranchInfo.Sha = ""
+			} else {
+				log.Error("GetCommit[%s]: %v", headBranch.Name, err)
+				return nil
+			}
+		} else {
+			apiHeadBranchInfo.Sha = headCommit.ID.String()
+		}
+		apiPullRequest.Head = apiHeadBranchInfo
 	}
 
 	if pr.Status != PullRequestStatusChecking {
@@ -417,7 +443,7 @@ func (pr *PullRequest) manuallyMerged() bool {
 	}
 	if commit != nil {
 		pr.MergedCommitID = commit.ID.String()
-		pr.MergedUnix = util.TimeStamp(commit.Author.When.Unix())
+		pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
 		pr.Status = PullRequestStatusManuallyMerged
 		merger, _ := GetUserByEmail(commit.Author.Email)
 

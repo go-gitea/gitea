@@ -8,6 +8,7 @@ package base
 // Downloader downloads the site repo informations
 type Downloader interface {
 	GetRepoInfo() (*Repository, error)
+	GetTopics() ([]string, error)
 	GetMilestones() ([]*Milestone, error)
 	GetReleases() ([]*Release, error)
 	GetLabels() ([]*Label, error)
