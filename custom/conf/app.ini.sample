@@ -306,7 +306,7 @@ DISABLE_REGULAR_ORG_CREATION = false
 INSTALL_LOCK = false
 ; !!CHANGE THIS TO KEEP YOUR USER DATA SAFE!!
 SECRET_KEY = !#@FDEWREWR&*(
-; How long to remember that an user is logged in before requiring relogin (in days)
+; How long to remember that a user is logged in before requiring relogin (in days)
 LOGIN_REMEMBER_DAYS = 7
 COOKIE_USERNAME = gitea_awesome
 COOKIE_REMEMBER_NAME = gitea_incredible
@@ -547,6 +547,9 @@ MAX_FILES = 5
 ; Special supported values are ANSIC, UnixDate, RubyDate, RFC822, RFC822Z, RFC850, RFC1123, RFC1123Z, RFC3339, RFC3339Nano, Kitchen, Stamp, StampMilli, StampMicro and StampNano
 ; For more information about the format see http://golang.org/pkg/time/#pkg-constants
 FORMAT =
+; Location the UI time display i.e. Asia/Shanghai
+; Empty means server's location setting
+DEFAULT_UI_LOCATION =
 
 [log]
 ROOT_PATH =
@@ -724,7 +727,7 @@ ACCESS_TOKEN_EXPIRATION_TIME=3600
 REFRESH_TOKEN_EXPIRATION_TIME=730
 ; Check if refresh token got already used
 INVALIDATE_REFRESH_TOKENS=false
-; OAuth2 authentication secret for access and refresh tokens, change this a unique string.
+; OAuth2 authentication secret for access and refresh tokens, change this to a unique string.
 JWT_SECRET=Bk0yK7Y9g_p56v86KaHqjSbxvNvu3SbKoOdOt2ZcXvU
 
 [i18n]

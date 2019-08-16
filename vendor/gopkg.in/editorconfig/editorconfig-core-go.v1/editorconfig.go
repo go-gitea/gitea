@@ -14,6 +14,10 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+const (
+	ConfigNameDefault = ".editorconfig"
+)
+
 // IndentStyle possible values
 const (
 	IndentStyleTab    = "tab"
@@ -49,6 +53,8 @@ type Definition struct {
 	EndOfLine              string `ini:"end_of_line" json:"end_of_line,omitempty"`
 	TrimTrailingWhitespace bool   `ini:"trim_trailing_whitespace" json:"trim_trailing_whitespace,omitempty"`
 	InsertFinalNewline     bool   `ini:"insert_final_newline" json:"insert_final_newline,omitempty"`
+
+	Raw map[string]string `ini:"-" json:"-"`
 }
 
 // Editorconfig represents a .editorconfig file.
@@ -75,6 +81,7 @@ func ParseBytes(data []byte) (*Editorconfig, error) {
 		var (
 			iniSection = iniFile.Section(sectionStr)
 			definition = &Definition{}
+			raw  = make(map[string]string)
 		)
 		err := iniSection.MapTo(&definition)
 		if err != nil {
@@ -89,7 +96,13 @@ func ParseBytes(data []byte) (*Editorconfig, error) {
 			}
 		}
 
+		// Shallow copy all properties
+		for k, v := range iniSection.KeysHash() {
+			raw[k] = v
+		}
+
 		definition.Selector = sectionStr
+		definition.Raw = raw
 		editorConfig.Definitions = append(editorConfig.Definitions, definition)
 	}
 	return editorConfig, nil
@@ -171,6 +184,19 @@ func (d *Definition) merge(md *Definition) {
 	if !d.InsertFinalNewline {
 		d.InsertFinalNewline = md.InsertFinalNewline
 	}
+
+	for k, v := range md.Raw {
+		if _, ok := d.Raw[k]; !ok {
+			d.Raw[k] = v
+		}
+	}
+}
+
+func (d *Definition) InsertToIniFile(iniFile *ini.File) {
+	iniSec := iniFile.Section(d.Selector)
+	for k, v := range d.Raw {
+		iniSec.Key(k).SetValue(v)
+	}
 }
 
 // GetDefinitionForFilename returns a definition for the given filename.
@@ -178,6 +204,7 @@ func (d *Definition) merge(md *Definition) {
 // The last section has preference over the priors.
 func (e *Editorconfig) GetDefinitionForFilename(name string) *Definition {
 	def := &Definition{}
+	def.Raw = make(map[string]string)
 	for i := len(e.Definitions) - 1; i >= 0; i-- {
 		actualDef := e.Definitions[i]
 		if filenameMatches(actualDef.Selector, name) {
@@ -206,28 +233,7 @@ func (e *Editorconfig) Serialize() ([]byte, error) {
 		iniFile.Section(ini.DEFAULT_SECTION).Key("root").SetValue(boolToString(e.Root))
 	}
 	for _, d := range e.Definitions {
-		iniSec := iniFile.Section(d.Selector)
-		if len(d.Charset) > 0 {
-			iniSec.Key("charset").SetValue(d.Charset)
-		}
-		if len(d.IndentStyle) > 0 {
-			iniSec.Key("indent_style").SetValue(d.IndentStyle)
-		}
-		if len(d.IndentSize) > 0 {
-			iniSec.Key("indent_size").SetValue(d.IndentSize)
-		}
-		if d.TabWidth > 0 && strconv.Itoa(d.TabWidth) != d.IndentSize {
-			iniSec.Key("tab_width").SetValue(strconv.Itoa(d.TabWidth))
-		}
-		if len(d.EndOfLine) > 0 {
-			iniSec.Key("end_of_line").SetValue(d.EndOfLine)
-		}
-		if d.TrimTrailingWhitespace {
-			iniSec.Key("trim_trailing_whitespace").SetValue(boolToString(d.TrimTrailingWhitespace))
-		}
-		if d.InsertFinalNewline {
-			iniSec.Key("insert_final_newline").SetValue(boolToString(d.InsertFinalNewline))
-		}
+		d.InsertToIniFile(iniFile)
 	}
 	_, err := iniFile.WriteTo(buffer)
 	if err != nil {
@@ -251,16 +257,21 @@ func (e *Editorconfig) Save(filename string) error {
 // folder with `root = true`, and returns the right editorconfig
 // definition for the given file.
 func GetDefinitionForFilename(filename string) (*Definition, error) {
+	return GetDefinitionForFilenameWithConfigname(filename, ConfigNameDefault)
+}
+
+func GetDefinitionForFilenameWithConfigname(filename string, configname string) (*Definition, error) {
 	abs, err := filepath.Abs(filename)
 	if err != nil {
 		return nil, err
 	}
 	definition := &Definition{}
+	definition.Raw = make(map[string]string)
 
 	dir := abs
 	for dir != filepath.Dir(dir) {
 		dir = filepath.Dir(dir)
-		ecFile := filepath.Join(dir, ".editorconfig")
+		ecFile := filepath.Join(dir, configname)
 		if _, err := os.Stat(ecFile); os.IsNotExist(err) {
 			continue
 		}

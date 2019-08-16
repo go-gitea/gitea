@@ -17,8 +17,9 @@ import (
 )
 
 var localMetas = map[string]string{
-	"user": "gogits",
-	"repo": "gogs",
+	"user":     "gogits",
+	"repo":     "gogs",
+	"repoPath": "../../integrations/gitea-repositories-meta/user13/repo11.git/",
 }
 
 func TestRender_Commits(t *testing.T) {
@@ -30,19 +31,20 @@ func TestRender_Commits(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
-	var sha = "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
+	var sha = "65f1bf27bc3bf70f64657658635e66094edbcb4d"
 	var commit = util.URLJoin(AppSubURL, "commit", sha)
 	var subtree = util.URLJoin(commit, "src")
 	var tree = strings.Replace(subtree, "/commit/", "/tree/", -1)
 
-	test(sha, `<p><a href="`+commit+`" rel="nofollow"><code>b6dd6210ea</code></a></p>`)
-	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow"><code>b6dd621</code></a></p>`)
-	test(sha[:39], `<p><a href="`+commit[:len(commit)-(40-39)]+`" rel="nofollow"><code>b6dd6210ea</code></a></p>`)
-	test(commit, `<p><a href="`+commit+`" rel="nofollow"><code>b6dd6210ea</code></a></p>`)
-	test(tree, `<p><a href="`+tree+`" rel="nofollow"><code>b6dd6210ea/src</code></a></p>`)
-	test("commit "+sha, `<p>commit <a href="`+commit+`" rel="nofollow"><code>b6dd6210ea</code></a></p>`)
+	test(sha, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
+	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
+	test(sha[:39], `<p><a href="`+commit[:len(commit)-(40-39)]+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
+	test(commit, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
+	test(tree, `<p><a href="`+tree+`" rel="nofollow"><code>65f1bf27bc/src</code></a></p>`)
+	test("commit "+sha, `<p>commit <a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
-
+	test("deadbeef", `<p>deadbeef</p>`)
+	test("d27ace93", `<p>d27ace93</p>`)
 }
 
 func TestRender_CrossReferences(t *testing.T) {

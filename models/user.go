@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
@@ -110,9 +111,9 @@ type User struct {
 	Language    string `xorm:"VARCHAR(5)"`
 	Description string
 
-	CreatedUnix   util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix   util.TimeStamp `xorm:"INDEX updated"`
-	LastLoginUnix util.TimeStamp `xorm:"INDEX"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix   timeutil.TimeStamp `xorm:"INDEX updated"`
+	LastLoginUnix timeutil.TimeStamp `xorm:"INDEX"`
 
 	// Remember visibility choice for convenience, true for private
 	LastRepoVisibility bool
@@ -139,11 +140,12 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	NumTeams   int
-	NumMembers int
-	Teams      []*Team             `xorm:"-"`
-	Members    []*User             `xorm:"-"`
-	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+	NumTeams        int
+	NumMembers      int
+	Teams           []*Team             `xorm:"-"`
+	Members         UserList            `xorm:"-"`
+	MembersIsPublic map[int64]bool      `xorm:"-"`
+	Visibility      structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
@@ -189,7 +191,7 @@ func (u *User) AfterLoad() {
 
 // SetLastLogin set time to last login
 func (u *User) SetLastLogin() {
-	u.LastLoginUnix = util.TimeStampNow()
+	u.LastLoginUnix = timeutil.TimeStampNow()
 }
 
 // UpdateDiffViewStyle updates the users diff view style
@@ -1408,9 +1410,7 @@ type SearchUserOptions struct {
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
-
-	var cond = builder.NewCond()
-	cond = cond.And(builder.Eq{"type": opts.Type})
+	var cond builder.Cond = builder.Eq{"type": opts.Type}
 
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)

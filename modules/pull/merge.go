@@ -21,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // Merge merges pull request to base repository.
@@ -258,7 +258,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return fmt.Errorf("GetBranchCommit: %v", err)
 	}
 
-	pr.MergedUnix = util.TimeStampNow()
+	pr.MergedUnix = timeutil.TimeStampNow()
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
@@ -292,39 +292,6 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		go models.HookQueue.Add(pr.Issue.Repo.ID)
 	}
 
-	l, err := baseGitRepo.CommitsBetweenIDs(pr.MergedCommitID, pr.MergeBase)
-	if err != nil {
-		log.Error("CommitsBetweenIDs: %v", err)
-		return nil
-	}
-
-	// It is possible that head branch is not fully sync with base branch for merge commits,
-	// so we need to get latest head commit and append merge commit manually
-	// to avoid strange diff commits produced.
-	mergeCommit, err := baseGitRepo.GetBranchCommit(pr.BaseBranch)
-	if err != nil {
-		log.Error("GetBranchCommit: %v", err)
-		return nil
-	}
-	if mergeStyle == models.MergeStyleMerge {
-		l.PushFront(mergeCommit)
-	}
-
-	p := &api.PushPayload{
-		Ref:        git.BranchPrefix + pr.BaseBranch,
-		Before:     pr.MergeBase,
-		After:      mergeCommit.ID.String(),
-		CompareURL: setting.AppURL + pr.BaseRepo.ComposeCompareURL(pr.MergeBase, pr.MergedCommitID),
-		Commits:    models.ListToPushCommits(l).ToAPIPayloadCommits(pr.BaseRepo.HTMLURL()),
-		Repo:       pr.BaseRepo.APIFormat(mode),
-		Pusher:     pr.HeadRepo.MustOwner().APIFormat(),
-		Sender:     doer.APIFormat(),
-	}
-	if err = models.PrepareWebhooks(pr.BaseRepo, models.HookEventPush, p); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go models.HookQueue.Add(pr.BaseRepo.ID)
-	}
 	return nil
 }
 
