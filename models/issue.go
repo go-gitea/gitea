@@ -68,13 +68,6 @@ type Issue struct {
 	IsLocked bool `xorm:"NOT NULL DEFAULT false"`
 }
 
-/*
-type repoMutexEntry struct {
-	Mutex    sync.Mutex
-	Waiters  int
-}
-*/
-
 var (
 	issueTasksPat     *regexp.Regexp
 	issueTasksDonePat *regexp.Regexp
