@@ -58,6 +58,13 @@ const (
 	algoScrypt = "scrypt"
 	algoArgon2 = "argon2"
 	algoPbkdf2 = "pbkdf2"
+
+	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications
+	EmailNotificationsEnabled = "enabled"
+	// EmailNotificationsOnMention indicates that the user would like to be notified via email when mentioned.
+	EmailNotificationsOnMention = "onmention"
+	// EmailNotificationsDisabled indicates that the user would not like to be notified via email.
+	EmailNotificationsDisabled = "disabled"
 )
 
 var (
@@ -87,11 +94,11 @@ type User struct {
 	Name      string `xorm:"UNIQUE NOT NULL"`
 	FullName  string
 	// Email is the primary email address (to be used for communication)
-	Email                     string `xorm:"NOT NULL"`
-	KeepEmailPrivate          bool
-	EmailNotificationsEnabled bool   `xorm:"DEFAULT true"`
-	Passwd                    string `xorm:"NOT NULL"`
-	PasswdHashAlgo            string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
+	Email                        string `xorm:"NOT NULL"`
+	KeepEmailPrivate             bool
+	EmailNotificationsPreference string `xorm:"DEFAULT 'enabled'"`
+	Passwd                       string `xorm:"NOT NULL"`
+	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
 
 	// MustChangePassword is an attribute that determines if a user
 	// is to change his/her password after registration.
@@ -720,16 +727,14 @@ func (u *User) IsMailable() bool {
 	return u.IsActive
 }
 
-// EnabledEmailNotifications checks if the user has
-// enabled receiving notifications by email
-func (u *User) EnabledEmailNotifications() bool {
-	return u.EmailNotificationsEnabled
+// EmailNotifications returns the User's email notification preference
+func (u *User) EmailNotifications() string {
+	return u.EmailNotificationsPreference
 }
 
-// SetEmailNotifications sets whether the user
-// would like to receive notifications by email
-func (u *User) SetEmailNotifications(set bool) {
-	u.EmailNotificationsEnabled = set
+// SetEmailNotifications sets the user's email notification preference
+func (u *User) SetEmailNotifications(set string) {
+	u.EmailNotificationsPreference = set
 	_ = UpdateUser(u)
 }
 
@@ -1279,7 +1284,7 @@ func getUserEmailsByNames(e Engine, names []string) []string {
 		if err != nil {
 			continue
 		}
-		if u.IsMailable() && u.EnabledEmailNotifications() {
+		if u.IsMailable() && u.EmailNotifications() != EmailNotificationsDisabled {
 			mails = append(mails, u.Email)
 		}
 	}

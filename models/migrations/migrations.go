@@ -241,7 +241,7 @@ var migrations = []Migration{
 	// v92 -> v93
 	NewMigration("remove orphaned repository index statuses", removeLingeringIndexStatus),
 	// v93 -> v94
-	NewMigration("add email notification enabled boolean to user", addEmailNotificationEnabledToUser),
+	NewMigration("add email notification enabled preference to user", addEmailNotificationEnabledToUser),
 }
 
 // Migrate database to current version

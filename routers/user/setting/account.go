@@ -23,7 +23,7 @@ func Account(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.User.Email
-	ctx.Data["NotificationsEnabled"] = ctx.User.EnabledEmailNotifications()
+	ctx.Data["EmailNotificationsPreference"] = ctx.User.EmailNotifications()
 
 	loadAccountData(ctx)
 
@@ -84,8 +84,14 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	}
 	// Set Email Notification Preference
 	if ctx.Query("_method") == "NOTIFICATION" {
-		ctx.User.SetEmailNotifications(ctx.QueryBool("enable"))
-		log.Trace("Email notifications enabled made %s: %s", ctx.QueryBool("enable"), ctx.User.Name)
+		preference := ctx.Query("preference")
+		if !(preference == models.EmailNotificationsEnabled ||
+			preference == models.EmailNotificationsOnMention ||
+			preference == models.EmailNotificationsDisabled) {
+			log.Error("Email notifications preference change returned unrecognized option %s: %s", preference, ctx.User.Name)
+		}
+		ctx.User.SetEmailNotifications(preference)
+		log.Trace("Email notifications preference made %s: %s", preference, ctx.User.Name)
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
