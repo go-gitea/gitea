@@ -1,0 +1,51 @@
+# This is the official list of people who can contribute
+# (and typically have contributed) code to the LUCI project.
+# The AUTHORS file lists the copyright holders; this file
+# lists people.  For example, Google employees are listed here
+# but not in AUTHORS, because Google holds the copyright.
+#
+# Names should be added to this file only after verifying that
+# the individual or the individual's organization has agreed to
+# the appropriate Contributor License Agreement, found here:
+#
+#     http://code.google.com/legal/individual-cla-v1.0.html
+#     http://code.google.com/legal/corporate-cla-v1.0.html
+#
+# The agreement for individuals can be filled out on the web.
+#
+# When adding J Random Contributor's name to this file,
+# either J's name or J's organization's name should be
+# added to the AUTHORS file, depending on whether the
+# individual or corporate CLA was used.
+
+# Names should be added to this file like so:
+#     Individual's name <submission email address>
+#     Individual's name <submission email address> <email2> <emailN>
+#
+# An entry with multiple email addresses specifies that the
+# first address should be used in the submit logs and
+# that the other addresses should be recognized as the
+# same person when interacting with Gerrit.
+
+# Please keep the list sorted.
+
+Andrew Wang <andrew.wang@cloudera.com>
+Andrii Shyshkalov <tandrii@chromium.org>
+Dan Jacques <dnj@chromium.org>
+Dave Sansome <dsansome@chromium.org>
+Eric Boren <borenet@chromium.org>
+Erik Staab <estaab@chromium.org>
+Marc-Antoine Ruel <maruel@chromium.org>
+Mike Stipicevic <stip@chromium.org>
+Nodir Turakulov <nodir@chromium.org>
+Paweł Hajdan <phajdan.jr@chromium.org>
+Philippe Gervais <pgervais@chromium.org>
+Robert Iannucci <iannucci@chromium.org>
+Roberto Carrillo <robertocn@chromium.org>
+Roger Tawa <rogerta@chromium.org>
+Ryan Tseng <hinoka@chromium.org>
+Sergey Berezin <sergeyberezin@chromium.org>
+Stephen Martinis <martiniss@chromium.org>
+Todd Lipcon <todd@cloudera.com>
+Vadim Shtayura <vadimsh@chromium.org>
+Yoshisato Yanagisawa <yyanagisawa@chromium.org>

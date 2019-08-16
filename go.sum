@@ -367,6 +367,8 @@ github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53 h1:HsIQ6yAjfjQ3Ix
 github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53/go.mod h1:f6elajwZV+xceiaqgRL090YzLEDGSbqr3poGL3ZgXYo=
 github.com/ziutek/mymysql v1.5.4 h1:GB0qdRGsTwQSBVYuVShFBKaXSnSnYYC2d9knnE1LHFs=
 github.com/ziutek/mymysql v1.5.4/go.mod h1:LMSpPZ6DbqWFxNCHW77HeMg9I646SAhApZ/wKdgO/C0=
+go.chromium.org/luci v0.0.0-20190816194131-4b600c9efb12 h1:mY6O4bEXDOKJNhqkv17p5Pxjk3hM9RoRPeMc2CJWM2A=
+go.chromium.org/luci v0.0.0-20190816194131-4b600c9efb12/go.mod h1:MIQewVTLvOvc0UioV0JNqTNO/RspKFS0XEeoKrOxsdM=
 go.etcd.io/bbolt v1.3.2 h1:Z/90sZLPOeCy2PwprqkFa25PdkusRzaj9P8zm/KNyvk=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=

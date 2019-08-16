@@ -21,6 +21,7 @@ import (
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
+	"go.chromium.org/luci/common/sync/mutexpool"
 	"xorm.io/builder"
 )
 
@@ -67,9 +68,17 @@ type Issue struct {
 	IsLocked bool `xorm:"NOT NULL DEFAULT false"`
 }
 
+/*
+type repoMutexEntry struct {
+	Mutex    sync.Mutex
+	Waiters  int
+}
+*/
+
 var (
 	issueTasksPat     *regexp.Regexp
 	issueTasksDonePat *regexp.Regexp
+	issueIDLock       mutexpool.P
 )
 
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sx]\]\s.)|(\n\s*[-*]\s\[[\sx]\]\s.)`
@@ -1052,14 +1061,22 @@ func getMaxIndexOfIssue(e Engine, repoID int64) (int64, error) {
 	return maxIndex, nil
 }
 
-func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
-	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
-
-	maxIndex, err := getMaxIndexOfIssue(e, opts.Issue.RepoID)
+func issueSyncCreate(e *xorm.Session, issue *Issue) error {
+	maxIndex, err := getMaxIndexOfIssue(e, issue.RepoID)
 	if err != nil {
 		return err
 	}
-	opts.Issue.Index = maxIndex + 1
+	issue.Index = maxIndex + 1
+
+	if _, err = e.Insert(issue); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
+	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 
 	if opts.Issue.MilestoneID > 0 {
 		milestone, err := getMilestoneByRepoID(e, opts.Issue.RepoID, opts.Issue.MilestoneID)
@@ -1108,8 +1125,10 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	// Milestone and assignee validation should happen before insert actual object.
-	if _, err = e.Insert(opts.Issue); err != nil {
+	// Calculate Issue.Index and create; make sure nobody else is doing the same for this RepoID
+	if issueIDLock.WithMutex(opts.Issue.RepoID, func() {
+		err = issueSyncCreate(e, opts.Issue)
+	}); err != nil {
 		return err
 	}
 

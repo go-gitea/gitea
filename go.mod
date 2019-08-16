@@ -105,6 +105,7 @@ require (
 	github.com/urfave/cli v1.20.0
 	github.com/willf/bitset v0.0.0-20180426185212-8ce1146b8621 // indirect
 	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
+	go.chromium.org/luci v0.0.0-20190816194131-4b600c9efb12
 	go.etcd.io/bbolt v1.3.2 // indirect
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80

@@ -333,6 +333,8 @@ github.com/willf/bitset
 github.com/xanzy/ssh-agent
 # github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 github.com/yohcop/openid-go
+# go.chromium.org/luci v0.0.0-20190816194131-4b600c9efb12
+go.chromium.org/luci/common/sync/mutexpool
 # golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 golang.org/x/crypto/acme/autocert
 golang.org/x/crypto/argon2
