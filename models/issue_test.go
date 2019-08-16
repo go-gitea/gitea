@@ -375,19 +375,6 @@ func TestIssueCreateWithID(t *testing.T) {
 	assert.Error(t, err)
 
 	issue = &Issue{
-		Index:    issueMaxAllowableIndex + 1,
-		RepoID:   repo.ID,
-		Repo:     repo,
-		Title:    "index out of range TestIssueCreateWithID",
-		PosterID: admin.ID,
-		Poster:   admin,
-		Content:  "Issue body",
-	}
-
-	err = NewIssue(repo, issue, nil, nil, nil)
-	assert.Error(t, err)
-
-	issue = &Issue{
 		RepoID:   repo.ID,
 		Repo:     repo,
 		Title:    "sequential TestIssueCreateWithID",
@@ -415,7 +402,7 @@ func TestIssueCreateWithID(t *testing.T) {
 	assert.EqualError(t, err, expectedError)
 
 	issue = &Issue{
-		Index:    issueMaxAllowableIndex,
+		Index:    0x7fffffffffffffff,
 		RepoID:   repo.ID,
 		Repo:     repo,
 		Title:    "index barely in range TestIssueCreateWithID",

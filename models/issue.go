@@ -75,9 +75,6 @@ var (
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sx]\]\s.)|(\n\s*[-*]\s\[[\sx]\]\s.)`
 const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[x]\]\s.)|(\n\s*[-*]\s\[[x]\]\s.)`
 
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER
-const issueMaxAllowableIndex = int64(2<<53 - 1)
-
 func init() {
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
 	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
@@ -1069,7 +1066,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		return ErrUserDoesNotHaveAccessToRepo{UserID: doer.ID, RepoName: opts.Repo.Name}
 	}
 
-	if opts.Issue.Index < 1 || opts.Issue.Index > issueMaxAllowableIndex {
+	if opts.Issue.Index < 1 {
 		return fmt.Errorf("Issue number out of range or max issue number reached")
 	}
 
