@@ -65,13 +65,17 @@ func TestAPICreateIssue(t *testing.T) {
 
 func TestAPICreateIssueID(t *testing.T) {
 	prepareTestEnv(t)
-	const body, firstTitle, dupTitle, freeTitle = "apiTestBody", "apiTestTitle-first", "apiTestTitle-dup", "apiTestTitle-free"
+	const body, firstTitle, dupTitle, freeTitle, notAllowedTitle = "apiTestBody", "apiTestTitle-first", "apiTestTitle-dup", "apiTestTitle-free", "apiTestTitle-notAllowed"
 	const firstIndex = int64(3000)
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	admin := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
-	session := loginUser(t, owner.Name)
+	assert.True(t, admin.IsAdmin)
+	assert.False(t, owner.IsAdmin)
+
+	session := loginUser(t, admin.Name)
 	token := getTokenForLoggedInUser(t, session)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repo.Name, token)
 
@@ -127,4 +131,17 @@ func TestAPICreateIssueID(t *testing.T) {
 		Content:    body,
 		Title:      freeTitle,
 	})
+
+	session = loginUser(t, owner.Name)
+	token = getTokenForLoggedInUser(t, session)
+	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repo.Name, token)
+
+	// Must fail create with index
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
+		Index:    firstIndex + 2,
+		Body:     body,
+		Title:    notAllowedTitle,
+		Assignee: owner.Name,
+	})
+	resp = session.MakeRequest(t, req, http.StatusBadRequest)
 }

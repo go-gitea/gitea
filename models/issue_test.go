@@ -325,16 +325,19 @@ func TestIssueCreateWithID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	admin := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	notadmin := AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
 	index := int64(3000)
+	assert.True(t, admin.IsAdmin)
+	assert.False(t, notadmin.IsAdmin)
 
 	issue := &Issue{
 		Index:    index,
 		RepoID:   repo.ID,
 		Repo:     repo,
 		Title:    "TestIssueCreateWithID",
-		PosterID: 2,
-		Poster:   user,
+		PosterID: admin.ID,
+		Poster:   admin,
 		Content:  "Issue body",
 	}
 
@@ -346,8 +349,8 @@ func TestIssueCreateWithID(t *testing.T) {
 		RepoID:   repo.ID,
 		Repo:     repo,
 		Title:    "duplicate TestIssueCreateWithID",
-		PosterID: 2,
-		Poster:   user,
+		PosterID: admin.ID,
+		Poster:   admin,
 		Content:  "Issue body",
 	}
 
@@ -359,11 +362,37 @@ func TestIssueCreateWithID(t *testing.T) {
 	assert.Equal(t, "TestIssueCreateWithID", issue.Title)
 
 	issue = &Issue{
+		Index:    -1,
+		RepoID:   repo.ID,
+		Repo:     repo,
+		Title:    "neg index TestIssueCreateWithID",
+		PosterID: admin.ID,
+		Poster:   admin,
+		Content:  "Issue body",
+	}
+
+	err = NewIssue(repo, issue, nil, nil, nil)
+	assert.Error(t, err)
+
+	issue = &Issue{
+		Index:    issueMaxAllowableIndex + 1,
+		RepoID:   repo.ID,
+		Repo:     repo,
+		Title:    "index out of range TestIssueCreateWithID",
+		PosterID: admin.ID,
+		Poster:   admin,
+		Content:  "Issue body",
+	}
+
+	err = NewIssue(repo, issue, nil, nil, nil)
+	assert.Error(t, err)
+
+	issue = &Issue{
 		RepoID:   repo.ID,
 		Repo:     repo,
 		Title:    "sequential TestIssueCreateWithID",
-		PosterID: 2,
-		Poster:   user,
+		PosterID: notadmin.ID,
+		Poster:   notadmin,
 		Content:  "Issue body",
 	}
 
@@ -371,19 +400,42 @@ func TestIssueCreateWithID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, index+1, issue.Index)
 
-	user = AssertExistsAndLoadBean(t, &User{ID: 24}).(*User)
-
 	issue = &Issue{
 		Index:    index + 2,
 		RepoID:   repo.ID,
 		Repo:     repo,
 		Title:    "not admin TestIssueCreateWithID",
-		PosterID: 2,
-		Poster:   user,
+		PosterID: notadmin.ID,
+		Poster:   notadmin,
 		Content:  "Issue body",
 	}
 
-	expectedError := ErrUserDoesNotHaveAccessToRepo{UserID: user.ID, RepoName: repo.Name}.Error()
+	expectedError := ErrUserDoesNotHaveAccessToRepo{UserID: notadmin.ID, RepoName: repo.Name}.Error()
 	err = NewIssue(repo, issue, nil, nil, nil)
 	assert.EqualError(t, err, expectedError)
+
+	issue = &Issue{
+		Index:    issueMaxAllowableIndex,
+		RepoID:   repo.ID,
+		Repo:     repo,
+		Title:    "index barely in range TestIssueCreateWithID",
+		PosterID: admin.ID,
+		Poster:   admin,
+		Content:  "Issue body",
+	}
+
+	err = NewIssue(repo, issue, nil, nil, nil)
+	assert.NoError(t, err)
+
+	issue = &Issue{
+		RepoID:   repo.ID,
+		Repo:     repo,
+		Title:    "out of index space TestIssueCreateWithID",
+		PosterID: notadmin.ID,
+		Poster:   notadmin,
+		Content:  "Issue body",
+	}
+
+	err = NewIssue(repo, issue, nil, nil, nil)
+	assert.Error(t, err)
 }

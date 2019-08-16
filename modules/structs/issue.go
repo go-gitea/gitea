@@ -67,7 +67,7 @@ type ListIssueOption struct {
 
 // CreateIssueOption options to create one issue
 type CreateIssueOption struct {
-	Index int64 `json:"id"`
+	Index int64 `json:"index"`
 	// required:true
 	Title string `json:"title" binding:"Required"`
 	Body  string `json:"body"`
