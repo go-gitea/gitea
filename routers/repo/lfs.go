@@ -21,13 +21,13 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/pipeline"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 
 	"github.com/Unknwon/com"
 	"github.com/mcuadros/go-version"
@@ -120,11 +120,11 @@ func LFSFileGet(ctx *context.Context) {
 		}
 
 		d, _ := ioutil.ReadAll(dataRc)
-		buf = templates.ToUTF8WithFallback(append(buf, d...))
+		buf = charset.ToUTF8WithFallback(append(buf, d...))
 
 		// Building code view blocks with line number on server side.
 		var fileContent string
-		if content, err := templates.ToUTF8WithErr(buf); err != nil {
+		if content, err := charset.ToUTF8WithErr(buf); err != nil {
 			log.Error("ToUTF8WithErr: %v", err)
 			fileContent = string(buf)
 		} else {
