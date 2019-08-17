@@ -628,7 +628,8 @@ func UploadFileToServer(ctx *context.Context) {
 		allowed := false
 		for _, t := range setting.Repository.Upload.AllowedTypes {
 			t := strings.Trim(t, " ")
-			if t == "*/*" || t == fileType {
+			if t == "*/*" || t == fileType ||
+				strings.HasPrefix(fileType, t+";") {
 				allowed = true
 				break
 			}
