@@ -98,13 +98,15 @@ func (f MigrateRepoForm) ParseRemoteAddr(user *models.User) (string, error) {
 
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
-	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Description   string `binding:"MaxSize(255)"`
-	Website       string `binding:"ValidUrl;MaxSize(255)"`
-	Interval      string
-	MirrorAddress string
-	Private       bool
-	EnablePrune   bool
+	RepoName       string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Description    string `binding:"MaxSize(255)"`
+	Website        string `binding:"ValidUrl;MaxSize(255)"`
+	Interval       string
+	MirrorAddress  string
+	MirrorUsername string
+	MirrorPassword string
+	Private        bool
+	EnablePrune    bool
 
 	// Advanced settings
 	EnableWiki                       bool

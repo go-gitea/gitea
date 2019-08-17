@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/Unknwon/com"
 	"xorm.io/builder"
@@ -91,9 +91,9 @@ type Action struct {
 	Comment     *Comment    `xorm:"-"`
 	IsDeleted   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
 	RefName     string
-	IsPrivate   bool           `xorm:"INDEX NOT NULL DEFAULT false"`
-	Content     string         `xorm:"TEXT"`
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	Content     string             `xorm:"TEXT"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
 // GetOpType gets the ActionType of this action.

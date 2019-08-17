@@ -38,7 +38,7 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 
 	//Setup ssh wrapper
 	os.Setenv("GIT_SSH_COMMAND",
-		"ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"IdentitiesOnly=yes\" -i \""+keyFile+"\"")
+		"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i \""+keyFile+"\"")
 	os.Setenv("GIT_SSH_VARIANT", "ssh")
 
 	callback(keyFile)
