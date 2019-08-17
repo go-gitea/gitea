@@ -550,6 +550,7 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *Use
 	return &CommitVerification{
 		CommittingUser: committer,
 		Verified:       false,
+		Warning:        true,
 		Reason:         BadSignature,
 	}
 }
@@ -669,8 +670,12 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 		if err := gpgSettings.LoadPublicKeyContent(); err != nil {
 			log.Error("Error getting default signing key: %s %v", gpgSettings.KeyID, err)
-		} else if commitVerification := verifyWithGPGSettings(&gpgSettings, sig, c.Signature.Payload, committer, defaultReason, keyID); commitVerification != nil {
-			return commitVerification
+		} else if commitVerification := verifyWithGPGSettings(&gpgSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
+			if commitVerification.Reason == BadSignature {
+				defaultReason = BadSignature
+			} else {
+				return commitVerification
+			}
 		}
 	}
 
@@ -678,8 +683,12 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	if err != nil {
 		log.Error("Error getting default public gpg key: %v", err)
 	} else if defaultGPGSettings.Sign {
-		if commitVerification := verifyWithGPGSettings(defaultGPGSettings, sig, c.Signature.Payload, committer, defaultReason, keyID); commitVerification != nil {
-			return commitVerification
+		if commitVerification := verifyWithGPGSettings(defaultGPGSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
+			if commitVerification.Reason == BadSignature {
+				defaultReason = BadSignature
+			} else {
+				return commitVerification
+			}
 		}
 	}
 
@@ -694,7 +703,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	}
 }
 
-func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, payload string, committer *User, defaultReason, keyID string) *CommitVerification {
+func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, payload string, committer *User, keyID string) *CommitVerification {
 	// First try to find the key in the db
 	if commitVerification := hashAndVerifyForKeyID(sig, payload, committer, gpgSettings.KeyID, gpgSettings.Name, gpgSettings.Email); commitVerification != nil {
 		return commitVerification
@@ -724,14 +733,20 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 		CanSign: pubkey.CanSign(),
 		KeyID:   pubkey.KeyIdString(),
 	}
-	if keyID == k.KeyID {
-		defaultReason = BadDefaultSignature
-	}
 	if commitVerification := hashAndVerifyWithSubKeys(sig, payload, k, committer, &User{
 		Name:  gpgSettings.Name,
 		Email: gpgSettings.Email,
 	}, gpgSettings.Email); commitVerification != nil {
 		return commitVerification
+	}
+	if keyID == k.KeyID {
+		// This is a bad situation ... We have a key id that matches our default key but the signature doesn't match.
+		return &CommitVerification{
+			CommittingUser: committer,
+			Verified:       false,
+			Warning:        true,
+			Reason:         BadSignature,
+		}
 	}
 	return nil
 }

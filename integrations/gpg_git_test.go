@@ -45,18 +45,11 @@ func testGPGGit(t *testing.T, u *url.URL) {
 	assert.NoError(t, err)
 	defer os.Setenv("GNUPGHOME", oldGNUPGHome)
 
-	// Need to create a few keys
+	// Need to create a root key
 	rootKeyPair, err := createGPGKey(tmpDir, "gitea", "gitea@fake.local")
 	assert.NoError(t, err)
 
 	rootKeyID := rootKeyPair.PrimaryKey.KeyIdShortString()
-
-	/*
-		user2KeyPair, err := createGPGKey(tmpDir, username, "user2@example.com")
-		assert.NoError(t, err)
-
-		user2KeyID := user2KeyPair.PrimaryKey.KeyIdShortString()
-	*/
 
 	setting.Repository.Signing.SigningKey = rootKeyID
 	setting.Repository.Signing.SigningName = "gitea"
