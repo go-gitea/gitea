@@ -35,7 +35,7 @@ func VerifyAllowedContentType(buf []byte, allowedTypes []string) error {
 		t := strings.Trim(t, " ")
 
 		if t == "*/*" || t == fileType ||
-			// allowed text/plain; charset=utf-8
+			// Allow directives after type, like 'text/plain; charset=utf-8'
 			strings.HasPrefix(fileType, t+";") {
 			return nil
 		}
