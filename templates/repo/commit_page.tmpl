@@ -88,7 +88,7 @@
 				  <i class="grey unlock icon"></i>
 				  {{.i18n.Tr .Verification.Reason}}
 				  {{if and .Verification.SigningKey (ne .Verification.SigningKey.KeyID "")}}
-				  	<span class="pull-right"><span class="red text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="red warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
+					<span class="pull-right"><span class="red text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="red warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
 				  {{end}}
 				</div>
 			{{end}}

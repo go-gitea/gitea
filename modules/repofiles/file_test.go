@@ -5,8 +5,9 @@
 package repofiles
 
 import (
-	"code.gitea.io/gitea/modules/setting"
 	"testing"
+
+	"code.gitea.io/gitea/modules/setting"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -73,7 +74,7 @@ func getExpectedFileResponse() *api.FileResponse {
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
-			Reason:    "",
+			Reason:    "gpg.error.not_signed_commit",
 			Signature: "",
 			Payload:   "",
 		},

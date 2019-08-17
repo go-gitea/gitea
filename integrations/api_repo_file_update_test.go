@@ -94,7 +94,7 @@ func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileRespon
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
-			Reason:    "unsigned",
+			Reason:    "gpg.error.not_signed_commit",
 			Signature: "",
 			Payload:   "",
 		},

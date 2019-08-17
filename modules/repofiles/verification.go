@@ -27,7 +27,7 @@ func GetPayloadCommitVerification(commit *git.Commit) *structs.PayloadCommitVeri
 	verification.Verified = commitVerification.Verified
 	verification.Reason = commitVerification.Reason
 	if verification.Reason == "" && !verification.Verified {
-		verification.Reason = "unsigned"
+		verification.Reason = "gpg.error.not_signed_commit"
 	}
 	return verification
 }
