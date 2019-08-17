@@ -276,7 +276,9 @@
 						{{range .BlockingDependencies}}
 							<div class="item{{if .IsClosed}} is-closed{{end}}">
 								<div class="ui black label">#{{.Index}}</div>
-								<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+								<a class="title has-emoji" href="{{.RepoLink}}/issues/{{.Index}}">
+									{{if eq .RepoID $.Repository.ID}}{{.Title}}{{else}}{{.Title}} ({{.RepoLink}}){{end}}
+								</a>
 								<div class="ui transparent label right floated">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blocking');"
@@ -302,7 +304,9 @@
 						{{range .BlockedByDependencies}}
 							<div class="item{{if .IsClosed}} is-closed{{end}}">
 								<div class="ui black label">#{{.Index}}</div>
-								<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
+								<a class="title has-emoji" href="{{.RepoLink}}/issues/{{.Index}}">
+									{{if eq .RepoID $.Repository.ID}}{{.Title}}{{else}}{{.Title}} ({{.RepoLink}}){{end}}
+								</a>
 								<div class="ui transparent label right floated">
 									{{if and $.CanCreateIssueDependencies (not $.IsArchived)}}
 										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blockedBy');"

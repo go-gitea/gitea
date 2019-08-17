@@ -26,9 +26,8 @@ type IndexerData struct {
 
 // Match represents on search result
 type Match struct {
-	ID     int64   `json:"id"`
-	RepoID int64   `json:"repo_id"`
-	Score  float64 `json:"score"`
+	ID    int64   `json:"id"`
+	Score float64 `json:"score"`
 }
 
 // SearchResult represents search results
@@ -42,7 +41,7 @@ type Indexer interface {
 	Init() (bool, error)
 	Index(issue []*IndexerData) error
 	Delete(ids ...int64) error
-	Search(kw string, repoID int64, limit, start int) (*SearchResult, error)
+	Search(kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
 }
 
 var (
@@ -195,9 +194,9 @@ func DeleteRepoIssueIndexer(repo *models.Repository) {
 }
 
 // SearchIssuesByKeyword search issue ids by keywords and repo id
-func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
+func SearchIssuesByKeyword(repoIDs []int64, keyword string) ([]int64, error) {
 	var issueIDs []int64
-	res, err := issueIndexer.Search(keyword, repoID, 1000, 0)
+	res, err := issueIndexer.Search(keyword, repoIDs, 1000, 0)
 	if err != nil {
 		return nil, err
 	}

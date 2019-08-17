@@ -21,6 +21,102 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
+// SearchIssues searches for issues across the repositories that the user has access to
+func SearchIssues(ctx *context.APIContext) {
+	// swagger:operation GET /repos/issues/search issue issueSearchIssues
+	// ---
+	// summary: Search for issues across the repositories that the user has access to
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: state
+	//   in: query
+	//   description: whether issue is open or closed
+	//   type: string
+	// - name: labels
+	//   in: query
+	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
+	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of requested issues
+	//   type: integer
+	// - name: q
+	//   in: query
+	//   description: search string
+	//   type: string
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/IssueList"
+	var (
+		repoIDs []int64
+		err     error
+	)
+
+	repoIDs, err = models.FindUserAccessibleRepoIDs(ctx.User.ID)
+	if err != nil {
+		ctx.Error(500, "FindUserAccessibleRepoIDs", err)
+		return
+	}
+
+	var isClosed util.OptionalBool
+	switch ctx.Query("state") {
+	case "closed":
+		isClosed = util.OptionalBoolTrue
+	case "all":
+		isClosed = util.OptionalBoolNone
+	default:
+		isClosed = util.OptionalBoolFalse
+	}
+
+	var issues []*models.Issue
+
+	keyword := strings.Trim(ctx.Query("q"), " ")
+	if strings.IndexByte(keyword, 0) >= 0 {
+		keyword = ""
+	}
+	var issueIDs []int64
+	var labelIDs []int64
+	if len(keyword) > 0 {
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword)
+	}
+
+	if splitted := strings.Split(ctx.Query("labels"), ","); len(splitted) > 0 {
+		labelIDs, err = models.GetLabelIDsInReposByNames(repoIDs, splitted)
+		if err != nil {
+			ctx.Error(500, "GetLabelIDsInRepoByNames", err)
+			return
+		}
+	}
+
+	// Only fetch the issues if we either don't have a keyword or the search returned issues
+	// This would otherwise return all issues if no issues were found by the search.
+	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
+		issues, err = models.Issues(&models.IssuesOptions{
+			RepoIDs:  repoIDs,
+			Page:     ctx.QueryInt("page"),
+			PageSize: setting.UI.IssuePagingNum,
+			IsClosed: isClosed,
+			IssueIDs: issueIDs,
+			LabelIDs: labelIDs,
+		})
+	}
+
+	if err != nil {
+		ctx.Error(500, "Issues", err)
+		return
+	}
+
+	apiIssues := make([]*api.Issue, len(issues))
+	for i := range issues {
+		apiIssues[i] = issues[i].APIFormat()
+	}
+
+	//TODO need to find # issues in all the repos in repoIDs?
+	ctx.SetLinkHeader(0, setting.UI.IssuePagingNum)
+	ctx.JSON(200, &apiIssues)
+}
+
 // ListIssues list the issues of a repository
 func ListIssues(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues issue issueListIssues
@@ -78,7 +174,7 @@ func ListIssues(ctx *context.APIContext) {
 	var labelIDs []int64
 	var err error
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx.Repo.Repository.ID, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword([]int64{ctx.Repo.Repository.ID}, keyword)
 	}
 
 	if splitted := strings.Split(ctx.Query("labels"), ","); len(splitted) > 0 {

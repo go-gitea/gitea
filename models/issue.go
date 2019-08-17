@@ -1747,8 +1747,8 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 }
 
 // SearchIssueIDsByKeyword search issues on database
-func SearchIssueIDsByKeyword(kw string, repoID int64, limit, start int) (int64, []int64, error) {
-	var repoCond = builder.Eq{"repo_id": repoID}
+func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
+	var repoCond = builder.In("repo_id", repoIDs)
 	var subQuery = builder.Select("id").From("issue").Where(repoCond)
 	var cond = builder.And(
 		repoCond,
@@ -1820,33 +1820,69 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix util.TimeStamp, doer *User) 
 	return sess.Commit()
 }
 
+// DependencyInfo represents high level information about an issue which is a dependency of another issue.
+type DependencyInfo struct {
+	ID       int64  `xorm:"id"`
+	RepoID   int64  `xorm:"repo_id"`
+	Index    int64  `xorm:"index"`
+	IsClosed bool   `xorm:"is_closed"`
+	Title    string `xorm:"name"`
+	RepoLink string `xorm:"-"`
+}
+
 // Get Blocked By Dependencies, aka all issues this issue is blocked by.
-func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*Issue, err error) {
-	return issueDeps, e.
-		Table("issue_dependency").
-		Select("issue.*").
+func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
+	err = e.Table("issue_dependency").
+		Select("issue.id, issue.repo_id, issue.index, issue.is_closed, issue.name").
 		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
 		Where("issue_id = ?", issue.ID).
 		Find(&issueDeps)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < len(issueDeps); i++ {
+		repo, err := GetRepositoryByID(issueDeps[i].RepoID)
+		if err != nil {
+			return nil, err
+		}
+		issueDeps[i].RepoLink = repo.Link()
+	}
+
+	return issueDeps, nil
 }
 
 // Get Blocking Dependencies, aka all issues this issue blocks.
-func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*Issue, err error) {
-	return issueDeps, e.
-		Table("issue_dependency").
-		Select("issue.*").
+func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
+	err = e.Table("issue_dependency").
+		Select("issue.id, issue.repo_id, issue.index, issue.is_closed, issue.name").
 		Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
 		Where("dependency_id = ?", issue.ID).
 		Find(&issueDeps)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < len(issueDeps); i++ {
+		repo, err := GetRepositoryByID(issueDeps[i].RepoID)
+		if err != nil {
+			return nil, err
+		}
+		issueDeps[i].RepoLink = repo.Link()
+	}
+
+	return issueDeps, nil
 }
 
 // BlockedByDependencies finds all Dependencies an issue is blocked by
-func (issue *Issue) BlockedByDependencies() ([]*Issue, error) {
+func (issue *Issue) BlockedByDependencies() ([]*DependencyInfo, error) {
 	return issue.getBlockedByDependencies(x)
 }
 
 // BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
-func (issue *Issue) BlockingDependencies() ([]*Issue, error) {
+func (issue *Issue) BlockingDependencies() ([]*DependencyInfo, error) {
 	return issue.getBlockingDependencies(x)
 }
 

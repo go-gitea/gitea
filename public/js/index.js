@@ -3077,7 +3077,7 @@ function initIssueList() {
     $('#new-dependency-drop-list')
         .dropdown({
             apiSettings: {
-                url: suburl + '/api/v1/repos/' + repolink + '/issues?q={query}',
+                url: suburl + '/api/v1/repos/issues/search?q={query}',
                 onResponse: function(response) {
                     const filteredResponse = {'success': true, 'results': []};
                     const currIssueId = $('#new-dependency-drop-list').data('issue-id');
