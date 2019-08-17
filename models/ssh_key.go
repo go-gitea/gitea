@@ -26,7 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
@@ -62,16 +62,16 @@ type PublicKey struct {
 	Type          KeyType    `xorm:"NOT NULL DEFAULT 1"`
 	LoginSourceID int64      `xorm:"NOT NULL DEFAULT 0"`
 
-	CreatedUnix       util.TimeStamp `xorm:"created"`
-	UpdatedUnix       util.TimeStamp `xorm:"updated"`
-	HasRecentActivity bool           `xorm:"-"`
-	HasUsed           bool           `xorm:"-"`
+	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
+	HasRecentActivity bool               `xorm:"-"`
+	HasUsed           bool               `xorm:"-"`
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (key *PublicKey) AfterLoad() {
 	key.HasUsed = key.UpdatedUnix > key.CreatedUnix
-	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
+	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
 }
 
 // OmitEmail returns content of public key without email address.
@@ -581,7 +581,7 @@ func UpdatePublicKeyUpdated(id int64) error {
 	}
 
 	_, err := x.ID(id).Cols("updated_unix").Update(&PublicKey{
-		UpdatedUnix: util.TimeStampNow(),
+		UpdatedUnix: timeutil.TimeStampNow(),
 	})
 	if err != nil {
 		return err
@@ -685,12 +685,14 @@ func rewriteAllPublicKeys(e Engine) error {
 			}
 			_, err = t.WriteString(line + "\n")
 			if err != nil {
+				f.Close()
 				return err
 			}
 		}
-		defer f.Close()
+		f.Close()
 	}
 
+	t.Close()
 	return os.Rename(tmpPath, fPath)
 }
 
@@ -712,16 +714,16 @@ type DeployKey struct {
 
 	Mode AccessMode `xorm:"NOT NULL DEFAULT 1"`
 
-	CreatedUnix       util.TimeStamp `xorm:"created"`
-	UpdatedUnix       util.TimeStamp `xorm:"updated"`
-	HasRecentActivity bool           `xorm:"-"`
-	HasUsed           bool           `xorm:"-"`
+	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
+	HasRecentActivity bool               `xorm:"-"`
+	HasUsed           bool               `xorm:"-"`
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (key *DeployKey) AfterLoad() {
 	key.HasUsed = key.UpdatedUnix > key.CreatedUnix
-	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
+	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
 }
 
 // GetContent gets associated public key content.

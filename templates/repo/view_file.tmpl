@@ -45,7 +45,7 @@
 		</div>
 	</h4>
 	<div class="ui attached table unstackable segment">
-		<div class="file-view {{if .IsMarkup}}markdown{{else if .IsRenderedHTML}}plain-text{{else if .IsTextFile}}code-view{{end}} has-emoji">
+		<div class="file-view {{if .IsMarkup}}{{.MarkupType}}{{else if .IsRenderedHTML}}plain-text{{else if .IsTextFile}}code-view{{end}} has-emoji">
 			{{if .IsMarkup}}
 				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
 			{{else if .IsRenderedHTML}}

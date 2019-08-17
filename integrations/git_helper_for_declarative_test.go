@@ -24,20 +24,24 @@ import (
 )
 
 func withKeyFile(t *testing.T, keyname string, callback func(string)) {
-	keyFile := filepath.Join(setting.AppDataPath, keyname)
-	err := ssh.GenKeyPair(keyFile)
+
+	tmpDir, err := ioutil.TempDir("", "key-file")
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	err = os.Chmod(tmpDir, 0700)
+	assert.NoError(t, err)
+
+	keyFile := filepath.Join(tmpDir, keyname)
+	err = ssh.GenKeyPair(keyFile)
 	assert.NoError(t, err)
 
 	//Setup ssh wrapper
 	os.Setenv("GIT_SSH_COMMAND",
-		"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i "+
-			filepath.Join(setting.AppWorkPath, keyFile))
+		"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i \""+keyFile+"\"")
 	os.Setenv("GIT_SSH_VARIANT", "ssh")
 
 	callback(keyFile)
-
-	defer os.RemoveAll(keyFile)
-	defer os.RemoveAll(keyFile + ".pub")
 }
 
 func createSSHUrl(gitPath string, u *url.URL) *url.URL {

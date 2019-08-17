@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/xorm"
@@ -106,7 +107,7 @@ func readSQLFromFile(version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(base.RemoveBOMIfPresent(bytes)), nil
+	return string(charset.RemoveBOMIfPresent(bytes)), nil
 }
 
 func restoreOldDB(t *testing.T, version string) bool {

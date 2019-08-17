@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 const (
@@ -78,7 +79,7 @@ var sysStatus struct {
 }
 
 func updateSystemStatus() {
-	sysStatus.Uptime = base.TimeSincePro(startTime, "en")
+	sysStatus.Uptime = timeutil.TimeSincePro(startTime, "en")
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)

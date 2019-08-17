@@ -34,7 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
@@ -129,7 +129,7 @@ func NewRepoContext() {
 // Repository represents a git repository.
 type Repository struct {
 	ID            int64  `xorm:"pk autoincr"`
-	OwnerID       int64  `xorm:"UNIQUE(s)"`
+	OwnerID       int64  `xorm:"UNIQUE(s) index"`
 	OwnerName     string `xorm:"-"`
 	Owner         *User  `xorm:"-"`
 	LowerName     string `xorm:"UNIQUE(s) INDEX NOT NULL"`
@@ -175,8 +175,8 @@ type Repository struct {
 	// Avatar: ID(10-20)-md5(32) - must fit into 64 symbols
 	Avatar string `xorm:"VARCHAR(64)"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 // ColorFormat returns a colored string to represent this repo
@@ -508,8 +508,9 @@ func (repo *Repository) mustOwnerName(e Engine) string {
 func (repo *Repository) ComposeMetas() map[string]string {
 	if repo.ExternalMetas == nil {
 		repo.ExternalMetas = map[string]string{
-			"user": repo.MustOwner().Name,
-			"repo": repo.Name,
+			"user":     repo.MustOwner().Name,
+			"repo":     repo.Name,
+			"repoPath": repo.RepoPath(),
 		}
 		unit, err := repo.GetUnit(UnitTypeExternalTracker)
 		if err != nil {
@@ -970,7 +971,7 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 			RepoID:         repo.ID,
 			Interval:       setting.Mirror.DefaultInterval,
 			EnablePrune:    true,
-			NextUpdateUnix: util.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
+			NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
 		}); err != nil {
 			return repo, fmt.Errorf("InsertOne: %v", err)
 		}
@@ -1800,6 +1801,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&HookTask{RepoID: repoID},
 		&Notification{RepoID: repoID},
 		&CommitStatus{RepoID: repoID},
+		&RepoIndexerStatus{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}

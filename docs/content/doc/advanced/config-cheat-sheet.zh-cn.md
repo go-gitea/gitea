@@ -237,7 +237,9 @@ IS_INPUT_FILE = false
 - RENDER_COMMAND: 工具的命令行命令及参数。
 - IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。
 
-
+## Time (`time`)
+- `FORMAT`: 显示在界面上的时间格式。比如： RFC1123 或者 2006-01-02 15:04:05
+- `DEFAULT_UI_LOCATION`: 默认显示在界面上的时区，默认为本地时区。比如： Asia/Shanghai
 
 ## Other (`other`)
 

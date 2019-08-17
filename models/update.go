@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // env keys for git hooks need
@@ -140,7 +140,7 @@ func PushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 			IsDraft:      false,
 			IsPrerelease: false,
 			IsTag:        true,
-			CreatedUnix:  util.TimeStamp(createdAt.Unix()),
+			CreatedUnix:  timeutil.TimeStamp(createdAt.Unix()),
 		}
 		if author != nil {
 			rel.PublisherID = author.ID
@@ -151,7 +151,7 @@ func PushUpdateAddTag(repo *Repository, gitRepo *git.Repository, tagName string)
 		}
 	} else {
 		rel.Sha1 = commit.ID.String()
-		rel.CreatedUnix = util.TimeStamp(createdAt.Unix())
+		rel.CreatedUnix = timeutil.TimeStamp(createdAt.Unix())
 		rel.NumCommits = commitsCount
 		rel.IsDraft = false
 		if rel.IsTag && author != nil {
