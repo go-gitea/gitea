@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -71,6 +73,22 @@ func signingKey(repoPath string) string {
 	}
 
 	return setting.Repository.Signing.SigningKey
+}
+
+// PublicSigningKey gets the public signing key within a provided repository directory
+func PublicSigningKey(repoPath string) (string, error) {
+	signingKey := signingKey(repoPath)
+	if signingKey == "" {
+		return "", nil
+	}
+
+	content, stderr, err := process.GetManager().ExecDir(-1, repoPath,
+		"gpg --export -a", "gpg", "--export", "-a", signingKey)
+	if err != nil {
+		log.Error("Unable to get default signing key in %s: %s, %s, %v", repoPath, signingKey, stderr, err)
+		return "", err
+	}
+	return content, nil
 }
 
 // SignInitialCommit determines if we should sign the initial commit to this repository
