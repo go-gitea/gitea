@@ -79,12 +79,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ### Repository - Signing (`repository.signing`)
 
 - `SIGNING_KEY`: **default**: \[none, KEYID, default \]: Key to sign with.
+- `SIGNING_NAME` &amp; `SIGNING_EMAIL`: if a KEYID is provided as the `SIGNING_KEY`, use these as the Name and Email address of the signer. These should match publicized name and email address for the key.
 - `INITIAL_COMMIT`: **always**: \[never, pubkey, twofa, always\]: Sign initial commit.
   - `never`: Never sign
   - `pubkey`: Only sign if the user has a public key
   - `twofa`: Only sign if the user is logged in with twofa
   - `always`: Always sign
-  - Options other than `never` and `always` can be combined as acomma separated list.
+  - Options other than `never` and `always` can be combined as a comma separated list.
 - `WIKI`: **never**: \[never, pubkey, twofa, always, parentsigned\]: Sign commits to wiki.
 - `CRUD_ACTIONS`: **pubkey, twofa, parentsigned**: \[never, pubkey, twofa, parentsigned, always\]: Sign CRUD actions.
   - Options as above, with the addition of:

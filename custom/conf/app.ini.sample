@@ -78,6 +78,10 @@ LOCK_REASONS=Too heated,Off-topic,Resolved,Spam
 ; GPG key to use to sign commits, Defaults to the default - that is the value of git config --get user.signingkey
 ; Switch to none to stop signing completely
 SIGNING_KEY = default
+; If a SIGNING_KEY ID is provided, use the provided Name and Email address as the signer.
+; These should match a publicized name and email address for the key
+SIGNING_NAME =
+SIGNING_EMAIL =
 ; Determines when gitea should sign the initial commit when creating a repository
 ; Either:
 ; - never
