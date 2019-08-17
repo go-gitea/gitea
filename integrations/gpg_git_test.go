@@ -51,6 +51,15 @@ func testGPGGit(t *testing.T, u *url.URL) {
 
 	rootKeyID := rootKeyPair.PrimaryKey.KeyIdShortString()
 
+	oldKeyID := setting.Repository.Signing.SigningKey
+	oldName := setting.Repository.Signing.SigningName
+	oldEmail := setting.Repository.Signing.SigningEmail
+	defer func() {
+		setting.Repository.Signing.SigningKey = oldKeyID
+		setting.Repository.Signing.SigningName = oldName
+		setting.Repository.Signing.SigningEmail = oldEmail
+	}()
+
 	setting.Repository.Signing.SigningKey = rootKeyID
 	setting.Repository.Signing.SigningName = "gitea"
 	setting.Repository.Signing.SigningEmail = "gitea@fake.local"
