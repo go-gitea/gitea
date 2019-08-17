@@ -48,7 +48,8 @@ func UploadAttachment(ctx *context.Context) {
 	allowed := false
 	for _, t := range allowedTypes {
 		t := strings.Trim(t, " ")
-		if t == "*/*" || t == fileType {
+		if t == "*/*" || t == fileType ||
+			strings.HasPrefix(fileType, t+";") {
 			allowed = true
 			break
 		}
