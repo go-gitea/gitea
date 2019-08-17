@@ -296,7 +296,22 @@ Environment variables are usually restricted to a reduced character
 set `0-9A-Z_` - in order to allow the setting of sections with
 characters outside of that set, they should be escaped as following:
 `_0X2E_` for `.`. The entire section and key names can be escaped as
-a UTF8 byte string if necessary.
+a UTF8 byte string if necessary. E.g. to configure:
+
+```ini
+...
+
+[log.console]
+COLORIZE=false
+STDERR=true
+
+...
+```
+
+You would set the environment variables: `GITEA__LOG_0x2E_CONSOLE__COLORIZE=false`
+and `GITEA__LOG_0x2E_CONSOLE__STDERR=false`. Other examples can be found
+on the configuration cheat sheet.
+
 
 - Options:
     - `--out name`, `-o name`: Name of the adjusted ini file to be created. Optional. (default: The gitea conf file will be changed in place).
