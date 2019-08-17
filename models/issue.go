@@ -74,6 +74,7 @@ var (
 
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sx]\]\s.)|(\n\s*[-*]\s\[[\sx]\]\s.)`
 const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[x]\]\s.)|(\n\s*[-*]\s\[[x]\]\s.)`
+const issueMaxDupIndexAttempts = 3
 
 func init() {
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
@@ -1055,12 +1056,6 @@ func getMaxIndexOfIssue(e Engine, repoID int64) (int64, error) {
 func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 
-	maxIndex, err := getMaxIndexOfIssue(e, opts.Issue.RepoID)
-	if err != nil {
-		return err
-	}
-	opts.Issue.Index = maxIndex + 1
-
 	if opts.Issue.MilestoneID > 0 {
 		milestone, err := getMilestoneByRepoID(e, opts.Issue.RepoID, opts.Issue.MilestoneID)
 		if err != nil && !IsErrMilestoneNotExist(err) {
@@ -1108,9 +1103,24 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	// Milestone and assignee validation should happen before insert actual object.
-	if _, err = e.Insert(opts.Issue); err != nil {
-		return err
+	// There's no good way to identify a duplicate key error in database/sql; brute force some retries
+	dupIndexAttempts := issueMaxDupIndexAttempts
+	for {
+		maxIndex, err := getMaxIndexOfIssue(e, opts.Issue.RepoID)
+		if err != nil {
+			return err
+		}
+		opts.Issue.Index = maxIndex + 1
+
+		// Milestone and assignee validation should happen before insert actual object.
+		if _, err = e.Insert(opts.Issue); err == nil {
+			break
+		}
+
+		dupIndexAttempts--
+		if dupIndexAttempts <= 0 {
+			return err
+		}
 	}
 
 	if opts.Issue.MilestoneID > 0 {
