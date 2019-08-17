@@ -3069,7 +3069,6 @@ function deleteDependencyModal(id, type) {
 }
 
 function initIssueList() {
-    const repolink = $('#repolink').val();
     $('#new-dependency-drop-list')
         .dropdown({
             apiSettings: {
