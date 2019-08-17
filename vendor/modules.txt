@@ -342,6 +342,7 @@ golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh
 golang.org/x/crypto/acme
 golang.org/x/crypto/openpgp
+golang.org/x/crypto/openpgp/armor
 golang.org/x/crypto/md4
 golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
@@ -349,7 +350,6 @@ golang.org/x/crypto/curve25519
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/poly1305
-golang.org/x/crypto/openpgp/armor
 golang.org/x/crypto/openpgp/errors
 golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
