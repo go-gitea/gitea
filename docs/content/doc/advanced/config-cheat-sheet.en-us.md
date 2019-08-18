@@ -132,6 +132,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `START_SSH_SERVER`: **false**: When enabled, use the built-in SSH server.
 - `SSH_DOMAIN`: **%(DOMAIN)s**: Domain name of this server, used for displayed clone URL.
 - `SSH_PORT`: **22**: SSH port displayed in clone URL.
+- `SSH_LISTEN_HOST`: **0.0.0.0**: Listen address for the built-in SSH server.
 - `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
 - `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
@@ -155,7 +156,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Database (`database`)
 
 - `DB_TYPE`: **mysql**: The database type in use \[mysql, postgres, mssql, sqlite3\].
-- `HOST`: **127.0.0.1:3306**: Database host address and port.
+- `HOST`: **127.0.0.1:3306**: Database host address and port or absolute path for unix socket \[mysql, postgres\] (ex: /var/run/mysqld/mysqld.sock).
 - `NAME`: **gitea**: Database name.
 - `USER`: **root**: Database username.
 - `PASSWD`: **\<empty\>**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
@@ -501,6 +502,10 @@ IS_INPUT_FILE = false
 Two special environment variables are passed to the render command:
 - `GITEA_PREFIX_SRC`, which contains the current URL prefix in the `src` path tree. To be used as prefix for links.
 - `GITEA_PREFIX_RAW`, which contains the current URL prefix in the `raw` path tree. To be used as prefix for image paths.
+
+## Time (`time`)
+- `FORMAT`: Time format to diplay on UI. i.e. RFC1123 or 2006-01-02 15:04:05
+- `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Shanghai/Asia
 
 ## Other (`other`)
 

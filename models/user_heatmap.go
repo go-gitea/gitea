@@ -6,13 +6,13 @@ package models
 
 import (
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // UserHeatmapData represents the data needed to create a heatmap
 type UserHeatmapData struct {
-	Timestamp     util.TimeStamp `json:"timestamp"`
-	Contributions int64          `json:"contributions"`
+	Timestamp     timeutil.TimeStamp `json:"timestamp"`
+	Contributions int64              `json:"contributions"`
 }
 
 // GetUserHeatmapDataByUser returns an array of UserHeatmapData
@@ -35,7 +35,7 @@ func GetUserHeatmapDataByUser(user *User) ([]*UserHeatmapData, error) {
 	sess := x.Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").
 		Where("user_id = ?", user.ID).
-		And("created_unix > ?", (util.TimeStampNow() - 31536000))
+		And("created_unix > ?", (timeutil.TimeStampNow() - 31536000))
 
 	// * Heatmaps for individual users only include actions that the user themself
 	//   did.

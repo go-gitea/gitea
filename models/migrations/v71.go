@@ -8,11 +8,11 @@ import (
 	"crypto/sha256"
 	"fmt"
 
+	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"github.com/go-xorm/xorm"
 	"golang.org/x/crypto/pbkdf2"
-
-	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/util"
 )
 
 func addScratchHash(x *xorm.Engine) error {
@@ -24,9 +24,9 @@ func addScratchHash(x *xorm.Engine) error {
 		ScratchToken     string
 		ScratchSalt      string
 		ScratchHash      string
-		LastUsedPasscode string         `xorm:"VARCHAR(10)"`
-		CreatedUnix      util.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix      util.TimeStamp `xorm:"INDEX updated"`
+		LastUsedPasscode string             `xorm:"VARCHAR(10)"`
+		CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix      timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
 	if err := x.Sync2(new(TwoFactor)); err != nil {

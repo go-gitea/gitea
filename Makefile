@@ -22,7 +22,7 @@ BINDATA := modules/{options,public,templates}/bindata.go
 GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
 GOFMT ?= gofmt -s
 
-GOFLAGS := -i -v
+GOFLAGS := -v
 EXTRA_GOFLAGS ?=
 
 MAKE_VERSION := $(shell make -v | head -n 1)
@@ -473,6 +473,6 @@ pr:
 golangci-lint:
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.16.0; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.17.1; \
 	fi
-	golangci-lint run
+	golangci-lint run --deadline=3m

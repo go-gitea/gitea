@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"gopkg.in/gomail.v2"
 )
 
@@ -47,8 +48,8 @@ func SendTestMail(email string) error {
 func SendUserMail(language string, u *User, tpl base.TplName, code, subject, info string) {
 	data := map[string]interface{}{
 		"DisplayName":       u.DisplayName(),
-		"ActiveCodeLives":   base.MinutesToFriendly(setting.Service.ActiveCodeLives, language),
-		"ResetPwdCodeLives": base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, language),
+		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, language),
+		"ResetPwdCodeLives": timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, language),
 		"Code":              code,
 	}
 
@@ -85,7 +86,7 @@ func SendResetPasswordMail(locale Locale, u *User) {
 func SendActivateEmailMail(locale Locale, u *User, email *EmailAddress) {
 	data := map[string]interface{}{
 		"DisplayName":     u.DisplayName(),
-		"ActiveCodeLives": base.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
+		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
 	}

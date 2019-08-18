@@ -400,117 +400,12 @@
                 }
             }
 
-            pre {
-                overflow: auto;
+            .csv {
+                overflow-x: auto;
             }
 
-            .code-view {
-                * {
-                    font-size: 12px;
-                    font-family: @monospaced-fonts, monospace;
-                    line-height: 20px;
-                }
-
-                table {
-                    width: 100%;
-                }
-
-                .lines-num {
-                    vertical-align: top;
-                    text-align: right;
-                    color: #999999;
-                    background: #f5f5f5;
-                    width: 1%;
-                    user-select: none;
-
-                    span {
-                        line-height: 20px;
-                        padding: 0 10px;
-                        cursor: pointer;
-                        display: block;
-                    }
-                }
-
-                .lines-num,
-                .lines-code {
-                    padding: 0;
-
-                    pre,
-                    ol,
-                    .hljs {
-                        background-color: white;
-                        margin: 0;
-                        padding: 0 !important;
-
-                        li {
-                            display: block;
-                            width: 100%;
-
-                            &.active {
-                                background: #ffffdd;
-                            }
-
-                            &:before {
-                                content: ' ';
-                            }
-                        }
-                    }
-                }
-
-                .lines-commit {
-                    vertical-align: top;
-                    color: #999999;
-                    padding: 0;
-                    background: #f5f5f5;
-                    width: 1%;
-                    -moz-user-select: none;
-                    -ms-user-select: none;
-                    -webkit-user-select: none;
-                    user-select: none;
-
-                    .blame-info {
-                        width: 350px;
-                        max-width: 350px;
-                        display: block;
-                        user-select: none;
-                        padding: 0 0 0 10px;
-
-                        .blame-data {
-                            display: flex;
-                            font-family: @default-fonts;
-
-                            .blame-message {
-                                flex-grow: 2;
-                                overflow: hidden;
-                                white-space: nowrap;
-                                text-overflow: ellipsis;
-                                line-height: 20px;
-                            }
-
-                            .blame-time,
-                            .blame-avatar {
-                                flex-shrink: 0;
-                            }
-                        }
-                    }
-
-                    .ui.avatar.image {
-                        height: 18px;
-                        width: 18px;
-                    }
-                }
-
-                .lines-num,
-                .lines-code,
-                .lines-commit {
-                    .bottom-line {
-                        border-bottom: 1px solid #eaecef;
-                    }
-                }
-
-                .active {
-                    background: #ffffdd;
-                }
+            pre {
+                overflow: auto;
             }
         }
 
@@ -1265,6 +1160,10 @@
             margin: 0;
         }
 
+        td.message {
+            text-overflow: unset;
+        }
+
         &.ui.basic.striped.table tbody tr:nth-child(2n) {
             background-color: rgba(0, 0, 0, 0.02) !important;
         }
@@ -1272,17 +1171,15 @@
 
     #commits-table td.sha .sha.label,
     #repo-files-table .sha.label {
-        &.isSigned {
-            border: 1px solid #bbbbbb;
+        border: 1px solid #bbbbbb;
 
-            .detail.icon {
-                background: #fafafa;
-                margin: -6px -10px -4px 0;
-                padding: 5px 3px 5px 6px;
-                border-left: 1px solid #bbbbbb;
-                border-top-left-radius: 0;
-                border-bottom-left-radius: 0;
-            }
+        .detail.icon {
+            background: #fafafa;
+            margin: -6px -10px -4px 0;
+            padding: 5px 3px 5px 6px;
+            border-left: 1px solid #bbbbbb;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
         }
 
         &.isSigned.isVerified {
@@ -1290,7 +1187,11 @@
             background: fade(#21ba45, 10%);
 
             .detail.icon {
-                border-left: 1px solid fade(#21ba45, 50%);
+                border-left: 1px solid #21ba45;
+            }
+
+            &:hover {
+                background: fade(#21ba45, 30%) !important;
             }
         }
     }
@@ -1418,7 +1319,7 @@
             font-size: 12px;
 
             td {
-                padding: 0 0 0 10px;
+                padding: 0 0 0 10px !important;
                 border-top: 0;
             }
 
@@ -1426,7 +1327,7 @@
                 border-color: #d4d4d5;
                 border-right-width: 1px;
                 border-right-style: solid;
-                padding: 0 5px;
+                padding: 0 5px !important;
             }
 
             tbody {
@@ -1435,23 +1336,6 @@
                         // halfwidth is used in split view - and in that case, 1% of each
                         width: 49%;
                     }
-
-                    &.tag-code td,
-                    td.tag-code {
-                        background-color: #f0f0f0 !important;
-                        border-color: #d3cfcf !important;
-                        padding-top: 8px;
-                        padding-bottom: 8px;
-                        // td.selected-line, td.selected-line pre {
-                        //     background-color: #ffffdd !important;
-                        // }
-                    }
-
-                    // &.same-code {
-                    //     td.selected-line, td.selected-line pre {
-                    //         background-color: #ffffdd !important;
-                    //     }
-                    // }
 
                     .removed-code {
                         background-color: #ff9999;
@@ -1543,12 +1427,6 @@
 
             clear: right;
         }
-    }
-
-    .code-view {
-        overflow: auto;
-        overflow-x: auto;
-        overflow-y: hidden;
     }
 
     .repo-search-result {
@@ -2302,12 +2180,12 @@ tbody.commit-list {
 .commit-list .message-wrapper {
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: calc(100% - 24px);
+    max-width: calc(100% - 50px);
     display: inline-block;
     vertical-align: middle;
 }
 
-.commit-list .message-wrapper .commit-status-link {
+.commit-list .commit-status-link {
     display: inline-block;
     vertical-align: middle;
 }
@@ -2405,4 +2283,12 @@ tbody.commit-list {
 .repo-buttons .ui.labeled.button > .label {
     border-left: 0 !important;
     margin: 0 !important;
+}
+
+.tag-code,
+.tag-code td {
+    background-color: #f0f0f0 !important;
+    border-color: #d3cfcf !important;
+    padding-top: 8px;
+    padding-bottom: 8px;
 }

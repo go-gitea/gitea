@@ -9,11 +9,11 @@ import (
 	"crypto/subtle"
 	"time"
 
-	gouuid "github.com/satori/go.uuid"
-
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
+
+	gouuid "github.com/satori/go.uuid"
 )
 
 // AccessToken represents a personal access token.
@@ -26,16 +26,16 @@ type AccessToken struct {
 	TokenSalt      string
 	TokenLastEight string `xorm:"token_last_eight"`
 
-	CreatedUnix       util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix       util.TimeStamp `xorm:"INDEX updated"`
-	HasRecentActivity bool           `xorm:"-"`
-	HasUsed           bool           `xorm:"-"`
+	CreatedUnix       timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix       timeutil.TimeStamp `xorm:"INDEX updated"`
+	HasRecentActivity bool               `xorm:"-"`
+	HasUsed           bool               `xorm:"-"`
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (t *AccessToken) AfterLoad() {
 	t.HasUsed = t.UpdatedUnix > t.CreatedUnix
-	t.HasRecentActivity = t.UpdatedUnix.AddDuration(7*24*time.Hour) > util.TimeStampNow()
+	t.HasRecentActivity = t.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
 }
 
 // NewAccessToken creates new access token.

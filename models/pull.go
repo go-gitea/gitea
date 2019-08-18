@@ -23,7 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
@@ -72,11 +72,11 @@ type PullRequest struct {
 	ProtectedBranch *ProtectedBranch `xorm:"-"`
 	MergeBase       string           `xorm:"VARCHAR(40)"`
 
-	HasMerged      bool           `xorm:"INDEX"`
-	MergedCommitID string         `xorm:"VARCHAR(40)"`
-	MergerID       int64          `xorm:"INDEX"`
-	Merger         *User          `xorm:"-"`
-	MergedUnix     util.TimeStamp `xorm:"updated INDEX"`
+	HasMerged      bool               `xorm:"INDEX"`
+	MergedCommitID string             `xorm:"VARCHAR(40)"`
+	MergerID       int64              `xorm:"INDEX"`
+	Merger         *User              `xorm:"-"`
+	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
 }
 
 // Note: don't try to get Issue because will end up recursive querying.
@@ -443,7 +443,7 @@ func (pr *PullRequest) manuallyMerged() bool {
 	}
 	if commit != nil {
 		pr.MergedCommitID = commit.ID.String()
-		pr.MergedUnix = util.TimeStamp(commit.Author.When.Unix())
+		pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
 		pr.Status = PullRequestStatusManuallyMerged
 		merger, _ := GetUserByEmail(commit.Author.Email)
 
