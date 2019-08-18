@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
@@ -30,16 +31,16 @@ type ProtectedBranch struct {
 	BranchName                string `xorm:"UNIQUE(s)"`
 	CanPush                   bool   `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist           bool
-	WhitelistUserIDs          []int64        `xorm:"JSON TEXT"`
-	WhitelistTeamIDs          []int64        `xorm:"JSON TEXT"`
-	EnableMergeWhitelist      bool           `xorm:"NOT NULL DEFAULT false"`
-	MergeWhitelistUserIDs     []int64        `xorm:"JSON TEXT"`
-	MergeWhitelistTeamIDs     []int64        `xorm:"JSON TEXT"`
-	ApprovalsWhitelistUserIDs []int64        `xorm:"JSON TEXT"`
-	ApprovalsWhitelistTeamIDs []int64        `xorm:"JSON TEXT"`
-	RequiredApprovals         int64          `xorm:"NOT NULL DEFAULT 0"`
-	CreatedUnix               util.TimeStamp `xorm:"created"`
-	UpdatedUnix               util.TimeStamp `xorm:"updated"`
+	WhitelistUserIDs          []int64            `xorm:"JSON TEXT"`
+	WhitelistTeamIDs          []int64            `xorm:"JSON TEXT"`
+	EnableMergeWhitelist      bool               `xorm:"NOT NULL DEFAULT false"`
+	MergeWhitelistUserIDs     []int64            `xorm:"JSON TEXT"`
+	MergeWhitelistTeamIDs     []int64            `xorm:"JSON TEXT"`
+	ApprovalsWhitelistUserIDs []int64            `xorm:"JSON TEXT"`
+	ApprovalsWhitelistTeamIDs []int64            `xorm:"JSON TEXT"`
+	RequiredApprovals         int64              `xorm:"NOT NULL DEFAULT 0"`
+	CreatedUnix               timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix               timeutil.TimeStamp `xorm:"updated"`
 }
 
 // IsProtected returns if the branch is protected
@@ -374,13 +375,13 @@ func (repo *Repository) DeleteProtectedBranch(id int64) (err error) {
 
 // DeletedBranch struct
 type DeletedBranch struct {
-	ID          int64          `xorm:"pk autoincr"`
-	RepoID      int64          `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Name        string         `xorm:"UNIQUE(s) NOT NULL"`
-	Commit      string         `xorm:"UNIQUE(s) NOT NULL"`
-	DeletedByID int64          `xorm:"INDEX"`
-	DeletedBy   *User          `xorm:"-"`
-	DeletedUnix util.TimeStamp `xorm:"INDEX created"`
+	ID          int64              `xorm:"pk autoincr"`
+	RepoID      int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Name        string             `xorm:"UNIQUE(s) NOT NULL"`
+	Commit      string             `xorm:"UNIQUE(s) NOT NULL"`
+	DeletedByID int64              `xorm:"INDEX"`
+	DeletedBy   *User              `xorm:"-"`
+	DeletedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
 // AddDeletedBranch adds a deleted branch to the database

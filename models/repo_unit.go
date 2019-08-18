@@ -7,7 +7,7 @@ package models
 import (
 	"encoding/json"
 
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
@@ -17,10 +17,10 @@ import (
 // RepoUnit describes all units of a repository
 type RepoUnit struct {
 	ID          int64
-	RepoID      int64           `xorm:"INDEX(s)"`
-	Type        UnitType        `xorm:"INDEX(s)"`
-	Config      core.Conversion `xorm:"TEXT"`
-	CreatedUnix util.TimeStamp  `xorm:"INDEX CREATED"`
+	RepoID      int64              `xorm:"INDEX(s)"`
+	Type        UnitType           `xorm:"INDEX(s)"`
+	Config      core.Conversion    `xorm:"TEXT"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 }
 
 // UnitConfig describes common unit config

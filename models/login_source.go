@@ -14,16 +14,16 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	"xorm.io/core"
-
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
+
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/xorm"
+	"xorm.io/core"
 )
 
 // LoginType represents an login type.
@@ -148,8 +148,8 @@ type LoginSource struct {
 	IsSyncEnabled bool            `xorm:"INDEX NOT NULL DEFAULT false"`
 	Cfg           core.Conversion `xorm:"TEXT"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 // Cell2Int64 converts a xorm.Cell type to int64,
