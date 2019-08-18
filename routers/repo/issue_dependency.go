@@ -40,7 +40,7 @@ func AddDependency(ctx *context.Context) {
 	}
 
 	// Check if issue and dependency is the same
-	if dep.Index == issueIndex {
+	if dep.ID == issue.ID {
 		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_same_issue"))
 		return
 	}
