@@ -230,6 +230,18 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return float32(n) * 100 / float32(sum)
 		},
+		"CommitType": func(commit interface{}) string {
+			switch commit.(type) {
+			case models.SignCommitWithStatuses:
+				return "SignCommitWithStatuses"
+			case models.SignCommit:
+				return "SignCommit"
+			case models.UserCommit:
+				return "UserCommit"
+			default:
+				return ""
+			}
+		},
 	}}
 }
 
