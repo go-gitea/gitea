@@ -26,7 +26,7 @@
 {{if .RequireGitGraph}}
 	<!-- graph -->
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/gitgraph/gitgraph.js"></script>
-	<script src="{{AppSubUrl}}/js/draw.js"></script>
+	<script src="{{StaticUrlPrefix}}/js/draw.js"></script>
 {{end}}
 
 <!-- Third-party libraries -->
@@ -121,7 +121,7 @@
 
 	<!-- JavaScript -->
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/semantic/semantic.min.js"></script>
-	<script src="{{AppSubUrl}}/js/index.js?v={{MD5 AppVer}}"></script>
+	<script src="{{StaticUrlPrefix}}/js/index.js?v={{MD5 AppVer}}"></script>
 {{if .EnableHeatmap}}
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/moment/moment.min.js" charset="utf-8"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/vue-calendar-heatmap/vue-calendar-heatmap.browser.js" charset="utf-8"></script>
