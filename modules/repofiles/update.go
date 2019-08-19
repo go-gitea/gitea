@@ -11,17 +11,17 @@ import (
 	"path"
 	"strings"
 
-	"golang.org/x/net/html/charset"
-	"golang.org/x/text/transform"
-
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+
+	stdcharset "golang.org/x/net/html/charset"
+	"golang.org/x/text/transform"
 )
 
 // IdentityOptions for a person's identity like an author or committer
@@ -87,15 +87,15 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 
 	}
 
-	encoding, err := base.DetectEncoding(buf)
+	encoding, err := charset.DetectEncoding(buf)
 	if err != nil {
 		// just default to utf-8 and no bom
 		return "UTF-8", false
 	}
 	if encoding == "UTF-8" {
-		return encoding, bytes.Equal(buf[0:3], base.UTF8BOM)
+		return encoding, bytes.Equal(buf[0:3], charset.UTF8BOM)
 	}
-	charsetEncoding, _ := charset.Lookup(encoding)
+	charsetEncoding, _ := stdcharset.Lookup(encoding)
 	if charsetEncoding == nil {
 		return "UTF-8", false
 	}
@@ -107,7 +107,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 	}
 
 	if n > 2 {
-		return encoding, bytes.Equal([]byte(result)[0:3], base.UTF8BOM)
+		return encoding, bytes.Equal([]byte(result)[0:3], charset.UTF8BOM)
 	}
 
 	return encoding, false
@@ -190,6 +190,13 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// Assigned LastCommitID in opts if it hasn't been set
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
+	} else {
+		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+		if err != nil {
+			return nil, fmt.Errorf("DeleteRepoFile: Invalid last commit ID: %v", err)
+		}
+		opts.LastCommitID = lastCommitID.String()
+
 	}
 
 	encoding := "UTF-8"
@@ -314,10 +321,10 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	content := opts.Content
 	if bom {
-		content = string(base.UTF8BOM) + content
+		content = string(charset.UTF8BOM) + content
 	}
 	if encoding != "UTF-8" {
-		charsetEncoding, _ := charset.Lookup(encoding)
+		charsetEncoding, _ := stdcharset.Lookup(encoding)
 		if charsetEncoding != nil {
 			result, _, err := transform.String(charsetEncoding.NewEncoder(), content)
 			if err != nil {
@@ -387,32 +394,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// Then push this tree to NewBranch
 	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
 		return nil, err
-	}
-
-	// Simulate push event.
-	oldCommitID := opts.LastCommitID
-	if opts.NewBranch != opts.OldBranch || oldCommitID == "" {
-		oldCommitID = git.EmptySHA
-	}
-
-	if err = repo.GetOwner(); err != nil {
-		return nil, fmt.Errorf("GetOwner: %v", err)
-	}
-	err = PushUpdate(
-		repo,
-		opts.NewBranch,
-		models.PushUpdateOptions{
-			PusherID:     doer.ID,
-			PusherName:   doer.Name,
-			RepoUserName: repo.Owner.Name,
-			RepoName:     repo.Name,
-			RefFullName:  git.BranchPrefix + opts.NewBranch,
-			OldCommitID:  oldCommitID,
-			NewCommitID:  commitHash,
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("PushUpdate: %v", err)
 	}
 
 	commit, err = t.GetCommit(commitHash)

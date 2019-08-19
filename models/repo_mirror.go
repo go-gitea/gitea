@@ -7,6 +7,7 @@ package models
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Unknwon/com"
@@ -34,8 +36,8 @@ type Mirror struct {
 	Interval    time.Duration
 	EnablePrune bool `xorm:"NOT NULL DEFAULT true"`
 
-	UpdatedUnix    util.TimeStamp `xorm:"INDEX"`
-	NextUpdateUnix util.TimeStamp `xorm:"INDEX"`
+	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
+	NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX"`
 
 	address string `xorm:"-"`
 }
@@ -43,8 +45,8 @@ type Mirror struct {
 // BeforeInsert will be invoked by XORM before inserting a record
 func (m *Mirror) BeforeInsert() {
 	if m != nil {
-		m.UpdatedUnix = util.TimeStampNow()
-		m.NextUpdateUnix = util.TimeStampNow()
+		m.UpdatedUnix = timeutil.TimeStampNow()
+		m.NextUpdateUnix = timeutil.TimeStampNow()
 	}
 }
 
@@ -64,7 +66,7 @@ func (m *Mirror) AfterLoad(session *xorm.Session) {
 // ScheduleNextUpdate calculates and sets next update time.
 func (m *Mirror) ScheduleNextUpdate() {
 	if m.Interval != 0 {
-		m.NextUpdateUnix = util.TimeStampNow().AddDuration(m.Interval)
+		m.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(m.Interval)
 	} else {
 		m.NextUpdateUnix = 0
 	}
@@ -118,7 +120,7 @@ func sanitizeOutput(output, repoPath string) (string, error) {
 	return util.SanitizeMessage(output, remoteAddr), nil
 }
 
-// Address returns mirror address from Git repository config without credentials.
+// Address returns mirror address from Git repository config with credentials censored.
 func (m *Mirror) Address() string {
 	m.readAddress()
 	return util.SanitizeURLCredentials(m.address, false)
@@ -128,6 +130,41 @@ func (m *Mirror) Address() string {
 func (m *Mirror) FullAddress() string {
 	m.readAddress()
 	return m.address
+}
+
+// AddressNoCredentials returns mirror address from Git repository config without credentials.
+func (m *Mirror) AddressNoCredentials() string {
+	m.readAddress()
+	u, err := url.Parse(m.address)
+	if err != nil {
+		// this shouldn't happen but just return it unsanitised
+		return m.address
+	}
+	u.User = nil
+	return u.String()
+}
+
+// Username returns the mirror address username
+func (m *Mirror) Username() string {
+	m.readAddress()
+	u, err := url.Parse(m.address)
+	if err != nil {
+		// this shouldn't happen but if it does return ""
+		return ""
+	}
+	return u.User.Username()
+}
+
+// Password returns the mirror address password
+func (m *Mirror) Password() string {
+	m.readAddress()
+	u, err := url.Parse(m.address)
+	if err != nil {
+		// this shouldn't happen but if it does return ""
+		return ""
+	}
+	password, _ := u.User.Password()
+	return password
 }
 
 // SaveAddress writes new address to Git repository config.
@@ -277,7 +314,7 @@ func (m *Mirror) runSync() ([]*mirrorSyncResult, bool) {
 		cache.Remove(m.Repo.GetCommitsCountCacheKey(branches[i].Name, true))
 	}
 
-	m.UpdatedUnix = util.TimeStampNow()
+	m.UpdatedUnix = timeutil.TimeStampNow()
 	return parseRemoteUpdateOutput(output), true
 }
 

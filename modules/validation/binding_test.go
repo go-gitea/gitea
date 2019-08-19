@@ -5,7 +5,6 @@
 package validation
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,7 +36,12 @@ func performValidationTest(t *testing.T, testCase validationTestCase) {
 	m := macaron.Classic()
 
 	m.Post(testRoute, binding.Validate(testCase.data), func(actual binding.Errors) {
-		assert.Equal(t, fmt.Sprintf("%+v", testCase.expectedErrors), fmt.Sprintf("%+v", actual))
+		// see https://github.com/stretchr/testify/issues/435
+		if actual == nil {
+			actual = binding.Errors{}
+		}
+
+		assert.Equal(t, testCase.expectedErrors, actual)
 	})
 
 	req, err := http.NewRequest("POST", testRoute, nil)

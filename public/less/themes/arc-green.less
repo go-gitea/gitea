@@ -7,11 +7,6 @@
     color: #bababa;
 }
 
-.repository.file.list .non-diff-file-content .code-view .lines-num,
-.repository.file.list .non-diff-file-content .code-view .lines-code ol {
-    background-color: #2b2b2b !important;
-}
-
 .hljs-strong,
 .hljs-emphasis {
     color: #a8a8a2;
@@ -498,12 +493,12 @@ a.ui.basic.green.label:hover {
 
 .ui.table {
     color: #a5a5a5 !important;
-    border: 1px solid #4c505c;
+    border-color: #4c505c;
     background: #353945;
 }
 
 .ui.table tbody tr {
-    border-bottom: 1px solid #333640;
+    border-color: #333640;
     background: #2a2e3a;
 }
 
@@ -714,19 +709,6 @@ a.ui.basic.green.label:hover {
     background-color: #3a523a;
 }
 
-.repository .diff-file-box .code-diff .lines-num {
-    border-right: 1px solid #2d2d2d;
-}
-
-.repository .diff-file-box .file-body.file-code .lines-num {
-    color: #9e9e9e;
-    background: #2e323e;
-}
-
-.repository .diff-file-box .file-body.file-code .lines-num-old {
-    border-right: 1px solid #2d2d2d;
-}
-
 .hljs-title,
 .hljs-section,
 .hljs-selector-id {
@@ -742,9 +724,10 @@ a.ui.basic.green.label:hover {
     background-color: #5f3737;
 }
 
-.repository .diff-file-box .code-diff tbody tr.tag-code td,
-.repository .diff-file-box .code-diff tbody tr td.tag-code {
-    background-color: #292727 !important;
+.tag-code,
+.tag-code td {
+    background: #242637 !important;
+    border-color: transparent !important;
 }
 
 .ui.vertical.menu .active.item {
@@ -1054,10 +1037,6 @@ input {
     color: #668cb1;
 }
 
-.repository.file.list #file-content .code-view .lines-num {
-    background: #2e323e;
-}
-
 .repository.file.list #repo-files-table tbody .octicon.octicon-file-directory,
 .repository.file.list #repo-files-table tbody .octicon.octicon-file-submodule {
     color: #7c9b5e;
@@ -1080,19 +1059,48 @@ input {
     color: #87ab63 !important;
 }
 
-.repository.file.list #file-content .code-view .lines-num pre,
-.repository.file.list #file-content .code-view .lines-code pre,
-.repository.file.list #file-content .code-view .lines-num ol,
-.repository.file.list #file-content .code-view .lines-code ol,
-.repository.file.list #file-content .code-view .lines-num .hljs,
-.repository.file.list #file-content .code-view .lines-code .hljs {
-    background-color: #2a2e3a;
+.lines-commit {
+    background: #2e323e !important;
+}
+
+.bottom-line {
+    border-color: #4e525e !important;
+}
+
+.lines-num {
+    background: #2e323e !important;
+    color: #9e9e9e !important;
+    border-color: #2d2d2d !important;
+}
+
+.lines-num pre,
+.lines-code pre,
+.lines-num ol,
+.lines-code ol,
+.lines-num .hljs,
+.lines-code .hljs {
+    background-color: #2a2e3a !important;
+}
+
+.code-view .active {
+    background: #554a00;
 }
 
 a.ui.label:hover,
 a.ui.labels .label:hover {
-    background-color: #505667;
-    color: #dbdbdb;
+    background-color: #505667 !important;
+    color: #dbdbdb !important;
+}
+
+.repository #commits-table td.sha .sha.label,
+.repository #repo-files-table .sha.label {
+    border-color: #888;
+}
+
+.repository #commits-table td.sha .sha.label.isSigned .detail.icon,
+.repository #repo-files-table .sha.label.isSigned .detail.icon {
+    background: none;
+    border-left-color: #888;
 }
 
 .repository .label.list .item {
@@ -1103,17 +1111,6 @@ a.ui.labels .label:hover {
 .ui.basic.blue.buttons .button {
     box-shadow: 0 0 0 1px #87ab63 inset !important;
     color: #87ab63 !important;
-}
-
-.repository.file.list #file-content .code-view {
-    .lines-num pre,
-    .lines-code pre,
-    .lines-num ol,
-    .lines-code ol,
-    .lines-num .hljs,
-    .hljs {
-        background-color: #2a2e3a;
-    }
 }
 
 .repository .diff-file-box .code-diff-split tbody tr.add-code td:nth-child(1),
