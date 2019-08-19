@@ -81,8 +81,8 @@
 						</span>
 					</td>
 				{{end}}
-				<td class="message has-emoji">
-					<span class="truncate">
+				<td class="message">
+					<span class="truncate has-emoji">
 						{{RenderCommitMessageLink $commit.Message $.RepoLink (Printf "%s/commit/%s" $.RepoLink $commit.ID)  $.Repository.ComposeMetas}}
 					</span>
 				</td>
