@@ -83,7 +83,7 @@
 				{{end}}
 				<td class="message">
 					<span class="truncate has-emoji">
-						{{RenderCommitMessageLink $commit.Message $.RepoLink (Printf "%s/commit/%s" $.RepoLink $commit.ID)  $.Repository.ComposeMetas}}
+						<a href="{{$.RepoLink}}/commit/{{$commit.ID}}" title="{{$commit.Summary}}">{{$commit.Summary}}</a>
 					</span>
 				</td>
 				<td class="text grey right age">{{TimeSince $commit.Committer.When $.Lang}}</td>
