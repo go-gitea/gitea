@@ -1834,7 +1834,6 @@ type DependencyInfo struct {
 // Get Blocked By Dependencies, aka all issues this issue is blocked by.
 func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
 	err = e.Table("issue_dependency").
-		Select("issue.*").
 		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
 		Where("issue_id = ?", issue.ID).
 		Find(&issueDeps)
@@ -1857,7 +1856,6 @@ func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyI
 // Get Blocking Dependencies, aka all issues this issue blocks.
 func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
 	err = e.Table("issue_dependency").
-		Select("issue.*").
 		Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
 		Where("dependency_id = ?", issue.ID).
 		Find(&issueDeps)
