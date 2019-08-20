@@ -409,7 +409,7 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 		Action:     api.HookReleaseUpdated,
 		Release:    rel.APIFormat(),
 		Repository: rel.Repo.APIFormat(mode),
-		Sender:     rel.Publisher.APIFormat(),
+		Sender:     doer.APIFormat(),
 	}); err1 != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	} else {
@@ -420,7 +420,7 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 }
 
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
-func DeleteReleaseByID(id int64, u *User, delTag bool) error {
+func DeleteReleaseByID(id int64, doer *User, delTag bool) error {
 	rel, err := GetReleaseByID(id)
 	if err != nil {
 		return fmt.Errorf("GetReleaseByID: %v", err)
@@ -459,12 +459,12 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		return fmt.Errorf("LoadAttributes: %v", err)
 	}
 
-	mode, _ := AccessLevel(u, rel.Repo)
+	mode, _ := AccessLevel(doer, rel.Repo)
 	if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
 		Action:     api.HookReleaseDeleted,
 		Release:    rel.APIFormat(),
 		Repository: rel.Repo.APIFormat(mode),
-		Sender:     rel.Publisher.APIFormat(),
+		Sender:     doer.APIFormat(),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	} else {
