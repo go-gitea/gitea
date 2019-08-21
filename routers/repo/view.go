@@ -162,8 +162,9 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				d, _ := ioutil.ReadAll(dataRc)
 				buf = charset.ToUTF8WithFallback(append(buf, d...))
 
-				if markup.Type(readmeFile.Name()) != "" {
+				if markupType := markup.Type(readmeFile.Name()); markupType != "" {
 					ctx.Data["IsMarkup"] = true
+					ctx.Data["MarkupType"] = string(markupType)
 					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
@@ -282,8 +283,9 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
-		if markup.Type(blob.Name()) != "" {
+		if markupType := markup.Type(blob.Name()); markupType != "" {
 			ctx.Data["IsMarkup"] = true
+			ctx.Data["MarkupType"] = markupType
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
 		} else if readmeExist {
 			ctx.Data["IsRenderedHTML"] = true

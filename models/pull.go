@@ -23,7 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
@@ -72,11 +72,11 @@ type PullRequest struct {
 	ProtectedBranch *ProtectedBranch `xorm:"-"`
 	MergeBase       string           `xorm:"VARCHAR(40)"`
 
-	HasMerged      bool           `xorm:"INDEX"`
-	MergedCommitID string         `xorm:"VARCHAR(40)"`
-	MergerID       int64          `xorm:"INDEX"`
-	Merger         *User          `xorm:"-"`
-	MergedUnix     util.TimeStamp `xorm:"updated INDEX"`
+	HasMerged      bool               `xorm:"INDEX"`
+	MergedCommitID string             `xorm:"VARCHAR(40)"`
+	MergerID       int64              `xorm:"INDEX"`
+	Merger         *User              `xorm:"-"`
+	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
 }
 
 // Note: don't try to get Issue because will end up recursive querying.
@@ -443,7 +443,7 @@ func (pr *PullRequest) manuallyMerged() bool {
 	}
 	if commit != nil {
 		pr.MergedCommitID = commit.ID.String()
-		pr.MergedUnix = util.TimeStamp(commit.Author.When.Unix())
+		pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
 		pr.Status = PullRequestStatusManuallyMerged
 		merger, _ := GetUserByEmail(commit.Author.Email)
 
@@ -598,7 +598,7 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 	if err != nil {
 		for i := range patchConflicts {
 			if strings.Contains(stderr, patchConflicts[i]) {
-				log.Trace("PullRequest[%d].testPatch (apply): has conflict", pr.ID)
+				log.Trace("PullRequest[%d].testPatch (apply): has conflict: %s", pr.ID, stderr)
 				const prefix = "error: patch failed:"
 				pr.Status = PullRequestStatusConflict
 				pr.ConflictedFiles = make([]string, 0, 5)
@@ -661,13 +661,16 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	}
 
 	pr.Index = pull.Index
-	if err = repo.savePatch(sess, pr.Index, patch); err != nil {
-		return fmt.Errorf("SavePatch: %v", err)
-	}
-
 	pr.BaseRepo = repo
-	if err = pr.testPatch(sess); err != nil {
-		return fmt.Errorf("testPatch: %v", err)
+	pr.Status = PullRequestStatusChecking
+	if len(patch) > 0 {
+		if err = repo.savePatch(sess, pr.Index, patch); err != nil {
+			return fmt.Errorf("SavePatch: %v", err)
+		}
+
+		if err = pr.testPatch(sess); err != nil {
+			return fmt.Errorf("testPatch: %v", err)
+		}
 	}
 	// No conflict appears after test means mergeable.
 	if pr.Status == PullRequestStatusChecking {
