@@ -29,7 +29,7 @@ func TestCommitRepoAction(t *testing.T) {
 	}{
 		{
 			userID:       2,
-			repositoryID: 2,
+			repositoryID: 16,
 			commitRepoActionOptions: CommitRepoActionOptions{
 				RefFullName: "refName",
 				OldCommitID: "oldCommitID",
@@ -37,20 +37,20 @@ func TestCommitRepoAction(t *testing.T) {
 				Commits: &models.PushCommits{
 					Commits: []*models.PushCommit{
 						{
-							Sha1:           "abcdef1",
+							Sha1:           "69554a6",
 							CommitterEmail: "user2@example.com",
-							CommitterName:  "User Two",
-							AuthorEmail:    "user4@example.com",
-							AuthorName:     "User Four",
-							Message:        "message1",
+							CommitterName:  "User2",
+							AuthorEmail:    "user2@example.com",
+							AuthorName:     "User2",
+							Message:        "not signed commit",
 						},
 						{
-							Sha1:           "abcdef2",
+							Sha1:           "27566bd",
 							CommitterEmail: "user2@example.com",
-							CommitterName:  "User Two",
+							CommitterName:  "User2",
 							AuthorEmail:    "user2@example.com",
-							AuthorName:     "User Two",
-							Message:        "message2",
+							AuthorName:     "User2",
+							Message:        "good signed commit (with not yet validated email)",
 						},
 					},
 					Len: 2,
