@@ -7,6 +7,7 @@ package models
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -119,7 +120,7 @@ func sanitizeOutput(output, repoPath string) (string, error) {
 	return util.SanitizeMessage(output, remoteAddr), nil
 }
 
-// Address returns mirror address from Git repository config without credentials.
+// Address returns mirror address from Git repository config with credentials censored.
 func (m *Mirror) Address() string {
 	m.readAddress()
 	return util.SanitizeURLCredentials(m.address, false)
@@ -129,6 +130,41 @@ func (m *Mirror) Address() string {
 func (m *Mirror) FullAddress() string {
 	m.readAddress()
 	return m.address
+}
+
+// AddressNoCredentials returns mirror address from Git repository config without credentials.
+func (m *Mirror) AddressNoCredentials() string {
+	m.readAddress()
+	u, err := url.Parse(m.address)
+	if err != nil {
+		// this shouldn't happen but just return it unsanitised
+		return m.address
+	}
+	u.User = nil
+	return u.String()
+}
+
+// Username returns the mirror address username
+func (m *Mirror) Username() string {
+	m.readAddress()
+	u, err := url.Parse(m.address)
+	if err != nil {
+		// this shouldn't happen but if it does return ""
+		return ""
+	}
+	return u.User.Username()
+}
+
+// Password returns the mirror address password
+func (m *Mirror) Password() string {
+	m.readAddress()
+	u, err := url.Parse(m.address)
+	if err != nil {
+		// this shouldn't happen but if it does return ""
+		return ""
+	}
+	password, _ := u.User.Password()
+	return password
 }
 
 // SaveAddress writes new address to Git repository config.
