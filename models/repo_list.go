@@ -260,6 +260,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 			var likes = builder.NewCond()
 			for _, v := range strings.Split(opts.Keyword, ",") {
 				likes = likes.Or(builder.Like{"lower_name", strings.ToLower(v)})
+				likes = likes.Or(builder.Like{"LOWER(description)", strings.ToLower(v)})
 			}
 			keywordCond = keywordCond.Or(likes)
 		}
