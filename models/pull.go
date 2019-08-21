@@ -598,7 +598,7 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 	if err != nil {
 		for i := range patchConflicts {
 			if strings.Contains(stderr, patchConflicts[i]) {
-				log.Trace("PullRequest[%d].testPatch (apply): has conflict", pr.ID)
+				log.Trace("PullRequest[%d].testPatch (apply): has conflict: %s", pr.ID, stderr)
 				const prefix = "error: patch failed:"
 				pr.Status = PullRequestStatusConflict
 				pr.ConflictedFiles = make([]string, 0, 5)
@@ -661,13 +661,16 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	}
 
 	pr.Index = pull.Index
-	if err = repo.savePatch(sess, pr.Index, patch); err != nil {
-		return fmt.Errorf("SavePatch: %v", err)
-	}
-
 	pr.BaseRepo = repo
-	if err = pr.testPatch(sess); err != nil {
-		return fmt.Errorf("testPatch: %v", err)
+	pr.Status = PullRequestStatusChecking
+	if len(patch) > 0 {
+		if err = repo.savePatch(sess, pr.Index, patch); err != nil {
+			return fmt.Errorf("SavePatch: %v", err)
+		}
+
+		if err = pr.testPatch(sess); err != nil {
+			return fmt.Errorf("testPatch: %v", err)
+		}
 	}
 	// No conflict appears after test means mergeable.
 	if pr.Status == PullRequestStatusChecking {
