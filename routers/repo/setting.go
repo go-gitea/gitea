@@ -169,6 +169,10 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
+		if form.MirrorUsername != "" || form.MirrorPassword != "" {
+			u.User = url.UserPassword(form.MirrorUsername, form.MirrorPassword)
+		}
+
 		// Now use xurls
 		address := validFormAddress.FindString(form.MirrorAddress)
 		if address != form.MirrorAddress && form.MirrorAddress != "" {
