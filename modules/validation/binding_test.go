@@ -9,9 +9,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-macaron/binding"
+	"gitea.com/macaron/binding"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 )
 
 const (

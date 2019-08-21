@@ -14,7 +14,7 @@ import (
 
 	gzipp "github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
-	macaron "gopkg.in/macaron.v1"
+	macaron "gitea.com/macaron/macaron"
 )
 
 func setup(sampleResponse []byte) (*macaron.Macaron, *[]byte) {

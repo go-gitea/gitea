@@ -20,7 +20,7 @@ import (
 
 	"github.com/Unknwon/com"
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 )
 
 // PullRequest contains informations to make a pull request

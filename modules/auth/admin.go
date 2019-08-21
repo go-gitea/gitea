@@ -5,9 +5,9 @@
 package auth
 
 import (
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 
-	"github.com/go-macaron/binding"
+	"gitea.com/macaron/binding"
 )
 
 // AdminCreateUserForm form for admin to create user

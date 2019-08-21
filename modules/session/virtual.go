@@ -10,13 +10,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/go-macaron/session"
-	couchbase "github.com/go-macaron/session/couchbase"
-	memcache "github.com/go-macaron/session/memcache"
-	mysql "github.com/go-macaron/session/mysql"
-	nodb "github.com/go-macaron/session/nodb"
-	postgres "github.com/go-macaron/session/postgres"
-	redis "github.com/go-macaron/session/redis"
+	"gitea.com/macaron/session"
+	couchbase "gitea.com/macaron/session/couchbase"
+	memcache "gitea.com/macaron/session/memcache"
+	mysql "gitea.com/macaron/session/mysql"
+	nodb "gitea.com/macaron/session/nodb"
+	postgres "gitea.com/macaron/session/postgres"
+	redis "gitea.com/macaron/session/redis"
 )
 
 // VirtualSessionProvider represents a shadowed session provider implementation.

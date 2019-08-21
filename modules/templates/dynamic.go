@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/Unknwon/com"
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 )
 
 var (

@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"

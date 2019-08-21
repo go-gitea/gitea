@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 )
 
 //go:generate go run -mod=vendor main.go

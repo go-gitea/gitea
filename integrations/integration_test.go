@@ -30,7 +30,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 	"gopkg.in/testfixtures.v2"
 )
 

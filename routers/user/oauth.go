@@ -19,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/go-macaron/binding"
+	"gitea.com/macaron/binding"
 )
 
 const (

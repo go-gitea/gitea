@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/go-macaron/cors"
+	"gitea.com/macaron/cors"
 )
 
 var (

@@ -16,7 +16,7 @@ import (
 	"sync"
 
 	"github.com/klauspost/compress/gzip"
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 )
 
 const (

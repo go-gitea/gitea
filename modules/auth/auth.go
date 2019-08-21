@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/Unknwon/com"
-	"github.com/go-macaron/binding"
-	"github.com/go-macaron/session"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/session"
 	gouuid "github.com/satori/go.uuid"
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"

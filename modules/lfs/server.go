@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/dgrijalva/jwt-go"
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 )
 
 const (
