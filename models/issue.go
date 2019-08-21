@@ -1823,18 +1823,16 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *Us
 
 // DependencyInfo represents high level information about an issue which is a dependency of another issue.
 type DependencyInfo struct {
-	ID       int64  `xorm:"id"`
-	RepoID   int64  `xorm:"repo_id"`
-	Index    int64  `xorm:"index"`
-	IsClosed bool   `xorm:"is_closed"`
-	Title    string `xorm:"name"`
-	RepoLink string `xorm:"-"`
+	Issue      `xorm:"extends"`
+	Repository `xorm:"extends"`
+	RepoLink   string `xorm:"-"`
 }
 
 // Get Blocked By Dependencies, aka all issues this issue is blocked by.
 func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
-	err = e.Table("issue_dependency").
-		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
+	err = e.Table("issue").
+		Join("INNER", "repository", "repository.id = issue.repo_id").
+		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
 		Where("issue_id = ?", issue.ID).
 		Find(&issueDeps)
 
@@ -1843,11 +1841,7 @@ func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyI
 	}
 
 	for i := 0; i < len(issueDeps); i++ {
-		repo, err := GetRepositoryByID(issueDeps[i].RepoID)
-		if err != nil {
-			return nil, err
-		}
-		issueDeps[i].RepoLink = repo.Link()
+		issueDeps[i].RepoLink = issueDeps[i].Repository.Link()
 	}
 
 	return issueDeps, nil
@@ -1855,8 +1849,9 @@ func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyI
 
 // Get Blocking Dependencies, aka all issues this issue blocks.
 func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
-	err = e.Table("issue_dependency").
-		Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
+	err = e.Table("issue").
+		Join("INNER", "repository", "repository.id = issue.repo_id").
+		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
 		Where("dependency_id = ?", issue.ID).
 		Find(&issueDeps)
 
@@ -1865,11 +1860,7 @@ func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*DependencyIn
 	}
 
 	for i := 0; i < len(issueDeps); i++ {
-		repo, err := GetRepositoryByID(issueDeps[i].RepoID)
-		if err != nil {
-			return nil, err
-		}
-		issueDeps[i].RepoLink = repo.Link()
+		issueDeps[i].RepoLink = issueDeps[i].Repository.Link()
 	}
 
 	return issueDeps, nil
