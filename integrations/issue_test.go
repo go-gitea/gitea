@@ -5,10 +5,13 @@
 package integrations
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -183,4 +186,35 @@ func TestIssueCommentClose(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	val := htmlDoc.doc.Find(".comment-list .comments .comment .render-content p").First().Text()
 	assert.Equal(t, "Description", val)
+}
+
+func TestNewIssueConcurrent(t *testing.T) {
+
+	prepareTestEnv(t)
+	session := loginUser(t, "user2")
+
+	f := func(ctx context.Context, cancel context.CancelFunc, wg *sync.WaitGroup) {
+		defer wg.Done()
+
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		testNewIssue(t, session, "user2", "repo1", fmt.Sprintf("Title"), "Description")
+		if t.Failed() {
+			cancel()
+			return
+		}
+	}
+
+	wg := &sync.WaitGroup{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		go f(ctx, cancel, wg)
+	}
+	wg.Wait()
 }
