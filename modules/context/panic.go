@@ -20,7 +20,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
-	macaron "gitea.com/macaron/macaron"
+
+	"gitea.com/macaron/macaron"
 )
 
 // Recovery returns a middleware that recovers from any panics and writes a 500 and a log if so.

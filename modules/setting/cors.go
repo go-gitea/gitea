@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -28,7 +29,7 @@ func newCORSService() {
 
 	CORSConfig = cors.Options{
 		Scheme:           sec.Key("SCHEME").String(),
-		AllowDomain:      sec.Key("ALLOW_DOMAIN").String(),
+		AllowDomain:      strings.Split(sec.Key("ALLOW_DOMAIN").String(), ","),
 		AllowSubdomain:   sec.Key("ALLOW_SUBDOMAIN").MustBool(),
 		Methods:          sec.Key("METHODS").Strings(","),
 		MaxAgeSeconds:    int(maxAge.Seconds()),

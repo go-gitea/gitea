@@ -6,7 +6,7 @@ package auth
 
 import (
 	"gitea.com/macaron/binding"
-	macaron "gitea.com/macaron/macaron"
+	"gitea.com/macaron/macaron"
 )
 
 // NewBranchForm form for creating a new branch

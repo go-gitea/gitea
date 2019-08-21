@@ -10,8 +10,9 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"gitea.com/macaron/csrf"
-	macaron "gitea.com/macaron/macaron"
+	"gitea.com/macaron/macaron"
 )
 
 // ToggleOptions contains required or check options

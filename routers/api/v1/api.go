@@ -76,7 +76,7 @@ import (
 
 	"gitea.com/macaron/binding"
 	"gitea.com/macaron/cors"
-	macaron "gitea.com/macaron/macaron"
+	"gitea.com/macaron/macaron"
 )
 
 func sudo() macaron.Handler {

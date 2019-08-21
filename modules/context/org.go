@@ -9,7 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
-	macaron "gitea.com/macaron/macaron"
+
+	"gitea.com/macaron/macaron"
 )
 
 // Organization contains organization context

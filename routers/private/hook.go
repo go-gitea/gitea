@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/util"
 
-	macaron "gitea.com/macaron/macaron"
+	"gitea.com/macaron/macaron"
 )
 
 // HookPreReceive checks whether a individual commit is acceptable

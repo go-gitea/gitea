@@ -20,12 +20,13 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
 	"gitea.com/macaron/cache"
 	"gitea.com/macaron/csrf"
-	"gitea.com/macaron/macaron"
-	"github.com/Unknwon/com"
 	"gitea.com/macaron/i18n"
+	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
+	"github.com/Unknwon/com"
 )
 
 // Context represents context of a request.

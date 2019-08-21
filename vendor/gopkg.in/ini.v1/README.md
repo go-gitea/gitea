@@ -28,12 +28,6 @@ To use a tagged revision:
 $ go get gopkg.in/ini.v1
 ```
 
-To use with latest changes:
-
-```sh
-$ go get github.com/go-ini/ini
-```
-
 Please add `-u` flag to update in the future.
 
 ## Getting Help

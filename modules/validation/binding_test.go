@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"gitea.com/macaron/binding"
-	"github.com/stretchr/testify/assert"
 	"gitea.com/macaron/macaron"
+	"github.com/stretchr/testify/assert"
 )
 
 const (

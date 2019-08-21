@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"gitea.com/macaron/binding"
-	macaron "gitea.com/macaron/macaron"
+	"gitea.com/macaron/macaron"
 )
 
 // InstallForm form for installation page

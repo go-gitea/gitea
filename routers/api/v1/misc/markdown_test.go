@@ -14,8 +14,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/macaron/inject"
+	"gitea.com/macaron/macaron"
 	"github.com/stretchr/testify/assert"
-	macaron "gitea.com/macaron/macaron"
 )
 
 const AppURL = "http://localhost:3000/"

@@ -43,7 +43,7 @@ import (
 	"gitea.com/macaron/captcha"
 	"gitea.com/macaron/csrf"
 	"gitea.com/macaron/i18n"
-	macaron "gitea.com/macaron/macaron"
+	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
 	"gitea.com/macaron/toolbox"
 	"github.com/prometheus/client_golang/prometheus"

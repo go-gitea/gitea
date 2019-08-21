@@ -5,9 +5,8 @@
 package auth
 
 import (
-	"gitea.com/macaron/macaron"
-
 	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
 )
 
 // AdminCreateUserForm form for admin to create user

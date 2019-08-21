@@ -18,8 +18,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/dgrijalva/jwt-go"
 	"gitea.com/macaron/binding"
+	"github.com/dgrijalva/jwt-go"
 )
 
 const (

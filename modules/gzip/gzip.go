@@ -15,8 +15,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/klauspost/compress/gzip"
 	"gitea.com/macaron/macaron"
+	"github.com/klauspost/compress/gzip"
 )
 
 const (

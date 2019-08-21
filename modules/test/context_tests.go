@@ -14,9 +14,9 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 
+	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
 	"github.com/stretchr/testify/assert"
-	"gitea.com/macaron/macaron"
 )
 
 // MockContext mock context for unit tests
