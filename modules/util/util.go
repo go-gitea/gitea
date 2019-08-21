@@ -29,16 +29,18 @@ var matchComplexityOnce sync.Once
 
 // CheckPasswordComplexity return True if password is Complexity
 func CheckPasswordComplexity(pwd string) bool {
-	matchComplexityOnce.Do(func() {
-		for key, val := range setting.PasswordComplexity {
-			matchComplexity := regexp.MustCompile(val)
-			matchComplexities[key] = *matchComplexity
+	if len(setting.PasswordComplexity) > 0 {
+		matchComplexityOnce.Do(func() {
+			for key, val := range setting.PasswordComplexity {
+				matchComplexity := regexp.MustCompile(val)
+				matchComplexities[key] = *matchComplexity
 
-		}
-	})
-	for _, val := range matchComplexities {
-		if !val.MatchString(pwd) {
-			return false
+			}
+		})
+		for _, val := range matchComplexities {
+			if !val.MatchString(pwd) {
+				return false
+			}
 		}
 	}
 	return true

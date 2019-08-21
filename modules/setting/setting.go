@@ -786,7 +786,6 @@ func NewContext() {
 	}
 	PasswordComplexity = make(map[string]string)
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
-	//fmt.Println(dict,cfg)
 	for _, y := range cfgdata {
 		for a := range dictPC {
 			if strings.ToLower(y) == a {
@@ -794,9 +793,6 @@ func NewContext() {
 				break
 			}
 		}
-	}
-	if len(PasswordComplexity) == 0 {
-		PasswordComplexity = dictPC
 	}
 
 	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
