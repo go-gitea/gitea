@@ -35,10 +35,12 @@ const tmpl = `
 
 func TestComposeIssueCommentMessage(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
-	var MailService setting.Mailer
+	var mailService = setting.Mailer{
+		From: "test@gitea.com",
+	}
 
-	MailService.From = "test@gitea.com"
-	setting.MailService = &MailService
+	setting.MailService = &mailService
+	setting.Domain = "localhost"
 
 	doer := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1, Owner: doer}).(*models.Repository)
@@ -58,15 +60,16 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	assert.Equal(t, subject[0], "Re: "+mailSubject(issue), "Comment reply subject should contain Re:")
 	assert.Equal(t, inreplyTo[0], "<user2/repo1/issues/1@localhost>", "In-Reply-To header doesn't match")
 	assert.Equal(t, references[0], "<user2/repo1/issues/1@localhost>", "References header doesn't match")
-
 }
 
 func TestComposeIssueMessage(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
-	var MailService setting.Mailer
+	var mailService = setting.Mailer{
+		From: "test@gitea.com",
+	}
 
-	MailService.From = "test@gitea.com"
-	setting.MailService = &MailService
+	setting.MailService = &mailService
+	setting.Domain = "localhost"
 
 	doer := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1, Owner: doer}).(*models.Repository)
