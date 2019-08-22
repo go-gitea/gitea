@@ -267,7 +267,7 @@ func Password(m *models.Mirror) string {
 	return password
 }
 
-// MirrorUpdate checks and updates mirror repositories.
+// Update checks and updates mirror repositories.
 func Update() {
 	log.Trace("Doing: Update")
 
