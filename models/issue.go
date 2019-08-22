@@ -1109,9 +1109,19 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	// Milestone and assignee validation should happen before insert actual object.
-	if _, err = e.Insert(opts.Issue); err != nil {
+	if _, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
+		Where("repo_id=?", opts.Issue.RepoID).
+		Insert(opts.Issue); err != nil {
 		return err
 	}
+
+	inserted, err := getIssueByID(e, opts.Issue.ID)
+	if err != nil {
+		return err
+	}
+
+	// Patch Index with the value calculated by the database
+	opts.Issue.Index = inserted.Index
 
 	if opts.Issue.MilestoneID > 0 {
 		if err = changeMilestoneAssign(e, doer, opts.Issue, -1); err != nil {
