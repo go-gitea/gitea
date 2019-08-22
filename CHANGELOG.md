@@ -11,6 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Lfs/lock: round locked_at timestamp to second (#7872) (#7875)
   * Fix non existent milestone with 500 error (#7867) (#7873)
 * SECURITY
+  * Fix No PGP signature on 1.9.1 tag (#7874)
   * Release built with go 1.12.9 to fix security fixes in golang std lib, ref: https://groups.google.com/forum/#!msg/golang-announce/oeMaeUnkvVE/a49yvTLqAAAJ
 * ENHANCEMENT
   * Fix pull creation with empty changes (#7920) (#7926)
