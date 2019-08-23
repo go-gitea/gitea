@@ -97,22 +97,27 @@ func Search(ctx *context.APIContext) {
 	//   description: sort order, either "asc" (ascending) or "desc" (descending).
 	//                Default is "asc", ignored if "sort" is not specified.
 	//   type: string
+	// - name: includeDesc
+	//   in: query
+	//   description: include search of keyword within repository description
+	//   type: boolean
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/SearchResults"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	opts := &models.SearchRepoOptions{
-		Keyword:     strings.Trim(ctx.Query("q"), " "),
-		OwnerID:     ctx.QueryInt64("uid"),
-		Page:        ctx.QueryInt("page"),
-		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		TopicOnly:   ctx.QueryBool("topic"),
-		Collaborate: util.OptionalBoolNone,
-		Private:     ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
-		UserIsAdmin: ctx.IsUserSiteAdmin(),
-		UserID:      ctx.Data["SignedUserID"].(int64),
-		StarredByID: ctx.QueryInt64("starredBy"),
+		Keyword:            strings.Trim(ctx.Query("q"), " "),
+		OwnerID:            ctx.QueryInt64("uid"),
+		Page:               ctx.QueryInt("page"),
+		PageSize:           convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		TopicOnly:          ctx.QueryBool("topic"),
+		Collaborate:        util.OptionalBoolNone,
+		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
+		UserIsAdmin:        ctx.IsUserSiteAdmin(),
+		UserID:             ctx.Data["SignedUserID"].(int64),
+		StarredByID:        ctx.QueryInt64("starredBy"),
+		IncludeDescription: ctx.QueryBool("includeDesc"),
 	}
 
 	if ctx.QueryBool("exclusive") {
@@ -157,7 +162,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	var err error
-	repos, count, err := models.SearchRepositoryByName(opts)
+	repos, count, err := models.SearchRepository(opts)
 	if err != nil {
 		ctx.JSON(500, api.SearchError{
 			OK:    false,
