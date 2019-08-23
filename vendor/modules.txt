@@ -148,7 +148,7 @@ github.com/go-redis/redis/internal/proto
 github.com/go-redis/redis/internal/util
 # github.com/go-sql-driver/mysql v1.4.1
 github.com/go-sql-driver/mysql
-# github.com/go-xorm/xorm v0.7.4
+# github.com/go-xorm/xorm v0.7.7-0.20190822154023-17592d96b35b
 github.com/go-xorm/xorm
 # github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
 github.com/gogits/chardet
@@ -480,7 +480,7 @@ gopkg.in/yaml.v2
 mvdan.cc/xurls/v2
 # strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a
 strk.kbt.io/projects/go/libravatar
-# xorm.io/builder v0.3.5
+# xorm.io/builder v0.3.6-0.20190711024831-7cc28f8a886b
 xorm.io/builder
-# xorm.io/core v0.6.3
+# xorm.io/core v0.7.0
 xorm.io/core

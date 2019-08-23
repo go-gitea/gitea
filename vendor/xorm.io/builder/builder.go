@@ -60,7 +60,7 @@ type Builder struct {
 	limitation *limit
 	insertCols []string
 	insertVals []interface{}
-	updates    []Eq
+	updates    []UpdateCond
 	orderBy    string
 	groupBy    string
 	having     string
@@ -302,11 +302,11 @@ func (b *Builder) Insert(eq ...interface{}) *Builder {
 }
 
 // Update sets update SQL
-func (b *Builder) Update(updates ...Eq) *Builder {
-	b.updates = make([]Eq, 0, len(updates))
+func (b *Builder) Update(updates ...Cond) *Builder {
+	b.updates = make([]UpdateCond, 0, len(updates))
 	for _, update := range updates {
-		if update.IsValid() {
-			b.updates = append(b.updates, update)
+		if u, ok := update.(UpdateCond); ok && u.IsValid() {
+			b.updates = append(b.updates, u)
 		}
 	}
 	b.optype = updateType
