@@ -1272,7 +1272,8 @@ func getUserByName(e Engine, name string) (*User, error) {
 	return u, nil
 }
 
-// GetUserEmailsByNames returns a list of e-mails corresponds to names.
+// GetUserEmailsByNames returns a list of e-mails corresponds to names of users
+// that have their email notifications set to enabled or onmention.
 func GetUserEmailsByNames(names []string) []string {
 	return getUserEmailsByNames(x, names)
 }
