@@ -351,8 +351,8 @@ function uploadFile(file, callback) {
             callback(xhr.responseText);
         }
     };
-    let contextPath = window.location.pathname.substr(suburl.length).replace(/^\/+$/g, '');
-    let contextPathArray = contextPath.split('/');
+    const contextPath = window.location.pathname.substr(suburl.length).replace(/^\/+$/g, '');
+    const contextPathArray = contextPath.split('/');
     xhr.open("post", suburl + "/" + contextPathArray[0] + "/" + contextPathArray[1] + "/attachments", true);
     xhr.setRequestHeader("X-Csrf-Token", csrf);
     const formData = new FormData();
