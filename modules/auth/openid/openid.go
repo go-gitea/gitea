@@ -5,8 +5,9 @@
 package openid
 
 import (
-	"github.com/yohcop/openid-go"
 	"time"
+
+	"github.com/yohcop/openid-go"
 )
 
 // For the demo, we use in-memory infinite storage nonce and discovery

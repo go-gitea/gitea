@@ -11,8 +11,8 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-macaron/binding"
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
 )
 
 // InstallForm form for installation page
