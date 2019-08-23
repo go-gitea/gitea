@@ -478,6 +478,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/following", user.Following)
 		})
 
+		//Keeping this path to have backward compat
 		m.Get("/attachments/:uuid", func(ctx *context.Context) {
 			attach, err := models.GetAttachmentByUUID(ctx.Params(":uuid"))
 			if err != nil {
@@ -489,6 +490,38 @@ func RegisterRoutes(m *macaron.Macaron) {
 				return
 			}
 
+			//Attachement without issue or release attached should not be returned
+			if attach.IsNotAttached() {
+				ctx.Error(404)
+				return
+			}
+			//Check issue access
+			if attach.IssueID != 0 {
+				iss, err = GetIssueByID(attach.IssueID)
+				if err != nil {{
+					ctx.ServerError("GetAttachmentByUUID.GetIssueByID", err)
+					return
+				}
+				if !iss.Repo.CanRead(models.UnitTypeIssues){
+					ctx.Error(403)
+					return
+				}
+			}
+
+			//Check release access
+			if attach.ReleaseID != 0 {
+				rel, err = GetReleaseByID(attach.ReleaseID)
+				if err != nil {{
+					ctx.ServerError("GetAttachmentByUUID.GetReleaseByID", err)
+					return
+				}
+				if !rel.Repo.CanRead(models.UnitTypeIssues){
+					ctx.Error(403)
+					return
+				}
+			}
+
+			//If we have matched a access release or issue
 			fr, err := os.Open(attach.LocalPath())
 			if err != nil {
 				ctx.ServerError("Open", err)
@@ -675,6 +708,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Combo("/new").Get(context.RepoRef(), repo.NewIssue).
 				Post(bindIgnErr(auth.CreateIssueForm{}), repo.NewIssuePost)
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
+
+		//Should be able to create issue (a user that can create release can create issue) 
+		m.Post("/attachments", repo.UploadAttachment, context.RepoMustNotBeArchived(), reqRepoIssueReader)
+
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/issues", func() {
@@ -770,7 +807,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", bindIgnErr(auth.NewReleaseForm{}), repo.NewReleasePost)
 			m.Post("/delete", repo.DeleteRelease)
-			m.Post("/attachments", repo.UploadAttachment)
 		}, reqSignIn, repo.MustBeNotEmpty, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, context.RepoRef())
 		m.Group("/releases", func() {
 			m.Get("/edit/*", repo.EditRelease)

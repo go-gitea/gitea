@@ -147,8 +147,8 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 	}
 	return nil
 }
-/* TODO set this at upload
-func addReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
+
+func linkReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
 	var attachments = make([]*Attachment, 0)
 	for _, uuid := range attachmentUUIDs {
@@ -158,6 +158,10 @@ func addReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error
 				continue
 			}
 			return fmt.Errorf("getAttachmentByUUID [%s]: %v", uuid, err)
+		}
+		if !attach.IsNotAttached(){
+			log.Error("getAttachmentByUUID [%s]: skipping already linked attachement", uuid)
+			continue
 		}
 		attachments = append(attachments, attach)
 	}
@@ -172,7 +176,6 @@ func addReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error
 
 	return
 }
-*/
 
 // CreateRelease creates a new release of repository.
 func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []string) error {
@@ -193,7 +196,7 @@ func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []stri
 		return err
 	}
 
-	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
+	err = linkReleaseAttachments(rel.ID, attachmentUUIDs)
 	if err != nil {
 		return err
 	}

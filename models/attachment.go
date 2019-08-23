@@ -42,6 +42,11 @@ func (a *Attachment) IncreaseDownloadCount() error {
 	return nil
 }
 
+// IsNotAttached define is the attachement is linked to an issue or release
+func (a *Attachment) IsNotAttached() bool {
+	return a.ReleaseID == 0 && a.IssueID == 0
+}
+
 // APIFormat converts models.Attachment to api.Attachment
 func (a *Attachment) APIFormat() *api.Attachment {
 	return &api.Attachment{
