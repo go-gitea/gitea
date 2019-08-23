@@ -604,7 +604,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
 			return err
 		}
-
+/* TODO set it at upload
 		// Check attachments
 		attachments := make([]*Attachment, 0, len(opts.Attachments))
 		for _, uuid := range opts.Attachments {
@@ -626,7 +626,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 				return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
 			}
 		}
-
+*/
 	case CommentTypeReopen:
 		act.OpType = ActionReopenIssue
 		if opts.Issue.IsPull {

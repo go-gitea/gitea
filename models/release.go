@@ -147,7 +147,7 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 	}
 	return nil
 }
-
+/* TODO set this at upload
 func addReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
 	var attachments = make([]*Attachment, 0)
@@ -172,6 +172,7 @@ func addReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error
 
 	return
 }
+*/
 
 // CreateRelease creates a new release of repository.
 func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []string) error {
