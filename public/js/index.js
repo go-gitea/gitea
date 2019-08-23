@@ -343,7 +343,7 @@ function retrieveImageFromClipboardAsBlob(pasteEvent, callback){
     }
 }
 
-function uploadFile(contextPath, file, callback) {
+function uploadFile(file, callback) {
     const xhr = new XMLHttpRequest();
 
     xhr.onload = function() {
@@ -351,8 +351,9 @@ function uploadFile(contextPath, file, callback) {
             callback(xhr.responseText);
         }
     };
-    //TODO contextPath
-    xhr.open("post", suburl + "/" + contextPath + "/attachments", true);
+    let contextPath = window.location.pathname.substr(suburl.length).replace(/^\/+$/g, '');
+    let contextPathArray = contextPath.split('/');
+    xhr.open("post", suburl + "/" + contextPathArray[0] + "/" + contextPathArray[1] + "/attachments", true);
     xhr.setRequestHeader("X-Csrf-Token", csrf);
     const formData = new FormData();
     formData.append('file', file, file.name);
