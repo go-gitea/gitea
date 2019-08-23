@@ -910,7 +910,7 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 		if err := GetRawDiffForFile(gitRepo.Path, pr.MergeBase, headCommitID, RawDiffNormal, treePath, patchBuf); err != nil {
 			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", err, gitRepo.Path, pr.MergeBase, headCommitID, treePath)
 		}
-		patch = CutDiffAroundLine(strings.NewReader(patchBuf.String()), int64((&Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+		patch = CutDiffAroundLine(patchBuf, int64((&Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 	}
 	return CreateComment(&CreateCommentOptions{
 		Type:      CommentTypeCode,
