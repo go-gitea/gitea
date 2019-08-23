@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Unknwon/paginater"
+	"github.com/unknwon/paginater"
 )
 
 // Pagination provides a pagination via Paginater and additional configurations for the link params used in rendering

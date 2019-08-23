@@ -17,9 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/com"
 	"gopkg.in/testfixtures.v2"
 	"xorm.io/core"
 )
