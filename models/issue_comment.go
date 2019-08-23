@@ -604,7 +604,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
 			return err
 		}
-		
+
 		// Check attachments
 		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
 		if err != nil {
@@ -612,7 +612,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 		}
 
 		for i := range attachments {
-			if !attachments[i].IsNotAttached(){
+			if !attachments[i].IsNotAttached() {
 				log.Error("sendCreateCommentAction [%s]: skipping already linked attachement", attachments[i].UUID)
 				continue
 			}

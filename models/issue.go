@@ -1171,7 +1171,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 
 		for i := 0; i < len(attachments); i++ {
-			if !attachments[i].IsNotAttached(){
+			if !attachments[i].IsNotAttached() {
 				log.Error("newIssue [%s]: skipping already linked attachement", attachments[i].UUID)
 				continue
 			}

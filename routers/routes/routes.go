@@ -498,11 +498,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 			//Check issue access
 			if attach.IssueID != 0 {
 				iss, err = GetIssueByID(attach.IssueID)
-				if err != nil {{
+				if err != nil {
 					ctx.ServerError("GetAttachmentByUUID.GetIssueByID", err)
 					return
 				}
-				if !iss.Repo.CanRead(models.UnitTypeIssues){
+				if !iss.Repo.CanRead(models.UnitTypeIssues) {
 					ctx.Error(403)
 					return
 				}
@@ -511,11 +511,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 			//Check release access
 			if attach.ReleaseID != 0 {
 				rel, err = GetReleaseByID(attach.ReleaseID)
-				if err != nil {{
+				if err != nil {
 					ctx.ServerError("GetAttachmentByUUID.GetReleaseByID", err)
 					return
 				}
-				if !rel.Repo.CanRead(models.UnitTypeReleases){
+				if !rel.Repo.CanRead(models.UnitTypeReleases) {
 					ctx.Error(403)
 					return
 				}
@@ -709,7 +709,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				Post(bindIgnErr(auth.CreateIssueForm{}), repo.NewIssuePost)
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 
-		//Should be able to create issue (a user that can create release can create issue) 
+		//Should be able to create issue (a user that can create release can create issue)
 		m.Post("/attachments", repo.UploadAttachment, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.

@@ -151,12 +151,12 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 func linkReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
 	attachments, err := GetAttachmentsByUUIDs(attachmentUUIDs)
-		if err != nil {
-			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
-		}
+	if err != nil {
+		return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
+	}
 
 	for i := range attachments {
-		if !attachments[i].IsNotAttached(){
+		if !attachments[i].IsNotAttached() {
 			log.Error("linkReleaseAttachments [%s]: skipping already linked attachement", attachments[i].UUID)
 			continue
 		}
