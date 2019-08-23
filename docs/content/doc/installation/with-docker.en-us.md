@@ -31,7 +31,7 @@ Create a directory like `gitea` and paste the following content into a file name
 Note that the volume should be owned by the user/group with the UID/GID specified in the config file.
 If you don't give the volume correct permissions, the container may not start.
 Also be aware that the tag `:latest` will install the current development version.
-For a stable release you can use `:1` or specify a certain release like `:1.5.1`.
+For a stable release you can use `:1` or specify a certain release like `:{{< version >}}`.
 
 ```yaml
 version: "2"
