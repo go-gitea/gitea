@@ -497,12 +497,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 			}
 			//Check issue access
 			if attach.IssueID != 0 {
-				iss, err = GetIssueByID(attach.IssueID)
+				iss, err := models.GetIssueByID(attach.IssueID)
 				if err != nil {
 					ctx.ServerError("GetAttachmentByUUID.GetIssueByID", err)
 					return
 				}
-				if !iss.Repo.CanRead(models.UnitTypeIssues) {
+				if !iss.Repo.CheckUnitUser(ctx.User.ID, ctx.User.IsAdmin, models.UnitTypeIssues) {
 					ctx.Error(403)
 					return
 				}
@@ -510,12 +510,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 			//Check release access
 			if attach.ReleaseID != 0 {
-				rel, err = GetReleaseByID(attach.ReleaseID)
+				rel, err := models.GetReleaseByID(attach.ReleaseID)
 				if err != nil {
 					ctx.ServerError("GetAttachmentByUUID.GetReleaseByID", err)
 					return
 				}
-				if !rel.Repo.CanRead(models.UnitTypeReleases) {
+				if !rel.Repo.CheckUnitUser(ctx.User.ID, ctx.User.IsAdmin, models.UnitTypeReleases) {
 					ctx.Error(403)
 					return
 				}
