@@ -152,7 +152,7 @@ func linkReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err erro
 	// Check attachments
 	attachments, err := GetAttachmentsByUUIDs(attachmentUUIDs)
 		if err != nil {
-			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
+			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
 		}
 
 	for i := range attachments {
