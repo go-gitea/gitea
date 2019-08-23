@@ -18,6 +18,7 @@ params:
   description: Git with a cup of tea
   author: The Gitea Authors
   website: https://docs.gitea.io
+  version: 1.9.2
 
 menu:
   page:

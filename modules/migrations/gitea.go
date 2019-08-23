@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -79,12 +80,22 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		return err
 	}
 
+	var remoteAddr = repo.CloneURL
+	if len(opts.AuthUsername) > 0 {
+		u, err := url.Parse(repo.CloneURL)
+		if err != nil {
+			return err
+		}
+		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
+		remoteAddr = u.String()
+	}
+
 	r, err := models.MigrateRepository(g.doer, owner, models.MigrateRepoOptions{
 		Name:                 g.repoName,
 		Description:          repo.Description,
 		OriginalURL:          repo.OriginalURL,
 		IsMirror:             repo.IsMirror,
-		RemoteAddr:           repo.CloneURL,
+		RemoteAddr:           remoteAddr,
 		IsPrivate:            repo.IsPrivate,
 		Wiki:                 opts.Wiki,
 		SyncReleasesWithTags: !opts.Releases, // if didn't get releases, then sync them from tags
