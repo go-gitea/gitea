@@ -1164,7 +1164,6 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		return err
 	}
 
-	/* TODO set this at upload
 	if len(opts.Attachments) > 0 {
 		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
 		if err != nil {
@@ -1172,13 +1171,16 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 
 		for i := 0; i < len(attachments); i++ {
+			if !attachments[i].IsNotAttached(){
+				log.Error("newIssue [%s]: skipping already linked attachement", attachments[i].UUID)
+				continue
+			}
 			attachments[i].IssueID = opts.Issue.ID
 			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
 				return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
 			}
 		}
 	}
-	*/
 
 	return opts.Issue.loadAttributes(e)
 }

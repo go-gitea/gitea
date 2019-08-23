@@ -604,21 +604,18 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
 			return err
 		}
-/* TODO set it at upload
+		
 		// Check attachments
-		attachments := make([]*Attachment, 0, len(opts.Attachments))
-		for _, uuid := range opts.Attachments {
-			attach, err := getAttachmentByUUID(e, uuid)
-			if err != nil {
-				if IsErrAttachmentNotExist(err) {
-					continue
-				}
-				return fmt.Errorf("getAttachmentByUUID [%s]: %v", uuid, err)
-			}
-			attachments = append(attachments, attach)
+		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
+		if err != nil {
+			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", opts.Attachments, err)
 		}
 
 		for i := range attachments {
+			if !attachments[i].IsNotAttached(){
+				log.Error("sendCreateCommentAction [%s]: skipping already linked attachement", attachments[i].UUID)
+				continue
+			}
 			attachments[i].IssueID = opts.Issue.ID
 			attachments[i].CommentID = comment.ID
 			// No assign value could be 0, so ignore AllCols().
@@ -626,7 +623,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 				return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
 			}
 		}
-*/
+
 	case CommentTypeReopen:
 		act.OpType = ActionReopenIssue
 		if opts.Issue.IsPull {

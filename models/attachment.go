@@ -153,6 +153,11 @@ func GetAttachmentByUUID(uuid string) (*Attachment, error) {
 	return getAttachmentByUUID(x, uuid)
 }
 
+// GetAttachmentsByUUIDs returns attachment by given UUID list.
+func GetAttachmentsByUUIDs(uuids []string) ([]*Attachment, error) {
+	return getAttachmentsByUUIDs(x, uuids)
+}
+
 // GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
 func GetAttachmentByReleaseIDFileName(releaseID int64, fileName string) (*Attachment, error) {
 	return getAttachmentByReleaseIDFileName(x, releaseID, fileName)

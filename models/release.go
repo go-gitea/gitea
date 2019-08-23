@@ -150,23 +150,16 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 
 func linkReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
-	var attachments = make([]*Attachment, 0)
-	for _, uuid := range attachmentUUIDs {
-		attach, err := getAttachmentByUUID(x, uuid)
+	attachments, err := GetAttachmentsByUUIDs(attachmentUUIDs)
 		if err != nil {
-			if IsErrAttachmentNotExist(err) {
-				continue
-			}
-			return fmt.Errorf("getAttachmentByUUID [%s]: %v", uuid, err)
+			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
 		}
-		if !attach.IsNotAttached(){
-			log.Error("getAttachmentByUUID [%s]: skipping already linked attachement", uuid)
-			continue
-		}
-		attachments = append(attachments, attach)
-	}
 
 	for i := range attachments {
+		if !attachments[i].IsNotAttached(){
+			log.Error("linkReleaseAttachments [%s]: skipping already linked attachement", attachments[i].UUID)
+			continue
+		}
 		attachments[i].ReleaseID = releaseID
 		// No assign value could be 0, so ignore AllCols().
 		if _, err = x.ID(attachments[i].ID).Update(attachments[i]); err != nil {
