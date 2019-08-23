@@ -515,7 +515,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					ctx.ServerError("GetAttachmentByUUID.GetReleaseByID", err)
 					return
 				}
-				if !rel.Repo.CanRead(models.UnitTypeIssues){
+				if !rel.Repo.CanRead(models.UnitTypeReleases){
 					ctx.Error(403)
 					return
 				}
