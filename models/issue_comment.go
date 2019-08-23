@@ -12,17 +12,16 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
-
-	api "code.gitea.io/gitea/modules/structs"
-
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
+
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
@@ -99,10 +98,12 @@ const (
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID               int64 `xorm:"pk autoincr"`
-	Type             CommentType
-	PosterID         int64  `xorm:"INDEX"`
-	Poster           *User  `xorm:"-"`
+	ID               int64       `xorm:"pk autoincr"`
+	Type             CommentType `xorm:"index"`
+	PosterID         int64       `xorm:"INDEX"`
+	Poster           *User       `xorm:"-"`
+	OriginalAuthor   string
+	OriginalAuthorID int64
 	IssueID          int64  `xorm:"INDEX"`
 	Issue            *Issue `xorm:"-"`
 	LabelID          int64
@@ -128,8 +129,8 @@ type Comment struct {
 	// Path represents the 4 lines of code cemented by this comment
 	Patch string `xorm:"TEXT"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
 	CommitSHA string `xorm:"VARCHAR(40)"`
@@ -141,7 +142,7 @@ type Comment struct {
 	ShowTag CommentTag `xorm:"-"`
 
 	Review      *Review `xorm:"-"`
-	ReviewID    int64
+	ReviewID    int64   `xorm:"index"`
 	Invalidated bool
 }
 
@@ -632,12 +633,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 			act.OpType = ActionReopenPullRequest
 		}
 
-		if opts.Issue.IsPull {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=num_closed_pulls-1 WHERE id=?", opts.Repo.ID)
-		} else {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_issues=num_closed_issues-1 WHERE id=?", opts.Repo.ID)
-		}
-		if err != nil {
+		if err = opts.Issue.updateClosedNum(e); err != nil {
 			return err
 		}
 
@@ -647,12 +643,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 			act.OpType = ActionClosePullRequest
 		}
 
-		if opts.Issue.IsPull {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=num_closed_pulls+1 WHERE id=?", opts.Repo.ID)
-		} else {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_issues=num_closed_issues+1 WHERE id=?", opts.Repo.ID)
-		}
-		if err != nil {
+		if err = opts.Issue.updateClosedNum(e); err != nil {
 			return err
 		}
 	}
@@ -719,7 +710,7 @@ func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue 
 	})
 }
 
-func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix util.TimeStamp) (*Comment, error) {
+func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
 
 	var content string
 	var commentType CommentType
@@ -919,7 +910,7 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 		if err := GetRawDiffForFile(gitRepo.Path, pr.MergeBase, headCommitID, RawDiffNormal, treePath, patchBuf); err != nil {
 			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", err, gitRepo.Path, pr.MergeBase, headCommitID, treePath)
 		}
-		patch = CutDiffAroundLine(strings.NewReader(patchBuf.String()), int64((&Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+		patch = CutDiffAroundLine(patchBuf, int64((&Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 	}
 	return CreateComment(&CreateCommentOptions{
 		Type:      CommentTypeCode,

@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 // RepositoryListDefaultPageSize is the default number of repositories
@@ -248,7 +248,11 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 		// separate keyword
 		var subQueryCond = builder.NewCond()
 		for _, v := range strings.Split(opts.Keyword, ",") {
-			subQueryCond = subQueryCond.Or(builder.Like{"topic.name", strings.ToLower(v)})
+			if opts.TopicOnly {
+				subQueryCond = subQueryCond.Or(builder.Eq{"topic.name": strings.ToLower(v)})
+			} else {
+				subQueryCond = subQueryCond.Or(builder.Like{"topic.name", strings.ToLower(v)})
+			}
 		}
 		subQuery := builder.Select("repo_topic.repo_id").From("repo_topic").
 			Join("INNER", "topic", "topic.id = repo_topic.topic_id").

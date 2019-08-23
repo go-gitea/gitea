@@ -35,7 +35,7 @@ Si vous souhaitez compiler la dernière version stable, utilisez les étiquettes
 
 ```
 git branch -a
-git checkout v1.0
+git checkout v{{< version >}}
 ```
 
 Si vous souhaitez valider une demande d'ajout (_Pull request_), vous devez activer cette branche en premier : 
@@ -44,11 +44,11 @@ Si vous souhaitez valider une demande d'ajout (_Pull request_), vous devez activ
 git fetch origin pull/xyz/head:pr-xyz  # xyz is PR value
 ```
 
-Enfin, vous pouvez directement utiliser les versions étiquettées (ex : `v1.0.0`). Pour utiliser les étiquettes, vous devez lister les étiquettes disponibles et choisir une étiquette spécifique avec les commandes suivantes :
+Enfin, vous pouvez directement utiliser les versions étiquettées (ex : `v{{< version >}}`). Pour utiliser les étiquettes, vous devez lister les étiquettes disponibles et choisir une étiquette spécifique avec les commandes suivantes :
 
 ```
 git tag -l
-git checkout v1.0.0
+git checkout v{{< version >}}
 git checkout pr-xyz
 ```
 

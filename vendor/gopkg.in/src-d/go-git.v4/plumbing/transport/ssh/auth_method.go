@@ -61,7 +61,7 @@ func (a *KeyboardInteractive) ClientConfig() (*ssh.ClientConfig, error) {
 	return a.SetHostKeyCallback(&ssh.ClientConfig{
 		User: a.User,
 		Auth: []ssh.AuthMethod{
-			ssh.KeyboardInteractiveChallenge(a.Challenge),
+			a.Challenge,
 		},
 	})
 }

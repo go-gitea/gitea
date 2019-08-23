@@ -20,16 +20,14 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/util"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
-	"golang.org/x/net/html/charset"
-	"golang.org/x/text/transform"
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
 )
 
@@ -76,12 +74,13 @@ func NewFuncMap() []template.FuncMap {
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
 		"Str2html":      Str2html,
-		"TimeSince":     base.TimeSince,
-		"TimeSinceUnix": base.TimeSinceUnix,
-		"RawTimeSince":  base.RawTimeSince,
+		"TimeSince":     timeutil.TimeSince,
+		"TimeSinceUnix": timeutil.TimeSinceUnix,
+		"RawTimeSince":  timeutil.RawTimeSince,
 		"FileSize":      base.FileSize,
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
+		"MigrationIcon": MigrationIcon,
 		"Add": func(a, b int) int {
 			return a + b
 		},
@@ -92,10 +91,8 @@ func NewFuncMap() []template.FuncMap {
 		"DateFmtShort": func(t time.Time) string {
 			return t.Format("Jan 02, 2006")
 		},
-		"SizeFmt": func(s int64) string {
-			return base.FileSize(s)
-		},
-		"List": List,
+		"SizeFmt": base.FileSize,
+		"List":    List,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
 				return ""
@@ -273,60 +270,6 @@ func List(l *list.List) chan interface{} {
 // Sha1 returns sha1 sum of string
 func Sha1(str string) string {
 	return base.EncodeSha1(str)
-}
-
-// ToUTF8WithErr converts content to UTF8 encoding
-func ToUTF8WithErr(content []byte) (string, error) {
-	charsetLabel, err := base.DetectEncoding(content)
-	if err != nil {
-		return "", err
-	} else if charsetLabel == "UTF-8" {
-		return string(base.RemoveBOMIfPresent(content)), nil
-	}
-
-	encoding, _ := charset.Lookup(charsetLabel)
-	if encoding == nil {
-		return string(content), fmt.Errorf("Unknown encoding: %s", charsetLabel)
-	}
-
-	// If there is an error, we concatenate the nicely decoded part and the
-	// original left over. This way we won't lose data.
-	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
-	if err != nil {
-		result = append(result, content[n:]...)
-	}
-
-	result = base.RemoveBOMIfPresent(result)
-
-	return string(result), err
-}
-
-// ToUTF8WithFallback detects the encoding of content and coverts to UTF-8 if possible
-func ToUTF8WithFallback(content []byte) []byte {
-	charsetLabel, err := base.DetectEncoding(content)
-	if err != nil || charsetLabel == "UTF-8" {
-		return base.RemoveBOMIfPresent(content)
-	}
-
-	encoding, _ := charset.Lookup(charsetLabel)
-	if encoding == nil {
-		return content
-	}
-
-	// If there is an error, we concatenate the nicely decoded part and the
-	// original left over. This way we won't lose data.
-	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
-	if err != nil {
-		return append(result, content[n:]...)
-	}
-
-	return base.RemoveBOMIfPresent(result)
-}
-
-// ToUTF8 converts content to UTF8 encoding and ignore error
-func ToUTF8(content string) string {
-	res, _ := ToUTF8WithErr([]byte(content))
-	return res
 }
 
 // ReplaceLeft replaces all prefixes 'oldS' in 's' with 'newS'.
@@ -539,4 +482,14 @@ func TrN(lang string, cnt interface{}, key1, keyN string) string {
 		return key1
 	}
 	return keyN
+}
+
+// MigrationIcon returns a Font Awesome name matching the service an issue/comment was migrated from
+func MigrationIcon(hostname string) string {
+	switch hostname {
+	case "github.com":
+		return "fa-github"
+	default:
+		return "fa-git-alt"
+	}
 }

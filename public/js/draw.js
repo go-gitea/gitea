@@ -1,7 +1,7 @@
 /* globals gitGraph */
 
 $(document).ready(function () {
-	var graphList = [];
+	const graphList = [];
 
 	if (!document.getElementById('graph-canvas')) {
 		return;

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
 var (
@@ -392,6 +392,9 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		}
 		if colType == "FLOAT UNSIGNED" {
 			colType = "FLOAT"
+		}
+		if colType == "DOUBLE UNSIGNED" {
+			colType = "DOUBLE"
 		}
 		col.Length = len1
 		col.Length2 = len2

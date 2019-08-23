@@ -11,7 +11,7 @@
   - [Translation](#translation)
   - [Code review](#code-review)
   - [Styleguide](#styleguide)
-  - [Sign-off your work](#sign-off-your-work)
+  - [Developer Certificate of Origin (DCO)](#developer-certificate-of-origin-dco)
   - [Release Cycle](#release-cycle)
   - [Maintainers](#maintainers)
   - [Owners](#owners)
@@ -71,13 +71,13 @@ Here's how to run the test suite:
 
 - Install the correct version of the drone-cli package.  As of this
   writing, the correct drone-cli version is
-  [0.8.6](https://0-8-0.docs.drone.io/cli-installation/).
+  [1.1.0](https://docs.drone.io/cli/install/).
 - Ensure you have enough free disk space.  You will need at least
   15-20 Gb of free disk space to hold all of the containers drone
   creates (a default AWS or GCE disk size won't work -- see
   [#6243](https://github.com/go-gitea/gitea/issues/6243)).
 - Change into the base directory of your copy of the gitea repository,
-  and run `drone exec --local --build-event pull_request`.
+  and run `drone exec --event pull_request`.
 
 The drone version, command line, and disk requirements do change over
 time (see [#4053](https://github.com/go-gitea/gitea/issues/4053) and
@@ -157,22 +157,21 @@ import (
 )
 ```
 
-## Sign-off your work
+## Developer Certificate of Origin (DCO)
 
-The sign-off is a simple line at the end of the explanation for the
-patch. Your signature certifies that you wrote the patch or otherwise
-have the right to pass it on as an open-source patch. The rules are
-pretty simple: If you can certify [DCO](DCO), then you just add a line
-to every git commit message:
+We consider the act of contributing to the code by submitting a Pull
+Request as the "Sign off" or agreement to the certifications and terms
+of the [DCO](DCO) and [MIT license](LICENSE). No further action is required.
+Additionally you could add a line at the end of your commit message.
 
 ```
 Signed-off-by: Joe Smith <joe.smith@email.com>
 ```
 
-Please use your real name; we really dislike pseudonyms or anonymous
-contributions. We are in the open-source world without secrets. If you
-set your `user.name` and `user.email` git configs, you can sign-off your
-commit automatically with `git commit -s`.
+If you set your `user.name` and `user.email` git configs, you can add the
+line to the end of your commit automatically with `git commit -s`.
+
+We assume in good faith that the information you provide is legally binding.
 
 ## Release Cycle
 

@@ -14,15 +14,16 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/core"
-	"github.com/go-xorm/xorm"
-
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+
+	"github.com/Unknwon/com"
+	"github.com/go-xorm/xorm"
+	"xorm.io/core"
 )
 
 // LoginType represents an login type.
@@ -147,8 +148,8 @@ type LoginSource struct {
 	IsSyncEnabled bool            `xorm:"INDEX NOT NULL DEFAULT false"`
 	Cfg           core.Conversion `xorm:"TEXT"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 // Cell2Int64 converts a xorm.Cell type to int64,
@@ -665,6 +666,15 @@ func UserSignIn(username, password string) (*User, error) {
 		switch user.LoginType {
 		case LoginNoType, LoginPlain, LoginOAuth2:
 			if user.IsPasswordSet() && user.ValidatePassword(password) {
+
+				// Update password hash if server password hash algorithm have changed
+				if user.PasswdHashAlgo != setting.PasswordHashAlgo {
+					user.HashPassword(password)
+					if err := UpdateUserCols(user, "passwd", "passwd_hash_algo"); err != nil {
+						return nil, err
+					}
+				}
+
 				// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
 				// user could be hint to resend confirm email.
 				if user.ProhibitLogin {

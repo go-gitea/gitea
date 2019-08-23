@@ -107,15 +107,21 @@ func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	// convert github repo to stand Repo
 	return &base.Repository{
 		Owner:       g.repoOwner,
 		Name:        gr.GetName(),
 		IsPrivate:   *gr.Private,
 		Description: gr.GetDescription(),
+		OriginalURL: gr.GetHTMLURL(),
 		CloneURL:    gr.GetCloneURL(),
 	}, nil
+}
+
+// GetTopics return github topics
+func (g *GithubDownloaderV3) GetTopics() ([]string, error) {
+	r, _, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
+	return r.Topics, err
 }
 
 // GetMilestones returns milestones
@@ -317,6 +323,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		allIssues = append(allIssues, &base.Issue{
 			Title:       *issue.Title,
 			Number:      int64(*issue.Number),
+			PosterID:    *issue.User.ID,
 			PosterName:  *issue.User.Login,
 			PosterEmail: email,
 			Content:     body,
@@ -358,6 +365,8 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 				reactions = convertGithubReactions(comment.Reactions)
 			}
 			allComments = append(allComments, &base.Comment{
+				IssueIndex:  issueNumber,
+				PosterID:    *comment.User.ID,
 				PosterName:  *comment.User.Login,
 				PosterEmail: email,
 				Content:     *comment.Body,
@@ -450,6 +459,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			Title:          *pr.Title,
 			Number:         int64(*pr.Number),
 			PosterName:     *pr.User.Login,
+			PosterID:       *pr.User.ID,
 			PosterEmail:    email,
 			Content:        body,
 			Milestone:      milestone,

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
@@ -199,7 +200,7 @@ func addUpdate(update fileUpdate, repo *Repository, batch rupture.FlushingBatch)
 	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
 		return fmt.Errorf("Misformatted git cat-file output: %v", err)
 	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
-		return nil
+		return addDelete(update.Filename, repo, batch)
 	}
 
 	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
@@ -207,6 +208,7 @@ func addUpdate(update fileUpdate, repo *Repository, batch rupture.FlushingBatch)
 	if err != nil {
 		return err
 	} else if !base.IsTextFile(fileContents) {
+		// FIXME: UTF-16 files will probably fail here
 		return nil
 	}
 	indexerUpdate := indexer.RepoIndexerUpdate{
@@ -214,7 +216,7 @@ func addUpdate(update fileUpdate, repo *Repository, batch rupture.FlushingBatch)
 		Op:       indexer.RepoIndexerOpUpdate,
 		Data: &indexer.RepoIndexerData{
 			RepoID:  repo.ID,
-			Content: string(fileContents),
+			Content: string(charset.ToUTF8DropErrors(fileContents)),
 		},
 	}
 	return indexerUpdate.AddToFlushingBatch(batch)
@@ -231,20 +233,28 @@ func addDelete(filename string, repo *Repository, batch rupture.FlushingBatch) e
 	return indexerUpdate.AddToFlushingBatch(batch)
 }
 
+func isIndexable(entry *git.TreeEntry) bool {
+	return entry.IsRegular() || entry.IsExecutable()
+}
+
 // parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
 func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
 	entries, err := git.ParseTreeEntries(stdout)
 	if err != nil {
 		return nil, err
 	}
+	var idxCount = 0
 	updates := make([]fileUpdate, len(entries))
-	for i, entry := range entries {
-		updates[i] = fileUpdate{
-			Filename: entry.Name(),
-			BlobSha:  entry.ID.String(),
+	for _, entry := range entries {
+		if isIndexable(entry) {
+			updates[idxCount] = fileUpdate{
+				Filename: entry.Name(),
+				BlobSha:  entry.ID.String(),
+			}
+			idxCount++
 		}
 	}
-	return updates, nil
+	return updates[:idxCount], nil
 }
 
 // genesisChanges get changes to add repo to the indexer for the first time

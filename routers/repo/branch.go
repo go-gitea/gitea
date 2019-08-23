@@ -24,13 +24,14 @@ const (
 
 // Branch contains the branch information
 type Branch struct {
-	Name          string
-	Commit        *git.Commit
-	IsProtected   bool
-	IsDeleted     bool
-	DeletedBranch *models.DeletedBranch
-	CommitsAhead  int
-	CommitsBehind int
+	Name              string
+	Commit            *git.Commit
+	IsProtected       bool
+	IsDeleted         bool
+	DeletedBranch     *models.DeletedBranch
+	CommitsAhead      int
+	CommitsBehind     int
+	LatestPullRequest *models.PullRequest
 }
 
 // Branches render repository branch page
@@ -38,6 +39,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["Title"] = "Branches"
 	ctx.Data["IsRepoToolbarBranches"] = true
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
+	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls()
 	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(models.UnitTypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
 	ctx.Data["PageIsViewCode"] = true
@@ -160,6 +162,12 @@ func loadBranches(ctx *context.Context) []*Branch {
 		return nil
 	}
 
+	protectedBranches, err := ctx.Repo.Repository.GetProtectedBranches()
+	if err != nil {
+		ctx.ServerError("GetProtectedBranches", err)
+		return nil
+	}
+
 	branches := make([]*Branch, len(rawBranches))
 	for i := range rawBranches {
 		commit, err := rawBranches[i].GetCommit()
@@ -168,11 +176,13 @@ func loadBranches(ctx *context.Context) []*Branch {
 			return nil
 		}
 
+		var isProtected bool
 		branchName := rawBranches[i].Name
-		isProtected, err := ctx.Repo.Repository.IsProtectedBranch(branchName, ctx.User)
-		if err != nil {
-			ctx.ServerError("IsProtectedBranch", err)
-			return nil
+		for _, b := range protectedBranches {
+			if b.BranchName == branchName {
+				isProtected = true
+				break
+			}
 		}
 
 		divergence, divergenceError := repofiles.CountDivergingCommits(ctx.Repo.Repository, branchName)
@@ -181,12 +191,25 @@ func loadBranches(ctx *context.Context) []*Branch {
 			return nil
 		}
 
+		pr, err := models.GetLatestPullRequestByHeadInfo(ctx.Repo.Repository.ID, branchName)
+		if err != nil {
+			ctx.ServerError("GetLatestPullRequestByHeadInfo", err)
+			return nil
+		}
+		if pr != nil {
+			if err := pr.LoadIssue(); err != nil {
+				ctx.ServerError("pr.LoadIssue", err)
+				return nil
+			}
+		}
+
 		branches[i] = &Branch{
-			Name:          branchName,
-			Commit:        commit,
-			IsProtected:   isProtected,
-			CommitsAhead:  divergence.Ahead,
-			CommitsBehind: divergence.Behind,
+			Name:              branchName,
+			Commit:            commit,
+			IsProtected:       isProtected,
+			CommitsAhead:      divergence.Ahead,
+			CommitsBehind:     divergence.Behind,
+			LatestPullRequest: pr,
 		}
 	}
 

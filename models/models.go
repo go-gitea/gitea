@@ -20,8 +20,8 @@ import (
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
+	"xorm.io/core"
 
 	// Needed for the Postgresql driver
 	_ "github.com/lib/pq"
@@ -262,6 +262,7 @@ func NewTestEngine(x *xorm.Engine) (err error) {
 		return fmt.Errorf("Connect to database: %v", err)
 	}
 
+	x.ShowExecTime(true)
 	x.SetMapper(core.GonicMapper{})
 	x.SetLogger(NewXORMLogger(!setting.ProdMode))
 	x.ShowSQL(!setting.ProdMode)
@@ -275,6 +276,7 @@ func SetEngine() (err error) {
 		return fmt.Errorf("Failed to connect to database: %v", err)
 	}
 
+	x.ShowExecTime(true)
 	x.SetMapper(core.GonicMapper{})
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
@@ -367,4 +369,10 @@ func DumpDatabase(filePath string, dbType string) error {
 		return x.DumpTablesToFile(tbs, filePath, core.DbType(dbType))
 	}
 	return x.DumpTablesToFile(tbs, filePath)
+}
+
+// MaxBatchInsertSize returns the table's max batch insert size
+func MaxBatchInsertSize(bean interface{}) int {
+	t := x.TableInfo(bean)
+	return 999 / len(t.ColumnsSeq())
 }
