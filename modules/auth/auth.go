@@ -10,18 +10,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
-	"github.com/go-macaron/binding"
-	"github.com/go-macaron/session"
-	gouuid "github.com/satori/go.uuid"
-	"gopkg.in/macaron.v1"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
+
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
+	"gitea.com/macaron/session"
+	gouuid "github.com/satori/go.uuid"
+	"github.com/unknwon/com"
 )
 
 // IsAPIPath if URL is an api path

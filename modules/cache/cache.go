@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	mc "github.com/go-macaron/cache"
+	mc "gitea.com/macaron/cache"
 )
 
 var conn mc.Cache

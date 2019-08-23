@@ -17,12 +17,13 @@ import (
 	"unicode"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 	"xorm.io/builder"
 )
 
@@ -385,7 +386,7 @@ func NewPushCommits() *PushCommits {
 
 // ToAPIPayloadCommits converts a PushCommits object to
 // api.PayloadCommit format.
-func (pc *PushCommits) ToAPIPayloadCommits(repoLink string) []*api.PayloadCommit {
+func (pc *PushCommits) ToAPIPayloadCommits(repoPath, repoLink string) ([]*api.PayloadCommit, error) {
 	commits := make([]*api.PayloadCommit, len(pc.Commits))
 
 	if pc.emailUsers == nil {
@@ -417,6 +418,12 @@ func (pc *PushCommits) ToAPIPayloadCommits(repoLink string) []*api.PayloadCommit
 		} else {
 			committerUsername = committer.Name
 		}
+
+		fileStatus, err := git.GetCommitFileStatus(repoPath, commit.Sha1)
+		if err != nil {
+			return nil, fmt.Errorf("FileStatus [commit_sha1: %s]: %v", commit.Sha1, err)
+		}
+
 		commits[i] = &api.PayloadCommit{
 			ID:      commit.Sha1,
 			Message: commit.Message,
@@ -431,10 +438,13 @@ func (pc *PushCommits) ToAPIPayloadCommits(repoLink string) []*api.PayloadCommit
 				Email:    commit.CommitterEmail,
 				UserName: committerUsername,
 			},
+			Added:     fileStatus.Added,
+			Removed:   fileStatus.Removed,
+			Modified:  fileStatus.Modified,
 			Timestamp: commit.Timestamp,
 		}
 	}
-	return commits
+	return commits, nil
 }
 
 // AvatarLink tries to match user in database with e-mail
@@ -738,7 +748,10 @@ func MirrorSyncPushAction(repo *Repository, opts MirrorSyncPushActionOptions) er
 		opts.Commits.Commits = opts.Commits.Commits[:setting.UI.FeedMaxCommitNum]
 	}
 
-	apiCommits := opts.Commits.ToAPIPayloadCommits(repo.HTMLURL())
+	apiCommits, err := opts.Commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
+	if err != nil {
+		return err
+	}
 
 	opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 	apiPusher := repo.MustOwner().APIFormat()
