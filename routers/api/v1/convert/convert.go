@@ -292,7 +292,7 @@ func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
 	}
 }
 
-// ToTopic convert from models.Topic to api.TopicResponse
+// ToTopicResponse convert from models.Topic to api.TopicResponse
 func ToTopicResponse(topic *models.Topic) *api.TopicResponse {
 	return &api.TopicResponse{
 		ID:        topic.ID,
