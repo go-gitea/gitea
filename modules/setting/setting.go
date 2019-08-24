@@ -146,8 +146,8 @@ var (
 	MinPasswordLength     int
 	ImportLocalPaths      bool
 	DisableGitHooks       bool
-	PasswordComplexity map[string]string
-	PasswordHashAlgo string
+	PasswordComplexity    map[string]string
+	PasswordHashAlgo      string
 
 	// UI settings
 	UI = struct {
