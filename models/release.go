@@ -156,7 +156,7 @@ func linkReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err erro
 	}
 
 	for i := range attachments {
-		if !attachments[i].IsNotAttached() {
+		if attachments[i].IsLinked() {
 			log.Error("linkReleaseAttachments [%s]: skipping already linked attachement", attachments[i].UUID)
 			continue
 		}

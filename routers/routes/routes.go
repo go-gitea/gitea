@@ -491,7 +491,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			}
 
 			//Attachement without issue or release attached should not be returned
-			if attach.IsNotAttached() {
+			if !attach.IsLinked() {
 				ctx.Error(404)
 				return
 			}

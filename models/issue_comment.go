@@ -612,7 +612,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 		}
 
 		for i := range attachments {
-			if !attachments[i].IsNotAttached() {
+			if attachments[i].IsLinked() {
 				log.Error("sendCreateCommentAction [%s]: skipping already linked attachement", attachments[i].UUID)
 				continue
 			}
