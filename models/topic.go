@@ -149,18 +149,26 @@ func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
 	return topics, sess.Desc("topic.repo_count").Find(&topics)
 }
 
+// GetRepoTopicByName retrives topic from name for a repo if it exist
+func GetRepoTopicByName(repoID int64, topicName string) (topic *Topic, err error) {
+	sess := x.Select("topic.*").Where("repo_topic.repo_id = ?", repoID).And("topic.name = ?", topicName)
+	sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
+	has, err := sess.Get(&topic)
+	if has {
+		return topic, err
+	}
+	return nil, err
+}
+
 // AddTopic adds a topic name to a repository (if it does not already have it)
 func AddTopic(repoID int64, topicName string) (*Topic, error) {
-	topics, err := FindTopics(&FindTopicOptions{
-		RepoID:  repoID,
-		Keyword: topicName,
-	})
+	topic, err := GetRepoTopicByName(repoID, topicName)
 	if err != nil {
 		return nil, err
 	}
-	if len(topics) != 0 {
+	if topic != nil {
 		// Repo already have topic
-		return topics[0], nil
+		return topic, nil
 	}
 
 	return addTopicByNameToRepo(repoID, topicName, x)
@@ -168,18 +176,14 @@ func AddTopic(repoID int64, topicName string) (*Topic, error) {
 
 // DeleteTopic removes a topic name from a repository (if it has it)
 func DeleteTopic(repoID int64, topicName string) (*Topic, error) {
-	topics, err := FindTopics(&FindTopicOptions{
-		RepoID:  repoID,
-		Keyword: topicName,
-	})
+	topic, err := GetRepoTopicByName(repoID, topicName)
 	if err != nil {
 		return nil, err
 	}
-	if len(topics) == 0 {
+	if topic == nil {
 		// Repo doesn't have topic, can't be removed
 		return nil, nil
 	}
-	topic := topics[0]
 
 	err = removeTopicFromRepo(repoID, topic, x)
 

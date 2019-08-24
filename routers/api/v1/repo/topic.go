@@ -87,10 +87,7 @@ func HasTopic(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
-	topics, err := models.FindTopics(&models.FindTopicOptions{
-		RepoID:  ctx.Repo.Repository.ID,
-		Keyword: topicName,
-	})
+	topic, err := models.GetRepoTopicByName(ctx.Repo.Repository.ID, topicName)
 	if err != nil {
 		log.Error("HasTopic failed: %v", err)
 		ctx.JSON(500, map[string]interface{}{
@@ -99,12 +96,12 @@ func HasTopic(ctx *context.APIContext) {
 		return
 	}
 
-	if len(topics) == 0 {
+	if topic == nil {
 		ctx.NotFound()
 	}
 
 	ctx.JSON(200, map[string]interface{}{
-		"topic": convert.ToTopicResponse(topics[0]),
+		"topic": convert.ToTopicResponse(topic),
 	})
 }
 
