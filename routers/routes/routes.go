@@ -490,12 +490,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 				return
 			}
 
-			//Attachement without issue or release attached should not be returned
-			if !attach.IsLinked() {
-				ctx.Error(404)
-				return
-			}
-			//Check issue access
 			if attach.IssueID != 0 {
 				iss, err := models.GetIssueByID(attach.IssueID)
 				if err != nil {
@@ -506,10 +500,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					ctx.Error(403)
 					return
 				}
-			}
-
-			//Check release access
-			if attach.ReleaseID != 0 {
+			} else if attach.ReleaseID != 0 {
 				rel, err := models.GetReleaseByID(attach.ReleaseID)
 				if err != nil {
 					ctx.ServerError("GetAttachmentByUUID.GetReleaseByID", err)
@@ -519,8 +510,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 					ctx.Error(403)
 					return
 				}
+			} else {
+				ctx.Error(404)
 			}
-
+			
 			//If we have matched a access release or issue
 			fr, err := os.Open(attach.LocalPath())
 			if err != nil {
