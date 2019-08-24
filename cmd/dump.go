@@ -17,8 +17,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/cae/zip"
-	"github.com/Unknwon/com"
+	"github.com/unknwon/cae/zip"
+	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 )
 

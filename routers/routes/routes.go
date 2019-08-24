@@ -38,16 +38,16 @@ import (
 	// to registers all internal adapters
 	_ "code.gitea.io/gitea/modules/session"
 
-	"github.com/go-macaron/binding"
-	"github.com/go-macaron/cache"
-	"github.com/go-macaron/captcha"
-	"github.com/go-macaron/csrf"
-	"github.com/go-macaron/i18n"
-	"github.com/go-macaron/session"
-	"github.com/go-macaron/toolbox"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/cache"
+	"gitea.com/macaron/captcha"
+	"gitea.com/macaron/csrf"
+	"gitea.com/macaron/i18n"
+	"gitea.com/macaron/macaron"
+	"gitea.com/macaron/session"
+	"gitea.com/macaron/toolbox"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
-	macaron "gopkg.in/macaron.v1"
 )
 
 type routerLoggerOptions struct {

@@ -13,9 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
-	"gopkg.in/macaron.v1"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -25,6 +22,9 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"gitea.com/macaron/macaron"
+	"github.com/unknwon/com"
 )
 
 const (

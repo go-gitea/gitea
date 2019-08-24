@@ -18,9 +18,9 @@ import (
 	"code.gitea.io/gitea/modules/gzip"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
-	"github.com/stretchr/testify/assert"
 
 	gzipp "github.com/klauspost/compress/gzip"
+	"github.com/stretchr/testify/assert"
 )
 
 func GenerateLFSOid(content io.Reader) (string, error) {

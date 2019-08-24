@@ -27,10 +27,10 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
+	"gitea.com/macaron/macaron"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/macaron.v1"
+	"github.com/unknwon/com"
 	"gopkg.in/testfixtures.v2"
 )
 

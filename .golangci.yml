@@ -86,15 +86,6 @@ issues:
     - path: models/issue_comment_list.go
       linters:
         - dupl
-    # "Destroy" is misspelled in github.com/go-macaron/session/session.go:213 so it's not our responsability to fix it
-    - path: modules/session/virtual.go
-      linters:
-        - misspell
-      text: '`Destory` is a misspelling of `Destroy`'
-    - path: modules/session/memory.go
-      linters:
-        - misspell
-      text: '`Destory` is a misspelling of `Destroy`'
     - linters:
         - misspell
       text: '`Unknwon` is a misspelling of `Unknown`'

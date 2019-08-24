@@ -27,9 +27,9 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
-	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	context2 "github.com/gorilla/context"
+	"github.com/unknwon/com"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"

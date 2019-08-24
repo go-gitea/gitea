@@ -22,7 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 )
 
 func checkRunMode() {

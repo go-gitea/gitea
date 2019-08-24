@@ -17,14 +17,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	gouuid "github.com/satori/go.uuid"
-	ini "gopkg.in/ini.v1"
-
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/go-xorm/xorm"
+	gouuid "github.com/satori/go.uuid"
+	"github.com/unknwon/com"
+	ini "gopkg.in/ini.v1"
 )
 
 const minDBVersion = 4
