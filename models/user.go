@@ -40,7 +40,6 @@ import (
 	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
-	"xorm.io/core"
 )
 
 // UserType defines the user type
@@ -1432,9 +1431,9 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 	if opts.OwnerID > 0 {
 		var exprCond builder.Cond
-		if DbCfg.Type == core.MYSQL {
+		if setting.Database.UseMySQL {
 			exprCond = builder.Expr("org_user.org_id = user.id")
-		} else if DbCfg.Type == core.MSSQL {
+		} else if setting.Database.UseMSSQL {
 			exprCond = builder.Expr("org_user.org_id = [user].id")
 		} else {
 			exprCond = builder.Expr("org_user.org_id = \"user\".id")
