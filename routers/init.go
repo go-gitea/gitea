@@ -47,16 +47,16 @@ func NewServices() {
 // In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
 func initDBEngine() (err error) {
 	log.Info("Beginning ORM engine initialization.")
-	for i := 0; i < setting.DBConnectRetries; i++ {
-		log.Info("ORM engine initialization attempt #%d/%d...", i+1, setting.DBConnectRetries)
+	for i := 0; i < setting.Database.DBConnectRetries; i++ {
+		log.Info("ORM engine initialization attempt #%d/%d...", i+1, setting.Database.DBConnectRetries)
 		if err = models.NewEngine(migrations.Migrate); err == nil {
 			break
-		} else if i == setting.DBConnectRetries-1 {
+		} else if i == setting.Database.DBConnectRetries-1 {
 			return err
 		}
-		log.Error("ORM engine initialization attempt #%d/%d failed. Error: %v", i+1, setting.DBConnectRetries, err)
-		log.Info("Backing off for %d seconds", int64(setting.DBConnectBackoff/time.Second))
-		time.Sleep(setting.DBConnectBackoff)
+		log.Error("ORM engine initialization attempt #%d/%d failed. Error: %v", i+1, setting.Database.DBConnectRetries, err)
+		log.Info("Backing off for %d seconds", int64(setting.Database.DBConnectBackoff/time.Second))
+		time.Sleep(setting.Database.DBConnectBackoff)
 	}
 	models.HasEngine = true
 	return nil
@@ -73,7 +73,7 @@ func GlobalInit() {
 	log.Trace("AppWorkPath: %s", setting.AppWorkPath)
 	log.Trace("Custom path: %s", setting.CustomPath)
 	log.Trace("Log path: %s", setting.LogRootPath)
-	models.LoadConfigs()
+
 	NewServices()
 
 	if setting.InstallLock {
@@ -102,11 +102,8 @@ func GlobalInit() {
 		models.InitDeliverHooks()
 		models.InitTestPullRequests()
 	}
-	if models.EnableSQLite3 {
+	if setting.EnableSQLite3 {
 		log.Info("SQLite3 Supported")
-	}
-	if models.EnableTiDB {
-		log.Info("TiDB Supported")
 	}
 	checkRunMode()
 

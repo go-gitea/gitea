@@ -4,7 +4,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package setting
 
 import (
 	_ "github.com/mattn/go-sqlite3"
@@ -12,5 +12,5 @@ import (
 
 func init() {
 	EnableSQLite3 = true
-	supportedDatabases = append(supportedDatabases, "sqlite3")
+	SupportedDatabases = append(SupportedDatabases, "SQLite3")
 }
