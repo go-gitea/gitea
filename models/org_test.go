@@ -455,9 +455,6 @@ func TestAddOrgUser(t *testing.T) {
 	CheckConsistencyFor(t, &User{}, &Team{})
 }
 
-func TestDefaultOrgMemberVisible(t *testing.T) {
-}
-
 func TestRemoveOrgUser(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	testSuccess := func(orgID, userID int64) {
