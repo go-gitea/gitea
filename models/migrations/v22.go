@@ -42,7 +42,7 @@ func generateAndMigrateWikiGitHooks(x *xorm.Engine) (err error) {
 		}
 	)
 
-	return x.Where("id > 0").BufferSize(setting.IterateBufferSize).Iterate(new(Repository),
+	return x.Where("id > 0").BufferSize(setting.Database.IterateBufferSize).Iterate(new(Repository),
 		func(idx int, bean interface{}) error {
 			repo := bean.(*Repository)
 			user := new(User)

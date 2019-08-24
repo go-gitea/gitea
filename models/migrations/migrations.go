@@ -296,7 +296,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 	// TODO: This will not work if there are foreign keys
 
 	switch {
-	case setting.UseSQLite3:
+	case setting.Database.UseSQLite3:
 		// First drop the indexes on the columns
 		res, errIndex := sess.Query(fmt.Sprintf("PRAGMA index_list(`%s`)", tableName))
 		if errIndex != nil {
@@ -372,7 +372,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			return err
 		}
 
-	case setting.UsePostgreSQL:
+	case setting.Database.UsePostgreSQL:
 		cols := ""
 		for _, col := range columnNames {
 			if cols != "" {
@@ -383,7 +383,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
-	case setting.UseMySQL, setting.UseTiDB:
+	case setting.Database.UseMySQL:
 		// Drop indexes on columns first
 		sql := fmt.Sprintf("SHOW INDEX FROM %s WHERE column_name IN ('%s')", tableName, strings.Join(columnNames, "','"))
 		res, err := sess.Query(sql)
@@ -409,7 +409,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
-	case setting.UseMSSQL:
+	case setting.Database.UseMSSQL:
 		cols := ""
 		for _, col := range columnNames {
 			if cols != "" {

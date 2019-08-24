@@ -31,6 +31,7 @@ if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
     ROOT_URL=${ROOT_URL:-""} \
     DISABLE_SSH=${DISABLE_SSH:-"false"} \
     SSH_PORT=${SSH_PORT:-"22"} \
+    SSH_LISTEN_PORT=${SSH_LISTEN_PORT:-"${SSH_PORT}"} \
     LFS_START_SERVER=${LFS_START_SERVER:-"false"} \
     DB_TYPE=${DB_TYPE:-"sqlite3"} \
     DB_HOST=${DB_HOST:-"localhost:3306"} \
