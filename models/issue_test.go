@@ -329,21 +329,21 @@ func TestIssue_NoDupIndex(t *testing.T) {
 
 	fmt.Printf("GAP: TestIssue_NoDupIndex(): begin\n")
 
-	const initialIssueFill = 1000	// issues inserted prior to stress test
-	const maxTestDuration = 60		// seconds
-	const threadCount = 8			// max simultaneous threads
-	
+	const initialIssueFill = 1000 // issues inserted prior to stress test
+	const maxTestDuration = 60    // seconds
+	const threadCount = 8         // max simultaneous threads
+
 	var err error
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	doer := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 
 	// Pre-load
-	for i := 1; i < initialIssueFill ; i++ {
+	for i := 1; i < initialIssueFill; i++ {
 		issue := &Issue{
-			RepoID: repo.ID,
+			RepoID:   repo.ID,
 			PosterID: repo.OwnerID,
-			Index: int64(i + 5000),	// Avoid clashing with other tests
-			Title: fmt.Sprintf("NoDup initial %d", i),
+			Index:    int64(i + 5000), // Avoid clashing with other tests
+			Title:    fmt.Sprintf("NoDup initial %d", i),
 		}
 		_, err = x.Insert(issue)
 		assert.NoError(t, err)
@@ -362,7 +362,7 @@ func TestIssue_NoDupIndex(t *testing.T) {
 		defer sess.Close()
 		err := sess.Begin()
 		if err != nil {
-			atomic.StoreInt32(&hasErrors,1)
+			atomic.StoreInt32(&hasErrors, 1)
 			t.Logf("sess.Begin(): %+v", err)
 			return
 		}
@@ -372,15 +372,15 @@ func TestIssue_NoDupIndex(t *testing.T) {
 				return
 			}
 			issue := &Issue{
-				RepoID: repo.ID,
+				RepoID:   repo.ID,
 				PosterID: repo.OwnerID,
-				Title: fmt.Sprintf("NoDup stress %d, %d", thread, i),
+				Title:    fmt.Sprintf("NoDup stress %d, %d", thread, i),
 			}
 			if err = newIssue(sess, doer, NewIssueOptions{
-					Repo:	repo,
-					Issue:	issue,
+				Repo:  repo,
+				Issue: issue,
 			}); err != nil {
-				atomic.StoreInt32(&hasErrors,1)
+				atomic.StoreInt32(&hasErrors, 1)
 				t.Logf("newIssue(): %+v", err)
 				return
 			}
@@ -388,8 +388,9 @@ func TestIssue_NoDupIndex(t *testing.T) {
 		}
 	}
 
-	for i:= 1 ; i < threadCount ; i++ {
-		go f(i); wg.Add(1)
+	for i := 1; i < threadCount; i++ {
+		go f(i)
+		wg.Add(1)
 	}
 
 	fmt.Printf("GAP: TestIssue_NoDupIndex(): %d threads created\n", threadCount)
