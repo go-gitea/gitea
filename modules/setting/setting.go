@@ -146,9 +146,7 @@ var (
 	MinPasswordLength     int
 	ImportLocalPaths      bool
 	DisableGitHooks       bool
-
 	PasswordComplexity map[string]string
-
 	PasswordHashAlgo string
 
 	// UI settings
@@ -771,6 +769,7 @@ func NewContext() {
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 
 	InternalToken = loadInternalToken(sec)
+
 	var dictPC = map[string]string{
 		"lower": "[a-z]+",
 		"upper": "[A-Z]+",
@@ -787,7 +786,6 @@ func NewContext() {
 			}
 		}
 	}
-
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
