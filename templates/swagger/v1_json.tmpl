@@ -5388,6 +5388,158 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/topics": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get list of topics that a repository has",
+        "operationId": "repoListTopics",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TopicListResponse"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/topics/{topic}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Check if a repository has topic",
+        "operationId": "repoHasTopic",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the topic to check for",
+            "name": "topic",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/TopicResponse"
+          },
+          "404": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Add a topic from a repository",
+        "operationId": "repoAddTopíc",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the topic to add",
+            "name": "topic",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/TopicResponse"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "delete a topic from a repository",
+        "operationId": "repoDeleteTopic",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the topic to delete",
+            "name": "topic",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/TopicResponse"
+          }
+        }
+      }
+    },
     "/repositories/{id}": {
       "get": {
         "produces": [
@@ -5752,7 +5904,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/Repository"
+            "$ref": "#/responses/TopicListResponse"
           }
         }
       }
@@ -9772,6 +9924,37 @@
       "format": "int64",
       "x-go-package": "code.gitea.io/gitea/modules/timeutil"
     },
+    "TopicResponse": {
+      "description": "TopicResponse for returning topics",
+      "type": "object",
+      "properties": {
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "repo_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepoCount"
+        },
+        "topic_name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "updated": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "TrackedTime": {
       "description": "TrackedTime worked time for an issue / pr",
       "type": "object",
@@ -10339,6 +10522,21 @@
         "items": {
           "$ref": "#/definitions/Team"
         }
+      }
+    },
+    "TopicListResponse": {
+      "description": "TopicListResponse",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/TopicResponse"
+        }
+      }
+    },
+    "TopicResponse": {
+      "description": "TopicResponse",
+      "schema": {
+        "$ref": "#/definitions/TopicResponse"
       }
     },
     "TrackedTime": {
