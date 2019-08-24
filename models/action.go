@@ -23,7 +23,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 	"xorm.io/builder"
 )
 
