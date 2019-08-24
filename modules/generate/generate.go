@@ -40,7 +40,7 @@ func GetRandomPassword(n int) (string, error) {
 	const lower = "abcdefghijklmnopqrstuvwxyz"
 	const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	const digit = "0123456789"
-	const spec = "!@#$%^&*()_-+=[]'\";:/?.>,<`~"
+	const spec = "_-"
 	var h, m int
 	if n < 3 {
 		return "", errors.New("Error generate random string")
