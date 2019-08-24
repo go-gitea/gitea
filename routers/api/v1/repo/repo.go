@@ -51,6 +51,10 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: keyword
 	//   type: string
+	// - name: topic
+	//   in: query
+	//   description: Limit search to repositories with keyword as topic
+	//   type: boolean
 	// - name: uid
 	//   in: query
 	//   description: search only for repos that the user with the given id owns or contributes to

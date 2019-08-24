@@ -29,6 +29,11 @@ func IsAPIPath(url string) bool {
 	return strings.HasPrefix(url, "/api/")
 }
 
+// IsAttachmentDownload check if request is a file download (GET) with URL to an attachment
+func IsAttachmentDownload(ctx *macaron.Context) bool {
+	return strings.HasPrefix(ctx.Req.URL.Path, "/attachments/") && ctx.Req.Method == "GET"
+}
+
 // SignedInID returns the id of signed in user.
 func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 	if !models.HasEngine {
@@ -36,7 +41,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 	}
 
 	// Check access token.
-	if IsAPIPath(ctx.Req.URL.Path) {
+	if IsAPIPath(ctx.Req.URL.Path) || IsAttachmentDownload(ctx) {
 		tokenSHA := ctx.Query("token")
 		if len(tokenSHA) == 0 {
 			tokenSHA = ctx.Query("access_token")
