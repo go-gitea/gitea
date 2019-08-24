@@ -18,8 +18,8 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
-	"github.com/Unknwon/com"
 	context2 "github.com/gorilla/context"
+	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/acme/autocert"
 	ini "gopkg.in/ini.v1"

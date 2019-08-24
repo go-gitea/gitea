@@ -5,7 +5,7 @@
 package sync
 
 import (
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 // UniqueQueue is a queue which guarantees only one instance of same

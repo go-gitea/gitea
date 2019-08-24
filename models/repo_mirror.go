@@ -20,9 +20,9 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	"github.com/mcuadros/go-version"
+	"github.com/unknwon/com"
 )
 
 // MirrorQueue holds an UniqueQueue object of the mirror
