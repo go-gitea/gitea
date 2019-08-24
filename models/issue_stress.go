@@ -55,11 +55,11 @@ func TestIssueNoDupIndex(t *testing.T) {
 				return
 			}
 			issue := &Issue{
-				RepoID:           repo.ID,
-				PosterID:         repo.OwnerID,
-				Title:            fmt.Sprintf("NoDup stress %d, %d", thread, i),
-				OriginalAuthor:   "TestIssueNoDupIndex()",
-				Priority:         thread,	// For statistics
+				RepoID:         repo.ID,
+				PosterID:       repo.OwnerID,
+				Title:          fmt.Sprintf("NoDup stress %d, %d", thread, i),
+				OriginalAuthor: "TestIssueNoDupIndex()",
+				Priority:       thread, // For statistics
 			}
 			if err = newIssue(sess, doer, NewIssueOptions{
 				Repo:  repo,
@@ -84,9 +84,9 @@ func TestIssueNoDupIndex(t *testing.T) {
 
 	for i := 1; i <= threadCount; i++ {
 		total, err := x.Table("issue").
-						Where("original_author = ?", "TestIssueNoDupIndex()").
-						And("priority = ?", i).
-						Count()
+			Where("original_author = ?", "TestIssueNoDupIndex()").
+			And("priority = ?", i).
+			Count()
 		assert.NoError(t, err, "Failed counting generated issues count")
 		fmt.Printf("TestIssueNoDupIndex(): rows created in thread #%d: %d\n", i, total)
 	}
