@@ -335,7 +335,7 @@ func TestIssue_NoDupIndex(t *testing.T) {
 
 	var err error
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
-	doer := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	doer := AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
 
 	// Pre-load
 	for i := 1; i < initialIssueFill; i++ {
