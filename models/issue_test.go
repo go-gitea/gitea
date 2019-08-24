@@ -5,7 +5,6 @@
 package models
 
 import (
-	"fmt"
 	"sort"
 	"testing"
 	"time"
