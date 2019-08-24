@@ -22,7 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/go-macaron/captcha"
+	"gitea.com/macaron/captcha"
 	"github.com/markbates/goth"
 	"github.com/tstranex/u2f"
 )

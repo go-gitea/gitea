@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 const (
