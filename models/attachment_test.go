@@ -116,3 +116,24 @@ func TestUpdateAttachment(t *testing.T) {
 
 	AssertExistsAndLoadBean(t, &Attachment{Name: "new_name"})
 }
+
+func TestAttachment_IsLinked(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	tests := []struct {
+		name string
+		UUID string
+		want bool
+	}{
+		{"comment_linked", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", true},
+		{"issue_linked", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18", true},
+		{"release_linked", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19", true},
+		{"not_linked", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a, err := GetAttachmentByUUID(tt.UUID)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, a.IsLinked())
+		})
+	}
+}

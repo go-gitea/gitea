@@ -513,7 +513,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			} else {
 				ctx.Error(404)
 			}
-			
+
 			//If we have matched a access release or issue
 			fr, err := os.Open(attach.LocalPath())
 			if err != nil {

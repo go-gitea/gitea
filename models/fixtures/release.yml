@@ -1,1 +1,14 @@
-[] # empty
+-
+  id: 1
+  repo_id: 1
+  publisher_id: 2
+  tag_name: "testing"
+  lower_tag_name: "testing"
+  target: "master"
+  title: "testing-release"
+  sha1: "1377085260899283ce483702e6a1723223f7b371"
+  num_commits: 10
+  is_draft: false
+  is_prerelease: false
+  is_tag: false
+  created_unix: 946684800
