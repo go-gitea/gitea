@@ -25,8 +25,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	"github.com/Unknwon/com"
+
 	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/unknwon/com"
 	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
 )

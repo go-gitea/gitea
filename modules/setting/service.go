@@ -42,6 +42,7 @@ var Service struct {
 	NoReplyAddress                          string
 	EnableUserHeatmap                       bool
 	AutoWatchNewRepos                       bool
+	DefaultOrgMemberVisible                 bool
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
@@ -82,6 +83,7 @@ func newService() {
 	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
 	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
+	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)

@@ -7,7 +7,7 @@
 package public
 
 import (
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 )
 
 // Static implements the macaron static handler for serving assets.
