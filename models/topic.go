@@ -70,6 +70,52 @@ func GetTopicByName(name string) (*Topic, error) {
 	return &topic, nil
 }
 
+// addTopicByNameToRepo adds a topic name to a repo and increments the topic count.
+// Returns topic after the addition
+func addTopicByNameToRepo(repoID int64, topicName string, e Engine) (*Topic, error) {
+	var topic Topic
+	if has, err := e.Where("name = ?", topicName).Get(&topic); err != nil {
+		return nil, err
+	} else if !has {
+		topic.Name = topicName
+		topic.RepoCount = 1
+		if _, err := e.Insert(&topic); err != nil {
+			return nil, err
+		}
+	} else {
+		topic.RepoCount++
+		if _, err := e.ID(topic.ID).Cols("repo_count").Update(&topic); err != nil {
+			return nil, err
+		}
+	}
+
+	if _, err := e.Insert(&RepoTopic{
+		RepoID:  repoID,
+		TopicID: topic.ID,
+	}); err != nil {
+		return nil, err
+	}
+
+	return &topic, nil
+}
+
+// removeTopicFromRepo remove a topic from a repo and decrements the topic repo count
+func removeTopicFromRepo(repoID int64, topic *Topic, e Engine) error {
+	topic.RepoCount--
+	if _, err := e.ID(topic.ID).Cols("repo_count").Update(topic); err != nil {
+		return err
+	}
+
+	if _, err := e.Delete(&RepoTopic{
+		RepoID:  repoID,
+		TopicID: topic.ID,
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // FindTopicOptions represents the options when fdin topics
 type FindTopicOptions struct {
 	RepoID  int64
@@ -101,6 +147,43 @@ func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
 		sess.Limit(opts.Limit, opts.Page*opts.Limit)
 	}
 	return topics, sess.Desc("topic.repo_count").Find(&topics)
+}
+
+// AddTopic adds a topic name to a repository (if it does not already have it)
+func AddTopic(repoID int64, topicName string) (*Topic, error) {
+	topics, err := FindTopics(&FindTopicOptions{
+		RepoID:  repoID,
+		Keyword: topicName,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(topics) != 0 {
+		// Repo already have topic
+		return topics[0], nil
+	}
+
+	return addTopicByNameToRepo(repoID, topicName, x)
+}
+
+// DeleteTopic removes a topic name from a repository (if it has it)
+func DeleteTopic(repoID int64, topicName string) (*Topic, error) {
+	topics, err := FindTopics(&FindTopicOptions{
+		RepoID:  repoID,
+		Keyword: topicName,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(topics) == 0 {
+		// Repo doesn't have topic, can't be removed
+		return nil, nil
+	}
+	topic := topics[0]
+
+	err = removeTopicFromRepo(repoID, topic, x)
+
+	return topic, err
 }
 
 // SaveTopics save topics to a repository
@@ -152,40 +235,15 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 	}
 
 	for _, topicName := range addedTopicNames {
-		var topic Topic
-		if has, err := sess.Where("name = ?", topicName).Get(&topic); err != nil {
-			return err
-		} else if !has {
-			topic.Name = topicName
-			topic.RepoCount = 1
-			if _, err := sess.Insert(&topic); err != nil {
-				return err
-			}
-		} else {
-			topic.RepoCount++
-			if _, err := sess.ID(topic.ID).Cols("repo_count").Update(&topic); err != nil {
-				return err
-			}
-		}
-
-		if _, err := sess.Insert(&RepoTopic{
-			RepoID:  repoID,
-			TopicID: topic.ID,
-		}); err != nil {
+		_, err := addTopicByNameToRepo(repoID, topicName, sess)
+		if err != nil {
 			return err
 		}
 	}
 
 	for _, topic := range removeTopics {
-		topic.RepoCount--
-		if _, err := sess.ID(topic.ID).Cols("repo_count").Update(topic); err != nil {
-			return err
-		}
-
-		if _, err := sess.Delete(&RepoTopic{
-			RepoID:  repoID,
-			TopicID: topic.ID,
-		}); err != nil {
+		err := removeTopicFromRepo(repoID, topic, sess)
+		if err != nil {
 			return err
 		}
 	}

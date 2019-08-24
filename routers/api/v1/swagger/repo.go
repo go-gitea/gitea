@@ -217,3 +217,17 @@ type swaggerFileDeleteResponse struct {
 	//in: body
 	Body api.FileDeleteResponse `json:"body"`
 }
+
+// TopicResponse
+// swagger:response TopicResponse
+type swaggerTopicResponse struct {
+	//in: body
+	Body api.TopicResponse `json:"body"`
+}
+
+// TopicListResponse
+// swagger:response TopicListResponse
+type swaggerTopicListResponse struct {
+	//in: body
+	Body []api.TopicResponse `json:"body"`
+}
