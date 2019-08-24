@@ -1825,45 +1825,26 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *Us
 type DependencyInfo struct {
 	Issue      `xorm:"extends"`
 	Repository `xorm:"extends"`
-	RepoLink   string `xorm:"-"`
 }
 
 // Get Blocked By Dependencies, aka all issues this issue is blocked by.
 func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
-	err = e.Table("issue").
+	return issueDeps, e.
+		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
 		Where("issue_id = ?", issue.ID).
 		Find(&issueDeps)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for i := 0; i < len(issueDeps); i++ {
-		issueDeps[i].RepoLink = issueDeps[i].Repository.Link()
-	}
-
-	return issueDeps, nil
 }
 
 // Get Blocking Dependencies, aka all issues this issue blocks.
 func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
-	err = e.Table("issue").
+	return issueDeps, e.
+		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
 		Where("dependency_id = ?", issue.ID).
 		Find(&issueDeps)
-
-	if err != nil {
-		return nil, err
-	}
-
-	for i := 0; i < len(issueDeps); i++ {
-		issueDeps[i].RepoLink = issueDeps[i].Repository.Link()
-	}
-
-	return issueDeps, nil
 }
 
 // BlockedByDependencies finds all Dependencies an issue is blocked by
