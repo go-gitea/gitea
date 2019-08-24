@@ -2201,7 +2201,7 @@ func GitFsck() {
 	log.Trace("Doing: GitFsck")
 
 	if err := x.
-		Where("id>0 AND is_fsck_enabled=?", true).BufferSize(setting.IterateBufferSize).
+		Where("id>0 AND is_fsck_enabled=?", true).BufferSize(setting.Database.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)
@@ -2225,7 +2225,7 @@ func GitFsck() {
 func GitGcRepos() error {
 	args := append([]string{"gc"}, setting.Git.GCArgs...)
 	return x.
-		Where("id > 0").BufferSize(setting.IterateBufferSize).
+		Where("id > 0").BufferSize(setting.Database.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)
@@ -2568,7 +2568,7 @@ func (repo *Repository) generateRandomAvatar(e Engine) error {
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
 func RemoveRandomAvatars() error {
 	return x.
-		Where("id > 0").BufferSize(setting.IterateBufferSize).
+		Where("id > 0").BufferSize(setting.Database.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repository := bean.(*Repository)
