@@ -246,6 +246,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
 - `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
+- `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
 
 ## Webhook (`webhook`)
 
