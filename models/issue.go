@@ -1116,7 +1116,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 	// Patch Index with the value calculated by the database
 	opts.Issue.Index = inserted.Index
-	
+
 	if opts.Issue.MilestoneID > 0 {
 		if err = changeMilestoneAssign(e, doer, opts.Issue, -1); err != nil {
 			return err
