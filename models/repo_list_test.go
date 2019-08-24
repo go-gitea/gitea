@@ -74,6 +74,34 @@ func TestSearchRepositoryByName(t *testing.T) {
 	assert.Empty(t, repos)
 	assert.Equal(t, int64(0), count)
 
+	// Test search within description
+	repos, count, err = SearchRepository(&SearchRepoOptions{
+		Keyword:            "description_14",
+		Page:               1,
+		PageSize:           10,
+		Collaborate:        util.OptionalBoolFalse,
+		IncludeDescription: true,
+	})
+
+	assert.NoError(t, err)
+	if assert.Len(t, repos, 1) {
+		assert.Equal(t, "test_repo_14", repos[0].Name)
+	}
+	assert.Equal(t, int64(1), count)
+
+	// Test NOT search within description
+	repos, count, err = SearchRepository(&SearchRepoOptions{
+		Keyword:            "description_14",
+		Page:               1,
+		PageSize:           10,
+		Collaborate:        util.OptionalBoolFalse,
+		IncludeDescription: false,
+	})
+
+	assert.NoError(t, err)
+	assert.Empty(t, repos)
+	assert.Equal(t, int64(0), count)
+
 	testCases := []struct {
 		name  string
 		opts  *SearchRepoOptions
