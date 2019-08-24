@@ -19,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-macaron/captcha"
+	"gitea.com/macaron/captcha"
 )
 
 const (

@@ -7,10 +7,10 @@ package routers
 import (
 	"crypto/subtle"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // Metrics validate auth token and render prometheus metrics
