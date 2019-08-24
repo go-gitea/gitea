@@ -112,7 +112,7 @@ func HasTopic(ctx *context.APIContext) {
 func AddTopic(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/topics/{topic} repository repoAddTopíc
 	// ---
-	// summary: Add a topic from a repository
+	// summary: Add a topic to a repository
 	// produces:
 	//   - application/json
 	// parameters:
@@ -160,7 +160,7 @@ func AddTopic(ctx *context.APIContext) {
 func DeleteTopic(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/topics/{topic} repository repoDeleteTopic
 	// ---
-	// summary: delete a topic from a repository
+	// summary: Delete a topic from a repository
 	// produces:
 	//   - application/json
 	// parameters:
