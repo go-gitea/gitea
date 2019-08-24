@@ -29,7 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 // EncodeMD5 encodes string to md5 hex value.

@@ -11,9 +11,9 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/i18n"
-	macaroni18n "github.com/go-macaron/i18n"
+	macaroni18n "gitea.com/macaron/i18n"
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/i18n"
 )
 
 var BaseDate time.Time

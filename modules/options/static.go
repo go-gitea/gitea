@@ -12,7 +12,8 @@ import (
 	"path"
 
 	"code.gitea.io/gitea/modules/setting"
-	"github.com/Unknwon/com"
+
+	"github.com/unknwon/com"
 )
 
 var (
