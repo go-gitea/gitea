@@ -405,6 +405,9 @@ DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Private is only for member of the organization
 ; Public is for everyone
 DEFAULT_ORG_VISIBILITY = public
+; Default value for DefaultOrgMemberVisible
+; True will make the membership of the users visible when added to the organisation  
+DEFAULT_ORG_MEMBER_VISIBLE = false
 ; Default value for EnableDependencies
 ; Repositories will use dependencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
