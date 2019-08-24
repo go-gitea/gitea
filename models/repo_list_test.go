@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSearchRepositoryByName(t *testing.T) {
+func TestSearchRepository(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	// test search public repository on explore page
