@@ -55,6 +55,10 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: Limit search to repositories with keyword as topic
 	//   type: boolean
+	// - name: includeDesc
+	//   in: query
+	//   description: include search of keyword within repository description
+	//   type: boolean
 	// - name: uid
 	//   in: query
 	//   description: search only for repos that the user with the given id owns or contributes to
@@ -97,10 +101,6 @@ func Search(ctx *context.APIContext) {
 	//   description: sort order, either "asc" (ascending) or "desc" (descending).
 	//                Default is "asc", ignored if "sort" is not specified.
 	//   type: string
-	// - name: includeDesc
-	//   in: query
-	//   description: include search of keyword within repository description
-	//   type: boolean
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/SearchResults"
