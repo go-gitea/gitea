@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
+// ListTopics returns list of current topics for repo
 func ListTopics(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/topics repository repoListTopics
 	// ---
@@ -56,6 +57,7 @@ func ListTopics(ctx *context.APIContext) {
 	})
 }
 
+// HasTopic check if repo has topic name
 func HasTopic(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/topics/{topic} repository repoHasTopic
 	// ---
@@ -106,6 +108,7 @@ func HasTopic(ctx *context.APIContext) {
 	})
 }
 
+// AddTopic adds a topic name to a repo
 func AddTopic(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/topics/{topic} repository repoAddTopíc
 	// ---
@@ -153,6 +156,7 @@ func AddTopic(ctx *context.APIContext) {
 	})
 }
 
+// DeleteTopic removes topic name from repo
 func DeleteTopic(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/topics/{topic} repository repoDeleteTopic
 	// ---
