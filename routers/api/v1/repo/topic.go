@@ -84,11 +84,11 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 	//     "$ref": "#/responses/empty"
 
 	topicNames := form.Topics
-	invalidTopics := models.SanitizeAndValidateTopics(topicNames)
+	validTopics, invalidTopics := models.SanitizeAndValidateTopics(topicNames)
 
-	if len(topicNames) > 25 {
+	if len(validTopics) > 25 {
 		ctx.JSON(422, map[string]interface{}{
-			"invalidTopics": topicNames[:0],
+			"invalidTopics": nil,
 			"message":       "Exceeding maximum number of topics per repo",
 		})
 		return
@@ -102,7 +102,7 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 		return
 	}
 
-	err := models.SaveTopics(ctx.Repo.Repository.ID, topicNames...)
+	err := models.SaveTopics(ctx.Repo.Repository.ID, validTopics...)
 	if err != nil {
 		log.Error("SaveTopics failed: %v", err)
 		ctx.JSON(500, map[string]interface{}{
