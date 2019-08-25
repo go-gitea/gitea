@@ -48,20 +48,20 @@ func ListTopics(ctx *context.APIContext) {
 		return
 	}
 
-	topicResponses := make([]*api.TopicResponse, len(topics))
+	topicNames := make([]*string, len(topics))
 	for i, topic := range topics {
-		topicResponses[i] = convert.ToTopicResponse(topic)
+		topicNames[i] = &topic.Name
 	}
 	ctx.JSON(200, map[string]interface{}{
-		"topics": topicResponses,
+		"topics": topicNames,
 	})
 }
 
-// HasTopic check if repo has topic name
-func HasTopic(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/topics/{topic} repository repoHasTopic
+// UpdateTopics updates repo with a new set of topics
+func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
+	// swagger:operation PUT /repos/{owner}/{repo}/topics repository repoUpdateTopics
 	// ---
-	// summary: Check if a repository has topic
+	// summary: Replace list of topics for a repository
 	// produces:
 	//   - application/json
 	// parameters:
@@ -75,34 +75,43 @@ func HasTopic(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: topic
-	//   in: path
-	//   description: name of the topic to check for
-	//   type: string
-	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/RepoTopicOptions"
 	// responses:
-	//   "201":
-	//     "$ref": "#/responses/TopicResponse"
-	//   "404":
+	//   "200":
 	//     "$ref": "#/responses/empty"
-	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
-	topic, err := models.GetRepoTopicByName(ctx.Repo.Repository.ID, topicName)
-	if err != nil {
-		log.Error("HasTopic failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
-			"message": "HasTopic failed.",
+	topicNames := form.Topics
+	invalidTopics := models.SanitizeAndValidateTopics(topicNames)
+
+	if len(topicNames) > 25 {
+		ctx.JSON(422, map[string]interface{}{
+			"invalidTopics": topicNames[:0],
+			"message":       "Exceeding maximum number of topics per repo",
 		})
 		return
 	}
 
-	if topic == nil {
-		ctx.NotFound()
+	if len(invalidTopics) > 0 {
+		ctx.JSON(422, map[string]interface{}{
+			"invalidTopics": invalidTopics,
+			"message":       "Topic names are invalid",
+		})
+		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
-		"topic": convert.ToTopicResponse(topic),
-	})
+	err := models.SaveTopics(ctx.Repo.Repository.ID, topicNames...)
+	if err != nil {
+		log.Error("SaveTopics failed: %v", err)
+		ctx.JSON(500, map[string]interface{}{
+			"message": "Save topics failed.",
+		})
+		return
+	}
+
+	ctx.Status(204)
 }
 
 // AddTopic adds a topic name to a repo
@@ -139,7 +148,25 @@ func AddTopic(ctx *context.APIContext) {
 		return
 	}
 
-	topic, err := models.AddTopic(ctx.Repo.Repository.ID, topicName)
+	// Prevent adding more topics than allowed to repo
+	topics, err := models.FindTopics(&models.FindTopicOptions{
+		RepoID: ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		log.Error("AddTopic failed: %v", err)
+		ctx.JSON(500, map[string]interface{}{
+			"message": "ListTopics failed.",
+		})
+		return
+	}
+	if len(topics) >= 25 {
+		ctx.JSON(422, map[string]interface{}{
+			"message": "Exceeding maximum allowed topics per repo.",
+		})
+		return
+	}
+
+	_, err = models.AddTopic(ctx.Repo.Repository.ID, topicName)
 	if err != nil {
 		log.Error("AddTopic failed: %v", err)
 		ctx.JSON(500, map[string]interface{}{
@@ -148,9 +175,7 @@ func AddTopic(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(201, map[string]interface{}{
-		"topic": convert.ToTopicResponse(topic),
-	})
+	ctx.Status(204)
 }
 
 // DeleteTopic removes topic name from repo
@@ -199,9 +224,7 @@ func DeleteTopic(ctx *context.APIContext) {
 		ctx.NotFound()
 	}
 
-	ctx.JSON(201, map[string]interface{}{
-		"topic": convert.ToTopicResponse(topic),
-	})
+	ctx.Status(204)
 }
 
 // TopicSearch search for creating topic

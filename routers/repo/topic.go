@@ -27,20 +27,7 @@ func TopicsPost(ctx *context.Context) {
 		topics = strings.Split(topicsStr, ",")
 	}
 
-	invalidTopics := make([]string, 0)
-	i := 0
-	for _, topic := range topics {
-		topic = strings.TrimSpace(strings.ToLower(topic))
-		// ignore empty string
-		if len(topic) > 0 {
-			topics[i] = topic
-			i++
-		}
-		if !models.ValidateTopic(topic) {
-			invalidTopics = append(invalidTopics, topic)
-		}
-	}
-	topics = topics[:i]
+	invalidTopics := models.SanitizeAndValidateTopics(topics)
 
 	if len(topics) > 25 {
 		ctx.JSON(422, map[string]interface{}{

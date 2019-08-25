@@ -54,9 +54,31 @@ func (err ErrTopicNotExist) Error() string {
 	return fmt.Sprintf("topic is not exist [name: %s]", err.Name)
 }
 
-// ValidateTopic checks topics by length and match pattern rules
+// ValidateTopic checks a topic by length and match pattern rules
 func ValidateTopic(topic string) bool {
 	return len(topic) <= 35 && topicPattern.MatchString(topic)
+}
+
+// SanitizeAndValidateTopics sanitizes and checks an array or topics
+func SanitizeAndValidateTopics(topics []string) (invalidTopics []string) {
+	invalidTopics = make([]string, 0)
+
+	i := 0
+	for _, topic := range topics {
+		topic = strings.TrimSpace(strings.ToLower(topic))
+		// ignore empty string
+		if len(topic) == 0 {
+			continue
+		}
+		topics[i] = topic
+		i++
+		if !ValidateTopic(topic) {
+			invalidTopics = append(invalidTopics, topic)
+		}
+	}
+	topics = topics[:i]
+
+	return invalidTopics
 }
 
 // GetTopicByName retrieves topic by name
@@ -149,13 +171,16 @@ func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
 	return topics, sess.Desc("topic.repo_count").Find(&topics)
 }
 
-// GetRepoTopicByName retrives topic from name for a repo if it exist
-func GetRepoTopicByName(repoID int64, topicName string) (topic *Topic, err error) {
-	sess := x.Select("topic.*").Where("repo_topic.repo_id = ?", repoID).And("topic.name = ?", topicName)
+// GetRepoTopic retrives topic from name for a repo if it exist
+func GetRepoTopicByName(repoID int64, topicName string) (*Topic, error) {
+	var cond = builder.NewCond()
+	var topic Topic
+	cond = cond.And(builder.Eq{"repo_topic.repo_id": repoID}).And(builder.Eq{"topic.name": topicName})
+	sess := x.Table("topic").Where(cond)
 	sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
 	has, err := sess.Get(&topic)
 	if has {
-		return topic, err
+		return &topic, err
 	}
 	return nil, err
 }
