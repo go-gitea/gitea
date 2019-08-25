@@ -99,6 +99,7 @@ func ListIssues(ctx *context.APIContext) {
 			IsClosed: isClosed,
 			IssueIDs: issueIDs,
 			LabelIDs: labelIDs,
+			IsPull:   util.OptionalBoolFalse,
 		})
 	}
 
