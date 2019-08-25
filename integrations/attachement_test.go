@@ -34,6 +34,8 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 	assert.NoError(t, err)
 	_, err = io.Copy(part, &buff)
 	assert.NoError(t, err)
+	err = writer.WriteField("_csrf", GetCSRF(t, session, repoURL))
+	assert.NoError(t, err)
 	err = writer.Close()
 	assert.NoError(t, err)
 
@@ -48,12 +50,12 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 func TestCreateAnonymeAttachement(t *testing.T) {
 	prepareTestEnv(t)
 	session := emptyTestSession(t)
-	createAttachment(t, session, "user1/repo2", "image.png", generateImg(), http.StatusForbidden)
+	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusForbidden)
 }
 
 func TestCreateIssueAttachement(t *testing.T) {
 	prepareTestEnv(t)
-	const repoURL = "user1/repo2"
+	const repoURL = "user2/repo1"
 	session := loginUser(t, "user2")
 	uuid := createAttachment(t, session, repoURL, "image.png", generateImg(), http.StatusOK)
 
