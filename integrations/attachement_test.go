@@ -34,7 +34,7 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 	assert.NoError(t, err)
 	_, err = io.Copy(part, &buff)
 	assert.NoError(t, err)
-	err = writer.WriteField("_csrf", GetCSRF(t, session, repoURL))
+	err = writer.WriteField("_csrf", GetCSRF(t, session, repoURL+"/issues/new"))
 	assert.NoError(t, err)
 	err = writer.Close()
 	assert.NoError(t, err)
