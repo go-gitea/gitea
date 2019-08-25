@@ -47,14 +47,15 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 
 func TestCreateAnonymeAttachement(t *testing.T) {
 	prepareTestEnv(t)
-	createAttachment(t, nil, "user1/repo2", "image.png", generateImg(), http.StatusForbidden)
+	session := emptyTestSession(t)
+	createAttachment(t, session, "user1/repo2", "image.png", generateImg(), http.StatusForbidden)
 }
 
 func TestCreateIssueAttachement(t *testing.T) {
 	prepareTestEnv(t)
 	const repoURL = "user1/repo2"
 	session := loginUser(t, "user2")
-	uuid := createAttachment(t, nil, repoURL, "image.png", generateImg(), http.StatusOK)
+	uuid := createAttachment(t, session, repoURL, "image.png", generateImg(), http.StatusOK)
 
 	req := NewRequest(t, "GET", repoURL+"/issues/new")
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -109,14 +110,14 @@ func TestCreateReleaseAttachement(t *testing.T) {
 	//TODO validate
 }
 
-func TestCreateUnlinkedAttachement(t *testing.T) {
+func TestGetUnlinkedAttachement(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user2")
 	//TODO upload attachement
 	//TODO try to get attachement
 }
 
-func TestCreateUnauthorizedAttachement(t *testing.T) {
+func TestGetUnauthorizedAttachement(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user2")
 	//TODO upload attachement
