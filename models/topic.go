@@ -64,7 +64,7 @@ func SanitizeAndValidateTopics(topics []string) (validTopics []string, invalidTo
 	validTopics = make([]string, 0)
 	invalidTopics = make([]string, 0)
 
-	LOOP_TOPICS:
+LOOP_TOPICS:
 	for _, topic := range topics {
 		topic = strings.TrimSpace(strings.ToLower(topic))
 		// ignore empty string
