@@ -16,6 +16,7 @@ import (
 )
 
 func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title string, preRelease, draft bool) {
+	//TODO allow attachement
 	req := NewRequest(t, "GET", repoURL+"/releases/new")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
