@@ -10,7 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	"github.com/Unknwon/com"
+
+	"github.com/unknwon/com"
 )
 
 // enumerates all the policy repository creating

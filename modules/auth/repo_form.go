@@ -13,9 +13,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/utils"
 
-	"github.com/Unknwon/com"
-	"github.com/go-macaron/binding"
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
+	"github.com/unknwon/com"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
