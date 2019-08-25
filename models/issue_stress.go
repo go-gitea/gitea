@@ -1,4 +1,4 @@
-// Copyright 2017 The Gitea Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -21,6 +21,7 @@ func TestIssueNoDupIndex(t *testing.T) {
 	const initialIssueFill = 1000 // issues inserted prior to stress test
 	const maxTestDuration = 60    // seconds
 	const threadCount = 8         // max simultaneous threads
+	const useTransactions = true  // true: wrap attempts with BEGIN TRANSACTION/COMMIT
 
 	var err error
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
@@ -61,16 +62,29 @@ func TestIssueNoDupIndex(t *testing.T) {
 				OriginalAuthor: "TestIssueNoDupIndex()",
 				Priority:       thread, // For statistics
 			}
+			if useTransactions {
+				if err = sess.Begin(); err != nil {
+					break
+				}
+			}
 			if err = newIssue(sess, doer, NewIssueOptions{
 				Repo:  repo,
 				Issue: issue,
 			}); err != nil {
-				atomic.StoreInt32(&hasErrors, 1)
-				t.Logf("newIssue(): %+v", err)
-				return
+				break
+			}
+			if useTransactions {
+				if err = sess.Commit(); err != nil {
+					break
+				}
 			}
 			i++
 		}
+		if useTransactions {
+			_ = sess.Rollback()
+		}
+		atomic.StoreInt32(&hasErrors, 1)
+		t.Logf("newIssue(): %+v", err)
 	}
 
 	for i := 1; i <= threadCount; i++ {
