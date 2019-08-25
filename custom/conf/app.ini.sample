@@ -116,6 +116,8 @@ DEFAULT_THEME = gitea
 THEMES = gitea,arc-green
 ; Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 DEFAULT_SHOW_FULL_NAME = false
+; Whether to search within description at repository search on explore page.
+SEARCH_REPO_DESCRIPTION = true
 
 [ui.admin]
 ; Number of users that are displayed on one page
