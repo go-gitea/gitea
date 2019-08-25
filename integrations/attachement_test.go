@@ -34,13 +34,22 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 	assert.NoError(t, err)
 	_, err = io.Copy(part, &buff)
 	assert.NoError(t, err)
-	err = writer.WriteField("_csrf", GetCSRF(t, session, repoURL+"/issues/new"))
+
+	req := NewRequest(t, "GET", repoURL)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	err = writer.WriteField("_csrf", getCsrf(t, doc.doc))
 	assert.NoError(t, err)
+
 	err = writer.Close()
 	assert.NoError(t, err)
 
-	req := NewRequestWithBody(t, "POST", repoURL+"/attachments", body)
-	resp := session.MakeRequest(t, req, expectedStatus)
+	req = NewRequestWithBody(t, "POST", repoURL+"/attachments", body)
+	resp = session.MakeRequest(t, req, expectedStatus)
+
+	if expectedStatus != http.StatusOK {
+		return ""
+	}
 
 	var obj map[string]string
 	DecodeJSON(t, resp, &obj)
@@ -50,7 +59,7 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 func TestCreateAnonymeAttachement(t *testing.T) {
 	prepareTestEnv(t)
 	session := emptyTestSession(t)
-	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusForbidden)
+	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusFound) //Login
 }
 
 func TestCreateIssueAttachement(t *testing.T) {

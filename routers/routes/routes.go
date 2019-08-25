@@ -703,7 +703,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 
 		//Should be able to create issue (a user that can create release can create issue)
-		m.Post("/attachments", repo.UploadAttachment, context.RepoMustNotBeArchived(), reqRepoIssueReader)
+		m.Post("/attachments", repo.UploadAttachment, context.RepoMustNotBeArchived(), reqRepoIssueWriter)
 
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.
 		// So they can apply their own enable/disable logic on routers.
