@@ -5,8 +5,7 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/util"
-
+	"code.gitea.io/gitea/modules/timeutil"
 	"github.com/go-xorm/xorm"
 )
 
@@ -33,9 +32,9 @@ func addProjectsTable(x *xorm.Engine) error {
 
 		Type ProjectType
 
-		ClosedDateUnix util.TimeStamp
-		CreatedUnix    util.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix    util.TimeStamp `xorm:"INDEX updated"`
+		ClosedDateUnix timeutil.TimeStamp
+		CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
 	type Issue struct {
@@ -50,8 +49,8 @@ func addProjectsTable(x *xorm.Engine) error {
 		// Not really needed but helpful
 		CreatorID int64 `xorm:"NOT NULL"`
 
-		CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
 	if err := x.Sync(new(Project)); err != nil {

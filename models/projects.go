@@ -6,7 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 	"github.com/go-xorm/xorm"
 )
 
@@ -22,8 +22,8 @@ type ProjectBoard struct {
 	// Not really needed but helpful
 	CreatorID int64 `xorm:"NOT NULL"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 const (
@@ -76,9 +76,9 @@ type Project struct {
 
 	RenderedContent string `xorm:"-"`
 
-	CreatedUnix    util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix    util.TimeStamp `xorm:"INDEX updated"`
-	ClosedDateUnix util.TimeStamp
+	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
+	ClosedDateUnix timeutil.TimeStamp
 }
 
 // AfterLoad is invoked from XORM after setting the value of a field of
@@ -165,8 +165,8 @@ func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
 
 	for _, v := range items {
 		boards = append(boards, ProjectBoard{
-			CreatedUnix: util.TimeStampNow(),
-			UpdatedUnix: util.TimeStampNow(),
+			CreatedUnix: timeutil.TimeStampNow(),
+			UpdatedUnix: timeutil.TimeStampNow(),
 			CreatorID:   project.CreatorID,
 			Title:       v,
 			ProjectID:   project.ID,
