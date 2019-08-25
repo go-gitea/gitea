@@ -35,7 +35,7 @@ func ListTopics(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/TopicListResponse"
+	//     "$ref": "#/responses/TopicNames"
 
 	topics, err := models.FindTopics(&models.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
@@ -80,7 +80,7 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 	//   schema:
 	//     "$ref": "#/definitions/RepoTopicOptions"
 	// responses:
-	//   "200":
+	//   "204":
 	//     "$ref": "#/responses/empty"
 
 	topicNames := form.Topics
@@ -138,8 +138,8 @@ func AddTopic(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	//   "201":
-	//     "$ref": "#/responses/TopicResponse"
+	//   "204":
+	//     "$ref": "#/responses/empty"
 
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
@@ -202,8 +202,8 @@ func DeleteTopic(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	//   "201":
-	//     "$ref": "#/responses/TopicResponse"
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
 	if !models.ValidateTopic(topicName) {

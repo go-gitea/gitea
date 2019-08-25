@@ -5422,7 +5422,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/TopicListResponse"
+            "$ref": "#/responses/TopicNames"
           }
         }
       },
@@ -5459,7 +5459,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "$ref": "#/responses/empty"
           }
         }
@@ -5499,8 +5499,8 @@
           }
         ],
         "responses": {
-          "201": {
-            "$ref": "#/responses/TopicResponse"
+          "204": {
+            "$ref": "#/responses/empty"
           }
         }
       },
@@ -5537,8 +5537,8 @@
           }
         ],
         "responses": {
-          "201": {
-            "$ref": "#/responses/TopicResponse"
+          "204": {
+            "$ref": "#/responses/empty"
           }
         }
       }
@@ -9942,6 +9942,16 @@
       "format": "int64",
       "x-go-package": "code.gitea.io/gitea/modules/timeutil"
     },
+    "TopicName": {
+      "type": "object",
+      "properties": {
+        "topics": {
+          "type": "string",
+          "x-go-name": "TopicNames"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "TopicResponse": {
       "description": "TopicResponse for returning topics",
       "type": "object",
@@ -10551,10 +10561,13 @@
         }
       }
     },
-    "TopicResponse": {
-      "description": "TopicResponse",
+    "TopicNames": {
+      "description": "TopicNames",
       "schema": {
-        "$ref": "#/definitions/TopicResponse"
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/TopicName"
+        }
       }
     },
     "TrackedTime": {
