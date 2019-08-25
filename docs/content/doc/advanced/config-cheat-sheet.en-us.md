@@ -96,6 +96,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
   regardless of the value of `DEFAULT_THEME`.
 - `DEFAULT_SHOW_FULL_NAME`: false: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
+- `SEARCH_REPO_DESCRIPTION`: true: Whether to search within description at repository search on explore page.
 
 ### UI - Admin (`ui.admin`)
 
@@ -246,6 +247,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
 - `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
+- `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
 
 ## Webhook (`webhook`)
 
