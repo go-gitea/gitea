@@ -74,9 +74,9 @@ import (
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
 
-	"github.com/go-macaron/binding"
-	"github.com/go-macaron/cors"
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/cors"
+	"gitea.com/macaron/macaron"
 )
 
 func sudo() macaron.Handler {

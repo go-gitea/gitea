@@ -10,23 +10,28 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
-	"github.com/go-macaron/binding"
-	"github.com/go-macaron/session"
-	gouuid "github.com/satori/go.uuid"
-	"gopkg.in/macaron.v1"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
+
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
+	"gitea.com/macaron/session"
+	gouuid "github.com/satori/go.uuid"
+	"github.com/unknwon/com"
 )
 
 // IsAPIPath if URL is an api path
 func IsAPIPath(url string) bool {
 	return strings.HasPrefix(url, "/api/")
+}
+
+// IsAttachmentDownload check if request is a file download (GET) with URL to an attachment
+func IsAttachmentDownload(ctx *macaron.Context) bool {
+	return strings.HasPrefix(ctx.Req.URL.Path, "/attachments/") && ctx.Req.Method == "GET"
 }
 
 // SignedInID returns the id of signed in user.
@@ -36,7 +41,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 	}
 
 	// Check access token.
-	if IsAPIPath(ctx.Req.URL.Path) {
+	if IsAPIPath(ctx.Req.URL.Path) || IsAttachmentDownload(ctx) {
 		tokenSHA := ctx.Query("token")
 		if len(tokenSHA) == 0 {
 			tokenSHA = ctx.Query("access_token")
@@ -68,7 +73,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 				}
 				return 0
 			}
-			t.UpdatedUnix = util.TimeStampNow()
+			t.UpdatedUnix = timeutil.TimeStampNow()
 			if err = models.UpdateAccessToken(t); err != nil {
 				log.Error("UpdateAccessToken: %v", err)
 			}
@@ -210,7 +215,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 						return nil, false
 					}
 				}
-				token.UpdatedUnix = util.TimeStampNow()
+				token.UpdatedUnix = timeutil.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
 					log.Error("UpdateAccessToken:  %v", err)
 				}

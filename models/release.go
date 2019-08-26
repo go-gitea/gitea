@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
 )
@@ -32,13 +32,13 @@ type Release struct {
 	Title            string
 	Sha1             string `xorm:"VARCHAR(40)"`
 	NumCommits       int64
-	NumCommitsBehind int64          `xorm:"-"`
-	Note             string         `xorm:"TEXT"`
-	IsDraft          bool           `xorm:"NOT NULL DEFAULT false"`
-	IsPrerelease     bool           `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool           `xorm:"NOT NULL DEFAULT false"`
-	Attachments      []*Attachment  `xorm:"-"`
-	CreatedUnix      util.TimeStamp `xorm:"INDEX"`
+	NumCommitsBehind int64              `xorm:"-"`
+	Note             string             `xorm:"TEXT"`
+	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
+	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool               `xorm:"NOT NULL DEFAULT false"`
+	Attachments      []*Attachment      `xorm:"-"`
+	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
 }
 
 func (r *Release) loadAttributes(e Engine) error {
@@ -137,13 +137,13 @@ func createTag(gitRepo *git.Repository, rel *Release) error {
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.CreatedUnix = util.TimeStamp(commit.Author.When.Unix())
+		rel.CreatedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
 		rel.NumCommits, err = commit.CommitsCount()
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
 		}
 	} else {
-		rel.CreatedUnix = util.TimeStampNow()
+		rel.CreatedUnix = timeutil.TimeStampNow()
 	}
 	return nil
 }
@@ -409,7 +409,7 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 		Action:     api.HookReleaseUpdated,
 		Release:    rel.APIFormat(),
 		Repository: rel.Repo.APIFormat(mode),
-		Sender:     rel.Publisher.APIFormat(),
+		Sender:     doer.APIFormat(),
 	}); err1 != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	} else {
@@ -420,7 +420,7 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 }
 
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
-func DeleteReleaseByID(id int64, u *User, delTag bool) error {
+func DeleteReleaseByID(id int64, doer *User, delTag bool) error {
 	rel, err := GetReleaseByID(id)
 	if err != nil {
 		return fmt.Errorf("GetReleaseByID: %v", err)
@@ -459,12 +459,12 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		return fmt.Errorf("LoadAttributes: %v", err)
 	}
 
-	mode, _ := AccessLevel(u, rel.Repo)
+	mode, _ := AccessLevel(doer, rel.Repo)
 	if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
 		Action:     api.HookReleaseDeleted,
 		Release:    rel.APIFormat(),
 		Repository: rel.Repo.APIFormat(mode),
-		Sender:     rel.Publisher.APIFormat(),
+		Sender:     doer.APIFormat(),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	} else {

@@ -13,9 +13,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/utils"
 
-	"github.com/Unknwon/com"
-	"github.com/go-macaron/binding"
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
+	"github.com/unknwon/com"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
@@ -98,13 +98,15 @@ func (f MigrateRepoForm) ParseRemoteAddr(user *models.User) (string, error) {
 
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
-	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Description   string `binding:"MaxSize(255)"`
-	Website       string `binding:"ValidUrl;MaxSize(255)"`
-	Interval      string
-	MirrorAddress string
-	Private       bool
-	EnablePrune   bool
+	RepoName       string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Description    string `binding:"MaxSize(255)"`
+	Website        string `binding:"ValidUrl;MaxSize(255)"`
+	Interval       string
+	MirrorAddress  string
+	MirrorUsername string
+	MirrorPassword string
+	Private        bool
+	EnablePrune    bool
 
 	// Advanced settings
 	EnableWiki                       bool

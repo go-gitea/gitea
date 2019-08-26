@@ -118,6 +118,12 @@ func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 	}, nil
 }
 
+// GetTopics return github topics
+func (g *GithubDownloaderV3) GetTopics() ([]string, error) {
+	r, _, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
+	return r.Topics, err
+}
+
 // GetMilestones returns milestones
 func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 	var perPage = 100
