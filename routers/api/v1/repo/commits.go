@@ -57,9 +57,9 @@ func GetSingleCommit(ctx *context.APIContext) {
 		return
 	}
 
-	json, err := ToCommit(ctx, ctx.Repo.Repository, commit, nil)
+	json, err := toCommit(ctx, ctx.Repo.Repository, commit, nil)
 	if err != nil {
-		ctx.ServerError("ToCommit", err)
+		ctx.ServerError("toCommit", err)
 		return
 	}
 
@@ -169,9 +169,9 @@ func GetAllCommits(ctx *context.APIContext) {
 		commit := commitPointer.Value.(*git.Commit)
 
 		// Create json struct
-		apiCommits[i], err = ToCommit(ctx, ctx.Repo.Repository, commit, userCache)
+		apiCommits[i], err = toCommit(ctx, ctx.Repo.Repository, commit, userCache)
 		if err != nil {
-			ctx.ServerError("ToCommit", err)
+			ctx.ServerError("toCommit", err)
 			return
 		}
 
@@ -189,7 +189,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	ctx.JSON(200, &apiCommits)
 }
 
-func ToCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Commit, userCache map[string]*models.User) (*api.Commit, error) {
+func toCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Commit, userCache map[string]*models.User) (*api.Commit, error) {
 
 	var apiAuthor, apiCommitter *api.User
 
