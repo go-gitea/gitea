@@ -75,7 +75,6 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/user"
 
 	"gitea.com/macaron/binding"
-	"gitea.com/macaron/cors"
 	"gitea.com/macaron/macaron"
 )
 
@@ -502,12 +501,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/swagger", misc.Swagger) //Render V1 by default
 	}
 
-	var handlers []macaron.Handler
-	if setting.EnableCORS {
-		handlers = append(handlers, cors.CORS(setting.CORSConfig))
-	}
-	handlers = append(handlers, securityHeaders(), context.APIContexter(), sudo())
-
 	m.Group("/v1", func() {
 		// Miscellaneous
 		if setting.API.EnableSwagger {
@@ -853,7 +846,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		})
-	}, handlers...)
+	}, securityHeaders(), context.APIContexter(), sudo())
 }
 
 func securityHeaders() macaron.Handler {
