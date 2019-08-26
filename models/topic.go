@@ -62,23 +62,22 @@ func ValidateTopic(topic string) bool {
 // SanitizeAndValidateTopics sanitizes and checks an array or topics
 func SanitizeAndValidateTopics(topics []string) (validTopics []string, invalidTopics []string) {
 	validTopics = make([]string, 0)
+	mValidTopics := make(map[string]bool)
 	invalidTopics = make([]string, 0)
 
-LOOP_TOPICS:
 	for _, topic := range topics {
 		topic = strings.TrimSpace(strings.ToLower(topic))
 		// ignore empty string
 		if len(topic) == 0 {
-			continue LOOP_TOPICS
+			continue
 		}
 		// ignore same topic twice
-		for _, vTopic := range validTopics {
-			if topic == vTopic {
-				continue LOOP_TOPICS
-			}
+		if _, exist := mValidTopics[topic]; exist {
+			continue
 		}
 		if ValidateTopic(topic) {
 			validTopics = append(validTopics, topic)
+			mValidTopics[topic] = true
 		} else {
 			invalidTopics = append(invalidTopics, topic)
 		}
