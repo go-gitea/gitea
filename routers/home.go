@@ -133,18 +133,19 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	topicOnly := ctx.QueryBool("topic")
 
-	repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-		Page:      page,
-		PageSize:  opts.PageSize,
-		OrderBy:   orderBy,
-		Private:   opts.Private,
-		Keyword:   keyword,
-		OwnerID:   opts.OwnerID,
-		AllPublic: true,
-		TopicOnly: topicOnly,
+	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+		Page:               page,
+		PageSize:           opts.PageSize,
+		OrderBy:            orderBy,
+		Private:            opts.Private,
+		Keyword:            keyword,
+		OwnerID:            opts.OwnerID,
+		AllPublic:          true,
+		TopicOnly:          topicOnly,
+		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
 	if err != nil {
-		ctx.ServerError("SearchRepositoryByName", err)
+		ctx.ServerError("SearchRepository", err)
 		return
 	}
 	ctx.Data["Keyword"] = keyword
