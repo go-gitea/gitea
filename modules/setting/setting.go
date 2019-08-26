@@ -777,7 +777,7 @@ func NewContext() {
 		"spec":  "[-_]+",
 	}
 	PasswordComplexity = make(map[string]string)
-	cfgdata :=  sec.Key("PASSWORD_COMPLEXITY").Strings(",")
+	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
 	for _, y := range cfgdata {
 		ts := strings.TrimSpace(y)
 		for a := range dictPC {
