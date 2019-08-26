@@ -9946,7 +9946,10 @@
       "type": "object",
       "properties": {
         "topics": {
-          "type": "string",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
           "x-go-name": "TopicNames"
         }
       },
@@ -10564,10 +10567,7 @@
     "TopicNames": {
       "description": "TopicNames",
       "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/TopicName"
-        }
+        "$ref": "#/definitions/TopicName"
       }
     },
     "TrackedTime": {

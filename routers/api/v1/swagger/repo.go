@@ -229,5 +229,5 @@ type swaggerTopicListResponse struct {
 // swagger:response TopicNames
 type swaggerTopicNames struct {
 	//in: body
-	Body []api.TopicName `json:"body"`
+	Body api.TopicName `json:"body"`
 }

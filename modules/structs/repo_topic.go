@@ -18,7 +18,7 @@ type TopicResponse struct {
 }
 
 type TopicName struct {
-	TopicNames string `json:"topics"`
+	TopicNames []string `json:"topics"`
 }
 
 // RepoTopicOptions a collection of repo topic names
