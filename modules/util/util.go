@@ -34,7 +34,6 @@ func CheckPasswordComplexity(pwd string) bool {
 			for key, val := range setting.PasswordComplexity {
 				matchComplexity := regexp.MustCompile(val)
 				matchComplexities[key] = *matchComplexity
-
 			}
 		})
 		for _, val := range matchComplexities {

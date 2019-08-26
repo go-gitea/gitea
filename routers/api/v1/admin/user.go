@@ -140,7 +140,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	if len(form.Password) > 0 {
 		if !util.CheckPasswordComplexity(form.Password) {
 			err := errors.New("PasswordComplexity")
-			ctx.Error(500, "PasswordComplexity", err)
+			ctx.Error(400, "PasswordComplexity", err)
 			return
 		}
 		var err error

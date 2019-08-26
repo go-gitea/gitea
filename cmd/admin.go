@@ -235,8 +235,7 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 	if !util.CheckPasswordComplexity(c.String("password")) {
-		err := errors.New("PasswordComplexity")
-		return err
+		return errors.New("Password is not complicated")
 	}
 	uname := c.String("username")
 	user, err := models.GetUserByName(uname)
@@ -286,7 +285,7 @@ func runCreateUser(c *cli.Context) error {
 		password = c.String("password")
 	} else if c.IsSet("random-password") {
 		var err error
-		password, err = generate.GetRandomPassword(c.Int("random-password-length"))
+		password, err = generate.GeneratePassword(c.Int("random-password-length"))
 		if err != nil {
 			return err
 		}
