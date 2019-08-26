@@ -19,7 +19,12 @@ import (
 func TestChangePassword(t *testing.T) {
 	oldPassword := "password"
 	setting.MinPasswordLength = 6
-
+	setting.PasswordComplexity = map[string]string{
+		"lower": "[a-z]+",
+		"upper": "[A-Z]+",
+		"digit": "[0-9]+",
+		"spec":  "[-_]+",
+	}
 	for _, req := range []struct {
 		OldPassword string
 		NewPassword string
@@ -28,8 +33,8 @@ func TestChangePassword(t *testing.T) {
 	}{
 		{
 			OldPassword: oldPassword,
-			NewPassword: "Qwwerty123456-.",
-			Retype:      "Qwwerty123456-.",
+			NewPassword: "Qwerty123456-",
+			Retype:      "Qwerty123456-",
 			Message:     "",
 		},
 		{
@@ -54,7 +59,7 @@ func TestChangePassword(t *testing.T) {
 			OldPassword: oldPassword,
 			NewPassword: "Qwerty",
 			Retype:      "Qwerty",
-			Message:     "", //TODO Change to actual results
+			Message:     "settings.password_complexity",
 		},
 	} {
 		models.PrepareTestEnv(t)

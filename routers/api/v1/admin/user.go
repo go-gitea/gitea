@@ -78,7 +78,7 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	}
 	if !util.CheckPasswordComplexity(form.Password) {
 		err := errors.New("PasswordComplexity")
-		ctx.Error(500, "PasswordComplexity", err)
+		ctx.Error(400, "PasswordComplexity", err)
 		return
 	}
 	if err := models.CreateUser(u); err != nil {
