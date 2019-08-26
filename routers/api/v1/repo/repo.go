@@ -55,6 +55,10 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: Limit search to repositories with keyword as topic
 	//   type: boolean
+	// - name: includeDesc
+	//   in: query
+	//   description: include search of keyword within repository description
+	//   type: boolean
 	// - name: uid
 	//   in: query
 	//   description: search only for repos that the user with the given id owns or contributes to
@@ -103,16 +107,17 @@ func Search(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	opts := &models.SearchRepoOptions{
-		Keyword:     strings.Trim(ctx.Query("q"), " "),
-		OwnerID:     ctx.QueryInt64("uid"),
-		Page:        ctx.QueryInt("page"),
-		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		TopicOnly:   ctx.QueryBool("topic"),
-		Collaborate: util.OptionalBoolNone,
-		Private:     ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
-		UserIsAdmin: ctx.IsUserSiteAdmin(),
-		UserID:      ctx.Data["SignedUserID"].(int64),
-		StarredByID: ctx.QueryInt64("starredBy"),
+		Keyword:            strings.Trim(ctx.Query("q"), " "),
+		OwnerID:            ctx.QueryInt64("uid"),
+		Page:               ctx.QueryInt("page"),
+		PageSize:           convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		TopicOnly:          ctx.QueryBool("topic"),
+		Collaborate:        util.OptionalBoolNone,
+		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
+		UserIsAdmin:        ctx.IsUserSiteAdmin(),
+		UserID:             ctx.Data["SignedUserID"].(int64),
+		StarredByID:        ctx.QueryInt64("starredBy"),
+		IncludeDescription: ctx.QueryBool("includeDesc"),
 	}
 
 	if ctx.QueryBool("exclusive") {
@@ -157,7 +162,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	var err error
-	repos, count, err := models.SearchRepositoryByName(opts)
+	repos, count, err := models.SearchRepository(opts)
 	if err != nil {
 		ctx.JSON(500, api.SearchError{
 			OK:    false,

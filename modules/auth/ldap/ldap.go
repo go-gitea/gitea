@@ -308,12 +308,12 @@ func (ls *Source) UsePagedSearch() bool {
 }
 
 // SearchEntries : search an LDAP source for all users matching userFilter
-func (ls *Source) SearchEntries() []*SearchResult {
+func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 	l, err := dial(ls)
 	if err != nil {
 		log.Error("LDAP Connect error, %s:%v", ls.Host, err)
 		ls.Enabled = false
-		return nil
+		return nil, err
 	}
 	defer l.Close()
 
@@ -321,7 +321,7 @@ func (ls *Source) SearchEntries() []*SearchResult {
 		err := l.Bind(ls.BindDN, ls.BindPassword)
 		if err != nil {
 			log.Debug("Failed to bind as BindDN[%s]: %v", ls.BindDN, err)
-			return nil
+			return nil, err
 		}
 		log.Trace("Bound as BindDN %s", ls.BindDN)
 	} else {
@@ -350,7 +350,7 @@ func (ls *Source) SearchEntries() []*SearchResult {
 	}
 	if err != nil {
 		log.Error("LDAP Search failed unexpectedly! (%v)", err)
-		return nil
+		return nil, err
 	}
 
 	result := make([]*SearchResult, len(sr.Entries))
@@ -368,5 +368,5 @@ func (ls *Source) SearchEntries() []*SearchResult {
 		}
 	}
 
-	return result
+	return result, nil
 }

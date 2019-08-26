@@ -1673,7 +1673,12 @@ func SyncExternalUsers() {
 				return
 			}
 
-			sr := s.LDAP().SearchEntries()
+			sr, err := s.LDAP().SearchEntries()
+			if err != nil {
+				log.Error("SyncExternalUsers LDAP source failure [%s], skipped", s.Name)
+				continue
+			}
+
 			for _, su := range sr {
 				if len(su.Username) == 0 {
 					continue
