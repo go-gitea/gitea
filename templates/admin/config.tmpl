@@ -88,8 +88,8 @@
 						<dt>{{.i18n.Tr "admin.config.ssh_minimum_key_size_check"}}</dt>
 						<dd><i class="fa fa{{if .SSH.MinimumKeySizeCheck}}-check{{end}}-square-o"></i></dd>
 						{{if .SSH.MinimumKeySizeCheck}}
-						<dt>{{.i18n.Tr "admin.config.ssh_minimum_key_sizes"}}</dt>
-						<dd>{{.SSH.MinimumKeySizes}}</dd>
+							<dt>{{.i18n.Tr "admin.config.ssh_minimum_key_sizes"}}</dt>
+							<dd>{{.SSH.MinimumKeySizes}}</dd>
 						{{end}}
 					{{end}}
 				{{end}}
@@ -120,20 +120,20 @@
 				<dt>{{.i18n.Tr "admin.config.db_type"}}</dt>
 				<dd>{{.DbCfg.Type}}</dd>
 				{{if not (or (eq .DbCfg.Type "sqlite3") (eq .DbCfg.Type "tidb"))}}
-				<dt>{{.i18n.Tr "admin.config.db_host"}}</dt>
-				<dd>{{if .DbCfg.Host}}{{.DbCfg.Host}}{{else}}-{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.db_name"}}</dt>
-				<dd>{{if .DbCfg.Name}}{{.DbCfg.Name}}{{else}}-{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.db_user"}}</dt>
-				<dd>{{if .DbCfg.User}}{{.DbCfg.User}}{{else}}-{{end}}</dd>
+					<dt>{{.i18n.Tr "admin.config.db_host"}}</dt>
+					<dd>{{if .DbCfg.Host}}{{.DbCfg.Host}}{{else}}-{{end}}</dd>
+					<dt>{{.i18n.Tr "admin.config.db_name"}}</dt>
+					<dd>{{if .DbCfg.Name}}{{.DbCfg.Name}}{{else}}-{{end}}</dd>
+					<dt>{{.i18n.Tr "admin.config.db_user"}}</dt>
+					<dd>{{if .DbCfg.User}}{{.DbCfg.User}}{{else}}-{{end}}</dd>
 				{{end}}
 				{{if eq .DbCfg.Type "postgres"}}
-				<dt>{{.i18n.Tr "admin.config.db_ssl_mode"}}</dt>
-				<dd>{{if .DbCfg.SSLMode}}{{.DbCfg.SSLMode}}{{else}}-{{end}}</dd>
+					<dt>{{.i18n.Tr "admin.config.db_ssl_mode"}}</dt>
+					<dd>{{if .DbCfg.SSLMode}}{{.DbCfg.SSLMode}}{{else}}-{{end}}</dd>
 				{{end}}
 				{{if or (eq .DbCfg.Type "sqlite3") (eq .DbCfg.Type "tidb")}}
-				<dt>{{.i18n.Tr "admin.config.db_path"}}</dt>
-				<dd>{{if .DbCfg.Path}}{{.DbCfg.Path}}{{else}}-{{end}}</dd>
+					<dt>{{.i18n.Tr "admin.config.db_path"}}</dt>
+					<dd>{{if .DbCfg.Path}}{{.DbCfg.Path}}{{else}}-{{end}}</dd>
 				{{end}}
 			</dl>
 		</div>
@@ -250,14 +250,14 @@
 				<dt>{{.i18n.Tr "admin.config.cache_adapter"}}</dt>
 				<dd>{{.CacheAdapter}}</dd>
 				{{if eq .CacheAdapter "memory"}}
-				<dt>{{.i18n.Tr "admin.config.cache_interval"}}</dt>
-				<dd>{{.CacheInterval}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+					<dt>{{.i18n.Tr "admin.config.cache_interval"}}</dt>
+					<dd>{{.CacheInterval}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
 				{{end}}
 				{{if .CacheConn}}
-				<dt>{{.i18n.Tr "admin.config.cache_conn"}}</dt>
-				<dd><code>{{.CacheConn}}</code></dd>
-				<dt>{{.i18n.Tr "admin.config.cache_item_ttl"}}</dt>
-				<dd><code>{{.CacheItemTTL}}</code></dd>
+					<dt>{{.i18n.Tr "admin.config.cache_conn"}}</dt>
+					<dd><code>{{.CacheConn}}</code></dd>
+					<dt>{{.i18n.Tr "admin.config.cache_item_ttl"}}</dt>
+					<dd><code>{{.CacheItemTTL}}</code></dd>
 				{{end}}
 			</dl>
 		</div>
