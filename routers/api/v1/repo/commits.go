@@ -212,7 +212,9 @@ func toCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Comm
 			return nil, err
 		} else if err == nil {
 			apiAuthor = author.APIFormat()
-			userCache[commit.Author.Email] = author
+			if userCache != nil {
+				userCache[commit.Author.Email] = author
+			}
 		}
 	}
 
@@ -232,7 +234,9 @@ func toCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Comm
 			return nil, err
 		} else if err == nil {
 			apiCommitter = committer.APIFormat()
-			userCache[commit.Committer.Email] = committer
+			if userCache != nil {
+				userCache[commit.Committer.Email] = committer
+			}
 		}
 	}
 
