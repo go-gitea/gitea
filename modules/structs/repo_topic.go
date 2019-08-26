@@ -17,6 +17,7 @@ type TopicResponse struct {
 	Updated   time.Time `json:"updated"`
 }
 
+// TopicName a list of repo topic names
 type TopicName struct {
 	TopicNames []string `json:"topics"`
 }
