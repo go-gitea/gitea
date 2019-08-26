@@ -57,70 +57,13 @@ func GetSingleCommit(ctx *context.APIContext) {
 		return
 	}
 
-	// Retrieve author and committer information
-	var apiAuthor, apiCommitter *api.User
-	author, err := models.GetUserByEmail(commit.Author.Email)
-	if err != nil && !models.IsErrUserNotExist(err) {
-		ctx.ServerError("Get user by author email", err)
+	json, err := ToCommit(ctx, ctx.Repo.Repository, commit, nil)
+	if err != nil {
+		ctx.ServerError("ToCommit", err)
 		return
-	} else if err == nil {
-		apiAuthor = author.APIFormat()
-	}
-	// Save one query if the author is also the committer
-	if commit.Committer.Email == commit.Author.Email {
-		apiCommitter = apiAuthor
-	} else {
-		committer, err := models.GetUserByEmail(commit.Committer.Email)
-		if err != nil && !models.IsErrUserNotExist(err) {
-			ctx.ServerError("Get user by committer email", err)
-			return
-		} else if err == nil {
-			apiCommitter = committer.APIFormat()
-		}
 	}
 
-	// Retrieve parent(s) of the commit
-	apiParents := make([]*api.CommitMeta, commit.ParentCount())
-	for i := 0; i < commit.ParentCount(); i++ {
-		sha, _ := commit.ParentID(i)
-		apiParents[i] = &api.CommitMeta{
-			URL: ctx.Repo.Repository.APIURL() + "/git/commits/" + sha.String(),
-			SHA: sha.String(),
-		}
-	}
-
-	ctx.JSON(200, &api.Commit{
-		CommitMeta: &api.CommitMeta{
-			URL: setting.AppURL + ctx.Link[1:],
-			SHA: commit.ID.String(),
-		},
-		HTMLURL: ctx.Repo.Repository.HTMLURL() + "/commit/" + commit.ID.String(),
-		RepoCommit: &api.RepoCommit{
-			URL: setting.AppURL + ctx.Link[1:],
-			Author: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  commit.Author.Name,
-					Email: commit.Author.Email,
-				},
-				Date: commit.Author.When.Format(time.RFC3339),
-			},
-			Committer: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  commit.Committer.Name,
-					Email: commit.Committer.Email,
-				},
-				Date: commit.Committer.When.Format(time.RFC3339),
-			},
-			Message: commit.Message(),
-			Tree: &api.CommitMeta{
-				URL: ctx.Repo.Repository.APIURL() + "/git/trees/" + commit.ID.String(),
-				SHA: commit.ID.String(),
-			},
-		},
-		Author:    apiAuthor,
-		Committer: apiCommitter,
-		Parents:   apiParents,
-	})
+	ctx.JSON(200, json)
 }
 
 // GetAllCommits get all commits via
@@ -225,78 +168,11 @@ func GetAllCommits(ctx *context.APIContext) {
 	for commitPointer := commits.Front(); commitPointer != nil; commitPointer = commitPointer.Next() {
 		commit := commitPointer.Value.(*git.Commit)
 
-		var apiAuthor, apiCommitter *api.User
-
-		// Retrieve author and committer information
-		cacheAuthor, ok := userCache[commit.Author.Email]
-		if ok {
-			apiAuthor = cacheAuthor.APIFormat()
-		} else {
-			author, err := models.GetUserByEmail(commit.Author.Email)
-			if err != nil && !models.IsErrUserNotExist(err) {
-				ctx.ServerError("Get user by author email", err)
-				return
-			} else if err == nil {
-				apiAuthor = author.APIFormat()
-				userCache[commit.Author.Email] = author
-			}
-		}
-		cacheCommitter, ok := userCache[commit.Committer.Email]
-		if ok {
-			apiCommitter = cacheCommitter.APIFormat()
-		} else {
-			committer, err := models.GetUserByEmail(commit.Committer.Email)
-			if err != nil && !models.IsErrUserNotExist(err) {
-				ctx.ServerError("Get user by committer email", err)
-				return
-			} else if err == nil {
-				apiCommitter = committer.APIFormat()
-				userCache[commit.Committer.Email] = committer
-			}
-		}
-
-		// Retrieve parent(s) of the commit
-		apiParents := make([]*api.CommitMeta, commit.ParentCount())
-		for i := 0; i < commit.ParentCount(); i++ {
-			sha, _ := commit.ParentID(i)
-			apiParents[i] = &api.CommitMeta{
-				URL: ctx.Repo.Repository.APIURL() + "/git/commits/" + sha.String(),
-				SHA: sha.String(),
-			}
-		}
-
 		// Create json struct
-		apiCommits[i] = &api.Commit{
-			CommitMeta: &api.CommitMeta{
-				URL: ctx.Repo.Repository.APIURL() + "/git/commits/" + commit.ID.String(),
-				SHA: commit.ID.String(),
-			},
-			HTMLURL: ctx.Repo.Repository.HTMLURL() + "/commit/" + commit.ID.String(),
-			RepoCommit: &api.RepoCommit{
-				URL: ctx.Repo.Repository.APIURL() + "/git/commits/" + commit.ID.String(),
-				Author: &api.CommitUser{
-					Identity: api.Identity{
-						Name:  commit.Committer.Name,
-						Email: commit.Committer.Email,
-					},
-					Date: commit.Author.When.Format(time.RFC3339),
-				},
-				Committer: &api.CommitUser{
-					Identity: api.Identity{
-						Name:  commit.Committer.Name,
-						Email: commit.Committer.Email,
-					},
-					Date: commit.Committer.When.Format(time.RFC3339),
-				},
-				Message: commit.Summary(),
-				Tree: &api.CommitMeta{
-					URL: ctx.Repo.Repository.APIURL() + "/git/trees/" + commit.ID.String(),
-					SHA: commit.ID.String(),
-				},
-			},
-			Author:    apiAuthor,
-			Committer: apiCommitter,
-			Parents:   apiParents,
+		apiCommits[i], err = ToCommit(ctx, ctx.Repo.Repository, commit, userCache)
+		if err != nil {
+			ctx.ServerError("ToCommit", err)
+			return
 		}
 
 		i++
@@ -311,4 +187,95 @@ func GetAllCommits(ctx *context.APIContext) {
 	ctx.Header().Set("X-HasMore", strconv.FormatBool(page < pageCount))
 
 	ctx.JSON(200, &apiCommits)
+}
+
+func ToCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Commit, userCache map[string]*models.User) (*api.Commit, error) {
+
+	var apiAuthor, apiCommitter *api.User
+
+	// Retrieve author and committer information
+
+	var cacheAuthor *models.User
+	var ok bool
+	if userCache == nil {
+		cacheAuthor = ((*models.User)(nil))
+		ok = false
+	} else {
+		cacheAuthor, ok = userCache[commit.Author.Email]
+	}
+
+	if ok {
+		apiAuthor = cacheAuthor.APIFormat()
+	} else {
+		author, err := models.GetUserByEmail(commit.Author.Email)
+		if err != nil && !models.IsErrUserNotExist(err) {
+			return nil, err
+		} else if err == nil {
+			apiAuthor = author.APIFormat()
+			userCache[commit.Author.Email] = author
+		}
+	}
+
+	var cacheCommitter *models.User
+	if userCache == nil {
+		cacheCommitter = ((*models.User)(nil))
+		ok = false
+	} else {
+		cacheCommitter, ok = userCache[commit.Committer.Email]
+	}
+
+	if ok {
+		apiCommitter = cacheCommitter.APIFormat()
+	} else {
+		committer, err := models.GetUserByEmail(commit.Committer.Email)
+		if err != nil && !models.IsErrUserNotExist(err) {
+			return nil, err
+		} else if err == nil {
+			apiCommitter = committer.APIFormat()
+			userCache[commit.Committer.Email] = committer
+		}
+	}
+
+	// Retrieve parent(s) of the commit
+	apiParents := make([]*api.CommitMeta, commit.ParentCount())
+	for i := 0; i < commit.ParentCount(); i++ {
+		sha, _ := commit.ParentID(i)
+		apiParents[i] = &api.CommitMeta{
+			URL: repo.APIURL() + "/git/commits/" + sha.String(),
+			SHA: sha.String(),
+		}
+	}
+
+	return &api.Commit{
+		CommitMeta: &api.CommitMeta{
+			URL: repo.APIURL() + "/git/commits/" + commit.ID.String(),
+			SHA: commit.ID.String(),
+		},
+		HTMLURL: repo.HTMLURL() + "/commit/" + commit.ID.String(),
+		RepoCommit: &api.RepoCommit{
+			URL: repo.APIURL() + "/git/commits/" + commit.ID.String(),
+			Author: &api.CommitUser{
+				Identity: api.Identity{
+					Name:  commit.Committer.Name,
+					Email: commit.Committer.Email,
+				},
+				Date: commit.Author.When.Format(time.RFC3339),
+			},
+			Committer: &api.CommitUser{
+				Identity: api.Identity{
+					Name:  commit.Committer.Name,
+					Email: commit.Committer.Email,
+				},
+				Date: commit.Committer.When.Format(time.RFC3339),
+			},
+			Message: commit.Summary(),
+			Tree: &api.CommitMeta{
+				URL: repo.APIURL() + "/git/trees/" + commit.ID.String(),
+				SHA: commit.ID.String(),
+			},
+		},
+		Author:    apiAuthor,
+		Committer: apiCommitter,
+		Parents:   apiParents,
+	}, nil
 }
