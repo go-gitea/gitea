@@ -17,7 +17,7 @@ import (
 
 func TestAPIRepoTopic(t *testing.T) {
 	prepareTestEnv(t)
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of repo1
+	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of repo1
 	repo2 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
 
 	// Get user2's token
@@ -32,14 +32,14 @@ func TestAPIRepoTopic(t *testing.T) {
 	res := session.MakeRequest(t, req, http.StatusOK)
 	var topics *api.TopicName
 	DecodeJSON(t, res, &topics)
-	assert.ElementsMatch(t, []string{"topicname1","topicname2"}, topics.TopicNames)
+	assert.ElementsMatch(t, []string{"topicname1", "topicname2"}, topics.TopicNames)
 
 	// Test delete a to7ic
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Topicname1", token2)
 	res = session.MakeRequest(t, req, http.StatusNoContent)
 
 	// Test add an existing topic
-	req = NewRequestf(t, "PUT",  "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Golang", token2)
+	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Golang", token2)
 	res = session.MakeRequest(t, req, http.StatusNoContent)
 
 	// Test add a topic
@@ -50,7 +50,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
-	assert.ElementsMatch(t, []string{"topicname2","golang","topicname3"}, topics.TopicNames)
+	assert.ElementsMatch(t, []string{"topicname2", "golang", "topicname3"}, topics.TopicNames)
 
 	// Test replace topics
 	newTopics := []string{"   windows ", "   ", "MAC  "}
@@ -61,7 +61,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
-	assert.ElementsMatch(t, []string{"windows","mac"}, topics.TopicNames)
+	assert.ElementsMatch(t, []string{"windows", "mac"}, topics.TopicNames)
 
 	// Test replace topics with something invalid
 	newTopics = []string{"topicname1", "topicname2", "topicname!"}
@@ -72,5 +72,5 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
-	assert.ElementsMatch(t, []string{"windows","mac"}, topics.TopicNames)
+	assert.ElementsMatch(t, []string{"windows", "mac"}, topics.TopicNames)
 }
