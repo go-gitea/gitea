@@ -2166,7 +2166,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Gets the tag of a repository.",
+        "summary": "Gets the tag object of an annotated tag (not lightweight tags)",
         "operationId": "GetTag",
         "parameters": [
           {
@@ -2185,7 +2185,7 @@
           },
           {
             "type": "string",
-            "description": "sha of the tag",
+            "description": "sha of the tag. The Git tags API only supports annotated tag objects, not lightweight tags.",
             "name": "sha",
             "in": "path",
             "required": true
