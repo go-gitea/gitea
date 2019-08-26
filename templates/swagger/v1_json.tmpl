@@ -2166,7 +2166,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Gets the tag of a repository.",
+        "summary": "Gets the tag object of an annotated tag (not lightweight tags)",
         "operationId": "GetTag",
         "parameters": [
           {
@@ -2185,7 +2185,7 @@
           },
           {
             "type": "string",
-            "description": "sha of the tag",
+            "description": "sha of the tag. The Git tags API only supports annotated tag objects, not lightweight tags.",
             "name": "sha",
             "in": "path",
             "required": true
@@ -7742,7 +7742,11 @@
         },
         "units": {
           "type": "array",
-          "enum": [
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units",
+          "example": [
             "repo.code",
             "repo.issues",
             "repo.ext_issues",
@@ -7750,11 +7754,7 @@
             "repo.pulls",
             "repo.releases",
             "repo.ext_wiki"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Units"
+          ]
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -8276,7 +8276,11 @@
         },
         "units": {
           "type": "array",
-          "enum": [
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units",
+          "example": [
             "repo.code",
             "repo.issues",
             "repo.ext_issues",
@@ -8284,11 +8288,7 @@
             "repo.pulls",
             "repo.releases",
             "repo.ext_wiki"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Units"
+          ]
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -9827,7 +9827,11 @@
         },
         "units": {
           "type": "array",
-          "enum": [
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units",
+          "example": [
             "repo.code",
             "repo.issues",
             "repo.ext_issues",
@@ -9835,11 +9839,7 @@
             "repo.pulls",
             "repo.releases",
             "repo.ext_wiki"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Units"
+          ]
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
