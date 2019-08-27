@@ -99,7 +99,7 @@ func GetTopicByName(name string) (*Topic, error) {
 
 // addTopicByNameToRepo adds a topic name to a repo and increments the topic count.
 // Returns topic after the addition
-func addTopicByNameToRepo(repoID int64, topicName string, e Engine) (*Topic, error) {
+func addTopicByNameToRepo(e Engine, repoID int64, topicName string) (*Topic, error) {
 	var topic Topic
 	if has, err := e.Where("name = ?", topicName).Get(&topic); err != nil {
 		return nil, err
@@ -202,7 +202,7 @@ func AddTopic(repoID int64, topicName string) (*Topic, error) {
 		return topic, nil
 	}
 
-	return addTopicByNameToRepo(repoID, topicName, x)
+	return addTopicByNameToRepo(x, repoID, topicName)
 }
 
 // DeleteTopic removes a topic name from a repository (if it has it)
@@ -270,7 +270,7 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 	}
 
 	for _, topicName := range addedTopicNames {
-		_, err := addTopicByNameToRepo(repoID, topicName, sess)
+		_, err := addTopicByNameToRepo(sess, repoID, topicName)
 		if err != nil {
 			return err
 		}
