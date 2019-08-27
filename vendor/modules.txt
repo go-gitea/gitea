@@ -11,7 +11,7 @@ gitea.com/macaron/cache/memcache
 gitea.com/macaron/cache/redis
 # gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae
 gitea.com/macaron/captcha
-# gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
+# gitea.com/macaron/cors v0.0.0-20190821152825-7dcef4a17175
 gitea.com/macaron/cors
 # gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
 gitea.com/macaron/csrf

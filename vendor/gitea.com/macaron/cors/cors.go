@@ -151,8 +151,7 @@ func CORS(options ...Options) macaron.Handler {
 			}
 		})
 		if reqOptions {
-			ctx.Resp.WriteHeader(200) // return response
-			return
+			ctx.Status(200) // return response
 		}
 	}
 }
