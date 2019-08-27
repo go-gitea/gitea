@@ -2,6 +2,8 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+// +build stress
+
 package models
 
 import (
@@ -14,8 +16,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestIssueNoDupIndex Performs a stress test of the INSERT ... SELECT function of database for inserting issues
-func TestIssueNoDupIndex(t *testing.T) {
+// StressIssueNoDupIndex Performs a stress test of the INSERT ... SELECT function of database for inserting issues
+func StressIssueNoDupIndex(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	const initialIssueFill = 1000 // issues inserted prior to stress test
