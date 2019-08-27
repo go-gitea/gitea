@@ -53,7 +53,7 @@ func StressIssueNoDupIndex(t *testing.T, useTransactions bool, initialIssueFill 
 
 	fmt.Printf("TestIssueNoDupIndex(): %d rows created\n", initialIssueFill)
 
-	until := time.Now().Add(time.Second * maxTestDuration)
+	until := time.Now().Add(time.Second * time.Duration(maxTestDuration))
 
 	var hasErrors int32
 	var wg sync.WaitGroup
