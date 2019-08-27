@@ -117,24 +117,15 @@ func TestWatchIfAuto(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, watchers, repo.NumWatches)
 
-	setting.Service.AutoWatchOnClone = false
 	setting.Service.AutoWatchOnChanges = false
 
 	prevCount := repo.NumWatches
 
 	// Must not add watch
-	assert.NoError(t, WatchIfAuto(8, 1, false))
+	assert.NoError(t, WatchIfAuto(8, 1, true))
 	watchers, err = repo.GetWatchers(1)
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
-
-	// Should not add watch
-	assert.NoError(t, WatchIfAuto(10, 1, false))
-	watchers, err = repo.GetWatchers(1)
-	assert.NoError(t, err)
-	assert.Len(t, watchers, prevCount)
-
-	setting.Service.AutoWatchOnClone = true
 
 	// Should not add watch
 	assert.NoError(t, WatchIfAuto(10, 1, true))
@@ -142,19 +133,10 @@ func TestWatchIfAuto(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
 
-	// Should add watch
-	assert.NoError(t, WatchIfAuto(10, 1, false))
-	watchers, err = repo.GetWatchers(1)
-	assert.NoError(t, err)
-	assert.Len(t, watchers, prevCount+1)
-
-	prevCount++
-
-	setting.Service.AutoWatchOnClone = false
 	setting.Service.AutoWatchOnChanges = true
 
 	// Must not add watch
-	assert.NoError(t, WatchIfAuto(8, 1, false))
+	assert.NoError(t, WatchIfAuto(8, 1, true))
 	watchers, err = repo.GetWatchers(1)
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)
@@ -178,7 +160,7 @@ func TestWatchIfAuto(t *testing.T) {
 	assert.Len(t, watchers, prevCount)
 
 	// Must not add watch
-	assert.NoError(t, WatchIfAuto(12, 1, false))
+	assert.NoError(t, WatchIfAuto(12, 1, true))
 	watchers, err = repo.GetWatchers(1)
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)

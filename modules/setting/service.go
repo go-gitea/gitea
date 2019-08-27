@@ -43,7 +43,6 @@ var Service struct {
 	EnableUserHeatmap                       bool
 	AutoWatchNewRepos                       bool
 	AutoWatchOnChanges                      bool
-	AutoWatchOnClone                        bool
 	DefaultOrgMemberVisible                 bool
 
 	// OpenID settings
@@ -84,7 +83,6 @@ func newService() {
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
 	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
 	Service.AutoWatchOnChanges = sec.Key("AUTO_WATCH_ON_CHANGES").MustBool(false)
-	Service.AutoWatchOnClone = sec.Key("AUTO_WATCH_ON_CLONE").MustBool(false)
 	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()

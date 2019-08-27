@@ -222,9 +222,8 @@ func watchIfAuto(e Engine, userID, repoID int64, isWrite bool) error {
 			return nil
 		}
 	} else {
-		if !setting.Service.AutoWatchOnClone {
-			return nil
-		}
+		// No other kind of auto-watch for the moment
+		return nil
 	}
 	watch, err := getWatch(e, userID, repoID)
 	if err != nil {
@@ -236,7 +235,7 @@ func watchIfAuto(e Engine, userID, repoID int64, isWrite bool) error {
 	return watchRepoMode(e, watch, RepoWatchModeAuto)
 }
 
-// WatchIfAuto subscribes to repo if AutoWatchOnClone or AutoWatchOnChanges are set
+// WatchIfAuto subscribes to repo if AutoWatchOnChanges is set
 func WatchIfAuto(userID int64, repoID int64, isWrite bool) error {
 	return watchIfAuto(x, userID, repoID, isWrite)
 }
