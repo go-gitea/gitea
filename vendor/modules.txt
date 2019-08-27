@@ -28,8 +28,6 @@ gitea.com/macaron/session/postgres
 gitea.com/macaron/session/redis
 # gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
 gitea.com/macaron/toolbox
-# gitea.com/lunny/path v0.0.0-20190626081327-c422dbab7503
-gitea.com/lunny/path
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
 # github.com/PuerkitoBio/goquery v1.5.0
