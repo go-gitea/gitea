@@ -153,7 +153,7 @@ func (repo *Repository) GetTagNameBySHA(sha string) (string, error) {
 
 // GetTagID returns the object ID for a tag (annotated tags have both an object SHA AND a commit SHA)
 func (repo *Repository) GetTagID(name string) (string, error) {
-	stdout, err := NewCommand("show-ref", "--", name).RunInDir(repo.Path)
+	stdout, err := NewCommand("show-ref", "--tags", "--", name).RunInDir(repo.Path)
 	if err != nil {
 		return "", err
 	}
