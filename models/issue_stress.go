@@ -17,13 +17,23 @@ import (
 )
 
 // StressIssueNoDupIndex Performs a stress test of the INSERT ... SELECT function of database for inserting issues
-func StressIssueNoDupIndex(t *testing.T) {
+func StressIssueNoDupIndex(t *testing.T, useTransactions bool, initialIssueFill int, maxTestDuration int, threadCount int) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	const initialIssueFill = 1000 // issues inserted prior to stress test
-	const maxTestDuration = 60    // seconds
-	const threadCount = 8         // max simultaneous threads
-	const useTransactions = true  // true: wrap attempts with BEGIN TRANSACTION/COMMIT
+	// Defaults
+	const defInitialIssueFill = 1000 // issues inserted prior to stress test
+	const defMaxTestDuration = 60    // seconds
+	const defThreadCount = 8         // max simultaneous threads
+
+	if initialIssueFill == 0 {
+		initialIssueFill = defInitialIssueFill
+	}
+	if maxTestDuration == 0 {
+		maxTestDuration = defMaxTestDuration
+	}
+	if threadCount == 0 {
+		threadCount = defThreadCount
+	}
 
 	var err error
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)

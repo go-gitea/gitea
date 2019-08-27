@@ -15,5 +15,6 @@ import (
 // TestStressCreateIssue do something
 func TestStressCreateIssue(t *testing.T) {
 	// TODO: refactor this to avoid including StressIssueNoDupIndex() in production
-	models.StressIssueNoDupIndex(t)
+	// func StressIssueNoDupIndex(t *testing.T, useTransactions bool, initialIssueFill int, maxTestDuration int, threadCount int) {
+	models.StressIssueNoDupIndex(t, true, 0, 0, 0)
 }
