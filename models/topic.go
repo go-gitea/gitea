@@ -101,9 +101,10 @@ func GetTopicByName(name string) (*Topic, error) {
 // Returns topic after the addition
 func addTopicByNameToRepo(e Engine, repoID int64, topicName string) (*Topic, error) {
 	var topic Topic
-	if has, err := e.Where("name = ?", topicName).Get(&topic); err != nil {
+	has, err := e.Where("name = ?", topicName).Get(&topic)
+	if err != nil {
 		return nil, err
-	} 
+	}
 	if !has {
 		topic.Name = topicName
 		topic.RepoCount = 1
