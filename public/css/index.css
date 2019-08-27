@@ -466,6 +466,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 }
 .repository.file.list #repo-files-table thead th{padding-top:8px;padding-bottom:5px;font-weight:400}
 .repository.file.list #repo-files-table thead .ui.avatar{margin-bottom:5px}
+.repository.file.list #repo-files-table thead a.commit-link:hover{text-decoration:underline}
 .repository.file.list #repo-files-table tbody .octicon{margin-left:3px;margin-right:5px;color:#777}
 .repository.file.list #repo-files-table tbody .octicon.octicon-mail-reply{margin-right:10px}
 .repository.file.list #repo-files-table tbody .octicon.octicon-file-directory,.repository.file.list #repo-files-table tbody .octicon.octicon-file-submodule,.repository.file.list #repo-files-table tbody .octicon.octicon-file-symlink-directory{color:#1e70bf}
@@ -828,6 +829,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .stats-table .table-cell.tiny{height:.5em}
 tbody.commit-list{vertical-align:baseline}
 .commit-list .message-wrapper{overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 50px);display:inline-block;vertical-align:middle}
+.commit-list a.commit-link:hover{text-decoration:underline}
 .commit-list .commit-status-link{display:inline-block;vertical-align:middle}
 .commit-body{white-space:pre-wrap}
 .git-notes.top{text-align:left}

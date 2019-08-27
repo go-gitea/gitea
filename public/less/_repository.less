@@ -277,6 +277,12 @@
                 .ui.avatar {
                     margin-bottom: 5px;
                 }
+
+                a.commit-link {
+                    &:hover {
+                        text-decoration: underline;
+                    }
+                }
             }
 
             tbody {
@@ -2183,6 +2189,12 @@ tbody.commit-list {
     max-width: calc(100% - 50px);
     display: inline-block;
     vertical-align: middle;
+}
+
+.commit-list a.commit-link {
+    &:hover {
+        text-decoration: underline;
+    }
 }
 
 .commit-list .commit-status-link {

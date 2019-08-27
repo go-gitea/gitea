@@ -70,9 +70,9 @@
 							</a>
 						</td>
 						<td class="message">
-							<span class="message-wrapper">
+							<a class="message-wrapper commit-link" href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.ID}}">
 								<span class="commit-summary has-emoji{{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessage .Message $.RepoLink $.Repository.ComposeMetas}}</span>
-							</span>
+							</a>
 							{{if IsMultilineCommitMessage .Message}}
 							<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
 							{{end}}
