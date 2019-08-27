@@ -103,7 +103,8 @@ func addTopicByNameToRepo(repoID int64, topicName string, e Engine) (*Topic, err
 	var topic Topic
 	if has, err := e.Where("name = ?", topicName).Get(&topic); err != nil {
 		return nil, err
-	} else if !has {
+	} 
+	if !has {
 		topic.Name = topicName
 		topic.RepoCount = 1
 		if _, err := e.Insert(&topic); err != nil {
