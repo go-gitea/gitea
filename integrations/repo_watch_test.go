@@ -17,8 +17,8 @@ func TestWatch(t *testing.T) {
 		// Test round-trip auto-watch
 		setting.Service.AutoWatchOnChanges = true
 		session := loginUser(t, "user2")
-		models.AssertNotExistsBean(t, &models.Watch{UserID:2, RepoID:3})
+		models.AssertNotExistsBean(t, &models.Watch{UserID: 2, RepoID: 3})
 		testEditFile(t, session, "user3", "repo3", "master", "README.md", "Hello, World (Edited for watch)\n")
-		models.AssertExistsAndLoadBean(t, &models.Watch{UserID:2, RepoID:3, Mode:models.RepoWatchModeAuto})
+		models.AssertExistsAndLoadBean(t, &models.Watch{UserID: 2, RepoID: 3, Mode: models.RepoWatchModeAuto})
 	})
 }

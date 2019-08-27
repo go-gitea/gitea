@@ -13,7 +13,7 @@ type RepoWatchMode int8
 
 // Watch is connection request for receiving repository notification.
 type Watch struct {
-	Mode   RepoWatchMode `xorm:"SMALLINT NOT NULL DEFAULT 1"`
+	Mode RepoWatchMode `xorm:"SMALLINT NOT NULL DEFAULT 1"`
 }
 
 func addModeColumnToWatch(x *xorm.Engine) error {
