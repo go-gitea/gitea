@@ -4,7 +4,6 @@
 
 // +build stress
 
-
 package integrations
 
 import (
