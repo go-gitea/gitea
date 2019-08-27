@@ -73,4 +73,31 @@ func TestAPIRepoTopic(t *testing.T) {
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
 	assert.ElementsMatch(t, []string{"windows", "mac"}, topics.TopicNames)
+
+	// Test with some topics multiple times, less than 25 unique
+	newTopics = []string{"t1", "t2", "t1", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "t10", "t11", "t12", "t13", "t14", "t15", "t16", "17", "t18", "t19", "t20", "t21", "t22", "t23", "t24", "t25"}
+	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
+		Topics: newTopics,
+	})
+	res = session.MakeRequest(t, req, http.StatusNoContent)
+	req = NewRequest(t, "GET", url)
+	res = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, res, &topics)
+	assert.Equal(t, 25, len(topics.TopicNames))
+
+	// Test writing more topics than allowed
+	newTopics = append(newTopics, "t26")
+	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
+		Topics: newTopics,
+	})
+	res = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	// Test add a topic when there is already maximum
+	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "t26", token2)
+	res = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	// Test delete a topic that repo doesn't have
+	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Topicname1", token2)
+	res = session.MakeRequest(t, req, http.StatusNotFound)
+
 }
