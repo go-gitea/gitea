@@ -268,20 +268,6 @@ func ServCommand(ctx *macaron.Context) {
 			return
 		}
 	}
-
-	// Auto-subscribe to repo if not anonymous user and not wiki
-	if !results.IsWiki && user != nil {
-		if err = models.WatchIfAuto(user.ID, repo.ID, mode == models.AccessModeWrite); err != nil {
-			log.Error("Failed to check auto watch for user %-v on %-v Error: %v", user, repo, err)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"results": results,
-				"type":    "InternalServerError",
-				"err":     fmt.Sprintf("Failed to check auto watch for user %s on repo %s Error: %v", user.Name, repo.Name, err),
-			})
-			return
-		}
-	}
-
 	log.Debug("Serv Results:\nIsWiki: %t\nIsDeployKey: %t\nKeyID: %d\tKeyName: %s\nUserName: %s\nUserID: %d\nOwnerName: %s\nRepoName: %s\nRepoID: %d",
 		results.IsWiki,
 		results.IsDeployKey,

@@ -26,8 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"github.com/Unknwon/com"
 )
 
 // HTTP implmentation git smart HTTP protocol
@@ -430,38 +428,6 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
-		return
-	}
-
-	// Implement automatic watch on upload/receive
-	if service != "upload-pack" && service != "receive-pack" {
-		return
-	}
-
-	var (
-		repoID int64
-		userID int64
-	)
-
-	// Restore userID and repoID values from context
-	repoReg := regexp.MustCompile("^" + models.ProtectedBranchRepoID + "=(.*)$")
-	userReg := regexp.MustCompile("^" + models.EnvPusherID + "=(.*)$")
-
-	for _, env := range h.environ {
-		if m := repoReg.FindStringSubmatch(env); m != nil {
-			repoID = com.StrTo(m[1]).MustInt64()
-		}
-		if m := userReg.FindStringSubmatch(env); m != nil {
-			userID = com.StrTo(m[1]).MustInt64()
-		}
-	}
-
-	if userID == 0 || repoID == 0 {
-		return
-	}
-
-	if err = models.WatchIfAuto(userID, repoID, service == "receive-pack"); err != nil {
-		log.Warn("Fail to perform auto watch on user %v for repo %v: %v - %v", userID, repoID, err, stderr)
 		return
 	}
 }
