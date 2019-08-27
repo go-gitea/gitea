@@ -13,7 +13,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 // Search search users

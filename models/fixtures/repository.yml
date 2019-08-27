@@ -165,6 +165,7 @@
   owner_id: 14
   lower_name: test_repo_14
   name: test_repo_14
+  description: test_description_14
   is_private: false
   num_issues: 0
   num_closed_issues: 0
