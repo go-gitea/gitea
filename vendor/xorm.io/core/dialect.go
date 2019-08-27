@@ -40,9 +40,9 @@ type Dialect interface {
 	DriverName() string
 	DataSourceName() string
 
-	QuoteStr() string
 	IsReserved(string) bool
 	Quote(string) string
+
 	AndStr() string
 	OrStr() string
 	EqStr() string
@@ -70,8 +70,8 @@ type Dialect interface {
 
 	ForUpdateSql(query string) string
 
-	//CreateTableIfNotExists(table *Table, tableName, storeEngine, charset string) error
-	//MustDropTable(tableName string) error
+	// CreateTableIfNotExists(table *Table, tableName, storeEngine, charset string) error
+	// MustDropTable(tableName string) error
 
 	GetColumns(tableName string) ([]string, map[string]*Column, error)
 	GetTables() ([]*Table, error)
@@ -85,6 +85,7 @@ func OpenDialect(dialect Dialect) (*DB, error) {
 	return Open(dialect.DriverName(), dialect.DataSourceName())
 }
 
+// Base represents a basic dialect and all real dialects could embed this struct
 type Base struct {
 	db             *DB
 	dialect        Dialect
@@ -172,8 +173,15 @@ func (db *Base) HasRecords(query string, args ...interface{}) (bool, error) {
 }
 
 func (db *Base) IsColumnExist(tableName, colName string) (bool, error) {
-	query := "SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = ? AND `TABLE_NAME` = ? AND `COLUMN_NAME` = ?"
-	query = strings.Replace(query, "`", db.dialect.QuoteStr(), -1)
+	query := fmt.Sprintf(
+		"SELECT %v FROM %v.%v WHERE %v = ? AND %v = ? AND %v = ?",
+		db.dialect.Quote("COLUMN_NAME"),
+		db.dialect.Quote("INFORMATION_SCHEMA"),
+		db.dialect.Quote("COLUMNS"),
+		db.dialect.Quote("TABLE_SCHEMA"),
+		db.dialect.Quote("TABLE_NAME"),
+		db.dialect.Quote("COLUMN_NAME"),
+	)
 	return db.HasRecords(query, db.DbName, tableName, colName)
 }
 
@@ -310,7 +318,7 @@ func RegisterDialect(dbName DbType, dialectFunc func() Dialect) {
 	dialects[strings.ToLower(string(dbName))] = dialectFunc // !nashtsai! allow override dialect
 }
 
-// QueryDialect query if registed database dialect
+// QueryDialect query if registered database dialect
 func QueryDialect(dbName DbType) Dialect {
 	if d, ok := dialects[strings.ToLower(string(dbName))]; ok {
 		return d()
