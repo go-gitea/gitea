@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func TestWatch(t *testing.T) {
+func TestRepoWatch(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// Test round-trip auto-watch
 		setting.Service.AutoWatchOnChanges = true
