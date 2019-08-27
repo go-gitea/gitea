@@ -25,16 +25,16 @@ func TestAPIRepoTopic(t *testing.T) {
 	token2 := getTokenForLoggedInUser(t, session)
 	session = emptyTestSession(t)
 
+	// Test read topics using login
 	url := fmt.Sprintf("/api/v1/repos/%s/%s/topics?token=%s", user2.Name, repo2.Name, token2)
-
-	// Test read topics
 	req := NewRequest(t, "GET", url)
 	res := session.MakeRequest(t, req, http.StatusOK)
 	var topics *api.TopicName
 	DecodeJSON(t, res, &topics)
 	assert.ElementsMatch(t, []string{"topicname1", "topicname2"}, topics.TopicNames)
 
-	// Test delete a to7ic
+	// Test delete a topic
+	url = fmt.Sprintf("/api/v1/repos/%s/%s/topics?token=%s", user2.Name, repo2.Name, token2)
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Topicname1", token2)
 	res = session.MakeRequest(t, req, http.StatusNoContent)
 
@@ -46,7 +46,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "topicName3", token2)
 	res = session.MakeRequest(t, req, http.StatusNoContent)
 
-	// Read topics
+	// Test read topics using token
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
