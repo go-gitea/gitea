@@ -24,7 +24,7 @@ the purpose is to give a starting point to integrate a CI/CD process with Your G
 
  - [Drone](https://drone.io)
  - [Jenkins](https://plugins.jenkins.io/gitea)
- - [Agolia](https://agola.io)
+ - [Agola](https://agola.io)
  - [Buildkite](https://buildkite.com) with [Gitea connector](https://github.com/techknowlogick/gitea-buildkite-connector)
 
 
