@@ -42,7 +42,7 @@ func ListTopics(ctx *context.APIContext) {
 	})
 	if err != nil {
 		log.Error("ListTopics failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"message": "ListTopics failed.",
 		})
 		return
@@ -52,7 +52,7 @@ func ListTopics(ctx *context.APIContext) {
 	for i, topic := range topics {
 		topicNames[i] = &topic.Name
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"topics": topicNames,
 	})
 }
@@ -87,7 +87,7 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 	validTopics, invalidTopics := models.SanitizeAndValidateTopics(topicNames)
 
 	if len(validTopics) > 25 {
-		ctx.JSON(422, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
 			"invalidTopics": nil,
 			"message":       "Exceeding maximum number of topics per repo",
 		})
@@ -95,7 +95,7 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 	}
 
 	if len(invalidTopics) > 0 {
-		ctx.JSON(422, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
 			"invalidTopics": invalidTopics,
 			"message":       "Topic names are invalid",
 		})
@@ -105,13 +105,13 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 	err := models.SaveTopics(ctx.Repo.Repository.ID, validTopics...)
 	if err != nil {
 		log.Error("SaveTopics failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"message": "Save topics failed.",
 		})
 		return
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // AddTopic adds a topic name to a repo
@@ -154,13 +154,13 @@ func AddTopic(ctx *context.APIContext) {
 	})
 	if err != nil {
 		log.Error("AddTopic failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"message": "ListTopics failed.",
 		})
 		return
 	}
 	if len(topics) >= 25 {
-		ctx.JSON(422, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
 			"message": "Exceeding maximum allowed topics per repo.",
 		})
 		return
@@ -169,13 +169,13 @@ func AddTopic(ctx *context.APIContext) {
 	_, err = models.AddTopic(ctx.Repo.Repository.ID, topicName)
 	if err != nil {
 		log.Error("AddTopic failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"message": "AddTopic failed.",
 		})
 		return
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // DeleteTopic removes topic name from repo
@@ -214,7 +214,7 @@ func DeleteTopic(ctx *context.APIContext) {
 	topic, err := models.DeleteTopic(ctx.Repo.Repository.ID, topicName)
 	if err != nil {
 		log.Error("DeleteTopic failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"message": "DeleteTopic failed.",
 		})
 		return
@@ -224,7 +224,7 @@ func DeleteTopic(ctx *context.APIContext) {
 		ctx.NotFound()
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // TopicSearch search for creating topic
@@ -244,7 +244,7 @@ func TopicSearch(ctx *context.Context) {
 	//   "200":
 	//     "$ref": "#/responses/TopicListResponse"
 	if ctx.User == nil {
-		ctx.JSON(403, map[string]interface{}{
+		ctx.JSON(http.StatusForbidden, map[string]interface{}{
 			"message": "Only owners could change the topics.",
 		})
 		return
@@ -258,7 +258,7 @@ func TopicSearch(ctx *context.Context) {
 	})
 	if err != nil {
 		log.Error("SearchTopics failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"message": "Search topics failed.",
 		})
 		return
@@ -268,7 +268,7 @@ func TopicSearch(ctx *context.Context) {
 	for i, topic := range topics {
 		topicResponses[i] = convert.ToTopicResponse(topic)
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"topics": topicResponses,
 	})
 }
