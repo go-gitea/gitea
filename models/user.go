@@ -887,6 +887,7 @@ func CreateUser(u *User) (err error) {
 	}
 	u.HashPassword(u.Passwd)
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
+	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
 

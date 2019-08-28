@@ -240,6 +240,7 @@ var (
 	// Admin settings
 	Admin struct {
 		DisableRegularOrgCreation bool
+		DefaultEmailNotification  string
 	}
 
 	// Picture settings
@@ -761,6 +762,9 @@ func NewContext() {
 			}
 		}
 	}
+
+	sec = Cfg.Section("admin")
+	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
 
 	sec = Cfg.Section("security")
 	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
