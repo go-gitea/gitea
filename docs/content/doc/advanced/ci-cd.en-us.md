@@ -27,6 +27,5 @@ the purpose is to give a starting point to integrate a CI/CD process with Your G
  - [Agola](https://agola.io)
  - [Buildkite](https://buildkite.com) with [Gitea connector](https://github.com/techknowlogick/gitea-buildkite-connector)
 
-
 Others CI/CD solutions that partially can be integrated with Gitea:
  - [Concourse](https://www.concourse-ci.org), see more informations at [Concourse community forum](https://discuss.concourse-ci.org/t/concourse-ci-and-gitea-oauth/1475)
