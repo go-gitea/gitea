@@ -440,8 +440,10 @@ pr:
 golangci-lint:
 	golangci-lint run --deadline=3m
 
+.PHONY: prepare-tools
+prepare-tools: GO111MODULE=on
 prepare-tools:
-		GO111MODULE="on" $(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1
+		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1
 		$(GO) get -u github.com/kisielk/errcheck
 		$(GO) get -u github.com/mgechev/revive
 		$(GO) get -u github.com/client9/misspell/cmd/misspell
