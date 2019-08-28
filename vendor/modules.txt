@@ -106,7 +106,7 @@ github.com/couchbase/vellum/utf8
 github.com/couchbaselabs/go-couchbase
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/denisenkom/go-mssqldb v0.0.0-20190724012636-11b2859924c1
+# github.com/denisenkom/go-mssqldb v0.0.0-20190820223206-44cdfe8d8ba9
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
 github.com/denisenkom/go-mssqldb/internal/querytext
@@ -168,7 +168,7 @@ github.com/gorilla/context
 github.com/gorilla/mux
 # github.com/gorilla/securecookie v1.1.1
 github.com/gorilla/securecookie
-# github.com/gorilla/sessions v1.1.1
+# github.com/gorilla/sessions v1.2.0
 github.com/gorilla/sessions
 # github.com/issue9/identicon v0.0.0-20160320065130-d36b54562f4c
 github.com/issue9/identicon
@@ -201,7 +201,7 @@ github.com/klauspost/compress/flate
 github.com/klauspost/cpuid
 # github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6
 github.com/klauspost/crc32
-# github.com/lafriks/xormstore v1.1.0
+# github.com/lafriks/xormstore v1.2.0
 github.com/lafriks/xormstore
 github.com/lafriks/xormstore/util
 # github.com/lib/pq v1.2.0
