@@ -6944,6 +6944,30 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "AccessToken": {
+      "type": "object",
+      "title": "AccessToken represents an API access token.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "sha1": {
+          "type": "string",
+          "x-go-name": "Token"
+        },
+        "token_last_eight": {
+          "type": "string",
+          "x-go-name": "TokenLastEight"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "AddCollaboratorOption": {
       "description": "AddCollaboratorOption options when adding a user as a collaborator of a repository",
       "type": "object",
@@ -10051,7 +10075,13 @@
       }
     },
     "AccessTokenList": {
-      "description": "AccessTokenList represents a list of API access token."
+      "description": "AccessTokenList represents a list of API access token.",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/AccessToken"
+        }
+      }
     },
     "AnnotatedTag": {
       "description": "AnnotatedTag",
@@ -10296,7 +10326,10 @@
       }
     },
     "MarkdownRender": {
-      "description": "MarkdownRender is a rendered markdown document"
+      "description": "MarkdownRender is a rendered markdown document",
+      "schema": {
+        "type": "string"
+      }
     },
     "Milestone": {
       "description": "Milestone",
