@@ -58,7 +58,6 @@ steps:
     pull: always
     image: webhippie/nodejs:latest
     commands:
-      - make prepare-tools
       - make css
       - make js
 
@@ -87,6 +86,7 @@ steps:
     image: golang:1.12
     commands:
       - make clean
+      - make prepare-tools
       - make generate
       - make golangci-lint
       - make revive
