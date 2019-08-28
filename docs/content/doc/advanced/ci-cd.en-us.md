@@ -23,7 +23,7 @@ CI/CD solutions that have integration with Gitea. Following list is not complete
 the purpose is to give a starting point to integrate a CI/CD process with Your Gitea instance.
 
  - [Drone](https://drone.io)
- - [Jenkins](https://plugins.jenkins.io/gitea)
+ - [Jenkins](https://jenkins.io/) with [Gitea plugin](https://plugins.jenkins.io/gitea)
  - [Agola](https://agola.io)
  - [Buildkite](https://buildkite.com) with [Gitea connector](https://github.com/techknowlogick/gitea-buildkite-connector)
 
