@@ -1,0 +1,28 @@
+builds:
+    - binary: minify
+      main: ./cmd/minify/
+      ldflags: -s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}} -X main.Date={{.Date}}
+      env:
+          - CGO_ENABLED=0
+          - GO111MODULE=on
+      goos:
+          - linux
+          - windows
+          - darwin
+          - freebsd
+          - netbsd
+          - openbsd
+      goarch:
+          - amd64
+archives:
+  - id: minify
+    format: tar.gz
+    format_overrides:
+        - goos: windows
+          format: zip
+    name_template: "{{.Binary}}_{{.Version}}_{{.Os}}_{{.Arch}}"
+    files:
+        - cmd/minify/README.md
+        - LICENSE.md
+release:
+    disable: true

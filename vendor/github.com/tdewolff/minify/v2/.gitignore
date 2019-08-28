@@ -1,0 +1,4 @@
+dist/
+benchmarks/*
+!benchmarks/*.go
+!benchmarks/sample_*
