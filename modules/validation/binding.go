@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-macaron/binding"
+	"gitea.com/macaron/binding"
 )
 
 const (

@@ -24,6 +24,8 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 }
 
 func (session *Session) get(bean interface{}) (bool, error) {
+	defer session.resetStatement()
+
 	if session.statement.lastError != nil {
 		return false, session.statement.lastError
 	}
@@ -75,6 +77,8 @@ func (session *Session) get(bean interface{}) (bool, error) {
 	if context != nil {
 		res := context.Get(fmt.Sprintf("%v-%v", sqlStr, args))
 		if res != nil {
+			session.engine.logger.Debug("hit context cache", sqlStr)
+
 			structValue := reflect.Indirect(reflect.ValueOf(bean))
 			structValue.Set(reflect.Indirect(reflect.ValueOf(res)))
 			session.lastSQL = ""
@@ -114,6 +118,114 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bea
 		return true, rows.Scan(&bean)
 	case *sql.NullInt64, *sql.NullBool, *sql.NullFloat64, *sql.NullString:
 		return true, rows.Scan(bean)
+	case *string:
+		var res sql.NullString
+		if err := rows.Scan(&res); err != nil {
+			return true, err
+		}
+		if res.Valid {
+			*(bean.(*string)) = res.String
+		}
+		return true, nil
+	case *int:
+		var res sql.NullInt64
+		if err := rows.Scan(&res); err != nil {
+			return true, err
+		}
+		if res.Valid {
+			*(bean.(*int)) = int(res.Int64)
+		}
+		return true, nil
+	case *int8:
+		var res sql.NullInt64
+		if err := rows.Scan(&res); err != nil {
+			return true, err
+		}
+		if res.Valid {
+			*(bean.(*int8)) = int8(res.Int64)
+		}
+		return true, nil
+	case *int16:
+		var res sql.NullInt64
+		if err := rows.Scan(&res); err != nil {
+			return true, err
+		}
+		if res.Valid {
+			*(bean.(*int16)) = int16(res.Int64)
+		}
+		return true, nil
+	case *int32:
+		var res sql.NullInt64
+		if err := rows.Scan(&res); err != nil {
+			return true, err
+		}
+		if res.Valid {
+			*(bean.(*int32)) = int32(res.Int64)
+		}
+		return true, nil
+	case *int64:
+		var res sql.NullInt64
+		if err := rows.Scan(&res); err != nil {
+			return true, err
+		}
+		if res.Valid {
+			*(bean.(*int64)) = int64(res.Int64)
+		}
+		return true, nil
+	case *uint:
+		var res sql.NullInt64
+		if err := rows.Scan(&res); err != nil {
+			return true, err
+		}
+		if res.Valid {
+			*(bean.(*uint)) = uint(res.Int64)
+		}
+		return true, nil
+	case *uint8:
+		var res sql.NullInt64
+		if err := rows.Scan(&res); err != nil {
+			return true, err
+		}
+		if res.Valid {
+			*(bean.(*uint8)) = uint8(res.Int64)
+		}
+		return true, nil
+	case *uint16:
+		var res sql.NullInt64
+		if err := rows.Scan(&res); err != nil {
+			return true, err
+		}
+		if res.Valid {
+			*(bean.(*uint16)) = uint16(res.Int64)
+		}
+		return true, nil
+	case *uint32:
+		var res sql.NullInt64
+		if err := rows.Scan(&res); err != nil {
+			return true, err
+		}
+		if res.Valid {
+			*(bean.(*uint32)) = uint32(res.Int64)
+		}
+		return true, nil
+	case *uint64:
+		var res sql.NullInt64
+		if err := rows.Scan(&res); err != nil {
+			return true, err
+		}
+		if res.Valid {
+			*(bean.(*uint64)) = uint64(res.Int64)
+		}
+		return true, nil
+	case *bool:
+		var res sql.NullBool
+		if err := rows.Scan(&res); err != nil {
+			return true, err
+		}
+		if res.Valid {
+			*(bean.(*bool)) = res.Bool
+		}
+		return true, nil
 	}
 
 	switch beanKind {
@@ -142,6 +254,9 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *core.Table, bea
 		err = rows.ScanSlice(bean)
 	case reflect.Map:
 		err = rows.ScanMap(bean)
+	case reflect.String, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		err = rows.Scan(bean)
 	default:
 		err = rows.Scan(bean)
 	}

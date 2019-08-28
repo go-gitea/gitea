@@ -19,8 +19,9 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
-	"github.com/Unknwon/com"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/com"
 )
 
 func withKeyFile(t *testing.T, keyname string, callback func(string)) {
@@ -38,7 +39,7 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 
 	//Setup ssh wrapper
 	os.Setenv("GIT_SSH_COMMAND",
-		"ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"IdentitiesOnly=yes\" -i \""+keyFile+"\"")
+		"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i \""+keyFile+"\"")
 	os.Setenv("GIT_SSH_VARIANT", "ssh")
 
 	callback(keyFile)

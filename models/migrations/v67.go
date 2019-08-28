@@ -80,7 +80,7 @@ func removeStaleWatches(x *xorm.Engine) error {
 	}
 
 	repoCache := make(map[int64]*Repository)
-	err := sess.BufferSize(setting.IterateBufferSize).Iterate(new(Watch),
+	err := sess.BufferSize(setting.Database.IterateBufferSize).Iterate(new(Watch),
 		func(idx int, bean interface{}) error {
 			watch := bean.(*Watch)
 
@@ -117,7 +117,7 @@ func removeStaleWatches(x *xorm.Engine) error {
 	}
 
 	repoCache = make(map[int64]*Repository)
-	err = sess.BufferSize(setting.IterateBufferSize).
+	err = sess.BufferSize(setting.Database.IterateBufferSize).
 		Distinct("issue_watch.user_id", "issue.repo_id").
 		Join("INNER", "issue", "issue_watch.issue_id = issue.id").
 		Where("issue_watch.is_watching = ?", true).

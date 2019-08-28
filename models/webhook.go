@@ -25,8 +25,8 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/Unknwon/com"
 	gouuid "github.com/satori/go.uuid"
+	"github.com/unknwon/com"
 )
 
 // HookQueue is a global queue of web hooks
