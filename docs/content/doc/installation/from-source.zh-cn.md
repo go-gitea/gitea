@@ -32,14 +32,14 @@ cd $GOPATH/src/code.gitea.io/gitea
 
 ```
 git branch -a
-git checkout v1.0
+git checkout v{{< version >}}
 ```
 
-最后，你也可以直接使用标签版本如 `v1.0.0`。你可以执行以下命令列出可用的版本并选择某个版本签出：
+最后，你也可以直接使用标签版本如 `v{{< version >}}`。你可以执行以下命令列出可用的版本并选择某个版本签出：
 
 ```
 git tag -l
-git checkout v1.0.0
+git checkout v{{< version >}}
 ```
 
 ## 编译
