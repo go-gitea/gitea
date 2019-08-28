@@ -58,6 +58,7 @@ steps:
     pull: always
     image: webhippie/nodejs:latest
     commands:
+      - make prepare-tools
       - make css
       - make js
 

@@ -101,9 +101,6 @@ generate:
 
 .PHONY: generate-swagger
 generate-swagger:
-	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE="on" $(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1; \
-	fi
 	swagger generate spec -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
@@ -119,18 +116,12 @@ swagger-check: generate-swagger
 
 .PHONY: swagger-validate
 swagger-validate:
-	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE="on" $(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1; \
-	fi
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
 	swagger validate './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
 .PHONY: errcheck
 errcheck:
-	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/kisielk/errcheck; \
-	fi
 	errcheck $(PACKAGES)
 
 .PHONY: lint
@@ -139,23 +130,14 @@ lint:
 
 .PHONY: revive
 revive:
-	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/mgechev/revive; \
-	fi
 	revive -config .revive.toml -exclude=./vendor/... ./... || exit 1
 
 .PHONY: misspell-check
 misspell-check:
-	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
-	fi
 	misspell -error -i unknwon,destory $(GOFILES)
 
 .PHONY: misspell
 misspell:
-	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/client9/misspell/cmd/misspell; \
-	fi
 	misspell -w -i unknwon $(GOFILES)
 
 .PHONY: fmt-check
@@ -174,9 +156,6 @@ test:
 
 .PHONY: coverage
 coverage:
-	@hash gocovmerge > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/wadey/gocovmerge; \
-	fi
 	gocovmerge integration.coverage.out $(shell find . -type f -name "coverage.out") > coverage.all;\
 
 .PHONY: unit-test-coverage
@@ -323,9 +302,6 @@ release-dirs:
 
 .PHONY: release-windows
 release-windows:
-	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u src.techknowlogick.com/xgo; \
-	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
@@ -333,9 +309,6 @@ endif
 
 .PHONY: release-linux
 release-linux:
-	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u src.techknowlogick.com/xgo; \
-	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/mips64le,linux/mips,linux/mipsle' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
@@ -343,9 +316,6 @@ endif
 
 .PHONY: release-darwin
 release-darwin:
-	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u src.techknowlogick.com/xgo; \
-	fi
 	xgo -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
@@ -361,9 +331,6 @@ release-check:
 
 .PHONY: release-compress
 release-compress:
-	@hash gxz > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/ulikunitz/xz/cmd/gxz; \
-	fi
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 
 npm-check:
@@ -471,8 +438,14 @@ pr:
 
 .PHONY: golangci-lint
 golangci-lint:
-	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.17.1; \
-	fi
 	golangci-lint run --deadline=3m
+
+prepare-tools:
+		GO111MODULE="on" $(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1
+		$(GO) get -u github.com/kisielk/errcheck
+		$(GO) get -u github.com/mgechev/revive
+		$(GO) get -u github.com/client9/misspell/cmd/misspell
+		$(GO) get -u github.com/wadey/gocovmerge
+		$(GO) get -u src.techknowlogick.com/xgo
+		$(GO) get -u github.com/ulikunitz/xz/cmd/gxz
+		export BINARY="golangci-lint"; curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.17.1
