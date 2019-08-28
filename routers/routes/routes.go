@@ -135,9 +135,6 @@ func NewMacaron() *macaron.Macaron {
 	if setting.Protocol == setting.FCGI {
 		m.SetURLPrefix(setting.AppSubURL)
 	}
-	if setting.EnableCORS {
-		m.Use(cors.CORS(setting.CORSConfig))
-	}
 	m.Use(public.Custom(
 		&public.Options{
 			SkipLogging:  setting.DisableRouterLog,
