@@ -17,8 +17,11 @@ import (
 
 func TestAPIRepoTopic(t *testing.T) {
 	prepareTestEnv(t)
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of repo1
+	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of repo2
+	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User) // owner of repo3
+	user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User) // write access to repo 3
 	repo2 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
 
 	// Get user2's token
 	session := loginUser(t, user2.Name)
@@ -99,5 +102,21 @@ func TestAPIRepoTopic(t *testing.T) {
 	// Test delete a topic that repo doesn't have
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Topicname1", token2)
 	res = session.MakeRequest(t, req, http.StatusNotFound)
+
+	// Get user4's token
+	session = loginUser(t, user4.Name)
+	token4 := getTokenForLoggedInUser(t, session)
+	session = emptyTestSession(t)
+
+	// Test read topics with write access
+	url = fmt.Sprintf("/api/v1/repos/%s/%s/topics?token=%s", user3.Name, repo3.Name, token4)
+	req = NewRequest(t, "GET", url)
+	res = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, res, &topics)
+	assert.Equal(t, 0, len(topics.TopicNames))
+
+	// Test add a topic to repo with write access (requires repo admin access)
+	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user3.Name, repo3.Name, "topicName", token4)
+	res = session.MakeRequest(t, req, http.StatusForbidden)
 
 }
