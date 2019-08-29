@@ -20,6 +20,8 @@
 					<img class="img-13" src="{{AppSubUrl}}/img/discord.png">
 				{{else if eq .HookType "dingtalk"}}
 					<img class="img-13" src="{{AppSubUrl}}/img/dingtalk.ico">
+				{{else if eq .HookType "telegram"}}
+					<img class="img-13" src="{{AppSubUrl}}/img/telegram.png">
 				{{else if eq .HookType "msteams"}}
 					<img class="img-13" src="{{AppSubUrl}}/img/msteams.png">
 				{{end}}
@@ -31,6 +33,7 @@
 			{{template "repo/settings/webhook/slack" .}}
 			{{template "repo/settings/webhook/discord" .}}
 			{{template "repo/settings/webhook/dingtalk" .}}
+			{{template "repo/settings/webhook/telegram" .}}
 			{{template "repo/settings/webhook/msteams" .}}
 		</div>
 

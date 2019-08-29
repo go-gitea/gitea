@@ -187,6 +187,19 @@ _, err := db.ExecContext(ctx, "theproc", &rs)
 log.Printf("status=%d", rs)
 ```
 
+or
+
+```
+var rs mssql.ReturnStatus
+_, err := db.QueryContext(ctx, "theproc", &rs)
+for rows.Next() {
+	err = rows.Scan(&val)
+}
+log.Printf("status=%d", rs)
+```
+
+Limitation: ReturnStatus cannot be retrieved using `QueryRow`.
+
 ## Parameters
 
 The `sqlserver` driver uses normal MS SQL Server syntax and expects parameters in
