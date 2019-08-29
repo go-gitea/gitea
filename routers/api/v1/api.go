@@ -778,7 +778,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Combo("").Put(reqToken(), repo.AddTopic).
 							Delete(reqToken(), repo.DeleteTopic)
 					}, reqAdmin())
-				}, reqRepoReader(models.UnitTypeCode))
+				}, reqAnyRepoReader())
 			}, repoAssignment())
 		})
 
