@@ -20,7 +20,7 @@ NOTE: These tools are not endorsed by Gitea. They are listed here for convenienc
 ## Listing
 
 CI/CD solutions that have integration with Gitea. Following list is not complete,
-the purpose is to give a starting point to integrate a CI/CD process with Your Gitea instance.
+the purpose is to give a starting point to integrate a CI/CD process with your Gitea instance.
 
  - [Drone](https://drone.io)
  - [Jenkins](https://jenkins.io/) with [Gitea plugin](https://plugins.jenkins.io/gitea)
