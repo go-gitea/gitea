@@ -162,8 +162,9 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				d, _ := ioutil.ReadAll(dataRc)
 				buf = charset.ToUTF8WithFallback(append(buf, d...))
 
-				if markup.Type(readmeFile.Name()) != "" {
+				if markupType := markup.Type(readmeFile.Name()); markupType != "" {
 					ctx.Data["IsMarkup"] = true
+					ctx.Data["MarkupType"] = string(markupType)
 					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
@@ -282,8 +283,9 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
-		if markup.Type(blob.Name()) != "" {
+		if markupType := markup.Type(blob.Name()); markupType != "" {
 			ctx.Data["IsMarkup"] = true
+			ctx.Data["MarkupType"] = markupType
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
 		} else if readmeExist {
 			ctx.Data["IsRenderedHTML"] = true
@@ -317,7 +319,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			output.Reset()
 			for i := 0; i < len(lines); i++ {
-				output.WriteString(fmt.Sprintf(`<span id="L%d">%d</span>`, i+1, i+1))
+				output.WriteString(fmt.Sprintf(`<span id="L%[1]d" data-line-number="%[1]d"></span>`, i+1))
 			}
 			ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 		}

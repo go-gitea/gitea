@@ -7,7 +7,7 @@ package migrations
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-xorm/xorm"
 )
@@ -15,7 +15,7 @@ import (
 func addIssueClosedTime(x *xorm.Engine) error {
 	// Issue see models/issue.go
 	type Issue struct {
-		ClosedUnix util.TimeStamp `xorm:"INDEX"`
+		ClosedUnix timeutil.TimeStamp `xorm:"INDEX"`
 	}
 
 	if err := x.Sync2(new(Issue)); err != nil {

@@ -7,8 +7,6 @@ package admin
 import (
 	"strings"
 
-	"github.com/Unknwon/com"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -16,6 +14,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
+
+	"github.com/unknwon/com"
 )
 
 const (

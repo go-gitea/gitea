@@ -4,8 +4,10 @@
 
 package core
 
+// LogLevel defines a log level
 type LogLevel int
 
+// enumerate all LogLevels
 const (
 	// !nashtsai! following level also match syslog.Priority value
 	LOG_DEBUG LogLevel = iota
@@ -16,7 +18,7 @@ const (
 	LOG_UNKNOWN
 )
 
-// logger interface
+// ILogger is a logger interface
 type ILogger interface {
 	Debug(v ...interface{})
 	Debugf(format string, v ...interface{})
