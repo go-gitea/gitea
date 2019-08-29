@@ -15,7 +15,7 @@ menu:
 
 # Gitea and CI/CD
 
-NOTE: These tools are not endorsed by Gitea. They are listed here for convenience only.
+**NOTE:** These tools are not endorsed by Gitea. They are listed here for convenience only.
 
 ## Listing
 
