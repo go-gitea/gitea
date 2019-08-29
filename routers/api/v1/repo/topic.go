@@ -48,9 +48,9 @@ func ListTopics(ctx *context.APIContext) {
 		return
 	}
 
-	topicNames := make([]*string, len(topics))
+	topicNames := make([]string, len(topics))
 	for i, topic := range topics {
-		topicNames[i] = &topic.Name
+		topicNames[i] = topic.Name
 	}
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"topics": topicNames,
