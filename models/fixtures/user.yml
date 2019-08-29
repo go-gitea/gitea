@@ -6,6 +6,7 @@
   name: user1
   full_name: User One
   email: user1@example.com
+  email_notifications_preference: enabled
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
   salt: ZogKvWdyEx
@@ -22,6 +23,7 @@
   full_name: "   < U<se>r Tw<o > ><  "
   email: user2@example.com
   keep_email_private: true
+  email_notifications_preference: enabled
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
   salt: ZogKvWdyEx
@@ -40,6 +42,7 @@
   name: user3
   full_name: " <<<< >> >> > >> > >>> >> "
   email: user3@example.com
+  email_notifications_preference: onmention
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 1 # organization
   salt: ZogKvWdyEx
@@ -56,6 +59,7 @@
   name: user4
   full_name: "          "
   email: user4@example.com
+  email_notifications_preference: onmention
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
   salt: ZogKvWdyEx
@@ -72,6 +76,7 @@
   name: user5
   full_name: User Five
   email: user5@example.com
+  email_notifications_preference: enabled
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
   salt: ZogKvWdyEx
@@ -89,6 +94,7 @@
   name: user6
   full_name: User Six
   email: user6@example.com
+  email_notifications_preference: enabled
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 1 # organization
   salt: ZogKvWdyEx
@@ -105,6 +111,7 @@
   name: user7
   full_name: User Seven
   email: user7@example.com
+  email_notifications_preference: disabled
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 1 # organization
   salt: ZogKvWdyEx
@@ -121,6 +128,7 @@
   name: user8
   full_name: User Eight
   email: user8@example.com
+  email_notifications_preference: enabled
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
   salt: ZogKvWdyEx
@@ -138,6 +146,7 @@
   name: user9
   full_name: User Nine
   email: user9@example.com
+  email_notifications_preference: onmention
   passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
   type: 0 # individual
   salt: ZogKvWdyEx
