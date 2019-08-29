@@ -158,6 +158,11 @@ type User struct {
 	Theme         string `xorm:"NOT NULL DEFAULT ''"`
 }
 
+type UserExtendedView struct {
+	User     `xorm:"extends"`
+	NumRepos int
+}
+
 // ColorFormat writes a colored string to identify this struct
 func (u *User) ColorFormat(s fmt.State) {
 	log.ColorFprintf(s, "%d:%s",
@@ -1444,13 +1449,13 @@ type SearchUserOptions struct {
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
-	var cond builder.Cond = builder.Eq{"type": opts.Type}
+	var cond builder.Cond = builder.Eq{"user.type": opts.Type}
 
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
 		keywordCond := builder.Or(
-			builder.Like{"lower_name", lowerKeyword},
-			builder.Like{"LOWER(full_name)", lowerKeyword},
+			builder.Like{"user.lower_name", lowerKeyword},
+			builder.Like{"LOWER(user.full_name)", lowerKeyword},
 		)
 		if opts.SearchByEmail {
 			keywordCond = keywordCond.Or(builder.Like{"LOWER(email)", lowerKeyword})
@@ -1461,7 +1466,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 	if !opts.Private {
 		// user not logged in and so they won't be allowed to see non-public orgs
-		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
+		cond = cond.And(builder.In("user.visibility", structs.VisibleTypePublic))
 	}
 
 	if opts.OwnerID > 0 {
@@ -1474,17 +1479,17 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 			exprCond = builder.Expr("org_user.org_id = \"user\".id")
 		}
 		accessCond := builder.Or(
-			builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
-			builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
+			builder.In("user.id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
+			builder.In("user.visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
 		cond = cond.And(accessCond)
 	}
 
 	if opts.UID > 0 {
-		cond = cond.And(builder.Eq{"id": opts.UID})
+		cond = cond.And(builder.Eq{"user.id": opts.UID})
 	}
 
 	if !opts.IsActive.IsNone() {
-		cond = cond.And(builder.Eq{"is_active": opts.IsActive.IsTrue()})
+		cond = cond.And(builder.Eq{"user.is_active": opts.IsActive.IsTrue()})
 	}
 
 	return cond
@@ -1492,7 +1497,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 // SearchUsers takes options i.e. keyword and part of user name to search,
 // it returns results in given range and number of total results.
-func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
+func SearchUsers(opts *SearchUserOptions) (users []*UserExtendedView, _ int64, _ error) {
 	cond := opts.toConds()
 	count, err := x.Where(cond).Count(new(User))
 	if err != nil {
@@ -1509,7 +1514,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
-	sess := x.Where(cond)
+	sess := x.Table(&User{}).Select("user.*, COUNT(repository.owner_id) AS num_repos").GroupBy("user.id").Join("LEFT OUTER", "repository", "user.id = repository.owner_id").Where(cond)
 	if opts.PageSize > 0 {
 		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
@@ -1517,7 +1522,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		opts.PageSize = int(count)
 	}
 
-	users = make([]*User, 0, opts.PageSize)
+	users = make([]*UserExtendedView, 0, opts.PageSize)
 	return users, count, sess.OrderBy(opts.OrderBy.String()).Find(&users)
 }
 

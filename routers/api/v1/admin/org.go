@@ -108,7 +108,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 	}
 	orgs := make([]*api.Organization, len(users))
 	for i := range users {
-		orgs[i] = convert.ToOrganization(users[i])
+		orgs[i] = convert.ToOrganization(&users[i].User)
 	}
 	ctx.JSON(200, &orgs)
 }

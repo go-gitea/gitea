@@ -1314,10 +1314,6 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 		return fmt.Errorf("updateUser: %v", err)
 	}
 
-	if _, err = e.Incr("num_repos").ID(u.ID).Update(new(User)); err != nil {
-		return fmt.Errorf("increment user total_repos: %v", err)
-	}
-
 	// Give access to all members in owner team.
 	if u.IsOrganization() {
 		t, err := u.getOwnerTeam(e)

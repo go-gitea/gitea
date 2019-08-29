@@ -188,7 +188,7 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	}
 
 	var (
-		users   []*models.User
+		users   []*models.UserExtendedView
 		count   int64
 		err     error
 		orderBy models.SearchOrderBy
