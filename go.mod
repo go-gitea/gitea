@@ -13,9 +13,8 @@ require (
 	gitea.com/macaron/macaron v1.3.3-0.20190821202302-9646c0587edb
 	gitea.com/macaron/session v0.0.0-20190821211443-122c47c5f705
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
-	github.com/PuerkitoBio/goquery v0.0.0-20170324135448-ed7d758e9a34
+	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/RoaringBitmap/roaring v0.4.7 // indirect
-	github.com/andybalholm/cascadia v0.0.0-20161224141413-349dd0209470 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/blevesearch/bleve v0.0.0-20190214220507-05d86ea8f6e3
 	github.com/blevesearch/blevex v0.0.0-20180227211930-4b158bb555a3 // indirect
@@ -108,7 +107,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
 	golang.org/x/text v0.3.2
-	golang.org/x/tools v0.0.0-20190827205025-b29f5f60c37a // indirect
+	golang.org/x/tools v0.0.0-20190828213141-aed303cbaa74 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/editorconfig/editorconfig-core-go.v1 v1.3.0
