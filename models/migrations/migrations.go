@@ -241,6 +241,8 @@ var migrations = []Migration{
 	// v92 -> v93
 	NewMigration("remove orphaned repository index statuses", removeLingeringIndexStatus),
 	// v93 -> v94
+	NewMigration("add email notification enabled preference to user", addEmailNotificationEnabledToUser),
+	// v94 -> v95
 	NewMigration("add column `mode` to table watch", addModeColumnToWatch),
 }
 

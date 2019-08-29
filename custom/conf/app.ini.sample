@@ -306,6 +306,8 @@ MAX_FILE_SIZE = 1048576
 [admin]
 ; Disallow regular (non-admin) users from creating organizations.
 DISABLE_REGULAR_ORG_CREATION = false
+; Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
+DEFAULT_EMAIL_NOTIFICATIONS = enabled
 
 [security]
 ; Whether the installer is disabled

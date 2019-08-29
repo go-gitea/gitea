@@ -724,6 +724,7 @@ const (
 	F_OFD_SETLKW                         = 0x26
 	F_OK                                 = 0x0
 	F_RDLCK                              = 0x0
+	F_SEAL_FUTURE_WRITE                  = 0x10
 	F_SEAL_GROW                          = 0x4
 	F_SEAL_SEAL                          = 0x1
 	F_SEAL_SHRINK                        = 0x2
@@ -989,6 +990,7 @@ const (
 	IPV6_RECVRTHDR                       = 0x38
 	IPV6_RECVTCLASS                      = 0x42
 	IPV6_ROUTER_ALERT                    = 0x16
+	IPV6_ROUTER_ALERT_ISOLATE            = 0x1e
 	IPV6_RTHDR                           = 0x39
 	IPV6_RTHDRDSTOPTS                    = 0x37
 	IPV6_RTHDR_LOOSE                     = 0x0

@@ -4,18 +4,13 @@
 
 package migrations
 
-import (
-	"github.com/go-xorm/xorm"
-)
+import "github.com/go-xorm/xorm"
 
-// RepoWatchMode specifies what kind of watch the user has on a repository
-type RepoWatchMode int8
+func addEmailNotificationEnabledToUser(x *xorm.Engine) error {
+	// User see models/user.go
+	type User struct {
+		EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
+	}
 
-// Watch is connection request for receiving repository notification.
-type Watch struct {
-	Mode RepoWatchMode `xorm:"SMALLINT NOT NULL DEFAULT 1"`
-}
-
-func addModeColumnToWatch(x *xorm.Engine) error {
-	return x.Sync2(new(Watch))
+	return x.Sync2(new(User))
 }

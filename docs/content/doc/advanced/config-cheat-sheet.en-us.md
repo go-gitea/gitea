@@ -184,6 +184,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
 
+## Admin (`admin`)
+- `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**: Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
+
 ## Security (`security`)
 
 - `INSTALL_LOCK`: **false**: Disallow access to the install page.
