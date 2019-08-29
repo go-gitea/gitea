@@ -7,7 +7,7 @@ package migrations
 import "github.com/go-xorm/xorm"
 
 func addEmailNotificationEnabledToUser(x *xorm.Engine) error {
-	// Issue see models/user.go
+	// User see models/user.go
 	type User struct {
 		EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
 	}
