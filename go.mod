@@ -3,7 +3,6 @@ module code.gitea.io/gitea
 go 1.12
 
 require (
-	cloud.google.com/go v0.44.3 // indirect
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76
 	gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae
@@ -28,7 +27,7 @@ require (
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
-	github.com/denisenkom/go-mssqldb v0.0.0-20190724012636-11b2859924c1
+	github.com/denisenkom/go-mssqldb v0.0.0-20190820223206-44cdfe8d8ba9
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/emirpasic/gods v1.12.0
 	github.com/etcd-io/bbolt v1.3.2 // indirect
@@ -50,7 +49,6 @@ require (
 	github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/golang/snappy v0.0.1 // indirect
-	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/google/go-github/v24 v24.0.1
 	github.com/gorilla/context v1.1.1
 	github.com/issue9/assert v1.3.2 // indirect
@@ -63,7 +61,7 @@ require (
 	github.com/klauspost/compress v0.0.0-20161025140425-8df558b6cb6f
 	github.com/klauspost/cpuid v0.0.0-20160302075316-09cded8978dc // indirect
 	github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6 // indirect
-	github.com/lafriks/xormstore v1.1.0
+	github.com/lafriks/xormstore v1.2.0
 	github.com/lib/pq v1.2.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/lunny/levelqueue v0.0.0-20190217115915-02b525a4418e
