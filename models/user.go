@@ -268,7 +268,7 @@ func (u *User) CanCreateRepo() bool {
 
 	count, err := u.GetRepositoryCount()
 	if err != nil {
-		log.Error(3, "GetRepositoryCount: %v", err)
+		log.Error("GetRepositoryCount: %v", err)
 		return false
 	}
 	if u.MaxRepoCreation <= -1 {
