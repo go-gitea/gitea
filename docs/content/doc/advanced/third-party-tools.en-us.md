@@ -20,7 +20,7 @@ menu:
 
 ### Continuous Integration
 
-Check our dedicacted page : [CI/CD]({{< relref "doc/advanced/ci-cd.en-us.md" >}})
+Check our [CI/CD page]({{< relref "doc/advanced/ci-cd.en-us.md" >}})
 
 ### Migrating
 [Installation script for Gitea](https://git.coolaj86.com/coolaj86/gitea-installer.sh)  
