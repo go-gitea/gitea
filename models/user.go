@@ -733,11 +733,13 @@ func (u *User) EmailNotifications() string {
 }
 
 // SetEmailNotifications sets the user's email notification preference
-func (u *User) SetEmailNotifications(set string) {
+func (u *User) SetEmailNotifications(set string) error {
 	u.EmailNotificationsPreference = set
 	if err := UpdateUserCols(u, "email_notifications_preference"); err != nil {
 		log.Error("SetEmailNotifications: %v", err)
+		return err
 	}
+	return nil
 }
 
 func isUserExist(e Engine, uid int64, name string) (bool, error) {

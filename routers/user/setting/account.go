@@ -6,6 +6,8 @@
 package setting
 
 import (
+	"errors"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -89,8 +91,14 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 			preference == models.EmailNotificationsOnMention ||
 			preference == models.EmailNotificationsDisabled) {
 			log.Error("Email notifications preference change returned unrecognized option %s: %s", preference, ctx.User.Name)
+			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
+			return
 		}
-		ctx.User.SetEmailNotifications(preference)
+		if err := ctx.User.SetEmailNotifications(preference); err != nil {
+			log.Error("Set Email Notifications failed: %v", err)
+			ctx.ServerError("SetEmailNotifications", err)
+			return
+		}
 		log.Trace("Email notifications preference made %s: %s", preference, ctx.User.Name)
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
