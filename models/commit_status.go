@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-xorm/xorm"
 )
@@ -66,8 +66,8 @@ type CommitStatus struct {
 	Creator     *User             `xorm:"-"`
 	CreatorID   int64
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 func (status *CommitStatus) loadRepo(e Engine) (err error) {
@@ -89,7 +89,7 @@ func (status *CommitStatus) loadRepo(e Engine) (err error) {
 // APIURL returns the absolute APIURL to this commit-status.
 func (status *CommitStatus) APIURL() string {
 	_ = status.loadRepo(x)
-	return fmt.Sprintf("%sapi/v1/%s/statuses/%s",
+	return fmt.Sprintf("%sapi/v1/repos/%s/statuses/%s",
 		setting.AppURL, status.Repo.FullName(), status.SHA)
 }
 

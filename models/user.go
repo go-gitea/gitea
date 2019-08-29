@@ -29,17 +29,17 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
+	"github.com/unknwon/com"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
-	"xorm.io/core"
 )
 
 // UserType defines the user type
@@ -118,9 +118,9 @@ type User struct {
 	Language    string `xorm:"VARCHAR(5)"`
 	Description string
 
-	CreatedUnix   util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix   util.TimeStamp `xorm:"INDEX updated"`
-	LastLoginUnix util.TimeStamp `xorm:"INDEX"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix   timeutil.TimeStamp `xorm:"INDEX updated"`
+	LastLoginUnix timeutil.TimeStamp `xorm:"INDEX"`
 
 	// Remember visibility choice for convenience, true for private
 	LastRepoVisibility bool
@@ -198,7 +198,7 @@ func (u *User) AfterLoad() {
 
 // SetLastLogin set time to last login
 func (u *User) SetLastLogin() {
-	u.LastLoginUnix = util.TimeStampNow()
+	u.LastLoginUnix = timeutil.TimeStampNow()
 }
 
 // UpdateDiffViewStyle updates the users diff view style
@@ -1456,9 +1456,9 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 	if opts.OwnerID > 0 {
 		var exprCond builder.Cond
-		if DbCfg.Type == core.MYSQL {
+		if setting.Database.UseMySQL {
 			exprCond = builder.Expr("org_user.org_id = user.id")
-		} else if DbCfg.Type == core.MSSQL {
+		} else if setting.Database.UseMSSQL {
 			exprCond = builder.Expr("org_user.org_id = [user].id")
 		} else {
 			exprCond = builder.Expr("org_user.org_id = \"user\".id")
@@ -1698,7 +1698,12 @@ func SyncExternalUsers() {
 				return
 			}
 
-			sr := s.LDAP().SearchEntries()
+			sr, err := s.LDAP().SearchEntries()
+			if err != nil {
+				log.Error("SyncExternalUsers LDAP source failure [%s], skipped", s.Name)
+				continue
+			}
+
 			for _, su := range sr {
 				if len(su.Username) == 0 {
 					continue
