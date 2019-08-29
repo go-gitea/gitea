@@ -6,6 +6,8 @@
 package setting
 
 import (
+	"errors"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -24,6 +26,7 @@ func Account(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.User.Email
+	ctx.Data["EmailNotificationsPreference"] = ctx.User.EmailNotifications()
 
 	loadAccountData(ctx)
 
@@ -79,6 +82,25 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 		}
 
 		log.Trace("Email made primary: %s", ctx.User.Name)
+		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		return
+	}
+	// Set Email Notification Preference
+	if ctx.Query("_method") == "NOTIFICATION" {
+		preference := ctx.Query("preference")
+		if !(preference == models.EmailNotificationsEnabled ||
+			preference == models.EmailNotificationsOnMention ||
+			preference == models.EmailNotificationsDisabled) {
+			log.Error("Email notifications preference change returned unrecognized option %s: %s", preference, ctx.User.Name)
+			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
+			return
+		}
+		if err := ctx.User.SetEmailNotifications(preference); err != nil {
+			log.Error("Set Email Notifications failed: %v", err)
+			ctx.ServerError("SetEmailNotifications", err)
+			return
+		}
+		log.Trace("Email notifications preference made %s: %s", preference, ctx.User.Name)
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
