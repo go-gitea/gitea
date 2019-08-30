@@ -8,6 +8,7 @@ import (
 	"fmt"
 )
 
+// Migration represents migrations' settings
 var Migration = struct {
 	WhitelistedDomains []string
 	BlacklistedDomains []string
