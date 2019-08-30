@@ -11,7 +11,7 @@ import (
 var Migration = struct {
 	WhitelistedDomains []string
 	BlacklistedDomains []string
-} {
+}{
 	WhitelistedDomains: []string{},
 	BlacklistedDomains: []string{},
 }

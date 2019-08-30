@@ -56,7 +56,7 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 	if !allowed {
 		return nil, err
 	}
-	
+
 	var (
 		downloader base.Downloader
 		uploader   = NewGiteaLocalUploader(doer, ownerName, opts.Name)

@@ -10,14 +10,14 @@ import (
 
 // Matchlist represents a black or white list
 type Matchlist struct {
-	rules []string
+	rules     []string
 	ruleGlobs []glob.Glob
 }
 
 // NewMatchlist creates a new black or white list
 func NewMatchlist(rules ...string) (*Matchlist, error) {
 	list := Matchlist{
-		rules: rules,
+		rules:     rules,
 		ruleGlobs: make([]glob.Glob, 0, len(rules)),
 	}
 
