@@ -786,7 +786,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .ui.form .dropzone .dz-error-message{top:140px}
 .settings .content{margin-top:2px}
 .settings .content .segment,.settings .content>.header{box-shadow:0 1px 2px 0 rgba(34,36,38,.15)}
-.settings .list>.item .green{color:#21ba45}
+.settings .list>.item .green:not(.ui.button){color:#21ba45}
 .settings .list>.item:not(:first-child){border-top:1px solid #eaeaea;padding:1rem;margin:15px -1rem -1rem -1rem}
 .settings .list>.item>.mega-octicon{display:table-cell}
 .settings .list>.item>.mega-octicon+.content{display:table-cell;padding:0 0 0 .5em;vertical-align:top}
