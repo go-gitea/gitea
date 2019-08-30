@@ -803,3 +803,11 @@ IS_INPUT_FILE = false
 ENABLED = false
 ; If you want to add authorization, specify a token here
 TOKEN =
+
+[migration]
+; Whitelist for migrating, default is blank. Blank means everything will be allowed.
+; Multiple domains could be separated by commas.
+WHITELISTED_DOMAINS =
+; Blacklist for migrating, default is blank. Multiple domains could be separated by commas.
+; When WHITELISTED_DOMAINS is not blank, this option will be ignored.
+BLACKLISTED_DOMAINS =

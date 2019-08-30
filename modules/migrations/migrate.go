@@ -6,9 +6,15 @@
 package migrations
 
 import (
+	"fmt"
+	"net/url"
+	"strings"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/matchlist"
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // MigrateOptions is equal to base.MigrateOptions
@@ -23,8 +29,34 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 	factories = append(factories, factory)
 }
 
+func isMigrateURLAllowed(remoteURL string) (bool, error) {
+	u, err := url.Parse(remoteURL)
+	if err != nil {
+		return false, err
+	}
+
+	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https") {
+		if len(setting.Migration.WhitelistedDomains) > 0 {
+			if !whitelist.Match(u.Host) {
+				return false, fmt.Errorf("Migrate from %v is not allowed", u.Host)
+			}
+		} else {
+			if blacklist.Match(u.Host) {
+				return false, fmt.Errorf("Migrate from %v is not allowed", u.Host)
+			}
+		}
+	}
+
+	return true, nil
+}
+
 // MigrateRepository migrate repository according MigrateOptions
 func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
+	allowed, err := isMigrateURLAllowed(opts.RemoteURL)
+	if !allowed {
+		return nil, err
+	}
+	
 	var (
 		downloader base.Downloader
 		uploader   = NewGiteaLocalUploader(doer, ownerName, opts.Name)
@@ -248,5 +280,25 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		}
 	}
 
+	return nil
+}
+
+var (
+	whitelist *matchlist.Matchlist
+	blacklist *matchlist.Matchlist
+)
+
+// Init migrations service
+func Init() error {
+	var err error
+	whitelist, err = matchlist.NewMatchlist(setting.Migration.WhitelistedDomains...)
+	if err != nil {
+		return fmt.Errorf("Init migration whitelist domains failed: %v", err)
+	}
+
+	blacklist, err = matchlist.NewMatchlist(setting.Migration.BlacklistedDomains...)
+	if err != nil {
+		return fmt.Errorf("Init migration blacklist domains failed: %v", err)
+	}
 	return nil
 }

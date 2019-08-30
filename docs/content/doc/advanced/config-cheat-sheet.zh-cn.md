@@ -240,8 +240,14 @@ IS_INPUT_FILE = false
 - IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。
 
 ## Time (`time`)
+
 - `FORMAT`: 显示在界面上的时间格式。比如： RFC1123 或者 2006-01-02 15:04:05
 - `DEFAULT_UI_LOCATION`: 默认显示在界面上的时区，默认为本地时区。比如： Asia/Shanghai
+
+## Migraions (`migration`)
+
+- `WHITELISTED_DOMAINS`: ****: 迁移仓库的域名白名单，默认为空，表示允许从任意域名迁移仓库，多个域名用逗号分隔。
+- `BLACKLISTED_DOMAINS`: ****: 迁移仓库的域名黑名单，默认为空，多个域名用逗号分隔。如果 `WHITELISTED_DOMAINS` 不为空，此选项将会被忽略。
 
 ## Other (`other`)
 

@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
+	repo_migrations "code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 
@@ -101,6 +102,10 @@ func GlobalInit() {
 		models.InitSyncMirrors()
 		models.InitDeliverHooks()
 		models.InitTestPullRequests()
+
+		if err := repo_migrations.Init(); err != nil {
+			log.Fatal("Failed to initialize migrations: %v", err)
+		}
 	}
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 Supported")

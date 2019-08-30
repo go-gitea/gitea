@@ -511,8 +511,14 @@ Two special environment variables are passed to the render command:
 - `GITEA_PREFIX_RAW`, which contains the current URL prefix in the `raw` path tree. To be used as prefix for image paths.
 
 ## Time (`time`)
+
 - `FORMAT`: Time format to diplay on UI. i.e. RFC1123 or 2006-01-02 15:04:05
 - `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Shanghai/Asia
+
+## Migraions (`migration`)
+
+- `WHITELISTED_DOMAINS`: ****: Domains whitelist for migrating repositories, default is blank. It means everything will be allowed. Multiple domains could be separated by commas.
+- `BLACKLISTED_DOMAINS`: ****: Domains blacklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `WHITELISTED_DOMAINS` is not blank, this option will be ignored. 
 
 ## Other (`other`)
 

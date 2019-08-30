@@ -524,6 +524,7 @@ golang.org/x/tools/go/internal/gcimporter
 golang.org/x/tools/internal/fastwalk
 golang.org/x/tools/internal/module
 # google.golang.org/appengine v1.6.2
+# google.golang.org/appengine v1.6.1
 google.golang.org/appengine/cloudsql
 google.golang.org/appengine/urlfetch
 google.golang.org/appengine/internal
