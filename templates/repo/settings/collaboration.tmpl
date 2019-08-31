@@ -51,6 +51,49 @@
 				<button class="ui green button">{{.i18n.Tr "repo.settings.add_collaborator"}}</button>
 			</form>
 		</div>
+
+		<h4 class="ui top attached header">
+			Teams
+		</h4>
+		{{if .Teams}}
+		<div class="ui attached segment collaborator list">
+			{{range .Teams}}
+				<div class="item ui grid">
+					<div class="ui five wide column">
+						<a href="{{AppSubUrl}}/org/{{$.Org}}/teams/{{.LowerName}}">
+							{{.Name}}
+						</a>
+					</div>
+					<div class="ui eight wide column poping up" data-content="This team has write access to code, issues and pull requests" > <!-- TODO: Replace with actual rights (depending on what is enabled in repo)-->
+						<span class="octicon octicon-shield"></span>
+						<div class="ui inline dropdown">
+							<div class="text">{{$.i18n.Tr .ModeI18nKey}}</div>
+						</div>
+					</div>
+					<div class="ui two wide column">
+						{{if (not (eq .LowerName "owners"))}}
+							<button class="ui red tiny button inline text-thin delete-button" data-url="{{$.Link}}/team/delete" data-id="{{.ID}}">
+								{{$.i18n.Tr "repo.settings.delete_collaborator"}}
+							</button>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
+		</div>
+		{{end}}
+		<div class="ui bottom attached segment">
+			<form class="ui form" id="repo-collab-team-form" action="{{.Link}}/team" method="post">
+				{{.CsrfTokenHtml}}
+				<div class="inline field ui left">
+					<div id="search-team-box" class="ui search" data-org="{{.Org}}">
+						<div class="ui input">
+							<input class="prompt" name="team" placeholder="Search teams..." autocomplete="off" autofocus required>
+						</div>
+					</div>
+				</div>
+				<button class="ui green button">Add Team</button>
+			</form>
+		</div>
 	</div>
 </div>
 

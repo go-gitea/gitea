@@ -183,3 +183,29 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 
 	return sess.Commit()
 }
+
+func (repo *Repository) getRepoTeams(e Engine) (teams []*Team, err error) {
+	return teams, e.
+		Join("INNER", "team_repo", "team_repo.team_id = team.id").
+		Where("team.org_id = ?", repo.OwnerID).
+		And("team_repo.repo_id=?", repo.ID).
+		OrderBy("CASE WHEN name LIKE '" + ownerTeamName + "' THEN '' ELSE name END").
+		Find(&teams)
+}
+
+func (repo *Repository) GetRepoTeams() ([]*Team, error) {
+	return repo.getRepoTeams(x)
+}
+
+func (t *Team) ModeI18nKey() string {
+	switch t.Authorize {
+	case AccessModeRead:
+		return "repo.settings.collaboration.read"
+	case AccessModeWrite:
+		return "repo.settings.collaboration.write"
+	case AccessModeAdmin:
+		return "repo.settings.collaboration.admin"
+	default:
+		return "repo.settings.collaboration.undefined"
+	}
+}

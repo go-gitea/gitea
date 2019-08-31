@@ -490,6 +490,14 @@ func Collaboration(ctx *context.Context) {
 	}
 	ctx.Data["Collaborators"] = users
 
+	teams, err := ctx.Repo.Repository.GetRepoTeams()
+	if err != nil {
+		ctx.ServerError("GetRepoTeams", err)
+		return
+	}
+	ctx.Data["Teams"] = teams
+	ctx.Data["Org"] = ctx.Repo.Repository.OwnerName
+
 	ctx.HTML(200, tplCollaboration)
 }
 
