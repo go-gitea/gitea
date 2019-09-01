@@ -13,7 +13,7 @@ import (
 // LFSMetaObject stores metadata for LFS tracked files.
 type LFSMetaObject struct {
 	ID           int64              `xorm:"pk autoincr"`
-	Oid          string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Oid          string             `xorm:"UNIQUE(s) NOT NULL"`
 	Size         int64              `xorm:"NOT NULL"`
 	RepositoryID int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Existing     bool               `xorm:"-"`

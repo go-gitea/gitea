@@ -90,9 +90,9 @@ type Action struct {
 	Repo        *Repository `xorm:"-"`
 	CommentID   int64       `xorm:"INDEX"`
 	Comment     *Comment    `xorm:"-"`
-	IsDeleted   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsDeleted   bool        `xorm:"NOT NULL DEFAULT false"`
 	RefName     string
-	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }

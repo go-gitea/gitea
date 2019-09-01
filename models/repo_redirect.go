@@ -14,7 +14,7 @@ import (
 type RepoRedirect struct {
 	ID             int64  `xorm:"pk autoincr"`
 	OwnerID        int64  `xorm:"UNIQUE(s)"`
-	LowerName      string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	LowerName      string `xorm:"UNIQUE(s) NOT NULL"`
 	RedirectRepoID int64  // repoID to redirect to
 }
 

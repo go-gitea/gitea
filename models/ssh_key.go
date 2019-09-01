@@ -706,7 +706,7 @@ func rewriteAllPublicKeys(e Engine) error {
 // DeployKey represents deploy key information and its relation with repository.
 type DeployKey struct {
 	ID          int64 `xorm:"pk autoincr"`
-	KeyID       int64 `xorm:"UNIQUE(s) INDEX"`
+	KeyID       int64 `xorm:"UNIQUE(s)"`
 	RepoID      int64 `xorm:"UNIQUE(s) INDEX"`
 	Name        string
 	Fingerprint string

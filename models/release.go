@@ -22,11 +22,11 @@ import (
 // Release represents a release of repository.
 type Release struct {
 	ID               int64       `xorm:"pk autoincr"`
-	RepoID           int64       `xorm:"INDEX UNIQUE(n)"`
+	RepoID           int64       `xorm:"UNIQUE(n)"`
 	Repo             *Repository `xorm:"-"`
 	PublisherID      int64       `xorm:"INDEX"`
 	Publisher        *User       `xorm:"-"`
-	TagName          string      `xorm:"INDEX UNIQUE(n)"`
+	TagName          string      `xorm:"UNIQUE(n)"`
 	LowerTagName     string
 	Target           string
 	Title            string

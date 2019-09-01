@@ -18,10 +18,10 @@ import (
 // Reaction represents a reactions on issues and comments.
 type Reaction struct {
 	ID          int64              `xorm:"pk autoincr"`
-	Type        string             `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	IssueID     int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	CommentID   int64              `xorm:"INDEX UNIQUE(s)"`
-	UserID      int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	IssueID     int64              `xorm:"UNIQUE(s) NOT NULL"`
+	CommentID   int64              `xorm:"UNIQUE(s)"`
+	Type        string             `xorm:"UNIQUE(s) NOT NULL"`
+	UserID      int64              `xorm:"UNIQUE(s) NOT NULL"`
 	User        *User              `xorm:"-"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }

@@ -296,9 +296,9 @@ func deleteOrg(e *xorm.Session, u *User) error {
 // OrgUser represents an organization-user relation.
 type OrgUser struct {
 	ID       int64 `xorm:"pk autoincr"`
-	UID      int64 `xorm:"INDEX UNIQUE(s)"`
+	UID      int64 `xorm:"UNIQUE(s)"`
 	OrgID    int64 `xorm:"INDEX UNIQUE(s)"`
-	IsPublic bool  `xorm:"INDEX"`
+	IsPublic bool
 }
 
 func isOrganizationOwner(e Engine, orgID, uid int64) (bool, error) {
