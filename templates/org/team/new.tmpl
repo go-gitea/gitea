@@ -30,8 +30,8 @@
 							<div class="field">
 								<div class="ui checkbox">
 									<input type="checkbox" name="auto_add_repos" {{if .Team.AutoAddNewRepo}}checked{{end}}>
-									<label>Automatically add team to new repositories</label>
-									<span class="help">Will automatically grant team access to newly created repositories.</span>
+									<label>{{.i18n.Tr "org.teams.auto_add_repo"}}</label>
+									<span class="help">{{.i18n.Tr "org.teams.auto_add_repo_helper"}}</span>
 								</div> 
 							</div>
 							<div class="field">
