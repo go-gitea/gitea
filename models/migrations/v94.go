@@ -265,45 +265,56 @@ func refactorIndexes(x *xorm.Engine) error {
 		UpdatedUnix int64 `xorm:"INDEX updated"` // timeutil.TimeStamp
 	}
 
-	if err := x.Sync2(new(Action)); err != nil {
-		return err
-	}
-	if err := x.Sync2(new(Collaboration)); err != nil {
-		return err
-	}
-	if err := x.Sync2(new(CommitStatus)); err != nil {
-		return err
-	}
-	if err := x.Sync2(new(DeployKey)); err != nil {
-		return err
-	}
-	if err := x.Sync2(new(Issue)); err != nil {
-		return err
-	}
-	if err := x.Sync2(new(LFSMetaObject)); err != nil {
-		return err
-	}
-	if err := x.Sync2(new(Notification)); err != nil {
-		return err
-	}
-	if err := x.Sync2(new(OrgUser)); err != nil {
-		return err
-	}
-	if err := x.Sync2(new(ProtectedBranch)); err != nil {
-		return err
-	}
-	if err := x.Sync2(new(Reaction)); err != nil {
-		return err
-	}
-	if err := x.Sync2(new(Release)); err != nil {
-		return err
-	}
-	if err := x.Sync2(new(RepoRedirect)); err != nil {
-		return err
-	}
-	if err := x.Sync2(new(Repository)); err != nil {
-		return err
-	}
+	sess := x.NewSession()
+	defer sess.Close()
 
-	return nil
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := sess.Sync2(new(Action)); err != nil {
+		return err
+	}
+	if err := sess.Sync2(new(Collaboration)); err != nil {
+		return err
+	}
+	if err := dropTableIndex(sess, "commit_status", "UQE_commit_status_repo_sha_index"); err != nil {
+		return err
+	}
+	if err := sess.Sync2(new(CommitStatus)); err != nil {
+		return err
+	}
+	if err := sess.Sync2(new(DeployKey)); err != nil {
+		return err
+	}
+	if err := sess.Sync2(new(Issue)); err != nil {
+		return err
+	}
+	if err := sess.Sync2(new(LFSMetaObject)); err != nil {
+		return err
+	}
+	if err := sess.Sync2(new(Notification)); err != nil {
+		return err
+	}
+	if err := sess.Sync2(new(OrgUser)); err != nil {
+		return err
+	}
+	if err := sess.Sync2(new(ProtectedBranch)); err != nil {
+		return err
+	}
+	if err := dropTableIndex(sess, "reaction", "UQE_reaction_s"); err != nil {
+		return err
+	}
+	if err := sess.Sync2(new(Reaction)); err != nil {
+		return err
+	}
+	if err := sess.Sync2(new(Release)); err != nil {
+		return err
+	}
+	if err := sess.Sync2(new(RepoRedirect)); err != nil {
+		return err
+	}
+	if err := sess.Sync2(new(Repository)); err != nil {
+		return err
+	}
+	return sess.Commit()
 }
