@@ -21,17 +21,18 @@ const ownerTeamName = "Owners"
 
 // Team represents a organization team.
 type Team struct {
-	ID          int64 `xorm:"pk autoincr"`
-	OrgID       int64 `xorm:"INDEX"`
-	LowerName   string
-	Name        string
-	Description string
-	Authorize   AccessMode
-	Repos       []*Repository `xorm:"-"`
-	Members     []*User       `xorm:"-"`
-	NumRepos    int
-	NumMembers  int
-	Units       []*TeamUnit `xorm:"-"`
+	ID             int64 `xorm:"pk autoincr"`
+	OrgID          int64 `xorm:"INDEX"`
+	LowerName      string
+	Name           string
+	Description    string
+	Authorize      AccessMode
+	AutoAddNewRepo bool
+	Repos          []*Repository `xorm:"-"`
+	Members        []*User       `xorm:"-"`
+	NumRepos       int
+	NumMembers     int
+	Units          []*TeamUnit `xorm:"-"`
 }
 
 // ColorFormat provides a basic color format for a Team
@@ -355,6 +356,13 @@ func getTeam(e Engine, orgID int64, name string) (*Team, error) {
 		return nil, ErrTeamNotExist
 	}
 	return t, nil
+}
+
+func getTeamsWithAutoAddRepos(e Engine, orgID int64) ([]*Team, error) {
+	teams := make([]*Team, 0, 5)
+	sess := e.Where("org_id = ?", orgID).
+		And("auto_add_new_repo = ?", true)
+	return teams, sess.Find(&teams)
 }
 
 // GetTeam returns team by given team name and organization.

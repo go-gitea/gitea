@@ -53,6 +53,10 @@ func (org *User) GetOwnerTeam() (*Team, error) {
 	return org.getOwnerTeam(x)
 }
 
+func (org *User) getTeamsWithAutoAddRepos(e Engine) ([]*Team, error) {
+	return getTeamsWithAutoAddRepos(e, org.ID)
+}
+
 func (org *User) getTeams(e Engine) error {
 	return e.
 		Where("org_id=?", org.ID).
