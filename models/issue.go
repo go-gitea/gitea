@@ -40,8 +40,8 @@ type Issue struct {
 	MilestoneID      int64      `xorm:"INDEX"`
 	Milestone        *Milestone `xorm:"-"`
 	Priority         int
-	AssigneeID       int64 `xorm:"-"`
-	Assignee         *User `xorm:"-"`
+	AssigneeID       int64        `xorm:"-"`
+	Assignee         *User        `xorm:"-"`
 	IsClosed         bool
 	IsRead           bool         `xorm:"-"`
 	IsPull           bool         // Indicates whether is a pull request or not.
