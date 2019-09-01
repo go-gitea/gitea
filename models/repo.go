@@ -1527,11 +1527,23 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	if newOwner.IsOrganization() {
+		// Give access to all members in owner team.
 		t, err := newOwner.getOwnerTeam(sess)
 		if err != nil {
 			return fmt.Errorf("getOwnerTeam: %v", err)
 		} else if err = t.addRepository(sess, repo); err != nil {
 			return fmt.Errorf("add to owner team: %v", err)
+		}
+
+		// Add teams that shall automatically get repo access
+		teams, err := newOwner.getTeamsWithAutoAddRepos(sess)
+		if err != nil {
+			return fmt.Errorf("getTeamsWithAutoAddRepos: %v", err)
+		}
+		for _, t = range teams {
+			if err = t.addRepository(sess, repo); err != nil {
+				return fmt.Errorf("addRepository: %v", err)
+			}
 		}
 	} else if err = repo.recalculateAccesses(sess); err != nil {
 		// Organization called this in addRepository method.
