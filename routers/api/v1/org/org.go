@@ -14,9 +14,9 @@ import (
 )
 
 func listUserOrgs(ctx *context.APIContext, u *models.User, all bool) {
-	orgs, err := models.GetOrgUsers(u.ID, all)
+	orgs, err := models.GetUserOrgs(u.ID, all)
 	if err != nil {
-		ctx.Error(500, "GetOrgUsers", err)
+		ctx.Error(500, "GetUserOrgs", err)
 		return
 	}
 

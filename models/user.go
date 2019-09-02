@@ -162,8 +162,8 @@ type UserExtendedView struct {
 	NumRepos int
 }
 
-// GetOrgUsersByUserID returns all organization-user relations by user ID.
-func GetOrgUsers(id int64, all bool) ([]UserExtendedView, error) {
+// GetUserOrgs returns the organizations of a UID
+func GetUserOrgs(id int64, all bool) ([]UserExtendedView, error) {
 
 	var ous []UserExtendedView
 	sess := x.Sql(`SELECT

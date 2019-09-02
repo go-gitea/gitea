@@ -49,9 +49,9 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	orgs, err := models.GetOrgUsers(ctxUser.ID, true)
+	orgs, err := models.GetUserOrgs(ctxUser.ID, true)
 	if err != nil {
-		ctx.ServerError("GetOrgUsers", err)
+		ctx.ServerError("GetUserOrgs", err)
 		return nil
 	}
 	ctx.Data["Orgs"] = orgs
