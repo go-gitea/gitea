@@ -97,6 +97,7 @@ vet:
 
 .PHONY: generate
 generate:
+	$(GO) version
 	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
 
 .PHONY: generate-swagger
