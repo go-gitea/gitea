@@ -89,14 +89,30 @@ steps:
       - make generate
       - make golangci-lint
       - make revive
-      - make swagger-check
-      - make swagger-validate
       - make test-vendor
       - make build
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
+
+  - name: swagger-test
+    pull: always
+    image: golang:1.12
+    commands:
+      - make swagger-check
+      - make swagger-validate
+    environment:
+      GOPROXY: off
+      TAGS: bindata sqlite sqlite_unlock_notify
+    depends_on:
+      - build
+    when:
+      branch:
+        - master
+      event:
+        - push
+        - pull_request
 
   - name: unit-test
     pull: always
