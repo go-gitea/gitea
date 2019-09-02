@@ -166,7 +166,7 @@ type UserExtendedView struct {
 func GetUserOrgs(id int64, all bool) ([]UserExtendedView, error) {
 
 	var ous []UserExtendedView
-	sess := x.Sql(`SELECT
+	sess := x.SQL(`SELECT
         user.*, COUNT(DISTINCT repository.id) AS num_repos
 FROM
         (SELECT
