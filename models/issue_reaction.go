@@ -19,9 +19,9 @@ import (
 type Reaction struct {
 	ID          int64              `xorm:"pk autoincr"`
 	IssueID     int64              `xorm:"UNIQUE(s) NOT NULL"`
-	CommentID   int64              `xorm:"UNIQUE(s)"`
+	CommentID   int64              `xorm:"INDEX UNIQUE(s)"`
 	Type        string             `xorm:"UNIQUE(s) NOT NULL"`
-	UserID      int64              `xorm:"UNIQUE(s) NOT NULL"`
+	UserID      int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
 	User        *User              `xorm:"-"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
