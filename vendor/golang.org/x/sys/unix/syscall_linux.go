@@ -71,6 +71,17 @@ func Fchmodat(dirfd int, path string, mode uint32, flags int) (err error) {
 // ioctl itself should not be exposed directly, but additional get/set
 // functions for specific types are permissible.
 
+// IoctlRetInt performs an ioctl operation specified by req on a device
+// associated with opened file descriptor fd, and returns a non-negative
+// integer that is returned by the ioctl syscall.
+func IoctlRetInt(fd int, req uint) (int, error) {
+	ret, _, err := Syscall(SYS_IOCTL, uintptr(fd), uintptr(req), 0)
+	if err != 0 {
+		return 0, err
+	}
+	return int(ret), nil
+}
+
 // IoctlSetPointerInt performs an ioctl operation which sets an
 // integer value on fd, using the specified request number. The ioctl
 // argument is called with a pointer to the integer value, rather than
@@ -80,50 +91,16 @@ func IoctlSetPointerInt(fd int, req uint, value int) error {
 	return ioctl(fd, req, uintptr(unsafe.Pointer(&v)))
 }
 
-// IoctlSetInt performs an ioctl operation which sets an integer value
-// on fd, using the specified request number.
-func IoctlSetInt(fd int, req uint, value int) error {
-	return ioctl(fd, req, uintptr(value))
-}
-
-func ioctlSetWinsize(fd int, req uint, value *Winsize) error {
-	return ioctl(fd, req, uintptr(unsafe.Pointer(value)))
-}
-
-func ioctlSetTermios(fd int, req uint, value *Termios) error {
-	return ioctl(fd, req, uintptr(unsafe.Pointer(value)))
-}
-
 func IoctlSetRTCTime(fd int, value *RTCTime) error {
 	err := ioctl(fd, RTC_SET_TIME, uintptr(unsafe.Pointer(value)))
 	runtime.KeepAlive(value)
 	return err
 }
 
-// IoctlGetInt performs an ioctl operation which gets an integer value
-// from fd, using the specified request number.
-func IoctlGetInt(fd int, req uint) (int, error) {
-	var value int
-	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
-	return value, err
-}
-
 func IoctlGetUint32(fd int, req uint) (uint32, error) {
 	var value uint32
 	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
 	return value, err
-}
-
-func IoctlGetWinsize(fd int, req uint) (*Winsize, error) {
-	var value Winsize
-	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
-	return &value, err
-}
-
-func IoctlGetTermios(fd int, req uint) (*Termios, error) {
-	var value Termios
-	err := ioctl(fd, req, uintptr(unsafe.Pointer(&value)))
-	return &value, err
 }
 
 func IoctlGetRTCTime(fd int) (*RTCTime, error) {
