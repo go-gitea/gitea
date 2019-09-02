@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -49,15 +50,34 @@ func SearchIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-	var (
-		repoIDs []int64
-		err     error
-	)
 
-	repoIDs, err = models.FindUserAccessibleRepoIDs(ctx.User.ID)
-	if err != nil {
-		ctx.Error(500, "FindUserAccessibleRepoIDs", err)
-		return
+	// find repos user can access
+	repoIDs := make([]int64, 0)
+	for page := 1; ; page++ {
+		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
+			Page:        page,
+			PageSize:    models.RepositoryListDefaultPageSize,
+			Private:     true,
+			Keyword:     "",
+			OwnerID:     ctx.User.ID,
+			TopicOnly:   false,
+			Collaborate: util.OptionalBoolNone,
+			UserIsAdmin: ctx.IsUserSiteAdmin(),
+			UserID:      ctx.Data["SignedUserID"].(int64),
+			OrderBy:     models.SearchOrderByID,
+		})
+		if err != nil {
+			ctx.Error(500, "SearchRepositoryByName", err)
+			return
+		}
+
+		if len(repos) == 0 {
+			break
+		}
+		log.Trace("Processing next %d repos of %d", len(repos), count)
+		for _, repo := range repos {
+			repoIDs = append(repoIDs, repo.ID)
+		}
 	}
 
 	var isClosed util.OptionalBool
@@ -78,7 +98,8 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 	var issueIDs []int64
 	var labelIDs []int64
-	if len(keyword) > 0 {
+	var err error
+	if len(keyword) > 0 && len(repoIDs) > 0 {
 		issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword)
 	}
 
