@@ -109,7 +109,6 @@ type User struct {
 	LoginName   string
 	Type        UserType
 	OwnedOrgs   []*User       `xorm:"-"`
-	Orgs        []*User       `xorm:"-"`
 	Repos       []*Repository `xorm:"-"`
 	Location    string
 	Website     string
@@ -161,6 +160,39 @@ type User struct {
 type UserExtendedView struct {
 	User     `xorm:"extends"`
 	NumRepos int
+}
+
+// GetOrgUsersByUserID returns all organization-user relations by user ID.
+func GetOrgUsers(id int64, all bool) ([]*UserExtendedView, error) {
+
+	ous := make([]*UserExtendedView, 0, 10)
+	sess := x.Sql(`SELECT
+        user.*, COUNT(DISTINCT repository.id) AS num_repos
+FROM
+        (SELECT
+                user.*, org_user.org_id
+        FROM
+                user
+        LEFT JOIN
+                org_user ON user.id = org_user.uid AND (? OR org_user.is_public)
+        WHERE
+                user.id = ?
+        ORDER BY
+                user.id
+        ) u
+JOIN
+        user ON u.org_id = user.id
+LEFT JOIN
+        repository ON u.org_id = repository.owner_id
+GROUP BY
+        u.org_id
+ORDER BY
+	u.name ASC
+;`, all, id)
+	if err := sess.Find(ous); err != nil {
+		return nil, err
+	}
+	return ous, nil
 }
 
 // ColorFormat writes a colored string to identify this struct
@@ -672,23 +704,6 @@ func (u *User) GetMirrorRepositories() ([]*Repository, error) {
 func (u *User) GetOwnedOrganizations() (err error) {
 	u.OwnedOrgs, err = GetOwnedOrgsByUserID(u.ID)
 	return err
-}
-
-// GetOrganizations returns all organizations that user belongs to.
-func (u *User) GetOrganizations(all bool) error {
-	ous, err := GetOrgUsersByUserID(u.ID, all)
-	if err != nil {
-		return err
-	}
-
-	u.Orgs = make([]*User, len(ous))
-	for i, ou := range ous {
-		u.Orgs[i], err = GetUserByID(ou.OrgID)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // DisplayName returns full name if it's not empty,
@@ -1514,7 +1529,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*UserExtendedView, _ int64, _
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
-	sess := x.Table(&User{}).Select("user.*, COUNT(repository.owner_id) AS num_repos").GroupBy("user.id").Join("LEFT OUTER", "repository", "user.id = repository.owner_id").Where(cond)
+	sess := x.Table(&User{}).Select("user.*, COUNT(repository.owner_id) AS num_repos").GroupBy("user.id").Join("LEFT", "repository", "user.id = repository.owner_id").Where(cond)
 	if opts.PageSize > 0 {
 		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}

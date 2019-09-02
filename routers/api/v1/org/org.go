@@ -14,14 +14,15 @@ import (
 )
 
 func listUserOrgs(ctx *context.APIContext, u *models.User, all bool) {
-	if err := u.GetOrganizations(all); err != nil {
-		ctx.Error(500, "GetOrganizations", err)
+	orgs, err := models.GetOrgUsers(u.ID, all)
+	if err != nil {
+		ctx.Error(500, "GetOrgUsers", err)
 		return
 	}
 
-	apiOrgs := make([]*api.Organization, len(u.Orgs))
-	for i := range u.Orgs {
-		apiOrgs[i] = convert.ToOrganization(u.Orgs[i])
+	apiOrgs := make([]*api.Organization, len(orgs))
+	for i := range orgs {
+		apiOrgs[i] = convert.ToOrganization(&orgs[i].User)
 	}
 	ctx.JSON(200, &apiOrgs)
 }
