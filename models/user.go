@@ -177,8 +177,6 @@ FROM
                 org_user ON user.id = org_user.uid AND (? OR org_user.is_public)
         WHERE
                 user.id = ?
-        ORDER BY
-                user.id
         ) u
 JOIN
         user ON u.org_id = user.id
