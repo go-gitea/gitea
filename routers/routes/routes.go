@@ -38,6 +38,7 @@ import (
 	"github.com/go-macaron/binding"
 	"github.com/go-macaron/cache"
 	"github.com/go-macaron/captcha"
+	"github.com/go-macaron/cors"
 	"github.com/go-macaron/csrf"
 	"github.com/go-macaron/i18n"
 	"github.com/go-macaron/session"
@@ -947,9 +948,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/swagger.v1.json", templates.JSONRenderer(), routers.SwaggerV1Json)
 	}
 
+	var handlers []macaron.Handler
+	if setting.EnableCORS {
+		handlers = append(handlers, cors.CORS(setting.CORSConfig))
+	}
+	handlers = append(handlers, ignSignIn)
 	m.Group("/api", func() {
 		apiv1.RegisterRoutes(m)
-	}, ignSignIn)
+	}, handlers...)
 
 	m.Group("/api/internal", func() {
 		// package name internal is ideal but Golang is not allowed, so we use private as package name.
