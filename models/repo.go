@@ -2005,7 +2005,7 @@ func GetUserRepositories(userID int64, private bool, page, pageSize int, orderBy
 	}
 	sess.Limit(pageSize, (page-1)*pageSize)
 
-	repos := make([]*Repository, 0)
+	var repos []*Repository
 	return repos, sess.Find(&repos)
 }
 

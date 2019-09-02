@@ -734,7 +734,7 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 		pageSize = math.MaxInt32
 	}
 
-	repoIDs := make([]int64, 0)
+	var repoIDs []int64
 	return repoIDs, env.e.
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").

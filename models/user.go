@@ -163,9 +163,9 @@ type UserExtendedView struct {
 }
 
 // GetOrgUsersByUserID returns all organization-user relations by user ID.
-func GetOrgUsers(id int64, all bool) ([]*UserExtendedView, error) {
+func GetOrgUsers(id int64, all bool) ([]UserExtendedView, error) {
 
-	ous := make([]*UserExtendedView, 0, 10)
+	var ous []UserExtendedView
 	sess := x.Sql(`SELECT
         user.*, COUNT(DISTINCT repository.id) AS num_repos
 FROM
@@ -189,7 +189,7 @@ GROUP BY
 ORDER BY
 	u.name ASC
 ;`, all, id)
-	if err := sess.Find(ous); err != nil {
+	if err := sess.Find(&ous); err != nil {
 		return nil, err
 	}
 	return ous, nil
