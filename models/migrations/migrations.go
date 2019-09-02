@@ -293,20 +293,23 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 	return nil
 }
 
-func dropTableIndex(sess *xorm.Session, tableName string, indexName string) (err error) {
+func dropTableIndex(e *xorm.Engine, tableName string, indexName string) (err error) {
 	switch {
 	case setting.Database.UseSQLite3:
-		_, err = sess.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
+		_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
 	case setting.Database.UsePostgreSQL:
-		_, err = sess.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
+		_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
 	case setting.Database.UseMySQL:
-		_, err = sess.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
+		_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
 	case setting.Database.UseMSSQL:
-		_, err = sess.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
+		_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
 	default:
 		log.Fatal("Unrecognized DB")
 	}
-	return err
+	if err != nil {
+		return fmt.Errorf("dropTableIndex(): unable to drop index `%s` on table `%s`: %+v", indexName, tableName, err)
+	}
+	return nil
 }
 
 func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...string) (err error) {
