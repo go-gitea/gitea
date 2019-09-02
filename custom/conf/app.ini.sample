@@ -116,6 +116,8 @@ DEFAULT_THEME = gitea
 THEMES = gitea,arc-green
 ; Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 DEFAULT_SHOW_FULL_NAME = false
+; Whether to search within description at repository search on explore page.
+SEARCH_REPO_DESCRIPTION = true
 
 [ui.admin]
 ; Number of users that are displayed on one page
@@ -275,6 +277,10 @@ LOG_SQL = true
 DB_RETRIES = 10
 ; Backoff time per DB retry (time.Duration)
 DB_RETRY_BACKOFF = 3s
+; Max idle database connections on connnection pool, default is 0
+MAX_IDLE_CONNS = 0
+; Database connection max life time, default is 3s
+CONN_MAX_LIFETIME = 3s
 
 [indexer]
 ; Issue indexer type, currently support: bleve or db, default is bleve
@@ -300,6 +306,8 @@ MAX_FILE_SIZE = 1048576
 [admin]
 ; Disallow regular (non-admin) users from creating organizations.
 DISABLE_REGULAR_ORG_CREATION = false
+; Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
+DEFAULT_EMAIL_NOTIFICATIONS = enabled
 
 [security]
 ; Whether the installer is disabled
@@ -401,6 +409,9 @@ DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Private is only for member of the organization
 ; Public is for everyone
 DEFAULT_ORG_VISIBILITY = public
+; Default value for DefaultOrgMemberVisible
+; True will make the membership of the users visible when added to the organisation  
+DEFAULT_ORG_MEMBER_VISIBLE = false
 ; Default value for EnableDependencies
 ; Repositories will use dependencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true

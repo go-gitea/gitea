@@ -136,6 +136,8 @@ type SearchRepoOptions struct {
 	Mirror util.OptionalBool
 	// only search topic name
 	TopicOnly bool
+	// include description in keyword search
+	IncludeDescription bool
 }
 
 //SearchOrderBy is used to sort the result
@@ -163,9 +165,9 @@ const (
 	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
 )
 
-// SearchRepositoryByName takes keyword and part of repository name to search,
+// SearchRepository returns repositories based on search options,
 // it returns results in given range and number of total results.
-func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, error) {
+func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
@@ -248,7 +250,11 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 		// separate keyword
 		var subQueryCond = builder.NewCond()
 		for _, v := range strings.Split(opts.Keyword, ",") {
-			subQueryCond = subQueryCond.Or(builder.Like{"topic.name", strings.ToLower(v)})
+			if opts.TopicOnly {
+				subQueryCond = subQueryCond.Or(builder.Eq{"topic.name": strings.ToLower(v)})
+			} else {
+				subQueryCond = subQueryCond.Or(builder.Like{"topic.name", strings.ToLower(v)})
+			}
 		}
 		subQuery := builder.Select("repo_topic.repo_id").From("repo_topic").
 			Join("INNER", "topic", "topic.id = repo_topic.topic_id").
@@ -260,6 +266,9 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 			var likes = builder.NewCond()
 			for _, v := range strings.Split(opts.Keyword, ",") {
 				likes = likes.Or(builder.Like{"lower_name", strings.ToLower(v)})
+				if opts.IncludeDescription {
+					likes = likes.Or(builder.Like{"LOWER(description)", strings.ToLower(v)})
+				}
 			}
 			keywordCond = keywordCond.Or(likes)
 		}
@@ -305,6 +314,13 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 	}
 
 	return repos, count, nil
+}
+
+// SearchRepositoryByName takes keyword and part of repository name to search,
+// it returns results in given range and number of total results.
+func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, error) {
+	opts.IncludeDescription = false
+	return SearchRepository(opts)
 }
 
 // FindUserAccessibleRepoIDs find all accessible repositories' ID by user's id
