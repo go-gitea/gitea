@@ -666,7 +666,7 @@ func OpenCurrentProcessToken() (Token, error) {
 		return 0, e
 	}
 	var t Token
-	e = OpenProcessToken(p, TOKEN_QUERY, &t)
+	e = OpenProcessToken(p, TOKEN_QUERY|TOKEN_DUPLICATE, &t)
 	if e != nil {
 		return 0, e
 	}
