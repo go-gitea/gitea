@@ -70,7 +70,7 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 		if err != nil {
 			return fmt.Errorf("GetUserByID [%d]: %v", watchers[i].UserID, err)
 		}
-		if to.IsOrganization() {
+		if to.IsOrganization() || to.EmailNotifications() != EmailNotificationsEnabled {
 			continue
 		}
 
@@ -78,9 +78,9 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 		names = append(names, to.Name)
 	}
 	for i := range participants {
-		if participants[i].ID == doer.ID {
-			continue
-		} else if com.IsSliceContainsStr(names, participants[i].Name) {
+		if participants[i].ID == doer.ID ||
+			com.IsSliceContainsStr(names, participants[i].Name) ||
+			participants[i].EmailNotifications() != EmailNotificationsEnabled {
 			continue
 		}
 

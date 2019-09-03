@@ -240,6 +240,8 @@ var migrations = []Migration{
 	NewMigration("add index on owner_id of repository and type, review_id of comment", addIndexOnRepositoryAndComment),
 	// v92 -> v93
 	NewMigration("remove orphaned repository index statuses", removeLingeringIndexStatus),
+	// v93 -> v94
+	NewMigration("add email notification enabled preference to user", addEmailNotificationEnabledToUser),
 }
 
 // Migrate database to current version
