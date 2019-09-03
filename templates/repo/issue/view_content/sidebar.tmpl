@@ -275,8 +275,9 @@
 					<div class="ui relaxed divided list">
 						{{range .BlockingDependencies}}
 							<div class="item{{if .Issue.IsClosed}} is-closed{{end}}">
+								<span class="text grey right floated">#{{.Issue.Index}}</span>
 								<a class="title has-emoji" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">{{.Issue.Title}}</a>
-								<div class="text small">{{.Repository.OwnerName}}/{{.Repository.Name}}#{{.Issue.Index}}</div>
+								<div class="text small">{{.Repository.OwnerName}}/{{.Repository.Name}}</div>
 								<div class="ui transparent label right floated">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blocking');"
@@ -301,8 +302,9 @@
 					<div class="ui relaxed divided list">
 						{{range .BlockedByDependencies}}
 							<div class="item{{if .Issue.IsClosed}} is-closed{{end}}">
+								<span class="text grey right floated">#{{.Issue.Index}}</span>
 								<a class="title has-emoji" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">{{.Issue.Title}}</a>
-								<div class="text small">{{.Repository.OwnerName}}/{{.Repository.Name}}#{{.Issue.Index}}</div>
+								<div class="text small">{{.Repository.OwnerName}}/{{.Repository.Name}}</div>
 								<div class="ui transparent label right floated">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blockedBy');"

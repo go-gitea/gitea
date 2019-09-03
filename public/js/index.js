@@ -3083,8 +3083,8 @@ function initIssueList() {
                             return;
                         }
                         filteredResponse.results.push({
-                            'name'  : htmlEncode(issue.title) + '<div class="text small dont-break-out">' + 
-                                htmlEncode(issue.repository.full_name) + '#' + issue.number + '</div>',
+                            'name'  : '#' + issue.number + ' ' + htmlEncode(issue.title) + 
+                                '<div class="text small dont-break-out">' + htmlEncode(issue.repository.full_name) + '</div>',
                             'value' : issue.id
                         });
                     });
