@@ -100,7 +100,7 @@ func TestPullCreate_TitleEscape(t *testing.T) {
 		htmlDoc = NewHTMLParser(t, resp.Body)
 		titleHTML, err := htmlDoc.doc.Find(".comments .event .text b").First().Html()
 		assert.NoError(t, err)
-		assert.Equal(t, "&lt;i&gt;XSS PR&lt;/i&gt;", titleHTML)
+		assert.Equal(t, "<strike>&lt;i&gt;XSS PR&lt;/i&gt;</strike>", titleHTML)
 		titleHTML, err = htmlDoc.doc.Find(".comments .event .text b").Next().Html()
 		assert.NoError(t, err)
 		assert.Equal(t, "&lt;u&gt;XSS PR&lt;/u&gt;", titleHTML)

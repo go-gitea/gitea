@@ -96,6 +96,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
   regardless of the value of `DEFAULT_THEME`.
 - `DEFAULT_SHOW_FULL_NAME`: false: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
+- `SEARCH_REPO_DESCRIPTION`: true: Whether to search within description at repository search on explore page.
 
 ### UI - Admin (`ui.admin`)
 
@@ -166,6 +167,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LOG_SQL`: **true**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
 - `DB_RETRY_BACKOFF`: **3s**: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
+- `MAX_IDLE_CONNS` **0**: Max idle database connections on connnection pool, default is 0
+- `CONN_MAX_LIFETIME` **3s**: Database connection max lifetime
 
 ## Indexer (`indexer`)
 
@@ -180,6 +183,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
+
+## Admin (`admin`)
+- `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**: Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
 
 ## Security (`security`)
 
@@ -244,6 +250,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
 - `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
+- `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
 
 ## Webhook (`webhook`)
 

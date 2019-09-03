@@ -32,15 +32,14 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
+	"github.com/unknwon/com"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
-	"xorm.io/core"
 )
 
 // UserType defines the user type
@@ -59,6 +58,13 @@ const (
 	algoScrypt = "scrypt"
 	algoArgon2 = "argon2"
 	algoPbkdf2 = "pbkdf2"
+
+	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications
+	EmailNotificationsEnabled = "enabled"
+	// EmailNotificationsOnMention indicates that the user would like to be notified via email when mentioned.
+	EmailNotificationsOnMention = "onmention"
+	// EmailNotificationsDisabled indicates that the user would not like to be notified via email.
+	EmailNotificationsDisabled = "disabled"
 )
 
 var (
@@ -88,10 +94,11 @@ type User struct {
 	Name      string `xorm:"UNIQUE NOT NULL"`
 	FullName  string
 	// Email is the primary email address (to be used for communication)
-	Email            string `xorm:"NOT NULL"`
-	KeepEmailPrivate bool
-	Passwd           string `xorm:"NOT NULL"`
-	PasswdHashAlgo   string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
+	Email                        string `xorm:"NOT NULL"`
+	KeepEmailPrivate             bool
+	EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
+	Passwd                       string `xorm:"NOT NULL"`
+	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
 
 	// MustChangePassword is an attribute that determines if a user
 	// is to change his/her password after registration.
@@ -720,6 +727,21 @@ func (u *User) IsMailable() bool {
 	return u.IsActive
 }
 
+// EmailNotifications returns the User's email notification preference
+func (u *User) EmailNotifications() string {
+	return u.EmailNotificationsPreference
+}
+
+// SetEmailNotifications sets the user's email notification preference
+func (u *User) SetEmailNotifications(set string) error {
+	u.EmailNotificationsPreference = set
+	if err := UpdateUserCols(u, "email_notifications_preference"); err != nil {
+		log.Error("SetEmailNotifications: %v", err)
+		return err
+	}
+	return nil
+}
+
 func isUserExist(e Engine, uid int64, name string) (bool, error) {
 	if len(name) == 0 {
 		return false, nil
@@ -869,6 +891,7 @@ func CreateUser(u *User) (err error) {
 	}
 	u.HashPassword(u.Passwd)
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
+	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
 
@@ -1254,7 +1277,8 @@ func getUserByName(e Engine, name string) (*User, error) {
 	return u, nil
 }
 
-// GetUserEmailsByNames returns a list of e-mails corresponds to names.
+// GetUserEmailsByNames returns a list of e-mails corresponds to names of users
+// that have their email notifications set to enabled or onmention.
 func GetUserEmailsByNames(names []string) []string {
 	return getUserEmailsByNames(x, names)
 }
@@ -1266,7 +1290,7 @@ func getUserEmailsByNames(e Engine, names []string) []string {
 		if err != nil {
 			continue
 		}
-		if u.IsMailable() {
+		if u.IsMailable() && u.EmailNotifications() != EmailNotificationsDisabled {
 			mails = append(mails, u.Email)
 		}
 	}
@@ -1432,9 +1456,9 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 	if opts.OwnerID > 0 {
 		var exprCond builder.Cond
-		if DbCfg.Type == core.MYSQL {
+		if setting.Database.UseMySQL {
 			exprCond = builder.Expr("org_user.org_id = user.id")
-		} else if DbCfg.Type == core.MSSQL {
+		} else if setting.Database.UseMSSQL {
 			exprCond = builder.Expr("org_user.org_id = [user].id")
 		} else {
 			exprCond = builder.Expr("org_user.org_id = \"user\".id")
@@ -1674,7 +1698,12 @@ func SyncExternalUsers() {
 				return
 			}
 
-			sr := s.LDAP().SearchEntries()
+			sr, err := s.LDAP().SearchEntries()
+			if err != nil {
+				log.Error("SyncExternalUsers LDAP source failure [%s], skipped", s.Name)
+				continue
+			}
+
 			for _, su := range sr {
 				if len(su.Username) == 0 {
 					continue
