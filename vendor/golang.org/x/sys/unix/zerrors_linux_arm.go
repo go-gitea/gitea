@@ -1406,6 +1406,10 @@ const (
 	NLM_F_ROOT                           = 0x100
 	NOFLSH                               = 0x80
 	NSFS_MAGIC                           = 0x6e736673
+	NS_GET_NSTYPE                        = 0xb703
+	NS_GET_OWNER_UID                     = 0xb704
+	NS_GET_PARENT                        = 0xb702
+	NS_GET_USERNS                        = 0xb701
 	OCFS2_SUPER_MAGIC                    = 0x7461636f
 	OCRNL                                = 0x8
 	OFDEL                                = 0x80
