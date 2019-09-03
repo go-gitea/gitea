@@ -299,8 +299,7 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	getDiffTreeFromBranch := func(repoPath, baseBranch, headBranch string) (string, error) {
 		var outbuf, errbuf strings.Builder
 		// Compute the diff-tree for sparse-checkout
-		// The branch argument must be enclosed with double-quotes ("") in case it contains slashes (e.g "feature/test")
-		if err := git.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "--root", baseBranch, headBranch).RunInDirPipeline(repoPath, &outbuf, &errbuf); err != nil {
+		if err := git.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "--root", baseBranch, headBranch, "--").RunInDirPipeline(repoPath, &outbuf, &errbuf); err != nil {
 			return "", fmt.Errorf("git diff-tree [%s base:%s head:%s]: %s", repoPath, baseBranch, headBranch, errbuf.String())
 		}
 		return outbuf.String(), nil
