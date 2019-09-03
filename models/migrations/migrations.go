@@ -303,6 +303,7 @@ func dropTableIndex(e *xorm.Engine, tableName string, indexName string) (err err
 		for _, idx := range res {
 			if string(idx["name"]) == indexName {
 				_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
+				break
 			}
 		}
 	case setting.Database.UsePostgreSQL:
@@ -324,7 +325,10 @@ func dropTableIndex(e *xorm.Engine, tableName string, indexName string) (err err
 	default:
 		return fmt.Errorf("Unrecognized DB")
 	}
-	return fmt.Errorf("dropTableIndex(): unable to drop index `%s` on table `%s`: %+v", indexName, tableName, err)
+	if err != nil {
+		return fmt.Errorf("dropTableIndex(): unable to drop index `%s` on table `%s`: %+v", indexName, tableName, err)
+	}
+	return nil
 }
 
 func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...string) (err error) {
