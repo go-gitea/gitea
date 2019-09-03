@@ -307,8 +307,5 @@ func refactorIndexes(x *xorm.Engine) error {
 	if err := x.Sync2(new(RepoRedirect)); err != nil {
 		return err
 	}
-	if err := x.Sync2(new(Repository)); err != nil {
-		return err
-	}
-	return nil
+	return x.Sync2(new(Repository))
 }
