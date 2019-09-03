@@ -307,6 +307,42 @@ func dropTableIndex(e *xorm.Engine, tableName string, indexName string) (err err
 		log.Fatal("Unrecognized DB")
 	}
 	if err != nil {
+		// ==========================================================================================
+		// Sorry: this block is temporary; I can't reproduce this problem in my test environment
+		// I want to make sure I'm not missing anything.
+		var res []map[string][]byte
+		var errx error
+		switch {
+		case setting.Database.UseSQLite3:
+			res, errx = e.Query(fmt.Sprintf("PRAGMA index_list(`%s`)", "commit_status"))
+		case setting.Database.UsePostgreSQL:
+			res, errx = e.Query(fmt.Sprintf("SELECT * FROM PG_INDEXES WHERE TABLENAME = '%s'", "commit_status"))
+		case setting.Database.UseMySQL:
+			res, errx = e.Query(fmt.Sprintf("SHOW INDEX FROM %s", "commit_status"))
+		case setting.Database.UseMSSQL:
+			res, errx = e.Query(fmt.Sprintf("SELECT Name FROM SYS.INDEXES WHERE object_id = OBJECT_ID('%s')", "commit_status"))
+		default:
+			goto end_of_temp_block
+		}
+		if errx == nil {
+			fmt.Printf("Index list for commit_status:\n")
+			switch {
+			case setting.Database.UseMySQL:
+				for _, line := range res {
+					fmt.Printf("    Column_name: %s, Index_type: %s, Key_name: %s, Seq_in_index: %s\n",
+						line["Column_name"],
+						line["Index_type"],
+						line["Key_name"],
+						line["Seq_in_index"])
+				}
+			default:
+				for _, line := range res {
+					fmt.Printf("    %+v\n", line)
+				}
+			}
+		}
+	end_of_temp_block:
+		// ==========================================================================================
 		return fmt.Errorf("dropTableIndex(): unable to drop index `%s` on table `%s`: %+v", indexName, tableName, err)
 	}
 	return nil
