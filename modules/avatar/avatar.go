@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"image"
 	"image/color/palette"
+
 	// Enable PNG support:
 	_ "image/png"
 	"math/rand"

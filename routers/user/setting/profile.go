@@ -17,8 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 
-	"github.com/unknwon/com"
 	"github.com/unknwon/i18n"
 )
 
@@ -141,11 +141,18 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 		if err = ctxUser.UploadAvatar(data); err != nil {
 			return fmt.Errorf("UploadAvatar: %v", err)
 		}
-	} else if ctxUser.UseCustomAvatar && !com.IsFile(ctxUser.CustomAvatarPath()) {
-		// No avatar is uploaded but setting has been changed to enable,
-		// generate a random one when needed.
-		if err := ctxUser.GenerateRandomAvatar(); err != nil {
-			log.Error("GenerateRandomAvatar[%d]: %v", ctxUser.ID, err)
+	} else if ctxUser.UseCustomAvatar {
+		fs := storage.FileStorage{
+			Ctx:      ctx.Req.Context(),
+			Path:     setting.AvatarUploadPath,
+			FileName: ctxUser.Avatar,
+		}
+		if !fs.Exists() {
+			// No avatar is uploaded but setting has been changed to enable,
+			// generate a random one when needed.
+			if err := ctxUser.GenerateRandomAvatar(); err != nil {
+				log.Error("GenerateRandomAvatar[%d]: %v", ctxUser.ID, err)
+			}
 		}
 	}
 

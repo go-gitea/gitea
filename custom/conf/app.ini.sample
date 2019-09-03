@@ -869,3 +869,9 @@ QUEUE_LENGTH = 1000
 ; Task queue connction string, available only when `QUEUE_TYPE` is `redis`. 
 ; If there is a password of redis, use `addrs=127.0.0.1:6379 password=123 db=0`.
 QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
+
+[storage]
+; URL of bucket where files are stored (such as attachments, avatars, etc.).
+; If unset, `BUCKET_URL` defaults to `file:// <AppWorkPath>`.
+; Consult https://gocloud.dev/howto/blob for URL format for various cloud providers and their credential paths and env variables.
+BUCKET_URL =

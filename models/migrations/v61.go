@@ -5,12 +5,13 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
-	"os"
 	"path"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 
 	"xorm.io/xorm"
 )
@@ -29,14 +30,20 @@ func addSizeToAttachment(x *xorm.Engine) error {
 	if err := x.Find(&attachments); err != nil {
 		return fmt.Errorf("query attachments: %v", err)
 	}
+
+	fs := storage.FileStorage{
+		Ctx:  context.Background(),
+		Path: setting.AttachmentPath,
+	}
+
 	for _, attach := range attachments {
-		localPath := path.Join(setting.AttachmentPath, attach.UUID[0:1], attach.UUID[1:2], attach.UUID)
-		fi, err := os.Stat(localPath)
+		fs.FileName = path.Join(attach.UUID[0:1], attach.UUID[1:2], attach.UUID)
+		attrs, err := fs.Attributes()
 		if err != nil {
 			log.Error("calculate file size of attachment[UUID: %s]: %v", attach.UUID, err)
 			continue
 		}
-		attach.Size = fi.Size()
+		attach.Size = attrs.Size
 		if _, err := x.ID(attach.ID).Cols("size").Update(attach); err != nil {
 			return fmt.Errorf("update size column: %v", err)
 		}

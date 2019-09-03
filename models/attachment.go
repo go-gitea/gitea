@@ -5,12 +5,13 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"io"
-	"os"
 	"path"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -66,6 +67,11 @@ func (a *Attachment) LocalPath() string {
 	return AttachmentLocalPath(a.UUID)
 }
 
+// AttachmentBasePath returns the file name of attachment
+func (a *Attachment) AttachmentBasePath() string {
+	return path.Join(a.UUID[0:1], a.UUID[1:2], a.UUID)
+}
+
 // DownloadURL returns the download url of the attached file
 func (a *Attachment) DownloadURL() string {
 	return fmt.Sprintf("%sattachments/%s", setting.AppURL, a.UUID)
@@ -75,29 +81,32 @@ func (a *Attachment) DownloadURL() string {
 func NewAttachment(attach *Attachment, buf []byte, file io.Reader) (_ *Attachment, err error) {
 	attach.UUID = gouuid.NewV4().String()
 
-	localPath := attach.LocalPath()
-	if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
-		return nil, fmt.Errorf("MkdirAll: %v", err)
+	fs := storage.FileStorage{
+		Ctx:      context.Background(),
+		Path:     setting.AttachmentPath,
+		FileName: attach.AttachmentBasePath(),
 	}
 
-	fw, err := os.Create(localPath)
+	fw, err := fs.NewWriter()
 	if err != nil {
 		return nil, fmt.Errorf("Create: %v", err)
 	}
-	defer fw.Close()
 
 	if _, err = fw.Write(buf); err != nil {
+		fw.Close()
 		return nil, fmt.Errorf("Write: %v", err)
 	} else if _, err = io.Copy(fw, file); err != nil {
+		fw.Close()
 		return nil, fmt.Errorf("Copy: %v", err)
 	}
+	fw.Close()
 
 	// Update file size
-	var fi os.FileInfo
-	if fi, err = fw.Stat(); err != nil {
+	fi, err := fs.Attributes()
+	if err != nil {
 		return nil, fmt.Errorf("file size: %v", err)
 	}
-	attach.Size = fi.Size()
+	attach.Size = fi.Size
 
 	if _, err := x.Insert(attach); err != nil {
 		return nil, err
@@ -209,7 +218,12 @@ func DeleteAttachments(attachments []*Attachment, remove bool) (int, error) {
 
 	if remove {
 		for i, a := range attachments {
-			if err := os.Remove(a.LocalPath()); err != nil {
+			fs := storage.FileStorage{
+				Ctx:      context.Background(),
+				Path:     setting.AttachmentPath,
+				FileName: a.AttachmentBasePath(),
+			}
+			if err := fs.Delete(); err != nil {
 				return i, err
 			}
 		}

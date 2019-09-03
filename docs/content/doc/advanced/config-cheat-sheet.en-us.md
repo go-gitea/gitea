@@ -560,6 +560,10 @@ Two special environment variables are passed to the render command:
 - `QUEUE_LENGTH`: **1000**: Task queue length, available only when `QUEUE_TYPE` is `channel`.
 - `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If there redis needs a password, use `addrs=127.0.0.1:6379 password=123 db=0`.
 
+## Storage (`storage`)
+
+- `BUCKET_URL`: URL of bucket where files are stored (such as attachments, avatars, etc.). If unset, `BUCKET_URL` defaults to `file:// <AppWorkPath>`. Consult https://gocloud.dev/howto/blob for URL format for various cloud providers and their credential paths and env variables.
+
 ## Other (`other`)
 
 - `SHOW_FOOTER_BRANDING`: **false**: Show Gitea branding in the footer.

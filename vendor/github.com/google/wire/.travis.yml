@@ -1,0 +1,55 @@
+# Copyright 2018 The Wire Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+language: go
+go_import_path: github.com/google/wire
+
+before_install:
+  # The Bash that comes with OS X is ancient.
+  # grep is similar: it's not GNU grep, which means commands aren't portable.
+  # Homebrew installs grep as ggrep if you don't build from source, so it needs
+  # moving so it takes precedence in the PATH.
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      HOMEBREW_NO_AUTO_UPDATE=1 brew install bash grep;
+      mv $(brew --prefix)/bin/ggrep $(brew --prefix)/bin/grep;
+    fi
+
+install:
+  # Re-checkout files preserving line feeds. This prevents Windows builds from
+  # converting \n to \r\n.
+  - "git config --global core.autocrlf input"
+  - "git checkout -- ."
+
+script:
+  - 'internal/runtests.sh'
+
+env:
+  global:
+  - GO111MODULE=on
+  - GOPROXY=https://proxy.golang.org
+
+# When updating Go versions:
+# In addition to changing the "go:" versions below, edit the version
+# test in internal/runtests.sh.
+
+jobs:
+  include:
+    - go: "1.11.x"
+      os: linux
+    - go: "1.12.x"
+      os: linux
+    - go: "1.12.x"
+      os: osx
+    - go: "1.12.x"
+      os: windows

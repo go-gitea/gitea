@@ -6,15 +6,16 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/unknwon/com"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -270,10 +271,13 @@ func deleteOrg(e *xorm.Session, u *User) error {
 
 	if len(u.Avatar) > 0 {
 		avatarPath := u.CustomAvatarPath()
-		if com.IsExist(avatarPath) {
-			if err := os.Remove(avatarPath); err != nil {
-				return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			}
+		fs := storage.FileStorage{
+			Ctx:      context.Background(),
+			Path:     setting.AvatarUploadPath,
+			FileName: u.Avatar,
+		}
+		if err := fs.Delete(); err != nil {
+			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
 		}
 	}
 
