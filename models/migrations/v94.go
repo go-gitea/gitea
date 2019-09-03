@@ -37,9 +37,9 @@ func refactorIndexes(x *xorm.Engine) error {
 	// CommitStatus see models/commit_status.go
 	type CommitStatus struct {
 		ID     int64  `xorm:"pk autoincr"`
-		RepoID int64  `xorm:"UNIQUE(repo_sha_index)"`
 		SHA    string `xorm:"VARCHAR(64) NOT NULL UNIQUE(repo_sha_index)"`
 		Index  int64  `xorm:"UNIQUE(repo_sha_index)"`
+		RepoID int64  `xorm:"UNIQUE(repo_sha_index)"`
 		//	Repo        *Repository  `xorm:"-"`
 		State       string `xorm:"VARCHAR(7) NOT NULL"` // CommitStatusState
 		TargetURL   string `xorm:"TEXT"`

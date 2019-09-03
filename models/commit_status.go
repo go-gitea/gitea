@@ -54,9 +54,9 @@ const (
 // CommitStatus holds a single Status of a single Commit
 type CommitStatus struct {
 	ID          int64             `xorm:"pk autoincr"`
-	RepoID      int64             `xorm:"UNIQUE(repo_sha_index)"`
 	SHA         string            `xorm:"VARCHAR(64) NOT NULL UNIQUE(repo_sha_index)"`
 	Index       int64             `xorm:"UNIQUE(repo_sha_index)"`
+	RepoID      int64             `xorm:"UNIQUE(repo_sha_index)"`
 	Repo        *Repository       `xorm:"-"`
 	State       CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
 	TargetURL   string            `xorm:"TEXT"`
