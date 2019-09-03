@@ -291,3 +291,14 @@ func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
 		URL: util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
 	}
 }
+
+// ToTopicResponse convert from models.Topic to api.TopicResponse
+func ToTopicResponse(topic *models.Topic) *api.TopicResponse {
+	return &api.TopicResponse{
+		ID:        topic.ID,
+		Name:      topic.Name,
+		RepoCount: topic.RepoCount,
+		Created:   topic.CreatedUnix.AsTime(),
+		Updated:   topic.UpdatedUnix.AsTime(),
+	}
+}
