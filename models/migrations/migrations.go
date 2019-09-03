@@ -296,56 +296,35 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 func dropTableIndex(e *xorm.Engine, tableName string, indexName string) (err error) {
 	switch {
 	case setting.Database.UseSQLite3:
-		_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
-	case setting.Database.UsePostgreSQL:
-		_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
-	case setting.Database.UseMySQL:
-		_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
-	case setting.Database.UseMSSQL:
-		_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
-	default:
-		log.Fatal("Unrecognized DB")
-	}
-	if err != nil {
-		// ==========================================================================================
-		// Sorry: this block is temporary; I can't reproduce this problem in my test environment
-		// I want to make sure I'm not missing anything.
-		var res []map[string][]byte
-		var errx error
-		switch {
-		case setting.Database.UseSQLite3:
-			res, errx = e.Query(fmt.Sprintf("PRAGMA index_list(`%s`)", "commit_status"))
-		case setting.Database.UsePostgreSQL:
-			res, errx = e.Query(fmt.Sprintf("SELECT * FROM PG_INDEXES WHERE TABLENAME = '%s'", "commit_status"))
-		case setting.Database.UseMySQL:
-			res, errx = e.Query(fmt.Sprintf("SHOW INDEX FROM %s", "commit_status"))
-		case setting.Database.UseMSSQL:
-			res, errx = e.Query(fmt.Sprintf("SELECT Name FROM SYS.INDEXES WHERE object_id = OBJECT_ID('%s')", "commit_status"))
-		default:
-			goto end_of_temp_block
+		res, err := e.Query(fmt.Sprintf("PRAGMA index_list(`%s`)", tableName))
+		if err != nil {
+			return err
 		}
-		if errx == nil {
-			fmt.Printf("Index list for commit_status:\n")
-			switch {
-			case setting.Database.UseMySQL:
-				for _, line := range res {
-					fmt.Printf("    Column_name: %s, Index_type: %s, Key_name: %s, Seq_in_index: %s\n",
-						line["Column_name"],
-						line["Index_type"],
-						line["Key_name"],
-						line["Seq_in_index"])
-				}
-			default:
-				for _, line := range res {
-					fmt.Printf("    %+v\n", line)
-				}
+		for _, idx := range res {
+			if string(idx["name"]) == indexName {
+				_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
 			}
 		}
-	end_of_temp_block:
-		// ==========================================================================================
-		return fmt.Errorf("dropTableIndex(): unable to drop index `%s` on table `%s`: %+v", indexName, tableName, err)
+	case setting.Database.UsePostgreSQL:
+		res, err := e.Query(fmt.Sprintf("SELECT * FROM PG_INDEXES WHERE TABLENAME = '%s' AND INDEXNAME = '%s'", tableName, indexName))
+		if err == nil && len(res) == 1 {
+			_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
+		}
+	case setting.Database.UseMySQL:
+		res, err := e.Query(fmt.Sprintf("SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '%s' AND INDEX_NAME = '%s';", tableName, indexName))
+		if err == nil && len(res) == 1 {
+			_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
+		}
+	case setting.Database.UseMSSQL:
+		//
+		res, err := e.Query(fmt.Sprintf("SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('[dbo].[%s]') AND name = '%s';", tableName, indexName))
+		if err == nil && len(res) == 1 {
+			_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
+		}
+	default:
+		return fmt.Errorf("Unrecognized DB")
 	}
-	return nil
+	return fmt.Errorf("dropTableIndex(): unable to drop index `%s` on table `%s`: %+v", indexName, tableName, err)
 }
 
 func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...string) (err error) {
