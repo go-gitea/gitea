@@ -297,13 +297,12 @@ func dropTableIndex(e *xorm.Engine, tableName string, indexName string) (err err
 	switch {
 	case setting.Database.UseSQLite3:
 		res, err := e.Query(fmt.Sprintf("PRAGMA index_list(`%s`)", tableName))
-		if err != nil {
-			return err
-		}
-		for _, idx := range res {
-			if string(idx["name"]) == indexName {
-				_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
-				break
+		if err == nil {
+			for _, idx := range res {
+				if string(idx["name"]) == indexName {
+					_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
+					break
+				}
 			}
 		}
 	case setting.Database.UsePostgreSQL:
