@@ -294,9 +294,10 @@ Please try to upgrade to a lower version (>= v0.6.0) first, then upgrade to curr
 }
 
 func dropTableIndex(e *xorm.Engine, tableName string, indexName string) (err error) {
+	var res []map[string][]byte
 	switch {
 	case setting.Database.UseSQLite3:
-		res, err := e.Query(fmt.Sprintf("PRAGMA index_list(`%s`)", tableName))
+		res, err = e.Query(fmt.Sprintf("PRAGMA index_list(`%s`)", tableName))
 		if err == nil {
 			for _, idx := range res {
 				if string(idx["name"]) == indexName {
@@ -306,18 +307,18 @@ func dropTableIndex(e *xorm.Engine, tableName string, indexName string) (err err
 			}
 		}
 	case setting.Database.UsePostgreSQL:
-		res, err := e.Query(fmt.Sprintf("SELECT * FROM PG_INDEXES WHERE TABLENAME = '%s' AND INDEXNAME = '%s'", tableName, indexName))
+		res, err = e.Query(fmt.Sprintf("SELECT * FROM PG_INDEXES WHERE TABLENAME = '%s' AND INDEXNAME = '%s'", tableName, indexName))
 		if err == nil && len(res) == 1 {
 			_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
 		}
 	case setting.Database.UseMySQL:
-		res, err := e.Query(fmt.Sprintf("SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '%s' AND INDEX_NAME = '%s';", tableName, indexName))
+		res, err = e.Query(fmt.Sprintf("SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '%s' AND INDEX_NAME = '%s';", tableName, indexName))
 		if err == nil && len(res) == 1 {
 			_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
 		}
 	case setting.Database.UseMSSQL:
 		//
-		res, err := e.Query(fmt.Sprintf("SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('[dbo].[%s]') AND name = '%s';", tableName, indexName))
+		res, err = e.Query(fmt.Sprintf("SELECT * FROM sys.indexes WHERE object_id = OBJECT_ID('[dbo].[%s]') AND name = '%s';", tableName, indexName))
 		if err == nil && len(res) == 1 {
 			_, err = e.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
 		}
