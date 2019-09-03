@@ -167,26 +167,36 @@ type UserExtendedView struct {
 func GetUserOrgs(id int64, all bool) ([]UserExtendedView, error) {
 
 	var ous []UserExtendedView
-	sess := x.SQL(`SELECT
-        user.*, COUNT(DISTINCT repository.id) AS num_repos
+	sess := x.SQL(`SELECT user.*, nrs.num_repos
 FROM
-        (SELECT
-                user.*, org_user.org_id
-        FROM
-                user
-        LEFT JOIN
-                org_user ON user.id = org_user.uid AND (? OR org_user.is_public)
-        WHERE
-                user.id = ?
-        ) u
+	user
 JOIN
-        user ON u.org_id = user.id
-LEFT JOIN
-        repository ON u.org_id = repository.owner_id
-GROUP BY
-        u.org_id, user.id
+	(SELECT
+		u.org_id AS id,
+		COUNT(DISTINCT repository.id) AS num_repos
+	FROM
+		(SELECT
+			user.*, org_user.org_id
+		FROM
+			user
+		LEFT JOIN
+			org_user ON user.id = org_user.uid
+		WHERE
+			user.id = 2
+		ORDER BY
+			user.id
+		) u
+	JOIN
+		user ON u.org_id = user.id
+	LEFT JOIN
+		repository ON u.org_id = repository.owner_id
+	GROUP BY
+		u.org_id
+	) AS nrs
+ON
+	user.id = nrs.id
 ORDER BY
-	u.name ASC
+	user.name ASC
 ;`, all, id)
 	if err := sess.Find(&ous); err != nil {
 		return nil, err
