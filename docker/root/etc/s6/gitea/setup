@@ -52,3 +52,6 @@ if ! [[ $(ls -ld /data/gitea | awk '{print $3}') = ${USER} ]]; then chown -R ${U
 if ! [[ $(ls -ld /app/gitea  | awk '{print $3}') = ${USER} ]]; then chown -R ${USER}:git /app/gitea;  fi
 if ! [[ $(ls -ld /data/git   | awk '{print $3}') = ${USER} ]]; then chown -R ${USER}:git /data/git;   fi
 chmod 0755 /data/gitea /app/gitea /data/git
+
+# Allow to bind < 1024 ports without being root
+setcap 'cap_net_bind_service=+ep' /app/gitea/gitea
