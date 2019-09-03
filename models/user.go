@@ -184,7 +184,7 @@ JOIN
 LEFT JOIN
         repository ON u.org_id = repository.owner_id
 GROUP BY
-        u.org_id
+        u.org_id, user.id
 ORDER BY
 	u.name ASC
 ;`, all, id)
