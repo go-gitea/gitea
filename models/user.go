@@ -157,6 +157,7 @@ type User struct {
 	Theme         string `xorm:"NOT NULL DEFAULT ''"`
 }
 
+// UserExtendedView represents the auxiliary information related to a user by joining with other tables
 type UserExtendedView struct {
 	User     `xorm:"extends"`
 	NumRepos int
