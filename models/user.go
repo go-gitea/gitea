@@ -180,9 +180,9 @@ JOIN
 		FROM
 			user
 		LEFT JOIN
-			org_user ON user.id = org_user.uid
+			org_user ON user.id = org_user.uid AND (? OR org_user.is_public)
 		WHERE
-			user.id = 2
+			user.id = ?
 		ORDER BY
 			user.id
 		) u
