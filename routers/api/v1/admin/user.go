@@ -330,3 +330,33 @@ func GetAllUsers(ctx *context.APIContext) {
 
 	ctx.JSON(200, &results)
 }
+
+//GetUserInfo API for getting information of a user
+func GetUserInfo(ctx *context.APIContext) {
+	// swagger:operation GET /admin/users/{username} admin adminGetUserInfo
+	// ---
+	// summary: Get a user
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user to get
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/User"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	u, err := models.GetUserByName(ctx.Params(":username"))
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(500, "GetUserByName", err)
+		}
+		return
+	}
+	ctx.JSON(200, convert.ToUser(u, true, true))
+}

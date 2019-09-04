@@ -111,6 +111,33 @@
       }
     },
     "/admin/users/{username}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get a user",
+        "operationId": "adminGetUserInfo",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user to get",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/User"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
       "delete": {
         "produces": [
           "application/json"
@@ -9068,6 +9095,11 @@
           "type": "string",
           "x-go-name": "AvatarURL"
         },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
@@ -9084,6 +9116,32 @@
         "location": {
           "type": "string",
           "x-go-name": "Location"
+        },
+        "members_url": {
+          "type": "string",
+          "x-go-name": "MembersURL"
+        },
+        "public_members_url": {
+          "type": "string",
+          "x-go-name": "PublicMembersURL"
+        },
+        "public_repo_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PublicRepoCount"
+        },
+        "repos_url": {
+          "type": "string",
+          "x-go-name": "ReposURL"
+        },
+        "updated": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
         },
         "username": {
           "type": "string",
@@ -9939,6 +9997,11 @@
           "type": "string",
           "x-go-name": "AvatarURL"
         },
+        "bio": {
+          "description": "Biography about the user",
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "created": {
           "type": "string",
           "format": "date-time",
@@ -9949,21 +10012,53 @@
           "format": "email",
           "x-go-name": "Email"
         },
+        "followers": {
+          "description": "Followers count",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Followers"
+        },
+        "followers_url": {
+          "description": "URL to the user's followers API endpoint",
+          "type": "string",
+          "x-go-name": "FollowersURL"
+        },
+        "following": {
+          "description": "Following count",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Following"
+        },
+        "following_url": {
+          "description": "URL to the user's following API endpoint",
+          "type": "string",
+          "x-go-name": "FollowingURL"
+        },
         "full_name": {
           "description": "the user's full name",
           "type": "string",
           "x-go-name": "FullName"
+        },
+        "heatmap_url": {
+          "description": "URL to user's heatmap API endpoint",
+          "type": "string",
+          "x-go-name": "HeatmapURL"
+        },
+        "hide_email": {
+          "description": "Hide email",
+          "type": "boolean",
+          "x-go-name": "HideEmail"
+        },
+        "html_url": {
+          "description": "URL to the user's Gitea HTML page",
+          "type": "string",
+          "x-go-name": "HTMLURL"
         },
         "id": {
           "description": "the user's id",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
-        },
-        "is_admin": {
-          "description": "Is the user an administrator",
-          "type": "boolean",
-          "x-go-name": "IsAdmin"
         },
         "language": {
           "description": "User locale",
@@ -9975,10 +10070,66 @@
           "format": "date-time",
           "x-go-name": "LastLogin"
         },
+        "location": {
+          "description": "Location of the user",
+          "type": "string",
+          "x-go-name": "Location"
+        },
         "login": {
           "description": "the user's username",
           "type": "string",
           "x-go-name": "UserName"
+        },
+        "organizations_url": {
+          "description": "URL to the user's organizations API endpoint",
+          "type": "string",
+          "x-go-name": "OrganizationsURL"
+        },
+        "public_repos": {
+          "description": "Public Repo count",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PubicRepos"
+        },
+        "repos_url": {
+          "description": "URL to user's repos API endpoint",
+          "type": "string",
+          "x-go-name": "ReposURL"
+        },
+        "site_admin": {
+          "description": "Is the user an administrator",
+          "type": "boolean",
+          "x-go-name": "IsAdmin"
+        },
+        "starred_url": {
+          "description": "URL to the user's starred API endpoint",
+          "type": "string",
+          "x-go-name": "StarredURL"
+        },
+        "subscriptons_url": {
+          "description": "URL to the user's subscriptions API endpoint",
+          "type": "string",
+          "x-go-name": "SubscriptionsURL"
+        },
+        "type": {
+          "description": "Type of the user, User or Org",
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "updated": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        },
+        "url": {
+          "description": "URL to the user's API endpoint",
+          "type": "string",
+          "x-go-name": "URL"
+        },
+        "website": {
+          "description": "Website of the user",
+          "type": "string",
+          "x-go-name": "Website"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

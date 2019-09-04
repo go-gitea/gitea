@@ -5,13 +5,13 @@
 package convert
 
 import (
+	"code.gitea.io/gitea/modules/setting"
 	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -205,15 +205,25 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 
 // ToOrganization convert models.User to api.Organization
 func ToOrganization(org *models.User) *api.Organization {
+	apiURL := setting.AppURL + "api/v1/orgs/" + org.LowerName
+	// hide primary email if API caller isn't user itself or an admin
+	publicRepoCount, _ := models.GetPublicRepositoryCount(org)
 	return &api.Organization{
-		ID:          org.ID,
-		AvatarURL:   org.AvatarLink(),
-		UserName:    org.Name,
-		FullName:    org.FullName,
-		Description: org.Description,
-		Website:     org.Website,
-		Location:    org.Location,
-		Visibility:  org.Visibility.String(),
+		ID:               org.ID,
+		AvatarURL:        org.AvatarLink(),
+		UserName:         org.Name,
+		FullName:         org.FullName,
+		URL:              apiURL,
+		ReposURL:         apiURL + "/repos",
+		MembersURL:       apiURL + "/members{/member}",
+		PublicMembersURL: apiURL + "/public_members{/member}",
+		PublicRepoCount:  publicRepoCount,
+		Description:      org.Description,
+		Website:          org.Website,
+		Location:         org.Location,
+		Visibility:       org.Visibility.String(),
+		Created:          org.CreatedUnix.AsTime(),
+		Updated:          org.UpdatedUnix.AsTime(),
 	}
 }
 
@@ -230,24 +240,13 @@ func ToTeam(team *models.Team) *api.Team {
 
 // ToUser convert models.User to api.User
 func ToUser(user *models.User, signed, authed bool) *api.User {
-	result := &api.User{
-		ID:        user.ID,
-		UserName:  user.Name,
-		AvatarURL: user.AvatarLink(),
-		FullName:  markup.Sanitize(user.FullName),
-		IsAdmin:   user.IsAdmin,
-		LastLogin: user.LastLoginUnix.AsTime(),
-		Created:   user.CreatedUnix.AsTime(),
-	}
-	// hide primary email if API caller isn't user itself or an admin
+	apiUser := user.APIFormat()
 	if !signed {
-		result.Email = ""
-	} else if user.KeepEmailPrivate && !authed {
-		result.Email = user.GetEmail()
-	} else {
-		result.Email = user.Email
+		apiUser.Email = ""
+	} else if authed {
+		apiUser.Email = user.Email
 	}
-	return result
+	return apiUser
 }
 
 // ToAnnotatedTag convert git.Tag to api.AnnotatedTag

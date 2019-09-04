@@ -6,6 +6,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/modules/markup"
 	"container/list"
 	"crypto/md5"
 	"crypto/sha256"
@@ -52,6 +53,17 @@ const (
 	// UserTypeOrganization defines an organization
 	UserTypeOrganization
 )
+
+func (ut UserType) String() string {
+	switch ut {
+	case UserTypeIndividual:
+		return "User"
+	case UserTypeOrganization:
+		return "Org"
+	default:
+		return "unknown"
+	}
+}
 
 const (
 	algoBcrypt = "bcrypt"
@@ -216,16 +228,36 @@ func (u *User) GetEmail() string {
 
 // APIFormat converts a User to api.User
 func (u *User) APIFormat() *api.User {
+	apiURL := setting.AppURL + "api/v1/users/" + u.LowerName
+	publicRepoCount, _ := GetPublicRepositoryCount(u)
 	return &api.User{
-		ID:        u.ID,
-		UserName:  u.Name,
-		FullName:  u.FullName,
-		Email:     u.GetEmail(),
-		AvatarURL: u.AvatarLink(),
-		Language:  u.Language,
-		IsAdmin:   u.IsAdmin,
-		LastLogin: u.LastLoginUnix.AsTime(),
-		Created:   u.CreatedUnix.AsTime(),
+		ID:               u.ID,
+		UserName:         u.Name,
+		FullName:         markup.Sanitize(u.FullName),
+		Email:            u.GetEmail(),
+		HideEmail:        u.KeepEmailPrivate,
+		AvatarURL:        u.AvatarLink(),
+		URL:              apiURL,
+		HTMLURL:          setting.AppURL + u.LowerName,
+		FollowersURL:     apiURL + "/followers",
+		FollowingURL:     apiURL + "/followers",
+		StarredURL:       apiURL + "/starred",
+		SubscriptionsURL: apiURL + "/subscriptions",
+		OrganizationsURL: apiURL + "/orgs",
+		ReposURL:         apiURL + "/repos",
+		HeatmapURL:       apiURL + "/heatmap",
+		Type:             u.Type.String(),
+		Description:      u.Description,
+		Website:          u.Website,
+		Location:         u.Location,
+		PubicRepos:       publicRepoCount,
+		Followers:        u.NumFollowers,
+		Following:        u.NumFollowing,
+		Language:         u.Language,
+		IsAdmin:          u.IsAdmin,
+		LastLogin:        u.LastLoginUnix.AsTime(),
+		Created:          u.CreatedUnix.AsTime(),
+		Updated:          u.UpdatedUnix.AsTime(),
 	}
 }
 

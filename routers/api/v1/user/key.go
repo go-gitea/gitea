@@ -89,7 +89,7 @@ func listPublicKeys(ctx *context.APIContext, user *models.User) {
 	apiKeys := make([]*api.PublicKey, len(keys))
 	for i := range keys {
 		apiKeys[i] = convert.ToPublicKey(apiLink, keys[i])
-		if ctx.User.IsAdmin || ctx.User.ID == keys[i].OwnerID {
+		if ctx.User != nil && (ctx.User.IsAdmin || ctx.User.ID == keys[i].OwnerID) {
 			apiKeys[i], _ = appendPrivateInformation(apiKeys[i], keys[i], user)
 		}
 	}

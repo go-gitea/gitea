@@ -4,16 +4,27 @@
 
 package structs
 
+import "time"
+
 // Organization represents an organization
 type Organization struct {
-	ID          int64  `json:"id"`
-	UserName    string `json:"username"`
-	FullName    string `json:"full_name"`
-	AvatarURL   string `json:"avatar_url"`
-	Description string `json:"description"`
-	Website     string `json:"website"`
-	Location    string `json:"location"`
-	Visibility  string `json:"visibility"`
+	ID               int64  `json:"id"`
+	UserName         string `json:"username"`
+	FullName         string `json:"full_name"`
+	AvatarURL        string `json:"avatar_url"`
+	URL              string `json:"url"`
+	ReposURL         string `json:"repos_url"`
+	MembersURL       string `json:"members_url"`
+	PublicMembersURL string `json:"public_members_url"`
+	Description      string `json:"description"`
+	Website          string `json:"website"`
+	Location         string `json:"location"`
+	PublicRepoCount  int64  `json:"public_repo_count"`
+	Visibility       string `json:"visibility"`
+	// swagger:strfmt date-time
+	Created time.Time `json:"created"`
+	// swagger:strfmt date-time
+	Updated time.Time `json:"updated"`
 }
 
 // CreateOrgOption options for creating an organization

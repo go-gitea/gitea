@@ -425,10 +425,12 @@ func GetOrgUsersByUserID(uid int64, all bool) ([]*OrgUser, error) {
 	ous := make([]*OrgUser, 0, 10)
 	sess := x.
 		Join("LEFT", "`user`", "`org_user`.org_id=`user`.id").
+		Join("LEFT", "`user` as org", "`org_user`.org_id=`org`.id").
 		Where("`org_user`.uid=?", uid)
 	if !all {
-		// Only show public organizations
-		sess.And("is_public=?", true)
+		// Only show public organizations and users who are public members
+		sess.And("`org`.visibility=?", structs.VisibilityModes["public"])
+		sess.And("`org_user`.is_public=?", true)
 	}
 	err := sess.
 		Asc("`user`.name").

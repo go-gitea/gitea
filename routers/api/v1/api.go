@@ -513,12 +513,20 @@ func RegisterRoutes(m *macaron.Macaron) {
 		// Users
 		m.Group("/users", func() {
 			m.Get("/search", user.Search)
-
 			m.Group("/:username", func() {
 				m.Get("", user.GetInfo)
+				m.Get("/followers", user.ListFollowers)
+				m.Group("/following", func() {
+					m.Get("", user.ListFollowing)
+					m.Get("/:target", user.CheckFollowing)
+				})
+				m.Get("/gpg_keys", user.ListGPGKeys)
 				m.Get("/heatmap", mustEnableUserHeatmap, user.GetUserHeatmapData)
-
+				m.Get("/keys", user.ListPublicKeys)
+				m.Get("/orgs", org.ListUserOrgs)
 				m.Get("/repos", user.ListUserRepos)
+				m.Get("/starred", user.GetStarredRepos)
+				m.Get("/subscriptions", user.GetWatchedRepos)
 				m.Group("/tokens", func() {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
@@ -526,23 +534,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 				}, reqBasicAuth())
 			})
 		})
-
-		m.Group("/users", func() {
-			m.Group("/:username", func() {
-				m.Get("/keys", user.ListPublicKeys)
-				m.Get("/gpg_keys", user.ListGPGKeys)
-
-				m.Get("/followers", user.ListFollowers)
-				m.Group("/following", func() {
-					m.Get("", user.ListFollowing)
-					m.Get("/:target", user.CheckFollowing)
-				})
-
-				m.Get("/starred", user.GetStarredRepos)
-
-				m.Get("/subscriptions", user.GetWatchedRepos)
-			})
-		}, reqToken())
 
 		m.Group("/user", func() {
 			m.Get("", user.GetAuthenticatedUser)
@@ -776,7 +767,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), org.ListMyOrgs)
-		m.Get("/users/:username/orgs", org.ListUserOrgs)
 		m.Post("/orgs", reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Group("/orgs/:orgname", func() {
 			m.Get("/repos", user.ListOrgRepos)
@@ -833,7 +823,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Get("", admin.GetAllUsers)
 				m.Post("", bind(api.CreateUserOption{}), admin.CreateUser)
 				m.Group("/:username", func() {
-					m.Combo("").Patch(bind(api.EditUserOption{}), admin.EditUser).
+					m.Combo("").
+						Get(admin.GetUserInfo).
+						Patch(bind(api.EditUserOption{}), admin.EditUser).
 						Delete(admin.DeleteUser)
 					m.Group("/keys", func() {
 						m.Post("", bind(api.CreateKeyOption{}), admin.CreatePublicKey)

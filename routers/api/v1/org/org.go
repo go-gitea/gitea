@@ -59,7 +59,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	listUserOrgs(ctx, u, ctx.User.IsAdmin)
+	listUserOrgs(ctx, u, ctx.User != nil && ctx.User.IsAdmin)
 }
 
 // Create api for create organization
