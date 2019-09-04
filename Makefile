@@ -119,7 +119,7 @@ swagger-check: generate-swagger
 .PHONY: swagger-validate
 swagger-validate:
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
-	GO111MODULE=on $(SWAGGER) validate './$(SWAGGER_SPEC)'
+	$(SWAGGER) validate './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
 .PHONY: errcheck
