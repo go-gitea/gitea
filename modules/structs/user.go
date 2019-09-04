@@ -35,7 +35,7 @@ type User struct {
 	// URL to the user's starred API endpoint
 	StarredURL string `json:"starred_url"`
 	// URL to the user's subscriptions API endpoint
-	SubscriptionsURL string `json:"subscriptons_url"`
+	SubscriptionsURL string `json:"subscriptions_url"`
 	// URL to the user's organizations API endpoint
 	OrganizationsURL string `json:"organizations_url"`
 	// URL to user's repos API endpoint
