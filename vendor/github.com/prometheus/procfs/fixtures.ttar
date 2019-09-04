@@ -3,7 +3,7 @@ Directory: fixtures
 Mode: 775
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Directory: fixtures/proc
-Mode: 755
+Mode: 775
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Directory: fixtures/proc/26231
 Mode: 755
@@ -20,6 +20,11 @@ Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Path: fixtures/proc/26231/cwd
 SymlinkTo: /usr/bin
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/26231/environ
+Lines: 1
+PATH=/go/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/binNULLBYTEHOSTNAME=cd24e11f73a5NULLBYTETERM=xtermNULLBYTEGOLANG_VERSION=1.12.5NULLBYTEGOPATH=/goNULLBYTEHOME=/rootNULLBYTEEOF
+Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Path: fixtures/proc/26231/exe
 SymlinkTo: /usr/bin/vim
@@ -41,6 +46,48 @@ SymlinkTo: ../../symlinktargets/ghi
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Path: fixtures/proc/26231/fd/3
 SymlinkTo: ../../symlinktargets/uvw
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/proc/26231/fdinfo
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/26231/fdinfo/0
+Lines: 6
+pos:	0
+flags:	02004000
+mnt_id:	13
+inotify wd:3 ino:1 sdev:34 mask:fce ignored_mask:0 fhandle-bytes:c fhandle-type:81 f_handle:000000000100000000000000
+inotify wd:2 ino:1300016 sdev:fd00002 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:16003001ed3f022a
+inotify wd:1 ino:2e0001 sdev:fd00000 mask:fce ignored_mask:0 fhandle-bytes:8 fhandle-type:1 f_handle:01002e00138e7c65
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/26231/fdinfo/1
+Lines: 4
+pos:	0
+flags:	02004002
+mnt_id:	13
+eventfd-count:                0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/26231/fdinfo/10
+Lines: 3
+pos:	0
+flags:	02004002
+mnt_id:	9
+Mode: 400
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/26231/fdinfo/2
+Lines: 3
+pos:	0
+flags:	02004002
+mnt_id:	9
+Mode: 400
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/26231/fdinfo/3
+Lines: 3
+pos:	0
+flags:	02004002
+mnt_id:	9
+Mode: 400
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Path: fixtures/proc/26231/io
 Lines: 7
@@ -75,13 +122,13 @@ Max realtime timeout      unlimited            unlimited            us
 Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Path: fixtures/proc/26231/mountstats
-Lines: 19
+Lines: 20
 device rootfs mounted on / with fstype rootfs
 device sysfs mounted on /sys with fstype sysfs
 device proc mounted on /proc with fstype proc
 device /dev/sda1 mounted on / with fstype ext4
 device 192.168.1.1:/srv/test mounted on /mnt/nfs/test with fstype nfs4 statvers=1.1
-	opts:	rw,vers=4.0,rsize=1048576,wsize=1048576,namlen=255,acregmin=3,acregmax=60,acdirmin=30,acdirmax=60,hard,proto=tcp,port=0,timeo=600,retrans=2,sec=sys,clientaddr=192.168.1.5,local_lock=none
+	opts:	rw,vers=4.0,rsize=1048576,wsize=1048576,namlen=255,acregmin=3,acregmax=60,acdirmin=30,acdirmax=60,hard,proto=tcp,port=0,timeo=600,retrans=2,sec=sys,mountaddr=192.168.1.1,clientaddr=192.168.1.5,local_lock=none
 	age:	13968
 	caps:	caps=0xfff7,wtmult=512,dtsize=32768,bsize=0,namlen=255
 	nfsv4:	bm0=0xfdffafff,bm1=0xf9be3e,bm2=0x0,acl=0x0,pnfs=not configured
@@ -94,6 +141,7 @@ device 192.168.1.1:/srv/test mounted on /mnt/nfs/test with fstype nfs4 statvers=
 	        NULL: 0 0 0 0 0 0 0 0
 	        READ: 1298 1298 0 207680 1210292152 6 79386 79407
 	       WRITE: 0 0 0 0 0 0 0 0
+	      ACCESS: 2927395007 2927394995 0 526931094212 362996810236 18446743919241604546 1667369447 1953587717
 
 Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -120,9 +168,71 @@ SymlinkTo: net:[4026531993]
 Path: fixtures/proc/26231/root
 SymlinkTo: /
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/26231/schedstat
+Lines: 1
+411605849 93680043 79
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Path: fixtures/proc/26231/stat
 Lines: 1
 26231 (vim) R 5392 7446 5392 34835 7446 4218880 32533 309516 26 82 1677 44 158 99 20 0 1 0 82375 56274944 1981 18446744073709551615 4194304 6294284 140736914091744 140736914087944 139965136429984 0 0 12288 1870679807 0 0 0 17 0 0 0 31 0 0 8391624 8481048 16420864 140736914093252 140736914093279 140736914093279 140736914096107 0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/26231/status
+Lines: 53
+
+Name:	prometheus
+Umask:	0022
+State:	S (sleeping)
+Tgid:	1
+Ngid:	0
+Pid:	1
+PPid:	0
+TracerPid:	0
+Uid:	0	0	0	0
+Gid:	0	0	0	0
+FDSize:	128
+Groups:
+NStgid:	1
+NSpid:	1
+NSpgid:	1
+NSsid:	1
+VmPeak:	   58472 kB
+VmSize:	   58440 kB
+VmLck:	       0 kB
+VmPin:	       0 kB
+VmHWM:	    8028 kB
+VmRSS:	    6716 kB
+RssAnon:	    2092 kB
+RssFile:	    4624 kB
+RssShmem:	       0 kB
+VmData:	    2580 kB
+VmStk:	     136 kB
+VmExe:	     948 kB
+VmLib:	    6816 kB
+VmPTE:	     128 kB
+VmPMD:	      12 kB
+VmSwap:	     660 kB
+HugetlbPages:	       0 kB
+Threads:	1
+SigQ:	8/63965
+SigPnd:	0000000000000000
+ShdPnd:	0000000000000000
+SigBlk:	7be3c0fe28014a03
+SigIgn:	0000000000001000
+SigCgt:	00000001800004ec
+CapInh:	0000000000000000
+CapPrm:	0000003fffffffff
+CapEff:	0000003fffffffff
+CapBnd:	0000003fffffffff
+CapAmb:	0000000000000000
+Seccomp:	0
+Cpus_allowed:	ff
+Cpus_allowed_list:	0-7
+Mems_allowed:	00000000,00000001
+Mems_allowed_list:	0
+voluntary_ctxt_switches:	4742839
+nonvoluntary_ctxt_switches:	1727500
 Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Directory: fixtures/proc/26232
@@ -160,23 +270,23 @@ SymlinkTo: ../../symlinktargets/xyz
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Path: fixtures/proc/26232/limits
 Lines: 17
-Limit                     Soft Limit           Hard Limit           Units     
-Max cpu time              unlimited            unlimited            seconds   
-Max file size             unlimited            unlimited            bytes     
-Max data size             unlimited            unlimited            bytes     
-Max stack size            8388608              unlimited            bytes     
-Max core file size        0                    unlimited            bytes     
-Max resident set          unlimited            unlimited            bytes     
-Max processes             29436                29436                processes 
-Max open files            1024                 4096                 files     
-Max locked memory         65536                65536                bytes     
-Max address space         unlimited            unlimited            bytes     
-Max file locks            unlimited            unlimited            locks     
-Max pending signals       29436                29436                signals   
-Max msgqueue size         819200               819200               bytes     
-Max nice priority         0                    0                    
-Max realtime priority     0                    0                    
-Max realtime timeout      unlimited            unlimited            us        
+Limit                     Soft Limit           Hard Limit           Units
+Max cpu time              unlimited            unlimited            seconds
+Max file size             unlimited            unlimited            bytes
+Max data size             unlimited            unlimited            bytes
+Max stack size            8388608              unlimited            bytes
+Max core file size        0                    unlimited            bytes
+Max resident set          unlimited            unlimited            bytes
+Max processes             29436                29436                processes
+Max open files            1024                 4096                 files
+Max locked memory         65536                65536                bytes
+Max address space         unlimited            unlimited            bytes
+Max file locks            unlimited            unlimited            locks
+Max pending signals       29436                29436                signals
+Max msgqueue size         819200               819200               bytes
+Max nice priority         0                    0
+Max realtime priority     0                    0
+Max realtime timeout      unlimited            unlimited            us
 Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Path: fixtures/proc/26232/root
@@ -195,6 +305,18 @@ Lines: 1
 com.github.uiautomatorNULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTENULLBYTEEOF
 Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/26233/schedstat
+Lines: 8
+ ____________________________________
+< this is a malformed schedstat file >
+ ------------------------------------
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Directory: fixtures/proc/584
 Mode: 755
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -206,10 +328,985 @@ Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Path: fixtures/proc/buddyinfo
 Lines: 3
-Node 0, zone      DMA      1      0      1      0      2      1      1      0      1      1      3 
-Node 0, zone    DMA32    759    572    791    475    194     45     12      0      0      0      0 
-Node 0, zone   Normal   4381   1093    185   1530    567    102      4      0      0      0      0 
+Node 0, zone      DMA      1      0      1      0      2      1      1      0      1      1      3
+Node 0, zone    DMA32    759    572    791    475    194     45     12      0      0      0      0
+Node 0, zone   Normal   4381   1093    185   1530    567    102      4      0      0      0      0
 Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/crypto
+Lines: 971
+name         : ccm(aes)
+driver       : ccm_base(ctr(aes-aesni),cbcmac(aes-aesni))
+module       : ccm
+priority     : 300
+refcnt       : 4
+selftest     : passed
+internal     : no
+type         : aead
+async        : no
+blocksize    : 1
+ivsize       : 16
+maxauthsize  : 16
+geniv        : <none>
+
+name         : cbcmac(aes)
+driver       : cbcmac(aes-aesni)
+module       : ccm
+priority     : 300
+refcnt       : 7
+selftest     : passed
+internal     : no
+type         : shash
+blocksize    : 1
+digestsize   : 16
+
+name         : ecdh
+driver       : ecdh-generic
+module       : ecdh_generic
+priority     : 100
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : kpp
+
+name         : ecb(arc4)
+driver       : ecb(arc4)-generic
+module       : arc4
+priority     : 100
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : skcipher
+async        : no
+blocksize    : 1
+min keysize  : 1
+max keysize  : 256
+ivsize       : 0
+chunksize    : 1
+walksize     : 1
+
+name         : arc4
+driver       : arc4-generic
+module       : arc4
+priority     : 0
+refcnt       : 3
+selftest     : passed
+internal     : no
+type         : cipher
+blocksize    : 1
+min keysize  : 1
+max keysize  : 256
+
+name         : crct10dif
+driver       : crct10dif-pclmul
+module       : crct10dif_pclmul
+priority     : 200
+refcnt       : 2
+selftest     : passed
+internal     : no
+type         : shash
+blocksize    : 1
+digestsize   : 2
+
+name         : crc32
+driver       : crc32-pclmul
+module       : crc32_pclmul
+priority     : 200
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : shash
+blocksize    : 1
+digestsize   : 4
+
+name         : __ghash
+driver       : cryptd(__ghash-pclmulqdqni)
+module       : kernel
+priority     : 50
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : ahash
+async        : yes
+blocksize    : 16
+digestsize   : 16
+
+name         : ghash
+driver       : ghash-clmulni
+module       : ghash_clmulni_intel
+priority     : 400
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : ahash
+async        : yes
+blocksize    : 16
+digestsize   : 16
+
+name         : __ghash
+driver       : __ghash-pclmulqdqni
+module       : ghash_clmulni_intel
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : shash
+blocksize    : 16
+digestsize   : 16
+
+name         : crc32c
+driver       : crc32c-intel
+module       : crc32c_intel
+priority     : 200
+refcnt       : 5
+selftest     : passed
+internal     : no
+type         : shash
+blocksize    : 1
+digestsize   : 4
+
+name         : cbc(aes)
+driver       : cbc(aes-aesni)
+module       : kernel
+priority     : 300
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : skcipher
+async        : no
+blocksize    : 16
+min keysize  : 16
+max keysize  : 32
+ivsize       : 16
+chunksize    : 16
+walksize     : 16
+
+name         : ctr(aes)
+driver       : ctr(aes-aesni)
+module       : kernel
+priority     : 300
+refcnt       : 5
+selftest     : passed
+internal     : no
+type         : skcipher
+async        : no
+blocksize    : 1
+min keysize  : 16
+max keysize  : 32
+ivsize       : 16
+chunksize    : 16
+walksize     : 16
+
+name         : pkcs1pad(rsa,sha256)
+driver       : pkcs1pad(rsa-generic,sha256)
+module       : kernel
+priority     : 100
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : akcipher
+
+name         : __xts(aes)
+driver       : cryptd(__xts-aes-aesni)
+module       : kernel
+priority     : 451
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : skcipher
+async        : yes
+blocksize    : 16
+min keysize  : 32
+max keysize  : 64
+ivsize       : 16
+chunksize    : 16
+walksize     : 16
+
+name         : xts(aes)
+driver       : xts-aes-aesni
+module       : kernel
+priority     : 401
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : skcipher
+async        : yes
+blocksize    : 16
+min keysize  : 32
+max keysize  : 64
+ivsize       : 16
+chunksize    : 16
+walksize     : 16
+
+name         : __ctr(aes)
+driver       : cryptd(__ctr-aes-aesni)
+module       : kernel
+priority     : 450
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : skcipher
+async        : yes
+blocksize    : 1
+min keysize  : 16
+max keysize  : 32
+ivsize       : 16
+chunksize    : 16
+walksize     : 16
+
+name         : ctr(aes)
+driver       : ctr-aes-aesni
+module       : kernel
+priority     : 400
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : skcipher
+async        : yes
+blocksize    : 1
+min keysize  : 16
+max keysize  : 32
+ivsize       : 16
+chunksize    : 16
+walksize     : 16
+
+name         : __cbc(aes)
+driver       : cryptd(__cbc-aes-aesni)
+module       : kernel
+priority     : 450
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : skcipher
+async        : yes
+blocksize    : 16
+min keysize  : 16
+max keysize  : 32
+ivsize       : 16
+chunksize    : 16
+walksize     : 16
+
+name         : cbc(aes)
+driver       : cbc-aes-aesni
+module       : kernel
+priority     : 400
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : skcipher
+async        : yes
+blocksize    : 16
+min keysize  : 16
+max keysize  : 32
+ivsize       : 16
+chunksize    : 16
+walksize     : 16
+
+name         : __ecb(aes)
+driver       : cryptd(__ecb-aes-aesni)
+module       : kernel
+priority     : 450
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : skcipher
+async        : yes
+blocksize    : 16
+min keysize  : 16
+max keysize  : 32
+ivsize       : 0
+chunksize    : 16
+walksize     : 16
+
+name         : ecb(aes)
+driver       : ecb-aes-aesni
+module       : kernel
+priority     : 400
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : skcipher
+async        : yes
+blocksize    : 16
+min keysize  : 16
+max keysize  : 32
+ivsize       : 0
+chunksize    : 16
+walksize     : 16
+
+name         : __generic-gcm-aes-aesni
+driver       : cryptd(__driver-generic-gcm-aes-aesni)
+module       : kernel
+priority     : 50
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : aead
+async        : yes
+blocksize    : 1
+ivsize       : 12
+maxauthsize  : 16
+geniv        : <none>
+
+name         : gcm(aes)
+driver       : generic-gcm-aesni
+module       : kernel
+priority     : 400
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : aead
+async        : yes
+blocksize    : 1
+ivsize       : 12
+maxauthsize  : 16
+geniv        : <none>
+
+name         : __generic-gcm-aes-aesni
+driver       : __driver-generic-gcm-aes-aesni
+module       : kernel
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : aead
+async        : no
+blocksize    : 1
+ivsize       : 12
+maxauthsize  : 16
+geniv        : <none>
+
+name         : __gcm-aes-aesni
+driver       : cryptd(__driver-gcm-aes-aesni)
+module       : kernel
+priority     : 50
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : aead
+async        : yes
+blocksize    : 1
+ivsize       : 8
+maxauthsize  : 16
+geniv        : <none>
+
+name         : rfc4106(gcm(aes))
+driver       : rfc4106-gcm-aesni
+module       : kernel
+priority     : 400
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : aead
+async        : yes
+blocksize    : 1
+ivsize       : 8
+maxauthsize  : 16
+geniv        : <none>
+
+name         : __gcm-aes-aesni
+driver       : __driver-gcm-aes-aesni
+module       : kernel
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : aead
+async        : no
+blocksize    : 1
+ivsize       : 8
+maxauthsize  : 16
+geniv        : <none>
+
+name         : __xts(aes)
+driver       : __xts-aes-aesni
+module       : kernel
+priority     : 401
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : skcipher
+async        : no
+blocksize    : 16
+min keysize  : 32
+max keysize  : 64
+ivsize       : 16
+chunksize    : 16
+walksize     : 16
+
+name         : __ctr(aes)
+driver       : __ctr-aes-aesni
+module       : kernel
+priority     : 400
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : skcipher
+async        : no
+blocksize    : 1
+min keysize  : 16
+max keysize  : 32
+ivsize       : 16
+chunksize    : 16
+walksize     : 16
+
+name         : __cbc(aes)
+driver       : __cbc-aes-aesni
+module       : kernel
+priority     : 400
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : skcipher
+async        : no
+blocksize    : 16
+min keysize  : 16
+max keysize  : 32
+ivsize       : 16
+chunksize    : 16
+walksize     : 16
+
+name         : __ecb(aes)
+driver       : __ecb-aes-aesni
+module       : kernel
+priority     : 400
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : skcipher
+async        : no
+blocksize    : 16
+min keysize  : 16
+max keysize  : 32
+ivsize       : 0
+chunksize    : 16
+walksize     : 16
+
+name         : __aes
+driver       : __aes-aesni
+module       : kernel
+priority     : 300
+refcnt       : 1
+selftest     : passed
+internal     : yes
+type         : cipher
+blocksize    : 16
+min keysize  : 16
+max keysize  : 32
+
+name         : aes
+driver       : aes-aesni
+module       : kernel
+priority     : 300
+refcnt       : 8
+selftest     : passed
+internal     : no
+type         : cipher
+blocksize    : 16
+min keysize  : 16
+max keysize  : 32
+
+name         : hmac(sha1)
+driver       : hmac(sha1-generic)
+module       : kernel
+priority     : 100
+refcnt       : 9
+selftest     : passed
+internal     : no
+type         : shash
+blocksize    : 64
+digestsize   : 20
+
+name         : ghash
+driver       : ghash-generic
+module       : kernel
+priority     : 100
+refcnt       : 3
+selftest     : passed
+internal     : no
+type         : shash
+blocksize    : 16
+digestsize   : 16
+
+name         : jitterentropy_rng
+driver       : jitterentropy_rng
+module       : kernel
+priority     : 100
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_nopr_hmac_sha256
+module       : kernel
+priority     : 221
+refcnt       : 2
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_nopr_hmac_sha512
+module       : kernel
+priority     : 220
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_nopr_hmac_sha384
+module       : kernel
+priority     : 219
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_nopr_hmac_sha1
+module       : kernel
+priority     : 218
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_nopr_sha256
+module       : kernel
+priority     : 217
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_nopr_sha512
+module       : kernel
+priority     : 216
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_nopr_sha384
+module       : kernel
+priority     : 215
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_nopr_sha1
+module       : kernel
+priority     : 214
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_nopr_ctr_aes256
+module       : kernel
+priority     : 213
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_nopr_ctr_aes192
+module       : kernel
+priority     : 212
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_nopr_ctr_aes128
+module       : kernel
+priority     : 211
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : hmac(sha256)
+driver       : hmac(sha256-generic)
+module       : kernel
+priority     : 100
+refcnt       : 10
+selftest     : passed
+internal     : no
+type         : shash
+blocksize    : 64
+digestsize   : 32
+
+name         : stdrng
+driver       : drbg_pr_hmac_sha256
+module       : kernel
+priority     : 210
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_pr_hmac_sha512
+module       : kernel
+priority     : 209
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_pr_hmac_sha384
+module       : kernel
+priority     : 208
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_pr_hmac_sha1
+module       : kernel
+priority     : 207
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_pr_sha256
+module       : kernel
+priority     : 206
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_pr_sha512
+module       : kernel
+priority     : 205
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_pr_sha384
+module       : kernel
+priority     : 204
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_pr_sha1
+module       : kernel
+priority     : 203
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_pr_ctr_aes256
+module       : kernel
+priority     : 202
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_pr_ctr_aes192
+module       : kernel
+priority     : 201
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : stdrng
+driver       : drbg_pr_ctr_aes128
+module       : kernel
+priority     : 200
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : rng
+seedsize     : 0
+
+name         : 842
+driver       : 842-scomp
+module       : kernel
+priority     : 100
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : scomp
+
+name         : 842
+driver       : 842-generic
+module       : kernel
+priority     : 100
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : compression
+
+name         : lzo-rle
+driver       : lzo-rle-scomp
+module       : kernel
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : scomp
+
+name         : lzo-rle
+driver       : lzo-rle-generic
+module       : kernel
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : compression
+
+name         : lzo
+driver       : lzo-scomp
+module       : kernel
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : scomp
+
+name         : lzo
+driver       : lzo-generic
+module       : kernel
+priority     : 0
+refcnt       : 9
+selftest     : passed
+internal     : no
+type         : compression
+
+name         : crct10dif
+driver       : crct10dif-generic
+module       : kernel
+priority     : 100
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : shash
+blocksize    : 1
+digestsize   : 2
+
+name         : crc32c
+driver       : crc32c-generic
+module       : kernel
+priority     : 100
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : shash
+blocksize    : 1
+digestsize   : 4
+
+name         : zlib-deflate
+driver       : zlib-deflate-scomp
+module       : kernel
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : scomp
+
+name         : deflate
+driver       : deflate-scomp
+module       : kernel
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : scomp
+
+name         : deflate
+driver       : deflate-generic
+module       : kernel
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : compression
+
+name         : aes
+driver       : aes-generic
+module       : kernel
+priority     : 100
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : cipher
+blocksize    : 16
+min keysize  : 16
+max keysize  : 32
+
+name         : sha224
+driver       : sha224-generic
+module       : kernel
+priority     : 100
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : shash
+blocksize    : 64
+digestsize   : 28
+
+name         : sha256
+driver       : sha256-generic
+module       : kernel
+priority     : 100
+refcnt       : 11
+selftest     : passed
+internal     : no
+type         : shash
+blocksize    : 64
+digestsize   : 32
+
+name         : sha1
+driver       : sha1-generic
+module       : kernel
+priority     : 100
+refcnt       : 11
+selftest     : passed
+internal     : no
+type         : shash
+blocksize    : 64
+digestsize   : 20
+
+name         : md5
+driver       : md5-generic
+module       : kernel
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : shash
+blocksize    : 64
+digestsize   : 16
+
+name         : ecb(cipher_null)
+driver       : ecb-cipher_null
+module       : kernel
+priority     : 100
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : skcipher
+async        : no
+blocksize    : 1
+min keysize  : 0
+max keysize  : 0
+ivsize       : 0
+chunksize    : 1
+walksize     : 1
+
+name         : digest_null
+driver       : digest_null-generic
+module       : kernel
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : shash
+blocksize    : 1
+digestsize   : 0
+
+name         : compress_null
+driver       : compress_null-generic
+module       : kernel
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : compression
+
+name         : cipher_null
+driver       : cipher_null-generic
+module       : kernel
+priority     : 0
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : cipher
+blocksize    : 1
+min keysize  : 0
+max keysize  : 0
+
+name         : rsa
+driver       : rsa-generic
+module       : kernel
+priority     : 100
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : akcipher
+
+name         : dh
+driver       : dh-generic
+module       : kernel
+priority     : 100
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : kpp
+
+name         : aes
+driver       : aes-asm
+module       : kernel
+priority     : 200
+refcnt       : 1
+selftest     : passed
+internal     : no
+type         : cipher
+blocksize    : 16
+min keysize  : 16
+max keysize  : 32
+
+Mode: 444
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Path: fixtures/proc/diskstats
 Lines: 49
@@ -298,37 +1395,73 @@ debug 0
 Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Path: fixtures/proc/mdstat
-Lines: 26
+Lines: 56
 Personalities : [linear] [multipath] [raid0] [raid1] [raid6] [raid5] [raid4] [raid10]
-md3 : active raid6 sda1[8] sdh1[7] sdg1[6] sdf1[5] sde1[11] sdd1[3] sdc1[10] sdb1[9]
+
+md3 : active raid6 sda1[8] sdh1[7] sdg1[6] sdf1[5] sde1[11] sdd1[3] sdc1[10] sdb1[9] sdd1[10](S) sdd2[11](S)
       5853468288 blocks super 1.2 level 6, 64k chunk, algorithm 2 [8/8] [UUUUUUUU]
-      
+
 md127 : active raid1 sdi2[0] sdj2[1]
       312319552 blocks [2/2] [UU]
-      
-md0 : active raid1 sdk[2](S) sdi1[0] sdj1[1]
+
+md0 : active raid1 sdi1[0] sdj1[1]
       248896 blocks [2/2] [UU]
-      
-md4 : inactive raid1 sda3[0] sdb3[1]
+
+md4 : inactive raid1 sda3[0](F) sdb3[1](S)
       4883648 blocks [2/2] [UU]
 
-md6 : active raid1 sdb2[2] sda2[0]
+md6 : active raid1 sdb2[2](F) sdc[1](S) sda2[0]
       195310144 blocks [2/1] [U_]
       [=>...................]  recovery =  8.5% (16775552/195310144) finish=17.0min speed=259783K/sec
 
-md8 : active raid1 sdb1[1] sda1[0]
+md8 : active raid1 sdb1[1] sda1[0] sdc[2](S) sde[3](S)
       195310144 blocks [2/2] [UU]
       [=>...................]  resync =  8.5% (16775552/195310144) finish=17.0min speed=259783K/sec
 
-md7 : active raid6 sdb1[0] sde1[3] sdd1[2] sdc1[1]
+md7 : active raid6 sdb1[0] sde1[3] sdd1[2] sdc1[1](F)
       7813735424 blocks super 1.2 level 6, 512k chunk, algorithm 2 [4/3] [U_UU]
       bitmap: 0/30 pages [0KB], 65536KB chunk
+
+md9 : active raid1 sdc2[2] sdd2[3] sdb2[1] sda2[0] sde[4](F) sdf[5](F) sdg[6](S)
+      523968 blocks super 1.2 [4/4] [UUUU]
+      resync=DELAYED
+
+md10 : active raid0 sda1[0] sdb1[1]
+       314159265 blocks 64k chunks
+
+md11 : active (auto-read-only) raid1 sdb2[0] sdc2[1] sdc3[2](F) hda[4](S) ssdc2[3](S)
+      4190208 blocks super 1.2 [2/2] [UU]
+      resync=PENDING
+
+md12 : active raid0 sdc2[0] sdd2[1]
+      3886394368 blocks super 1.2 512k chunks
+
+md126 : active raid0 sdb[1] sdc[0]
+      1855870976 blocks super external:/md127/0 128k chunks
+
+md219 : inactive sdb[2](S) sdc[1](S) sda[0](S)
+        7932 blocks super external:imsm
+
+md00 : active raid0 xvdb[0]
+      4186624 blocks super 1.2 256k chunks
+
+md120 : active linear sda1[1] sdb1[0]
+        2095104 blocks super 1.2 0k rounding
+
+md101 : active (read-only) raid0 sdb[2] sdd[1] sdc[0]
+      322560 blocks super 1.2 512k chunks
 
 unused devices: <none>
 Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Directory: fixtures/proc/net
 Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/net/arp
+Lines: 2
+IP address       HW type     Flags       HW address            Mask     Device
+192.168.224.1    0x1         0x2         00:50:56:c0:00:08     *        ens33
+Mode: 664
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Path: fixtures/proc/net/dev
 Lines: 6
@@ -402,6 +1535,31 @@ proc4 2 2 10853
 proc4ops 72 0 0 0 1098 2 0 0 0 0 8179 5896 0 0 0 0 5900 0 0 2 0 2 0 9609 0 2 150 1272 0 0 0 1236 0 0 0 0 3 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/net/softnet_stat
+Lines: 1
+00015c73 00020e76 F0000769 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/net/unix
+Lines: 6
+Num       RefCount Protocol Flags    Type St Inode Path
+0000000000000000: 00000002 00000000 00010000 0001 01 3442596 /var/run/postgresql/.s.PGSQL.5432
+0000000000000000: 0000000a 00000000 00010000 0005 01 10061 /run/udev/control
+0000000000000000: 00000007 00000000 00000000 0002 01 12392 /dev/log
+0000000000000000: 00000003 00000000 00000000 0001 03 4787297 /var/run/postgresql/.s.PGSQL.5432
+0000000000000000: 00000003 00000000 00000000 0001 03 5091797
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/net/unix_without_inode
+Lines: 6
+Num       RefCount Protocol Flags    Type St Path
+0000000000000000: 00000002 00000000 00010000 0001 01 /var/run/postgresql/.s.PGSQL.5432
+0000000000000000: 0000000a 00000000 00010000 0005 01 /run/udev/control
+0000000000000000: 00000007 00000000 00000000 0002 01 /dev/log
+0000000000000000: 00000003 00000000 00000000 0001 03 /var/run/postgresql/.s.PGSQL.5432
+0000000000000000: 00000003 00000000 00000000 0001 03
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Path: fixtures/proc/net/xfrm_stat
 Lines: 28
 XfrmInError                     1
@@ -452,6 +1610,16 @@ Path: fixtures/proc/pressure/memory
 Lines: 2
 some avg10=0.10 avg60=2.00 avg300=3.85 total=15
 full avg10=0.20 avg60=3.00 avg300=4.95 total=25
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/schedstat
+Lines: 6
+version 15
+timestamp 15819019232
+cpu0 498494191 0 3533438552 2553969831 3853684107 2465731542 2045936778163039 343796328169361 4767485306
+domain0 00000000,00000003 212499247 210112015 1861015 1860405436 536440 369895 32599 210079416 25368550 24241256 384652 927363878 807233 6366 1647 24239609 2122447165 1886868564 121112060 2848625533 125678146 241025 1032026 1885836538 2545 12 2533 0 0 0 0 0 0 1387952561 21076581 0
+cpu1 518377256 0 4155211005 2778589869 10466382 2867629021 1904686152592476 364107263788241 5145567945
+domain0 00000000,00000003 217653037 215526982 1577949 1580427380 557469 393576 28538 215498444 28721913 27662819 371153 870843407 745912 5523 1639 27661180 2331056874 2107732788 111442342 652402556 123615235 196159 1045245 2106687543 2400 3 2397 0 0 0 0 0 0 1437804657 26220076 0
 Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Path: fixtures/proc/self
@@ -506,6 +1674,493 @@ Path: fixtures/proc/symlinktargets/xyz
 Lines: 0
 Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/proc/sys
+Mode: 775
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/proc/sys/vm
+Mode: 775
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/admin_reserve_kbytes
+Lines: 1
+8192
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/block_dump
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/compact_unevictable_allowed
+Lines: 1
+1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/dirty_background_bytes
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/dirty_background_ratio
+Lines: 1
+10
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/dirty_bytes
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/dirty_expire_centisecs
+Lines: 1
+3000
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/dirty_ratio
+Lines: 1
+20
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/dirty_writeback_centisecs
+Lines: 1
+500
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/dirtytime_expire_seconds
+Lines: 1
+43200
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/drop_caches
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/extfrag_threshold
+Lines: 1
+500
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/hugetlb_shm_group
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/laptop_mode
+Lines: 1
+5
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/legacy_va_layout
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/lowmem_reserve_ratio
+Lines: 1
+256	256	32	0	0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/max_map_count
+Lines: 1
+65530
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/memory_failure_early_kill
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/memory_failure_recovery
+Lines: 1
+1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/min_free_kbytes
+Lines: 1
+67584
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/min_slab_ratio
+Lines: 1
+5
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/min_unmapped_ratio
+Lines: 1
+1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/mmap_min_addr
+Lines: 1
+65536
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/nr_hugepages
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/nr_hugepages_mempolicy
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/nr_overcommit_hugepages
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/numa_stat
+Lines: 1
+1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/numa_zonelist_order
+Lines: 1
+Node
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/oom_dump_tasks
+Lines: 1
+1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/oom_kill_allocating_task
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/overcommit_kbytes
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/overcommit_memory
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/overcommit_ratio
+Lines: 1
+50
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/page-cluster
+Lines: 1
+3
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/panic_on_oom
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/percpu_pagelist_fraction
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/stat_interval
+Lines: 1
+1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/swappiness
+Lines: 1
+60
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/user_reserve_kbytes
+Lines: 1
+131072
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/vfs_cache_pressure
+Lines: 1
+100
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/watermark_boost_factor
+Lines: 1
+15000
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/watermark_scale_factor
+Lines: 1
+10
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/sys/vm/zone_reclaim_mode
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/proc/zoneinfo
+Lines: 262
+Node 0, zone      DMA
+  per-node stats
+      nr_inactive_anon 230981
+      nr_active_anon 547580
+      nr_inactive_file 316904
+      nr_active_file 346282
+      nr_unevictable 115467
+      nr_slab_reclaimable 131220
+      nr_slab_unreclaimable 47320
+      nr_isolated_anon 0
+      nr_isolated_file 0
+      workingset_nodes 11627
+      workingset_refault 466886
+      workingset_activate 276925
+      workingset_restore 84055
+      workingset_nodereclaim 487
+      nr_anon_pages 795576
+      nr_mapped    215483
+      nr_file_pages 761874
+      nr_dirty     908
+      nr_writeback 0
+      nr_writeback_temp 0
+      nr_shmem     224925
+      nr_shmem_hugepages 0
+      nr_shmem_pmdmapped 0
+      nr_anon_transparent_hugepages 0
+      nr_unstable  0
+      nr_vmscan_write 12950
+      nr_vmscan_immediate_reclaim 3033
+      nr_dirtied   8007423
+      nr_written   7752121
+      nr_kernel_misc_reclaimable 0
+  pages free     3952
+        min      33
+        low      41
+        high     49
+        spanned  4095
+        present  3975
+        managed  3956
+        protection: (0, 2877, 7826, 7826, 7826)
+      nr_free_pages 3952
+      nr_zone_inactive_anon 0
+      nr_zone_active_anon 0
+      nr_zone_inactive_file 0
+      nr_zone_active_file 0
+      nr_zone_unevictable 0
+      nr_zone_write_pending 0
+      nr_mlock     0
+      nr_page_table_pages 0
+      nr_kernel_stack 0
+      nr_bounce    0
+      nr_zspages   0
+      nr_free_cma  0
+      numa_hit     1
+      numa_miss    0
+      numa_foreign 0
+      numa_interleave 0
+      numa_local   1
+      numa_other   0
+  pagesets
+    cpu: 0
+              count: 0
+              high:  0
+              batch: 1
+  vm stats threshold: 8
+    cpu: 1
+              count: 0
+              high:  0
+              batch: 1
+  vm stats threshold: 8
+    cpu: 2
+              count: 0
+              high:  0
+              batch: 1
+  vm stats threshold: 8
+    cpu: 3
+              count: 0
+              high:  0
+              batch: 1
+  vm stats threshold: 8
+    cpu: 4
+              count: 0
+              high:  0
+              batch: 1
+  vm stats threshold: 8
+    cpu: 5
+              count: 0
+              high:  0
+              batch: 1
+  vm stats threshold: 8
+    cpu: 6
+              count: 0
+              high:  0
+              batch: 1
+  vm stats threshold: 8
+    cpu: 7
+              count: 0
+              high:  0
+              batch: 1
+  vm stats threshold: 8
+  node_unreclaimable:  0
+  start_pfn:           1
+Node 0, zone    DMA32
+  pages free     204252
+        min      19510
+        low      21059
+        high     22608
+        spanned  1044480
+        present  759231
+        managed  742806
+        protection: (0, 0, 4949, 4949, 4949)
+      nr_free_pages 204252
+      nr_zone_inactive_anon 118558
+      nr_zone_active_anon 106598
+      nr_zone_inactive_file 75475
+      nr_zone_active_file 70293
+      nr_zone_unevictable 66195
+      nr_zone_write_pending 64
+      nr_mlock     4
+      nr_page_table_pages 1756
+      nr_kernel_stack 2208
+      nr_bounce    0
+      nr_zspages   0
+      nr_free_cma  0
+      numa_hit     113952967
+      numa_miss    0
+      numa_foreign 0
+      numa_interleave 0
+      numa_local   113952967
+      numa_other   0
+  pagesets
+    cpu: 0
+              count: 345
+              high:  378
+              batch: 63
+  vm stats threshold: 48
+    cpu: 1
+              count: 356
+              high:  378
+              batch: 63
+  vm stats threshold: 48
+    cpu: 2
+              count: 325
+              high:  378
+              batch: 63
+  vm stats threshold: 48
+    cpu: 3
+              count: 346
+              high:  378
+              batch: 63
+  vm stats threshold: 48
+    cpu: 4
+              count: 321
+              high:  378
+              batch: 63
+  vm stats threshold: 48
+    cpu: 5
+              count: 316
+              high:  378
+              batch: 63
+  vm stats threshold: 48
+    cpu: 6
+              count: 373
+              high:  378
+              batch: 63
+  vm stats threshold: 48
+    cpu: 7
+              count: 339
+              high:  378
+              batch: 63
+  vm stats threshold: 48
+  node_unreclaimable:  0
+  start_pfn:           4096
+Node 0, zone   Normal
+  pages free     18553
+        min      11176
+        low      13842
+        high     16508
+        spanned  1308160
+        present  1308160
+        managed  1268711
+        protection: (0, 0, 0, 0, 0)
+      nr_free_pages 18553
+      nr_zone_inactive_anon 112423
+      nr_zone_active_anon 440982
+      nr_zone_inactive_file 241429
+      nr_zone_active_file 275989
+      nr_zone_unevictable 49272
+      nr_zone_write_pending 844
+      nr_mlock     154
+      nr_page_table_pages 9750
+      nr_kernel_stack 15136
+      nr_bounce    0
+      nr_zspages   0
+      nr_free_cma  0
+      numa_hit     162718019
+      numa_miss    0
+      numa_foreign 0
+      numa_interleave 26812
+      numa_local   162718019
+      numa_other   0
+  pagesets
+    cpu: 0
+              count: 316
+              high:  378
+              batch: 63
+  vm stats threshold: 56
+    cpu: 1
+              count: 366
+              high:  378
+              batch: 63
+  vm stats threshold: 56
+    cpu: 2
+              count: 60
+              high:  378
+              batch: 63
+  vm stats threshold: 56
+    cpu: 3
+              count: 256
+              high:  378
+              batch: 63
+  vm stats threshold: 56
+    cpu: 4
+              count: 253
+              high:  378
+              batch: 63
+  vm stats threshold: 56
+    cpu: 5
+              count: 159
+              high:  378
+              batch: 63
+  vm stats threshold: 56
+    cpu: 6
+              count: 311
+              high:  378
+              batch: 63
+  vm stats threshold: 56
+    cpu: 7
+              count: 264
+              high:  378
+              batch: 63
+  vm stats threshold: 56
+  node_unreclaimable:  0
+  start_pfn:           1048576
+Node 0, zone  Movable
+  pages free     0
+        min      0
+        low      0
+        high     0
+        spanned  0
+        present  0
+        managed  0
+        protection: (0, 0, 0, 0, 0)
+Node 0, zone   Device
+  pages free     0
+        min      0
+        low      0
+        high     0
+        spanned  0
+        present  0
+        managed  0
+        protection: (0, 0, 0, 0, 0)
+Mode: 444
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Directory: fixtures/sys
 Mode: 755
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -530,6 +2185,232 @@ Mode: 664
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Directory: fixtures/sys/class
 Mode: 775
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/class/infiniband
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/class/infiniband/mlx4_0
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/board_id
+Lines: 1
+SM_1141000001000
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/fw_ver
+Lines: 1
+2.31.5050
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/hca_type
+Lines: 1
+MT4099
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/class/infiniband/mlx4_0/ports
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/class/infiniband/mlx4_0/ports/1
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/excessive_buffer_overrun_errors
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/link_downed
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/link_error_recovery
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/local_link_integrity_errors
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/port_rcv_constraint_errors
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/port_rcv_data
+Lines: 1
+2221223609
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/port_rcv_errors
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/port_rcv_packets
+Lines: 1
+87169372
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/port_rcv_remote_physical_errors
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/port_rcv_switch_relay_errors
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_constraint_errors
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_data
+Lines: 1
+26509113295
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_discards
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_packets
+Lines: 1
+85734114
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/port_xmit_wait
+Lines: 1
+3599
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/counters/symbol_error
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/phys_state
+Lines: 1
+5: LinkUp
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/rate
+Lines: 1
+40 Gb/sec (4X QDR)
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/1/state
+Lines: 1
+4: ACTIVE
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/class/infiniband/mlx4_0/ports/2
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/excessive_buffer_overrun_errors
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/link_downed
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/link_error_recovery
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/local_link_integrity_errors
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/port_rcv_constraint_errors
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/port_rcv_data
+Lines: 1
+2460436784
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/port_rcv_errors
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/port_rcv_packets
+Lines: 1
+89332064
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/port_rcv_remote_physical_errors
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/port_rcv_switch_relay_errors
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/port_xmit_constraint_errors
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/port_xmit_data
+Lines: 1
+26540356890
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/port_xmit_discards
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/port_xmit_packets
+Lines: 1
+88622850
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/port_xmit_wait
+Lines: 1
+3846
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/counters/symbol_error
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/phys_state
+Lines: 1
+5: LinkUp
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/rate
+Lines: 1
+40 Gb/sec (4X QDR)
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/infiniband/mlx4_0/ports/2/state
+Lines: 1
+4: ACTIVE
+Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Directory: fixtures/sys/class/net
 Mode: 775
@@ -805,6 +2686,42 @@ Mode: 444
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Directory: fixtures/sys/class/thermal
 Mode: 775
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/class/thermal/cooling_device0
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/thermal/cooling_device0/cur_state
+Lines: 1
+0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/thermal/cooling_device0/max_state
+Lines: 1
+50
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/thermal/cooling_device0/type
+Lines: 1
+Processor
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/class/thermal/cooling_device1
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/thermal/cooling_device1/cur_state
+Lines: 1
+-1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/thermal/cooling_device1/max_state
+Lines: 1
+27
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/class/thermal/cooling_device1/type
+Lines: 1
+intel_powerclamp
+Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Directory: fixtures/sys/class/thermal/thermal_zone0
 Mode: 775
@@ -1104,8 +3021,53 @@ Lines: 1
 0
 Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/devices/rbd
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/devices/rbd/0
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/devices/rbd/0/name
+Lines: 1
+demo
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/devices/rbd/0/pool
+Lines: 1
+iscsi-images
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/devices/rbd/1
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/devices/rbd/1/name
+Lines: 1
+wrong
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/devices/rbd/1/pool
+Lines: 1
+wrong-images
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Directory: fixtures/sys/devices/system
 Mode: 775
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/devices/system/clocksource
+Mode: 775
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/devices/system/clocksource/clocksource0
+Mode: 775
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/devices/system/clocksource/clocksource0/available_clocksource
+Lines: 1
+tsc hpet acpi_pm 
+Mode: 444
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/devices/system/clocksource/clocksource0/current_clocksource
+Lines: 1
+tsc
+Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Directory: fixtures/sys/devices/system/cpu
 Mode: 775
@@ -1710,5 +3672,250 @@ Mode: 755
 Path: fixtures/sys/fs/xfs/sdb1/stats/stats
 Lines: 1
 extent_alloc 2 0 0 0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/core
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/core/fileio_0
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/core/fileio_1
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/core/fileio_1/file_lio_1G
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/core/fileio_1/file_lio_1G/enable
+Lines: 1
+1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/core/fileio_1/file_lio_1G/udev_path
+Lines: 1
+/home/iscsi/file_back_1G
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/core/iblock_0
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/core/iblock_0/block_lio_rbd1
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/core/iblock_0/block_lio_rbd1/enable
+Lines: 1
+1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/core/iblock_0/block_lio_rbd1/udev_path
+Lines: 1
+/dev/rbd1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/core/rbd_0
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/core/rbd_0/iscsi-images-demo
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/core/rbd_0/iscsi-images-demo/enable
+Lines: 1
+1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/core/rbd_0/iscsi-images-demo/udev_path
+Lines: 1
+/dev/rbd/iscsi-images/demo
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/core/rd_mcp_119
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/core/rd_mcp_119/ramdisk_lio_1G
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/core/rd_mcp_119/ramdisk_lio_1G/enable
+Lines: 1
+1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/core/rd_mcp_119/ramdisk_lio_1G/udev_path
+Lines: 0
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.8888bbbbddd0
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.8888bbbbddd0/tpgt_1
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.8888bbbbddd0/tpgt_1/enable
+Lines: 1
+1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.8888bbbbddd0/tpgt_1/lun
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.8888bbbbddd0/tpgt_1/lun/lun_0
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.8888bbbbddd0/tpgt_1/lun/lun_0/7f4a4eb56d
+SymlinkTo: ../../../../../../target/core/rd_mcp_119/ramdisk_lio_1G
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.8888bbbbddd0/tpgt_1/lun/lun_0/statistics
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.8888bbbbddd0/tpgt_1/lun/lun_0/statistics/scsi_tgt_port
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.8888bbbbddd0/tpgt_1/lun/lun_0/statistics/scsi_tgt_port/in_cmds
+Lines: 1
+204950
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.8888bbbbddd0/tpgt_1/lun/lun_0/statistics/scsi_tgt_port/read_mbytes
+Lines: 1
+10325
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.8888bbbbddd0/tpgt_1/lun/lun_0/statistics/scsi_tgt_port/write_mbytes
+Lines: 1
+40325
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.abcd1abcd2ab
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.abcd1abcd2ab/tpgt_1
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.abcd1abcd2ab/tpgt_1/enable
+Lines: 1
+1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.abcd1abcd2ab/tpgt_1/lun
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.abcd1abcd2ab/tpgt_1/lun/lun_0
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.abcd1abcd2ab/tpgt_1/lun/lun_0/795b7c7026
+SymlinkTo: ../../../../../../target/core/iblock_0/block_lio_rbd1
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.abcd1abcd2ab/tpgt_1/lun/lun_0/statistics
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.abcd1abcd2ab/tpgt_1/lun/lun_0/statistics/scsi_tgt_port
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.abcd1abcd2ab/tpgt_1/lun/lun_0/statistics/scsi_tgt_port/in_cmds
+Lines: 1
+104950
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.abcd1abcd2ab/tpgt_1/lun/lun_0/statistics/scsi_tgt_port/read_mbytes
+Lines: 1
+20095
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2003-01.org.linux-iscsi.osd1.x8664:sn.abcd1abcd2ab/tpgt_1/lun/lun_0/statistics/scsi_tgt_port/write_mbytes
+Lines: 1
+71235
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:dev.rbd0
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:dev.rbd0/tpgt_1
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:dev.rbd0/tpgt_1/enable
+Lines: 1
+1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:dev.rbd0/tpgt_1/lun
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:dev.rbd0/tpgt_1/lun/lun_0
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:dev.rbd0/tpgt_1/lun/lun_0/fff5e16686
+SymlinkTo: ../../../../../../target/core/fileio_1/file_lio_1G
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:dev.rbd0/tpgt_1/lun/lun_0/statistics
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:dev.rbd0/tpgt_1/lun/lun_0/statistics/scsi_tgt_port
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:dev.rbd0/tpgt_1/lun/lun_0/statistics/scsi_tgt_port/in_cmds
+Lines: 1
+301950
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:dev.rbd0/tpgt_1/lun/lun_0/statistics/scsi_tgt_port/read_mbytes
+Lines: 1
+10195
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:dev.rbd0/tpgt_1/lun/lun_0/statistics/scsi_tgt_port/write_mbytes
+Lines: 1
+30195
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:sn.ramdemo
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:sn.ramdemo/tpgt_1
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:sn.ramdemo/tpgt_1/enable
+Lines: 1
+1
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:sn.ramdemo/tpgt_1/lun
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:sn.ramdemo/tpgt_1/lun/lun_0
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:sn.ramdemo/tpgt_1/lun/lun_0/eba1edf893
+SymlinkTo: ../../../../../../target/core/rbd_0/iscsi-images-demo
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:sn.ramdemo/tpgt_1/lun/lun_0/statistics
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Directory: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:sn.ramdemo/tpgt_1/lun/lun_0/statistics/scsi_tgt_port
+Mode: 755
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:sn.ramdemo/tpgt_1/lun/lun_0/statistics/scsi_tgt_port/in_cmds
+Lines: 1
+1234
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:sn.ramdemo/tpgt_1/lun/lun_0/statistics/scsi_tgt_port/read_mbytes
+Lines: 1
+1504
+Mode: 644
+# ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Path: fixtures/sys/kernel/config/target/iscsi/iqn.2016-11.org.linux-iscsi.igw.x86:sn.ramdemo/tpgt_1/lun/lun_0/statistics/scsi_tgt_port/write_mbytes
+Lines: 1
+4733
 Mode: 644
 # ttar - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -70,6 +70,13 @@ const (
 	algoScrypt = "scrypt"
 	algoArgon2 = "argon2"
 	algoPbkdf2 = "pbkdf2"
+
+	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications
+	EmailNotificationsEnabled = "enabled"
+	// EmailNotificationsOnMention indicates that the user would like to be notified via email when mentioned.
+	EmailNotificationsOnMention = "onmention"
+	// EmailNotificationsDisabled indicates that the user would not like to be notified via email.
+	EmailNotificationsDisabled = "disabled"
 )
 
 var (
@@ -99,10 +106,11 @@ type User struct {
 	Name      string `xorm:"UNIQUE NOT NULL"`
 	FullName  string
 	// Email is the primary email address (to be used for communication)
-	Email            string `xorm:"NOT NULL"`
-	KeepEmailPrivate bool
-	Passwd           string `xorm:"NOT NULL"`
-	PasswdHashAlgo   string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
+	Email                        string `xorm:"NOT NULL"`
+	KeepEmailPrivate             bool
+	EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
+	Passwd                       string `xorm:"NOT NULL"`
+	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
 
 	// MustChangePassword is an attribute that determines if a user
 	// is to change his/her password after registration.
@@ -751,6 +759,21 @@ func (u *User) IsMailable() bool {
 	return u.IsActive
 }
 
+// EmailNotifications returns the User's email notification preference
+func (u *User) EmailNotifications() string {
+	return u.EmailNotificationsPreference
+}
+
+// SetEmailNotifications sets the user's email notification preference
+func (u *User) SetEmailNotifications(set string) error {
+	u.EmailNotificationsPreference = set
+	if err := UpdateUserCols(u, "email_notifications_preference"); err != nil {
+		log.Error("SetEmailNotifications: %v", err)
+		return err
+	}
+	return nil
+}
+
 func isUserExist(e Engine, uid int64, name string) (bool, error) {
 	if len(name) == 0 {
 		return false, nil
@@ -900,6 +923,7 @@ func CreateUser(u *User) (err error) {
 	}
 	u.HashPassword(u.Passwd)
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
+	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
 
@@ -1285,7 +1309,8 @@ func getUserByName(e Engine, name string) (*User, error) {
 	return u, nil
 }
 
-// GetUserEmailsByNames returns a list of e-mails corresponds to names.
+// GetUserEmailsByNames returns a list of e-mails corresponds to names of users
+// that have their email notifications set to enabled or onmention.
 func GetUserEmailsByNames(names []string) []string {
 	return getUserEmailsByNames(x, names)
 }
@@ -1297,7 +1322,7 @@ func getUserEmailsByNames(e Engine, names []string) []string {
 		if err != nil {
 			continue
 		}
-		if u.IsMailable() {
+		if u.IsMailable() && u.EmailNotifications() != EmailNotificationsDisabled {
 			mails = append(mails, u.Email)
 		}
 	}
