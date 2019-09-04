@@ -775,6 +775,70 @@ func (sa *SockaddrPPPoE) sockaddr() (unsafe.Pointer, _Socklen, error) {
 	return unsafe.Pointer(&sa.raw), SizeofSockaddrPPPoX, nil
 }
 
+// SockaddrTIPC implements the Sockaddr interface for AF_TIPC type sockets.
+// For more information on TIPC, see: http://tipc.sourceforge.net/.
+type SockaddrTIPC struct {
+	// Scope is the publication scopes when binding service/service range.
+	// Should be set to TIPC_CLUSTER_SCOPE or TIPC_NODE_SCOPE.
+	Scope int
+
+	// Addr is the type of address used to manipulate a socket. Addr must be
+	// one of:
+	//  - *TIPCSocketAddr: "id" variant in the C addr union
+	//  - *TIPCServiceRange: "nameseq" variant in the C addr union
+	//  - *TIPCServiceName: "name" variant in the C addr union
+	//
+	// If nil, EINVAL will be returned when the structure is used.
+	Addr TIPCAddr
+
+	raw RawSockaddrTIPC
+}
+
+// TIPCAddr is implemented by types that can be used as an address for
+// SockaddrTIPC. It is only implemented by *TIPCSocketAddr, *TIPCServiceRange,
+// and *TIPCServiceName.
+type TIPCAddr interface {
+	tipcAddrtype() uint8
+	tipcAddr() [12]byte
+}
+
+func (sa *TIPCSocketAddr) tipcAddr() [12]byte {
+	var out [12]byte
+	copy(out[:], (*(*[unsafe.Sizeof(TIPCSocketAddr{})]byte)(unsafe.Pointer(sa)))[:])
+	return out
+}
+
+func (sa *TIPCSocketAddr) tipcAddrtype() uint8 { return TIPC_SOCKET_ADDR }
+
+func (sa *TIPCServiceRange) tipcAddr() [12]byte {
+	var out [12]byte
+	copy(out[:], (*(*[unsafe.Sizeof(TIPCServiceRange{})]byte)(unsafe.Pointer(sa)))[:])
+	return out
+}
+
+func (sa *TIPCServiceRange) tipcAddrtype() uint8 { return TIPC_SERVICE_RANGE }
+
+func (sa *TIPCServiceName) tipcAddr() [12]byte {
+	var out [12]byte
+	copy(out[:], (*(*[unsafe.Sizeof(TIPCServiceName{})]byte)(unsafe.Pointer(sa)))[:])
+	return out
+}
+
+func (sa *TIPCServiceName) tipcAddrtype() uint8 { return TIPC_SERVICE_ADDR }
+
+func (sa *SockaddrTIPC) sockaddr() (unsafe.Pointer, _Socklen, error) {
+	if sa.Addr == nil {
+		return nil, 0, EINVAL
+	}
+
+	sa.raw.Family = AF_TIPC
+	sa.raw.Scope = int8(sa.Scope)
+	sa.raw.Addrtype = sa.Addr.tipcAddrtype()
+	sa.raw.Addr = sa.Addr.tipcAddr()
+
+	return unsafe.Pointer(&sa.raw), SizeofSockaddrTIPC, nil
+}
+
 func anyToSockaddr(fd int, rsa *RawSockaddrAny) (Sockaddr, error) {
 	switch rsa.Addr.Family {
 	case AF_NETLINK:
@@ -900,6 +964,27 @@ func anyToSockaddr(fd int, rsa *RawSockaddrAny) (Sockaddr, error) {
 				break
 			}
 		}
+		return sa, nil
+	case AF_TIPC:
+		pp := (*RawSockaddrTIPC)(unsafe.Pointer(rsa))
+
+		sa := &SockaddrTIPC{
+			Scope: int(pp.Scope),
+		}
+
+		// Determine which union variant is present in pp.Addr by checking
+		// pp.Addrtype.
+		switch pp.Addrtype {
+		case TIPC_SERVICE_RANGE:
+			sa.Addr = (*TIPCServiceRange)(unsafe.Pointer(&pp.Addr))
+		case TIPC_SERVICE_ADDR:
+			sa.Addr = (*TIPCServiceName)(unsafe.Pointer(&pp.Addr))
+		case TIPC_SOCKET_ADDR:
+			sa.Addr = (*TIPCSocketAddr)(unsafe.Pointer(&pp.Addr))
+		default:
+			return nil, EINVAL
+		}
+
 		return sa, nil
 	}
 	return nil, EAFNOSUPPORT
