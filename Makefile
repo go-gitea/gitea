@@ -102,7 +102,7 @@ generate:
 	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
 
 .PHONY: generate-swagger
-generate-swagger:	
+generate-swagger:
 	$(SWAGGER) generate spec -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
