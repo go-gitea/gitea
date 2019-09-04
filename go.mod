@@ -3,6 +3,7 @@ module code.gitea.io/gitea
 go 1.12
 
 require (
+	cloud.google.com/go v0.45.0 // indirect
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76
 	gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae
@@ -103,7 +104,7 @@ require (
 	golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
 	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	golang.org/x/sys v0.0.0-20190904005037-43c01164e931
+	golang.org/x/sys v0.0.0-20190904154756-749cb33beabd
 	golang.org/x/text v0.3.2
 	golang.org/x/tools v0.0.0-20190903163617-be0da057c5e3 // indirect
 	google.golang.org/appengine v1.6.2 // indirect

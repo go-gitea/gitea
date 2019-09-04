@@ -1,4 +1,4 @@
-# cloud.google.com/go v0.44.3
+# cloud.google.com/go v0.45.0
 cloud.google.com/go/civil
 # gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 gitea.com/macaron/binding
@@ -472,7 +472,7 @@ golang.org/x/net/internal/socks
 # golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20190904005037-43c01164e931
+# golang.org/x/sys v0.0.0-20190904154756-749cb33beabd
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
 golang.org/x/sys/cpu
