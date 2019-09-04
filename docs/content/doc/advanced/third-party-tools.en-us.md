@@ -19,10 +19,8 @@ menu:
 *This is by no means a complete list, so feel free to ask about adding more!*
 
 ### Continuous Integration
-[BuildKite Connector](https://github.com/techknowlogick/gitea-buildkite-connector)  
-[Jenkins Plugin](https://github.com/jenkinsci/gitea-plugin)  
-[Using Gitea with Drone](https://docs.drone.io/installation/gitea/)
 
+Check our [CI/CD page]({{< relref "doc/advanced/ci-cd.en-us.md" >}})
 
 ### Migrating
 [Installation script for Gitea](https://git.coolaj86.com/coolaj86/gitea-installer.sh)  
