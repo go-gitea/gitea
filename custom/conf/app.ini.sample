@@ -308,6 +308,8 @@ MAX_FILE_SIZE = 1048576
 DISABLE_REGULAR_ORG_CREATION = false
 ; Enable the kanban board feature system wide.
 ENABLE_KANBAN_BOARD = true
+; Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
+DEFAULT_EMAIL_NOTIFICATIONS = enabled
 
 [security]
 ; Whether the installer is disabled
@@ -410,7 +412,7 @@ DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Public is for everyone
 DEFAULT_ORG_VISIBILITY = public
 ; Default value for DefaultOrgMemberVisible
-; True will make the membership of the users visible when added to the organisation  
+; True will make the membership of the users visible when added to the organisation
 DEFAULT_ORG_MEMBER_VISIBLE = false
 ; Default value for EnableDependencies
 ; Repositories will use dependencies by default depending on this setting

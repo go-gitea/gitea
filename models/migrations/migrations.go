@@ -241,6 +241,8 @@ var migrations = []Migration{
 	// v92 -> v93
 	NewMigration("add index on owner_id of repository and type, review_id of comment", addIndexOnRepositoryAndComment),
 	// v93 -> v94
+	NewMigration("add email notification enabled preference to user", addEmailNotificationEnabledToUser),
+	// v93 -> v94
 	NewMigration("add projects info to database", addProjectsInfo),
 	// v94 -> v95
 	NewMigration("add projects database table", addProjectsTable),

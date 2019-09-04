@@ -4,6 +4,7 @@
 
 package migrations
 
+<<<<<<< HEAD
 import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"github.com/go-xorm/xorm"
@@ -66,4 +67,15 @@ func addProjectsTable(x *xorm.Engine) error {
 	}
 
 	return sess.Commit()
+=======
+import "github.com/go-xorm/xorm"
+
+func addEmailNotificationEnabledToUser(x *xorm.Engine) error {
+	// User see models/user.go
+	type User struct {
+		EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
+	}
+
+	return x.Sync2(new(User))
+>>>>>>> origin
 }
