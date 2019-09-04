@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"code.gitea.io/gitea/modules/setting"
 	"fmt"
 	"net/http"
 	"testing"
@@ -28,17 +29,25 @@ func TestUserOrgs(t *testing.T) {
 	user3 := models.AssertExistsAndLoadBean(t, &models.User{Name: "user3"}).(*models.User)
 
 	DecodeJSON(t, resp, &orgs)
+	apiURL := setting.AppURL + "api/v1/orgs/" + user3.LowerName
 
 	assert.Equal(t, []*api.Organization{
 		{
-			ID:          3,
-			UserName:    user3.Name,
-			FullName:    user3.FullName,
-			AvatarURL:   user3.AvatarLink(),
-			Description: "",
-			Website:     "",
-			Location:    "",
-			Visibility:  "public",
+			ID:               3,
+			UserName:         user3.Name,
+			FullName:         user3.FullName,
+			AvatarURL:        user3.AvatarLink(),
+			URL:              apiURL,
+			ReposURL:         apiURL + "/repos",
+			MembersURL:       apiURL + "/members{/member}",
+			PublicMembersURL: apiURL + "/public_members{/member}",
+			Description:      "",
+			Website:          "",
+			Location:         "",
+			Visibility:       "public",
+			PublicRepoCount:  1,
+			Created:          user3.CreatedUnix.AsTime(),
+			Updated:          user3.UpdatedUnix.AsTime(),
 		},
 	}, orgs)
 }
@@ -54,17 +63,25 @@ func TestMyOrgs(t *testing.T) {
 	var orgs []*api.Organization
 	DecodeJSON(t, resp, &orgs)
 	user3 := models.AssertExistsAndLoadBean(t, &models.User{Name: "user3"}).(*models.User)
+	apiURL := setting.AppURL + "api/v1/orgs/" + user3.LowerName
 
 	assert.Equal(t, []*api.Organization{
 		{
-			ID:          3,
-			UserName:    user3.Name,
-			FullName:    user3.FullName,
-			AvatarURL:   user3.AvatarLink(),
-			Description: "",
-			Website:     "",
-			Location:    "",
-			Visibility:  "public",
+			ID:               3,
+			UserName:         user3.Name,
+			FullName:         user3.FullName,
+			AvatarURL:        user3.AvatarLink(),
+			URL:              apiURL,
+			ReposURL:         apiURL + "/repos",
+			MembersURL:       apiURL + "/members{/member}",
+			PublicMembersURL: apiURL + "/public_members{/member}",
+			Description:      "",
+			Website:          "",
+			Location:         "",
+			Visibility:       "public",
+			PublicRepoCount:  1,
+			Created:          user3.CreatedUnix.AsTime(),
+			Updated:          user3.UpdatedUnix.AsTime(),
 		},
 	}, orgs)
 }
