@@ -208,36 +208,57 @@ func (repo *Repository) commitsByRange(id SHA1, page int) (*list.List, error) {
 }
 
 func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) (*list.List, error) {
-	cmd := NewCommand("log", id.String(), "-100", "-i", prettyLogFormat)
+	cmd := NewCommand("log", id.String(), "-100", prettyLogFormat)
+	args := []string{"-i"}
+	if len(opts.Authors) > 0 {
+		for _, v := range opts.Authors {
+			args = append(args, "--author="+v)
+		}
+	}
+	if len(opts.Committers) > 0 {
+		for _, v := range opts.Committers {
+			args = append(args, "--committer="+v)
+		}
+	}
+	if len(opts.After) > 0 {
+		args = append(args, "--after="+opts.After)
+	}
+	if len(opts.Before) > 0 {
+		args = append(args, "--before="+opts.Before)
+	}
+	if opts.All {
+		args = append(args, "--all")
+	}
 	if len(opts.Keywords) > 0 {
 		for _, v := range opts.Keywords {
 			cmd.AddArguments("--grep=" + v)
 		}
 	}
-	if len(opts.Authors) > 0 {
-		for _, v := range opts.Authors {
-			cmd.AddArguments("--author=" + v)
-		}
-	}
-	if len(opts.Committers) > 0 {
-		for _, v := range opts.Committers {
-			cmd.AddArguments("--committer=" + v)
-		}
-	}
-	if len(opts.After) > 0 {
-		cmd.AddArguments("--after=" + opts.After)
-	}
-	if len(opts.Before) > 0 {
-		cmd.AddArguments("--before=" + opts.Before)
-	}
-	if opts.All {
-		cmd.AddArguments("--all")
-	}
+	cmd.AddArguments(args...)
 	stdout, err := cmd.RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
-	return repo.parsePrettyFormatLogToList(stdout)
+	if len(stdout) != 0 {
+		stdout = append(stdout, '\n')
+	}
+	if len(opts.Keywords) > 0 {
+		for _, v := range opts.Keywords {
+			if len(v) >= 4 {
+				hashCmd := NewCommand("log", "-1", prettyLogFormat)
+				hashCmd.AddArguments(args...)
+				hashCmd.AddArguments(v)
+				hashMatching, err := hashCmd.RunInDirBytes(repo.Path)
+				if err != nil || bytes.Contains(stdout, hashMatching) {
+					continue
+				}
+				stdout = append(stdout, hashMatching...)
+				stdout = append(stdout, '\n')
+			}
+		}
+	}
+
+	return repo.parsePrettyFormatLogToList(bytes.TrimSuffix(stdout, []byte{'\n'}))
 }
 
 func (repo *Repository) getFilesChanged(id1, id2 string) ([]string, error) {

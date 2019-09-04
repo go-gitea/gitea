@@ -49,7 +49,12 @@
 		<div class="ui {{if not $.LatestCommitStatus}}top attached header{{else}}attached merge-section segment{{end}}">
 			{{if .Issue.PullRequest.HasMerged}}
 				<div class="item text purple">
-					{{$.i18n.Tr "repo.pulls.has_merged"}}
+					{{if .Issue.PullRequest.MergedCommitID}}
+						{{$link := printf "%s/commit/%s" $.Repository.HTMLURL .Issue.PullRequest.MergedCommitID}}
+						{{$.i18n.Tr "repo.pulls.merged_as" $link (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
+					{{else}}
+						{{$.i18n.Tr "repo.pulls.has_merged"}}
+					{{end}}
 				</div>
 				{{if .IsPullBranchDeletable}}
 					<div class="ui divider"></div>
