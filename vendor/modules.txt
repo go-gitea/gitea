@@ -374,7 +374,7 @@ golang.org/x/net/internal/socks
 # golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20190902133755-9109b7679e13
+# golang.org/x/sys v0.0.0-20190904005037-43c01164e931
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
 golang.org/x/sys/cpu
