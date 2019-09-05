@@ -211,6 +211,40 @@ func RenderCommitMessage(
 	return ctx.postProcess(rawHTML)
 }
 
+var commitMessageSubjectProcessors = []processor{
+	fullIssuePatternProcessor,
+	fullSha1PatternProcessor,
+	linkProcessor,
+	mentionProcessor,
+	issueIndexPatternProcessor,
+	crossReferenceIssueIndexPatternProcessor,
+	sha1CurrentPatternProcessor,
+}
+
+// RenderCommitMessageSubject will use the same logic as PostProcess and
+// RenderCommitMessage, but will disable the shortLinkProcessor and
+// emailAddressProcessor, will add a defaultLinkProcessor if defaultLink is set,
+// which changes every text node into a link to the passed default link.
+func RenderCommitMessageSubject(
+	rawHTML []byte,
+	urlPrefix, defaultLink string,
+	metas map[string]string,
+) ([]byte, error) {
+	ctx := &postProcessCtx{
+		metas:     metas,
+		urlPrefix: urlPrefix,
+		procs:     commitMessageSubjectProcessors,
+	}
+	if defaultLink != "" {
+		// we don't have to fear data races, because being
+		// commitMessageSubjectProcessors of fixed len and cap, every time we
+		// append something to it the slice is realloc+copied, so append always
+		// generates the slice ex-novo.
+		ctx.procs = append(ctx.procs, genDefaultLinkProcessor(defaultLink))
+	}
+	return ctx.postProcess(rawHTML)
+}
+
 // RenderDescriptionHTML will use similar logic as PostProcess, but will
 // use a single special linkProcessor.
 func RenderDescriptionHTML(
