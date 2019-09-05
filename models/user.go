@@ -168,22 +168,23 @@ func GetUserOrgs(id int64, all bool) ([]UserExtendedView, error) {
 
 	var ous []UserExtendedView
 	sess := x.SQL(`
-WITH nrs AS (
+WITH 	u AS (
+	SELECT
+		user.*, org_user.org_id
+	FROM
+		user
+	LEFT JOIN
+		org_user ON user.id = org_user.uid AND (? OR org_user.is_public)
+	WHERE
+		user.id = ?
+	ORDER BY
+		user.id
+), nrs 	AS (
 	SELECT
 		u.org_id AS id,
 		COUNT(repository.id) AS num_repos
 	FROM
-		(SELECT
-			user.*, org_user.org_id
-		FROM
-			user
-		LEFT JOIN
-			org_user ON user.id = org_user.uid AND (? OR org_user.is_public)
-		WHERE
-			user.id = ?
-		ORDER BY
-			user.id
-		) u
+		u
 	JOIN
 		user ON u.org_id = user.id
 	LEFT JOIN
