@@ -13,7 +13,7 @@ menu:
     identifier: "linux-service"
 ---
 
-### Run as service in Ubuntu 16.04 LTS
+### Run as service in Debian (and derivative distros, i.e. Ubuntu 16.04 LTS)
 
 #### Using systemd
 
@@ -25,6 +25,7 @@ sudo vim /etc/systemd/system/gitea.service
 Copy the sample [gitea.service](https://github.com/go-gitea/gitea/blob/master/contrib/systemd/gitea.service).
 
 Uncomment any service that needs to be enabled on this host, such as MySQL.
+Also, the service file linked above uses /root/gitea, which you may need to create.
 
 Change the user, home directory, and other required startup values. Change the
 PORT or remove the -p flag if default port is used.
@@ -35,6 +36,24 @@ sudo systemctl enable gitea
 sudo systemctl start gitea
 ```
 
+You can customize the ExecStart line to use a different configuration file:
+```
+ExecStart=/usr/local/bin/gitea web -c /etc/gitea/app.ini
+```
+Edit the gitea.service file as needed to use a gitea configuration stored in a non-default location.
+
+Also configurable are the Working Directory and Environment lines in the \[Service\] section of the gitea.service file:
+
+```
+WorkingDirectory=/var/lib/gitea/
+```
+
+```
+Environment=USER=git HOME=/home/git GITEA_WORK_DIR=/var/lib/gitea
+```
+
+The above example lines are necessary for more customized and secure Gitea installations that do not run as the root user.
+Another reason to customize the gitea.service file is running multiple separate installations on one server.
 
 #### Using supervisor
 
