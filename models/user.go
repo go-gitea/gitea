@@ -1538,7 +1538,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*UserExtendedView, _ int64, _
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
-	condSQL, err := builder.ToBoundSQL(cond)
+	condSQL, condArgs, err := builder.ToSQL(cond)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -1551,33 +1551,30 @@ WITH rpntbl AS (
 		user
 	LEFT JOIN
 		repository ON user.id == repository.owner_id
-	WHERE
-		%s
 	GROUP BY
 		user.id
-)
-SELECT
+) SELECT
 	user.*,
 	rpntbl.num_repos AS num_repos
 FROM
 	user
-LEFT JOIN
+JOIN
 	rpntbl ON user.id = rpntbl.id
+WHERE
+	(%s)
 ORDER BY
-	%s
-;`, condSQL, opts.OrderBy.String())
+	(%s)
+`, condSQL, opts.OrderBy.String())
 
-	//sess := x.Table(&User{}).Select("user.*, COUNT(repository.owner_id) AS num_repos").GroupBy("user.id").Join("LEFT", "repository", "user.id = repository.owner_id").Where(cond)
 	if opts.PageSize > 0 {
-		//sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-		query += fmt.Sprintf("LIMIT %d OFFSET %d", opts.PageSize, (opts.Page-1)*opts.PageSize)
+		query += fmt.Sprintf("LIMIT %d OFFSET %d;", opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
 	if opts.PageSize == -1 {
 		opts.PageSize = int(count)
 	}
 
 	users = make([]*UserExtendedView, 0, opts.PageSize)
-	return users, count, x.SQL(query).Find(&users)
+	return users, count, x.SQL(query, condArgs...).Find(&users)
 }
 
 // GetStarredRepos returns the repos starred by a particular user
