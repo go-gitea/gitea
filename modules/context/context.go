@@ -249,6 +249,17 @@ func Contexter() macaron.Handler {
 		if ctx.Query("go-get") == "1" {
 			ownerName := c.Params(":username")
 			repoName := c.Params(":reponame")
+			if ownerName == "" || repoName == "" {
+				_, _ = c.Write([]byte(`<!doctype html>
+<html>
+	<body>
+		invalid import path
+	</body>
+</html>
+`))
+				c.WriteHeader(404)
+				return
+			}
 			branchName := "master"
 
 			repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
