@@ -831,6 +831,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 			})
 		}, orgAssignment(false, true), reqToken(), reqTeamMembership())
 
+		m.Group("/teams", func() {
+			m.Get("/search", org.SearchTeam)
+		})
+
 		m.Any("/*", func(ctx *context.APIContext) {
 			ctx.NotFound()
 		})

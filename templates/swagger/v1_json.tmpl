@@ -5627,6 +5627,65 @@
         }
       }
     },
+    "/teams/search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Search for teams",
+        "operationId": "teamSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "keywords to search",
+            "name": "q",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "search only teams within organization",
+            "name": "org_id",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include search within team description (defaults to true)",
+            "name": "inclDesc",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "limit size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SearchResults of a successful search",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Team"
+                  }
+                },
+                "ok": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/teams/{id}": {
       "get": {
         "produces": [

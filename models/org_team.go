@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
 )
 
 const ownerTeamName = "Owners"
@@ -32,6 +33,73 @@ type Team struct {
 	NumRepos    int
 	NumMembers  int
 	Units       []*TeamUnit `xorm:"-"`
+}
+
+// SearchTeamOptions holds the search options
+type SearchTeamOptions struct {
+	UserID      int64
+	UserIsAdmin bool
+	Keyword     string
+	OrgID       int64
+	IncludeDesc bool
+	Limit       int
+}
+
+// SearchTeam search for teams
+func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
+	if opts.Limit <= 0 {
+		opts.Limit = 10
+	}
+	var cond = builder.NewCond()
+
+	if len(opts.Keyword) > 0 {
+		lowerKeyword := strings.ToLower(opts.Keyword)
+		var keywordCond = builder.NewCond()
+		if opts.IncludeDesc {
+			keywordCond = builder.Or(
+				builder.Like{"lower_name", lowerKeyword},
+				builder.Like{"LOWER(description)", lowerKeyword},
+			)
+		} else {
+			keywordCond = builder.Or(
+				builder.Like{"lower_name", lowerKeyword},
+			)
+		}
+		cond = cond.And(keywordCond)
+	}
+
+	if opts.OrgID > 0 {
+		cond = cond.And(builder.Eq{"org_id": opts.OrgID})
+	} else if !opts.UserIsAdmin {
+		// Limit search to organizations where user is member
+		cond = cond.And(
+			builder.In("org_id", builder.Select("`org_user`.org_id").
+				From("org_user").
+				Where(builder.Eq{"`org_user`.uid": opts.UserID}).
+				Join("INNER", "org_user", "`org_user`.org_id = `team`.org_id")))
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	count, err := sess.
+		Where(cond).
+		Count(new(Team))
+
+	if err != nil {
+		return nil, 0, fmt.Errorf("Count: %v", err)
+	}
+
+	teams := make([]*Team, 0, opts.Limit)
+	if err = sess.
+		Where(cond).
+		OrderBy("lower_name").
+		Limit(opts.Limit).
+		Find(&teams); err != nil {
+		return nil, 0, fmt.Errorf("Team: %v", err)
+	}
+
+	return teams, count, nil
 }
 
 // ColorFormat provides a basic color format for a Team
