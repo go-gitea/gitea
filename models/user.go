@@ -167,13 +167,11 @@ type UserExtendedView struct {
 func GetUserOrgs(id int64, all bool) ([]UserExtendedView, error) {
 
 	var ous []UserExtendedView
-	sess := x.SQL(`SELECT user.*, nrs.num_repos
-FROM
-	user
-JOIN
-	(SELECT
+	sess := x.SQL(`
+WITH nrs AS (
+	SELECT
 		u.org_id AS id,
-		COUNT(DISTINCT repository.id) AS num_repos
+		COUNT(repository.id) AS num_repos
 	FROM
 		(SELECT
 			user.*, org_user.org_id
@@ -192,9 +190,13 @@ JOIN
 		repository ON u.org_id = repository.owner_id
 	GROUP BY
 		u.org_id
-	) AS nrs
-ON
-	user.id = nrs.id
+) SELECT
+	user.*,
+	nrs.num_repos AS num_repos
+FROM
+	user
+JOIN
+	nrs ON user.id = nrs.id
 ORDER BY
 	user.name ASC
 ;`, all, id)
@@ -1544,7 +1546,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*UserExtendedView, _ int64, _
 	}
 
 	query := fmt.Sprintf(`
-WITH rpntbl AS (
+WITH nrs AS (
 	SELECT
 		user.id, COUNT(repository.owner_id) AS num_repos
 	FROM
@@ -1555,15 +1557,15 @@ WITH rpntbl AS (
 		user.id
 ) SELECT
 	user.*,
-	rpntbl.num_repos AS num_repos
+	nrs.num_repos AS num_repos
 FROM
 	user
 JOIN
-	rpntbl ON user.id = rpntbl.id
+	nrs ON user.id = nrs.id
 WHERE
-	(%s)
+	%s
 ORDER BY
-	(%s)
+	%s
 `, condSQL, opts.OrderBy.String())
 
 	if opts.PageSize > 0 {
