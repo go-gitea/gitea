@@ -26,6 +26,7 @@ the purpose is to give a starting point to integrate a CI/CD process with your G
  - [Jenkins](https://jenkins.io/) with [Gitea plugin](https://plugins.jenkins.io/gitea)
  - [Agola](https://agola.io)
  - [Buildkite](https://buildkite.com) with [Gitea connector](https://github.com/techknowlogick/gitea-buildkite-connector)
+ - [AppVeyor](https://www.appveyor.com) with [built-in Gitea support](https://www.appveyor.com/blog/2019/09/05/gitea-receives-first-class-support-in-appveyor/)
 
 Others CI/CD solutions that partially can be integrated with Gitea:
  - [Concourse](https://www.concourse-ci.org), see more information at [Concourse community forum](https://discuss.concourse-ci.org/t/concourse-ci-and-gitea-oauth/1475)
