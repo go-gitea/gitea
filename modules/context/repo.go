@@ -202,6 +202,9 @@ func ComposeGoGetImport(owner, repo string) string {
 func EarlyResponseForGoGetMeta(ctx *Context) {
 	username := ctx.Params(":username")
 	reponame := ctx.Params(":reponame")
+	if username == "" || reponame == "" {
+		ctx.PlainText(404, []byte("invalid repository path"))
+	}
 	ctx.PlainText(200, []byte(com.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
 		map[string]string{
 			"GoGetImport": ComposeGoGetImport(username, strings.TrimSuffix(reponame, ".git")),
