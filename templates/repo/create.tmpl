@@ -38,7 +38,7 @@
 						<input id="repo_name" name="repo_name" value="{{.repo_name}}" autofocus required>
 						<span class="help">{{.i18n.Tr "repo.repo_name_helper"}}</span>
 					</div>
-					<div class="inline field" data-tooltip={{.i18n.Tr "repo.visibility.tooltip"}}>
+					<div class="inline field">
 						<label>{{.i18n.Tr "repo.visibility"}}</label>
 						<div class="ui checkbox">
 							{{if .IsForcedPrivate}}
@@ -49,6 +49,7 @@
 								<label>{{.i18n.Tr "repo.visibility_helper" | Safe}}</label>
 							{{end}}
 						</div>
+						<span class="help">{{.i18n.Tr "repo.visibility_description"}}</span>
 					</div>
 					<div class="inline field {{if .Err_Description}}error{{end}}">
 						<label for="description">{{.i18n.Tr "repo.repo_desc"}}</label>
