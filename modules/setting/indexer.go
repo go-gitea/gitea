@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/gobwas/glob"
-	ini "gopkg.in/ini.v1"
 )
 
 // enumerates all the indexer queue types
@@ -59,8 +58,8 @@ func newIndexerService() {
 	if !filepath.IsAbs(Indexer.RepoPath) {
 		Indexer.RepoPath = path.Join(AppWorkPath, Indexer.RepoPath)
 	}
-	Indexer.IncludePatterns = globFromString(sec, "REPO_INDEXER_INCLUDE")
-	Indexer.ExcludePatterns = globFromString(sec, "REPO_INDEXER_EXCLUDE")
+	Indexer.IncludePatterns = IndexerGlobFromString(sec.Key("REPO_INDEXER_INCLUDE").MustString(""))
+	Indexer.ExcludePatterns = IndexerGlobFromString(sec.Key("REPO_INDEXER_EXCLUDE").MustString(""))
 
 	Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
 	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
@@ -70,14 +69,14 @@ func newIndexerService() {
 	Indexer.IssueQueueBatchNumber = sec.Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(20)
 }
 
-func globFromString(sec *ini.Section, valueName string) []glob.Glob {
-	globlist := sec.Key(valueName).MustString("");
+// IndexerGlobFromString parses a comma separated list of patterns and returns a glob.Glob slice suited for repo indexing
+func IndexerGlobFromString(globstr string) []glob.Glob {
 	extarr := make([]glob.Glob, 0, 10)
-	for _, expr := range strings.Split(strings.ToLower(globlist), ",") {
+	for _, expr := range strings.Split(strings.ToLower(globstr), ",") {
 		expr = strings.TrimSpace(expr)
 		if expr != "" {
 			if g, err := glob.Compile(expr, '.', '/'); err != nil {
-				log.Info("Invalid expresion '%s' in %s (skipped): %v", expr, valueName, err)
+				log.Info("Invalid glob expresion '%s' (skipped): %v", expr, err)
 			} else {
 				extarr = append(extarr, g)
 			}
