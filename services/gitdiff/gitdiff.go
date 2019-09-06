@@ -1,8 +1,9 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package gitdiff
 
 import (
 	"bufio"
@@ -19,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -60,7 +62,7 @@ type DiffLine struct {
 	RightIdx int
 	Type     DiffLineType
 	Content  string
-	Comments []*Comment
+	Comments []*models.Comment
 }
 
 // GetType returns the type of a DiffLine.
@@ -254,8 +256,8 @@ type Diff struct {
 }
 
 // LoadComments loads comments into each line
-func (diff *Diff) LoadComments(issue *Issue, currentUser *User) error {
-	allComments, err := FetchCodeComments(issue, currentUser)
+func (diff *Diff) LoadComments(issue *models.Issue, currentUser *models.User) error {
+	allComments, err := models.FetchCodeComments(issue, currentUser)
 	if err != nil {
 		return err
 	}
@@ -472,16 +474,16 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 
 		trimLine := strings.Trim(line, "+- ")
 
-		if trimLine == LFSMetaFileIdentifier {
+		if trimLine == models.LFSMetaFileIdentifier {
 			curFileLFSPrefix = true
 		}
 
-		if curFileLFSPrefix && strings.HasPrefix(trimLine, LFSMetaFileOidPrefix) {
-			oid := strings.TrimPrefix(trimLine, LFSMetaFileOidPrefix)
+		if curFileLFSPrefix && strings.HasPrefix(trimLine, models.LFSMetaFileOidPrefix) {
+			oid := strings.TrimPrefix(trimLine, models.LFSMetaFileOidPrefix)
 
 			if len(oid) == 64 {
-				m := &LFSMetaObject{Oid: oid}
-				count, err := x.Count(m)
+				m := &models.LFSMetaObject{Oid: oid}
+				count, err := models.Count(m)
 
 				if err == nil && count > 0 {
 					curFile.IsBin = true
@@ -797,4 +799,30 @@ func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiff
 // GetDiffCommit builds a Diff representing the given commitID.
 func GetDiffCommit(repoPath, commitID string, maxLines, maxLineCharacters, maxFiles int) (*Diff, error) {
 	return GetDiffRange(repoPath, "", commitID, maxLines, maxLineCharacters, maxFiles)
+}
+
+// CommentAsDiff returns c.Patch as *Diff
+func CommentAsDiff(c *models.Comment) (*Diff, error) {
+	diff, err := ParsePatch(setting.Git.MaxGitDiffLines,
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch))
+	if err != nil {
+		return nil, err
+	}
+	if len(diff.Files) == 0 {
+		return nil, fmt.Errorf("no file found for comment ID: %d", c.ID)
+	}
+	secs := diff.Files[0].Sections
+	if len(secs) == 0 {
+		return nil, fmt.Errorf("no sections found for comment ID: %d", c.ID)
+	}
+	return diff, nil
+}
+
+// CommentMustAsDiff executes AsDiff and logs the error instead of returning
+func CommentMustAsDiff(c *models.Comment) *Diff {
+	diff, err := CommentAsDiff(c)
+	if err != nil {
+		log.Warn("CommentMustAsDiff: %v", err)
+	}
+	return diff
 }
