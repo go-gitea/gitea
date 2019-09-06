@@ -233,7 +233,6 @@ func Test_getIssueFromRef(t *testing.T) {
 
 func TestUpdateIssuesCommit(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	ActionPostConfigInit()
 	pushCommits := []*PushCommit{
 		{
 			Sha1:           "abcdef1",
@@ -565,6 +564,6 @@ func TestParseCloseKeywords(t *testing.T) {
 		assert.NotNil(t, pat)
 		res := pat.FindAllStringSubmatch(test.match, -1)
 		assert.Len(t, res, 1)
-		assert.EqualValues(t, [][]string([][]string{[]string{test.match, "", "", "#123"}}), res)
+		assert.EqualValues(t, [][]string([][]string{{test.match, "", "", "#123"}}), res)
 	}
 }

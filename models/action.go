@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -57,6 +58,7 @@ const (
 var (
 	issueCloseKeywordsPat, issueReopenKeywordsPat *regexp.Regexp
 	issueReferenceKeywordsPat                     *regexp.Regexp
+	issueKeywordsOnce                             sync.Once
 )
 
 const issueRefRegexpStr = `(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)+`
@@ -66,10 +68,11 @@ func init() {
 	issueReferenceKeywordsPat = regexp.MustCompile(issueRefRegexpStrNoKeyword)
 }
 
-// ActionPostConfigInit performs initialization that requires app.ini settings to work
-func ActionPostConfigInit() {
-	issueCloseKeywordsPat = buildKeywordsRegexp(setting.Repository.PullRequest.CloseKeywords)
-	issueReopenKeywordsPat = buildKeywordsRegexp(setting.Repository.PullRequest.ReopenKeywords)
+func initKeywordsRegexp() {
+	issueKeywordsOnce.Do(func() {
+		issueCloseKeywordsPat = buildKeywordsRegexp(setting.Repository.PullRequest.CloseKeywords)
+		issueReopenKeywordsPat = buildKeywordsRegexp(setting.Repository.PullRequest.ReopenKeywords)
+	})
 }
 
 // Action represents user operation type and other information to
@@ -557,6 +560,7 @@ func changeIssueStatus(repo *Repository, doer *User, ref string, refMarked map[i
 
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
 func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, branchName string) error {
+	initKeywordsRegexp()
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
@@ -860,4 +864,3 @@ func buildKeywordsRegexp(words []string) *regexp.Regexp {
 	}
 	return regexp.MustCompile(fmt.Sprintf(`(?i)(?:%s)(?::?) %s`, strings.Join(acceptedWords, "|"), issueRefRegexpStr))
 }
-
