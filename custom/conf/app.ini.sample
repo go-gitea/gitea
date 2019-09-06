@@ -69,6 +69,10 @@ MAX_FILES = 5
 [repository.pull-request]
 ; List of prefixes used in Pull Request title to mark them as Work In Progress
 WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
+; List of keywords used in Pull Request comments to automatically close a related issue
+CLOSE_KEYWORDS=close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved
+; List of keywords used in Pull Request comments to automatically reopen a related issue
+REOPEN_KEYWORDS=reopen,reopens,reopened
 
 [repository.issue]
 ; List of reasons why a Pull Request or Issue can be locked

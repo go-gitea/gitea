@@ -71,6 +71,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
  title to mark them as Work In Progress
+- `CLOSE_KEYWORDS`: **close**, **closes**, **closed**, **fix**, **fixes**, **fixed**, **resolve**, **resolves**, **resolved**: List of
+ keywords used in Pull Request comments to automatically close a related issue
+- `REOPEN_KEYWORDS`: **reopen**, **reopens**, **reopened**: List of keywords used in Pull Request comments to automatically reopen
+ a related issue
 
 ### Repository - Issue (`repository.issue`)
 
