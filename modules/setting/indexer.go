@@ -82,8 +82,5 @@ func IndexerGlobFromString(globstr string) []glob.Glob {
 			}
 		}
 	}
-	if len(extarr) == 0 {
-		return nil
-	}
 	return extarr
 }

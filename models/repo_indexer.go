@@ -243,15 +243,12 @@ func isIndexable(entry *git.TreeEntry) bool {
 			return false
 		}
 	}
-	if setting.Indexer.IncludePatterns == nil {
-		return true
-	}
 	for _, g := range setting.Indexer.IncludePatterns {
 		if g.Match(name) {
 			return true
 		}
 	}
-	return false
+	return len(setting.Indexer.IncludePatterns) == 0
 }
 
 // parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
