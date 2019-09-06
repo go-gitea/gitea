@@ -805,7 +805,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Group("/teams", func() {
 				m.Combo("", reqToken()).Get(org.ListTeams).
 					Post(reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
-				m.Post("/search", org.SearchTeam)
+				m.Get("/search", org.SearchTeam)
 			}, reqOrgMembership())
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
