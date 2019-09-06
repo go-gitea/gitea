@@ -502,7 +502,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 func SearchTeam(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/teams/search organization teamSearch
 	// ---
-	// summary: Search for teams within organization
+	// summary: Search for teams within an organization
 	// produces:
 	// - application/json
 	// parameters:
