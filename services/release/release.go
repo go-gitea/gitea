@@ -67,15 +67,13 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 	if err = createTag(gitRepo, rel); err != nil {
 		return err
 	}
-	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	err = models.InsertRelease(rel)
-	if err != nil {
+	rel.LowerTagName = strings.ToLower(rel.TagName)
+	if err = models.InsertRelease(rel); err != nil {
 		return err
 	}
 
-	err = models.AddReleaseAttachments(rel.ID, attachmentUUIDs)
-	if err != nil {
+	if err = models.AddReleaseAttachments(rel.ID, attachmentUUIDs); err != nil {
 		return err
 	}
 
@@ -107,18 +105,17 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	err = models.UpdateRelease(rel)
-	if err != nil {
+	if err = models.UpdateRelease(rel); err != nil {
 		return err
 	}
 
-	err = rel.LoadAttributes()
-	if err != nil {
+	if err = rel.LoadAttributes(); err != nil {
 		return err
 	}
 
 	err = models.AddReleaseAttachments(rel.ID, attachmentUUIDs)
 
+	// even if attachments added failed, hooks will be still triggered
 	mode, _ := models.AccessLevel(doer, rel.Repo)
 	if err1 := models.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
 		Action:     api.HookReleaseUpdated,
