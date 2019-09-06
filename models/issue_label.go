@@ -144,7 +144,7 @@ func initalizeLabels(e Engine, repoID int64, labelTemplate string) error {
 	}
 	for _, label := range labels {
 		if err = newLabel(e, label); err != nil {
-			return fmt.Errorf("newLabel: %v", err)
+			return err
 		}
 	}
 	return nil
