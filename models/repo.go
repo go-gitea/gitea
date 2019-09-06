@@ -1179,30 +1179,6 @@ func prepareRepoCommit(e Engine, repo *Repository, tmpDir, repoPath string, opts
 		}
 	}
 
-	// Issue Labels
-	if len(opts.IssueLabels) > 0 {
-		list, err := GetLabelTemplateFile(opts.IssueLabels)
-		if err != nil {
-			return fmt.Errorf("GetLabelTemplateFile: %v", err)
-		}
-
-		labels := make([]*Label, len(list))
-		for i := 0; i < len(list); i++ {
-			labels[i] = &Label{
-				RepoID:      repo.ID,
-				Name:        list[i][0],
-				Description: list[i][2],
-				Color:       list[i][1],
-			}
-		}
-		for _, label := range labels {
-			if err = newLabel(e, label); err != nil {
-				return fmt.Errorf("newLabel: %v", err)
-			}
-		}
-
-	}
-
 	// LICENSE
 	if len(opts.License) > 0 {
 		data, err = getRepoInitFile("license", opts.License)
@@ -1417,6 +1393,13 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
 			}
 			return nil, fmt.Errorf("initRepository: %v", err)
+		}
+
+		// Initialize Issue Labels if selected
+		if len(opts.IssueLabels) > 0 {
+			if err = initalizeLabels(sess, repo.ID, opts.IssueLabels); err != nil {
+				return nil, fmt.Errorf("initalizeLabels: %v", err)
+			}
 		}
 
 		_, stderr, err := process.GetManager().ExecDir(-1,

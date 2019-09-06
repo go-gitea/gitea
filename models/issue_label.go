@@ -127,6 +127,33 @@ func (label *Label) ForegroundColor() template.CSS {
 	return template.CSS("#000")
 }
 
+func initalizeLabels(e Engine, repoID int64, labelTemplate string) error {
+	list, err := GetLabelTemplateFile(labelTemplate)
+	if err != nil {
+		return ErrIssueLabelTemplateLoad{labelTemplate, err}
+	}
+
+	labels := make([]*Label, len(list))
+	for i := 0; i < len(list); i++ {
+		labels[i] = &Label{
+			RepoID:      repoID,
+			Name:        list[i][0],
+			Description: list[i][2],
+			Color:       list[i][1],
+		}
+	}
+	for _, label := range labels {
+		if err = newLabel(e, label); err != nil {
+			return fmt.Errorf("newLabel: %v", err)
+		}
+	}
+	return nil
+}
+
+func InitalizeLabels(repoID int64, labelTemplate string) error {
+	return initalizeLabels(x, repoID, labelTemplate)
+}
+
 func newLabel(e Engine, label *Label) error {
 	_, err := e.Insert(label)
 	return err
