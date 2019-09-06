@@ -190,6 +190,35 @@ type swaggerCommit struct {
 	Body api.Commit `json:"body"`
 }
 
+// CommitList
+// swagger:response CommitList
+type swaggerCommitList struct {
+	// The current page
+	Page int `json:"X-Page"`
+
+	// Commits per page
+	PerPage int `json:"X-PerPage"`
+
+	// Total commit count
+	Total int `json:"X-Total"`
+
+	// Total number of pages
+	PageCount int `json:"X-PageCount"`
+
+	// True if there is another page
+	HasMore bool `json:"X-HasMore"`
+
+	//in: body
+	Body []api.Commit `json:"body"`
+}
+
+// EmptyRepository
+// swagger:response EmptyRepository
+type swaggerEmptyRepository struct {
+	//in: body
+	Body api.APIError `json:"body"`
+}
+
 // FileResponse
 // swagger:response FileResponse
 type swaggerFileResponse struct {
@@ -216,4 +245,18 @@ type swaggerContentsListResponse struct {
 type swaggerFileDeleteResponse struct {
 	//in: body
 	Body api.FileDeleteResponse `json:"body"`
+}
+
+// TopicListResponse
+// swagger:response TopicListResponse
+type swaggerTopicListResponse struct {
+	//in: body
+	Body []api.TopicResponse `json:"body"`
+}
+
+// TopicNames
+// swagger:response TopicNames
+type swaggerTopicNames struct {
+	//in: body
+	Body api.TopicName `json:"body"`
 }

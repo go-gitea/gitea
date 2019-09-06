@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/pull"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // ListPullRequests returns a list of all PRs
@@ -247,20 +247,13 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		return
 	}
 
-	var deadlineUnix util.TimeStamp
+	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil {
-		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
-	}
-
-	maxIndex, err := models.GetMaxIndexOfIssue(repo.ID)
-	if err != nil {
-		ctx.ServerError("GetPatch", err)
-		return
+		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
 	prIssue := &models.Issue{
 		RepoID:       repo.ID,
-		Index:        maxIndex + 1,
 		Title:        form.Title,
 		PosterID:     ctx.User.ID,
 		Poster:       ctx.User,
@@ -375,9 +368,9 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	}
 
 	// Update Deadline
-	var deadlineUnix util.TimeStamp
+	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil && !form.Deadline.IsZero() {
-		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
+		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
 	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {

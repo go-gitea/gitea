@@ -8,7 +8,8 @@ import (
 	"errors"
 	"os"
 	"sync"
-	"syscall"
+
+	"golang.org/x/sys/windows"
 )
 
 // mmap on Windows is a two-step process.
@@ -19,23 +20,29 @@ import (
 // not a struct, so it's convenient to manipulate.
 
 // We keep this map so that we can get back the original handle from the memory address.
+
+type addrinfo struct {
+	file    windows.Handle
+	mapview windows.Handle
+}
+
 var handleLock sync.Mutex
-var handleMap = map[uintptr]syscall.Handle{}
+var handleMap = map[uintptr]*addrinfo{}
 
 func mmap(len int, prot, flags, hfile uintptr, off int64) ([]byte, error) {
-	flProtect := uint32(syscall.PAGE_READONLY)
-	dwDesiredAccess := uint32(syscall.FILE_MAP_READ)
+	flProtect := uint32(windows.PAGE_READONLY)
+	dwDesiredAccess := uint32(windows.FILE_MAP_READ)
 	switch {
 	case prot&COPY != 0:
-		flProtect = syscall.PAGE_WRITECOPY
-		dwDesiredAccess = syscall.FILE_MAP_COPY
+		flProtect = windows.PAGE_WRITECOPY
+		dwDesiredAccess = windows.FILE_MAP_COPY
 	case prot&RDWR != 0:
-		flProtect = syscall.PAGE_READWRITE
-		dwDesiredAccess = syscall.FILE_MAP_WRITE
+		flProtect = windows.PAGE_READWRITE
+		dwDesiredAccess = windows.FILE_MAP_WRITE
 	}
 	if prot&EXEC != 0 {
 		flProtect <<= 4
-		dwDesiredAccess |= syscall.FILE_MAP_EXECUTE
+		dwDesiredAccess |= windows.FILE_MAP_EXECUTE
 	}
 
 	// The maximum size is the area of the file, starting from 0,
@@ -45,7 +52,7 @@ func mmap(len int, prot, flags, hfile uintptr, off int64) ([]byte, error) {
 	maxSizeHigh := uint32((off + int64(len)) >> 32)
 	maxSizeLow := uint32((off + int64(len)) & 0xFFFFFFFF)
 	// TODO: Do we need to set some security attributes? It might help portability.
-	h, errno := syscall.CreateFileMapping(syscall.Handle(hfile), nil, flProtect, maxSizeHigh, maxSizeLow, nil)
+	h, errno := windows.CreateFileMapping(windows.Handle(hfile), nil, flProtect, maxSizeHigh, maxSizeLow, nil)
 	if h == 0 {
 		return nil, os.NewSyscallError("CreateFileMapping", errno)
 	}
@@ -54,12 +61,15 @@ func mmap(len int, prot, flags, hfile uintptr, off int64) ([]byte, error) {
 	// is the length the user requested.
 	fileOffsetHigh := uint32(off >> 32)
 	fileOffsetLow := uint32(off & 0xFFFFFFFF)
-	addr, errno := syscall.MapViewOfFile(h, dwDesiredAccess, fileOffsetHigh, fileOffsetLow, uintptr(len))
+	addr, errno := windows.MapViewOfFile(h, dwDesiredAccess, fileOffsetHigh, fileOffsetLow, uintptr(len))
 	if addr == 0 {
 		return nil, os.NewSyscallError("MapViewOfFile", errno)
 	}
 	handleLock.Lock()
-	handleMap[addr] = h
+	handleMap[addr] = &addrinfo{
+		file:    windows.Handle(hfile),
+		mapview: h,
+	}
 	handleLock.Unlock()
 
 	m := MMap{}
@@ -71,8 +81,9 @@ func mmap(len int, prot, flags, hfile uintptr, off int64) ([]byte, error) {
 	return m, nil
 }
 
-func flush(addr, len uintptr) error {
-	errno := syscall.FlushViewOfFile(addr, len)
+func (m MMap) flush() error {
+	addr, len := m.addrLen()
+	errno := windows.FlushViewOfFile(addr, len)
 	if errno != nil {
 		return os.NewSyscallError("FlushViewOfFile", errno)
 	}
@@ -85,22 +96,29 @@ func flush(addr, len uintptr) error {
 		return errors.New("unknown base address")
 	}
 
-	errno = syscall.FlushFileBuffers(handle)
+	errno = windows.FlushFileBuffers(handle.file)
 	return os.NewSyscallError("FlushFileBuffers", errno)
 }
 
-func lock(addr, len uintptr) error {
-	errno := syscall.VirtualLock(addr, len)
+func (m MMap) lock() error {
+	addr, len := m.addrLen()
+	errno := windows.VirtualLock(addr, len)
 	return os.NewSyscallError("VirtualLock", errno)
 }
 
-func unlock(addr, len uintptr) error {
-	errno := syscall.VirtualUnlock(addr, len)
+func (m MMap) unlock() error {
+	addr, len := m.addrLen()
+	errno := windows.VirtualUnlock(addr, len)
 	return os.NewSyscallError("VirtualUnlock", errno)
 }
 
-func unmap(addr, len uintptr) error {
-	flush(addr, len)
+func (m MMap) unmap() error {
+	err := m.flush()
+	if err != nil {
+		return err
+	}
+
+	addr := m.header().Data
 	// Lock the UnmapViewOfFile along with the handleMap deletion.
 	// As soon as we unmap the view, the OS is free to give the
 	// same addr to another new map. We don't want another goroutine
@@ -108,7 +126,7 @@ func unmap(addr, len uintptr) error {
 	// we're trying to remove our old addr/handle pair.
 	handleLock.Lock()
 	defer handleLock.Unlock()
-	err := syscall.UnmapViewOfFile(addr)
+	err = windows.UnmapViewOfFile(addr)
 	if err != nil {
 		return err
 	}
@@ -120,6 +138,6 @@ func unmap(addr, len uintptr) error {
 	}
 	delete(handleMap, addr)
 
-	e := syscall.CloseHandle(syscall.Handle(handle))
+	e := windows.CloseHandle(windows.Handle(handle.mapview))
 	return os.NewSyscallError("CloseHandle", e)
 }

@@ -91,8 +91,7 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	if form.SendNotify && setting.MailService != nil {
 		models.SendRegisterNotifyMail(ctx.Context.Context, u)
 	}
-
-	ctx.JSON(201, u.APIFormat())
+	ctx.JSON(201, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
 // EditUser api for modifying a user's information
@@ -181,7 +180,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	}
 	log.Trace("Account profile updated by admin (%s): %s", ctx.User.Name, u.Name)
 
-	ctx.JSON(200, u.APIFormat())
+	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
 // DeleteUser api for deleting a user
@@ -326,7 +325,7 @@ func GetAllUsers(ctx *context.APIContext) {
 
 	results := make([]*api.User, len(users))
 	for i := range users {
-		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User.IsAdmin)
 	}
 
 	ctx.JSON(200, &results)

@@ -21,7 +21,7 @@ the destination platform from the [downloads page](https://dl.gitea.io/gitea/), 
 the URL and replace the URL within the commands below:
 
 ```sh
-wget -O gitea https://dl.gitea.io/gitea/1.8.3/gitea-1.8.3-linux-amd64
+wget -O gitea https://dl.gitea.io/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
 chmod +x gitea
 ```
 
@@ -30,7 +30,7 @@ Gitea signs all binaries with a [GPG key](https://pgp.mit.edu/pks/lookup?op=vind
 
 ```sh
 gpg --keyserver pgp.mit.edu --recv 7C9E68152594688862D62AF62D9AE806EC1592E2
-gpg --verify gitea-1.8.3-linux-amd64.asc gitea-1.8.3-linux-amd64
+gpg --verify gitea-{{< version >}}-linux-amd64.asc gitea-{{< version >}}-linux-amd64
 ```
 
 ## Test

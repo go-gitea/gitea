@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/utils"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 // GetOrgHook get an organization's webhook. If there is an error, write to

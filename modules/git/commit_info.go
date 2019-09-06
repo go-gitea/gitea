@@ -25,7 +25,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 		defer commitGraphFile.Close()
 	}
 
-	c, err := commitNodeIndex.Get(plumbing.Hash(commit.ID))
+	c, err := commitNodeIndex.Get(commit.ID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -68,7 +68,9 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 	// get it for free during the tree traversal and it's used for listing
 	// pages to display information about newest commit for a given path.
 	var treeCommit *Commit
-	if rev, ok := revs[""]; ok {
+	if treePath == "" {
+		treeCommit = commit
+	} else if rev, ok := revs[""]; ok {
 		treeCommit = convertCommit(rev)
 	}
 	return commitsInfo, treeCommit, nil

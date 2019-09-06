@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/notification"
-
 	api "code.gitea.io/gitea/modules/structs"
 )
 

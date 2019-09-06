@@ -13,10 +13,12 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 	"mvdan.cc/xurls/v2"
@@ -38,9 +40,9 @@ var (
 	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_\.]+)(?:\s|$|\)|\])`)
 
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
-	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|\.(\s|$))`)
+	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$))`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. gogits/gogs#12345
 	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
@@ -438,7 +440,7 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 
 	name += tail
 	image := false
-	switch ext := filepath.Ext(string(link)); ext {
+	switch ext := filepath.Ext(link); ext {
 	// fast path: empty string, ignore
 	case "":
 		break
@@ -482,7 +484,7 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 			title = props["alt"]
 		}
 		if title == "" {
-			title = path.Base(string(name))
+			title = path.Base(name)
 		}
 		alt := props["alt"]
 		if alt == "" {
@@ -646,6 +648,9 @@ func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
 // sha1CurrentPatternProcessor renders SHA1 strings to corresponding links that
 // are assumed to be in the same repository.
 func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
+	if ctx.metas == nil || ctx.metas["user"] == "" || ctx.metas["repo"] == "" || ctx.metas["repoPath"] == "" {
+		return
+	}
 	m := sha1CurrentPattern.FindStringSubmatchIndex(node.Data)
 	if m == nil {
 		return
@@ -657,6 +662,15 @@ func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	// but that is not always the case.
 	// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
 	// as used by git and github for linking and thus we have to do similar.
+	// Because of this, we check to make sure that a matched hash is actually
+	// a commit in the repository before making it a link.
+	if _, err := git.NewCommand("rev-parse", "--verify", hash).RunInDirBytes(ctx.metas["repoPath"]); err != nil {
+		if !strings.Contains(err.Error(), "fatal: Needed a single revision") {
+			log.Debug("sha1CurrentPatternProcessor git rev-parse: %v", err)
+		}
+		return
+	}
+
 	replaceContent(node, m[2], m[3],
 		createCodeLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "commit", hash), base.ShortSha(hash)))
 }

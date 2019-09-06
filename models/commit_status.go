@@ -13,7 +13,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
+
+	"github.com/go-xorm/xorm"
 )
 
 // CommitStatusState holds the state of a Status
@@ -64,8 +66,8 @@ type CommitStatus struct {
 	Creator     *User             `xorm:"-"`
 	CreatorID   int64
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 func (status *CommitStatus) loadRepo(e Engine) (err error) {
@@ -87,7 +89,7 @@ func (status *CommitStatus) loadRepo(e Engine) (err error) {
 // APIURL returns the absolute APIURL to this commit-status.
 func (status *CommitStatus) APIURL() string {
 	_ = status.loadRepo(x)
-	return fmt.Sprintf("%sapi/v1/%s/statuses/%s",
+	return fmt.Sprintf("%sapi/v1/repos/%s/statuses/%s",
 		setting.AppURL, status.Repo.FullName(), status.SHA)
 }
 
@@ -132,10 +134,57 @@ func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 	return lastStatus
 }
 
+// CommitStatusOptions holds the options for query commit statuses
+type CommitStatusOptions struct {
+	Page     int
+	State    string
+	SortType string
+}
+
 // GetCommitStatuses returns all statuses for a given commit.
-func GetCommitStatuses(repo *Repository, sha string, page int) ([]*CommitStatus, error) {
-	statuses := make([]*CommitStatus, 0, 10)
-	return statuses, x.Limit(10, page*10).Where("repo_id = ?", repo.ID).And("sha = ?", sha).Find(&statuses)
+func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) ([]*CommitStatus, int64, error) {
+	if opts.Page <= 0 {
+		opts.Page = 1
+	}
+
+	countSession := listCommitStatusesStatement(repo, sha, opts)
+	maxResults, err := countSession.Count(new(CommitStatus))
+	if err != nil {
+		log.Error("Count PRs: %v", err)
+		return nil, maxResults, err
+	}
+
+	statuses := make([]*CommitStatus, 0, ItemsPerPage)
+	findSession := listCommitStatusesStatement(repo, sha, opts)
+	sortCommitStatusesSession(findSession, opts.SortType)
+	findSession.Limit(ItemsPerPage, (opts.Page-1)*ItemsPerPage)
+	return statuses, maxResults, findSession.Find(&statuses)
+}
+
+func listCommitStatusesStatement(repo *Repository, sha string, opts *CommitStatusOptions) *xorm.Session {
+	sess := x.Where("repo_id = ?", repo.ID).And("sha = ?", sha)
+	switch opts.State {
+	case "pending", "success", "error", "failure", "warning":
+		sess.And("state = ?", opts.State)
+	}
+	return sess
+}
+
+func sortCommitStatusesSession(sess *xorm.Session, sortType string) {
+	switch sortType {
+	case "oldest":
+		sess.Asc("created_unix")
+	case "recentupdate":
+		sess.Desc("updated_unix")
+	case "leastupdate":
+		sess.Asc("updated_unix")
+	case "leastindex":
+		sess.Desc("index")
+	case "highestindex":
+		sess.Asc("index")
+	default:
+		sess.Desc("created_unix")
+	}
 }
 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.

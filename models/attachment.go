@@ -12,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
@@ -27,9 +27,9 @@ type Attachment struct {
 	UploaderID    int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
 	CommentID     int64
 	Name          string
-	DownloadCount int64          `xorm:"DEFAULT 0"`
-	Size          int64          `xorm:"DEFAULT 0"`
-	CreatedUnix   util.TimeStamp `xorm:"created"`
+	DownloadCount int64              `xorm:"DEFAULT 0"`
+	Size          int64              `xorm:"DEFAULT 0"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 }
 
 // IncreaseDownloadCount is update download count + 1

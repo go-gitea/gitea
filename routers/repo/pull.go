@@ -24,8 +24,9 @@ import (
 	"code.gitea.io/gitea/modules/pull"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -517,7 +518,7 @@ func ViewPullFiles(ctx *context.Context) {
 		ctx.Data["Reponame"] = pull.HeadRepo.Name
 	}
 
-	diff, err := models.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
+	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
 		startCommitID, endCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
 		whitespaceFlags[ctx.Data["WhitespaceBehavior"].(string)])
@@ -710,15 +711,8 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		return
 	}
 
-	maxIndex, err := models.GetMaxIndexOfIssue(repo.ID)
-	if err != nil {
-		ctx.ServerError("GetPatch", err)
-		return
-	}
-
 	pullIssue := &models.Issue{
 		RepoID:      repo.ID,
-		Index:       maxIndex + 1,
 		Title:       form.Title,
 		PosterID:    ctx.User.ID,
 		Poster:      ctx.User,

@@ -116,6 +116,8 @@ DEFAULT_THEME = gitea
 THEMES = gitea,arc-green
 ; Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 DEFAULT_SHOW_FULL_NAME = false
+; Whether to search within description at repository search on explore page.
+SEARCH_REPO_DESCRIPTION = true
 
 [ui.admin]
 ; Number of users that are displayed on one page
@@ -275,13 +277,17 @@ LOG_SQL = true
 DB_RETRIES = 10
 ; Backoff time per DB retry (time.Duration)
 DB_RETRY_BACKOFF = 3s
+; Max idle database connections on connnection pool, default is 0
+MAX_IDLE_CONNS = 0
+; Database connection max life time, default is 3s
+CONN_MAX_LIFETIME = 3s
 
 [indexer]
 ; Issue indexer type, currently support: bleve or db, default is bleve
 ISSUE_INDEXER_TYPE = bleve
 ; Issue indexer storage path, available when ISSUE_INDEXER_TYPE is bleve
 ISSUE_INDEXER_PATH = indexers/issues.bleve
-; Issue indexer queue, currently support: channel or levelqueue, default is levelqueue
+; Issue indexer queue, currently support: channel, levelqueue or redis, default is levelqueue
 ISSUE_INDEXER_QUEUE_TYPE = levelqueue
 ; When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path,
 ; default is indexers/issues.queue
@@ -300,13 +306,15 @@ MAX_FILE_SIZE = 1048576
 [admin]
 ; Disallow regular (non-admin) users from creating organizations.
 DISABLE_REGULAR_ORG_CREATION = false
+; Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
+DEFAULT_EMAIL_NOTIFICATIONS = enabled
 
 [security]
 ; Whether the installer is disabled
 INSTALL_LOCK = false
 ; !!CHANGE THIS TO KEEP YOUR USER DATA SAFE!!
 SECRET_KEY = !#@FDEWREWR&*(
-; How long to remember that an user is logged in before requiring relogin (in days)
+; How long to remember that a user is logged in before requiring relogin (in days)
 LOGIN_REMEMBER_DAYS = 7
 COOKIE_USERNAME = gitea_awesome
 COOKIE_REMEMBER_NAME = gitea_incredible
@@ -321,6 +329,8 @@ IMPORT_LOCAL_PATHS = false
 DISABLE_GIT_HOOKS = false
 ; Password Hash algorithm, either "pbkdf2", "argon2", "scrypt" or "bcrypt"
 PASSWORD_HASH_ALGO = pbkdf2
+; Set false to allow JavaScript to read CSRF cookie
+CSRF_COOKIE_HTTP_ONLY = true
 
 [openid]
 ;
@@ -399,6 +409,9 @@ DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Private is only for member of the organization
 ; Public is for everyone
 DEFAULT_ORG_VISIBILITY = public
+; Default value for DefaultOrgMemberVisible
+; True will make the membership of the users visible when added to the organisation  
+DEFAULT_ORG_MEMBER_VISIBLE = false
 ; Default value for EnableDependencies
 ; Repositories will use dependencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
@@ -545,6 +558,9 @@ MAX_FILES = 5
 ; Special supported values are ANSIC, UnixDate, RubyDate, RFC822, RFC822Z, RFC850, RFC1123, RFC1123Z, RFC3339, RFC3339Nano, Kitchen, Stamp, StampMilli, StampMicro and StampNano
 ; For more information about the format see http://golang.org/pkg/time/#pkg-constants
 FORMAT =
+; Location the UI time display i.e. Asia/Shanghai
+; Empty means server's location setting
+DEFAULT_UI_LOCATION =
 
 [log]
 ROOT_PATH =
@@ -722,7 +738,7 @@ ACCESS_TOKEN_EXPIRATION_TIME=3600
 REFRESH_TOKEN_EXPIRATION_TIME=730
 ; Check if refresh token got already used
 INVALIDATE_REFRESH_TOKENS=false
-; OAuth2 authentication secret for access and refresh tokens, change this a unique string.
+; OAuth2 authentication secret for access and refresh tokens, change this to a unique string.
 JWT_SECRET=Bk0yK7Y9g_p56v86KaHqjSbxvNvu3SbKoOdOt2ZcXvU
 
 [i18n]

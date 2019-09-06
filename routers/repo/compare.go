@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/gitdiff"
 )
 
 const (
@@ -230,7 +231,7 @@ func PrepareCompareDiff(
 		return true
 	}
 
-	diff, err := models.GetDiffRange(models.RepoPath(headUser.Name, headRepo.Name),
+	diff, err := gitdiff.GetDiffRange(models.RepoPath(headUser.Name, headRepo.Name),
 		compareInfo.MergeBase, headCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
 	if err != nil {
@@ -292,6 +293,13 @@ func CompareDiff(ctx *context.Context) {
 	}
 
 	if ctx.Data["PageIsComparePull"] == true {
+		headBranches, err := headGitRepo.GetBranches()
+		if err != nil {
+			ctx.ServerError("GetBranches", err)
+			return
+		}
+		ctx.Data["HeadBranches"] = headBranches
+
 		pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
 		if err != nil {
 			if !models.IsErrPullRequestNotExist(err) {
@@ -312,13 +320,6 @@ func CompareDiff(ctx *context.Context) {
 				return
 			}
 		}
-
-		headBranches, err := headGitRepo.GetBranches()
-		if err != nil {
-			ctx.ServerError("GetBranches", err)
-			return
-		}
-		ctx.Data["HeadBranches"] = headBranches
 	}
 	beforeCommitID := ctx.Data["BeforeCommitID"].(string)
 	afterCommitID := ctx.Data["AfterCommitID"].(string)

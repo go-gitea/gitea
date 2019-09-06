@@ -12,7 +12,7 @@
 			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span></td>
 			{{end}}
 			<td class="lines-type-marker"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
-			<td class="lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $line.CanComment $.root.PageIsPullFiles}}<a class="ui green button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">+</a>{{end}}<span class="mono wrap{{if $highlightClass}} language-{{$highlightClass}}{{else}}nohighlight{{end}}">{{$section.GetComputedInlineDiffFor $line}}</span></td>
+			<td class="lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $line.CanComment $.root.PageIsPullFiles}}<a class="ui green button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">+</a>{{end}}<span class="mono wrap{{if $highlightClass}} language-{{$highlightClass}}{{else}} nohighlight{{end}}">{{$section.GetComputedInlineDiffFor $line}}</span></td>
 		</tr>
 		{{if gt (len $line.Comments) 0}}
 		<tr>

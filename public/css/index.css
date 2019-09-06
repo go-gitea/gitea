@@ -81,7 +81,7 @@ a{cursor:pointer}
 .ui.menu,.ui.segment,.ui.vertical.menu{box-shadow:none}
 .ui .menu:not(.vertical) .item>.button.compact{padding:.58928571em 1.125em}
 .ui .menu:not(.vertical) .item>.button.small{font-size:.92857143rem}
-.ui.menu .ui.dropdown.item .menu .item{margin-right:auto}
+.ui.menu .ui.dropdown.item .menu .item{width:100%}
 .ui.dropdown .menu>.item>.floating.label{z-index:11}
 .ui.dropdown .menu .menu>.item>.floating.label{z-index:21}
 .ui .text.red{color:#d95c5c!important}
@@ -200,6 +200,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 #user-heatmap svg:not(:root){overflow:inherit;padding:0!important}
 @media only screen and (max-width:1200px){#user-heatmap{display:none}
 }
+#user-heatmap .total-contributions{text-align:left;font-weight:500;margin-top:0}
 .heatmap-color-0{background-color:#f4f4f4}
 .heatmap-color-1{background-color:#d7e5db}
 .heatmap-color-2{background-color:#adc7ab}
@@ -211,6 +212,26 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .ui.tabular.menu .item{color:rgba(0,0,0,.5)}
 .ui.tabular.menu .item:hover{color:rgba(0,0,0,.8)}
 .ui.tabular.menu .item.active{color:rgba(0,0,0,.9)}
+.inline-grouped-list{display:inline-block;vertical-align:top}
+.inline-grouped-list>.ui{display:block;margin-top:5px;margin-bottom:10px}
+.inline-grouped-list>.ui:first-child{margin-top:1px}
+.lines-num{vertical-align:top;text-align:right!important;color:#999;background:#f5f5f5;width:1%;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
+.lines-num span:before{content:attr(data-line-number);line-height:20px!important;padding:0 10px;cursor:pointer;display:block}
+.lines-code,.lines-num{padding:0!important}
+.lines-code .hljs,.lines-code ol,.lines-code pre,.lines-num .hljs,.lines-num ol,.lines-num pre{background-color:#fff;margin:0;padding:0!important}
+.lines-code .hljs li,.lines-code ol li,.lines-code pre li,.lines-num .hljs li,.lines-num ol li,.lines-num pre li{display:block;width:100%}
+.lines-code .hljs li:before,.lines-code ol li:before,.lines-code pre li:before,.lines-num .hljs li:before,.lines-num ol li:before,.lines-num pre li:before{content:' '}
+.lines-commit{vertical-align:top;color:#999;padding:0!important;background:#f5f5f5;width:1%;-moz-user-select:none;-ms-user-select:none;-webkit-user-select:none;user-select:none}
+.lines-commit .blame-info{width:350px;max-width:350px;display:block;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;padding:0 0 0 10px}
+.lines-commit .blame-info .blame-data{display:flex;font-family:-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',Roboto,Helvetica,Arial}
+.lines-commit .blame-info .blame-data .blame-message{flex-grow:2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:20px}
+.lines-commit .blame-info .blame-data .blame-avatar,.lines-commit .blame-info .blame-data .blame-time{flex-shrink:0}
+.lines-commit .ui.avatar.image{height:18px;width:18px}
+.lines-code .bottom-line,.lines-commit .bottom-line,.lines-num .bottom-line{border-bottom:1px solid #eaecef}
+.code-view{overflow:auto;overflow-x:auto;overflow-y:hidden}
+.code-view *{font-size:12px;font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;line-height:20px}
+.code-view table{width:100%}
+.code-view .active{background:#fff866}
 .markdown:not(code){overflow:hidden;font-size:16px;line-height:1.6!important;word-wrap:break-word}
 .markdown:not(code).ui.segment{padding:3em}
 .markdown:not(code).file-view{padding:2em 2em 2em!important}
@@ -290,6 +311,11 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .markdown:not(code) .csv-data tr{border-top:0}
 .markdown:not(code) .csv-data th{font-weight:700;background:#f8f8f8;border-top:0}
 .markdown:not(code) .ui.list .list,.markdown:not(code) ol.ui.list ol,.markdown:not(code) ul.ui.list ul{padding-left:2em}
+.repository.wiki.revisions .ui.container>.ui.stackable.grid{flex-direction:row-reverse}
+.repository.wiki.revisions .ui.container>.ui.stackable.grid>.header{margin-top:0}
+.repository.wiki.revisions .ui.container>.ui.stackable.grid>.header .sub.header{padding-left:52px;word-break:break-word}
+.file-revisions-btn{display:block;float:left;margin-bottom:2px!important;padding:11px!important;margin-right:10px!important}
+.file-revisions-btn i{-webkit-touch-callout:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
 .home .logo{max-width:220px}
 @media only screen and (max-width:767px){.home .hero h1{font-size:3.5em}
 .home .hero h2{font-size:2em}
@@ -463,24 +489,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.file.list .non-diff-file-content .view-raw img{padding:5px 5px 0 5px}
 .repository.file.list .non-diff-file-content .plain-text{padding:1em 2em 1em 2em}
 .repository.file.list .non-diff-file-content .plain-text pre{word-break:break-word;white-space:pre-wrap}
+.repository.file.list .non-diff-file-content .csv{overflow-x:auto}
 .repository.file.list .non-diff-file-content pre{overflow:auto}
-.repository.file.list .non-diff-file-content .code-view *{font-size:12px;font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;line-height:20px}
-.repository.file.list .non-diff-file-content .code-view table{width:100%}
-.repository.file.list .non-diff-file-content .code-view .lines-num{vertical-align:top;text-align:right;color:#999;background:#f5f5f5;width:1%;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
-.repository.file.list .non-diff-file-content .code-view .lines-num span{line-height:20px;padding:0 10px;cursor:pointer;display:block}
-.repository.file.list .non-diff-file-content .code-view .lines-code,.repository.file.list .non-diff-file-content .code-view .lines-num{padding:0}
-.repository.file.list .non-diff-file-content .code-view .lines-code .hljs,.repository.file.list .non-diff-file-content .code-view .lines-code ol,.repository.file.list .non-diff-file-content .code-view .lines-code pre,.repository.file.list .non-diff-file-content .code-view .lines-num .hljs,.repository.file.list .non-diff-file-content .code-view .lines-num ol,.repository.file.list .non-diff-file-content .code-view .lines-num pre{background-color:#fff;margin:0;padding:0!important}
-.repository.file.list .non-diff-file-content .code-view .lines-code .hljs li,.repository.file.list .non-diff-file-content .code-view .lines-code ol li,.repository.file.list .non-diff-file-content .code-view .lines-code pre li,.repository.file.list .non-diff-file-content .code-view .lines-num .hljs li,.repository.file.list .non-diff-file-content .code-view .lines-num ol li,.repository.file.list .non-diff-file-content .code-view .lines-num pre li{display:block;width:100%}
-.repository.file.list .non-diff-file-content .code-view .lines-code .hljs li.active,.repository.file.list .non-diff-file-content .code-view .lines-code ol li.active,.repository.file.list .non-diff-file-content .code-view .lines-code pre li.active,.repository.file.list .non-diff-file-content .code-view .lines-num .hljs li.active,.repository.file.list .non-diff-file-content .code-view .lines-num ol li.active,.repository.file.list .non-diff-file-content .code-view .lines-num pre li.active{background:#ffd}
-.repository.file.list .non-diff-file-content .code-view .lines-code .hljs li:before,.repository.file.list .non-diff-file-content .code-view .lines-code ol li:before,.repository.file.list .non-diff-file-content .code-view .lines-code pre li:before,.repository.file.list .non-diff-file-content .code-view .lines-num .hljs li:before,.repository.file.list .non-diff-file-content .code-view .lines-num ol li:before,.repository.file.list .non-diff-file-content .code-view .lines-num pre li:before{content:' '}
-.repository.file.list .non-diff-file-content .code-view .lines-commit{vertical-align:top;color:#999;padding:0;background:#f5f5f5;width:1%;-moz-user-select:none;-ms-user-select:none;-webkit-user-select:none;user-select:none}
-.repository.file.list .non-diff-file-content .code-view .lines-commit .blame-info{width:350px;max-width:350px;display:block;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;padding:0 0 0 10px}
-.repository.file.list .non-diff-file-content .code-view .lines-commit .blame-info .blame-data{display:flex;font-family:-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',Roboto,Helvetica,Arial}
-.repository.file.list .non-diff-file-content .code-view .lines-commit .blame-info .blame-data .blame-message{flex-grow:2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:20px}
-.repository.file.list .non-diff-file-content .code-view .lines-commit .blame-info .blame-data .blame-avatar,.repository.file.list .non-diff-file-content .code-view .lines-commit .blame-info .blame-data .blame-time{flex-shrink:0}
-.repository.file.list .non-diff-file-content .code-view .lines-commit .ui.avatar.image{height:18px;width:18px}
-.repository.file.list .non-diff-file-content .code-view .lines-code .bottom-line,.repository.file.list .non-diff-file-content .code-view .lines-commit .bottom-line,.repository.file.list .non-diff-file-content .code-view .lines-num .bottom-line{border-bottom:1px solid #eaecef}
-.repository.file.list .non-diff-file-content .code-view .active{background:#ffd}
 .repository.file.list .sidebar{padding-left:0}
 .repository.file.list .sidebar .octicon{width:16px}
 .repository.file.editor .treepath{width:100%}
@@ -623,11 +633,13 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository #commits-table thead .sha{width:140px}
 .repository #commits-table thead .shatd{text-align:center}
 .repository #commits-table td.sha .sha.label{margin:0}
+.repository #commits-table td.message{text-overflow:unset}
 .repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n){background-color:rgba(0,0,0,.02)!important}
-.repository #commits-table td.sha .sha.label.isSigned,.repository #repo-files-table .sha.label.isSigned{border:1px solid #bbb}
-.repository #commits-table td.sha .sha.label.isSigned .detail.icon,.repository #repo-files-table .sha.label.isSigned .detail.icon{background:#fafafa;margin:-6px -10px -4px 0;padding:5px 3px 5px 6px;border-left:1px solid #bbb;border-top-left-radius:0;border-bottom-left-radius:0}
+.repository #commits-table td.sha .sha.label,.repository #repo-files-table .sha.label{border:1px solid #bbb}
+.repository #commits-table td.sha .sha.label .detail.icon,.repository #repo-files-table .sha.label .detail.icon{background:#fafafa;margin:-6px -10px -4px 0;padding:5px 3px 5px 6px;border-left:1px solid #bbb;border-top-left-radius:0;border-bottom-left-radius:0}
 .repository #commits-table td.sha .sha.label.isSigned.isVerified,.repository #repo-files-table .sha.label.isSigned.isVerified{border:1px solid #21ba45;background:rgba(33,186,69,.1)}
-.repository #commits-table td.sha .sha.label.isSigned.isVerified .detail.icon,.repository #repo-files-table .sha.label.isSigned.isVerified .detail.icon{border-left:1px solid rgba(33,186,69,.5)}
+.repository #commits-table td.sha .sha.label.isSigned.isVerified .detail.icon,.repository #repo-files-table .sha.label.isSigned.isVerified .detail.icon{border-left:1px solid #21ba45}
+.repository #commits-table td.sha .sha.label.isSigned.isVerified:hover,.repository #repo-files-table .sha.label.isSigned.isVerified:hover{background:rgba(33,186,69,.3)!important}
 .repository .diff-detail-box{padding:7px 0;background:#fff;line-height:30px}
 .repository .diff-detail-box>div:after{clear:both;content:"";display:block}
 .repository .diff-detail-box ol{clear:both;padding-left:0;margin-top:5px;margin-bottom:28px}
@@ -649,10 +661,9 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .diff-file-box .file-body.file-code .lines-num span.fold{display:block;text-align:center}
 .repository .diff-file-box .file-body.file-code .lines-num-old{border-right:1px solid #ddd}
 .repository .diff-file-box .code-diff{font-size:12px}
-.repository .diff-file-box .code-diff td{padding:0 0 0 10px;border-top:0}
-.repository .diff-file-box .code-diff .lines-num{border-color:#d4d4d5;border-right-width:1px;border-right-style:solid;padding:0 5px}
+.repository .diff-file-box .code-diff td{padding:0 0 0 10px!important;border-top:0}
+.repository .diff-file-box .code-diff .lines-num{border-color:#d4d4d5;border-right-width:1px;border-right-style:solid;padding:0 5px!important}
 .repository .diff-file-box .code-diff tbody tr td.halfwidth{width:49%}
-.repository .diff-file-box .code-diff tbody tr td.tag-code,.repository .diff-file-box .code-diff tbody tr.tag-code td{background-color:#f0f0f0!important;border-color:#d3cfcf!important;padding-top:8px;padding-bottom:8px}
 .repository .diff-file-box .code-diff tbody tr .removed-code{background-color:#f99}
 .repository .diff-file-box .code-diff tbody tr .added-code{background-color:#9f9}
 .repository .diff-file-box .code-diff tbody tr [data-line-num]::before{content:attr(data-line-num);text-align:right}
@@ -667,7 +678,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .diff-file-box .code-diff-split tbody tr td:nth-child(4){border-left-width:1px;border-left-style:solid}
 .repository .diff-file-box.file-content{clear:right}
 .repository .diff-file-box.file-content img{max-width:100%;padding:5px 5px 0 5px}
-.repository .code-view{overflow:auto;overflow-x:auto;overflow-y:hidden}
+.repository .diff-file-box.file-content img.emoji{padding:0}
 .repository .repo-search-result{padding-top:10px;padding-bottom:10px}
 .repository .repo-search-result .lines-num a{color:inherit}
 .repository.quickstart .guide .item{padding:1em}
@@ -747,7 +758,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .segment.reactions .select-reaction{float:none}
 .repository .segment.reactions .select-reaction:not(.active) a{display:none}
 .repository .segment.reactions:hover .select-reaction a{display:block}
-.user-cards .list{padding:0}
+.user-cards .list{padding:0;display:flex;flex-wrap:wrap}
 .user-cards .list .item{list-style:none;width:32%;margin:10px 10px 10px 0;padding-bottom:14px;float:left}
 .user-cards .list .item .avatar{width:48px;height:48px;float:left;display:block;margin-right:10px}
 .user-cards .list .item .name{margin-top:0;margin-bottom:0;font-weight:400}
@@ -776,7 +787,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .ui.form .dropzone .dz-error-message{top:140px}
 .settings .content{margin-top:2px}
 .settings .content .segment,.settings .content>.header{box-shadow:0 1px 2px 0 rgba(34,36,38,.15)}
-.settings .list>.item .green{color:#21ba45}
+.settings .list>.item .green:not(.ui.button){color:#21ba45}
 .settings .list>.item:not(:first-child){border-top:1px solid #eaeaea;padding:1rem;margin:15px -1rem -1rem -1rem}
 .settings .list>.item>.mega-octicon{display:table-cell}
 .settings .list>.item>.mega-octicon+.content{display:table-cell;padding:0 0 0 .5em;vertical-align:top}
@@ -817,8 +828,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .stats-table .table-cell{display:table-cell}
 .stats-table .table-cell.tiny{height:.5em}
 tbody.commit-list{vertical-align:baseline}
-.commit-list .message-wrapper{overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 24px);display:inline-block;vertical-align:middle}
-.commit-list .message-wrapper .commit-status-link{display:inline-block;vertical-align:middle}
+.commit-list .message-wrapper{overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 50px);display:inline-block;vertical-align:middle}
+.commit-list .commit-status-link{display:inline-block;vertical-align:middle}
 .commit-body{white-space:pre-wrap}
 .git-notes.top{text-align:left}
 .git-notes .commit-body{margin:0}
@@ -838,6 +849,7 @@ tbody.commit-list{vertical-align:baseline}
 .repo-buttons .disabled-repo-button a.button{opacity:.5;cursor:not-allowed}
 .repo-buttons .disabled-repo-button a.button:hover{background:0 0!important;color:rgba(0,0,0,.6)!important;box-shadow:0 0 0 1px rgba(34,36,38,.15) inset!important}
 .repo-buttons .ui.labeled.button>.label{border-left:0!important;margin:0!important}
+.tag-code,.tag-code td{background-color:#f0f0f0!important;border-color:#d3cfcf!important;padding-top:8px;padding-bottom:8px}
 .CodeMirror{font:14px 'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace}
 .CodeMirror.cm-s-default{border-radius:3px;padding:0!important}
 .CodeMirror .cm-comment{background:inherit!important}
@@ -974,7 +986,9 @@ tbody.commit-list{vertical-align:baseline}
 .ui.repository.list .item .time{font-size:12px;color:grey}
 .ui.repository.list .item .ui.tags{margin-bottom:1em}
 .ui.repository.list .item .ui.avatar.image{width:24px;height:24px}
-.ui.repository.branches .time{font-size:12px;color:grey}
+.ui.repository.branches .info{font-size:12px;color:grey;display:flex;white-space:pre}
+.ui.repository.branches .info .commit-message{max-width:72em;overflow:hidden;text-overflow:ellipsis}
+.ui.repository.branches .overflow-visible{overflow:visible}
 .ui.user.list .item{padding-bottom:25px}
 .ui.user.list .item:not(:first-child){border-top:1px solid #eee;padding-top:25px}
 .ui.user.list .item .ui.avatar.image{width:40px;height:40px}

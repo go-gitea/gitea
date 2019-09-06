@@ -12,10 +12,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
+	"github.com/unknwon/com"
 	"xorm.io/builder"
 )
 
@@ -72,9 +73,12 @@ func (org *User) GetMembers() error {
 	}
 
 	var ids = make([]int64, len(ous))
+	var idsIsPublic = make(map[int64]bool, len(ous))
 	for i, ou := range ous {
 		ids[i] = ou.UID
+		idsIsPublic[ou.UID] = ou.IsPublic
 	}
+	org.MembersIsPublic = idsIsPublic
 	org.Members, err = GetUsersByIDs(ids)
 	return err
 }
@@ -298,15 +302,13 @@ type OrgUser struct {
 }
 
 func isOrganizationOwner(e Engine, orgID, uid int64) (bool, error) {
-	ownerTeam := &Team{
-		OrgID: orgID,
-		Name:  ownerTeamName,
-	}
-	if has, err := e.Get(ownerTeam); err != nil {
+	ownerTeam, err := getOwnerTeam(e, orgID)
+	if err != nil {
+		if err == ErrTeamNotExist {
+			log.Error("Organization does not have owner team: %d", orgID)
+			return false, nil
+		}
 		return false, err
-	} else if !has {
-		log.Error("Organization does not have owner team: %d", orgID)
-		return false, nil
 	}
 	return isTeamMember(e, orgID, ownerTeam.ID, uid)
 }
@@ -479,8 +481,9 @@ func AddOrgUser(orgID, uid int64) error {
 	}
 
 	ou := &OrgUser{
-		UID:   uid,
-		OrgID: orgID,
+		UID:      uid,
+		OrgID:    orgID,
+		IsPublic: setting.Service.DefaultOrgMemberVisible,
 	}
 
 	if _, err := sess.Insert(ou); err != nil {

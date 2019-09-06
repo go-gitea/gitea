@@ -35,16 +35,20 @@ import (
 	"code.gitea.io/gitea/routers/user"
 	userSetting "code.gitea.io/gitea/routers/user/setting"
 
-	"github.com/go-macaron/binding"
-	"github.com/go-macaron/cache"
-	"github.com/go-macaron/captcha"
-	"github.com/go-macaron/csrf"
-	"github.com/go-macaron/i18n"
-	"github.com/go-macaron/session"
-	"github.com/go-macaron/toolbox"
+	// to registers all internal adapters
+	_ "code.gitea.io/gitea/modules/session"
+
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/cache"
+	"gitea.com/macaron/captcha"
+	"gitea.com/macaron/cors"
+	"gitea.com/macaron/csrf"
+	"gitea.com/macaron/i18n"
+	"gitea.com/macaron/macaron"
+	"gitea.com/macaron/session"
+	"gitea.com/macaron/toolbox"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
-	macaron "gopkg.in/macaron.v1"
 )
 
 type routerLoggerOptions struct {
@@ -181,12 +185,13 @@ func NewMacaron() *macaron.Macaron {
 	}
 
 	m.Use(i18n.I18n(i18n.Options{
-		SubURL:      setting.AppSubURL,
-		Files:       localFiles,
-		Langs:       setting.Langs,
-		Names:       setting.Names,
-		DefaultLang: "en-US",
-		Redirect:    false,
+		SubURL:       setting.AppSubURL,
+		Files:        localFiles,
+		Langs:        setting.Langs,
+		Names:        setting.Names,
+		DefaultLang:  "en-US",
+		Redirect:     false,
+		CookieDomain: setting.SessionConfig.Domain,
 	}))
 	m.Use(cache.Cacher(cache.Options{
 		Adapter:       setting.CacheService.Adapter,
@@ -202,8 +207,9 @@ func NewMacaron() *macaron.Macaron {
 		Cookie:         setting.CSRFCookieName,
 		SetCookie:      true,
 		Secure:         setting.SessionConfig.Secure,
-		CookieHttpOnly: true,
+		CookieHttpOnly: setting.CSRFCookieHTTPOnly,
 		Header:         "X-Csrf-Token",
+		CookieDomain:   setting.SessionConfig.Domain,
 		CookiePath:     setting.AppSubURL,
 	}))
 	m.Use(toolbox.Toolboxer(m, toolbox.Options{
@@ -440,6 +446,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 			m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
 			m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
+			m.Post("/telegram/new", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
 			m.Post("/msteams/new", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 			m.Get("/:id", repo.WebHooksEdit)
 			m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
@@ -447,6 +454,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/slack/:id", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksEditPost)
 			m.Post("/discord/:id", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
 			m.Post("/dingtalk/:id", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
+			m.Post("/telegram/:id", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
 			m.Post("/msteams/:id", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 		})
 
@@ -665,7 +673,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
 		})
-	}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.UnitTypes(), context.RepoRef())
+	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
 	m.Get("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), context.UnitTypes(), repo.Action)
 
@@ -804,6 +812,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/wiki", func() {
 			m.Get("/?:page", repo.Wiki)
 			m.Get("/_pages", repo.WikiPages)
+			m.Get("/:page/_revision", repo.WikiRevision)
 
 			m.Group("", func() {
 				m.Combo("/_new").Get(repo.NewWiki).
@@ -945,9 +954,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/swagger.v1.json", templates.JSONRenderer(), routers.SwaggerV1Json)
 	}
 
+	var handlers []macaron.Handler
+	if setting.EnableCORS {
+		handlers = append(handlers, cors.CORS(setting.CORSConfig))
+	}
+	handlers = append(handlers, ignSignIn)
 	m.Group("/api", func() {
 		apiv1.RegisterRoutes(m)
-	}, ignSignIn)
+	}, handlers...)
 
 	m.Group("/api/internal", func() {
 		// package name internal is ideal but Golang is not allowed, so we use private as package name.

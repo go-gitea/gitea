@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// database table
+// Table represents a database table
 type Table struct {
 	Name          string
 	Type          reflect.Type
@@ -41,6 +41,7 @@ func NewEmptyTable() *Table {
 	return NewTable("", nil)
 }
 
+// NewTable creates a new Table object
 func NewTable(name string, t reflect.Type) *Table {
 	return &Table{Name: name, Type: t,
 		columnsSeq:  make([]string, 0),
@@ -87,7 +88,7 @@ func (table *Table) GetColumnIdx(name string, idx int) *Column {
 	return nil
 }
 
-// if has primary key, return column
+// PKColumns reprents all primary key columns
 func (table *Table) PKColumns() []*Column {
 	columns := make([]*Column, len(table.PrimaryKeys))
 	for i, name := range table.PrimaryKeys {
@@ -117,7 +118,7 @@ func (table *Table) DeletedColumn() *Column {
 	return table.GetColumn(table.Deleted)
 }
 
-// add a column to table
+// AddColumn adds a column to table
 func (table *Table) AddColumn(col *Column) {
 	table.columnsSeq = append(table.columnsSeq, col.Name)
 	table.columns = append(table.columns, col)
@@ -148,7 +149,7 @@ func (table *Table) AddColumn(col *Column) {
 	}
 }
 
-// add an index or an unique to table
+// AddIndex adds an index or an unique to table
 func (table *Table) AddIndex(index *Index) {
 	table.Indexes[index.Name] = index
 }

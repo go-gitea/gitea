@@ -27,7 +27,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -1045,10 +1045,13 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
+	oldTitle := issue.Title
 	if err := issue.ChangeTitle(ctx.User, title); err != nil {
 		ctx.ServerError("ChangeTitle", err)
 		return
 	}
+
+	notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
 
 	ctx.JSON(200, map[string]interface{}{
 		"title": issue.Title,

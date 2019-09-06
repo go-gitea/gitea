@@ -19,9 +19,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/go-macaron/captcha"
+	"gitea.com/macaron/captcha"
 	"github.com/markbates/goth"
 	"github.com/tstranex/u2f"
 )
@@ -58,8 +59,8 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	defer func() {
 		if !isSucceed {
 			log.Trace("auto-login cookie cleared: %s", uname)
-			ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
-			ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+			ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+			ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 		}
 	}()
 
@@ -85,7 +86,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 	return true, nil
 }
 
@@ -475,9 +476,9 @@ func handleSignIn(ctx *context.Context, u *models.User, remember bool) {
 func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyRedirect bool) string {
 	if remember {
 		days := 86400 * setting.LogInRememberDays
-		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
-			setting.CookieRememberName, u.Name, days, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+			setting.CookieRememberName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 	}
 
 	_ = ctx.Session.Delete("openid_verified_uri")
@@ -507,10 +508,10 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 		}
 	}
 
-	ctx.SetCookie("lang", u.Language, nil, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+	ctx.SetCookie("lang", u.Language, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 
 	// Clear whatever CSRF has right now, force to generate a new one
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 
 	// Register last login
 	u.SetLastLogin()
@@ -610,7 +611,7 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 			}
 
 			// Clear whatever CSRF has right now, force to generate a new one
-			ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+			ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 
 			// Register last login
 			u.SetLastLogin()
@@ -950,7 +951,7 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 		models.SendActivateAccountMail(ctx.Context, u)
 		ctx.Data["IsSendRegisterMail"] = true
 		ctx.Data["Email"] = u.Email
-		ctx.Data["ActiveCodeLives"] = base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
+		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
 		ctx.HTML(200, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
@@ -968,10 +969,10 @@ func handleSignOut(ctx *context.Context) {
 	_ = ctx.Session.Delete("socialId")
 	_ = ctx.Session.Delete("socialName")
 	_ = ctx.Session.Delete("socialEmail")
-	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
-	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
-	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
-	ctx.SetCookie("lang", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true) // Setting the lang cookie will trigger the middleware to reset the language ot previous state.
+	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+	ctx.SetCookie("lang", "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true) // Setting the lang cookie will trigger the middleware to reset the language ot previous state.
 }
 
 // SignOut sign out from login status
@@ -1096,7 +1097,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		models.SendActivateAccountMail(ctx.Context, u)
 		ctx.Data["IsSendRegisterMail"] = true
 		ctx.Data["Email"] = u.Email
-		ctx.Data["ActiveCodeLives"] = base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
+		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
 		ctx.HTML(200, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
@@ -1123,7 +1124,7 @@ func Activate(ctx *context.Context) {
 			if ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName) {
 				ctx.Data["ResendLimited"] = true
 			} else {
-				ctx.Data["ActiveCodeLives"] = base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
+				ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
 				models.SendActivateAccountMail(ctx.Context, ctx.User)
 
 				if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
@@ -1224,7 +1225,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	u, err := models.GetUserByEmail(email)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Data["ResetPwdCodeLives"] = base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
+			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
 			ctx.Data["IsResetSent"] = true
 			ctx.HTML(200, tplForgotPassword)
 			return
@@ -1251,7 +1252,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 		log.Error("Set cache(MailResendLimit) fail: %v", err)
 	}
 
-	ctx.Data["ResetPwdCodeLives"] = base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
+	ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
 	ctx.Data["IsResetSent"] = true
 	ctx.HTML(200, tplForgotPassword)
 }
