@@ -296,17 +296,17 @@ ISSUE_INDEXER_QUEUE_DIR = indexers/issues.queue
 ISSUE_INDEXER_QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
 ; Batch queue number, default is 20
 ISSUE_INDEXER_QUEUE_BATCH_NUMBER = 20
-; A comma separated list of glob patterns (see https://github.com/gobwas/glob) to include
-; in the index; default is empty
-REPO_INDEXER_INCLUDE =
-; A comma separated list of glob patterns to exclude from the index; ; default is empty
-REPO_INDEXER_EXCLUDE =
 
 ; repo indexer by default disabled, since it uses a lot of disk space
 REPO_INDEXER_ENABLED = false
 REPO_INDEXER_PATH = indexers/repos.bleve
 UPDATE_BUFFER_LEN = 20
 MAX_FILE_SIZE = 1048576
+; A comma separated list of glob patterns (see https://github.com/gobwas/glob) to include
+; in the index; default is empty
+REPO_INDEXER_INCLUDE =
+; A comma separated list of glob patterns to exclude from the index; ; default is empty
+REPO_INDEXER_EXCLUDE =
 
 [admin]
 ; Disallow regular (non-admin) users from creating organizations.
