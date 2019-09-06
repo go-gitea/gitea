@@ -75,6 +75,7 @@ func GlobalInit() {
 	log.Trace("Log path: %s", setting.LogRootPath)
 
 	NewServices()
+	models.PostConfigInit()
 
 	if setting.InstallLock {
 		highlight.NewContext()

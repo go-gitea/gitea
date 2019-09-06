@@ -120,6 +120,11 @@ func init() {
 	}
 }
 
+// PostConfigInit performs initialization that requires app.ini settings to work
+func PostConfigInit() {
+	ActionPostConfigInit()
+}
+
 func getEngine() (*xorm.Engine, error) {
 	connStr, err := setting.DBConnStr()
 	if err != nil {

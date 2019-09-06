@@ -233,6 +233,7 @@ func Test_getIssueFromRef(t *testing.T) {
 
 func TestUpdateIssuesCommit(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
+	ActionPostConfigInit()
 	pushCommits := []*PushCommit{
 		{
 			Sha1:           "abcdef1",
@@ -541,4 +542,29 @@ func TestGetFeeds2(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 0)
+}
+
+func TestParseCloseKeywords(t *testing.T) {
+	// Test parsing of CloseKeywords and ReopenKeywords
+	assert.Len(t, parseKeywords([]string{""}), 0)
+	assert.Len(t, parseKeywords([]string{"  aa  ", " bb  ", "99", "#", "", "this is", "cc"}), 3)
+
+	for _, test := range []struct {
+		pattern string
+		match   string
+	}{
+		{"close", "Close #123"},
+		{"cerró", "cerró #123"},
+		{"cerró", "CERRÓ #123"},
+		{"закрывается", "закрывается #123"},
+		{"κλείνει", "κλείνει #123"},
+		{"关闭", "关闭 #123"},
+		{"閉じます", "閉じます #123"},
+	} {
+		pat := buildKeywordsRegexp([]string{test.pattern})
+		assert.NotNil(t, pat)
+		res := pat.FindAllStringSubmatch(test.match, -1)
+		assert.Len(t, res, 1)
+		assert.EqualValues(t, [][]string([][]string{[]string{test.match, "", "", "#123"}}), res)
+	}
 }

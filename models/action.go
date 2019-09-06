@@ -62,16 +62,14 @@ var (
 const issueRefRegexpStr = `(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)+`
 const issueRefRegexpStrNoKeyword = `(?:\s|^|\(|\[)(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`
 
-func assembleKeywordsPattern(words []string) string {
-	return fmt.Sprintf(`(?i)(?:%s)(?::?) %s`, strings.Join(words, "|"), issueRefRegexpStr)
+func init() {
+	issueReferenceKeywordsPat = regexp.MustCompile(issueRefRegexpStrNoKeyword)
 }
 
-func init() {
-	fmt.Printf("GAP: CloseKeywords: %v\n", setting.Repository.PullRequest.CloseKeywords)
-	fmt.Printf("GAP: ReopenKeywords: %v\n", setting.Repository.PullRequest.ReopenKeywords)
-	issueCloseKeywordsPat = regexp.MustCompile(assembleKeywordsPattern(setting.Repository.PullRequest.CloseKeywords))
-	issueReopenKeywordsPat = regexp.MustCompile(assembleKeywordsPattern(setting.Repository.PullRequest.ReopenKeywords))
-	issueReferenceKeywordsPat = regexp.MustCompile(issueRefRegexpStrNoKeyword)
+// ActionPostConfigInit performs initialization that requires app.ini settings to work
+func ActionPostConfigInit() {
+	issueCloseKeywordsPat = buildKeywordsRegexp(setting.Repository.PullRequest.CloseKeywords)
+	issueReopenKeywordsPat = buildKeywordsRegexp(setting.Repository.PullRequest.ReopenKeywords)
 }
 
 // Action represents user operation type and other information to
@@ -603,60 +601,64 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 			continue
 		}
 		refMarked = make(map[int64]bool)
-		for _, m := range issueCloseKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
-			if len(m[3]) == 0 {
-				continue
-			}
-			ref := m[3]
-
-			// issue is from another repo
-			if len(m[1]) > 0 && len(m[2]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(m[1], m[2])
-				if err != nil {
+		if issueCloseKeywordsPat != nil {
+			for _, m := range issueCloseKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
+				if len(m[3]) == 0 {
 					continue
 				}
-			} else {
-				refRepo = repo
-			}
+				ref := m[3]
 
-			perm, err := GetUserRepoPermission(refRepo, doer)
-			if err != nil {
-				return err
-			}
-			// only close issues in another repo if user has push access
-			if perm.CanWrite(UnitTypeCode) {
-				if err := changeIssueStatus(refRepo, doer, ref, refMarked, true); err != nil {
+				// issue is from another repo
+				if len(m[1]) > 0 && len(m[2]) > 0 {
+					refRepo, err = GetRepositoryFromMatch(m[1], m[2])
+					if err != nil {
+						continue
+					}
+				} else {
+					refRepo = repo
+				}
+
+				perm, err := GetUserRepoPermission(refRepo, doer)
+				if err != nil {
 					return err
+				}
+				// only close issues in another repo if user has push access
+				if perm.CanWrite(UnitTypeCode) {
+					if err := changeIssueStatus(refRepo, doer, ref, refMarked, true); err != nil {
+						return err
+					}
 				}
 			}
 		}
 
 		// It is conflict to have close and reopen at same time, so refsMarked doesn't need to reinit here.
-		for _, m := range issueReopenKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
-			if len(m[3]) == 0 {
-				continue
-			}
-			ref := m[3]
-
-			// issue is from another repo
-			if len(m[1]) > 0 && len(m[2]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(m[1], m[2])
-				if err != nil {
+		if issueReopenKeywordsPat != nil {
+			for _, m := range issueReopenKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
+				if len(m[3]) == 0 {
 					continue
 				}
-			} else {
-				refRepo = repo
-			}
+				ref := m[3]
 
-			perm, err := GetUserRepoPermission(refRepo, doer)
-			if err != nil {
-				return err
-			}
+				// issue is from another repo
+				if len(m[1]) > 0 && len(m[2]) > 0 {
+					refRepo, err = GetRepositoryFromMatch(m[1], m[2])
+					if err != nil {
+						continue
+					}
+				} else {
+					refRepo = repo
+				}
 
-			// only reopen issues in another repo if user has push access
-			if perm.CanWrite(UnitTypeCode) {
-				if err := changeIssueStatus(refRepo, doer, ref, refMarked, false); err != nil {
+				perm, err := GetUserRepoPermission(refRepo, doer)
+				if err != nil {
 					return err
+				}
+
+				// only reopen issues in another repo if user has push access
+				if perm.CanWrite(UnitTypeCode) {
+					if err := changeIssueStatus(refRepo, doer, ref, refMarked, false); err != nil {
+						return err
+					}
 				}
 			}
 		}
@@ -834,3 +836,28 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 
 	return actions, nil
 }
+
+func parseKeywords(words []string) []string {
+	acceptedWords := make([]string, 0, 5)
+	wordPat := regexp.MustCompile(`^[\pL]+$`)
+	for _, word := range words {
+		word = strings.ToLower(strings.TrimSpace(word))
+		// Accept Unicode letter class runes (a-z, á, à, ä, )
+		if wordPat.MatchString(word) {
+			acceptedWords = append(acceptedWords, word)
+		} else {
+			log.Info("Invalid keyword: %s", word)
+		}
+	}
+	return acceptedWords
+}
+
+func buildKeywordsRegexp(words []string) *regexp.Regexp {
+	acceptedWords := parseKeywords(words)
+	if len(acceptedWords) == 0 {
+		// Never match
+		return nil
+	}
+	return regexp.MustCompile(fmt.Sprintf(`(?i)(?:%s)(?::?) %s`, strings.Join(acceptedWords, "|"), issueRefRegexpStr))
+}
+
