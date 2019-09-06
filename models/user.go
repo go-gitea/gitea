@@ -167,41 +167,58 @@ type UserExtendedView struct {
 func GetUserOrgs(id int64, all bool) ([]UserExtendedView, error) {
 
 	var ous []UserExtendedView
-	sess := x.SQL(`
-WITH 	u AS (
-	SELECT
-		user.*, org_user.org_id
-	FROM
-		user
-	LEFT JOIN
-		org_user ON user.id = org_user.uid AND (? OR org_user.is_public)
-	WHERE
-		user.id = ?
-	ORDER BY
-		user.id
-), nrs 	AS (
-	SELECT
-		u.org_id AS id,
-		COUNT(repository.id) AS num_repos
-	FROM
-		u
-	JOIN
-		user ON u.org_id = user.id
-	LEFT JOIN
-		repository ON u.org_id = repository.owner_id
-	GROUP BY
-		u.org_id
-) SELECT
-	user.*,
-	nrs.num_repos AS num_repos
-FROM
-	user
-JOIN
-	nrs ON user.id = nrs.id
-ORDER BY
-	user.name ASC
-;`, all, id)
-	if err := sess.Find(&ous); err != nil {
+
+	query, args, err :=
+		builder.Select("users.*, COUNT(nrs.num_repos) AS num_repos").
+			From("user").
+			InnerJoin(
+				builder.Select("u.org_id AS id, COUNT(repository.id) AS num_repos").
+					From(builder.Select("user.*, org_user.org_id").
+						From("user").
+						LeftJoin("org_user", Builder.And(builder.Eq{"user.id": "org_user.id"}, Builder.Or(all, "org_user.is_public"))).
+						Where(builder.Eq{"user.id": id}).
+						OrderBy("user.id"), "u").
+					InnerJoin("user", builder.Eq{"u.org_id": "user.id"}).
+					LeftJoin("repository", builder.Eq{"u.org_id": "repository.owner_id"}).
+					GroupBy("u.org_id"),
+				builder.Eq{"user.id": "nrs.id"}).
+			OrderBy("user.name ASC")
+
+		//	sess := x.SQL(`
+		//WITH 	u AS (
+		//	SELECT
+		//		user.*, org_user.org_id
+		//	FROM
+		//		user
+		//	LEFT JOIN
+		//		org_user ON user.id = org_user.uid AND (? OR org_user.is_public)
+		//	WHERE
+		//		user.id = ?
+		//	ORDER BY
+		//		user.id
+		//), nrs 	AS (
+		//	SELECT
+		//		u.org_id AS id,
+		//		COUNT(repository.id) AS num_repos
+		//	FROM
+		//		u
+		//	JOIN
+		//		user ON u.org_id = user.id
+		//	LEFT JOIN
+		//		repository ON u.org_id = repository.owner_id
+		//	GROUP BY
+		//		u.org_id
+		//) SELECT
+		//	user.*,
+		//	nrs.num_repos AS num_repos
+		//FROM
+		//	user
+		//JOIN
+		//	nrs ON user.id = nrs.id
+		//ORDER BY
+		//	user.name ASC
+		//;`, all, id)
+	if err := sess.ToSQL(query, args).Find(&ous); err != nil {
 		return nil, err
 	}
 	return ous, nil
