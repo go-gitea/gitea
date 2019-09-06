@@ -15,10 +15,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix failed to synchronize tags to releases for repository (#7990) (#7994)
   * Fix adding default Telegram webhook (#7972) (#7992)
   * Abort synchronization from LDAP source if there is some error.  (#7965)
+  * Fix deformed emoji in commit message (#8071)
 * ENHANCEMENT
   * Keep blame view buttons sequence consistent with normal view when viewing a file (#8007) (#8009)
-* MISC
-  * Bugfix/deformed emoji in commit message (#8071)
 
 ## [1.9.2](https://github.com/go-gitea/gitea/releases/tag/v1.9.2) - 2019-08-22
 * BUGFIXES
