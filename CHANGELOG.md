@@ -14,7 +14,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Evaluate emojis in commit messages in list view (#8044)
   * Fix failed to synchronize tags to releases for repository (#7990) (#7994)
   * Fix adding default Telegram webhook (#7972) (#7992)
-  * Abort synchronization from LDAP source if there is some error.  (#7965)
+  * Abort synchronization from LDAP source if there is some error (#7965)
   * Fix deformed emoji in commit message (#8071)
 * ENHANCEMENT
   * Keep blame view buttons sequence consistent with normal view when viewing a file (#8007) (#8009)
