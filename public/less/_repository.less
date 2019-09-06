@@ -281,6 +281,13 @@
                 .commit-summary a {
                     &:hover {
                         text-decoration: underline;
+                        text-decoration-style: dashed;
+                    }
+
+                    &.default-link {
+                        &:hover {
+                            text-decoration-style: solid;
+                        }
                     }
                 }
             }
@@ -2197,6 +2204,13 @@ tbody.commit-list {
 .commit-list .commit-summary a {
     &:hover {
         text-decoration: underline;
+        text-decoration-style: dashed;
+    }
+
+    &.default-link {
+        &:hover {
+            text-decoration-style: solid;
+        }
     }
 }
 
