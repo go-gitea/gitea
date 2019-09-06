@@ -29,8 +29,9 @@ func TestUserOrgs(t *testing.T) {
 	user3 := models.AssertExistsAndLoadBean(t, &models.User{Name: "user3"}).(*models.User)
 
 	DecodeJSON(t, resp, &orgs)
-	apiURL := setting.AppURL + "api/v1/orgs/" + user3.LowerName
+	assert.Equal(t, 1, len(orgs))
 
+	apiURL := setting.AppURL + "api/v1/orgs/" + user3.LowerName
 	expectedOrg := &api.Organization{
 		ID:               3,
 		UserName:         user3.Name,
@@ -45,11 +46,10 @@ func TestUserOrgs(t *testing.T) {
 		Location:         "",
 		Visibility:       "public",
 		PublicRepoCount:  1,
-		Created:          user3.CreatedUnix.AsTime(),
-		Updated:          user3.UpdatedUnix.AsTime(),
+		Created:          orgs[0].Created,
+		Updated:          orgs[0].Updated,
 	}
 
-	assert.Equal(t, 1, len(orgs))
 	assert.Equal(t, expectedOrg, orgs[0])
 }
 
