@@ -4,7 +4,9 @@
 
 package structs
 
-import "time"
+import (
+	"time"
+)
 
 // Organization represents an organization
 type Organization struct {

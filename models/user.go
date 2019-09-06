@@ -6,7 +6,6 @@
 package models
 
 import (
-	"code.gitea.io/gitea/modules/markup"
 	"container/list"
 	"crypto/md5"
 	"crypto/sha256"
@@ -27,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"

@@ -31,27 +31,26 @@ func TestUserOrgs(t *testing.T) {
 	DecodeJSON(t, resp, &orgs)
 	apiURL := setting.AppURL + "api/v1/orgs/" + user3.LowerName
 
-	expectedOrgs := []*api.Organization{
-		{
-			ID:               3,
-			UserName:         user3.Name,
-			FullName:         user3.FullName,
-			AvatarURL:        user3.AvatarLink(),
-			URL:              apiURL,
-			ReposURL:         apiURL + "/repos",
-			MembersURL:       apiURL + "/members{/member}",
-			PublicMembersURL: apiURL + "/public_members{/member}",
-			Description:      "",
-			Website:          "",
-			Location:         "",
-			Visibility:       "public",
-			PublicRepoCount:  1,
-			Created:          user3.CreatedUnix.AsTime(),
-			Updated:          user3.UpdatedUnix.AsTime(),
-		},
+	expectedOrg := &api.Organization{
+		ID:               3,
+		UserName:         user3.Name,
+		FullName:         user3.FullName,
+		AvatarURL:        user3.AvatarLink(),
+		URL:              apiURL,
+		ReposURL:         apiURL + "/repos",
+		MembersURL:       apiURL + "/members{/member}",
+		PublicMembersURL: apiURL + "/public_members{/member}",
+		Description:      "",
+		Website:          "",
+		Location:         "",
+		Visibility:       "public",
+		PublicRepoCount:  1,
+		Created:          user3.CreatedUnix.AsTime(),
+		Updated:          user3.UpdatedUnix.AsTime(),
 	}
 
-	assert.Equal(t, expectedOrgs, orgs)
+	assert.Equal(t, 1, len(orgs))
+	assert.Equal(t, expectedOrg, orgs[0])
 }
 
 func TestMyOrgs(t *testing.T) {
