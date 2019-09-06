@@ -118,6 +118,10 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 	test("wow (#54321 #1243)", "wow (%s %s)", 54321, 1243)
 	test("(#4)(#5)", "(%s)(%s)", 4, 5)
 	test("#1 (#4321) test", "%s (%s) test", 1, 4321)
+
+	// should render with :
+	test("#1234: test", "%s: test", 1234)
+	test("wow (#54321: test)", "wow (%s: test)", 54321)
 }
 
 func TestRender_IssueIndexPattern3(t *testing.T) {
@@ -237,6 +241,8 @@ func TestRegExp_issueNumericPattern(t *testing.T) {
 		"#0",
 		"#1234567890987654321",
 		"  #12",
+		"#12:",
+		"ref: #12: msg",
 	}
 	falseTestCases := []string{
 		"# 1234",
@@ -354,6 +360,7 @@ func TestRegExp_issueAlphanumericPattern(t *testing.T) {
 		"ABC-123.",
 		"(ABC-123)",
 		"[ABC-123]",
+		"ABC-123:",
 	}
 	falseTestCases := []string{
 		"RC-08",
