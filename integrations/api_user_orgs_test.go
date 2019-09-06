@@ -31,7 +31,7 @@ func TestUserOrgs(t *testing.T) {
 	DecodeJSON(t, resp, &orgs)
 	apiURL := setting.AppURL + "api/v1/orgs/" + user3.LowerName
 
-	assert.Equal(t, []*api.Organization{
+	expectedOrgs := []*api.Organization{
 		{
 			ID:               3,
 			UserName:         user3.Name,
@@ -49,7 +49,9 @@ func TestUserOrgs(t *testing.T) {
 			Created:          user3.CreatedUnix.AsTime(),
 			Updated:          user3.UpdatedUnix.AsTime(),
 		},
-	}, orgs)
+	}
+
+	assert.Equal(t, expectedOrgs, orgs)
 }
 
 func TestMyOrgs(t *testing.T) {
