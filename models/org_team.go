@@ -45,7 +45,7 @@ type SearchTeamOptions struct {
 	Limit       int
 }
 
-// SearchTeam search for teams
+// SearchTeam search for teams. Caller is responsible to check permissions.
 func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 	if opts.Limit <= 0 {
 		opts.Limit = 10
@@ -68,16 +68,7 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 		cond = cond.And(keywordCond)
 	}
 
-	if opts.OrgID > 0 {
-		cond = cond.And(builder.Eq{"org_id": opts.OrgID})
-	} else if !opts.UserIsAdmin {
-		// Limit search to organizations where user is member
-		cond = cond.And(
-			builder.In("org_id", builder.Select("`org_user`.org_id").
-				From("org_user").
-				Where(builder.Eq{"`org_user`.uid": opts.UserID}).
-				Join("INNER", "org_user", "`org_user`.org_id = `team`.org_id")))
-	}
+	cond = cond.And(builder.Eq{"org_id": opts.OrgID})
 
 	sess := x.NewSession()
 	defer sess.Close()

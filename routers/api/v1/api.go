@@ -802,8 +802,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Put(reqToken(), reqOrgMembership(), org.PublicizeMember).
 					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
 			})
-			m.Combo("/teams", reqToken(), reqOrgMembership()).Get(org.ListTeams).
-				Post(reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+			m.Group("/teams", func() {
+				m.Combo("", reqToken()).Get(org.ListTeams).
+					Post(reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+				m.Post("/search", org.SearchTeam)
+			}, reqOrgMembership())
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
 					Post(bind(api.CreateHookOption{}), org.CreateHook)
@@ -830,10 +833,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Delete(org.RemoveTeamRepository)
 			})
 		}, orgAssignment(false, true), reqToken(), reqTeamMembership())
-
-		m.Group("/teams", func() {
-			m.Get("/search", org.SearchTeam)
-		})
 
 		m.Any("/*", func(ctx *context.APIContext) {
 			ctx.NotFound()

@@ -500,23 +500,22 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 
 // SearchTeam api for searching teams
 func SearchTeam(ctx *context.APIContext) {
-	// swagger:operation GET /teams/search organization teamSearch
+	// swagger:operation GET /orgs/{org}/teams/search organization teamSearch
 	// ---
-	// summary: Search for teams
+	// summary: Search for teams within organization
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
 	// - name: q
 	//   in: query
 	//   description: keywords to search
 	//   required: true
 	//   type: string
-	// - name: org_id
-	//   in: query
-	//   description: search only teams within organization
-	//   type: integer
-	//   format: int64
-	//   required: false
 	// - name: inclDesc
 	//   in: query
 	//   description: include search within team description (defaults to true)
@@ -541,20 +540,9 @@ func SearchTeam(ctx *context.APIContext) {
 		UserID:      ctx.Data["SignedUserID"].(int64),
 		UserIsAdmin: ctx.IsUserSiteAdmin(),
 		Keyword:     strings.Trim(ctx.Query("q"), " "),
-		OrgID:       ctx.QueryInt64("org_id"),
+		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: (ctx.Query("inclDesc") == "" || ctx.QueryBool("inclDesc")),
 		Limit:       ctx.QueryInt("limit"),
-	}
-
-	// If searching in a specific organization, require organization membership
-	if opts.OrgID > 0 {
-		if isMember, err := models.IsOrganizationMember(opts.OrgID, opts.UserID); err != nil {
-			ctx.Error(500, "IsOrganizationMember", err)
-			return
-		} else if !isMember && !ctx.IsUserSiteAdmin() {
-			ctx.Error(403, "", "Must be an organization member")
-			return
-		}
 	}
 
 	teams, _, err := models.SearchTeam(opts)
@@ -567,28 +555,12 @@ func SearchTeam(ctx *context.APIContext) {
 	}
 
 	apiTeams := make([]*api.Team, len(teams))
-	cache := make(map[int64]*api.Organization)
 	for i := range teams {
 		if err := teams[i].GetUnits(); err != nil {
 			ctx.Error(500, "GetUnits", err)
 			return
 		}
 		apiTeams[i] = convert.ToTeam(teams[i])
-
-		if opts.OrgID <= 0 {
-			apiOrg, ok := cache[teams[i].OrgID]
-			if !ok {
-				org, err := models.GetUserByID(teams[i].OrgID)
-				if err != nil {
-					ctx.Error(500, "GetUserByID", err)
-					return
-				}
-				apiOrg = convert.ToOrganization(org)
-				cache[teams[i].OrgID] = apiOrg
-			}
-			apiTeams[i] = convert.ToTeam(teams[i])
-			apiTeams[i].Organization = apiOrg
-		}
 	}
 
 	ctx.JSON(200, map[string]interface{}{
