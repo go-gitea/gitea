@@ -15,7 +15,7 @@ import (
 func ListAccessTokens(ctx *context.APIContext) {
 	// swagger:operation GET /users/{username}/tokens user userGetTokens
 	// ---
-	// summary: List the authenticated user's access tokens
+	// summary: List the given user's access tokens (authenticated user must be given user or admin)
 	// produces:
 	// - application/json
 	// parameters:
@@ -27,6 +27,20 @@ func ListAccessTokens(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	u, err := models.GetUserByName(ctx.Params(":username"))
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(500, "GetUserByName", err)
+		}
+		return
+	}
+	if !ctx.User.IsAdmin && ctx.User.ID != u.ID {
+		ctx.Error(403, "", "Authenticated user is not the user given and is not an admin")
+	}
 	tokens, err := models.ListAccessTokens(ctx.User.ID)
 	if err != nil {
 		ctx.Error(500, "ListAccessTokens", err)
