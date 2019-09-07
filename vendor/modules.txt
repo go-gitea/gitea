@@ -444,7 +444,6 @@ go.mongodb.org/mongo-driver/bson/bsoncodec
 go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
 # golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
-# golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 golang.org/x/crypto/acme/autocert
 golang.org/x/crypto/argon2
 golang.org/x/crypto/bcrypt
@@ -525,7 +524,6 @@ golang.org/x/tools/go/internal/gcimporter
 golang.org/x/tools/internal/fastwalk
 golang.org/x/tools/internal/module
 # google.golang.org/appengine v1.6.2
-# google.golang.org/appengine v1.6.1
 google.golang.org/appengine/cloudsql
 google.golang.org/appengine/urlfetch
 google.golang.org/appengine/internal
