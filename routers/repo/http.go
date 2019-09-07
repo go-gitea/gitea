@@ -127,9 +127,9 @@ func HTTP(ctx *context.Context) {
 	// Only public pull don't need auth.
 	isPublicPull := !repo.IsPrivate && isPull
 	var (
-		askAuth      = !isPublicPull || setting.Service.RequireSignInView
-		authUser     *models.User
-		environ      []string
+		askAuth  = !isPublicPull || setting.Service.RequireSignInView
+		authUser *models.User
+		environ  []string
 	)
 
 	// check access
@@ -181,11 +181,11 @@ func HTTP(ctx *context.Context) {
 	})(ctx.Resp, ctx.Req.Request)
 }
 
-func checkAuth (ctx *context.Context) (authUser *models.User) {
+func checkAuth(ctx *context.Context) (authUser *models.User) {
 	var (
 		authUsername string
-		authPasswd string
-		err error
+		authPasswd   string
+		err          error
 	)
 
 	authUsername = ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
@@ -202,7 +202,7 @@ func checkAuth (ctx *context.Context) (authUser *models.User) {
 			ctx.Error(http.StatusUnauthorized)
 			return
 		}
-authUsername = ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
+		authUsername = ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
 		if setting.Service.EnableReverseProxyAuth && len(authUsername) > 0 {
 			authUser, err = models.GetUserByName(authUsername)
 			if err != nil {
