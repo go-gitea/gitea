@@ -415,6 +415,14 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 	if len(sr.Username) == 0 {
 		sr.Username = login
 	}
+
+	// Active Directory also accepts authentication with userPrincipalName (UPN).
+	// UPNs end by @yourdomain.tld, thus similar to mail. However using it directly
+	// may break different things such as repository URLs, hence we rewrite it.
+	if binding.EmailPattern.MatchString(sr.Username) {
+		sr.Username = strings.Replace(sr.Username, "@", "_at_", -1)
+	}
+
 	// Validate username make sure it satisfies requirement.
 	if alphaDashDotPattern.MatchString(sr.Username) {
 		return nil, fmt.Errorf("Invalid pattern for attribute 'username' [%s]: must be valid alpha or numeric or dash(-_) or dot characters", sr.Username)
