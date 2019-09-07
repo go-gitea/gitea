@@ -109,7 +109,7 @@ func HTTP(ctx *context.Context) {
 				if authUser != nil && owner.ID == authUser.ID || owner.IsUserPartOfOrg(authUser.ID) {
 					ctx.NotFoundOrServerError("GetRepositoryByName", models.IsErrRepoRedirectNotExist, err)
 				} else {
-					ctx.NotFound("GetRepositoryByName", err)
+					ctx.NotFound("GetRepositoryByName", nil)
 				}
 			}
 		} else {
@@ -140,8 +140,7 @@ func HTTP(ctx *context.Context) {
 
 		perm, err := models.GetUserRepoPermission(repo, authUser)
 		if err != nil {
-			ctx.NotFound("GetRepositoryName", nil)
-			log.ErrorWithSkip(2, "%s: %v", err)
+			ctx.NotFound("GetRepositoryName", err)
 			return
 		}
 
