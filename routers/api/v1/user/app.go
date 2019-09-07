@@ -40,6 +40,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 	}
 	if !ctx.User.IsAdmin && ctx.User.ID != u.ID {
 		ctx.Error(403, "", "Authenticated user is not the user given and is not an admin")
+		return
 	}
 	tokens, err := models.ListAccessTokens(u.ID)
 	if err != nil {
