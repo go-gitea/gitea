@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/gitdiff"
 )
 
 const (
@@ -217,7 +218,7 @@ func Diff(ctx *context.Context) {
 
 	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
 
-	diff, err := models.GetDiffCommit(models.RepoPath(userName, repoName),
+	diff, err := gitdiff.GetDiffCommit(models.RepoPath(userName, repoName),
 		commitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
 	if err != nil {
@@ -269,10 +270,10 @@ func Diff(ctx *context.Context) {
 
 // RawDiff dumps diff results of repository in given commit ID to io.Writer
 func RawDiff(ctx *context.Context) {
-	if err := models.GetRawDiff(
+	if err := gitdiff.GetRawDiff(
 		models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name),
 		ctx.Params(":sha"),
-		models.RawDiffType(ctx.Params(":ext")),
+		gitdiff.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,
 	); err != nil {
 		ctx.ServerError("GetRawDiff", err)

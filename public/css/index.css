@@ -678,6 +678,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .diff-file-box .code-diff-split tbody tr td:nth-child(4){border-left-width:1px;border-left-style:solid}
 .repository .diff-file-box.file-content{clear:right}
 .repository .diff-file-box.file-content img{max-width:100%;padding:5px 5px 0 5px}
+.repository .diff-file-box.file-content img.emoji{padding:0}
 .repository .repo-search-result{padding-top:10px;padding-bottom:10px}
 .repository .repo-search-result .lines-num a{color:inherit}
 .repository.quickstart .guide .item{padding:1em}
@@ -786,7 +787,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .ui.form .dropzone .dz-error-message{top:140px}
 .settings .content{margin-top:2px}
 .settings .content .segment,.settings .content>.header{box-shadow:0 1px 2px 0 rgba(34,36,38,.15)}
-.settings .list>.item .green{color:#21ba45}
+.settings .list>.item .green:not(.ui.button){color:#21ba45}
 .settings .list>.item:not(:first-child){border-top:1px solid #eaeaea;padding:1rem;margin:15px -1rem -1rem -1rem}
 .settings .list>.item>.mega-octicon{display:table-cell}
 .settings .list>.item>.mega-octicon+.content{display:table-cell;padding:0 0 0 .5em;vertical-align:top}

@@ -771,6 +771,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Delete("", bind(api.DeleteFileOptions{}), repo.DeleteFile)
 					}, reqRepoWriter(models.UnitTypeCode), reqToken())
 				}, reqRepoReader(models.UnitTypeCode))
+				m.Group("/topics", func() {
+					m.Combo("").Get(repo.ListTopics).
+						Put(reqToken(), reqAdmin(), bind(api.RepoTopicOptions{}), repo.UpdateTopics)
+					m.Group("/:topic", func() {
+						m.Combo("").Put(reqToken(), repo.AddTopic).
+							Delete(reqToken(), repo.DeleteTopic)
+					}, reqAdmin())
+				}, reqAnyRepoReader())
 			}, repoAssignment())
 		})
 
