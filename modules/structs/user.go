@@ -63,9 +63,9 @@ type User struct {
 	// swagger:strfmt date-time
 	LastLogin time.Time `json:"last_login,omitempty"`
 	// swagger:strfmt date-time
-	Created time.Time `json:"created"`
+	Created time.Time `json:"created,omitempty"`
 	// swagger:strfmt date-time
-	Updated time.Time `json:"updated"`
+	Updated time.Time `json:"updated,omitempty"`
 }
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility

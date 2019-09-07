@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
@@ -241,7 +240,7 @@ func (u *User) APIFormat() *api.User {
 	return &api.User{
 		ID:               u.ID,
 		UserName:         u.Name,
-		FullName:         markup.Sanitize(u.FullName),
+		FullName:         u.FullName,
 		Email:            u.GetEmail(),
 		HideEmail:        u.KeepEmailPrivate,
 		AvatarURL:        u.AvatarLink(),
