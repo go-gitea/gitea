@@ -52,6 +52,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 	// find repos user can access
 	repoIDs := make([]int64, 0)
+	issueCount := 0
 	for page := 1; ; page++ {
 		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
 			Page:        page,
@@ -75,6 +76,7 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
+			issueCount += repo.NumIssues
 			repoIDs = append(repoIDs, repo.ID)
 		}
 	}
@@ -133,8 +135,7 @@ func SearchIssues(ctx *context.APIContext) {
 		apiIssues[i] = issues[i].APIFormat()
 	}
 
-	//TODO need to find # issues in all the repos in repoIDs?
-	ctx.SetLinkHeader(0, setting.UI.IssuePagingNum)
+	ctx.SetLinkHeader(issueCount, setting.UI.IssuePagingNum)
 	ctx.JSON(200, &apiIssues)
 }
 
