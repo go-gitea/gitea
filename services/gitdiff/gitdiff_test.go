@@ -1,10 +1,16 @@
-package models
+// Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+package gitdiff
 
 import (
 	"html/template"
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
@@ -168,23 +174,24 @@ func setupDefaultDiff() *Diff {
 	}
 }
 func TestDiff_LoadComments(t *testing.T) {
-	issue := AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
-	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	assert.NoError(t, models.PrepareTestDatabase())
+
+	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 	diff := setupDefaultDiff()
-	assert.NoError(t, PrepareTestDatabase())
 	assert.NoError(t, diff.LoadComments(issue, user))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
 }
 
 func TestDiffLine_CanComment(t *testing.T) {
 	assert.False(t, (&DiffLine{Type: DiffLineSection}).CanComment())
-	assert.False(t, (&DiffLine{Type: DiffLineAdd, Comments: []*Comment{{Content: "bla"}}}).CanComment())
+	assert.False(t, (&DiffLine{Type: DiffLineAdd, Comments: []*models.Comment{{Content: "bla"}}}).CanComment())
 	assert.True(t, (&DiffLine{Type: DiffLineAdd}).CanComment())
 	assert.True(t, (&DiffLine{Type: DiffLineDel}).CanComment())
 	assert.True(t, (&DiffLine{Type: DiffLinePlain}).CanComment())
 }
 
 func TestDiffLine_GetCommentSide(t *testing.T) {
-	assert.Equal(t, "previous", (&DiffLine{Comments: []*Comment{{Line: -3}}}).GetCommentSide())
-	assert.Equal(t, "proposed", (&DiffLine{Comments: []*Comment{{Line: 3}}}).GetCommentSide())
+	assert.Equal(t, "previous", (&DiffLine{Comments: []*models.Comment{{Line: -3}}}).GetCommentSide())
+	assert.Equal(t, "proposed", (&DiffLine{Comments: []*models.Comment{{Line: 3}}}).GetCommentSide())
 }
