@@ -281,7 +281,7 @@
 								<div class="ui transparent label right floated">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blocking');"
-										data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
+											data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
 											<i class="delete icon text red"></i>
 										</a>
 									{{end}}
@@ -308,7 +308,7 @@
 								<div class="ui transparent label right floated">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blockedBy');"
-										data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
+											data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
 											<i class="delete icon text red"></i>
 										</a>
 									{{end}}
