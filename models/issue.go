@@ -380,6 +380,7 @@ func (issue *Issue) apiFormat(e Engine) *api.Issue {
 	if issue.Repo != nil {
 		apiIssue.Repo = &api.RepositoryMeta{
 			ID:       issue.Repo.ID,
+			Name:     issue.Repo.Name,
 			FullName: issue.Repo.FullName(),
 		}
 	}

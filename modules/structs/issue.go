@@ -29,6 +29,7 @@ type PullRequestMeta struct {
 // RepositoryMeta basic repository information
 type RepositoryMeta struct {
 	ID       int64  `json:"id"`
+	Name     string `json:"name"`
 	FullName string `json:"full_name"`
 }
 
