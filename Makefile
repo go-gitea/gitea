@@ -48,6 +48,8 @@ TAGS ?=
 
 TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
 
+#To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1
+SWAGGER := GO111MODULE=on $(GO) run -mod=vendor github.com/go-swagger/go-swagger/cmd/swagger
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl}}/api/v1"|g
 SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl}}/api/v1"|"basePath": "/api/v1"|g
@@ -101,10 +103,7 @@ generate:
 
 .PHONY: generate-swagger
 generate-swagger:
-	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE="on" $(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1; \
-	fi
-	swagger generate spec -o './$(SWAGGER_SPEC)'
+	$(SWAGGER) generate spec -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
 
@@ -119,11 +118,8 @@ swagger-check: generate-swagger
 
 .PHONY: swagger-validate
 swagger-validate:
-	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE="on" $(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1; \
-	fi
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
-	swagger validate './$(SWAGGER_SPEC)'
+	$(SWAGGER) validate './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
 .PHONY: errcheck

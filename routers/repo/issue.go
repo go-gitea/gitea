@@ -803,17 +803,7 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 			marked[comment.PosterID] = comment.ShowTag
-
-			isAdded := false
-			for j := range participants {
-				if comment.Poster == participants[j] {
-					isAdded = true
-					break
-				}
-			}
-			if !isAdded && !issue.IsPoster(comment.Poster.ID) {
-				participants = append(participants, comment.Poster)
-			}
+			participants = addParticipant(comment.Poster, participants)
 		} else if comment.Type == models.CommentTypeLabel {
 			if err = comment.LoadLabel(); err != nil {
 				ctx.ServerError("LoadLabel", err)
@@ -849,6 +839,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadReview", err)
 				return
 			}
+			participants = addParticipant(comment.Poster, participants)
 			if comment.Review == nil {
 				continue
 			}
@@ -1570,4 +1561,13 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 	ctx.JSON(200, map[string]interface{}{
 		"html": html,
 	})
+}
+
+func addParticipant(poster *models.User, participants []*models.User) []*models.User {
+	for _, part := range participants {
+		if poster.ID == part.ID {
+			return participants
+		}
+	}
+	return append(participants, poster)
 }

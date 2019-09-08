@@ -2936,14 +2936,14 @@ function initTopicbar() {
                     let found = false;
                     for (let i=0;i < res.topics.length;i++) {
                         // skip currently added tags
-                        if (current_topics.indexOf(res.topics[i].Name) != -1){
+                        if (current_topics.indexOf(res.topics[i].topic_name) != -1){
                             continue;
                         }
 
-                        if (res.topics[i].Name.toLowerCase() === query.toLowerCase()){
+                        if (res.topics[i].topic_name.toLowerCase() === query.toLowerCase()){
                             found_query = true;
                         }
-                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name});
+                        formattedResponse.results.push({"description": res.topics[i].topic_name, "data-value": res.topics[i].topic_name});
                         found = true;
                     }
                     formattedResponse.success = found;
