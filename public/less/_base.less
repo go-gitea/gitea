@@ -920,10 +920,13 @@ footer {
     user-select: none;
 
     span {
-        line-height: 20px !important;
-        padding: 0 10px;
-        cursor: pointer;
-        display: block;
+        &:before {
+            content: attr(data-line-number);
+            line-height: 20px !important;
+            padding: 0 10px;
+            cursor: pointer;
+            display: block;
+        }
     }
 }
 
