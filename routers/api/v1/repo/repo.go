@@ -206,6 +206,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 	repo, err := models.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
 		Name:        opt.Name,
 		Description: opt.Description,
+		IssueLabels: opt.IssueLabels,
 		Gitignores:  opt.Gitignores,
 		License:     opt.License,
 		Readme:      opt.Readme,
