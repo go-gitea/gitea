@@ -9036,6 +9036,9 @@
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
         },
+        "repository": {
+          "$ref": "#/definitions/RepositoryMeta"
+        },
         "state": {
           "$ref": "#/definitions/StateType"
         },
@@ -9912,6 +9915,26 @@
         "website": {
           "type": "string",
           "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "RepositoryMeta": {
+      "description": "RepositoryMeta basic repository information",
+      "type": "object",
+      "properties": {
+        "full_name": {
+          "type": "string",
+          "x-go-name": "FullName"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
