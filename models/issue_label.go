@@ -150,6 +150,7 @@ func initalizeLabels(e Engine, repoID int64, labelTemplate string) error {
 	return nil
 }
 
+// InitalizeLabels adds a label set to a repository using a template
 func InitalizeLabels(repoID int64, labelTemplate string) error {
 	return initalizeLabels(x, repoID, labelTemplate)
 }
