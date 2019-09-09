@@ -186,16 +186,6 @@ func reqToken() macaron.Handler {
 	}
 }
 
-func reqBasicAuth() macaron.Handler {
-	return func(ctx *context.APIContext) {
-		if !ctx.Context.IsBasicAuth {
-			ctx.Context.Error(401)
-			return
-		}
-		ctx.CheckForOTP()
-	}
-}
-
 // reqSiteAdmin user should be the site admin
 func reqSiteAdmin() macaron.Handler {
 	return func(ctx *context.Context) {
