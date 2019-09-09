@@ -19,12 +19,14 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
 
+	"github.com/gobwas/glob"
 	gouuid "github.com/satori/go.uuid"
 	"github.com/unknwon/com"
 )
@@ -84,9 +86,10 @@ type HookEvents struct {
 
 // HookEvent represents events that will delivery hook.
 type HookEvent struct {
-	PushOnly       bool `json:"push_only"`
-	SendEverything bool `json:"send_everything"`
-	ChooseEvents   bool `json:"choose_events"`
+	PushOnly       bool   `json:"push_only"`
+	SendEverything bool   `json:"send_everything"`
+	ChooseEvents   bool   `json:"choose_events"`
+	BranchFilter   string `json:"branch_filter"`
 
 	HookEvents `json:"events"`
 }
@@ -254,6 +257,21 @@ func (w *Webhook) EventsArray() []string {
 		}
 	}
 	return events
+}
+
+func (w *Webhook) checkBranch(branch string) bool {
+	if w.BranchFilter == "" || w.BranchFilter == "*" {
+		return true
+	}
+
+	g, err := glob.Compile(w.BranchFilter)
+	if err != nil {
+		// should not really happen as BranchFilter is validated
+		log.Error("CheckBranch failed: %s", err)
+		return false
+	}
+
+	return g.Match(branch)
 }
 
 // CreateWebhook creates a new web hook.
@@ -651,12 +669,40 @@ func PrepareWebhook(w *Webhook, repo *Repository, event HookEventType, p api.Pay
 	return prepareWebhook(x, w, repo, event, p)
 }
 
+// getPayloadBranch returns branch for hook event, if applicable.
+func getPayloadBranch(p api.Payloader) string {
+	switch pp := p.(type) {
+	case *api.CreatePayload:
+		if pp.RefType == "branch" {
+			return pp.Ref
+		}
+	case *api.DeletePayload:
+		if pp.RefType == "branch" {
+			return pp.Ref
+		}
+	case *api.PushPayload:
+		if strings.HasPrefix(pp.Ref, git.BranchPrefix) {
+			return pp.Ref[len(git.BranchPrefix):]
+		}
+	}
+	return ""
+}
+
 func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType, p api.Payloader) error {
 	for _, e := range w.eventCheckers() {
 		if event == e.typ {
 			if !e.has() {
 				return nil
 			}
+		}
+	}
+
+	// If payload has no associated branch (e.g. it's a new tag, issue, etc.),
+	// branch filter has no effect.
+	if branch := getPayloadBranch(p); branch != "" {
+		if !w.checkBranch(branch) {
+			log.Info("Branch %q doesn't match branch filter %q, skipping", branch, w.BranchFilter)
+			return nil
 		}
 	}
 
