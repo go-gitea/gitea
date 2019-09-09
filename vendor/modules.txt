@@ -199,6 +199,15 @@ github.com/go-swagger/go-swagger/generator
 github.com/go-swagger/go-swagger/scan
 # github.com/go-xorm/xorm v0.7.7-0.20190822154023-17592d96b35b
 github.com/go-xorm/xorm
+# github.com/gobwas/glob v0.2.3
+github.com/gobwas/glob
+github.com/gobwas/glob/compiler
+github.com/gobwas/glob/syntax
+github.com/gobwas/glob/match
+github.com/gobwas/glob/syntax/ast
+github.com/gobwas/glob/util/runes
+github.com/gobwas/glob/syntax/lexer
+github.com/gobwas/glob/util/strings
 # github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
 github.com/gogits/chardet
 # github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
