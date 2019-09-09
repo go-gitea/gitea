@@ -279,13 +279,18 @@
                 }
 
                 .commit-summary a {
+                    text-decoration: underline;
+                    text-decoration-style: dashed;
+
                     &:hover {
-                        text-decoration: underline;
-                        text-decoration-style: dashed;
+                        text-decoration-style: solid;
                     }
 
                     &.default-link {
+                        text-decoration: none;
+
                         &:hover {
+                            text-decoration: underline;
                             text-decoration-style: solid;
                         }
                     }
@@ -2202,13 +2207,18 @@ tbody.commit-list {
 }
 
 .commit-list .commit-summary a {
+    text-decoration: underline;
+    text-decoration-style: dashed;
+
     &:hover {
-        text-decoration: underline;
-        text-decoration-style: dashed;
+        text-decoration-style: solid;
     }
 
     &.default-link {
+        text-decoration: none;
+
         &:hover {
+            text-decoration: underline;
             text-decoration-style: solid;
         }
     }
