@@ -31,8 +31,8 @@ func TestGetNestedNotes(t *testing.T) {
 	note := Note{}
 	err = GetNote(repo, "3e668dbfac39cbc80a9ff9c61eb565d944453ba4", &note)
 	assert.NoError(t, err)
-	assert.Equal(t, []byte("Note 2\n"), note.Message)
+	assert.Equal(t, []byte("Note 2"), note.Message)
 	err = GetNote(repo, "ba0a96fa63532d6c5087ecef070b0250ed72fa47", &note)
 	assert.NoError(t, err)
-	assert.Equal(t, []byte("Note 1\n"), note.Message)
+	assert.Equal(t, []byte("Note 1"), note.Message)
 }
