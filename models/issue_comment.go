@@ -142,6 +142,12 @@ type Comment struct {
 	Review      *Review `xorm:"-"`
 	ReviewID    int64   `xorm:"index"`
 	Invalidated bool
+
+	// Reference issue and pull from comment
+	RefIssueID		int64		`xorm:"index"`		// GAP: el issue desde el que se creó esta referencia (dueño del RefCommentID)
+	RefCommentID	int64		`xorm:"index"`
+	RefComment		*Comment	`xorm:"-"`
+	RefIssue		*Issue		`xorm:"-"`
 }
 
 // LoadIssue loads issue from database
@@ -279,6 +285,45 @@ func (c *Comment) HashTag() string {
 // EventTag returns unique event hash tag for comment.
 func (c *Comment) EventTag() string {
 	return "event-" + com.ToStr(c.ID)
+}
+
+// LoadRefComment loads comment that created this reference from database
+func (c *Comment) LoadRefComment() (err error) {
+	if c.RefComment != nil {
+		return nil
+	}
+	c.RefComment, err = GetCommentByID(c.RefCommentID)
+	return
+}
+
+// LoadRefIssue loads comment that created this reference from database
+func (c *Comment) LoadRefIssue() (err error) {
+	if c.RefIssue != nil {
+		return nil
+	}
+	c.RefIssue, err = GetIssueByID(c.RefIssueID)
+	return
+}
+
+// RefCommentHTMLURL returns the HTML URL for the comment that created this reference
+func (c *Comment) RefCommentHTMLURL() string {
+	if err := c.LoadRefComment(); err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadRefComment(%d): %v", c.RefCommentID, err)
+		return ""
+	}
+	// GAP: No sería necesario referenciar exactamente al comentario
+	//		si seguimos el ejemplo de GitHub
+	return c.RefComment.HTMLURL()
+}
+
+// RefIssueName returns the name of the issue where this reference was created
+func (c *Comment) RefIssueName() string {
+	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
+		return ""
+	}
+	// GAP: TODO: check this name (cross-rep references)
+	return "#" + com.ToStr(c.RefIssue.Index)
 }
 
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label
