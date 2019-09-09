@@ -185,6 +185,7 @@ type WebhookForm struct {
 	PullRequest  bool
 	Repository   bool
 	Active       bool
+	BranchFilter string `binding:"GlobPattern"`
 }
 
 // PushOnly if the hook will be triggered when push

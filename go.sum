@@ -236,6 +236,8 @@ github.com/go-xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:56xuuq
 github.com/go-xorm/xorm v0.7.6/go.mod h1:nqz2TAsuOHWH2yk4FYWtacCGgdbrcdZ5mF1XadqEHls=
 github.com/go-xorm/xorm v0.7.7-0.20190822154023-17592d96b35b h1:Y0hWUheXDHpIs7BWtJcykO4d1VOsVDKg1PsP5YJwxxM=
 github.com/go-xorm/xorm v0.7.7-0.20190822154023-17592d96b35b/go.mod h1:nqz2TAsuOHWH2yk4FYWtacCGgdbrcdZ5mF1XadqEHls=
+github.com/gobwas/glob v0.2.3 h1:A4xDbljILXROh+kObIiy5kIaPYD8e96x1tgBhUI5J+Y=
+github.com/gobwas/glob v0.2.3/go.mod h1:d3Ez4x06l9bZtSvzIay5+Yzi0fmZzPgnTbPcKjJAkT8=
 github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561 h1:deE7ritpK04PgtpyVOS2TYcQEld9qLCD5b5EbVNOuLA=
 github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561/go.mod h1:YgYOrVn3Nj9Tq0EvjmFbphRytDj7JNRoWSStJZWDJTQ=
 github.com/gogo/protobuf v1.1.1/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
