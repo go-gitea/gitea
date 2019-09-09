@@ -1455,7 +1455,7 @@ func getParticipantsByIssueID(e Engine, issueID int64) ([]*User, error) {
 	userIDs := make([]int64, 0, 5)
 	if err := e.Table("comment").Cols("poster_id").
 		Where("`comment`.issue_id = ?", issueID).
-		And("`comment`.type = ?", CommentTypeComment).
+		And("`comment`.type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
 		And("`user`.is_active = ?", true).
 		And("`user`.prohibit_login = ?", false).
 		Join("INNER", "`user`", "`user`.id = `comment`.poster_id").
