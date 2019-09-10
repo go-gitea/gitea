@@ -9,6 +9,7 @@ package models
 import (
 	"bytes"
 	"fmt"
+	"html"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -858,6 +859,11 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 		return nil, fmt.Errorf("CreateComment: %v", err)
 	}
 
+	err = FindAndCreateIssueRef(doer, repo, issue, content)
+	if err != nil {
+		return nil, err
+	}
+
 	mode, _ := AccessLevel(doer, repo)
 	if err = PrepareWebhooks(repo, HookEventIssueComment, &api.IssueCommentPayload{
 		Action:     api.HookIssueCommentCreated,
@@ -871,6 +877,51 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 		go HookQueue.Add(repo.ID)
 	}
 	return comment, nil
+}
+
+// FindAndCreateIssueRef Search message for issue ref and create cross ref comment
+func FindAndCreateIssueRef(doer *User, repo *Repository, issue *Issue, message string) error {
+	refMarked := make(map[int64]bool)
+	var refRepo *Repository
+	var err error
+	for _, m := range issueReferenceKeywordsPat.FindAllStringSubmatch(message, -1) {
+		if len(m[3]) == 0 {
+			continue
+		}
+		ref := m[3]
+
+		// issue is from another repo
+		if len(m[1]) > 0 && len(m[2]) > 0 {
+			refRepo, err = GetRepositoryFromMatch(m[1], m[2])
+			if err != nil {
+				continue
+			}
+		} else {
+			refRepo = repo
+		}
+		refIssue, err := getIssueFromRef(refRepo, ref)
+		if err != nil {
+			return err
+		}
+
+		if refIssue == nil || refMarked[refIssue.ID] {
+			continue
+		}
+		refMarked[refIssue.ID] = true
+
+		issueType := "issues"
+
+		if issue.IsPull {
+			issueType = "pull"
+		}
+
+		message := fmt.Sprintf(`<a href="%s/%s/%d">%s</a>`, repo.Link(), issueType, issue.ID, html.EscapeString(issue.Title))
+		if err = CreateIssueRefComment(doer, refRepo, refIssue, message); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // CreateCodeComment creates a plain code comment at the specified line / path
@@ -951,6 +1002,30 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 		Issue:     issue,
 		CommitSHA: commitSHA,
 		Content:   content,
+	})
+	return err
+}
+
+// CreateIssueRefComment creates a issue reference comment to issue.
+func CreateIssueRefComment(doer *User, repo *Repository, issue *Issue, content string) error {
+	// Check if same reference from same issue has already existed.
+	has, err := x.Get(&Comment{
+		Type:    CommentTypeIssueRef,
+		IssueID: issue.ID,
+		Content: content,
+	})
+	if err != nil {
+		return fmt.Errorf("CreateIssueRefComment (check has): %v", err)
+	} else if has {
+		return nil
+	}
+
+	_, err = CreateComment(&CreateCommentOptions{
+		Type:    CommentTypeIssueRef,
+		Doer:    doer,
+		Repo:    repo,
+		Issue:   issue,
+		Content: content,
 	})
 	return err
 }

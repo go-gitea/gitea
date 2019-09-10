@@ -1051,6 +1051,11 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
+	if err := models.FindAndCreateIssueRef(ctx.User, ctx.Repo.Repository, issue, title); err != nil {
+		ctx.ServerError("FindAndCreateIssueRef", err)
+		return
+	}
+
 	notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
 
 	ctx.JSON(200, map[string]interface{}{
@@ -1073,6 +1078,11 @@ func UpdateIssueContent(ctx *context.Context) {
 	content := ctx.Query("content")
 	if err := issue.ChangeContent(ctx.User, content); err != nil {
 		ctx.ServerError("ChangeContent", err)
+		return
+	}
+
+	if err := models.FindAndCreateIssueRef(ctx.User, ctx.Repo.Repository, issue, content); err != nil {
+		ctx.ServerError("FindAndCreateIssueRef", err)
 		return
 	}
 
@@ -1345,6 +1355,11 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 	if err = models.UpdateComment(ctx.User, comment, oldContent); err != nil {
 		ctx.ServerError("UpdateComment", err)
+		return
+	}
+
+	if err = models.FindAndCreateIssueRef(ctx.User, ctx.Repo.Repository, comment.Issue, comment.Content); err != nil {
+		ctx.ServerError("FindAndCreateIssueRef", err)
 		return
 	}
 

@@ -96,6 +96,17 @@
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}</span>
 		</div>
+	{{else if eq .Type 3}}
+		<div class="event">
+			<span class="octicon octicon-bookmark issue-symbol"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey">
+				<a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{$.i18n.Tr "repo.issues.issue_ref_at" .Content | Safe}}
+			</span>
+		</div>
 	{{else if eq .Type 4}}
 		<div class="event">
 			<span class="octicon octicon-bookmark"></span>

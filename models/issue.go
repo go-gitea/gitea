@@ -1225,6 +1225,16 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		go HookQueue.Add(issue.RepoID)
 	}
 
+	err = FindAndCreateIssueRef(issue.Poster, repo, issue, issue.Content)
+	if err != nil {
+		return err
+	}
+
+	err = FindAndCreateIssueRef(issue.Poster, repo, issue, issue.Title)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
