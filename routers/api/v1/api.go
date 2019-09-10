@@ -551,6 +551,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Delete(user.DeleteGPGKey)
 			})
 
+			m.Get("/orgs", org.ListMyOrgs)
+
 			m.Combo("/repos").Get(user.ListMyRepos).
 				Post(bind(api.CreateRepoOption{}), repo.Create)
 
@@ -764,7 +766,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 
 		// Organizations
-		m.Get("/user/orgs", reqToken(), org.ListMyOrgs)
 		m.Post("/orgs", reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Group("/orgs/:orgname", func() {
 			m.Get("/repos", user.ListOrgRepos)
