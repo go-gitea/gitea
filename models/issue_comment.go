@@ -144,10 +144,10 @@ type Comment struct {
 	Invalidated bool
 
 	// Reference issue and pull from comment
-	RefIssueID		int64		`xorm:"index"`
-	RefCommentID	int64		`xorm:"index"`
-	RefIssue		*Issue		`xorm:"-"`
-	RefComment		*Comment	`xorm:"-"`
+	RefIssueID   int64    `xorm:"index"`
+	RefCommentID int64    `xorm:"index"`
+	RefIssue     *Issue   `xorm:"-"`
+	RefComment   *Comment `xorm:"-"`
 }
 
 // LoadIssue loads issue from database
@@ -314,8 +314,6 @@ func (c *Comment) RefCommentHTMLURL() string {
 		log.Error("LoadRefComment(%d): %v", c.RefCommentID, err)
 		return ""
 	}
-	// GAP: No sería necesario referenciar exactamente al comentario
-	//		si seguimos el ejemplo de GitHub
 	return c.RefComment.HTMLURL()
 }
 
@@ -610,11 +608,14 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 
 	// Check references to other issues/pulls
 	if opts.Type == CommentTypeCode || opts.Type == CommentTypeComment {
-		refopts := &ParseReferencesOptions {
-			Type:			CommentTypeCommentRef,
-			Doer:			opts.Doer,
-			OrigIssue:		comment.Issue,
-			OrigComment:	comment,
+		if err := comment.LoadIssue(); err != nil {
+			return nil, err
+		}
+		refopts := &ParseReferencesOptions{
+			Type:        CommentTypeCommentRef,
+			Doer:        opts.Doer,
+			OrigIssue:   comment.Issue,
+			OrigComment: comment,
 		}
 		if err = comment.Issue.parseCommentReferences(e, refopts, opts.Content); err != nil {
 			return nil, err

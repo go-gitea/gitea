@@ -1873,20 +1873,22 @@ func (issue *Issue) updateClosedNum(e Engine) (err error) {
 
 // ParseReferencesOptions represents a comment or issue that might make references to other issues
 type ParseReferencesOptions struct {
-	Type		CommentType
-	Doer		*User
-	OrigIssue	*Issue
-	OrigComment	*Comment
+	Type        CommentType
+	Doer        *User
+	OrigIssue   *Issue
+	OrigComment *Comment
 }
 
 func (issue *Issue) parseCommentReferences(e *xorm.Session, refopts *ParseReferencesOptions, content string) error {
 	// Issues in the same repository
 	// FIXME: Should we support IssueNameStyleAlphanumeric?
-	log.Info("GAP: parseCommentReferences() for `%s`", content)
 	matches := issueNumericPattern.FindAllStringSubmatch(content, -1)
 	for _, match := range matches {
 		if i, err := strconv.ParseInt(match[1][1:], 10, 64); err == nil {
-			if err = issue.checkCommentReference(e, refopts, issue.Repo, i); err != nil {
+			if err = issue.loadRepo(e); err != nil {
+				return err
+			}
+			if err = issue.checkCommentReference(e, refopts, issue.RepoID, i); err != nil {
 				return err
 			}
 		}
@@ -1894,14 +1896,11 @@ func (issue *Issue) parseCommentReferences(e *xorm.Session, refopts *ParseRefere
 	return nil
 }
 
-func (issue *Issue) checkCommentReference(e *xorm.Session, refopts *ParseReferencesOptions, repo *Repository, index int64) error {
-	log.Info("GAP: checkCommentReference() repo_id: %d, index #d", repo.ID, index)
-	refIssue := &Issue{RepoID: repo.ID, Index: index}
+func (issue *Issue) checkCommentReference(e *xorm.Session, refopts *ParseReferencesOptions, repoID int64, index int64) error {
+	refIssue := &Issue{RepoID: repoID, Index: index}
 	if has, _ := e.Get(refIssue); !has {
-		log.Info("GAP: checkCommentReference(): not found :(")
 		return nil
 	}
-	log.Info("GAP: checkCommentReference(): found! :D")
 	addCommentReference(e, refopts, refIssue)
 	return nil
 }
@@ -1915,12 +1914,12 @@ func addCommentReference(e *xorm.Session, refopts *ParseReferencesOptions, refer
 		refCommentID = refopts.OrigComment.ID
 	}
 	_, err := createComment(e, &CreateCommentOptions{
-		Type:			refopts.Type,
-		Doer:			refopts.Doer,
-		Repo: 			referred.Repo,
-		Issue:			referred,
-		RefIssueID:		refopts.OrigIssue.ID,
-		RefCommentID:	refCommentID,
+		Type:         refopts.Type,
+		Doer:         refopts.Doer,
+		Repo:         referred.Repo,
+		Issue:        referred,
+		RefIssueID:   refopts.OrigIssue.ID,
+		RefCommentID: refCommentID,
 	})
 	return err
 }
