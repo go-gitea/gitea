@@ -186,6 +186,7 @@ func TestRegExp_issueReferenceKeywordsPat(t *testing.T) {
 		"#2",
 		"[#2]",
 		"please see go-gitea/gitea#5",
+		"#2:",
 	}
 	falseTestCases := []string{
 		"kb#2",
