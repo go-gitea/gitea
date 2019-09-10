@@ -144,10 +144,10 @@ type Comment struct {
 	Invalidated bool
 
 	// Reference issue and pull from comment
-	RefIssueID		int64		`xorm:"index"`		// GAP: el issue desde el que se creó esta referencia (dueño del RefCommentID)
+	RefIssueID		int64		`xorm:"index"`
 	RefCommentID	int64		`xorm:"index"`
-	RefComment		*Comment	`xorm:"-"`
 	RefIssue		*Issue		`xorm:"-"`
+	RefComment		*Comment	`xorm:"-"`
 }
 
 // LoadIssue loads issue from database
@@ -302,6 +302,9 @@ func (c *Comment) LoadRefIssue() (err error) {
 		return nil
 	}
 	c.RefIssue, err = GetIssueByID(c.RefIssueID)
+	if err == nil {
+		err = c.RefIssue.loadRepo(x)
+	}
 	return
 }
 
@@ -316,13 +319,31 @@ func (c *Comment) RefCommentHTMLURL() string {
 	return c.RefComment.HTMLURL()
 }
 
-// RefIssueName returns the name of the issue where this reference was created
-func (c *Comment) RefIssueName() string {
+// RefIssueHTMLURL returns the HTML URL of the issue where this reference was created
+func (c *Comment) RefIssueHTMLURL() string {
 	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
 		return ""
 	}
-	// GAP: TODO: check this name (cross-rep references)
+	return c.RefIssue.HTMLURL()
+}
+
+// RefIssueTitle returns the title of the issue where this reference was created
+func (c *Comment) RefIssueTitle() string {
+	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
+		return ""
+	}
+	return c.RefIssue.Title
+}
+
+// RefIssueIdent returns the user friendly identity (e.g. "#1234") of the issue where this reference was created
+func (c *Comment) RefIssueIdent() string {
+	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
+		return ""
+	}
+	// FIXME: check this name for cross-repository references (#7901 if it gets merged)
 	return "#" + com.ToStr(c.RefIssue.Index)
 }
 
@@ -572,6 +593,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		TreePath:         opts.TreePath,
 		ReviewID:         opts.ReviewID,
 		Patch:            opts.Patch,
+		RefIssueID:       opts.RefIssueID,
+		RefCommentID:     opts.RefCommentID,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -583,6 +606,19 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 
 	if err = sendCreateCommentAction(e, opts, comment); err != nil {
 		return nil, err
+	}
+
+	// Check references to other issues/pulls
+	if opts.Type == CommentTypeCode || opts.Type == CommentTypeComment {
+		refopts := &ParseReferencesOptions {
+			Type:			CommentTypeCommentRef,
+			Doer:			opts.Doer,
+			OrigIssue:		comment.Issue,
+			OrigComment:	comment,
+		}
+		if err = comment.Issue.parseCommentReferences(e, refopts, opts.Content); err != nil {
+			return nil, err
+		}
 	}
 
 	return comment, nil
@@ -839,6 +875,8 @@ type CreateCommentOptions struct {
 	ReviewID         int64
 	Content          string
 	Attachments      []string // UUIDs of attachments
+	RefIssueID       int64
+	RefCommentID     int64
 }
 
 // CreateComment creates comment of issue or commit.

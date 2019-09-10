@@ -9,6 +9,7 @@ import (
 	"path"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
@@ -69,6 +70,12 @@ type Issue struct {
 var (
 	issueTasksPat     *regexp.Regexp
 	issueTasksDonePat *regexp.Regexp
+
+	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
+	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
+	// e.g. gogits/gogs#12345
+	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
 )
 
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sx]\]\s.)|(\n\s*[-*]\s\[[\sx]\]\s.)`
@@ -1862,4 +1869,58 @@ func (issue *Issue) updateClosedNum(e Engine) (err error) {
 		)
 	}
 	return
+}
+
+// ParseReferencesOptions represents a comment or issue that might make references to other issues
+type ParseReferencesOptions struct {
+	Type		CommentType
+	Doer		*User
+	OrigIssue	*Issue
+	OrigComment	*Comment
+}
+
+func (issue *Issue) parseCommentReferences(e *xorm.Session, refopts *ParseReferencesOptions, content string) error {
+	// Issues in the same repository
+	// FIXME: Should we support IssueNameStyleAlphanumeric?
+	log.Info("GAP: parseCommentReferences() for `%s`", content)
+	matches := issueNumericPattern.FindAllStringSubmatch(content, -1)
+	for _, match := range matches {
+		if i, err := strconv.ParseInt(match[1][1:], 10, 64); err == nil {
+			if err = issue.checkCommentReference(e, refopts, issue.Repo, i); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (issue *Issue) checkCommentReference(e *xorm.Session, refopts *ParseReferencesOptions, repo *Repository, index int64) error {
+	log.Info("GAP: checkCommentReference() repo_id: %d, index #d", repo.ID, index)
+	refIssue := &Issue{RepoID: repo.ID, Index: index}
+	if has, _ := e.Get(refIssue); !has {
+		log.Info("GAP: checkCommentReference(): not found :(")
+		return nil
+	}
+	log.Info("GAP: checkCommentReference(): found! :D")
+	addCommentReference(e, refopts, refIssue)
+	return nil
+}
+
+func addCommentReference(e *xorm.Session, refopts *ParseReferencesOptions, referred *Issue) error {
+	if err := referred.loadRepo(e); err != nil {
+		return err
+	}
+	var refCommentID int64
+	if refopts.OrigComment != nil {
+		refCommentID = refopts.OrigComment.ID
+	}
+	_, err := createComment(e, &CreateCommentOptions{
+		Type:			refopts.Type,
+		Doer:			refopts.Doer,
+		Repo: 			referred.Repo,
+		Issue:			referred,
+		RefIssueID:		refopts.OrigIssue.ID,
+		RefCommentID:	refCommentID,
+	})
+	return err
 }

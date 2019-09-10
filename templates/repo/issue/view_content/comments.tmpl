@@ -104,11 +104,16 @@
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 			{{if .Issue.IsPull}}
-				{{$.i18n.Tr "repo.issues.ref_pull_at" .RefCommentHTMLURL .RefIssueName $createdStr | Safe}}
+				<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_pull_at" $createdStr | Safe}}</a>
 			{{else}}
-				{{$.i18n.Tr "repo.issues.ref_issue_at" .RefCommentHTMLURL .RefIssueName $createdStr | Safe}}
+				<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_issue_at" $createdStr | Safe}}</a>
 			{{end}}
 			</span>
+
+			<div class="detail">
+				<span class="octicon octicon-bookmark"></span>
+				<span class="text grey"><a href="{{.RefIssueHTMLURL}}"><b>{{.RefIssueTitle | Str2html}}</b> {{.RefIssueIdent | Str2html}}</a></span>
+			</div>
 		</div>
 	{{else if eq .Type 4}}
 		<div class="event">
