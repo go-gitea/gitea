@@ -75,7 +75,7 @@ var (
 	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. gogits/gogs#12345
-	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
+	// crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
 )
 
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sx]\]\s.)|(\n\s*[-*]\s\[[\sx]\]\s.)`
@@ -1880,6 +1880,7 @@ type ParseReferencesOptions struct {
 }
 
 func (issue *Issue) parseCommentReferences(e *xorm.Session, refopts *ParseReferencesOptions, content string) error {
+	// TODO: Check for multiple references to the same Issue
 	// Issues in the same repository
 	// FIXME: Should we support IssueNameStyleAlphanumeric?
 	matches := issueNumericPattern.FindAllStringSubmatch(content, -1)
@@ -1893,10 +1894,15 @@ func (issue *Issue) parseCommentReferences(e *xorm.Session, refopts *ParseRefere
 			}
 		}
 	}
+	// Issues in other repositories
+	// GAP: TODO: use crossReferenceIssueNumericPattern to parse references to other repos; take units into account (?)
 	return nil
 }
 
 func (issue *Issue) checkCommentReference(e *xorm.Session, refopts *ParseReferencesOptions, repoID int64, index int64) error {
+	if refopts.OrigIssue.RepoID == repoID && refopts.OrigIssue.Index == index {
+		return nil
+	}
 	refIssue := &Issue{RepoID: repoID, Index: index}
 	if has, _ := e.Get(refIssue); !has {
 		return nil
