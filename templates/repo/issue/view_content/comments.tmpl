@@ -98,7 +98,7 @@
 		</div>
 	{{else if or (eq .Type 3) (eq .Type 5) (eq .Type 6)}}
 		<div class="event">
-			<span class="octicon octicon-primitive-dot"></span>
+			<span class="octicon octicon-bookmark"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
@@ -111,7 +111,6 @@
 			</span>
 
 			<div class="detail">
-				<span class="octicon octicon-bookmark"></span>
 				<span class="text grey"><a href="{{.RefIssueHTMLURL}}"><b>{{.RefIssueTitle | Str2html}}</b> {{.RefIssueIdent | Str2html}}</a></span>
 			</div>
 		</div>
