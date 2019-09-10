@@ -417,6 +417,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .repo-header .ui.header{margin-top:0}
 .repository .repo-header .mega-octicon{width:30px;font-size:30px}
 .repository .repo-header .ui.huge.breadcrumb{font-weight:400;font-size:1.5rem}
+.repository .repo-header .ui.huge.breadcrumb i.mega-octicon{position:relative;top:5px}
+.repository .repo-header .ui.huge.breadcrumb i.octicon-lock{margin-left:5px}
 .repository .repo-header .fork-flag{margin-left:36px;margin-top:3px;display:block;font-size:12px;white-space:nowrap}
 .repository .repo-header .octicon.octicon-repo-forked{margin-top:-1px;font-size:15px}
 .repository .repo-header .button{margin-top:2px;margin-bottom:2px}
