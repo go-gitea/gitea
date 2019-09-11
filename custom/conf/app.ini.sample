@@ -302,6 +302,11 @@ REPO_INDEXER_ENABLED = false
 REPO_INDEXER_PATH = indexers/repos.bleve
 UPDATE_BUFFER_LEN = 20
 MAX_FILE_SIZE = 1048576
+; A comma separated list of glob patterns (see https://github.com/gobwas/glob) to include
+; in the index; default is empty
+REPO_INDEXER_INCLUDE =
+; A comma separated list of glob patterns to exclude from the index; ; default is empty
+REPO_INDEXER_EXCLUDE =
 
 [admin]
 ; Disallow regular (non-admin) users from creating organizations.
