@@ -144,18 +144,23 @@ type Comment struct {
 	Invalidated bool
 
 	// Reference issue and pull from comment
-	RefIssueID   int64    `xorm:"index"`
-	RefCommentID int64    `xorm:"index"`
-	RefIssue     *Issue   `xorm:"-"`
-	RefComment   *Comment `xorm:"-"`
+	RefIssueID   int64		`xorm:"index"`
+	RefCommentID int64		`xorm:"index"`
+	RefAction	 XRefAction	`xorm:"SMALLINT"`
+	RefIssue     *Issue		`xorm:"-"`
+	RefComment   *Comment	`xorm:"-"`
 }
 
 // LoadIssue loads issue from database
 func (c *Comment) LoadIssue() (err error) {
+	return c.loadIssue(x)
+}
+
+func (c *Comment) loadIssue(e Engine) (err error) {
 	if c.Issue != nil {
 		return nil
 	}
-	c.Issue, err = GetIssueByID(c.IssueID)
+	c.Issue, err = getIssueByID(e, c.IssueID)
 	return
 }
 
@@ -593,6 +598,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Patch:            opts.Patch,
 		RefIssueID:       opts.RefIssueID,
 		RefCommentID:     opts.RefCommentID,
+		RefAction:        opts.RefAction,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -608,7 +614,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 
 	// Check references to other issues/pulls
 	if opts.Type == CommentTypeCode || opts.Type == CommentTypeComment {
-		if err := comment.LoadIssue(); err != nil {
+		if err := comment.loadIssue(e); err != nil {
 			return nil, err
 		}
 		refopts := &ParseReferencesOptions{
@@ -878,6 +884,7 @@ type CreateCommentOptions struct {
 	Attachments      []string // UUIDs of attachments
 	RefIssueID       int64
 	RefCommentID     int64
+	RefAction        XRefAction
 }
 
 // CreateComment creates comment of issue or commit.
