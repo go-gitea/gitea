@@ -22,6 +22,9 @@ menu:
 
 Check our [CI/CD page]({{< relref "doc/advanced/ci-cd.en-us.md" >}})
 
+### Internationalization 
+[Weblate](https://docs.weblate.org/en/latest/admin/continuous.html#gitea-setup)
+
 ### Migrating
 [Installation script for Gitea](https://git.coolaj86.com/coolaj86/gitea-installer.sh)  
 [GitHub Migrator](https://gitea.com/gitea/migrator)
