@@ -67,6 +67,8 @@ type CreateRepoOption struct {
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// Whether the repository is private
 	Private bool `json:"private"`
+	// Issue Label set to use
+	IssueLabels string `json:"issue_labels"`
 	// Whether the repository should be auto-intialized?
 	AutoInit bool `json:"auto_init"`
 	// Gitignores to use
