@@ -1049,6 +1049,8 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 		return err
 	}
 
+	// GAP: TODO: remove/add cross references
+
 	mode, _ := AccessLevel(doer, c.Issue.Repo)
 	if err := PrepareWebhooks(c.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
 		Action:  api.HookIssueCommentEdited,

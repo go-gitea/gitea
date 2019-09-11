@@ -943,6 +943,8 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
+	// GAP: TODO: remove/add cross references
+
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
 		issue.PullRequest.Issue = issue
@@ -1783,6 +1785,7 @@ func SearchIssueIDsByKeyword(kw string, repoID int64, limit, start int) (int64, 
 }
 
 func updateIssue(e Engine, issue *Issue) error {
+	// GAP: TODO: remove/add cross references
 	_, err := e.ID(issue.ID).AllCols().Update(issue)
 	if err != nil {
 		return err
