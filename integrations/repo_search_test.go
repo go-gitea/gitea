@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -33,19 +34,41 @@ func TestSearchRepo(t *testing.T) {
 	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)
 
+	executeIndexer(t, repo, models.UpdateRepoIndexer)
+
+	testSearch(t, "/user2/repo1/search?q=Description&page=1", []string{"README.md"})
+
+	setting.Indexer.IncludePatterns = setting.IndexerGlobFromString("**.txt")
+	setting.Indexer.ExcludePatterns = setting.IndexerGlobFromString("**/y/**")
+
+	repo, err = models.GetRepositoryByOwnerAndName("user2", "glob")
+	assert.NoError(t, err)
+
+	executeIndexer(t, repo, models.DeleteRepoFromIndexer)
+	executeIndexer(t, repo, models.UpdateRepoIndexer)
+
+	testSearch(t, "/user2/glob/search?q=loren&page=1", []string{"a.txt"})
+	testSearch(t, "/user2/glob/search?q=file3&page=1", []string{"x/b.txt"})
+	testSearch(t, "/user2/glob/search?q=file4&page=1", []string{})
+	testSearch(t, "/user2/glob/search?q=file5&page=1", []string{})
+}
+
+func testSearch(t *testing.T, url string, expected []string) {
+	req := NewRequestf(t, "GET", url)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	filenames := resultFilenames(t, NewHTMLParser(t, resp.Body))
+	assert.EqualValues(t, expected, filenames)
+}
+
+func executeIndexer(t *testing.T, repo *models.Repository, op func(*models.Repository, ...chan<- error)) {
 	waiter := make(chan error, 1)
-	models.UpdateRepoIndexer(repo, waiter)
+	op(repo, waiter)
 
 	select {
 	case err := <-waiter:
 		assert.NoError(t, err)
 	case <-time.After(1 * time.Minute):
-		assert.Fail(t, "UpdateRepoIndexer took too long")
+		assert.Fail(t, "Repository indexer took too long")
 	}
-
-	req := NewRequestf(t, "GET", "/user2/repo1/search?q=Description&page=1")
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	filenames := resultFilenames(t, NewHTMLParser(t, resp.Body))
-	assert.EqualValues(t, []string{"README.md"}, filenames)
 }
