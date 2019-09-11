@@ -15,10 +15,10 @@ var (
 	// TODO: Unify all regexp treatment of cross references in one place
 
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(?:#)([0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. gogits/gogs#12345
-	// crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
+	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+)#([0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
 )
 
 // XRefAction represents the kind of effect a cross reference has once is resolved
@@ -67,11 +67,11 @@ func (issue *Issue) getCrossReferences(e *xorm.Session, refopts *ParseReferences
 	// FIXME: Should we support IssueNameStyleAlphanumeric?
 	matches := issueNumericPattern.FindAllStringSubmatch(content, -1)
 	for _, match := range matches {
-		if i, err := strconv.ParseInt(match[1][1:], 10, 64); err == nil {
+		if index, err := strconv.ParseInt(match[1], 10, 64); err == nil {
 			if err = refopts.OrigIssue.loadRepo(e); err != nil {
 				return nil, err
 			}
-			if xref, err = issue.checkCommentReference(e, refopts, issue.Repo, i); err != nil {
+			if xref, err = issue.checkCommentReference(e, refopts, issue.Repo, index); err != nil {
 				return nil, err
 			}
 			if xref != nil {
@@ -81,7 +81,27 @@ func (issue *Issue) getCrossReferences(e *xorm.Session, refopts *ParseReferences
 	}
 
 	// Issues in other repositories
-	// GAP: TODO: use crossReferenceIssueNumericPattern to parse references to other repos
+	matches = crossReferenceIssueNumericPattern.FindAllStringSubmatch(content, -1)
+	for _, match := range matches {
+		if index, err := strconv.ParseInt(match[3], 10, 64); err == nil {
+			repo, err := GetRepositoryByOwnerAndName(match[1], match[2])
+			if err != nil {
+				if IsErrRepoNotExist(err) {
+					continue
+				}
+				return nil, err
+			}
+			if err = refopts.OrigIssue.loadRepo(e); err != nil {
+				return nil, err
+			}
+			if xref, err = issue.checkCommentReference(e, refopts, repo, index); err != nil {
+				return nil, err
+			}
+			if xref != nil {
+				xreflist = issue.updateCrossReferenceList(xreflist, xref)
+			}
+		}
+	}
 
 	return xreflist, nil
 }
