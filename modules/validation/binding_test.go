@@ -26,8 +26,9 @@ type (
 	}
 
 	TestForm struct {
-		BranchName string `form:"BranchName" binding:"GitRefName"`
-		URL        string `form:"ValidUrl" binding:"ValidUrl"`
+		BranchName  string `form:"BranchName" binding:"GitRefName"`
+		URL         string `form:"ValidUrl" binding:"ValidUrl"`
+		GlobPattern string `form:"GlobPattern" binding:"GlobPattern"`
 	}
 )
 
