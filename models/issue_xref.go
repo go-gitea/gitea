@@ -26,16 +26,16 @@ type XRefAction int64
 
 const (
 	// XRefActionNone means the cross-reference is a mention (commit, etc.)
-	XRefActionNone			XRefAction = iota
+	XRefActionNone XRefAction = iota
 	// XRefActionCloses means the cross-reference should close an issue if it is resolved
-	XRefActionCloses		// Not implemented yet
+	XRefActionCloses // Not implemented yet
 	// XRefActionReopens means the cross-reference should reopen an issue if it is resolved
-	XRefActionReopens		// Not implemented yet
+	XRefActionReopens // Not implemented yet
 )
 
 type crossReference struct {
-	Issue		*Issue
-	Action		XRefAction
+	Issue  *Issue
+	Action XRefAction
 }
 
 // ParseReferencesOptions represents a comment or issue that might make references to other issues
@@ -60,7 +60,7 @@ func (issue *Issue) parseCommentReferences(e *xorm.Session, refopts *ParseRefere
 }
 
 func (issue *Issue) getCrossReferences(e *xorm.Session, refopts *ParseReferencesOptions, content string) ([]*crossReference, error) {
-	xreflist := make([]*crossReference,0,5)
+	xreflist := make([]*crossReference, 0, 5)
 	var xref *crossReference
 
 	// Issues in the same repository
@@ -108,7 +108,7 @@ func (issue *Issue) checkCommentReference(e *xorm.Session, refopts *ParseReferen
 	}
 	if err := refIssue.loadRepo(e); err != nil {
 		return nil, err
-	}	
+	}
 	// Check user permissions
 	if refIssue.Repo.ID != refopts.OrigIssue.Repo.ID {
 		perm, err := getUserRepoPermission(e, refIssue.Repo, refopts.Doer)
@@ -119,8 +119,8 @@ func (issue *Issue) checkCommentReference(e *xorm.Session, refopts *ParseReferen
 			return nil, nil
 		}
 	}
-	return &crossReference {
-		Issue: refIssue,
+	return &crossReference{
+		Issue:  refIssue,
 		Action: XRefActionNone,
 	}, nil
 }

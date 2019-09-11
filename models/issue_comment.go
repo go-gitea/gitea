@@ -144,11 +144,11 @@ type Comment struct {
 	Invalidated bool
 
 	// Reference issue and pull from comment
-	RefIssueID   int64		`xorm:"index"`
-	RefCommentID int64		`xorm:"index"`
-	RefAction	 XRefAction	`xorm:"SMALLINT"`
-	RefIssue     *Issue		`xorm:"-"`
-	RefComment   *Comment	`xorm:"-"`
+	RefIssueID   int64      `xorm:"index"`
+	RefCommentID int64      `xorm:"index"`
+	RefAction    XRefAction `xorm:"SMALLINT"`
+	RefIssue     *Issue     `xorm:"-"`
+	RefComment   *Comment   `xorm:"-"`
 }
 
 // LoadIssue loads issue from database
