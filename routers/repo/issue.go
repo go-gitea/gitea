@@ -648,6 +648,12 @@ func ViewIssue(ctx *context.Context) {
 		return
 	}
 
+	err = filterXRefComments(ctx, issue)
+	if err != nil {
+		ctx.ServerError("GetIssueByIndex", err)
+		return
+	}
+
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
 
 	var iw *models.IssueWatch
@@ -1570,4 +1576,27 @@ func addParticipant(poster *models.User, participants []*models.User) []*models.
 		}
 	}
 	return append(participants, poster)
+}
+
+func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
+	// Remove comments that the user has no permissions to see
+	for i := 0; i < len(issue.Comments); {
+		c := issue.Comments[i]
+		if models.CommentTypeIsRef(c.Type) && c.RefRepoID != issue.RepoID && c.RefRepoID != 0 {
+			repo, err := models.GetRepositoryByID(c.RefRepoID)
+			if err != nil {
+				return err
+			}
+			perm, err := models.GetUserRepoPermission(repo, ctx.User)
+			if err != nil {
+				return err
+			}
+			if !perm.CanReadIssuesOrPulls(c.RefIsPull) {
+				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
+				continue
+			}
+		}
+		i++
+	}
+	return nil
 }

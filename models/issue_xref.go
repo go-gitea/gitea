@@ -135,9 +135,11 @@ func addCommentReference(e *xorm.Session, refopts *ParseReferencesOptions, xref 
 		Doer:         refopts.Doer,
 		Repo:         xref.Issue.Repo,
 		Issue:        xref.Issue,
+		RefRepoID:    refopts.OrigIssue.RepoID,
 		RefIssueID:   refopts.OrigIssue.ID,
 		RefCommentID: refCommentID,
 		RefAction:    xref.Action,
+		RefIsPull:    xref.Issue.IsPull,
 	})
 	return err
 }

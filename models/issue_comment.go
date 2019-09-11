@@ -144,11 +144,13 @@ type Comment struct {
 	Invalidated bool
 
 	// Reference issue and pull from comment
+	RefRepoID    int64      `xorm:"index"`
 	RefIssueID   int64      `xorm:"index"`
 	RefCommentID int64      `xorm:"index"`
 	RefAction    XRefAction `xorm:"SMALLINT"`
-	RefIssue     *Issue     `xorm:"-"`
-	RefComment   *Comment   `xorm:"-"`
+	RefIsPull    bool
+	RefIssue     *Issue   `xorm:"-"`
+	RefComment   *Comment `xorm:"-"`
 }
 
 // LoadIssue loads issue from database
@@ -596,9 +598,11 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		TreePath:         opts.TreePath,
 		ReviewID:         opts.ReviewID,
 		Patch:            opts.Patch,
+		RefRepoID:        opts.RefRepoID,
 		RefIssueID:       opts.RefIssueID,
 		RefCommentID:     opts.RefCommentID,
 		RefAction:        opts.RefAction,
+		RefIsPull:        opts.RefIsPull,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -882,9 +886,11 @@ type CreateCommentOptions struct {
 	ReviewID         int64
 	Content          string
 	Attachments      []string // UUIDs of attachments
+	RefRepoID        int64
 	RefIssueID       int64
 	RefCommentID     int64
 	RefAction        XRefAction
+	RefIsPull        bool
 }
 
 // CreateComment creates comment of issue or commit.
@@ -1202,4 +1208,9 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
 func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 	return fetchCodeComments(x, issue, currentUser)
+}
+
+// CommentTypeIsRef returns true if CommentType is a reference from another issue
+func CommentTypeIsRef(t CommentType) bool {
+	return t == CommentTypeCommentRef || t == CommentTypePullRef || t == CommentTypeIssueRef
 }
