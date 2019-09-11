@@ -19,6 +19,7 @@ import (
 	"github.com/markbates/goth/providers/discord"
 	"github.com/markbates/goth/providers/dropbox"
 	"github.com/markbates/goth/providers/facebook"
+	"github.com/markbates/goth/providers/gitea"
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/gitlab"
 	"github.com/markbates/goth/providers/gplus"
@@ -175,6 +176,22 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 		provider = twitter.NewAuthenticate(clientID, clientSecret, callbackURL)
 	case "discord":
 		provider = discord.New(clientID, clientSecret, callbackURL, discord.ScopeIdentify, discord.ScopeEmail)
+	case "gitea":
+		authURL := gitea.AuthURL
+		tokenURL := gitea.TokenURL
+		profileURL := gitea.ProfileURL
+		if customURLMapping != nil {
+			if len(customURLMapping.AuthURL) > 0 {
+				authURL = customURLMapping.AuthURL
+			}
+			if len(customURLMapping.TokenURL) > 0 {
+				tokenURL = customURLMapping.TokenURL
+			}
+			if len(customURLMapping.ProfileURL) > 0 {
+				profileURL = customURLMapping.ProfileURL
+			}
+		}
+		provider = gitea.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL)
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider
@@ -192,6 +209,8 @@ func GetDefaultTokenURL(provider string) string {
 		return github.TokenURL
 	case "gitlab":
 		return gitlab.TokenURL
+	case "gitea":
+		return gitea.TokenURL
 	}
 	return ""
 }
@@ -203,6 +222,8 @@ func GetDefaultAuthURL(provider string) string {
 		return github.AuthURL
 	case "gitlab":
 		return gitlab.AuthURL
+	case "gitea":
+		return gitea.AuthURL
 	}
 	return ""
 }
@@ -214,6 +235,8 @@ func GetDefaultProfileURL(provider string) string {
 		return github.ProfileURL
 	case "gitlab":
 		return gitlab.ProfileURL
+	case "gitea":
+		return gitea.ProfileURL
 	}
 	return ""
 }
