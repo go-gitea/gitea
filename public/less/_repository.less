@@ -277,6 +277,24 @@
                 .ui.avatar {
                     margin-bottom: 5px;
                 }
+
+                .commit-summary a {
+                    text-decoration: underline;
+                    text-decoration-style: dashed;
+
+                    &:hover {
+                        text-decoration-style: solid;
+                    }
+
+                    &.default-link {
+                        text-decoration: none;
+
+                        &:hover {
+                            text-decoration: underline;
+                            text-decoration-style: solid;
+                        }
+                    }
+                }
             }
 
             tbody {
@@ -2186,6 +2204,24 @@ tbody.commit-list {
     max-width: calc(100% - 50px);
     display: inline-block;
     vertical-align: middle;
+}
+
+.commit-list .commit-summary a {
+    text-decoration: underline;
+    text-decoration-style: dashed;
+
+    &:hover {
+        text-decoration-style: solid;
+    }
+
+    &.default-link {
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+            text-decoration-style: solid;
+        }
+    }
 }
 
 .commit-list .commit-status-link {
