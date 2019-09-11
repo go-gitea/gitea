@@ -7,7 +7,6 @@
 package models
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 
@@ -15,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -488,32 +486,6 @@ func (c *Comment) UnsignedLine() uint64 {
 	return uint64(c.Line)
 }
 
-// AsDiff returns c.Patch as *Diff
-func (c *Comment) AsDiff() (*Diff, error) {
-	diff, err := ParsePatch(setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch))
-	if err != nil {
-		return nil, err
-	}
-	if len(diff.Files) == 0 {
-		return nil, fmt.Errorf("no file found for comment ID: %d", c.ID)
-	}
-	secs := diff.Files[0].Sections
-	if len(secs) == 0 {
-		return nil, fmt.Errorf("no sections found for comment ID: %d", c.ID)
-	}
-	return diff, nil
-}
-
-// MustAsDiff executes AsDiff and logs the error instead of returning
-func (c *Comment) MustAsDiff() *Diff {
-	diff, err := c.AsDiff()
-	if err != nil {
-		log.Warn("MustAsDiff: %v", err)
-	}
-	return diff
-}
-
 // CodeCommentURL returns the url to a comment in code
 func (c *Comment) CodeCommentURL() string {
 	err := c.LoadIssue()
@@ -871,59 +843,6 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 		go HookQueue.Add(repo.ID)
 	}
 	return comment, nil
-}
-
-// CreateCodeComment creates a plain code comment at the specified line / path
-func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, treePath string, line, reviewID int64) (*Comment, error) {
-	var commitID, patch string
-	pr, err := GetPullRequestByIssueID(issue.ID)
-	if err != nil {
-		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
-	}
-	if err := pr.GetBaseRepo(); err != nil {
-		return nil, fmt.Errorf("GetHeadRepo: %v", err)
-	}
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %v", err)
-	}
-
-	// FIXME validate treePath
-	// Get latest commit referencing the commented line
-	// No need for get commit for base branch changes
-	if line > 0 {
-		commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(line))
-		if err == nil {
-			commitID = commit.ID.String()
-		} else if !strings.Contains(err.Error(), "exit status 128 - fatal: no such path") {
-			return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
-		}
-	}
-
-	// Only fetch diff if comment is review comment
-	if reviewID != 0 {
-		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
-		if err != nil {
-			return nil, fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
-		}
-		patchBuf := new(bytes.Buffer)
-		if err := GetRawDiffForFile(gitRepo.Path, pr.MergeBase, headCommitID, RawDiffNormal, treePath, patchBuf); err != nil {
-			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", err, gitRepo.Path, pr.MergeBase, headCommitID, treePath)
-		}
-		patch = CutDiffAroundLine(patchBuf, int64((&Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
-	}
-	return CreateComment(&CreateCommentOptions{
-		Type:      CommentTypeCode,
-		Doer:      doer,
-		Repo:      repo,
-		Issue:     issue,
-		Content:   content,
-		LineNum:   line,
-		TreePath:  treePath,
-		CommitSHA: commitID,
-		ReviewID:  reviewID,
-		Patch:     patch,
-	})
 }
 
 // CreateRefComment creates a commit reference comment to issue.

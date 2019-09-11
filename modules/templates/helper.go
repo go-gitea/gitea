@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
 
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
 )
@@ -117,13 +118,14 @@ func NewFuncMap() []template.FuncMap {
 		"EscapePound": func(str string) string {
 			return strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(str)
 		},
-		"PathEscapeSegments":       util.PathEscapeSegments,
-		"URLJoin":                  util.URLJoin,
-		"RenderCommitMessage":      RenderCommitMessage,
-		"RenderCommitMessageLink":  RenderCommitMessageLink,
-		"RenderCommitBody":         RenderCommitBody,
-		"RenderNote":               RenderNote,
-		"IsMultilineCommitMessage": IsMultilineCommitMessage,
+		"PathEscapeSegments":             util.PathEscapeSegments,
+		"URLJoin":                        util.URLJoin,
+		"RenderCommitMessage":            RenderCommitMessage,
+		"RenderCommitMessageLink":        RenderCommitMessageLink,
+		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
+		"RenderCommitBody":               RenderCommitBody,
+		"RenderNote":                     RenderNote,
+		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
 		},
@@ -230,6 +232,7 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return float32(n) * 100 / float32(sum)
 		},
+		"CommentMustAsDiff": gitdiff.CommentMustAsDiff,
 	}}
 }
 
@@ -311,6 +314,24 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, urlDefault, metas)
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
+		return ""
+	}
+	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
+	if len(msgLines) == 0 {
+		return template.HTML("")
+	}
+	return template.HTML(msgLines[0])
+}
+
+// RenderCommitMessageLinkSubject renders commit message as a XXS-safe link to
+// the provided default url, handling for special links without email to links.
+func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
+	cleanMsg := template.HTMLEscapeString(msg)
+	// we can safely assume that it will not return any error, since there
+	// shouldn't be any special HTML.
+	fullMessage, err := markup.RenderCommitMessageSubject([]byte(cleanMsg), urlPrefix, urlDefault, metas)
+	if err != nil {
+		log.Error("RenderCommitMessageSubject: %v", err)
 		return ""
 	}
 	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")

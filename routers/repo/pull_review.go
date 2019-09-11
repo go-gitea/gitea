@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	pull_service "code.gitea.io/gitea/modules/pull"
+	comment_service "code.gitea.io/gitea/services/comments"
 )
 
 // CreateCodeComment will create a code comment including an pending review if required
@@ -69,7 +70,7 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 		review.ID = form.Reply
 	}
 	//FIXME check if line, commit and treepath exist
-	comment, err := models.CreateCodeComment(
+	comment, err := comment_service.CreateCodeComment(
 		ctx.User,
 		issue.Repo,
 		issue,
