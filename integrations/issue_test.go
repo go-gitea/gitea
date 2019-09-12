@@ -163,11 +163,11 @@ func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, 
 	val := htmlDoc.doc.Find(".comment-list .comments .comment .render-content p").Eq(commentCount).Text()
 	assert.Equal(t, content, val)
 
-	idStr, has := htmlDoc.doc.Find(".comment-list .comments .comment").Eq(commentCount).Attr("id")
+	idAttr, has := htmlDoc.doc.Find(".comment-list .comments .comment").Eq(commentCount).Attr("id")
+	idStr := idAttr[strings.LastIndexByte(idAttr, '-')+1:]
 	assert.True(t, has)
 	id, err := strconv.Atoi(idStr)
 	assert.NoError(t, err)
-
 	return int64(id)
 }
 
