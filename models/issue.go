@@ -874,7 +874,7 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 	if err = issue.neuterReferencingComments(sess); err != nil {
 		return err
 	}
-	
+
 	if err = issue.addIssueReferences(sess, doer); err != nil {
 		return err
 	}

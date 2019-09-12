@@ -26,13 +26,13 @@ type XRefAction int64
 
 const (
 	// XRefActionNone means the cross-reference is a mention (commit, etc.)
-	XRefActionNone XRefAction = iota		// 0
+	XRefActionNone XRefAction = iota // 0
 	// XRefActionCloses means the cross-reference should close an issue if it is resolved
-	XRefActionCloses						// 1 - not implemented yet
+	XRefActionCloses // 1 - not implemented yet
 	// XRefActionReopens means the cross-reference should reopen an issue if it is resolved
-	XRefActionReopens						// 2 - Not implemented yet
+	XRefActionReopens // 2 - Not implemented yet
 	// XRefActionNeutered means the cross-reference will no longer affect the source
-	XRefActionNeutered						// 3
+	XRefActionNeutered // 3
 )
 
 type crossReference struct {
@@ -54,7 +54,7 @@ func (issue *Issue) addIssueReferences(e *xorm.Session, doer *User) error {
 		Doer:      doer,
 		OrigIssue: issue,
 	}
-	return issue.findCrossReferences(e, ctx, issue.Title + "\n" + issue.Content)
+	return issue.findCrossReferences(e, ctx, issue.Title+"\n"+issue.Content)
 }
 
 func (comment *Comment) addCommentReferences(e *xorm.Session, doer *User) error {

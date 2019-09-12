@@ -145,15 +145,15 @@ type Comment struct {
 
 	// Reference an issue or pull from another comment, issue or PR
 	// All information is about the origin of the reference
-	RefRepoID    int64      `xorm:"index"`		// Repo where the referencing 
+	RefRepoID    int64      `xorm:"index"` // Repo where the referencing
 	RefIssueID   int64      `xorm:"index"`
-	RefCommentID int64      `xorm:"index"`		// 0 if origin is Issue title or content (or PR's)
-	RefAction    XRefAction `xorm:"SMALLINT"`	// What hapens if RefIssueID resolves
+	RefCommentID int64      `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
+	RefAction    XRefAction `xorm:"SMALLINT"` // What hapens if RefIssueID resolves
 	RefIsPull    bool
 
-	RefRepo      *Repository `xorm:"-"`
-	RefIssue     *Issue      `xorm:"-"`
-	RefComment   *Comment    `xorm:"-"`
+	RefRepo    *Repository `xorm:"-"`
+	RefIssue   *Issue      `xorm:"-"`
+	RefComment *Comment    `xorm:"-"`
 }
 
 // LoadIssue loads issue from database
