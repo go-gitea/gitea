@@ -67,7 +67,6 @@ func ListIssueComments(ctx *context.APIContext) {
 		ctx.Error(500, "FindComments", err)
 		return
 	}
-	// GAP: TODO: filter out cross-references
 
 	if err := models.CommentList(comments).LoadPosters(); err != nil {
 		ctx.Error(500, "LoadPosters", err)
