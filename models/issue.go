@@ -595,8 +595,9 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
+	sess.Close()
 
-	if err = issue.loadPoster(x); err != nil {
+	if err = issue.LoadPoster(); err != nil {
 		return fmt.Errorf("loadPoster: %v", err)
 	}
 
@@ -870,9 +871,18 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 		return fmt.Errorf("createChangeTitleComment: %v", err)
 	}
 
+	if err = issue.neuterReferencingComments(sess); err != nil {
+		return err
+	}
+	
+	if err = issue.addIssueReferences(sess, doer); err != nil {
+		return err
+	}
+
 	if err = sess.Commit(); err != nil {
 		return err
 	}
+	sess.Close()
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
@@ -939,11 +949,26 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	oldContent := issue.Content
 	issue.Content = content
 
-	if err = UpdateIssueCols(issue, "content"); err != nil {
-		return fmt.Errorf("UpdateIssueCols: %v", err)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
 	}
 
-	// GAP: TODO: remove/add cross references
+	if err = updateIssueCols(sess, issue, "content"); err != nil {
+		return fmt.Errorf("UpdateIssueCols: %v", err)
+	}
+	if err = issue.neuterReferencingComments(sess); err != nil {
+		return err
+	}
+	if err = issue.addIssueReferences(sess, doer); err != nil {
+		return err
+	}
+
+	if err = sess.Commit(); err != nil {
+		return err
+	}
+	sess.Close()
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
@@ -1203,6 +1228,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
+	sess.Close()
 
 	if err = NotifyWatchers(&Action{
 		ActUserID: issue.Poster.ID,
@@ -1780,7 +1806,6 @@ func SearchIssueIDsByKeyword(kw string, repoID int64, limit, start int) (int64, 
 }
 
 func updateIssue(e Engine, issue *Issue) error {
-	// GAP: TODO: remove/add cross references
 	_, err := e.ID(issue.ID).AllCols().Update(issue)
 	if err != nil {
 		return err

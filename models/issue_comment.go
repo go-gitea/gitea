@@ -143,14 +143,16 @@ type Comment struct {
 	ReviewID    int64   `xorm:"index"`
 	Invalidated bool
 
-	// Reference issue and pull from comment
-	RefRepoID    int64      `xorm:"index"`
+	// Reference an issue or pull from another comment, issue or PR
+	// All information is about the origin of the reference
+	RefRepoID    int64      `xorm:"index"`		// Repo where the referencing 
 	RefIssueID   int64      `xorm:"index"`
-	RefCommentID int64      `xorm:"index"`
-	RefAction    XRefAction `xorm:"SMALLINT"`
+	RefCommentID int64      `xorm:"index"`		// 0 if origin is Issue title or content (or PR's)
+	RefAction    XRefAction `xorm:"SMALLINT"`	// What hapens if RefIssueID resolves
 	RefIsPull    bool
-	RefIssue     *Issue      `xorm:"-"`
+
 	RefRepo      *Repository `xorm:"-"`
+	RefIssue     *Issue      `xorm:"-"`
 	RefComment   *Comment    `xorm:"-"`
 }
 
@@ -1022,27 +1024,31 @@ func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
 func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	sess := x.NewSession()
 	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
 	if _, err := sess.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
 	}
-
-	if err := c.LoadPoster(); err != nil {
-		return err
-	}
-	if err := c.LoadIssue(); err != nil {
-		return err
-	}
-
-	if err := c.Issue.LoadAttributes(); err != nil {
-		return err
-	}
-	if err := c.loadPoster(sess); err != nil {
+	if err := c.loadIssue(sess); err != nil {
 		return err
 	}
 	if err := c.neuterReferencingComments(sess); err != nil {
 		return err
 	}
 	if err := c.addCommentReferences(sess, doer); err != nil {
+		return err
+	}
+	if err := sess.Commit(); err != nil {
+		return fmt.Errorf("Commit: %v", err)
+	}
+	sess.Close()
+
+	if err := c.LoadPoster(); err != nil {
+		return err
+	}
+	if err := c.Issue.LoadAttributes(); err != nil {
 		return err
 	}
 
@@ -1087,6 +1093,10 @@ func DeleteComment(doer *User, comment *Comment) error {
 		}
 	}
 	if _, err := sess.Where("comment_id = ?", comment.ID).Cols("is_deleted").Update(&Action{IsDeleted: true}); err != nil {
+		return err
+	}
+
+	if err := comment.neuterReferencingComments(sess); err != nil {
 		return err
 	}
 

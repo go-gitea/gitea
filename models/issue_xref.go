@@ -26,13 +26,13 @@ type XRefAction int64
 
 const (
 	// XRefActionNone means the cross-reference is a mention (commit, etc.)
-	XRefActionNone XRefAction = iota
+	XRefActionNone XRefAction = iota		// 0
 	// XRefActionCloses means the cross-reference should close an issue if it is resolved
-	XRefActionCloses // Not implemented yet
+	XRefActionCloses						// 1 - not implemented yet
 	// XRefActionReopens means the cross-reference should reopen an issue if it is resolved
-	XRefActionReopens // Not implemented yet
+	XRefActionReopens						// 2 - Not implemented yet
 	// XRefActionNeutered means the cross-reference will no longer affect the source
-	XRefActionNeutered
+	XRefActionNeutered						// 3
 )
 
 type crossReference struct {
@@ -46,6 +46,31 @@ type crossReferencesContext struct {
 	Doer        *User
 	OrigIssue   *Issue
 	OrigComment *Comment
+}
+
+func (issue *Issue) addIssueReferences(e *xorm.Session, doer *User) error {
+	ctx := &crossReferencesContext{
+		Type:      CommentTypeIssueRef,
+		Doer:      doer,
+		OrigIssue: issue,
+	}
+	return issue.findCrossReferences(e, ctx, issue.Title + "\n" + issue.Content)
+}
+
+func (comment *Comment) addCommentReferences(e *xorm.Session, doer *User) error {
+	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
+		return nil
+	}
+	if err := comment.loadIssue(e); err != nil {
+		return err
+	}
+	ctx := &crossReferencesContext{
+		Type:        CommentTypeCommentRef,
+		Doer:        doer,
+		OrigIssue:   comment.Issue,
+		OrigComment: comment,
+	}
+	return comment.Issue.findCrossReferences(e, ctx, comment.Content)
 }
 
 func (issue *Issue) findCrossReferences(e *xorm.Session, ctx *crossReferencesContext, content string) error {
@@ -166,36 +191,24 @@ func newCrossReference(e *xorm.Session, ctx *crossReferencesContext, xref *cross
 	return err
 }
 
-func (issue *Issue) addIssueReferences(e *xorm.Session, doer *User) error {
-	ctx := &crossReferencesContext{
-		Type:      CommentTypeIssueRef,
-		Doer:      doer,
-		OrigIssue: issue,
-	}
-	return issue.findCrossReferences(e, ctx, issue.Content)
-}
-
-func (comment *Comment) addCommentReferences(e *xorm.Session, doer *User) error {
-	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
-		return nil
-	}
-	if err := comment.loadIssue(e); err != nil {
-		return err
-	}
-	ctx := &crossReferencesContext{
-		Type:        CommentTypeCommentRef,
-		Doer:        doer,
-		OrigIssue:   comment.Issue,
-		OrigComment: comment,
-	}
-	return comment.Issue.findCrossReferences(e, ctx, comment.Content)
+func (issue *Issue) neuterReferencingComments(e Engine) error {
+	return neuterReferencingComments(e, issue.ID, 0)
 }
 
 func (comment *Comment) neuterReferencingComments(e Engine) error {
+	return neuterReferencingComments(e, 0, comment.ID)
+}
+
+func neuterReferencingComments(e Engine, issueID int64, commentID int64) error {
 	active := make([]*Comment, 0, 10)
-	err := e.Where("`ref_comment_id` = ?", comment.ID).
-		And("`ref_action` IN (?, ?)", XRefActionCloses, XRefActionReopens).
-		Find(&active)
+	sess := e.Where("`ref_action` IN (?, ?, ?)", XRefActionNone, XRefActionCloses, XRefActionReopens)
+	if issueID != 0 {
+		sess = sess.And("`ref_issue_id` = ?", issueID)
+	}
+	if commentID != 0 {
+		sess = sess.And("`ref_comment_id` = ?", commentID)
+	}
+	err := sess.Find(&active)
 	if err != nil || len(active) == 0 {
 		return err
 	}
