@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
@@ -161,6 +162,13 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 
 		fd, exists := sd.fm[name]
 		if !exists {
+			// if the original name isn't found in the struct description, try again with the name in lowercase
+			// this could match if a BSON tag isn't specified because by default, describeStruct lowercases all field
+			// names
+			fd, exists = sd.fm[strings.ToLower(name)]
+		}
+
+		if !exists {
 			if sd.inlineMap < 0 {
 				// The encoding/json package requires a flag to return on error for non-existent fields.
 				// This functionality seems appropriate for the struct codec.
@@ -195,7 +203,7 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 		}
 		field = field.Addr()
 
-		dctx := DecodeContext{Registry: r.Registry, Truncate: fd.truncate}
+		dctx := DecodeContext{Registry: r.Registry, Truncate: fd.truncate || r.Truncate}
 		if fd.decoder == nil {
 			return ErrNoDecoder{Type: field.Elem().Type()}
 		}
