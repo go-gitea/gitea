@@ -149,8 +149,9 @@ type Comment struct {
 	RefCommentID int64      `xorm:"index"`
 	RefAction    XRefAction `xorm:"SMALLINT"`
 	RefIsPull    bool
-	RefIssue     *Issue   `xorm:"-"`
-	RefComment   *Comment `xorm:"-"`
+	RefIssue     *Issue      `xorm:"-"`
+	RefRepo      *Repository `xorm:"-"`
+	RefComment   *Comment    `xorm:"-"`
 }
 
 // LoadIssue loads issue from database
@@ -616,20 +617,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		return nil, err
 	}
 
-	// Check references to other issues/pulls
-	if opts.Type == CommentTypeCode || opts.Type == CommentTypeComment {
-		if err := comment.loadIssue(e); err != nil {
-			return nil, err
-		}
-		refopts := &ParseReferencesOptions{
-			Type:        CommentTypeCommentRef,
-			Doer:        opts.Doer,
-			OrigIssue:   comment.Issue,
-			OrigComment: comment,
-		}
-		if err = comment.Issue.parseCommentReferences(e, refopts, opts.Content); err != nil {
-			return nil, err
-		}
+	if err = comment.addCommentReferences(e, opts.Doer); err != nil {
+		return nil, err
 	}
 
 	return comment, nil
@@ -1031,7 +1020,9 @@ func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
 
 // UpdateComment updates information of comment.
 func UpdateComment(doer *User, c *Comment, oldContent string) error {
-	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
+	sess := x.NewSession()
+	defer sess.Close()
+	if _, err := sess.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
 	}
 
@@ -1045,11 +1036,15 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	if err := c.Issue.LoadAttributes(); err != nil {
 		return err
 	}
-	if err := c.loadPoster(x); err != nil {
+	if err := c.loadPoster(sess); err != nil {
 		return err
 	}
-
-	// GAP: TODO: remove/add cross references
+	if err := c.neuterReferencingComments(sess); err != nil {
+		return err
+	}
+	if err := c.addCommentReferences(sess, doer); err != nil {
+		return err
+	}
 
 	mode, _ := AccessLevel(doer, c.Issue.Repo)
 	if err := PrepareWebhooks(c.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
@@ -1111,6 +1106,9 @@ func DeleteComment(doer *User, comment *Comment) error {
 		return err
 	}
 	if err := comment.loadPoster(x); err != nil {
+		return err
+	}
+	if err := comment.neuterReferencingComments(x); err != nil {
 		return err
 	}
 

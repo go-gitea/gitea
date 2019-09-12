@@ -103,10 +103,18 @@
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-			{{if .Issue.IsPull}}
-				<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_pull_at" $createdStr | Safe}}</a>
+			{{if (eq .RefRepoID .Issue.RepoID)}}
+				{{if .Issue.IsPull}}
+					<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_pull_at" $createdStr | Safe}}</a>
+				{{else}}
+					<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_issue_at" $createdStr | Safe}}</a>
+				{{end}}
 			{{else}}
-				<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_issue_at" $createdStr | Safe}}</a>
+				{{if .Issue.IsPull}}
+					<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_pull_ext_at" .RefRepo.FullName $createdStr | Safe}}</a>
+				{{else}}
+					<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_issue_ext_at" .RefRepo.FullName $createdStr | Safe}}</a>
+				{{end}}
 			{{end}}
 			</span>
 

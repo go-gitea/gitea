@@ -31,6 +31,8 @@ const (
 	XRefActionCloses // Not implemented yet
 	// XRefActionReopens means the cross-reference should reopen an issue if it is resolved
 	XRefActionReopens // Not implemented yet
+	// XRefActionNeutered means the cross-reference will no longer affect the source
+	XRefActionNeutered
 )
 
 type crossReference struct {
@@ -38,28 +40,28 @@ type crossReference struct {
 	Action XRefAction
 }
 
-// ParseReferencesOptions represents a comment or issue that might make references to other issues
-type ParseReferencesOptions struct {
+// crossReferencesContext is context to pass along findCrossReference functions
+type crossReferencesContext struct {
 	Type        CommentType
 	Doer        *User
 	OrigIssue   *Issue
 	OrigComment *Comment
 }
 
-func (issue *Issue) parseCommentReferences(e *xorm.Session, refopts *ParseReferencesOptions, content string) error {
-	xreflist, err := issue.getCrossReferences(e, refopts, content)
+func (issue *Issue) findCrossReferences(e *xorm.Session, ctx *crossReferencesContext, content string) error {
+	xreflist, err := ctx.OrigIssue.getCrossReferences(e, ctx, content)
 	if err != nil {
 		return err
 	}
 	for _, xref := range xreflist {
-		if err = addCommentReference(e, refopts, xref); err != nil {
+		if err = newCrossReference(e, ctx, xref); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (issue *Issue) getCrossReferences(e *xorm.Session, refopts *ParseReferencesOptions, content string) ([]*crossReference, error) {
+func (issue *Issue) getCrossReferences(e Engine, ctx *crossReferencesContext, content string) ([]*crossReference, error) {
 	xreflist := make([]*crossReference, 0, 5)
 	var xref *crossReference
 
@@ -68,14 +70,14 @@ func (issue *Issue) getCrossReferences(e *xorm.Session, refopts *ParseReferences
 	matches := issueNumericPattern.FindAllStringSubmatch(content, -1)
 	for _, match := range matches {
 		if index, err := strconv.ParseInt(match[1], 10, 64); err == nil {
-			if err = refopts.OrigIssue.loadRepo(e); err != nil {
+			if err = ctx.OrigIssue.loadRepo(e); err != nil {
 				return nil, err
 			}
-			if xref, err = issue.checkCommentReference(e, refopts, issue.Repo, index); err != nil {
+			if xref, err = ctx.OrigIssue.isValidCommentReference(e, ctx, issue.Repo, index); err != nil {
 				return nil, err
 			}
 			if xref != nil {
-				xreflist = issue.updateCrossReferenceList(xreflist, xref)
+				xreflist = ctx.OrigIssue.updateCrossReferenceList(xreflist, xref)
 			}
 		}
 	}
@@ -91,10 +93,10 @@ func (issue *Issue) getCrossReferences(e *xorm.Session, refopts *ParseReferences
 				}
 				return nil, err
 			}
-			if err = refopts.OrigIssue.loadRepo(e); err != nil {
+			if err = ctx.OrigIssue.loadRepo(e); err != nil {
 				return nil, err
 			}
-			if xref, err = issue.checkCommentReference(e, refopts, repo, index); err != nil {
+			if xref, err = issue.isValidCommentReference(e, ctx, repo, index); err != nil {
 				return nil, err
 			}
 			if xref != nil {
@@ -121,7 +123,7 @@ func (issue *Issue) updateCrossReferenceList(list []*crossReference, xref *cross
 	return append(list, xref)
 }
 
-func (issue *Issue) checkCommentReference(e *xorm.Session, refopts *ParseReferencesOptions, repo *Repository, index int64) (*crossReference, error) {
+func (issue *Issue) isValidCommentReference(e Engine, ctx *crossReferencesContext, repo *Repository, index int64) (*crossReference, error) {
 	refIssue := &Issue{RepoID: repo.ID, Index: index}
 	if has, _ := e.Get(refIssue); !has {
 		return nil, nil
@@ -130,8 +132,8 @@ func (issue *Issue) checkCommentReference(e *xorm.Session, refopts *ParseReferen
 		return nil, err
 	}
 	// Check user permissions
-	if refIssue.Repo.ID != refopts.OrigIssue.Repo.ID {
-		perm, err := getUserRepoPermission(e, refIssue.Repo, refopts.Doer)
+	if refIssue.Repo.ID != ctx.OrigIssue.Repo.ID {
+		perm, err := getUserRepoPermission(e, refIssue.Repo, ctx.Doer)
 		if err != nil {
 			return nil, err
 		}
@@ -145,21 +147,62 @@ func (issue *Issue) checkCommentReference(e *xorm.Session, refopts *ParseReferen
 	}, nil
 }
 
-func addCommentReference(e *xorm.Session, refopts *ParseReferencesOptions, xref *crossReference) error {
+func newCrossReference(e *xorm.Session, ctx *crossReferencesContext, xref *crossReference) error {
 	var refCommentID int64
-	if refopts.OrigComment != nil {
-		refCommentID = refopts.OrigComment.ID
+	if ctx.OrigComment != nil {
+		refCommentID = ctx.OrigComment.ID
 	}
 	_, err := createComment(e, &CreateCommentOptions{
-		Type:         refopts.Type,
-		Doer:         refopts.Doer,
+		Type:         ctx.Type,
+		Doer:         ctx.Doer,
 		Repo:         xref.Issue.Repo,
 		Issue:        xref.Issue,
-		RefRepoID:    refopts.OrigIssue.RepoID,
-		RefIssueID:   refopts.OrigIssue.ID,
+		RefRepoID:    ctx.OrigIssue.RepoID,
+		RefIssueID:   ctx.OrigIssue.ID,
 		RefCommentID: refCommentID,
 		RefAction:    xref.Action,
 		RefIsPull:    xref.Issue.IsPull,
 	})
+	return err
+}
+
+func (issue *Issue) addIssueReferences(e *xorm.Session, doer *User) error {
+	ctx := &crossReferencesContext{
+		Type:      CommentTypeIssueRef,
+		Doer:      doer,
+		OrigIssue: issue,
+	}
+	return issue.findCrossReferences(e, ctx, issue.Content)
+}
+
+func (comment *Comment) addCommentReferences(e *xorm.Session, doer *User) error {
+	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
+		return nil
+	}
+	if err := comment.loadIssue(e); err != nil {
+		return err
+	}
+	ctx := &crossReferencesContext{
+		Type:        CommentTypeCommentRef,
+		Doer:        doer,
+		OrigIssue:   comment.Issue,
+		OrigComment: comment,
+	}
+	return comment.Issue.findCrossReferences(e, ctx, comment.Content)
+}
+
+func (comment *Comment) neuterReferencingComments(e Engine) error {
+	active := make([]*Comment, 0, 10)
+	err := e.Where("`ref_comment_id` = ?", comment.ID).
+		And("`ref_action` IN (?, ?)", XRefActionCloses, XRefActionReopens).
+		Find(&active)
+	if err != nil || len(active) == 0 {
+		return err
+	}
+	ids := make([]int64, len(active))
+	for i, c := range active {
+		ids[i] = c.ID
+	}
+	_, err = e.In("id", ids).Cols("`ref_action`").Update(&Comment{RefAction: XRefActionNeutered})
 	return err
 }

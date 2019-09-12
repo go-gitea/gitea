@@ -1176,12 +1176,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	if err = opts.Issue.loadAttributes(e); err != nil {
 		return err
 	}
-	refopts := &ParseReferencesOptions{
-		Type:      CommentTypeIssueRef,
-		Doer:      doer,
-		OrigIssue: opts.Issue,
-	}
-	return opts.Issue.parseCommentReferences(e, refopts, opts.Issue.Content)
+	return opts.Issue.addIssueReferences(e, doer)
 }
 
 // NewIssue creates new issue with labels for repository.

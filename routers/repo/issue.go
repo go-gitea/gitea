@@ -1583,11 +1583,13 @@ func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 	for i := 0; i < len(issue.Comments); {
 		c := issue.Comments[i]
 		if models.CommentTypeIsRef(c.Type) && c.RefRepoID != issue.RepoID && c.RefRepoID != 0 {
-			repo, err := models.GetRepositoryByID(c.RefRepoID)
+			var err error
+			// Set RefRepo for description in template
+			c.RefRepo, err = models.GetRepositoryByID(c.RefRepoID)
 			if err != nil {
 				return err
 			}
-			perm, err := models.GetUserRepoPermission(repo, ctx.User)
+			perm, err := models.GetUserRepoPermission(c.RefRepo, ctx.User)
 			if err != nil {
 				return err
 			}
