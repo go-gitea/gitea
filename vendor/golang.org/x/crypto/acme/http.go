@@ -219,6 +219,7 @@ func (c *Client) postNoRetry(ctx context.Context, key crypto.Signer, url string,
 
 // doNoRetry issues a request req, replacing its context (if any) with ctx.
 func (c *Client) doNoRetry(ctx context.Context, req *http.Request) (*http.Response, error) {
+	req.Header.Set("User-Agent", c.userAgent())
 	res, err := c.httpClient().Do(req.WithContext(ctx))
 	if err != nil {
 		select {
@@ -241,6 +242,23 @@ func (c *Client) httpClient() *http.Client {
 		return c.HTTPClient
 	}
 	return http.DefaultClient
+}
+
+// packageVersion is the version of the module that contains this package, for
+// sending as part of the User-Agent header. It's set in version_go112.go.
+var packageVersion string
+
+// userAgent returns the User-Agent header value. It includes the package name,
+// the module version (if available), and the c.UserAgent value (if set).
+func (c *Client) userAgent() string {
+	ua := "golang.org/x/crypto/acme"
+	if packageVersion != "" {
+		ua += "@" + packageVersion
+	}
+	if c.UserAgent != "" {
+		ua = c.UserAgent + " " + ua
+	}
+	return ua
 }
 
 // isBadNonce reports whether err is an ACME "badnonce" error.
