@@ -36,6 +36,8 @@ var (
 // INO64_FIRST from /usr/src/lib/libc/sys/compat-ino64.h
 const _ino64First = 1200031
 
+//sys	sysctl(mib []_C_int, old *byte, oldlen *uintptr, new *byte, newlen uintptr) (err error) = SYS___SYSCTL
+
 func supportsABI(ver uint32) bool {
 	osreldateOnce.Do(func() { osreldate, _ = SysctlUint32("kern.osreldate") })
 	return osreldate >= ver
