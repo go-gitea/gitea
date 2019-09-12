@@ -100,9 +100,19 @@
 								{{else}}
 									{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
 								{{end}}
-								{{if .Assignee}}
-									<a class="ui right assignee poping up" href="{{.Assignee.HomeLink}}" data-content="{{.Assignee.GetDisplayName}}" data-variation="inverted" data-position="left center">
-										<img class="ui avatar image" src="{{.Assignee.RelAvatarLink}}">
+								{{if .Milestone}}
+									<a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
+										<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
+									</a>
+								{{end}}
+								{{if .Ref}}
+									<a class="ref" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/src/branch/{{.Ref}}">
+										<span class="octicon octicon-git-branch"></span> {{.Ref}}
+									</a>
+								{{end}}
+								{{range .Assignees}}
+									<a class="ui right assignee poping up" href="{{.HomeLink}}" data-content="{{.GetDisplayName}}" data-variation="inverted" data-position="left center">
+										<img class="ui avatar image" src="{{.RelAvatarLink}}">
 									</a>
 								{{end}}
 								{{$tasks := .GetTasks}}
