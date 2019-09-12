@@ -86,7 +86,7 @@ func (issue *Issue) findCrossReferences(e *xorm.Session, ctx *crossReferencesCon
 	return nil
 }
 
-func (issue *Issue) getCrossReferences(e Engine, ctx *crossReferencesContext, content string) ([]*crossReference, error) {
+func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesContext, content string) ([]*crossReference, error) {
 	xreflist := make([]*crossReference, 0, 5)
 	var xref *crossReference
 
@@ -111,7 +111,7 @@ func (issue *Issue) getCrossReferences(e Engine, ctx *crossReferencesContext, co
 	matches = crossReferenceIssueNumericPattern.FindAllStringSubmatch(content, -1)
 	for _, match := range matches {
 		if index, err := strconv.ParseInt(match[3], 10, 64); err == nil {
-			repo, err := GetRepositoryByOwnerAndName(match[1], match[2])
+			repo, err := getRepositoryByOwnerAndName(e, match[1], match[2])
 			if err != nil {
 				if IsErrRepoNotExist(err) {
 					continue

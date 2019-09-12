@@ -1956,8 +1956,12 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 // GetRepositoryByOwnerAndName returns the repository by given ownername and reponame.
 func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error) {
+	return getRepositoryByOwnerAndName(x, ownerName, repoName)
+}
+
+func getRepositoryByOwnerAndName(e Engine, ownerName, repoName string) (*Repository, error) {
 	var repo Repository
-	has, err := x.Select("repository.*").
+	has, err := e.Table("repository").Select("repository.*").
 		Join("INNER", "`user`", "`user`.id = repository.owner_id").
 		Where("repository.lower_name = ?", strings.ToLower(repoName)).
 		And("`user`.lower_name = ?", strings.ToLower(ownerName)).
