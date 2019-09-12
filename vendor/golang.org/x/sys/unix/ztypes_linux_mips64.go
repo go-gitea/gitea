@@ -286,6 +286,13 @@ type RawSockaddrXDP struct {
 
 type RawSockaddrPPPoX [0x1e]byte
 
+type RawSockaddrTIPC struct {
+	Family   uint16
+	Addrtype uint8
+	Scope    int8
+	Addr     [12]byte
+}
+
 type RawSockaddr struct {
 	Family uint16
 	Data   [14]int8
@@ -427,6 +434,7 @@ const (
 	SizeofSockaddrVM        = 0x10
 	SizeofSockaddrXDP       = 0x10
 	SizeofSockaddrPPPoX     = 0x1e
+	SizeofSockaddrTIPC      = 0x10
 	SizeofLinger            = 0x8
 	SizeofIovec             = 0x10
 	SizeofIPMreq            = 0x8
@@ -2460,4 +2468,114 @@ const (
 	BPF_FD_TYPE_KRETPROBE               = 0x3
 	BPF_FD_TYPE_UPROBE                  = 0x4
 	BPF_FD_TYPE_URETPROBE               = 0x5
+)
+
+type CapUserHeader struct {
+	Version uint32
+	Pid     int32
+}
+
+type CapUserData struct {
+	Effective   uint32
+	Permitted   uint32
+	Inheritable uint32
+}
+
+const (
+	LINUX_CAPABILITY_VERSION_1 = 0x19980330
+	LINUX_CAPABILITY_VERSION_2 = 0x20071026
+	LINUX_CAPABILITY_VERSION_3 = 0x20080522
+)
+
+const (
+	LO_FLAGS_READ_ONLY = 0x1
+	LO_FLAGS_AUTOCLEAR = 0x4
+	LO_FLAGS_PARTSCAN  = 0x8
+	LO_FLAGS_DIRECT_IO = 0x10
+)
+
+type LoopInfo struct {
+	Number           int32
+	Device           uint32
+	Inode            uint64
+	Rdevice          uint32
+	Offset           int32
+	Encrypt_type     int32
+	Encrypt_key_size int32
+	Flags            int32
+	Name             [64]int8
+	Encrypt_key      [32]uint8
+	Init             [2]uint64
+	Reserved         [4]int8
+	_                [4]byte
+}
+type LoopInfo64 struct {
+	Device           uint64
+	Inode            uint64
+	Rdevice          uint64
+	Offset           uint64
+	Sizelimit        uint64
+	Number           uint32
+	Encrypt_type     uint32
+	Encrypt_key_size uint32
+	Flags            uint32
+	File_name        [64]uint8
+	Crypt_name       [64]uint8
+	Encrypt_key      [32]uint8
+	Init             [2]uint64
+}
+
+type TIPCSocketAddr struct {
+	Ref  uint32
+	Node uint32
+}
+
+type TIPCServiceRange struct {
+	Type  uint32
+	Lower uint32
+	Upper uint32
+}
+
+type TIPCServiceName struct {
+	Type     uint32
+	Instance uint32
+	Domain   uint32
+}
+
+type TIPCSubscr struct {
+	Seq     TIPCServiceRange
+	Timeout uint32
+	Filter  uint32
+	Handle  [8]int8
+}
+
+type TIPCEvent struct {
+	Event uint32
+	Lower uint32
+	Upper uint32
+	Port  TIPCSocketAddr
+	S     TIPCSubscr
+}
+
+type TIPCGroupReq struct {
+	Type     uint32
+	Instance uint32
+	Scope    uint32
+	Flags    uint32
+}
+
+type TIPCSIOCLNReq struct {
+	Peer     uint32
+	Id       uint32
+	Linkname [68]int8
+}
+
+type TIPCSIOCNodeIDReq struct {
+	Peer uint32
+	Id   [16]int8
+}
+
+const (
+	TIPC_CLUSTER_SCOPE = 0x2
+	TIPC_NODE_SCOPE    = 0x3
 )
