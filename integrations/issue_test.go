@@ -184,3 +184,28 @@ func TestIssueCommentClose(t *testing.T) {
 	val := htmlDoc.doc.Find(".comment-list .comments .comment .render-content p").First().Text()
 	assert.Equal(t, "Description", val)
 }
+
+func TestCrossReferences(t *testing.T) {
+	prepareTestEnv(t)
+	session := loginUser(t, "user2")
+
+	repoID := int64(1)
+	issueBaseURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+	indexBaseStr := issueBaseURL[strings.LastIndexByte(issueBaseURL, '/')+1:]
+	indexBase, err := strconv.Atoi(indexBaseStr)
+	assert.NoError(t, err, "Invalid issue href: %s", issueBaseURL)
+
+	issueBase := &models.Issue{RepoID: repoID, Index: int64(indexBase)}
+	models.AssertExistsAndLoadBean(t, issueBase)
+
+	issueRefURL := testNewIssue(t, session, "user2", "repo1", "TitleXRef", "Description ref #" + indexBaseStr)
+	indexRefStr := issueRefURL[strings.LastIndexByte(issueRefURL, '/')+1:]
+	indexRef, err := strconv.Atoi(indexRefStr)
+	assert.NoError(t, err, "Invalid issue href: %s", issueRefURL)
+
+	issueRef := &models.Issue{RepoID: repoID, Index: int64(indexRef)}
+	models.AssertExistsAndLoadBean(t, issueRef)
+
+	models.AssertExistsAndLoadBean(t, &models.Comment{IssueID: issueBase.ID, RefIssueID: issueRef.ID, RefAction: models.XRefActionNone})
+
+}
