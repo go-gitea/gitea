@@ -239,13 +239,6 @@
 							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 						{{end}}
 
-						{{$tasks := .GetTasks}}
-						{{if gt $tasks 0}}
-							{{$tasksDone := .GetTasksDone}}
-							<span class="checklist">
-								<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
-							</span>
-						{{end}}
 						{{if .Milestone}}
 							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
 								<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
@@ -255,6 +248,13 @@
 							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">
 								<span class="octicon octicon-git-branch"></span> {{.Ref}}
 							</a>
+						{{end}}
+						{{$tasks := .GetTasks}}
+						{{if gt $tasks 0}}
+							{{$tasksDone := .GetTasksDone}}
+							<span class="checklist">
+								<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
+							</span>
 						{{end}}
 						{{if ne .DeadlineUnix 0}}
 							<span class="octicon octicon-calendar"></span>
