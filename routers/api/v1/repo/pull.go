@@ -420,7 +420,6 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		}
 	}
 
-	// Note: adding cross references from API is not supported ATM
 	if err = models.UpdateIssue(issue); err != nil {
 		ctx.Error(500, "UpdateIssue", err)
 		return

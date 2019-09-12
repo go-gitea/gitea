@@ -1815,7 +1815,24 @@ func updateIssue(e Engine, issue *Issue) error {
 
 // UpdateIssue updates all fields of given issue.
 func UpdateIssue(issue *Issue) error {
-	return updateIssue(x, issue)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := updateIssue(sess, issue); err != nil {
+		return err
+	}
+	if err := issue.neuterReferencingComments(sess); err != nil {
+		return err
+	}
+	if err := 	issue.loadPoster(sess); err != nil {
+		return err
+	}
+	if err := issue.addIssueReferences(sess, issue.Poster); err != nil {
+		return err
+	}
+	return sess.Commit()
 }
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.

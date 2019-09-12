@@ -189,6 +189,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		return
 	}
 
+	// Note: adding cross references from API is not supported ATM
 	comment, err := models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Body, nil)
 	if err != nil {
 		ctx.Error(500, "CreateIssueComment", err)
@@ -299,6 +300,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 
 	oldContent := comment.Content
 	comment.Content = form.Body
+	// Note: adding cross references from API is not supported ATM
 	if err := models.UpdateComment(ctx.User, comment, oldContent); err != nil {
 		ctx.Error(500, "UpdateComment", err)
 		return
