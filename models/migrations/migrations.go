@@ -243,7 +243,7 @@ var migrations = []Migration{
 	// v93 -> v94
 	NewMigration("add email notification enabled preference to user", addEmailNotificationEnabledToUser),
 	// v94 -> v95
-	NewMigration("add table columns for cross referencing issues", addCrossReferenceCOlumns),
+	NewMigration("add table columns for cross referencing issues", addCrossReferenceColumns),
 }
 
 // Migrate database to current version

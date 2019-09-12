@@ -6,7 +6,7 @@ package migrations
 
 import "github.com/go-xorm/xorm"
 
-func addCrossReferenceCOlumns(x *xorm.Engine) error {
+func addCrossReferenceColumns(x *xorm.Engine) error {
 	// Comment see models/comment.go
 	type Comment struct {
 		RefRepoID    int64 `xorm:"index"`
