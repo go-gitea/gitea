@@ -206,8 +206,8 @@ func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitSta
 	return statuses, x.In("id", ids).Find(&statuses)
 }
 
-// FindRepoStatusCheckContexts returns repo's status check contexts
-func FindRepoStatusCheckContexts(repoID int64, before time.Duration) ([]string, error) {
+// FindRepoRecentCommitStatusContexts returns repository's recent commit status contexts
+func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]string, error) {
 	start := timeutil.TimeStampNow().AddDuration(-before)
 	ids := make([]int64, 0, 10)
 	err := x.Table("commit_status").

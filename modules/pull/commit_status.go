@@ -35,6 +35,13 @@ func IsCommitStatusContextSuccess(commitStatuses []*models.CommitStatus, require
 
 // IsPullCommitStatusPass returns if all required status checks PASS
 func IsPullCommitStatusPass(pr *models.PullRequest) (bool, error) {
+	if err := pr.LoadProtectedBranch(); err != nil {
+		return false, errors.Wrap(err, "GetLatestCommitStatus")
+	}
+	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.EnableStatusCheck {
+		return true, nil
+	}
+
 	// check if all required status checks are successful
 	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
 	if err != nil {
@@ -51,20 +58,14 @@ func IsPullCommitStatusPass(pr *models.PullRequest) (bool, error) {
 		return false, errors.Wrap(err, "GetBranchCommitID")
 	}
 
+	if err := pr.LoadBaseRepo(); err != nil {
+		return false, errors.Wrap(err, "LoadBaseRepo")
+	}
+
 	commitStatuses, err := models.GetLatestCommitStatus(pr.BaseRepo, sha, 0)
 	if err != nil {
 		return false, errors.Wrap(err, "GetLatestCommitStatus")
 	}
 
-	if err = pr.LoadProtectedBranch(); err != nil {
-		return false, errors.Wrap(err, "GetLatestCommitStatus")
-	}
-
-	if pr.ProtectedBranch != nil &&
-		pr.ProtectedBranch.EnableStatusCheck &&
-		!IsCommitStatusContextSuccess(commitStatuses, pr.ProtectedBranch.StatusCheckContexts) {
-		return false, nil
-	}
-
-	return true, nil
+	return IsCommitStatusContextSuccess(commitStatuses, pr.ProtectedBranch.StatusCheckContexts), nil
 }
