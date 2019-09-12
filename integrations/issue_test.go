@@ -202,64 +202,64 @@ func TestIssueCrossReference(t *testing.T) {
 	// Ref from issue title
 	issueRefURL, issueRef := testIssueWithBean(t, "user2", 1, fmt.Sprintf("Title ref #%d", issueBase.Index), "Description")
 	models.AssertExistsAndLoadBean(t, &models.Comment{
-		IssueID: issueBase.ID,
-		RefRepoID: 1,
-		RefIssueID: issueRef.ID,
+		IssueID:      issueBase.ID,
+		RefRepoID:    1,
+		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
-		RefIsPull: false,
-		RefAction: models.XRefActionNone})
+		RefIsPull:    false,
+		RefAction:    models.XRefActionNone})
 
 	// Edit title, neuter ref
 	testIssueChangeInfo(t, "user2", issueRefURL, "title", "Title no ref")
 	models.AssertExistsAndLoadBean(t, &models.Comment{
-		IssueID: issueBase.ID,
-		RefRepoID: 1,
-		RefIssueID: issueRef.ID,
+		IssueID:      issueBase.ID,
+		RefRepoID:    1,
+		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
-		RefIsPull: false,
-		RefAction: models.XRefActionNeutered})
+		RefIsPull:    false,
+		RefAction:    models.XRefActionNeutered})
 
 	// Ref from issue content
 	issueRefURL, issueRef = testIssueWithBean(t, "user2", 1, "TitleXRef", fmt.Sprintf("Description ref #%d", issueBase.Index))
 	models.AssertExistsAndLoadBean(t, &models.Comment{
-		IssueID: issueBase.ID,
-		RefRepoID: 1,
-		RefIssueID: issueRef.ID,
+		IssueID:      issueBase.ID,
+		RefRepoID:    1,
+		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
-		RefIsPull: false,
-		RefAction: models.XRefActionNone})
+		RefIsPull:    false,
+		RefAction:    models.XRefActionNone})
 
 	// Edit content, neuter ref
 	testIssueChangeInfo(t, "user2", issueRefURL, "content", "Description no ref")
 	models.AssertExistsAndLoadBean(t, &models.Comment{
-		IssueID: issueBase.ID,
-		RefRepoID: 1,
-		RefIssueID: issueRef.ID,
+		IssueID:      issueBase.ID,
+		RefRepoID:    1,
+		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
-		RefIsPull: false,
-		RefAction: models.XRefActionNeutered})
+		RefIsPull:    false,
+		RefAction:    models.XRefActionNeutered})
 
 	// Ref from a comment
 	session := loginUser(t, "user2")
 	commentID := testIssueAddComment(t, session, issueRefURL, fmt.Sprintf("Adding ref from comment #%d", issueBase.Index), "")
 	comment := &models.Comment{
-		IssueID: issueBase.ID,
-		RefRepoID: 1,
-		RefIssueID: issueRef.ID,
+		IssueID:      issueBase.ID,
+		RefRepoID:    1,
+		RefIssueID:   issueRef.ID,
 		RefCommentID: commentID,
-		RefIsPull: false,
-		RefAction: models.XRefActionNone}
+		RefIsPull:    false,
+		RefAction:    models.XRefActionNone}
 	models.AssertExistsAndLoadBean(t, comment)
-	
+
 	// Ref from a different repository
 	issueRefURL, issueRef = testIssueWithBean(t, "user12", 10, "TitleXRef", fmt.Sprintf("Description ref user2/repo1#%d", issueBase.Index))
 	models.AssertExistsAndLoadBean(t, &models.Comment{
-		IssueID: issueBase.ID,
-		RefRepoID: 10,
-		RefIssueID: issueRef.ID,
+		IssueID:      issueBase.ID,
+		RefRepoID:    10,
+		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
-		RefIsPull: false,
-		RefAction: models.XRefActionNone})
+		RefIsPull:    false,
+		RefAction:    models.XRefActionNone})
 }
 
 func testIssueWithBean(t *testing.T, user string, repoID int64, title, content string) (string, *models.Issue) {
@@ -280,9 +280,9 @@ func testIssueChangeInfo(t *testing.T, user, issueURL, info string, value string
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	req = NewRequestWithValues(t, "POST", path.Join(issueURL,info), map[string]string{
-		"_csrf":   htmlDoc.GetCSRF(),
-		info: value,
+	req = NewRequestWithValues(t, "POST", path.Join(issueURL, info), map[string]string{
+		"_csrf": htmlDoc.GetCSRF(),
+		info:    value,
 	})
 	_ = session.MakeRequest(t, req, http.StatusOK)
 }

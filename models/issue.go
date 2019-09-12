@@ -1826,7 +1826,7 @@ func UpdateIssue(issue *Issue) error {
 	if err := issue.neuterReferencingComments(sess); err != nil {
 		return err
 	}
-	if err := 	issue.loadPoster(sess); err != nil {
+	if err := issue.loadPoster(sess); err != nil {
 		return err
 	}
 	if err := issue.addIssueReferences(sess, issue.Poster); err != nil {
