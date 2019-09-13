@@ -40,17 +40,19 @@ type CreateHookOption struct {
 	// enum: gitea,gogs,slack,discord
 	Type string `json:"type" binding:"Required"`
 	// required: true
-	Config map[string]string `json:"config" binding:"Required"`
-	Events []string          `json:"events"`
+	Config       map[string]string `json:"config" binding:"Required"`
+	Events       []string          `json:"events"`
+	BranchFilter string            `json:"branch_filter" binding:"GlobPattern"`
 	// default: false
 	Active bool `json:"active"`
 }
 
 // EditHookOption options when modify one hook
 type EditHookOption struct {
-	Config map[string]string `json:"config"`
-	Events []string          `json:"events"`
-	Active *bool             `json:"active"`
+	Config       map[string]string `json:"config"`
+	Events       []string          `json:"events"`
+	BranchFilter string            `json:"branch_filter" binding:"GlobPattern"`
+	Active       *bool             `json:"active"`
 }
 
 // Payloader payload is some part of one hook

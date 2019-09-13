@@ -201,9 +201,7 @@ func Flatten(opts FlattenOpts) error {
 			expected[slashpath.Join(definitionsPath, jsonpointer.Escape(k))] = struct{}{}
 		}
 		for _, k := range opts.Spec.AllDefinitionReferences() {
-			if _, ok := expected[k]; ok {
-				delete(expected, k)
-			}
+			delete(expected, k)
 		}
 		for k := range expected {
 			debugLog("removing unused definition %s", slashpath.Base(k))
@@ -443,7 +441,7 @@ func uniqifyName(definitions swspec.Definitions, name string) (string, bool) {
 
 	unq := true
 	for k := range definitions {
-		if strings.ToLower(k) == strings.ToLower(name) {
+		if strings.EqualFold(k, name) {
 			unq = false
 			break
 		}
@@ -933,6 +931,7 @@ type refRevIdx struct {
 // * refs are assumed to have been normalized with drive letter lower cased (from go-openapi/spec)
 // * "/ in paths may appear as escape sequences
 func rebaseRef(baseRef string, ref string) string {
+	debugLog("rebasing ref: %s onto %s", ref, baseRef)
 	baseRef, _ = url.PathUnescape(baseRef)
 	ref, _ = url.PathUnescape(ref)
 	if baseRef == "" || baseRef == "." || strings.HasPrefix(baseRef, "#") {
@@ -947,7 +946,7 @@ func rebaseRef(baseRef string, ref string) string {
 		if baseURL.Host == "" {
 			return strings.Join([]string{baseParts[0], parts[1]}, "#")
 		}
-		return strings.Join([]string{baseParts[0], parts[1]}, "")
+		return strings.Join([]string{baseParts[0], parts[1]}, "#")
 	}
 
 	refURL, _ := url.Parse(parts[0])
@@ -1322,7 +1321,7 @@ func stripPointersAndOAIGen(opts *FlattenOpts) error {
 // stripOAIGen strips the spec from unnecessary OAIGen constructs, initially created to dedupe flattened definitions.
 //
 // A dedupe is deemed unnecessary whenever:
-//  - the only conflict is with its (single) parent: OAIGen is merged into its parent
+//  - the only conflict is with its (single) parent: OAIGen is merged into its parent (reinlining)
 //  - there is a conflict with multiple parents: merge OAIGen in first parent, the rewrite other parents to point to
 //    the first parent.
 //
@@ -1358,12 +1357,12 @@ func stripOAIGen(opts *FlattenOpts) (bool, error) {
 		r := opts.flattenContext.newRefs[k]
 		//debugLog("newRefs[%s]: isOAIGen: %t, resolved: %t, name: %s, path:%s, #parents: %d, parents: %v,  ref: %s",
 		//	k, r.isOAIGen, r.resolved, r.newName, r.path, len(r.parents), r.parents, r.schema.Ref.String())
-		if r.isOAIGen && len(r.parents) >= 1 /*&& r.schema.Ref.String() == "" */ {
+		if r.isOAIGen && len(r.parents) >= 1 {
 			pr := r.parents
 			sort.Strings(pr)
 
 			// rewrite first parent schema in lexicographical order
-			debugLog("rewrite first parent %s with schema", pr[0])
+			debugLog("rewrite first parent in lex order %s with schema", pr[0])
 			if err := updateRefWithSchema(opts.Swagger(), pr[0], r.schema); err != nil {
 				return false, err
 			}
@@ -1413,9 +1412,13 @@ func stripOAIGen(opts *FlattenOpts) (bool, error) {
 				found := false
 				newParents := make([]string, 0, len(value.parents))
 				for _, parent := range value.parents {
-					if parent == r.path {
+					switch {
+					case parent == r.path:
 						found = true
 						parent = pr[0]
+					case strings.HasPrefix(parent, r.path+"/"):
+						found = true
+						parent = slashpath.Join(pr[0], strings.TrimPrefix(parent, r.path))
 					}
 					newParents = append(newParents, parent)
 				}
@@ -1435,7 +1438,7 @@ func stripOAIGen(opts *FlattenOpts) (bool, error) {
 				if err != nil {
 					return false, err
 				}
-				debugLog("re-inline schema: parent: %s, %t", pr[0], isAnalyzedAsComplex(asch))
+				debugLog("re-inlined schema: parent: %s, %t", pr[0], isAnalyzedAsComplex(asch))
 				replacedWithComplex = replacedWithComplex ||
 					!(slashpath.Dir(pr[0]) == definitionsPath) && isAnalyzedAsComplex(asch)
 			}

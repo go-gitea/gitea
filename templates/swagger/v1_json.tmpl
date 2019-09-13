@@ -7586,6 +7586,10 @@
           "default": false,
           "x-go-name": "Active"
         },
+        "branch_filter": {
+          "type": "string",
+          "x-go-name": "BranchFilter"
+        },
         "config": {
           "type": "object",
           "additionalProperties": {
@@ -7901,6 +7905,11 @@
           "type": "string",
           "x-go-name": "Gitignores"
         },
+        "issue_labels": {
+          "description": "Issue Label set to use",
+          "type": "string",
+          "x-go-name": "IssueLabels"
+        },
         "license": {
           "description": "License to use",
           "type": "string",
@@ -8176,6 +8185,10 @@
         "active": {
           "type": "boolean",
           "x-go-name": "Active"
+        },
+        "branch_filter": {
+          "type": "string",
+          "x-go-name": "BranchFilter"
         },
         "config": {
           "type": "object",
