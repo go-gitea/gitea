@@ -323,6 +323,12 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	setMergeTarget(ctx, pull)
 
+	if err = pull.LoadProtectedBranch(); err != nil {
+		ctx.ServerError("GetLatestCommitStatus", err)
+		return nil
+	}
+	ctx.Data["EnableStatusCheck"] = pull.ProtectedBranch != nil && pull.ProtectedBranch.EnableStatusCheck
+
 	var headGitRepo *git.Repository
 	var headBranchExist bool
 	// HeadRepo may be missing
@@ -350,11 +356,6 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			if len(commitStatuses) > 0 {
 				ctx.Data["LatestCommitStatuses"] = commitStatuses
 				ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(commitStatuses)
-			}
-
-			if err = pull.LoadProtectedBranch(); err != nil {
-				ctx.ServerError("GetLatestCommitStatus", err)
-				return nil
 			}
 
 			if pull.ProtectedBranch != nil && pull.ProtectedBranch.EnableStatusCheck {
