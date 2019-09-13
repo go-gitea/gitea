@@ -2042,27 +2042,19 @@ func getRepositoryCount(e Engine, u *User) (int64, error) {
 	return e.Count(&Repository{OwnerID: u.ID})
 }
 
-func getPublicRepositoryCount(e Engine, u *User) (int64, error) {
-	return e.Where("is_private = ?", false).Count(&Repository{OwnerID: u.ID})
-}
-
-func getPrivateRepositoryCount(e Engine, u *User) (int64, error) {
-	return e.Where("is_private = ?", true).Count(&Repository{OwnerID: u.ID})
-}
-
 // GetRepositoryCount returns the total number of repositories of user.
 func GetRepositoryCount(u *User) (int64, error) {
 	return getRepositoryCount(x, u)
 }
 
 // GetPublicRepositoryCount returns the total number of public repositories of user.
-func GetPublicRepositoryCount(u *User) (int64, error) {
-	return getPublicRepositoryCount(x, u)
+func GetPublicRepositoryCount(u *User) int64 {
+	return countRepositories(u.ID, false)
 }
 
 // GetPrivateRepositoryCount returns the total number of private repositories of user.
-func GetPrivateRepositoryCount(u *User) (int64, error) {
-	return getPrivateRepositoryCount(x, u)
+func GetPrivateRepositoryCount(u *User) int64 {
+	return countRepositories(u.ID, true)
 }
 
 // DeleteRepositoryArchives deletes all repositories' archives.

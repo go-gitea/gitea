@@ -58,11 +58,9 @@ func TestGetRepositoryCount(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	count, err1 := GetRepositoryCount(&User{ID: int64(10)})
-	privateCount, err2 := GetPrivateRepositoryCount(&User{ID: int64(10)})
-	publicCount, err3 := GetPublicRepositoryCount(&User{ID: int64(10)})
+	privateCount := GetPrivateRepositoryCount(&User{ID: int64(10)})
+	publicCount := GetPublicRepositoryCount(&User{ID: int64(10)})
 	assert.NoError(t, err1)
-	assert.NoError(t, err2)
-	assert.NoError(t, err3)
 	assert.Equal(t, int64(3), count)
 	assert.Equal(t, (privateCount + publicCount), count)
 }
@@ -70,16 +68,14 @@ func TestGetRepositoryCount(t *testing.T) {
 func TestGetPublicRepositoryCount(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	count, err := GetPublicRepositoryCount(&User{ID: int64(10)})
-	assert.NoError(t, err)
+	count := GetPublicRepositoryCount(&User{ID: int64(10)})
 	assert.Equal(t, int64(1), count)
 }
 
 func TestGetPrivateRepositoryCount(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	count, err := GetPrivateRepositoryCount(&User{ID: int64(10)})
-	assert.NoError(t, err)
+	count := GetPrivateRepositoryCount(&User{ID: int64(10)})
 	assert.Equal(t, int64(2), count)
 }
 

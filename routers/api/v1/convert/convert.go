@@ -207,7 +207,6 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 func ToOrganization(org *models.User) *api.Organization {
 	apiURL := setting.AppURL + "api/v1/orgs/" + org.LowerName
 	// hide primary email if API caller isn't user itself or an admin
-	publicRepoCount, _ := models.GetPublicRepositoryCount(org)
 	return &api.Organization{
 		ID:               org.ID,
 		AvatarURL:        org.AvatarLink(),
@@ -217,7 +216,7 @@ func ToOrganization(org *models.User) *api.Organization {
 		ReposURL:         apiURL + "/repos",
 		MembersURL:       apiURL + "/members{/member}",
 		PublicMembersURL: apiURL + "/public_members{/member}",
-		PublicRepoCount:  publicRepoCount,
+		PublicRepoCount:  models.GetPublicRepositoryCount(org),
 		Description:      org.Description,
 		Website:          org.Website,
 		Location:         org.Location,

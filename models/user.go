@@ -236,7 +236,6 @@ func (u *User) GetEmail() string {
 // APIFormat converts a User to api.User
 func (u *User) APIFormat() *api.User {
 	apiURL := setting.AppURL + "api/v1/users/" + u.LowerName
-	publicRepoCount, _ := GetPublicRepositoryCount(u)
 	return &api.User{
 		ID:               u.ID,
 		UserName:         u.Name,
@@ -257,7 +256,7 @@ func (u *User) APIFormat() *api.User {
 		Description:      u.Description,
 		Website:          u.Website,
 		Location:         u.Location,
-		PubicRepos:       publicRepoCount,
+		PubicRepos:       GetPublicRepositoryCount(u),
 		Followers:        u.NumFollowers,
 		Following:        u.NumFollowing,
 		Language:         u.Language,
