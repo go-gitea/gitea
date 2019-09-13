@@ -30,7 +30,7 @@ func TestAPITeamUser(t *testing.T) {
 
 	assert.Equal(t, &api.User{
 		ID:       user.ID,
-		Name:     user.Name,
+		UserName: user.Name,
 		FullName: user.FullName,
 	}, user2)
 }
