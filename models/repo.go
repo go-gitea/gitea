@@ -2054,7 +2054,7 @@ func GetPublicRepositoryCount(u *User) int64 {
 
 // GetPrivateRepositoryCount returns the total number of private repositories of user.
 func GetPrivateRepositoryCount(u *User) int64 {
-	return countRepositories(u.ID, true)
+	return countRepositories(u.ID, true) - countRepositories(u.ID, false)
 }
 
 // DeleteRepositoryArchives deletes all repositories' archives.
