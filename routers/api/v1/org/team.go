@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/user"
@@ -514,7 +515,6 @@ func SearchTeam(ctx *context.APIContext) {
 	// - name: q
 	//   in: query
 	//   description: keywords to search
-	//   required: true
 	//   type: string
 	// - name: inclDesc
 	//   in: query
@@ -547,9 +547,10 @@ func SearchTeam(ctx *context.APIContext) {
 
 	teams, _, err := models.SearchTeam(opts)
 	if err != nil {
+		log.Error("SearchTeam failed: %v", err)
 		ctx.JSON(500, map[string]interface{}{
 			"ok":    false,
-			"error": err.Error(),
+			"error": "SearchTeam internal failure",
 		})
 		return
 	}
@@ -557,7 +558,11 @@ func SearchTeam(ctx *context.APIContext) {
 	apiTeams := make([]*api.Team, len(teams))
 	for i := range teams {
 		if err := teams[i].GetUnits(); err != nil {
-			ctx.Error(500, "GetUnits", err)
+			log.Error("Team GetUnits failed: %v", err)
+			ctx.JSON(500, map[string]interface{}{
+				"ok":    false,
+				"error": "SearchTeam failed to get units",
+			})
 			return
 		}
 		apiTeams[i] = convert.ToTeam(teams[i])

@@ -78,7 +78,7 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 		Count(new(Team))
 
 	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+		return nil, 0, err
 	}
 
 	teams := make([]*Team, 0, opts.Limit)
@@ -87,7 +87,7 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 		OrderBy("lower_name").
 		Limit(opts.Limit).
 		Find(&teams); err != nil {
-		return nil, 0, fmt.Errorf("Team: %v", err)
+		return nil, 0, err
 	}
 
 	return teams, count, nil
