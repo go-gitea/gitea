@@ -287,7 +287,7 @@ func GetTeamMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	teamID := ctx.ParamsInt64("id")
+	teamID := ctx.ParamsInt64("teamid")
 	isTeamMember, err := models.IsUserInTeams(u.ID, []int64{teamID})
 	if err != nil {
 		ctx.Error(500, "IsUserInTeams", err)
