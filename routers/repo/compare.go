@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/gitdiff"
 )
 
 const (
@@ -230,7 +231,7 @@ func PrepareCompareDiff(
 		return true
 	}
 
-	diff, err := models.GetDiffRange(models.RepoPath(headUser.Name, headRepo.Name),
+	diff, err := gitdiff.GetDiffRange(models.RepoPath(headUser.Name, headRepo.Name),
 		compareInfo.MergeBase, headCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
 	if err != nil {

@@ -72,7 +72,7 @@ steps:
 
   - name: build-linux-386
     pull: always
-    image: golang:1.12
+    image: golang:1.13
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -83,7 +83,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.12
+    image: golang:1.13
     commands:
       - make clean
       - make generate
@@ -100,7 +100,7 @@ steps:
 
   - name: unit-test
     pull: always
-    image: golang:1.12
+    image: golang:1.13
     commands:
       - make unit-test-coverage
     environment:
@@ -117,7 +117,7 @@ steps:
 
   - name: release-test
     pull: always
-    image: golang:1.12
+    image: golang:1.13
     commands:
       - make test
     environment:
@@ -145,7 +145,7 @@ steps:
 
   - name: tag-test
     pull: always
-    image: golang:1.12
+    image: golang:1.13
     commands:
       - make test
     environment:
@@ -159,7 +159,7 @@ steps:
 
   - name: test-sqlite
     pull: always
-    image: golang:1.12
+    image: golang:1.13
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -173,7 +173,7 @@ steps:
 
   - name: test-mysql
     pull: always
-    image: golang:1.12
+    image: golang:1.13
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -194,7 +194,7 @@ steps:
 
   - name: tag-test-mysql
     pull: always
-    image: golang:1.12
+    image: golang:1.13
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -212,7 +212,7 @@ steps:
 
   - name: test-mysql8
     pull: always
-    image: golang:1.12
+    image: golang:1.13
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -227,7 +227,7 @@ steps:
 
   - name: test-pgsql
     pull: always
-    image: golang:1.12
+    image: golang:1.13
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -242,7 +242,7 @@ steps:
 
   - name: test-mssql
     pull: always
-    image: golang:1.12
+    image: golang:1.13
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -257,7 +257,7 @@ steps:
 
   - name: generate-coverage
     pull: always
-    image: golang:1.12
+    image: golang:1.13
     commands:
       - make coverage
     environment:

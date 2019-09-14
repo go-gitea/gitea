@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -145,6 +145,7 @@ func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
 			PullRequest:  form.PullRequest,
 			Repository:   form.Repository,
 		},
+		BranchFilter: form.BranchFilter,
 	}
 }
 
