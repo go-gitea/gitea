@@ -8,7 +8,10 @@ import (
 	"regexp"
 	"strconv"
 
+	"code.gitea.io/gitea/modules/log"
+
 	"github.com/go-xorm/xorm"
+	"github.com/unknwon/com"
 )
 
 var (
@@ -48,29 +51,67 @@ type crossReferencesContext struct {
 	OrigComment *Comment
 }
 
-func (issue *Issue) addIssueReferences(e *xorm.Session, doer *User) error {
+func newCrossReference(e *xorm.Session, ctx *crossReferencesContext, xref *crossReference) error {
+	var refCommentID int64
+	if ctx.OrigComment != nil {
+		refCommentID = ctx.OrigComment.ID
+	}
+	_, err := createComment(e, &CreateCommentOptions{
+		Type:         ctx.Type,
+		Doer:         ctx.Doer,
+		Repo:         xref.Issue.Repo,
+		Issue:        xref.Issue,
+		RefRepoID:    ctx.OrigIssue.RepoID,
+		RefIssueID:   ctx.OrigIssue.ID,
+		RefCommentID: refCommentID,
+		RefAction:    xref.Action,
+		RefIsPull:    xref.Issue.IsPull,
+	})
+	return err
+}
+
+func neuterCrossReferences(e Engine, issueID int64, commentID int64) error {
+	active := make([]*Comment, 0, 10)
+	sess := e.Where("`ref_action` IN (?, ?, ?)", XRefActionNone, XRefActionCloses, XRefActionReopens)
+	if issueID != 0 {
+		sess = sess.And("`ref_issue_id` = ?", issueID)
+	}
+	if commentID != 0 {
+		sess = sess.And("`ref_comment_id` = ?", commentID)
+	}
+	err := sess.Find(&active)
+	if err != nil || len(active) == 0 {
+		return err
+	}
+	ids := make([]int64, len(active))
+	for i, c := range active {
+		ids[i] = c.ID
+	}
+	_, err = e.In("id", ids).Cols("`ref_action`").Update(&Comment{RefAction: XRefActionNeutered})
+	return err
+}
+
+// .___
+// |   | ______ ________ __   ____
+// |   |/  ___//  ___/  |  \_/ __ \
+// |   |\___ \ \___ \|  |  /\  ___/
+// |___/____  >____  >____/  \___  >
+//          \/     \/            \/
+//
+
+func (issue *Issue) addCrossReferences(e *xorm.Session, doer *User) error {
+	var commentType CommentType
+	if issue.IsPull {
+		commentType = CommentTypePullRef
+	} else {
+		commentType = CommentTypeIssueRef
+	}
 	ctx := &crossReferencesContext{
-		Type:      CommentTypeIssueRef,
+		Type:      commentType,
 		Doer:      doer,
 		OrigIssue: issue,
 	}
 	return issue.findCrossReferences(e, ctx, issue.Title+"\n"+issue.Content)
-}
-
-func (comment *Comment) addCommentReferences(e *xorm.Session, doer *User) error {
-	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
-		return nil
-	}
-	if err := comment.loadIssue(e); err != nil {
-		return err
-	}
-	ctx := &crossReferencesContext{
-		Type:        CommentTypeCommentRef,
-		Doer:        doer,
-		OrigIssue:   comment.Issue,
-		OrigComment: comment,
-	}
-	return comment.Issue.findCrossReferences(e, ctx, comment.Content)
 }
 
 func (issue *Issue) findCrossReferences(e *xorm.Session, ctx *crossReferencesContext, content string) error {
@@ -172,50 +213,97 @@ func (issue *Issue) isValidCommentReference(e Engine, ctx *crossReferencesContex
 	}, nil
 }
 
-func newCrossReference(e *xorm.Session, ctx *crossReferencesContext, xref *crossReference) error {
-	var refCommentID int64
-	if ctx.OrigComment != nil {
-		refCommentID = ctx.OrigComment.ID
-	}
-	_, err := createComment(e, &CreateCommentOptions{
-		Type:         ctx.Type,
-		Doer:         ctx.Doer,
-		Repo:         xref.Issue.Repo,
-		Issue:        xref.Issue,
-		RefRepoID:    ctx.OrigIssue.RepoID,
-		RefIssueID:   ctx.OrigIssue.ID,
-		RefCommentID: refCommentID,
-		RefAction:    xref.Action,
-		RefIsPull:    xref.Issue.IsPull,
-	})
-	return err
+func (issue *Issue) neuterCrossReferences(e Engine) error {
+	return neuterCrossReferences(e, issue.ID, 0)
 }
 
-func (issue *Issue) neuterReferencingComments(e Engine) error {
-	return neuterReferencingComments(e, issue.ID, 0)
-}
+// _________                                       __
+// \_   ___ \  ____   _____   _____   ____   _____/  |_
+// /    \  \/ /  _ \ /     \ /     \_/ __ \ /    \   __\
+// \     \___(  <_> )  Y Y  \  Y Y  \  ___/|   |  \  |
+//  \______  /\____/|__|_|  /__|_|  /\___  >___|  /__|
+//         \/             \/      \/     \/     \/
+//
 
-func (comment *Comment) neuterReferencingComments(e Engine) error {
-	return neuterReferencingComments(e, 0, comment.ID)
-}
-
-func neuterReferencingComments(e Engine, issueID int64, commentID int64) error {
-	active := make([]*Comment, 0, 10)
-	sess := e.Where("`ref_action` IN (?, ?, ?)", XRefActionNone, XRefActionCloses, XRefActionReopens)
-	if issueID != 0 {
-		sess = sess.And("`ref_issue_id` = ?", issueID)
+func (comment *Comment) addCrossReferences(e *xorm.Session, doer *User) error {
+	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
+		return nil
 	}
-	if commentID != 0 {
-		sess = sess.And("`ref_comment_id` = ?", commentID)
-	}
-	err := sess.Find(&active)
-	if err != nil || len(active) == 0 {
+	if err := comment.loadIssue(e); err != nil {
 		return err
 	}
-	ids := make([]int64, len(active))
-	for i, c := range active {
-		ids[i] = c.ID
+	ctx := &crossReferencesContext{
+		Type:        CommentTypeCommentRef,
+		Doer:        doer,
+		OrigIssue:   comment.Issue,
+		OrigComment: comment,
 	}
-	_, err = e.In("id", ids).Cols("`ref_action`").Update(&Comment{RefAction: XRefActionNeutered})
-	return err
+	return comment.Issue.findCrossReferences(e, ctx, comment.Content)
+}
+
+func (comment *Comment) neuterCrossReferences(e Engine) error {
+	return neuterCrossReferences(e, 0, comment.ID)
+}
+
+// LoadRefComment loads comment that created this reference from database
+func (comment *Comment) LoadRefComment() (err error) {
+	if comment.RefComment != nil {
+		return nil
+	}
+	comment.RefComment, err = GetCommentByID(comment.RefCommentID)
+	return
+}
+
+// LoadRefIssue loads comment that created this reference from database
+func (comment *Comment) LoadRefIssue() (err error) {
+	if comment.RefIssue != nil {
+		return nil
+	}
+	comment.RefIssue, err = GetIssueByID(comment.RefIssueID)
+	if err == nil {
+		err = comment.RefIssue.loadRepo(x)
+	}
+	return
+}
+
+// CommentTypeIsRef returns true if CommentType is a reference from another issue
+func CommentTypeIsRef(t CommentType) bool {
+	return t == CommentTypeCommentRef || t == CommentTypePullRef || t == CommentTypeIssueRef
+}
+
+// RefCommentHTMLURL returns the HTML URL for the comment that created this reference
+func (comment *Comment) RefCommentHTMLURL() string {
+	if err := comment.LoadRefComment(); err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadRefComment(%d): %v", comment.RefCommentID, err)
+		return ""
+	}
+	return comment.RefComment.HTMLURL()
+}
+
+// RefIssueHTMLURL returns the HTML URL of the issue where this reference was created
+func (comment *Comment) RefIssueHTMLURL() string {
+	if err := comment.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadRefIssue(%d): %v", comment.RefCommentID, err)
+		return ""
+	}
+	return comment.RefIssue.HTMLURL()
+}
+
+// RefIssueTitle returns the title of the issue where this reference was created
+func (comment *Comment) RefIssueTitle() string {
+	if err := comment.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadRefIssue(%d): %v", comment.RefCommentID, err)
+		return ""
+	}
+	return comment.RefIssue.Title
+}
+
+// RefIssueIdent returns the user friendly identity (e.g. "#1234") of the issue where this reference was created
+func (comment *Comment) RefIssueIdent() string {
+	if err := comment.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadRefIssue(%d): %v", comment.RefCommentID, err)
+		return ""
+	}
+	// FIXME: check this name for cross-repository references (#7901 if it gets merged)
+	return "#" + com.ToStr(comment.RefIssue.Index)
 }

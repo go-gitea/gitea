@@ -297,64 +297,6 @@ func (c *Comment) EventTag() string {
 	return "event-" + com.ToStr(c.ID)
 }
 
-// LoadRefComment loads comment that created this reference from database
-func (c *Comment) LoadRefComment() (err error) {
-	if c.RefComment != nil {
-		return nil
-	}
-	c.RefComment, err = GetCommentByID(c.RefCommentID)
-	return
-}
-
-// LoadRefIssue loads comment that created this reference from database
-func (c *Comment) LoadRefIssue() (err error) {
-	if c.RefIssue != nil {
-		return nil
-	}
-	c.RefIssue, err = GetIssueByID(c.RefIssueID)
-	if err == nil {
-		err = c.RefIssue.loadRepo(x)
-	}
-	return
-}
-
-// RefCommentHTMLURL returns the HTML URL for the comment that created this reference
-func (c *Comment) RefCommentHTMLURL() string {
-	if err := c.LoadRefComment(); err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadRefComment(%d): %v", c.RefCommentID, err)
-		return ""
-	}
-	return c.RefComment.HTMLURL()
-}
-
-// RefIssueHTMLURL returns the HTML URL of the issue where this reference was created
-func (c *Comment) RefIssueHTMLURL() string {
-	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
-		return ""
-	}
-	return c.RefIssue.HTMLURL()
-}
-
-// RefIssueTitle returns the title of the issue where this reference was created
-func (c *Comment) RefIssueTitle() string {
-	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
-		return ""
-	}
-	return c.RefIssue.Title
-}
-
-// RefIssueIdent returns the user friendly identity (e.g. "#1234") of the issue where this reference was created
-func (c *Comment) RefIssueIdent() string {
-	if err := c.LoadRefIssue(); err != nil { // Silently dropping errors :unamused:
-		log.Error("LoadRefIssue(%d): %v", c.RefCommentID, err)
-		return ""
-	}
-	// FIXME: check this name for cross-repository references (#7901 if it gets merged)
-	return "#" + com.ToStr(c.RefIssue.Index)
-}
-
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label
 func (c *Comment) LoadLabel() error {
 	var label Label
@@ -619,7 +561,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		return nil, err
 	}
 
-	if err = comment.addCommentReferences(e, opts.Doer); err != nil {
+	if err = comment.addCrossReferences(e, opts.Doer); err != nil {
 		return nil, err
 	}
 
@@ -1034,10 +976,10 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	if err := c.loadIssue(sess); err != nil {
 		return err
 	}
-	if err := c.neuterReferencingComments(sess); err != nil {
+	if err := c.neuterCrossReferences(sess); err != nil {
 		return err
 	}
-	if err := c.addCommentReferences(sess, doer); err != nil {
+	if err := c.addCrossReferences(sess, doer); err != nil {
 		return err
 	}
 	if err := sess.Commit(); err != nil {
@@ -1096,7 +1038,7 @@ func DeleteComment(doer *User, comment *Comment) error {
 		return err
 	}
 
-	if err := comment.neuterReferencingComments(sess); err != nil {
+	if err := comment.neuterCrossReferences(sess); err != nil {
 		return err
 	}
 
@@ -1118,7 +1060,7 @@ func DeleteComment(doer *User, comment *Comment) error {
 	if err := comment.loadPoster(x); err != nil {
 		return err
 	}
-	if err := comment.neuterReferencingComments(x); err != nil {
+	if err := comment.neuterCrossReferences(x); err != nil {
 		return err
 	}
 
@@ -1218,9 +1160,4 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
 func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 	return fetchCodeComments(x, issue, currentUser)
-}
-
-// CommentTypeIsRef returns true if CommentType is a reference from another issue
-func CommentTypeIsRef(t CommentType) bool {
-	return t == CommentTypeCommentRef || t == CommentTypePullRef || t == CommentTypeIssueRef
 }
