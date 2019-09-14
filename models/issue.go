@@ -33,22 +33,24 @@ type Issue struct {
 	Poster           *User       `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
-	Title            string     `xorm:"name"`
-	Content          string     `xorm:"TEXT"`
-	RenderedContent  string     `xorm:"-"`
-	Labels           []*Label   `xorm:"-"`
-	MilestoneID      int64      `xorm:"INDEX"`
-	ProjectID        int64      `xorm:"INDEX"`
-	Milestone        *Milestone `xorm:"-"`
-	Priority         int
-	AssigneeID       int64        `xorm:"-"`
-	Assignee         *User        `xorm:"-"`
-	IsClosed         bool         `xorm:"INDEX"`
-	IsRead           bool         `xorm:"-"`
-	IsPull           bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
-	PullRequest      *PullRequest `xorm:"-"`
-	NumComments      int
-	Ref              string
+	Title            string   `xorm:"name"`
+	Content          string   `xorm:"TEXT"`
+	RenderedContent  string   `xorm:"-"`
+	Labels           []*Label `xorm:"-"`
+	MilestoneID      int64    `xorm:"INDEX"`
+	ProjectID        int64    `xorm:"INDEX"`
+	// If 0, then it has not been added to a specific board in the project
+	ProjectBoardID int64      `xorm:"INDEX"`
+	Milestone      *Milestone `xorm:"-"`
+	Priority       int
+	AssigneeID     int64        `xorm:"-"`
+	Assignee       *User        `xorm:"-"`
+	IsClosed       bool         `xorm:"INDEX"`
+	IsRead         bool         `xorm:"-"`
+	IsPull         bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
+	PullRequest    *PullRequest `xorm:"-"`
+	NumComments    int
+	Ref            string
 
 	DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
 
@@ -61,6 +63,7 @@ type Issue struct {
 	Reactions        ReactionList  `xorm:"-"`
 	TotalTrackedTime int64         `xorm:"-"`
 	Assignees        []*User       `xorm:"-"`
+	Project          *Project      `xorm:"-"`
 
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
@@ -255,6 +258,13 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
 		if err != nil && !IsErrMilestoneNotExist(err) {
 			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
+		}
+	}
+
+	if issue.ProjectID > 0 && issue.Project == nil {
+		issue.Project, err = getProjectByRepoID(e, issue.RepoID, issue.ProjectID)
+		if err != nil && !IsErrProjectNotExist(err) {
+			return fmt.Errorf("getProjectByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.ProjectID, err)
 		}
 	}
 

@@ -81,6 +81,10 @@ const (
 	CommentTypeLock
 	// Unlocks a previously locked issue
 	CommentTypeUnlock
+	// Project changed
+	CommentTypeProject
+	// Project board changed
+	CommentTypeProjectBoard
 )
 
 // CommentTag defines comment tag type
@@ -657,6 +661,17 @@ func createLabelComment(e *xorm.Session, doer *User, repo *Repository, issue *Is
 		Issue:   issue,
 		Label:   label,
 		Content: content,
+	})
+}
+
+func createProjectComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldProjectID, projectID int64) (*Comment, error) {
+	return createComment(e, &CreateCommentOptions{
+		Type:           CommentTypeProject,
+		Doer:           doer,
+		Repo:           repo,
+		Issue:          issue,
+		OldMilestoneID: oldProjectID,
+		MilestoneID:    projectID,
 	})
 }
 

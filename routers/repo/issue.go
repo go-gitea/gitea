@@ -341,6 +341,23 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 	}
 }
 
+func retrieveProjects(ctx *context.Context, repo *models.Repository) {
+
+	var err error
+
+	ctx.Data["OpenProjects"], err = models.GetProjects(repo.ID, -1, false, "")
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
+
+	ctx.Data["ClosedProjects"], err = models.GetProjects(repo.ID, -1, true, "")
+	if err != nil {
+		ctx.ServerError("GetProjects", err)
+		return
+	}
+}
+
 // RetrieveRepoMetas find all the meta information of a repository
 func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository) []*models.Label {
 	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
@@ -640,6 +657,8 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireDropzone"] = true
 	ctx.Data["RequireTribute"] = true
+	// ctx.Data["IsProjectsEnabled"] = settings.
+
 	renderAttachmentSettings(ctx)
 
 	err = issue.LoadAttributes()
@@ -711,6 +730,8 @@ func ViewIssue(ctx *context.Context) {
 	// Check milestone and assignee.
 	if ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		RetrieveRepoMilestonesAndAssignees(ctx, repo)
+		retrieveProjects(ctx, repo)
+
 		if ctx.Written() {
 			return
 		}

@@ -709,6 +709,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
 			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
+			m.Post("/projects", reqRepoIssuesOrPullsWriter, repo.UpdateIssueProject)
 			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
 			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
 		}, context.RepoMustNotBeArchived())
@@ -815,6 +816,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("", repo.Projects)
 			m.Get("/new", repo.NewProject)
 			m.Post("/new", bindIgnErr(auth.CreateProjectForm{}), repo.NewProjectPost)
+			m.Get("/:id", repo.ViewProject)
 			m.Get("/:id/:action", repo.ChangeProjectStatus)
 			m.Post("/:id/edit", bindIgnErr(auth.CreateProjectForm{}), repo.EditProjectPost)
 			m.Get("/:id/edit", repo.EditProject)

@@ -177,15 +177,13 @@ func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
 	return err
 }
 
-// GetProjectByRepoID returns the projects in a repository.
-func GetProjectByRepoID(repoID, id int64) (*Project, error) {
-
+func getProjectByRepoID(e Engine, repoID, id int64) (*Project, error) {
 	p := &Project{
 		ID:     id,
 		RepoID: repoID,
 	}
 
-	has, err := x.Get(p)
+	has, err := e.Get(p)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -193,6 +191,11 @@ func GetProjectByRepoID(repoID, id int64) (*Project, error) {
 	}
 
 	return p, nil
+}
+
+// GetProjectByRepoID returns the projects in a repository.
+func GetProjectByRepoID(repoID, id int64) (*Project, error) {
+	return getProjectByRepoID(x, repoID, id)
 }
 
 func updateProject(e Engine, p *Project) error {
@@ -304,4 +307,67 @@ func DeleteProjectByRepoID(repoID, id int64) error {
 func UpdateProject(p *Project) error {
 	_, err := x.ID(p.ID).AllCols().Update(p)
 	return err
+}
+
+// ChangeProjectAssign changes the project associated with an issue
+func ChangeProjectAssign(issue *Issue, doer *User, oldProjectID int64) error {
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := changeProjectAssign(sess, doer, issue, oldProjectID); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+func changeProjectAssign(sess *xorm.Session, doer *User, issue *Issue, oldProjectID int64) error {
+
+	if oldProjectID > 0 {
+		p, err := getProjectByRepoID(sess, issue.RepoID, oldProjectID)
+		if err != nil {
+			return err
+		}
+
+		p.NumIssues--
+		if issue.IsClosed {
+			p.NumClosedIssues--
+		}
+
+		if err := updateProject(sess, p); err != nil {
+			return err
+		}
+	}
+
+	if issue.ProjectID > 0 {
+		p, err := getProjectByRepoID(sess, issue.RepoID, issue.ProjectID)
+		if err != nil {
+			return err
+		}
+
+		p.NumIssues++
+		if issue.IsClosed {
+			p.NumClosedIssues++
+		}
+
+		if err := updateProject(sess, p); err != nil {
+			return err
+		}
+	}
+
+	if err := issue.loadRepo(sess); err != nil {
+		return err
+	}
+
+	if oldProjectID > 0 || issue.ProjectID > 0 {
+		if _, err := createProjectComment(sess, doer, issue.Repo, issue, oldProjectID, issue.ProjectID); err != nil {
+			return err
+		}
+	}
+
+	return updateIssueCols(sess, issue, "project_id")
 }

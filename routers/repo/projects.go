@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	tplProjects    base.TplName = "repo/projects/list"
-	tplProjectsNew base.TplName = "repo/projects/new"
+	tplProjects     base.TplName = "repo/projects/list"
+	tplProjectsNew  base.TplName = "repo/projects/new"
+	tplProjectsView base.TplName = "repo/projects/view"
 
 	projectTemplateKey = "ProjectTemplate"
 )
@@ -220,4 +221,50 @@ func EditProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.edit_success", p.Title))
 	ctx.Redirect(ctx.Repo.RepoLink + "/projects")
+}
+
+// ViewProject renders the kanban board for a project
+func ViewProject(ctx *context.Context) {
+
+	p, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	if err != nil {
+		if models.IsErrProjectNotExist(err) {
+			ctx.NotFound("", nil)
+		} else {
+			ctx.ServerError("GetProjectByRepoID", err)
+		}
+		return
+	}
+
+	ctx.Data["Title"] = p.Title
+	ctx.Data["PageIsProjects"] = true
+	ctx.Data["RequiresDraggable"] = true
+
+	ctx.HTML(200, tplProjectsView)
+}
+
+// UpdateIssueProject change an issue's project
+func UpdateIssueProject(ctx *context.Context) {
+	issues := getActionIssues(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	projectID := ctx.QueryInt64("id")
+	for _, issue := range issues {
+		oldProjectID := issue.ProjectID
+		if oldProjectID == projectID {
+			continue
+		}
+
+		issue.ProjectID = projectID
+		if err := models.ChangeProjectAssign(issue, ctx.User, oldProjectID); err != nil {
+			ctx.ServerError("ChangeProjectAssign", err)
+			return
+		}
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ok": true,
+	})
 }
