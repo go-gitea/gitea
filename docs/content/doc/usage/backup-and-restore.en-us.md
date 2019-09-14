@@ -79,3 +79,9 @@ mysql -u$USER -p$PASS $DATABASE <gitea-db.sql
 # or  sqlite3 $DATABASE_PATH <gitea-db.sql
 service gitea restart
 ```
+
+If a restoration is done to migrate from one installation method to a another (eg. binary -> Docker), repository git-hooks should be regenerated.
+
+With Gitea running, execute: `gitea admin regenerate hooks`
+
+This ensures that application and configuration file paths in repository git-hooks are consistent and applicable to the current installation.
