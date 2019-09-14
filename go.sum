@@ -408,8 +408,8 @@ github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e/go.mod h1:C1wdFJiN
 github.com/mailru/easyjson v0.7.0 h1:aizVhC/NAAcKWb+5QsU1iNOZb4Yws5UO2I+aIprQITM=
 github.com/mailru/easyjson v0.7.0/go.mod h1:KAzv3t3aY1NaHWoQz1+4F1ccyAH66Jk7yos7ldAVICs=
 github.com/markbates/going v1.0.0/go.mod h1:I6mnB4BPnEeqo85ynXIx1ZFLLbtiLHNXVgWeFO9OGOA=
-github.com/markbates/goth v1.49.0 h1:qQ4Ti4WaqAxNAggOC+4s5M85sMVfMJwQn/Xkp73wfgI=
-github.com/markbates/goth v1.49.0/go.mod h1:zZmAw0Es0Dpm7TT/4AdN14QrkiWLMrrU9Xei1o+/mdA=
+github.com/markbates/goth v1.56.0 h1:XEYedCgMNz5pi3ojXI8z2XUmXtBnMeuKUpx4Z6HlNj8=
+github.com/markbates/goth v1.56.0/go.mod h1:zZmAw0Es0Dpm7TT/4AdN14QrkiWLMrrU9Xei1o+/mdA=
 github.com/mattn/go-isatty v0.0.7 h1:UvyT9uN+3r7yLEYSlJsbQGdsaB/a0DlgWP3pql6iwOc=
 github.com/mattn/go-isatty v0.0.7/go.mod h1:Iq45c/XA43vh69/j3iqttzPXn0bhXyGjM0Hdxcsrc5s=
 github.com/mattn/go-oci8 v0.0.0-20190320171441-14ba190cf52d h1:m+dSK37rFf2fqppZhg15yI2IwC9BtucBiRwSDm9VL8g=

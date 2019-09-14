@@ -303,13 +303,14 @@ github.com/magiconair/properties
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-# github.com/markbates/goth v1.49.0
+# github.com/markbates/goth v1.56.0
 github.com/markbates/goth
 github.com/markbates/goth/gothic
 github.com/markbates/goth/providers/bitbucket
 github.com/markbates/goth/providers/discord
 github.com/markbates/goth/providers/dropbox
 github.com/markbates/goth/providers/facebook
+github.com/markbates/goth/providers/gitea
 github.com/markbates/goth/providers/github
 github.com/markbates/goth/providers/gitlab
 github.com/markbates/goth/providers/gplus
