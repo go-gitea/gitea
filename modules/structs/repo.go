@@ -15,21 +15,21 @@ type Permission struct {
 	Pull  bool `json:"pull"`
 }
 
-// Represents settings for internal tracker
+// InternalTracker represents settings for internal tracker
 type InternalTracker struct {
 	EnableTimeTracker            bool `json:"enable_time_tracker"`
 	LetOnlyContributorsTrackTime bool `json:"let_only_contributors_track_time"`
 	EnableIssueDependencies      bool `json:"enable_issue_dependencies"`
 }
 
-// Represents settings for external tracker
+// ExternalTracker represents settings for external tracker
 type ExternalTracker struct {
 	ExternalTrackerURL    string `json:"external_tracker_url"`
 	ExternalTrackerFormat string `json:"external_tracker_format"`
 	ExternalTrackerStyle  string `json:"external_tracker_style"`
 }
 
-// Represents setting for external wiki
+// ExternalWiki represents setting for external wiki
 type ExternalWiki struct {
 	ExternalWikiURL string `json:"external_wiki_url"`
 }
