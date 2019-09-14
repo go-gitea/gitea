@@ -20,16 +20,15 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/util"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
 
-	"golang.org/x/net/html/charset"
-	"golang.org/x/text/transform"
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
 )
 
@@ -76,9 +75,9 @@ func NewFuncMap() []template.FuncMap {
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
 		"Str2html":      Str2html,
-		"TimeSince":     base.TimeSince,
-		"TimeSinceUnix": base.TimeSinceUnix,
-		"RawTimeSince":  base.RawTimeSince,
+		"TimeSince":     timeutil.TimeSince,
+		"TimeSinceUnix": timeutil.TimeSinceUnix,
+		"RawTimeSince":  timeutil.RawTimeSince,
 		"FileSize":      base.FileSize,
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
@@ -119,13 +118,14 @@ func NewFuncMap() []template.FuncMap {
 		"EscapePound": func(str string) string {
 			return strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(str)
 		},
-		"PathEscapeSegments":       util.PathEscapeSegments,
-		"URLJoin":                  util.URLJoin,
-		"RenderCommitMessage":      RenderCommitMessage,
-		"RenderCommitMessageLink":  RenderCommitMessageLink,
-		"RenderCommitBody":         RenderCommitBody,
-		"RenderNote":               RenderNote,
-		"IsMultilineCommitMessage": IsMultilineCommitMessage,
+		"PathEscapeSegments":             util.PathEscapeSegments,
+		"URLJoin":                        util.URLJoin,
+		"RenderCommitMessage":            RenderCommitMessage,
+		"RenderCommitMessageLink":        RenderCommitMessageLink,
+		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
+		"RenderCommitBody":               RenderCommitBody,
+		"RenderNote":                     RenderNote,
+		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
 		},
@@ -232,6 +232,7 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return float32(n) * 100 / float32(sum)
 		},
+		"CommentMustAsDiff": gitdiff.CommentMustAsDiff,
 	}}
 }
 
@@ -274,60 +275,6 @@ func Sha1(str string) string {
 	return base.EncodeSha1(str)
 }
 
-// ToUTF8WithErr converts content to UTF8 encoding
-func ToUTF8WithErr(content []byte) (string, error) {
-	charsetLabel, err := base.DetectEncoding(content)
-	if err != nil {
-		return "", err
-	} else if charsetLabel == "UTF-8" {
-		return string(base.RemoveBOMIfPresent(content)), nil
-	}
-
-	encoding, _ := charset.Lookup(charsetLabel)
-	if encoding == nil {
-		return string(content), fmt.Errorf("Unknown encoding: %s", charsetLabel)
-	}
-
-	// If there is an error, we concatenate the nicely decoded part and the
-	// original left over. This way we won't lose data.
-	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
-	if err != nil {
-		result = append(result, content[n:]...)
-	}
-
-	result = base.RemoveBOMIfPresent(result)
-
-	return string(result), err
-}
-
-// ToUTF8WithFallback detects the encoding of content and coverts to UTF-8 if possible
-func ToUTF8WithFallback(content []byte) []byte {
-	charsetLabel, err := base.DetectEncoding(content)
-	if err != nil || charsetLabel == "UTF-8" {
-		return base.RemoveBOMIfPresent(content)
-	}
-
-	encoding, _ := charset.Lookup(charsetLabel)
-	if encoding == nil {
-		return content
-	}
-
-	// If there is an error, we concatenate the nicely decoded part and the
-	// original left over. This way we won't lose data.
-	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
-	if err != nil {
-		return append(result, content[n:]...)
-	}
-
-	return base.RemoveBOMIfPresent(result)
-}
-
-// ToUTF8 converts content to UTF8 encoding and ignore error
-func ToUTF8(content string) string {
-	res, _ := ToUTF8WithErr([]byte(content))
-	return res
-}
-
 // ReplaceLeft replaces all prefixes 'oldS' in 's' with 'newS'.
 func ReplaceLeft(s, oldS, newS string) string {
 	oldLen, newLen, i, n := len(oldS), len(newS), 0, 0
@@ -367,6 +314,24 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, urlDefault, metas)
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
+		return ""
+	}
+	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
+	if len(msgLines) == 0 {
+		return template.HTML("")
+	}
+	return template.HTML(msgLines[0])
+}
+
+// RenderCommitMessageLinkSubject renders commit message as a XXS-safe link to
+// the provided default url, handling for special links without email to links.
+func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
+	cleanMsg := template.HTMLEscapeString(msg)
+	// we can safely assume that it will not return any error, since there
+	// shouldn't be any special HTML.
+	fullMessage, err := markup.RenderCommitMessageSubject([]byte(cleanMsg), urlPrefix, urlDefault, metas)
+	if err != nil {
+		log.Error("RenderCommitMessageSubject: %v", err)
 		return ""
 	}
 	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")

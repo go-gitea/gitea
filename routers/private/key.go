@@ -7,9 +7,9 @@ package private
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 )
 
 // UpdatePublicKeyInRepo update public key and deploy key updates
@@ -34,7 +34,7 @@ func UpdatePublicKeyInRepo(ctx *macaron.Context) {
 		})
 		return
 	}
-	deployKey.UpdatedUnix = util.TimeStampNow()
+	deployKey.UpdatedUnix = timeutil.TimeStampNow()
 	if err = models.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
 		ctx.JSON(500, map[string]interface{}{
 			"err": err.Error(),

@@ -4,11 +4,15 @@
 
 package models
 
-import "fmt"
+import (
+	"fmt"
+
+	"code.gitea.io/gitea/modules/setting"
+)
 
 // ConvertUtf8ToUtf8mb4 converts database and tables from utf8 to utf8mb4 if it's mysql
 func ConvertUtf8ToUtf8mb4() error {
-	_, err := x.Exec(fmt.Sprintf("ALTER DATABASE `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci", DbCfg.Name))
+	_, err := x.Exec(fmt.Sprintf("ALTER DATABASE `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci", setting.Database.Name))
 	if err != nil {
 		return err
 	}

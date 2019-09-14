@@ -220,7 +220,7 @@ func (db *mysql) SqlType(c *core.Column) string {
 	case core.TimeStampz:
 		res = core.Char
 		c.Length = 64
-	case core.Enum: //mysql enum
+	case core.Enum: // mysql enum
 		res = core.Enum
 		res += "("
 		opts := ""
@@ -229,7 +229,7 @@ func (db *mysql) SqlType(c *core.Column) string {
 		}
 		res += strings.TrimLeft(opts, ",")
 		res += ")"
-	case core.Set: //mysql set
+	case core.Set: // mysql set
 		res = core.Set
 		res += "("
 		opts := ""
@@ -276,10 +276,6 @@ func (db *mysql) IsReserved(name string) bool {
 
 func (db *mysql) Quote(name string) string {
 	return "`" + name + "`"
-}
-
-func (db *mysql) QuoteStr() string {
-	return "`"
 }
 
 func (db *mysql) SupportEngine() bool {
@@ -360,7 +356,7 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 		var len1, len2 int
 		if len(cts) == 2 {
 			idx := strings.Index(cts[1], ")")
-			if colType == core.Enum && cts[1][0] == '\'' { //enum
+			if colType == core.Enum && cts[1][0] == '\'' { // enum
 				options := strings.Split(cts[1][0:idx], ",")
 				col.EnumOptions = make(map[string]int)
 				for k, v := range options {
@@ -408,7 +404,7 @@ func (db *mysql) GetColumns(tableName string) ([]string, map[string]*core.Column
 			col.IsPrimaryKey = true
 		}
 		if colKey == "UNI" {
-			//col.is
+			// col.is
 		}
 
 		if extra == "auto_increment" {
@@ -554,12 +550,10 @@ func (db *mysql) CreateTableSql(table *core.Table, tableName, storeEngine, chars
 
 	if len(charset) == 0 {
 		charset = db.URI().Charset
-	} 
+	}
 	if len(charset) != 0 {
 		sql += " DEFAULT CHARSET " + charset
 	}
-	
-	
 
 	if db.rowFormat != "" {
 		sql += " ROW_FORMAT=" + db.rowFormat
@@ -633,7 +627,7 @@ func (p *mysqlDriver) Parse(driverName, dataSourceName string) (*core.Uri, error
 			`\/(?P<dbname>.*?)` + // /dbname
 			`(?:\?(?P<params>[^\?]*))?$`) // [?param1=value1&paramN=valueN]
 	matches := dsnPattern.FindStringSubmatch(dataSourceName)
-	//tlsConfigRegister := make(map[string]*tls.Config)
+	// tlsConfigRegister := make(map[string]*tls.Config)
 	names := dsnPattern.SubexpNames()
 
 	uri := &core.Uri{DbType: core.MYSQL}

@@ -14,19 +14,20 @@ import (
 )
 
 const (
-	// default cache expired time
+	// CacheExpired is default cache expired time
 	CacheExpired = 60 * time.Minute
-	// not use now
+	// CacheMaxMemory is not use now
 	CacheMaxMemory = 256
-	// evey ten minutes to clear all expired nodes
+	// CacheGcInterval represents interval time to clear all expired nodes
 	CacheGcInterval = 10 * time.Minute
-	// each time when gc to removed max nodes
+	// CacheGcMaxRemoved represents max nodes removed when gc
 	CacheGcMaxRemoved = 20
 )
 
+// list all the errors
 var (
-	ErrCacheMiss = errors.New("xorm/cache: key not found.")
-	ErrNotStored = errors.New("xorm/cache: not stored.")
+	ErrCacheMiss = errors.New("xorm/cache: key not found")
+	ErrNotStored = errors.New("xorm/cache: not stored")
 )
 
 // CacheStore is a interface to store cache
@@ -69,6 +70,7 @@ func decodeIds(s string) ([]PK, error) {
 	return pks, err
 }
 
+// GetCacheSql returns cacher PKs via SQL
 func GetCacheSql(m Cacher, tableName, sql string, args interface{}) ([]PK, error) {
 	bytes := m.GetIds(tableName, GenSqlKey(sql, args))
 	if bytes == nil {
@@ -77,6 +79,7 @@ func GetCacheSql(m Cacher, tableName, sql string, args interface{}) ([]PK, error
 	return decodeIds(bytes.(string))
 }
 
+// PutCacheSql puts cacher SQL and PKs
 func PutCacheSql(m Cacher, ids []PK, tableName, sql string, args interface{}) error {
 	bytes, err := encodeIds(ids)
 	if err != nil {
@@ -86,6 +89,7 @@ func PutCacheSql(m Cacher, ids []PK, tableName, sql string, args interface{}) er
 	return nil
 }
 
+// GenSqlKey generates cache key
 func GenSqlKey(sql string, args interface{}) string {
 	return fmt.Sprintf("%v-%v", sql, args)
 }

@@ -17,11 +17,10 @@ import (
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/api/v1/convert"
-
-	api "code.gitea.io/gitea/modules/structs"
 )
 
 var searchOrderByMap = map[string]map[string]models.SearchOrderBy{
@@ -53,6 +52,14 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: keyword
 	//   type: string
+	// - name: topic
+	//   in: query
+	//   description: Limit search to repositories with keyword as topic
+	//   type: boolean
+	// - name: includeDesc
+	//   in: query
+	//   description: include search of keyword within repository description
+	//   type: boolean
 	// - name: uid
 	//   in: query
 	//   description: search only for repos that the user with the given id owns or contributes to
@@ -101,16 +108,17 @@ func Search(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	opts := &models.SearchRepoOptions{
-		Keyword:     strings.Trim(ctx.Query("q"), " "),
-		OwnerID:     ctx.QueryInt64("uid"),
-		Page:        ctx.QueryInt("page"),
-		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		TopicOnly:   ctx.QueryBool("topic"),
-		Collaborate: util.OptionalBoolNone,
-		Private:     ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
-		UserIsAdmin: ctx.IsUserSiteAdmin(),
-		UserID:      ctx.Data["SignedUserID"].(int64),
-		StarredByID: ctx.QueryInt64("starredBy"),
+		Keyword:            strings.Trim(ctx.Query("q"), " "),
+		OwnerID:            ctx.QueryInt64("uid"),
+		Page:               ctx.QueryInt("page"),
+		PageSize:           convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		TopicOnly:          ctx.QueryBool("topic"),
+		Collaborate:        util.OptionalBoolNone,
+		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
+		UserIsAdmin:        ctx.IsUserSiteAdmin(),
+		UserID:             ctx.Data["SignedUserID"].(int64),
+		StarredByID:        ctx.QueryInt64("starredBy"),
+		IncludeDescription: ctx.QueryBool("includeDesc"),
 	}
 
 	if ctx.QueryBool("exclusive") {
@@ -155,7 +163,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	var err error
-	repos, count, err := models.SearchRepositoryByName(opts)
+	repos, count, err := models.SearchRepository(opts)
 	if err != nil {
 		ctx.JSON(500, api.SearchError{
 			OK:    false,
@@ -199,6 +207,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 	repo, err := models.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
 		Name:        opt.Name,
 		Description: opt.Description,
+		IssueLabels: opt.IssueLabels,
 		Gitignores:  opt.Gitignores,
 		License:     opt.License,
 		Readme:      opt.Readme,
@@ -930,46 +939,4 @@ func MirrorSync(ctx *context.APIContext) {
 
 	go models.MirrorQueue.Add(repo.ID)
 	ctx.Status(200)
-}
-
-// TopicSearch search for creating topic
-func TopicSearch(ctx *context.Context) {
-	// swagger:operation GET /topics/search repository topicSearch
-	// ---
-	// summary: search topics via keyword
-	// produces:
-	//   - application/json
-	// parameters:
-	//   - name: q
-	//     in: query
-	//     description: keywords to search
-	//     required: true
-	//     type: string
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/Repository"
-	if ctx.User == nil {
-		ctx.JSON(403, map[string]interface{}{
-			"message": "Only owners could change the topics.",
-		})
-		return
-	}
-
-	kw := ctx.Query("q")
-
-	topics, err := models.FindTopics(&models.FindTopicOptions{
-		Keyword: kw,
-		Limit:   10,
-	})
-	if err != nil {
-		log.Error("SearchTopics failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
-			"message": "Search topics failed.",
-		})
-		return
-	}
-
-	ctx.JSON(200, map[string]interface{}{
-		"topics": topics,
-	})
 }

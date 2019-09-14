@@ -41,13 +41,15 @@ endif
 
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
-PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/)))
+PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 SOURCES ?= $(shell find . -name "*.go" -type f)
 
 TAGS ?=
 
 TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
 
+#To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1
+SWAGGER := GO111MODULE=on $(GO) run -mod=vendor github.com/go-swagger/go-swagger/cmd/swagger
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl}}/api/v1"|g
 SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl}}/api/v1"|"basePath": "/api/v1"|g
@@ -101,10 +103,7 @@ generate:
 
 .PHONY: generate-swagger
 generate-swagger:
-	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE="on" $(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.19.0; \
-	fi
-	swagger generate spec -o './$(SWAGGER_SPEC)'
+	$(SWAGGER) generate spec -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
 
@@ -119,11 +118,8 @@ swagger-check: generate-swagger
 
 .PHONY: swagger-validate
 swagger-validate:
-	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
-	fi
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
-	swagger validate './$(SWAGGER_SPEC)'
+	$(SWAGGER) validate './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
 .PHONY: errcheck
@@ -473,6 +469,6 @@ pr:
 golangci-lint:
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.16.0; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.18.0; \
 	fi
-	golangci-lint run
+	golangci-lint run --deadline=3m

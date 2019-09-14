@@ -175,12 +175,6 @@ func (engine *Engine) SupportInsertMany() bool {
 	return engine.dialect.SupportInsertMany()
 }
 
-// QuoteStr Engine's database use which character as quote.
-// mysql, sqlite use ` and postgres use "
-func (engine *Engine) QuoteStr() string {
-	return engine.dialect.QuoteStr()
-}
-
 func (engine *Engine) quoteColumns(columnStr string) string {
 	columns := strings.Split(columnStr, ",")
 	for i := 0; i < len(columns); i++ {
@@ -196,13 +190,10 @@ func (engine *Engine) Quote(value string) string {
 		return value
 	}
 
-	if string(value[0]) == engine.dialect.QuoteStr() || value[0] == '`' {
-		return value
-	}
+	buf := builder.StringBuilder{}
+	engine.QuoteTo(&buf, value)
 
-	value = strings.Replace(value, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
-
-	return engine.dialect.QuoteStr() + value + engine.dialect.QuoteStr()
+	return buf.String()
 }
 
 // QuoteTo quotes string and writes into the buffer
@@ -216,20 +207,30 @@ func (engine *Engine) QuoteTo(buf *builder.StringBuilder, value string) {
 		return
 	}
 
-	if string(value[0]) == engine.dialect.QuoteStr() || value[0] == '`' {
-		buf.WriteString(value)
+	quotePair := engine.dialect.Quote("")
+
+	if value[0] == '`' || len(quotePair) < 2 || value[0] == quotePair[0] { // no quote
+		_, _ = buf.WriteString(value)
 		return
+	} else {
+		prefix, suffix := quotePair[0], quotePair[1]
+
+		_ = buf.WriteByte(prefix)
+		for i := 0; i < len(value); i++ {
+			if value[i] == '.' {
+				_ = buf.WriteByte(suffix)
+				_ = buf.WriteByte('.')
+				_ = buf.WriteByte(prefix)
+			} else {
+				_ = buf.WriteByte(value[i])
+			}
+		}
+		_ = buf.WriteByte(suffix)
 	}
-
-	value = strings.Replace(value, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
-
-	buf.WriteString(engine.dialect.QuoteStr())
-	buf.WriteString(value)
-	buf.WriteString(engine.dialect.QuoteStr())
 }
 
 func (engine *Engine) quote(sql string) string {
-	return engine.dialect.QuoteStr() + sql + engine.dialect.QuoteStr()
+	return engine.dialect.Quote(sql)
 }
 
 // SqlType will be deprecated, please use SQLType instead
@@ -1581,7 +1582,7 @@ func (engine *Engine) formatColTime(col *core.Column, t time.Time) (v interface{
 func (engine *Engine) formatTime(sqlTypeName string, t time.Time) (v interface{}) {
 	switch sqlTypeName {
 	case core.Time:
-		s := t.Format("2006-01-02 15:04:05") //time.RFC3339
+		s := t.Format("2006-01-02 15:04:05") // time.RFC3339
 		v = s[11:19]
 	case core.Date:
 		v = t.Format("2006-01-02")

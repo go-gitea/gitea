@@ -22,8 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 )
 
@@ -109,7 +109,7 @@ func runServ(c *cli.Context) error {
 		if key.Type == models.KeyTypeDeploy {
 			println("Hi there! You've successfully authenticated with the deploy key named " + key.Name + ", but Gitea does not provide shell access.")
 		} else {
-			println("Hi there: " + user.Name + "! You've successfully authenticated with the key named " + key.Name + ", but Gitea does not provide shell access.")
+			println("Hi there, " + user.Name + "! You've successfully authenticated with the key named " + key.Name + ", but Gitea does not provide shell access.")
 		}
 		println("If this is unexpected, please log in with password and setup Gitea under another user.")
 		return nil
