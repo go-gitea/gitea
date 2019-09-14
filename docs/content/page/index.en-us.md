@@ -255,6 +255,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 - 2 CPU cores and 1GB RAM is typically sufficient for small teams/projects.
 - Gitea should be run with a dedicated non-root system account on UNIX-type systems.
    - Note: Gitea manages the `~/.ssh/authorized_keys` file. Running Gitea as a regular user could break that user's ability to log in.
+- [git](https://git-scm.com/) version 1.7.2 or later is required. Version 1.9.0 or later is recommended.
 
 ## Browser Support
 
