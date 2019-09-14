@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/convert"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,5 +29,5 @@ func TestAPITeamUser(t *testing.T) {
 	DecodeJSON(t, resp, &user2)
 	user := models.AssertExistsAndLoadBean(t, &models.User{Name: "user2"}).(*models.User)
 
-	assert.Equal(t, user.APIFormat(), user2)
+	assert.Equal(t, convert.ToUser(user, true, true), user2)
 }
