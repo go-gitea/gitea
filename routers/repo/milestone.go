@@ -266,7 +266,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
 
-	issues(ctx, milestoneID, util.OptionalBoolNone)
+	issues(ctx, milestoneID, 0, util.OptionalBoolNone)
 
 	perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
 	if err != nil {

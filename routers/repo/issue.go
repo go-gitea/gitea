@@ -100,7 +100,7 @@ func MustAllowPulls(ctx *context.Context) {
 	}
 }
 
-func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalBool) {
+func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption util.OptionalBool) {
 	var err error
 	viewType := ctx.Query("type")
 	sortType := ctx.Query("sort")
@@ -196,6 +196,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			PosterID:    posterID,
 			MentionedID: mentionedID,
 			MilestoneID: milestoneID,
+			ProjectID:   projectID,
 			Page:        pager.Paginater.Current(),
 			PageSize:    setting.UI.IssuePagingNum,
 			IsClosed:    util.OptionalBoolOf(isShowClosed),
@@ -300,7 +301,7 @@ func Issues(ctx *context.Context) {
 		ctx.Data["PageIsIssueList"] = true
 	}
 
-	issues(ctx, ctx.QueryInt64("milestone"), util.OptionalBoolOf(isPullList))
+	issues(ctx, ctx.QueryInt64("milestone"), ctx.QueryInt64("project"), util.OptionalBoolOf(isPullList))
 
 	var err error
 	// Get milestones.
