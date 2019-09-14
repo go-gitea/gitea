@@ -110,6 +110,10 @@ type Comment struct {
 	Issue            *Issue `xorm:"-"`
 	LabelID          int64
 	Label            *Label `xorm:"-"`
+	OldProjectID     int64
+	ProjectID        int64
+	OldProject       *Project `xorm:"-"`
+	Project          *Project `xorm:"-"`
 	OldMilestoneID   int64
 	MilestoneID      int64
 	OldMilestone     *Milestone `xorm:"-"`
@@ -296,6 +300,32 @@ func (c *Comment) LoadLabel() error {
 	} else {
 		// Ignore Label is deleted, but not clear this table
 		log.Warn("Commit %d cannot load label %d", c.ID, c.LabelID)
+	}
+
+	return nil
+}
+
+// LoadProject if comment.Type is CommentTypeProject, then load project.
+func (c *Comment) LoadProject() error {
+
+	if c.OldProjectID > 0 {
+		var oldProject Project
+		has, err := x.ID(c.OldProjectID).Get(&oldProject)
+		if err != nil {
+			return err
+		} else if has {
+			c.OldProject = &oldProject
+		}
+	}
+
+	if c.ProjectID > 0 {
+		var project Project
+		has, err := x.ID(c.ProjectID).Get(&project)
+		if err != nil {
+			return err
+		} else if has {
+			c.Project = &project
+		}
 	}
 
 	return nil
@@ -519,6 +549,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		LabelID:          LabelID,
 		OldMilestoneID:   opts.OldMilestoneID,
 		MilestoneID:      opts.MilestoneID,
+		OldProjectID:     opts.OldProjectID,
+		ProjectID:        opts.ProjectID,
 		RemovedAssignee:  opts.RemovedAssignee,
 		AssigneeID:       opts.AssigneeID,
 		CommitID:         opts.CommitID,
@@ -666,12 +698,12 @@ func createLabelComment(e *xorm.Session, doer *User, repo *Repository, issue *Is
 
 func createProjectComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldProjectID, projectID int64) (*Comment, error) {
 	return createComment(e, &CreateCommentOptions{
-		Type:           CommentTypeProject,
-		Doer:           doer,
-		Repo:           repo,
-		Issue:          issue,
-		OldMilestoneID: oldProjectID,
-		MilestoneID:    projectID,
+		Type:         CommentTypeProject,
+		Doer:         doer,
+		Repo:         repo,
+		Issue:        issue,
+		OldProjectID: oldProjectID,
+		ProjectID:    projectID,
 	})
 }
 
@@ -797,6 +829,8 @@ type CreateCommentOptions struct {
 	DependentIssueID int64
 	OldMilestoneID   int64
 	MilestoneID      int64
+	OldProjectID     int64
+	ProjectID        int64
 	AssigneeID       int64
 	RemovedAssignee  bool
 	OldTitle         string

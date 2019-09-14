@@ -246,6 +246,8 @@ var migrations = []Migration{
 	NewMigration("add projects info to database", addProjectsInfo),
 	// v94 -> v95
 	NewMigration("add projects database table", addProjectsTable),
+	// v95 -> v96
+	NewMigration("add project ID to comments table", addProjectIDToCommentsTable),
 }
 
 // Migrate database to current version

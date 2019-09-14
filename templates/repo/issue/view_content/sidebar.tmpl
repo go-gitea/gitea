@@ -25,6 +25,48 @@
 			{{end}}
 		</div>
 
+
+		<div class="ui divider"></div>
+
+		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
+			<span class="text">
+				<strong>{{.i18n.Tr "repo.issues.new.projects"}}</strong>
+				<span class="octicon octicon-gear"></span>
+			</span>
+			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
+				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_projects"}}</div>
+				{{if .OpenProjects}}
+					<div class="divider"></div>
+					<div class="header">
+						<i class="octicon octicon-milestone"></i>
+						{{.i18n.Tr "repo.issues.new.open_projects"}}
+					</div>
+					{{range .OpenProjects}}
+						<div class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?project={{.ID}}"> {{.Title}}</div>
+					{{end}}
+				{{end}}
+				{{if .ClosedProjects}}
+					<div class="divider"></div>
+					<div class="header">
+						<i class="octicon octicon-milestone"></i>
+						{{.i18n.Tr "repo.issues.new.closed_projects"}}
+					</div>
+					{{range .ClosedProjects}}
+						<a class="item" data-id="{{.ID}}" data-href="{{$.RepoLink}}/issues?project={{.ID}}"> {{.Title}}</a>
+					{{end}}
+				{{end}}
+			</div>
+		</div>
+		<div class="ui select-project list">
+			<span class="no-select item {{if .Issue.ProjectID}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_projects"}}</span>
+			<div class="selected">
+				{{if .Issue.ProjectID}}
+					<a class="item" href="{{.RepoLink}}/issues?project={{.Issue.ProjectID}}"> {{.Issue.Project.Title}}</a>
+				{{end}}
+			</div>
+		</div>
+
+
 		<div class="ui divider"></div>
 
 		<div class="ui {{if or (not .IsIssueWriter) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
@@ -64,6 +106,7 @@
 				{{end}}
 			</div>
 		</div>
+
 
 		<div class="ui divider"></div>
 
@@ -419,6 +462,7 @@
 			</div>
 		</div>
 		{{ end }}
+
 
 	</div>
 </div>

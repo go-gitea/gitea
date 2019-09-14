@@ -845,6 +845,26 @@ func ViewIssue(ctx *context.Context) {
 			if comment.MilestoneID > 0 && comment.Milestone == nil {
 				comment.Milestone = ghostMilestone
 			}
+		} else if comment.Type == models.CommentTypeProject {
+
+			if err = comment.LoadProject(); err != nil {
+				ctx.ServerError("LoadProject", err)
+				return
+			}
+
+			ghostProject := &models.Project{
+				ID:    -1,
+				Title: ctx.Tr("repo.issues.deleted_project"),
+			}
+
+			if comment.OldProjectID > 0 && comment.Project == nil {
+				comment.OldProject = ghostProject
+			}
+
+			if comment.ProjectID > 0 && comment.Project == nil {
+				comment.Project = ghostProject
+			}
+
 		} else if comment.Type == models.CommentTypeAssignees {
 			if err = comment.LoadAssigneeUser(); err != nil {
 				ctx.ServerError("LoadAssigneeUser", err)
