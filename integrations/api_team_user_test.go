@@ -29,5 +29,5 @@ func TestAPITeamUser(t *testing.T) {
 	DecodeJSON(t, resp, &user2)
 	user := models.AssertExistsAndLoadBean(t, &models.User{Name: "user2"}).(*models.User)
 
-	assert.Equal(t, convert.ToUser(user, true, true), user2)
+	assert.Equal(t, convert.ToUser(user, true, false), user2)
 }
