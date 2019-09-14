@@ -275,37 +275,35 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		}
 	}
 	hasIssues := false
-	externalTracker := false
-	externalTrackerURL := ""
-	externalTrackerFormat := ""
-	externalTrackerStyle := ""
-	enableTimeTracker := false
-	letOnlyContributorsTrackTime := false
-	enableIssueDependencies := false
+	var externalTracker *api.ExternalTracker
+	var internalTracker *api.InternalTracker
 	if unit, err := repo.getUnit(e, UnitTypeIssues); err == nil {
 		config := unit.IssuesConfig()
 		hasIssues = true
-		enableTimeTracker = config.EnableTimetracker
-		letOnlyContributorsTrackTime = config.AllowOnlyContributorsToTrackTime
-		enableIssueDependencies = config.EnableDependencies
+		internalTracker = &api.InternalTracker{
+			EnableTimeTracker:            config.EnableTimetracker,
+			LetOnlyContributorsTrackTime: config.AllowOnlyContributorsToTrackTime,
+			EnableIssueDependencies:      config.EnableDependencies,
+		}
 	} else if unit, err := repo.getUnit(e, UnitTypeExternalTracker); err == nil {
 		config := unit.ExternalTrackerConfig()
 		hasIssues = true
-		externalTracker = true
-		externalTrackerURL = config.ExternalTrackerURL
-		externalTrackerFormat = config.ExternalTrackerFormat
-		externalTrackerStyle = config.ExternalTrackerStyle
+		externalTracker = &api.ExternalTracker{
+			ExternalTrackerURL:    config.ExternalTrackerURL,
+			ExternalTrackerFormat: config.ExternalTrackerFormat,
+			ExternalTrackerStyle:  config.ExternalTrackerStyle,
+		}
 	}
 	hasWiki := false
-	externalWiki := false
-	externalWikiURL := ""
+	var externalWiki *api.ExternalWiki
 	if _, err := repo.getUnit(e, UnitTypeWiki); err == nil {
 		hasWiki = true
 	} else if unit, err := repo.getUnit(e, UnitTypeExternalWiki); err == nil {
 		hasWiki = true
 		config := unit.ExternalWikiConfig()
-		externalWiki = true
-		externalWikiURL = config.ExternalWikiURL
+		externalWiki = &api.ExternalWiki{
+			ExternalWikiURL: config.ExternalWikiURL,
+		}
 	}
 	hasPullRequests := false
 	ignoreWhitespaceConflicts := false
@@ -324,48 +322,42 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 	}
 
 	return &api.Repository{
-		ID:                           repo.ID,
-		Owner:                        repo.Owner.APIFormat(),
-		Name:                         repo.Name,
-		FullName:                     repo.FullName(),
-		Description:                  repo.Description,
-		Private:                      repo.IsPrivate,
-		Empty:                        repo.IsEmpty,
-		Archived:                     repo.IsArchived,
-		Size:                         int(repo.Size / 1024),
-		Fork:                         repo.IsFork,
-		Parent:                       parent,
-		Mirror:                       repo.IsMirror,
-		HTMLURL:                      repo.HTMLURL(),
-		SSHURL:                       cloneLink.SSH,
-		CloneURL:                     cloneLink.HTTPS,
-		Website:                      repo.Website,
-		Stars:                        repo.NumStars,
-		Forks:                        repo.NumForks,
-		Watchers:                     repo.NumWatches,
-		OpenIssues:                   repo.NumOpenIssues,
-		DefaultBranch:                repo.DefaultBranch,
-		Created:                      repo.CreatedUnix.AsTime(),
-		Updated:                      repo.UpdatedUnix.AsTime(),
-		Permissions:                  permission,
-		HasIssues:                    hasIssues,
-		ExternalTracker:              externalTracker,
-		ExternalTrackerURL:           externalTrackerURL,
-		ExternalTrackerFormat:        externalTrackerFormat,
-		ExternalTrackerStyle:         externalTrackerStyle,
-		EnableTimeTracker:            enableTimeTracker,
-		LetOnlyContributorsTrackTime: letOnlyContributorsTrackTime,
-		EnableIssueDependencies:      enableIssueDependencies,
-		HasWiki:                      hasWiki,
-		ExternalWiki:                 externalWiki,
-		ExternalWikiURL:              externalWikiURL,
-		HasPullRequests:              hasPullRequests,
-		IgnoreWhitespaceConflicts:    ignoreWhitespaceConflicts,
-		AllowMerge:                   allowMerge,
-		AllowRebase:                  allowRebase,
-		AllowRebaseMerge:             allowRebaseMerge,
-		AllowSquash:                  allowSquash,
-		AvatarURL:                    repo.avatarLink(e),
+		ID:                        repo.ID,
+		Owner:                     repo.Owner.APIFormat(),
+		Name:                      repo.Name,
+		FullName:                  repo.FullName(),
+		Description:               repo.Description,
+		Private:                   repo.IsPrivate,
+		Empty:                     repo.IsEmpty,
+		Archived:                  repo.IsArchived,
+		Size:                      int(repo.Size / 1024),
+		Fork:                      repo.IsFork,
+		Parent:                    parent,
+		Mirror:                    repo.IsMirror,
+		HTMLURL:                   repo.HTMLURL(),
+		SSHURL:                    cloneLink.SSH,
+		CloneURL:                  cloneLink.HTTPS,
+		Website:                   repo.Website,
+		Stars:                     repo.NumStars,
+		Forks:                     repo.NumForks,
+		Watchers:                  repo.NumWatches,
+		OpenIssues:                repo.NumOpenIssues,
+		DefaultBranch:             repo.DefaultBranch,
+		Created:                   repo.CreatedUnix.AsTime(),
+		Updated:                   repo.UpdatedUnix.AsTime(),
+		Permissions:               permission,
+		HasIssues:                 hasIssues,
+		ExternalTracker:           externalTracker,
+		InternalTracker:           internalTracker,
+		HasWiki:                   hasWiki,
+		ExternalWiki:              externalWiki,
+		HasPullRequests:           hasPullRequests,
+		IgnoreWhitespaceConflicts: ignoreWhitespaceConflicts,
+		AllowMerge:                allowMerge,
+		AllowRebase:               allowRebase,
+		AllowRebaseMerge:          allowRebaseMerge,
+		AllowSquash:               allowSquash,
+		AvatarURL:                 repo.avatarLink(e),
 	}
 }
 

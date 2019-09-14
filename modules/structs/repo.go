@@ -15,6 +15,25 @@ type Permission struct {
 	Pull  bool `json:"pull"`
 }
 
+// Represents settings for internal tracker
+type InternalTracker struct {
+	EnableTimeTracker            bool `json:"enable_time_tracker"`
+	LetOnlyContributorsTrackTime bool `json:"let_only_contributors_track_time"`
+	EnableIssueDependencies      bool `json:"enable_issue_dependencies"`
+}
+
+// Represents settings for external tracker
+type ExternalTracker struct {
+	ExternalTrackerURL    string `json:"external_tracker_url"`
+	ExternalTrackerFormat string `json:"external_tracker_format"`
+	ExternalTrackerStyle  string `json:"external_tracker_style"`
+}
+
+// Represents setting for external wiki
+type ExternalWiki struct {
+	ExternalWikiURL string `json:"external_wiki_url"`
+}
+
 // Repository represents a repository
 type Repository struct {
 	ID            int64       `json:"id"`
@@ -42,26 +61,20 @@ type Repository struct {
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	Updated                      time.Time   `json:"updated_at"`
-	Permissions                  *Permission `json:"permissions,omitempty"`
-	HasIssues                    bool        `json:"has_issues"`
-	ExternalTracker              bool        `json:"external_tracker"`
-	ExternalTrackerURL           string      `json:"external_tracker_url"`
-	ExternalTrackerFormat        string      `json:"external_tracker_format"`
-	ExternalTrackerStyle         string      `json:"external_tracker_style"`
-	EnableTimeTracker            bool        `json:"enable_time_tracker"`
-	LetOnlyContributorsTrackTime bool        `json:"let_only_contributors_track_time"`
-	EnableIssueDependencies      bool        `json:"enable_issue_dependencies"`
-	HasWiki                      bool        `json:"has_wiki"`
-	ExternalWiki                 bool        `json:"external_wiki"`
-	ExternalWikiURL              string      `json:"external_wiki_url"`
-	HasPullRequests              bool        `json:"has_pull_requests"`
-	IgnoreWhitespaceConflicts    bool        `json:"ignore_whitespace_conflicts"`
-	AllowMerge                   bool        `json:"allow_merge_commits"`
-	AllowRebase                  bool        `json:"allow_rebase"`
-	AllowRebaseMerge             bool        `json:"allow_rebase_explicit"`
-	AllowSquash                  bool        `json:"allow_squash_merge"`
-	AvatarURL                    string      `json:"avatar_url"`
+	Updated                   time.Time        `json:"updated_at"`
+	Permissions               *Permission      `json:"permissions,omitempty"`
+	HasIssues                 bool             `json:"has_issues"`
+	InternalTracker           *InternalTracker `json:"internal_tracker,omitempty"`
+	ExternalTracker           *ExternalTracker `json:"external_tracker,omitempty"`
+	HasWiki                   bool             `json:"has_wiki"`
+	ExternalWiki              *ExternalWiki    `json:"external_wiki,omitempty"`
+	HasPullRequests           bool             `json:"has_pull_requests"`
+	IgnoreWhitespaceConflicts bool             `json:"ignore_whitespace_conflicts"`
+	AllowMerge                bool             `json:"allow_merge_commits"`
+	AllowRebase               bool             `json:"allow_rebase"`
+	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
+	AllowSquash               bool             `json:"allow_squash_merge"`
+	AvatarURL                 string           `json:"avatar_url"`
 }
 
 // CreateRepoOption options when creating repository

@@ -8353,6 +8353,36 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ExternalTracker": {
+      "description": "Represents settings for external tracker",
+      "type": "object",
+      "properties": {
+        "external_tracker_format": {
+          "type": "string",
+          "x-go-name": "ExternalTrackerFormat"
+        },
+        "external_tracker_style": {
+          "type": "string",
+          "x-go-name": "ExternalTrackerStyle"
+        },
+        "external_tracker_url": {
+          "type": "string",
+          "x-go-name": "ExternalTrackerURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ExternalWiki": {
+      "description": "Represents setting for external wiki",
+      "type": "object",
+      "properties": {
+        "external_wiki_url": {
+          "type": "string",
+          "x-go-name": "ExternalWikiURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "FileCommitResponse": {
       "type": "object",
       "title": "FileCommitResponse contains information generated from a Git commit for a repo's file.",
@@ -8713,6 +8743,25 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "InternalTracker": {
+      "description": "Represents settings for internal tracker",
+      "type": "object",
+      "properties": {
+        "enable_issue_dependencies": {
+          "type": "boolean",
+          "x-go-name": "EnableIssueDependencies"
+        },
+        "enable_time_tracker": {
+          "type": "boolean",
+          "x-go-name": "EnableTimeTracker"
+        },
+        "let_only_contributors_track_time": {
+          "type": "boolean",
+          "x-go-name": "LetOnlyContributorsTrackTime"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -9553,37 +9602,11 @@
           "type": "boolean",
           "x-go-name": "Empty"
         },
-        "enable_issue_dependencies": {
-          "type": "boolean",
-          "x-go-name": "EnableIssueDependencies"
-        },
-        "enable_time_tracker": {
-          "type": "boolean",
-          "x-go-name": "EnableTimeTracker"
-        },
         "external_tracker": {
-          "type": "boolean",
-          "x-go-name": "ExternalTracker"
-        },
-        "external_tracker_format": {
-          "type": "string",
-          "x-go-name": "ExternalTrackerFormat"
-        },
-        "external_tracker_style": {
-          "type": "string",
-          "x-go-name": "ExternalTrackerStyle"
-        },
-        "external_tracker_url": {
-          "type": "string",
-          "x-go-name": "ExternalTrackerURL"
+          "$ref": "#/definitions/ExternalTracker"
         },
         "external_wiki": {
-          "type": "boolean",
-          "x-go-name": "ExternalWiki"
-        },
-        "external_wiki_url": {
-          "type": "string",
-          "x-go-name": "ExternalWikiURL"
+          "$ref": "#/definitions/ExternalWiki"
         },
         "fork": {
           "type": "boolean",
@@ -9623,9 +9646,8 @@
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
         },
-        "let_only_contributors_track_time": {
-          "type": "boolean",
-          "x-go-name": "LetOnlyContributorsTrackTime"
+        "internal_tracker": {
+          "$ref": "#/definitions/InternalTracker"
         },
         "mirror": {
           "type": "boolean",
