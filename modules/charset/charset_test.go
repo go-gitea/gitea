@@ -250,7 +250,3 @@ func stringMustEndWith(t *testing.T, expected string, value string) {
 func bytesMustStartWith(t *testing.T, expected []byte, value []byte) {
 	assert.Equal(t, expected, value[:len(expected)])
 }
-
-func bytesMustEndWith(t *testing.T, expected []byte, value []byte) {
-	assert.Equal(t, expected, value[len(value)-len(expected):])
-}
