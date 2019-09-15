@@ -1,5 +1,6 @@
 # cloud.google.com/go v0.45.0
 cloud.google.com/go/civil
+cloud.google.com/go/compute/metadata
 # gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 gitea.com/macaron/binding
 # gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76
@@ -313,7 +314,7 @@ github.com/markbates/goth/providers/facebook
 github.com/markbates/goth/providers/gitea
 github.com/markbates/goth/providers/github
 github.com/markbates/goth/providers/gitlab
-github.com/markbates/goth/providers/gplus
+github.com/markbates/goth/providers/google
 github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter
 # github.com/mattn/go-isatty v0.0.7
@@ -481,7 +482,10 @@ golang.org/x/net/internal/socks
 golang.org/x/net/proxy
 # golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 golang.org/x/oauth2
+golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
+golang.org/x/oauth2/jws
+golang.org/x/oauth2/jwt
 # golang.org/x/sys v0.0.0-20190910064555-bbd175535a8b
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
@@ -525,11 +529,14 @@ golang.org/x/tools/internal/imports
 golang.org/x/tools/internal/module
 golang.org/x/tools/internal/semver
 # google.golang.org/appengine v1.6.2
+google.golang.org/appengine
 google.golang.org/appengine/cloudsql
 google.golang.org/appengine/internal
+google.golang.org/appengine/internal/app_identity
 google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/datastore
 google.golang.org/appengine/internal/log
+google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
