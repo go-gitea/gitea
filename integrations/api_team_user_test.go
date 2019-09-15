@@ -7,6 +7,7 @@ package integrations
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
@@ -27,6 +28,8 @@ func TestAPITeamUser(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var user2 *api.User
 	DecodeJSON(t, resp, &user2)
+	user2.Created = user2.Created.In(time.Local)
+	user2.LastLogin = user2.LastLogin.In(time.Local)
 	user := models.AssertExistsAndLoadBean(t, &models.User{Name: "user2"}).(*models.User)
 
 	assert.Equal(t, convert.ToUser(user, true, false), user2)
