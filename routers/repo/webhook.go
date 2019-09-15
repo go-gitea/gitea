@@ -145,6 +145,7 @@ func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
 			PullRequest:  form.PullRequest,
 			Repository:   form.Repository,
 		},
+		BranchFilter: form.BranchFilter,
 	}
 }
 
