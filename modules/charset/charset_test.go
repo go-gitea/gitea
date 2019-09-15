@@ -116,13 +116,12 @@ func TestToUTF8WithFallback(t *testing.T) {
 }
 
 func TestToUTF8(t *testing.T) {
-	var res string
 
 	// Note: golang compiler seems so behave differently depending on the current
 	// locale, so some conversions might behave differently. For that reason, we don't
 	// depend on particular conversions but in expected behaviors.
 
-	res = ToUTF8(string([]byte{0x41, 0x42, 0x43}))
+	res := ToUTF8(string([]byte{0x41, 0x42, 0x43}))
 	assert.Equal(t, "ABC", res)
 
 	// "áéíóú"
