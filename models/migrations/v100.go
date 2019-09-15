@@ -30,7 +30,7 @@ func updateMigrationServiceTypes(x *xorm.Engine) error {
 		for _, res := range results {
 			u := strings.ToLower(res.OriginalURL)
 			var serviceType = structs.PlainGitService
-			if strings.HasPrefix(u, "https://github.com") || strings.HasPrefix(u, "https://github.com") {
+			if strings.HasPrefix(u, "https://github.com") || strings.HasPrefix(u, "http://github.com") {
 				serviceType = structs.GithubService
 			}
 			_, err = x.Exec("UPDATE repository SET original_service_type = ? WHERE id = ?", serviceType, res.ID)
