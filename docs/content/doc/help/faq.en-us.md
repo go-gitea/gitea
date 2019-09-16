@@ -137,7 +137,7 @@ There are multiple things you can combine to prevent spammers.
 ### Only allow certain email domains
 You can configure `EMAIL_DOMAIN_WHITELIST` in your app.ini under `[service]`
 
-## Only allow/block certain OpenID providers
+### Only allow/block certain OpenID providers
 You can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` under `[openid]` in your `app.ini`
 **NOTE:** whitelisted takes precedence, so if it is non-blank then blacklisted is ignored
 
