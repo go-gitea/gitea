@@ -140,6 +140,16 @@ a{cursor:pointer}
 .ui .migrate{color:#888!important;opacity:.5}
 .ui .migrate a{color:#444!important}
 .ui .migrate a:hover{color:#000!important}
+.ui .border{border:1px solid}
+.ui .border.red{border-color:#d95c5c!important}
+.ui .border.blue{border-color:#428bca!important}
+.ui .border.black{border-color:#444}
+.ui .border.grey{border-color:#767676!important}
+.ui .border.light.grey{border-color:#888!important}
+.ui .border.green{border-color:#6cc644!important}
+.ui .border.purple{border-color:#6e5494!important}
+.ui .border.yellow{border-color:#fbbd08!important}
+.ui .border.gold{border-color:#a1882b!important}
 .ui .branch-tag-choice{line-height:20px}
 @media only screen and (max-width:767px){.ui.pagination.menu .item.navigation span.navigation_label,.ui.pagination.menu .item:not(.active):not(.navigation){display:none}
 }
@@ -670,6 +680,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .diff-file-box .code-diff td{padding:0 0 0 10px!important;border-top:0}
 .repository .diff-file-box .code-diff .lines-num{border-color:#d4d4d5;border-right-width:1px;border-right-style:solid;padding:0 5px!important}
 .repository .diff-file-box .code-diff tbody tr td.halfwidth{width:49%}
+.repository .diff-file-box .code-diff tbody tr td.center{text-align:center}
 .repository .diff-file-box .code-diff tbody tr .removed-code{background-color:#f99}
 .repository .diff-file-box .code-diff tbody tr .added-code{background-color:#9f9}
 .repository .diff-file-box .code-diff tbody tr [data-line-num]::before{content:attr(data-line-num);text-align:right}
