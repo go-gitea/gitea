@@ -28,7 +28,8 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 * [What is Swagger?](#what-is-swagger)
 * [Adjusting your server for public/private use](#adjusting-your-server-for-public-private-use)
   * [Preventing spammers](#preventing-spammers)
-  * [Only allow/block certain email domains](#only-allow-block-certain-email-domains)
+  * [Only allow certain email domains](#only-allow-certain-email-domains)
+  * [Only allow/block certain OpenID providers](#only-allow-block-certain-openid-providers)
   * [Issue only users](#issue-only-users)
   * [Enable Fail2ban](#enable-fail2ban)
 * [Adding custom themes](#how-to-add-use-custom-themes)
@@ -134,7 +135,7 @@ There are multiple things you can combine to prevent spammers.
 3. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/advanced/api-usage.en-us.md" >}}), or Gitea's Admin UI  
 
 ### Only allow certain email domains
-You can configure `EMAIL_DOMAIN_WHITELIST` in your app.ini under `[service]`.
+You can configure `EMAIL_DOMAIN_WHITELIST` in your app.ini under `[service]`
 
 ## Only allow/block certain OpenID providers
 You can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` under `[openid]` in your `app.ini`
