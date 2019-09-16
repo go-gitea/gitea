@@ -1,6 +1,7 @@
 /* globals wipPrefixes, issuesTribute, emojiTribute */
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
 /* exported toggleDeadlineForm, setDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
+/* exported onLabelFilterItemClick */
 'use strict';
 
 function htmlEncode(text) {
@@ -3122,3 +3123,19 @@ function onOAuthLoginClick() {
         oauthNav.show();
     },5000);
 }
+
+(function addLabelFilterClickEvents() {
+    $(".menu a.label-filter-item").each(function() {
+        $(this).click(function(e) {
+            const href = $(this).attr("href");
+            const id = $(this).data("label-id");
+
+            if (e.altKey) {
+                const regStr = "labels=(-?[0-9]+%2c)*(" + id + ")(%2c-?[0-9]+)*&";
+                const newStr = "labels=$1-$2$3&";
+
+                window.location = href.replace(new RegExp(regStr), newStr);
+            }
+        });
+    });
+})();
