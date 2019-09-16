@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	release_service "code.gitea.io/gitea/services/release"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -44,7 +45,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	initCount, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
 	assert.NoError(t, err)
 
-	assert.NoError(t, models.CreateRelease(gitRepo, &models.Release{
+	assert.NoError(t, release_service.CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
 		PublisherID:  user.ID,
 		TagName:      "v0.2",
