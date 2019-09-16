@@ -134,7 +134,7 @@ There are multiple things you can combine to prevent spammers.
 3. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/advanced/api-usage.en-us.md" >}}), or Gitea's Admin UI  
 
 ### Only allow/block certain email domains
-If using OpenID, you can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` in your `app.ini`  
+You can configure `EMAIL_DOMAIN_WHITELIST` in your app.ini under `[service]`. If using OpenID, you can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` in your `app.ini`
 **NOTE:** whitelisted takes precedence, so if it is non-blank then blacklisted is ignored
 
 ### Issue only users
