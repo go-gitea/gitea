@@ -396,6 +396,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify
+      RACE_ENABLED: "0"
 
   - name: gpg-sign
     pull: always
@@ -498,6 +499,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify
+      RACE_ENABLED: "0"
 
   - name: gpg-sign
     pull: always
