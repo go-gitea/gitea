@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	cloud.google.com/go v0.45.0 // indirect
-	gitea.com/lunny/path v0.0.0-20190626081327-c422dbab7503
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76
 	gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae

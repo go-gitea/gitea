@@ -12,7 +12,6 @@ cloud.google.com/go v0.45.0 h1:bALuGBSgE+BD4rxsopAYlqjcwqcQtye6pWG4bC3N/k0=
 cloud.google.com/go v0.45.0/go.mod h1:452BcPOeI9AZfbvDw0Tbo7D32wA+WX9WME8AZwMEDZU=
 cloud.google.com/go/bigquery v1.0.1/go.mod h1:i/xbL2UlR5RvWAURpBYZTtm/cXjCha9lbfbpx4poX+o=
 cloud.google.com/go/datastore v1.0.0/go.mod h1:LXYbyblFSglQ5pkeyhO+Qmw7ukd3C+pD7TKLgZqpHYE=
-gitea.com/lunny/path v0.0.0-20190626081327-c422dbab7503/go.mod h1:tSoyzxPuCqrllTITMB1hMuUhDqAxAFHFfIAS1B77AaU=
 gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b h1:vXt85uYV17KURaUlhU7v4GbCShkqRZDSfo0TkC0YCjQ=
 gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b/go.mod h1:Cxadig6POWpPYYSfg23E7jo35Yf0yvsdC1lifoKWmPo=
 gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76 h1:mMsMEg90c5KXQgRWsH8D6GHXfZIW1RAe5S9VYIb12lM=
