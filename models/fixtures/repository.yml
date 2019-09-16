@@ -498,3 +498,14 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+
+-
+  id: 42
+  owner_id: 2
+  lower_name: glob
+  name: glob
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
