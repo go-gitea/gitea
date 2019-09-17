@@ -577,7 +577,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if !isPass {
+	if !isPass && !ctx.IsUserRepoAdmin() {
 		ctx.Status(405)
 		return
 	}

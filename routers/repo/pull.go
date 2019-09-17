@@ -632,7 +632,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		ctx.ServerError("IsPullCommitStatusPass", err)
 		return
 	}
-	if !isPass {
+	if !isPass && !ctx.IsUserRepoAdmin() {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_status_check"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		return
