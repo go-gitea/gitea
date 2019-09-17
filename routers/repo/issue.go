@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	comment_service "code.gitea.io/gitea/services/comments"
 	milestone_service "code.gitea.io/gitea/services/milestone"
 
 	"github.com/unknwon/com"
@@ -1299,7 +1300,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
-	comment, err := models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Content, attachments)
+	comment, err := comment_service.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Content, attachments)
 	if err != nil {
 		ctx.ServerError("CreateIssueComment", err)
 		return

@@ -11,9 +11,40 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/gitdiff"
 )
+
+// CreateIssueComment creates a plain issue comment.
+func CreateIssueComment(doer *models.User, repo *models.Repository, issue *models.Issue, content string, attachments []string) (*models.Comment, error) {
+	comment, err := models.CreateComment(&models.CreateCommentOptions{
+		Type:        models.CommentTypeComment,
+		Doer:        doer,
+		Repo:        repo,
+		Issue:       issue,
+		Content:     content,
+		Attachments: attachments,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	mode, _ := models.AccessLevel(doer, repo)
+	if err = models.PrepareWebhooks(repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+		Action:     api.HookIssueCommentCreated,
+		Issue:      issue.APIFormat(),
+		Comment:    comment.APIFormat(),
+		Repository: repo.APIFormat(mode),
+		Sender:     doer.APIFormat(),
+	}); err != nil {
+		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+	} else {
+		go models.HookQueue.Add(repo.ID)
+	}
+	return comment, nil
+}
 
 // CreateCodeComment creates a plain code comment at the specified line / path
 func CreateCodeComment(doer *models.User, repo *models.Repository, issue *models.Issue, content, treePath string, line, reviewID int64) (*models.Comment, error) {

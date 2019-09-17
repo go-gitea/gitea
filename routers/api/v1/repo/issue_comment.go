@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
+	comment_service "code.gitea.io/gitea/services/comments"
 )
 
 // ListIssueComments list all the comments of an issue
@@ -189,7 +190,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		return
 	}
 
-	comment, err := models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Body, nil)
+	comment, err := comment_service.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Body, nil)
 	if err != nil {
 		ctx.Error(500, "CreateIssueComment", err)
 		return
