@@ -4,19 +4,13 @@
 
 package migrations
 
-import (
-	"fmt"
-	"github.com/go-xorm/xorm"
-)
+import "github.com/go-xorm/xorm"
 
-func featureChangeTargetBranch(x *xorm.Engine) error {
-	type Comment struct {
-		OldBranch string
-		NewBranch string
+func addEmailNotificationEnabledToUser(x *xorm.Engine) error {
+	// User see models/user.go
+	type User struct {
+		EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync2(new(User))
 }

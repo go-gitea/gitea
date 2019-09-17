@@ -24,8 +24,9 @@ import (
 	"code.gitea.io/gitea/modules/pull"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -518,7 +519,7 @@ func ViewPullFiles(ctx *context.Context) {
 		ctx.Data["Reponame"] = pull.HeadRepo.Name
 	}
 
-	diff, err := models.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
+	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
 		startCommitID, endCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
 		whitespaceFlags[ctx.Data["WhitespaceBehavior"].(string)])
@@ -535,6 +536,11 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
 
+	baseCommit, err := ctx.Repo.GitRepo.GetCommit(startCommitID)
+	if err != nil {
+		ctx.ServerError("GetCommit", err)
+		return
+	}
 	commit, err := gitRepo.GetCommit(endCommitID)
 	if err != nil {
 		ctx.ServerError("GetCommit", err)
@@ -542,9 +548,29 @@ func ViewPullFiles(ctx *context.Context) {
 	}
 
 	ctx.Data["IsImageFile"] = commit.IsImageFile
+	ctx.Data["ImageInfoBase"] = func(name string) *git.ImageMetaData {
+		result, err := baseCommit.ImageInfo(name)
+		if err != nil {
+			log.Error("ImageInfo failed: %v", err)
+			return nil
+		}
+		return result
+	}
+	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
+		result, err := commit.ImageInfo(name)
+		if err != nil {
+			log.Error("ImageInfo failed: %v", err)
+			return nil
+		}
+		return result
+	}
+
+	baseTarget := path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", endCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", startCommitID)
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", endCommitID)
+	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(baseTarget, "src", "commit", startCommitID)
+	ctx.Data["BeforeRawPath"] = setting.AppSubURL + "/" + path.Join(baseTarget, "raw", "commit", startCommitID)
+
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
 	if ctx.Data["Assignees"], err = ctx.Repo.Repository.GetAssignees(); err != nil {
@@ -712,15 +738,8 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		return
 	}
 
-	maxIndex, err := models.GetMaxIndexOfIssue(repo.ID)
-	if err != nil {
-		ctx.ServerError("GetPatch", err)
-		return
-	}
-
 	pullIssue := &models.Issue{
 		RepoID:      repo.ID,
-		Index:       maxIndex + 1,
 		Title:       form.Title,
 		PosterID:    ctx.User.ID,
 		Poster:      ctx.User,

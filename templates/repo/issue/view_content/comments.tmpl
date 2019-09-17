@@ -319,7 +319,7 @@
 							{{end}}
 								<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment">{{$filename}}</a>
 							</div>
-							{{$diff := ((index $comms 0).MustAsDiff)}}
+							{{$diff := (CommentMustAsDiff (index $comms 0))}}
 							{{if $diff}}
 								{{$file := (index $diff.Files 0)}}
 								<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $invalid}} hide{{end}}">

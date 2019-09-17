@@ -104,8 +104,11 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks", test.repo.FullName()), map[string]string{"path": test.path})
 		req.Header.Set("Accept", "application/vnd.git-lfs+json")
 		req.Header.Set("Content-Type", "application/vnd.git-lfs+json")
-		session.MakeRequest(t, req, test.httpResult)
+		resp := session.MakeRequest(t, req, test.httpResult)
 		if len(test.addTime) > 0 {
+			var lfsLock api.LFSLockResponse
+			DecodeJSON(t, resp, &lfsLock)
+			assert.EqualValues(t, lfsLock.Lock.LockedAt.Format(time.RFC3339), lfsLock.Lock.LockedAt.Format(time.RFC3339Nano)) //locked at should be rounded to second
 			for _, id := range test.addTime {
 				resultsTests[id].locksTimes = append(resultsTests[id].locksTimes, time.Now())
 			}
@@ -124,6 +127,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		for i, lock := range lfsLocks.Locks {
 			assert.EqualValues(t, test.locksOwners[i].DisplayName(), lock.Owner.Name)
 			assert.WithinDuration(t, test.locksTimes[i], lock.LockedAt, 3*time.Second)
+			assert.EqualValues(t, lock.LockedAt.Format(time.RFC3339), lock.LockedAt.Format(time.RFC3339Nano)) //locked at should be rounded to second
 		}
 
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks/verify", test.repo.FullName()), map[string]string{})
