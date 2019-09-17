@@ -11,11 +11,11 @@ import (
 	"sync"
 )
 
-type LoggerMap struct {
+type loggerMap struct {
 	sync.Map
 }
 
-func (m *LoggerMap) Load(k string) (*Logger, bool) {
+func (m *loggerMap) Load(k string) (*Logger, bool) {
 	v, ok := m.Map.Load(k)
 	if !ok {
 		return nil, false
@@ -24,11 +24,11 @@ func (m *LoggerMap) Load(k string) (*Logger, bool) {
 	return l, ok
 }
 
-func (m *LoggerMap) Store(k string, v *Logger) {
+func (m *loggerMap) Store(k string, v *Logger) {
 	m.Map.Store(k, v)
 }
 
-func (m *LoggerMap) Delete(k string) {
+func (m *loggerMap) Delete(k string) {
 	m.Map.Delete(k)
 }
 
@@ -36,7 +36,7 @@ var (
 	// DEFAULT is the name of the default logger
 	DEFAULT = "default"
 	// NamedLoggers map of named loggers
-	NamedLoggers LoggerMap
+	NamedLoggers loggerMap
 	prefix       string
 )
 
