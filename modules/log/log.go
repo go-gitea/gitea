@@ -204,9 +204,8 @@ func Close() {
 // A skip of 0 refers to the caller of this command
 func Log(skip int, level Level, format string, v ...interface{}) {
 	mu.RLock()
-	defer mu.RUnlock()
-
 	l, ok := NamedLoggers[DEFAULT]
+	mu.RUnlock()
 	if ok {
 		l.Log(skip+1, level, format, v...)
 	}
