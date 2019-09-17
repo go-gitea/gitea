@@ -370,22 +370,19 @@ func DeleteReleaseByID(id int64, doer *User, delTag bool) error {
 		go HookQueue.Add(rel.Repo.ID)
 	}
 
-	if setting.AttachmentEnabled {
+	uuids := make([]string, 0, len(rel.Attachments))
 
-		uuids := make([]string, 0, len(rel.Attachments))
-
-		for i := range rel.Attachments {
-			attachment := rel.Attachments[i]
-			if err := os.RemoveAll(attachment.LocalPath()); err != nil {
-				return err
-			}
-
-			uuids = append(uuids, attachment.UUID)
-		}
-
-		if _, err := x.In("uuid", uuids).Delete(new(Attachment)); err != nil {
+	for i := range rel.Attachments {
+		attachment := rel.Attachments[i]
+		if err := os.RemoveAll(attachment.LocalPath()); err != nil {
 			return err
 		}
+
+		uuids = append(uuids, attachment.UUID)
+	}
+
+	if _, err := x.In("uuid", uuids).Delete(new(Attachment)); err != nil {
+		return err
 	}
 
 	return nil
