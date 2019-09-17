@@ -211,7 +211,7 @@ func (repo *Repository) IsBeingMigrated() bool {
 	return repo.Status == RepositoryBeingMigrated
 }
 
-// IsBeingCreated indicates that repository is being migtated or forked
+// IsBeingCreated indicates that repository is being migrated or forked
 func (repo *Repository) IsBeingCreated() bool {
 	return repo.IsBeingMigrated()
 }
