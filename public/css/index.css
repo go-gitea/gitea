@@ -526,6 +526,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.options #interval{width:100px!important;min-width:100px}
 .repository.options .danger .item{padding:20px 15px}
 .repository.options .danger .ui.divider{margin:0}
+.repository .comment textarea{max-height:none!important}
 .repository.new.issue .comment.form .comment .avatar{width:3em}
 .repository.new.issue .comment.form .content{margin-left:4em}
 .repository.new.issue .comment.form .content:after,.repository.new.issue .comment.form .content:before{right:100%;top:20px;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}
