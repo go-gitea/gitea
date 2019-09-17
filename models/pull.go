@@ -103,8 +103,7 @@ func (pr *PullRequest) LoadAttributes() error {
 func (pr *PullRequest) LoadBaseRepo() error {
 	if pr.BaseRepo == nil {
 		var repo Repository
-		has, err := x.ID(pr.BaseRepoID).Get(&repo)
-		if err != nil {
+		if has, err := x.ID(pr.BaseRepoID).Get(&repo); err != nil {
 			return err
 		} else if !has {
 			return ErrRepoNotExist{ID: pr.BaseRepoID}

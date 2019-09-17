@@ -48,9 +48,8 @@ func IsPullCommitStatusPass(pr *models.PullRequest) (bool, error) {
 		return false, errors.Wrap(err, "OpenRepository")
 	}
 
-	headBranchExist := headGitRepo.IsBranchExist(pr.HeadBranch)
-	if !headBranchExist {
-		return false, errors.New("HeadBranchExist is not exist, cannot merge")
+	if !headGitRepo.IsBranchExist(pr.HeadBranch) {
+		return false, errors.New("Head branch does not exist, can not merge")
 	}
 
 	sha, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)

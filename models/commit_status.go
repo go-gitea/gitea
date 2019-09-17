@@ -210,14 +210,15 @@ func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitSta
 func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]string, error) {
 	start := timeutil.TimeStampNow().AddDuration(-before)
 	ids := make([]int64, 0, 10)
-	err := x.Table("commit_status").
+	if err := x.Table("commit_status").
 		Where("repo_id = ?", repoID).
 		And("updated_unix >= ?", start).
 		Select("max( id ) as id").
-		GroupBy("context_hash").OrderBy("max( id ) desc").Find(&ids)
-	if err != nil {
+		GroupBy("context_hash").OrderBy("max( id ) desc").
+		Find(&ids); err != nil {
 		return nil, err
 	}
+
 	var contexts = make([]string, 0, len(ids))
 	if len(ids) == 0 {
 		return contexts, nil
