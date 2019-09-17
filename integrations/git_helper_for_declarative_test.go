@@ -19,25 +19,30 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
-	"github.com/Unknwon/com"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/com"
 )
 
 func withKeyFile(t *testing.T, keyname string, callback func(string)) {
-	keyFile := filepath.Join(setting.AppDataPath, keyname)
-	err := ssh.GenKeyPair(keyFile)
+
+	tmpDir, err := ioutil.TempDir("", "key-file")
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	err = os.Chmod(tmpDir, 0700)
+	assert.NoError(t, err)
+
+	keyFile := filepath.Join(tmpDir, keyname)
+	err = ssh.GenKeyPair(keyFile)
 	assert.NoError(t, err)
 
 	//Setup ssh wrapper
 	os.Setenv("GIT_SSH_COMMAND",
-		"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i "+
-			filepath.Join(setting.AppWorkPath, keyFile))
+		"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i \""+keyFile+"\"")
 	os.Setenv("GIT_SSH_VARIANT", "ssh")
 
 	callback(keyFile)
-
-	defer os.RemoveAll(keyFile)
-	defer os.RemoveAll(keyFile + ".pub")
 }
 
 func createSSHUrl(gitPath string, u *url.URL) *url.URL {
@@ -112,16 +117,44 @@ func doGitAddRemote(dstPath, remoteName string, u *url.URL) func(*testing.T) {
 	}
 }
 
-func doGitPushTestRepository(dstPath, remoteName, branch string) func(*testing.T) {
+func doGitPushTestRepository(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, err := git.NewCommand("push", "-u", remoteName, branch).RunInDir(dstPath)
+		_, err := git.NewCommand(append([]string{"push", "-u"}, args...)...).RunInDir(dstPath)
 		assert.NoError(t, err)
 	}
 }
 
-func doGitPushTestRepositoryFail(dstPath, remoteName, branch string) func(*testing.T) {
+func doGitPushTestRepositoryFail(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
-		_, err := git.NewCommand("push", "-u", remoteName, branch).RunInDir(dstPath)
+		_, err := git.NewCommand(append([]string{"push"}, args...)...).RunInDir(dstPath)
 		assert.Error(t, err)
+	}
+}
+
+func doGitCreateBranch(dstPath, branch string) func(*testing.T) {
+	return func(t *testing.T) {
+		_, err := git.NewCommand("checkout", "-b", branch).RunInDir(dstPath)
+		assert.NoError(t, err)
+	}
+}
+
+func doGitCheckoutBranch(dstPath string, args ...string) func(*testing.T) {
+	return func(t *testing.T) {
+		_, err := git.NewCommand(append([]string{"checkout"}, args...)...).RunInDir(dstPath)
+		assert.NoError(t, err)
+	}
+}
+
+func doGitMerge(dstPath string, args ...string) func(*testing.T) {
+	return func(t *testing.T) {
+		_, err := git.NewCommand(append([]string{"merge"}, args...)...).RunInDir(dstPath)
+		assert.NoError(t, err)
+	}
+}
+
+func doGitPull(dstPath string, args ...string) func(*testing.T) {
+	return func(t *testing.T) {
+		_, err := git.NewCommand(append([]string{"pull"}, args...)...).RunInDir(dstPath)
+		assert.NoError(t, err)
 	}
 }

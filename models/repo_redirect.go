@@ -4,7 +4,11 @@
 
 package models
 
-import "strings"
+import (
+	"strings"
+
+	"code.gitea.io/gitea/modules/log"
+)
 
 // RepoRedirect represents that a repo name should be redirected to another
 type RepoRedirect struct {
@@ -38,7 +42,10 @@ func NewRepoRedirect(ownerID, repoID int64, oldRepoName, newRepoName string) err
 	}
 
 	if err := deleteRepoRedirect(sess, ownerID, newRepoName); err != nil {
-		sess.Rollback()
+		errRollback := sess.Rollback()
+		if errRollback != nil {
+			log.Error("NewRepoRedirect sess.Rollback: %v", errRollback)
+		}
 		return err
 	}
 
@@ -47,7 +54,10 @@ func NewRepoRedirect(ownerID, repoID int64, oldRepoName, newRepoName string) err
 		LowerName:      oldRepoName,
 		RedirectRepoID: repoID,
 	}); err != nil {
-		sess.Rollback()
+		errRollback := sess.Rollback()
+		if errRollback != nil {
+			log.Error("NewRepoRedirect sess.Rollback: %v", errRollback)
+		}
 		return err
 	}
 	return sess.Commit()

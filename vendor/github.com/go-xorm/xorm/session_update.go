@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string, args ...interface{}) error {
@@ -96,14 +96,15 @@ func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string,
 				return ErrCacheFailed
 			}
 			kvs := strings.Split(strings.TrimSpace(sqls[1]), ",")
+
 			for idx, kv := range kvs {
 				sps := strings.SplitN(kv, "=", 2)
 				sps2 := strings.Split(sps[0], ".")
 				colName := sps2[len(sps2)-1]
-				if strings.Contains(colName, "`") {
-					colName = strings.TrimSpace(strings.Replace(colName, "`", "", -1))
-				} else if strings.Contains(colName, session.engine.QuoteStr()) {
-					colName = strings.TrimSpace(strings.Replace(colName, session.engine.QuoteStr(), "", -1))
+				// treat quote prefix, suffix and '`' as quotes
+				quotes := append(strings.Split(session.engine.Quote(""), ""), "`")
+				if strings.ContainsAny(colName, strings.Join(quotes, "")) {
+					colName = strings.TrimSpace(eraseAny(colName, quotes...))
 				} else {
 					session.engine.logger.Debug("[cacheUpdate] cannot find column", tableName, colName)
 					return ErrCacheFailed
@@ -145,6 +146,10 @@ func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string,
 func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int64, error) {
 	if session.isAutoClose {
 		defer session.Close()
+	}
+
+	if session.statement.lastError != nil {
+		return 0, session.statement.lastError
 	}
 
 	v := rValue(bean)
@@ -217,19 +222,19 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 	}
 
-	//for update action to like "column = column + ?"
+	// for update action to like "column = column + ?"
 	incColumns := session.statement.getInc()
 	for _, v := range incColumns {
 		colNames = append(colNames, session.engine.Quote(v.colName)+" = "+session.engine.Quote(v.colName)+" + ?")
 		args = append(args, v.arg)
 	}
-	//for update action to like "column = column - ?"
+	// for update action to like "column = column - ?"
 	decColumns := session.statement.getDec()
 	for _, v := range decColumns {
 		colNames = append(colNames, session.engine.Quote(v.colName)+" = "+session.engine.Quote(v.colName)+" - ?")
 		args = append(args, v.arg)
 	}
-	//for update action to like "column = expression"
+	// for update action to like "column = expression"
 	exprColumns := session.statement.getExpr()
 	for _, v := range exprColumns {
 		colNames = append(colNames, session.engine.Quote(v.colName)+" = "+v.expr)
@@ -240,23 +245,39 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	}
 
 	var autoCond builder.Cond
-	if !session.statement.noAutoCondition && len(condiBean) > 0 {
-		if c, ok := condiBean[0].(map[string]interface{}); ok {
-			autoCond = builder.Eq(c)
-		} else {
-			ct := reflect.TypeOf(condiBean[0])
-			k := ct.Kind()
-			if k == reflect.Ptr {
-				k = ct.Elem().Kind()
-			}
-			if k == reflect.Struct {
-				var err error
-				autoCond, err = session.statement.buildConds(session.statement.RefTable, condiBean[0], true, true, false, true, false)
-				if err != nil {
-					return 0, err
-				}
+	if !session.statement.noAutoCondition {
+		condBeanIsStruct := false
+		if len(condiBean) > 0 {
+			if c, ok := condiBean[0].(map[string]interface{}); ok {
+				autoCond = builder.Eq(c)
 			} else {
-				return 0, ErrConditionType
+				ct := reflect.TypeOf(condiBean[0])
+				k := ct.Kind()
+				if k == reflect.Ptr {
+					k = ct.Elem().Kind()
+				}
+				if k == reflect.Struct {
+					var err error
+					autoCond, err = session.statement.buildConds(session.statement.RefTable, condiBean[0], true, true, false, true, false)
+					if err != nil {
+						return 0, err
+					}
+					condBeanIsStruct = true
+				} else {
+					return 0, ErrConditionType
+				}
+			}
+		}
+
+		if !condBeanIsStruct && table != nil {
+			if col := table.DeletedColumn(); col != nil && !session.statement.unscoped { // tag "deleted" is enabled
+				autoCond1 := session.engine.CondDeleted(session.engine.Quote(col.Name))
+
+				if autoCond == nil {
+					autoCond = autoCond1
+				} else {
+					autoCond = autoCond.And(autoCond1)
+				}
 			}
 		}
 	}
@@ -362,7 +383,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	}
 
 	if cacher := session.engine.getCacher(tableName); cacher != nil && session.statement.UseCache {
-		//session.cacheUpdate(table, tableName, sqlStr, args...)
+		// session.cacheUpdate(table, tableName, sqlStr, args...)
 		session.engine.logger.Debug("[cacheUpdate] clear table ", tableName)
 		cacher.ClearIds(tableName)
 		cacher.ClearBeans(tableName)

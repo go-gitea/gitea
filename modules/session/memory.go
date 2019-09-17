@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-macaron/session"
+	"gitea.com/macaron/session"
 )
 
 // MemStore represents a in-memory session store implementation.
@@ -148,8 +148,8 @@ func (p *MemProvider) Exist(sid string) bool {
 	return ok
 }
 
-// Destory deletes a session by session ID.
-func (p *MemProvider) Destory(sid string) error {
+// Destroy deletes a session by session ID.
+func (p *MemProvider) Destroy(sid string) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -174,7 +174,7 @@ func (p *MemProvider) Regenerate(oldsid, sid string) (session.RawStore, error) {
 		return nil, err
 	}
 
-	if err = p.Destory(oldsid); err != nil {
+	if err = p.Destroy(oldsid); err != nil {
 		return nil, err
 	}
 

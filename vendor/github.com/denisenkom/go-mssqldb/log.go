@@ -4,19 +4,26 @@ import (
 	"log"
 )
 
-type Logger log.Logger
+type Logger interface {
+	Printf(format string, v ...interface{})
+	Println(v ...interface{})
+}
 
-func (logger *Logger) Printf(format string, v ...interface{}) {
-	if logger != nil {
-		(*log.Logger)(logger).Printf(format, v...)
+type optionalLogger struct {
+	logger Logger
+}
+
+func (o optionalLogger) Printf(format string, v ...interface{}) {
+	if o.logger != nil {
+		o.logger.Printf(format, v...)
 	} else {
 		log.Printf(format, v...)
 	}
 }
 
-func (logger *Logger) Println(v ...interface{}) {
-	if logger != nil {
-		(*log.Logger)(logger).Println(v...)
+func (o optionalLogger) Println(v ...interface{}) {
+	if o.logger != nil {
+		o.logger.Println(v...)
 	} else {
 		log.Println(v...)
 	}

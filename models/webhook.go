@@ -13,18 +13,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
-	"code.gitea.io/gitea/modules/util"
-	"github.com/Unknwon/com"
+	"code.gitea.io/gitea/modules/timeutil"
+
+	"github.com/gobwas/glob"
 	gouuid "github.com/satori/go.uuid"
+	"github.com/unknwon/com"
 )
 
 // HookQueue is a global queue of web hooks
@@ -82,9 +86,10 @@ type HookEvents struct {
 
 // HookEvent represents events that will delivery hook.
 type HookEvent struct {
-	PushOnly       bool `json:"push_only"`
-	SendEverything bool `json:"send_everything"`
-	ChooseEvents   bool `json:"choose_events"`
+	PushOnly       bool   `json:"push_only"`
+	SendEverything bool   `json:"send_everything"`
+	ChooseEvents   bool   `json:"choose_events"`
+	BranchFilter   string `json:"branch_filter"`
 
 	HookEvents `json:"events"`
 }
@@ -117,8 +122,8 @@ type Webhook struct {
 	Meta         string     `xorm:"TEXT"` // store hook-specific attributes
 	LastStatus   HookStatus // Last delivery status
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 // AfterLoad updates the webhook object upon setting a column
@@ -252,6 +257,21 @@ func (w *Webhook) EventsArray() []string {
 		}
 	}
 	return events
+}
+
+func (w *Webhook) checkBranch(branch string) bool {
+	if w.BranchFilter == "" || w.BranchFilter == "*" {
+		return true
+	}
+
+	g, err := glob.Compile(w.BranchFilter)
+	if err != nil {
+		// should not really happen as BranchFilter is validated
+		log.Error("CheckBranch failed: %s", err)
+		return false
+	}
+
+	return g.Match(branch)
 }
 
 // CreateWebhook creates a new web hook.
@@ -649,12 +669,40 @@ func PrepareWebhook(w *Webhook, repo *Repository, event HookEventType, p api.Pay
 	return prepareWebhook(x, w, repo, event, p)
 }
 
+// getPayloadBranch returns branch for hook event, if applicable.
+func getPayloadBranch(p api.Payloader) string {
+	switch pp := p.(type) {
+	case *api.CreatePayload:
+		if pp.RefType == "branch" {
+			return pp.Ref
+		}
+	case *api.DeletePayload:
+		if pp.RefType == "branch" {
+			return pp.Ref
+		}
+	case *api.PushPayload:
+		if strings.HasPrefix(pp.Ref, git.BranchPrefix) {
+			return pp.Ref[len(git.BranchPrefix):]
+		}
+	}
+	return ""
+}
+
 func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType, p api.Payloader) error {
 	for _, e := range w.eventCheckers() {
 		if event == e.typ {
 			if !e.has() {
 				return nil
 			}
+		}
+	}
+
+	// If payload has no associated branch (e.g. it's a new tag, issue, etc.),
+	// branch filter has no effect.
+	if branch := getPayloadBranch(p); branch != "" {
+		if !w.checkBranch(branch) {
+			log.Info("Branch %q doesn't match branch filter %q, skipping", branch, w.BranchFilter)
+			return nil
 		}
 	}
 
@@ -699,7 +747,10 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 			log.Error("prepareWebhooks.JSONPayload: %v", err)
 		}
 		sig := hmac.New(sha256.New, []byte(w.Secret))
-		sig.Write(data)
+		_, err = sig.Write(data)
+		if err != nil {
+			log.Error("prepareWebhooks.sigWrite: %v", err)
+		}
 		signature = hex.EncodeToString(sig.Sum(nil))
 	}
 
@@ -753,47 +804,71 @@ func prepareWebhooks(e Engine, repo *Repository, event HookEventType, p api.Payl
 	return nil
 }
 
-func (t *HookTask) deliver() {
+func (t *HookTask) deliver() error {
 	t.IsDelivered = true
+
+	var req *http.Request
+	var err error
+
+	switch t.HTTPMethod {
+	case "":
+		log.Info("HTTP Method for webhook %d empty, setting to POST as default", t.ID)
+		fallthrough
+	case http.MethodPost:
+		switch t.ContentType {
+		case ContentTypeJSON:
+			req, err = http.NewRequest("POST", t.URL, strings.NewReader(t.PayloadContent))
+			if err != nil {
+				return err
+			}
+
+			req.Header.Set("Content-Type", "application/json")
+		case ContentTypeForm:
+			var forms = url.Values{
+				"payload": []string{t.PayloadContent},
+			}
+
+			req, err = http.NewRequest("POST", t.URL, strings.NewReader(forms.Encode()))
+			if err != nil {
+
+				return err
+			}
+		}
+	case http.MethodGet:
+		u, err := url.Parse(t.URL)
+		if err != nil {
+			return err
+		}
+		vals := u.Query()
+		vals["payload"] = []string{t.PayloadContent}
+		u.RawQuery = vals.Encode()
+		req, err = http.NewRequest("GET", u.String(), nil)
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("Invalid http method for webhook: [%d] %v", t.ID, t.HTTPMethod)
+	}
+
+	req.Header.Add("X-Gitea-Delivery", t.UUID)
+	req.Header.Add("X-Gitea-Event", string(t.EventType))
+	req.Header.Add("X-Gitea-Signature", t.Signature)
+	req.Header.Add("X-Gogs-Delivery", t.UUID)
+	req.Header.Add("X-Gogs-Event", string(t.EventType))
+	req.Header.Add("X-Gogs-Signature", t.Signature)
+	req.Header["X-GitHub-Delivery"] = []string{t.UUID}
+	req.Header["X-GitHub-Event"] = []string{string(t.EventType)}
+
+	// Record delivery information.
 	t.RequestInfo = &HookRequest{
 		Headers: map[string]string{},
 	}
+	for k, vals := range req.Header {
+		t.RequestInfo.Headers[k] = strings.Join(vals, ",")
+	}
+
 	t.ResponseInfo = &HookResponse{
 		Headers: map[string]string{},
-	}
-
-	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
-
-	var req *httplib.Request
-	if t.HTTPMethod == http.MethodPost {
-		req = httplib.Post(t.URL)
-		switch t.ContentType {
-		case ContentTypeJSON:
-			req = req.Header("Content-Type", "application/json").Body(t.PayloadContent)
-		case ContentTypeForm:
-			req.Param("payload", t.PayloadContent)
-		}
-	} else if t.HTTPMethod == http.MethodGet {
-		req = httplib.Get(t.URL).Param("payload", t.PayloadContent)
-	} else {
-		t.ResponseInfo.Body = fmt.Sprintf("Invalid http method: %v", t.HTTPMethod)
-		return
-	}
-
-	req = req.SetTimeout(timeout, timeout).
-		Header("X-Gitea-Delivery", t.UUID).
-		Header("X-Gitea-Event", string(t.EventType)).
-		Header("X-Gitea-Signature", t.Signature).
-		Header("X-Gogs-Delivery", t.UUID).
-		Header("X-Gogs-Event", string(t.EventType)).
-		Header("X-Gogs-Signature", t.Signature).
-		HeaderWithSensitiveCase("X-GitHub-Delivery", t.UUID).
-		HeaderWithSensitiveCase("X-GitHub-Event", string(t.EventType)).
-		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify})
-
-	// Record delivery information.
-	for k, vals := range req.Headers() {
-		t.RequestInfo.Headers[k] = strings.Join(vals, ",")
 	}
 
 	defer func() {
@@ -825,10 +900,10 @@ func (t *HookTask) deliver() {
 		}
 	}()
 
-	resp, err := req.Response()
+	resp, err := webhookHTTPClient.Do(req)
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
-		return
+		return err
 	}
 	defer resp.Body.Close()
 
@@ -842,9 +917,10 @@ func (t *HookTask) deliver() {
 	p, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("read body: %s", err)
-		return
+		return err
 	}
 	t.ResponseInfo.Body = string(p)
+	return nil
 }
 
 // DeliverHooks checks and delivers undelivered hooks.
@@ -859,7 +935,9 @@ func DeliverHooks() {
 
 	// Update hook task status.
 	for _, t := range tasks {
-		t.deliver()
+		if err = t.deliver(); err != nil {
+			log.Error("deliver: %v", err)
+		}
 	}
 
 	// Start listening on new hook requests.
@@ -879,12 +957,34 @@ func DeliverHooks() {
 			continue
 		}
 		for _, t := range tasks {
-			t.deliver()
+			if err = t.deliver(); err != nil {
+				log.Error("deliver: %v", err)
+			}
 		}
 	}
 }
 
+var webhookHTTPClient *http.Client
+
 // InitDeliverHooks starts the hooks delivery thread
 func InitDeliverHooks() {
+	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
+
+	webhookHTTPClient = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
+			Proxy:           http.ProxyFromEnvironment,
+			Dial: func(netw, addr string) (net.Conn, error) {
+				conn, err := net.DialTimeout(netw, addr, timeout)
+				if err != nil {
+					return nil, err
+				}
+
+				return conn, conn.SetDeadline(time.Now().Add(timeout))
+
+			},
+		},
+	}
+
 	go DeliverHooks()
 }

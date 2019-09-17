@@ -10,7 +10,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -125,9 +124,10 @@ func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
 	//   "201":
 	//     "$ref": "#/responses/Label"
 	label := &models.Label{
-		Name:   form.Name,
-		Color:  form.Color,
-		RepoID: ctx.Repo.Repository.ID,
+		Name:        form.Name,
+		Color:       form.Color,
+		RepoID:      ctx.Repo.Repository.ID,
+		Description: form.Description,
 	}
 	if err := models.NewLabel(label); err != nil {
 		ctx.Error(500, "NewLabel", err)
@@ -184,6 +184,9 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	}
 	if form.Color != nil {
 		label.Color = *form.Color
+	}
+	if form.Description != nil {
+		label.Description = *form.Description
 	}
 	if err := models.UpdateLabel(label); err != nil {
 		ctx.ServerError("UpdateLabel", err)

@@ -10,7 +10,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"github.com/go-xorm/xorm"
 )
 
@@ -29,8 +30,8 @@ type Milestone struct {
 	IsOverdue       bool `xorm:"-"`
 
 	DeadlineString string `xorm:"-"`
-	DeadlineUnix   util.TimeStamp
-	ClosedDateUnix util.TimeStamp
+	DeadlineUnix   timeutil.TimeStamp
+	ClosedDateUnix timeutil.TimeStamp
 
 	TotalTrackedTime int64 `xorm:"-"`
 }
@@ -53,7 +54,7 @@ func (m *Milestone) AfterLoad() {
 	}
 
 	m.DeadlineString = m.DeadlineUnix.Format("2006-01-02")
-	if util.TimeStampNow() >= m.DeadlineUnix {
+	if timeutil.TimeStampNow() >= m.DeadlineUnix {
 		m.IsOverdue = true
 	}
 }
@@ -190,10 +191,26 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 }
 
 // GetMilestonesByRepoID returns all opened milestones of a repository.
-func GetMilestonesByRepoID(repoID int64) (MilestoneList, error) {
+func GetMilestonesByRepoID(repoID int64, state api.StateType) (MilestoneList, error) {
+
+	sess := x.Where("repo_id = ?", repoID)
+
+	switch state {
+	case api.StateClosed:
+		sess = sess.And("is_closed = ?", true)
+
+	case api.StateAll:
+		break
+
+	case api.StateOpen:
+		fallthrough
+
+	default:
+		sess = sess.And("is_closed = ?", false)
+	}
+
 	miles := make([]*Milestone, 0, 10)
-	return miles, x.Where("repo_id = ? AND is_closed = ?", repoID, false).
-		Asc("deadline_unix").Asc("id").Find(&miles)
+	return miles, sess.Asc("deadline_unix").Asc("id").Find(&miles)
 }
 
 // GetMilestones returns a list of milestones of given repository and status.

@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -145,6 +145,7 @@ func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
 			PullRequest:  form.PullRequest,
 			Repository:   form.Repository,
 		},
+		BranchFilter: form.BranchFilter,
 	}
 }
 
@@ -197,12 +198,20 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 }
 
 // GogsHooksNewPost response for creating webhook
-func GogsHooksNewPost(ctx *context.Context, form auth.NewGogshookForm) {
+func GogsHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
+	newGenericWebhookPost(ctx, form, models.GOGS)
+}
+
+func newGenericWebhookPost(ctx *context.Context, form auth.NewWebhookForm, kind models.HookTaskType) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
-	ctx.Data["HookType"] = "gogs"
+
+	ctx.Data["HookType"] = "gitea"
+	if kind == models.GOGS {
+		ctx.Data["HookType"] = "gogs"
+	}
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -228,7 +237,7 @@ func GogsHooksNewPost(ctx *context.Context, form auth.NewGogshookForm) {
 		Secret:       form.Secret,
 		HookEvent:    ParseHookEvent(form.WebhookForm),
 		IsActive:     form.Active,
-		HookTaskType: models.GOGS,
+		HookTaskType: kind,
 		OrgID:        orCtx.OrgID,
 	}
 	if err := w.UpdateEvent(); err != nil {
@@ -564,6 +573,7 @@ func WebHooksEditPost(ctx *context.Context, form auth.NewWebhookForm) {
 	w.Secret = form.Secret
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
+	w.HTTPMethod = form.HTTPMethod
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return

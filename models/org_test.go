@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -242,10 +243,10 @@ func TestGetOrgByName(t *testing.T) {
 	assert.EqualValues(t, 3, org.ID)
 	assert.Equal(t, "user3", org.Name)
 
-	org, err = GetOrgByName("user2") // user2 is an individual
+	_, err = GetOrgByName("user2") // user2 is an individual
 	assert.True(t, IsErrOrgNotExist(err))
 
-	org, err = GetOrgByName("") // corner case
+	_, err = GetOrgByName("") // corner case
 	assert.True(t, IsErrOrgNotExist(err))
 }
 
@@ -429,20 +430,28 @@ func TestChangeOrgUserStatus(t *testing.T) {
 
 func TestAddOrgUser(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	testSuccess := func(orgID, userID int64) {
+	testSuccess := func(orgID, userID int64, isPublic bool) {
 		org := AssertExistsAndLoadBean(t, &User{ID: orgID}).(*User)
 		expectedNumMembers := org.NumMembers
 		if !BeanExists(t, &OrgUser{OrgID: orgID, UID: userID}) {
 			expectedNumMembers++
 		}
 		assert.NoError(t, AddOrgUser(orgID, userID))
-		AssertExistsAndLoadBean(t, &OrgUser{OrgID: orgID, UID: userID})
+		ou := &OrgUser{OrgID: orgID, UID: userID}
+		AssertExistsAndLoadBean(t, ou)
+		assert.Equal(t, ou.IsPublic, isPublic)
 		org = AssertExistsAndLoadBean(t, &User{ID: orgID}).(*User)
 		assert.EqualValues(t, expectedNumMembers, org.NumMembers)
 	}
-	testSuccess(3, 5)
-	testSuccess(3, 5)
-	testSuccess(6, 2)
+
+	setting.Service.DefaultOrgMemberVisible = false
+	testSuccess(3, 5, false)
+	testSuccess(3, 5, false)
+	testSuccess(6, 2, false)
+
+	setting.Service.DefaultOrgMemberVisible = true
+	testSuccess(6, 3, true)
+
 	CheckConsistencyFor(t, &User{}, &Team{})
 }
 
@@ -499,7 +508,7 @@ func TestAccessibleReposEnv_CountRepos(t *testing.T) {
 func TestAccessibleReposEnv_RepoIDs(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	testSuccess := func(userID, page, pageSize int64, expectedRepoIDs []int64) {
+	testSuccess := func(userID, _, pageSize int64, expectedRepoIDs []int64) {
 		env, err := org.AccessibleReposEnv(userID)
 		assert.NoError(t, err)
 		repoIDs, err := env.RepoIDs(1, 100)

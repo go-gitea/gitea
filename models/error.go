@@ -674,6 +674,23 @@ func (err ErrRepoAlreadyExist) Error() string {
 	return fmt.Sprintf("repository already exists [uname: %s, name: %s]", err.Uname, err.Name)
 }
 
+// ErrForkAlreadyExist represents a "ForkAlreadyExist" kind of error.
+type ErrForkAlreadyExist struct {
+	Uname    string
+	RepoName string
+	ForkName string
+}
+
+// IsErrForkAlreadyExist checks if an error is an ErrForkAlreadyExist.
+func IsErrForkAlreadyExist(err error) bool {
+	_, ok := err.(ErrForkAlreadyExist)
+	return ok
+}
+
+func (err ErrForkAlreadyExist) Error() string {
+	return fmt.Sprintf("repository is already forked by user [uname: %s, repo path: %s, fork path: %s]", err.Uname, err.RepoName, err.ForkName)
+}
+
 // ErrRepoRedirectNotExist represents a "RepoRedirectNotExist" kind of error.
 type ErrRepoRedirectNotExist struct {
 	OwnerID  int64
@@ -1039,6 +1056,22 @@ func IsErrIssueNotExist(err error) bool {
 
 func (err ErrIssueNotExist) Error() string {
 	return fmt.Sprintf("issue does not exist [id: %d, repo_id: %d, index: %d]", err.ID, err.RepoID, err.Index)
+}
+
+// ErrIssueLabelTemplateLoad represents a "ErrIssueLabelTemplateLoad" kind of error.
+type ErrIssueLabelTemplateLoad struct {
+	TemplateFile  string
+	OriginalError error
+}
+
+// IsErrIssueLabelTemplateLoad checks if an error is a ErrIssueLabelTemplateLoad.
+func IsErrIssueLabelTemplateLoad(err error) bool {
+	_, ok := err.(ErrIssueLabelTemplateLoad)
+	return ok
+}
+
+func (err ErrIssueLabelTemplateLoad) Error() string {
+	return fmt.Sprintf("Failed to load label template file '%s': %v", err.TemplateFile, err.OriginalError)
 }
 
 // __________      .__  .__ __________                                     __

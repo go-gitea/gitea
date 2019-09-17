@@ -15,8 +15,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/test"
 
-	"github.com/Unknwon/i18n"
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/i18n"
 )
 
 func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeStyle models.MergeStyle) *httptest.ResponseRecorder {
@@ -54,6 +54,10 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		assert.NoError(t, err)
+		hookTasksLenBefore := len(hookTasks)
+
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -63,11 +67,19 @@ func TestPullMerge(t *testing.T) {
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleMerge)
+
+		hookTasks, err = models.HookTasks(1, 1)
+		assert.NoError(t, err)
+		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
 }
 
 func TestPullRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		assert.NoError(t, err)
+		hookTasksLenBefore := len(hookTasks)
+
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -77,12 +89,21 @@ func TestPullRebase(t *testing.T) {
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebase)
+
+		hookTasks, err = models.HookTasks(1, 1)
+		assert.NoError(t, err)
+		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
 }
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		prepareTestEnv(t)
+
+		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		assert.NoError(t, err)
+		hookTasksLenBefore := len(hookTasks)
+
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -92,12 +113,21 @@ func TestPullRebaseMerge(t *testing.T) {
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebaseMerge)
+
+		hookTasks, err = models.HookTasks(1, 1)
+		assert.NoError(t, err)
+		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
 }
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		prepareTestEnv(t)
+
+		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		assert.NoError(t, err)
+		hookTasksLenBefore := len(hookTasks)
+
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -108,6 +138,10 @@ func TestPullSquash(t *testing.T) {
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleSquash)
+
+		hookTasks, err = models.HookTasks(1, 1)
+		assert.NoError(t, err)
+		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
 }
 
@@ -159,7 +193,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		req := NewRequest(t, "GET", resp.Header().Get("Location"))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		text := strings.TrimSpace(htmlDoc.doc.Find(".merge.segment > .text.grey").Text())
+		text := strings.TrimSpace(htmlDoc.doc.Find(".attached.header > .text.grey").Last().Text())
 		assert.NotEmpty(t, text, "Can't find WIP text")
 
 		// remove <strong /> from lang

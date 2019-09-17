@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-xorm/core"
+	"xorm.io/core"
 )
 
 var (
@@ -200,10 +200,6 @@ func (db *sqlite3) IsReserved(name string) bool {
 
 func (db *sqlite3) Quote(name string) string {
 	return "`" + name + "`"
-}
-
-func (db *sqlite3) QuoteStr() string {
-	return "`"
 }
 
 func (db *sqlite3) AutoIncrStr() string {

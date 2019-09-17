@@ -15,9 +15,9 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/builder"
+	"xorm.io/builder"
 )
 
 // Release represents a release of repository.
@@ -33,13 +33,13 @@ type Release struct {
 	Title            string
 	Sha1             string `xorm:"VARCHAR(40)"`
 	NumCommits       int64
-	NumCommitsBehind int64          `xorm:"-"`
-	Note             string         `xorm:"TEXT"`
-	IsDraft          bool           `xorm:"NOT NULL DEFAULT false"`
-	IsPrerelease     bool           `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool           `xorm:"NOT NULL DEFAULT false"`
-	Attachments      []*Attachment  `xorm:"-"`
-	CreatedUnix      util.TimeStamp `xorm:"INDEX"`
+	NumCommitsBehind int64              `xorm:"-"`
+	Note             string             `xorm:"TEXT"`
+	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
+	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool               `xorm:"NOT NULL DEFAULT false"`
+	Attachments      []*Attachment      `xorm:"-"`
+	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
 }
 
 func (r *Release) loadAttributes(e Engine) error {
@@ -51,12 +51,12 @@ func (r *Release) loadAttributes(e Engine) error {
 		}
 	}
 	if r.Publisher == nil {
-		r.Publisher, err = GetUserByID(r.PublisherID)
+		r.Publisher, err = getUserByID(e, r.PublisherID)
 		if err != nil {
 			return err
 		}
 	}
-	return GetReleaseAttachments(r)
+	return getReleaseAttachments(e, r)
 }
 
 // LoadAttributes load repo and publisher attributes for a release
@@ -113,43 +113,20 @@ func IsReleaseExist(repoID int64, tagName string) (bool, error) {
 	return x.Get(&Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)})
 }
 
-func createTag(gitRepo *git.Repository, rel *Release) error {
-	// Only actual create when publish.
-	if !rel.IsDraft {
-		if !gitRepo.IsTagExist(rel.TagName) {
-			commit, err := gitRepo.GetCommit(rel.Target)
-			if err != nil {
-				return fmt.Errorf("GetCommit: %v", err)
-			}
-
-			// Trim '--' prefix to prevent command line argument vulnerability.
-			rel.TagName = strings.TrimPrefix(rel.TagName, "--")
-			if err = gitRepo.CreateTag(rel.TagName, commit.ID.String()); err != nil {
-				if strings.Contains(err.Error(), "is not a valid tag name") {
-					return ErrInvalidTagName{rel.TagName}
-				}
-				return err
-			}
-			rel.LowerTagName = strings.ToLower(rel.TagName)
-		}
-		commit, err := gitRepo.GetTagCommit(rel.TagName)
-		if err != nil {
-			return fmt.Errorf("GetTagCommit: %v", err)
-		}
-
-		rel.Sha1 = commit.ID.String()
-		rel.CreatedUnix = util.TimeStamp(commit.Author.When.Unix())
-		rel.NumCommits, err = commit.CommitsCount()
-		if err != nil {
-			return fmt.Errorf("CommitsCount: %v", err)
-		}
-	} else {
-		rel.CreatedUnix = util.TimeStampNow()
-	}
-	return nil
+// InsertRelease inserts a release
+func InsertRelease(rel *Release) error {
+	_, err := x.Insert(rel)
+	return err
 }
 
-func addReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
+// UpdateRelease updates all columns of a release
+func UpdateRelease(rel *Release) error {
+	_, err := x.ID(rel.ID).AllCols().Update(rel)
+	return err
+}
+
+// AddReleaseAttachments adds a release attachments
+func AddReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
 	var attachments = make([]*Attachment, 0)
 	for _, uuid := range attachmentUUIDs {
@@ -172,51 +149,6 @@ func addReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error
 	}
 
 	return
-}
-
-// CreateRelease creates a new release of repository.
-func CreateRelease(gitRepo *git.Repository, rel *Release, attachmentUUIDs []string) error {
-	isExist, err := IsReleaseExist(rel.RepoID, rel.TagName)
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrReleaseAlreadyExist{rel.TagName}
-	}
-
-	if err = createTag(gitRepo, rel); err != nil {
-		return err
-	}
-	rel.LowerTagName = strings.ToLower(rel.TagName)
-
-	_, err = x.InsertOne(rel)
-	if err != nil {
-		return err
-	}
-
-	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
-	if err != nil {
-		return err
-	}
-
-	if !rel.IsDraft {
-		if err := rel.LoadAttributes(); err != nil {
-			log.Error("LoadAttributes: %v", err)
-		} else {
-			mode, _ := AccessLevel(rel.Publisher, rel.Repo)
-			if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
-				Action:     api.HookReleasePublished,
-				Release:    rel.APIFormat(),
-				Repository: rel.Repo.APIFormat(mode),
-				Sender:     rel.Publisher.APIFormat(),
-			}); err != nil {
-				log.Error("PrepareWebhooks: %v", err)
-			} else {
-				go HookQueue.Add(rel.Repo.ID)
-			}
-		}
-	}
-
-	return nil
 }
 
 // GetRelease returns release by given ID.
@@ -317,6 +249,10 @@ func (s releaseMetaSearch) Less(i, j int) bool {
 
 // GetReleaseAttachments retrieves the attachments for releases
 func GetReleaseAttachments(rels ...*Release) (err error) {
+	return getReleaseAttachments(x, rels...)
+}
+
+func getReleaseAttachments(e Engine, rels ...*Release) (err error) {
 	if len(rels) == 0 {
 		return
 	}
@@ -336,11 +272,10 @@ func GetReleaseAttachments(rels ...*Release) (err error) {
 	sort.Sort(sortedRels)
 
 	// Select attachments
-	err = x.
+	err = e.
 		Asc("release_id").
 		In("release_id", sortedRels.ID).
 		Find(&attachments, Attachment{})
-
 	if err != nil {
 		return err
 	}
@@ -355,7 +290,6 @@ func GetReleaseAttachments(rels ...*Release) (err error) {
 	}
 
 	return
-
 }
 
 type releaseSorter struct {
@@ -384,42 +318,8 @@ func SortReleases(rels []*Release) {
 	sort.Sort(sorter)
 }
 
-// UpdateRelease updates information of a release.
-func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachmentUUIDs []string) (err error) {
-	if err = createTag(gitRepo, rel); err != nil {
-		return err
-	}
-	rel.LowerTagName = strings.ToLower(rel.TagName)
-
-	_, err = x.ID(rel.ID).AllCols().Update(rel)
-	if err != nil {
-		return err
-	}
-
-	err = rel.loadAttributes(x)
-	if err != nil {
-		return err
-	}
-
-	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
-
-	mode, _ := AccessLevel(doer, rel.Repo)
-	if err1 := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
-		Action:     api.HookReleaseUpdated,
-		Release:    rel.APIFormat(),
-		Repository: rel.Repo.APIFormat(mode),
-		Sender:     rel.Publisher.APIFormat(),
-	}); err1 != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go HookQueue.Add(rel.Repo.ID)
-	}
-
-	return err
-}
-
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
-func DeleteReleaseByID(id int64, u *User, delTag bool) error {
+func DeleteReleaseByID(id int64, doer *User, delTag bool) error {
 	rel, err := GetReleaseByID(id)
 	if err != nil {
 		return fmt.Errorf("GetReleaseByID: %v", err)
@@ -433,7 +333,7 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 	if delTag {
 		_, stderr, err := process.GetManager().ExecDir(-1, repo.RepoPath(),
 			fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID),
-			"git", "tag", "-d", rel.TagName)
+			git.GitExecutable, "tag", "-d", rel.TagName)
 		if err != nil && !strings.Contains(stderr, "not found") {
 			return fmt.Errorf("git tag -d: %v - %s", err, stderr)
 		}
@@ -458,12 +358,12 @@ func DeleteReleaseByID(id int64, u *User, delTag bool) error {
 		return fmt.Errorf("LoadAttributes: %v", err)
 	}
 
-	mode, _ := AccessLevel(u, rel.Repo)
+	mode, _ := AccessLevel(doer, rel.Repo)
 	if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
 		Action:     api.HookReleaseDeleted,
 		Release:    rel.APIFormat(),
 		Repository: rel.Repo.APIFormat(mode),
-		Sender:     rel.Publisher.APIFormat(),
+		Sender:     doer.APIFormat(),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	} else {
@@ -512,8 +412,8 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 				return fmt.Errorf("GetTagCommitID: %v", err)
 			}
 			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
-				if err := pushUpdateDeleteTag(repo, gitRepo, rel.TagName); err != nil {
-					return fmt.Errorf("pushUpdateDeleteTag: %v", err)
+				if err := PushUpdateDeleteTag(repo, rel.TagName); err != nil {
+					return fmt.Errorf("PushUpdateDeleteTag: %v", err)
 				}
 			} else {
 				existingRelTags[strings.ToLower(rel.TagName)] = struct{}{}
@@ -526,7 +426,7 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 	}
 	for _, tagName := range tags {
 		if _, ok := existingRelTags[strings.ToLower(tagName)]; !ok {
-			if err := pushUpdateAddTag(repo, gitRepo, tagName); err != nil {
+			if err := PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
 				return fmt.Errorf("pushUpdateAddTag: %v", err)
 			}
 		}

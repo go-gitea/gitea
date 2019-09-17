@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+
 	"github.com/go-redis/redis"
 )
 
@@ -96,12 +97,12 @@ func (r *RedisQueue) Run() error {
 
 		i++
 		if len(datas) > r.batchNumber || (len(datas) > 0 && i > 3) {
-			r.indexer.Index(datas)
+			_ = r.indexer.Index(datas)
 			datas = make([]*IndexerData, 0, r.batchNumber)
 			i = 0
 		}
 
-		if len(bs) <= 0 {
+		if len(bs) == 0 {
 			time.Sleep(time.Millisecond * 100)
 			continue
 		}

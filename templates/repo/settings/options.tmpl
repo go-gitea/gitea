@@ -41,6 +41,22 @@
 					<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
 				</div>
 			</form>
+
+			<div class="ui divider"></div>
+
+			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
+				{{.CsrfTokenHtml}}
+				<div class="inline field">
+					<label for="avatar">{{.i18n.Tr "settings.choose_new_avatar"}}</label>
+					<input name="avatar" type="file" >
+				</div>
+
+				<div class="field">
+					<button class="ui green button">{{$.i18n.Tr "settings.update_avatar"}}</button>
+					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.i18n.Tr "settings.delete_current_avatar"}}</a>
+				</div>
+			</form>
+
 		</div>
 
 		{{if .Repository.IsMirror}}
@@ -64,8 +80,25 @@
 					</div>
 					<div class="field {{if .Err_MirrorAddress}}error{{end}}">
 						<label for="mirror_address">{{.i18n.Tr "repo.mirror_address"}}</label>
-						<input id="mirror_address" name="mirror_address" value="{{.Mirror.FullAddress}}" required>
+						<input id="mirror_address" name="mirror_address" value="{{.Mirror.AddressNoCredentials}}" required>
 						<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
+					</div>
+					<div class="ui accordion optional field">
+						<label class="ui title {{if .Err_Auth}}text red active{{end}}">
+							<i class="icon dropdown"></i>
+							<label for="">{{.i18n.Tr "repo.need_auth"}}</label>
+						</label>
+						<div class="content {{if .Err_Auth}}active{{else if .Mirror.Username}}active{{end}}">
+							<div class="inline field {{if .Err_Auth}}error{{end}}">
+								<label for="mirror_username">{{.i18n.Tr "username"}}</label>
+								<input id="mirror_username" name="mirror_username" value="{{.Mirror.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
+							</div>
+							<input class="fake" type="password">
+							<div class="inline field {{if .Err_Auth}}error{{end}}">
+								<label for="mirror_password">{{.i18n.Tr "password"}}</label>
+								<input id="mirror_password" name="mirror_password" type="password" value="{{.Mirror.Password}}" {{if not .mirror_password}}data-need-clear="true"{{end}}>
+							</div>
+						</div>
 					</div>
 
 					<div class="field">

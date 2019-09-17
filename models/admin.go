@@ -9,9 +9,9 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 //NoticeType describes the notice type
@@ -26,8 +26,8 @@ const (
 type Notice struct {
 	ID          int64 `xorm:"pk autoincr"`
 	Type        NoticeType
-	Description string         `xorm:"TEXT"`
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	Description string             `xorm:"TEXT"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
 // TrStr returns a translation format string.
@@ -63,7 +63,7 @@ func RemoveAllWithNotice(title, path string) {
 func removeAllWithNotice(e Engine, title, path string) {
 	if err := os.RemoveAll(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
-		log.Warn(desc)
+		log.Warn(title+" [%s]: %v", path, err)
 		if err = createNotice(e, NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}

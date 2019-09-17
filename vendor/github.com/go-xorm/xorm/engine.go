@@ -7,6 +7,7 @@ package xorm
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/gob"
 	"errors"
@@ -19,8 +20,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 // Engine is the major struct of xorm, it means a database manager.
@@ -52,6 +53,8 @@ type Engine struct {
 
 	cachers    map[string]core.Cacher
 	cacherLock sync.RWMutex
+
+	defaultContext context.Context
 }
 
 func (engine *Engine) setCacher(tableName string, cacher core.Cacher) {
@@ -122,6 +125,7 @@ func (engine *Engine) Logger() core.ILogger {
 // SetLogger set the new logger
 func (engine *Engine) SetLogger(logger core.ILogger) {
 	engine.logger = logger
+	engine.showSQL = logger.IsShowSQL()
 	engine.dialect.SetLogger(logger)
 }
 
@@ -171,12 +175,6 @@ func (engine *Engine) SupportInsertMany() bool {
 	return engine.dialect.SupportInsertMany()
 }
 
-// QuoteStr Engine's database use which character as quote.
-// mysql, sqlite use ` and postgres use "
-func (engine *Engine) QuoteStr() string {
-	return engine.dialect.QuoteStr()
-}
-
 func (engine *Engine) quoteColumns(columnStr string) string {
 	columns := strings.Split(columnStr, ",")
 	for i := 0; i < len(columns); i++ {
@@ -192,13 +190,10 @@ func (engine *Engine) Quote(value string) string {
 		return value
 	}
 
-	if string(value[0]) == engine.dialect.QuoteStr() || value[0] == '`' {
-		return value
-	}
+	buf := builder.StringBuilder{}
+	engine.QuoteTo(&buf, value)
 
-	value = strings.Replace(value, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
-
-	return engine.dialect.QuoteStr() + value + engine.dialect.QuoteStr()
+	return buf.String()
 }
 
 // QuoteTo quotes string and writes into the buffer
@@ -212,20 +207,30 @@ func (engine *Engine) QuoteTo(buf *builder.StringBuilder, value string) {
 		return
 	}
 
-	if string(value[0]) == engine.dialect.QuoteStr() || value[0] == '`' {
-		buf.WriteString(value)
+	quotePair := engine.dialect.Quote("")
+
+	if value[0] == '`' || len(quotePair) < 2 || value[0] == quotePair[0] { // no quote
+		_, _ = buf.WriteString(value)
 		return
+	} else {
+		prefix, suffix := quotePair[0], quotePair[1]
+
+		_ = buf.WriteByte(prefix)
+		for i := 0; i < len(value); i++ {
+			if value[i] == '.' {
+				_ = buf.WriteByte(suffix)
+				_ = buf.WriteByte('.')
+				_ = buf.WriteByte(prefix)
+			} else {
+				_ = buf.WriteByte(value[i])
+			}
+		}
+		_ = buf.WriteByte(suffix)
 	}
-
-	value = strings.Replace(value, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
-
-	buf.WriteString(engine.dialect.QuoteStr())
-	buf.WriteString(value)
-	buf.WriteString(engine.dialect.QuoteStr())
 }
 
 func (engine *Engine) quote(sql string) string {
-	return engine.dialect.QuoteStr() + sql + engine.dialect.QuoteStr()
+	return engine.dialect.Quote(sql)
 }
 
 // SqlType will be deprecated, please use SQLType instead
@@ -919,7 +924,16 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 					engine:     engine,
 				}
 
-				if strings.ToUpper(tags[0]) == "EXTENDS" {
+				if strings.HasPrefix(strings.ToUpper(tags[0]), "EXTENDS") {
+					pStart := strings.Index(tags[0], "(")
+					if pStart > -1 && strings.HasSuffix(tags[0], ")") {
+						var tagPrefix = strings.TrimFunc(tags[0][pStart+1:len(tags[0])-1], func(r rune) bool {
+							return r == '\'' || r == '"'
+						})
+
+						ctx.params = []string{tagPrefix}
+					}
+
 					if err := ExtendsTagHandler(&ctx); err != nil {
 						return nil, err
 					}
@@ -1351,31 +1365,31 @@ func (engine *Engine) DropIndexes(bean interface{}) error {
 }
 
 // Exec raw sql
-func (engine *Engine) Exec(sqlorArgs ...interface{}) (sql.Result, error) {
+func (engine *Engine) Exec(sqlOrArgs ...interface{}) (sql.Result, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Exec(sqlorArgs...)
+	return session.Exec(sqlOrArgs...)
 }
 
 // Query a raw sql and return records as []map[string][]byte
-func (engine *Engine) Query(sqlorArgs ...interface{}) (resultsSlice []map[string][]byte, err error) {
+func (engine *Engine) Query(sqlOrArgs ...interface{}) (resultsSlice []map[string][]byte, err error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Query(sqlorArgs...)
+	return session.Query(sqlOrArgs...)
 }
 
 // QueryString runs a raw sql and return records as []map[string]string
-func (engine *Engine) QueryString(sqlorArgs ...interface{}) ([]map[string]string, error) {
+func (engine *Engine) QueryString(sqlOrArgs ...interface{}) ([]map[string]string, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.QueryString(sqlorArgs...)
+	return session.QueryString(sqlOrArgs...)
 }
 
 // QueryInterface runs a raw sql and return records as []map[string]interface{}
-func (engine *Engine) QueryInterface(sqlorArgs ...interface{}) ([]map[string]interface{}, error) {
+func (engine *Engine) QueryInterface(sqlOrArgs ...interface{}) ([]map[string]interface{}, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.QueryInterface(sqlorArgs...)
+	return session.QueryInterface(sqlOrArgs...)
 }
 
 // Insert one or more records
@@ -1568,7 +1582,7 @@ func (engine *Engine) formatColTime(col *core.Column, t time.Time) (v interface{
 func (engine *Engine) formatTime(sqlTypeName string, t time.Time) (v interface{}) {
 	switch sqlTypeName {
 	case core.Time:
-		s := t.Format("2006-01-02 15:04:05") //time.RFC3339
+		s := t.Format("2006-01-02 15:04:05") // time.RFC3339
 		v = s[11:19]
 	case core.Date:
 		v = t.Format("2006-01-02")

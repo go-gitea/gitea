@@ -15,42 +15,45 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
 	"github.com/go-xorm/xorm"
+	"github.com/unknwon/com"
+	"xorm.io/builder"
 )
 
 // Issue represents an issue or pull request of repository.
 type Issue struct {
-	ID              int64       `xorm:"pk autoincr"`
-	RepoID          int64       `xorm:"INDEX UNIQUE(repo_index)"`
-	Repo            *Repository `xorm:"-"`
-	Index           int64       `xorm:"UNIQUE(repo_index)"` // Index in one repository.
-	PosterID        int64       `xorm:"INDEX"`
-	Poster          *User       `xorm:"-"`
-	Title           string      `xorm:"name"`
-	Content         string      `xorm:"TEXT"`
-	RenderedContent string      `xorm:"-"`
-	Labels          []*Label    `xorm:"-"`
-	MilestoneID     int64       `xorm:"INDEX"`
-	Milestone       *Milestone  `xorm:"-"`
-	Priority        int
-	AssigneeID      int64        `xorm:"-"`
-	Assignee        *User        `xorm:"-"`
-	IsClosed        bool         `xorm:"INDEX"`
-	IsRead          bool         `xorm:"-"`
-	IsPull          bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
-	PullRequest     *PullRequest `xorm:"-"`
-	NumComments     int
-	Ref             string
+	ID               int64       `xorm:"pk autoincr"`
+	RepoID           int64       `xorm:"INDEX UNIQUE(repo_index)"`
+	Repo             *Repository `xorm:"-"`
+	Index            int64       `xorm:"UNIQUE(repo_index)"` // Index in one repository.
+	PosterID         int64       `xorm:"INDEX"`
+	Poster           *User       `xorm:"-"`
+	OriginalAuthor   string
+	OriginalAuthorID int64
+	Title            string     `xorm:"name"`
+	Content          string     `xorm:"TEXT"`
+	RenderedContent  string     `xorm:"-"`
+	Labels           []*Label   `xorm:"-"`
+	MilestoneID      int64      `xorm:"INDEX"`
+	Milestone        *Milestone `xorm:"-"`
+	Priority         int
+	AssigneeID       int64        `xorm:"-"`
+	Assignee         *User        `xorm:"-"`
+	IsClosed         bool         `xorm:"INDEX"`
+	IsRead           bool         `xorm:"-"`
+	IsPull           bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
+	PullRequest      *PullRequest `xorm:"-"`
+	NumComments      int
+	Ref              string
 
-	DeadlineUnix util.TimeStamp `xorm:"INDEX"`
+	DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
-	ClosedUnix  util.TimeStamp `xorm:"INDEX"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	ClosedUnix  timeutil.TimeStamp `xorm:"INDEX"`
 
 	Attachments      []*Attachment `xorm:"-"`
 	Comments         []*Comment    `xorm:"-"`
@@ -70,6 +73,7 @@ var (
 
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sx]\]\s.)|(\n\s*[-*]\s\[[\sx]\]\s.)`
 const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[x]\]\s.)|(\n\s*[-*]\s\[[x]\]\s.)`
+const issueMaxDupIndexAttempts = 3
 
 func init() {
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
@@ -87,7 +91,7 @@ func (issue *Issue) loadTotalTimes(e Engine) (err error) {
 
 // IsOverdue checks if the issue is overdue
 func (issue *Issue) IsOverdue() bool {
-	return util.TimeStampNow() >= issue.DeadlineUnix
+	return timeutil.TimeStampNow() >= issue.DeadlineUnix
 }
 
 // LoadRepo loads issue's repository
@@ -469,6 +473,18 @@ func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
 	}
 }
 
+// ReplyReference returns tokenized address to use for email reply headers
+func (issue *Issue) ReplyReference() string {
+	var path string
+	if issue.IsPull {
+		path = "pulls"
+	} else {
+		path = "issues"
+	}
+
+	return fmt.Sprintf("%s/%s/%d@%s", issue.Repo.FullName(), path, issue.Index, setting.Domain)
+}
+
 func (issue *Issue) addLabel(e *xorm.Session, label *Label, doer *User) error {
 	return newIssueLabel(e, issue, label, doer)
 }
@@ -729,7 +745,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 
 	issue.IsClosed = isClosed
 	if isClosed {
-		issue.ClosedUnix = util.TimeStampNow()
+		issue.ClosedUnix = timeutil.TimeStampNow()
 	} else {
 		issue.ClosedUnix = 0
 	}
@@ -976,7 +992,7 @@ func (issue *Issue) GetTasksDone() int {
 }
 
 // GetLastEventTimestamp returns the last user visible event timestamp, either the creation of this issue or the close.
-func (issue *Issue) GetLastEventTimestamp() util.TimeStamp {
+func (issue *Issue) GetLastEventTimestamp() timeutil.TimeStamp {
 	if issue.IsClosed {
 		return issue.ClosedUnix
 	}
@@ -1017,7 +1033,6 @@ type NewIssueOptions struct {
 
 func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
-	opts.Issue.Index = opts.Repo.NextIssueIndex()
 
 	if opts.Issue.MilestoneID > 0 {
 		milestone, err := getMilestoneByRepoID(e, opts.Issue.RepoID, opts.Issue.MilestoneID)
@@ -1067,9 +1082,30 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	// Milestone and assignee validation should happen before insert actual object.
-	if _, err = e.Insert(opts.Issue); err != nil {
+
+	// There's no good way to identify a duplicate key error in database/sql; brute force some retries
+	dupIndexAttempts := issueMaxDupIndexAttempts
+	for {
+		_, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
+			Where("repo_id=?", opts.Issue.RepoID).
+			Insert(opts.Issue)
+		if err == nil {
+			break
+		}
+
+		dupIndexAttempts--
+		if dupIndexAttempts <= 0 {
+			return err
+		}
+	}
+
+	inserted, err := getIssueByID(e, opts.Issue.ID)
+	if err != nil {
 		return err
 	}
+
+	// Patch Index with the value calculated by the database
+	opts.Issue.Index = inserted.Index
 
 	if opts.Issue.MilestoneID > 0 {
 		if err = changeMilestoneAssign(e, doer, opts.Issue, -1); err != nil {
@@ -1303,7 +1339,7 @@ func sortIssuesSession(sess *xorm.Session, sortType string) {
 	}
 }
 
-func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
+func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	if opts.Page >= 0 && opts.PageSize > 0 {
 		var start int
 		if opts.Page == 0 {
@@ -1362,7 +1398,6 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) error {
 				fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
 		}
 	}
-	return nil
 }
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
@@ -1370,9 +1405,7 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if err := opts.setupSession(sess); err != nil {
-		return nil, err
-	}
+	opts.setupSession(sess)
 
 	countsSlice := make([]*struct {
 		RepoID int64
@@ -1397,15 +1430,14 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	if err := opts.setupSession(sess); err != nil {
-		return nil, err
-	}
+	opts.setupSession(sess)
 	sortIssuesSession(sess, opts.SortType)
 
 	issues := make([]*Issue, 0, setting.UI.IssuePagingNum)
 	if err := sess.Find(&issues); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
+	sess.Close()
 
 	if err := IssueList(issues).LoadAttributes(); err != nil {
 		return nil, fmt.Errorf("LoadAttributes: %v", err)
@@ -1423,7 +1455,7 @@ func getParticipantsByIssueID(e Engine, issueID int64) ([]*User, error) {
 	userIDs := make([]int64, 0, 5)
 	if err := e.Table("comment").Cols("poster_id").
 		Where("`comment`.issue_id = ?", issueID).
-		And("`comment`.type = ?", CommentTypeComment).
+		And("`comment`.type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
 		And("`user`.is_active = ?", true).
 		And("`user`.prohibit_login = ?", false).
 		Join("INNER", "`user`", "`user`.id = `comment`.poster_id").
@@ -1757,7 +1789,7 @@ func UpdateIssue(issue *Issue) error {
 }
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
-func UpdateIssueDeadline(issue *Issue, deadlineUnix util.TimeStamp, doer *User) (err error) {
+func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *User) (err error) {
 
 	// if the deadline hasn't changed do nothing
 	if issue.DeadlineUnix == deadlineUnix {
@@ -1811,4 +1843,23 @@ func (issue *Issue) BlockedByDependencies() ([]*Issue, error) {
 // BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
 func (issue *Issue) BlockingDependencies() ([]*Issue, error) {
 	return issue.getBlockingDependencies(x)
+}
+
+func (issue *Issue) updateClosedNum(e Engine) (err error) {
+	if issue.IsPull {
+		_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+			issue.RepoID,
+			true,
+			true,
+			issue.RepoID,
+		)
+	} else {
+		_, err = e.Exec("UPDATE `repository` SET num_closed_issues=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+			issue.RepoID,
+			false,
+			true,
+			issue.RepoID,
+		)
+	}
+	return
 }

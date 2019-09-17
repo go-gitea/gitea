@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/xorm"
@@ -53,23 +54,8 @@ func initMigrationTest(t *testing.T) {
 
 	setting.NewContext()
 	setting.CheckLFSVersion()
-	models.LoadConfigs()
+	setting.InitDBConfig()
 	setting.NewLogServices(true)
-}
-
-func getDialect() string {
-	dialect := "sqlite"
-	switch {
-	case setting.UseSQLite3:
-		dialect = "sqlite"
-	case setting.UseMySQL:
-		dialect = "mysql"
-	case setting.UsePostgreSQL:
-		dialect = "pgsql"
-	case setting.UseMSSQL:
-		dialect = "mssql"
-	}
-	return dialect
 }
 
 func availableVersions() ([]string, error) {
@@ -78,7 +64,7 @@ func availableVersions() ([]string, error) {
 		return nil, err
 	}
 	defer migrationsDir.Close()
-	versionRE, err := regexp.Compile("gitea-v(?P<version>.+)\\." + regexp.QuoteMeta(models.DbCfg.Type) + "\\.sql.gz")
+	versionRE, err := regexp.Compile("gitea-v(?P<version>.+)\\." + regexp.QuoteMeta(setting.Database.Type) + "\\.sql.gz")
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +85,7 @@ func availableVersions() ([]string, error) {
 }
 
 func readSQLFromFile(version string) (string, error) {
-	filename := fmt.Sprintf("integrations/migration-test/gitea-v%s.%s.sql.gz", version, models.DbCfg.Type)
+	filename := fmt.Sprintf("integrations/migration-test/gitea-v%s.%s.sql.gz", version, setting.Database.Type)
 
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return "", nil
@@ -121,24 +107,24 @@ func readSQLFromFile(version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(base.RemoveBOMIfPresent(bytes)), nil
+	return string(charset.RemoveBOMIfPresent(bytes)), nil
 }
 
 func restoreOldDB(t *testing.T, version string) bool {
 	data, err := readSQLFromFile(version)
 	assert.NoError(t, err)
 	if len(data) == 0 {
-		integrations.Printf("No db found to restore for %s version: %s\n", models.DbCfg.Type, version)
+		integrations.Printf("No db found to restore for %s version: %s\n", setting.Database.Type, version)
 		return false
 	}
 
 	switch {
-	case setting.UseSQLite3:
-		os.Remove(models.DbCfg.Path)
-		err := os.MkdirAll(path.Dir(models.DbCfg.Path), os.ModePerm)
+	case setting.Database.UseSQLite3:
+		os.Remove(setting.Database.Path)
+		err := os.MkdirAll(path.Dir(setting.Database.Path), os.ModePerm)
 		assert.NoError(t, err)
 
-		db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d", models.DbCfg.Path, models.DbCfg.Timeout))
+		db, err := sql.Open("sqlite3", fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d", setting.Database.Path, setting.Database.Timeout))
 		assert.NoError(t, err)
 		defer db.Close()
 
@@ -146,20 +132,20 @@ func restoreOldDB(t *testing.T, version string) bool {
 		assert.NoError(t, err)
 		db.Close()
 
-	case setting.UseMySQL:
+	case setting.Database.UseMySQL:
 		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/",
-			models.DbCfg.User, models.DbCfg.Passwd, models.DbCfg.Host))
+			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
 		assert.NoError(t, err)
 		defer db.Close()
 
-		_, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", models.DbCfg.Name))
+		_, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name))
 		assert.NoError(t, err)
 
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", models.DbCfg.Name))
+		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name))
 		assert.NoError(t, err)
 
 		db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/%s?multiStatements=true",
-			models.DbCfg.User, models.DbCfg.Passwd, models.DbCfg.Host, models.DbCfg.Name))
+			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name))
 		assert.NoError(t, err)
 		defer db.Close()
 
@@ -167,21 +153,21 @@ func restoreOldDB(t *testing.T, version string) bool {
 		assert.NoError(t, err)
 		db.Close()
 
-	case setting.UsePostgreSQL:
+	case setting.Database.UsePostgreSQL:
 		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
-			models.DbCfg.User, models.DbCfg.Passwd, models.DbCfg.Host, models.DbCfg.SSLMode))
+			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
 		assert.NoError(t, err)
 		defer db.Close()
 
-		_, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", models.DbCfg.Name))
+		_, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name))
 		assert.NoError(t, err)
 
-		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", models.DbCfg.Name))
+		_, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name))
 		assert.NoError(t, err)
 		db.Close()
 
 		db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
-			models.DbCfg.User, models.DbCfg.Passwd, models.DbCfg.Host, models.DbCfg.Name, models.DbCfg.SSLMode))
+			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
 		assert.NoError(t, err)
 		defer db.Close()
 
@@ -189,18 +175,26 @@ func restoreOldDB(t *testing.T, version string) bool {
 		assert.NoError(t, err)
 		db.Close()
 
-	case setting.UseMSSQL:
-		host, port := models.ParseMSSQLHostPort(models.DbCfg.Host)
+	case setting.Database.UseMSSQL:
+		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
-			host, port, "master", models.DbCfg.User, models.DbCfg.Passwd))
+			host, port, "master", setting.Database.User, setting.Database.Passwd))
 		assert.NoError(t, err)
 		defer db.Close()
 
-		_, err = db.Exec("DROP DATABASE IF EXISTS gitea")
+		_, err = db.Exec("DROP DATABASE IF EXISTS [gitea]")
 		assert.NoError(t, err)
 
 		statements := strings.Split(data, "\nGO\n")
 		for _, statement := range statements {
+			if len(statement) > 5 && statement[:5] == "USE [" {
+				dbname := statement[5 : len(statement)-1]
+				db.Close()
+				db, err = sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
+					host, port, dbname, setting.Database.User, setting.Database.Passwd))
+				assert.NoError(t, err)
+				defer db.Close()
+			}
 			_, err = db.Exec(statement)
 			assert.NoError(t, err, "Failure whilst running: %s\nError: %v", statement, err)
 		}
@@ -216,7 +210,7 @@ func wrappedMigrate(x *xorm.Engine) error {
 
 func doMigrationTest(t *testing.T, version string) {
 	integrations.PrintCurrentTest(t)
-	integrations.Printf("Performing migration test for %s version: %s\n", models.DbCfg.Type, version)
+	integrations.Printf("Performing migration test for %s version: %s\n", setting.Database.Type, version)
 	if !restoreOldDB(t, version) {
 		return
 	}
@@ -233,7 +227,7 @@ func doMigrationTest(t *testing.T, version string) {
 func TestMigrations(t *testing.T) {
 	initMigrationTest(t)
 
-	dialect := models.DbCfg.Type
+	dialect := setting.Database.Type
 	versions, err := availableVersions()
 	assert.NoError(t, err)
 

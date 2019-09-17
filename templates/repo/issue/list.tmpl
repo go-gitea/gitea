@@ -17,6 +17,12 @@
 						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | EscapePound}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
 					{{end}}
 				</div>
+			{{else}}
+				{{if not .PageIsIssueList}}
+					<div class="column right aligned">
+						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | EscapePound}}{{end}}">{{$.i18n.Tr "action.compare_commits_general"}}</a>
+					</div>
+				{{end}}
 			{{end}}
 		</div>
 		<div class="ui divider"></div>
@@ -132,6 +138,7 @@
 			this one correctly, but not the other one. */}}
 			<div class="nine wide right aligned right floated column">
 				<div class="ui secondary filter stackable menu">
+					{{if not .Repository.IsArchived}}
 					<!-- Action Button -->
 					{{if .IsShowClosed}}
 						<div class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.i18n.Tr "repo.issues.action_open"}}</div>
@@ -188,6 +195,7 @@
 							{{end}}
 						</div>
 					</div>
+					{{end}}
 				</div>
 			</div>
 		</div>
@@ -200,7 +208,7 @@
 						<input type="checkbox" data-issue-id={{.ID}}></input>
 					</div>
 					{{end}}
-					<div class="ui {{if .IsClosed}}{{if .IsPull}}{{if .PullRequest.HasMerged}}purple{{else}}red{{end}}{{else}}red{{end}}{{else}}{{if .IsRead}}black{{else}}green{{end}}{{end}} label">#{{.Index}}</div>
+					<div class="ui {{if .IsClosed}}{{if .IsPull}}{{if .PullRequest.HasMerged}}purple{{else}}red{{end}}{{else}}red{{end}}{{else}}{{if .IsRead}}white{{else}}green{{end}}{{end}} label">#{{.Index}}</div>
 					<a class="title has-emoji" href="{{$.Link}}/{{.Index}}">{{.Title}}</a>
 
                     {{if .IsPull }}
@@ -209,9 +217,6 @@
 						{{end}}
 					{{end}}
 
-					{{if .Ref}}
-						<a class="ui label" href="{{$.RepoLink}}/src/branch/{{.Ref}}">{{.Ref}}</a>
-					{{end}}
 					{{range .Labels}}
 						<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 					{{end}}
@@ -226,24 +231,30 @@
 
 					<p class="desc">
 						{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
-
-						{{if gt .Poster.ID 0}}
+						{{if .OriginalAuthor }}
+							{{$.i18n.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor | Safe}}
+						{{else if gt .Poster.ID 0}}
 							{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName | Escape) | Safe}}
 						{{else}}
 							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 						{{end}}
 
+						{{if .Milestone}}
+							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
+								<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
+							</a>
+						{{end}}
+						{{if .Ref}}
+							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">
+								<span class="octicon octicon-git-branch"></span> {{.Ref}}
+							</a>
+						{{end}}
 						{{$tasks := .GetTasks}}
 						{{if gt $tasks 0}}
 							{{$tasksDone := .GetTasksDone}}
 							<span class="checklist">
 								<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
 							</span>
-						{{end}}
-						{{if .Milestone}}
-							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
-								<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
-							</a>
 						{{end}}
 						{{if ne .DeadlineUnix 0}}
 							<span class="octicon octicon-calendar"></span>

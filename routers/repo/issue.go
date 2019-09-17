@@ -24,9 +24,10 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -40,8 +41,6 @@ const (
 )
 
 var (
-	// ErrFileTypeForbidden not allowed file type error
-	ErrFileTypeForbidden = errors.New("File type is not allowed")
 	// ErrTooManyFiles upload too many files
 	ErrTooManyFiles = errors.New("Maximum number of files to upload exceeded")
 	// IssueTemplateCandidates issue templates
@@ -305,7 +304,7 @@ func Issues(ctx *context.Context) {
 
 	var err error
 	// Get milestones.
-	ctx.Data["Milestones"], err = models.GetMilestonesByRepoID(ctx.Repo.Repository.ID)
+	ctx.Data["Milestones"], err = models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")))
 	if err != nil {
 		ctx.ServerError("GetAllRepoMilestones", err)
 		return
@@ -425,12 +424,14 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["BodyQuery"] = body
 
 	milestoneID := ctx.QueryInt64("milestone")
-	milestone, err := models.GetMilestoneByID(milestoneID)
-	if err != nil {
-		log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
-	} else {
-		ctx.Data["milestone_id"] = milestoneID
-		ctx.Data["Milestone"] = milestone
+	if milestoneID > 0 {
+		milestone, err := models.GetMilestoneByID(milestoneID)
+		if err != nil {
+			log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
+		} else {
+			ctx.Data["milestone_id"] = milestoneID
+			ctx.Data["Milestone"] = milestone
+		}
 	}
 
 	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
@@ -802,17 +803,7 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 			marked[comment.PosterID] = comment.ShowTag
-
-			isAdded := false
-			for j := range participants {
-				if comment.Poster == participants[j] {
-					isAdded = true
-					break
-				}
-			}
-			if !isAdded && !issue.IsPoster(comment.Poster.ID) {
-				participants = append(participants, comment.Poster)
-			}
+			participants = addParticipant(comment.Poster, participants)
 		} else if comment.Type == models.CommentTypeLabel {
 			if err = comment.LoadLabel(); err != nil {
 				ctx.ServerError("LoadLabel", err)
@@ -848,6 +839,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadReview", err)
 				return
 			}
+			participants = addParticipant(comment.Poster, participants)
 			if comment.Review == nil {
 				continue
 			}
@@ -942,7 +934,15 @@ func ViewIssue(ctx *context.Context) {
 
 	// Get Dependencies
 	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies()
+	if err != nil {
+		ctx.ServerError("BlockedByDependencies", err)
+		return
+	}
 	ctx.Data["BlockingDependencies"], err = issue.BlockingDependencies()
+	if err != nil {
+		ctx.ServerError("BlockingDependencies", err)
+		return
+	}
 
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
@@ -1036,10 +1036,13 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
+	oldTitle := issue.Title
 	if err := issue.ChangeTitle(ctx.User, title); err != nil {
 		ctx.ServerError("ChangeTitle", err)
 		return
 	}
+
+	notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
 
 	ctx.JSON(200, map[string]interface{}{
 		"title": issue.Title,
@@ -1223,7 +1226,8 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 			if form.Status == "reopen" && issue.IsPull {
 				pull := issue.PullRequest
-				pr, err := models.GetUnmergedPullRequest(pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch)
+				var err error
+				pr, err = models.GetUnmergedPullRequest(pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch)
 				if err != nil {
 					if !models.IsErrPullRequestNotExist(err) {
 						ctx.ServerError("GetUnmergedPullRequest", err)
@@ -1557,4 +1561,13 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 	ctx.JSON(200, map[string]interface{}{
 		"html": html,
 	})
+}
+
+func addParticipant(poster *models.User, participants []*models.User) []*models.User {
+	for _, part := range participants {
+		if poster.ID == part.ID {
+			return participants
+		}
+	}
+	return append(participants, poster)
 }

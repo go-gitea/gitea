@@ -22,7 +22,7 @@ BINDATA := modules/{options,public,templates}/bindata.go
 GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
 GOFMT ?= gofmt -s
 
-GOFLAGS := -i -v
+GOFLAGS := -v
 EXTRA_GOFLAGS ?=
 
 MAKE_VERSION := $(shell make -v | head -n 1)
@@ -41,13 +41,15 @@ endif
 
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
-PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list ./... | grep -v /vendor/)))
+PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 SOURCES ?= $(shell find . -name "*.go" -type f)
 
 TAGS ?=
 
 TMPDIR := $(shell mktemp -d 2>/dev/null || mktemp -d -t 'gitea-temp')
 
+#To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger@v0.20.1
+SWAGGER := GO111MODULE=on $(GO) run -mod=vendor github.com/go-swagger/go-swagger/cmd/swagger
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl}}/api/v1"|g
 SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl}}/api/v1"|"basePath": "/api/v1"|g
@@ -97,17 +99,11 @@ vet:
 
 .PHONY: generate
 generate:
-	@hash go-bindata > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/jteeuwen/go-bindata/go-bindata; \
-	fi
-	$(GO) generate $(PACKAGES)
+	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
 
 .PHONY: generate-swagger
 generate-swagger:
-	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
-	fi
-	swagger generate spec -o './$(SWAGGER_SPEC)'
+	$(SWAGGER) generate spec -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
 
@@ -122,11 +118,8 @@ swagger-check: generate-swagger
 
 .PHONY: swagger-validate
 swagger-validate:
-	@hash swagger > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		$(GO) get -u github.com/go-swagger/go-swagger/cmd/swagger; \
-	fi
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_JSON)' './$(SWAGGER_SPEC)'
-	swagger validate './$(SWAGGER_SPEC)'
+	$(SWAGGER) validate './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
 .PHONY: errcheck
@@ -138,6 +131,10 @@ errcheck:
 
 .PHONY: lint
 lint:
+	@echo 'make lint is depricated. Use "make revive" if you want to use the old lint tool, or "make golangci-lint" to run a complete code check.'
+
+.PHONY: revive
+revive:
 	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u github.com/mgechev/revive; \
 	fi
@@ -335,7 +332,7 @@ release-linux:
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) get -u src.techknowlogick.com/xgo; \
 	fi
-	xgo -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/*' -out gitea-$(VERSION) .
+	xgo -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/mips64le,linux/mips,linux/mipsle' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -365,33 +362,58 @@ release-compress:
 	fi
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 
-.PHONY: javascripts
-javascripts: public/js/index.js
+npm-check:
+	@hash npm > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		echo "Please install Node.js 8.x or greater with npm"; \
+		exit 1; \
+	fi;
+	@hash npx > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		echo "Please install Node.js 8.x or greater with npm"; \
+		exit 1; \
+	fi;
 
-.IGNORE: public/js/index.js
-public/js/index.js: $(JAVASCRIPTS)
-	cat $< >| $@
+.PHONY: npm
+npm: npm-check
+	npm install --no-save
 
-.PHONY: stylesheets-check
-stylesheets-check: generate-stylesheets
+.PHONY: npm-update
+npm-update: npm-check
+	npx updates -cu
+	rm -rf node_modules package-lock.json
+	npm install --package-lock
+
+.PHONY: js
+js: npm
+	npx eslint public/js
+
+.PHONY: css
+css: npm
+	npx stylelint public/less
+	npx lessc --clean-css="--s0 -b" public/less/index.less public/css/index.css
+	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx lessc --clean-css="--s0 -b" public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
+	npx postcss --use autoprefixer --no-map --replace public/css/*
+
 	@diff=$$(git diff public/css/*); \
-	if [ -n "$$diff" ]; then \
-		echo "Please run 'make generate-stylesheets' and commit the result:"; \
+	if ([ -n "$$CI" ] && [ -n "$$diff" ]); then \
+		echo "Generated files in public/css have changed, please commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi;
 
+.PHONY: javascripts
+javascripts:
+	echo "'make javascripts' is deprecated, please use 'make js'"
+	$(MAKE) js
+
+.PHONY: stylesheets-check
+stylesheets-check:
+	echo "'make stylesheets-check' is deprecated, please use 'make css'"
+	$(MAKE) css
+
 .PHONY: generate-stylesheets
 generate-stylesheets:
-	@hash npx > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		echo "Please install npm version 5.2+"; \
-		exit 1; \
-	fi;
-	$(eval BROWSERS := "> 1%, last 2 firefox versions, last 2 safari versions, ie 11")
-	npx lesshint  public/less/
-	npx lessc --clean-css="--s0 -b" public/less/index.less public/css/index.css
-	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx lessc --clean-css="--s0 -b" public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
-	$(foreach file, $(wildcard public/css/*),npx postcss --use autoprefixer --autoprefixer.browsers $(BROWSERS) -o $(file) $(file);)
+	echo "'make generate-stylesheets' is deprecated, please use 'make css'"
+	$(MAKE) css
 
 .PHONY: swagger-ui
 swagger-ui:
@@ -442,3 +464,11 @@ generate-images:
 .PHONY: pr
 pr:
 	$(GO) run contrib/pr/checkout.go $(PR)
+
+.PHONY: golangci-lint
+golangci-lint:
+	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		export BINARY="golangci-lint"; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.18.0; \
+	fi
+	golangci-lint run --deadline=3m

@@ -8,7 +8,8 @@
   num_closed_issues: 1
   num_pulls: 2
   num_closed_pulls: 0
-  num_milestones: 2
+  num_milestones: 3
+  num_closed_milestones: 1
   num_watches: 3
 
 -
@@ -117,7 +118,7 @@
   is_private: false
   num_issues: 0
   num_closed_issues: 0
-  num_pulls: 0
+  num_pulls: 1
   num_closed_pulls: 0
   is_mirror: false
   num_forks: 1
@@ -164,6 +165,7 @@
   owner_id: 14
   lower_name: test_repo_14
   name: test_repo_14
+  description: test_description_14
   is_private: false
   num_issues: 0
   num_closed_issues: 0
@@ -492,6 +494,17 @@
   lower_name: private_repo_on_private_org
   name: private_repo_on_private_org
   is_private: true
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+
+-
+  id: 42
+  owner_id: 2
+  lower_name: glob
+  name: glob
+  is_private: false
   num_stars: 0
   num_forks: 0
   num_issues: 0

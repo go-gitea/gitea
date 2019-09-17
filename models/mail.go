@@ -16,6 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"gopkg.in/gomail.v2"
 )
 
@@ -33,7 +35,7 @@ const (
 
 var templates *template.Template
 
-// InitMailRender initializes the macaron mail renderer
+// InitMailRender initializes the mail renderer
 func InitMailRender(tmpls *template.Template) {
 	templates = tmpls
 }
@@ -47,8 +49,8 @@ func SendTestMail(email string) error {
 func SendUserMail(language string, u *User, tpl base.TplName, code, subject, info string) {
 	data := map[string]interface{}{
 		"DisplayName":       u.DisplayName(),
-		"ActiveCodeLives":   base.MinutesToFriendly(setting.Service.ActiveCodeLives, language),
-		"ResetPwdCodeLives": base.MinutesToFriendly(setting.Service.ResetPwdCodeLives, language),
+		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, language),
+		"ResetPwdCodeLives": timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, language),
 		"Code":              code,
 	}
 
@@ -85,7 +87,7 @@ func SendResetPasswordMail(locale Locale, u *User) {
 func SendActivateEmailMail(locale Locale, u *User, email *EmailAddress) {
 	data := map[string]interface{}{
 		"DisplayName":     u.DisplayName(),
-		"ActiveCodeLives": base.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
+		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
 	}
@@ -156,11 +158,20 @@ func composeTplData(subject, body, link string) map[string]interface{} {
 }
 
 func composeIssueCommentMessage(issue *Issue, doer *User, content string, comment *Comment, tplName base.TplName, tos []string, info string) *mailer.Message {
-	subject := issue.mailSubject()
-	issue.LoadRepo()
+	var subject string
+	if comment != nil {
+		subject = "Re: " + issue.mailSubject()
+	} else {
+		subject = issue.mailSubject()
+	}
+
+	err := issue.LoadRepo()
+	if err != nil {
+		log.Error("LoadRepo: %v", err)
+	}
 	body := string(markup.RenderByType(markdown.MarkupName, []byte(content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
 
-	data := make(map[string]interface{}, 10)
+	var data = make(map[string]interface{}, 10)
 	if comment != nil {
 		data = composeTplData(subject, body, issue.HTMLURL()+"#"+comment.HashTag())
 	} else {
@@ -176,6 +187,15 @@ func composeIssueCommentMessage(issue *Issue, doer *User, content string, commen
 
 	msg := mailer.NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 	msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
+
+	// Set Message-ID on first message so replies know what to reference
+	if comment == nil {
+		msg.SetHeader("Message-ID", "<"+issue.ReplyReference()+">")
+	} else {
+		msg.SetHeader("In-Reply-To", "<"+issue.ReplyReference()+">")
+		msg.SetHeader("References", "<"+issue.ReplyReference()+">")
+	}
+
 	return msg
 }
 

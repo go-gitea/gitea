@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-xorm/xorm"
-
 	api "code.gitea.io/gitea/modules/structs"
+
+	"github.com/go-xorm/xorm"
 )
 
 var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
@@ -76,9 +76,10 @@ type Label struct {
 // APIFormat converts a Label to the api.Label format
 func (label *Label) APIFormat() *api.Label {
 	return &api.Label{
-		ID:    label.ID,
-		Name:  label.Name,
-		Color: strings.TrimLeft(label.Color, "#"),
+		ID:          label.ID,
+		Name:        label.Name,
+		Color:       strings.TrimLeft(label.Color, "#"),
+		Description: label.Description,
 	}
 }
 
@@ -124,6 +125,34 @@ func (label *Label) ForegroundColor() template.CSS {
 
 	// default to black
 	return template.CSS("#000")
+}
+
+func initalizeLabels(e Engine, repoID int64, labelTemplate string) error {
+	list, err := GetLabelTemplateFile(labelTemplate)
+	if err != nil {
+		return ErrIssueLabelTemplateLoad{labelTemplate, err}
+	}
+
+	labels := make([]*Label, len(list))
+	for i := 0; i < len(list); i++ {
+		labels[i] = &Label{
+			RepoID:      repoID,
+			Name:        list[i][0],
+			Description: list[i][2],
+			Color:       list[i][1],
+		}
+	}
+	for _, label := range labels {
+		if err = newLabel(e, label); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// InitalizeLabels adds a label set to a repository using a template
+func InitalizeLabels(repoID int64, labelTemplate string) error {
+	return initalizeLabels(x, repoID, labelTemplate)
 }
 
 func newLabel(e Engine, label *Label) error {
@@ -399,14 +428,6 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	}
 
 	return sess.Commit()
-}
-
-func getIssueLabels(e Engine, issueID int64) ([]*IssueLabel, error) {
-	issueLabels := make([]*IssueLabel, 0, 10)
-	return issueLabels, e.
-		Where("issue_id=?", issueID).
-		Asc("label_id").
-		Find(&issueLabels)
 }
 
 func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err error) {

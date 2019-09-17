@@ -7,12 +7,12 @@ package repo
 
 import (
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
-
-	"mvdan.cc/xurls/v2"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -21,9 +21,12 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/utils"
+
+	"github.com/unknwon/com"
+	"mvdan.cc/xurls/v2"
 )
 
 const (
@@ -141,7 +144,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
 			ctx.Repo.Mirror.Interval = interval
 			if interval != 0 {
-				ctx.Repo.Mirror.NextUpdateUnix = util.TimeStampNow().AddDuration(interval)
+				ctx.Repo.Mirror.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(interval)
 			} else {
 				ctx.Repo.Mirror.NextUpdateUnix = 0
 			}
@@ -164,6 +167,10 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.Data["Err_MirrorAddress"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, &form)
 			return
+		}
+
+		if form.MirrorUsername != "" || form.MirrorPassword != "" {
+			u.User = url.UserPassword(form.MirrorUsername, form.MirrorPassword)
 		}
 
 		// Now use xurls
@@ -246,7 +253,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 					ctx.Redirect(repo.Link() + "/settings")
 					return
 				}
-				if len(form.TrackerURLFormat) != 0 && !validation.IsValidExternalURL(form.TrackerURLFormat) {
+				if len(form.TrackerURLFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(form.TrackerURLFormat) {
 					ctx.Flash.Error(ctx.Tr("repo.settings.tracker_url_format_error"))
 					ctx.Redirect(repo.Link() + "/settings")
 					return
@@ -416,7 +423,10 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		repo.DeleteWiki()
+		err := repo.DeleteWiki()
+		if err != nil {
+			log.Error("Delete Wiki: %v", err.Error())
+		}
 		log.Trace("Repository wiki deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
@@ -726,4 +736,60 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// UpdateAvatarSetting update repo's avatar
+func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
+	ctxRepo := ctx.Repo.Repository
+
+	if form.Avatar == nil {
+		// No avatar is uploaded and we not removing it here.
+		// No random avatar generated here.
+		// Just exit, no action.
+		if !com.IsFile(ctxRepo.CustomAvatarPath()) {
+			log.Trace("No avatar was uploaded for repo: %d. Default icon will appear instead.", ctxRepo.ID)
+		}
+		return nil
+	}
+
+	r, err := form.Avatar.Open()
+	if err != nil {
+		return fmt.Errorf("Avatar.Open: %v", err)
+	}
+	defer r.Close()
+
+	if form.Avatar.Size > setting.AvatarMaxFileSize {
+		return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
+	}
+
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return fmt.Errorf("ioutil.ReadAll: %v", err)
+	}
+	if !base.IsImageFile(data) {
+		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
+	}
+	if err = ctxRepo.UploadAvatar(data); err != nil {
+		return fmt.Errorf("UploadAvatar: %v", err)
+	}
+	return nil
+}
+
+// SettingsAvatar save new POSTed repository avatar
+func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
+	form.Source = auth.AvatarLocal
+	if err := UpdateAvatarSetting(ctx, form); err != nil {
+		ctx.Flash.Error(err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_avatar_success"))
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+}
+
+// SettingsDeleteAvatar delete repository avatar
+func SettingsDeleteAvatar(ctx *context.Context) {
+	if err := ctx.Repo.Repository.DeleteAvatar(); err != nil {
+		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 }

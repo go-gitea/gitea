@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -22,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 const (
@@ -131,14 +130,14 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["FileSize"] = blob.Size()
 	ctx.Data["FileName"] = blob.Name()
 
-	blameReader, err := models.CreateBlameReader(models.RepoPath(userName, repoName), commitID, fileName)
+	blameReader, err := git.CreateBlameReader(models.RepoPath(userName, repoName), commitID, fileName)
 	if err != nil {
 		ctx.NotFound("CreateBlameReader", err)
 		return
 	}
 	defer blameReader.Close()
 
-	blameParts := make([]models.BlamePart, 0)
+	blameParts := make([]git.BlamePart, 0)
 
 	for {
 		blamePart, err := blameReader.NextPart()
@@ -189,10 +188,10 @@ func RefBlame(ctx *context.Context) {
 	ctx.HTML(200, tplBlame)
 }
 
-func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitNames map[string]models.UserCommit) {
+func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]models.UserCommit) {
 	repoLink := ctx.Repo.RepoLink
 
-	var lines = make([]string, 0, 0)
+	var lines = make([]string, 0)
 
 	var commitInfo bytes.Buffer
 	var lineNumbers bytes.Buffer
@@ -212,7 +211,7 @@ func renderBlame(ctx *context.Context, blameParts []models.BlamePart, commitName
 			if index == 0 {
 				// User avatar image
 				avatar := ""
-				commitSince := base.TimeSinceUnix(util.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
+				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
 				if commit.User != nil {
 					authorName := commit.Author.Name
 					if len(commit.User.FullName) > 0 {

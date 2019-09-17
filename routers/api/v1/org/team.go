@@ -6,10 +6,9 @@
 package org
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/user"
 )
@@ -257,7 +256,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	}
 	members := make([]*api.User, len(team.Members))
 	for i, member := range team.Members {
-		members[i] = member.APIFormat()
+		members[i] = convert.ToUser(member, ctx.IsSigned, ctx.User.IsAdmin)
 	}
 	ctx.JSON(200, members)
 }
@@ -288,7 +287,16 @@ func GetTeamMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	ctx.JSON(200, u.APIFormat())
+	teamID := ctx.ParamsInt64("teamid")
+	isTeamMember, err := models.IsUserInTeams(u.ID, []int64{teamID})
+	if err != nil {
+		ctx.Error(500, "IsUserInTeams", err)
+		return
+	} else if !isTeamMember {
+		ctx.NotFound()
+		return
+	}
+	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
 // AddTeamMember api for add a member to a team

@@ -32,7 +32,6 @@
 package promhttp
 
 import (
-	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -48,24 +47,14 @@ import (
 
 const (
 	contentTypeHeader     = "Content-Type"
-	contentLengthHeader   = "Content-Length"
 	contentEncodingHeader = "Content-Encoding"
 	acceptEncodingHeader  = "Accept-Encoding"
 )
 
-var bufPool sync.Pool
-
-func getBuf() *bytes.Buffer {
-	buf := bufPool.Get()
-	if buf == nil {
-		return &bytes.Buffer{}
-	}
-	return buf.(*bytes.Buffer)
-}
-
-func giveBuf(buf *bytes.Buffer) {
-	buf.Reset()
-	bufPool.Put(buf)
+var gzipPool = sync.Pool{
+	New: func() interface{} {
+		return gzip.NewWriter(nil)
+	},
 }
 
 // Handler returns an http.Handler for the prometheus.DefaultGatherer, using
@@ -95,83 +84,107 @@ func Handler() http.Handler {
 // instrumentation. Use the InstrumentMetricHandler function to apply the same
 // kind of instrumentation as it is used by the Handler function.
 func HandlerFor(reg prometheus.Gatherer, opts HandlerOpts) http.Handler {
-	var inFlightSem chan struct{}
+	var (
+		inFlightSem chan struct{}
+		errCnt      = prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "promhttp_metric_handler_errors_total",
+				Help: "Total number of internal errors encountered by the promhttp metric handler.",
+			},
+			[]string{"cause"},
+		)
+	)
+
 	if opts.MaxRequestsInFlight > 0 {
 		inFlightSem = make(chan struct{}, opts.MaxRequestsInFlight)
 	}
+	if opts.Registry != nil {
+		// Initialize all possibilites that can occur below.
+		errCnt.WithLabelValues("gathering")
+		errCnt.WithLabelValues("encoding")
+		if err := opts.Registry.Register(errCnt); err != nil {
+			if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
+				errCnt = are.ExistingCollector.(*prometheus.CounterVec)
+			} else {
+				panic(err)
+			}
+		}
+	}
 
-	h := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	h := http.HandlerFunc(func(rsp http.ResponseWriter, req *http.Request) {
 		if inFlightSem != nil {
 			select {
 			case inFlightSem <- struct{}{}: // All good, carry on.
 				defer func() { <-inFlightSem }()
 			default:
-				http.Error(w, fmt.Sprintf(
+				http.Error(rsp, fmt.Sprintf(
 					"Limit of concurrent requests reached (%d), try again later.", opts.MaxRequestsInFlight,
 				), http.StatusServiceUnavailable)
 				return
 			}
 		}
-
 		mfs, err := reg.Gather()
 		if err != nil {
 			if opts.ErrorLog != nil {
 				opts.ErrorLog.Println("error gathering metrics:", err)
 			}
+			errCnt.WithLabelValues("gathering").Inc()
 			switch opts.ErrorHandling {
 			case PanicOnError:
 				panic(err)
 			case ContinueOnError:
 				if len(mfs) == 0 {
-					http.Error(w, "No metrics gathered, last error:\n\n"+err.Error(), http.StatusInternalServerError)
+					// Still report the error if no metrics have been gathered.
+					httpError(rsp, err)
 					return
 				}
 			case HTTPErrorOnError:
-				http.Error(w, "An error has occurred during metrics gathering:\n\n"+err.Error(), http.StatusInternalServerError)
+				httpError(rsp, err)
 				return
 			}
 		}
 
 		contentType := expfmt.Negotiate(req.Header)
-		buf := getBuf()
-		defer giveBuf(buf)
-		writer, encoding := decorateWriter(req, buf, opts.DisableCompression)
-		enc := expfmt.NewEncoder(writer, contentType)
+		header := rsp.Header()
+		header.Set(contentTypeHeader, string(contentType))
+
+		w := io.Writer(rsp)
+		if !opts.DisableCompression && gzipAccepted(req.Header) {
+			header.Set(contentEncodingHeader, "gzip")
+			gz := gzipPool.Get().(*gzip.Writer)
+			defer gzipPool.Put(gz)
+
+			gz.Reset(w)
+			defer gz.Close()
+
+			w = gz
+		}
+
+		enc := expfmt.NewEncoder(w, contentType)
+
 		var lastErr error
 		for _, mf := range mfs {
 			if err := enc.Encode(mf); err != nil {
 				lastErr = err
 				if opts.ErrorLog != nil {
-					opts.ErrorLog.Println("error encoding metric family:", err)
+					opts.ErrorLog.Println("error encoding and sending metric family:", err)
 				}
+				errCnt.WithLabelValues("encoding").Inc()
 				switch opts.ErrorHandling {
 				case PanicOnError:
 					panic(err)
 				case ContinueOnError:
 					// Handled later.
 				case HTTPErrorOnError:
-					http.Error(w, "An error has occurred during metrics encoding:\n\n"+err.Error(), http.StatusInternalServerError)
+					httpError(rsp, err)
 					return
 				}
 			}
 		}
-		if closer, ok := writer.(io.Closer); ok {
-			closer.Close()
+
+		if lastErr != nil {
+			httpError(rsp, lastErr)
 		}
-		if lastErr != nil && buf.Len() == 0 {
-			http.Error(w, "No metrics encoded, last error:\n\n"+lastErr.Error(), http.StatusInternalServerError)
-			return
-		}
-		header := w.Header()
-		header.Set(contentTypeHeader, string(contentType))
-		header.Set(contentLengthHeader, fmt.Sprint(buf.Len()))
-		if encoding != "" {
-			header.Set(contentEncodingHeader, encoding)
-		}
-		if _, err := w.Write(buf.Bytes()); err != nil && opts.ErrorLog != nil {
-			opts.ErrorLog.Println("error while sending encoded metrics:", err)
-		}
-		// TODO(beorn7): Consider streaming serving of metrics.
 	})
 
 	if opts.Timeout <= 0 {
@@ -247,9 +260,12 @@ const (
 	// Ignore errors and try to serve as many metrics as possible.  However,
 	// if no metrics can be served, serve an HTTP status code 500 and the
 	// last error message in the body. Only use this in deliberate "best
-	// effort" metrics collection scenarios. It is recommended to at least
-	// log errors (by providing an ErrorLog in HandlerOpts) to not mask
-	// errors completely.
+	// effort" metrics collection scenarios. In this case, it is highly
+	// recommended to provide other means of detecting errors: By setting an
+	// ErrorLog in HandlerOpts, the errors are logged. By providing a
+	// Registry in HandlerOpts, the exposed metrics include an error counter
+	// "promhttp_metric_handler_errors_total", which can be used for
+	// alerts.
 	ContinueOnError
 	// Panic upon the first error encountered (useful for "crash only" apps).
 	PanicOnError
@@ -272,6 +288,18 @@ type HandlerOpts struct {
 	// logged regardless of the configured ErrorHandling provided ErrorLog
 	// is not nil.
 	ErrorHandling HandlerErrorHandling
+	// If Registry is not nil, it is used to register a metric
+	// "promhttp_metric_handler_errors_total", partitioned by "cause". A
+	// failed registration causes a panic. Note that this error counter is
+	// different from the instrumentation you get from the various
+	// InstrumentHandler... helpers. It counts errors that don't necessarily
+	// result in a non-2xx HTTP status code. There are two typical cases:
+	// (1) Encoding errors that only happen after streaming of the HTTP body
+	// has already started (and the status code 200 has been sent). This
+	// should only happen with custom collectors. (2) Collection errors with
+	// no effect on the HTTP status code because ErrorHandling is set to
+	// ContinueOnError.
+	Registry prometheus.Registerer
 	// If DisableCompression is true, the handler will never compress the
 	// response, even if requested by the client.
 	DisableCompression bool
@@ -292,20 +320,30 @@ type HandlerOpts struct {
 	Timeout time.Duration
 }
 
-// decorateWriter wraps a writer to handle gzip compression if requested.  It
-// returns the decorated writer and the appropriate "Content-Encoding" header
-// (which is empty if no compression is enabled).
-func decorateWriter(request *http.Request, writer io.Writer, compressionDisabled bool) (io.Writer, string) {
-	if compressionDisabled {
-		return writer, ""
-	}
-	header := request.Header.Get(acceptEncodingHeader)
-	parts := strings.Split(header, ",")
+// gzipAccepted returns whether the client will accept gzip-encoded content.
+func gzipAccepted(header http.Header) bool {
+	a := header.Get(acceptEncodingHeader)
+	parts := strings.Split(a, ",")
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
 		if part == "gzip" || strings.HasPrefix(part, "gzip;") {
-			return gzip.NewWriter(writer), "gzip"
+			return true
 		}
 	}
-	return writer, ""
+	return false
+}
+
+// httpError removes any content-encoding header and then calls http.Error with
+// the provided error and http.StatusInternalServerErrer. Error contents is
+// supposed to be uncompressed plain text. However, same as with a plain
+// http.Error, any header settings will be void if the header has already been
+// sent. The error message will still be written to the writer, but it will
+// probably be of limited use.
+func httpError(rsp http.ResponseWriter, err error) {
+	rsp.Header().Del(contentEncodingHeader)
+	http.Error(
+		rsp,
+		"An error has occurred while serving metrics:\n\n"+err.Error(),
+		http.StatusInternalServerError,
+	)
 }

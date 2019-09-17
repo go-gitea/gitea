@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/Unknwon/i18n"
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/i18n"
 )
 
 func TestViewBranches(t *testing.T) {
@@ -62,7 +62,7 @@ func branchAction(t *testing.T, button string) (*HTMLDoc, string) {
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": getCsrf(t, htmlDoc.doc),
 	})
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	url, err := url.Parse(link)
 	assert.NoError(t, err)

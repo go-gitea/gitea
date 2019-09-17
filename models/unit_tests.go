@@ -17,11 +17,11 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/com"
 	"gopkg.in/testfixtures.v2"
+	"xorm.io/core"
 )
 
 // NonexistentID an ID that will never exist
@@ -49,7 +49,7 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	setting.RunUser = "runuser"
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
-	setting.UseSQLite3 = true
+	setting.Database.UseSQLite3 = true
 	setting.RepoRootPath, err = ioutil.TempDir(os.TempDir(), "repos")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
@@ -63,6 +63,13 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
 	if err != nil {
 		fatalTestError("url.Parse: %v\n", err)
+	}
+
+	if err = removeAllWithRetry(setting.RepoRootPath); err != nil {
+		fatalTestError("os.RemoveAll: %v\n", err)
+	}
+	if err = com.CopyDir(filepath.Join(pathToGiteaRoot, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+		fatalTestError("com.CopyDir: %v\n", err)
 	}
 
 	exitStatus := m.Run()

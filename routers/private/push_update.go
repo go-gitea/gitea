@@ -11,8 +11,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/repofiles"
 
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 )
 
 // PushUpdate update public key updates
@@ -32,7 +33,15 @@ func PushUpdate(ctx *macaron.Context) {
 		return
 	}
 
-	err := models.PushUpdate(branch, opt)
+	repo, err := models.GetRepositoryByOwnerAndName(opt.RepoUserName, opt.RepoName)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+
+	err = repofiles.PushUpdate(repo, branch, opt)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.Error(404)

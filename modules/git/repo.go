@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	gogit "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/cache"
@@ -58,21 +58,21 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, err
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(url string) bool {
 	_, err := NewCommand("ls-remote", "-q", "-h", url, "HEAD").Run()
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // InitRepository initializes a new Git repository.
 func InitRepository(repoPath string, bare bool) error {
-	os.MkdirAll(repoPath, os.ModePerm)
+	err := os.MkdirAll(repoPath, os.ModePerm)
+	if err != nil {
+		return err
+	}
 
 	cmd := NewCommand("init")
 	if bare {
 		cmd.AddArguments("--bare")
 	}
-	_, err := cmd.RunInDir(repoPath)
+	_, err = cmd.RunInDir(repoPath)
 	return err
 }
 
@@ -105,6 +105,20 @@ func OpenRepository(repoPath string) (*Repository, error) {
 		gogitStorage: storage,
 		tagCache:     newObjectCache(),
 	}, nil
+}
+
+// IsEmpty Check if repository is empty.
+func (repo *Repository) IsEmpty() (bool, error) {
+	var errbuf strings.Builder
+	if err := NewCommand("log", "-1").RunInDirPipeline(repo.Path, nil, &errbuf); err != nil {
+		if strings.Contains(errbuf.String(), "fatal: bad default revision 'HEAD'") ||
+			strings.Contains(errbuf.String(), "fatal: your current branch 'master' does not have any commits yet") {
+			return true, nil
+		}
+		return true, fmt.Errorf("check empty: %v - %s", err, errbuf.String())
+	}
+
+	return false, nil
 }
 
 // CloneRepoOptions options when clone a repository
@@ -173,8 +187,7 @@ func Pull(repoPath string, opts PullRemoteOptions) error {
 	if opts.All {
 		cmd.AddArguments("--all")
 	} else {
-		cmd.AddArguments(opts.Remote)
-		cmd.AddArguments(opts.Branch)
+		cmd.AddArguments("--", opts.Remote, opts.Branch)
 	}
 
 	if opts.Timeout <= 0 {
@@ -199,7 +212,7 @@ func Push(repoPath string, opts PushOptions) error {
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}
-	cmd.AddArguments(opts.Remote, opts.Branch)
+	cmd.AddArguments("--", opts.Remote, opts.Branch)
 	_, err := cmd.RunInDirWithEnv(repoPath, opts.Env)
 	return err
 }

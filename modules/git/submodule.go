@@ -1,10 +1,19 @@
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Copyright 2015 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package git
 
-import "strings"
+import (
+	"fmt"
+	"net"
+	"net/url"
+	"regexp"
+	"strings"
+)
+
+var scpSyntax = regexp.MustCompile(`^([a-zA-Z0-9_]+@)?([a-zA-Z0-9._-]+):(.*)$`)
 
 // SubModule submodule is a reference on git repository
 type SubModule struct {
@@ -34,46 +43,73 @@ func getRefURL(refURL, urlPrefix, parentPath string) string {
 		return ""
 	}
 
-	url := strings.TrimSuffix(refURL, ".git")
+	refURI := strings.TrimSuffix(refURL, ".git")
 
-	// git://xxx/user/repo
-	if strings.HasPrefix(url, "git://") {
-		return "http://" + strings.TrimPrefix(url, "git://")
-	}
-
-	// http[s]://xxx/user/repo
-	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
-		return url
+	prefixURL, _ := url.Parse(urlPrefix)
+	urlPrefixHostname, _, err := net.SplitHostPort(prefixURL.Host)
+	if err != nil {
+		urlPrefixHostname = prefixURL.Host
 	}
 
 	// Relative url prefix check (according to git submodule documentation)
-	if strings.HasPrefix(url, "./") || strings.HasPrefix(url, "../") {
+	if strings.HasPrefix(refURI, "./") || strings.HasPrefix(refURI, "../") {
 		// ...construct and return correct submodule url here...
 		idx := strings.Index(parentPath, "/src/")
 		if idx == -1 {
-			return url
+			return refURI
 		}
-		return strings.TrimSuffix(urlPrefix, "/") + parentPath[:idx] + "/" + url
+		return strings.TrimSuffix(urlPrefix, "/") + parentPath[:idx] + "/" + refURI
 	}
 
-	// sysuser@xxx:user/repo
-	i := strings.Index(url, "@")
-	j := strings.LastIndex(url, ":")
+	if !strings.Contains(refURI, "://") {
+		// scp style syntax which contains *no* port number after the : (and is not parsed by net/url)
+		// ex: git@try.gitea.io:go-gitea/gitea
+		match := scpSyntax.FindAllStringSubmatch(refURI, -1)
+		if len(match) > 0 {
 
-	// Only process when i < j because git+ssh://git@git.forwardbias.in/npploader.git
-	if i > -1 && j > -1 && i < j {
-		// fix problem with reverse proxy works only with local server
-		if strings.Contains(urlPrefix, url[i+1:j]) {
-			return urlPrefix + url[j+1:]
+			m := match[0]
+			refHostname := m[2]
+			path := m[3]
+
+			if !strings.HasPrefix(path, "/") {
+				path = "/" + path
+			}
+
+			if urlPrefixHostname == refHostname {
+				return prefixURL.Scheme + "://" + urlPrefixHostname + path
+			}
+			return "http://" + refHostname + path
 		}
-		if strings.HasPrefix(url, "ssh://") || strings.HasPrefix(url, "git+ssh://") {
-			k := strings.Index(url[j+1:], "/")
-			return "http://" + url[i+1:j] + "/" + url[j+1:][k+1:]
-		}
-		return "http://" + url[i+1:j] + "/" + url[j+1:]
 	}
 
-	return url
+	ref, err := url.Parse(refURI)
+	if err != nil {
+		return ""
+	}
+
+	refHostname, _, err := net.SplitHostPort(ref.Host)
+	if err != nil {
+		refHostname = ref.Host
+	}
+
+	supportedSchemes := []string{"http", "https", "git", "ssh", "git+ssh"}
+
+	for _, scheme := range supportedSchemes {
+		if ref.Scheme == scheme {
+			if urlPrefixHostname == refHostname {
+				return prefixURL.Scheme + "://" + prefixURL.Host + ref.Path
+			} else if ref.Scheme == "http" || ref.Scheme == "https" {
+				if len(ref.User.Username()) > 0 {
+					return ref.Scheme + "://" + fmt.Sprintf("%v", ref.User) + "@" + ref.Host + ref.Path
+				}
+				return ref.Scheme + "://" + ref.Host + ref.Path
+			} else {
+				return "http://" + refHostname + ref.Path
+			}
+		}
+	}
+
+	return ""
 }
 
 // RefURL guesses and returns reference URL.

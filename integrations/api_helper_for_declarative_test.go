@@ -5,12 +5,16 @@
 package integrations
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth"
 	api "code.gitea.io/gitea/modules/structs"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,6 +59,44 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 		}
 		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
 
+		var repository api.Repository
+		DecodeJSON(t, resp, &repository)
+		if len(callback) > 0 {
+			callback[0](t, repository)
+		}
+	}
+}
+
+func doAPIAddCollaborator(ctx APITestContext, username string, mode models.AccessMode) func(*testing.T) {
+	return func(t *testing.T) {
+		permission := "read"
+
+		if mode == models.AccessModeAdmin {
+			permission = "admin"
+		} else if mode > models.AccessModeRead {
+			permission = "write"
+		}
+		addCollaboratorOption := &api.AddCollaboratorOption{
+			Permission: &permission,
+		}
+		req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/collaborators/%s?token=%s", ctx.Username, ctx.Reponame, username, ctx.Token), addCollaboratorOption)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.Session.MakeRequest(t, req, http.StatusNoContent)
+	}
+}
+
+func doAPIForkRepository(ctx APITestContext, username string, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
+	return func(t *testing.T) {
+		createForkOption := &api.CreateForkOption{}
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks?token=%s", username, ctx.Reponame, ctx.Token), createForkOption)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		resp := ctx.Session.MakeRequest(t, req, http.StatusAccepted)
 		var repository api.Repository
 		DecodeJSON(t, resp, &repository)
 		if len(callback) > 0 {
@@ -148,5 +190,44 @@ func doAPICreateDeployKey(ctx APITestContext, keyname, keyFile string, readOnly 
 			return
 		}
 		ctx.Session.MakeRequest(t, req, http.StatusCreated)
+	}
+}
+
+func doAPICreatePullRequest(ctx APITestContext, owner, repo, baseBranch, headBranch string) func(*testing.T) (api.PullRequest, error) {
+	return func(t *testing.T) (api.PullRequest, error) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s",
+			owner, repo, ctx.Token)
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &api.CreatePullRequestOption{
+			Head:  headBranch,
+			Base:  baseBranch,
+			Title: fmt.Sprintf("create a pr from %s to %s", headBranch, baseBranch),
+		})
+
+		expected := 201
+		if ctx.ExpectedCode != 0 {
+			expected = ctx.ExpectedCode
+		}
+		resp := ctx.Session.MakeRequest(t, req, expected)
+		decoder := json.NewDecoder(resp.Body)
+		pr := api.PullRequest{}
+		err := decoder.Decode(&pr)
+		return pr, err
+	}
+}
+
+func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) {
+	return func(t *testing.T) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
+			owner, repo, index, ctx.Token)
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+			MergeMessageField: "doAPIMergePullRequest Merge",
+			Do:                string(models.MergeStyleMerge),
+		})
+
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.Session.MakeRequest(t, req, 200)
 	}
 }

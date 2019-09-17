@@ -26,3 +26,17 @@
   base_branch: master
   merge_base: fedcba9876543210
   has_merged: false
+
+-
+  id: 3
+  type: 0 # gitea pull request
+  status: 2 # mergable
+  issue_id: 8
+  index: 1
+  head_repo_id: 11
+  base_repo_id: 10
+  head_user_name: user13
+  head_branch: branch2
+  base_branch: master
+  merge_base: 0abcb056019adb83
+  has_merged: false

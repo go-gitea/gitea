@@ -10,7 +10,7 @@ import (
 	"time"
 
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +29,7 @@ func TestMilestone_APIFormat(t *testing.T) {
 		IsClosed:        false,
 		NumOpenIssues:   5,
 		NumClosedIssues: 6,
-		DeadlineUnix:    util.TimeStamp(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()),
+		DeadlineUnix:    timeutil.TimeStamp(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()),
 	}
 	assert.Equal(t, api.Milestone{
 		ID:           milestone.ID,
@@ -69,20 +69,43 @@ func TestGetMilestoneByRepoID(t *testing.T) {
 
 func TestGetMilestonesByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	test := func(repoID int64) {
+	test := func(repoID int64, state api.StateType) {
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		milestones, err := GetMilestonesByRepoID(repo.ID)
+		milestones, err := GetMilestonesByRepoID(repo.ID, state)
 		assert.NoError(t, err)
-		assert.Len(t, milestones, repo.NumMilestones)
+
+		var n int
+
+		switch state {
+		case api.StateClosed:
+			n = repo.NumClosedMilestones
+
+		case api.StateAll:
+			n = repo.NumMilestones
+
+		case api.StateOpen:
+			fallthrough
+
+		default:
+			n = repo.NumOpenMilestones
+		}
+
+		assert.Len(t, milestones, n)
 		for _, milestone := range milestones {
 			assert.EqualValues(t, repoID, milestone.RepoID)
 		}
 	}
-	test(1)
-	test(2)
-	test(3)
+	test(1, api.StateOpen)
+	test(1, api.StateAll)
+	test(1, api.StateClosed)
+	test(2, api.StateOpen)
+	test(2, api.StateAll)
+	test(2, api.StateClosed)
+	test(3, api.StateOpen)
+	test(3, api.StateClosed)
+	test(3, api.StateAll)
 
-	milestones, err := GetMilestonesByRepoID(NonexistentID)
+	milestones, err := GetMilestonesByRepoID(NonexistentID, api.StateOpen)
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 0)
 }
@@ -214,7 +237,7 @@ func TestChangeMilestoneIssueStats(t *testing.T) {
 		"is_closed=0").(*Issue)
 
 	issue.IsClosed = true
-	issue.ClosedUnix = util.TimeStampNow()
+	issue.ClosedUnix = timeutil.TimeStampNow()
 	_, err := x.Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
 	assert.NoError(t, changeMilestoneIssueStats(x.NewSession(), issue))
