@@ -283,8 +283,8 @@ func Issues(ctx *context.Context) {
 	for repoID := range counts {
 		repo, err := models.GetRepositoryByID(repoID)
 		if err != nil {
-			ctx.ServerError("GetRepositoryByID", err)
-			return
+			log.Error("GetRepositoryByID: %v", err)
+			continue
 		}
 		showReposMap[repoID] = repo
 	}
@@ -332,11 +332,18 @@ func Issues(ctx *context.Context) {
 	}
 
 	var commitStatus = make(map[int64]*models.CommitStatus, len(issues))
-	for _, issue := range issues {
-		issue.Repo = showReposMap[issue.RepoID]
+	for i := 0; i < len(issues); {
+		issue := issues[i]
+		repo, ok := showReposMap[issue.RepoID]
+		if ok {
+			issue.Repo = repo
 
-		if isPullList {
-			commitStatus[issue.PullRequest.ID], _ = issue.PullRequest.GetLastCommitStatus()
+			if isPullList {
+				commitStatus[issue.PullRequest.ID], _ = issue.PullRequest.GetLastCommitStatus()
+			}
+			i++
+		} else {
+			issues = append(issues[:i], issues[i+1:]...)
 		}
 	}
 
