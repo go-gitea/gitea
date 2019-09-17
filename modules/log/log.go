@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 )
 
 var (
@@ -16,6 +17,7 @@ var (
 	// NamedLoggers map of named loggers
 	NamedLoggers = make(map[string]*Logger)
 	prefix       string
+	mu           sync.RWMutex
 )
 
 // NewLogger create a logger for the default logger
@@ -25,11 +27,17 @@ func NewLogger(bufLen int64, name, provider, config string) *Logger {
 		CriticalWithSkip(1, "Unable to create default logger: %v", err)
 		panic(err)
 	}
-	return NamedLoggers[DEFAULT]
+	mu.RLock()
+	l := NamedLoggers[DEFAULT]
+	mu.RUnlock()
+	return l
 }
 
 // NewNamedLogger creates a new named logger for a given configuration
 func NewNamedLogger(name string, bufLen int64, subname, provider, config string) error {
+	mu.Lock()
+	defer mu.Unlock()
+
 	logger, ok := NamedLoggers[name]
 	if !ok {
 		logger = newLogger(name, bufLen)
@@ -42,6 +50,9 @@ func NewNamedLogger(name string, bufLen int64, subname, provider, config string)
 
 // DelNamedLogger closes and deletes the named logger
 func DelNamedLogger(name string) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	l, ok := NamedLoggers[name]
 	if ok {
 		delete(NamedLoggers, name)
@@ -51,7 +62,9 @@ func DelNamedLogger(name string) {
 
 // DelLogger removes the named sublogger from the default logger
 func DelLogger(name string) error {
+	mu.RLock()
 	logger := NamedLoggers[DEFAULT]
+	mu.RUnlock()
 	found, err := logger.DelLogger(name)
 	if !found {
 		Trace("Log %s not found, no need to delete", name)
@@ -61,6 +74,9 @@ func DelLogger(name string) error {
 
 // GetLogger returns either a named logger or the default logger
 func GetLogger(name string) *Logger {
+	mu.RLock()
+	defer mu.RUnlock()
+
 	logger, ok := NamedLoggers[name]
 	if ok {
 		return logger
@@ -70,11 +86,15 @@ func GetLogger(name string) *Logger {
 
 // GetLevel returns the minimum logger level
 func GetLevel() Level {
+	mu.RLock()
+	defer mu.RUnlock()
 	return NamedLoggers[DEFAULT].GetLevel()
 }
 
 // GetStacktraceLevel returns the minimum logger level
 func GetStacktraceLevel() Level {
+	mu.RLock()
+	defer mu.RUnlock()
 	return NamedLoggers[DEFAULT].GetStacktraceLevel()
 }
 
@@ -169,6 +189,9 @@ func IsFatal() bool {
 
 // Close closes all the loggers
 func Close() {
+	mu.Lock()
+	defer mu.Unlock()
+
 	l, ok := NamedLoggers[DEFAULT]
 	if !ok {
 		return
@@ -180,6 +203,9 @@ func Close() {
 // Log a message with defined skip and at logging level
 // A skip of 0 refers to the caller of this command
 func Log(skip int, level Level, format string, v ...interface{}) {
+	mu.RLock()
+	defer mu.RUnlock()
+
 	l, ok := NamedLoggers[DEFAULT]
 	if ok {
 		l.Log(skip+1, level, format, v...)
@@ -195,7 +221,9 @@ type LoggerAsWriter struct {
 // NewLoggerAsWriter creates a Writer representation of the logger with setable log level
 func NewLoggerAsWriter(level string, ourLoggers ...*Logger) *LoggerAsWriter {
 	if len(ourLoggers) == 0 {
+		mu.RLock()
 		ourLoggers = []*Logger{NamedLoggers[DEFAULT]}
+		mu.RUnlock()
 	}
 	l := &LoggerAsWriter{
 		ourLoggers: ourLoggers,
