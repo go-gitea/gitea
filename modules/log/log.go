@@ -11,13 +11,33 @@ import (
 	"sync"
 )
 
+type LoggerMap struct {
+	sync.Map
+}
+
+func (m *LoggerMap) Load(k string) (*Logger, bool) {
+	v, ok := m.Map.Load(k)
+	if !ok {
+		return nil, false
+	}
+	l, ok := v.(*Logger)
+	return l, ok
+}
+
+func (m *LoggerMap) Store(k string, v *Logger) {
+	m.Map.Store(k, v)
+}
+
+func (m *LoggerMap) Delete(k string) {
+	m.Map.Delete(k)
+}
+
 var (
 	// DEFAULT is the name of the default logger
 	DEFAULT = "default"
 	// NamedLoggers map of named loggers
-	NamedLoggers = make(map[string]*Logger)
+	NamedLoggers LoggerMap
 	prefix       string
-	mu           sync.RWMutex
 )
 
 // NewLogger create a logger for the default logger
@@ -27,22 +47,16 @@ func NewLogger(bufLen int64, name, provider, config string) *Logger {
 		CriticalWithSkip(1, "Unable to create default logger: %v", err)
 		panic(err)
 	}
-	mu.RLock()
-	l := NamedLoggers[DEFAULT]
-	mu.RUnlock()
+	l, _ := NamedLoggers.Load(DEFAULT)
 	return l
 }
 
 // NewNamedLogger creates a new named logger for a given configuration
 func NewNamedLogger(name string, bufLen int64, subname, provider, config string) error {
-	mu.Lock()
-	defer mu.Unlock()
-
-	logger, ok := NamedLoggers[name]
+	logger, ok := NamedLoggers.Load(name)
 	if !ok {
 		logger = newLogger(name, bufLen)
-
-		NamedLoggers[name] = logger
+		NamedLoggers.Store(name, logger)
 	}
 
 	return logger.SetLogger(subname, provider, config)
@@ -50,21 +64,16 @@ func NewNamedLogger(name string, bufLen int64, subname, provider, config string)
 
 // DelNamedLogger closes and deletes the named logger
 func DelNamedLogger(name string) {
-	mu.Lock()
-	defer mu.Unlock()
-
-	l, ok := NamedLoggers[name]
+	l, ok := NamedLoggers.Load(name)
 	if ok {
-		delete(NamedLoggers, name)
+		NamedLoggers.Delete(name)
 		l.Close()
 	}
 }
 
 // DelLogger removes the named sublogger from the default logger
 func DelLogger(name string) error {
-	mu.RLock()
-	logger := NamedLoggers[DEFAULT]
-	mu.RUnlock()
+	logger, _ := NamedLoggers.Load(DEFAULT)
 	found, err := logger.DelLogger(name)
 	if !found {
 		Trace("Log %s not found, no need to delete", name)
@@ -74,28 +83,24 @@ func DelLogger(name string) error {
 
 // GetLogger returns either a named logger or the default logger
 func GetLogger(name string) *Logger {
-	mu.RLock()
-	defer mu.RUnlock()
-
-	logger, ok := NamedLoggers[name]
+	logger, ok := NamedLoggers.Load(name)
 	if ok {
 		return logger
 	}
-	return NamedLoggers[DEFAULT]
+	logger, _ = NamedLoggers.Load(DEFAULT)
+	return logger
 }
 
 // GetLevel returns the minimum logger level
 func GetLevel() Level {
-	mu.RLock()
-	defer mu.RUnlock()
-	return NamedLoggers[DEFAULT].GetLevel()
+	l, _ := NamedLoggers.Load(DEFAULT)
+	return l.GetLevel()
 }
 
 // GetStacktraceLevel returns the minimum logger level
 func GetStacktraceLevel() Level {
-	mu.RLock()
-	defer mu.RUnlock()
-	return NamedLoggers[DEFAULT].GetStacktraceLevel()
+	l, _ := NamedLoggers.Load(DEFAULT)
+	return l.GetStacktraceLevel()
 }
 
 // Trace records trace log
@@ -189,23 +194,18 @@ func IsFatal() bool {
 
 // Close closes all the loggers
 func Close() {
-	mu.Lock()
-	defer mu.Unlock()
-
-	l, ok := NamedLoggers[DEFAULT]
+	l, ok := NamedLoggers.Load(DEFAULT)
 	if !ok {
 		return
 	}
-	delete(NamedLoggers, DEFAULT)
+	NamedLoggers.Delete(DEFAULT)
 	l.Close()
 }
 
 // Log a message with defined skip and at logging level
 // A skip of 0 refers to the caller of this command
 func Log(skip int, level Level, format string, v ...interface{}) {
-	mu.RLock()
-	l, ok := NamedLoggers[DEFAULT]
-	mu.RUnlock()
+	l, ok := NamedLoggers.Load(DEFAULT)
 	if ok {
 		l.Log(skip+1, level, format, v...)
 	}
@@ -220,9 +220,8 @@ type LoggerAsWriter struct {
 // NewLoggerAsWriter creates a Writer representation of the logger with setable log level
 func NewLoggerAsWriter(level string, ourLoggers ...*Logger) *LoggerAsWriter {
 	if len(ourLoggers) == 0 {
-		mu.RLock()
-		ourLoggers = []*Logger{NamedLoggers[DEFAULT]}
-		mu.RUnlock()
+		l, _ := NamedLoggers.Load(DEFAULT)
+		ourLoggers = []*Logger{l}
 	}
 	l := &LoggerAsWriter{
 		ourLoggers: ourLoggers,
