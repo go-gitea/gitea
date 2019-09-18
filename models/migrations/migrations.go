@@ -243,11 +243,13 @@ var migrations = []Migration{
 	// v93 -> v94
 	NewMigration("add email notification enabled preference to user", addEmailNotificationEnabledToUser),
 	// v93 -> v94
-	NewMigration("add projects info to database", addProjectsInfo),
-	// v94 -> v95
 	NewMigration("add projects database table", addProjectsTable),
-	// v95 -> v96
+	// v94 -> v95
 	NewMigration("add project ID to comments table", addProjectIDToCommentsTable),
+	// v95 -> v96
+	NewMigration("add enable_status_check, status_check_contexts to protected_branch", addStatusCheckColumnsForProtectedBranches),
+	// v96 -> v97
+	NewMigration("add projects info to database", addProjectsInfo),
 }
 
 // Migrate database to current version
