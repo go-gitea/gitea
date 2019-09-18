@@ -381,11 +381,8 @@ func DeleteReleaseByID(id int64, doer *User, delTag bool) error {
 		uuids = append(uuids, attachment.UUID)
 	}
 
-	if _, err := x.In("uuid", uuids).Delete(new(Attachment)); err != nil {
-		return err
-	}
-
-	return nil
+	_, err := x.Delete(&Attachment{ReleaseID: id})
+	return err
 }
 
 // SyncReleasesWithTags synchronizes release table with repository tags
