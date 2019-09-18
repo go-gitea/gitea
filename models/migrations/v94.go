@@ -4,19 +4,21 @@
 
 package migrations
 
-import (
-	"fmt"
-	"github.com/go-xorm/xorm"
-)
+import "github.com/go-xorm/xorm"
 
-func featureChangeTargetBranch(x *xorm.Engine) error {
-	type Comment struct {
-		OldBranch string
-		NewBranch string
+func addStatusCheckColumnsForProtectedBranches(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		EnableStatusCheck   bool     `xorm:"NOT NULL DEFAULT false"`
+		StatusCheckContexts []string `xorm:"JSON TEXT"`
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
+	if err := x.Sync2(new(ProtectedBranch)); err != nil {
+		return err
 	}
-	return nil
+
+	_, err := x.Cols("enable_status_check", "status_check_contexts").Update(&ProtectedBranch{
+		EnableStatusCheck:   false,
+		StatusCheckContexts: []string{},
+	})
+	return err
 }

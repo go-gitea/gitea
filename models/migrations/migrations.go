@@ -243,6 +243,8 @@ var migrations = []Migration{
 	// v93 -> v94
 	NewMigration("add email notification enabled preference to user", addEmailNotificationEnabledToUser),
 	// v94 -> v95
+	NewMigration("add enable_status_check, status_check_contexts to protected_branch", addStatusCheckColumnsForProtectedBranches),
+	// v95 -> v96
 	NewMigration("new feature: change target branch of pull requests", featureChangeTargetBranch),
 }
 
