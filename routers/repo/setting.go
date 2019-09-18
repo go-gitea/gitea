@@ -578,6 +578,7 @@ func DeleteCollaboration(ctx *context.Context) {
 	})
 }
 
+// AddTeamPost response for adding a team to a repository
 func AddTeamPost(ctx *context.Context) {
 	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.IsOwner() {
 		ctx.Flash.Error("Changing team access for repository has been restricted to organization owner")
@@ -620,6 +621,7 @@ func AddTeamPost(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 }
 
+// DeleteTeam response for deleting a team from a repository
 func DeleteTeam(ctx *context.Context) {
 	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.IsOwner() {
 		ctx.Flash.Error("Changing team access for repository has been restricted to organization owner")
