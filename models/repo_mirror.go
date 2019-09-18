@@ -20,9 +20,9 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
 	"github.com/mcuadros/go-version"
+	"github.com/unknwon/com"
 )
 
 // MirrorQueue holds an UniqueQueue object of the mirror
@@ -316,6 +316,12 @@ func (m *Mirror) runSync() ([]*mirrorSyncResult, bool) {
 
 	m.UpdatedUnix = timeutil.TimeStampNow()
 	return parseRemoteUpdateOutput(output), true
+}
+
+// RunMirrorSync will invoke Mirror's runSync
+func RunMirrorSync(mirror *Mirror) bool {
+	_, ok := mirror.runSync()
+	return ok
 }
 
 func getMirrorByRepoID(e Engine, repoID int64) (*Mirror, error) {

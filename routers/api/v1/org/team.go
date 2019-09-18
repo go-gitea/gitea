@@ -6,10 +6,9 @@
 package org
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/user"
 )
@@ -286,6 +285,15 @@ func GetTeamMember(ctx *context.APIContext) {
 	//     "$ref": "#/responses/User"
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
+		return
+	}
+	teamID := ctx.ParamsInt64("teamid")
+	isTeamMember, err := models.IsUserInTeams(u.ID, []int64{teamID})
+	if err != nil {
+		ctx.Error(500, "IsUserInTeams", err)
+		return
+	} else if !isTeamMember {
+		ctx.NotFound()
 		return
 	}
 	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))

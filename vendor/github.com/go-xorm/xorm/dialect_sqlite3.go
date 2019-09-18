@@ -202,10 +202,6 @@ func (db *sqlite3) Quote(name string) string {
 	return "`" + name + "`"
 }
 
-func (db *sqlite3) QuoteStr() string {
-	return "`"
-}
-
 func (db *sqlite3) AutoIncrStr() string {
 	return "AUTOINCREMENT"
 }

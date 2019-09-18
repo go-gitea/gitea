@@ -26,8 +26,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	milestone_service "code.gitea.io/gitea/services/milestone"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -803,17 +804,7 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 			marked[comment.PosterID] = comment.ShowTag
-
-			isAdded := false
-			for j := range participants {
-				if comment.Poster == participants[j] {
-					isAdded = true
-					break
-				}
-			}
-			if !isAdded && !issue.IsPoster(comment.Poster.ID) {
-				participants = append(participants, comment.Poster)
-			}
+			participants = addParticipant(comment.Poster, participants)
 		} else if comment.Type == models.CommentTypeLabel {
 			if err = comment.LoadLabel(); err != nil {
 				ctx.ServerError("LoadLabel", err)
@@ -849,6 +840,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadReview", err)
 				return
 			}
+			participants = addParticipant(comment.Poster, participants)
 			if comment.Review == nil {
 				continue
 			}
@@ -1045,10 +1037,13 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
+	oldTitle := issue.Title
 	if err := issue.ChangeTitle(ctx.User, title); err != nil {
 		ctx.ServerError("ChangeTitle", err)
 		return
 	}
+
+	notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
 
 	ctx.JSON(200, map[string]interface{}{
 		"title": issue.Title,
@@ -1092,7 +1087,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 			continue
 		}
 		issue.MilestoneID = milestoneID
-		if err := models.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+		if err := milestone_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
 			ctx.ServerError("ChangeMilestoneAssign", err)
 			return
 		}
@@ -1567,4 +1562,13 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 	ctx.JSON(200, map[string]interface{}{
 		"html": html,
 	})
+}
+
+func addParticipant(poster *models.User, participants []*models.User) []*models.User {
+	for _, part := range participants {
+		if poster.ID == part.ID {
+			return participants
+		}
+	}
+	return append(participants, poster)
 }

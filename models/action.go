@@ -23,7 +23,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 	"xorm.io/builder"
 )
 
@@ -65,7 +65,7 @@ var (
 )
 
 const issueRefRegexpStr = `(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)+`
-const issueRefRegexpStrNoKeyword = `(?:\s|^|\(|\[)(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`
+const issueRefRegexpStrNoKeyword = `(?:\s|^|\(|\[)(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`
 
 func assembleKeywordsPattern(words []string) string {
 	return fmt.Sprintf(`(?i)(?:%s)(?::?) %s`, strings.Join(words, "|"), issueRefRegexpStr)

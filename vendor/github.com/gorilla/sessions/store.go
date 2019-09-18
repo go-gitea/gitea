@@ -47,9 +47,6 @@ type Store interface {
 // It is recommended to use an authentication key with 32 or 64 bytes.
 // The encryption key, if set, must be either 16, 24, or 32 bytes to select
 // AES-128, AES-192, or AES-256 modes.
-//
-// Use the convenience function securecookie.GenerateRandomKey() to create
-// strong keys.
 func NewCookieStore(keyPairs ...[]byte) *CookieStore {
 	cs := &CookieStore{
 		Codecs: securecookie.CodecsFromPairs(keyPairs...),

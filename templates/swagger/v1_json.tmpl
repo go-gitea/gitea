@@ -1094,6 +1094,18 @@
             "in": "query"
           },
           {
+            "type": "boolean",
+            "description": "Limit search to repositories with keyword as topic",
+            "name": "topic",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include search of keyword within repository description",
+            "name": "includeDesc",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "format": "int64",
             "description": "search only for repos that the user with the given id owns or contributes to",
@@ -1540,6 +1552,57 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/commits": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a list of all commits from a repository",
+        "operationId": "repoGetAllCommits",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "SHA or branch to start listing commits from (usually 'master')",
+            "name": "sha",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of requested commits",
+            "name": "page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/CommitList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/EmptyRepository"
           }
         }
       }
@@ -2103,7 +2166,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Gets the tag of a repository.",
+        "summary": "Gets the tag object of an annotated tag (not lightweight tags)",
         "operationId": "GetTag",
         "parameters": [
           {
@@ -2122,7 +2185,7 @@
           },
           {
             "type": "string",
-            "description": "sha of the tag",
+            "description": "sha of the tag. The Git tags API only supports annotated tag objects, not lightweight tags.",
             "name": "sha",
             "in": "path",
             "required": true
@@ -5388,6 +5451,155 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/topics": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get list of topics that a repository has",
+        "operationId": "repoListTopics",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TopicNames"
+          }
+        }
+      },
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Replace list of topics for a repository",
+        "operationId": "repoUpdateTopics",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/RepoTopicOptions"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/topics/{topic}": {
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Add a topic to a repository",
+        "operationId": "repoAddTopíc",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the topic to add",
+            "name": "topic",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a topic from a repository",
+        "operationId": "repoDeleteTopic",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the topic to delete",
+            "name": "topic",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
     "/repositories/{id}": {
       "get": {
         "produces": [
@@ -5752,7 +5964,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/Repository"
+            "$ref": "#/responses/TopicListResponse"
           }
         }
       }
@@ -6866,6 +7078,45 @@
     }
   },
   "definitions": {
+    "APIError": {
+      "description": "APIError is an api error with a message",
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "AccessToken": {
+      "type": "object",
+      "title": "AccessToken represents an API access token.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "sha1": {
+          "type": "string",
+          "x-go-name": "Token"
+        },
+        "token_last_eight": {
+          "type": "string",
+          "x-go-name": "TokenLastEight"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "AddCollaboratorOption": {
       "description": "AddCollaboratorOption options when adding a user as a collaborator of a repository",
       "type": "object",
@@ -7277,6 +7528,10 @@
           "default": false,
           "x-go-name": "Active"
         },
+        "branch_filter": {
+          "type": "string",
+          "x-go-name": "BranchFilter"
+        },
         "config": {
           "type": "object",
           "additionalProperties": {
@@ -7596,6 +7851,11 @@
           "type": "string",
           "x-go-name": "Gitignores"
         },
+        "issue_labels": {
+          "description": "Issue Label set to use",
+          "type": "string",
+          "x-go-name": "IssueLabels"
+        },
         "license": {
           "description": "License to use",
           "type": "string",
@@ -7668,7 +7928,11 @@
         },
         "units": {
           "type": "array",
-          "enum": [
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units",
+          "example": [
             "repo.code",
             "repo.issues",
             "repo.ext_issues",
@@ -7676,11 +7940,7 @@
             "repo.pulls",
             "repo.releases",
             "repo.ext_wiki"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Units"
+          ]
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -7871,6 +8131,10 @@
         "active": {
           "type": "boolean",
           "x-go-name": "Active"
+        },
+        "branch_filter": {
+          "type": "string",
+          "x-go-name": "BranchFilter"
         },
         "config": {
           "type": "object",
@@ -8206,7 +8470,11 @@
         },
         "units": {
           "type": "array",
-          "enum": [
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units",
+          "example": [
             "repo.code",
             "repo.issues",
             "repo.ext_issues",
@@ -8214,11 +8482,7 @@
             "repo.pulls",
             "repo.releases",
             "repo.ext_wiki"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Units"
+          ]
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -9471,6 +9735,21 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "RepoTopicOptions": {
+      "description": "RepoTopicOptions a collection of repo topic names",
+      "type": "object",
+      "properties": {
+        "topics": {
+          "description": "list of topic names",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Topics"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Repository": {
       "description": "Repository represents a repository",
       "type": "object",
@@ -9761,7 +10040,11 @@
         },
         "units": {
           "type": "array",
-          "enum": [
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Units",
+          "example": [
             "repo.code",
             "repo.issues",
             "repo.ext_issues",
@@ -9769,11 +10052,7 @@
             "repo.pulls",
             "repo.releases",
             "repo.ext_wiki"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "x-go-name": "Units"
+          ]
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -9783,6 +10062,51 @@
       "type": "integer",
       "format": "int64",
       "x-go-package": "code.gitea.io/gitea/modules/timeutil"
+    },
+    "TopicName": {
+      "description": "TopicName a list of repo topic names",
+      "type": "object",
+      "properties": {
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "TopicNames"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "TopicResponse": {
+      "description": "TopicResponse for returning topics",
+      "type": "object",
+      "properties": {
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "repo_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RepoCount"
+        },
+        "topic_name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "updated": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "TrackedTime": {
       "description": "TrackedTime worked time for an issue / pr",
@@ -9985,7 +10309,13 @@
       }
     },
     "AccessTokenList": {
-      "description": "AccessTokenList represents a list of API access token."
+      "description": "AccessTokenList represents a list of API access token.",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/AccessToken"
+        }
+      }
     },
     "AnnotatedTag": {
       "description": "AnnotatedTag",
@@ -10044,6 +10374,41 @@
         "$ref": "#/definitions/Commit"
       }
     },
+    "CommitList": {
+      "description": "CommitList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Commit"
+        }
+      },
+      "headers": {
+        "X-HasMore": {
+          "type": "boolean",
+          "description": "True if there is another page"
+        },
+        "X-Page": {
+          "type": "integer",
+          "format": "int64",
+          "description": "The current page"
+        },
+        "X-PageCount": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Total number of pages"
+        },
+        "X-PerPage": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Commits per page"
+        },
+        "X-Total": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Total commit count"
+        }
+      }
+    },
     "ContentsListResponse": {
       "description": "ContentsListResponse",
       "schema": {
@@ -10081,6 +10446,12 @@
         "items": {
           "$ref": "#/definitions/Email"
         }
+      }
+    },
+    "EmptyRepository": {
+      "description": "EmptyRepository",
+      "schema": {
+        "$ref": "#/definitions/APIError"
       }
     },
     "FileDeleteResponse": {
@@ -10189,7 +10560,10 @@
       }
     },
     "MarkdownRender": {
-      "description": "MarkdownRender is a rendered markdown document"
+      "description": "MarkdownRender is a rendered markdown document",
+      "schema": {
+        "type": "string"
+      }
     },
     "Milestone": {
       "description": "Milestone",
@@ -10353,6 +10727,21 @@
         }
       }
     },
+    "TopicListResponse": {
+      "description": "TopicListResponse",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/TopicResponse"
+        }
+      }
+    },
+    "TopicNames": {
+      "description": "TopicNames",
+      "schema": {
+        "$ref": "#/definitions/TopicName"
+      }
+    },
     "TrackedTime": {
       "description": "TrackedTime",
       "schema": {
@@ -10429,7 +10818,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/DeleteFileOptions"
+        "$ref": "#/definitions/RepoTopicOptions"
       }
     },
     "redirect": {

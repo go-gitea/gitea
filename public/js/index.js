@@ -1576,6 +1576,7 @@ function initAdmin() {
         switch (provider) {
             case 'github':
             case 'gitlab':
+            case 'gitea':
                 $('.oauth2_use_custom_url').show();
                 break;
             case 'openidConnect':
@@ -1609,6 +1610,7 @@ function initAdmin() {
                     $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
                     $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url, .oauth2_email_url').show();
                     break;
+                case 'gitea':
                 case 'gitlab':
                     $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
                     $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url').show();
@@ -2961,14 +2963,14 @@ function initTopicbar() {
                     let found = false;
                     for (let i=0;i < res.topics.length;i++) {
                         // skip currently added tags
-                        if (current_topics.indexOf(res.topics[i].Name) != -1){
+                        if (current_topics.indexOf(res.topics[i].topic_name) != -1){
                             continue;
                         }
 
-                        if (res.topics[i].Name.toLowerCase() === query.toLowerCase()){
+                        if (res.topics[i].topic_name.toLowerCase() === query.toLowerCase()){
                             found_query = true;
                         }
-                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name});
+                        formattedResponse.results.push({"description": res.topics[i].topic_name, "data-value": res.topics[i].topic_name});
                         found = true;
                     }
                     formattedResponse.success = found;

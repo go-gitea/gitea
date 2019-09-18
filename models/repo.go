@@ -36,8 +36,8 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
+	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"xorm.io/builder"
 )
@@ -1098,6 +1098,7 @@ type CreateRepoOptions struct {
 	Description string
 	OriginalURL string
 	Gitignores  string
+	IssueLabels string
 	License     string
 	Readme      string
 	IsPrivate   bool
@@ -1392,6 +1393,13 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
 			}
 			return nil, fmt.Errorf("initRepository: %v", err)
+		}
+
+		// Initialize Issue Labels if selected
+		if len(opts.IssueLabels) > 0 {
+			if err = initalizeLabels(sess, repo.ID, opts.IssueLabels); err != nil {
+				return nil, fmt.Errorf("initalizeLabels: %v", err)
+			}
 		}
 
 		_, stderr, err := process.GetManager().ExecDir(-1,
@@ -2201,7 +2209,7 @@ func GitFsck() {
 	log.Trace("Doing: GitFsck")
 
 	if err := x.
-		Where("id>0 AND is_fsck_enabled=?", true).BufferSize(setting.IterateBufferSize).
+		Where("id>0 AND is_fsck_enabled=?", true).BufferSize(setting.Database.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)
@@ -2225,7 +2233,7 @@ func GitFsck() {
 func GitGcRepos() error {
 	args := append([]string{"gc"}, setting.Git.GCArgs...)
 	return x.
-		Where("id > 0").BufferSize(setting.IterateBufferSize).
+		Where("id > 0").BufferSize(setting.Database.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repo := bean.(*Repository)
@@ -2568,7 +2576,7 @@ func (repo *Repository) generateRandomAvatar(e Engine) error {
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
 func RemoveRandomAvatars() error {
 	return x.
-		Where("id > 0").BufferSize(setting.IterateBufferSize).
+		Where("id > 0").BufferSize(setting.Database.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repository := bean.(*Repository)

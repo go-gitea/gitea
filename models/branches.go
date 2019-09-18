@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -36,6 +36,8 @@ type ProtectedBranch struct {
 	EnableMergeWhitelist      bool               `xorm:"NOT NULL DEFAULT false"`
 	MergeWhitelistUserIDs     []int64            `xorm:"JSON TEXT"`
 	MergeWhitelistTeamIDs     []int64            `xorm:"JSON TEXT"`
+	EnableStatusCheck         bool               `xorm:"NOT NULL DEFAULT false"`
+	StatusCheckContexts       []string           `xorm:"JSON TEXT"`
 	ApprovalsWhitelistUserIDs []int64            `xorm:"JSON TEXT"`
 	ApprovalsWhitelistTeamIDs []int64            `xorm:"JSON TEXT"`
 	RequiredApprovals         int64              `xorm:"NOT NULL DEFAULT 0"`

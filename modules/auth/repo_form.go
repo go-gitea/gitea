@@ -13,9 +13,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/utils"
 
-	"github.com/Unknwon/com"
-	"github.com/go-macaron/binding"
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
+	"github.com/unknwon/com"
 )
 
 // _______________________________________    _________.______________________ _______________.___.
@@ -33,6 +33,7 @@ type CreateRepoForm struct {
 	Description string `binding:"MaxSize(255)"`
 	AutoInit    bool
 	Gitignores  string
+	IssueLabels string
 	License     string
 	Readme      string
 }
@@ -154,6 +155,8 @@ type ProtectBranchForm struct {
 	EnableMergeWhitelist    bool
 	MergeWhitelistUsers     string
 	MergeWhitelistTeams     string
+	EnableStatusCheck       bool `xorm:"NOT NULL DEFAULT false"`
+	StatusCheckContexts     []string
 	RequiredApprovals       int64
 	ApprovalsWhitelistUsers string
 	ApprovalsWhitelistTeams string
@@ -184,6 +187,7 @@ type WebhookForm struct {
 	PullRequest  bool
 	Repository   bool
 	Active       bool
+	BranchFilter string `binding:"GlobPattern"`
 }
 
 // PushOnly if the hook will be triggered when push

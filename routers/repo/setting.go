@@ -25,7 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/utils"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 	"mvdan.cc/xurls/v2"
 )
 

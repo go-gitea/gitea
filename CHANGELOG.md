@@ -4,6 +4,35 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.9.3](https://github.com/go-gitea/gitea/releases/tag/v1.9.3) - 2019-09-06
+* BUGFIXES
+  * Fix go get from a private repository with Go 1.13 (#8100)
+  * Strict name matching for Repository.GetTagID() (#8082)
+  * Avoid ambiguity of branch/directory names for the git-diff-tree command (#8070)
+  * Add change title notification for issues (#8064)
+  * Run CORS handler first for /api routes (#7967) (#8053)
+  * Evaluate emojis in commit messages in list view (#8044)
+  * Fix failed to synchronize tags to releases for repository (#7990) (#7994)
+  * Fix adding default Telegram webhook (#7972) (#7992)
+  * Abort synchronization from LDAP source if there is some error (#7965)
+  * Fix deformed emoji in commit message (#8071)
+* ENHANCEMENT
+  * Keep blame view buttons sequence consistent with normal view when viewing a file (#8007) (#8009)
+
+## [1.9.2](https://github.com/go-gitea/gitea/releases/tag/v1.9.2) - 2019-08-22
+* BUGFIXES
+  * Fix wrong sender when send slack webhook (#7918) (#7924)
+  * Upload support text/plain; charset=utf8 (#7899)
+  * Lfs/lock: round locked_at timestamp to second (#7872) (#7875)
+  * Fix non existent milestone with 500 error (#7867) (#7873)
+* SECURITY
+  * Fix No PGP signature on 1.9.1 tag (#7874)
+  * Release built with go 1.12.9 to fix security fixes in golang std lib, ref: https://groups.google.com/forum/#!msg/golang-announce/oeMaeUnkvVE/a49yvTLqAAAJ
+* ENHANCEMENT
+  * Fix pull creation with empty changes (#7920) (#7926)
+* BUILD
+  * Drone/docker: prepare multi-arch release + provide arm64 image (#7571) (#7884)
+
 ## [1.9.1](https://github.com/go-gitea/gitea/releases/tag/v1.9.1) - 2019-08-14
 * BREAKING
   * Add pagination for admin api get orgs and fix only list public orgs bug (#7742) (#7752)

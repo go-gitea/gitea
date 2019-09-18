@@ -25,8 +25,8 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
+	"github.com/unknwon/com"
 )
 
 var pullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLength)
@@ -97,6 +97,20 @@ func (pr *PullRequest) loadAttributes(e Engine) (err error) {
 // LoadAttributes loads pull request attributes from database
 func (pr *PullRequest) LoadAttributes() error {
 	return pr.loadAttributes(x)
+}
+
+// LoadBaseRepo loads pull request base repository from database
+func (pr *PullRequest) LoadBaseRepo() error {
+	if pr.BaseRepo == nil {
+		var repo Repository
+		if has, err := x.ID(pr.BaseRepoID).Get(&repo); err != nil {
+			return err
+		} else if !has {
+			return ErrRepoNotExist{ID: pr.BaseRepoID}
+		}
+		pr.BaseRepo = &repo
+	}
+	return nil
 }
 
 // LoadIssue loads issue information from database

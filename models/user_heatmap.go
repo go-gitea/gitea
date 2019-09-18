@@ -21,13 +21,13 @@ func GetUserHeatmapDataByUser(user *User) ([]*UserHeatmapData, error) {
 	var groupBy string
 	var groupByName = "timestamp" // We need this extra case because mssql doesn't allow grouping by alias
 	switch {
-	case setting.UseSQLite3:
+	case setting.Database.UseSQLite3:
 		groupBy = "strftime('%s', strftime('%Y-%m-%d', created_unix, 'unixepoch'))"
-	case setting.UseMySQL:
+	case setting.Database.UseMySQL:
 		groupBy = "UNIX_TIMESTAMP(DATE(FROM_UNIXTIME(created_unix)))"
-	case setting.UsePostgreSQL:
+	case setting.Database.UsePostgreSQL:
 		groupBy = "extract(epoch from date_trunc('day', to_timestamp(created_unix)))"
-	case setting.UseMSSQL:
+	case setting.Database.UseMSSQL:
 		groupBy = "datediff(SECOND, '19700101', dateadd(DAY, 0, datediff(day, 0, dateadd(s, created_unix, '19700101'))))"
 		groupByName = groupBy
 	}

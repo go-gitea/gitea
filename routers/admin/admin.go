@@ -13,9 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
-	"gopkg.in/macaron.v1"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -25,6 +22,9 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"gitea.com/macaron/macaron"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -289,7 +289,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["LFS"] = setting.LFS
 
 	ctx.Data["Service"] = setting.Service
-	ctx.Data["DbCfg"] = models.DbCfg
+	ctx.Data["DbCfg"] = setting.Database
 	ctx.Data["Webhook"] = setting.Webhook
 
 	ctx.Data["MailerEnabled"] = false
@@ -333,7 +333,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
-	ctx.Data["LogSQL"] = setting.LogSQL
+	ctx.Data["LogSQL"] = setting.Database.LogSQL
 
 	ctx.HTML(200, tplConfig)
 }
