@@ -440,7 +440,7 @@ func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch str
 	}
 	if c.CommitSHA != "" && c.CommitSHA != commit.ID.String() {
 		c.Invalidated = true
-		return UpdateComment(doer, c, "")
+		return UpdateComment(c, doer)
 	}
 	return nil
 }
@@ -899,7 +899,7 @@ func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(doer *User, c *Comment, oldContent string) error {
+func UpdateComment(c *Comment, doer *User) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -921,38 +921,12 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	if err := sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
-	sess.Close()
-
-	if err := c.LoadPoster(); err != nil {
-		return err
-	}
-	if err := c.Issue.LoadAttributes(); err != nil {
-		return err
-	}
-
-	mode, _ := AccessLevel(doer, c.Issue.Repo)
-	if err := PrepareWebhooks(c.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
-		Action:  api.HookIssueCommentEdited,
-		Issue:   c.Issue.APIFormat(),
-		Comment: c.APIFormat(),
-		Changes: &api.ChangesPayload{
-			Body: &api.ChangesFromPayload{
-				From: oldContent,
-			},
-		},
-		Repository: c.Issue.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
-	} else {
-		go HookQueue.Add(c.Issue.Repo.ID)
-	}
 
 	return nil
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(doer *User, comment *Comment) error {
+func DeleteComment(comment *Comment, doer *User) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -980,38 +954,6 @@ func DeleteComment(doer *User, comment *Comment) error {
 
 	if err := sess.Commit(); err != nil {
 		return err
-	}
-	sess.Close()
-
-	if err := comment.LoadPoster(); err != nil {
-		return err
-	}
-	if err := comment.LoadIssue(); err != nil {
-		return err
-	}
-
-	if err := comment.Issue.LoadAttributes(); err != nil {
-		return err
-	}
-	if err := comment.loadPoster(x); err != nil {
-		return err
-	}
-	if err := comment.neuterCrossReferences(x); err != nil {
-		return err
-	}
-
-	mode, _ := AccessLevel(doer, comment.Issue.Repo)
-
-	if err := PrepareWebhooks(comment.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentDeleted,
-		Issue:      comment.Issue.APIFormat(),
-		Comment:    comment.APIFormat(),
-		Repository: comment.Issue.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
-	} else {
-		go HookQueue.Add(comment.Issue.Repo.ID)
 	}
 
 	return nil

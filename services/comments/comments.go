@@ -98,3 +98,75 @@ func CreateCodeComment(doer *models.User, repo *models.Repository, issue *models
 		Patch:     patch,
 	})
 }
+
+// UpdateComment updates information of comment.
+func UpdateComment(c *models.Comment, doer *models.User, oldContent string) error {
+	if err := models.UpdateComment(c, doer); err != nil {
+		return err
+	}
+
+	if err := c.LoadPoster(); err != nil {
+		return err
+	}
+	if err := c.LoadIssue(); err != nil {
+		return err
+	}
+
+	if err := c.Issue.LoadAttributes(); err != nil {
+		return err
+	}
+
+	mode, _ := models.AccessLevel(doer, c.Issue.Repo)
+	if err := models.PrepareWebhooks(c.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+		Action:  api.HookIssueCommentEdited,
+		Issue:   c.Issue.APIFormat(),
+		Comment: c.APIFormat(),
+		Changes: &api.ChangesPayload{
+			Body: &api.ChangesFromPayload{
+				From: oldContent,
+			},
+		},
+		Repository: c.Issue.Repo.APIFormat(mode),
+		Sender:     doer.APIFormat(),
+	}); err != nil {
+		log.Error("PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
+	} else {
+		go models.HookQueue.Add(c.Issue.Repo.ID)
+	}
+
+	return nil
+}
+
+// DeleteComment deletes the comment
+func DeleteComment(comment *models.Comment, doer *models.User) error {
+	if err := models.DeleteComment(comment, doer); err != nil {
+		return err
+	}
+
+	if err := comment.LoadPoster(); err != nil {
+		return err
+	}
+	if err := comment.LoadIssue(); err != nil {
+		return err
+	}
+
+	if err := comment.Issue.LoadAttributes(); err != nil {
+		return err
+	}
+
+	mode, _ := models.AccessLevel(doer, comment.Issue.Repo)
+
+	if err := models.PrepareWebhooks(comment.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+		Action:     api.HookIssueCommentDeleted,
+		Issue:      comment.Issue.APIFormat(),
+		Comment:    comment.APIFormat(),
+		Repository: comment.Issue.Repo.APIFormat(mode),
+		Sender:     doer.APIFormat(),
+	}); err != nil {
+		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+	} else {
+		go models.HookQueue.Add(comment.Issue.Repo.ID)
+	}
+
+	return nil
+}

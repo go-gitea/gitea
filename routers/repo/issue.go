@@ -1340,7 +1340,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		})
 		return
 	}
-	if err = models.UpdateComment(ctx.User, comment, oldContent); err != nil {
+	if err = comment_service.UpdateComment(comment, ctx.User, oldContent); err != nil {
 		ctx.ServerError("UpdateComment", err)
 		return
 	}
@@ -1373,7 +1373,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if err = models.DeleteComment(ctx.User, comment); err != nil {
+	if err = models.DeleteComment(comment, ctx.User); err != nil {
 		ctx.ServerError("DeleteCommentByID", err)
 		return
 	}
