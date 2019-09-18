@@ -1079,6 +1079,22 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"error":      err.Error(),
 				"user_error": errorMessage,
 			})
+		} else if models.IsErrIssueIsClosed(err) {
+			errorMessage := i18n.Tr(ctx.User.Language, "pulls.is_closed")
+
+			ctx.Flash.Error(errorMessage)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"error":      err.Error(),
+				"user_error": errorMessage,
+			})
+		} else if models.IsErrPullRequestHasMerged(err) {
+			errorMessage := i18n.Tr(ctx.User.Language, "pulls.has_merged")
+
+			ctx.Flash.Error(errorMessage)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"error":      err.Error(),
+				"user_error": errorMessage,
+			})
 		} else if models.IsErrBranchesEqual(err) {
 			errorMessage := i18n.Tr(ctx.User.Language, "pulls.nothing_to_compare")
 

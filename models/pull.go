@@ -1184,6 +1184,25 @@ func (pr *PullRequest) ChangeTargetBranch(doer *User, targetBranch string) (err 
 		return nil
 	}
 
+	if pr.Issue.IsClosed {
+		return ErrIssueIsClosed{
+			ID:     pr.Issue.ID,
+			RepoID: pr.Issue.RepoID,
+			Index:  pr.Issue.Index,
+		}
+	}
+
+	if pr.HasMerged {
+		return ErrPullRequestHasMerged{
+			ID:         pr.ID,
+			IssueID:    pr.Index,
+			HeadRepoID: pr.HeadRepoID,
+			BaseRepoID: pr.BaseRepoID,
+			HeadBranch: pr.HeadBranch,
+			BaseBranch: pr.BaseBranch,
+		}
+	}
+
 	// Check if branches are equal
 	if err = pr.GetBaseRepo(); err != nil {
 		return err
