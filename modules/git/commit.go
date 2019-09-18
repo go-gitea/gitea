@@ -283,10 +283,17 @@ func (c *Commit) CommitsBefore() (*list.List, error) {
 	return c.repo.getCommitsBefore(c.ID)
 }
 
-func (c *Commit) HasParent(commitHash SHA1) bool {
-	for _, hash := range c.parents {
-		fmt.Println(hash.String() + " === " + commitHash.String())
-		if hash == commitHash {
+// HasPreviousCommit returns true if a given commitHash is contained in commit's parents
+func (c *Commit) HasPreviousCommit(commitHash SHA1) bool {
+	for i := 0; i < c.ParentCount(); i++ {
+		commit, err := c.Parent(i)
+		if err != nil {
+			continue
+		}
+		if commit.ID == commitHash {
+			return true
+		}
+		if commit.HasPreviousCommit(commitHash) {
 			return true
 		}
 	}

@@ -1208,7 +1208,7 @@ func (pr *PullRequest) ChangeTargetBranch(doer *User, targetBranch string) (err 
 	if err != nil {
 		return err
 	}
-	if baseCommit.HasParent(headCommit.ID) {
+	if baseCommit.HasPreviousCommit(headCommit.ID) {
 		return fmt.Errorf("branches are equal")
 	}
 
