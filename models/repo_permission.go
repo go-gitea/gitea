@@ -269,7 +269,7 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 	for t := range perm.UnitsMode {
 		repo.Units.Range(func(_ int, u *RepoUnit) bool {
 			if u.Type == t {
-				perm.Units.Append(u)
+				perm.Units = AppendRepoUnitList(perm.Units, u)
 			}
 			return true
 		})

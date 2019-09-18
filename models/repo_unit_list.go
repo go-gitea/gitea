@@ -15,18 +15,22 @@ func NewRepoUnitList(us []*RepoUnit) *RepoUnitList {
 	}
 }
 
+// AppendRepoUnitList appends one or more elements to the list
+func AppendRepoUnitList(l *RepoUnitList, us ...*RepoUnit) *RepoUnitList {
+	if l != nil {
+		l.Lock()
+		defer l.Unlock()
+		l.list = append(l.list, us...)
+		return l
+	}
+	return NewRepoUnitList(us)
+}
+
 // Load reads i-th element from the list
 func (l *RepoUnitList) Load(i int) *RepoUnit {
 	l.RLock()
 	defer l.RUnlock()
 	return l.list[i]
-}
-
-// Append appends a element to the list
-func (l *RepoUnitList) Append(u *RepoUnit) {
-	l.Lock()
-	defer l.Unlock()
-	l.list = append(l.list, u)
 }
 
 // Len returns the length of the list
@@ -38,6 +42,9 @@ func (l *RepoUnitList) Len() int {
 
 // Range iterates through the elements of the list like sync.Map.Range.
 func (l *RepoUnitList) Range(f func(i int, u *RepoUnit) bool) {
+	if l == nil {
+		return
+	}
 
 	l.RLock()
 	for i, v := range l.list {
