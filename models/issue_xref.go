@@ -111,10 +111,10 @@ func (issue *Issue) addCrossReferences(e *xorm.Session, doer *User) error {
 		Doer:      doer,
 		OrigIssue: issue,
 	}
-	return issue.findCrossReferences(e, ctx, issue.Title+"\n"+issue.Content)
+	return issue.createCrossReferences(e, ctx, issue.Title+"\n"+issue.Content)
 }
 
-func (issue *Issue) findCrossReferences(e *xorm.Session, ctx *crossReferencesContext, content string) error {
+func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesContext, content string) error {
 	xreflist, err := ctx.OrigIssue.getCrossReferences(e, ctx, content)
 	if err != nil {
 		return err
@@ -238,7 +238,7 @@ func (comment *Comment) addCrossReferences(e *xorm.Session, doer *User) error {
 		OrigIssue:   comment.Issue,
 		OrigComment: comment,
 	}
-	return comment.Issue.findCrossReferences(e, ctx, comment.Content)
+	return comment.Issue.createCrossReferences(e, ctx, comment.Content)
 }
 
 func (comment *Comment) neuterCrossReferences(e Engine) error {
