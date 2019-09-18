@@ -337,8 +337,10 @@ func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilesto
 		if err := updateMilestoneTotalNum(e, oldMilestoneID); err != nil {
 			return err
 		}
-		if err := updateMilestoneClosedNum(e, oldMilestoneID); err != nil {
-			return err
+		if issue.IsClosed {
+			if err := updateMilestoneClosedNum(e, oldMilestoneID); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -346,8 +348,10 @@ func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilesto
 		if err := updateMilestoneTotalNum(e, issue.MilestoneID); err != nil {
 			return err
 		}
-		if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
-			return err
+		if issue.IsClosed {
+			if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
+				return err
+			}
 		}
 	}
 
