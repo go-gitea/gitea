@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/go-xorm/xorm"
 )
 
@@ -25,8 +26,8 @@ func deleteOrphanedAttachments(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	err := sess.BufferSize(setting.IterateBufferSize).
-		Where("`comment_id` = 0 and (`release_id` = 0 or `release_id` not in (select `id` from `releases`))").Cols("uuid").
+	err := sess.BufferSize(setting.Database.IterateBufferSize).
+		Where("`comment_id` = 0 and (`release_id` = 0 or `release_id` not in (select `id` from `release`))").Cols("uuid").
 		Iterate(new(Attachment),
 			func(idx int, bean interface{}) error {
 				attachment := bean.(*Attachment)

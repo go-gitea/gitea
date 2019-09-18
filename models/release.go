@@ -358,6 +358,17 @@ func DeleteReleaseByID(id int64, doer *User, delTag bool) error {
 		return fmt.Errorf("LoadAttributes: %v", err)
 	}
 
+	if _, err := x.Delete(&Attachment{ReleaseID: id}); err != nil {
+		return err
+	}
+
+	for i := range rel.Attachments {
+		attachment := rel.Attachments[i]
+		if err := os.RemoveAll(attachment.LocalPath()); err != nil {
+			return err
+		}
+	}
+
 	mode, _ := AccessLevel(doer, rel.Repo)
 	if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
 		Action:     api.HookReleaseDeleted,
@@ -370,19 +381,7 @@ func DeleteReleaseByID(id int64, doer *User, delTag bool) error {
 		go HookQueue.Add(rel.Repo.ID)
 	}
 
-	uuids := make([]string, 0, len(rel.Attachments))
-
-	for i := range rel.Attachments {
-		attachment := rel.Attachments[i]
-		if err := os.RemoveAll(attachment.LocalPath()); err != nil {
-			return err
-		}
-
-		uuids = append(uuids, attachment.UUID)
-	}
-
-	_, err := x.Delete(&Attachment{ReleaseID: id})
-	return err
+	return nil
 }
 
 // SyncReleasesWithTags synchronizes release table with repository tags
