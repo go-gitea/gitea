@@ -161,7 +161,7 @@ type Repository struct {
 	*Mirror  `xorm:"-"`
 
 	ExternalMetas map[string]string `xorm:"-"`
-	Units         []*RepoUnit       `xorm:"-"`
+	Units         *RepoUnitList     `xorm:"-"`
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
@@ -340,8 +340,12 @@ func (repo *Repository) getUnits(e Engine) (err error) {
 		return nil
 	}
 
-	repo.Units, err = getUnitsByRepoID(e, repo.ID)
-	return err
+	units, err := getUnitsByRepoID(e, repo.ID)
+	if err != nil {
+		return err
+	}
+	repo.Units = NewRepoUnitList(units)
+	return nil
 }
 
 // CheckUnitUser check whether user could visit the unit of this repository
@@ -370,12 +374,15 @@ func (repo *Repository) UnitEnabled(tp UnitType) bool {
 	if err := repo.getUnits(x); err != nil {
 		log.Warn("Error loading repository (ID: %d) units: %s", repo.ID, err.Error())
 	}
-	for _, unit := range repo.Units {
+	result := false
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		if unit.Type == tp {
-			return true
+			result = true
+			return false
 		}
-	}
-	return false
+		return true
+	})
+	return result
 }
 
 // ErrUnitTypeNotExist represents a "UnitTypeNotExist" kind of error.
@@ -436,10 +443,17 @@ func (repo *Repository) getUnit(e Engine, tp UnitType) (*RepoUnit, error) {
 	if err := repo.getUnits(e); err != nil {
 		return nil, err
 	}
-	for _, unit := range repo.Units {
+
+	var result *RepoUnit
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		if unit.Type == tp {
-			return unit, nil
+			result = unit
+			return false
 		}
+		return true
+	})
+	if result != nil {
+		return result, nil
 	}
 	return nil, ErrUnitTypeNotExist{tp}
 }

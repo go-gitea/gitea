@@ -36,7 +36,7 @@ func TestRepo(t *testing.T) {
 	}
 
 	testSuccess := func(expectedStyle string) {
-		repo.Units = []*RepoUnit{&externalTracker}
+		repo.Units = NewRepoUnitList([]*RepoUnit{&externalTracker})
 		repo.ExternalMetas = nil
 		metas := repo.ComposeMetas()
 		assert.Equal(t, expectedStyle, metas["style"])

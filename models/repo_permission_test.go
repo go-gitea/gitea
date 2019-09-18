@@ -21,46 +21,51 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	perm, err := GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.False(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	// change to collaborator
 	assert.NoError(t, repo.AddCollaborator(user))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	// collaborator
 	collaborator := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
 	perm, err = GetUserRepoPermission(repo, collaborator)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	// owner
 	owner := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	// admin
 	admin := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	perm, err = GetUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 }
 
 func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
@@ -74,45 +79,50 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	user := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
 	perm, err := GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.False(t, perm.CanRead(unit.Type))
 		assert.False(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	// change to collaborator to default write access
 	assert.NoError(t, repo.AddCollaborator(user))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	assert.NoError(t, repo.ChangeCollaborationAccessMode(user.ID, AccessModeRead))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.False(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	// owner
 	owner := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	// admin
 	admin := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	perm, err = GetUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 }
 
 func TestRepoPermissionPublicOrgRepo(t *testing.T) {
@@ -126,44 +136,49 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	user := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 	perm, err := GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.False(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	// change to collaborator to default write access
 	assert.NoError(t, repo.AddCollaborator(user))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	assert.NoError(t, repo.ChangeCollaborationAccessMode(user.ID, AccessModeRead))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.False(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	// org member team owner
 	owner := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	// org member team tester
 	member := AssertExistsAndLoadBean(t, &User{ID: 15}).(*User)
 	perm, err = GetUserRepoPermission(repo, member)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
-	}
+		return true
+	})
 	assert.True(t, perm.CanWrite(UnitTypeIssues))
 	assert.False(t, perm.CanWrite(UnitTypeCode))
 
@@ -171,10 +186,11 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	admin := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	perm, err = GetUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 }
 
 func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
@@ -188,36 +204,40 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	user := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 	perm, err := GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.False(t, perm.CanRead(unit.Type))
 		assert.False(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	// change to collaborator to default write access
 	assert.NoError(t, repo.AddCollaborator(user))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	assert.NoError(t, repo.ChangeCollaborationAccessMode(user.ID, AccessModeRead))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.False(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	// org member team owner
 	owner := AssertExistsAndLoadBean(t, &User{ID: 15}).(*User)
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	// update team information and then check permission
 	team := AssertExistsAndLoadBean(t, &Team{ID: 5}).(*Team)
@@ -225,10 +245,11 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	assert.NoError(t, err)
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 
 	// org member team tester
 	tester := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
@@ -250,8 +271,9 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	admin := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	perm, err = GetUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
-	for _, unit := range repo.Units {
+	repo.Units.Range(func(i int, unit *RepoUnit) bool {
 		assert.True(t, perm.CanRead(unit.Type))
 		assert.True(t, perm.CanWrite(unit.Type))
-	}
+		return true
+	})
 }

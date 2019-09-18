@@ -356,19 +356,20 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 // Home render repository home page
 func Home(ctx *context.Context) {
-	if len(ctx.Repo.Units) > 0 {
+	if ctx.Repo.Units.Len() > 0 {
 		var firstUnit *models.Unit
-		for _, repoUnit := range ctx.Repo.Units {
+		ctx.Repo.Units.Range(func(i int, repoUnit *models.RepoUnit) bool {
 			if repoUnit.Type == models.UnitTypeCode {
 				renderCode(ctx)
-				return
+				return false
 			}
 
 			unit, ok := models.Units[repoUnit.Type]
 			if ok && (firstUnit == nil || !firstUnit.IsLessThan(unit)) {
 				firstUnit = &unit
 			}
-		}
+			return true
+		})
 
 		if firstUnit != nil {
 			ctx.Redirect(fmt.Sprintf("%s/%s%s", setting.AppSubURL, ctx.Repo.Repository.FullName(), firstUnit.URI))

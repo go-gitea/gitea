@@ -13,7 +13,7 @@ import (
 // Permission contains all the permissions related variables to a repository for a user
 type Permission struct {
 	AccessMode AccessMode
-	Units      []*RepoUnit
+	Units      *RepoUnitList
 	UnitsMode  map[UnitType]AccessMode
 }
 
@@ -38,12 +38,15 @@ func (p *Permission) HasAccess() bool {
 // UnitAccessMode returns current user accessmode to the specify unit of the repository
 func (p *Permission) UnitAccessMode(unitType UnitType) AccessMode {
 	if p.UnitsMode == nil {
-		for _, u := range p.Units {
+		result := AccessModeNone
+		p.Units.Range(func(i int, u *RepoUnit) bool {
 			if u.Type == unitType {
-				return p.AccessMode
+				result = p.AccessMode
+				return false
 			}
-		}
-		return AccessModeNone
+			return true
+		})
+		return result
 	}
 	return p.UnitsMode[unitType]
 }
@@ -103,11 +106,11 @@ func (p *Permission) ColorFormat(s fmt.State) {
 	format := "AccessMode: %-v, %d Units, %d UnitsMode(s): [ "
 	args := []interface{}{
 		p.AccessMode,
-		log.NewColoredValueBytes(len(p.Units), &noColor),
+		log.NewColoredValueBytes(p.Units.Len(), &noColor),
 		log.NewColoredValueBytes(len(p.UnitsMode), &noColor),
 	}
 	if s.Flag('+') {
-		for i, unit := range p.Units {
+		p.Units.Range(func(i int, unit *RepoUnit) bool {
 			config := ""
 			if unit.Config != nil {
 				configBytes, err := unit.Config.ToDB()
@@ -123,7 +126,8 @@ func (p *Permission) ColorFormat(s fmt.State) {
 				log.NewColoredIDValue(unit.RepoID),
 				unit.Type,
 				config)
-		}
+			return true
+		})
 		for key, value := range p.UnitsMode {
 			format += "\nUnitMode[%-v]: %-v"
 			args = append(args,
@@ -218,9 +222,10 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 
 	// Collaborators on organization
 	if isCollaborator {
-		for _, u := range repo.Units {
+		repo.Units.Range(func(i int, u *RepoUnit) bool {
 			perm.UnitsMode[u.Type] = perm.AccessMode
-		}
+			return true
+		})
 	}
 
 	// get units mode from teams
@@ -238,7 +243,7 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 		}
 	}
 
-	for _, u := range repo.Units {
+	repo.Units.Range(func(i int, u *RepoUnit) bool {
 		var found bool
 		for _, team := range teams {
 			if team.unitEnabled(e, u.Type) {
@@ -256,16 +261,18 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 				perm.UnitsMode[u.Type] = AccessModeRead
 			}
 		}
-	}
+		return true
+	})
 
 	// remove no permission units
-	perm.Units = make([]*RepoUnit, 0, len(repo.Units))
+	perm.Units = NewRepoUnitList(make([]*RepoUnit, 0, repo.Units.Len()))
 	for t := range perm.UnitsMode {
-		for _, u := range repo.Units {
+		repo.Units.Range(func(_ int, u *RepoUnit) bool {
 			if u.Type == t {
-				perm.Units = append(perm.Units, u)
+				perm.Units.Append(u)
 			}
-		}
+			return true
+		})
 	}
 
 	return
