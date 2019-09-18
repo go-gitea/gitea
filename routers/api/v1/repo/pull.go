@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/pull"
+	pull_service "code.gitea.io/gitea/modules/pull"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	milestone_service "code.gitea.io/gitea/services/milestone"
@@ -567,6 +568,17 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	}
 
 	if !pr.CanAutoMerge() || pr.HasMerged || pr.IsWorkInProgress() {
+		ctx.Status(405)
+		return
+	}
+
+	isPass, err := pull_service.IsPullCommitStatusPass(pr)
+	if err != nil {
+		ctx.Error(500, "IsPullCommitStatusPass", err)
+		return
+	}
+
+	if !isPass && !ctx.IsUserRepoAdmin() {
 		ctx.Status(405)
 		return
 	}
