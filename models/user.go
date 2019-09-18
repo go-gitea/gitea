@@ -153,7 +153,7 @@ type User struct {
 	Members                   UserList            `xorm:"-"`
 	MembersIsPublic           map[int64]bool      `xorm:"-"`
 	Visibility                structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
-	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT true"`
+	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`

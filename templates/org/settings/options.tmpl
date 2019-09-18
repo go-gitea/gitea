@@ -57,11 +57,11 @@
 						</div>
 
 						<div class="field" id="permission_box">
-							<label>Permissions</label>
+							<label>{{.i18n.Tr "org.settings.permission"}}</label>
 							<div class="field">
 								<div class="ui checkbox">
-									<input class="hidden" type="checkbox" name="repo_admin_change_team_access" {{if .Org.RepoAdminChangeTeamAccess}}checked{{end}}/>
-									<label>Repository admin can add and remove access for teams</label>
+									<input class="hidden" type="checkbox" name="repo_admin_change_team_access" checked/>
+									<label>{{.i18n.Tr "org.settings.permission.repoadminchangeteam"}}</label>
 								</div>
 							</div>
 						</div>
