@@ -244,6 +244,8 @@ var migrations = []Migration{
 	NewMigration("add email notification enabled preference to user", addEmailNotificationEnabledToUser),
 	// v94 -> v95
 	NewMigration("delete orphaned attachments", deleteOrphanedAttachments),
+	// v95 -> v96
+	NewMigration("add enable_status_check, status_check_contexts to protected_branch", addStatusCheckColumnsForProtectedBranches),
 }
 
 // Migrate database to current version

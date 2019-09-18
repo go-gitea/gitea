@@ -15,7 +15,12 @@
         <div class="ui attached segment">
             <span>{{template "repo/commit_status" .}}</span>
             <span class="ui">{{.Context}} <span class="text grey">{{.Description}}</span></span>
-            <div class="ui right">{{if .TargetURL}}<a href="{{.TargetURL}}">Details</a>{{end}}</div>
+            <div class="ui right">
+                {{if $.is_context_required}}
+                    {{if (call $.is_context_required .Context)}}<div class="ui label">Required</div>{{end}} 
+                {{end}}
+                <span class="ui">{{if .TargetURL}}<a href="{{.TargetURL}}">Details</a>{{end}}</span>
+            </div>
         </div>
     {{end}}
 {{end}}
