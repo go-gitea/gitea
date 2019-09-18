@@ -79,15 +79,14 @@ func neuterCrossReferences(e Engine, issueID int64, commentID int64) error {
 	if commentID != 0 {
 		sess = sess.And("`ref_comment_id` = ?", commentID)
 	}
-	err := sess.Find(&active)
-	if err != nil || len(active) == 0 {
+	if err := sess.Find(&active); err != nil || len(active) == 0 {
 		return err
 	}
 	ids := make([]int64, len(active))
 	for i, c := range active {
 		ids[i] = c.ID
 	}
-	_, err = e.In("id", ids).Cols("`ref_action`").Update(&Comment{RefAction: XRefActionNeutered})
+	_, err := e.In("id", ids).Cols("`ref_action`").Update(&Comment{RefAction: XRefActionNeutered})
 	return err
 }
 

@@ -642,14 +642,12 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireTribute"] = true
 	renderAttachmentSettings(ctx)
 
-	err = issue.LoadAttributes()
-	if err != nil {
+	if err = issue.LoadAttributes(); err != nil {
 		ctx.ServerError("GetIssueByIndex", err)
 		return
 	}
 
-	err = filterXRefComments(ctx, issue)
-	if err != nil {
+	if err = filterXRefComments(ctx, issue); err != nil {
 		ctx.ServerError("GetIssueByIndex", err)
 		return
 	}
