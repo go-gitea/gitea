@@ -6,17 +6,6 @@ package migrations
 
 import "github.com/go-xorm/xorm"
 
-<<<<<<< HEAD
-func addProjectsInfo(x *xorm.Engine) error {
-
-	type Repository struct {
-		NumProjects       int `xorm:"NOT NULL DEFAULT 0"`
-		NumClosedProjects int `xorm:"NOT NULL DEFAULT 0"`
-		NumOpenProjects   int `xorm:"-"`
-	}
-
-	return x.Sync2(new(Repository))
-=======
 func addStatusCheckColumnsForProtectedBranches(x *xorm.Engine) error {
 	type ProtectedBranch struct {
 		EnableStatusCheck   bool     `xorm:"NOT NULL DEFAULT false"`
@@ -32,5 +21,4 @@ func addStatusCheckColumnsForProtectedBranches(x *xorm.Engine) error {
 		StatusCheckContexts: []string{},
 	})
 	return err
->>>>>>> origin
 }
