@@ -1764,7 +1764,7 @@ function searchTeams() {
     $searchTeamBox.search({
         minCharacters: 2,
         apiSettings: {
-            url: suburl + '/api/v1/orgs/' + $searchTeamBox.data('org') + '/teams',  /* Need new API to search a query */
+            url: suburl + '/api/v1/orgs/' + $searchTeamBox.data('org') + '/teams',
             headers: {"X-Csrf-Token": csrf},
             onResponse: function(response) {
                 const items = [];

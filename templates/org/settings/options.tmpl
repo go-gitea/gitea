@@ -56,6 +56,16 @@
 							</div>
 						</div>
 
+						<div class="field" id="permission_box">
+							<label>Permissions</label>
+							<div class="field">
+								<div class="ui checkbox">
+									<input class="hidden" type="checkbox" name="repo_admin_change_team_access" {{if .Org.RepoAdminChangeTeamAccess}}checked{{end}}/>
+									<label>Repository admin can add and remove access for teams</label>
+								</div>
+							</div>
+						</div>
+
 						{{if .SignedUser.IsAdmin}}
 						<div class="ui divider"></div>
 
