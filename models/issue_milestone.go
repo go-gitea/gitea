@@ -312,7 +312,7 @@ func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
 }
 
 func updateMilestoneTotalNum(e Engine, milestoneID int64) (err error) {
-	_, err = e.Exec("UPDATE `milestone` SET num_issues=(SELECT count(*) FROM issue WHERE milestone_id=?) WHERE id=?",
+	_, err = e.Exec("UPDATE `milestone` SET num_issues=(SELECT count(*) FROM issue WHERE milestone_id=?), completeness=if(num_issues>0,100*num_closed_issues/num_issues, 0) WHERE id=?",
 		milestoneID,
 		milestoneID,
 	)
@@ -320,7 +320,7 @@ func updateMilestoneTotalNum(e Engine, milestoneID int64) (err error) {
 }
 
 func updateMilestoneClosedNum(e Engine, milestoneID int64) (err error) {
-	_, err = e.Exec("UPDATE `milestone` SET num_closed_issues=(SELECT count(*) FROM issue WHERE milestone_id=? AND is_closed=?) WHERE id=?",
+	_, err = e.Exec("UPDATE `milestone` SET num_closed_issues=(SELECT count(*) FROM issue WHERE milestone_id=? AND is_closed=?), completeness=if(num_issues>0,100*num_closed_issues/num_issues, 0) WHERE id=?",
 		milestoneID,
 		true,
 		milestoneID,
