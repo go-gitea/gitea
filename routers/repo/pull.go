@@ -11,6 +11,7 @@ import (
 	"crypto/subtle"
 	"fmt"
 	"io"
+	"net/http"
 	"path"
 	"strings"
 
@@ -28,6 +29,7 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 
 	"github.com/unknwon/com"
+	"github.com/unknwon/i18n"
 )
 
 const (
@@ -1055,18 +1057,39 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
 	targetBranch := ctx.QueryTrim("target_branch")
 	if len(targetBranch) == 0 {
-		ctx.Error(204)
+		ctx.Error(http.StatusNoContent)
 		return
 	}
 
 	if err := pr.ChangeTargetBranch(ctx.User, targetBranch); err != nil {
-		ctx.ServerError("UpdatePullRequestTarget", err)
+		if models.IsErrPullRequestAlreadyExists(err) {
+			err := err.(models.ErrPullRequestAlreadyExists)
+
+			RepoRelPath := ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
+			errorMessage := i18n.Tr(ctx.User.Language, "pulls.has_pull_request", ctx.Repo.RepoLink, RepoRelPath, err.IssueID)
+
+			ctx.Flash.Error(errorMessage)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"error":      err.Error(),
+				"user_error": errorMessage,
+			})
+		} else if models.IsErrBranchesEqual(err) {
+			errorMessage := i18n.Tr(ctx.User.Language, "pulls.nothing_to_compare")
+
+			ctx.Flash.Error(errorMessage)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"error":      err.Error(),
+				"user_error": errorMessage,
+			})
+		} else {
+			ctx.ServerError("UpdatePullRequestTarget", err)
+		}
 		return
 	}
 

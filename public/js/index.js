@@ -820,12 +820,17 @@ function initRepository() {
                     $editInput.val($issueTitle.text());
                     return false;
                 }
-                $.post(update_url, {
+                $.post(
+                    update_url,
+                    {
                         "_csrf": csrf,
                         "target_branch": target_branch
-                    },
-                    function (data) {
+                    }
+                )
+                    .success(function(data) {
                         $('#branch_target').text(data.base_branch);
+                    })
+                    .always(function() {
                         reload();
                     });
             };

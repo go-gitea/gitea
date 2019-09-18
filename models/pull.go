@@ -1209,13 +1209,23 @@ func (pr *PullRequest) ChangeTargetBranch(doer *User, targetBranch string) (err 
 		return err
 	}
 	if baseCommit.HasPreviousCommit(headCommit.ID) {
-		return fmt.Errorf("branches are equal")
+		return ErrBranchesEqual{
+			HeadBranchName: pr.HeadBranch,
+			BaseBranchName: targetBranch,
+		}
 	}
 
 	// Check if pull request already exists
-	unmergedPullRequest, err := GetUnmergedPullRequest(pr.HeadRepoID, pr.BaseRepoID, pr.HeadBranch, targetBranch)
-	if unmergedPullRequest != nil {
-		return fmt.Errorf("pull request already exists")
+	existingPr, err := GetUnmergedPullRequest(pr.HeadRepoID, pr.BaseRepoID, pr.HeadBranch, targetBranch)
+	if existingPr != nil {
+		return ErrPullRequestAlreadyExists{
+			ID:         existingPr.ID,
+			IssueID:    existingPr.Index,
+			HeadRepoID: existingPr.HeadRepoID,
+			BaseRepoID: existingPr.BaseRepoID,
+			HeadBranch: existingPr.HeadBranch,
+			BaseBranch: existingPr.BaseBranch,
+		}
 	}
 	if err != nil && !IsErrPullRequestNotExist(err) {
 		return err

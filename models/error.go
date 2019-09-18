@@ -921,6 +921,22 @@ func (err ErrBranchNameConflict) Error() string {
 	return fmt.Sprintf("branch conflicts with existing branch [name: %s]", err.BranchName)
 }
 
+// ErrBranchesEqual represents an error that branch name conflicts with other branch.
+type ErrBranchesEqual struct {
+	BaseBranchName string
+	HeadBranchName string
+}
+
+// IsErrBranchesEqual checks if an error is an ErrBranchesEqual.
+func IsErrBranchesEqual(err error) bool {
+	_, ok := err.(ErrBranchesEqual)
+	return ok
+}
+
+func (err ErrBranchesEqual) Error() string {
+	return fmt.Sprintf("branches are equal [head: %sm base: %s]", err.HeadBranchName, err.BaseBranchName)
+}
+
 // ErrNotAllowedToMerge represents an error that a branch is protected and the current user is not allowed to modify it.
 type ErrNotAllowedToMerge struct {
 	Reason string
