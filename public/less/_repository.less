@@ -536,6 +536,10 @@
 
     @comment-avatar-width: 3em;
 
+    .comment textarea {
+        max-height: none !important;
+    }
+
     &.new.issue {
         .comment.form {
             .comment {
@@ -1362,6 +1366,10 @@
                     td.halfwidth {
                         // halfwidth is used in split view - and in that case, 1% of each
                         width: 49%;
+                    }
+
+                    td.center {
+                        text-align: center;
                     }
 
                     .removed-code {
