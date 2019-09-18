@@ -581,7 +581,7 @@ func DeleteCollaboration(ctx *context.Context) {
 // AddTeamPost response for adding a team to a repository
 func AddTeamPost(ctx *context.Context) {
 	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.IsOwner() {
-		ctx.Flash.Error("Changing team access for repository has been restricted to organization owner")
+		ctx.Flash.Error(ctx.Tr("repo.settings.change_team_access_not_allowed"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
 	}
@@ -594,55 +594,56 @@ func AddTeamPost(ctx *context.Context) {
 
 	team, err := ctx.Repo.Owner.GetTeam(name)
 	if err != nil {
-		ctx.Flash.Error("AddTeamPost: " + err.Error())
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+		if models.IsErrTeamNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("form.team_not_exist"))
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
+		} else {
+			ctx.ServerError("GetTeam", err)
+		}
 		return
 	}
 
 	if team.OrgID != ctx.Repo.Repository.OwnerID {
-		ctx.Flash.Error("AddTeamPost: Team not in organization")
+		ctx.Flash.Error(ctx.Tr("repo.settings.team_not_in_organization"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
 	}
 
 	if models.HasTeamRepo(ctx.Repo.Repository.OwnerID, team.ID, ctx.Repo.Repository.ID) {
-		ctx.Flash.Error("Team already has repository")
+		ctx.Flash.Error(ctx.Tr("repo.settings.add_team_duplicate"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
 	}
 
 	if err = team.AddRepository(ctx.Repo.Repository); err != nil {
-		ctx.Flash.Error("AddTeamPost: " + err.Error())
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+		ctx.ServerError("team.AddRepository", err)
 		return
 	}
 
-	ctx.Flash.Success("Successfully added team to repo.")
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_team_success"))
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 }
 
 // DeleteTeam response for deleting a team from a repository
 func DeleteTeam(ctx *context.Context) {
 	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.IsOwner() {
-		ctx.Flash.Error("Changing team access for repository has been restricted to organization owner")
+		ctx.Flash.Error(ctx.Tr("repo.settings.change_team_access_not_allowed"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
 	}
 
 	team, err := models.GetTeamByID(ctx.QueryInt64("id"))
 	if err != nil {
-		ctx.Flash.Error("DeleteTeam: " + err.Error())
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+		ctx.ServerError("GetTeamByID", err)
 		return
 	}
 
 	if err = team.RemoveRepository(ctx.Repo.Repository.ID); err != nil {
-		ctx.Flash.Error("DeleteTeam: " + err.Error())
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+		ctx.ServerError("team.RemoveRepositorys", err)
 		return
 	}
 
-	ctx.Flash.Success("Successfully removed team from repo.")
+	ctx.Flash.Success(ctx.Tr("repo.settings.remove_team_success"))
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
 	})

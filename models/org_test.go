@@ -64,11 +64,11 @@ func TestUser_GetTeam(t *testing.T) {
 	assert.Equal(t, "team1", team.LowerName)
 
 	_, err = org.GetTeam("does not exist")
-	assert.Equal(t, ErrTeamNotExist, err)
+	assert.True(t, IsErrTeamNotExist(err))
 
 	nonOrg := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	_, err = nonOrg.GetTeam("team")
-	assert.Equal(t, ErrTeamNotExist, err)
+	assert.True(t, IsErrTeamNotExist(err))
 }
 
 func TestUser_GetOwnerTeam(t *testing.T) {
@@ -80,7 +80,7 @@ func TestUser_GetOwnerTeam(t *testing.T) {
 
 	nonOrg := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	_, err = nonOrg.GetOwnerTeam()
-	assert.Equal(t, ErrTeamNotExist, err)
+	assert.True(t, IsErrTeamNotExist(err))
 }
 
 func TestUser_GetTeams(t *testing.T) {
