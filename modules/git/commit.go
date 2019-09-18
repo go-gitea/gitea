@@ -283,6 +283,16 @@ func (c *Commit) CommitsBefore() (*list.List, error) {
 	return c.repo.getCommitsBefore(c.ID)
 }
 
+func (c *Commit) HasParent(commitHash SHA1) bool {
+	for _, hash := range c.parents {
+		fmt.Println(hash.String() + " === " + commitHash.String())
+		if hash == commitHash {
+			return true
+		}
+	}
+	return false
+}
+
 // CommitsBeforeLimit returns num commits before current revision
 func (c *Commit) CommitsBeforeLimit(num int) (*list.List, error) {
 	return c.repo.getCommitsBeforeLimit(c.ID, num)
