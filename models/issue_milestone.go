@@ -7,7 +7,6 @@ package models
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -393,46 +392,6 @@ func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err 
 
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
-	}
-
-	var hookAction api.HookIssueAction
-	if issue.MilestoneID > 0 {
-		hookAction = api.HookIssueMilestoned
-	} else {
-		hookAction = api.HookIssueDemilestoned
-	}
-
-	if err = issue.LoadAttributes(); err != nil {
-		return err
-	}
-
-	mode, _ := AccessLevel(doer, issue.Repo)
-	if issue.IsPull {
-		err = issue.PullRequest.LoadIssue()
-		if err != nil {
-			log.Error("LoadIssue: %v", err)
-			return
-		}
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-			Action:      hookAction,
-			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
-			Sender:      doer.APIFormat(),
-		})
-	} else {
-		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
-			Action:     hookAction,
-			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     doer.APIFormat(),
-		})
-	}
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
 	}
 	return nil
 }
