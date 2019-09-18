@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/pull"
+	pull_service "code.gitea.io/gitea/modules/pull"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -322,6 +323,12 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	setMergeTarget(ctx, pull)
 
+	if err = pull.LoadProtectedBranch(); err != nil {
+		ctx.ServerError("GetLatestCommitStatus", err)
+		return nil
+	}
+	ctx.Data["EnableStatusCheck"] = pull.ProtectedBranch != nil && pull.ProtectedBranch.EnableStatusCheck
+
 	var headGitRepo *git.Repository
 	var headBranchExist bool
 	// HeadRepo may be missing
@@ -349,6 +356,18 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			if len(commitStatuses) > 0 {
 				ctx.Data["LatestCommitStatuses"] = commitStatuses
 				ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(commitStatuses)
+			}
+
+			if pull.ProtectedBranch != nil && pull.ProtectedBranch.EnableStatusCheck {
+				ctx.Data["is_context_required"] = func(context string) bool {
+					for _, c := range pull.ProtectedBranch.StatusCheckContexts {
+						if c == context {
+							return true
+						}
+					}
+					return false
+				}
+				ctx.Data["IsRequiredStatusCheckSuccess"] = pull_service.IsCommitStatusContextSuccess(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
 			}
 		}
 	}
@@ -604,6 +623,17 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 
 	if pr.IsWorkInProgress() {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+		return
+	}
+
+	isPass, err := pull_service.IsPullCommitStatusPass(pr)
+	if err != nil {
+		ctx.ServerError("IsPullCommitStatusPass", err)
+		return
+	}
+	if !isPass && !ctx.IsUserRepoAdmin() {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_status_check"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		return
 	}
