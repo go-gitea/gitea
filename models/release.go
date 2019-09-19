@@ -65,7 +65,7 @@ func (r *Release) LoadAttributes() error {
 
 // APIURL the api url for a release. release must have attributes loaded
 func (r *Release) APIURL() string {
-	return fmt.Sprintf("%sapi/v1/%s/releases/%d",
+	return fmt.Sprintf("%sapi/v1/repos/%s/releases/%d",
 		setting.AppURL, r.Repo.FullName(), r.ID)
 }
 
