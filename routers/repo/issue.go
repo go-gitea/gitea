@@ -644,12 +644,12 @@ func ViewIssue(ctx *context.Context) {
 	renderAttachmentSettings(ctx)
 
 	if err = issue.LoadAttributes(); err != nil {
-		ctx.ServerError("GetIssueByIndex", err)
+		ctx.ServerError("LoadAttributes", err)
 		return
 	}
 
 	if err = filterXRefComments(ctx, issue); err != nil {
-		ctx.ServerError("GetIssueByIndex", err)
+		ctx.ServerError("filterXRefComments", err)
 		return
 	}
 
