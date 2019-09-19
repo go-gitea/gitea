@@ -240,6 +240,23 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
 	ctx.Data["IsImageFile"] = commit.IsImageFile
+	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
+		result, err := commit.ImageInfo(name)
+		if err != nil {
+			log.Error("ImageInfo failed: %v", err)
+			return nil
+		}
+		return result
+	}
+	ctx.Data["ImageInfoBase"] = ctx.Data["ImageInfo"]
+	if commit.ParentCount() > 0 {
+		parentCommit, err := ctx.Repo.GitRepo.GetCommit(parents[0])
+		if err != nil {
+			ctx.NotFound("GetParentCommit", err)
+			return
+		}
+		ctx.Data["ImageInfo"] = parentCommit.ImageInfo
+	}
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	ctx.Data["Verification"] = models.ParseCommitWithSignature(commit)
@@ -248,6 +265,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", commitID)
+	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", commitID)
 
 	note := &git.Note{}
 	err = git.GetNote(ctx.Repo.GitRepo, commitID, note)
@@ -259,8 +277,8 @@ func Diff(ctx *context.Context) {
 
 	if commit.ParentCount() > 0 {
 		ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", parents[0])
+		ctx.Data["BeforeRawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", parents[0])
 	}
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", commitID)
 	ctx.Data["BranchName"], err = commit.GetBranchName()
 	if err != nil {
 		ctx.ServerError("commit.GetBranchName", err)

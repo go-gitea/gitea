@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	milestone_service "code.gitea.io/gitea/services/milestone"
 
 	"github.com/unknwon/com"
 )
@@ -1086,7 +1087,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 			continue
 		}
 		issue.MilestoneID = milestoneID
-		if err := models.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+		if err := milestone_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
 			ctx.ServerError("ChangeMilestoneAssign", err)
 			return
 		}
