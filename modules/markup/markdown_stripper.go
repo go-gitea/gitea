@@ -239,7 +239,7 @@ func (r *MarkdownStripper) GetLinks() []string {
 }
 
 // FindAllMentions matches mention patterns in given content
-// and returns a list of found user names without @ prefix.
+// and returns a list of found unvalidated user names without @ prefix.
 func FindAllMentions(content string) []string {
 	content, _ = StripMarkdown([]byte(content))
 	mentions := mentionPattern.FindAllStringSubmatch(content, -1)
@@ -257,7 +257,7 @@ type RawIssueReference struct {
 }
 
 // FindAllIssueReferences matches issue reference patterns in given content
-// and returns a list of found references *with* #.
+// and returns a list of unvalidated references.
 func FindAllIssueReferences(content string) []*RawIssueReference {
 
 	content, links := StripMarkdown([]byte(content))
@@ -284,6 +284,7 @@ func FindAllIssueReferences(content string) []*RawIssueReference {
 
 	for _, link := range links {
 		if u, err := url.Parse(link); err == nil {
+			// Note: we're not attempting to match the URL scheme (http/https)
 			host := strings.ToLower(u.Host)
 			if host != "" && host != giteahost {
 				continue
