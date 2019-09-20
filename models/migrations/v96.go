@@ -36,7 +36,7 @@ func deleteOrphanedAttachments(x *xorm.Engine) error {
 					return err
 				}
 
-				_, err := sess.Delete(attachment)
+				_, err := sess.ID(attachment.ID).NoAutoCondition().Delete(attachment)
 				return err
 			})
 
