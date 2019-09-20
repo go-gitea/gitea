@@ -596,7 +596,7 @@ func AddTeamPost(ctx *context.Context) {
 	if err != nil {
 		if models.IsErrTeamNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("form.team_not_exist"))
-			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		} else {
 			ctx.ServerError("GetTeam", err)
 		}
