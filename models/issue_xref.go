@@ -5,23 +5,11 @@
 package models
 
 import (
-	"regexp"
-	"strconv"
-
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 
 	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
-)
-
-var (
-	// TODO: Unify all regexp treatment of cross references in one place
-
-	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(?:#)([0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
-	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
-	// e.g. gogits/gogs#12345
-	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+)#([0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
 )
 
 // XRefAction represents the kind of effect a cross reference has once is resolved
@@ -128,45 +116,34 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 
 func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesContext, content string) ([]*crossReference, error) {
 	xreflist := make([]*crossReference, 0, 5)
-	var xref *crossReference
+	var (
+		xref    *crossReference
+		refRepo *Repository
+		err     error
+	)
 
-	// Issues in the same repository
-	// FIXME: Should we support IssueNameStyleAlphanumeric?
-	matches := issueNumericPattern.FindAllStringSubmatch(content, -1)
-	for _, match := range matches {
-		if index, err := strconv.ParseInt(match[1], 10, 64); err == nil {
-			if err = ctx.OrigIssue.loadRepo(e); err != nil {
+	for _, ref := range markup.FindAllIssueReferences(content) {
+		if ref.Owner == "" && ref.Name == "" {
+			// Issues in the same repository
+			if err := ctx.OrigIssue.loadRepo(e); err != nil {
 				return nil, err
 			}
-			if xref, err = ctx.OrigIssue.isValidCommentReference(e, ctx, issue.Repo, index); err != nil {
-				return nil, err
-			}
-			if xref != nil {
-				xreflist = ctx.OrigIssue.updateCrossReferenceList(xreflist, xref)
-			}
-		}
-	}
-
-	// Issues in other repositories
-	matches = crossReferenceIssueNumericPattern.FindAllStringSubmatch(content, -1)
-	for _, match := range matches {
-		if index, err := strconv.ParseInt(match[3], 10, 64); err == nil {
-			repo, err := getRepositoryByOwnerAndName(e, match[1], match[2])
+			refRepo = ctx.OrigIssue.Repo
+		} else {
+			// Issues in other repositories
+			refRepo, err = getRepositoryByOwnerAndName(e, ref.Owner, ref.Name)
 			if err != nil {
 				if IsErrRepoNotExist(err) {
 					continue
 				}
 				return nil, err
 			}
-			if err = ctx.OrigIssue.loadRepo(e); err != nil {
-				return nil, err
-			}
-			if xref, err = issue.isValidCommentReference(e, ctx, repo, index); err != nil {
-				return nil, err
-			}
-			if xref != nil {
-				xreflist = issue.updateCrossReferenceList(xreflist, xref)
-			}
+		}
+		if xref, err = ctx.OrigIssue.isValidCommentReference(e, ctx, refRepo, ref.Index); err != nil {
+			return nil, err
+		}
+		if xref != nil {
+			xreflist = ctx.OrigIssue.updateCrossReferenceList(xreflist, xref)
 		}
 	}
 

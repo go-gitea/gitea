@@ -99,17 +99,6 @@ func getIssueFullPattern() *regexp.Regexp {
 	return issueFullPattern
 }
 
-// FindAllMentions matches mention patterns in given content
-// and returns a list of found user names without @ prefix.
-func FindAllMentions(content string) []string {
-	mentions := mentionPattern.FindAllStringSubmatch(content, -1)
-	ret := make([]string, len(mentions))
-	for i, val := range mentions {
-		ret[i] = val[1][1:]
-	}
-	return ret
-}
-
 // IsSameDomain checks if given url string has the same hostname as current Gitea instance
 func IsSameDomain(s string) bool {
 	if strings.HasPrefix(s, "/") {
