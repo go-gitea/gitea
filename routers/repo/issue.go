@@ -643,9 +643,13 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireTribute"] = true
 	renderAttachmentSettings(ctx)
 
-	err = issue.LoadAttributes()
-	if err != nil {
-		ctx.ServerError("GetIssueByIndex", err)
+	if err = issue.LoadAttributes(); err != nil {
+		ctx.ServerError("LoadAttributes", err)
+		return
+	}
+
+	if err = filterXRefComments(ctx, issue); err != nil {
+		ctx.ServerError("filterXRefComments", err)
 		return
 	}
 
@@ -1571,4 +1575,29 @@ func addParticipant(poster *models.User, participants []*models.User) []*models.
 		}
 	}
 	return append(participants, poster)
+}
+
+func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
+	// Remove comments that the user has no permissions to see
+	for i := 0; i < len(issue.Comments); {
+		c := issue.Comments[i]
+		if models.CommentTypeIsRef(c.Type) && c.RefRepoID != issue.RepoID && c.RefRepoID != 0 {
+			var err error
+			// Set RefRepo for description in template
+			c.RefRepo, err = models.GetRepositoryByID(c.RefRepoID)
+			if err != nil {
+				return err
+			}
+			perm, err := models.GetUserRepoPermission(c.RefRepo, ctx.User)
+			if err != nil {
+				return err
+			}
+			if !perm.CanReadIssuesOrPulls(c.RefIsPull) {
+				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
+				continue
+			}
+		}
+		i++
+	}
+	return nil
 }
