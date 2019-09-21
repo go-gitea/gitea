@@ -107,14 +107,12 @@
 				<div class="ui attached unstackable table segment">
 					{{if ne $file.Type 4}}
 						{{$isImage := (call $.IsImageFile $file.Name)}}
-						{{if and $isImage}}
-							<div class="center">
-								<img src="{{$.RawPath}}/{{EscapePound .Name}}">
-							</div>
-						{{else}}
-							<div class="file-body file-code code-view code-diff {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}}">
-								<table>
-									<tbody>
+						<div class="file-body file-code code-view code-diff {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}}">
+							<table>
+								<tbody>
+									{{if $isImage}}
+										{{template "repo/diff/image_diff" dict "file" . "root" $}}
+									{{else}}
 										{{if $.IsSplitStyle}}
 											{{$highlightClass := $file.GetHighlightClass}}
 											{{range $j, $section := $file.Sections}}
@@ -164,10 +162,10 @@
 										{{else}}
 											{{template "repo/diff/section_unified" dict "file" . "root" $}}
 										{{end}}
-									</tbody>
-								</table>
-							</div>
-						{{end}}
+									{{end}}
+								</tbody>
+							</table>
+						</div>
 					{{end}}
 				</div>
 			</div>

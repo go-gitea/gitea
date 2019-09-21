@@ -155,6 +155,8 @@ type ProtectBranchForm struct {
 	EnableMergeWhitelist    bool
 	MergeWhitelistUsers     string
 	MergeWhitelistTeams     string
+	EnableStatusCheck       bool `xorm:"NOT NULL DEFAULT false"`
+	StatusCheckContexts     []string
 	RequiredApprovals       int64
 	ApprovalsWhitelistUsers string
 	ApprovalsWhitelistTeams string

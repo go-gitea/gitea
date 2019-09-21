@@ -144,11 +144,12 @@ menu:
 
 ## Cache (`cache`)
 
-- `ADAPTER`: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
-- `INTERVAL`: 只对内存缓存有效，GC间隔，单位秒。
-- `HOST`: 针对redis和memcache有效，主机地址和端口。
+- `ADAPTER`: **memory**: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
+- `INTERVAL`: **60**: 只对内存缓存有效，GC间隔，单位秒。
+- `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。
     - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
     - Memache: `127.0.0.1:9090;127.0.0.1:9091`
+- `ITEM_TTL`: **16h**: 缓存项目失效时间，设置为 0 则禁用缓存。
 
 ## Session (`session`)
 
