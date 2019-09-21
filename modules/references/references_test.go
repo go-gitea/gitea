@@ -36,7 +36,7 @@ Closing #15
 I am opening #20 for you
 Do you process user6/repo6#300 ?
 For 999 #1235 no keyword.
-Which abc. #9434 nk neither.
+Which abc. #9434 nk either.
 		`
 	// Note, FindAllIssueReferences() processes references in this order:
 	// * Issue number: #123
