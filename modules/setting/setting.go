@@ -788,6 +788,10 @@ func NewContext() {
 			}
 		}
 	}
+	//if misconfiguration, then use strong checks
+	if len(PasswordComplexity) == 0 {
+		PasswordComplexity = dictPC
+	}
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
