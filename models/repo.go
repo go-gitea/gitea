@@ -1098,6 +1098,7 @@ type CreateRepoOptions struct {
 	Description string
 	OriginalURL string
 	Gitignores  string
+	IssueLabels string
 	License     string
 	Readme      string
 	IsPrivate   bool
@@ -1392,6 +1393,13 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
 			}
 			return nil, fmt.Errorf("initRepository: %v", err)
+		}
+
+		// Initialize Issue Labels if selected
+		if len(opts.IssueLabels) > 0 {
+			if err = initalizeLabels(sess, repo.ID, opts.IssueLabels); err != nil {
+				return nil, fmt.Errorf("initalizeLabels: %v", err)
+			}
 		}
 
 		_, stderr, err := process.GetManager().ExecDir(-1,

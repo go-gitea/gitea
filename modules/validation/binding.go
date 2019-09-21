@@ -10,11 +10,15 @@ import (
 	"strings"
 
 	"gitea.com/macaron/binding"
+	"github.com/gobwas/glob"
 )
 
 const (
 	// ErrGitRefName is git reference name error
 	ErrGitRefName = "GitRefNameError"
+
+	// ErrGlobPattern is returned when glob pattern is invalid
+	ErrGlobPattern = "GlobPattern"
 )
 
 var (
@@ -28,6 +32,7 @@ var (
 func AddBindingRules() {
 	addGitRefNameBindingRule()
 	addValidURLBindingRule()
+	addGlobPatternRule()
 }
 
 func addGitRefNameBindingRule() {
@@ -75,6 +80,26 @@ func addValidURLBindingRule() {
 			if len(str) != 0 && !IsValidURL(str) {
 				errs.Add([]string{name}, binding.ERR_URL, "Url")
 				return false, errs
+			}
+
+			return true, errs
+		},
+	})
+}
+
+func addGlobPatternRule() {
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return rule == "GlobPattern"
+		},
+		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+			str := fmt.Sprintf("%v", val)
+
+			if len(str) != 0 {
+				if _, err := glob.Compile(str); err != nil {
+					errs.Add([]string{name}, ErrGlobPattern, err.Error())
+					return false, errs
+				}
 			}
 
 			return true, errs

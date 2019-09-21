@@ -115,6 +115,7 @@ func Create(ctx *context.Context) {
 
 	// Give default value for template to render.
 	ctx.Data["Gitignores"] = models.Gitignores
+	ctx.Data["LabelTemplates"] = models.LabelTemplates
 	ctx.Data["Licenses"] = models.Licenses
 	ctx.Data["Readmes"] = models.Readmes
 	ctx.Data["readme"] = "Default"
@@ -155,6 +156,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	ctx.Data["Gitignores"] = models.Gitignores
+	ctx.Data["LabelTemplates"] = models.LabelTemplates
 	ctx.Data["Licenses"] = models.Licenses
 	ctx.Data["Readmes"] = models.Readmes
 
@@ -173,6 +175,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		Name:        form.RepoName,
 		Description: form.Description,
 		Gitignores:  form.Gitignores,
+		IssueLabels: form.IssueLabels,
 		License:     form.License,
 		Readme:      form.Readme,
 		IsPrivate:   form.Private || setting.Repository.ForcePrivate,
