@@ -115,20 +115,20 @@ func (task *Task) MigrateConfig() (*structs.MigrateRepoOption, error) {
 	return nil, fmt.Errorf("Task type is %s, not Migrate Repo", task.Type.Name())
 }
 
-// ErrTaskIsNotExist represents a "TaskIsNotExist" kind of error.
-type ErrTaskIsNotExist struct {
+// ErrTaskDoesNotExist represents a "TaskDoesNotExist" kind of error.
+type ErrTaskDoesNotExist struct {
 	ID     int64
 	RepoID int64
 	Type   structs.TaskType
 }
 
-// IsErrTaskNotExist checks if an error is a ErrTaskIsNotExist.
-func IsErrTaskNotExist(err error) bool {
-	_, ok := err.(ErrTaskIsNotExist)
+// IsErrTaskDoesNotExist checks if an error is a ErrTaskIsNotExist.
+func IsErrTaskDoesNotExist(err error) bool {
+	_, ok := err.(ErrTaskDoesNotExist)
 	return ok
 }
 
-func (err ErrTaskIsNotExist) Error() string {
+func (err ErrTaskDoesNotExist) Error() string {
 	return fmt.Sprintf("task is not exist [id: %d, repo_id: %d, type: %d]",
 		err.ID, err.RepoID, err.Type)
 }
@@ -143,7 +143,7 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrTaskIsNotExist{0, repoID, task.Type}
+		return nil, ErrTaskDoesNotExist{0, repoID, task.Type}
 	}
 	return &task, nil
 }
