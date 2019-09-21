@@ -6,12 +6,6 @@ package markup
 
 import (
 	"bytes"
-	"net/url"
-	"regexp"
-	"strconv"
-	"strings"
-
-	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/russross/blackfriday"
 )
@@ -36,12 +30,6 @@ const (
 		// Not included in modules/markup/markdown/markdown.go;
 		// required here to process inline links
 		blackfriday.EXTENSION_AUTOLINK
-)
-
-var (
-	// validNamePattern performs only the most basic validation for user or repository names
-	// Repository name should contain only alphanumeric, dash ('-'), underscore ('_') and dot ('.') characters.
-	validNamePattern = regexp.MustCompile(`^[a-z0-9_.-]+$`)
 )
 
 // StripMarkdown parses markdown content by removing all markup and code blocks
@@ -236,99 +224,4 @@ func (r *MarkdownStripper) processLink(out *bytes.Buffer, link []byte, content [
 // GetLinks returns the list of link data collected while parsing
 func (r *MarkdownStripper) GetLinks() []string {
 	return r.links
-}
-
-// FindAllMentions matches mention patterns in given content
-// and returns a list of found unvalidated user names without @ prefix.
-func FindAllMentions(content string) []string {
-	content, _ = StripMarkdown([]byte(content))
-	mentions := mentionPattern.FindAllStringSubmatch(content, -1)
-	ret := make([]string, len(mentions))
-	for i, val := range mentions {
-		ret[i] = val[1][1:]
-	}
-	return ret
-}
-
-type RawIssueReference struct {
-	Index int64
-	Owner string
-	Name  string
-}
-
-// FindAllIssueReferences matches issue reference patterns in given content
-// and returns a list of unvalidated references.
-func FindAllIssueReferences(content string) []*RawIssueReference {
-
-	content, links := StripMarkdown([]byte(content))
-	ret := make([]*RawIssueReference, 0, 10)
-
-	matches := issueNumericPattern.FindAllStringSubmatch(content, -1)
-	for _, match := range matches {
-		if ref := getCrossReference(match[1], false); ref != nil {
-			ret = append(ret, ref)
-		}
-	}
-
-	matches = crossReferenceIssueNumericPattern.FindAllStringSubmatch(content, -1)
-	for _, match := range matches {
-		if ref := getCrossReference(match[1], false); ref != nil {
-			ret = append(ret, ref)
-		}
-	}
-
-	var giteahost string
-	if uapp, err := url.Parse(setting.AppURL); err == nil {
-		giteahost = strings.ToLower(uapp.Host)
-	}
-
-	for _, link := range links {
-		if u, err := url.Parse(link); err == nil {
-			// Note: we're not attempting to match the URL scheme (http/https)
-			host := strings.ToLower(u.Host)
-			if host != "" && host != giteahost {
-				continue
-			}
-			parts := strings.Split(u.EscapedPath(), "/")
-			// /user/repo/issues/3
-			if len(parts) != 5 || parts[0] != "" {
-				continue
-			}
-			if parts[3] != "issues" && parts[3] != "pulls" {
-				continue
-			}
-			if ref := getCrossReference(parts[1]+"/"+parts[2]+"#"+parts[4], true); ref != nil {
-				ret = append(ret, ref)
-			}
-		}
-	}
-	return ret
-}
-
-func getCrossReference(s string, fromLink bool) *RawIssueReference {
-	parts := strings.Split(s, "#")
-	if len(parts) != 2 {
-		return nil
-	}
-	repo, issue := parts[0], parts[1]
-	index, err := strconv.ParseInt(issue, 10, 64)
-	if err != nil {
-		return nil
-	}
-	if repo == "" {
-		if fromLink {
-			// Markdown links must specify owner/repo
-			return nil
-		}
-		return &RawIssueReference{Index: index}
-	}
-	parts = strings.Split(strings.ToLower(repo), "/")
-	if len(parts) != 2 {
-		return nil
-	}
-	owner, name := parts[0], parts[1]
-	if !validNamePattern.MatchString(owner) || !validNamePattern.MatchString(name) {
-		return nil
-	}
-	return &RawIssueReference{Index: index, Owner: owner, Name: name}
 }

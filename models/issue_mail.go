@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/unknwon/com"
@@ -123,7 +123,7 @@ func (issue *Issue) MailParticipants(doer *User, opType ActionType) (err error) 
 }
 
 func (issue *Issue) mailParticipants(e Engine, doer *User, opType ActionType) (err error) {
-	mentions := markup.FindAllMentions(issue.Content)
+	mentions := references.FindAllMentions(issue.Content)
 
 	if err = UpdateIssueMentions(e, issue.ID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)

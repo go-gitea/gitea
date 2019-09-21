@@ -12,8 +12,8 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/references"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -402,7 +402,7 @@ func (c *Comment) MailParticipants(opType ActionType, issue *Issue) (err error) 
 }
 
 func (c *Comment) mailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
-	mentions := markup.FindAllMentions(c.Content)
+	mentions := references.FindAllMentions(c.Content)
 	if err = UpdateIssueMentions(e, c.IssueID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}

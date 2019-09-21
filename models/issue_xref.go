@@ -6,7 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/references"
 
 	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
@@ -122,7 +122,7 @@ func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesCont
 		err     error
 	)
 
-	for _, ref := range markup.FindAllIssueReferences(content) {
+	for _, ref := range references.FindAllIssueReferences(content) {
 		if ref.Owner == "" && ref.Name == "" {
 			// Issues in the same repository
 			if err := ctx.OrigIssue.loadRepo(e); err != nil {
