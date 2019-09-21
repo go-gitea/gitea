@@ -289,18 +289,15 @@ func FindAllIssueReferences(content string) []*RawIssueReference {
 			if host != "" && host != giteahost {
 				continue
 			}
-			if u.EscapedPath() == "" || u.EscapedPath()[0] != '/' {
+			parts := strings.Split(u.EscapedPath(), "/")
+			// /user/repo/issues/3
+			if len(parts) != 5 || parts[0] != "" {
 				continue
 			}
-			parts := strings.Split(u.EscapedPath()[1:], "/")
-			// user/repo/issues/3
-			if len(parts) != 4 {
+			if parts[3] != "issues" && parts[3] != "pulls" {
 				continue
 			}
-			if parts[2] != "issues" && parts[2] != "pulls" {
-				continue
-			}
-			if ref := getCrossReference(parts[0]+"/"+parts[1]+"#"+parts[3], true); ref != nil {
+			if ref := getCrossReference(parts[1]+"/"+parts[2]+"#"+parts[4], true); ref != nil {
 				ret = append(ret, ref)
 			}
 		}
