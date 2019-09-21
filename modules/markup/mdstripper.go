@@ -13,7 +13,7 @@ import (
 // MarkdownStripper extends blackfriday.Renderer
 type MarkdownStripper struct {
 	blackfriday.Renderer
-	links []string
+	links [][]byte
 }
 
 const (
@@ -36,10 +36,20 @@ const (
 //	in order to extract links and other references
 func StripMarkdown(rawBytes []byte) (string, []string) {
 	stripper := &MarkdownStripper{
-		links: make([]string, 0, 10),
+		links: make([][]byte, 0, 10),
 	}
 	body := blackfriday.Markdown(rawBytes, stripper, blackfridayExtensions)
 	return string(body), stripper.GetLinks()
+}
+
+// StripMarkdownBytes parses markdown content by removing all markup and code blocks
+//	in order to extract links and other references
+func StripMarkdownBytes(rawBytes []byte) ([]byte, [][]byte) {
+	stripper := &MarkdownStripper{
+		links: make([][]byte, 0, 10),
+	}
+	body := blackfriday.Markdown(rawBytes, stripper, blackfridayExtensions)
+	return body, stripper.GetLinksBytes()
 }
 
 // block-level callbacks
@@ -218,10 +228,19 @@ func (r *MarkdownStripper) processString(out *bytes.Buffer, text []byte) {
 }
 func (r *MarkdownStripper) processLink(out *bytes.Buffer, link []byte, content []byte) {
 	// Links are processed out of band
-	r.links = append(r.links, string(link))
+	r.links = append(r.links, link)
+}
+
+// GetLinksBytes returns the list of link data collected while parsing
+func (r *MarkdownStripper) GetLinksBytes() [][]byte {
+	return r.links
 }
 
 // GetLinks returns the list of link data collected while parsing
 func (r *MarkdownStripper) GetLinks() []string {
-	return r.links
+	links := make([]string,len(r.links))
+	for i, link := range r.links {
+		links[i] = string(link)
+	}
+	return links
 }
