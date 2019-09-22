@@ -352,10 +352,6 @@ func RenameRepoAction(actUser *User, oldRepoName string, repo *Repository) error
 	return renameRepoAction(x, actUser, oldRepoName, repo)
 }
 
-func issueIndexTrimRight(c rune) bool {
-	return !unicode.IsDigit(c)
-}
-
 // PushCommit represents a commit in a push operation.
 type PushCommit struct {
 	Sha1           string
