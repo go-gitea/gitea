@@ -62,6 +62,7 @@ type RawIssueReference struct {
 	ActionLocation ReferenceLocation
 }
 
+// ReferenceLocation is the position where the references was found within the parsed text
 type ReferenceLocation struct {
 	Start int
 	End   int
