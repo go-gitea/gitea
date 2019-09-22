@@ -99,6 +99,20 @@ func (pr *PullRequest) LoadAttributes() error {
 	return pr.loadAttributes(x)
 }
 
+// LoadBaseRepo loads pull request base repository from database
+func (pr *PullRequest) LoadBaseRepo() error {
+	if pr.BaseRepo == nil {
+		var repo Repository
+		if has, err := x.ID(pr.BaseRepoID).Get(&repo); err != nil {
+			return err
+		} else if !has {
+			return ErrRepoNotExist{ID: pr.BaseRepoID}
+		}
+		pr.BaseRepo = &repo
+	}
+	return nil
+}
+
 // LoadIssue loads issue information from database
 func (pr *PullRequest) LoadIssue() (err error) {
 	return pr.loadIssue(x)

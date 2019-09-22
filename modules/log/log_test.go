@@ -143,7 +143,7 @@ func TestNewNamedLogger(t *testing.T) {
 	level := INFO
 	err := NewNamedLogger("test", 0, "console", "console", fmt.Sprintf(`{"level":"%s"}`, level.String()))
 	assert.NoError(t, err)
-	logger := NamedLoggers["test"]
+	logger, _ := NamedLoggers.Load("test")
 	assert.Equal(t, level, logger.GetLevel())
 
 	written, closed := baseConsoleTest(t, logger)

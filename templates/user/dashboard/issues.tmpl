@@ -18,6 +18,10 @@
 							{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}
 							<strong class="ui right">{{.IssueStats.CreateCount}}</strong>
 						</a>
+						<a class="{{if eq .ViewType "mentioned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=mentioned&repo={{.RepoID}}&sort={{$.SortType}}&state={{.State}}">
+							{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}
+							<strong class="ui right">{{.IssueStats.MentionCount}}</strong>
+						</a>
 					{{end}}
 					<div class="ui divider"></div>
 					{{range .Repos}}
