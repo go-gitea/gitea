@@ -246,6 +246,8 @@ var migrations = []Migration{
 	NewMigration("add enable_status_check, status_check_contexts to protected_branch", addStatusCheckColumnsForProtectedBranches),
 	// v95 -> v96
 	NewMigration("add table columns for cross referencing issues", addCrossReferenceColumns),
+	// v96 -> v97
+	NewMigration("delete orphaned attachments", deleteOrphanedAttachments),
 }
 
 // Migrate database to current version
