@@ -18,6 +18,7 @@ type ProjectBoard struct {
 	ID        int64 `xorm:"pk autoincr"`
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
 	Title     string
+	RepoID    int64 `xorm:"INDEX NOT NULL"`
 
 	// Not really needed but helpful
 	CreatorID int64 `xorm:"NOT NULL"`
@@ -161,7 +162,7 @@ func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
 		return nil
 	}
 
-	var boards = make([]ProjectBoard, 0)
+	var boards = make([]ProjectBoard, 0, len(items))
 
 	for _, v := range items {
 		boards = append(boards, ProjectBoard{
@@ -170,6 +171,7 @@ func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
 			CreatorID:   project.CreatorID,
 			Title:       v,
 			ProjectID:   project.ID,
+			RepoID:      project.RepoID,
 		})
 	}
 
