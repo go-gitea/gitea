@@ -242,7 +242,7 @@ var migrations = []Migration{
 	NewMigration("add index on owner_id of repository and type, review_id of comment", addIndexOnRepositoryAndComment),
 	// v93 -> v94
 	NewMigration("add email notification enabled preference to user", addEmailNotificationEnabledToUser),
-	// v93 -> v94
+	// v94 -> v95
 	NewMigration("add enable_status_check, status_check_contexts to protected_branch", addStatusCheckColumnsForProtectedBranches),
 	// v95 -> v96
 	NewMigration("add table columns for cross referencing issues", addCrossReferenceColumns),
