@@ -243,17 +243,17 @@ var migrations = []Migration{
 	// v93 -> v94
 	NewMigration("add email notification enabled preference to user", addEmailNotificationEnabledToUser),
 	// v93 -> v94
-	NewMigration("add projects database table", addProjectsTable),
-	// v94 -> v95
-	NewMigration("add project ID to comments table", addProjectIDToCommentsTable),
-	// v95 -> v96
 	NewMigration("add enable_status_check, status_check_contexts to protected_branch", addStatusCheckColumnsForProtectedBranches),
 	// v95 -> v96
 	NewMigration("add table columns for cross referencing issues", addCrossReferenceColumns),
 	// v96 -> v97
 	NewMigration("delete orphaned attachments", deleteOrphanedAttachments),
 	// v97 -> v98
+	NewMigration("add projects database table", addProjectsTable),
+	// v98 -> v99
 	NewMigration("add projects info to database", addProjectsInfo),
+	// v99 -> v100
+	NewMigration("add project ID to comments table", addProjectIDToCommentsTable),
 }
 
 // Migrate database to current version
