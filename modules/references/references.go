@@ -43,28 +43,28 @@ type XRefAction int64
 
 const (
 	// XRefActionNone means the cross-reference is simply a comment
-	XRefActionNone XRefAction = iota	// 0
+	XRefActionNone XRefAction = iota // 0
 	// XRefActionCloses means the cross-reference should close an issue if it is resolved
-	XRefActionCloses					// 1
+	XRefActionCloses // 1
 	// XRefActionReopens means the cross-reference should reopen an issue if it is resolved
-	XRefActionReopens					// 2
+	XRefActionReopens // 2
 	// XRefActionNeutered means the cross-reference will no longer affect the source
-	XRefActionNeutered					// 3
+	XRefActionNeutered // 3
 )
 
 // RawIssueReference contains information about a cross-reference in the text
 type RawIssueReference struct {
-	Index           int64
-	Owner           string
-	Name            string
-	Action          XRefAction
-	RefLocation     ReferenceLocation
-	ActionLocation  ReferenceLocation
+	Index          int64
+	Owner          string
+	Name           string
+	Action         XRefAction
+	RefLocation    ReferenceLocation
+	ActionLocation ReferenceLocation
 }
 
 type ReferenceLocation struct {
-	Start	int
-	End		int
+	Start int
+	End   int
 }
 
 func makeKeywordsPat(keywords []string) *regexp.Regexp {
@@ -95,7 +95,7 @@ func FindAllMentionLocations(content []byte) []ReferenceLocation {
 	mentions := mentionPattern.FindAllSubmatchIndex(content, -1)
 	ret := make([]ReferenceLocation, len(mentions))
 	for i, val := range mentions {
-		ret[i] = ReferenceLocation{Start: val[2]+1, End: val[3]}
+		ret[i] = ReferenceLocation{Start: val[2] + 1, End: val[3]}
 	}
 	return ret
 }
@@ -152,7 +152,7 @@ func FindAllIssueReferencesBytes(content []byte, links []string) []*RawIssueRefe
 				continue
 			}
 			// Note: closing/reopening keywords not supported with URLs
-			bytes := []byte(parts[1]+"/"+parts[2]+"#"+parts[4])
+			bytes := []byte(parts[1] + "/" + parts[2] + "#" + parts[4])
 			if ref := getCrossReference(bytes, 0, len(bytes), true); ref != nil {
 				ref.RefLocation = ReferenceLocation{}
 				ret = append(ret, ref)
@@ -181,7 +181,7 @@ func getCrossReference(content []byte, start, end int, fromLink bool) *RawIssueR
 		}
 		action, location := findActionKeywords(content, start)
 		return &RawIssueReference{Index: index, RefLocation: ReferenceLocation{Start: start, End: end},
-								  Action: action, ActionLocation: location}
+			Action: action, ActionLocation: location}
 	}
 	parts = strings.Split(strings.ToLower(repo), "/")
 	if len(parts) != 2 {
@@ -193,16 +193,16 @@ func getCrossReference(content []byte, start, end int, fromLink bool) *RawIssueR
 	}
 	action, location := findActionKeywords(content, start)
 	return &RawIssueReference{Index: index, Owner: owner, Name: name,
-							  RefLocation: ReferenceLocation{Start: start, End: end},
-							  Action: action, ActionLocation: location}
+		RefLocation: ReferenceLocation{Start: start, End: end},
+		Action:      action, ActionLocation: location}
 }
 
 func findActionKeywords(content []byte, start int) (XRefAction, ReferenceLocation) {
-	m := issueCloseKeywordsPat.FindSubmatchIndex(content[:start]);
+	m := issueCloseKeywordsPat.FindSubmatchIndex(content[:start])
 	if m != nil {
 		return XRefActionCloses, ReferenceLocation{Start: m[2], End: m[3]}
 	}
-	m = issueReopenKeywordsPat.FindSubmatchIndex(content[:start]);
+	m = issueReopenKeywordsPat.FindSubmatchIndex(content[:start])
 	if m != nil {
 		return XRefActionReopens, ReferenceLocation{Start: m[2], End: m[3]}
 	}

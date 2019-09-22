@@ -13,7 +13,7 @@ import (
 // MarkdownStripper extends blackfriday.Renderer
 type MarkdownStripper struct {
 	blackfriday.Renderer
-	links []string
+	links     []string
 	coallesce bool
 }
 

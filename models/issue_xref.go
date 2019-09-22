@@ -103,9 +103,9 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesContext, plaincontent, mdcontent string) ([]*crossReference, error) {
 	xreflist := make([]*crossReference, 0, 5)
 	var (
-		refRepo		*Repository
-		refIssue	*Issue
-		err    		error
+		refRepo  *Repository
+		refIssue *Issue
+		err      error
 	)
 
 	allrefs := append(references.FindAllIssueReferences(plaincontent), references.FindAllIssueReferencesMarkdown(mdcontent)...)
@@ -132,7 +132,7 @@ func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesCont
 		}
 		if refIssue != nil {
 			xreflist = ctx.OrigIssue.updateCrossReferenceList(xreflist, &crossReference{
-				Issue:  refIssue,
+				Issue: refIssue,
 				// FIXME: currently ignore keywords
 				// Action: ref.Action,
 				Action: references.XRefActionNone,
