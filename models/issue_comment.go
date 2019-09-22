@@ -142,14 +142,30 @@ type Comment struct {
 	Review      *Review `xorm:"-"`
 	ReviewID    int64   `xorm:"index"`
 	Invalidated bool
+
+	// Reference an issue or pull from another comment, issue or PR
+	// All information is about the origin of the reference
+	RefRepoID    int64      `xorm:"index"` // Repo where the referencing
+	RefIssueID   int64      `xorm:"index"`
+	RefCommentID int64      `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
+	RefAction    XRefAction `xorm:"SMALLINT"` // What hapens if RefIssueID resolves
+	RefIsPull    bool
+
+	RefRepo    *Repository `xorm:"-"`
+	RefIssue   *Issue      `xorm:"-"`
+	RefComment *Comment    `xorm:"-"`
 }
 
 // LoadIssue loads issue from database
 func (c *Comment) LoadIssue() (err error) {
+	return c.loadIssue(x)
+}
+
+func (c *Comment) loadIssue(e Engine) (err error) {
 	if c.Issue != nil {
 		return nil
 	}
-	c.Issue, err = GetIssueByID(c.IssueID)
+	c.Issue, err = getIssueByID(e, c.IssueID)
 	return
 }
 
@@ -527,6 +543,11 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		TreePath:         opts.TreePath,
 		ReviewID:         opts.ReviewID,
 		Patch:            opts.Patch,
+		RefRepoID:        opts.RefRepoID,
+		RefIssueID:       opts.RefIssueID,
+		RefCommentID:     opts.RefCommentID,
+		RefAction:        opts.RefAction,
+		RefIsPull:        opts.RefIsPull,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -537,6 +558,10 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	}
 
 	if err = sendCreateCommentAction(e, opts, comment); err != nil {
+		return nil, err
+	}
+
+	if err = comment.addCrossReferences(e, opts.Doer); err != nil {
 		return nil, err
 	}
 
@@ -794,6 +819,11 @@ type CreateCommentOptions struct {
 	ReviewID         int64
 	Content          string
 	Attachments      []string // UUIDs of attachments
+	RefRepoID        int64
+	RefIssueID       int64
+	RefCommentID     int64
+	RefAction        XRefAction
+	RefIsPull        bool
 }
 
 // CreateComment creates comment of issue or commit.
@@ -934,21 +964,33 @@ func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
 
 // UpdateComment updates information of comment.
 func UpdateComment(doer *User, c *Comment, oldContent string) error {
-	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
 		return err
 	}
+
+	if _, err := sess.ID(c.ID).AllCols().Update(c); err != nil {
+		return err
+	}
+	if err := c.loadIssue(sess); err != nil {
+		return err
+	}
+	if err := c.neuterCrossReferences(sess); err != nil {
+		return err
+	}
+	if err := c.addCrossReferences(sess, doer); err != nil {
+		return err
+	}
+	if err := sess.Commit(); err != nil {
+		return fmt.Errorf("Commit: %v", err)
+	}
+	sess.Close()
 
 	if err := c.LoadPoster(); err != nil {
 		return err
 	}
-	if err := c.LoadIssue(); err != nil {
-		return err
-	}
-
 	if err := c.Issue.LoadAttributes(); err != nil {
-		return err
-	}
-	if err := c.loadPoster(x); err != nil {
 		return err
 	}
 
@@ -996,6 +1038,10 @@ func DeleteComment(doer *User, comment *Comment) error {
 		return err
 	}
 
+	if err := comment.neuterCrossReferences(sess); err != nil {
+		return err
+	}
+
 	if err := sess.Commit(); err != nil {
 		return err
 	}
@@ -1012,6 +1058,9 @@ func DeleteComment(doer *User, comment *Comment) error {
 		return err
 	}
 	if err := comment.loadPoster(x); err != nil {
+		return err
+	}
+	if err := comment.neuterCrossReferences(x); err != nil {
 		return err
 	}
 

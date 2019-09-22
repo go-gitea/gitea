@@ -6,10 +6,15 @@ package migrations
 
 import "github.com/go-xorm/xorm"
 
-func addRepoAdminChangeTeamAccessColumnForUser(x *xorm.Engine) error {
-	type User struct {
-		RepoAdminChangeTeamAccess bool `xorm:"NOT NULL DEFAULT false"`
+func addCrossReferenceColumns(x *xorm.Engine) error {
+	// Comment see models/comment.go
+	type Comment struct {
+		RefRepoID    int64 `xorm:"index"`
+		RefIssueID   int64 `xorm:"index"`
+		RefCommentID int64 `xorm:"index"`
+		RefAction    int64 `xorm:"SMALLINT"`
+		RefIsPull    bool
 	}
 
-	return x.Sync2(new(User))
+	return x.Sync2(new(Comment))
 }
