@@ -531,6 +531,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 
 		refMarked := make(map[markKey]bool)
 		var refRepo *Repository
+		var refIssue *Issue
 		var err error
 		for _, ref := range references.FindAllIssueReferences(c.Message) {
 
@@ -543,8 +544,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 			} else {
 				refRepo = repo
 			}
-			refIssue, err := getIssueFromRef(refRepo, ref.Index)
-			if err != nil {
+			if refIssue, err = getIssueFromRef(refRepo, ref.Index); err != nil {
 				return err
 			}
 			if refIssue == nil {
@@ -569,6 +569,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 
 			// Change issue status only if the commit has been pushed to the default branch.
 			// and if the repo is configured to allow only that
+			// FIXME: we should be using Issue.ref if set instead of repo.DefaultBranch
 			if repo.DefaultBranch != branchName && !repo.CloseIssuesViaCommitInAnyBranch {
 				continue
 			}
