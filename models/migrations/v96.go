@@ -14,6 +14,9 @@ import (
 
 func deleteOrphanedAttachments(x *xorm.Engine) error {
 
+	sess := x.NewSession()
+	defer sess.Close()
+
 	type Attachment struct {
 		ID        int64  `xorm:"pk autoincr"`
 		UUID      string `xorm:"uuid UNIQUE"`
