@@ -563,7 +563,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 			refMarked[key] = true
 
 			// only create comments for issues if user has permission for it
-			if perm.CanWrite(UnitTypeIssues) {
+			if perm.IsAdmin() || perm.IsOwner() || perm.CanWrite(UnitTypeIssues) {
 				message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
 				if err = CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
 					return err
