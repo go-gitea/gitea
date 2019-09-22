@@ -4,19 +4,39 @@
 
 package migrations
 
-import "github.com/go-xorm/xorm"
+import (
+	"os"
 
-func addProjectIDToCommentsTable(x *xorm.Engine) error {
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
+	"github.com/go-xorm/xorm"
+)
 
-	sess := x.NewSession()
-	defer sess.Close()
+func deleteOrphanedAttachments(x *xorm.Engine) error {
 
-	type Comment struct {
-		OldProjectID int64
-		ProjectID    int64
+	type Attachment struct {
+		ID        int64  `xorm:"pk autoincr"`
+		UUID      string `xorm:"uuid UNIQUE"`
+		IssueID   int64  `xorm:"INDEX"`
+		ReleaseID int64  `xorm:"INDEX"`
+		CommentID int64
 	}
 
-	if err := sess.Sync2(new(Comment)); err != nil {
+	err := sess.BufferSize(setting.Database.IterateBufferSize).
+		Where("`comment_id` = 0 and (`release_id` = 0 or `release_id` not in (select `id` from `release`))").Cols("uuid").
+		Iterate(new(Attachment),
+			func(idx int, bean interface{}) error {
+				attachment := bean.(*Attachment)
+
+				if err := os.RemoveAll(models.AttachmentLocalPath(attachment.UUID)); err != nil {
+					return err
+				}
+
+				_, err := sess.ID(attachment.ID).NoAutoCondition().Delete(attachment)
+				return err
+			})
+
+	if err != nil {
 		return err
 	}
 
