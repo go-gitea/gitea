@@ -33,6 +33,8 @@ const (
 		blackfriday.EXTENSION_AUTOLINK
 )
 
+//revive:disable:var-naming Implementing the Rendering interface requires breaking some linting rules
+
 // StripMarkdown parses markdown content by removing all markup and code blocks
 //	in order to extract links and other references
 func StripMarkdown(rawBytes []byte) (string, []string) {
@@ -229,6 +231,8 @@ func (r *MarkdownStripper) DocumentFooter(out *bytes.Buffer) {
 func (r *MarkdownStripper) GetFlags() int {
 	return 0
 }
+
+//revive:enable:var-naming
 
 func doubleSpace(out *bytes.Buffer) {
 	if out.Len() > 0 {
