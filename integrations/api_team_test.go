@@ -116,8 +116,7 @@ type TeamSearchResults struct {
 func TestAPITeamSearch(t *testing.T) {
 	prepareTestEnv(t)
 
-	teamUser := models.AssertExistsAndLoadBean(t, &models.TeamUser{}).(*models.TeamUser)
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: teamUser.UID}).(*models.User)
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	org := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)
 
 	var results TeamSearchResults
