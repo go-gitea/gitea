@@ -77,6 +77,10 @@ func TestRenameReservedUsername(t *testing.T) {
 		"help",
 		"user",
 		"template",
+		"explore",
+		"api",
+		"org",
+		"avatar",
 	}
 
 	session := loginUser(t, "user2")
