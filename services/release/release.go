@@ -109,7 +109,9 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 		return err
 	}
 
-	_ = models.AddReleaseAttachments(rel.ID, attachmentUUIDs)
+	if err = models.AddReleaseAttachments(rel.ID, attachmentUUIDs); err != nil {
+		log.Error("AddReleaseAttachments: %v", err)
+	}
 
 	if err = rel.LoadAttributes(); err != nil {
 		return err
