@@ -747,6 +747,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.settings.collaboration .collaborator.list>.item:not(:last-child){border-bottom:1px solid #ddd}
 .repository.settings.collaboration #repo-collab-form #search-user-box .results{left:7px}
 .repository.settings.collaboration #repo-collab-form .ui.button{margin-left:5px;margin-top:-3px}
+.repository.settings.collaboration #repo-collab-team-form #search-team-box .results{left:7px}
+.repository.settings.collaboration #repo-collab-team-form .ui.button{margin-left:5px;margin-top:-3px}
 .repository.settings.branches .protected-branches .selection.dropdown{width:300px}
 .repository.settings.branches .protected-branches .item{border:1px solid #eaeaea;padding:10px 15px}
 .repository.settings.branches .protected-branches .item:not(:last-child){border-bottom:0}
@@ -783,6 +785,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .user-cards .list .item .meta{margin-top:5px}
 #search-repo-box .results .result .image,#search-user-box .results .result .image{float:left;margin-right:8px;width:2em;height:2em}
 #search-repo-box .results .result .content,#search-user-box .results .result .content{margin:6px 0}
+#search-team-box .results .result .content{margin:6px 0}
 #issue-filters.hide{display:none}
 #issue-actions{margin-top:-1rem!important}
 #issue-actions.hide{display:none}
