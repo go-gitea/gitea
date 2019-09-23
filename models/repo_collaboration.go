@@ -197,19 +197,3 @@ func (repo *Repository) getRepoTeams(e Engine) (teams []*Team, err error) {
 func (repo *Repository) GetRepoTeams() ([]*Team, error) {
 	return repo.getRepoTeams(x)
 }
-
-// ModeI18nKey returns the i18n key to describe collaboration modes
-func (t *Team) ModeI18nKey() string {
-	switch t.Authorize {
-	case AccessModeRead:
-		return "repo.settings.collaboration.read"
-	case AccessModeWrite:
-		return "repo.settings.collaboration.write"
-	case AccessModeAdmin:
-		return "repo.settings.collaboration.admin"
-	case AccessModeOwner:
-		return "repo.settings.collaboration.owner"
-	default:
-		return "repo.settings.collaboration.undefined"
-	}
-}

@@ -68,7 +68,7 @@
 					<div class="ui eight wide column poping up" data-content="Team's permission is set on the team setting page and can't be changed per repository">
 						<span class="octicon octicon-shield"></span>
 						<div class="ui inline dropdown">
-							<div class="text">{{$.i18n.Tr .ModeI18nKey}}</div>
+							<div class="text">{{if eq .Authorize 1}}{{$.i18n.Tr "repo.settings.collaboration.read"}}{{else if eq .Authorize 2}}{{$.i18n.Tr "repo.settings.collaboration.write"}}{{else if eq .Authorize 3}}{{$.i18n.Tr "repo.settings.collaboration.admin"}}{{else if eq .Authorize 4}}{{$.i18n.Tr "repo.settings.collaboration.owner"}}{{else}}{{$.i18n.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
 						</div>
 						{{ if or (eq .Authorize 1) (eq .Authorize 2) }}
 							{{ $first := true }}
