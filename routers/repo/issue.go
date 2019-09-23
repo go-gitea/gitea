@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	milestone_service "code.gitea.io/gitea/services/milestone"
 
 	"github.com/unknwon/com"
 )
@@ -642,9 +643,13 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireTribute"] = true
 	renderAttachmentSettings(ctx)
 
-	err = issue.LoadAttributes()
-	if err != nil {
-		ctx.ServerError("GetIssueByIndex", err)
+	if err = issue.LoadAttributes(); err != nil {
+		ctx.ServerError("LoadAttributes", err)
+		return
+	}
+
+	if err = filterXRefComments(ctx, issue); err != nil {
+		ctx.ServerError("filterXRefComments", err)
 		return
 	}
 
@@ -803,17 +808,7 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 			marked[comment.PosterID] = comment.ShowTag
-
-			isAdded := false
-			for j := range participants {
-				if comment.Poster == participants[j] {
-					isAdded = true
-					break
-				}
-			}
-			if !isAdded && !issue.IsPoster(comment.Poster.ID) {
-				participants = append(participants, comment.Poster)
-			}
+			participants = addParticipant(comment.Poster, participants)
 		} else if comment.Type == models.CommentTypeLabel {
 			if err = comment.LoadLabel(); err != nil {
 				ctx.ServerError("LoadLabel", err)
@@ -849,6 +844,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadReview", err)
 				return
 			}
+			participants = addParticipant(comment.Poster, participants)
 			if comment.Review == nil {
 				continue
 			}
@@ -1045,10 +1041,13 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
+	oldTitle := issue.Title
 	if err := issue.ChangeTitle(ctx.User, title); err != nil {
 		ctx.ServerError("ChangeTitle", err)
 		return
 	}
+
+	notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
 
 	ctx.JSON(200, map[string]interface{}{
 		"title": issue.Title,
@@ -1092,7 +1091,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 			continue
 		}
 		issue.MilestoneID = milestoneID
-		if err := models.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+		if err := milestone_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
 			ctx.ServerError("ChangeMilestoneAssign", err)
 			return
 		}
@@ -1567,4 +1566,38 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 	ctx.JSON(200, map[string]interface{}{
 		"html": html,
 	})
+}
+
+func addParticipant(poster *models.User, participants []*models.User) []*models.User {
+	for _, part := range participants {
+		if poster.ID == part.ID {
+			return participants
+		}
+	}
+	return append(participants, poster)
+}
+
+func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
+	// Remove comments that the user has no permissions to see
+	for i := 0; i < len(issue.Comments); {
+		c := issue.Comments[i]
+		if models.CommentTypeIsRef(c.Type) && c.RefRepoID != issue.RepoID && c.RefRepoID != 0 {
+			var err error
+			// Set RefRepo for description in template
+			c.RefRepo, err = models.GetRepositoryByID(c.RefRepoID)
+			if err != nil {
+				return err
+			}
+			perm, err := models.GetUserRepoPermission(c.RefRepo, ctx.User)
+			if err != nil {
+				return err
+			}
+			if !perm.CanReadIssuesOrPulls(c.RefIsPull) {
+				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
+				continue
+			}
+		}
+		i++
+	}
+	return nil
 }

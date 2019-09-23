@@ -21,7 +21,7 @@ There are some basic steps to follow. On a Linux system run as the Gogs user:
 
 * Create a Gogs backup with `gogs backup`. This creates `gogs-backup-[timestamp].zip` file
   containing all important Gogs data. You would need it if you wanted to move to the `gogs` back later.
-* Download the file matching the destination platform from the [downloads page](https://dl.gitea.io/gitea).
+* Download the file matching the destination platform from the [downloads page](https://dl.gitea.io/gitea/).
  It should be `1.0.x` version. Migrating from `gogs` to any other version is impossible.
 * Put the binary at the desired install location.
 * Copy `gogs/custom/conf/app.ini` to `gitea/custom/conf/app.ini`.

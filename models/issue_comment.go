@@ -7,7 +7,6 @@
 package models
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 
@@ -15,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -144,14 +142,30 @@ type Comment struct {
 	Review      *Review `xorm:"-"`
 	ReviewID    int64   `xorm:"index"`
 	Invalidated bool
+
+	// Reference an issue or pull from another comment, issue or PR
+	// All information is about the origin of the reference
+	RefRepoID    int64      `xorm:"index"` // Repo where the referencing
+	RefIssueID   int64      `xorm:"index"`
+	RefCommentID int64      `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
+	RefAction    XRefAction `xorm:"SMALLINT"` // What hapens if RefIssueID resolves
+	RefIsPull    bool
+
+	RefRepo    *Repository `xorm:"-"`
+	RefIssue   *Issue      `xorm:"-"`
+	RefComment *Comment    `xorm:"-"`
 }
 
 // LoadIssue loads issue from database
 func (c *Comment) LoadIssue() (err error) {
+	return c.loadIssue(x)
+}
+
+func (c *Comment) loadIssue(e Engine) (err error) {
 	if c.Issue != nil {
 		return nil
 	}
-	c.Issue, err = GetIssueByID(c.IssueID)
+	c.Issue, err = getIssueByID(e, c.IssueID)
 	return
 }
 
@@ -488,32 +502,6 @@ func (c *Comment) UnsignedLine() uint64 {
 	return uint64(c.Line)
 }
 
-// AsDiff returns c.Patch as *Diff
-func (c *Comment) AsDiff() (*Diff, error) {
-	diff, err := ParsePatch(setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch))
-	if err != nil {
-		return nil, err
-	}
-	if len(diff.Files) == 0 {
-		return nil, fmt.Errorf("no file found for comment ID: %d", c.ID)
-	}
-	secs := diff.Files[0].Sections
-	if len(secs) == 0 {
-		return nil, fmt.Errorf("no sections found for comment ID: %d", c.ID)
-	}
-	return diff, nil
-}
-
-// MustAsDiff executes AsDiff and logs the error instead of returning
-func (c *Comment) MustAsDiff() *Diff {
-	diff, err := c.AsDiff()
-	if err != nil {
-		log.Warn("MustAsDiff: %v", err)
-	}
-	return diff
-}
-
 // CodeCommentURL returns the url to a comment in code
 func (c *Comment) CodeCommentURL() string {
 	err := c.LoadIssue()
@@ -555,6 +543,11 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		TreePath:         opts.TreePath,
 		ReviewID:         opts.ReviewID,
 		Patch:            opts.Patch,
+		RefRepoID:        opts.RefRepoID,
+		RefIssueID:       opts.RefIssueID,
+		RefCommentID:     opts.RefCommentID,
+		RefAction:        opts.RefAction,
+		RefIsPull:        opts.RefIsPull,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -565,6 +558,10 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	}
 
 	if err = sendCreateCommentAction(e, opts, comment); err != nil {
+		return nil, err
+	}
+
+	if err = comment.addCrossReferences(e, opts.Doer); err != nil {
 		return nil, err
 	}
 
@@ -822,6 +819,11 @@ type CreateCommentOptions struct {
 	ReviewID         int64
 	Content          string
 	Attachments      []string // UUIDs of attachments
+	RefRepoID        int64
+	RefIssueID       int64
+	RefCommentID     int64
+	RefAction        XRefAction
+	RefIsPull        bool
 }
 
 // CreateComment creates comment of issue or commit.
@@ -871,59 +873,6 @@ func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content stri
 		go HookQueue.Add(repo.ID)
 	}
 	return comment, nil
-}
-
-// CreateCodeComment creates a plain code comment at the specified line / path
-func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, treePath string, line, reviewID int64) (*Comment, error) {
-	var commitID, patch string
-	pr, err := GetPullRequestByIssueID(issue.ID)
-	if err != nil {
-		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
-	}
-	if err := pr.GetBaseRepo(); err != nil {
-		return nil, fmt.Errorf("GetHeadRepo: %v", err)
-	}
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %v", err)
-	}
-
-	// FIXME validate treePath
-	// Get latest commit referencing the commented line
-	// No need for get commit for base branch changes
-	if line > 0 {
-		commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(line))
-		if err == nil {
-			commitID = commit.ID.String()
-		} else if !strings.Contains(err.Error(), "exit status 128 - fatal: no such path") {
-			return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
-		}
-	}
-
-	// Only fetch diff if comment is review comment
-	if reviewID != 0 {
-		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
-		if err != nil {
-			return nil, fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
-		}
-		patchBuf := new(bytes.Buffer)
-		if err := GetRawDiffForFile(gitRepo.Path, pr.MergeBase, headCommitID, RawDiffNormal, treePath, patchBuf); err != nil {
-			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", err, gitRepo.Path, pr.MergeBase, headCommitID, treePath)
-		}
-		patch = CutDiffAroundLine(patchBuf, int64((&Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
-	}
-	return CreateComment(&CreateCommentOptions{
-		Type:      CommentTypeCode,
-		Doer:      doer,
-		Repo:      repo,
-		Issue:     issue,
-		Content:   content,
-		LineNum:   line,
-		TreePath:  treePath,
-		CommitSHA: commitID,
-		ReviewID:  reviewID,
-		Patch:     patch,
-	})
 }
 
 // CreateRefComment creates a commit reference comment to issue.
@@ -1015,21 +964,33 @@ func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
 
 // UpdateComment updates information of comment.
 func UpdateComment(doer *User, c *Comment, oldContent string) error {
-	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
 		return err
 	}
+
+	if _, err := sess.ID(c.ID).AllCols().Update(c); err != nil {
+		return err
+	}
+	if err := c.loadIssue(sess); err != nil {
+		return err
+	}
+	if err := c.neuterCrossReferences(sess); err != nil {
+		return err
+	}
+	if err := c.addCrossReferences(sess, doer); err != nil {
+		return err
+	}
+	if err := sess.Commit(); err != nil {
+		return fmt.Errorf("Commit: %v", err)
+	}
+	sess.Close()
 
 	if err := c.LoadPoster(); err != nil {
 		return err
 	}
-	if err := c.LoadIssue(); err != nil {
-		return err
-	}
-
 	if err := c.Issue.LoadAttributes(); err != nil {
-		return err
-	}
-	if err := c.loadPoster(x); err != nil {
 		return err
 	}
 
@@ -1077,6 +1038,10 @@ func DeleteComment(doer *User, comment *Comment) error {
 		return err
 	}
 
+	if err := comment.neuterCrossReferences(sess); err != nil {
+		return err
+	}
+
 	if err := sess.Commit(); err != nil {
 		return err
 	}
@@ -1093,6 +1058,9 @@ func DeleteComment(doer *User, comment *Comment) error {
 		return err
 	}
 	if err := comment.loadPoster(x); err != nil {
+		return err
+	}
+	if err := comment.neuterCrossReferences(x); err != nil {
 		return err
 	}
 
