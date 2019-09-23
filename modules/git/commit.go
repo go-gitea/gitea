@@ -10,6 +10,11 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
+	"image"
+	"image/color"
+	_ "image/gif"  // for processing gif images
+	_ "image/jpeg" // for processing jpeg images
+	_ "image/png"  // for processing png images
 	"io"
 	"net/http"
 	"strconv"
@@ -156,6 +161,43 @@ func (c *Commit) IsImageFile(name string) bool {
 	buf = buf[:n]
 	_, isImage := isImageFile(buf)
 	return isImage
+}
+
+// ImageMetaData represents metadata of an image file
+type ImageMetaData struct {
+	ColorModel color.Model
+	Width      int
+	Height     int
+	ByteSize   int64
+}
+
+// ImageInfo returns information about the dimensions of an image
+func (c *Commit) ImageInfo(name string) (*ImageMetaData, error) {
+	if !c.IsImageFile(name) {
+		return nil, nil
+	}
+
+	blob, err := c.GetBlobByPath(name)
+	if err != nil {
+		return nil, err
+	}
+	reader, err := blob.DataAsync()
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+	config, _, err := image.DecodeConfig(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	metadata := ImageMetaData{
+		ColorModel: config.ColorModel,
+		Width:      config.Width,
+		Height:     config.Height,
+		ByteSize:   blob.Size(),
+	}
+	return &metadata, nil
 }
 
 // GetCommitByPath return the commit of relative path object.
@@ -308,6 +350,13 @@ func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error)
 // YOU MUST ENSURE THAT pastCommit is a valid commit ID.
 func (c *Commit) FileChangedSinceCommit(filename, pastCommit string) (bool, error) {
 	return c.repo.FileChangedBetweenCommits(filename, pastCommit, c.ID.String())
+}
+
+// HasFile returns true if the file given exists on this commit
+// This does only mean it's there - it does not mean the file was changed during the commit.
+func (c *Commit) HasFile(filename string) (bool, error) {
+	result, err := c.repo.LsFiles(filename)
+	return result[0] == filename, err
 }
 
 // GetSubModules get all the sub modules of current revision git tree

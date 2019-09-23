@@ -1370,6 +1370,23 @@ func (err ErrTeamAlreadyExist) Error() string {
 	return fmt.Sprintf("team already exists [org_id: %d, name: %s]", err.OrgID, err.Name)
 }
 
+// ErrTeamNotExist represents a "TeamNotExist" error
+type ErrTeamNotExist struct {
+	OrgID  int64
+	TeamID int64
+	Name   string
+}
+
+// IsErrTeamNotExist checks if an error is a ErrTeamNotExist.
+func IsErrTeamNotExist(err error) bool {
+	_, ok := err.(ErrTeamNotExist)
+	return ok
+}
+
+func (err ErrTeamNotExist) Error() string {
+	return fmt.Sprintf("team does not exist [org_id %d, team_id %d, name: %s]", err.OrgID, err.TeamID, err.Name)
+}
+
 //
 // Two-factor authentication
 //

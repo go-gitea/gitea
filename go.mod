@@ -68,8 +68,8 @@ require (
 	github.com/lib/pq v1.2.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/lunny/levelqueue v0.0.0-20190217115915-02b525a4418e
-	github.com/markbates/goth v1.56.0
 	github.com/mailru/easyjson v0.7.0 // indirect
+	github.com/markbates/goth v1.56.0
 	github.com/mattn/go-isatty v0.0.7
 	github.com/mattn/go-oci8 v0.0.0-20190320171441-14ba190cf52d // indirect
 	github.com/mattn/go-sqlite3 v1.11.0
@@ -80,6 +80,7 @@ require (
 	github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
 	github.com/oliamb/cutter v0.2.2
 	github.com/philhofer/fwd v1.0.0 // indirect
+	github.com/pkg/errors v0.8.1
 	github.com/pquerna/otp v0.0.0-20160912161815-54653902c20e
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/procfs v0.0.4 // indirect

@@ -629,6 +629,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("").Get(repo.Collaboration).Post(repo.CollaborationPost)
 				m.Post("/access_mode", repo.ChangeCollaborationAccessMode)
 				m.Post("/delete", repo.DeleteCollaboration)
+				m.Group("/team", func() {
+					m.Post("", repo.AddTeamPost)
+					m.Post("/delete", repo.DeleteTeam)
+				})
 			})
 			m.Group("/branches", func() {
 				m.Combo("").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)

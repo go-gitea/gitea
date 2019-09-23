@@ -1,42 +1,36 @@
-// Package gplus implements the OAuth2 protocol for authenticating users through Google+.
-// This package can be used as a reference implementation of an OAuth2 provider for Goth.
-package gplus
+// Package google implements the OAuth2 protocol for authenticating users
+// through Google.
+package google
 
 import (
-	"bytes"
 	"encoding/json"
-	"io"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"fmt"
 	"github.com/markbates/goth"
 	"golang.org/x/oauth2"
 )
 
-const (
-	authURL         string = "https://accounts.google.com/o/oauth2/auth?access_type=offline"
-	tokenURL        string = "https://accounts.google.com/o/oauth2/token"
-	endpointProfile string = "https://www.googleapis.com/oauth2/v2/userinfo"
-)
+const endpointProfile string = "https://www.googleapis.com/oauth2/v2/userinfo"
 
-// New creates a new Google+ provider, and sets up important connection details.
-// You should always call `gplus.New` to get a new Provider. Never try to create
+// New creates a new Google provider, and sets up important connection details.
+// You should always call `google.New` to get a new Provider. Never try to create
 // one manually.
 func New(clientKey, secret, callbackURL string, scopes ...string) *Provider {
 	p := &Provider{
 		ClientKey:    clientKey,
 		Secret:       secret,
 		CallbackURL:  callbackURL,
-		providerName: "gplus",
+		providerName: "google",
 	}
 	p.config = newConfig(p, scopes)
 	return p
 }
 
-// Provider is the implementation of `goth.Provider` for accessing Google+.
+// Provider is the implementation of `goth.Provider` for accessing Google.
 type Provider struct {
 	ClientKey    string
 	Secret       string
@@ -57,14 +51,15 @@ func (p *Provider) SetName(name string) {
 	p.providerName = name
 }
 
+// Client returns an HTTP client to be used in all fetch operations.
 func (p *Provider) Client() *http.Client {
 	return goth.HTTPClientWithFallBack(p.HTTPClient)
 }
 
-// Debug is a no-op for the gplus package.
+// Debug is a no-op for the google package.
 func (p *Provider) Debug(debug bool) {}
 
-// BeginAuth asks Google+ for an authentication end-point.
+// BeginAuth asks Google for an authentication endpoint.
 func (p *Provider) BeginAuth(state string) (goth.Session, error) {
 	var opts []oauth2.AuthCodeOption
 	if p.prompt != nil {
@@ -77,7 +72,17 @@ func (p *Provider) BeginAuth(state string) (goth.Session, error) {
 	return session, nil
 }
 
-// FetchUser will go to Google+ and access basic information about the user.
+type googleUser struct {
+	ID        string `json:"id"`
+	Email     string `json:"email"`
+	Name      string `json:"name"`
+	FirstName string `json:"given_name"`
+	LastName  string `json:"family_name"`
+	Link      string `json:"link"`
+	Picture   string `json:"picture"`
+}
+
+// FetchUser will go to Google and access basic information about the user.
 func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 	sess := session.(*Session)
 	user := goth.User{
@@ -88,7 +93,7 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 	}
 
 	if user.AccessToken == "" {
-		// data is not yet retrieved since accessToken is still empty
+		// Data is not yet retrieved, since accessToken is still empty.
 		return user, fmt.Errorf("%s cannot get user information without accessToken", p.providerName)
 	}
 
@@ -102,47 +107,30 @@ func (p *Provider) FetchUser(session goth.Session) (goth.User, error) {
 		return user, fmt.Errorf("%s responded with a %d trying to fetch user information", p.providerName, response.StatusCode)
 	}
 
-	bits, err := ioutil.ReadAll(response.Body)
+	responseBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return user, err
 	}
 
-	err = json.NewDecoder(bytes.NewReader(bits)).Decode(&user.RawData)
-	if err != nil {
+	var u googleUser
+	if err := json.Unmarshal(responseBytes, &u); err != nil {
 		return user, err
 	}
 
-	err = userFromReader(bytes.NewReader(bits), &user)
-	return user, err
-}
-
-func userFromReader(reader io.Reader, user *goth.User) error {
-	u := struct {
-		ID        string `json:"id"`
-		Email     string `json:"email"`
-		Name      string `json:"name"`
-		FirstName string `json:"given_name"`
-		LastName  string `json:"family_name"`
-		Link      string `json:"link"`
-		Picture   string `json:"picture"`
-	}{}
-
-	err := json.NewDecoder(reader).Decode(&u)
-	if err != nil {
-		return err
-	}
-
+	// Extract the user data we got from Google into our goth.User.
 	user.Name = u.Name
 	user.FirstName = u.FirstName
 	user.LastName = u.LastName
 	user.NickName = u.Name
 	user.Email = u.Email
-	//user.Description = u.Bio
 	user.AvatarURL = u.Picture
 	user.UserID = u.ID
-	//user.Location = u.Location.Name
+	// Google provides other useful fields such as 'hd'; get them from RawData
+	if err := json.Unmarshal(responseBytes, &user.RawData); err != nil {
+		return user, err
+	}
 
-	return err
+	return user, nil
 }
 
 func newConfig(provider *Provider, scopes []string) *oauth2.Config {
@@ -150,11 +138,8 @@ func newConfig(provider *Provider, scopes []string) *oauth2.Config {
 		ClientID:     provider.ClientKey,
 		ClientSecret: provider.Secret,
 		RedirectURL:  provider.CallbackURL,
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  authURL,
-			TokenURL: tokenURL,
-		},
-		Scopes: []string{},
+		Endpoint:     Endpoint,
+		Scopes:       []string{},
 	}
 
 	if len(scopes) > 0 {
@@ -162,7 +147,7 @@ func newConfig(provider *Provider, scopes []string) *oauth2.Config {
 			c.Scopes = append(c.Scopes, scope)
 		}
 	} else {
-		c.Scopes = []string{"profile", "email", "openid"}
+		c.Scopes = []string{"email"}
 	}
 	return c
 }
@@ -183,7 +168,7 @@ func (p *Provider) RefreshToken(refreshToken string) (*oauth2.Token, error) {
 	return newToken, err
 }
 
-// SetPrompt sets the prompt values for the GPlus OAuth call. Use this to
+// SetPrompt sets the prompt values for the google OAuth call. Use this to
 // force users to choose and account every time by passing "select_account",
 // for example.
 // See https://developers.google.com/identity/protocols/OpenIDConnect#authenticationuriparameters

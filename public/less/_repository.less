@@ -536,6 +536,10 @@
 
     @comment-avatar-width: 3em;
 
+    .comment textarea {
+        max-height: none !important;
+    }
+
     &.new.issue {
         .comment.form {
             .comment {
@@ -1364,6 +1368,10 @@
                         width: 49%;
                     }
 
+                    td.center {
+                        text-align: center;
+                    }
+
                     .removed-code {
                         background-color: #ff9999;
                     }
@@ -1728,6 +1736,19 @@
                     margin-top: -3px;
                 }
             }
+
+            #repo-collab-team-form {
+                #search-team-box {
+                    .results {
+                        left: 7px;
+                    }
+                }
+
+                .ui.button {
+                    margin-left: 5px;
+                    margin-top: -3px;
+                }
+            }
         }
 
         &.branches {
@@ -1921,6 +1942,16 @@
                 height: 2em;
             }
 
+            .content {
+                margin: 6px 0;
+            }
+        }
+    }
+}
+
+#search-team-box {
+    .results {
+        .result {
             .content {
                 margin: 6px 0;
             }

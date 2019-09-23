@@ -206,14 +206,15 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 // ToOrganization convert models.User to api.Organization
 func ToOrganization(org *models.User) *api.Organization {
 	return &api.Organization{
-		ID:          org.ID,
-		AvatarURL:   org.AvatarLink(),
-		UserName:    org.Name,
-		FullName:    org.FullName,
-		Description: org.Description,
-		Website:     org.Website,
-		Location:    org.Location,
-		Visibility:  org.Visibility.String(),
+		ID:                        org.ID,
+		AvatarURL:                 org.AvatarLink(),
+		UserName:                  org.Name,
+		FullName:                  org.FullName,
+		Description:               org.Description,
+		Website:                   org.Website,
+		Location:                  org.Location,
+		Visibility:                org.Visibility.String(),
+		RepoAdminChangeTeamAccess: org.RepoAdminChangeTeamAccess,
 	}
 }
 
