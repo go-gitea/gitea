@@ -16,20 +16,6 @@ type Collaboration struct {
 	Mode   AccessMode `xorm:"DEFAULT 2 NOT NULL"`
 }
 
-// ModeI18nKey returns the collaboration mode I18n Key
-func (c *Collaboration) ModeI18nKey() string {
-	switch c.Mode {
-	case AccessModeRead:
-		return "repo.settings.collaboration.read"
-	case AccessModeWrite:
-		return "repo.settings.collaboration.write"
-	case AccessModeAdmin:
-		return "repo.settings.collaboration.admin"
-	default:
-		return "repo.settings.collaboration.undefined"
-	}
-}
-
 // AddCollaborator adds new collaboration to a repository with default access mode.
 func (repo *Repository) AddCollaborator(u *User) error {
 	collaboration := &Collaboration{

@@ -20,7 +20,7 @@
 					<div class="ui eight wide column">
 						<span class="octicon octicon-shield"></span>
 						<div class="ui inline dropdown">
-							<div class="text">{{$.i18n.Tr .Collaboration.ModeI18nKey}}</div>
+							<div class="text">{{if eq .Collaboration.Mode 1}}{{$.i18n.Tr "repo.settings.collaboration.read"}}{{else if eq .Collaboration.Mode 2}}{{$.i18n.Tr "repo.settings.collaboration.write"}}{{else if eq .Collaboration.Mode 3}}{{$.i18n.Tr "repo.settings.collaboration.admin"}}{{else}}{{$.i18n.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
 							<i class="dropdown icon"></i>
 							<div class="access-mode menu" data-url="{{$.Link}}/access_mode" data-uid="{{.ID}}">
 							<div class="item" data-text="{{$.i18n.Tr "repo.settings.collaboration.admin"}}" data-value="3">{{$.i18n.Tr "repo.settings.collaboration.admin"}}</div>
