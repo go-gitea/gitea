@@ -776,6 +776,7 @@ func NewGhostUser() *User {
 
 var (
 	reservedUsernames = []string{
+		"attachments",
 		"admin",
 		"api",
 		"assets",
