@@ -235,7 +235,7 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 	if !util.CheckPasswordComplexity(c.String("password")) {
-		return errors.New("Password is not complicated")
+		return errors.New("Password does not meet complexity requirements")
 	}
 	uname := c.String("username")
 	user, err := models.GetUserByName(uname)
