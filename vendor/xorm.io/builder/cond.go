@@ -4,43 +4,6 @@
 
 package builder
 
-import (
-	"io"
-	"strings"
-)
-
-// Writer defines the interface
-type Writer interface {
-	io.Writer
-	Append(...interface{})
-}
-
-var _ Writer = NewWriter()
-
-// BytesWriter implments Writer and save SQL in bytes.Buffer
-type BytesWriter struct {
-	writer *strings.Builder
-	args   []interface{}
-}
-
-// NewWriter creates a new string writer
-func NewWriter() *BytesWriter {
-	w := &BytesWriter{
-		writer: &strings.Builder{},
-	}
-	return w
-}
-
-// Write writes data to Writer
-func (s *BytesWriter) Write(buf []byte) (int, error) {
-	return s.writer.Write(buf)
-}
-
-// Append appends args to Writer
-func (s *BytesWriter) Append(args ...interface{}) {
-	s.args = append(s.args, args...)
-}
-
 // Cond defines an interface
 type Cond interface {
 	WriteTo(Writer) error

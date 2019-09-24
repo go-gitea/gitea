@@ -20,6 +20,7 @@ const (
 	unionType                // union
 )
 
+// all databasees
 const (
 	POSTGRES = "postgres"
 	SQLITE   = "sqlite3"
@@ -260,7 +261,7 @@ func (b *Builder) ToSQL() (string, []interface{}, error) {
 		}
 	}
 
-	var sql = w.writer.String()
+	var sql = w.String()
 	var err error
 
 	switch b.dialect {
@@ -289,12 +290,12 @@ func (b *Builder) ToSQL() (string, []interface{}, error) {
 	return sql, w.args, nil
 }
 
-// ToBoundSQL
+// ToBoundSQL generated a bound SQL string
 func (b *Builder) ToBoundSQL() (string, error) {
 	w := NewWriter()
 	if err := b.WriteTo(w); err != nil {
 		return "", err
 	}
 
-	return ConvertToBoundSQL(w.writer.String(), w.args)
+	return ConvertToBoundSQL(w.String(), w.args)
 }

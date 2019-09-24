@@ -52,9 +52,9 @@ type Statement struct {
 	omitColumnMap   columnMap
 	mustColumnMap   map[string]bool
 	nullableMap     map[string]bool
-	incrColumns     map[string]incrParam
-	decrColumns     map[string]decrParam
-	exprColumns     map[string]exprParam
+	incrColumns     exprParams
+	decrColumns     exprParams
+	exprColumns     exprParams
 	cond            builder.Cond
 	bufferSize      int
 	context         ContextCache
@@ -94,9 +94,9 @@ func (statement *Statement) Init() {
 	statement.nullableMap = make(map[string]bool)
 	statement.checkVersion = true
 	statement.unscoped = false
-	statement.incrColumns = make(map[string]incrParam)
-	statement.decrColumns = make(map[string]decrParam)
-	statement.exprColumns = make(map[string]exprParam)
+	statement.incrColumns = exprParams{}
+	statement.decrColumns = exprParams{}
+	statement.exprColumns = exprParams{}
 	statement.cond = builder.NewCond()
 	statement.bufferSize = 0
 	statement.context = nil
@@ -534,46 +534,28 @@ func (statement *Statement) ID(id interface{}) *Statement {
 
 // Incr Generate  "Update ... Set column = column + arg" statement
 func (statement *Statement) Incr(column string, arg ...interface{}) *Statement {
-	k := strings.ToLower(column)
 	if len(arg) > 0 {
-		statement.incrColumns[k] = incrParam{column, arg[0]}
+		statement.incrColumns.addParam(column, arg[0])
 	} else {
-		statement.incrColumns[k] = incrParam{column, 1}
+		statement.incrColumns.addParam(column, 1)
 	}
 	return statement
 }
 
 // Decr Generate  "Update ... Set column = column - arg" statement
 func (statement *Statement) Decr(column string, arg ...interface{}) *Statement {
-	k := strings.ToLower(column)
 	if len(arg) > 0 {
-		statement.decrColumns[k] = decrParam{column, arg[0]}
+		statement.decrColumns.addParam(column, arg[0])
 	} else {
-		statement.decrColumns[k] = decrParam{column, 1}
+		statement.decrColumns.addParam(column, 1)
 	}
 	return statement
 }
 
 // SetExpr Generate  "Update ... Set column = {expression}" statement
-func (statement *Statement) SetExpr(column string, expression string) *Statement {
-	k := strings.ToLower(column)
-	statement.exprColumns[k] = exprParam{column, expression}
+func (statement *Statement) SetExpr(column string, expression interface{}) *Statement {
+	statement.exprColumns.addParam(column, expression)
 	return statement
-}
-
-// Generate  "Update ... Set column = column + arg" statement
-func (statement *Statement) getInc() map[string]incrParam {
-	return statement.incrColumns
-}
-
-// Generate  "Update ... Set column = column - arg" statement
-func (statement *Statement) getDec() map[string]decrParam {
-	return statement.decrColumns
-}
-
-// Generate  "Update ... Set column = {expression}" statement
-func (statement *Statement) getExpr() map[string]exprParam {
-	return statement.exprColumns
 }
 
 func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
