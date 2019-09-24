@@ -41,14 +41,20 @@ type SearchTeamOptions struct {
 	Keyword     string
 	OrgID       int64
 	IncludeDesc bool
-	Limit       int
+	PageSize    int
+	Page        int
 }
 
 // SearchTeam search for teams. Caller is responsible to check permissions.
 func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
-	if opts.Limit <= 0 {
-		opts.Limit = 10
+	if opts.Page <= 0 {
+		opts.Page = 1
 	}
+	if opts.PageSize == 0 {
+		// Default limit
+		opts.PageSize = 10
+	}
+
 	var cond = builder.NewCond()
 
 	if len(opts.Keyword) > 0 {
@@ -80,11 +86,17 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 		return nil, 0, err
 	}
 
-	teams := make([]*Team, 0, opts.Limit)
+	sess = sess.Where(cond)
+	if opts.PageSize > 0 {
+		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	}
+	if opts.PageSize == -1 {
+		opts.PageSize = int(count)
+	}
+
+	teams := make([]*Team, 0, opts.PageSize)
 	if err = sess.
-		Where(cond).
 		OrderBy("lower_name").
-		Limit(opts.Limit).
 		Find(&teams); err != nil {
 		return nil, 0, err
 	}

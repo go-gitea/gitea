@@ -533,6 +533,10 @@ func SearchTeam(ctx *context.APIContext) {
 	//   in: query
 	//   description: limit size of results
 	//   type: integer
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
 	// responses:
 	//   "200":
 	//     description: "SearchResults of a successful search"
@@ -550,7 +554,8 @@ func SearchTeam(ctx *context.APIContext) {
 		Keyword:     strings.Trim(ctx.Query("q"), " "),
 		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: (ctx.Query("inclDesc") == "" || ctx.QueryBool("inclDesc")),
-		Limit:       ctx.QueryInt("limit"),
+		PageSize:    ctx.QueryInt("limit"),
+		Page:        ctx.QueryInt("page"),
 	}
 
 	teams, _, err := models.SearchTeam(opts)
