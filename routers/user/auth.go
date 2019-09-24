@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/mailer"
 
 	"gitea.com/macaron/captcha"
 	"github.com/markbates/goth"
@@ -948,7 +949,8 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 
 	// Send confirmation email
 	if setting.Service.RegisterEmailConfirm && u.ID > 1 {
-		models.SendActivateAccountMail(ctx.Context, u)
+		mailer.SendActivateAccountMail(ctx.Locale, u)
+
 		ctx.Data["IsSendRegisterMail"] = true
 		ctx.Data["Email"] = u.Email
 		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
@@ -1094,7 +1096,8 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 
 	// Send confirmation email, no need for social account.
 	if setting.Service.RegisterEmailConfirm && u.ID > 1 {
-		models.SendActivateAccountMail(ctx.Context, u)
+		mailer.SendActivateAccountMail(ctx.Locale, u)
+
 		ctx.Data["IsSendRegisterMail"] = true
 		ctx.Data["Email"] = u.Email
 		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
@@ -1125,7 +1128,7 @@ func Activate(ctx *context.Context) {
 				ctx.Data["ResendLimited"] = true
 			} else {
 				ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
-				models.SendActivateAccountMail(ctx.Context, ctx.User)
+				mailer.SendActivateAccountMail(ctx.Locale, ctx.User)
 
 				if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
 					log.Error("Set cache(MailResendLimit) fail: %v", err)
@@ -1247,7 +1250,8 @@ func ForgotPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	models.SendResetPasswordMail(ctx.Context, u)
+	mailer.SendResetPasswordMail(ctx.Locale, u)
+
 	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
 		log.Error("Set cache(MailResendLimit) fail: %v", err)
 	}
