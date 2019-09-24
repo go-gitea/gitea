@@ -402,7 +402,7 @@ func (c *Comment) MailParticipants(opType ActionType, issue *Issue) (err error) 
 }
 
 func (c *Comment) mailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
-	mentions := references.FindAllMentions(c.Content)
+	mentions := references.FindAllMentionsMarkdown(c.Content)
 	if err = UpdateIssueMentions(e, c.IssueID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}

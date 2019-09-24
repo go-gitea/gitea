@@ -123,7 +123,7 @@ func (issue *Issue) MailParticipants(doer *User, opType ActionType) (err error) 
 }
 
 func (issue *Issue) mailParticipants(e Engine, doer *User, opType ActionType) (err error) {
-	mentions := references.FindAllMentions(issue.Content)
+	mentions := references.FindAllMentionsMarkdown(issue.Content)
 
 	if err = UpdateIssueMentions(e, issue.ID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
