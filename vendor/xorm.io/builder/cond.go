@@ -6,6 +6,7 @@ package builder
 
 import (
 	"io"
+	"strings"
 )
 
 // Writer defines the interface
@@ -18,14 +19,14 @@ var _ Writer = NewWriter()
 
 // BytesWriter implments Writer and save SQL in bytes.Buffer
 type BytesWriter struct {
-	writer *StringBuilder
+	writer *strings.Builder
 	args   []interface{}
 }
 
 // NewWriter creates a new string writer
 func NewWriter() *BytesWriter {
 	w := &BytesWriter{
-		writer: &StringBuilder{},
+		writer: &strings.Builder{},
 	}
 	return w
 }

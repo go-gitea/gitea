@@ -1,6 +1,6 @@
 workspace:
   base: /go
-  path: src/github.com/go-xorm/builder
+  path: src/xorm.io/builder
 
 clone:
   git:
@@ -10,28 +10,22 @@ clone:
 
 matrix:
   GO_VERSION:
-    - 1.8
-    - 1.9
     - 1.10
     - 1.11
+    - 1.12
+    - 1.13
 
 pipeline:
   test:
     image: golang:${GO_VERSION}
+    environment:
+      GOPROXY: https://goproxy.cn
     commands:
-      - go get -u github.com/golang/lint/golint
+      - go get -u golang.org/x/lint/golint
       - go get -u github.com/stretchr/testify/assert
       - go get -u github.com/go-xorm/sqlfiddle
       - golint ./...
+      - go vet
       - go test -v -race -coverprofile=coverage.txt -covermode=atomic
     when:
       event: [ push, tag, pull_request ]
-
-codecov:
-    image: robertstettner/drone-codecov
-    group: build
-    secrets: [ codecov_token ]
-    files:
-      - coverage.txt
-    when:
-      event: [ push, pull_request ]

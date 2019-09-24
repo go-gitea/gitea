@@ -1,5 +1,7 @@
 module github.com/go-xorm/xorm
 
+go 1.11
+
 require (
 	github.com/cockroachdb/apd v1.1.0 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20190707035753-2be1aa521ff4
@@ -14,6 +16,6 @@ require (
 	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/ziutek/mymysql v1.5.4
-	xorm.io/builder v0.3.5
+	xorm.io/builder v0.3.6-0.20190906062455-b937eb46ecfb
 	xorm.io/core v0.7.0
 )

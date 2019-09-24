@@ -190,14 +190,14 @@ func (engine *Engine) Quote(value string) string {
 		return value
 	}
 
-	buf := builder.StringBuilder{}
+	buf := strings.Builder{}
 	engine.QuoteTo(&buf, value)
 
 	return buf.String()
 }
 
 // QuoteTo quotes string and writes into the buffer
-func (engine *Engine) QuoteTo(buf *builder.StringBuilder, value string) {
+func (engine *Engine) QuoteTo(buf *strings.Builder, value string) {
 	if buf == nil {
 		return
 	}
