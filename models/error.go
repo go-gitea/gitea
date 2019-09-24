@@ -23,7 +23,7 @@ func IsErrNotExist(err error) bool {
 }
 
 func (err ErrNotExist) Error() string {
-	return fmt.Sprintf("record is not exist [id: %d]", err.ID)
+	return fmt.Sprintf("record does not exist [id: %d]", err.ID)
 }
 
 // ErrNameReserved represents a "reserved name" error.

@@ -109,6 +109,7 @@ func SendActivateEmailMail(locale Locale, u *models.User, email *models.EmailAdd
 // SendRegisterNotifyMail triggers a notify e-mail by admin created a account.
 func SendRegisterNotifyMail(locale Locale, u *models.User) {
 	if setting.MailService == nil {
+		log.Warn("SendRegisterNotifyMail is being invoked but mail service hasn't been initialized")
 		return
 	}
 

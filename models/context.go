@@ -9,11 +9,9 @@ type DBContext struct {
 	e Engine
 }
 
-var defaultDBContext = DBContext{x}
-
 // DefaultDBContext represents a DBContext with default Engine
 func DefaultDBContext() DBContext {
-	return defaultDBContext
+	return DBContext{x}
 }
 
 // Committer represents an interface to Commit or Close the dbcontext
