@@ -198,7 +198,7 @@ github.com/go-swagger/go-swagger/cmd/swagger/commands/initcmd
 github.com/go-swagger/go-swagger/codescan
 github.com/go-swagger/go-swagger/generator
 github.com/go-swagger/go-swagger/scan
-# github.com/go-xorm/xorm v0.7.8-0.20190923153426-6d1191376545
+# github.com/go-xorm/xorm v0.7.8-0.20190924045825-2fbb9cd8ded8
 github.com/go-xorm/xorm
 # github.com/gobwas/glob v0.2.3
 github.com/gobwas/glob

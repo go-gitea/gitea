@@ -245,7 +245,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			if err != nil {
 				return 0, err
 			}
-			colNames = append(colNames, session.engine.Quote(colName)+" = "+subQuery)
+			colNames = append(colNames, session.engine.Quote(colName)+" = ("+subQuery+")")
 			args = append(args, subArgs...)
 		}
 	}

@@ -60,7 +60,13 @@ func (exprs *exprParams) writeArgs(w *builder.BytesWriter) error {
 	for _, expr := range exprs.args {
 		switch arg := expr.(type) {
 		case *builder.Builder:
+			if _, err := w.WriteString("("); err != nil {
+				return err
+			}
 			if err := arg.WriteTo(w); err != nil {
+				return err
+			}
+			if _, err := w.WriteString(")"); err != nil {
 				return err
 			}
 		default:
@@ -83,7 +89,13 @@ func (exprs *exprParams) writeNameArgs(w *builder.BytesWriter) error {
 
 		switch arg := exprs.args[i].(type) {
 		case *builder.Builder:
+			if _, err := w.WriteString("("); err != nil {
+				return err
+			}
 			if err := arg.WriteTo(w); err != nil {
+				return err
+			}
+			if _, err := w.WriteString("("); err != nil {
 				return err
 			}
 		default:

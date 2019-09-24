@@ -17,7 +17,13 @@ func writeArg(w *builder.BytesWriter, arg interface{}) error {
 			return err
 		}
 	case *builder.Builder:
+		if _, err := w.WriteString("("); err != nil {
+			return err
+		}
 		if err := argv.WriteTo(w); err != nil {
+			return err
+		}
+		if _, err := w.WriteString(")"); err != nil {
 			return err
 		}
 	default:
