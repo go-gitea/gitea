@@ -2,12 +2,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package mailer
 
 import (
 	"html/template"
 	"testing"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -33,16 +34,18 @@ const tmpl = `
 `
 
 func TestComposeIssueCommentMessage(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	var MailService setting.Mailer
+	assert.NoError(t, models.PrepareTestDatabase())
+	var mailService = setting.Mailer{
+		From: "test@gitea.com",
+	}
 
-	MailService.From = "test@gitea.com"
-	setting.MailService = &MailService
+	setting.MailService = &mailService
+	setting.Domain = "localhost"
 
-	doer := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1, Owner: doer}).(*Repository)
-	issue := AssertExistsAndLoadBean(t, &Issue{ID: 1, Repo: repo, Poster: doer}).(*Issue)
-	comment := AssertExistsAndLoadBean(t, &Comment{ID: 2, Issue: issue}).(*Comment)
+	doer := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1, Owner: doer}).(*models.Repository)
+	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 1, Repo: repo, Poster: doer}).(*models.Issue)
+	comment := models.AssertExistsAndLoadBean(t, &models.Comment{ID: 2, Issue: issue}).(*models.Comment)
 
 	email := template.Must(template.New("issue/comment").Parse(tmpl))
 	InitMailRender(email)
@@ -54,22 +57,23 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	inreplyTo := msg.GetHeader("In-Reply-To")
 	references := msg.GetHeader("References")
 
-	assert.Equal(t, subject[0], "Re: "+issue.mailSubject(), "Comment reply subject should contain Re:")
+	assert.Equal(t, subject[0], "Re: "+mailSubject(issue), "Comment reply subject should contain Re:")
 	assert.Equal(t, inreplyTo[0], "<user2/repo1/issues/1@localhost>", "In-Reply-To header doesn't match")
 	assert.Equal(t, references[0], "<user2/repo1/issues/1@localhost>", "References header doesn't match")
-
 }
 
 func TestComposeIssueMessage(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	var MailService setting.Mailer
+	assert.NoError(t, models.PrepareTestDatabase())
+	var mailService = setting.Mailer{
+		From: "test@gitea.com",
+	}
 
-	MailService.From = "test@gitea.com"
-	setting.MailService = &MailService
+	setting.MailService = &mailService
+	setting.Domain = "localhost"
 
-	doer := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1, Owner: doer}).(*Repository)
-	issue := AssertExistsAndLoadBean(t, &Issue{ID: 1, Repo: repo, Poster: doer}).(*Issue)
+	doer := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1, Owner: doer}).(*models.Repository)
+	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 1, Repo: repo, Poster: doer}).(*models.Issue)
 
 	email := template.Must(template.New("issue/comment").Parse(tmpl))
 	InitMailRender(email)
@@ -80,7 +84,7 @@ func TestComposeIssueMessage(t *testing.T) {
 	subject := msg.GetHeader("Subject")
 	messageID := msg.GetHeader("Message-ID")
 
-	assert.Equal(t, subject[0], issue.mailSubject(), "Subject not equal to issue.mailSubject()")
+	assert.Equal(t, subject[0], mailSubject(issue), "Subject not equal to issue.mailSubject()")
 	assert.Nil(t, msg.GetHeader("In-Reply-To"))
 	assert.Nil(t, msg.GetHeader("References"))
 	assert.Equal(t, messageID[0], "<user2/repo1/issues/1@localhost>", "Message-ID header doesn't match")

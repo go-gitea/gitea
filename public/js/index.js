@@ -1761,6 +1761,30 @@ function searchUsers() {
     });
 }
 
+function searchTeams() {
+    const $searchTeamBox = $('#search-team-box');
+    $searchTeamBox.search({
+        minCharacters: 2,
+        apiSettings: {
+            url: suburl + '/api/v1/orgs/' + $searchTeamBox.data('org') + '/teams',
+            headers: {"X-Csrf-Token": csrf},
+            onResponse: function(response) {
+                const items = [];
+                $.each(response, function (_i, item) {
+                    const title = item.name + ' (' + item.permission + ' access)';
+                    items.push({
+                        title: title,
+                    })
+                });
+
+                return { results: items }
+            }
+        },
+        searchFields: ['name', 'description'],
+        showNoResults: false
+    });
+}
+
 function searchRepositories() {
     const $searchRepoBox = $('#search-repo-box');
     $searchRepoBox.search({
@@ -2171,6 +2195,7 @@ $(document).ready(function () {
 
     buttonsClickOnEnter();
     searchUsers();
+    searchTeams();
     searchRepositories();
 
     initCommentForm();
