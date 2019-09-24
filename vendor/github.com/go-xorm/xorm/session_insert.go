@@ -340,73 +340,95 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	// insert expr columns, override if exists
-	exprColumns := session.statement.getExpr()
-	exprColVals := make([]string, 0, len(exprColumns))
-	for _, v := range exprColumns {
-		// remove the expr columns
-		for i, colName := range colNames {
-			if colName == strings.Trim(v.colName, "`") {
-				colNames = append(colNames[:i], colNames[i+1:]...)
-				args = append(args[:i], args[i+1:]...)
-			}
-		}
 
-		// append expr column to the end
-		colNames = append(colNames, v.colName)
-		exprColVals = append(exprColVals, v.expr)
+	exprs := session.statement.exprColumns
+	colPlaces := strings.Repeat("?, ", len(colNames))
+	if exprs.Len() <= 0 && len(colPlaces) > 0 {
+		colPlaces = colPlaces[0 : len(colPlaces)-2]
 	}
 
-	colPlaces := strings.Repeat("?, ", len(colNames)-len(exprColumns))
-	if len(exprColVals) > 0 {
-		colPlaces = colPlaces + strings.Join(exprColVals, ", ")
-	} else {
-		if len(colPlaces) > 0 {
-			colPlaces = colPlaces[0 : len(colPlaces)-2]
-		}
-	}
-
-	var sqlStr string
 	var tableName = session.statement.TableName()
 	var output string
 	if session.engine.dialect.DBType() == core.MSSQL && len(table.AutoIncrement) > 0 {
 		output = fmt.Sprintf(" OUTPUT Inserted.%s", table.AutoIncrement)
 	}
 
-	if len(colPlaces) > 0 {
+	var buf = builder.NewWriter()
+	if _, err := buf.WriteString(fmt.Sprintf("INSERT INTO %s", session.engine.Quote(tableName))); err != nil {
+		return 0, err
+	}
+
+	if len(colPlaces) <= 0 {
+		if session.engine.dialect.DBType() == core.MYSQL {
+			if _, err := buf.WriteString(" VALUES ()"); err != nil {
+				return 0, err
+			}
+		} else {
+			if _, err := buf.WriteString(fmt.Sprintf("%s DEFAULT VALUES", output)); err != nil {
+				return 0, err
+			}
+		}
+	} else {
+		if _, err := buf.WriteString(" ("); err != nil {
+			return 0, err
+		}
+
+		if err := writeStrings(buf, append(colNames, exprs.colNames...), "`", "`"); err != nil {
+			return 0, err
+		}
+
 		if session.statement.cond.IsValid() {
-			condSQL, condArgs, err := builder.ToSQL(session.statement.cond)
-			if err != nil {
+			if _, err := buf.WriteString(fmt.Sprintf(")%s SELECT ", output)); err != nil {
 				return 0, err
 			}
 
-			sqlStr = fmt.Sprintf("INSERT INTO %s (%v)%s SELECT %v FROM %v WHERE %v",
-				session.engine.Quote(tableName),
-				quoteColumns(colNames, session.engine.Quote, ","),
-				output,
-				colPlaces,
-				session.engine.Quote(tableName),
-				condSQL,
-			)
-			args = append(args, condArgs...)
+			if err := session.statement.writeArgs(buf, args); err != nil {
+				return 0, err
+			}
+
+			if len(exprs.args) > 0 {
+				if _, err := buf.WriteString(","); err != nil {
+					return 0, err
+				}
+			}
+			if err := exprs.writeArgs(buf); err != nil {
+				return 0, err
+			}
+
+			if _, err := buf.WriteString(fmt.Sprintf(" FROM %v WHERE ", session.engine.Quote(tableName))); err != nil {
+				return 0, err
+			}
+
+			if err := session.statement.cond.WriteTo(buf); err != nil {
+				return 0, err
+			}
 		} else {
-			sqlStr = fmt.Sprintf("INSERT INTO %s (%v)%s VALUES (%v)",
-				session.engine.Quote(tableName),
-				quoteColumns(colNames, session.engine.Quote, ","),
+			buf.Append(args...)
+
+			if _, err := buf.WriteString(fmt.Sprintf(")%s VALUES (%v",
 				output,
-				colPlaces)
-		}
-	} else {
-		if session.engine.dialect.DBType() == core.MYSQL {
-			sqlStr = fmt.Sprintf("INSERT INTO %s VALUES ()", session.engine.Quote(tableName))
-		} else {
-			sqlStr = fmt.Sprintf("INSERT INTO %s%s DEFAULT VALUES", session.engine.Quote(tableName), output)
+				colPlaces)); err != nil {
+				return 0, err
+			}
+
+			if err := exprs.writeArgs(buf); err != nil {
+				return 0, err
+			}
+
+			if _, err := buf.WriteString(")"); err != nil {
+				return 0, err
+			}
 		}
 	}
 
 	if len(table.AutoIncrement) > 0 && session.engine.dialect.DBType() == core.POSTGRES {
-		sqlStr = sqlStr + " RETURNING " + session.engine.Quote(table.AutoIncrement)
+		if _, err := buf.WriteString(" RETURNING " + session.engine.Quote(table.AutoIncrement)); err != nil {
+			return 0, err
+		}
 	}
+
+	sqlStr := buf.String()
+	args = buf.Args()
 
 	handleAfterInsertProcessorFunc := func(bean interface{}) {
 		if session.isAutoCommit {
@@ -611,9 +633,11 @@ func (session *Session) genInsertColumns(bean interface{}) ([]string, []interfac
 			continue
 		}
 
-		if _, ok := session.statement.incrColumns[col.Name]; ok {
+		if session.statement.incrColumns.isColExist(col.Name) {
 			continue
-		} else if _, ok := session.statement.decrColumns[col.Name]; ok {
+		} else if session.statement.decrColumns.isColExist(col.Name) {
+			continue
+		} else if session.statement.exprColumns.isColExist(col.Name) {
 			continue
 		}
 
@@ -688,45 +712,65 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 	}
 
 	var columns = make([]string, 0, len(m))
+	exprs := session.statement.exprColumns
 	for k := range m {
-		columns = append(columns, k)
+		if !exprs.isColExist(k) {
+			columns = append(columns, k)
+		}
 	}
 	sort.Strings(columns)
-
-	qm := strings.Repeat("?,", len(columns))
 
 	var args = make([]interface{}, 0, len(m))
 	for _, colName := range columns {
 		args = append(args, m[colName])
 	}
 
-	// insert expr columns, override if exists
-	exprColumns := session.statement.getExpr()
-	for _, col := range exprColumns {
-		columns = append(columns, strings.Trim(col.colName, "`"))
-		qm = qm + col.expr + ","
-	}
-
-	qm = qm[:len(qm)-1]
-
-	var sql string
-
+	w := builder.NewWriter()
 	if session.statement.cond.IsValid() {
-		condSQL, condArgs, err := builder.ToSQL(session.statement.cond)
-		if err != nil {
+		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (", session.engine.Quote(tableName))); err != nil {
 			return 0, err
 		}
-		sql = fmt.Sprintf("INSERT INTO %s (`%s`) SELECT %s FROM %s WHERE %s",
-			session.engine.Quote(tableName),
-			strings.Join(columns, "`,`"),
-			qm,
-			session.engine.Quote(tableName),
-			condSQL,
-		)
-		args = append(args, condArgs...)
+
+		if err := writeStrings(w, append(columns, exprs.colNames...), "`", "`"); err != nil {
+			return 0, err
+		}
+
+		if _, err := w.WriteString(") SELECT "); err != nil {
+			return 0, err
+		}
+
+		if err := session.statement.writeArgs(w, args); err != nil {
+			return 0, err
+		}
+
+		if len(exprs.args) > 0 {
+			if _, err := w.WriteString(","); err != nil {
+				return 0, err
+			}
+			if err := exprs.writeArgs(w); err != nil {
+				return 0, err
+			}
+		}
+
+		if _, err := w.WriteString(fmt.Sprintf(" FROM %s WHERE ", session.engine.Quote(tableName))); err != nil {
+			return 0, err
+		}
+
+		if err := session.statement.cond.WriteTo(w); err != nil {
+			return 0, err
+		}
 	} else {
-		sql = fmt.Sprintf("INSERT INTO %s (`%s`) VALUES (%s)", session.engine.Quote(tableName), strings.Join(columns, "`,`"), qm)
+		qm := strings.Repeat("?,", len(columns))
+		qm = qm[:len(qm)-1]
+
+		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (`%s`) VALUES (%s)", session.engine.Quote(tableName), strings.Join(columns, "`,`"), qm)); err != nil {
+			return 0, err
+		}
+		w.Append(args...)
 	}
+
+	sql := w.String()
+	args = w.Args()
 
 	if err := session.cacheInsert(tableName); err != nil {
 		return 0, err
@@ -754,8 +798,11 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 	}
 
 	var columns = make([]string, 0, len(m))
+	exprs := session.statement.exprColumns
 	for k := range m {
-		columns = append(columns, k)
+		if !exprs.isColExist(k) {
+			columns = append(columns, k)
+		}
 	}
 	sort.Strings(columns)
 
@@ -764,36 +811,52 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 		args = append(args, m[colName])
 	}
 
-	qm := strings.Repeat("?,", len(columns))
-
-	// insert expr columns, override if exists
-	exprColumns := session.statement.getExpr()
-	for _, col := range exprColumns {
-		columns = append(columns, strings.Trim(col.colName, "`"))
-		qm = qm + col.expr + ","
-	}
-
-	qm = qm[:len(qm)-1]
-
-	var sql string
-
+	w := builder.NewWriter()
 	if session.statement.cond.IsValid() {
-		qm = "(" + qm[:len(qm)-1] + ")"
-		condSQL, condArgs, err := builder.ToSQL(session.statement.cond)
-		if err != nil {
+		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (", session.engine.Quote(tableName))); err != nil {
 			return 0, err
 		}
-		sql = fmt.Sprintf("INSERT INTO %s (`%s`) SELECT %s FROM %s WHERE %s",
-			session.engine.Quote(tableName),
-			strings.Join(columns, "`,`"),
-			qm,
-			session.engine.Quote(tableName),
-			condSQL,
-		)
-		args = append(args, condArgs...)
+
+		if err := writeStrings(w, append(columns, exprs.colNames...), "`", "`"); err != nil {
+			return 0, err
+		}
+
+		if _, err := w.WriteString(") SELECT "); err != nil {
+			return 0, err
+		}
+
+		if err := session.statement.writeArgs(w, args); err != nil {
+			return 0, err
+		}
+
+		if len(exprs.args) > 0 {
+			if _, err := w.WriteString(","); err != nil {
+				return 0, err
+			}
+			if err := exprs.writeArgs(w); err != nil {
+				return 0, err
+			}
+		}
+
+		if _, err := w.WriteString(fmt.Sprintf(" FROM %s WHERE ", session.engine.Quote(tableName))); err != nil {
+			return 0, err
+		}
+
+		if err := session.statement.cond.WriteTo(w); err != nil {
+			return 0, err
+		}
 	} else {
-		sql = fmt.Sprintf("INSERT INTO %s (`%s`) VALUES (%s)", session.engine.Quote(tableName), strings.Join(columns, "`,`"), qm)
+		qm := strings.Repeat("?,", len(columns))
+		qm = qm[:len(qm)-1]
+
+		if _, err := w.WriteString(fmt.Sprintf("INSERT INTO %s (`%s`) VALUES (%s)", session.engine.Quote(tableName), strings.Join(columns, "`,`"), qm)); err != nil {
+			return 0, err
+		}
+		w.Append(args...)
 	}
+
+	sql := w.String()
+	args = w.Args()
 
 	if err := session.cacheInsert(tableName); err != nil {
 		return 0, err
