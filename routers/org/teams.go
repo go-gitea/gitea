@@ -182,10 +182,11 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 	ctx.Data["Units"] = models.Units
 
 	t := &models.Team{
-		OrgID:       ctx.Org.Organization.ID,
-		Name:        form.TeamName,
-		Description: form.Description,
-		Authorize:   models.ParseAccessMode(form.Permission),
+		OrgID:            ctx.Org.Organization.ID,
+		Name:             form.TeamName,
+		Description:      form.Description,
+		Authorize:        models.ParseAccessMode(form.Permission),
+		CanCreateOrgRepo: form.CanCreateOrgRepo,
 	}
 
 	if t.Authorize < models.AccessModeOwner {
@@ -294,6 +295,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 			return
 		}
 	}
+	t.CanCreateOrgRepo = form.CanCreateOrgRepo
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplTeamNew)

@@ -1326,7 +1326,18 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("getOwnerTeam: %v", err)
 		} else if err = t.addRepository(e, repo); err != nil {
 			return fmt.Errorf("addRepository: %v", err)
-		} else if err = prepareWebhooks(e, repo, HookEventRepository, &api.RepositoryPayload{
+		}
+
+		if !t.IsMember(doer.ID) {
+			// If creator not in owner team, make repo admin
+			if err = repo.addCollaborator(e, doer); err != nil {
+				return fmt.Errorf("AddCollaborator: %v", err)
+			} else if err = repo.changeCollaborationAccessMode(e, doer.ID, AccessModeAdmin); err != nil {
+				return fmt.Errorf("ChangeCollaborationAccessMode: %v", err)
+			}
+		}
+
+		if err = prepareWebhooks(e, repo, HookEventRepository, &api.RepositoryPayload{
 			Action:       api.HookRepoCreated,
 			Repository:   repo.innerAPIFormat(e, AccessModeOwner, false),
 			Organization: u.APIFormat(),

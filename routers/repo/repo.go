@@ -52,9 +52,9 @@ func MustBeAbleToUpload(ctx *context.Context) {
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *models.User {
-	orgs, err := models.GetOwnedOrgsByUserIDDesc(ctx.User.ID, "updated_unix")
+	orgs, err := models.GetOrgsCanCreateRepoByUserIDDesc(ctx.User.ID, "updated_unix")
 	if err != nil {
-		ctx.ServerError("GetOwnedOrgsByUserIDDesc", err)
+		ctx.ServerError("GetOrgsCanCreateRepoByUserIDDesc", err)
 		return nil
 	}
 	ctx.Data["Orgs"] = orgs
@@ -80,11 +80,11 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 		return nil
 	}
 	if !ctx.User.IsAdmin {
-		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("IsOwnedBy", err)
+			ctx.ServerError("CanCreateOrgRepo", err)
 			return nil
-		} else if !isOwner {
+		} else if !canCreate {
 			ctx.Error(403)
 			return nil
 		}

@@ -21,17 +21,18 @@ const ownerTeamName = "Owners"
 
 // Team represents a organization team.
 type Team struct {
-	ID          int64 `xorm:"pk autoincr"`
-	OrgID       int64 `xorm:"INDEX"`
-	LowerName   string
-	Name        string
-	Description string
-	Authorize   AccessMode
-	Repos       []*Repository `xorm:"-"`
-	Members     []*User       `xorm:"-"`
-	NumRepos    int
-	NumMembers  int
-	Units       []*TeamUnit `xorm:"-"`
+	ID               int64 `xorm:"pk autoincr"`
+	OrgID            int64 `xorm:"INDEX"`
+	LowerName        string
+	Name             string
+	Description      string
+	Authorize        AccessMode
+	Repos            []*Repository `xorm:"-"`
+	Members          []*User       `xorm:"-"`
+	NumRepos         int
+	NumMembers       int
+	Units            []*TeamUnit `xorm:"-"`
+	CanCreateOrgRepo bool        `xorm:"NOT NULL DEFAULT false"`
 }
 
 // ColorFormat provides a basic color format for a Team
