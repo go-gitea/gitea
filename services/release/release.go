@@ -109,11 +109,13 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 		return err
 	}
 
+	if err = models.AddReleaseAttachments(rel.ID, attachmentUUIDs); err != nil {
+		log.Error("AddReleaseAttachments: %v", err)
+	}
+
 	if err = rel.LoadAttributes(); err != nil {
 		return err
 	}
-
-	err = models.AddReleaseAttachments(rel.ID, attachmentUUIDs)
 
 	// even if attachments added failed, hooks will be still triggered
 	mode, _ := models.AccessLevel(doer, rel.Repo)
