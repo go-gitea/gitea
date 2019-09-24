@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -142,14 +141,30 @@ type Comment struct {
 	Review      *Review `xorm:"-"`
 	ReviewID    int64   `xorm:"index"`
 	Invalidated bool
+
+	// Reference an issue or pull from another comment, issue or PR
+	// All information is about the origin of the reference
+	RefRepoID    int64      `xorm:"index"` // Repo where the referencing
+	RefIssueID   int64      `xorm:"index"`
+	RefCommentID int64      `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
+	RefAction    XRefAction `xorm:"SMALLINT"` // What hapens if RefIssueID resolves
+	RefIsPull    bool
+
+	RefRepo    *Repository `xorm:"-"`
+	RefIssue   *Issue      `xorm:"-"`
+	RefComment *Comment    `xorm:"-"`
 }
 
 // LoadIssue loads issue from database
 func (c *Comment) LoadIssue() (err error) {
+	return c.loadIssue(x)
+}
+
+func (c *Comment) loadIssue(e Engine) (err error) {
 	if c.Issue != nil {
 		return nil
 	}
-	c.Issue, err = GetIssueByID(c.IssueID)
+	c.Issue, err = getIssueByID(e, c.IssueID)
 	return
 }
 
@@ -379,40 +394,6 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	return err
 }
 
-// MailParticipants sends new comment emails to repository watchers
-// and mentioned people.
-func (c *Comment) MailParticipants(opType ActionType, issue *Issue) (err error) {
-	return c.mailParticipants(x, opType, issue)
-}
-
-func (c *Comment) mailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
-	mentions := markup.FindAllMentions(c.Content)
-	if err = UpdateIssueMentions(e, c.IssueID, mentions); err != nil {
-		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
-	}
-
-	if len(c.Content) > 0 {
-		if err = mailIssueCommentToParticipants(e, issue, c.Poster, c.Content, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
-	}
-
-	switch opType {
-	case ActionCloseIssue:
-		ct := fmt.Sprintf("Closed #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(e, issue, c.Poster, ct, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
-	case ActionReopenIssue:
-		ct := fmt.Sprintf("Reopened #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(e, issue, c.Poster, ct, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
-	}
-
-	return nil
-}
-
 func (c *Comment) loadReactions(e Engine) (err error) {
 	if c.Reactions != nil {
 		return nil
@@ -527,6 +508,11 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		TreePath:         opts.TreePath,
 		ReviewID:         opts.ReviewID,
 		Patch:            opts.Patch,
+		RefRepoID:        opts.RefRepoID,
+		RefIssueID:       opts.RefIssueID,
+		RefCommentID:     opts.RefCommentID,
+		RefAction:        opts.RefAction,
+		RefIsPull:        opts.RefIsPull,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -537,6 +523,10 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	}
 
 	if err = sendCreateCommentAction(e, opts, comment); err != nil {
+		return nil, err
+	}
+
+	if err = comment.addCrossReferences(e, opts.Doer); err != nil {
 		return nil, err
 	}
 
@@ -794,6 +784,11 @@ type CreateCommentOptions struct {
 	ReviewID         int64
 	Content          string
 	Attachments      []string // UUIDs of attachments
+	RefRepoID        int64
+	RefIssueID       int64
+	RefCommentID     int64
+	RefAction        XRefAction
+	RefIsPull        bool
 }
 
 // CreateComment creates comment of issue or commit.
@@ -934,21 +929,33 @@ func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
 
 // UpdateComment updates information of comment.
 func UpdateComment(doer *User, c *Comment, oldContent string) error {
-	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
 		return err
 	}
+
+	if _, err := sess.ID(c.ID).AllCols().Update(c); err != nil {
+		return err
+	}
+	if err := c.loadIssue(sess); err != nil {
+		return err
+	}
+	if err := c.neuterCrossReferences(sess); err != nil {
+		return err
+	}
+	if err := c.addCrossReferences(sess, doer); err != nil {
+		return err
+	}
+	if err := sess.Commit(); err != nil {
+		return fmt.Errorf("Commit: %v", err)
+	}
+	sess.Close()
 
 	if err := c.LoadPoster(); err != nil {
 		return err
 	}
-	if err := c.LoadIssue(); err != nil {
-		return err
-	}
-
 	if err := c.Issue.LoadAttributes(); err != nil {
-		return err
-	}
-	if err := c.loadPoster(x); err != nil {
 		return err
 	}
 
@@ -996,6 +1003,10 @@ func DeleteComment(doer *User, comment *Comment) error {
 		return err
 	}
 
+	if err := comment.neuterCrossReferences(sess); err != nil {
+		return err
+	}
+
 	if err := sess.Commit(); err != nil {
 		return err
 	}
@@ -1012,6 +1023,9 @@ func DeleteComment(doer *User, comment *Comment) error {
 		return err
 	}
 	if err := comment.loadPoster(x); err != nil {
+		return err
+	}
+	if err := comment.neuterCrossReferences(x); err != nil {
 		return err
 	}
 
