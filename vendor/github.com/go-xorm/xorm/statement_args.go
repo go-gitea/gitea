@@ -8,13 +8,36 @@ import (
 	"fmt"
 
 	"xorm.io/builder"
+	"xorm.io/core"
 )
 
-func writeArg(w *builder.BytesWriter, arg interface{}) error {
+func (statement *Statement) writeArg(w *builder.BytesWriter, arg interface{}) error {
 	switch argv := arg.(type) {
 	case string:
 		if _, err := w.WriteString("'" + argv + "'"); err != nil {
 			return err
+		}
+	case bool:
+		if statement.Engine.dialect.DBType() == core.MSSQL {
+			if argv {
+				if _, err := w.WriteString("1"); err != nil {
+					return err
+				}
+			} else {
+				if _, err := w.WriteString("0"); err != nil {
+					return err
+				}
+			}
+		} else {
+			if argv {
+				if _, err := w.WriteString("true"); err != nil {
+					return err
+				}
+			} else {
+				if _, err := w.WriteString("false"); err != nil {
+					return err
+				}
+			}
 		}
 	case *builder.Builder:
 		if _, err := w.WriteString("("); err != nil {
@@ -34,9 +57,9 @@ func writeArg(w *builder.BytesWriter, arg interface{}) error {
 	return nil
 }
 
-func writeArgs(w *builder.BytesWriter, args []interface{}) error {
+func (statement *Statement) writeArgs(w *builder.BytesWriter, args []interface{}) error {
 	for i, arg := range args {
-		if err := writeArg(w, arg); err != nil {
+		if err := statement.writeArg(w, arg); err != nil {
 			return err
 		}
 

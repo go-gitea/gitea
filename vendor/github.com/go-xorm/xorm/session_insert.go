@@ -382,7 +382,7 @@ func (session *Session) innerInsert(bean interface{}) (int64, error) {
 				return 0, err
 			}
 
-			if err := writeArgs(buf, args); err != nil {
+			if err := session.statement.writeArgs(buf, args); err != nil {
 				return 0, err
 			}
 
@@ -739,7 +739,7 @@ func (session *Session) insertMapInterface(m map[string]interface{}) (int64, err
 			return 0, err
 		}
 
-		if err := writeArgs(w, args); err != nil {
+		if err := session.statement.writeArgs(w, args); err != nil {
 			return 0, err
 		}
 
@@ -825,7 +825,7 @@ func (session *Session) insertMapString(m map[string]string) (int64, error) {
 			return 0, err
 		}
 
-		if err := writeArgs(w, args); err != nil {
+		if err := session.statement.writeArgs(w, args); err != nil {
 			return 0, err
 		}
 
