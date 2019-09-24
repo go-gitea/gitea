@@ -1503,7 +1503,7 @@ func getParticipantsByIssueID(e Engine, issueID int64) ([]*User, error) {
 
 // UpdateIssueMentions extracts mentioned people from content and
 // updates issue-user relations for them.
-func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
+func UpdateIssueMentions(ctx DBContext, issueID int64, mentions []string) error {
 	if len(mentions) == 0 {
 		return nil
 	}
@@ -1513,7 +1513,7 @@ func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
 	}
 	users := make([]*User, 0, len(mentions))
 
-	if err := e.In("lower_name", mentions).Asc("lower_name").Find(&users); err != nil {
+	if err := ctx.e.In("lower_name", mentions).Asc("lower_name").Find(&users); err != nil {
 		return fmt.Errorf("find mentioned users: %v", err)
 	}
 
@@ -1525,7 +1525,7 @@ func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
 		}
 
 		memberIDs := make([]int64, 0, user.NumMembers)
-		orgUsers, err := getOrgUsersByOrgID(e, user.ID)
+		orgUsers, err := getOrgUsersByOrgID(ctx.e, user.ID)
 		if err != nil {
 			return fmt.Errorf("GetOrgUsersByOrgID [%d]: %v", user.ID, err)
 		}
@@ -1537,7 +1537,7 @@ func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
 		ids = append(ids, memberIDs...)
 	}
 
-	if err := UpdateIssueUsersByMentions(e, issueID, ids); err != nil {
+	if err := UpdateIssueUsersByMentions(ctx, issueID, ids); err != nil {
 		return fmt.Errorf("UpdateIssueUsersByMentions: %v", err)
 	}
 

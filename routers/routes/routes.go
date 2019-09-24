@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
 	userSetting "code.gitea.io/gitea/routers/user/setting"
+	"code.gitea.io/gitea/services/mailer"
 
 	// to registers all internal adapters
 	_ "code.gitea.io/gitea/modules/session"
@@ -166,7 +167,7 @@ func NewMacaron() *macaron.Macaron {
 	))
 
 	m.Use(templates.HTMLRenderer())
-	models.InitMailRender(templates.Mailer())
+	mailer.InitMailRender(templates.Mailer())
 
 	localeNames, err := options.Dir("locale")
 

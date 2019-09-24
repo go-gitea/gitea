@@ -11,6 +11,21 @@ import (
 	"code.gitea.io/gitea/modules/git"
 )
 
+// ErrNotExist represents a non-exist error.
+type ErrNotExist struct {
+	ID int64
+}
+
+// IsErrNotExist checks if an error is an ErrNotExist
+func IsErrNotExist(err error) bool {
+	_, ok := err.(ErrNotExist)
+	return ok
+}
+
+func (err ErrNotExist) Error() string {
+	return fmt.Sprintf("record does not exist [id: %d]", err.ID)
+}
+
 // ErrNameReserved represents a "reserved name" error.
 type ErrNameReserved struct {
 	Name string
