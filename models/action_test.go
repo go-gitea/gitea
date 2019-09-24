@@ -173,7 +173,7 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 	pushCommits.Len = len(pushCommits.Commits)
 
 	assert.Equal(t,
-		"/user/avatar/user2/-1",
+		"/suburl/user/avatar/user2/-1",
 		pushCommits.AvatarLink("user2@example.com"))
 
 	assert.Equal(t,
