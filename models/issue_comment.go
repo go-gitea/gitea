@@ -169,7 +169,7 @@ func (c *Comment) loadIssue(e Engine) (err error) {
 }
 
 func (c *Comment) loadPoster(e Engine) (err error) {
-	if c.Poster != nil {
+	if c.PosterID <= 0 || c.Poster != nil {
 		return nil
 	}
 
@@ -338,21 +338,7 @@ func (c *Comment) LoadMilestone() error {
 
 // LoadPoster loads comment poster
 func (c *Comment) LoadPoster() error {
-	if c.PosterID <= 0 || c.Poster != nil {
-		return nil
-	}
-
-	var err error
-	c.Poster, err = getUserByID(x, c.PosterID)
-	if err != nil {
-		if IsErrUserNotExist(err) {
-			c.PosterID = -1
-			c.Poster = NewGhostUser()
-		} else {
-			log.Error("getUserByID[%d]: %v", c.ID, err)
-		}
-	}
-	return nil
+	return c.loadPoster(x)
 }
 
 // LoadAttachments loads attachments
