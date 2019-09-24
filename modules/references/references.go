@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/mdstripper"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -23,12 +23,11 @@ var (
 	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_\.]+)(?:\s|$|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
 	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
-	// issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([\pL]+ )?(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
-	// issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([\pL]+ )?(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
+	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
+	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$))`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. gogits/gogs#12345
 	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
-	// crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([\pL]+ )?([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
 
 	// Same as GitHub. See
 	// https://help.github.com/articles/closing-issues-via-commit-messages
@@ -62,6 +61,14 @@ type RawIssueReference struct {
 	ActionLocation ReferenceLocation
 }
 
+// RawAlphanumIssueReference contains information about an external reference in the text
+type RawAlphanumIssueReference struct {
+	Index          string
+	Action         XRefAction
+	RefLocation    ReferenceLocation
+	ActionLocation ReferenceLocation
+}
+
 // ReferenceLocation is the position where the references was found within the parsed text
 type ReferenceLocation struct {
 	Start int
@@ -77,40 +84,74 @@ func init() {
 	issueReopenKeywordsPat = makeKeywordsPat(issueReopenKeywords)
 }
 
-// FindAllMentions matches mention patterns in given content
-// and returns a list of found unvalidated user names without @ prefix.
-func FindAllMentions(content string) []string {
-	bcontent := []byte(content)
-	locations := FindAllMentionLocations(bcontent)
+// FindAllMentionsMarkdown matches mention patterns in given content and
+// returns a list of found unvalidated user names **not including** the @ prefix.
+func FindAllMentionsMarkdown(content string) []string {
+	bcontent, _ := mdstripper.StripMarkdownBytes([]byte(content))
+	locations := FindAllMentionsBytes(bcontent)
 	mentions := make([]string, len(locations))
 	for i, val := range locations {
-		mentions[i] = string(bcontent[val.Start:val.End])
+		mentions[i] = string(bcontent[val.Start+1 : val.End])
 	}
 	return mentions
 }
 
-// FindAllMentionLocations matches mention patterns in given content
-// and returns a list of found unvalidated user names without @ prefix.
-func FindAllMentionLocations(content []byte) []ReferenceLocation {
-	content, _ = markup.StripMarkdownBytes([]byte(content))
+// FindAllMentionsBytes matches mention patterns in given content
+// and returns a list of found unvalidated user names including the @ prefix.
+func FindAllMentionsBytes(content []byte) []ReferenceLocation {
 	mentions := mentionPattern.FindAllSubmatchIndex(content, -1)
 	ret := make([]ReferenceLocation, len(mentions))
 	for i, val := range mentions {
-		ret[i] = ReferenceLocation{Start: val[2] + 1, End: val[3]}
+		ret[i] = ReferenceLocation{Start: val[2], End: val[3]}
 	}
 	return ret
+}
+
+// FindFirstMentionBytes matches mention patterns in given content
+// and returns a list of found unvalidated user names including the @ prefix.
+func FindFirstMentionBytes(content []byte) (bool, ReferenceLocation) {
+	mention := mentionPattern.FindSubmatchIndex(content)
+	if mention == nil {
+		return false, ReferenceLocation{}
+	}
+	return true, ReferenceLocation{Start: mention[2], End: mention[3]}
 }
 
 // FindAllIssueReferencesMarkdown strips content from markdown markup
 // and returns a list of unvalidated references found in it.
 func FindAllIssueReferencesMarkdown(content string) []*RawIssueReference {
-	bcontent, links := markup.StripMarkdownBytes([]byte(content))
+	bcontent, links := mdstripper.StripMarkdownBytes([]byte(content))
 	return FindAllIssueReferencesBytes(bcontent, links)
 }
 
 // FindAllIssueReferences returns a list of unvalidated references found in a string.
 func FindAllIssueReferences(content string) []*RawIssueReference {
 	return FindAllIssueReferencesBytes([]byte(content), []string{})
+}
+
+// FindFirstIssueReferenceBytes returns the first unvalidated references found in a byte slice
+func FindFirstIssueReferenceBytes(content []byte) (bool, *RawIssueReference) {
+	match := issueNumericPattern.FindSubmatchIndex(content)
+	if match == nil {
+		if match = crossReferenceIssueNumericPattern.FindSubmatchIndex(content); match == nil {
+			return false, nil
+		}
+	}
+
+	return true, getCrossReference(content, match[2], match[3], false)
+}
+
+// FindFirstAlphanumericIssueReferenceBytes returns the first alphanumeric unvalidated references found in a byte slice
+func FindFirstAlphanumericIssueReferenceBytes(content []byte) (bool, *RawAlphanumIssueReference) {
+	match := issueAlphanumericPattern.FindSubmatchIndex(content)
+	if match == nil {
+		return false, nil
+	}
+
+	action, location := findActionKeywords(content, match[2])
+	return true, &RawAlphanumIssueReference{Index: string(content[match[2]:match[3]]),
+		RefLocation: ReferenceLocation{Start: match[2], End: match[3]},
+		Action:      action, ActionLocation: location}
 }
 
 // FindAllIssueReferencesBytes returns a list of unvalidated references found in a byte slice.

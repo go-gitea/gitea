@@ -186,4 +186,68 @@ func TestFindAllIssueReferences(t *testing.T) {
 
 	// Restore for other tests that may rely on the original value
 	setting.AppURL = prevURL
+
+	type alnumFixture struct {
+		input    string
+		expected *RawAlphanumIssueReference
+	}
+
+	alnumFixtures := []alnumFixture{
+		{
+			"This ref ABC-123 is alphanumeric",
+			&RawAlphanumIssueReference{
+				"ABC-123", XRefActionNone,
+				ReferenceLocation{Start: 9, End: 16},
+				ReferenceLocation{Start: 0, End: 0},
+			},
+		},
+		{
+			"This closes ABCD-1234 alphanumeric",
+			&RawAlphanumIssueReference{
+				"ABCD-1234", XRefActionCloses,
+				ReferenceLocation{Start: 12, End: 21},
+				ReferenceLocation{Start: 5, End: 11},
+			},
+		},
+	}
+
+	for _, fixture := range alnumFixtures {
+		found, ref := FindFirstAlphanumericIssueReferenceBytes([]byte(fixture.input))
+		if fixture.expected == nil {
+			assert.False(t, found, "Failed to parse: {%s}", fixture.input)
+		} else {
+			assert.True(t, found, "Failed to parse: {%s}", fixture.input)
+			assert.EqualValues(t, fixture.expected, ref, "Failed to parse: {%s}", fixture.input)
+		}
+	}
+}
+
+func TestRegExp_mentionPattern(t *testing.T) {
+	trueTestCases := []string{
+		"@Unknwon",
+		"@ANT_123",
+		"@xxx-DiN0-z-A..uru..s-xxx",
+		"   @lol   ",
+		" @Te-st",
+		"(@gitea)",
+		"[@gitea]",
+	}
+	falseTestCases := []string{
+		"@ 0",
+		"@ ",
+		"@",
+		"",
+		"ABC",
+		"/home/gitea/@gitea",
+		"\"@gitea\"",
+	}
+
+	for _, testCase := range trueTestCases {
+		res := mentionPattern.MatchString(testCase)
+		assert.True(t, res)
+	}
+	for _, testCase := range falseTestCases {
+		res := mentionPattern.MatchString(testCase)
+		assert.False(t, res)
+	}
 }
