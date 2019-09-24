@@ -938,11 +938,7 @@ func DeleteComment(comment *Comment, doer *User) error {
 		return err
 	}
 
-	if err := sess.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
