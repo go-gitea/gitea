@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -37,7 +38,7 @@ var (
 	// TODO: fix invalid linking issue
 
 	// mentionPattern matches all mentions in the form of "@user"
-	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_\.]+)(?:\s|$|\)|\])`)
+	// mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_\.]+)(?:\s|$|\)|\])`)
 
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
 	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
@@ -391,13 +392,13 @@ func replaceContent(node *html.Node, i, j int, newNode *html.Node) {
 }
 
 func mentionProcessor(_ *postProcessCtx, node *html.Node) {
-	m := mentionPattern.FindStringSubmatchIndex(node.Data)
-	if m == nil {
+	// We replace only the first mention; other mentions will be addressed later
+	found, loc := references.FindFirstMentionBytes([]byte(node.Data))
+	if !found {
 		return
 	}
-	// Replace the mention with a link to the specified user.
-	mention := node.Data[m[2]:m[3]]
-	replaceContent(node, m[2], m[3], createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
+	mention := node.Data[loc.Start:loc.End]
+	replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
 }
 
 func shortLinkProcessor(ctx *postProcessCtx, node *html.Node) {
