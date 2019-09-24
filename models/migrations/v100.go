@@ -7,8 +7,6 @@ package migrations
 import (
 	"strings"
 
-	"code.gitea.io/gitea/modules/structs"
-
 	"github.com/go-xorm/xorm"
 )
 
@@ -27,11 +25,14 @@ func updateMigrationServiceTypes(x *xorm.Engine) error {
 			return nil
 		}
 
+		const PlainGitService = 1 // 1 plain git service
+		const GithubService = 2   // 2 github.com
+
 		for _, res := range results {
 			u := strings.ToLower(res.OriginalURL)
-			var serviceType = structs.PlainGitService
+			var serviceType = PlainGitService
 			if strings.HasPrefix(u, "https://github.com") || strings.HasPrefix(u, "http://github.com") {
-				serviceType = structs.GithubService
+				serviceType = GithubService
 			}
 			_, err = x.Exec("UPDATE repository SET original_service_type = ? WHERE id = ?", serviceType, res.ID)
 			if err != nil {
