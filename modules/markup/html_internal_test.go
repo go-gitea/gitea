@@ -325,36 +325,6 @@ func TestRegExp_anySHA1Pattern(t *testing.T) {
 	}
 }
 
-func TestRegExp_mentionPattern(t *testing.T) {
-	trueTestCases := []string{
-		"@Unknwon",
-		"@ANT_123",
-		"@xxx-DiN0-z-A..uru..s-xxx",
-		"   @lol   ",
-		" @Te-st",
-		"(@gitea)",
-		"[@gitea]",
-	}
-	falseTestCases := []string{
-		"@ 0",
-		"@ ",
-		"@",
-		"",
-		"ABC",
-		"/home/gitea/@gitea",
-		"\"@gitea\"",
-	}
-
-	for _, testCase := range trueTestCases {
-		res := mentionPattern.MatchString(testCase)
-		assert.True(t, res)
-	}
-	for _, testCase := range falseTestCases {
-		res := mentionPattern.MatchString(testCase)
-		assert.False(t, res)
-	}
-}
-
 func TestRegExp_issueAlphanumericPattern(t *testing.T) {
 	trueTestCases := []string{
 		"ABC-1234",
