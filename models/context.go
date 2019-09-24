@@ -16,13 +16,14 @@ func DefaultDBContext() DBContext {
 	return defaultDBContext
 }
 
-type committer interface {
+// Committer represents an interface to Commit or Close the dbcontext
+type Committer interface {
 	Commit() error
 	Close()
 }
 
 // TxDBContext represents a transaction DBContext
-func TxDBContext() (DBContext, committer, error) {
+func TxDBContext() (DBContext, Committer, error) {
 	sess := x.NewSession()
 	if err := sess.Begin(); err != nil {
 		sess.Close()
