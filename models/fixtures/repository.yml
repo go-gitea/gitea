@@ -509,3 +509,14 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+
+-
+  id: 43
+  owner_id: 26
+  lower_name: repo26
+  name: repo26
+  is_private: true
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
