@@ -14,10 +14,8 @@ import (
 
 // MailParticipantsComment sends new comment emails to repository watchers
 // and mentioned people.
-func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue) (err error) {
-	return models.WithContext(func(ctx models.DBContext) error {
-		return mailParticipantsComment(ctx, c, opType, issue)
-	})
+func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue) error {
+	return mailParticipantsComment(models.DefaultDBContext(), c, opType, issue)
 }
 
 func mailParticipantsComment(ctx models.DBContext, c *models.Comment, opType models.ActionType, issue *models.Issue) (err error) {

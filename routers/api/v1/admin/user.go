@@ -89,7 +89,7 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 
 	// Send email notification.
 	if form.SendNotify {
-		mailer.SendRegisterNotifyMail(ctx.Context.Context, u)
+		mailer.SendRegisterNotifyMail(ctx.Locale, u)
 	}
 	ctx.JSON(201, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
 }

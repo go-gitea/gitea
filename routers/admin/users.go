@@ -118,7 +118,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 
 	// Send email notification.
 	if form.SendNotify {
-		mailer.SendRegisterNotifyMail(ctx.Context, u)
+		mailer.SendRegisterNotifyMail(ctx.Locale, u)
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))

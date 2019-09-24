@@ -118,10 +118,8 @@ func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, cont
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
-func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType) (err error) {
-	return models.WithContext(func(ctx models.DBContext) error {
-		return mailParticipants(ctx, issue, doer, opType)
-	})
+func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType) error {
+	return mailParticipants(models.DefaultDBContext(), issue, doer, opType)
 }
 
 func mailParticipants(ctx models.DBContext, issue *models.Issue, doer *models.User, opType models.ActionType) (err error) {

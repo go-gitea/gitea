@@ -9,13 +9,36 @@ type DBContext struct {
 	e Engine
 }
 
+var defaultDBContext = DBContext{x}
+
+// DefaultDBContext represents a DBContext with default Engine
+func DefaultDBContext() DBContext {
+	return defaultDBContext
+}
+
+type committer interface {
+	Commit() error
+	Close()
+}
+
+// TxDBContext represents a transaction DBContext
+func TxDBContext() (DBContext, committer, error) {
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		sess.Close()
+		return DBContext{}, nil, err
+	}
+
+	return DBContext{sess}, sess, nil
+}
+
 // WithContext represents executing database operations
 func WithContext(f func(ctx DBContext) error) error {
 	return f(DBContext{x})
 }
 
-// WithTransaction represents executing database operations on a trasaction
-func WithTransaction(f func(ctx DBContext) error) error {
+// WithTx represents executing database operations on a trasaction
+func WithTx(f func(ctx DBContext) error) error {
 	sess := x.NewSession()
 	if err := sess.Begin(); err != nil {
 		sess.Close()
