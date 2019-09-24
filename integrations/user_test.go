@@ -77,7 +77,7 @@ func TestRenameReservedUsername(t *testing.T) {
 		"admin",
 		"api",
 		"attachments",
-		"avatar",
+		"avatars",
 		"explore",
 		"help",
 		"install",
