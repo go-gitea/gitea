@@ -38,7 +38,6 @@ type Team struct {
 // SearchTeamOptions holds the search options
 type SearchTeamOptions struct {
 	UserID      int64
-	UserIsAdmin bool
 	Keyword     string
 	OrgID       int64
 	IncludeDesc bool

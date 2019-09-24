@@ -547,7 +547,6 @@ func SearchTeam(ctx *context.APIContext) {
 	//             "$ref": "#/definitions/Team"
 	opts := &models.SearchTeamOptions{
 		UserID:      ctx.Data["SignedUserID"].(int64),
-		UserIsAdmin: ctx.IsUserSiteAdmin(),
 		Keyword:     strings.Trim(ctx.Query("q"), " "),
 		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: (ctx.Query("inclDesc") == "" || ctx.QueryBool("inclDesc")),
