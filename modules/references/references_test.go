@@ -13,164 +13,130 @@ import (
 )
 
 func TestFindAllIssueReferences(t *testing.T) {
+
+	type result struct {
+		Index          int64
+		Owner          string
+		Name           string
+		Issue          string
+		Action         XRefAction
+		RefLocation    *ReferenceLocation
+		ActionLocation *ReferenceLocation
+	}
+
 	type testFixture struct {
 		input    string
-		expected []*RawIssueReference
+		expected []result
 	}
 
 	fixtures := []testFixture{
 		{
 			"Simply closes: #29 yes",
-			[]*RawIssueReference{
-				{29, "", "", XRefActionCloses,
-					ReferenceLocation{Start: 15, End: 18},
-					ReferenceLocation{Start: 7, End: 13},
-				},
+			[]result{
+				{29, "", "", "29", XRefActionCloses, &ReferenceLocation{Start: 15, End: 18}, &ReferenceLocation{Start: 7, End: 13}},
 			},
 		},
 		{
 			"#123 no, this is a title.",
-			[]*RawIssueReference{},
+			[]result{},
 		},
 		{
 			" #124 yes, this is a reference.",
-			[]*RawIssueReference{
-				{124, "", "", XRefActionNone,
-					ReferenceLocation{Start: 0, End: 4},
-					ReferenceLocation{Start: 0, End: 0},
-				},
+			[]result{
+				{124, "", "", "124", XRefActionNone, &ReferenceLocation{Start: 0, End: 4}, nil},
 			},
 		},
 		{
 			"```\nThis is a code block.\n#723 no, it's a code block.```",
-			[]*RawIssueReference{},
+			[]result{},
 		},
 		{
 			"This `#724` no, it's inline code.",
-			[]*RawIssueReference{},
+			[]result{},
 		},
 		{
 			"This user3/repo4#200 yes.",
-			[]*RawIssueReference{
-				{200, "user3", "repo4" /* This */, XRefActionNone,
-					ReferenceLocation{Start: 5, End: 20},
-					ReferenceLocation{Start: 0, End: 0},
-				},
+			[]result{
+				{200, "user3", "repo4", "200", XRefActionNone, &ReferenceLocation{Start: 5, End: 20}, nil},
 			},
 		},
 		{
 			"This [one](#919) no, this is a URL fragment.",
-			[]*RawIssueReference{},
+			[]result{},
 		},
 		{
 			"This [two](/user2/repo1/issues/921) yes.",
-			[]*RawIssueReference{
-				{921, "user2", "repo1", XRefActionNone,
-					ReferenceLocation{Start: 0, End: 0},
-					ReferenceLocation{Start: 0, End: 0},
-				},
+			[]result{
+				{921, "user2", "repo1", "921", XRefActionNone, nil, nil},
 			},
 		},
 		{
 			"This [three](/user2/repo1/pulls/922) yes.",
-			[]*RawIssueReference{
-				{922, "user2", "repo1", XRefActionNone,
-					ReferenceLocation{Start: 0, End: 0},
-					ReferenceLocation{Start: 0, End: 0},
-				},
+			[]result{
+				{922, "user2", "repo1", "922", XRefActionNone, nil, nil},
 			},
 		},
 		{
 			"This [four](http://gitea.com:3000/user3/repo4/issues/203) yes.",
-			[]*RawIssueReference{
-				{203, "user3", "repo4", XRefActionNone,
-					ReferenceLocation{Start: 0, End: 0},
-					ReferenceLocation{Start: 0, End: 0},
-				},
+			[]result{
+				{203, "user3", "repo4", "203", XRefActionNone, nil, nil},
 			},
 		},
 		{
 			"This [five](http://github.com/user3/repo4/issues/204) no.",
-			[]*RawIssueReference{},
+			[]result{},
 		},
 		{
 			"This http://gitea.com:3000/user4/repo5/201 no, bad URL.",
-			[]*RawIssueReference{},
+			[]result{},
 		},
 		{
 			"This http://gitea.com:3000/user4/repo5/pulls/202 yes.",
-			[]*RawIssueReference{
-				{202, "user4", "repo5", XRefActionNone,
-					ReferenceLocation{Start: 0, End: 0},
-					ReferenceLocation{Start: 0, End: 0},
-				},
+			[]result{
+				{202, "user4", "repo5", "202", XRefActionNone, nil, nil},
 			},
 		},
 		{
 			"This http://GiTeA.COM:3000/user4/repo6/pulls/205 yes.",
-			[]*RawIssueReference{
-				{205, "user4", "repo6", XRefActionNone,
-					ReferenceLocation{Start: 0, End: 0},
-					ReferenceLocation{Start: 0, End: 0},
-				},
+			[]result{
+				{205, "user4", "repo6", "205", XRefActionNone, nil, nil},
 			},
 		},
 		{
 			"Reopens #15 yes",
-			[]*RawIssueReference{
-				{15, "", "", XRefActionReopens,
-					ReferenceLocation{Start: 8, End: 11},
-					ReferenceLocation{Start: 0, End: 7},
-				},
+			[]result{
+				{15, "", "", "15", XRefActionReopens, &ReferenceLocation{Start: 8, End: 11}, &ReferenceLocation{Start: 0, End: 7}},
 			},
 		},
 		{
 			"This closes #20 for you yes",
-			[]*RawIssueReference{
-				{20, "", "", XRefActionCloses,
-					ReferenceLocation{Start: 12, End: 15},
-					ReferenceLocation{Start: 5, End: 11},
-				},
+			[]result{
+				{20, "", "", "20", XRefActionCloses, &ReferenceLocation{Start: 12, End: 15}, &ReferenceLocation{Start: 5, End: 11}},
 			},
 		},
 		{
 			"Do you fix user6/repo6#300 ? yes",
-			[]*RawIssueReference{
-				{300, "user6", "repo6", XRefActionCloses,
-					ReferenceLocation{Start: 11, End: 26},
-					ReferenceLocation{Start: 7, End: 10},
-				},
+			[]result{
+				{300, "user6", "repo6", "300", XRefActionCloses, &ReferenceLocation{Start: 11, End: 26}, &ReferenceLocation{Start: 7, End: 10}},
 			},
 		},
 		{
 			"For 999 #1235 no keyword, but yes",
-			[]*RawIssueReference{
-				{1235, "", "", XRefActionNone,
-					ReferenceLocation{Start: 8, End: 13},
-					ReferenceLocation{Start: 0, End: 0},
-				},
+			[]result{
+				{1235, "", "", "1235", XRefActionNone, &ReferenceLocation{Start: 8, End: 13}, nil},
 			},
 		},
 		{
 			"Which abc. #9434 same as above",
-			[]*RawIssueReference{
-				{9434, "", "", XRefActionNone,
-					ReferenceLocation{Start: 11, End: 16},
-					ReferenceLocation{Start: 0, End: 0},
-				},
+			[]result{
+				{9434, "", "", "9434", XRefActionNone, &ReferenceLocation{Start: 11, End: 16}, nil},
 			},
 		},
 		{
 			"This closes #600 and reopens #599",
-			[]*RawIssueReference{
-				{600, "", "", XRefActionCloses,
-					ReferenceLocation{Start: 12, End: 16},
-					ReferenceLocation{Start: 5, End: 11},
-				},
-				{599, "", "", XRefActionReopens,
-					ReferenceLocation{Start: 29, End: 33},
-					ReferenceLocation{Start: 21, End: 28},
-				},
+			[]result{
+				{600, "", "", "600", XRefActionCloses, &ReferenceLocation{Start: 12, End: 16}, &ReferenceLocation{Start: 5, End: 11}},
+				{599, "", "", "599", XRefActionReopens, &ReferenceLocation{Start: 29, End: 33}, &ReferenceLocation{Start: 21, End: 28}},
 			},
 		},
 	}
@@ -180,44 +146,59 @@ func TestFindAllIssueReferences(t *testing.T) {
 	setting.AppURL = "https://gitea.com:3000/"
 
 	for _, fixture := range fixtures {
+		expraw := make([]*rawReference, len(fixture.expected))
+		for i, e := range fixture.expected {
+			expraw[i] = &rawReference{
+				index:          e.Index,
+				owner:          e.Owner,
+				name:           e.Name,
+				action:         e.Action,
+				issue:          e.Issue,
+				refLocation:    e.RefLocation,
+				actionLocation: e.ActionLocation,
+			}
+		}
+		expref := rawToIssueReferenceList(expraw)
 		refs := FindAllIssueReferencesMarkdown(fixture.input)
-		assert.EqualValues(t, fixture.expected, refs, "Failed to parse: {%s}", fixture.input)
+		assert.EqualValues(t, expref, refs, "Failed to parse: {%s}", fixture.input)
+		rawrefs := findAllIssueReferencesMarkdown(fixture.input)
+		assert.EqualValues(t, expraw, rawrefs, "Failed to parse: {%s}", fixture.input)
 	}
 
 	// Restore for other tests that may rely on the original value
 	setting.AppURL = prevURL
 
 	type alnumFixture struct {
-		input    string
-		expected *RawAlphanumIssueReference
+		input          string
+		issue          string
+		refLocation    *ReferenceLocation
+		action         XRefAction
+		actionLocation *ReferenceLocation
 	}
 
 	alnumFixtures := []alnumFixture{
 		{
 			"This ref ABC-123 is alphanumeric",
-			&RawAlphanumIssueReference{
-				"ABC-123", XRefActionNone,
-				ReferenceLocation{Start: 9, End: 16},
-				ReferenceLocation{Start: 0, End: 0},
-			},
+			"ABC-123", &ReferenceLocation{Start: 9, End: 16},
+			XRefActionNone, nil,
 		},
 		{
 			"This closes ABCD-1234 alphanumeric",
-			&RawAlphanumIssueReference{
-				"ABCD-1234", XRefActionCloses,
-				ReferenceLocation{Start: 12, End: 21},
-				ReferenceLocation{Start: 5, End: 11},
-			},
+			"ABCD-1234", &ReferenceLocation{Start: 12, End: 21},
+			XRefActionCloses, &ReferenceLocation{Start: 5, End: 11},
 		},
 	}
 
 	for _, fixture := range alnumFixtures {
-		found, ref := FindFirstAlphanumericIssueReferenceBytes([]byte(fixture.input))
-		if fixture.expected == nil {
+		found, ref := FindRenderizableReferenceAlphanumeric(fixture.input)
+		if fixture.issue == "" {
 			assert.False(t, found, "Failed to parse: {%s}", fixture.input)
 		} else {
 			assert.True(t, found, "Failed to parse: {%s}", fixture.input)
-			assert.EqualValues(t, fixture.expected, ref, "Failed to parse: {%s}", fixture.input)
+			assert.Equal(t, fixture.issue, ref.Issue(), "Failed to parse: {%s}", fixture.input)
+			assert.Equal(t, fixture.refLocation, ref.RefLocation(), "Failed to parse: {%s}", fixture.input)
+			assert.Equal(t, fixture.action, ref.Action(), "Failed to parse: {%s}", fixture.input)
+			assert.Equal(t, fixture.actionLocation, ref.ActionLocation(), "Failed to parse: {%s}", fixture.input)
 		}
 	}
 }

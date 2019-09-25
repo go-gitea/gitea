@@ -51,25 +51,83 @@ const (
 	XRefActionNeutered // 3
 )
 
-// RawIssueReference contains information about a cross-reference in the text
-type RawIssueReference struct {
-	Index          int64
-	Owner          string
-	Name           string
-	Action         XRefAction
-	RefLocation    ReferenceLocation
-	ActionLocation ReferenceLocation
+// IssueReference contains an unverified cross-reference to a local issue/pull request
+type IssueReference struct {
+	Index  int64
+	Owner  string
+	Name   string
+	Action XRefAction
 }
 
-// RawAlphanumIssueReference contains information about an external reference in the text
-type RawAlphanumIssueReference struct {
-	Index          string
-	Action         XRefAction
-	RefLocation    ReferenceLocation
-	ActionLocation ReferenceLocation
+// RenderizableReference contains an unverified cross-reference to with rendering information
+type RenderizableReference interface {
+	Issue() string
+	Owner() string
+	Name() string
+	RefLocation() *ReferenceLocation
+	Action() XRefAction
+	ActionLocation() *ReferenceLocation
 }
 
-// ReferenceLocation is the position where the references was found within the parsed text
+type rawReference struct {
+	index          int64
+	owner          string
+	name           string
+	action         XRefAction
+	issue          string
+	refLocation    *ReferenceLocation
+	actionLocation *ReferenceLocation
+}
+
+// Index returns the number of the issue/pull request
+func (r *rawReference) Index() int64 {
+	return r.index
+}
+
+// Owner returns the owner of the repository for the issue/pull request
+func (r *rawReference) Owner() string {
+	return r.owner
+}
+
+// Owner returns the name of the repository for the issue/pull request
+func (r *rawReference) Name() string {
+	return r.name
+}
+
+// Issue returns the ID of the issue/pull request
+func (r *rawReference) Issue() string {
+	return r.issue
+}
+
+// RefLocation returns the location of the reference in the originating string
+func (r *rawReference) RefLocation() *ReferenceLocation {
+	return r.refLocation
+}
+
+// Action returns the action represented by the action keyword found preceeding the reference
+func (r *rawReference) Action() XRefAction {
+	return r.action
+}
+
+// RefLocation returns the location of the action keyword in the originating string
+func (r *rawReference) ActionLocation() *ReferenceLocation {
+	return r.actionLocation
+}
+
+func rawToIssueReferenceList(reflist []*rawReference) []IssueReference {
+	refarr := make([]IssueReference, len(reflist))
+	for i, r := range reflist {
+		refarr[i] = IssueReference{
+			Index:  r.index,
+			Owner:  r.owner,
+			Name:   r.name,
+			Action: r.action,
+		}
+	}
+	return refarr
+}
+
+// ReferenceLocation is the position where the reference was found within the parsed text
 type ReferenceLocation struct {
 	Start int
 	End   int
@@ -119,45 +177,52 @@ func FindFirstMentionBytes(content []byte) (bool, ReferenceLocation) {
 
 // FindAllIssueReferencesMarkdown strips content from markdown markup
 // and returns a list of unvalidated references found in it.
-func FindAllIssueReferencesMarkdown(content string) []*RawIssueReference {
+func FindAllIssueReferencesMarkdown(content string) []IssueReference {
+	return rawToIssueReferenceList(findAllIssueReferencesMarkdown(content))
+}
+
+func findAllIssueReferencesMarkdown(content string) []*rawReference {
 	bcontent, links := mdstripper.StripMarkdownBytes([]byte(content))
-	return FindAllIssueReferencesBytes(bcontent, links)
+	return findAllIssueReferencesBytes(bcontent, links)
 }
 
 // FindAllIssueReferences returns a list of unvalidated references found in a string.
-func FindAllIssueReferences(content string) []*RawIssueReference {
-	return FindAllIssueReferencesBytes([]byte(content), []string{})
+func FindAllIssueReferences(content string) []IssueReference {
+	return rawToIssueReferenceList(findAllIssueReferencesBytes([]byte(content), []string{}))
 }
 
-// FindFirstIssueReferenceBytes returns the first unvalidated references found in a byte slice
-func FindFirstIssueReferenceBytes(content []byte) (bool, *RawIssueReference) {
-	match := issueNumericPattern.FindSubmatchIndex(content)
+// FindRenderizableReferenceNumeric returns the first unvalidated references found in a byte slice
+func FindRenderizableReferenceNumeric(content string) (bool, RenderizableReference) {
+	match := issueNumericPattern.FindStringSubmatchIndex(content)
 	if match == nil {
-		if match = crossReferenceIssueNumericPattern.FindSubmatchIndex(content); match == nil {
+		if match = crossReferenceIssueNumericPattern.FindStringSubmatchIndex(content); match == nil {
 			return false, nil
 		}
 	}
 
-	return true, getCrossReference(content, match[2], match[3], false)
+	return true, getCrossReference([]byte(content), match[2], match[3], false)
 }
 
-// FindFirstAlphanumericIssueReferenceBytes returns the first alphanumeric unvalidated references found in a byte slice
-func FindFirstAlphanumericIssueReferenceBytes(content []byte) (bool, *RawAlphanumIssueReference) {
-	match := issueAlphanumericPattern.FindSubmatchIndex(content)
+// FindRenderizableReferenceAlphanumeric returns the first alphanumeric unvalidated references found in a byte slice
+func FindRenderizableReferenceAlphanumeric(content string) (bool, RenderizableReference) {
+	match := issueAlphanumericPattern.FindStringSubmatchIndex(content)
 	if match == nil {
 		return false, nil
 	}
 
-	action, location := findActionKeywords(content, match[2])
-	return true, &RawAlphanumIssueReference{Index: string(content[match[2]:match[3]]),
-		RefLocation: ReferenceLocation{Start: match[2], End: match[3]},
-		Action:      action, ActionLocation: location}
+	action, location := findActionKeywords([]byte(content), match[2])
+	return true, &rawReference{
+		issue:          string(content[match[2]:match[3]]),
+		refLocation:    &ReferenceLocation{Start: match[2], End: match[3]},
+		action:         action,
+		actionLocation: location,
+	}
 }
 
 // FindAllIssueReferencesBytes returns a list of unvalidated references found in a byte slice.
-func FindAllIssueReferencesBytes(content []byte, links []string) []*RawIssueReference {
+func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference {
 
-	ret := make([]*RawIssueReference, 0, 10)
+	ret := make([]*rawReference, 0, 10)
 
 	matches := issueNumericPattern.FindAllSubmatchIndex(content, -1)
 	for _, match := range matches {
@@ -196,7 +261,7 @@ func FindAllIssueReferencesBytes(content []byte, links []string) []*RawIssueRefe
 			// Note: closing/reopening keywords not supported with URLs
 			bytes := []byte(parts[1] + "/" + parts[2] + "#" + parts[4])
 			if ref := getCrossReference(bytes, 0, len(bytes), true); ref != nil {
-				ref.RefLocation = ReferenceLocation{}
+				ref.refLocation = nil
 				ret = append(ret, ref)
 			}
 		}
@@ -205,9 +270,9 @@ func FindAllIssueReferencesBytes(content []byte, links []string) []*RawIssueRefe
 	return ret
 }
 
-func getCrossReference(content []byte, start, end int, fromLink bool) *RawIssueReference {
-	s := string(content[start:end])
-	parts := strings.Split(s, "#")
+func getCrossReference(content []byte, start, end int, fromLink bool) *rawReference {
+	refid := string(content[start:end])
+	parts := strings.Split(refid, "#")
 	if len(parts) != 2 {
 		return nil
 	}
@@ -222,8 +287,13 @@ func getCrossReference(content []byte, start, end int, fromLink bool) *RawIssueR
 			return nil
 		}
 		action, location := findActionKeywords(content, start)
-		return &RawIssueReference{Index: index, RefLocation: ReferenceLocation{Start: start, End: end},
-			Action: action, ActionLocation: location}
+		return &rawReference{
+			index:          index,
+			action:         action,
+			issue:          issue,
+			refLocation:    &ReferenceLocation{Start: start, End: end},
+			actionLocation: location,
+		}
 	}
 	parts = strings.Split(strings.ToLower(repo), "/")
 	if len(parts) != 2 {
@@ -234,19 +304,25 @@ func getCrossReference(content []byte, start, end int, fromLink bool) *RawIssueR
 		return nil
 	}
 	action, location := findActionKeywords(content, start)
-	return &RawIssueReference{Index: index, Owner: owner, Name: name,
-		RefLocation: ReferenceLocation{Start: start, End: end},
-		Action:      action, ActionLocation: location}
+	return &rawReference{
+		index:          index,
+		owner:          owner,
+		name:           name,
+		action:         action,
+		issue:          issue,
+		refLocation:    &ReferenceLocation{Start: start, End: end},
+		actionLocation: location,
+	}
 }
 
-func findActionKeywords(content []byte, start int) (XRefAction, ReferenceLocation) {
+func findActionKeywords(content []byte, start int) (XRefAction, *ReferenceLocation) {
 	m := issueCloseKeywordsPat.FindSubmatchIndex(content[:start])
 	if m != nil {
-		return XRefActionCloses, ReferenceLocation{Start: m[2], End: m[3]}
+		return XRefActionCloses, &ReferenceLocation{Start: m[2], End: m[3]}
 	}
 	m = issueReopenKeywordsPat.FindSubmatchIndex(content[:start])
 	if m != nil {
-		return XRefActionReopens, ReferenceLocation{Start: m[2], End: m[3]}
+		return XRefActionReopens, &ReferenceLocation{Start: m[2], End: m[3]}
 	}
-	return XRefActionNone, ReferenceLocation{}
+	return XRefActionNone, nil
 }

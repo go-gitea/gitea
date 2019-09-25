@@ -132,7 +132,6 @@ var defaultProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
-	crossReferenceIssueIndexPatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
 }
@@ -173,7 +172,6 @@ var commitMessageProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
-	crossReferenceIssueIndexPatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
 }
@@ -207,7 +205,6 @@ var commitMessageSubjectProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
-	crossReferenceIssueIndexPatternProcessor,
 	sha1CurrentPatternProcessor,
 }
 
@@ -587,45 +584,33 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	if ctx.metas == nil {
 		return
 	}
-	// default to numeric pattern, unless alphanumeric is requested.
-	pattern := issueNumericPattern
+
+	var (
+		found bool
+		ref   references.RenderizableReference
+	)
+
 	if ctx.metas["style"] == IssueNameStyleAlphanumeric {
-		pattern = issueAlphanumericPattern
-	}
-
-	match := pattern.FindStringSubmatchIndex(node.Data)
-	if match == nil {
-		return
-	}
-
-	id := node.Data[match[2]:match[3]]
-	var link *html.Node
-	if _, ok := ctx.metas["format"]; ok {
-		// Support for external issue tracker
-		if ctx.metas["style"] == IssueNameStyleAlphanumeric {
-			ctx.metas["index"] = id
-		} else {
-			ctx.metas["index"] = id[1:]
-		}
-		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), id, "issue")
+		found, ref = references.FindRenderizableReferenceAlphanumeric(node.Data)
 	} else {
-		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", id[1:]), id, "issue")
+		found, ref = references.FindRenderizableReferenceNumeric(node.Data)
 	}
-	replaceContent(node, match[2], match[3], link)
-}
 
-func crossReferenceIssueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := crossReferenceIssueNumericPattern.FindStringSubmatchIndex(node.Data)
-	if m == nil {
+	if !found {
 		return
 	}
-	ref := node.Data[m[2]:m[3]]
 
-	parts := strings.SplitN(ref, "#", 2)
-	repo, issue := parts[0], parts[1]
-
-	replaceContent(node, m[2], m[3],
-		createLink(util.URLJoin(setting.AppURL, repo, "issues", issue), ref, issue))
+	var link *html.Node
+	reftext := node.Data[ref.RefLocation().Start:ref.RefLocation().End]
+	if _, ok := ctx.metas["format"]; ok {
+		ctx.metas["index"] = ref.Issue()
+		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), reftext, "issue")
+	} else if ref.Owner() == "" {
+		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", ref.Issue()), reftext, "issue")
+	} else {
+		link = createLink(util.URLJoin(setting.AppURL, ref.Owner(), ref.Name(), "issues", ref.Issue()), reftext, "issue")
+	}
+	replaceContent(node, ref.RefLocation().Start, ref.RefLocation().End, link)
 }
 
 // fullSha1PatternProcessor renders SHA containing URLs
