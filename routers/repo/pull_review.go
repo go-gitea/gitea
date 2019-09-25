@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	pull_service "code.gitea.io/gitea/modules/pull"
+	pull_service "code.gitea.io/gitea/services/pull"
 	comment_service "code.gitea.io/gitea/services/comments"
 )
 

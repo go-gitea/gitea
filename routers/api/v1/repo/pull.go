@@ -15,12 +15,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/pull"
-	pull_service "code.gitea.io/gitea/modules/pull"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	milestone_service "code.gitea.io/gitea/services/milestone"
-	pull_service "code.gitea.io/gitea/services/pulls"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // ListPullRequests returns a list of all PRs
@@ -603,7 +601,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		message += "\n\n" + form.MergeMessageField
 	}
 
-	if err := pull.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+	if err := pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Status(405)
 			return
