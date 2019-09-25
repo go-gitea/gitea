@@ -25,6 +25,12 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 		defer session.Close()
 	}
 
+	session.autoResetStatement = false
+	defer func() {
+		session.autoResetStatement = true
+		session.resetStatement()
+	}()
+
 	for _, bean := range beans {
 		switch bean.(type) {
 		case map[string]interface{}:
@@ -35,7 +41,6 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 			affected += cnt
 		case []map[string]interface{}:
 			s := bean.([]map[string]interface{})
-			session.autoResetStatement = false
 			for i := 0; i < len(s); i++ {
 				cnt, err := session.insertMapInterface(s[i])
 				if err != nil {
@@ -51,7 +56,6 @@ func (session *Session) Insert(beans ...interface{}) (int64, error) {
 			affected += cnt
 		case []map[string]string:
 			s := bean.([]map[string]string)
-			session.autoResetStatement = false
 			for i := 0; i < len(s); i++ {
 				cnt, err := session.insertMapString(s[i])
 				if err != nil {
