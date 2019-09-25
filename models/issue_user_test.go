@@ -50,7 +50,7 @@ func TestUpdateIssueUsersByMentions(t *testing.T) {
 	issue := AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
 
 	uids := []int64{2, 5}
-	assert.NoError(t, UpdateIssueUsersByMentions(x, issue.ID, uids))
+	assert.NoError(t, UpdateIssueUsersByMentions(DefaultDBContext(), issue.ID, uids))
 	for _, uid := range uids {
 		AssertExistsAndLoadBean(t, &IssueUser{IssueID: issue.ID, UID: uid}, "is_mentioned=1")
 	}

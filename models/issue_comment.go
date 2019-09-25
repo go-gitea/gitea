@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -170,7 +169,7 @@ func (c *Comment) loadIssue(e Engine) (err error) {
 }
 
 func (c *Comment) loadPoster(e Engine) (err error) {
-	if c.Poster != nil {
+	if c.PosterID <= 0 || c.Poster != nil {
 		return nil
 	}
 
@@ -339,21 +338,7 @@ func (c *Comment) LoadMilestone() error {
 
 // LoadPoster loads comment poster
 func (c *Comment) LoadPoster() error {
-	if c.PosterID <= 0 || c.Poster != nil {
-		return nil
-	}
-
-	var err error
-	c.Poster, err = getUserByID(x, c.PosterID)
-	if err != nil {
-		if IsErrUserNotExist(err) {
-			c.PosterID = -1
-			c.Poster = NewGhostUser()
-		} else {
-			log.Error("getUserByID[%d]: %v", c.ID, err)
-		}
-	}
-	return nil
+	return c.loadPoster(x)
 }
 
 // LoadAttachments loads attachments
@@ -393,40 +378,6 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	}
 	c.DependentIssue, err = getIssueByID(x, c.DependentIssueID)
 	return err
-}
-
-// MailParticipants sends new comment emails to repository watchers
-// and mentioned people.
-func (c *Comment) MailParticipants(opType ActionType, issue *Issue) (err error) {
-	return c.mailParticipants(x, opType, issue)
-}
-
-func (c *Comment) mailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
-	mentions := markup.FindAllMentions(c.Content)
-	if err = UpdateIssueMentions(e, c.IssueID, mentions); err != nil {
-		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
-	}
-
-	if len(c.Content) > 0 {
-		if err = mailIssueCommentToParticipants(e, issue, c.Poster, c.Content, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
-	}
-
-	switch opType {
-	case ActionCloseIssue:
-		ct := fmt.Sprintf("Closed #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(e, issue, c.Poster, ct, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
-	case ActionReopenIssue:
-		ct := fmt.Sprintf("Reopened #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(e, issue, c.Poster, ct, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
-	}
-
-	return nil
 }
 
 func (c *Comment) loadReactions(e Engine) (err error) {
@@ -475,7 +426,7 @@ func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch str
 	}
 	if c.CommitSHA != "" && c.CommitSHA != commit.ID.String() {
 		c.Invalidated = true
-		return UpdateComment(doer, c, "")
+		return UpdateComment(c, doer)
 	}
 	return nil
 }
@@ -846,35 +797,6 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 	return comment, nil
 }
 
-// CreateIssueComment creates a plain issue comment.
-func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content string, attachments []string) (*Comment, error) {
-	comment, err := CreateComment(&CreateCommentOptions{
-		Type:        CommentTypeComment,
-		Doer:        doer,
-		Repo:        repo,
-		Issue:       issue,
-		Content:     content,
-		Attachments: attachments,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("CreateComment: %v", err)
-	}
-
-	mode, _ := AccessLevel(doer, repo)
-	if err = PrepareWebhooks(repo, HookEventIssueComment, &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentCreated,
-		Issue:      issue.APIFormat(),
-		Comment:    comment.APIFormat(),
-		Repository: repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
-	} else {
-		go HookQueue.Add(repo.ID)
-	}
-	return comment, nil
-}
-
 // CreateRefComment creates a commit reference comment to issue.
 func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commitSHA string) error {
 	if len(commitSHA) == 0 {
@@ -963,7 +885,7 @@ func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(doer *User, c *Comment, oldContent string) error {
+func UpdateComment(c *Comment, doer *User) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -985,38 +907,12 @@ func UpdateComment(doer *User, c *Comment, oldContent string) error {
 	if err := sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
-	sess.Close()
-
-	if err := c.LoadPoster(); err != nil {
-		return err
-	}
-	if err := c.Issue.LoadAttributes(); err != nil {
-		return err
-	}
-
-	mode, _ := AccessLevel(doer, c.Issue.Repo)
-	if err := PrepareWebhooks(c.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
-		Action:  api.HookIssueCommentEdited,
-		Issue:   c.Issue.APIFormat(),
-		Comment: c.APIFormat(),
-		Changes: &api.ChangesPayload{
-			Body: &api.ChangesFromPayload{
-				From: oldContent,
-			},
-		},
-		Repository: c.Issue.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
-	} else {
-		go HookQueue.Add(c.Issue.Repo.ID)
-	}
 
 	return nil
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(doer *User, comment *Comment) error {
+func DeleteComment(comment *Comment, doer *User) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -1042,43 +938,7 @@ func DeleteComment(doer *User, comment *Comment) error {
 		return err
 	}
 
-	if err := sess.Commit(); err != nil {
-		return err
-	}
-	sess.Close()
-
-	if err := comment.LoadPoster(); err != nil {
-		return err
-	}
-	if err := comment.LoadIssue(); err != nil {
-		return err
-	}
-
-	if err := comment.Issue.LoadAttributes(); err != nil {
-		return err
-	}
-	if err := comment.loadPoster(x); err != nil {
-		return err
-	}
-	if err := comment.neuterCrossReferences(x); err != nil {
-		return err
-	}
-
-	mode, _ := AccessLevel(doer, comment.Issue.Repo)
-
-	if err := PrepareWebhooks(comment.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentDeleted,
-		Issue:      comment.Issue.APIFormat(),
-		Comment:    comment.APIFormat(),
-		Repository: comment.Issue.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
-	} else {
-		go HookQueue.Add(comment.Issue.Repo.ID)
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
