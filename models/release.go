@@ -397,12 +397,14 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 		return err
 	}
 
+	if err = addReleaseAttachments(rel.ID, attachmentUUIDs); err != nil {
+		log.Error("addReleaseAttachments: %v", err)
+	}
+
 	err = rel.loadAttributes(x)
 	if err != nil {
 		return err
 	}
-
-	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
 
 	mode, _ := AccessLevel(doer, rel.Repo)
 	if err1 := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
