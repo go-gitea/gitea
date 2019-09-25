@@ -244,7 +244,7 @@ func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptio
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
-	attachID := ctx.ParamsInt64(":attachment")
+	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(500, "GetAttachmentByID", err)
@@ -302,7 +302,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
-	attachID := ctx.ParamsInt64(":attachment")
+	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(500, "GetAttachmentByID", err)
