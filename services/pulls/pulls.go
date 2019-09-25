@@ -13,12 +13,12 @@ import (
 )
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, patch []byte, assigneeIDs []int64) (err error) {
-	if err = models.NewPullRequest(repo, pull, labelIDs, uuids, pr, patch, assigneeIDs); err != nil {
-		return
+func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, patch []byte, assigneeIDs []int64) error {
+	if err := models.NewPullRequest(repo, pull, labelIDs, uuids, pr, patch, assigneeIDs); err != nil {
+		return err
 	}
 
-	if err = models.NotifyWatchers(&models.Action{
+	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: pull.Poster.ID,
 		ActUser:   pull.Poster,
 		OpType:    models.ActionCreatePullRequest,
@@ -33,7 +33,7 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	pr.Issue = pull
 	pull.PullRequest = pr
 	mode, _ := models.AccessLevel(pull.Poster, repo)
-	if err = models.PrepareWebhooks(repo, models.HookEventPullRequest, &api.PullRequestPayload{
+	if err := models.PrepareWebhooks(repo, models.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Index,
 		PullRequest: pr.APIFormat(),
