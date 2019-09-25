@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	releaseservice "code.gitea.io/gitea/services/release"
 )
 
 // GetRelease get a single release of a repository
@@ -168,7 +169,7 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 			IsTag:        false,
 			Repo:         ctx.Repo.Repository,
 		}
-		if err := models.CreateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
+		if err := releaseservice.CreateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
 			if models.IsErrReleaseAlreadyExist(err) {
 				ctx.Status(409)
 			} else {
@@ -191,7 +192,7 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		rel.Repo = ctx.Repo.Repository
 		rel.Publisher = ctx.User
 
-		if err = models.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, nil); err != nil {
+		if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, nil); err != nil {
 			ctx.ServerError("UpdateRelease", err)
 			return
 		}
@@ -262,7 +263,7 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	if form.IsPrerelease != nil {
 		rel.IsPrerelease = *form.IsPrerelease
 	}
-	if err := models.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, nil); err != nil {
+	if err := releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, nil); err != nil {
 		ctx.Error(500, "UpdateRelease", err)
 		return
 	}

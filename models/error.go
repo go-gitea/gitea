@@ -11,6 +11,21 @@ import (
 	"code.gitea.io/gitea/modules/git"
 )
 
+// ErrNotExist represents a non-exist error.
+type ErrNotExist struct {
+	ID int64
+}
+
+// IsErrNotExist checks if an error is an ErrNotExist
+func IsErrNotExist(err error) bool {
+	_, ok := err.(ErrNotExist)
+	return ok
+}
+
+func (err ErrNotExist) Error() string {
+	return fmt.Sprintf("record does not exist [id: %d]", err.ID)
+}
+
 // ErrNameReserved represents a "reserved name" error.
 type ErrNameReserved struct {
 	Name string
@@ -1368,6 +1383,23 @@ func IsErrTeamAlreadyExist(err error) bool {
 
 func (err ErrTeamAlreadyExist) Error() string {
 	return fmt.Sprintf("team already exists [org_id: %d, name: %s]", err.OrgID, err.Name)
+}
+
+// ErrTeamNotExist represents a "TeamNotExist" error
+type ErrTeamNotExist struct {
+	OrgID  int64
+	TeamID int64
+	Name   string
+}
+
+// IsErrTeamNotExist checks if an error is a ErrTeamNotExist.
+func IsErrTeamNotExist(err error) bool {
+	_, ok := err.(ErrTeamNotExist)
+	return ok
+}
+
+func (err ErrTeamNotExist) Error() string {
+	return fmt.Sprintf("team does not exist [org_id %d, team_id %d, name: %s]", err.OrgID, err.TeamID, err.Name)
 }
 
 //

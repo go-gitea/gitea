@@ -247,6 +247,26 @@ func PrepareCompareDiff(
 		return false
 	}
 
+	baseGitRepo := ctx.Repo.GitRepo
+	baseCommitID := baseBranch
+	if ctx.Data["BaseIsCommit"] == false {
+		if ctx.Data["BaseIsTag"] == true {
+			baseCommitID, err = baseGitRepo.GetTagCommitID(baseBranch)
+		} else {
+			baseCommitID, err = baseGitRepo.GetBranchCommitID(baseBranch)
+		}
+		if err != nil {
+			ctx.ServerError("GetRefCommitID", err)
+			return false
+		}
+	}
+
+	baseCommit, err := baseGitRepo.GetCommit(baseCommitID)
+	if err != nil {
+		ctx.ServerError("GetCommit", err)
+		return false
+	}
+
 	compareInfo.Commits = models.ValidateCommitsWithEmails(compareInfo.Commits)
 	compareInfo.Commits = models.ParseCommitsWithSignature(compareInfo.Commits)
 	compareInfo.Commits = models.ParseCommitsWithStatus(compareInfo.Commits, headRepo)
@@ -272,11 +292,43 @@ func PrepareCompareDiff(
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
 	ctx.Data["IsImageFile"] = headCommit.IsImageFile
+	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
+		result, err := headCommit.ImageInfo(name)
+		if err != nil {
+			log.Error("ImageInfo failed: %v", err)
+			return nil
+		}
+		return result
+	}
+	ctx.Data["FileExistsInBaseCommit"] = func(filename string) bool {
+		result, err := baseCommit.HasFile(filename)
+		if err != nil {
+			log.Error(
+				"Error while checking if file \"%s\" exists in base commit \"%s\" (repo: %s): %v",
+				filename,
+				baseCommit,
+				baseGitRepo.Path,
+				err)
+			return false
+		}
+		return result
+	}
+	ctx.Data["ImageInfoBase"] = func(name string) *git.ImageMetaData {
+		result, err := baseCommit.ImageInfo(name)
+		if err != nil {
+			log.Error("ImageInfo failed: %v", err)
+			return nil
+		}
+		return result
+	}
 
 	headTarget := path.Join(headUser.Name, repo.Name)
+	baseTarget := path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", headCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", compareInfo.MergeBase)
 	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", headCommitID)
+	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(baseTarget, "src", "commit", baseCommitID)
+	ctx.Data["BeforeRawPath"] = setting.AppSubURL + "/" + path.Join(baseTarget, "raw", "commit", baseCommitID)
+
 	return false
 }
 

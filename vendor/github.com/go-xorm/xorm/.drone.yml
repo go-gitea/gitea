@@ -103,7 +103,18 @@ steps:
   commands:
   - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -schema=xorm -coverprofile=coverage5-1.txt -covermode=atomic"
   - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -schema=xorm -cache=true -coverprofile=coverage5-2.txt -covermode=atomic"
-  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt > coverage.txt
+  when:
+    event:
+    - push
+    - pull_request
+
+- name: test-mssql
+  pull: default
+  image: golang:1.10
+  commands:
+  - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -coverprofile=coverage6-1.txt -covermode=atomic"
+  - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -cache=true -coverprofile=coverage6-2.txt -covermode=atomic"
+  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt > coverage.txt
   when:
     event:
     - push
@@ -128,6 +139,19 @@ services:
   environment:
     POSTGRES_DB: xorm_test
     POSTGRES_USER: postgres
+  when:
+    event:
+    - push
+    - tag
+    - pull_request
+
+- name: mssql
+  pull: default
+  image: microsoft/mssql-server-linux:latest
+  environment:
+    ACCEPT_EULA: Y
+    SA_PASSWORD: yourStrong(!)Password
+    MSSQL_PID: Developer
   when:
     event:
     - push
@@ -167,11 +191,13 @@ steps:
 - name: build
   pull: default
   image: golang:1.11
+  environment:
+    GO111MODULE: "off"
   commands:
     - go get -t -d -v ./...	
     - go get -u xorm.io/core	
     - go get -u xorm.io/builder
-    - GO111MODULE=off go build -v
+    - go build -v
   when:
     event:
     - push
@@ -181,9 +207,10 @@ steps:
   pull: default
   image: golang:1.11
   environment:
+    GO111MODULE: "on"
     GOPROXY: "https://goproxy.cn"
   commands:
-    - GO111MODULE=on go build -v
+    - go build -v
   when:
     event:
     - push
@@ -192,8 +219,10 @@ steps:
 - name: test-sqlite
   pull: default
   image: golang:1.11
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
   commands:
-  - go get -u github.com/wadey/gocovmerge
   - "go test -v -race -db=\"sqlite3\" -conn_str=\"./test.db\" -coverprofile=coverage1-1.txt -covermode=atomic"
   - "go test -v -race -db=\"sqlite3\" -conn_str=\"./test.db\" -cache=true -coverprofile=coverage1-2.txt -covermode=atomic"
   when:
@@ -204,6 +233,9 @@ steps:
 - name: test-mysql
   pull: default
   image: golang:1.11
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
   commands:
   - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test\" -coverprofile=coverage2-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test\" -cache=true -coverprofile=coverage2-2.txt -covermode=atomic"
@@ -215,6 +247,9 @@ steps:
 - name: test-mysql-utf8mb4
   pull: default
   image: golang:1.11
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
   commands:
   - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test?charset=utf8mb4\" -coverprofile=coverage2.1-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test?charset=utf8mb4\" -cache=true -coverprofile=coverage2.1-2.txt -covermode=atomic"
@@ -226,6 +261,9 @@ steps:
 - name: test-mymysql
   pull: default
   image: golang:1.11
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
   commands:
   - "go test -v -race -db=\"mymysql\" -conn_str=\"tcp:mysql:3306*xorm_test/root/\" -coverprofile=coverage3-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mymysql\" -conn_str=\"tcp:mysql:3306*xorm_test/root/\" -cache=true -coverprofile=coverage3-2.txt -covermode=atomic"
@@ -237,6 +275,9 @@ steps:
 - name: test-postgres
   pull: default
   image: golang:1.11
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
   commands:
   - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -coverprofile=coverage4-1.txt -covermode=atomic"
   - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -cache=true -coverprofile=coverage4-2.txt -covermode=atomic"
@@ -248,10 +289,28 @@ steps:
 - name: test-postgres-schema
   pull: default
   image: golang:1.11
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
   commands:
   - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -schema=xorm -coverprofile=coverage5-1.txt -covermode=atomic"
   - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -schema=xorm -cache=true -coverprofile=coverage5-2.txt -covermode=atomic"
-  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt > coverage.txt
+  when:
+    event:
+    - push
+    - pull_request
+
+- name: test-mssql
+  pull: default
+  image: golang:1.11
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
+  commands:
+  - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -coverprofile=coverage6-1.txt -covermode=atomic"
+  - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -cache=true -coverprofile=coverage6-2.txt -covermode=atomic"
+  - go get github.com/wadey/gocovmerge
+  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt > coverage.txt
   when:
     event:
     - push
@@ -276,6 +335,19 @@ services:
   environment:
     POSTGRES_DB: xorm_test
     POSTGRES_USER: postgres
+  when:
+    event:
+    - push
+    - tag
+    - pull_request
+
+- name: mssql
+  pull: default
+  image: microsoft/mssql-server-linux:latest
+  environment:
+    ACCEPT_EULA: Y
+    SA_PASSWORD: yourStrong(!)Password
+    MSSQL_PID: Developer
   when:
     event:
     - push
@@ -315,11 +387,13 @@ steps:
 - name: build
   pull: default
   image: golang:1.12
+  environment:
+    GO111MODULE: "off"
   commands:
     - go get -t -d -v ./...	
     - go get -u xorm.io/core	
     - go get -u xorm.io/builder
-    - GO111MODULE=off go build -v
+    - go build -v
   when:
     event:
     - push
@@ -329,9 +403,10 @@ steps:
   pull: default
   image: golang:1.12
   environment:
-    GOPROXY: "https://goproxy.cn" 
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
   commands:
-    - GO111MODULE=on go build -v
+    - go build -v
   when:
     event:
     - push
@@ -340,8 +415,10 @@ steps:
 - name: test-sqlite
   pull: default
   image: golang:1.12
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
   commands:
-  - go get -u github.com/wadey/gocovmerge
   - "go test -v -race -db=\"sqlite3\" -conn_str=\"./test.db\" -coverprofile=coverage1-1.txt -covermode=atomic"
   - "go test -v -race -db=\"sqlite3\" -conn_str=\"./test.db\" -cache=true -coverprofile=coverage1-2.txt -covermode=atomic"
   when:
@@ -352,6 +429,9 @@ steps:
 - name: test-mysql
   pull: default
   image: golang:1.12
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
   commands:
   - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test\" -coverprofile=coverage2-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test\" -cache=true -coverprofile=coverage2-2.txt -covermode=atomic"
@@ -363,6 +443,9 @@ steps:
 - name: test-mysql-utf8mb4
   pull: default
   image: golang:1.12
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
   commands:
   - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test?charset=utf8mb4\" -coverprofile=coverage2.1-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mysql\" -conn_str=\"root:@tcp(mysql)/xorm_test?charset=utf8mb4\" -cache=true -coverprofile=coverage2.1-2.txt -covermode=atomic"
@@ -374,6 +457,9 @@ steps:
 - name: test-mymysql
   pull: default
   image: golang:1.12
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
   commands:
   - "go test -v -race -db=\"mymysql\" -conn_str=\"tcp:mysql:3306*xorm_test/root/\" -coverprofile=coverage3-1.txt -covermode=atomic"
   - "go test -v -race -db=\"mymysql\" -conn_str=\"tcp:mysql:3306*xorm_test/root/\" -cache=true -coverprofile=coverage3-2.txt -covermode=atomic"
@@ -385,6 +471,9 @@ steps:
 - name: test-postgres
   pull: default
   image: golang:1.12
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
   commands:
   - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -coverprofile=coverage4-1.txt -covermode=atomic"
   - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -cache=true -coverprofile=coverage4-2.txt -covermode=atomic"
@@ -396,10 +485,28 @@ steps:
 - name: test-postgres-schema
   pull: default
   image: golang:1.12
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
   commands:
   - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -schema=xorm -coverprofile=coverage5-1.txt -covermode=atomic"
   - "go test -v -race -db=\"postgres\" -conn_str=\"postgres://postgres:@pgsql/xorm_test?sslmode=disable\" -schema=xorm -cache=true -coverprofile=coverage5-2.txt -covermode=atomic"
-  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt > coverage.txt
+  when:
+    event:
+    - push
+    - pull_request
+
+- name: test-mssql
+  pull: default
+  image: golang:1.12
+  environment:
+    GO111MODULE: "on"
+    GOPROXY: "https://goproxy.cn"
+  commands:
+  - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -coverprofile=coverage6-1.txt -covermode=atomic"
+  - "go test -v -race -db=\"mssql\" -conn_str=\"server=mssql;user id=sa;password=yourStrong(!)Password;database=xorm_test\" -cache=true -coverprofile=coverage6-2.txt -covermode=atomic"
+  - go get -u github.com/wadey/gocovmerge
+  - gocovmerge coverage1-1.txt coverage1-2.txt coverage2-1.txt coverage2-2.txt coverage2.1-1.txt coverage2.1-2.txt coverage3-1.txt coverage3-2.txt coverage4-1.txt coverage4-2.txt coverage5-1.txt coverage5-2.txt coverage6-1.txt coverage6-2.txt > coverage.txt
   when:
     event:
     - push
@@ -424,6 +531,19 @@ services:
   environment:
     POSTGRES_DB: xorm_test
     POSTGRES_USER: postgres
+  when:
+    event:
+    - push
+    - tag
+    - pull_request
+
+- name: mssql
+  pull: default
+  image: microsoft/mssql-server-linux:latest
+  environment:
+    ACCEPT_EULA: Y
+    SA_PASSWORD: yourStrong(!)Password
+    MSSQL_PID: Developer
   when:
     event:
     - push

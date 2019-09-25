@@ -16,8 +16,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/pull"
+	pull_service "code.gitea.io/gitea/modules/pull"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	milestone_service "code.gitea.io/gitea/services/milestone"
 )
 
 // ListPullRequests returns a list of all PRs
@@ -402,7 +404,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone
-		if err = models.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+		if err = milestone_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
 			ctx.Error(500, "ChangeMilestoneAssign", err)
 			return
 		}
@@ -566,6 +568,17 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	}
 
 	if !pr.CanAutoMerge() || pr.HasMerged || pr.IsWorkInProgress() {
+		ctx.Status(405)
+		return
+	}
+
+	isPass, err := pull_service.IsPullCommitStatusPass(pr)
+	if err != nil {
+		ctx.Error(500, "IsPullCommitStatusPass", err)
+		return
+	}
+
+	if !isPass && !ctx.IsUserRepoAdmin() {
 		ctx.Status(405)
 		return
 	}

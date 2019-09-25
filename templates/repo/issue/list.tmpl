@@ -217,9 +217,6 @@
 						{{end}}
 					{{end}}
 
-					{{if .Ref}}
-						<a class="ui label" href="{{$.RepoLink}}/src/branch/{{.Ref}}">{{.Ref}}</a>
-					{{end}}
 					{{range .Labels}}
 						<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 					{{end}}
@@ -242,17 +239,22 @@
 							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 						{{end}}
 
+						{{if .Milestone}}
+							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
+								<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
+							</a>
+						{{end}}
+						{{if .Ref}}
+							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">
+								<span class="octicon octicon-git-branch"></span> {{.Ref}}
+							</a>
+						{{end}}
 						{{$tasks := .GetTasks}}
 						{{if gt $tasks 0}}
 							{{$tasksDone := .GetTasksDone}}
 							<span class="checklist">
 								<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
 							</span>
-						{{end}}
-						{{if .Milestone}}
-							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
-								<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
-							</a>
 						{{end}}
 						{{if ne .DeadlineUnix 0}}
 							<span class="octicon octicon-calendar"></span>
