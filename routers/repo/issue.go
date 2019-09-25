@@ -27,7 +27,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	comment_service "code.gitea.io/gitea/services/comments"
-	issues_service "code.gitea.io/gitea/services/issues"
+	issue_service "code.gitea.io/gitea/services/issue"
 	milestone_service "code.gitea.io/gitea/services/milestone"
 
 	"github.com/unknwon/com"
@@ -572,7 +572,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		Content:     form.Content,
 		Ref:         form.Ref,
 	}
-	if err := issues_service.NewIssue(repo, issue, labelIDs, assigneeIDs, attachments); err != nil {
+	if err := issue_service.NewIssue(repo, issue, labelIDs, assigneeIDs, attachments); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
