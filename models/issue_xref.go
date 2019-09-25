@@ -167,7 +167,7 @@ func (issue *Issue) findReferencedIssue(e Engine, ctx *crossReferencesContext, r
 		return nil, err
 	}
 	// Check user permissions
-	if refIssue.Repo.ID != ctx.OrigIssue.Repo.ID {
+	if refIssue.RepoID != ctx.OrigIssue.RepoID {
 		perm, err := getUserRepoPermission(e, refIssue.Repo, ctx.Doer)
 		if err != nil {
 			return nil, err
