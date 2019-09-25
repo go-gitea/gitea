@@ -31,7 +31,7 @@ docker run -e "MYSQL_DATABASE=test" -e "MYSQL_ALLOW_EMPTY_PASSWORD=yes" -p 3306:
 ```
 Start tests based on the database container
 ```
-TEST_MYSQL_HOST=$(docker inspect -f 'localhost:3306' mysql) TEST_MYSQL_DBNAME=test TEST_MYSQL_USERNAME=root TEST_MYSQL_PASSWORD='' make test-mysql
+TEST_MYSQL_HOST=localhost:3306 TEST_MYSQL_DBNAME=test TEST_MYSQL_USERNAME=root TEST_MYSQL_PASSWORD='' make test-mysql
 ```
 
 ## Run pgsql integrations tests
@@ -41,7 +41,7 @@ docker run -e "POSTGRES_DB=test" -p 5432:5432 --rm --name pgsql postgres:9.5 #(j
 ```
 Start tests based on the database container
 ```
-TEST_PGSQL_HOST=$(docker inspect -f 'localhost:5432' pgsql) TEST_PGSQL_DBNAME=test TEST_PGSQL_USERNAME=postgres TEST_PGSQL_PASSWORD=postgres make test-pgsql
+TEST_PGSQL_HOST=localhost:5432 TEST_PGSQL_DBNAME=test TEST_PGSQL_USERNAME=postgres TEST_PGSQL_PASSWORD=postgres make test-pgsql
 ```
 
 ## Run mssql integrations tests
@@ -51,7 +51,7 @@ docker run -e "ACCEPT_EULA=Y" -e "MSSQL_PID=Standard" -e "SA_PASSWORD=MwantsaSec
 ```
 Start tests based on the database container
 ```
-TEST_MSSQL_HOST=$(docker inspect -f 'localhost:1433' mssql) TEST_MSSQL_DBNAME=gitea_test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-mssql
+TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=gitea_test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-mssql
 ```
 
 ## Running individual tests
@@ -67,5 +67,5 @@ make test-sqlite#GPG
 For other databases(replace MSSQL to MYSQL, MYSQL8, PGSQL):
 
 ```
-TEST_MSSQL_HOST=$(docker inspect -f 'localhost:1433' mssql) TEST_MSSQL_DBNAME=test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-mssql#GPG
+TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-mssql#GPG
 ```

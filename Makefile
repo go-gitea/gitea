@@ -216,7 +216,7 @@ test-mysql: integrations.mysql.test generate-ini-mysql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test
 
 .PHONY: test-mysql\#%
-test-mysql\#%: integrations.mysql.test
+test-mysql\#%: integrations.mysql.test generate-ini-mysql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test -test.run $*
 
 .PHONY: test-mysql-migration
@@ -236,7 +236,7 @@ test-mysql8: integrations.mysql8.test generate-ini-mysql8
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./integrations.mysql8.test
 
 .PHONY: test-mysql8\#%
-test-mysql8\#%: integrations.mysql8.test
+test-mysql8\#%: integrations.mysql8.test generate-ini-mysql8
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./integrations.mysql8.test -test.run $*
 
 .PHONY: test-mysql8-migration
@@ -256,7 +256,7 @@ test-pgsql: integrations.pgsql.test generate-ini-pgsql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test
 
 .PHONY: test-pgsql\#%
-test-pgsql\#%: integrations.pgsql.test
+test-pgsql\#%: integrations.pgsql.test generate-ini-pgsql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.run $*
 
 .PHONY: test-pgsql-migration
@@ -276,7 +276,7 @@ test-mssql: integrations.mssql.test generate-ini-mssql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./integrations.mssql.test
 
 .PHONY: test-mssql\#%
-test-mssql\#%: integrations.mssql.test
+test-mssql\#%: integrations.mssql.test generate-ini-mssql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./integrations.mssql.test -test.run $*
 
 .PHONY: test-mssql-migration
