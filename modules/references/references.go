@@ -104,7 +104,7 @@ func (r *rawReference) RefLocation() *ReferenceLocation {
 	return r.refLocation
 }
 
-// Action returns the action represented by the action keyword found preceeding the reference
+// Action returns the action represented by the action keyword found preceding the reference
 func (r *rawReference) Action() XRefAction {
 	return r.action
 }
