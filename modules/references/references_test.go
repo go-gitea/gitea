@@ -232,3 +232,65 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		assert.False(t, res)
 	}
 }
+
+func TestRegExp_issueNumericPattern(t *testing.T) {
+	trueTestCases := []string{
+		"#1234",
+		"#0",
+		"#1234567890987654321",
+		"  #12",
+		"#12:",
+		"ref: #12: msg",
+	}
+	falseTestCases := []string{
+		"# 1234",
+		"# 0",
+		"# ",
+		"#",
+		"#ABC",
+		"#1A2B",
+		"",
+		"ABC",
+	}
+
+	for _, testCase := range trueTestCases {
+		assert.True(t, issueNumericPattern.MatchString(testCase))
+	}
+	for _, testCase := range falseTestCases {
+		assert.False(t, issueNumericPattern.MatchString(testCase))
+	}
+}
+
+func TestRegExp_issueAlphanumericPattern(t *testing.T) {
+	trueTestCases := []string{
+		"ABC-1234",
+		"A-1",
+		"RC-80",
+		"ABCDEFGHIJ-1234567890987654321234567890",
+		"ABC-123.",
+		"(ABC-123)",
+		"[ABC-123]",
+		"ABC-123:",
+	}
+	falseTestCases := []string{
+		"RC-08",
+		"PR-0",
+		"ABCDEFGHIJK-1",
+		"PR_1",
+		"",
+		"#ABC",
+		"",
+		"ABC",
+		"GG-",
+		"rm-1",
+		"/home/gitea/ABC-1234",
+		"MY-STRING-ABC-123",
+	}
+
+	for _, testCase := range trueTestCases {
+		assert.True(t, issueAlphanumericPattern.MatchString(testCase))
+	}
+	for _, testCase := range falseTestCases {
+		assert.False(t, issueAlphanumericPattern.MatchString(testCase))
+	}
+}

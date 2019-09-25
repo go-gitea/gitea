@@ -19,6 +19,11 @@ var (
 	// Repository name should contain only alphanumeric, dash ('-'), underscore ('_') and dot ('.') characters.
 	validNamePattern = regexp.MustCompile(`^[a-z0-9_.-]+$`)
 
+	// NOTE: All below regex matching do not perform any extra validation.
+	// Thus a link is produced even if the linked entity does not exist.
+	// While fast, this is also incorrect and lead to false positives.
+	// TODO: fix invalid linking issue
+
 	// mentionPattern matches all mentions in the form of "@user"
 	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_\.]+)(?:\s|$|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
