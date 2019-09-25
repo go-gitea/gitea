@@ -43,7 +43,7 @@ func (users UserList) loadOrganizationOwners(e Engine, orgID int64) (map[int64]*
 	}
 	ownerTeam, err := getOwnerTeam(e, orgID)
 	if err != nil {
-		if err == ErrTeamNotExist {
+		if IsErrTeamNotExist(err) {
 			log.Error("Organization does not have owner team: %d", orgID)
 			return nil, nil
 		}

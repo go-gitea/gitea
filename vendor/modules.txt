@@ -198,7 +198,7 @@ github.com/go-swagger/go-swagger/cmd/swagger/commands/initcmd
 github.com/go-swagger/go-swagger/codescan
 github.com/go-swagger/go-swagger/generator
 github.com/go-swagger/go-swagger/scan
-# github.com/go-xorm/xorm v0.7.7-0.20190822154023-17592d96b35b
+# github.com/go-xorm/xorm v0.7.8-0.20190924080535-59ed80ce1a67
 github.com/go-xorm/xorm
 # github.com/gobwas/glob v0.2.3
 github.com/gobwas/glob
@@ -612,7 +612,7 @@ gopkg.in/yaml.v2
 mvdan.cc/xurls/v2
 # strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a
 strk.kbt.io/projects/go/libravatar
-# xorm.io/builder v0.3.5
+# xorm.io/builder v0.3.6
 xorm.io/builder
 # xorm.io/core v0.7.0
 xorm.io/core

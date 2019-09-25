@@ -250,10 +250,11 @@ github.com/go-swagger/scan-repo-boundary v0.0.0-20180623220736-973b3573c013/go.m
 github.com/go-xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:9wScpmSP5A3Bk8V3XHWUcJmYTh+ZnlHVyc+A4oZYS3Y=
 github.com/go-xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:56xuuqnHyryaerycW3BfssRdxQstACi0Epw/yC5E2xM=
 github.com/go-xorm/xorm v0.7.6/go.mod h1:nqz2TAsuOHWH2yk4FYWtacCGgdbrcdZ5mF1XadqEHls=
-github.com/go-xorm/xorm v0.7.7-0.20190822154023-17592d96b35b h1:Y0hWUheXDHpIs7BWtJcykO4d1VOsVDKg1PsP5YJwxxM=
-github.com/go-xorm/xorm v0.7.7-0.20190822154023-17592d96b35b/go.mod h1:nqz2TAsuOHWH2yk4FYWtacCGgdbrcdZ5mF1XadqEHls=
+github.com/go-xorm/xorm v0.7.8-0.20190924080535-59ed80ce1a67 h1:mB5RWONyATkQ48+iQZ1lCZNPG3tABilyaEOxDm1QWyU=
+github.com/go-xorm/xorm v0.7.8-0.20190924080535-59ed80ce1a67/go.mod h1:RSsmsVARCy4sayuKWFPaVNQMPYGLNRIK71YIVvgImL0=
 github.com/gobwas/glob v0.2.3 h1:A4xDbljILXROh+kObIiy5kIaPYD8e96x1tgBhUI5J+Y=
 github.com/gobwas/glob v0.2.3/go.mod h1:d3Ez4x06l9bZtSvzIay5+Yzi0fmZzPgnTbPcKjJAkT8=
+github.com/gofrs/uuid v3.2.0+incompatible/go.mod h1:b2aQJv3Z4Fp6yNu3cdSllBxTCLRxnplIgP/c0N/04lM=
 github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561 h1:deE7ritpK04PgtpyVOS2TYcQEld9qLCD5b5EbVNOuLA=
 github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561/go.mod h1:YgYOrVn3Nj9Tq0EvjmFbphRytDj7JNRoWSStJZWDJTQ=
 github.com/gogo/protobuf v1.1.1/go.mod h1:r8qH/GZQm5c6nD/R0oafs1akxWv10x8SbQlK7atdtwQ=
@@ -340,6 +341,7 @@ github.com/jackc/pgx v3.3.0+incompatible h1:Wa90/+qsITBAPkAZjiByeIGHFcj3Ztu+Vzrr
 github.com/jackc/pgx v3.3.0+incompatible/go.mod h1:0ZGrqGqkRlliWnWB4zKnWtjbSWbGkVEFm4TeybAXq+I=
 github.com/jackc/pgx v3.5.0+incompatible h1:BRJ4G3UPtvml5R1ey0biqqGuYUGayMYekm3woO75orY=
 github.com/jackc/pgx v3.5.0+incompatible/go.mod h1:0ZGrqGqkRlliWnWB4zKnWtjbSWbGkVEFm4TeybAXq+I=
+github.com/jackc/pgx v3.6.0+incompatible/go.mod h1:0ZGrqGqkRlliWnWB4zKnWtjbSWbGkVEFm4TeybAXq+I=
 github.com/jarcoal/httpmock v0.0.0-20180424175123-9c70cfe4a1da/go.mod h1:ks+b9deReOc7jgqp+e7LuFiCBH6Rm5hL32cLcEAArb4=
 github.com/jaytaylor/html2text v0.0.0-20160923191438-8fb95d837f7d h1:ig/iUfDDg06RVW8OMby+GrmW6K2nPO3AFHlEIdvJSd4=
 github.com/jaytaylor/html2text v0.0.0-20160923191438-8fb95d837f7d/go.mod h1:CVKlgaMiht+LXvHG173ujK6JUhZXKb2u/BQtjPDIvyk=
@@ -818,5 +820,7 @@ strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a h1:8q33Shx
 strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a/go.mod h1:FJGmPh3vz9jSos1L/F91iAgnC/aejc0wIIrF2ZwJxdY=
 xorm.io/builder v0.3.5 h1:EilU39fvWDxjb1cDaELpYhsF+zziRBhew8xk4pngO+A=
 xorm.io/builder v0.3.5/go.mod h1:ZFbByS/KxZI1FKRjL05PyJ4YrK2bcxlUaAxdum5aTR8=
+xorm.io/builder v0.3.6 h1:ha28mQ2M+TFx96Hxo+iq6tQgnkC9IZkM6D8w9sKHHF8=
+xorm.io/builder v0.3.6/go.mod h1:LEFAPISnRzG+zxaxj2vPicRwz67BdhFreKg8yv8/TgU=
 xorm.io/core v0.7.0 h1:hKxuOKWZNeiFQsSuGet/KV8HZ788hclvAl+7azx3tkM=
 xorm.io/core v0.7.0/go.mod h1:TuOJjIVa7e3w/rN8tDcAvuLBMtwzdHPbyOzE6Gk1EUI=
