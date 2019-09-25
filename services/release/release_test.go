@@ -175,5 +175,12 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	count, err = models.GetReleaseCountByRepoID(mirror.ID, findOptions)
 	assert.NoError(t, err)
 	assert.EqualValues(t, initCount+1, count)
+
+	err = models.DeleteReleaseByID(release.ID, user, true)
+	assert.NoError(t, err)
+
+	count, err = models.GetReleaseCountByRepoID(mirror.ID, findOptions)
+	assert.NoError(t, err)
+	assert.EqualValues(t, initCount, count)
 }
 >>>>>>> fix tests
