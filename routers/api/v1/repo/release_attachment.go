@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	api "code.gitea.io/gitea/modules/structs"
@@ -57,6 +58,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	if attach.ReleaseID != releaseID {
+		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", releaseID, attachID)
 		ctx.NotFound()
 		return
 	}
@@ -263,6 +265,7 @@ func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptio
 		return
 	}
 	if attach.ReleaseID != releaseID {
+		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", releaseID, attachID)
 		ctx.NotFound()
 		return
 	}
@@ -320,6 +323,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	if attach.ReleaseID != releaseID {
+		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", releaseID, attachID)
 		ctx.NotFound()
 		return
 	}
