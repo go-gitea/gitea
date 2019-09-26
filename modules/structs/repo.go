@@ -166,6 +166,20 @@ const (
 	GogsService                           // 5 gogs service
 )
 
+// Name represents the service type's name
+// WARNNING: the name have to be equal to that on goth's library
+func (gt GitServiceType) Name() string {
+	switch gt {
+	case GithubService:
+		return "github"
+	case GiteaService:
+		return "gitea"
+	case GitlabService:
+		return "gitlab"
+	}
+	return ""
+}
+
 // MigrateRepoOption options for migrating a repository from an external service
 type MigrateRepoOption struct {
 	// required: true

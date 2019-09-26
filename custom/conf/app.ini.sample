@@ -690,6 +690,11 @@ SCHEDULE = @every 24h
 ;   or only create new users if UPDATE_EXISTING is set to false
 UPDATE_EXISTING = true
 
+; Update migrated repositories' issues and comments' posterid, it will always be started at start.
+[cron.update_migration_post_id]
+; Interval as a duration between each synchronization (default every 10m)
+SCHEDULE = @every 10m
+
 [git]
 ; The path of git executable. If empty, Gitea searches through the PATH environment.
 PATH =

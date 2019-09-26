@@ -1954,7 +1954,9 @@ func UpdateIssuesMigrations(repoID, originalAuthorID, posterID int64) error {
 		Where("repo_id = ?", repoID).
 		And("original_author_id = ?", originalAuthorID).
 		Update(map[string]interface{}{
-			"poster_id": posterID,
+			"poster_id":          posterID,
+			"original_author":    "",
+			"original_author_id": 0,
 		})
 	return err
 }

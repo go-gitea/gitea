@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -604,51 +603,57 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 	// Instead, redirect them to the 2FA authentication page.
 	_, err = models.GetTwoFactorByUID(u.ID)
 	if err != nil {
-		if models.IsErrTwoFactorNotEnrolled(err) {
-			err = ctx.Session.Set("uid", u.ID)
+		if !models.IsErrTwoFactorNotEnrolled(err) {
+			ctx.ServerError("UserSignIn", err)
+			return
+		}
+
+		err = ctx.Session.Set("uid", u.ID)
+		if err != nil {
+			log.Error(fmt.Sprintf("Error setting session: %v", err))
+		}
+		err = ctx.Session.Set("uname", u.Name)
+		if err != nil {
+			log.Error(fmt.Sprintf("Error setting session: %v", err))
+		}
+
+		// Clear whatever CSRF has right now, force to generate a new one
+		ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+
+		// Register last login
+		u.SetLastLogin()
+		if err := models.UpdateUserCols(u, "last_login_unix"); err != nil {
+			ctx.ServerError("UpdateUserCols", err)
+			return
+		}
+
+		// update user's migrated comments and issues original id
+		if gothUser.Provider == "github" {
+			ids, err := models.FindMigratedRepositoryIDs(structs.GithubService)
 			if err != nil {
-				log.Error(fmt.Sprintf("Error setting session: %v", err))
-			}
-			err = ctx.Session.Set("uname", u.Name)
-			if err != nil {
-				log.Error(fmt.Sprintf("Error setting session: %v", err))
-			}
-
-			// Clear whatever CSRF has right now, force to generate a new one
-			ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
-
-			// Register last login
-			u.SetLastLogin()
-			if err := models.UpdateUserCols(u, "last_login_unix"); err != nil {
-				ctx.ServerError("UpdateUserCols", err)
-				return
-			}
-
-			if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 {
-				ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
-				ctx.RedirectToFirst(redirectTo)
-				return
-			}
-
-			// update user's migrated comments and issues original id
-			if gothUser.Provider == "github" {
-				ids, err := models.FindMigratedRepositoryIDs(structs.GithubService)
-				if err != nil {
-					log.Error("FindMigratedRepositoryIDs failed: %v", err)
-				} else {
-					for _, id := range ids {
-						userID, _ := strconv.ParseInt(gothUser.UserID, 10, 64)
-						if err = migrations.UpdateGithubMigrations(id, userID, u.ID); err != nil {
-							log.Error("UpdateGithubMigrations repo %v, github user id %v, user id %v failed: %v", id, gothUser.UserID, u.ID, err)
-						}
+				log.Error("FindMigratedRepositoryIDs failed: %v", err)
+			} else {
+				for _, id := range ids {
+					userID, _ := strconv.ParseInt(gothUser.UserID, 10, 64)
+					if err = migrations.UpdateGithubMigrations(id, userID, u.ID); err != nil {
+						log.Error("UpdateGithubMigrations repo %v, github user id %v, user id %v failed: %v", id, gothUser.UserID, u.ID, err)
 					}
 				}
 			}
-
-			ctx.Redirect(setting.AppSubURL + "/")
-		} else {
-			ctx.ServerError("UserSignIn", err)
 		}
+
+		// update external user information
+		if err := models.UpdateExternalUser(u, gothUser); err != nil {
+			log.Error("UpdateExternalUser failed: %v", err)
+		}
+
+		if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 {
+			ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+			ctx.RedirectToFirst(redirectTo)
+			return
+		}
+
+		ctx.Redirect(setting.AppSubURL + "/")
 		return
 	}
 
@@ -693,7 +698,7 @@ func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Requ
 	}
 
 	if hasUser {
-		return user, goth.User{}, nil
+		return user, gothUser, nil
 	}
 
 	// search in external linked users
@@ -707,7 +712,7 @@ func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Requ
 	}
 	if hasUser {
 		user, err = models.GetUserByID(externalLoginUser.UserID)
-		return user, goth.User{}, err
+		return user, gothUser, err
 	}
 
 	// no user found to login
@@ -807,16 +812,18 @@ func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
 	// Instead, redirect them to the 2FA authentication page.
 	_, err = models.GetTwoFactorByUID(u.ID)
 	if err != nil {
-		if models.IsErrTwoFactorNotEnrolled(err) {
-			err = models.LinkAccountToUser(u, gothUser.(goth.User))
-			if err != nil {
-				ctx.ServerError("UserLinkAccount", err)
-			} else {
-				handleSignIn(ctx, u, signInForm.Remember)
-			}
-		} else {
+		if !models.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("UserLinkAccount", err)
+			return
 		}
+
+		err = models.LinkAccountToUser(u, gothUser.(goth.User))
+		if err != nil {
+			ctx.ServerError("UserLinkAccount", err)
+			return
+		}
+
+		handleSignIn(ctx, u, signInForm.Remember)
 		return
 	}
 
@@ -963,6 +970,11 @@ func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form au
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
+	}
+
+	// update external user information
+	if err := models.UpdateExternalUser(u, gothUser.(goth.User)); err != nil {
+		log.Error("UpdateExternalUser failed: %v", err)
 	}
 
 	// Send confirmation email

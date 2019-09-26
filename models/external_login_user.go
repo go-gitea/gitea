@@ -8,22 +8,22 @@ import (
 	"time"
 
 	"github.com/markbates/goth"
+	"xorm.io/builder"
 )
 
 // ExternalLoginUser makes the connecting between some existing user and additional external login sources
 type ExternalLoginUser struct {
-	ExternalID        string `xorm:"pk NOT NULL"`
-	UserID            int64  `xorm:"INDEX NOT NULL"`
-	LoginSourceID     int64  `xorm:"pk NOT NULL"`
-	RawData           map[string]interface{}
-	Provider          string `xorm:"index"`
+	ExternalID        string                 `xorm:"VARCHAR(50) pk NOT NULL"`
+	UserID            int64                  `xorm:"INDEX NOT NULL"`
+	LoginSourceID     int64                  `xorm:"pk NOT NULL"`
+	RawData           map[string]interface{} `xorm:"TEXT"`
+	Provider          string                 `xorm:"index"`
 	Email             string
 	Name              string
 	FirstName         string
 	LastName          string
 	NickName          string
 	Description       string
-	ExternalUserID    string `xorm:"VARCHAR(50) index"`
 	AvatarURL         string
 	Location          string
 	AccessToken       string
@@ -59,11 +59,28 @@ func LinkAccountToUser(user *User, gothUser goth.User) error {
 	}
 
 	externalLoginUser := &ExternalLoginUser{
-		ExternalID:    gothUser.UserID,
-		UserID:        user.ID,
-		LoginSourceID: loginSource.ID,
+		ExternalID:        gothUser.UserID,
+		UserID:            user.ID,
+		LoginSourceID:     loginSource.ID,
+		RawData:           gothUser.RawData,
+		Provider:          gothUser.Provider,
+		Email:             gothUser.Email,
+		Name:              gothUser.Name,
+		FirstName:         gothUser.FirstName,
+		LastName:          gothUser.LastName,
+		NickName:          gothUser.NickName,
+		Description:       gothUser.Description,
+		AvatarURL:         gothUser.AvatarURL,
+		Location:          gothUser.Location,
+		AccessToken:       gothUser.AccessToken,
+		AccessTokenSecret: gothUser.AccessTokenSecret,
+		RefreshToken:      gothUser.RefreshToken,
+		ExpiresAt:         gothUser.ExpiresAt,
 	}
-	has, err := x.Get(externalLoginUser)
+
+	has, err := x.Where("external_id=? AND login_source_id=?", gothUser.UserID, loginSource.ID).
+		NoAutoCondition().
+		Exist(externalLoginUser)
 	if err != nil {
 		return err
 	} else if has {
@@ -95,10 +112,76 @@ func removeAllAccountLinks(e Engine, user *User) error {
 // GetUserIDByExternalUserID get user id according to provider and userID
 func GetUserIDByExternalUserID(provider string, userID string) (int64, error) {
 	var id int64
-	_, err := x.Select("user_id").Where("provider=?", provider).
-		And("external_user_id=?", userID).Get(&id)
+	_, err := x.Table("external_login_user").
+		Select("user_id").
+		Where("provider=?", provider).
+		And("external_id=?", userID).
+		Get(&id)
 	if err != nil {
 		return 0, err
 	}
 	return id, nil
+}
+
+// UpdateExternalUser updates external user's information
+func UpdateExternalUser(user *User, gothUser goth.User) error {
+	loginSource, err := GetActiveOAuth2LoginSourceByName(gothUser.Provider)
+	if err != nil {
+		return err
+	}
+	externalLoginUser := &ExternalLoginUser{
+		ExternalID:        gothUser.UserID,
+		UserID:            user.ID,
+		LoginSourceID:     loginSource.ID,
+		RawData:           gothUser.RawData,
+		Provider:          gothUser.Provider,
+		Email:             gothUser.Email,
+		Name:              gothUser.Name,
+		FirstName:         gothUser.FirstName,
+		LastName:          gothUser.LastName,
+		NickName:          gothUser.NickName,
+		Description:       gothUser.Description,
+		AvatarURL:         gothUser.AvatarURL,
+		Location:          gothUser.Location,
+		AccessToken:       gothUser.AccessToken,
+		AccessTokenSecret: gothUser.AccessTokenSecret,
+		RefreshToken:      gothUser.RefreshToken,
+		ExpiresAt:         gothUser.ExpiresAt,
+	}
+
+	has, err := x.Where("external_id=? AND login_source_id=?", gothUser.UserID, loginSource.ID).
+		NoAutoCondition().
+		Exist(externalLoginUser)
+	if err != nil {
+		return err
+	} else if !has {
+		return ErrExternalLoginUserNotExist{user.ID, loginSource.ID}
+	}
+
+	_, err = x.Where("external_id=? AND login_source_id=?", gothUser.UserID, loginSource.ID).AllCols().Update(externalLoginUser)
+	return err
+}
+
+type FindExternalUserOptions struct {
+	Provider string
+	Limit    int
+	Start    int
+}
+
+func (opts FindExternalUserOptions) toConds() builder.Cond {
+	var cond = builder.NewCond()
+	if len(opts.Provider) > 0 {
+		cond = cond.And(builder.Eq{"provider": opts.Provider})
+	}
+	return cond
+}
+
+// FindExternalUsersByProvider represents external users via provider
+func FindExternalUsersByProvider(opts FindExternalUserOptions) ([]ExternalLoginUser, error) {
+	var users []ExternalLoginUser
+	err := x.Where(opts.toConds()).Limit(opts.Limit, opts.Start).Find(&users)
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
 }
