@@ -248,14 +248,29 @@ func Diff(ctx *context.Context) {
 		}
 		return result
 	}
-	ctx.Data["ImageInfoBase"] = ctx.Data["ImageInfo"]
+	ctx.Data["FileExistsInBaseCommit"] = func(filename string) bool {
+		return false
+	}
 	if commit.ParentCount() > 0 {
 		parentCommit, err := ctx.Repo.GitRepo.GetCommit(parents[0])
 		if err != nil {
 			ctx.NotFound("GetParentCommit", err)
 			return
 		}
-		ctx.Data["ImageInfo"] = parentCommit.ImageInfo
+		ctx.Data["ImageInfoBase"] = parentCommit.ImageInfo
+		ctx.Data["FileExistsInBaseCommit"] = func(filename string) bool {
+			result, err := parentCommit.HasFile(filename)
+			if err != nil {
+				log.Error(
+					"Error while checking if file \"%s\" exists in base commit \"%s\" (repo: %s): %v",
+					filename,
+					parentCommit,
+					ctx.Repo.GitRepo.Path,
+					err)
+				return false
+			}
+			return result
+		}
 	}
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
