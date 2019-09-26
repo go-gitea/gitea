@@ -7,7 +7,6 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/services/compare"
 	"container/list"
 	"crypto/subtle"
 	"fmt"
@@ -26,6 +25,7 @@ import (
 	pull_service "code.gitea.io/gitea/modules/pull"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/compare"
 	"code.gitea.io/gitea/services/gitdiff"
 
 	"github.com/unknwon/com"

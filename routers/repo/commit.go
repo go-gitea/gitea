@@ -6,7 +6,6 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/services/compare"
 	"path"
 	"strings"
 
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/compare"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -241,7 +241,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
 
-	var parentCommit *git.Commit = nil
+	var parentCommit *git.Commit
 	if commit.ParentCount() > 0 {
 		parentCommit, err = ctx.Repo.GitRepo.GetCommit(parents[0])
 		if err != nil {
