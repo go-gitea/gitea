@@ -7,6 +7,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/services/compare"
 	"container/list"
 	"crypto/subtle"
 	"fmt"
@@ -565,42 +566,8 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["ImageInfoBase"] = func(name string) *git.ImageMetaData {
-		result, err := baseCommit.ImageInfo(name)
-		if err != nil {
-			log.Error("ImageInfo failed: %v", err)
-			return nil
-		}
-		return result
-	}
-	ctx.Data["FileExistsInBaseCommit"] = func(filename string) bool {
-		result, err := baseCommit.HasFile(filename)
-		if err != nil {
-			log.Error(
-				"Error while checking if file \"%s\" exists in base commit \"%s\" (repo: %s): %v",
-				filename,
-				baseCommit,
-				ctx.Repo.GitRepo.Path,
-				err)
-			return false
-		}
-		return result
-	}
-	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
-		result, err := commit.ImageInfo(name)
-		if err != nil {
-			log.Error("ImageInfo failed: %v", err)
-			return nil
-		}
-		return result
-	}
-
-	baseTarget := path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", endCommitID)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", endCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(baseTarget, "src", "commit", startCommitID)
-	ctx.Data["BeforeRawPath"] = setting.AppSubURL + "/" + path.Join(baseTarget, "raw", "commit", startCommitID)
+	compare.SetImageCompareContext(ctx, baseCommit, commit)
+	compare.SetPathsCompareContext(ctx, baseCommit, commit, headTarget)
 
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true

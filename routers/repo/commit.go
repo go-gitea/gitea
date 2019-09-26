@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/services/compare"
 	"path"
 	"strings"
 
@@ -239,39 +240,18 @@ func Diff(ctx *context.Context) {
 	ctx.Data["CommitID"] = commitID
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
-	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
-		result, err := commit.ImageInfo(name)
-		if err != nil {
-			log.Error("ImageInfo failed: %v", err)
-			return nil
-		}
-		return result
-	}
-	ctx.Data["FileExistsInBaseCommit"] = func(filename string) bool {
-		return false
-	}
+
+	var parentCommit *git.Commit = nil
 	if commit.ParentCount() > 0 {
-		parentCommit, err := ctx.Repo.GitRepo.GetCommit(parents[0])
+		parentCommit, err = ctx.Repo.GitRepo.GetCommit(parents[0])
 		if err != nil {
 			ctx.NotFound("GetParentCommit", err)
 			return
 		}
-		ctx.Data["ImageInfoBase"] = parentCommit.ImageInfo
-		ctx.Data["FileExistsInBaseCommit"] = func(filename string) bool {
-			result, err := parentCommit.HasFile(filename)
-			if err != nil {
-				log.Error(
-					"Error while checking if file \"%s\" exists in base commit \"%s\" (repo: %s): %v",
-					filename,
-					parentCommit,
-					ctx.Repo.GitRepo.Path,
-					err)
-				return false
-			}
-			return result
-		}
 	}
+	compare.SetImageCompareContext(ctx, parentCommit, commit)
+	headTarget := path.Join(userName, repoName)
+	compare.SetPathsCompareContext(ctx, parentCommit, commit, headTarget)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	ctx.Data["Verification"] = models.ParseCommitWithSignature(commit)
@@ -279,8 +259,6 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Diff"] = diff
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", commitID)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", commitID)
 
 	note := &git.Note{}
 	err = git.GetNote(ctx.Repo.GitRepo, commitID, note)
@@ -290,10 +268,6 @@ func Diff(ctx *context.Context) {
 		ctx.Data["NoteAuthor"] = models.ValidateCommitWithEmail(note.Commit)
 	}
 
-	if commit.ParentCount() > 0 {
-		ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "src", "commit", parents[0])
-		ctx.Data["BeforeRawPath"] = setting.AppSubURL + "/" + path.Join(userName, repoName, "raw", "commit", parents[0])
-	}
 	ctx.Data["BranchName"], err = commit.GetBranchName()
 	if err != nil {
 		ctx.ServerError("commit.GetBranchName", err)

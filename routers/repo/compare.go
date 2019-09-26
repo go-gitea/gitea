@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/compare"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -291,43 +292,10 @@ func PrepareCompareDiff(
 	ctx.Data["title"] = title
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
-	ctx.Data["IsImageFile"] = headCommit.IsImageFile
-	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
-		result, err := headCommit.ImageInfo(name)
-		if err != nil {
-			log.Error("ImageInfo failed: %v", err)
-			return nil
-		}
-		return result
-	}
-	ctx.Data["FileExistsInBaseCommit"] = func(filename string) bool {
-		result, err := baseCommit.HasFile(filename)
-		if err != nil {
-			log.Error(
-				"Error while checking if file \"%s\" exists in base commit \"%s\" (repo: %s): %v",
-				filename,
-				baseCommit,
-				baseGitRepo.Path,
-				err)
-			return false
-		}
-		return result
-	}
-	ctx.Data["ImageInfoBase"] = func(name string) *git.ImageMetaData {
-		result, err := baseCommit.ImageInfo(name)
-		if err != nil {
-			log.Error("ImageInfo failed: %v", err)
-			return nil
-		}
-		return result
-	}
 
+	compare.SetImageCompareContext(ctx, baseCommit, headCommit)
 	headTarget := path.Join(headUser.Name, repo.Name)
-	baseTarget := path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", headCommitID)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", headCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(baseTarget, "src", "commit", baseCommitID)
-	ctx.Data["BeforeRawPath"] = setting.AppSubURL + "/" + path.Join(baseTarget, "raw", "commit", baseCommitID)
+	compare.SetPathsCompareContext(ctx, baseCommit, headCommit, headTarget)
 
 	return false
 }
