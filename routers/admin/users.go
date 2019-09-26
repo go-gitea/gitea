@@ -12,8 +12,8 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/services/mailer"
 
@@ -95,7 +95,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 			u.LoginName = form.LoginName
 		}
 	}
-	if !util.CheckPasswordComplexity(form.Password) {
+	if !password.CheckPasswordComplexity(form.Password) {
 		ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserNew, &form)
 		return
 	}
@@ -205,7 +205,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		if !util.CheckPasswordComplexity(form.Password) {
+		if !password.CheckPasswordComplexity(form.Password) {
 			ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserEdit, &form)
 			return
 		}

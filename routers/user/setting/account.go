@@ -13,9 +13,9 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/mailer"
 )
 
@@ -53,7 +53,7 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
-	} else if !util.CheckPasswordComplexity(form.Password) {
+	} else if !password.CheckPasswordComplexity(form.Password) {
 		ctx.Flash.Error(ctx.Tr("settings.password_complexity"))
 	} else {
 		var err error

@@ -8,7 +8,6 @@ package generate
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"errors"
 	"io"
 	"math/big"
 	"time"
@@ -30,64 +29,6 @@ func GetRandomString(n int) (string, error) {
 		}
 
 		buffer[i] = alphanum[index]
-	}
-
-	return string(buffer), nil
-}
-
-// Password generates a random password
-func Password(n int) (string, error) {
-	const lower = "abcdefghijklmnopqrstuvwxyz"
-	const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	const digit = "0123456789"
-	const spec = "_-"
-	var h, m int
-	if n < 3 {
-		return "", errors.New("Error generate random string")
-	}
-
-	h = (n - 2) / 2
-	m = (n) % 2
-	buffer := make([]byte, n)
-	maxLower := big.NewInt(int64(len(lower)))
-	maxUpper := big.NewInt(int64(len(upper)))
-	maxDigit := big.NewInt(int64(len(digit)))
-	maxSpec := big.NewInt(int64(len(spec)))
-
-	for i := 0; i < h; i++ {
-		index, err := randomInt(maxLower)
-		if err != nil {
-			return "", err
-		}
-
-		buffer[i] = lower[index]
-	}
-	for i := h; i < 2*h+m; i++ {
-		index, err := randomInt(maxUpper)
-		if err != nil {
-			return "", err
-		}
-
-		buffer[i] = upper[index]
-	}
-
-	index, err := randomInt(maxDigit)
-	if err != nil {
-		return "", err
-	}
-	buffer[n-2] = digit[index]
-
-	index, err = randomInt(maxSpec)
-	if err != nil {
-		return "", err
-	}
-	buffer[n-1] = spec[index]
-	for i := len(buffer) - 1; i > 0; i-- {
-		j, err := randomInt(big.NewInt(int64(i + 1)))
-		if err != nil {
-			return "", err
-		}
-		buffer[i], buffer[j] = buffer[j], buffer[i]
 	}
 
 	return string(buffer), nil
