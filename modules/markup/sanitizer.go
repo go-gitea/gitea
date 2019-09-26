@@ -38,6 +38,11 @@ func NewSanitizer() {
 
 		// Custom URL-Schemes
 		sanitizer.policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
+
+		// Allow keyword markup
+		sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^` + keywordClass + `$`)).OnElements("span")
+		// GAP: FIXME: remove style
+		sanitizer.policy.AllowAttrs("style").Matching(regexp.MustCompile(`^border-bottom: 1px dotted #959da5; display: inline-block;$`)).OnElements("span")
 	})
 }
 

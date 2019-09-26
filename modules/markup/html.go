@@ -60,6 +60,9 @@ var (
 	linkRegex, _ = xurls.StrictMatchingScheme("https?://")
 )
 
+// CSS class for opening/closing keywords
+const keywordClass = "issue-keyword"
+
 // regexp for full links to issues/pulls
 var issueFullPattern *regexp.Regexp
 
@@ -306,6 +309,30 @@ func (ctx *postProcessCtx) textNode(node *html.Node) {
 	}
 }
 
+// createKeyword() renders a highlited version of a closing/reopening keyowrd
+func createKeyword(content string, class string) *html.Node {
+	span := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.Span.String(),
+		Attr: []html.Attribute{},
+	}
+	if class != "" {
+		span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: class})
+	} else {
+		span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: keywordClass})
+	}
+	// GAP: FIXME: move this to CSS
+	span.Attr = append(span.Attr, html.Attribute{Key: "style", Val: "border-bottom: 1px dotted #959da5; display: inline-block;"})
+
+	text := &html.Node{
+		Type: html.TextNode,
+		Data: content,
+	}
+	span.AppendChild(text)
+
+	return span
+}
+
 func createLink(href, content, class string) *html.Node {
 	a := &html.Node{
 		Type: html.ElementNode,
@@ -353,10 +380,16 @@ func createCodeLink(href, content, class string) *html.Node {
 	return a
 }
 
-// replaceContent takes a text node, and in its content it replaces a section of
-// it with the specified newNode. An example to visualize how this can work can
-// be found here: https://play.golang.org/p/5zP8NnHZ03s
+// replaceContent takes text node, and in its content it replaces a section of
+// it with the specified newNode.
 func replaceContent(node *html.Node, i, j int, newNode *html.Node) {
+	replaceContentList(node, i, j, []*html.Node{newNode})
+}
+
+// replaceContentList takes text node, and in its content it replaces a section of
+// it with the specified newNodes. An example to visualize how this can work can
+// be found here: https://play.golang.org/p/5zP8NnHZ03s
+func replaceContentList(node *html.Node, i, j int, newNodes []*html.Node) {
 	// get the data before and after the match
 	before := node.Data[:i]
 	after := node.Data[j:]
@@ -368,7 +401,9 @@ func replaceContent(node *html.Node, i, j int, newNode *html.Node) {
 	// Get the current next sibling, before which we place the replaced data,
 	// and after that we place the new text node.
 	nextSibling := node.NextSibling
-	node.Parent.InsertBefore(newNode, nextSibling)
+	for _, n := range newNodes {
+		node.Parent.InsertBefore(n, nextSibling)
+	}
 	if after != "" {
 		node.Parent.InsertBefore(&html.Node{
 			Type: html.TextNode,
@@ -599,7 +634,19 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	} else {
 		link = createLink(util.URLJoin(setting.AppURL, ref.Owner(), ref.Name(), "issues", ref.Issue()), reftext, "issue")
 	}
-	replaceContent(node, ref.RefLocation().Start, ref.RefLocation().End, link)
+
+	if ref.Action() == references.XRefActionNone {
+		replaceContent(node, ref.RefLocation().Start, ref.RefLocation().End, link)
+		return
+	}
+
+	// Decorate action keywords
+	keyword := createKeyword(node.Data[ref.ActionLocation().Start:ref.ActionLocation().End], "")
+	spaces := &html.Node{
+		Type: html.TextNode,
+		Data: node.Data[ref.ActionLocation().End:ref.RefLocation().Start],
+	}
+	replaceContentList(node, ref.ActionLocation().Start, ref.RefLocation().End, []*html.Node{keyword, spaces, link})
 }
 
 // fullSha1PatternProcessor renders SHA containing URLs
