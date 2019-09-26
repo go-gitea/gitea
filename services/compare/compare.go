@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// SetPathsCompareContext sets context data for source and raw paths
 func SetPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headTarget string) {
 	sourcePath := setting.AppSubURL + "/%s/src/commit/%s"
 	rawPath := setting.AppSubURL + "/%s/raw/commit/%s"
@@ -27,6 +28,7 @@ func SetPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Co
 	}
 }
 
+// SetImageCompareContext sets context data that is required by image compare template
 func SetImageCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit) {
 	ctx.Data["IsImageFile"] = head.IsImageFile
 	ctx.Data["ImageInfoBase"] = func(name string) *git.ImageMetaData {
