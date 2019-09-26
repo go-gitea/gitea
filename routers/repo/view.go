@@ -342,7 +342,22 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["IsAudioFile"] = true
 	case base.IsImageFile(buf):
 		ctx.Data["IsImageFile"] = true
+	default:
+		d, _ := ioutil.ReadAll(dataRc)
+		buf = append(buf, d...)
+
+		if fileSize >= setting.UI.MaxDisplayFileSize {
+			ctx.Data["IsFileTooLarge"] = true
+			break
+		}
+
+		if markupType := markup.Type(blob.Name()); markupType != "" {
+			ctx.Data["IsMarkup"] = true
+			ctx.Data["MarkupType"] = markupType
+			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
+			} 
 	}
+	
 
 	if ctx.Repo.CanEnableEditor() {
 		ctx.Data["CanDeleteFile"] = true
