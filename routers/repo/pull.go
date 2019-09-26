@@ -574,6 +574,19 @@ func ViewPullFiles(ctx *context.Context) {
 		}
 		return result
 	}
+	ctx.Data["FileExistsInBaseCommit"] = func(filename string) bool {
+		result, err := baseCommit.HasFile(filename)
+		if err != nil {
+			log.Error(
+				"Error while checking if file \"%s\" exists in base commit \"%s\" (repo: %s): %v",
+				filename,
+				baseCommit,
+				ctx.Repo.GitRepo.Path,
+				err)
+			return false
+		}
+		return result
+	}
 	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
 		result, err := commit.ImageInfo(name)
 		if err != nil {
