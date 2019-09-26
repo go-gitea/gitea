@@ -20,8 +20,8 @@ func TestFindAllIssueReferences(t *testing.T) {
 		Name           string
 		Issue          string
 		Action         XRefAction
-		RefLocation    *ReferenceLocation
-		ActionLocation *ReferenceLocation
+		RefLocation    *RefSpan
+		ActionLocation *RefSpan
 	}
 
 	type testFixture struct {
@@ -33,7 +33,7 @@ func TestFindAllIssueReferences(t *testing.T) {
 		{
 			"Simply closes: #29 yes",
 			[]result{
-				{29, "", "", "29", XRefActionCloses, &ReferenceLocation{Start: 15, End: 18}, &ReferenceLocation{Start: 7, End: 13}},
+				{29, "", "", "29", XRefActionCloses, &RefSpan{Start: 15, End: 18}, &RefSpan{Start: 7, End: 13}},
 			},
 		},
 		{
@@ -43,7 +43,7 @@ func TestFindAllIssueReferences(t *testing.T) {
 		{
 			" #124 yes, this is a reference.",
 			[]result{
-				{124, "", "", "124", XRefActionNone, &ReferenceLocation{Start: 0, End: 4}, nil},
+				{124, "", "", "124", XRefActionNone, &RefSpan{Start: 0, End: 4}, nil},
 			},
 		},
 		{
@@ -57,7 +57,7 @@ func TestFindAllIssueReferences(t *testing.T) {
 		{
 			"This user3/repo4#200 yes.",
 			[]result{
-				{200, "user3", "repo4", "200", XRefActionNone, &ReferenceLocation{Start: 5, End: 20}, nil},
+				{200, "user3", "repo4", "200", XRefActionNone, &RefSpan{Start: 5, End: 20}, nil},
 			},
 		},
 		{
@@ -105,38 +105,38 @@ func TestFindAllIssueReferences(t *testing.T) {
 		{
 			"Reopens #15 yes",
 			[]result{
-				{15, "", "", "15", XRefActionReopens, &ReferenceLocation{Start: 8, End: 11}, &ReferenceLocation{Start: 0, End: 7}},
+				{15, "", "", "15", XRefActionReopens, &RefSpan{Start: 8, End: 11}, &RefSpan{Start: 0, End: 7}},
 			},
 		},
 		{
 			"This closes #20 for you yes",
 			[]result{
-				{20, "", "", "20", XRefActionCloses, &ReferenceLocation{Start: 12, End: 15}, &ReferenceLocation{Start: 5, End: 11}},
+				{20, "", "", "20", XRefActionCloses, &RefSpan{Start: 12, End: 15}, &RefSpan{Start: 5, End: 11}},
 			},
 		},
 		{
 			"Do you fix user6/repo6#300 ? yes",
 			[]result{
-				{300, "user6", "repo6", "300", XRefActionCloses, &ReferenceLocation{Start: 11, End: 26}, &ReferenceLocation{Start: 7, End: 10}},
+				{300, "user6", "repo6", "300", XRefActionCloses, &RefSpan{Start: 11, End: 26}, &RefSpan{Start: 7, End: 10}},
 			},
 		},
 		{
 			"For 999 #1235 no keyword, but yes",
 			[]result{
-				{1235, "", "", "1235", XRefActionNone, &ReferenceLocation{Start: 8, End: 13}, nil},
+				{1235, "", "", "1235", XRefActionNone, &RefSpan{Start: 8, End: 13}, nil},
 			},
 		},
 		{
 			"Which abc. #9434 same as above",
 			[]result{
-				{9434, "", "", "9434", XRefActionNone, &ReferenceLocation{Start: 11, End: 16}, nil},
+				{9434, "", "", "9434", XRefActionNone, &RefSpan{Start: 11, End: 16}, nil},
 			},
 		},
 		{
 			"This closes #600 and reopens #599",
 			[]result{
-				{600, "", "", "600", XRefActionCloses, &ReferenceLocation{Start: 12, End: 16}, &ReferenceLocation{Start: 5, End: 11}},
-				{599, "", "", "599", XRefActionReopens, &ReferenceLocation{Start: 29, End: 33}, &ReferenceLocation{Start: 21, End: 28}},
+				{600, "", "", "600", XRefActionCloses, &RefSpan{Start: 12, End: 16}, &RefSpan{Start: 5, End: 11}},
+				{599, "", "", "599", XRefActionReopens, &RefSpan{Start: 29, End: 33}, &RefSpan{Start: 21, End: 28}},
 			},
 		},
 	}
@@ -171,21 +171,21 @@ func TestFindAllIssueReferences(t *testing.T) {
 	type alnumFixture struct {
 		input          string
 		issue          string
-		refLocation    *ReferenceLocation
+		refLocation    *RefSpan
 		action         XRefAction
-		actionLocation *ReferenceLocation
+		actionLocation *RefSpan
 	}
 
 	alnumFixtures := []alnumFixture{
 		{
 			"This ref ABC-123 is alphanumeric",
-			"ABC-123", &ReferenceLocation{Start: 9, End: 16},
+			"ABC-123", &RefSpan{Start: 9, End: 16},
 			XRefActionNone, nil,
 		},
 		{
 			"This closes ABCD-1234 alphanumeric",
-			"ABCD-1234", &ReferenceLocation{Start: 12, End: 21},
-			XRefActionCloses, &ReferenceLocation{Start: 5, End: 11},
+			"ABCD-1234", &RefSpan{Start: 12, End: 21},
+			XRefActionCloses, &RefSpan{Start: 5, End: 11},
 		},
 	}
 
@@ -195,10 +195,10 @@ func TestFindAllIssueReferences(t *testing.T) {
 			assert.False(t, found, "Failed to parse: {%s}", fixture.input)
 		} else {
 			assert.True(t, found, "Failed to parse: {%s}", fixture.input)
-			assert.Equal(t, fixture.issue, ref.Issue(), "Failed to parse: {%s}", fixture.input)
-			assert.Equal(t, fixture.refLocation, ref.RefLocation(), "Failed to parse: {%s}", fixture.input)
-			assert.Equal(t, fixture.action, ref.Action(), "Failed to parse: {%s}", fixture.input)
-			assert.Equal(t, fixture.actionLocation, ref.ActionLocation(), "Failed to parse: {%s}", fixture.input)
+			assert.Equal(t, fixture.issue, ref.Issue, "Failed to parse: {%s}", fixture.input)
+			assert.Equal(t, fixture.refLocation, ref.RefLocation, "Failed to parse: {%s}", fixture.input)
+			assert.Equal(t, fixture.action, ref.Action, "Failed to parse: {%s}", fixture.input)
+			assert.Equal(t, fixture.actionLocation, ref.ActionLocation, "Failed to parse: {%s}", fixture.input)
 		}
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/markup/mdstripper"
 	"code.gitea.io/gitea/modules/setting"
@@ -40,6 +41,9 @@ var (
 	issueReopenKeywords = []string{"reopen", "reopens", "reopened"}
 
 	issueCloseKeywordsPat, issueReopenKeywordsPat *regexp.Regexp
+
+	giteaHostInit sync.Once
+	giteaHost     string
 )
 
 // XRefAction represents the kind of effect a cross reference has once is resolved
@@ -56,7 +60,7 @@ const (
 	XRefActionNeutered // 3
 )
 
-// IssueReference contains an unverified cross-reference to a local issue/pull request
+// IssueReference contains an unverified cross-reference to a local issue or pull request
 type IssueReference struct {
 	Index  int64
 	Owner  string
@@ -65,13 +69,13 @@ type IssueReference struct {
 }
 
 // RenderizableReference contains an unverified cross-reference to with rendering information
-type RenderizableReference interface {
-	Issue() string
-	Owner() string
-	Name() string
-	RefLocation() *ReferenceLocation
-	Action() XRefAction
-	ActionLocation() *ReferenceLocation
+type RenderizableReference struct {
+	Issue          string
+	Owner          string
+	Name           string
+	RefLocation    *RefSpan
+	Action         XRefAction
+	ActionLocation *RefSpan
 }
 
 type rawReference struct {
@@ -80,43 +84,8 @@ type rawReference struct {
 	name           string
 	action         XRefAction
 	issue          string
-	refLocation    *ReferenceLocation
-	actionLocation *ReferenceLocation
-}
-
-// Index returns the number of the issue/pull request
-func (r *rawReference) Index() int64 {
-	return r.index
-}
-
-// Owner returns the owner of the repository for the issue/pull request
-func (r *rawReference) Owner() string {
-	return r.owner
-}
-
-// Owner returns the name of the repository for the issue/pull request
-func (r *rawReference) Name() string {
-	return r.name
-}
-
-// Issue returns the ID of the issue/pull request
-func (r *rawReference) Issue() string {
-	return r.issue
-}
-
-// RefLocation returns the location of the reference in the originating string
-func (r *rawReference) RefLocation() *ReferenceLocation {
-	return r.refLocation
-}
-
-// Action returns the action represented by the action keyword found preceding the reference
-func (r *rawReference) Action() XRefAction {
-	return r.action
-}
-
-// RefLocation returns the location of the action keyword in the originating string
-func (r *rawReference) ActionLocation() *ReferenceLocation {
-	return r.actionLocation
+	refLocation    *RefSpan
+	actionLocation *RefSpan
 }
 
 func rawToIssueReferenceList(reflist []*rawReference) []IssueReference {
@@ -132,8 +101,8 @@ func rawToIssueReferenceList(reflist []*rawReference) []IssueReference {
 	return refarr
 }
 
-// ReferenceLocation is the position where the reference was found within the parsed text
-type ReferenceLocation struct {
+// RefSpan is the position where the reference was found within the parsed text
+type RefSpan struct {
 	Start int
 	End   int
 }
@@ -145,6 +114,18 @@ func makeKeywordsPat(keywords []string) *regexp.Regexp {
 func init() {
 	issueCloseKeywordsPat = makeKeywordsPat(issueCloseKeywords)
 	issueReopenKeywordsPat = makeKeywordsPat(issueReopenKeywords)
+}
+
+// getGiteaHostName returns a normalized string with the local host name, with no scheme or port information
+func getGiteaHostName() string {
+	giteaHostInit.Do(func() {
+		if uapp, err := url.Parse(setting.AppURL); err == nil {
+			giteaHost = strings.ToLower(uapp.Host)
+		} else {
+			giteaHost = ""
+		}
+	})
+	return giteaHost
 }
 
 // FindAllMentionsMarkdown matches mention patterns in given content and
@@ -160,24 +141,24 @@ func FindAllMentionsMarkdown(content string) []string {
 }
 
 // FindAllMentionsBytes matches mention patterns in given content
-// and returns a list of found unvalidated user names including the @ prefix.
-func FindAllMentionsBytes(content []byte) []ReferenceLocation {
+// and returns a list of locations for the unvalidated user names, including the @ prefix.
+func FindAllMentionsBytes(content []byte) []RefSpan {
 	mentions := mentionPattern.FindAllSubmatchIndex(content, -1)
-	ret := make([]ReferenceLocation, len(mentions))
+	ret := make([]RefSpan, len(mentions))
 	for i, val := range mentions {
-		ret[i] = ReferenceLocation{Start: val[2], End: val[3]}
+		ret[i] = RefSpan{Start: val[2], End: val[3]}
 	}
 	return ret
 }
 
-// FindFirstMentionBytes matches mention patterns in given content
-// and returns a list of found unvalidated user names including the @ prefix.
-func FindFirstMentionBytes(content []byte) (bool, ReferenceLocation) {
+// FindFirstMentionBytes matches the first mention in then given content
+// and returns the location of the unvalidated user name, including the @ prefix.
+func FindFirstMentionBytes(content []byte) (bool, RefSpan) {
 	mention := mentionPattern.FindSubmatchIndex(content)
 	if mention == nil {
-		return false, ReferenceLocation{}
+		return false, RefSpan{}
 	}
-	return true, ReferenceLocation{Start: mention[2], End: mention[3]}
+	return true, RefSpan{Start: mention[2], End: mention[3]}
 }
 
 // FindAllIssueReferencesMarkdown strips content from markdown markup
@@ -196,31 +177,43 @@ func FindAllIssueReferences(content string) []IssueReference {
 	return rawToIssueReferenceList(findAllIssueReferencesBytes([]byte(content), []string{}))
 }
 
-// FindRenderizableReferenceNumeric returns the first unvalidated references found in a byte slice
-func FindRenderizableReferenceNumeric(content string) (bool, RenderizableReference) {
+// FindRenderizableReferenceNumeric returns the first unvalidated reference found in a string.
+func FindRenderizableReferenceNumeric(content string) (bool, *RenderizableReference) {
 	match := issueNumericPattern.FindStringSubmatchIndex(content)
 	if match == nil {
 		if match = crossReferenceIssueNumericPattern.FindStringSubmatchIndex(content); match == nil {
 			return false, nil
 		}
 	}
+	r := getCrossReference([]byte(content), match[2], match[3], false)
+	if r == nil {
+		return false, nil
+	}
 
-	return true, getCrossReference([]byte(content), match[2], match[3], false)
+	return true, &RenderizableReference{
+		Issue:          r.issue,
+		Owner:          r.owner,
+		Name:           r.name,
+		RefLocation:    r.refLocation,
+		Action:         r.action,
+		ActionLocation: r.actionLocation,
+	}
 }
 
-// FindRenderizableReferenceAlphanumeric returns the first alphanumeric unvalidated references found in a byte slice
-func FindRenderizableReferenceAlphanumeric(content string) (bool, RenderizableReference) {
+// FindRenderizableReferenceAlphanumeric returns the first alphanumeric unvalidated references found in a string.
+func FindRenderizableReferenceAlphanumeric(content string) (bool, *RenderizableReference) {
 	match := issueAlphanumericPattern.FindStringSubmatchIndex(content)
 	if match == nil {
 		return false, nil
 	}
 
 	action, location := findActionKeywords([]byte(content), match[2])
-	return true, &rawReference{
-		issue:          string(content[match[2]:match[3]]),
-		refLocation:    &ReferenceLocation{Start: match[2], End: match[3]},
-		action:         action,
-		actionLocation: location,
+
+	return true, &RenderizableReference{
+		Issue:          string(content[match[2]:match[3]]),
+		RefLocation:    &RefSpan{Start: match[2], End: match[3]},
+		Action:         action,
+		ActionLocation: location,
 	}
 }
 
@@ -243,16 +236,12 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 		}
 	}
 
-	var giteahost string
-	if uapp, err := url.Parse(setting.AppURL); err == nil {
-		giteahost = strings.ToLower(uapp.Host)
-	}
-
+	localhost := getGiteaHostName()
 	for _, link := range links {
 		if u, err := url.Parse(link); err == nil {
 			// Note: we're not attempting to match the URL scheme (http/https)
 			host := strings.ToLower(u.Host)
-			if host != "" && host != giteahost {
+			if host != "" && host != localhost {
 				continue
 			}
 			parts := strings.Split(u.EscapedPath(), "/")
@@ -296,7 +285,7 @@ func getCrossReference(content []byte, start, end int, fromLink bool) *rawRefere
 			index:          index,
 			action:         action,
 			issue:          issue,
-			refLocation:    &ReferenceLocation{Start: start, End: end},
+			refLocation:    &RefSpan{Start: start, End: end},
 			actionLocation: location,
 		}
 	}
@@ -315,19 +304,19 @@ func getCrossReference(content []byte, start, end int, fromLink bool) *rawRefere
 		name:           name,
 		action:         action,
 		issue:          issue,
-		refLocation:    &ReferenceLocation{Start: start, End: end},
+		refLocation:    &RefSpan{Start: start, End: end},
 		actionLocation: location,
 	}
 }
 
-func findActionKeywords(content []byte, start int) (XRefAction, *ReferenceLocation) {
+func findActionKeywords(content []byte, start int) (XRefAction, *RefSpan) {
 	m := issueCloseKeywordsPat.FindSubmatchIndex(content[:start])
 	if m != nil {
-		return XRefActionCloses, &ReferenceLocation{Start: m[2], End: m[3]}
+		return XRefActionCloses, &RefSpan{Start: m[2], End: m[3]}
 	}
 	m = issueReopenKeywordsPat.FindSubmatchIndex(content[:start])
 	if m != nil {
-		return XRefActionReopens, &ReferenceLocation{Start: m[2], End: m[3]}
+		return XRefActionReopens, &RefSpan{Start: m[2], End: m[3]}
 	}
 	return XRefActionNone, nil
 }

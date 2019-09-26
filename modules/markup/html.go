@@ -60,7 +60,7 @@ var (
 	linkRegex, _ = xurls.StrictMatchingScheme("https?://")
 )
 
-// CSS class for opening/closing keywords
+// CSS class for action keywords (e.g. "closes: #1")
 const keywordClass = "issue-keyword"
 
 // regexp for full links to issues/pulls
@@ -309,20 +309,14 @@ func (ctx *postProcessCtx) textNode(node *html.Node) {
 	}
 }
 
-// createKeyword() renders a highlited version of a closing/reopening keyowrd
-func createKeyword(content string, class string) *html.Node {
+// createKeyword() renders a highlighted version of an action keyword
+func createKeyword(content string) *html.Node {
 	span := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Span.String(),
 		Attr: []html.Attribute{},
 	}
-	if class != "" {
-		span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: class})
-	} else {
-		span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: keywordClass})
-	}
-	// GAP: FIXME: move this to CSS
-	span.Attr = append(span.Attr, html.Attribute{Key: "style", Val: "border-bottom: 1px dotted #959da5; display: inline-block;"})
+	span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: keywordClass})
 
 	text := &html.Node{
 		Type: html.TextNode,
@@ -611,7 +605,7 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 
 	var (
 		found bool
-		ref   references.RenderizableReference
+		ref   *references.RenderizableReference
 	)
 
 	if ctx.metas["style"] == IssueNameStyleAlphanumeric {
@@ -619,34 +613,33 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	} else {
 		found, ref = references.FindRenderizableReferenceNumeric(node.Data)
 	}
-
 	if !found {
 		return
 	}
 
 	var link *html.Node
-	reftext := node.Data[ref.RefLocation().Start:ref.RefLocation().End]
+	reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
 	if _, ok := ctx.metas["format"]; ok {
-		ctx.metas["index"] = ref.Issue()
+		ctx.metas["index"] = ref.Issue
 		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), reftext, "issue")
-	} else if ref.Owner() == "" {
-		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", ref.Issue()), reftext, "issue")
+	} else if ref.Owner == "" {
+		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", ref.Issue), reftext, "issue")
 	} else {
-		link = createLink(util.URLJoin(setting.AppURL, ref.Owner(), ref.Name(), "issues", ref.Issue()), reftext, "issue")
+		link = createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, "issues", ref.Issue), reftext, "issue")
 	}
 
-	if ref.Action() == references.XRefActionNone {
-		replaceContent(node, ref.RefLocation().Start, ref.RefLocation().End, link)
+	if ref.Action == references.XRefActionNone {
+		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
 		return
 	}
 
 	// Decorate action keywords
-	keyword := createKeyword(node.Data[ref.ActionLocation().Start:ref.ActionLocation().End], "")
+	keyword := createKeyword(node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
 	spaces := &html.Node{
 		Type: html.TextNode,
-		Data: node.Data[ref.ActionLocation().End:ref.RefLocation().Start],
+		Data: node.Data[ref.ActionLocation.End:ref.RefLocation.Start],
 	}
-	replaceContentList(node, ref.ActionLocation().Start, ref.RefLocation().End, []*html.Node{keyword, spaces, link})
+	replaceContentList(node, ref.ActionLocation.Start, ref.RefLocation.End, []*html.Node{keyword, spaces, link})
 }
 
 // fullSha1PatternProcessor renders SHA containing URLs
