@@ -52,9 +52,9 @@ type Statement struct {
 	omitColumnMap   columnMap
 	mustColumnMap   map[string]bool
 	nullableMap     map[string]bool
-	incrColumns     map[string]incrParam
-	decrColumns     map[string]decrParam
-	exprColumns     map[string]exprParam
+	incrColumns     exprParams
+	decrColumns     exprParams
+	exprColumns     exprParams
 	cond            builder.Cond
 	bufferSize      int
 	context         ContextCache
@@ -94,9 +94,9 @@ func (statement *Statement) Init() {
 	statement.nullableMap = make(map[string]bool)
 	statement.checkVersion = true
 	statement.unscoped = false
-	statement.incrColumns = make(map[string]incrParam)
-	statement.decrColumns = make(map[string]decrParam)
-	statement.exprColumns = make(map[string]exprParam)
+	statement.incrColumns = exprParams{}
+	statement.decrColumns = exprParams{}
+	statement.exprColumns = exprParams{}
 	statement.cond = builder.NewCond()
 	statement.bufferSize = 0
 	statement.context = nil
@@ -534,46 +534,28 @@ func (statement *Statement) ID(id interface{}) *Statement {
 
 // Incr Generate  "Update ... Set column = column + arg" statement
 func (statement *Statement) Incr(column string, arg ...interface{}) *Statement {
-	k := strings.ToLower(column)
 	if len(arg) > 0 {
-		statement.incrColumns[k] = incrParam{column, arg[0]}
+		statement.incrColumns.addParam(column, arg[0])
 	} else {
-		statement.incrColumns[k] = incrParam{column, 1}
+		statement.incrColumns.addParam(column, 1)
 	}
 	return statement
 }
 
 // Decr Generate  "Update ... Set column = column - arg" statement
 func (statement *Statement) Decr(column string, arg ...interface{}) *Statement {
-	k := strings.ToLower(column)
 	if len(arg) > 0 {
-		statement.decrColumns[k] = decrParam{column, arg[0]}
+		statement.decrColumns.addParam(column, arg[0])
 	} else {
-		statement.decrColumns[k] = decrParam{column, 1}
+		statement.decrColumns.addParam(column, 1)
 	}
 	return statement
 }
 
 // SetExpr Generate  "Update ... Set column = {expression}" statement
-func (statement *Statement) SetExpr(column string, expression string) *Statement {
-	k := strings.ToLower(column)
-	statement.exprColumns[k] = exprParam{column, expression}
+func (statement *Statement) SetExpr(column string, expression interface{}) *Statement {
+	statement.exprColumns.addParam(column, expression)
 	return statement
-}
-
-// Generate  "Update ... Set column = column + arg" statement
-func (statement *Statement) getInc() map[string]incrParam {
-	return statement.incrColumns
-}
-
-// Generate  "Update ... Set column = column - arg" statement
-func (statement *Statement) getDec() map[string]decrParam {
-	return statement.decrColumns
-}
-
-// Generate  "Update ... Set column = {expression}" statement
-func (statement *Statement) getExpr() map[string]exprParam {
-	return statement.exprColumns
 }
 
 func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
@@ -695,7 +677,7 @@ func (statement *Statement) OrderBy(order string) *Statement {
 
 // Desc generate `ORDER BY xx DESC`
 func (statement *Statement) Desc(colNames ...string) *Statement {
-	var buf builder.StringBuilder
+	var buf strings.Builder
 	if len(statement.OrderStr) > 0 {
 		fmt.Fprint(&buf, statement.OrderStr, ", ")
 	}
@@ -707,7 +689,7 @@ func (statement *Statement) Desc(colNames ...string) *Statement {
 
 // Asc provide asc order by query condition, the input parameters are columns.
 func (statement *Statement) Asc(colNames ...string) *Statement {
-	var buf builder.StringBuilder
+	var buf strings.Builder
 	if len(statement.OrderStr) > 0 {
 		fmt.Fprint(&buf, statement.OrderStr, ", ")
 	}
@@ -736,7 +718,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 
 // Join The joinOP should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
 func (statement *Statement) Join(joinOP string, tablename interface{}, condition string, args ...interface{}) *Statement {
-	var buf builder.StringBuilder
+	var buf strings.Builder
 	if len(statement.JoinStr) > 0 {
 		fmt.Fprintf(&buf, "%v %v JOIN ", statement.JoinStr, joinOP)
 	} else {
@@ -801,7 +783,7 @@ func (statement *Statement) genColumnStr() string {
 		return ""
 	}
 
-	var buf builder.StringBuilder
+	var buf strings.Builder
 	columns := statement.RefTable.Columns()
 
 	for _, col := range columns {
@@ -1118,7 +1100,7 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit, n
 		}
 	}
 
-	var buf builder.StringBuilder
+	var buf strings.Builder
 	fmt.Fprintf(&buf, "SELECT %v%v%v%v%v", distinct, top, columnStr, fromStr, whereStr)
 	if len(mssqlCondi) > 0 {
 		if len(whereStr) > 0 {
