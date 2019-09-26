@@ -58,10 +58,8 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 		opts.GitServiceType = structs.PlainGitService
 		downloader = NewPlainGitDownloader(ownerName, opts.RepoName, opts.CloneAddr)
 		log.Trace("Will migrate from git: %s", opts.CloneAddr)
-	} else {
-		if opts.GitServiceType == structs.NotMigrated {
-			opts.GitServiceType = theFactory.GitServiceType()
-		}
+	} else if opts.GitServiceType == structs.NotMigrated {
+		opts.GitServiceType = theFactory.GitServiceType()
 	}
 
 	uploader.gitServiceType = opts.GitServiceType
