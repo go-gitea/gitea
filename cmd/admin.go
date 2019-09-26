@@ -13,11 +13,11 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/oauth2"
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/password"
+	pwd "code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli"
 )
@@ -234,7 +234,7 @@ func runChangePassword(c *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
-	if !util.CheckPasswordComplexity(c.String("password")) {
+	if !password.CheckPasswordComplexity(c.String("password")) {
 		return errors.New("Password does not meet complexity requirements")
 	}
 	uname := c.String("username")
@@ -284,12 +284,7 @@ func runCreateUser(c *cli.Context) error {
 	if c.IsSet("password") {
 		password = c.String("password")
 	} else if c.IsSet("random-password") {
-		var err error
-		password, err = generate.Password(c.Int("random-password-length"))
-		if err != nil {
-			return err
-		}
-
+		password = pwd.Generate(c.Int("random-password-length"))
 		fmt.Printf("generated random password is '%s'\n", password)
 	} else {
 		return errors.New("must set either password or random-password flag")
