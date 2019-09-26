@@ -162,6 +162,7 @@ func UpdateExternalUser(user *User, gothUser goth.User) error {
 	return err
 }
 
+// FindExternalUserOptions represents an options to find external users
 type FindExternalUserOptions struct {
 	Provider string
 	Limit    int
