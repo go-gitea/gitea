@@ -31,7 +31,7 @@ func CheckPasswordComplexity(pwd string) bool {
 }
 
 // Generate  a random password
-func Gen(n int) string {
+func Generate(n int) string {
 	rand.Seed(time.Now().UnixNano())
 	var dict = map[int]string{
 		0: "abcdefghijklmnopqrstuvwxyz",
