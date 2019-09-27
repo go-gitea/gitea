@@ -200,7 +200,7 @@ menu:
 
 ### Cron - Update Migration Poster ID (`cron.update_migration_post_id`)
 
-- `SCHEDULE`: **@every 24h** : 每次统计的间隔时间。此任务总是在启动时自动进行。
+- `SCHEDULE`: **@every 24h** : 每次同步的间隔时间。此任务总是在启动时自动进行。
 
 ## Git (`git`)
 

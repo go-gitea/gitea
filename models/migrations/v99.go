@@ -26,8 +26,29 @@ func addTaskTable(x *xorm.Engine) error {
 		Created        timeutil.TimeStamp `xorm:"created"`
 	}
 
+<<<<<<< HEAD
 	type Repository struct {
 		Status int `xorm:"NOT NULL DEFAULT 0"`
+=======
+	type ExternalLoginUser struct {
+		ExternalID        string                 `xorm:"pk NOT NULL"`
+		UserID            int64                  `xorm:"INDEX NOT NULL"`
+		LoginSourceID     int64                  `xorm:"pk NOT NULL"`
+		RawData           map[string]interface{} `xorm:"TEXT"`
+		Provider          string                 `xorm:"index VARCHAR(25)"`
+		Email             string
+		Name              string
+		FirstName         string
+		LastName          string
+		NickName          string
+		Description       string
+		AvatarURL         string
+		Location          string
+		AccessToken       string
+		AccessTokenSecret string
+		RefreshToken      string
+		ExpiresAt         time.Time
+>>>>>>> improve code
 	}
 
 	return x.Sync2(new(Task), new(Repository))
