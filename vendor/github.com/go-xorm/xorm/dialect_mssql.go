@@ -254,6 +254,9 @@ func (db *mssql) SqlType(c *core.Column) string {
 	case core.TinyInt:
 		res = core.TinyInt
 		c.Length = 0
+	case core.BigInt:
+		res = core.BigInt
+		c.Length = 0
 	default:
 		res = t
 	}
