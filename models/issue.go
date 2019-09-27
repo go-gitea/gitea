@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -1948,10 +1949,10 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 	return
 }
 
-// UpdateIssuesMigrations updates issues' migrations information
-func UpdateIssuesMigrations(repoID, originalAuthorID, posterID int64) error {
+// UpdateIssuesMigrationsByType updates all migrated repositories' issues from gitServiceType to replace originalAuthorID to posterID
+func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID, posterID int64) error {
 	_, err := x.Table("issue").
-		Where("repo_id = ?", repoID).
+		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
 		Update(map[string]interface{}{
 			"poster_id":          posterID,

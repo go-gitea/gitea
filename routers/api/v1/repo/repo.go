@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -399,8 +400,8 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	}
 
 	var gitServiceType = structs.PlainGitService
-	// TODO: this should be chosen by UI when from a customerize git service domain
-	if strings.HasPrefix(remoteAddr, "https://github.com") || strings.HasPrefix(remoteAddr, "http://github.com") {
+	u, err := url.Parse(remoteAddr)
+	if err == nil && strings.EqualFold(u.Host, "github.com") {
 		gitServiceType = structs.GithubService
 	}
 

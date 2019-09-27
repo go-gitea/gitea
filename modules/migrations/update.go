@@ -12,16 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 )
 
-// UpdateRepoMigrations will update posterid on issues/comments/prs when external login user
-// login or when migrating
-func UpdateRepoMigrations(repoID, externalUserID, userID int64) error {
-	if err := models.UpdateIssuesMigrations(repoID, externalUserID, userID); err != nil {
-		return err
-	}
-
-	return models.UpdateCommentsMigrations(repoID, externalUserID, userID)
-}
-
 // UpdateMigrationPosterID updates all migrated repositories' issues and comments posterID
 func UpdateMigrationPosterID() {
 	if err := updateMigrationPosterIDByGitService(structs.GithubService); err != nil {
@@ -35,47 +25,33 @@ func updateMigrationPosterIDByGitService(tp structs.GitServiceType) error {
 		return nil
 	}
 
-	var repoStart int
 	const batchSize = 100
+	var start int
 	for {
-		ids, err := models.FindMigratedRepositoryIDs(tp, batchSize, repoStart)
+		users, err := models.FindExternalUsersByProvider(models.FindExternalUserOptions{
+			Provider: provider,
+			Start:    start,
+			Limit:    batchSize,
+		})
 		if err != nil {
 			return err
 		}
 
-		var start int
-		for {
-			users, err := models.FindExternalUsersByProvider(models.FindExternalUserOptions{
-				Provider: provider,
-				Start:    start,
-				Limit:    batchSize,
-			})
+		for _, user := range users {
+			externalUserID, err := strconv.ParseInt(user.ExternalID, 10, 64)
 			if err != nil {
-				return err
+				log.Warn("Parse externalUser %#v 's userID failed: %v", user, err)
+				continue
 			}
-
-			for _, user := range users {
-				externalUserID, err := strconv.ParseInt(user.ExternalID, 10, 64)
-				if err != nil {
-					log.Warn("Parse externalUser %#v 's userID failed: %v", user, err)
-					continue
-				}
-				for _, id := range ids {
-					if err = UpdateRepoMigrations(id, externalUserID, user.UserID); err != nil {
-						log.Error("UpdateRepoMigrations repo %v, github user id %v, user id %v failed: %v", id, user.ExternalID, user.UserID, err)
-					}
-				}
+			if err := models.UpdateMigrationsByType(tp, externalUserID, user.UserID); err != nil {
+				log.Error("UpdateMigrationsByType type %v, github user id %v, user id %v failed: %v", tp, user.ExternalID, user.UserID, err)
 			}
-
-			if len(users) < batchSize {
-				break
-			}
-			start += len(users)
 		}
 
-		if len(ids) < batchSize {
-			return nil
+		if len(users) < batchSize {
+			break
 		}
-		repoStart += len(ids)
+		start += len(users)
 	}
+	return nil
 }

@@ -7,6 +7,7 @@ package models
 import (
 	"time"
 
+	"code.gitea.io/gitea/modules/structs"
 	"github.com/markbates/goth"
 	"xorm.io/builder"
 )
@@ -51,40 +52,15 @@ func ListAccountLinks(user *User) ([]*ExternalLoginUser, error) {
 	return externalAccounts, nil
 }
 
-// LinkAccountToUser link the gothUser to the user
-func LinkAccountToUser(user *User, gothUser goth.User) error {
-	loginSource, err := GetActiveOAuth2LoginSourceByName(gothUser.Provider)
-	if err != nil {
-		return err
-	}
-
-	externalLoginUser := &ExternalLoginUser{
-		ExternalID:        gothUser.UserID,
-		UserID:            user.ID,
-		LoginSourceID:     loginSource.ID,
-		RawData:           gothUser.RawData,
-		Provider:          gothUser.Provider,
-		Email:             gothUser.Email,
-		Name:              gothUser.Name,
-		FirstName:         gothUser.FirstName,
-		LastName:          gothUser.LastName,
-		NickName:          gothUser.NickName,
-		Description:       gothUser.Description,
-		AvatarURL:         gothUser.AvatarURL,
-		Location:          gothUser.Location,
-		AccessToken:       gothUser.AccessToken,
-		AccessTokenSecret: gothUser.AccessTokenSecret,
-		RefreshToken:      gothUser.RefreshToken,
-		ExpiresAt:         gothUser.ExpiresAt,
-	}
-
-	has, err := x.Where("external_id=? AND login_source_id=?", gothUser.UserID, loginSource.ID).
+// LinkExternalToUser link the external user to the user
+func LinkExternalToUser(user *User, externalLoginUser *ExternalLoginUser) error {
+	has, err := x.Where("external_id=? AND login_source_id=?", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID).
 		NoAutoCondition().
 		Exist(externalLoginUser)
 	if err != nil {
 		return err
 	} else if has {
-		return ErrExternalLoginUserAlreadyExist{gothUser.UserID, user.ID, loginSource.ID}
+		return ErrExternalLoginUserAlreadyExist{externalLoginUser.ExternalID, user.ID, externalLoginUser.LoginSourceID}
 	}
 
 	_, err = x.Insert(externalLoginUser)
@@ -185,4 +161,13 @@ func FindExternalUsersByProvider(opts FindExternalUserOptions) ([]ExternalLoginU
 		return nil, err
 	}
 	return users, nil
+}
+
+// UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
+func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID, userID int64) error {
+	if err := UpdateIssuesMigrationsByType(tp, externalUserID, userID); err != nil {
+		return err
+	}
+
+	return UpdateCommentsMigrationsByType(tp, externalUserID, userID)
 }

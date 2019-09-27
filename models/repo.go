@@ -2782,14 +2782,3 @@ func (repo *Repository) GetOriginalURLHostname() string {
 
 	return u.Host
 }
-
-// FindMigratedRepositoryIDs find all migrated
-func FindMigratedRepositoryIDs(tp structs.GitServiceType, limit, start int) ([]int64, error) {
-	var ids []int64
-	err := x.Select("id").
-		Where("original_service_type = ?", tp).
-		Limit(limit, start).
-		Table("repository").
-		Find(&ids)
-	return ids, err
-}

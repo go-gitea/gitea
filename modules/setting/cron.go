@@ -120,7 +120,7 @@ var (
 		UpdateMigrationPosterID: struct {
 			Schedule string
 		}{
-			Schedule: "@every 10m",
+			Schedule: "@every 24h",
 		},
 	}
 )

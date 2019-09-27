@@ -180,6 +180,14 @@ func (gt GitServiceType) Name() string {
 	return ""
 }
 
+var (
+	// all git services supported to migrate issues/labels/prs and etc.
+	// TODO: add to this list after new git service added
+	SupportedFullGitService = []GitServiceType{
+		GithubService,
+	}
+)
+
 // MigrateRepoOption options for migrating a repository from an external service
 type MigrateRepoOption struct {
 	// required: true

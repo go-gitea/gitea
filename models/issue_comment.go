@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -1023,11 +1024,18 @@ func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 	return fetchCodeComments(x, issue, currentUser)
 }
 
-// UpdateCommentsMigrations updates comments' migrations information
-func UpdateCommentsMigrations(repoID, originalAuthorID, posterID int64) error {
+// UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
+func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID, posterID int64) error {
 	_, err := x.Table("comment").
-		Where("issue_id IN (SELECT id FROM issue WHERE repo_id = ?)", repoID).
-		And("original_author_id = ?", originalAuthorID).
+		Where(builder.In("issue_id",
+			builder.Select("issue.id").
+				From("issue").
+				InnerJoin("repository", "issue.repo_id = repository.id").
+				Where(builder.Eq{
+					"repository.original_service_type": tp,
+				}),
+		)).
+		And("comment.original_author_id = ?", originalAuthorID).
 		Update(map[string]interface{}{
 			"poster_id":          posterID,
 			"original_author":    "",

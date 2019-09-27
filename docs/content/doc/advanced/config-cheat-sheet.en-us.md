@@ -421,7 +421,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 ### Cron - Update Migration Poster ID (`cron.update_migration_post_id`)
 
-- `SCHEDULE`: **@every 10m** : Interval as a duration between each synchronization, it will always be started at start.
+- `SCHEDULE`: **@every 24h** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 
 ## Git (`git`)
 

@@ -40,7 +40,7 @@ func (f *GithubDownloaderV3Factory) Match(opts base.MigrateOptions) (bool, error
 		return false, err
 	}
 
-	return u.Host == "github.com" && opts.AuthUsername != "", nil
+	return strings.EqualFold(u.Host, "github.com") && opts.AuthUsername != "", nil
 }
 
 // New returns a Downloader related to this factory according MigrateOptions
