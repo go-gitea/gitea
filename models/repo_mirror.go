@@ -318,6 +318,12 @@ func (m *Mirror) runSync() ([]*mirrorSyncResult, bool) {
 	return parseRemoteUpdateOutput(output), true
 }
 
+// RunMirrorSync will invoke Mirror's runSync
+func RunMirrorSync(mirror *Mirror) bool {
+	_, ok := mirror.runSync()
+	return ok
+}
+
 func getMirrorByRepoID(e Engine, repoID int64) (*Mirror, error) {
 	m := &Mirror{RepoID: repoID}
 	has, err := e.Get(m)

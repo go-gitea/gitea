@@ -140,6 +140,16 @@ a{cursor:pointer}
 .ui .migrate{color:#888!important;opacity:.5}
 .ui .migrate a{color:#444!important}
 .ui .migrate a:hover{color:#000!important}
+.ui .border{border:1px solid}
+.ui .border.red{border-color:#d95c5c!important}
+.ui .border.blue{border-color:#428bca!important}
+.ui .border.black{border-color:#444}
+.ui .border.grey{border-color:#767676!important}
+.ui .border.light.grey{border-color:#888!important}
+.ui .border.green{border-color:#6cc644!important}
+.ui .border.purple{border-color:#6e5494!important}
+.ui .border.yellow{border-color:#fbbd08!important}
+.ui .border.gold{border-color:#a1882b!important}
 .ui .branch-tag-choice{line-height:20px}
 @media only screen and (max-width:767px){.ui.pagination.menu .item.navigation span.navigation_label,.ui.pagination.menu .item:not(.active):not(.navigation){display:none}
 }
@@ -417,6 +427,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .repo-header .ui.header{margin-top:0}
 .repository .repo-header .mega-octicon{width:30px;font-size:30px}
 .repository .repo-header .ui.huge.breadcrumb{font-weight:400;font-size:1.5rem}
+.repository .repo-header .ui.huge.breadcrumb i.mega-octicon{position:relative;top:5px}
+.repository .repo-header .ui.huge.breadcrumb i.octicon-lock{margin-left:5px}
 .repository .repo-header .fork-flag{margin-left:36px;margin-top:3px;display:block;font-size:12px;white-space:nowrap}
 .repository .repo-header .octicon.octicon-repo-forked{margin-top:-1px;font-size:15px}
 .repository .repo-header .button{margin-top:2px;margin-bottom:2px}
@@ -514,6 +526,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.options #interval{width:100px!important;min-width:100px}
 .repository.options .danger .item{padding:20px 15px}
 .repository.options .danger .ui.divider{margin:0}
+.repository .comment textarea{max-height:none!important}
 .repository.new.issue .comment.form .comment .avatar{width:3em}
 .repository.new.issue .comment.form .content{margin-left:4em}
 .repository.new.issue .comment.form .content:after,.repository.new.issue .comment.form .content:before{right:100%;top:20px;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}
@@ -668,6 +681,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .diff-file-box .code-diff td{padding:0 0 0 10px!important;border-top:0}
 .repository .diff-file-box .code-diff .lines-num{border-color:#d4d4d5;border-right-width:1px;border-right-style:solid;padding:0 5px!important}
 .repository .diff-file-box .code-diff tbody tr td.halfwidth{width:49%}
+.repository .diff-file-box .code-diff tbody tr td.center{text-align:center}
 .repository .diff-file-box .code-diff tbody tr .removed-code{background-color:#f99}
 .repository .diff-file-box .code-diff tbody tr .added-code{background-color:#9f9}
 .repository .diff-file-box .code-diff tbody tr [data-line-num]::before{content:attr(data-line-num);text-align:right}
@@ -733,6 +747,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.settings.collaboration .collaborator.list>.item:not(:last-child){border-bottom:1px solid #ddd}
 .repository.settings.collaboration #repo-collab-form #search-user-box .results{left:7px}
 .repository.settings.collaboration #repo-collab-form .ui.button{margin-left:5px;margin-top:-3px}
+.repository.settings.collaboration #repo-collab-team-form #search-team-box .results{left:7px}
+.repository.settings.collaboration #repo-collab-team-form .ui.button{margin-left:5px;margin-top:-3px}
 .repository.settings.branches .protected-branches .selection.dropdown{width:300px}
 .repository.settings.branches .protected-branches .item{border:1px solid #eaeaea;padding:10px 15px}
 .repository.settings.branches .protected-branches .item:not(:last-child){border-bottom:0}
@@ -769,6 +785,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .user-cards .list .item .meta{margin-top:5px}
 #search-repo-box .results .result .image,#search-user-box .results .result .image{float:left;margin-right:8px;width:2em;height:2em}
 #search-repo-box .results .result .content,#search-user-box .results .result .content{margin:6px 0}
+#search-team-box .results .result .content{margin:6px 0}
 #issue-filters.hide{display:none}
 #issue-actions{margin-top:-1rem!important}
 #issue-actions.hide{display:none}
@@ -782,8 +799,11 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .issue.list>.item .desc .checklist{padding-left:5px}
 .issue.list>.item .desc .checklist .progress-bar{margin-left:2px;width:80px;height:6px;display:inline-block;background-color:#eee;overflow:hidden;border-radius:3px;vertical-align:2px!important}
 .issue.list>.item .desc .checklist .progress-bar .progress{background-color:#ccc;display:block;height:100%}
-.issue.list>.item .desc a.milestone{padding-left:5px;color:#999!important}
+.issue.list>.item .desc a.milestone{margin-left:5px;color:#999!important}
 .issue.list>.item .desc a.milestone:hover{color:#000!important}
+.issue.list>.item .desc a.ref{margin-left:8px;color:#999!important}
+.issue.list>.item .desc a.ref:hover{color:#000!important}
+.issue.list>.item .desc a.ref span{margin-right:-4px}
 .issue.list>.item .desc .assignee{margin-top:-5px;margin-right:5px}
 .issue.list>.item .desc .overdue{color:red}
 .page.buttons{padding-top:15px}
