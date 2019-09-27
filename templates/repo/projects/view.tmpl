@@ -37,7 +37,7 @@
 				<div class="header"><a class="project-board-title" data-id={{.Index}} href="{{$.RepoLink}}/issues/{{.Index}}">{{ .Title }}</a></div>
                             <div class="meta">
 				    {{ if $board.ID }}
-				    	<a href="'/org/project/issues/' + id">{{ $board.ID }}</a>
+				    	<a href="{{$.RepoLink}}/issues?project={{$board.ID}}">{{ $board.ID }}</a>
 				    {{ end }}
 
 				{{ if .MilestoneID }}
