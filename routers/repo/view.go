@@ -348,10 +348,9 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			break
 		}
 
-		d, _ := ioutil.ReadAll(dataRc)
-		buf = append(buf, d...)
-
 		if markupType := markup.Type(blob.Name()); markupType != "" {
+			d, _ := ioutil.ReadAll(dataRc)
+			buf = append(buf, d...)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
