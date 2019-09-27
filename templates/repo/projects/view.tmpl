@@ -1,0 +1,70 @@
+{{template "base/head" .}}
+<div class="repository">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="ui three column stackable grid">
+			<div class="column">
+				{{template "repo/issue/navbar" .}}
+			</div>
+			<div class="column center aligned">
+				{{template "repo/issue/search" .}}
+			</div>
+			<div class="column right aligned">
+				{{if .PageIsProjects}}
+					<a class="ui green button" href="{{.RepoLink}}/projects/new">{{.i18n.Tr "repo.projects.new"}}</a>
+				{{end}}
+			</div>
+		</div>
+		<div class="ui divider"></div>
+	</div>
+
+
+	<div class="ui container fluid padded" id="project-board">
+
+        <div class="board">
+	{{ range .ProjectBoards }}
+
+            <div class="ui segment board-column">
+		<div class="ui label board-label" style="style">{{.Board.Title}}</div>
+                <div class="ui divider"></div>
+
+                <div class="ui cards board">
+
+		    {{ $board := .Board }}
+		    {{ range .Issues }}
+                    <div class="card board-card">
+                        <div class="content">
+				<div class="header"><a class="project-board-title" data-id={{.Index}} href="{{$.RepoLink}}/issues/{{.Index}}">{{ .Title }}</a></div>
+                            <div class="meta">
+				    {{ if $board.ID }}
+				    	<a href="'/org/project/issues/' + id">{{ $board.ID }}</a>
+				    {{ end }}
+
+				{{ if .MilestoneID }}
+                                <a class="milestone" href="{{$.RepoLink}}/milestone/{{ .MilestoneID}}">
+                                    <span class="octicon octicon-milestone"></span> {{ .Milestone.Name }}
+                                </a>
+				{{ end }}
+                            </div>
+                        </div>
+			<div class="extra content">
+			{{ range .Labels }}
+				<a class="ui label has-emoji" href="{{$.RepoLink}}/issues?labels={{.ID}}"
+					style="color: {{.ForegroundColor}}; background-color: {{.Color}}; margin-bottom: 3px;"
+					title="{{.Description}}">{{.Name}}</a>
+			{{ end }}
+			</div>
+                    </div>
+		    {{ end }}
+                </div>
+            </div>
+	    {{ end }}
+        </div>
+
+	</div>
+
+</div>
+
+	<style>
+	</style>
+{{template "base/footer" .}}

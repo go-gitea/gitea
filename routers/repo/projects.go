@@ -236,6 +236,66 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
+	boards, err := models.GetProjectBoards(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.ServerError("GetProjectBoards", err)
+		return
+	}
+
+	issues, err := models.GetProjectIssues(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.ServerError("GetProjectIssues", err)
+		return
+	}
+
+	type data struct {
+		Board  models.ProjectBoard
+		Issues []*models.Issue
+		idx    int
+	}
+
+	var seen map[int64]data = make(map[int64]data, 0)
+	var tmplData = make([]data, 0, len(boards))
+
+	uncategorizedBoard := data{
+		Board: models.ProjectBoard{
+			ID:        0,
+			ProjectID: 0,
+			Title:     ctx.Tr("repo.projects.type.uncategorized"),
+		},
+	}
+
+	tmplData = append(tmplData, uncategorizedBoard)
+
+	for i := range boards {
+		d := data{Board: boards[i], idx: i}
+
+		seen[boards[i].ID] = d
+
+		tmplData = append(tmplData, d)
+	}
+
+	for i := range issues {
+		var currentData data
+		var ok bool
+
+		currentData, ok = seen[issues[i].ProjectBoardID]
+		if !ok {
+			currentData = tmplData[0]
+		}
+
+		currentData.Issues = append(currentData.Issues, issues[i])
+
+		if ok {
+			tmplData[currentData.idx] = currentData
+		} else {
+			tmplData[0] = currentData
+		}
+	}
+
+	ctx.Data["Boards"] = boards
+	ctx.Data["Issues"] = issues
+	ctx.Data["ProjectBoards"] = tmplData
 	ctx.Data["Title"] = p.Title
 	ctx.Data["PageIsProjects"] = true
 	ctx.Data["RequiresDraggable"] = true

@@ -572,6 +572,7 @@ function initCommentForm() {
     // Milestone and assignee
     selectItem('.select-milestone', '#milestone_id');
     selectItem('.select-assignee', '#assignee_id');
+    selectItem('.select-project', '#projects_id');
 }
 
 function initInstall() {

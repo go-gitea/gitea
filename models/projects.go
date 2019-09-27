@@ -13,6 +13,9 @@ import (
 // ProjectType is used to represent a project board type
 type ProjectType uint8
 
+// ProjectBoards is a list of all project boards in a repository.
+type ProjectBoards []ProjectBoard
+
 // ProjectBoard is used to represent boards on a kanban project
 type ProjectBoard struct {
 	ID        int64 `xorm:"pk autoincr"`
@@ -372,4 +375,21 @@ func changeProjectAssign(sess *xorm.Session, doer *User, issue *Issue, oldProjec
 	}
 
 	return updateIssueCols(sess, issue, "project_id")
+}
+
+// GetProjectBoards fetches all boards related to a project
+func GetProjectBoards(repoID, projectID int64) ([]ProjectBoard, error) {
+
+	var boards = make([]ProjectBoard, 0)
+
+	sess := x.Where("repo_id=? AND project_id=?", repoID, projectID)
+	return boards, sess.Find(&boards)
+}
+
+// GetProjectIssues fetches issues for a specific project
+func GetProjectIssues(repoID, projectID int64) ([]*Issue, error) {
+	return Issues(&IssuesOptions{
+		RepoIDs:   []int64{repoID},
+		ProjectID: projectID,
+	})
 }
