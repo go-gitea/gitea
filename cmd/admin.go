@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/password"
 	pwd "code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -234,7 +233,7 @@ func runChangePassword(c *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
-	if !password.CheckPasswordComplexity(c.String("password")) {
+	if !pwd.CheckPasswordComplexity(c.String("password")) {
 		return errors.New("Password does not meet complexity requirements")
 	}
 	uname := c.String("username")
