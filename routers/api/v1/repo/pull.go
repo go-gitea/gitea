@@ -15,11 +15,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/pull"
-	pull_service "code.gitea.io/gitea/modules/pull"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	milestone_service "code.gitea.io/gitea/services/milestone"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // ListPullRequests returns a list of all PRs
@@ -288,7 +287,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		return
 	}
 
-	if err := models.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch, assigneeIDs); err != nil {
+	if err := pull_service.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
 			return
@@ -602,7 +601,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		message += "\n\n" + form.MergeMessageField
 	}
 
-	if err := pull.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+	if err := pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Status(405)
 			return
