@@ -395,6 +395,7 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["Owner"] = ctx.Repo.Repository.Owner
 		ctx.Data["IsRepositoryOwner"] = ctx.Repo.IsOwner()
 		ctx.Data["IsRepositoryAdmin"] = ctx.Repo.IsAdmin()
+		ctx.Data["RepoOwnerIsOrganization"] = repo.Owner.IsOrganization()
 		ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(models.UnitTypeCode)
 		ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
 		ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)

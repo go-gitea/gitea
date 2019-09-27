@@ -249,10 +249,12 @@ var migrations = []Migration{
 	// v96 -> v97
 	NewMigration("delete orphaned attachments", deleteOrphanedAttachments),
 	// v97 -> v98
-	NewMigration("add projects database table", addProjectsTable),
+	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
 	// v98 -> v99
-	NewMigration("add projects info to database", addProjectsInfo),
+	NewMigration("add projects database table", addProjectsTable),
 	// v99 -> v100
+	NewMigration("add projects info to database", addProjectsInfo),
+	// v100 -> v101
 	NewMigration("add project ID to comments table", addProjectIDToCommentsTable),
 }
 

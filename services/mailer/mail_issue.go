@@ -1,13 +1,13 @@
-// Copyright 2016 The Gogs Authors. All rights reserved.
-// Copyright 2018 The Gitea Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package mailer
 
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
@@ -15,7 +15,7 @@ import (
 	"github.com/unknwon/com"
 )
 
-func (issue *Issue) mailSubject() string {
+func mailSubject(issue *models.Issue) string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.FullName(), issue.Title, issue.Index)
 }
 
@@ -23,23 +23,23 @@ func (issue *Issue) mailSubject() string {
 // This function sends two list of emails:
 // 1. Repository watchers and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
-func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content string, comment *Comment, mentions []string) error {
+func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, content string, comment *models.Comment, mentions []string) error {
 	if !setting.Service.EnableNotifyMail {
 		return nil
 	}
 
-	watchers, err := getWatchers(e, issue.RepoID)
+	watchers, err := models.GetWatchers(issue.RepoID)
 	if err != nil {
 		return fmt.Errorf("getWatchers [repo_id: %d]: %v", issue.RepoID, err)
 	}
-	participants, err := getParticipantsByIssueID(e, issue.ID)
+	participants, err := models.GetParticipantsByIssueID(issue.ID)
 	if err != nil {
 		return fmt.Errorf("getParticipantsByIssueID [issue_id: %d]: %v", issue.ID, err)
 	}
 
 	// In case the issue poster is not watching the repository and is active,
 	// even if we have duplicated in watchers, can be safely filtered out.
-	err = issue.loadPoster(e)
+	err = issue.LoadPoster()
 	if err != nil {
 		return fmt.Errorf("GetUserByID [%d]: %v", issue.PosterID, err)
 	}
@@ -48,7 +48,7 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 	}
 
 	// Assignees must receive any communications
-	assignees, err := getAssigneesByIssue(e, issue)
+	assignees, err := models.GetAssigneesByIssue(issue)
 	if err != nil {
 		return err
 	}
@@ -66,11 +66,11 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 			continue
 		}
 
-		to, err := getUserByID(e, watchers[i].UserID)
+		to, err := models.GetUserByID(watchers[i].UserID)
 		if err != nil {
 			return fmt.Errorf("GetUserByID [%d]: %v", watchers[i].UserID, err)
 		}
-		if to.IsOrganization() || to.EmailNotifications() != EmailNotificationsEnabled {
+		if to.IsOrganization() || to.EmailNotifications() != models.EmailNotificationsEnabled {
 			continue
 		}
 
@@ -80,7 +80,7 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 	for i := range participants {
 		if participants[i].ID == doer.ID ||
 			com.IsSliceContainsStr(names, participants[i].Name) ||
-			participants[i].EmailNotifications() != EmailNotificationsEnabled {
+			participants[i].EmailNotifications() != models.EmailNotificationsEnabled {
 			continue
 		}
 
@@ -88,7 +88,7 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 		names = append(names, participants[i].Name)
 	}
 
-	if err := issue.loadRepo(e); err != nil {
+	if err := issue.LoadRepo(); err != nil {
 		return err
 	}
 
@@ -107,7 +107,7 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 		tos = append(tos, mentions[i])
 	}
 
-	emails := getUserEmailsByNames(e, tos)
+	emails := models.GetUserEmailsByNames(tos)
 
 	for _, to := range emails {
 		SendIssueMentionMail(issue, doer, content, comment, []string{to})
@@ -118,39 +118,39 @@ func mailIssueCommentToParticipants(e Engine, issue *Issue, doer *User, content 
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
-func (issue *Issue) MailParticipants(doer *User, opType ActionType) (err error) {
-	return issue.mailParticipants(x, doer, opType)
+func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType) error {
+	return mailParticipants(models.DefaultDBContext(), issue, doer, opType)
 }
 
-func (issue *Issue) mailParticipants(e Engine, doer *User, opType ActionType) (err error) {
+func mailParticipants(ctx models.DBContext, issue *models.Issue, doer *models.User, opType models.ActionType) (err error) {
 	mentions := markup.FindAllMentions(issue.Content)
 
-	if err = UpdateIssueMentions(e, issue.ID, mentions); err != nil {
+	if err = models.UpdateIssueMentions(ctx, issue.ID, mentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
 	}
 
 	if len(issue.Content) > 0 {
-		if err = mailIssueCommentToParticipants(e, issue, doer, issue.Content, nil, mentions); err != nil {
+		if err = mailIssueCommentToParticipants(issue, doer, issue.Content, nil, mentions); err != nil {
 			log.Error("mailIssueCommentToParticipants: %v", err)
 		}
 	}
 
 	switch opType {
-	case ActionCreateIssue, ActionCreatePullRequest:
+	case models.ActionCreateIssue, models.ActionCreatePullRequest:
 		if len(issue.Content) == 0 {
 			ct := fmt.Sprintf("Created #%d.", issue.Index)
-			if err = mailIssueCommentToParticipants(e, issue, doer, ct, nil, mentions); err != nil {
+			if err = mailIssueCommentToParticipants(issue, doer, ct, nil, mentions); err != nil {
 				log.Error("mailIssueCommentToParticipants: %v", err)
 			}
 		}
-	case ActionCloseIssue, ActionClosePullRequest:
+	case models.ActionCloseIssue, models.ActionClosePullRequest:
 		ct := fmt.Sprintf("Closed #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(e, issue, doer, ct, nil, mentions); err != nil {
+		if err = mailIssueCommentToParticipants(issue, doer, ct, nil, mentions); err != nil {
 			log.Error("mailIssueCommentToParticipants: %v", err)
 		}
-	case ActionReopenIssue, ActionReopenPullRequest:
+	case models.ActionReopenIssue, models.ActionReopenPullRequest:
 		ct := fmt.Sprintf("Reopened #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(e, issue, doer, ct, nil, mentions); err != nil {
+		if err = mailIssueCommentToParticipants(issue, doer, ct, nil, mentions); err != nil {
 			log.Error("mailIssueCommentToParticipants: %v", err)
 		}
 	}

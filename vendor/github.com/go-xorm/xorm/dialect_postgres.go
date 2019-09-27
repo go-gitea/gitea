@@ -952,7 +952,7 @@ func (db *postgres) IsColumnExist(tableName, colName string) (bool, error) {
 
 func (db *postgres) GetColumns(tableName string) ([]string, map[string]*core.Column, error) {
 	args := []interface{}{tableName}
-	s := `SELECT column_name, column_default, is_nullable, data_type, character_maximum_length, numeric_precision, numeric_precision_radix ,
+	s := `SELECT column_name, column_default, is_nullable, data_type, character_maximum_length,
     CASE WHEN p.contype = 'p' THEN true ELSE false END AS primarykey,
     CASE WHEN p.contype = 'u' THEN true ELSE false END AS uniquekey
 FROM pg_attribute f
@@ -987,14 +987,14 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 		col.Indexes = make(map[string]int)
 
 		var colName, isNullable, dataType string
-		var maxLenStr, colDefault, numPrecision, numRadix *string
+		var maxLenStr, colDefault *string
 		var isPK, isUnique bool
-		err = rows.Scan(&colName, &colDefault, &isNullable, &dataType, &maxLenStr, &numPrecision, &numRadix, &isPK, &isUnique)
+		err = rows.Scan(&colName, &colDefault, &isNullable, &dataType, &maxLenStr, &isPK, &isUnique)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		// fmt.Println(args, colName, isNullable, dataType, maxLenStr, colDefault, numPrecision, numRadix, isPK, isUnique)
+		// fmt.Println(args, colName, isNullable, dataType, maxLenStr, colDefault, isPK, isUnique)
 		var maxLen int
 		if maxLenStr != nil {
 			maxLen, err = strconv.Atoi(*maxLenStr)

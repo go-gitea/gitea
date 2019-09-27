@@ -410,3 +410,21 @@
   num_repos: 0
   num_members: 1
   num_teams: 1
+
+-
+  id: 26
+  lower_name: org26
+  name: org26
+  full_name: "Org26"
+  email: org26@example.com
+  email_notifications_preference: onmention
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  type: 1 # organization
+  salt: ZogKvWdyEx
+  is_admin: false
+  avatar: avatar26
+  avatar_email: org26@example.com
+  num_repos: 1
+  num_members: 0
+  num_teams: 1
+  repo_admin_change_team_access: true

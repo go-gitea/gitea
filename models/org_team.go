@@ -352,7 +352,7 @@ func getTeam(e Engine, orgID int64, name string) (*Team, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrTeamNotExist
+		return nil, ErrTeamNotExist{orgID, 0, name}
 	}
 	return t, nil
 }
@@ -373,7 +373,7 @@ func getTeamByID(e Engine, teamID int64) (*Team, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrTeamNotExist
+		return nil, ErrTeamNotExist{0, teamID, ""}
 	}
 	return t, nil
 }

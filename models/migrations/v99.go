@@ -4,23 +4,15 @@
 
 package migrations
 
-import (
-	"github.com/go-xorm/xorm"
-)
+import "github.com/go-xorm/xorm"
 
-func addProjectIDToCommentsTable(x *xorm.Engine) error {
+func addProjectsInfo(x *xorm.Engine) error {
 
-	sess := x.NewSession()
-	defer sess.Close()
-
-	type Comment struct {
-		OldProjectID int64
-		ProjectID    int64
+	type Repository struct {
+		NumProjects       int `xorm:"NOT NULL DEFAULT 0"`
+		NumClosedProjects int `xorm:"NOT NULL DEFAULT 0"`
+		NumOpenProjects   int `xorm:"-"`
 	}
 
-	if err := sess.Sync2(new(Comment)); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return x.Sync2(new(Repository))
 }
