@@ -176,6 +176,8 @@ func (gt GitServiceType) Name() string {
 		return "gitea"
 	case GitlabService:
 		return "gitlab"
+	case GogsService:
+		return "gogs"
 	}
 	return ""
 }
