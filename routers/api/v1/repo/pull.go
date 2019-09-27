@@ -254,8 +254,15 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
+	maxIndex, err := models.GetMaxIndexOfIssue(repo.ID)
+	if err != nil {
+		ctx.ServerError("GetPatch", err)
+		return
+	}
+
 	prIssue := &models.Issue{
 		RepoID:       repo.ID,
+		Index:        maxIndex + 1,
 		Title:        form.Title,
 		PosterID:     ctx.User.ID,
 		Poster:       ctx.User,
