@@ -74,6 +74,7 @@ var (
 
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sx]\]\s.)|(\n\s*[-*]\s\[[\sx]\]\s.)`
 const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[x]\]\s.)|(\n\s*[-*]\s\[[x]\]\s.)`
+const issueMaxDupIndexAttempts = 3
 
 func init() {
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
@@ -1132,7 +1133,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 	// Milestone and assignee validation should happen before insert actual object.
 	if _, err = e.Insert(opts.Issue); err != nil {
-		return err
+		return ErrNewIssueInsert{err}
 	}
 
 	if opts.Issue.MilestoneID > 0 {
@@ -1207,6 +1208,24 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
+	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
+	i := 0
+	for {
+		if err = newIssueAttempt(repo, issue, labelIDs, assigneeIDs, uuids); err == nil {
+			return newIssuePostInsert(issue, repo)
+		}
+		if !IsErrNewIssueInsert(err) {
+			return err
+		}
+		if i++; i == issueMaxDupIndexAttempts {
+			break
+		}
+		log.Error("NewPullRequest: error attempting to insert the new issue; will retry. Original error: %v", err)
+	}
+	return fmt.Errorf("NewPullRequest: too many errors attempting to insert the new issue. Last error was: %v", err)
+}
+
+func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -1220,7 +1239,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		Attachments: uuids,
 		AssigneeIDs: assigneeIDs,
 	}); err != nil {
-		if IsErrUserDoesNotHaveAccessToRepo(err) {
+		if IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 			return err
 		}
 		return fmt.Errorf("newIssue: %v", err)
@@ -1231,7 +1250,12 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 	}
 	sess.Close()
 
-	if err = NotifyWatchers(&Action{
+	return nil
+}
+
+// newIssuePostInsert performs issue creation operations that need to be separate transactions
+func newIssuePostInsert(issue *Issue, repo *Repository) error {
+	if err := NotifyWatchers(&Action{
 		ActUserID: issue.Poster.ID,
 		ActUser:   issue.Poster,
 		OpType:    ActionCreateIssue,
@@ -1244,7 +1268,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 	}
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if err = PrepareWebhooks(repo, HookEventIssues, &api.IssuePayload{
+	if err := PrepareWebhooks(repo, HookEventIssues, &api.IssuePayload{
 		Action:     api.HookIssueOpened,
 		Index:      issue.Index,
 		Issue:      issue.APIFormat(),
