@@ -70,15 +70,24 @@ type SeqFilter struct {
 	Start  int
 }
 
-func (s *SeqFilter) Do(sql string, dialect Dialect, table *Table) string {
-	segs := strings.Split(sql, "?")
-	size := len(segs)
-	res := ""
-	for i, c := range segs {
-		if i < size-1 {
-			res += c + fmt.Sprintf("%s%v", s.Prefix, i+s.Start)
+func convertQuestionMark(sql, prefix string, start int) string {
+	var buf strings.Builder
+	var beginSingleQuote bool
+	var index = start
+	for _, c := range sql {
+		if !beginSingleQuote && c == '?' {
+			buf.WriteString(fmt.Sprintf("%s%v", prefix, index))
+			index++
+		} else {
+			if c == '\'' {
+				beginSingleQuote = !beginSingleQuote
+			}
+			buf.WriteRune(c)
 		}
 	}
-	res += segs[size-1]
-	return res
+	return buf.String()
+}
+
+func (s *SeqFilter) Do(sql string, dialect Dialect, table *Table) string {
+	return convertQuestionMark(sql, s.Prefix, s.Start)
 }
