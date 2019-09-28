@@ -28,7 +28,7 @@
 		<div class="ui label board-label" style="style">{{.Board.Title}}</div>
                 <div class="ui divider"></div>
 
-                <div class="ui cards board">
+                <div class="ui cards board" data-board="{{.Board.ID}}" id="board_{{.Board.ID}}">
 
 		    {{ $board := .Board }}
 		    {{ range .Issues }}

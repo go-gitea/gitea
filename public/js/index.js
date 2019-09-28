@@ -2555,6 +2555,22 @@ function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
 }
 
+function initKanbanBoard(appElementID) {
+
+  const el = document.getElementById(appElementID)
+  if (!el) {
+    return
+  }
+
+  new Sortable(el, {
+    group: "shared",
+    animation: 150,
+    onAdd: function(e) {
+      console.log(e)
+    },
+  })
+}
+
 function initHeatmap(appElementId, heatmapUser, locale) {
     const el = document.getElementById(appElementId);
     if (!el) {
