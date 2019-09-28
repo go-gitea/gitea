@@ -132,9 +132,8 @@
 {{ if .PageIsProjects }}
 	<script src="{{AppSubUrl}}/vendor/plugins/sortable/sortable.min.js" charset="utf-8"></script>
 	<script type="text/javascript">
-	initKanbanBoard("board_0")
-	initKanbanBoard("board_19")
 	{{ range .ProjectBoards }}
+		initKanbanBoard("board_{{.Board.ID}}")
 	{{ end}}
 	</script>
 {{ end}}
