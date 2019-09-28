@@ -525,7 +525,7 @@ func SearchTeam(ctx *context.APIContext) {
 	//   in: query
 	//   description: keywords to search
 	//   type: string
-	// - name: inclDesc
+	// - name: include_desc
 	//   in: query
 	//   description: include search within team description (defaults to true)
 	//   type: boolean
@@ -550,10 +550,10 @@ func SearchTeam(ctx *context.APIContext) {
 	//           items:
 	//             "$ref": "#/definitions/Team"
 	opts := &models.SearchTeamOptions{
-		UserID:      ctx.Data["SignedUserID"].(int64),
-		Keyword:     strings.Trim(ctx.Query("q"), " "),
+		UserID:      ctx.User.ID,
+		Keyword:     strings.TrimSpace(ctx.Query("q")),
 		OrgID:       ctx.Org.Organization.ID,
-		IncludeDesc: (ctx.Query("inclDesc") == "" || ctx.QueryBool("inclDesc")),
+		IncludeDesc: (ctx.Query("include_desc") == "" || ctx.QueryBool("include_desc")),
 		PageSize:    ctx.QueryInt("limit"),
 		Page:        ctx.QueryInt("page"),
 	}
