@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"fmt"
 	"path"
 	"strings"
 
@@ -14,13 +15,66 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/compare"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
 const (
 	tplCompare base.TplName = "repo/diff/compare"
 )
+
+// setPathsCompareContext sets context data for source and raw paths
+func setPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headTarget string) {
+	sourcePath := setting.AppSubURL + "/%s/src/commit/%s"
+	rawPath := setting.AppSubURL + "/%s/raw/commit/%s"
+
+	ctx.Data["SourcePath"] = fmt.Sprintf(sourcePath, headTarget, head.ID)
+	ctx.Data["RawPath"] = fmt.Sprintf(rawPath, headTarget, head.ID)
+	if base != nil {
+		baseTarget := path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+		ctx.Data["BeforeSourcePath"] = fmt.Sprintf(sourcePath, baseTarget, base.ID)
+		ctx.Data["BeforeRawPath"] = fmt.Sprintf(rawPath, baseTarget, base.ID)
+	}
+}
+
+// setImageCompareContext sets context data that is required by image compare template
+func setImageCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit) {
+	ctx.Data["IsImageFile"] = head.IsImageFile
+	ctx.Data["ImageInfoBase"] = func(name string) *git.ImageMetaData {
+		if base == nil {
+			return nil
+		}
+		result, err := base.ImageInfo(name)
+		if err != nil {
+			log.Error("ImageInfo failed: %v", err)
+			return nil
+		}
+		return result
+	}
+	ctx.Data["FileExistsInBaseCommit"] = func(filename string) bool {
+		if base == nil {
+			return false
+		}
+		result, err := base.HasFile(filename)
+		if err != nil {
+			log.Error(
+				"Error while checking if file \"%s\" exists in base commit \"%s\" (repo: %s): %v",
+				filename,
+				base,
+				ctx.Repo.GitRepo.Path,
+				err)
+			return false
+		}
+		return result
+	}
+	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
+		result, err := head.ImageInfo(name)
+		if err != nil {
+			log.Error("ImageInfo failed: %v", err)
+			return nil
+		}
+		return result
+	}
+}
 
 // ParseCompareInfo parse compare info between two commit for preparing comparing references
 func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *git.Repository, *git.CompareInfo, string, string) {
@@ -293,9 +347,9 @@ func PrepareCompareDiff(
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
 
-	compare.SetImageCompareContext(ctx, baseCommit, headCommit)
+	setImageCompareContext(ctx, baseCommit, headCommit)
 	headTarget := path.Join(headUser.Name, repo.Name)
-	compare.SetPathsCompareContext(ctx, baseCommit, headCommit, headTarget)
+	setPathsCompareContext(ctx, baseCommit, headCommit, headTarget)
 
 	return false
 }

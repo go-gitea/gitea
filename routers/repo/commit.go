@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/compare"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -249,9 +248,9 @@ func Diff(ctx *context.Context) {
 			return
 		}
 	}
-	compare.SetImageCompareContext(ctx, parentCommit, commit)
+	setImageCompareContext(ctx, parentCommit, commit)
 	headTarget := path.Join(userName, repoName)
-	compare.SetPathsCompareContext(ctx, parentCommit, commit, headTarget)
+	setPathsCompareContext(ctx, parentCommit, commit, headTarget)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	ctx.Data["Verification"] = models.ParseCommitWithSignature(commit)

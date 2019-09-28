@@ -25,7 +25,6 @@ import (
 	pull_service "code.gitea.io/gitea/modules/pull"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/compare"
 	"code.gitea.io/gitea/services/gitdiff"
 
 	"github.com/unknwon/com"
@@ -566,8 +565,8 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	compare.SetImageCompareContext(ctx, baseCommit, commit)
-	compare.SetPathsCompareContext(ctx, baseCommit, commit, headTarget)
+	setImageCompareContext(ctx, baseCommit, commit)
+	setPathsCompareContext(ctx, baseCommit, commit, headTarget)
 
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
