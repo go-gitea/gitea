@@ -282,7 +282,7 @@
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blocking');"
 											data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
-											<i class="delete icon nopadding nomargin text red"></i>
+											<i class="delete icon text red nopadding nomargin"></i>
 										</a>
 									{{end}}
 								</div>
@@ -309,7 +309,7 @@
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blockedBy');"
 											data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
-											<i class="delete icon nopadding nomargin text red"></i>
+											<i class="delete icon text red nopadding nomargin"></i>
 										</a>
 									{{end}}
 								</div>
