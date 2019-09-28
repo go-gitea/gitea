@@ -1899,6 +1899,7 @@ func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyI
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
 		Where("issue_id = ?", issue.ID).
+		OrderBy("repository.id, issue.id ASC").
 		Find(&issueDeps)
 }
 
@@ -1909,6 +1910,7 @@ func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*DependencyIn
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
 		Where("dependency_id = ?", issue.ID).
+		OrderBy("repository.id, issue.id ASC").
 		Find(&issueDeps)
 }
 
