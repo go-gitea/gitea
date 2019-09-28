@@ -377,12 +377,10 @@ func (issue *Issue) apiFormat(e Engine) *api.Issue {
 		Updated:  issue.UpdatedUnix.AsTime(),
 	}
 
-	if issue.Repo != nil {
-		apiIssue.Repo = &api.RepositoryMeta{
-			ID:       issue.Repo.ID,
-			Name:     issue.Repo.Name,
-			FullName: issue.Repo.FullName(),
-		}
+	apiIssue.Repo = &api.RepositoryMeta{
+		ID:       issue.Repo.ID,
+		Name:     issue.Repo.Name,
+		FullName: issue.Repo.FullName(),
 	}
 
 	if issue.ClosedUnix != 0 {
