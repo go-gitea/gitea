@@ -29,6 +29,7 @@ func (org *User) IsOrgMember(uid int64) (bool, error) {
 	return IsOrganizationMember(org.ID, uid)
 }
 
+// CanCreateOrgRepo returns true if given user can create repo in organization
 func (org *User) CanCreateOrgRepo(uid int64) (bool, error) {
 	return CanCreateOrgRepo(org.ID, uid)
 }
@@ -340,6 +341,7 @@ func IsPublicMembership(orgID, uid int64) (bool, error) {
 		Exist()
 }
 
+// CanCreateOrgRepo returns true if user can create repo in organization
 func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 	if owner, err := IsOrganizationOwner(orgID, uid); owner || err != nil {
 		return owner, err
