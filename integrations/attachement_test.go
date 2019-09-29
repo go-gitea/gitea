@@ -59,7 +59,7 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 func TestCreateAnonymeAttachement(t *testing.T) {
 	prepareTestEnv(t)
 	session := emptyTestSession(t)
-	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusFound) //Login
+	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusFound)
 }
 
 func TestCreateIssueAttachement(t *testing.T) {
@@ -78,7 +78,7 @@ func TestCreateIssueAttachement(t *testing.T) {
 	postData := map[string]string{
 		"_csrf":    htmlDoc.GetCSRF(),
 		"title":    "New Issue With Attachement",
-		"content":  "",
+		"content":  "some content",
 		"files[0]": uuid,
 	}
 
