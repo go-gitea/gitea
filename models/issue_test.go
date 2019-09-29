@@ -328,8 +328,8 @@ func testInsertIssue(t *testing.T, title, content string) {
 	var issue = Issue{
 		RepoID:   repo.ID,
 		PosterID: user.ID,
-		Title:    "my issue1",
-		Content:  "special issue's comments?",
+		Title:    title,
+		Content:  content,
 	}
 	err := NewIssue(repo, &issue, nil, nil, nil)
 	assert.NoError(t, err)
