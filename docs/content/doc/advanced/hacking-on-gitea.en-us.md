@@ -108,10 +108,10 @@ and look at our
 [`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see
 how our continuous integration works.
 
-### Formatting, linting, vetting and spell-check
+### Formatting, code analysis and spell check
 
 Our continous integration will reject PRs that are not properly formatted, fail
-linting, vet or spell-check.
+code analysis or spell check.
 
 You should format your code with `go fmt` using:
 
@@ -130,10 +130,10 @@ You should run the same version of go that is on the continuous integration
 server as mentioned above. `make fmt-check` will only check if your `go` would
 format differently - this may be different from the CI server version.
 
-You should lint, vet and spell-check with:
+You should run revive, vet and spell-check on the code with:
 
 ```bash
-make vet lint misspell-check
+make revive vet misspell-check
 ```
 
 ### Updating CSS
