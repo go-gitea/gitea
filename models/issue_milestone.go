@@ -319,7 +319,7 @@ func updateMilestoneTotalNum(e Engine, milestoneID int64) (err error) {
 		return
 	}
 
-	_, err = e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(num_issues+1-sign(num_issues)) WHERE id=?",
+	_, err = e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(num_issues+1-(CASE WHEN num_issues > 0 THEN 1 ELSE 0 END)) WHERE id=?",
 		milestoneID,
 	)
 
@@ -335,7 +335,7 @@ func updateMilestoneClosedNum(e Engine, milestoneID int64) (err error) {
 		return
 	}
 
-	_, err = e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(num_issues+1-sign(num_issues)) WHERE id=?",
+	_, err = e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(num_issues+1-(CASE WHEN num_issues > 0 THEN 1 ELSE 0 END)) WHERE id=?",
 		milestoneID,
 	)
 	return
