@@ -2,27 +2,33 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package release
 
 import (
+	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRelease_Create(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+func TestMain(m *testing.M) {
+	models.MainTest(m, filepath.Join("..", ".."))
+}
 
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	repoPath := RepoPath(user.Name, repo.Name)
+func TestRelease_Create(t *testing.T) {
+	assert.NoError(t, models.PrepareTestDatabase())
+
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repoPath := models.RepoPath(user.Name, repo.Name)
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)
 
-	assert.NoError(t, CreateRelease(gitRepo, &Release{
+	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
 		PublisherID:  user.ID,
 		TagName:      "v0.1",
@@ -34,7 +40,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil))
 
-	assert.NoError(t, CreateRelease(gitRepo, &Release{
+	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
 		PublisherID:  user.ID,
 		TagName:      "v0.1.1",
@@ -46,7 +52,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil))
 
-	assert.NoError(t, CreateRelease(gitRepo, &Release{
+	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
 		PublisherID:  user.ID,
 		TagName:      "v0.1.2",
@@ -58,7 +64,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil))
 
-	assert.NoError(t, CreateRelease(gitRepo, &Release{
+	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
 		PublisherID:  user.ID,
 		TagName:      "v0.1.3",
@@ -70,7 +76,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil))
 
-	assert.NoError(t, CreateRelease(gitRepo, &Release{
+	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
 		PublisherID:  user.ID,
 		TagName:      "v0.1.4",
@@ -82,7 +88,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil))
 
-	assert.NoError(t, CreateRelease(gitRepo, &Release{
+	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
 		PublisherID:  user.ID,
 		TagName:      "v0.1.5",
@@ -96,12 +102,12 @@ func TestRelease_Create(t *testing.T) {
 }
 
 func TestRelease_MirrorDelete(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, models.PrepareTestDatabase())
 
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	repoPath := RepoPath(user.Name, repo.Name)
-	migrationOptions := MigrateRepoOptions{
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repoPath := models.RepoPath(user.Name, repo.Name)
+	migrationOptions := models.MigrateRepoOptions{
 		Name:                 "test_mirror",
 		Description:          "Test mirror",
 		IsPrivate:            false,
@@ -110,17 +116,17 @@ func TestRelease_MirrorDelete(t *testing.T) {
 		Wiki:                 true,
 		SyncReleasesWithTags: true,
 	}
-	mirror, err := MigrateRepository(user, user, migrationOptions)
+	mirror, err := models.MigrateRepository(user, user, migrationOptions)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)
 
-	findOptions := FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
-	initCount, err := GetReleaseCountByRepoID(mirror.ID, findOptions)
+	findOptions := models.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
+	initCount, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
 	assert.NoError(t, err)
 
-	assert.NoError(t, CreateRelease(gitRepo, &Release{
+	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
 		PublisherID:  user.ID,
 		TagName:      "v0.2",
@@ -135,21 +141,21 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	err = mirror.GetMirror()
 	assert.NoError(t, err)
 
-	_, ok := mirror.Mirror.runSync()
+	ok := models.RunMirrorSync(mirror.Mirror)
 	assert.True(t, ok)
 
-	count, err := GetReleaseCountByRepoID(mirror.ID, findOptions)
+	count, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
 	assert.NoError(t, err)
 	assert.EqualValues(t, initCount+1, count)
 
-	release, err := GetRelease(repo.ID, "v0.2")
+	release, err := models.GetRelease(repo.ID, "v0.2")
 	assert.NoError(t, err)
-	assert.NoError(t, DeleteReleaseByID(release.ID, user, true))
+	assert.NoError(t, models.DeleteReleaseByID(release.ID, user, true))
 
-	_, ok = mirror.Mirror.runSync()
+	ok = models.RunMirrorSync(mirror.Mirror)
 	assert.True(t, ok)
 
-	count, err = GetReleaseCountByRepoID(mirror.ID, findOptions)
+	count, err = models.GetReleaseCountByRepoID(mirror.ID, findOptions)
 	assert.NoError(t, err)
 	assert.EqualValues(t, initCount, count)
 }

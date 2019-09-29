@@ -10,17 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCollaboration_ModeI18nKey(t *testing.T) {
-	assert.Equal(t, "repo.settings.collaboration.read",
-		(&Collaboration{Mode: AccessModeRead}).ModeI18nKey())
-	assert.Equal(t, "repo.settings.collaboration.write",
-		(&Collaboration{Mode: AccessModeWrite}).ModeI18nKey())
-	assert.Equal(t, "repo.settings.collaboration.admin",
-		(&Collaboration{Mode: AccessModeAdmin}).ModeI18nKey())
-	assert.Equal(t, "repo.settings.collaboration.undefined",
-		(&Collaboration{Mode: AccessModeNone}).ModeI18nKey())
-}
-
 func TestRepository_AddCollaborator(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 

@@ -48,7 +48,7 @@ require (
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/go-swagger/go-swagger v0.20.1
-	github.com/go-xorm/xorm v0.7.7-0.20190822154023-17592d96b35b
+	github.com/go-xorm/xorm v0.7.8
 	github.com/gobwas/glob v0.2.3
 	github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
@@ -80,6 +80,7 @@ require (
 	github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
 	github.com/oliamb/cutter v0.2.2
 	github.com/philhofer/fwd v1.0.0 // indirect
+	github.com/pkg/errors v0.8.1
 	github.com/pquerna/otp v0.0.0-20160912161815-54653902c20e
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/procfs v0.0.4 // indirect
@@ -123,6 +124,6 @@ require (
 	gopkg.in/testfixtures.v2 v2.5.0
 	mvdan.cc/xurls/v2 v2.0.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a
-	xorm.io/builder v0.3.5
-	xorm.io/core v0.7.0
+	xorm.io/builder v0.3.6
+	xorm.io/core v0.7.2
 )
