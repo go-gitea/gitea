@@ -341,7 +341,7 @@ func IsPublicMembership(orgID, uid int64) (bool, error) {
 }
 
 func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
-	if owner, err := IsOrganizationOwner(orgID, uid); owner == true || err != nil {
+	if owner, err := IsOrganizationOwner(orgID, uid); owner || err != nil {
 		return owner, err
 	}
 	return x.
