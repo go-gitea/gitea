@@ -5,7 +5,6 @@
 package models
 
 import (
-	"errors"
 	"fmt"
 	"path"
 	"regexp"
@@ -1054,35 +1053,8 @@ type NewIssueOptions struct {
 	IsPull      bool
 }
 
-// GetMaxIndexOfIssue returns the max index on issue
-func GetMaxIndexOfIssue(repoID int64) (int64, error) {
-	return getMaxIndexOfIssue(x, repoID)
-}
-
-func getMaxIndexOfIssue(e Engine, repoID int64) (int64, error) {
-	var (
-		maxIndex int64
-		has      bool
-		err      error
-	)
-
-	has, err = e.SQL("SELECT COALESCE((SELECT MAX(`index`) FROM issue WHERE repo_id = ?),0)", repoID).Get(&maxIndex)
-	if err != nil {
-		return 0, err
-	} else if !has {
-		return 0, errors.New("Retrieve Max index from issue failed")
-	}
-	return maxIndex, nil
-}
-
 func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
-
-	maxIndex, err := getMaxIndexOfIssue(e, opts.Issue.RepoID)
-	if err != nil {
-		return err
-	}
-	opts.Issue.Index = maxIndex + 1
 
 	if opts.Issue.MilestoneID > 0 {
 		milestone, err := getMilestoneByRepoID(e, opts.Issue.RepoID, opts.Issue.MilestoneID)
@@ -1132,9 +1104,19 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	// Milestone and assignee validation should happen before insert actual object.
-	if _, err = e.Insert(opts.Issue); err != nil {
-		return ErrNewIssueInsert{err}
+	if _, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
+		Where("repo_id=?", opts.Issue.RepoID).
+		Insert(opts.Issue); err != nil {
+		return err
 	}
+
+	inserted, err := getIssueByID(e, opts.Issue.ID)
+	if err != nil {
+		return err
+	}
+
+	// Patch Index with the value calculated by the database
+	opts.Issue.Index = inserted.Index
 
 	if opts.Issue.MilestoneID > 0 {
 		if err = changeMilestoneAssign(e, doer, opts.Issue, -1); err != nil {
