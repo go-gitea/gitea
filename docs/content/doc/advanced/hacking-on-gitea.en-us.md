@@ -178,7 +178,7 @@ make generate-swagger
 You should validate your generated Swagger file and spell-check it with:
 
 ```bash
-make swagger-validate mispell-check
+make swagger-validate misspell-check
 ```
 
 You should commit the changed swagger JSON file. The continous integration
