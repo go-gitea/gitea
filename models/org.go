@@ -347,7 +347,7 @@ func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 		return owner, err
 	}
 	return x.
-		Where("team.can_create_org_repo = true").
+		Where(builder.Eq{"team.can_create_org_repo": true}).
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		And("team_user.uid = ?", uid).
 		And("team_user.org_id = ?", orgID).
