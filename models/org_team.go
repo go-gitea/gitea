@@ -59,7 +59,7 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
-		var keywordCond = builder.Like{"lower_name", lowerKeyword}
+		var keywordCond builder.Cond = builder.Like{"lower_name", lowerKeyword}
 		if opts.IncludeDesc {
 			keywordCond = keywordCond.Or(builder.Like{"LOWER(description)", lowerKeyword})
 		}
