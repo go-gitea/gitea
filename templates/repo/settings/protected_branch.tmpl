@@ -105,6 +105,38 @@
 					</div>
 
 					<div class="field">
+						<div class="ui checkbox">
+							<input class="enable-statuscheck" name="enable_status_check" type="checkbox" data-target="#statuscheck_contexts_box" {{if .Branch.EnableStatusCheck}}checked{{end}}>
+							<label>{{.i18n.Tr "repo.settings.protect_check_status_contexts"}}</label>
+							<p class="help">{{.i18n.Tr "repo.settings.protect_check_status_contexts_desc"}}</p>
+						</div>
+					</div>
+
+					<div id="statuscheck_contexts_box" class="fields {{if not .Branch.EnableStatusCheck}}disabled{{end}}">
+						<div class="field">
+							<table class="ui celled table six column">
+								<thead>
+									<tr><th>
+										{{.i18n.Tr "repo.settings.protect_check_status_contexts_list"}}
+									</th>
+									</tr>
+								</thead>
+								<tbody>
+								{{range $.branch_status_check_contexts}}
+									<tr><td>
+										<span class="ui checkbox">
+											<input class="enable-whitelist" name="status_check_contexts" value="{{.}}" type="checkbox" {{if $.is_context_require}}{{if call $.is_context_required .}}checked{{end}}{{end}}>
+										</span>
+										{{.}}
+										{{if $.is_context_required}}{{if call $.is_context_required .}}<div class="ui label right">Required</div>{{end}}{{end}}
+									</td></tr>
+								{{end}}
+								</tbody>
+							</table>
+						</div>
+					</div>
+
+					<div class="field">
 						<label for="required-approvals">{{.i18n.Tr "repo.settings.protect_required_approvals"}}</label>
 						<input name="required_approvals" id="required-approvals" type="number" value="{{.Branch.RequiredApprovals}}">
 						<p class="help">{{.i18n.Tr "repo.settings.protect_required_approvals_desc"}}</p>

@@ -96,6 +96,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
   regardless of the value of `DEFAULT_THEME`.
 - `DEFAULT_SHOW_FULL_NAME`: false: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
+- `SEARCH_REPO_DESCRIPTION`: true: Whether to search within description at repository search on explore page.
 
 ### UI - Admin (`ui.admin`)
 
@@ -180,8 +181,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
+- `REPO_INDEXER_INCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **include** in the index. Use `**.txt` to match any files with .txt extension. An empty list means include all files.
+- `REPO_INDEXER_EXCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **exclude** from the index. Files that match this list will not be indexed, even if they match in `REPO_INDEXER_INCLUDE`.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
+
+## Admin (`admin`)
+- `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**: Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
 
 ## Security (`security`)
 
@@ -287,6 +293,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.
    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
    - Memache: `127.0.0.1:9090;127.0.0.1:9091`
+- `ITEM_TTL`: **16h**: Time to keep items in cache if not used, Setting it to 0 disables caching.
 
 ## Session (`session`)
 

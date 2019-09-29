@@ -74,9 +74,22 @@ func TestRenameReservedUsername(t *testing.T) {
 	prepareTestEnv(t)
 
 	reservedUsernames := []string{
+		"admin",
+		"api",
+		"attachments",
+		"avatars",
+		"explore",
 		"help",
-		"user",
+		"install",
+		"issues",
+		"login",
+		"metrics",
+		"notifications",
+		"org",
+		"pulls",
+		"repo",
 		"template",
+		"user",
 	}
 
 	session := loginUser(t, "user2")

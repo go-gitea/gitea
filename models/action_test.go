@@ -173,7 +173,7 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 	pushCommits.Len = len(pushCommits.Commits)
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon",
+		"/suburl/user/avatar/user2/-1",
 		pushCommits.AvatarLink("user2@example.com"))
 
 	assert.Equal(t,
@@ -186,6 +186,7 @@ func TestRegExp_issueReferenceKeywordsPat(t *testing.T) {
 		"#2",
 		"[#2]",
 		"please see go-gitea/gitea#5",
+		"#2:",
 	}
 	falseTestCases := []string{
 		"kb#2",

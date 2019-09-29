@@ -1098,6 +1098,7 @@ type CreateRepoOptions struct {
 	Description string
 	OriginalURL string
 	Gitignores  string
+	IssueLabels string
 	License     string
 	Readme      string
 	IsPrivate   bool
@@ -1392,6 +1393,13 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
 			}
 			return nil, fmt.Errorf("initRepository: %v", err)
+		}
+
+		// Initialize Issue Labels if selected
+		if len(opts.IssueLabels) > 0 {
+			if err = initalizeLabels(sess, repo.ID, opts.IssueLabels); err != nil {
+				return nil, fmt.Errorf("initalizeLabels: %v", err)
+			}
 		}
 
 		_, stderr, err := process.GetManager().ExecDir(-1,
@@ -1802,6 +1810,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Notification{RepoID: repoID},
 		&CommitStatus{RepoID: repoID},
 		&RepoIndexerStatus{RepoID: repoID},
+		&Comment{RefRepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1948,8 +1957,12 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 // GetRepositoryByOwnerAndName returns the repository by given ownername and reponame.
 func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error) {
+	return getRepositoryByOwnerAndName(x, ownerName, repoName)
+}
+
+func getRepositoryByOwnerAndName(e Engine, ownerName, repoName string) (*Repository, error) {
 	var repo Repository
-	has, err := x.Select("repository.*").
+	has, err := e.Table("repository").Select("repository.*").
 		Join("INNER", "`user`", "`user`.id = repository.owner_id").
 		Where("repository.lower_name = ?", strings.ToLower(repoName)).
 		And("`user`.lower_name = ?", strings.ToLower(ownerName)).

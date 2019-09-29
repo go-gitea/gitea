@@ -20,6 +20,15 @@
         .ui.huge.breadcrumb {
             font-weight: 400;
             font-size: 1.5rem;
+
+            i.mega-octicon {
+                position: relative;
+                top: 5px;
+            }
+
+            i.octicon-lock {
+                margin-left: 5px;
+            }
         }
 
         .fork-flag {
@@ -277,6 +286,24 @@
                 .ui.avatar {
                     margin-bottom: 5px;
                 }
+
+                .commit-summary a {
+                    text-decoration: underline;
+                    text-decoration-style: dashed;
+
+                    &:hover {
+                        text-decoration-style: solid;
+                    }
+
+                    &.default-link {
+                        text-decoration: none;
+
+                        &:hover {
+                            text-decoration: underline;
+                            text-decoration-style: solid;
+                        }
+                    }
+                }
             }
 
             tbody {
@@ -508,6 +535,10 @@
     }
 
     @comment-avatar-width: 3em;
+
+    .comment textarea {
+        max-height: none !important;
+    }
 
     &.new.issue {
         .comment.form {
@@ -1337,6 +1368,10 @@
                         width: 49%;
                     }
 
+                    td.center {
+                        text-align: center;
+                    }
+
                     .removed-code {
                         background-color: #ff9999;
                     }
@@ -1423,6 +1458,9 @@
             img {
                 max-width: 100%;
                 padding: 5px 5px 0 5px;
+            }
+            img.emoji {
+                padding: 0;
             }
 
             clear: right;
@@ -1698,6 +1736,19 @@
                     margin-top: -3px;
                 }
             }
+
+            #repo-collab-team-form {
+                #search-team-box {
+                    .results {
+                        left: 7px;
+                    }
+                }
+
+                .ui.button {
+                    margin-left: 5px;
+                    margin-top: -3px;
+                }
+            }
         }
 
         &.branches {
@@ -1898,6 +1949,16 @@
     }
 }
 
+#search-team-box {
+    .results {
+        .result {
+            .content {
+                margin: 6px 0;
+            }
+        }
+    }
+}
+
 #issue-filters.hide {
     display: none;
 }
@@ -1964,11 +2025,24 @@
             }
 
             a.milestone {
-                padding-left: 5px;
+                margin-left: 5px;
                 color: #999999 !important;
 
                 &:hover {
                     color: #000000 !important;
+                }
+            }
+
+            a.ref {
+                margin-left: 8px;
+                color: #999999 !important;
+
+                &:hover {
+                    color: #000000 !important;
+                }
+
+                span {
+                    margin-right: -4px;
                 }
             }
 
@@ -2013,7 +2087,7 @@
 
     .list {
         > .item {
-            .green {
+            .green:not(.ui.button) {
                 color: #21ba45;
             }
 
@@ -2183,6 +2257,24 @@ tbody.commit-list {
     max-width: calc(100% - 50px);
     display: inline-block;
     vertical-align: middle;
+}
+
+.commit-list .commit-summary a {
+    text-decoration: underline;
+    text-decoration-style: dashed;
+
+    &:hover {
+        text-decoration-style: solid;
+    }
+
+    &.default-link {
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+            text-decoration-style: solid;
+        }
+    }
 }
 
 .commit-list .commit-status-link {

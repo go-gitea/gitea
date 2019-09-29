@@ -1,0 +1,42 @@
+workspace:
+  base: /go
+  path: src/xorm.io/core
+
+clone:
+  git:
+    image: plugins/git:next
+    depth: 50
+    tags: true
+
+matrix:
+  GO_VERSION:
+    - 1.9
+    - 1.10
+    - 1.11
+    - 1.12
+
+pipeline:
+  test:
+    image: golang:${GO_VERSION}
+    environment:
+      GOPROXY: https://goproxy.cn
+    commands:
+      - go get -u golang.org/x/lint/golint
+      - go get -u github.com/stretchr/testify/assert
+      - go get -u github.com/go-xorm/sqlfiddle
+      - go get -u github.com/go-sql-driver/mysql
+      - go get -u github.com/mattn/go-sqlite3
+      - go vet
+      - go test -v -race -coverprofile=coverage.txt -covermode=atomic -dbConn="root:@tcp(mysql:3306)/core_test?charset=utf8mb4"
+    when:
+      event: [ push, tag, pull_request ]
+
+
+services:
+  mysql:
+    image: mysql:5.7
+    environment:
+      - MYSQL_DATABASE=core_test
+      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+    when:
+      event: [ push, tag, pull_request ]

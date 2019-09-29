@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/routers/repo"
 	"code.gitea.io/gitea/routers/user"
 	userSetting "code.gitea.io/gitea/routers/user/setting"
+	"code.gitea.io/gitea/services/mailer"
 
 	// to registers all internal adapters
 	_ "code.gitea.io/gitea/modules/session"
@@ -41,6 +42,7 @@ import (
 	"gitea.com/macaron/binding"
 	"gitea.com/macaron/cache"
 	"gitea.com/macaron/captcha"
+	"gitea.com/macaron/cors"
 	"gitea.com/macaron/csrf"
 	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
@@ -165,7 +167,7 @@ func NewMacaron() *macaron.Macaron {
 	))
 
 	m.Use(templates.HTMLRenderer())
-	models.InitMailRender(templates.Mailer())
+	mailer.InitMailRender(templates.Mailer())
 
 	localeNames, err := options.Dir("locale")
 
@@ -402,6 +404,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		// r.Get("/feeds", binding.Bind(auth.FeedsForm{}), user.Feeds)
 		m.Any("/activate", user.Activate, reqSignIn)
 		m.Any("/activate_email", user.ActivateEmail)
+		m.Get("/avatar/:username/:size", user.Avatar)
 		m.Get("/email2user", user.Email2User)
 		m.Get("/recover_account", user.ResetPasswd)
 		m.Post("/recover_account", user.ResetPasswdPost)
@@ -445,6 +448,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 			m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
 			m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
+			m.Post("/telegram/new", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
 			m.Post("/msteams/new", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 			m.Get("/:id", repo.WebHooksEdit)
 			m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
@@ -452,6 +456,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/slack/:id", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksEditPost)
 			m.Post("/discord/:id", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
 			m.Post("/dingtalk/:id", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
+			m.Post("/telegram/:id", bindIgnErr(auth.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
 			m.Post("/msteams/:id", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 		})
 
@@ -648,6 +653,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("").Get(repo.Collaboration).Post(repo.CollaborationPost)
 				m.Post("/access_mode", repo.ChangeCollaborationAccessMode)
 				m.Post("/delete", repo.DeleteCollaboration)
+				m.Group("/team", func() {
+					m.Post("", repo.AddTeamPost)
+					m.Post("/delete", repo.DeleteTeam)
+				})
 			})
 			m.Group("/branches", func() {
 				m.Combo("").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)
@@ -977,9 +986,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/swagger.v1.json", templates.JSONRenderer(), routers.SwaggerV1Json)
 	}
 
+	var handlers []macaron.Handler
+	if setting.EnableCORS {
+		handlers = append(handlers, cors.CORS(setting.CORSConfig))
+	}
+	handlers = append(handlers, ignSignIn)
 	m.Group("/api", func() {
 		apiv1.RegisterRoutes(m)
-	}, ignSignIn)
+	}, handlers...)
 
 	m.Group("/api/internal", func() {
 		// package name internal is ideal but Golang is not allowed, so we use private as package name.

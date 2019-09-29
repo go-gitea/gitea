@@ -99,6 +99,20 @@ func (pr *PullRequest) LoadAttributes() error {
 	return pr.loadAttributes(x)
 }
 
+// LoadBaseRepo loads pull request base repository from database
+func (pr *PullRequest) LoadBaseRepo() error {
+	if pr.BaseRepo == nil {
+		var repo Repository
+		if has, err := x.ID(pr.BaseRepoID).Get(&repo); err != nil {
+			return err
+		} else if !has {
+			return ErrRepoNotExist{ID: pr.BaseRepoID}
+		}
+		pr.BaseRepo = &repo
+	}
+	return nil
+}
+
 // LoadIssue loads issue information from database
 func (pr *PullRequest) LoadIssue() (err error) {
 	return pr.loadIssue(x)
@@ -684,33 +698,6 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
-	}
-
-	if err = NotifyWatchers(&Action{
-		ActUserID: pull.Poster.ID,
-		ActUser:   pull.Poster,
-		OpType:    ActionCreatePullRequest,
-		Content:   fmt.Sprintf("%d|%s", pull.Index, pull.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
-	}
-
-	pr.Issue = pull
-	pull.PullRequest = pr
-	mode, _ := AccessLevel(pull.Poster, repo)
-	if err = PrepareWebhooks(repo, HookEventPullRequest, &api.PullRequestPayload{
-		Action:      api.HookIssueOpened,
-		Index:       pull.Index,
-		PullRequest: pr.APIFormat(),
-		Repository:  repo.APIFormat(mode),
-		Sender:      pull.Poster.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go HookQueue.Add(repo.ID)
 	}
 
 	return nil

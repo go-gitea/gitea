@@ -83,6 +83,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	org.Website = form.Website
 	org.Location = form.Location
 	org.Visibility = form.Visibility
+	org.RepoAdminChangeTeamAccess = form.RepoAdminChangeTeamAccess
 	if err := models.UpdateUser(org); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
