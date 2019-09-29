@@ -130,10 +130,10 @@ You should run the same version of go that is on the continuous integration
 server as mentioned above. `make fmt-check` will only check if your `go` would
 format differently - this may be different from the CI server version.
 
-You should lint, vet and spell-check with:
+You should lint, vet, revive and spell-check with:
 
 ```bash
-make vet lint misspell-check
+make vet lint revive misspell-check
 ```
 
 ### Updating CSS
