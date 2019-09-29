@@ -8397,45 +8397,11 @@
           "type": "string",
           "x-go-name": "Description"
         },
-        "enable_issue_dependencies": {
-          "description": "Enable dependencies for issues and pull requests (Built-in issue tracker)",
-          "type": "boolean",
-          "x-go-name": "EnableIssueDependencies"
-        },
-        "enable_time_tracker": {
-          "description": "Enable time tracking (Built-in issue tracker)",
-          "type": "boolean",
-          "x-go-name": "EnableTimeTracker"
-        },
         "external_tracker": {
-          "description": "either `true` to enable external issue tracker or `false` to disable it.",
-          "type": "boolean",
-          "x-go-name": "ExternalTracker"
-        },
-        "external_tracker_format": {
-          "description": "External Issue Tracker URL Format. Use the placeholders {user}, {repo} and {index} for the username, repository name and issue index.",
-          "type": "string",
-          "x-go-name": "ExternalTrackerFormat"
-        },
-        "external_tracker_style": {
-          "description": "External Issue Tracker Number Format, either `numeric` or `alphanumeric`",
-          "type": "string",
-          "x-go-name": "ExternalTrackerStyle"
-        },
-        "external_tracker_url": {
-          "description": "URL of external issue tracker.",
-          "type": "string",
-          "x-go-name": "ExternalTrackerURL"
+          "$ref": "#/definitions/ExternalTracker"
         },
         "external_wiki": {
-          "description": "either `true` to enable external wiki or `false` to disable it.",
-          "type": "boolean",
-          "x-go-name": "ExternalWiki"
-        },
-        "external_wiki_url": {
-          "description": "URL of external wiki.",
-          "type": "string",
-          "x-go-name": "ExternalWikiURL"
+          "$ref": "#/definitions/ExternalWiki"
         },
         "has_issues": {
           "description": "either `true` to enable issues for this repository or `false` to disable them.",
@@ -8457,10 +8423,8 @@
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
         },
-        "let_only_contributors_track_time": {
-          "description": "Let only contributors track time (Built-in issue tracker)",
-          "type": "boolean",
-          "x-go-name": "LetOnlyContributorsTrackTime"
+        "internal_tracker": {
+          "$ref": "#/definitions/InternalTracker"
         },
         "name": {
           "description": "name of the repository",
@@ -8622,14 +8586,17 @@
       "type": "object",
       "properties": {
         "external_tracker_format": {
+          "description": "External Issue Tracker URL Format. Use the placeholders {user}, {repo} and {index} for the username, repository name and issue index.",
           "type": "string",
           "x-go-name": "ExternalTrackerFormat"
         },
         "external_tracker_style": {
+          "description": "External Issue Tracker Number Format, either `numeric` or `alphanumeric`",
           "type": "string",
           "x-go-name": "ExternalTrackerStyle"
         },
         "external_tracker_url": {
+          "description": "URL of external issue tracker.",
           "type": "string",
           "x-go-name": "ExternalTrackerURL"
         }
@@ -8641,6 +8608,7 @@
       "type": "object",
       "properties": {
         "external_wiki_url": {
+          "description": "URL of external wiki.",
           "type": "string",
           "x-go-name": "ExternalWikiURL"
         }
@@ -9016,14 +8984,17 @@
       "type": "object",
       "properties": {
         "enable_issue_dependencies": {
+          "description": "Enable dependencies for issues and pull requests (Built-in issue tracker)",
           "type": "boolean",
           "x-go-name": "EnableIssueDependencies"
         },
         "enable_time_tracker": {
+          "description": "Enable time tracking (Built-in issue tracker)",
           "type": "boolean",
           "x-go-name": "EnableTimeTracker"
         },
         "let_only_contributors_track_time": {
+          "description": "Let only contributors track time (Built-in issue tracker)",
           "type": "boolean",
           "x-go-name": "LetOnlyContributorsTrackTime"
         }

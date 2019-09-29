@@ -669,46 +669,40 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			units = append(units, *unit)
 		}
 	} else if *opts.HasIssues {
-		if opts.ExternalTracker != nil && *opts.ExternalTracker {
+		if opts.ExternalTracker != nil {
 
-			var config *models.ExternalTrackerConfig
-			if unit, err := repo.GetUnit(models.UnitTypeExternalTracker); err != nil {
-				// Unit type doesn't exist so we make a new config file, default empty strings
-				config = &models.ExternalTrackerConfig{}
-			} else {
-				config = unit.ExternalTrackerConfig()
+			// Check that values are valid
+			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
+				err := fmt.Errorf("External tracker URL not valid")
+				ctx.Error(http.StatusUnprocessableEntity, "Invalid external tracker URL", err)
+				return err
 			}
-
-			// Update values if set and valid
-			if opts.ExternalTrackerURL != nil {
-				if !validation.IsValidExternalURL(*opts.ExternalTrackerURL) {
-					err := fmt.Errorf("External tracker URL not valid")
-					ctx.Error(http.StatusUnprocessableEntity, "Invalid external tracker URL", err)
-					return err
-				}
-				config.ExternalTrackerURL = *opts.ExternalTrackerURL
-			}
-			if opts.ExternalTrackerFormat != nil {
-				if len(*opts.ExternalTrackerFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(*opts.ExternalTrackerFormat) {
-					err := fmt.Errorf("External tracker URL format not valid")
-					ctx.Error(http.StatusUnprocessableEntity, "Invalid external tracker URL format", err)
-					return err
-				}
-				config.ExternalTrackerFormat = *opts.ExternalTrackerFormat
-			}
-			if opts.ExternalTrackerStyle != nil {
-				config.ExternalTrackerStyle = *opts.ExternalTrackerStyle
+			if len(opts.ExternalTracker.ExternalTrackerFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(opts.ExternalTracker.ExternalTrackerFormat) {
+				err := fmt.Errorf("External tracker URL format not valid")
+				ctx.Error(http.StatusUnprocessableEntity, "Invalid external tracker URL format", err)
+				return err
 			}
 
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypeExternalTracker,
-				Config: config,
+				Config: &models.ExternalTrackerConfig{
+					ExternalTrackerURL:    opts.ExternalTracker.ExternalTrackerURL,
+					ExternalTrackerFormat: opts.ExternalTracker.ExternalTrackerFormat,
+					ExternalTrackerStyle:  opts.ExternalTracker.ExternalTrackerStyle,
+				},
 			})
 		} else {
 			// Default to built-in tracker
 			var config *models.IssuesConfig
-			if unit, err := repo.GetUnit(models.UnitTypeIssues); err != nil {
+
+			if opts.InternalTracker != nil {
+				config = &models.IssuesConfig{
+					EnableTimetracker:                opts.InternalTracker.EnableTimeTracker,
+					AllowOnlyContributorsToTrackTime: opts.InternalTracker.LetOnlyContributorsTrackTime,
+					EnableDependencies:               opts.InternalTracker.EnableIssueDependencies,
+				}
+			} else if unit, err := repo.GetUnit(models.UnitTypeIssues); err != nil {
 				// Unit type doesn't exist so we make a new config file with default values
 				config = &models.IssuesConfig{
 					EnableTimetracker:                true,
@@ -717,17 +711,6 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				}
 			} else {
 				config = unit.IssuesConfig()
-			}
-
-			// Update values if set
-			if opts.EnableTimeTracker != nil {
-				config.EnableTimetracker = *opts.EnableTimeTracker
-			}
-			if opts.LetOnlyContributorsTrackTime != nil {
-				config.AllowOnlyContributorsToTrackTime = *opts.LetOnlyContributorsTrackTime
-			}
-			if opts.EnableIssueDependencies != nil {
-				config.EnableDependencies = *opts.EnableIssueDependencies
 			}
 
 			units = append(units, models.RepoUnit{
@@ -746,28 +729,21 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			units = append(units, *unit)
 		}
 	} else if *opts.HasWiki {
-		if opts.ExternalWiki != nil && *opts.ExternalWiki {
-			var config *models.ExternalWikiConfig
-			if unit, err := repo.GetUnit(models.UnitTypeExternalWiki); err != nil {
-				// Unit type doesn't exist so we make a new config file, default empty strings
-				config = &models.ExternalWikiConfig{}
-			} else {
-				config = unit.ExternalWikiConfig()
+		if opts.ExternalWiki != nil {
+
+			// Check that values are valid
+			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
+				err := fmt.Errorf("External wiki URL not valid")
+				ctx.Error(http.StatusUnprocessableEntity, "", "Invalid external wiki URL")
+				return err
 			}
 
-			// Update values if set and valid
-			if opts.ExternalWikiURL != nil {
-				if !validation.IsValidExternalURL(*opts.ExternalWikiURL) {
-					err := fmt.Errorf("External wiki URL not valid")
-					ctx.Error(http.StatusUnprocessableEntity, "", "Invalid external wiki URL")
-					return err
-				}
-				config.ExternalWikiURL = *opts.ExternalWikiURL
-			}
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypeExternalWiki,
-				Config: config,
+				Config: &models.ExternalWikiConfig{
+					ExternalWikiURL: opts.ExternalWiki.ExternalWikiURL,
+				},
 			})
 		} else {
 			config := &models.UnitConfig{}

@@ -16,21 +16,31 @@ type Permission struct {
 }
 
 // InternalTracker represents settings for internal tracker
+// swagger:model
 type InternalTracker struct {
-	EnableTimeTracker            bool `json:"enable_time_tracker"`
+	// Enable time tracking (Built-in issue tracker)
+	EnableTimeTracker bool `json:"enable_time_tracker"`
+	// Let only contributors track time (Built-in issue tracker)
 	LetOnlyContributorsTrackTime bool `json:"let_only_contributors_track_time"`
-	EnableIssueDependencies      bool `json:"enable_issue_dependencies"`
+	// Enable dependencies for issues and pull requests (Built-in issue tracker)
+	EnableIssueDependencies bool `json:"enable_issue_dependencies"`
 }
 
 // ExternalTracker represents settings for external tracker
+// swagger:model
 type ExternalTracker struct {
-	ExternalTrackerURL    string `json:"external_tracker_url"`
+	// URL of external issue tracker.
+	ExternalTrackerURL string `json:"external_tracker_url"`
+	// External Issue Tracker URL Format. Use the placeholders {user}, {repo} and {index} for the username, repository name and issue index.
 	ExternalTrackerFormat string `json:"external_tracker_format"`
-	ExternalTrackerStyle  string `json:"external_tracker_style"`
+	// External Issue Tracker Number Format, either `numeric` or `alphanumeric`
+	ExternalTrackerStyle string `json:"external_tracker_style"`
 }
 
 // ExternalWiki represents setting for external wiki
+// swagger:model
 type ExternalWiki struct {
+	// URL of external wiki.
 	ExternalWikiURL string `json:"external_wiki_url"`
 }
 
@@ -117,26 +127,14 @@ type EditRepoOption struct {
 	Private *bool `json:"private,omitempty"`
 	// either `true` to enable issues for this repository or `false` to disable them.
 	HasIssues *bool `json:"has_issues,omitempty"`
-	// either `true` to enable external issue tracker or `false` to disable it.
-	ExternalTracker *bool `json:"external_tracker,omitempty"`
-	// URL of external issue tracker.
-	ExternalTrackerURL *string `json:"external_tracker_url,omitempty"`
-	// External Issue Tracker URL Format. Use the placeholders {user}, {repo} and {index} for the username, repository name and issue index.
-	ExternalTrackerFormat *string `json:"external_tracker_format,omitempty"`
-	// External Issue Tracker Number Format, either `numeric` or `alphanumeric`
-	ExternalTrackerStyle *string `json:"external_tracker_style,omitempty"`
-	// Enable time tracking (Built-in issue tracker)
-	EnableTimeTracker *bool `json:"enable_time_tracker,omitempty"`
-	// Let only contributors track time (Built-in issue tracker)
-	LetOnlyContributorsTrackTime *bool `json:"let_only_contributors_track_time,omitempty"`
-	// Enable dependencies for issues and pull requests (Built-in issue tracker)
-	EnableIssueDependencies *bool `json:"enable_issue_dependencies,omitempty"`
+	// set this structure to configure internal issue tracker (requires has_issues)
+	InternalTracker *InternalTracker `json:"internal_tracker,omitempty"`
+	// set this structure to use external issue tracker (requires has_issues)
+	ExternalTracker *ExternalTracker `json:"external_tracker,omitempty"`
 	// either `true` to enable the wiki for this repository or `false` to disable it.
 	HasWiki *bool `json:"has_wiki,omitempty"`
-	// either `true` to enable external wiki or `false` to disable it.
-	ExternalWiki *bool `json:"external_wiki,omitempty"`
-	// URL of external wiki.
-	ExternalWikiURL *string `json:"external_wiki_url,omitempty"`
+	// set this structure to use external wiki instead of internal (requires has_wiki)
+	ExternalWiki *ExternalWiki `json:"external_wiki,omitempty"`
 	// sets the default branch for this repository.
 	DefaultBranch *string `json:"default_branch,omitempty"`
 	// either `true` to allow pull requests, or `false` to prevent pull request.
