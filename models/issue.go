@@ -595,8 +595,9 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
+	sess.Close()
 
-	if err = issue.loadPoster(x); err != nil {
+	if err = issue.LoadPoster(); err != nil {
 		return fmt.Errorf("loadPoster: %v", err)
 	}
 
@@ -759,11 +760,6 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 		return err
 	}
 	for idx := range issue.Labels {
-		if issue.IsClosed {
-			issue.Labels[idx].NumClosedIssues++
-		} else {
-			issue.Labels[idx].NumClosedIssues--
-		}
 		if err = updateLabel(e, issue.Labels[idx]); err != nil {
 			return err
 		}
@@ -870,9 +866,18 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 		return fmt.Errorf("createChangeTitleComment: %v", err)
 	}
 
+	if err = issue.neuterCrossReferences(sess); err != nil {
+		return err
+	}
+
+	if err = issue.addCrossReferences(sess, doer); err != nil {
+		return err
+	}
+
 	if err = sess.Commit(); err != nil {
 		return err
 	}
+	sess.Close()
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
@@ -939,9 +944,26 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	oldContent := issue.Content
 	issue.Content = content
 
-	if err = UpdateIssueCols(issue, "content"); err != nil {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err = updateIssueCols(sess, issue, "content"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
+	if err = issue.neuterCrossReferences(sess); err != nil {
+		return err
+	}
+	if err = issue.addCrossReferences(sess, doer); err != nil {
+		return err
+	}
+
+	if err = sess.Commit(); err != nil {
+		return err
+	}
+	sess.Close()
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
@@ -1171,8 +1193,10 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			}
 		}
 	}
-
-	return opts.Issue.loadAttributes(e)
+	if err = opts.Issue.loadAttributes(e); err != nil {
+		return err
+	}
+	return opts.Issue.addCrossReferences(e, doer)
 }
 
 // NewIssue creates new issue with labels for repository.
@@ -1199,6 +1223,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
+	sess.Close()
 
 	if err = NotifyWatchers(&Action{
 		ActUserID: issue.Poster.ID,
@@ -1473,7 +1498,7 @@ func getParticipantsByIssueID(e Engine, issueID int64) ([]*User, error) {
 
 // UpdateIssueMentions extracts mentioned people from content and
 // updates issue-user relations for them.
-func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
+func UpdateIssueMentions(ctx DBContext, issueID int64, mentions []string) error {
 	if len(mentions) == 0 {
 		return nil
 	}
@@ -1483,7 +1508,7 @@ func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
 	}
 	users := make([]*User, 0, len(mentions))
 
-	if err := e.In("lower_name", mentions).Asc("lower_name").Find(&users); err != nil {
+	if err := ctx.e.In("lower_name", mentions).Asc("lower_name").Find(&users); err != nil {
 		return fmt.Errorf("find mentioned users: %v", err)
 	}
 
@@ -1495,7 +1520,7 @@ func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
 		}
 
 		memberIDs := make([]int64, 0, user.NumMembers)
-		orgUsers, err := getOrgUsersByOrgID(e, user.ID)
+		orgUsers, err := getOrgUsersByOrgID(ctx.e, user.ID)
 		if err != nil {
 			return fmt.Errorf("GetOrgUsersByOrgID [%d]: %v", user.ID, err)
 		}
@@ -1507,7 +1532,7 @@ func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
 		ids = append(ids, memberIDs...)
 	}
 
-	if err := UpdateIssueUsersByMentions(e, issueID, ids); err != nil {
+	if err := UpdateIssueUsersByMentions(ctx, issueID, ids); err != nil {
 		return fmt.Errorf("UpdateIssueUsersByMentions: %v", err)
 	}
 
@@ -1808,7 +1833,24 @@ func updateIssue(e Engine, issue *Issue) error {
 
 // UpdateIssue updates all fields of given issue.
 func UpdateIssue(issue *Issue) error {
-	return updateIssue(x, issue)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := updateIssue(sess, issue); err != nil {
+		return err
+	}
+	if err := issue.neuterCrossReferences(sess); err != nil {
+		return err
+	}
+	if err := issue.loadPoster(sess); err != nil {
+		return err
+	}
+	if err := issue.addCrossReferences(sess, issue.Poster); err != nil {
+		return err
+	}
+	return sess.Commit()
 }
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.

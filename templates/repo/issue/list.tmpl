@@ -212,8 +212,8 @@
 					<a class="title has-emoji" href="{{$.Link}}/{{.Index}}">{{.Title}}</a>
 
                     {{if .IsPull }}
-                        {{if (index $.CommitStatus .ID)}}
-                            {{template "repo/commit_status" (index $.CommitStatus .ID)}}
+                        {{if (index $.CommitStatus .PullRequest.ID)}}
+                            {{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
 						{{end}}
 					{{end}}
 
