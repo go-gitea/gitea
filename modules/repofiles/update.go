@@ -23,7 +23,6 @@ import (
 
 	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
-	
 )
 
 // IdentityOptions for a person's identity like an author or committer
