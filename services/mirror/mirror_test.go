@@ -68,7 +68,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 
 	release, err := models.GetRelease(repo.ID, "v0.2")
 	assert.NoError(t, err)
-	assert.NoError(t, models.DeleteReleaseByID(release.ID, user, true))
+	assert.NoError(t, release_service.DeleteReleaseByID(release.ID, user, true))
 
 	_, ok = runSync(mirror.Mirror)
 	assert.True(t, ok)
