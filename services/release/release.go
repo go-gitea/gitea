@@ -35,6 +35,31 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 				return err
 			}
 			rel.LowerTagName = strings.ToLower(rel.TagName)
+
+			// Prepare Webhook
+			if err := rel.LoadAttributes(); err != nil {
+				log.Error("LoadAttributes: %v", err)
+			} else {
+				var shaSum string
+				mode, _ := models.AccessLevel(rel.Publisher, rel.Repo)
+				apiRepo := rel.Repo.APIFormat(mode)
+				apiPusher := rel.Publisher.APIFormat()
+				shaSum, err = gitRepo.GetTagCommitID(rel.TagName)
+				if err != nil {
+					log.Error("GetTagCommitID[%s]: %v", rel.TagName, err)
+				}
+				if err = models.PrepareWebhooks(rel.Repo, models.HookEventPush, &api.CreatePayload{
+					Ref:     git.TagPrefix + rel.TagName,
+					Sha:     shaSum,
+					RefType: "tag",
+					Repo:    apiRepo,
+					Sender:  apiPusher,
+				}); err != nil {
+					log.Error("PrepareWebhooks: %v", err)
+				} else {
+					go models.HookQueue.Add(rel.Repo.ID)
+				}
+			}
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
 		if err != nil {
