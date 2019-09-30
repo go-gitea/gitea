@@ -50,19 +50,15 @@ func (repo *Repository) addCollaborator(e Engine, u *User) error {
 func (repo *Repository) AddCollaborator(u *User) error {
 	sess := x.NewSession()
 	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = repo.addCollaborator(sess, u); err != nil {
+	if err := repo.addCollaborator(sess, u); err != nil {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 func (repo *Repository) getCollaborations(e Engine) ([]*Collaboration, error) {
@@ -148,19 +144,15 @@ func (repo *Repository) changeCollaborationAccessMode(e Engine, uid int64, mode 
 func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode) error {
 	sess := x.NewSession()
 	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = repo.changeCollaborationAccessMode(sess, uid, mode); err != nil {
+	if err := repo.changeCollaborationAccessMode(sess, uid, mode); err != nil {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 // DeleteCollaboration removes collaboration relation between the user and repository.
