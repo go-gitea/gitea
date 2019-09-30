@@ -57,7 +57,7 @@ func (exprs *exprParams) getByName(colName string) (exprParam, bool) {
 }
 
 func (exprs *exprParams) writeArgs(w *builder.BytesWriter) error {
-	for _, expr := range exprs.args {
+	for i, expr := range exprs.args {
 		switch arg := expr.(type) {
 		case *builder.Builder:
 			if _, err := w.WriteString("("); err != nil {
@@ -71,6 +71,11 @@ func (exprs *exprParams) writeArgs(w *builder.BytesWriter) error {
 			}
 		default:
 			if _, err := w.WriteString(fmt.Sprintf("%v", arg)); err != nil {
+				return err
+			}
+		}
+		if i != len(exprs.args)-1 {
+			if _, err := w.WriteString(","); err != nil {
 				return err
 			}
 		}
