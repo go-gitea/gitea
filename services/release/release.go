@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -40,6 +41,11 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 			if err := rel.LoadAttributes(); err != nil {
 				log.Error("LoadAttributes: %v", err)
 			} else {
+
+				defer func() {
+					go models.HookQueue.Add(rel.Repo.ID)
+				}()
+
 				var shaSum string
 				mode, _ := models.AccessLevel(rel.Publisher, rel.Repo)
 				apiRepo := rel.Repo.APIFormat(mode)
@@ -48,16 +54,29 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 				if err != nil {
 					log.Error("GetTagCommitID[%s]: %v", rel.TagName, err)
 				}
-				if err = models.PrepareWebhooks(rel.Repo, models.HookEventPush, &api.CreatePayload{
+
+				// Tag Create
+				if err = models.PrepareWebhooks(rel.Repo, models.HookEventCreate, &api.CreatePayload{
 					Ref:     git.TagPrefix + rel.TagName,
 					Sha:     shaSum,
 					RefType: "tag",
 					Repo:    apiRepo,
 					Sender:  apiPusher,
 				}); err != nil {
-					log.Error("PrepareWebhooks: %v", err)
-				} else {
-					go models.HookQueue.Add(rel.Repo.ID)
+					return fmt.Errorf("PrepareWebhooks: %v", err)
+				}
+				// Tag Push
+				if err = models.PrepareWebhooks(rel.Repo, models.HookEventPush, &api.PushPayload{
+					Ref:        git.TagPrefix + rel.TagName,
+					Before:     git.EmptySHA,
+					After:      shaSum,
+					CompareURL: setting.AppURL,
+					Commits:    make([]*api.PayloadCommit, 0),
+					Repo:       apiRepo,
+					Pusher:     apiPusher,
+					Sender:     apiPusher,
+				}); err != nil {
+					return fmt.Errorf("PrepareWebhooks: %v", err)
 				}
 			}
 		}
