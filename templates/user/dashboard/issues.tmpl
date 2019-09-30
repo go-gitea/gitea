@@ -72,8 +72,8 @@
 							<a class="title has-emoji" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/issues/{{.Index}}">{{.Title}}</a>
 
                             {{if .IsPull }}
-                                {{if (index $.CommitStatus .ID)}}
-                                    {{template "repo/commit_status" (index $.CommitStatus .ID)}}
+                                {{if (index $.CommitStatus .PullRequest.ID)}}
+                                    {{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
                                 {{end}}
                             {{end}}
 
