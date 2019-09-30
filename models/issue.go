@@ -1193,10 +1193,8 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
 	i := 0
 	for {
-		if err = newIssueAttempt(repo, issue, labelIDs, assigneeIDs, uuids); err == nil {
-			return newIssuePostInsert(issue, repo)
-		}
-		if !IsErrNewIssueInsert(err) {
+		if err = newIssueAttempt(repo, issue, labelIDs, assigneeIDs, uuids); !IsErrNewIssueInsert(err) {
+			// Usually err == nil
 			return err
 		}
 		if i++; i == issueMaxDupIndexAttempts {
@@ -1229,37 +1227,6 @@ func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, assigneeI
 
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
-	}
-	sess.Close()
-
-	return nil
-}
-
-// newIssuePostInsert performs issue creation operations that need to be separate transactions
-func newIssuePostInsert(issue *Issue, repo *Repository) error {
-	if err := NotifyWatchers(&Action{
-		ActUserID: issue.Poster.ID,
-		ActUser:   issue.Poster,
-		OpType:    ActionCreateIssue,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
-	}
-
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if err := PrepareWebhooks(repo, HookEventIssues, &api.IssuePayload{
-		Action:     api.HookIssueOpened,
-		Index:      issue.Index,
-		Issue:      issue.APIFormat(),
-		Repository: repo.APIFormat(mode),
-		Sender:     issue.Poster.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
 	}
 
 	return nil
