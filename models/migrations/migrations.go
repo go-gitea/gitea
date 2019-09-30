@@ -250,6 +250,8 @@ var migrations = []Migration{
 	NewMigration("delete orphaned attachments", deleteOrphanedAttachments),
 	// v97 -> v98
 	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
+	// v98 -> v99
+	NewMigration("add can_create_org_repo to team", addCanCreateOrgRepoColumnForTeam),
 }
 
 // Migrate database to current version
