@@ -8,12 +8,20 @@ package pull
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-
 	"github.com/pkg/errors"
 )
 
 // IsCommitStatusContextSuccess returns true if all required status check contexts succeed.
 func IsCommitStatusContextSuccess(commitStatuses []*models.CommitStatus, requiredContexts []string) bool {
+	// If no specific context is required, require that last commit status is a success
+	if len(requiredContexts) == 0 {
+		status := models.CalcCommitStatus(commitStatuses)
+		if status == nil || status.State != models.CommitStatusSuccess {
+			return false
+		}
+		return true
+	}
+
 	for _, ctx := range requiredContexts {
 		var found bool
 		for _, commitStatus := range commitStatuses {
