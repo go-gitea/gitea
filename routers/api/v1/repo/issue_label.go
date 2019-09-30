@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // ListIssueLabels list all the labels of an issue
@@ -314,7 +315,7 @@ func ClearIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issue.ClearLabels(ctx.User); err != nil {
+	if err := issue_service.ClearLabels(issue, ctx.User); err != nil {
 		ctx.Error(500, "ClearLabels", err)
 		return
 	}
