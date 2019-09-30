@@ -1332,7 +1332,8 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			// If creator not in owner team, make repo admin
 			if err = repo.addCollaborator(e, doer); err != nil {
 				return fmt.Errorf("AddCollaborator: %v", err)
-			} else if err = repo.changeCollaborationAccessMode(e, doer.ID, AccessModeAdmin); err != nil {
+			}
+			if err = repo.changeCollaborationAccessMode(e, doer.ID, AccessModeAdmin); err != nil {
 				return fmt.Errorf("ChangeCollaborationAccessMode: %v", err)
 			}
 		}
