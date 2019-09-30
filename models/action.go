@@ -578,7 +578,7 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 			}
 
 			// only close issues in another repo if user has push access
-			if perm.CanWrite(UnitTypeCode) {
+			if perm.IsAdmin() || perm.IsOwner() || perm.CanWrite(UnitTypeCode) {
 				if err := changeIssueStatus(refRepo, refIssue, doer, ref.Action == references.XRefActionCloses); err != nil {
 					return err
 				}
