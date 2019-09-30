@@ -29,9 +29,9 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 		config := unit.IssuesConfig()
 		hasIssues = true
 		internalTracker = &api.InternalTracker{
-			EnableTimeTracker:            config.EnableTimetracker,
-			LetOnlyContributorsTrackTime: config.AllowOnlyContributorsToTrackTime,
-			EnableIssueDependencies:      config.EnableDependencies,
+			EnableTimeTracker:                config.EnableTimetracker,
+			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
+			EnableIssueDependencies:          config.EnableDependencies,
 		}
 	} else if unit, err := repo.GetUnit(models.UnitTypeExternalTracker); err == nil {
 		config := unit.ExternalTrackerConfig()
@@ -174,9 +174,9 @@ func TestAPIRepoEdit(t *testing.T) {
 		*repoEditOption.HasIssues = true
 		repoEditOption.ExternalTracker = nil
 		repoEditOption.InternalTracker = &api.InternalTracker{
-			EnableTimeTracker:            false,
-			LetOnlyContributorsTrackTime: false,
-			EnableIssueDependencies:      false,
+			EnableTimeTracker:                false,
+			AllowOnlyContributorsToTrackTime: false,
+			EnableIssueDependencies:          false,
 		}
 		*repoEditOption.HasWiki = true
 		repoEditOption.ExternalWiki = nil

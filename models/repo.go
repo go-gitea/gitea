@@ -281,9 +281,9 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		config := unit.IssuesConfig()
 		hasIssues = true
 		internalTracker = &api.InternalTracker{
-			EnableTimeTracker:            config.EnableTimetracker,
-			LetOnlyContributorsTrackTime: config.AllowOnlyContributorsToTrackTime,
-			EnableIssueDependencies:      config.EnableDependencies,
+			EnableTimeTracker:                config.EnableTimetracker,
+			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
+			EnableIssueDependencies:          config.EnableDependencies,
 		}
 	} else if unit, err := repo.getUnit(e, UnitTypeExternalTracker); err == nil {
 		config := unit.ExternalTrackerConfig()

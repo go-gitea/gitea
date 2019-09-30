@@ -21,7 +21,7 @@ type InternalTracker struct {
 	// Enable time tracking (Built-in issue tracker)
 	EnableTimeTracker bool `json:"enable_time_tracker"`
 	// Let only contributors track time (Built-in issue tracker)
-	LetOnlyContributorsTrackTime bool `json:"let_only_contributors_track_time"`
+	AllowOnlyContributorsToTrackTime bool `json:"allow_only_contributors_to_track_time"`
 	// Enable dependencies for issues and pull requests (Built-in issue tracker)
 	EnableIssueDependencies bool `json:"enable_issue_dependencies"`
 }

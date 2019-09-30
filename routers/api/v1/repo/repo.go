@@ -699,7 +699,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			if opts.InternalTracker != nil {
 				config = &models.IssuesConfig{
 					EnableTimetracker:                opts.InternalTracker.EnableTimeTracker,
-					AllowOnlyContributorsToTrackTime: opts.InternalTracker.LetOnlyContributorsTrackTime,
+					AllowOnlyContributorsToTrackTime: opts.InternalTracker.AllowOnlyContributorsToTrackTime,
 					EnableDependencies:               opts.InternalTracker.EnableIssueDependencies,
 				}
 			} else if unit, err := repo.GetUnit(models.UnitTypeIssues); err != nil {

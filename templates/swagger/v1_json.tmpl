@@ -8991,6 +8991,11 @@
       "description": "InternalTracker represents settings for internal tracker",
       "type": "object",
       "properties": {
+        "allow_only_contributors_to_track_time": {
+          "description": "Let only contributors track time (Built-in issue tracker)",
+          "type": "boolean",
+          "x-go-name": "AllowOnlyContributorsToTrackTime"
+        },
         "enable_issue_dependencies": {
           "description": "Enable dependencies for issues and pull requests (Built-in issue tracker)",
           "type": "boolean",
@@ -9000,11 +9005,6 @@
           "description": "Enable time tracking (Built-in issue tracker)",
           "type": "boolean",
           "x-go-name": "EnableTimeTracker"
-        },
-        "let_only_contributors_track_time": {
-          "description": "Let only contributors track time (Built-in issue tracker)",
-          "type": "boolean",
-          "x-go-name": "LetOnlyContributorsTrackTime"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
