@@ -28,6 +28,9 @@
 			{{else if (eq .Team.Authorize 3)}}
 				{{.i18n.Tr "org.teams.admin_permission_desc" | Str2html}}
 			{{end}}
+			{{if .Team.CanCreateOrgRepo}}
+				<br><br>{{.i18n.Tr "org.teams.create_repo_permission_desc" | Str2html}}
+			{{end}}
 		</div>
 	</div>
 	{{if .IsOrganizationOwner}}
