@@ -5,8 +5,6 @@
 package issue
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/notification"
 )
@@ -15,10 +13,6 @@ import (
 func ClearLabels(issue *models.Issue, doer *models.User) (err error) {
 	if err = issue.ClearLabels(doer); err != nil {
 		return
-	}
-
-	if err = issue.LoadPoster(); err != nil {
-		return fmt.Errorf("loadPoster: %v", err)
 	}
 
 	notification.NotifyIssueClearLabels(doer, issue)

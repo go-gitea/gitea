@@ -25,6 +25,16 @@ func NewNotifier() base.Notifier {
 }
 
 func (m *webhookNotifier) NotifyIssueClearLabels(doer *models.User, issue *models.Issue) {
+	if err := issue.LoadPoster(); err != nil {
+		log.Error("loadPoster: %v", err)
+		return
+	}
+
+	if err := issue.LoadRepo(); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
 	var err error
 	if issue.IsPull {
