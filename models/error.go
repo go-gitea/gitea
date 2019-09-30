@@ -1277,7 +1277,7 @@ type ErrProjectNotExist struct {
 	RepoID int64
 }
 
-// IsErrProjetcNotExist checks if an error is a ErrProjectNotExist
+// IsErrProjectNotExist checks if an error is a ErrProjectNotExist
 func IsErrProjectNotExist(err error) bool {
 	_, ok := err.(ErrProjectNotExist)
 	return ok
@@ -1285,6 +1285,22 @@ func IsErrProjectNotExist(err error) bool {
 
 func (err ErrProjectNotExist) Error() string {
 	return fmt.Sprintf("projects does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
+}
+
+type ErrProjectBoardNotExist struct {
+	BoardID   int64
+	RepoID    int64
+	ProjectID int64
+}
+
+// IsErrProjectBoardNotExist checks if an error is a ErrProjectBoardNotExist
+func IsErrProjectBoardNotExist(err error) bool {
+	_, ok := err.(ErrProjectBoardNotExist)
+	return ok
+}
+
+func (err ErrProjectBoardNotExist) Error() string {
+	return fmt.Sprintf("project board does not exist [board_id: %d, repo_id: %d, project_id: %d]", err.BoardID, err.RepoID, err.ProjectID)
 }
 
 //    _____  .__.__                   __

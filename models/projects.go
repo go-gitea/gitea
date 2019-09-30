@@ -377,6 +377,39 @@ func changeProjectAssign(sess *xorm.Session, doer *User, issue *Issue, oldProjec
 	return updateIssueCols(sess, issue, "project_id")
 }
 
+// MoveIsssueAcrossProjectBoards move a card from one board to another
+func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	issue.ProjectBoardID = board.ID
+
+	if err := updateIssueCols(sess, issue, "project_board_id"); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+// GetProjectBoard fetches the current board of a project
+func GetProjectBoard(repoID, projectID, boardID int64) (*ProjectBoard, error) {
+	board := &ProjectBoard{
+		ID:        boardID,
+		RepoID:    repoID,
+		ProjectID: projectID,
+	}
+
+	has, err := x.Get(board)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrProjectBoardNotExist{RepoID: repoID, BoardID: boardID, ProjectID: projectID}
+	}
+
+	return board, nil
+}
+
 // GetProjectBoards fetches all boards related to a project
 func GetProjectBoards(repoID, projectID int64) ([]ProjectBoard, error) {
 

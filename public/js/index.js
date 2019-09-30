@@ -2566,8 +2566,18 @@ function initKanbanBoard(appElementID) {
     group: "shared",
     animation: 150,
     onAdd: function(e) {
-      console.log(e)
-    },
+     $.ajax(e.to.dataset.url + "/" + e.item.dataset.issue, {
+        headers: {
+            'X-Csrf-Token': csrf,
+            'X-Remote': true,
+        },
+        contentType: 'application/json',
+        type: 'POST',
+        success: function () {
+            // setTimeout(reload(),3000)
+        },
+     })
+    }
   })
 }
 

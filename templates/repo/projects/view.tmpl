@@ -28,13 +28,13 @@
 		<div class="ui label board-label" style="style">{{.Board.Title}}</div>
                 <div class="ui divider"></div>
 
-                <div class="ui cards board" data-board="{{.Board.ID}}" id="board_{{.Board.ID}}">
+                <div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{.Board.ProjectID}}/{{.Board.ID}}" data-project="{{.Board.ProjectID}}" data-board="{{.Board.ID}}" id="board_{{.Board.ID}}">
 
 		    {{ $board := .Board }}
 		    {{ range .Issues }}
-                    <div class="card board-card">
+                    <div class="card board-card" data-issue="{{.ID}}">
                         <div class="content">
-				<div class="header"><a class="project-board-title" data-id={{.Index}} href="{{$.RepoLink}}/issues/{{.Index}}">{{ .Title }}</a></div>
+				<div class="header"><a class="project-board-title" href="{{$.RepoLink}}/issues/{{.Index}}">{{ .Title }}</a></div>
                             <div class="meta">
 				    {{ if $board.ID }}
 				    	<a href="{{$.RepoLink}}/issues?project={{$board.ID}}">{{ $board.ID }}</a>
@@ -64,7 +64,4 @@
 	</div>
 
 </div>
-
-	<style>
-	</style>
 {{template "base/footer" .}}

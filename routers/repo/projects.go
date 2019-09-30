@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
@@ -255,7 +257,7 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	var seen map[int64]data = make(map[int64]data, 0)
-	var tmplData = make([]data, 0, len(boards))
+	var tmplData = make([]data, 0, len(boards)+1)
 
 	uncategorizedBoard := data{
 		Board: models.ProjectBoard{
@@ -263,12 +265,13 @@ func ViewProject(ctx *context.Context) {
 			ProjectID: 0,
 			Title:     ctx.Tr("repo.projects.type.uncategorized"),
 		},
+		Issues: []*models.Issue{},
 	}
 
 	tmplData = append(tmplData, uncategorizedBoard)
 
 	for i := range boards {
-		d := data{Board: boards[i], idx: i}
+		d := data{Board: boards[i], idx: i + 1}
 
 		seen[boards[i].ID] = d
 
@@ -322,6 +325,50 @@ func UpdateIssueProject(ctx *context.Context) {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ok": true,
+	})
+}
+
+func MoveIssueAcrossBoards(ctx *context.Context) {
+
+	p, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	if err != nil {
+		if models.IsErrProjectNotExist(err) {
+			ctx.NotFound("", nil)
+		} else {
+			ctx.ServerError("GetProjectByRepoID", err)
+		}
+		return
+	}
+
+	board, err := models.GetProjectBoard(ctx.Repo.Repository.ID, p.ID, ctx.ParamsInt64(":boardID"))
+	if err != nil {
+		if models.IsErrProjectBoardNotExist(err) {
+			ctx.NotFound("", nil)
+		} else {
+			ctx.ServerError("GetProjectBoard", err)
+		}
+		return
+	}
+
+	issue, err := models.GetIssueByID(ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			fmt.Println(err)
+			ctx.NotFound("", nil)
+		} else {
+			ctx.ServerError("GetIssueByID", err)
+		}
+
+		return
+	}
+
+	if err := models.MoveIssueAcrossProjectBoards(issue, board); err != nil {
+		ctx.ServerError("MoveIssueAcrossProjectBoards", err)
+		return
 	}
 
 	ctx.JSON(200, map[string]interface{}{
