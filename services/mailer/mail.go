@@ -44,7 +44,6 @@ const (
 var templates *template.Template
 var subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
 
-
 // InitMailRender initializes the mail renderer
 func InitMailRender(tmpls *template.Template) {
 	templates = tmpls
@@ -180,7 +179,7 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 	}
 
 	var mailSubject bytes.Buffer
-	if err := templates.ExecuteTemplate(&mailSubject, string(mailIssueSubject), issue.ComposeSubjectTplData(doer, actionType)); err == nil {
+	if err := templates.ExecuteTemplate(&mailSubject, string(mailIssueSubject), issue.ComposeSubjectTplData(doer, comment, actionType)); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
 	} else {
 		log.Error("Template: %v", err)

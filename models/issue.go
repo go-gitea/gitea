@@ -1905,12 +1905,13 @@ func (issue *Issue) updateClosedNum(e Engine) (err error) {
 }
 
 // ComposeSubjectTplData composes a map of metas for properly rendering a mail subject.
-func (issue *Issue) ComposeSubjectTplData(doer *User, actionType ActionType) map[string]interface{} {
+func (issue *Issue) ComposeSubjectTplData(doer *User, comment *Comment, actionType ActionType) map[string]interface{} {
 	return map[string]interface{}{
-		"Issue":	issue,
-		"User":     issue.Repo.MustOwner().Name,
-		"Repo":     issue.Repo.FullName(),
-		"Doer":     doer.Name,
-		"Action":	actionType,
+		"Issue":   issue,
+		"Comment": comment,
+		"User":    issue.Repo.MustOwner().Name,
+		"Repo":    issue.Repo.FullName(),
+		"Doer":    doer.Name,
+		"Action":  actionType,
 	}
 }
