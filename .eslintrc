@@ -20,6 +20,7 @@ globals:
   Dropzone: false
   u2fApi: false
   hljs: false
+  Sortable: false
 
 rules:
   no-unused-vars: [error, {args: all, argsIgnorePattern: ^_, varsIgnorePattern: ^_, ignoreRestSiblings: true}]

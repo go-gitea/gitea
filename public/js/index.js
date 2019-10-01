@@ -1,5 +1,5 @@
 /* globals wipPrefixes, issuesTribute, emojiTribute */
-/* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap initKanbanBoard Sortable*/
+/* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap initKanbanBoard*/
 /* exported toggleDeadlineForm, setDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 'use strict';
 
