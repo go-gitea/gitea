@@ -38,7 +38,7 @@ const (
 	mailNotifyCollaborator base.TplName = "notify/collaborator"
 
 	// There's no actual limit for subject in RFC 5322
-	mailMaxSubjectCharacters = 256
+	mailMaxSubjectRunes = 256
 )
 
 var templates *template.Template
@@ -240,6 +240,9 @@ func SendIssueMentionMail(issue *models.Issue, doer *models.User, actionType mod
 }
 
 func sanitizeSubject(subject string) string {
-	sanitized := strings.TrimSpace(subjectRemoveSpaces.ReplaceAllLiteralString(subject, " "))
-	return mime.QEncoding.Encode("utf-8", string([]rune(sanitized)[:mailMaxSubjectCharacters]))
+	runes := []rune(strings.TrimSpace(subjectRemoveSpaces.ReplaceAllLiteralString(subject, " ")))
+	if len(runes) > mailMaxSubjectRunes {
+		runes = runes[:mailMaxSubjectRunes]
+	}
+	return mime.QEncoding.Encode("utf-8", string(runes))
 }
