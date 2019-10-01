@@ -171,7 +171,8 @@ func composeTplData(subject, body, link string) map[string]interface{} {
 	return data
 }
 
-func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionType models.ActionType, content string, comment *models.Comment, tplBody base.TplName, tos []string, info string) *Message {
+func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionType models.ActionType, fromMention bool,
+	content string, comment *models.Comment, tplBody base.TplName, tos []string, info string) *Message {
 	var subject string
 	err := issue.LoadRepo()
 	if err != nil {
@@ -179,10 +180,15 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 	}
 
 	var mailSubject bytes.Buffer
-	if err := templates.ExecuteTemplate(&mailSubject, string(mailIssueSubject), issue.ComposeSubjectTplData(doer, comment, actionType)); err == nil {
-		subject = sanitizeSubject(mailSubject.String())
-	} else {
-		log.Error("Template: %v", err)
+	if subjectData, err := issue.ComposeSubjectTplData(doer, comment, actionType, fromMention); err == nil {
+		if err = templates.ExecuteTemplate(&mailSubject, string(mailIssueSubject), subjectData); err == nil {
+			subject = sanitizeSubject(mailSubject.String())
+		}
+	}
+	if subject == "" {
+		if err != nil {
+			log.Error("Template: %v", err)
+		}
 		// Default subject
 		if comment != nil {
 			subject = "Re: " + defaultMailSubject(issue)
@@ -221,13 +227,22 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 	return msg
 }
 
+func sanitizeSubject(subject string) string {
+	runes := []rune(strings.TrimSpace(subjectRemoveSpaces.ReplaceAllLiteralString(subject, " ")))
+	if len(runes) > mailMaxSubjectRunes {
+		runes = runes[:mailMaxSubjectRunes]
+	}
+	// Encode non-ASCII characters
+	return mime.QEncoding.Encode("utf-8", string(runes))
+}
+
 // SendIssueCommentMail composes and sends issue comment emails to target receivers.
 func SendIssueCommentMail(issue *models.Issue, doer *models.User, actionType models.ActionType, content string, comment *models.Comment, tos []string) {
 	if len(tos) == 0 {
 		return
 	}
 
-	SendAsync(composeIssueCommentMessage(issue, doer, actionType, content, comment, mailIssueComment, tos, "issue comment"))
+	SendAsync(composeIssueCommentMessage(issue, doer, actionType, false, content, comment, mailIssueComment, tos, "issue comment"))
 }
 
 // SendIssueMentionMail composes and sends issue mention emails to target receivers.
@@ -235,13 +250,5 @@ func SendIssueMentionMail(issue *models.Issue, doer *models.User, actionType mod
 	if len(tos) == 0 {
 		return
 	}
-	SendAsync(composeIssueCommentMessage(issue, doer, actionType, content, comment, mailIssueMention, tos, "issue mention"))
-}
-
-func sanitizeSubject(subject string) string {
-	runes := []rune(strings.TrimSpace(subjectRemoveSpaces.ReplaceAllLiteralString(subject, " ")))
-	if len(runes) > mailMaxSubjectRunes {
-		runes = runes[:mailMaxSubjectRunes]
-	}
-	return mime.QEncoding.Encode("utf-8", string(runes))
+	SendAsync(composeIssueCommentMessage(issue, doer, actionType, true, content, comment, mailIssueMention, tos, "issue mention"))
 }
