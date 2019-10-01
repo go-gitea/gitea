@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
 )
 
 const ownerTeamName = "Owners"
@@ -32,6 +33,67 @@ type Team struct {
 	NumRepos    int
 	NumMembers  int
 	Units       []*TeamUnit `xorm:"-"`
+}
+
+// SearchTeamOptions holds the search options
+type SearchTeamOptions struct {
+	UserID      int64
+	Keyword     string
+	OrgID       int64
+	IncludeDesc bool
+	PageSize    int
+	Page        int
+}
+
+// SearchTeam search for teams. Caller is responsible to check permissions.
+func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
+	if opts.Page <= 0 {
+		opts.Page = 1
+	}
+	if opts.PageSize == 0 {
+		// Default limit
+		opts.PageSize = 10
+	}
+
+	var cond = builder.NewCond()
+
+	if len(opts.Keyword) > 0 {
+		lowerKeyword := strings.ToLower(opts.Keyword)
+		var keywordCond builder.Cond = builder.Like{"lower_name", lowerKeyword}
+		if opts.IncludeDesc {
+			keywordCond = keywordCond.Or(builder.Like{"LOWER(description)", lowerKeyword})
+		}
+		cond = cond.And(keywordCond)
+	}
+
+	cond = cond.And(builder.Eq{"org_id": opts.OrgID})
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	count, err := sess.
+		Where(cond).
+		Count(new(Team))
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	sess = sess.Where(cond)
+	if opts.PageSize == -1 {
+		opts.PageSize = int(count)
+	} else {
+		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	}
+
+	teams := make([]*Team, 0, opts.PageSize)
+	if err = sess.
+		OrderBy("lower_name").
+		Find(&teams); err != nil {
+		return nil, 0, err
+	}
+
+	return teams, count, nil
 }
 
 // ColorFormat provides a basic color format for a Team
