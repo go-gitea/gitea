@@ -538,6 +538,7 @@ function initCommentForm() {
             }
             switch (input_id) {
                 case '#milestone_id':
+                case '#projects_id':
                     $list.find('.selected').html('<a class="item" href=' + $(this).data('href') + '>' +
                         htmlEncode($(this).text()) + '</a>');
                     break;
