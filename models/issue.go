@@ -1107,7 +1107,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	if _, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
 		Where("repo_id=?", opts.Issue.RepoID).
 		Insert(opts.Issue); err != nil {
-		return err
+		return ErrNewIssueInsert{err}
 	}
 
 	inserted, err := getIssueByID(e, opts.Issue.ID)
