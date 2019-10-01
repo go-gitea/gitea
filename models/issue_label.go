@@ -308,7 +308,8 @@ func updateLabel(e Engine, l *Label) error {
 					"issue.is_closed":      true,
 				}),
 		).
-		AllCols().Update(l)
+		Cols("repo_id", "name", "description", "color", "query_string", "is_selected").
+		Update(l)
 	return err
 }
 
