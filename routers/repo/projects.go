@@ -332,6 +332,7 @@ func UpdateIssueProject(ctx *context.Context) {
 	})
 }
 
+// MoveIssueAcrossBoards move a card from one board to another in a project
 func MoveIssueAcrossBoards(ctx *context.Context) {
 
 	if ctx.User == nil {
@@ -358,14 +359,26 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		return
 	}
 
-	board, err := models.GetProjectBoard(ctx.Repo.Repository.ID, p.ID, ctx.ParamsInt64(":boardID"))
-	if err != nil {
-		if models.IsErrProjectBoardNotExist(err) {
-			ctx.NotFound("", nil)
-		} else {
-			ctx.ServerError("GetProjectBoard", err)
+	var board *models.ProjectBoard
+
+	if ctx.ParamsInt64(":boardID") == 0 {
+
+		board = &models.ProjectBoard{
+			ID:        0,
+			ProjectID: 0,
+			Title:     ctx.Tr("repo.projects.type.uncategorized"),
 		}
-		return
+
+	} else {
+		board, err = models.GetProjectBoard(ctx.Repo.Repository.ID, p.ID, ctx.ParamsInt64(":boardID"))
+		if err != nil {
+			if models.IsErrProjectBoardNotExist(err) {
+				ctx.NotFound("", nil)
+			} else {
+				ctx.ServerError("GetProjectBoard", err)
+			}
+			return
+		}
 	}
 
 	issue, err := models.GetIssueByID(ctx.ParamsInt64(":index"))
