@@ -292,7 +292,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
 - `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.
    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
-   - Memache: `127.0.0.1:9090;127.0.0.1:9091`
+   - Memcache: `127.0.0.1:9090;127.0.0.1:9091`
 - `ITEM_TTL`: **16h**: Time to keep items in cache if not used, Setting it to 0 disables caching.
 
 ## Session (`session`)
