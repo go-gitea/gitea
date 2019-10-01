@@ -9,7 +9,10 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"mime"
 	"path"
+	"regexp"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -28,13 +31,19 @@ const (
 	mailAuthResetPassword  base.TplName = "auth/reset_passwd"
 	mailAuthRegisterNotify base.TplName = "auth/register_notify"
 
+	mailIssueSubject base.TplName = "issue/subject"
 	mailIssueComment base.TplName = "issue/comment"
 	mailIssueMention base.TplName = "issue/mention"
 
 	mailNotifyCollaborator base.TplName = "notify/collaborator"
+
+	// There's no actual limit for subject in RFC 5322
+	mailMaxSubjectCharacters = 256
 )
 
 var templates *template.Template
+var subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
+
 
 // InitMailRender initializes the mail renderer
 func InitMailRender(tmpls *template.Template) {
@@ -163,20 +172,29 @@ func composeTplData(subject, body, link string) map[string]interface{} {
 	return data
 }
 
-func composeIssueCommentMessage(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tplName base.TplName, tos []string, info string) *Message {
+func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionType models.ActionType, content string, comment *models.Comment, tplBody base.TplName, tos []string, info string) *Message {
 	var subject string
-	if comment != nil {
-		subject = "Re: " + mailSubject(issue)
-	} else {
-		subject = mailSubject(issue)
-	}
 	err := issue.LoadRepo()
 	if err != nil {
 		log.Error("LoadRepo: %v", err)
 	}
+
+	var mailSubject bytes.Buffer
+	if err := templates.ExecuteTemplate(&mailSubject, string(mailIssueSubject), issue.ComposeSubjectTplData(doer, actionType)); err == nil {
+		subject = sanitizeSubject(mailSubject.String())
+	} else {
+		log.Error("Template: %v", err)
+		// Default subject
+		if comment != nil {
+			subject = "Re: " + defaultMailSubject(issue)
+		} else {
+			subject = defaultMailSubject(issue)
+		}
+	}
+
 	body := string(markup.RenderByType(markdown.MarkupName, []byte(content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
 
-	var data = make(map[string]interface{}, 10)
+	var data map[string]interface{}
 	if comment != nil {
 		data = composeTplData(subject, body, issue.HTMLURL()+"#"+comment.HashTag())
 	} else {
@@ -186,7 +204,7 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, content 
 
 	var mailBody bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&mailBody, string(tplName), data); err != nil {
+	if err := templates.ExecuteTemplate(&mailBody, string(tplBody), data); err != nil {
 		log.Error("Template: %v", err)
 	}
 
@@ -205,18 +223,23 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, content 
 }
 
 // SendIssueCommentMail composes and sends issue comment emails to target receivers.
-func SendIssueCommentMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
+func SendIssueCommentMail(issue *models.Issue, doer *models.User, actionType models.ActionType, content string, comment *models.Comment, tos []string) {
 	if len(tos) == 0 {
 		return
 	}
 
-	SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueComment, tos, "issue comment"))
+	SendAsync(composeIssueCommentMessage(issue, doer, actionType, content, comment, mailIssueComment, tos, "issue comment"))
 }
 
 // SendIssueMentionMail composes and sends issue mention emails to target receivers.
-func SendIssueMentionMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
+func SendIssueMentionMail(issue *models.Issue, doer *models.User, actionType models.ActionType, content string, comment *models.Comment, tos []string) {
 	if len(tos) == 0 {
 		return
 	}
-	SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueMention, tos, "issue mention"))
+	SendAsync(composeIssueCommentMessage(issue, doer, actionType, content, comment, mailIssueMention, tos, "issue mention"))
+}
+
+func sanitizeSubject(subject string) string {
+	sanitized := strings.TrimSpace(subjectRemoveSpaces.ReplaceAllLiteralString(subject, " "))
+	return mime.QEncoding.Encode("utf-8", string([]rune(sanitized)[:mailMaxSubjectCharacters]))
 }

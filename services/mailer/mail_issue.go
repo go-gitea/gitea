@@ -15,7 +15,7 @@ import (
 	"github.com/unknwon/com"
 )
 
-func mailSubject(issue *models.Issue) string {
+func defaultMailSubject(issue *models.Issue) string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.FullName(), issue.Title, issue.Index)
 }
 
@@ -23,7 +23,7 @@ func mailSubject(issue *models.Issue) string {
 // This function sends two list of emails:
 // 1. Repository watchers and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
-func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, content string, comment *models.Comment, mentions []string) error {
+func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, actionType models.ActionType, content string, comment *models.Comment, mentions []string) error {
 	if !setting.Service.EnableNotifyMail {
 		return nil
 	}
@@ -93,7 +93,7 @@ func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, cont
 	}
 
 	for _, to := range tos {
-		SendIssueCommentMail(issue, doer, content, comment, []string{to})
+		SendIssueCommentMail(issue, doer, actionType, content, comment, []string{to})
 	}
 
 	// Mail mentioned people and exclude watchers.
@@ -110,7 +110,7 @@ func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, cont
 	emails := models.GetUserEmailsByNames(tos)
 
 	for _, to := range emails {
-		SendIssueMentionMail(issue, doer, content, comment, []string{to})
+		SendIssueMentionMail(issue, doer, actionType, content, comment, []string{to})
 	}
 
 	return nil
@@ -130,7 +130,7 @@ func mailParticipants(ctx models.DBContext, issue *models.Issue, doer *models.Us
 	}
 
 	if len(issue.Content) > 0 {
-		if err = mailIssueCommentToParticipants(issue, doer, issue.Content, nil, mentions); err != nil {
+		if err = mailIssueCommentToParticipants(issue, doer, opType, issue.Content, nil, mentions); err != nil {
 			log.Error("mailIssueCommentToParticipants: %v", err)
 		}
 	}
@@ -139,18 +139,18 @@ func mailParticipants(ctx models.DBContext, issue *models.Issue, doer *models.Us
 	case models.ActionCreateIssue, models.ActionCreatePullRequest:
 		if len(issue.Content) == 0 {
 			ct := fmt.Sprintf("Created #%d.", issue.Index)
-			if err = mailIssueCommentToParticipants(issue, doer, ct, nil, mentions); err != nil {
+			if err = mailIssueCommentToParticipants(issue, doer, opType, ct, nil, mentions); err != nil {
 				log.Error("mailIssueCommentToParticipants: %v", err)
 			}
 		}
 	case models.ActionCloseIssue, models.ActionClosePullRequest:
 		ct := fmt.Sprintf("Closed #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(issue, doer, ct, nil, mentions); err != nil {
+		if err = mailIssueCommentToParticipants(issue, doer, opType, ct, nil, mentions); err != nil {
 			log.Error("mailIssueCommentToParticipants: %v", err)
 		}
 	case models.ActionReopenIssue, models.ActionReopenPullRequest:
 		ct := fmt.Sprintf("Reopened #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(issue, doer, ct, nil, mentions); err != nil {
+		if err = mailIssueCommentToParticipants(issue, doer, opType, ct, nil, mentions); err != nil {
 			log.Error("mailIssueCommentToParticipants: %v", err)
 		}
 	}
