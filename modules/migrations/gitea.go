@@ -175,18 +175,20 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 	var rels = make([]*models.Release, 0, len(releases))
 	for _, release := range releases {
 		var rel = models.Release{
-			RepoID:       g.repo.ID,
-			PublisherID:  g.doer.ID,
-			TagName:      release.TagName,
-			LowerTagName: strings.ToLower(release.TagName),
-			Target:       release.TargetCommitish,
-			Title:        release.Name,
-			Sha1:         release.TargetCommitish,
-			Note:         release.Body,
-			IsDraft:      release.Draft,
-			IsPrerelease: release.Prerelease,
-			IsTag:        false,
-			CreatedUnix:  timeutil.TimeStamp(release.Created.Unix()),
+			RepoID:           g.repo.ID,
+			PublisherID:      g.doer.ID,
+			TagName:          release.TagName,
+			LowerTagName:     strings.ToLower(release.TagName),
+			Target:           release.TargetCommitish,
+			Title:            release.Name,
+			Sha1:             release.TargetCommitish,
+			Note:             release.Body,
+			IsDraft:          release.Draft,
+			IsPrerelease:     release.Prerelease,
+			IsTag:            false,
+			CreatedUnix:      timeutil.TimeStamp(release.Created.Unix()),
+			OriginalAuthor:   release.PublisherName,
+			OriginalAuthorID: release.PublisherID,
 		}
 
 		// calc NumCommits
