@@ -341,6 +341,13 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		return
 	}
 
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
+		ctx.JSON(403, map[string]string{
+			"message": "Only authorized users are allowed to call make this action.",
+		})
+		return
+	}
+
 	p, err := models.GetProjectByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrProjectNotExist(err) {
