@@ -107,3 +107,32 @@ func checkTeamBean(t *testing.T, id int64, name, description string, permission 
 	assert.NoError(t, team.GetUnits(), "GetUnits")
 	checkTeamResponse(t, convert.ToTeam(team), name, description, permission, units)
 }
+
+type TeamSearchResults struct {
+	OK   bool        `json:"ok"`
+	Data []*api.Team `json:"data"`
+}
+
+func TestAPITeamSearch(t *testing.T) {
+	prepareTestEnv(t)
+
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	org := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)
+
+	var results TeamSearchResults
+
+	session := loginUser(t, user.Name)
+	req := NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s", org.Name, "_team")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &results)
+	assert.NotEmpty(t, results.Data)
+	assert.Equal(t, 1, len(results.Data))
+	assert.Equal(t, "test_team", results.Data[0].Name)
+
+	// no access if not organization member
+	user5 := models.AssertExistsAndLoadBean(t, &models.User{ID: 5}).(*models.User)
+	session = loginUser(t, user5.Name)
+	req = NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s", org.Name, "team")
+	resp = session.MakeRequest(t, req, http.StatusForbidden)
+
+}
