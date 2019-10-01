@@ -269,7 +269,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		})
 		m.Get("/repos", routers.ExploreRepos)
-		m.Get("/users", routers.ExploreUsers)
+		m.Get("/users", ignSignIn, routers.ExploreUsers)
 		m.Get("/organizations", routers.ExploreOrganizations)
 		m.Get("/code", routers.ExploreCode)
 	}, ignSignIn)
