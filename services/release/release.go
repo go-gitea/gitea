@@ -6,11 +6,13 @@ package release
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -131,4 +133,70 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 	}
 
 	return err
+}
+
+// DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
+func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
+	rel, err := models.GetReleaseByID(id)
+	if err != nil {
+		return fmt.Errorf("GetReleaseByID: %v", err)
+	}
+
+	repo, err := models.GetRepositoryByID(rel.RepoID)
+	if err != nil {
+		return fmt.Errorf("GetRepositoryByID: %v", err)
+	}
+
+	if delTag {
+		_, stderr, err := process.GetManager().ExecDir(-1, repo.RepoPath(),
+			fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID),
+			git.GitExecutable, "tag", "-d", rel.TagName)
+		if err != nil && !strings.Contains(stderr, "not found") {
+			return fmt.Errorf("git tag -d: %v - %s", err, stderr)
+		}
+
+		if err := models.DeleteReleaseByID(id); err != nil {
+			return fmt.Errorf("DeleteReleaseByID: %v", err)
+		}
+	} else {
+		rel.IsTag = true
+		rel.IsDraft = false
+		rel.IsPrerelease = false
+		rel.Title = ""
+		rel.Note = ""
+
+		if err = models.UpdateRelease(rel); err != nil {
+			return fmt.Errorf("Update: %v", err)
+		}
+	}
+
+	rel.Repo = repo
+	if err = rel.LoadAttributes(); err != nil {
+		return fmt.Errorf("LoadAttributes: %v", err)
+	}
+
+	if err := models.DeleteAttachmentsByRelease(rel.ID); err != nil {
+		return fmt.Errorf("DeleteAttachments: %v", err)
+	}
+
+	for i := range rel.Attachments {
+		attachment := rel.Attachments[i]
+		if err := os.RemoveAll(attachment.LocalPath()); err != nil {
+			log.Error("Delete attachment %s of release %s failed: %v", attachment.UUID, rel.ID, err)
+		}
+	}
+
+	mode, _ := models.AccessLevel(doer, rel.Repo)
+	if err := models.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
+		Action:     api.HookReleaseDeleted,
+		Release:    rel.APIFormat(),
+		Repository: rel.Repo.APIFormat(mode),
+		Sender:     doer.APIFormat(),
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	} else {
+		go models.HookQueue.Add(rel.Repo.ID)
+	}
+
+	return nil
 }
