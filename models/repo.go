@@ -1720,6 +1720,12 @@ func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
 	return sess.Commit()
 }
 
+// UpdateRepositoryUpdatedTime updates a repository's updated time
+func UpdateRepositoryUpdatedTime(repoID int64, updateTime time.Time) error {
+	_, err := x.Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
+	return err
+}
+
 // UpdateRepositoryUnits updates a repository's units
 func UpdateRepositoryUnits(repo *Repository, units []RepoUnit) (err error) {
 	sess := x.NewSession()
