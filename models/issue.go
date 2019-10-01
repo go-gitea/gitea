@@ -1193,8 +1193,10 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
 	i := 0
 	for {
-		if err = newIssueAttempt(repo, issue, labelIDs, assigneeIDs, uuids); !IsErrNewIssueInsert(err) {
-			// Usually err == nil
+		if err = newIssueAttempt(repo, issue, labelIDs, assigneeIDs, uuids); err == nil {
+			return nil
+		}
+		if !IsErrNewIssueInsert(err) {
 			return err
 		}
 		if i++; i == issueMaxDupIndexAttempts {

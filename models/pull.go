@@ -660,8 +660,10 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
 	i := 0
 	for {
-		if err = newPullRequestAttempt(repo, pull, labelIDs, uuids, pr, patch, assigneeIDs); !IsErrNewIssueInsert(err) {
-			// Usually err == nil
+		if err = newPullRequestAttempt(repo, pull, labelIDs, uuids, pr, patch, assigneeIDs); err == nil {
+			return nil
+		}
+		if !IsErrNewIssueInsert(err) {
 			return err
 		}
 		if i++; i == issueMaxDupIndexAttempts {
