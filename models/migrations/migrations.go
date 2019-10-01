@@ -253,9 +253,13 @@ var migrations = []Migration{
 	// v98 -> v99
 	NewMigration("add projects database table", addProjectsTable),
 	// v99 -> v100
-	NewMigration("add projects info to database", addProjectsInfo),
+	NewMigration("add projects info to repository table", addProjectsInfo),
 	// v100 -> v101
 	NewMigration("add project ID to comments table", addProjectIDToCommentsTable),
+	// v101 -> v102
+	NewMigration("add project ID to issue table", addProjectIDToIssueTable),
+	// v102 -> v103
+	NewMigration("add project board table", addProjectBoardTable),
 }
 
 // Migrate database to current version
