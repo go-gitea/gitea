@@ -1202,9 +1202,9 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		if i++; i == issueMaxDupIndexAttempts {
 			break
 		}
-		log.Error("NewPullRequest: error attempting to insert the new issue; will retry. Original error: %v", err)
+		log.Error("NewIssue: error attempting to insert the new issue; will retry. Original error: %v", err)
 	}
-	return fmt.Errorf("NewPullRequest: too many errors attempting to insert the new issue. Last error was: %v", err)
+	return fmt.Errorf("NewIssue: too many errors attempting to insert the new issue. Last error was: %v", err)
 }
 
 func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
