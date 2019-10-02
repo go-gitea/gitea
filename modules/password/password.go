@@ -33,19 +33,11 @@ func CheckPasswordComplexity(pwd string) bool {
 // Generate  a random password
 func Generate(n int) string {
 	rand.Seed(time.Now().UnixNano())
-	var dict = map[int]string{
-		0: "abcdefghijklmnopqrstuvwxyz",
-		1: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-		2: "0123456789",
-		3: "_-",
-	}
+	dict := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
 	buffer := make([]byte, n)
 	for {
 		for j := 0; j < n; j++ {
-			t := rand.Intn(4)
-			index := rand.Intn(len(dict[t]))
-			tmp := dict[t]
-			buffer[j] = tmp[index]
+			buffer[j] = dict[rand.Intn(len(dict))]
 		}
 		for i := len(buffer) - 1; i > 0; i-- {
 			j := rand.Intn(i + 1)
