@@ -20,6 +20,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/convert"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 )
 
 var searchOrderByMap = map[string]map[string]models.SearchOrderBy{
@@ -869,6 +870,7 @@ func MirrorSync(ctx *context.APIContext) {
 		ctx.Error(403, "MirrorSync", "Must have write access")
 	}
 
-	go models.MirrorQueue.Add(repo.ID)
+	mirror_service.StartToMirror(repo.ID)
+
 	ctx.Status(200)
 }
