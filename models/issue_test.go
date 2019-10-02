@@ -281,8 +281,8 @@ func TestGetUserIssueStats(t *testing.T) {
 		},
 		{
 			UserIssueStatsOptions{
-				UserID:      1,
-				FilterMode:  FilterModeMention,
+				UserID:     1,
+				FilterMode: FilterModeMention,
 			},
 			IssueStats{
 				YourRepositoriesCount: 0,
