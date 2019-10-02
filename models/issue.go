@@ -33,15 +33,16 @@ type Issue struct {
 	Poster           *User       `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
-	Title            string   `xorm:"name"`
-	Content          string   `xorm:"TEXT"`
-	RenderedContent  string   `xorm:"-"`
-	Labels           []*Label `xorm:"-"`
-	MilestoneID      int64    `xorm:"INDEX"`
-	ProjectID        int64    `xorm:"INDEX"`
+	Title            string     `xorm:"name"`
+	Content          string     `xorm:"TEXT"`
+	RenderedContent  string     `xorm:"-"`
+	Labels           []*Label   `xorm:"-"`
+	MilestoneID      int64      `xorm:"INDEX"`
+	Milestone        *Milestone `xorm:"-"`
+	ProjectID        int64      `xorm:"INDEX"`
 	// If 0, then it has not been added to a specific board in the project
-	ProjectBoardID int64      `xorm:"INDEX"`
-	Milestone      *Milestone `xorm:"-"`
+	ProjectBoardID int64    `xorm:"INDEX"`
+	Project        *Project `xorm:"-"`
 	Priority       int
 	AssigneeID     int64        `xorm:"-"`
 	Assignee       *User        `xorm:"-"`
@@ -63,7 +64,6 @@ type Issue struct {
 	Reactions        ReactionList  `xorm:"-"`
 	TotalTrackedTime int64         `xorm:"-"`
 	Assignees        []*User       `xorm:"-"`
-	Project          *Project      `xorm:"-"`
 
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access

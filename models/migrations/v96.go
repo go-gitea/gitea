@@ -9,13 +9,11 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/go-xorm/xorm"
 )
 
 func deleteOrphanedAttachments(x *xorm.Engine) error {
-
-	sess := x.NewSession()
-	defer sess.Close()
 
 	type Attachment struct {
 		ID        int64  `xorm:"pk autoincr"`
@@ -25,7 +23,7 @@ func deleteOrphanedAttachments(x *xorm.Engine) error {
 		CommentID int64
 	}
 
-	err := sess.BufferSize(setting.Database.IterateBufferSize).
+	err := x.BufferSize(setting.Database.IterateBufferSize).
 		Where("`comment_id` = 0 and (`release_id` = 0 or `release_id` not in (select `id` from `release`))").Cols("uuid").
 		Iterate(new(Attachment),
 			func(idx int, bean interface{}) error {
@@ -35,13 +33,8 @@ func deleteOrphanedAttachments(x *xorm.Engine) error {
 					return err
 				}
 
-				_, err := sess.ID(attachment.ID).NoAutoCondition().Delete(attachment)
+				_, err := x.ID(attachment.ID).NoAutoCondition().Delete(attachment)
 				return err
 			})
-
-	if err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return err
 }
