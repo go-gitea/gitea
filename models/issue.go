@@ -1225,31 +1225,6 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 	}
 	sess.Close()
 
-	if err = NotifyWatchers(&Action{
-		ActUserID: issue.Poster.ID,
-		ActUser:   issue.Poster,
-		OpType:    ActionCreateIssue,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
-	}
-
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if err = PrepareWebhooks(repo, HookEventIssues, &api.IssuePayload{
-		Action:     api.HookIssueOpened,
-		Index:      issue.Index,
-		Issue:      issue.APIFormat(),
-		Repository: repo.APIFormat(mode),
-		Sender:     issue.Poster.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
-	}
-
 	return nil
 }
 
