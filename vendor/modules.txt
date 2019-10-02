@@ -1,5 +1,4 @@
 # cloud.google.com/go v0.45.0
-cloud.google.com/go/civil
 cloud.google.com/go/compute/metadata
 # gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 gitea.com/macaron/binding
@@ -113,9 +112,10 @@ github.com/couchbase/vellum/utf8
 github.com/couchbaselabs/go-couchbase
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/denisenkom/go-mssqldb v0.0.0-20190820223206-44cdfe8d8ba9
+# github.com/denisenkom/go-mssqldb v0.0.0-20190924004331-208c0a498538
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
+github.com/denisenkom/go-mssqldb/internal/decimal
 github.com/denisenkom/go-mssqldb/internal/querytext
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
@@ -213,6 +213,8 @@ github.com/gobwas/glob/util/strings
 github.com/gogits/chardet
 # github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 github.com/gogs/cron
+# github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
+github.com/golang-sql/civil
 # github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/proto
 # github.com/golang/snappy v0.0.1
@@ -279,7 +281,7 @@ github.com/klauspost/crc32
 github.com/kr/pretty
 # github.com/kr/text v0.1.0
 github.com/kr/text
-# github.com/lafriks/xormstore v1.2.0
+# github.com/lafriks/xormstore v1.3.0
 github.com/lafriks/xormstore
 github.com/lafriks/xormstore/util
 # github.com/lib/pq v1.2.0
@@ -445,7 +447,7 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/x/crypto v0.0.0-20190829043050-9756ffdc2472
+# golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
 golang.org/x/crypto/argon2
@@ -528,7 +530,7 @@ golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/imports
 golang.org/x/tools/internal/module
 golang.org/x/tools/internal/semver
-# google.golang.org/appengine v1.6.2
+# google.golang.org/appengine v1.6.4
 google.golang.org/appengine
 google.golang.org/appengine/cloudsql
 google.golang.org/appengine/internal
