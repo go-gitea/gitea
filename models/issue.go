@@ -1104,21 +1104,10 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	// Milestone and assignee validation should happen before insert actual object.
-
-	// There's no good way to identify a duplicate key error in database/sql; brute force some retries
-	dupIndexAttempts := issueMaxDupIndexAttempts
-	for {
-		_, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
-			Where("repo_id=?", opts.Issue.RepoID).
-			Insert(opts.Issue)
-		if err == nil {
-			break
-		}
-
-		dupIndexAttempts--
-		if dupIndexAttempts <= 0 {
-			return err
-		}
+	if _, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
+		Where("repo_id=?", opts.Issue.RepoID).
+		Insert(opts.Issue); err != nil {
+		return ErrNewIssueInsert{err}
 	}
 
 	inserted, err := getIssueByID(e, opts.Issue.ID)
@@ -1201,6 +1190,24 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
+	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
+	i := 0
+	for {
+		if err = newIssueAttempt(repo, issue, labelIDs, assigneeIDs, uuids); err == nil {
+			return nil
+		}
+		if !IsErrNewIssueInsert(err) {
+			return err
+		}
+		if i++; i == issueMaxDupIndexAttempts {
+			break
+		}
+		log.Error("NewIssue: error attempting to insert the new issue; will retry. Original error: %v", err)
+	}
+	return fmt.Errorf("NewIssue: too many errors attempting to insert the new issue. Last error was: %v", err)
+}
+
+func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -1214,7 +1221,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		Attachments: uuids,
 		AssigneeIDs: assigneeIDs,
 	}); err != nil {
-		if IsErrUserDoesNotHaveAccessToRepo(err) {
+		if IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 			return err
 		}
 		return fmt.Errorf("newIssue: %v", err)
@@ -1223,7 +1230,6 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
-	sess.Close()
 
 	return nil
 }
