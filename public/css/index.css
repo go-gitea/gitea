@@ -955,6 +955,7 @@ tbody.commit-list{vertical-align:baseline}
 .dashboard{padding-top:15px}
 .dashboard.feeds .context.user.menu,.dashboard.issues .context.user.menu{z-index:101;min-width:200px}
 .dashboard.feeds .context.user.menu .ui.header,.dashboard.issues .context.user.menu .ui.header{font-size:1rem;text-transform:none}
+.dashboard.feeds .filter.menu,.dashboard.issues .filter.menu{width:initial}
 .dashboard.feeds .filter.menu .item,.dashboard.issues .filter.menu .item{text-align:left}
 .dashboard.feeds .filter.menu .item .text,.dashboard.issues .filter.menu .item .text{height:16px;vertical-align:middle}
 .dashboard.feeds .filter.menu .item .text.truncate,.dashboard.issues .filter.menu .item .text.truncate{width:85%}
