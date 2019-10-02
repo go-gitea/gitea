@@ -4,7 +4,10 @@
 
 // Package acme provides an implementation of the
 // Automatic Certificate Management Environment (ACME) spec.
-// See https://tools.ietf.org/html/draft-ietf-acme-acme-02 for details.
+// The intial implementation was based on ACME draft-02 and
+// is now being extended to comply with RFC8555.
+// See https://tools.ietf.org/html/draft-ietf-acme-acme-02
+// and https://tools.ietf.org/html/rfc8555 for details.
 //
 // Most common scenarios will want to use autocert subdirectory instead,
 // which provides automatic access to certificates from Let's Encrypt
@@ -116,11 +119,39 @@ type Client struct {
 	// identifiable by the server, in case they are causing issues.
 	UserAgent string
 
-	dirMu sync.Mutex // guards writes to dir
-	dir   *Directory // cached result of Client's Discover method
+	cacheMu sync.Mutex
+	dir     *Directory // cached result of Client's Discover method
+	kid     keyID      // cached Account.URI obtained from registerRFC or getAccountRFC
 
 	noncesMu sync.Mutex
 	nonces   map[string]struct{} // nonces collected from previous responses
+}
+
+// accountKID returns a key ID associated with c.Key, the account identity
+// provided by the CA during RFC based registration.
+// It assumes c.Discover has already been called.
+//
+// accountKID requires at most one network roundtrip.
+// It caches only successful result.
+//
+// When in pre-RFC mode or when c.getRegRFC responds with an error, accountKID
+// returns noKeyID.
+func (c *Client) accountKID(ctx context.Context) keyID {
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
+	if c.dir.OrderURL == "" {
+		// Assume legacy CA.
+		return noKeyID
+	}
+	if c.kid != noKeyID {
+		return c.kid
+	}
+	a, err := c.getRegRFC(ctx)
+	if err != nil {
+		return noKeyID
+	}
+	c.kid = keyID(a.URI)
+	return c.kid
 }
 
 // Discover performs ACME server discovery using c.DirectoryURL.
@@ -129,8 +160,8 @@ type Client struct {
 // a network round-trip. This also means mutating c.DirectoryURL after successful call
 // of this method will have no effect.
 func (c *Client) Discover(ctx context.Context) (Directory, error) {
-	c.dirMu.Lock()
-	defer c.dirMu.Unlock()
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
 	if c.dir != nil {
 		return *c.dir, nil
 	}
@@ -143,27 +174,53 @@ func (c *Client) Discover(ctx context.Context) (Directory, error) {
 	c.addNonce(res.Header)
 
 	var v struct {
-		Reg    string `json:"new-reg"`
-		Authz  string `json:"new-authz"`
-		Cert   string `json:"new-cert"`
-		Revoke string `json:"revoke-cert"`
-		Meta   struct {
-			Terms   string   `json:"terms-of-service"`
-			Website string   `json:"website"`
-			CAA     []string `json:"caa-identities"`
+		Reg          string `json:"new-reg"`
+		RegRFC       string `json:"newAccount"`
+		Authz        string `json:"new-authz"`
+		AuthzRFC     string `json:"newAuthz"`
+		OrderRFC     string `json:"newOrder"`
+		Cert         string `json:"new-cert"`
+		Revoke       string `json:"revoke-cert"`
+		RevokeRFC    string `json:"revokeCert"`
+		NonceRFC     string `json:"newNonce"`
+		KeyChangeRFC string `json:"keyChange"`
+		Meta         struct {
+			Terms           string   `json:"terms-of-service"`
+			TermsRFC        string   `json:"termsOfService"`
+			WebsiteRFC      string   `json:"website"`
+			CAA             []string `json:"caa-identities"`
+			CAARFC          []string `json:"caaIdentities"`
+			ExternalAcctRFC bool     `json:"externalAccountRequired"`
 		}
 	}
 	if err := json.NewDecoder(res.Body).Decode(&v); err != nil {
 		return Directory{}, err
 	}
+	if v.OrderRFC == "" {
+		// Non-RFC compliant ACME CA.
+		c.dir = &Directory{
+			RegURL:    v.Reg,
+			AuthzURL:  v.Authz,
+			CertURL:   v.Cert,
+			RevokeURL: v.Revoke,
+			Terms:     v.Meta.Terms,
+			Website:   v.Meta.WebsiteRFC,
+			CAA:       v.Meta.CAA,
+		}
+		return *c.dir, nil
+	}
+	// RFC compliant ACME CA.
 	c.dir = &Directory{
-		RegURL:    v.Reg,
-		AuthzURL:  v.Authz,
-		CertURL:   v.Cert,
-		RevokeURL: v.Revoke,
-		Terms:     v.Meta.Terms,
-		Website:   v.Meta.Website,
-		CAA:       v.Meta.CAA,
+		RegURL:                  v.RegRFC,
+		AuthzURL:                v.AuthzRFC,
+		OrderURL:                v.OrderRFC,
+		RevokeURL:               v.RevokeRFC,
+		NonceURL:                v.NonceRFC,
+		KeyChangeURL:            v.KeyChangeRFC,
+		Terms:                   v.Meta.TermsRFC,
+		Website:                 v.Meta.WebsiteRFC,
+		CAA:                     v.Meta.CAARFC,
+		ExternalAccountRequired: v.Meta.ExternalAcctRFC,
 	}
 	return *c.dir, nil
 }
@@ -206,7 +263,7 @@ func (c *Client) CreateCert(ctx context.Context, csr []byte, exp time.Duration, 
 		req.NotAfter = now.Add(exp).Format(time.RFC3339)
 	}
 
-	res, err := c.post(ctx, c.Key, c.dir.CertURL, req, wantStatus(http.StatusCreated))
+	res, err := c.post(ctx, nil, c.dir.CertURL, req, wantStatus(http.StatusCreated))
 	if err != nil {
 		return nil, "", err
 	}
@@ -260,9 +317,6 @@ func (c *Client) RevokeCert(ctx context.Context, key crypto.Signer, cert []byte,
 		Cert:     base64.RawURLEncoding.EncodeToString(cert),
 		Reason:   int(reason),
 	}
-	if key == nil {
-		key = c.Key
-	}
 	res, err := c.post(ctx, key, c.dir.RevokeURL, body, wantStatus(http.StatusOK))
 	if err != nil {
 		return err
@@ -275,20 +329,32 @@ func (c *Client) RevokeCert(ctx context.Context, key crypto.Signer, cert []byte,
 // during account registration. See Register method of Client for more details.
 func AcceptTOS(tosURL string) bool { return true }
 
-// Register creates a new account registration by following the "new-reg" flow.
-// It returns the registered account. The account is not modified.
+// Register creates a new account with the CA using c.Key.
+// It returns the registered account. The account acct is not modified.
 //
 // The registration may require the caller to agree to the CA's Terms of Service (TOS).
 // If so, and the account has not indicated the acceptance of the terms (see Account for details),
 // Register calls prompt with a TOS URL provided by the CA. Prompt should report
 // whether the caller agrees to the terms. To always accept the terms, the caller can use AcceptTOS.
-func (c *Client) Register(ctx context.Context, a *Account, prompt func(tosURL string) bool) (*Account, error) {
-	if _, err := c.Discover(ctx); err != nil {
+//
+// When interfacing with RFC compliant CA, non-RFC8555 compliant fields of acct are ignored
+// and prompt is called if Directory's Terms field is non-zero.
+// Also see Error's Instance field for when a CA requires already registered accounts to agree
+// to an updated Terms of Service.
+func (c *Client) Register(ctx context.Context, acct *Account, prompt func(tosURL string) bool) (*Account, error) {
+	dir, err := c.Discover(ctx)
+	if err != nil {
 		return nil, err
 	}
 
-	var err error
-	if a, err = c.doReg(ctx, c.dir.RegURL, "new-reg", a); err != nil {
+	// RFC8555 compliant account registration.
+	if dir.OrderURL != "" {
+		return c.registerRFC(ctx, acct, prompt)
+	}
+
+	// Legacy ACME draft registration flow.
+	a, err := c.doReg(ctx, dir.RegURL, "new-reg", acct)
+	if err != nil {
 		return nil, err
 	}
 	var accept bool
@@ -302,9 +368,22 @@ func (c *Client) Register(ctx context.Context, a *Account, prompt func(tosURL st
 	return a, err
 }
 
-// GetReg retrieves an existing registration.
-// The url argument is an Account URI.
+// GetReg retrieves an existing account associated with c.Key.
+//
+// The url argument is an Account URI used with pre-RFC8555 CAs.
+// It is ignored when interfacing with an RFC compliant CA.
 func (c *Client) GetReg(ctx context.Context, url string) (*Account, error) {
+	dir, err := c.Discover(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Assume RFC8555 compliant CA.
+	if dir.OrderURL != "" {
+		return c.getRegRFC(ctx)
+	}
+
+	// Legacy CA.
 	a, err := c.doReg(ctx, url, "reg", nil)
 	if err != nil {
 		return nil, err
@@ -315,9 +394,23 @@ func (c *Client) GetReg(ctx context.Context, url string) (*Account, error) {
 
 // UpdateReg updates an existing registration.
 // It returns an updated account copy. The provided account is not modified.
-func (c *Client) UpdateReg(ctx context.Context, a *Account) (*Account, error) {
-	uri := a.URI
-	a, err := c.doReg(ctx, uri, "reg", a)
+//
+// When interfacing with RFC compliant CAs, a.URI is ignored and the account URL
+// associated with c.Key is used instead.
+func (c *Client) UpdateReg(ctx context.Context, acct *Account) (*Account, error) {
+	dir, err := c.Discover(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Assume RFC8555 compliant CA.
+	if dir.OrderURL != "" {
+		return c.updateRegRFC(ctx, acct)
+	}
+
+	// Legacy CA.
+	uri := acct.URI
+	a, err := c.doReg(ctx, uri, "reg", acct)
 	if err != nil {
 		return nil, err
 	}
@@ -362,7 +455,7 @@ func (c *Client) authorize(ctx context.Context, typ, val string) (*Authorization
 		Resource:   "new-authz",
 		Identifier: authzID{Type: typ, Value: val},
 	}
-	res, err := c.post(ctx, c.Key, c.dir.AuthzURL, req, wantStatus(http.StatusCreated))
+	res, err := c.post(ctx, nil, c.dir.AuthzURL, req, wantStatus(http.StatusCreated))
 	if err != nil {
 		return nil, err
 	}
@@ -405,6 +498,11 @@ func (c *Client) GetAuthorization(ctx context.Context, url string) (*Authorizati
 //
 // It does not revoke existing certificates.
 func (c *Client) RevokeAuthorization(ctx context.Context, url string) error {
+	// Required for c.accountKID() when in RFC mode.
+	if _, err := c.Discover(ctx); err != nil {
+		return err
+	}
+
 	req := struct {
 		Resource string `json:"resource"`
 		Status   string `json:"status"`
@@ -414,7 +512,7 @@ func (c *Client) RevokeAuthorization(ctx context.Context, url string) error {
 		Status:   "deactivated",
 		Delete:   true,
 	}
-	res, err := c.post(ctx, c.Key, url, req, wantStatus(http.StatusOK))
+	res, err := c.post(ctx, nil, url, req, wantStatus(http.StatusOK))
 	if err != nil {
 		return err
 	}
@@ -491,6 +589,11 @@ func (c *Client) GetChallenge(ctx context.Context, url string) (*Challenge, erro
 //
 // The server will then perform the validation asynchronously.
 func (c *Client) Accept(ctx context.Context, chal *Challenge) (*Challenge, error) {
+	// Required for c.accountKID() when in RFC mode.
+	if _, err := c.Discover(ctx); err != nil {
+		return nil, err
+	}
+
 	auth, err := keyAuth(c.Key.Public(), chal.Token)
 	if err != nil {
 		return nil, err
@@ -505,7 +608,7 @@ func (c *Client) Accept(ctx context.Context, chal *Challenge) (*Challenge, error
 		Type:     chal.Type,
 		Auth:     auth,
 	}
-	res, err := c.post(ctx, c.Key, chal.URI, req, wantStatus(
+	res, err := c.post(ctx, nil, chal.URI, req, wantStatus(
 		http.StatusOK,       // according to the spec
 		http.StatusAccepted, // Let's Encrypt: see https://goo.gl/WsJ7VT (acme-divergences.md)
 	))
@@ -682,7 +785,7 @@ func (c *Client) doReg(ctx context.Context, url string, typ string, acct *Accoun
 		req.Contact = acct.Contact
 		req.Agreement = acct.AgreedTerms
 	}
-	res, err := c.post(ctx, c.Key, url, req, wantStatus(
+	res, err := c.post(ctx, nil, url, req, wantStatus(
 		http.StatusOK,       // updates and deletes
 		http.StatusCreated,  // new account creation
 		http.StatusAccepted, // Let's Encrypt divergent implementation
@@ -721,12 +824,16 @@ func (c *Client) doReg(ctx context.Context, url string, typ string, acct *Accoun
 }
 
 // popNonce returns a nonce value previously stored with c.addNonce
-// or fetches a fresh one from a URL by issuing a HEAD request.
-// It first tries c.directoryURL() and then the provided url if the former fails.
+// or fetches a fresh one from c.dir.NonceURL.
+// If NonceURL is empty, it first tries c.directoryURL() and, failing that,
+// the provided url.
 func (c *Client) popNonce(ctx context.Context, url string) (string, error) {
 	c.noncesMu.Lock()
 	defer c.noncesMu.Unlock()
 	if len(c.nonces) == 0 {
+		if c.dir != nil && c.dir.NonceURL != "" {
+			return c.fetchNonce(ctx, c.dir.NonceURL)
+		}
 		dirURL := c.directoryURL()
 		v, err := c.fetchNonce(ctx, dirURL)
 		if err != nil && url != dirURL {
