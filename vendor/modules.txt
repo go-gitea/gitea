@@ -281,7 +281,7 @@ github.com/klauspost/crc32
 github.com/kr/pretty
 # github.com/kr/text v0.1.0
 github.com/kr/text
-# github.com/lafriks/xormstore v1.3.0
+# github.com/lafriks/xormstore v1.3.1
 github.com/lafriks/xormstore
 github.com/lafriks/xormstore/util
 # github.com/lib/pq v1.2.0
