@@ -126,7 +126,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		assert.Len(t, lfsLocks.Locks, test.totalCount)
 		for i, lock := range lfsLocks.Locks {
 			assert.EqualValues(t, test.locksOwners[i].DisplayName(), lock.Owner.Name)
-			assert.WithinDuration(t, test.locksTimes[i], lock.LockedAt, 3*time.Second)
+			assert.WithinDuration(t, test.locksTimes[i], lock.LockedAt, 10*time.Second)
 			assert.EqualValues(t, lock.LockedAt.Format(time.RFC3339), lock.LockedAt.Format(time.RFC3339Nano)) //locked at should be rounded to second
 		}
 
