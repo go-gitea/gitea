@@ -26,6 +26,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	comment_service "code.gitea.io/gitea/services/comments"
+	issue_service "code.gitea.io/gitea/services/issue"
 	milestone_service "code.gitea.io/gitea/services/milestone"
 
 	"github.com/unknwon/com"
@@ -570,7 +572,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		Content:     form.Content,
 		Ref:         form.Ref,
 	}
-	if err := models.NewIssue(repo, issue, labelIDs, assigneeIDs, attachments); err != nil {
+	if err := issue_service.NewIssue(repo, issue, labelIDs, assigneeIDs, attachments); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
@@ -1299,7 +1301,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
-	comment, err := models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Content, attachments)
+	comment, err := comment_service.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Content, attachments)
 	if err != nil {
 		ctx.ServerError("CreateIssueComment", err)
 		return
@@ -1339,7 +1341,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		})
 		return
 	}
-	if err = models.UpdateComment(ctx.User, comment, oldContent); err != nil {
+	if err = comment_service.UpdateComment(comment, ctx.User, oldContent); err != nil {
 		ctx.ServerError("UpdateComment", err)
 		return
 	}
@@ -1372,7 +1374,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if err = models.DeleteComment(ctx.User, comment); err != nil {
+	if err = models.DeleteComment(comment, ctx.User); err != nil {
 		ctx.ServerError("DeleteCommentByID", err)
 		return
 	}

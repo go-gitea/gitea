@@ -255,3 +255,9 @@ func updateAttachment(e Engine, atta *Attachment) error {
 	_, err := sess.Cols("name", "issue_id", "release_id", "comment_id", "download_count").Update(atta)
 	return err
 }
+
+// DeleteAttachmentsByRelease deletes all attachments associated with the given release.
+func DeleteAttachmentsByRelease(releaseID int64) error {
+	_, err := x.Where("release_id = ?", releaseID).Delete(&Attachment{})
+	return err
+}
