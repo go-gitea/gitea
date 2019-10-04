@@ -38,7 +38,8 @@ func setPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Co
 
 // setImageCompareContext sets context data that is required by image compare template
 func setImageCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit) {
-	ctx.Data["IsImageFile"] = head.IsImageFile
+	ctx.Data["IsImageFileInHead"] = head.IsImageFile
+	ctx.Data["IsImageFileInBase"] = base.IsImageFile
 	ctx.Data["ImageInfoBase"] = func(name string) *git.ImageMetaData {
 		if base == nil {
 			return nil
@@ -47,22 +48,6 @@ func setImageCompareContext(ctx *context.Context, base *git.Commit, head *git.Co
 		if err != nil {
 			log.Error("ImageInfo failed: %v", err)
 			return nil
-		}
-		return result
-	}
-	ctx.Data["FileExistsInBaseCommit"] = func(filename string) bool {
-		if base == nil {
-			return false
-		}
-		result, err := base.HasFile(filename)
-		if err != nil {
-			log.Error(
-				"Error while checking if file \"%s\" exists in base commit \"%s\" (repo: %s): %v",
-				filename,
-				base,
-				ctx.Repo.GitRepo.Path,
-				err)
-			return false
 		}
 		return result
 	}

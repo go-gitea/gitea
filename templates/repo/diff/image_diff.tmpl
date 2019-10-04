@@ -11,17 +11,18 @@
 </tr>
 <tr>
  	<td class="halfwidth center">
- 	    {{ $oldImageExists := (call .root.FileExistsInBaseCommit .file.OldName) }}
- 	    {{if $oldImageExists}}
+ 	    {{if or .file.IsDeleted (not .file.IsCreated)}}
             <a href="{{$imagePathOld}}" target="_blank">
                 <img src="{{$imagePathOld}}" class="border red" />
             </a>
  	    {{end}}
  	</td>
  	<td class="halfwidth center">
- 		<a href="{{$imagePathNew}}" target="_blank">
- 			<img src="{{$imagePathNew}}" class="border green" />
- 		</a>
+ 	    {{if or .file.IsCreated (not .file.IsDeleted)}}
+			<a href="{{$imagePathNew}}" target="_blank">
+				<img src="{{$imagePathNew}}" class="border green" />
+			</a>
+ 	    {{end}}
  	</td>
 </tr>
 {{ $imageInfoBase := (call .root.ImageInfoBase .file.OldName) }}
