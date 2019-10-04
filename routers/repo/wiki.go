@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -112,7 +113,7 @@ func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
 func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName string) ([]byte, *git.TreeEntry, string, bool) {
 	var entry *git.TreeEntry
 	var err error
-	pageFilename := models.WikiNameToFilename(wikiName)
+	pageFilename, _ := url.QueryUnescape(models.WikiNameToFilename(wikiName))
 	if entry, err = findEntryForFile(commit, pageFilename); err != nil {
 		ctx.ServerError("findEntryForFile", err)
 		return nil, nil, "", false
