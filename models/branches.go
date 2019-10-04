@@ -195,7 +195,7 @@ func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, opts 
 	}
 	protectBranch.MergeWhitelistUserIDs = whitelist
 
-	whitelist, err = updateUserWhitelist(repo, protectBranch.ApprovalsWhitelistUserIDs, opts.ApprovalsUserIDs)
+	whitelist, err = updateApprovalWhitelist(repo, protectBranch.ApprovalsWhitelistUserIDs, opts.ApprovalsUserIDs)
 	if err != nil {
 		return err
 	}
@@ -299,6 +299,27 @@ func (repo *Repository) IsProtectedBranchForMerging(pr *PullRequest, branchName 
 	}
 
 	return false, nil
+}
+
+// updateApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with
+// the users from newWhitelist which have explicit read or write access to the repo.
+func updateApprovalWhitelist(repo *Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+	hasUsersChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
+	if !hasUsersChanged {
+		return currentWhitelist, nil
+	}
+
+	whitelist = make([]int64, 0, len(newWhitelist))
+	for _, userID := range newWhitelist {
+		if reader, err := repo.IsReader(userID); err != nil {
+			return nil, err
+		} else if !reader {
+			continue
+		}
+		whitelist = append(whitelist, userID)
+	}
+
+	return
 }
 
 // updateUserWhitelist checks whether the user whitelist changed and returns a whitelist with

@@ -117,9 +117,9 @@ func SettingsProtectedBranch(c *context.Context) {
 		}
 	}
 
-	users, err := c.Repo.Repository.GetWriters()
+	users, err := c.Repo.Repository.GetReaders()
 	if err != nil {
-		c.ServerError("Repo.Repository.GetWriters", err)
+		c.ServerError("Repo.Repository.GetReaders", err)
 		return
 	}
 	c.Data["Users"] = users
