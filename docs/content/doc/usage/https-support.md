@@ -27,8 +27,8 @@ To use Gitea's built-in HTTPS support, you must change your `app.ini` file:
 PROTOCOL  = https
 ROOT_URL  = https://git.example.com:3000/
 HTTP_PORT = 3000
-CERT_FILE = cert.pem
-KEY_FILE  = key.pem
+CERT_FILE = /etc/gitea/cert.pem
+KEY_FILE  = /etc/gitea/key.pem
 ```
 
 To learn more about the config values, please checkout the [Config Cheat Sheet](../config-cheat-sheet#server).
