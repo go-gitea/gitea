@@ -95,14 +95,15 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 	}
 
 	org := &models.User{
-		Name:        form.UserName,
-		FullName:    form.FullName,
-		Description: form.Description,
-		Website:     form.Website,
-		Location:    form.Location,
-		IsActive:    true,
-		Type:        models.UserTypeOrganization,
-		Visibility:  visibility,
+		Name:                      form.UserName,
+		FullName:                  form.FullName,
+		Description:               form.Description,
+		Website:                   form.Website,
+		Location:                  form.Location,
+		IsActive:                  true,
+		Type:                      models.UserTypeOrganization,
+		Visibility:                visibility,
+		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
 	if err := models.CreateOrganization(org, ctx.User); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||

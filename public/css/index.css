@@ -140,6 +140,16 @@ a{cursor:pointer}
 .ui .migrate{color:#888!important;opacity:.5}
 .ui .migrate a{color:#444!important}
 .ui .migrate a:hover{color:#000!important}
+.ui .border{border:1px solid}
+.ui .border.red{border-color:#d95c5c!important}
+.ui .border.blue{border-color:#428bca!important}
+.ui .border.black{border-color:#444}
+.ui .border.grey{border-color:#767676!important}
+.ui .border.light.grey{border-color:#888!important}
+.ui .border.green{border-color:#6cc644!important}
+.ui .border.purple{border-color:#6e5494!important}
+.ui .border.yellow{border-color:#fbbd08!important}
+.ui .border.gold{border-color:#a1882b!important}
 .ui .branch-tag-choice{line-height:20px}
 @media only screen and (max-width:767px){.ui.pagination.menu .item.navigation span.navigation_label,.ui.pagination.menu .item:not(.active):not(.navigation){display:none}
 }
@@ -495,7 +505,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.file.list .non-diff-file-content .view-raw img{padding:5px 5px 0 5px}
 .repository.file.list .non-diff-file-content .plain-text{padding:1em 2em 1em 2em}
 .repository.file.list .non-diff-file-content .plain-text pre{word-break:break-word;white-space:pre-wrap}
-.repository.file.list .non-diff-file-content .csv{overflow-x:auto}
+.repository.file.list .non-diff-file-content .csv{overflow-x:auto;padding:0!important}
 .repository.file.list .non-diff-file-content pre{overflow:auto}
 .repository.file.list .sidebar{padding-left:0}
 .repository.file.list .sidebar .octicon{width:16px}
@@ -516,6 +526,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.options #interval{width:100px!important;min-width:100px}
 .repository.options .danger .item{padding:20px 15px}
 .repository.options .danger .ui.divider{margin:0}
+.repository .comment textarea{max-height:none!important}
 .repository.new.issue .comment.form .comment .avatar{width:3em}
 .repository.new.issue .comment.form .content{margin-left:4em}
 .repository.new.issue .comment.form .content:after,.repository.new.issue .comment.form .content:before{right:100%;top:20px;border:solid transparent;content:" ";height:0;width:0;position:absolute;pointer-events:none}
@@ -670,6 +681,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .diff-file-box .code-diff td{padding:0 0 0 10px!important;border-top:0}
 .repository .diff-file-box .code-diff .lines-num{border-color:#d4d4d5;border-right-width:1px;border-right-style:solid;padding:0 5px!important}
 .repository .diff-file-box .code-diff tbody tr td.halfwidth{width:49%}
+.repository .diff-file-box .code-diff tbody tr td.center{text-align:center}
 .repository .diff-file-box .code-diff tbody tr .removed-code{background-color:#f99}
 .repository .diff-file-box .code-diff tbody tr .added-code{background-color:#9f9}
 .repository .diff-file-box .code-diff tbody tr [data-line-num]::before{content:attr(data-line-num);text-align:right}
@@ -735,6 +747,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.settings.collaboration .collaborator.list>.item:not(:last-child){border-bottom:1px solid #ddd}
 .repository.settings.collaboration #repo-collab-form #search-user-box .results{left:7px}
 .repository.settings.collaboration #repo-collab-form .ui.button{margin-left:5px;margin-top:-3px}
+.repository.settings.collaboration #repo-collab-team-form #search-team-box .results{left:7px}
+.repository.settings.collaboration #repo-collab-team-form .ui.button{margin-left:5px;margin-top:-3px}
 .repository.settings.branches .protected-branches .selection.dropdown{width:300px}
 .repository.settings.branches .protected-branches .item{border:1px solid #eaeaea;padding:10px 15px}
 .repository.settings.branches .protected-branches .item:not(:last-child){border-bottom:0}
@@ -771,6 +785,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .user-cards .list .item .meta{margin-top:5px}
 #search-repo-box .results .result .image,#search-user-box .results .result .image{float:left;margin-right:8px;width:2em;height:2em}
 #search-repo-box .results .result .content,#search-user-box .results .result .content{margin:6px 0}
+#search-team-box .results .result .content{margin:6px 0}
 #issue-filters.hide{display:none}
 #issue-actions{margin-top:-1rem!important}
 #issue-actions.hide{display:none}
@@ -940,6 +955,7 @@ tbody.commit-list{vertical-align:baseline}
 .dashboard{padding-top:15px}
 .dashboard.feeds .context.user.menu,.dashboard.issues .context.user.menu{z-index:101;min-width:200px}
 .dashboard.feeds .context.user.menu .ui.header,.dashboard.issues .context.user.menu .ui.header{font-size:1rem;text-transform:none}
+.dashboard.feeds .filter.menu,.dashboard.issues .filter.menu{width:initial}
 .dashboard.feeds .filter.menu .item,.dashboard.issues .filter.menu .item{text-align:left}
 .dashboard.feeds .filter.menu .item .text,.dashboard.issues .filter.menu .item .text{height:16px;vertical-align:middle}
 .dashboard.feeds .filter.menu .item .text.truncate,.dashboard.issues .filter.menu .item .text.truncate{width:85%}

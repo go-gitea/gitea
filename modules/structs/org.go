@@ -10,19 +10,20 @@ import (
 
 // Organization represents an organization
 type Organization struct {
-	ID               int64  `json:"id"`
-	UserName         string `json:"username"`
-	FullName         string `json:"full_name"`
-	AvatarURL        string `json:"avatar_url"`
-	URL              string `json:"url"`
-	ReposURL         string `json:"repos_url"`
-	MembersURL       string `json:"members_url"`
-	PublicMembersURL string `json:"public_members_url"`
-	Description      string `json:"description"`
-	Website          string `json:"website"`
-	Location         string `json:"location"`
-	PublicRepoCount  int64  `json:"public_repo_count"`
-	Visibility       string `json:"visibility"`
+	ID                        int64  `json:"id"`
+	UserName                  string `json:"username"`
+	FullName                  string `json:"full_name"`
+	AvatarURL                 string `json:"avatar_url"`
+	URL                       string `json:"url"`
+	ReposURL                  string `json:"repos_url"`
+	MembersURL                string `json:"members_url"`
+	PublicMembersURL          string `json:"public_members_url"`
+	Description               string `json:"description"`
+	Website                   string `json:"website"`
+	Location                  string `json:"location"`
+	PublicRepoCount           int64  `json:"public_repo_count"`
+	Visibility                string `json:"visibility"`
+	RepoAdminChangeTeamAccess bool   `json:"repo_admin_change_team_access"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created"`
 	// swagger:strfmt date-time
@@ -39,7 +40,8 @@ type CreateOrgOption struct {
 	Location    string `json:"location"`
 	// possible values are `public` (default), `limited` or `private`
 	// enum: public,limited,private
-	Visibility string `json:"visibility" binding:"In(,public,limited,private)"`
+	Visibility                string `json:"visibility" binding:"In(,public,limited,private)"`
+	RepoAdminChangeTeamAccess bool   `json:"repo_admin_change_team_access"`
 }
 
 // EditOrgOption options for editing an organization
@@ -50,5 +52,6 @@ type EditOrgOption struct {
 	Location    string `json:"location"`
 	// possible values are `public`, `limited` or `private`
 	// enum: public,limited,private
-	Visibility string `json:"visibility" binding:"In(,public,limited,private)"`
+	Visibility                string `json:"visibility" binding:"In(,public,limited,private)"`
+	RepoAdminChangeTeamAccess bool   `json:"repo_admin_change_team_access"`
 }

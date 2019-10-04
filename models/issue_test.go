@@ -279,6 +279,19 @@ func TestGetUserIssueStats(t *testing.T) {
 				ClosedCount:           2,
 			},
 		},
+		{
+			UserIssueStatsOptions{
+				UserID:     1,
+				FilterMode: FilterModeMention,
+			},
+			IssueStats{
+				YourRepositoriesCount: 0,
+				AssignCount:           2,
+				CreateCount:           2,
+				OpenCount:             0,
+				ClosedCount:           0,
+			},
+		},
 	} {
 		stats, err := GetUserIssueStats(test.Opts)
 		if !assert.NoError(t, err) {
@@ -319,4 +332,37 @@ func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
 	assert.EqualValues(t, []int64{1}, ids)
+}
+
+func testInsertIssue(t *testing.T, title, content string) {
+	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+
+	var issue = Issue{
+		RepoID:   repo.ID,
+		PosterID: user.ID,
+		Title:    title,
+		Content:  content,
+	}
+	err := NewIssue(repo, &issue, nil, nil, nil)
+	assert.NoError(t, err)
+
+	var newIssue Issue
+	has, err := x.ID(issue.ID).Get(&newIssue)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.EqualValues(t, issue.Title, newIssue.Title)
+	assert.EqualValues(t, issue.Content, newIssue.Content)
+	// there are 4 issues and max index is 4 on repository 1, so this one should 5
+	assert.EqualValues(t, 5, newIssue.Index)
+
+	_, err = x.ID(issue.ID).Delete(new(Issue))
+	assert.NoError(t, err)
+}
+
+func TestIssue_InsertIssue(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	testInsertIssue(t, "my issue1", "special issue's comments?")
+	testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?")
 }

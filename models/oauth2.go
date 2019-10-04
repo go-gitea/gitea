@@ -40,7 +40,7 @@ var OAuth2Providers = map[string]OAuth2Provider{
 			ProfileURL: oauth2.GetDefaultProfileURL("gitlab"),
 		},
 	},
-	"gplus":         {Name: "gplus", DisplayName: "Google+", Image: "/img/auth/google_plus.png"},
+	"gplus":         {Name: "gplus", DisplayName: "Google", Image: "/img/auth/google.png"},
 	"openidConnect": {Name: "openidConnect", DisplayName: "OpenID Connect", Image: "/img/auth/openid_connect.png"},
 	"twitter":       {Name: "twitter", DisplayName: "Twitter", Image: "/img/auth/twitter.png"},
 	"discord":       {Name: "discord", DisplayName: "Discord", Image: "/img/auth/discord.png"},
