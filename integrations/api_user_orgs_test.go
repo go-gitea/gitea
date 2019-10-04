@@ -5,12 +5,12 @@
 package integrations
 
 import (
-	"code.gitea.io/gitea/modules/setting"
 	"fmt"
 	"net/http"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
