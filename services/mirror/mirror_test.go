@@ -27,11 +27,11 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repoPath := models.RepoPath(user.Name, repo.Name)
 
-	opts := structs.MigrateRepoOptions{
+	opts := structs.MigrateRepoOption{
 		RepoName:    "test_mirror",
 		Description: "Test mirror",
-		IsPrivate:   false,
-		IsMirror:    true,
+		Private:     false,
+		Mirror:      true,
 		CloneAddr:   repoPath,
 		Wiki:        true,
 		Releases:    false,
