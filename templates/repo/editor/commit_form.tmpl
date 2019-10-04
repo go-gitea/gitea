@@ -19,11 +19,21 @@
 				</div>
 			</div>
 			<div class="field">
+				{{$pullRequestEnabled := .Repository.UnitEnabled $.UnitTypePullRequests}}
+				{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 				<div class="ui radio checkbox">
-					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.i18n.Tr "repo.editor.propose_file_change"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
+					{{if $pullRequestEnabled}}
+						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.i18n.Tr "repo.editor.propose_file_change"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
+					{{else}}
+						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.i18n.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
+					{{end}}
 					<label>
 						<i class="octicon octicon-git-pull-request" height="16" width="12"></i>
-						{{.i18n.Tr "repo.editor.create_new_branch" | Safe}}
+						{{if $pullRequestEnabled}}
+							{{.i18n.Tr "repo.editor.create_new_branch" | Safe}}
+						{{else}}
+							{{.i18n.Tr "repo.editor.create_new_branch_np" | Safe}}
+						{{end}}
 					</label>
 				</div>
 			</div>
