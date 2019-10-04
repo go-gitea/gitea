@@ -198,7 +198,7 @@ github.com/go-swagger/go-swagger/cmd/swagger/commands/initcmd
 github.com/go-swagger/go-swagger/codescan
 github.com/go-swagger/go-swagger/generator
 github.com/go-swagger/go-swagger/scan
-# github.com/go-xorm/xorm v0.7.8
+# github.com/go-xorm/xorm v0.7.9
 github.com/go-xorm/xorm
 # github.com/gobwas/glob v0.2.3
 github.com/gobwas/glob
@@ -281,7 +281,7 @@ github.com/klauspost/crc32
 github.com/kr/pretty
 # github.com/kr/text v0.1.0
 github.com/kr/text
-# github.com/lafriks/xormstore v1.3.0
+# github.com/lafriks/xormstore v1.3.1
 github.com/lafriks/xormstore
 github.com/lafriks/xormstore/util
 # github.com/lib/pq v1.2.0
