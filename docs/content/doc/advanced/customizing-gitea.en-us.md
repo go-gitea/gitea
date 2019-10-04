@@ -60,7 +60,7 @@ the url `http://gitea.domain.tld/image.png`.
 
 ## Changing the default avatar
 
-Place the png image at the following path: `custom/public/img/avatar\_default.png`
+Place the png image at the following path: `custom/public/img/avatar_default.png`
 
 ## Customizing Gitea pages
 
@@ -97,6 +97,20 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 - `body_inner_post.tmpl`, before the end of the main container.
 - `body_outer_post.tmpl`, before the bottom `<footer>` element.
 - `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional Javascript.
+
+## Customizing Gitea mails
+
+The `custom/templates/mail` folder allows changing the body of every mail of Gitea.
+Templates to override can be found in the
+[`templates/mail`](https://github.com/go-gitea/gitea/tree/master/templates/mail)
+directory of Gitea source.
+Override by making a copy of the file under `custom/templates/mail` using a
+full path structure matching source.
+
+Any statement contained inside `{{` and `}}` are Gitea's template
+syntax and shouldn't be touched without fully understanding these components.
+
+
 
 ## Adding Analytics to Gitea
 

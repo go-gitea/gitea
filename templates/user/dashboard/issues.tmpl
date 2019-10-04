@@ -18,10 +18,14 @@
 							{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}
 							<strong class="ui right">{{.IssueStats.CreateCount}}</strong>
 						</a>
+						<a class="{{if eq .ViewType "mentioned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=mentioned&repo={{.RepoID}}&sort={{$.SortType}}&state={{.State}}">
+							{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}
+							<strong class="ui right">{{.IssueStats.MentionCount}}</strong>
+						</a>
 					{{end}}
 					<div class="ui divider"></div>
 					{{range .Repos}}
-						<a class="{{if eq $.RepoID .ID}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}{{if not (eq $.RepoID .ID)}}&repo={{.ID}}{{end}}&sort={{$.SortType}}&state={{$.State}}">
+						<a class="{{if eq $.RepoID .ID}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}{{if not (eq $.RepoID .ID)}}&repo={{.ID}}{{end}}&sort={{$.SortType}}&state={{$.State}}" title="{{.FullName}}">
 							<span class="text truncate">{{.FullName}}</span>
 							<div class="floating ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts .ID}}</div>
 						</a>
@@ -68,8 +72,8 @@
 							<a class="title has-emoji" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/issues/{{.Index}}">{{.Title}}</a>
 
                             {{if .IsPull }}
-                                {{if (index $.CommitStatus .ID)}}
-                                    {{template "repo/commit_status" (index $.CommitStatus .ID)}}
+                                {{if (index $.CommitStatus .PullRequest.ID)}}
+                                    {{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
                                 {{end}}
                             {{end}}
 
@@ -80,7 +84,7 @@
 								especially on mobile views. */}}
 								<span style="line-height: 2.5">
 									{{range .}}
-										<a class="ui label" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&repo={{$.RepoID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
+										<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&repo={{$.RepoID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 									{{end}}
 								</span>
 							{{end}}
@@ -100,9 +104,19 @@
 								{{else}}
 									{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
 								{{end}}
-								{{if .Assignee}}
-									<a class="ui right assignee poping up" href="{{.Assignee.HomeLink}}" data-content="{{.Assignee.GetDisplayName}}" data-variation="inverted" data-position="left center">
-										<img class="ui avatar image" src="{{.Assignee.RelAvatarLink}}">
+								{{if .Milestone}}
+									<a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
+										<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
+									</a>
+								{{end}}
+								{{if .Ref}}
+									<a class="ref" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/src/branch/{{.Ref}}">
+										<span class="octicon octicon-git-branch"></span> {{.Ref}}
+									</a>
+								{{end}}
+								{{range .Assignees}}
+									<a class="ui right assignee poping up" href="{{.HomeLink}}" data-content="{{.GetDisplayName}}" data-variation="inverted" data-position="left center">
+										<img class="ui avatar image" src="{{.RelAvatarLink}}">
 									</a>
 								{{end}}
 								{{$tasks := .GetTasks}}

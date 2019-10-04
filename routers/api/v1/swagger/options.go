@@ -120,4 +120,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	DeleteFileOptions api.DeleteFileOptions
+
+	// in:body
+	RepoTopicOptions api.RepoTopicOptions
 }

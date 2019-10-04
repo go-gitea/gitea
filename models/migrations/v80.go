@@ -14,5 +14,4 @@ func addIsLockedToIssues(x *xorm.Engine) error {
 	}
 
 	return x.Sync2(new(Issue))
-
 }

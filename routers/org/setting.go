@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	userSetting "code.gitea.io/gitea/routers/user/setting"
 )
 
@@ -31,7 +30,8 @@ const (
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
-	ctx.Data["CurrentVisibility"] = structs.VisibleType(ctx.Org.Organization.Visibility)
+	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
+	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.HTML(200, tplSettingsOptions)
 }
 
@@ -39,6 +39,7 @@ func Settings(ctx *context.Context) {
 func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
+	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplSettingsOptions)
@@ -83,6 +84,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	org.Website = form.Website
 	org.Location = form.Location
 	org.Visibility = form.Visibility
+	org.RepoAdminChangeTeamAccess = form.RepoAdminChangeTeamAccess
 	if err := models.UpdateUser(org); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return

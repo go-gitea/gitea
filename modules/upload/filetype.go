@@ -31,19 +31,16 @@ func (err ErrFileTypeForbidden) Error() string {
 func VerifyAllowedContentType(buf []byte, allowedTypes []string) error {
 	fileType := http.DetectContentType(buf)
 
-	allowed := false
 	for _, t := range allowedTypes {
 		t := strings.Trim(t, " ")
-		if t == "*/*" || t == fileType {
-			allowed = true
-			break
+
+		if t == "*/*" || t == fileType ||
+			// Allow directives after type, like 'text/plain; charset=utf-8'
+			strings.HasPrefix(fileType, t+";") {
+			return nil
 		}
 	}
 
-	if !allowed {
-		log.Info("Attachment with type %s blocked from upload", fileType)
-		return ErrFileTypeForbidden{Type: fileType}
-	}
-
-	return nil
+	log.Info("Attachment with type %s blocked from upload", fileType)
+	return ErrFileTypeForbidden{Type: fileType}
 }

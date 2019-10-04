@@ -12,9 +12,7 @@ import (
 
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/analysis/analyzer/custom"
-	"github.com/blevesearch/bleve/analysis/token/camelcase"
 	"github.com/blevesearch/bleve/analysis/token/lowercase"
-	"github.com/blevesearch/bleve/analysis/token/unique"
 	"github.com/blevesearch/bleve/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/search/query"
 	"github.com/ethantkoenig/rupture"
@@ -24,7 +22,7 @@ const (
 	repoIndexerAnalyzer = "repoIndexerAnalyzer"
 	repoIndexerDocType  = "repoIndexerDocType"
 
-	repoIndexerLatestVersion = 1
+	repoIndexerLatestVersion = 4
 )
 
 // repoIndexer (thread-safe) index for repository contents
@@ -111,7 +109,7 @@ func createRepoIndexer(path string, latestVersion int) error {
 		"type":          custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     unicode.Name,
-		"token_filters": []string{unicodeNormalizeName, camelcase.Name, lowercase.Name, unique.Name},
+		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
 	}); err != nil {
 		return err
 	}

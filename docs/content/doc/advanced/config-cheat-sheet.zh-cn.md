@@ -82,6 +82,8 @@ menu:
 - `CHARSET`: **utf8**: 仅当数据库为 MySQL 时有效, 可以为 "utf8" 或 "utf8mb4"。注意：如果使用 "utf8mb4"，你的 MySQL InnoDB 版本必须在 5.6 以上。
 - `PATH`: Tidb 或者 SQLite3 数据文件存放路径。
 - `LOG_SQL`: **true**: 显示生成的SQL，默认为真。
+- `MAX_IDLE_CONNS` **0**: 最大空闲数据库连接
+- `CONN_MAX_LIFETIME` **3s**: 数据库连接最大存活时间
 
 ## Indexer (`indexer`)
 
@@ -142,11 +144,12 @@ menu:
 
 ## Cache (`cache`)
 
-- `ADAPTER`: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
-- `INTERVAL`: 只对内存缓存有效，GC间隔，单位秒。
-- `HOST`: 针对redis和memcache有效，主机地址和端口。
+- `ADAPTER`: **memory**: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
+- `INTERVAL`: **60**: 只对内存缓存有效，GC间隔，单位秒。
+- `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。
     - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
     - Memache: `127.0.0.1:9090;127.0.0.1:9091`
+- `ITEM_TTL`: **16h**: 缓存项目失效时间，设置为 0 则禁用缓存。
 
 ## Session (`session`)
 
@@ -237,7 +240,9 @@ IS_INPUT_FILE = false
 - RENDER_COMMAND: 工具的命令行命令及参数。
 - IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。
 
-
+## Time (`time`)
+- `FORMAT`: 显示在界面上的时间格式。比如： RFC1123 或者 2006-01-02 15:04:05
+- `DEFAULT_UI_LOCATION`: 默认显示在界面上的时区，默认为本地时区。比如： Asia/Shanghai
 
 ## Other (`other`)
 

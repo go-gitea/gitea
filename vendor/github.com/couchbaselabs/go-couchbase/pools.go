@@ -16,8 +16,10 @@ import (
 	"net/url"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 	"unsafe"
 
 	"github.com/couchbase/goutils/logging"
@@ -28,8 +30,9 @@ import (
 
 // HTTPClient to use for REST and view operations.
 var MaxIdleConnsPerHost = 256
+var ClientTimeOut = 10 * time.Second
 var HTTPTransport = &http.Transport{MaxIdleConnsPerHost: MaxIdleConnsPerHost}
-var HTTPClient = &http.Client{Transport: HTTPTransport}
+var HTTPClient = &http.Client{Transport: HTTPTransport, Timeout: ClientTimeOut}
 
 // PoolSize is the size of each connection pool (per host).
 var PoolSize = 64
@@ -52,6 +55,9 @@ var EnableDataType = false
 
 // Enable Xattr
 var EnableXattr = false
+
+// Enable Collections
+var EnableCollections = false
 
 // TCP keepalive interval in seconds. Default 30 minutes
 var TCPKeepaliveInterval = 30 * 60
@@ -178,12 +184,12 @@ type Node struct {
 
 // A Pool of nodes and buckets.
 type Pool struct {
-	BucketMap map[string]Bucket
+	BucketMap map[string]*Bucket
 	Nodes     []Node
 
 	BucketURL map[string]string `json:"buckets"`
 
-	client Client
+	client *Client
 }
 
 // VBucketServerMap is the a mapping of vbuckets to nodes.
@@ -240,13 +246,14 @@ type Bucket struct {
 	commonSufix      string
 	ah               AuthHandler        // auth handler
 	ds               *DurablitySettings // Durablity Settings for this bucket
-	Scopes           Scopes
+	closed           bool
 }
 
 // PoolServices is all the bucket-independent services in a pool
 type PoolServices struct {
-	Rev      int            `json:"rev"`
-	NodesExt []NodeServices `json:"nodesExt"`
+	Rev          int             `json:"rev"`
+	NodesExt     []NodeServices  `json:"nodesExt"`
+	Capabilities json.RawMessage `json:"clusterCapabilities"`
 }
 
 // NodeServices is all the bucket-independent services running on
@@ -337,7 +344,7 @@ func (b *Bucket) GetName() string {
 	return ret
 }
 
-// Nodes returns teh current list of nodes servicing this bucket.
+// Nodes returns the current list of nodes servicing this bucket.
 func (b *Bucket) Nodes() []Node {
 	b.RLock()
 	defer b.RUnlock()
@@ -475,6 +482,14 @@ func (b *Bucket) GetRandomDoc() (*gomemcached.MCResponse, error) {
 		return nil, err
 	}
 
+	// We may need to select the bucket before GetRandomDoc()
+	// will work. This is sometimes done at startup (see defaultMkConn())
+	// but not always, depending on the auth type.
+	_, err = conn.SelectBucket(b.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	// get a randomm document from the connection
 	doc, err := conn.GetRandomDoc()
 	// need to return the connection to the pool
@@ -533,9 +548,10 @@ func (b *Bucket) CommonAddressSuffix() string {
 // A Client is the starting point for all services across all buckets
 // in a Couchbase cluster.
 type Client struct {
-	BaseURL *url.URL
-	ah      AuthHandler
-	Info    Pools
+	BaseURL   *url.URL
+	ah        AuthHandler
+	Info      Pools
+	tlsConfig *tls.Config
 }
 
 func maybeAddAuth(req *http.Request, ah AuthHandler) error {
@@ -601,11 +617,11 @@ func doHTTPRequest(req *http.Request) (*http.Response, error) {
 	var err error
 	var res *http.Response
 
-	tr := &http.Transport{}
-
 	// we need a client that ignores certificate errors, since we self-sign
 	// our certs
 	if client == nil && req.URL.Scheme == "https" {
+		var tr *http.Transport
+
 		if skipVerify {
 			tr = &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -931,6 +947,25 @@ func ConnectWithAuth(baseU string, ah AuthHandler) (c Client, err error) {
 	return c, c.parseURLResponse("/pools", &c.Info)
 }
 
+// Call this method with a TLS certificate file name to make communication
+// with the KV engine encrypted.
+//
+// This method should be called immediately after a Connect*() method.
+func (c *Client) InitTLS(certFile string) error {
+	serverCert, err := ioutil.ReadFile(certFile)
+	if err != nil {
+		return err
+	}
+	CA_Pool := x509.NewCertPool()
+	CA_Pool.AppendCertsFromPEM(serverCert)
+	c.tlsConfig = &tls.Config{RootCAs: CA_Pool}
+	return nil
+}
+
+func (c *Client) ClearTLS() {
+	c.tlsConfig = nil
+}
+
 // ConnectWithAuthCreds connects to a couchbase cluster with the give
 // authorization creds returned by cb_auth
 func ConnectWithAuthCreds(baseU, username, password string) (c Client, err error) {
@@ -941,7 +976,6 @@ func ConnectWithAuthCreds(baseU, username, password string) (c Client, err error
 
 	c.ah = newBucketAuth(username, password, "")
 	return c, c.parseURLResponse("/pools", &c.Info)
-
 }
 
 // Connect to a couchbase cluster.  An authentication handler will be
@@ -1038,44 +1072,153 @@ func (b *Bucket) NodeListChanged() bool {
 // /pooles/default/$BUCKET_NAME/collections API.
 // {"myScope2":{"myCollectionC":{}},"myScope1":{"myCollectionB":{},"myCollectionA":{}},"_default":{"_default":{}}}
 
-// A Scopes holds the set of scopes in a bucket.
+// Structures for parsing collections manifest.
 // The map key is the name of the scope.
-type Scopes map[string]Collections
+// Example data:
+// {"uid":"b","scopes":[
+//    {"name":"_default","uid":"0","collections":[
+//       {"name":"_default","uid":"0"}]},
+//    {"name":"myScope1","uid":"8","collections":[
+//       {"name":"myCollectionB","uid":"c"},
+//       {"name":"myCollectionA","uid":"b"}]},
+//    {"name":"myScope2","uid":"9","collections":[
+//       {"name":"myCollectionC","uid":"d"}]}]}
+type InputManifest struct {
+	Uid    string
+	Scopes []InputScope
+}
+type InputScope struct {
+	Name        string
+	Uid         string
+	Collections []InputCollection
+}
+type InputCollection struct {
+	Name string
+	Uid  string
+}
 
-// A Collections holds the set of collections in a scope.
-// The map key is the name of the collection.
-type Collections map[string]Collection
+// Structures for storing collections information.
+type Manifest struct {
+	Uid    uint64
+	Scopes map[string]*Scope // map by name
+}
+type Scope struct {
+	Name        string
+	Uid         uint64
+	Collections map[string]*Collection // map by name
+}
+type Collection struct {
+	Name string
+	Uid  uint64
+}
 
-// A Collection holds the information for a collection.
-// It is currently returned empty.
-type Collection struct{}
+var _EMPTY_MANIFEST *Manifest = &Manifest{Uid: 0, Scopes: map[string]*Scope{}}
 
-func getScopesAndCollections(pool *Pool, bucketName string) (Scopes, error) {
-	scopes := make(Scopes)
-	// This URL is a bit of a hack. The "default" is the name of the pool, and should
-	// be a parameter. But the name does not appear to be available anywhere,
-	// and in any case we never use a pool other than "default".
-	err := pool.client.parseURLResponse(fmt.Sprintf("/pools/default/buckets/%s/collections", bucketName), &scopes)
+func parseCollectionsManifest(res *gomemcached.MCResponse) (*Manifest, error) {
+	if !EnableCollections {
+		return _EMPTY_MANIFEST, nil
+	}
+
+	var im InputManifest
+	err := json.Unmarshal(res.Body, &im)
 	if err != nil {
 		return nil, err
 	}
-	return scopes, nil
+
+	uid, err := strconv.ParseUint(im.Uid, 16, 64)
+	if err != nil {
+		return nil, err
+	}
+	mani := &Manifest{Uid: uid, Scopes: make(map[string]*Scope, len(im.Scopes))}
+	for _, iscope := range im.Scopes {
+		scope_uid, err := strconv.ParseUint(iscope.Uid, 16, 64)
+		if err != nil {
+			return nil, err
+		}
+		scope := &Scope{Uid: scope_uid, Name: iscope.Name, Collections: make(map[string]*Collection, len(iscope.Collections))}
+		mani.Scopes[iscope.Name] = scope
+		for _, icoll := range iscope.Collections {
+			coll_uid, err := strconv.ParseUint(icoll.Uid, 16, 64)
+			if err != nil {
+				return nil, err
+			}
+			coll := &Collection{Uid: coll_uid, Name: icoll.Name}
+			scope.Collections[icoll.Name] = coll
+		}
+	}
+
+	return mani, nil
+}
+
+// This function assumes the bucket is locked.
+func (b *Bucket) GetCollectionsManifest() (*Manifest, error) {
+	// Collections not used?
+	if !EnableCollections {
+		return nil, fmt.Errorf("Collections not enabled.")
+	}
+
+	b.RLock()
+	pools := b.getConnPools(true /* already locked */)
+	pool := pools[0] // Any pool will do, so use the first one.
+	b.RUnlock()
+	client, err := pool.Get()
+	if err != nil {
+		return nil, fmt.Errorf("Unable to get connection to retrieve collections manifest: %v. No collections access to bucket %s.", err, b.Name)
+	}
+
+	// We need to select the bucket before GetCollectionsManifest()
+	// will work. This is sometimes done at startup (see defaultMkConn())
+	// but not always, depending on the auth type.
+	// Doing this is safe because we collect the the connections
+	// by bucket, so the bucket being selected will never change.
+	_, err = client.SelectBucket(b.Name)
+	if err != nil {
+		pool.Return(client)
+		return nil, fmt.Errorf("Unable to select bucket %s: %v. No collections access to bucket %s.", err, b.Name, b.Name)
+	}
+
+	res, err := client.GetCollectionsManifest()
+	if err != nil {
+		pool.Return(client)
+		return nil, fmt.Errorf("Unable to retrieve collections manifest: %v. No collections access to bucket %s.", err, b.Name)
+	}
+	mani, err := parseCollectionsManifest(res)
+	if err != nil {
+		pool.Return(client)
+		return nil, fmt.Errorf("Unable to parse collections manifest: %v. No collections access to bucket %s.", err, b.Name)
+	}
+
+	pool.Return(client)
+	return mani, nil
+}
+
+func (b *Bucket) RefreshFully() error {
+	return b.refresh(false)
 }
 
 func (b *Bucket) Refresh() error {
+	return b.refresh(true)
+}
+
+func (b *Bucket) refresh(preserveConnections bool) error {
 	b.RLock()
 	pool := b.pool
 	uri := b.URI
-	name := b.Name
+	client := pool.client
 	b.RUnlock()
+	tlsConfig := client.tlsConfig
 
-	tmpb := &Bucket{}
-	err := pool.client.parseURLResponse(uri, tmpb)
-	if err != nil {
-		return err
+	var poolServices PoolServices
+	var err error
+	if tlsConfig != nil {
+		poolServices, err = client.GetPoolServices("default")
+		if err != nil {
+			return err
+		}
 	}
 
-	scopes, err := getScopesAndCollections(pool, name)
+	tmpb := &Bucket{}
+	err = pool.client.parseURLResponse(uri, tmpb)
 	if err != nil {
 		return err
 	}
@@ -1096,50 +1239,67 @@ func (b *Bucket) Refresh() error {
 	newcps := make([]*connectionPool, len(tmpb.VBSMJson.ServerList))
 	for i := range newcps {
 
-		pool := b.getConnPoolByHost(tmpb.VBSMJson.ServerList[i], true /* bucket already locked */)
-		if pool != nil && pool.inUse == false {
-			// if the hostname and index is unchanged then reuse this pool
-			newcps[i] = pool
-			pool.inUse = true
-			continue
+		if preserveConnections {
+			pool := b.getConnPoolByHost(tmpb.VBSMJson.ServerList[i], true /* bucket already locked */)
+			if pool != nil && pool.inUse == false {
+				// if the hostname and index is unchanged then reuse this pool
+				newcps[i] = pool
+				pool.inUse = true
+				continue
+			}
+		}
+
+		hostport := tmpb.VBSMJson.ServerList[i]
+		if tlsConfig != nil {
+			hostport, err = MapKVtoSSL(hostport, &poolServices)
+			if err != nil {
+				b.Unlock()
+				return err
+			}
 		}
 
 		if b.ah != nil {
-			newcps[i] = newConnectionPool(
-				tmpb.VBSMJson.ServerList[i],
-				b.ah, AsynchronousCloser, PoolSize, PoolOverflow)
+			newcps[i] = newConnectionPool(hostport,
+				b.ah, AsynchronousCloser, PoolSize, PoolOverflow, tlsConfig, b.Name)
 
 		} else {
-			newcps[i] = newConnectionPool(
-				tmpb.VBSMJson.ServerList[i],
+			newcps[i] = newConnectionPool(hostport,
 				b.authHandler(true /* bucket already locked */),
-				AsynchronousCloser, PoolSize, PoolOverflow)
+				AsynchronousCloser, PoolSize, PoolOverflow, tlsConfig, b.Name)
 		}
 	}
 	b.replaceConnPools2(newcps, true /* bucket already locked */)
 	tmpb.ah = b.ah
 	b.vBucketServerMap = unsafe.Pointer(&tmpb.VBSMJson)
 	b.nodeList = unsafe.Pointer(&tmpb.NodesJSON)
-	b.Scopes = scopes
 
 	b.Unlock()
 	return nil
 }
 
 func (p *Pool) refresh() (err error) {
-	p.BucketMap = make(map[string]Bucket)
+	p.BucketMap = make(map[string]*Bucket)
 
 	buckets := []Bucket{}
 	err = p.client.parseURLResponse(p.BucketURL["uri"], &buckets)
 	if err != nil {
 		return err
 	}
-	for _, b := range buckets {
+	for i, _ := range buckets {
+		b := new(Bucket)
+		*b = buckets[i]
 		b.pool = p
 		b.nodeList = unsafe.Pointer(&b.NodesJSON)
-		b.replaceConnPools(make([]*connectionPool, len(b.VBSMJson.ServerList)))
 
+		// MB-33185 this is merely defensive, just in case
+		// refresh() gets called on a perfectly node pool
+		ob, ok := p.BucketMap[b.Name]
+		if ok && ob.connPools != nil {
+			ob.Close()
+		}
+		b.replaceConnPools(make([]*connectionPool, len(b.VBSMJson.ServerList)))
 		p.BucketMap[b.Name] = b
+		runtime.SetFinalizer(b, bucketFinalizer)
 	}
 	return nil
 }
@@ -1148,9 +1308,11 @@ func (p *Pool) refresh() (err error) {
 // "default").
 func (c *Client) GetPool(name string) (p Pool, err error) {
 	var poolURI string
+
 	for _, p := range c.Info.Pools {
 		if p.Name == name {
 			poolURI = p.URI
+			break
 		}
 	}
 	if poolURI == "" {
@@ -1159,7 +1321,7 @@ func (c *Client) GetPool(name string) (p Pool, err error) {
 
 	err = c.parseURLResponse(poolURI, &p)
 
-	p.client = *c
+	p.client = c
 
 	err = p.refresh()
 	return
@@ -1184,6 +1346,19 @@ func (c *Client) GetPoolServices(name string) (ps PoolServices, err error) {
 	return
 }
 
+func (b *Bucket) GetPoolServices(name string) (*PoolServices, error) {
+	b.RLock()
+	pool := b.pool
+	b.RUnlock()
+
+	ps, err := pool.client.GetPoolServices(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ps, nil
+}
+
 // Close marks this bucket as no longer needed, closing connections it
 // may have open.
 func (b *Bucket) Close() {
@@ -1201,7 +1376,12 @@ func (b *Bucket) Close() {
 
 func bucketFinalizer(b *Bucket) {
 	if b.connPools != nil {
-		logging.Warnf("Finalizing a bucket with active connections.")
+		if !b.closed {
+			logging.Warnf("Finalizing a bucket with active connections.")
+		}
+
+		// MB-33185 do not leak connection pools
+		b.Close()
 	}
 }
 
@@ -1211,12 +1391,11 @@ func (p *Pool) GetBucket(name string) (*Bucket, error) {
 	if !ok {
 		return nil, &BucketNotFoundError{bucket: name}
 	}
-	runtime.SetFinalizer(&rv, bucketFinalizer)
 	err := rv.Refresh()
 	if err != nil {
 		return nil, err
 	}
-	return &rv, nil
+	return rv, nil
 }
 
 // GetBucket gets a bucket from within this pool.
@@ -1225,13 +1404,12 @@ func (p *Pool) GetBucketWithAuth(bucket, username, password string) (*Bucket, er
 	if !ok {
 		return nil, &BucketNotFoundError{bucket: bucket}
 	}
-	runtime.SetFinalizer(&rv, bucketFinalizer)
 	rv.ah = newBucketAuth(username, password, bucket)
 	err := rv.Refresh()
 	if err != nil {
 		return nil, err
 	}
-	return &rv, nil
+	return rv, nil
 }
 
 // GetPool gets the pool to which this bucket belongs.
@@ -1244,7 +1422,21 @@ func (b *Bucket) GetPool() *Pool {
 
 // GetClient gets the client from which we got this pool.
 func (p *Pool) GetClient() *Client {
-	return &p.client
+	return p.client
+}
+
+// Release bucket connections when the pool is no longer in use
+func (p *Pool) Close() {
+	// fine to loop through the buckets unlocked
+	// locking happens at the bucket level
+	for b, _ := range p.BucketMap {
+
+		// MB-33208 defer closing connection pools until the bucket is no longer used
+		bucket := p.BucketMap[b]
+		bucket.Lock()
+		bucket.closed = true
+		bucket.Unlock()
+	}
 }
 
 // GetBucket is a convenience function for getting a named bucket from

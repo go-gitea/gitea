@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/gitdiff"
 )
 
 // TemporaryUploadRepository is a type to wrap our upload repositories as a shallow clone
@@ -249,7 +250,7 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 
 // CommitTree creates a commit from a given tree for the user with provided message
 func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, treeHash string, message string) (string, error) {
-	commitTimeStr := time.Now().Format(time.UnixDate)
+	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
@@ -290,7 +291,7 @@ func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, b
 }
 
 // DiffIndex returns a Diff of the current index to the head
-func (t *TemporaryUploadRepository) DiffIndex() (diff *models.Diff, err error) {
+func (t *TemporaryUploadRepository) DiffIndex() (diff *gitdiff.Diff, err error) {
 	timeout := 5 * time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -313,7 +314,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (diff *models.Diff, err error) {
 	pid := process.GetManager().Add(fmt.Sprintf("diffIndex [repo_path: %s]", t.repo.RepoPath()), cmd)
 	defer process.GetManager().Remove(pid)
 
-	diff, err = models.ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdout)
+	diff, err = gitdiff.ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdout)
 	if err != nil {
 		return nil, fmt.Errorf("ParsePatch: %v", err)
 	}

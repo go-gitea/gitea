@@ -31,7 +31,7 @@ func (mi *MemoryIndex) GetIndexByHash(h plumbing.Hash) (int, error) {
 // GetCommitDataByIndex gets the commit node from the commit graph using index
 // obtained from child node, if available
 func (mi *MemoryIndex) GetCommitDataByIndex(i int) (*CommitData, error) {
-	if int(i) >= len(mi.commitData) {
+	if i >= len(mi.commitData) {
 		return nil, plumbing.ErrObjectNotFound
 	}
 

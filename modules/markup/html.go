@@ -13,10 +13,12 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 	"mvdan.cc/xurls/v2"
@@ -38,9 +40,9 @@ var (
 	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_\.]+)(?:\s|$|\)|\])`)
 
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
-	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|\.(\s|$))`)
+	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$))`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. gogits/gogs#12345
 	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
@@ -209,6 +211,40 @@ func RenderCommitMessage(
 	return ctx.postProcess(rawHTML)
 }
 
+var commitMessageSubjectProcessors = []processor{
+	fullIssuePatternProcessor,
+	fullSha1PatternProcessor,
+	linkProcessor,
+	mentionProcessor,
+	issueIndexPatternProcessor,
+	crossReferenceIssueIndexPatternProcessor,
+	sha1CurrentPatternProcessor,
+}
+
+// RenderCommitMessageSubject will use the same logic as PostProcess and
+// RenderCommitMessage, but will disable the shortLinkProcessor and
+// emailAddressProcessor, will add a defaultLinkProcessor if defaultLink is set,
+// which changes every text node into a link to the passed default link.
+func RenderCommitMessageSubject(
+	rawHTML []byte,
+	urlPrefix, defaultLink string,
+	metas map[string]string,
+) ([]byte, error) {
+	ctx := &postProcessCtx{
+		metas:     metas,
+		urlPrefix: urlPrefix,
+		procs:     commitMessageSubjectProcessors,
+	}
+	if defaultLink != "" {
+		// we don't have to fear data races, because being
+		// commitMessageSubjectProcessors of fixed len and cap, every time we
+		// append something to it the slice is realloc+copied, so append always
+		// generates the slice ex-novo.
+		ctx.procs = append(ctx.procs, genDefaultLinkProcessor(defaultLink))
+	}
+	return ctx.postProcess(rawHTML)
+}
+
 // RenderDescriptionHTML will use similar logic as PostProcess, but will
 // use a single special linkProcessor.
 func RenderDescriptionHTML(
@@ -294,12 +330,17 @@ func (ctx *postProcessCtx) textNode(node *html.Node) {
 	}
 }
 
-func createLink(href, content string) *html.Node {
+func createLink(href, content, class string) *html.Node {
 	a := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.A.String(),
 		Attr: []html.Attribute{{Key: "href", Val: href}},
 	}
+
+	if class != "" {
+		a.Attr = append(a.Attr, html.Attribute{Key: "class", Val: class})
+	}
+
 	text := &html.Node{
 		Type: html.TextNode,
 		Data: content,
@@ -309,12 +350,17 @@ func createLink(href, content string) *html.Node {
 	return a
 }
 
-func createCodeLink(href, content string) *html.Node {
+func createCodeLink(href, content, class string) *html.Node {
 	a := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.A.String(),
 		Attr: []html.Attribute{{Key: "href", Val: href}},
 	}
+
+	if class != "" {
+		a.Attr = append(a.Attr, html.Attribute{Key: "class", Val: class})
+	}
+
 	text := &html.Node{
 		Type: html.TextNode,
 		Data: content,
@@ -362,7 +408,7 @@ func mentionProcessor(_ *postProcessCtx, node *html.Node) {
 	}
 	// Replace the mention with a link to the specified user.
 	mention := node.Data[m[2]:m[3]]
-	replaceContent(node, m[2], m[3], createLink(util.URLJoin(setting.AppURL, mention[1:]), mention))
+	replaceContent(node, m[2], m[3], createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
 }
 
 func shortLinkProcessor(ctx *postProcessCtx, node *html.Node) {
@@ -438,7 +484,7 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 
 	name += tail
 	image := false
-	switch ext := filepath.Ext(string(link)); ext {
+	switch ext := filepath.Ext(link); ext {
 	// fast path: empty string, ignore
 	case "":
 		break
@@ -482,7 +528,7 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 			title = props["alt"]
 		}
 		if title == "" {
-			title = path.Base(string(name))
+			title = path.Base(name)
 		}
 		alt := props["alt"]
 		if alt == "" {
@@ -539,11 +585,11 @@ func fullIssuePatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	if matchOrg == ctx.metas["user"] && matchRepo == ctx.metas["repo"] {
 		// TODO if m[4]:m[5] is not nil, then link is to a comment,
 		// and we should indicate that in the text somehow
-		replaceContent(node, m[0], m[1], createLink(link, id))
+		replaceContent(node, m[0], m[1], createLink(link, id, "issue"))
 
 	} else {
 		orgRepoID := matchOrg + "/" + matchRepo + id
-		replaceContent(node, m[0], m[1], createLink(link, orgRepoID))
+		replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "issue"))
 	}
 }
 
@@ -571,9 +617,9 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 		} else {
 			ctx.metas["index"] = id[1:]
 		}
-		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), id)
+		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), id, "issue")
 	} else {
-		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", id[1:]), id)
+		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", id[1:]), id, "issue")
 	}
 	replaceContent(node, match[2], match[3], link)
 }
@@ -589,7 +635,7 @@ func crossReferenceIssueIndexPatternProcessor(ctx *postProcessCtx, node *html.No
 	repo, issue := parts[0], parts[1]
 
 	replaceContent(node, m[2], m[3],
-		createLink(util.URLJoin(setting.AppURL, repo, "issues", issue), ref))
+		createLink(util.URLJoin(setting.AppURL, repo, "issues", issue), ref, issue))
 }
 
 // fullSha1PatternProcessor renders SHA containing URLs
@@ -640,12 +686,15 @@ func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
 		text += " (" + hash + ")"
 	}
 
-	replaceContent(node, start, end, createCodeLink(urlFull, text))
+	replaceContent(node, start, end, createCodeLink(urlFull, text, "commit"))
 }
 
 // sha1CurrentPatternProcessor renders SHA1 strings to corresponding links that
 // are assumed to be in the same repository.
 func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
+	if ctx.metas == nil || ctx.metas["user"] == "" || ctx.metas["repo"] == "" || ctx.metas["repoPath"] == "" {
+		return
+	}
 	m := sha1CurrentPattern.FindStringSubmatchIndex(node.Data)
 	if m == nil {
 		return
@@ -657,8 +706,17 @@ func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	// but that is not always the case.
 	// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
 	// as used by git and github for linking and thus we have to do similar.
+	// Because of this, we check to make sure that a matched hash is actually
+	// a commit in the repository before making it a link.
+	if _, err := git.NewCommand("rev-parse", "--verify", hash).RunInDirBytes(ctx.metas["repoPath"]); err != nil {
+		if !strings.Contains(err.Error(), "fatal: Needed a single revision") {
+			log.Debug("sha1CurrentPatternProcessor git rev-parse: %v", err)
+		}
+		return
+	}
+
 	replaceContent(node, m[2], m[3],
-		createCodeLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "commit", hash), base.ShortSha(hash)))
+		createCodeLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "commit", hash), base.ShortSha(hash), "commit"))
 }
 
 // emailAddressProcessor replaces raw email addresses with a mailto: link.
@@ -668,7 +726,7 @@ func emailAddressProcessor(ctx *postProcessCtx, node *html.Node) {
 		return
 	}
 	mail := node.Data[m[2]:m[3]]
-	replaceContent(node, m[2], m[3], createLink("mailto:"+mail, mail))
+	replaceContent(node, m[2], m[3], createLink("mailto:"+mail, mail, "mailto"))
 }
 
 // linkProcessor creates links for any HTTP or HTTPS URL not captured by
@@ -679,7 +737,7 @@ func linkProcessor(ctx *postProcessCtx, node *html.Node) {
 		return
 	}
 	uri := node.Data[m[0]:m[1]]
-	replaceContent(node, m[0], m[1], createLink(uri, uri))
+	replaceContent(node, m[0], m[1], createLink(uri, uri, "link"))
 }
 
 func genDefaultLinkProcessor(defaultLink string) processor {
@@ -693,7 +751,10 @@ func genDefaultLinkProcessor(defaultLink string) processor {
 		node.Type = html.ElementNode
 		node.Data = "a"
 		node.DataAtom = atom.A
-		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}}
+		node.Attr = []html.Attribute{
+			{Key: "href", Val: defaultLink},
+			{Key: "class", Val: "default-link"},
+		}
 		node.FirstChild, node.LastChild = ch, ch
 	}
 }

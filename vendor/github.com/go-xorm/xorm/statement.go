@@ -6,7 +6,6 @@ package xorm
 
 import (
 	"database/sql/driver"
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -53,9 +52,9 @@ type Statement struct {
 	omitColumnMap   columnMap
 	mustColumnMap   map[string]bool
 	nullableMap     map[string]bool
-	incrColumns     map[string]incrParam
-	decrColumns     map[string]decrParam
-	exprColumns     map[string]exprParam
+	incrColumns     exprParams
+	decrColumns     exprParams
+	exprColumns     exprParams
 	cond            builder.Cond
 	bufferSize      int
 	context         ContextCache
@@ -95,9 +94,9 @@ func (statement *Statement) Init() {
 	statement.nullableMap = make(map[string]bool)
 	statement.checkVersion = true
 	statement.unscoped = false
-	statement.incrColumns = make(map[string]incrParam)
-	statement.decrColumns = make(map[string]decrParam)
-	statement.exprColumns = make(map[string]exprParam)
+	statement.incrColumns = exprParams{}
+	statement.decrColumns = exprParams{}
+	statement.exprColumns = exprParams{}
 	statement.cond = builder.NewCond()
 	statement.bufferSize = 0
 	statement.context = nil
@@ -267,6 +266,14 @@ func (statement *Statement) buildUpdates(bean interface{},
 			continue
 		}
 
+		if statement.incrColumns.isColExist(col.Name) {
+			continue
+		} else if statement.decrColumns.isColExist(col.Name) {
+			continue
+		} else if statement.exprColumns.isColExist(col.Name) {
+			continue
+		}
+
 		fieldValuePtr, err := col.ValueOf(bean)
 		if err != nil {
 			engine.logger.Error(err)
@@ -398,7 +405,7 @@ func (statement *Statement) buildUpdates(bean interface{},
 								continue
 							}
 						} else {
-							//TODO: how to handler?
+							// TODO: how to handler?
 							panic("not supported")
 						}
 					} else {
@@ -535,65 +542,35 @@ func (statement *Statement) ID(id interface{}) *Statement {
 
 // Incr Generate  "Update ... Set column = column + arg" statement
 func (statement *Statement) Incr(column string, arg ...interface{}) *Statement {
-	k := strings.ToLower(column)
 	if len(arg) > 0 {
-		statement.incrColumns[k] = incrParam{column, arg[0]}
+		statement.incrColumns.addParam(column, arg[0])
 	} else {
-		statement.incrColumns[k] = incrParam{column, 1}
+		statement.incrColumns.addParam(column, 1)
 	}
 	return statement
 }
 
 // Decr Generate  "Update ... Set column = column - arg" statement
 func (statement *Statement) Decr(column string, arg ...interface{}) *Statement {
-	k := strings.ToLower(column)
 	if len(arg) > 0 {
-		statement.decrColumns[k] = decrParam{column, arg[0]}
+		statement.decrColumns.addParam(column, arg[0])
 	} else {
-		statement.decrColumns[k] = decrParam{column, 1}
+		statement.decrColumns.addParam(column, 1)
 	}
 	return statement
 }
 
 // SetExpr Generate  "Update ... Set column = {expression}" statement
-func (statement *Statement) SetExpr(column string, expression string) *Statement {
-	k := strings.ToLower(column)
-	statement.exprColumns[k] = exprParam{column, expression}
+func (statement *Statement) SetExpr(column string, expression interface{}) *Statement {
+	statement.exprColumns.addParam(column, expression)
 	return statement
-}
-
-// Generate  "Update ... Set column = column + arg" statement
-func (statement *Statement) getInc() map[string]incrParam {
-	return statement.incrColumns
-}
-
-// Generate  "Update ... Set column = column - arg" statement
-func (statement *Statement) getDec() map[string]decrParam {
-	return statement.decrColumns
-}
-
-// Generate  "Update ... Set column = {expression}" statement
-func (statement *Statement) getExpr() map[string]exprParam {
-	return statement.exprColumns
 }
 
 func (statement *Statement) col2NewColsWithQuote(columns ...string) []string {
 	newColumns := make([]string, 0)
+	quotes := append(strings.Split(statement.Engine.Quote(""), ""), "`")
 	for _, col := range columns {
-		col = strings.Replace(col, "`", "", -1)
-		col = strings.Replace(col, statement.Engine.QuoteStr(), "", -1)
-		ccols := strings.Split(col, ",")
-		for _, c := range ccols {
-			fields := strings.Split(strings.TrimSpace(c), ".")
-			if len(fields) == 1 {
-				newColumns = append(newColumns, statement.Engine.quote(fields[0]))
-			} else if len(fields) == 2 {
-				newColumns = append(newColumns, statement.Engine.quote(fields[0])+"."+
-					statement.Engine.quote(fields[1]))
-			} else {
-				panic(errors.New("unwanted colnames"))
-			}
-		}
+		newColumns = append(newColumns, statement.Engine.Quote(eraseAny(col, quotes...)))
 	}
 	return newColumns
 }
@@ -708,7 +685,7 @@ func (statement *Statement) OrderBy(order string) *Statement {
 
 // Desc generate `ORDER BY xx DESC`
 func (statement *Statement) Desc(colNames ...string) *Statement {
-	var buf builder.StringBuilder
+	var buf strings.Builder
 	if len(statement.OrderStr) > 0 {
 		fmt.Fprint(&buf, statement.OrderStr, ", ")
 	}
@@ -720,7 +697,7 @@ func (statement *Statement) Desc(colNames ...string) *Statement {
 
 // Asc provide asc order by query condition, the input parameters are columns.
 func (statement *Statement) Asc(colNames ...string) *Statement {
-	var buf builder.StringBuilder
+	var buf strings.Builder
 	if len(statement.OrderStr) > 0 {
 		fmt.Fprint(&buf, statement.OrderStr, ", ")
 	}
@@ -749,7 +726,7 @@ func (statement *Statement) Table(tableNameOrBean interface{}) *Statement {
 
 // Join The joinOP should be one of INNER, LEFT OUTER, CROSS etc - this will be prepended to JOIN
 func (statement *Statement) Join(joinOP string, tablename interface{}, condition string, args ...interface{}) *Statement {
-	var buf builder.StringBuilder
+	var buf strings.Builder
 	if len(statement.JoinStr) > 0 {
 		fmt.Fprintf(&buf, "%v %v JOIN ", statement.JoinStr, joinOP)
 	} else {
@@ -764,7 +741,9 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 			return statement
 		}
 		tbs := strings.Split(tp.TableName(), ".")
-		var aliasName = strings.Trim(tbs[len(tbs)-1], statement.Engine.QuoteStr())
+		quotes := append(strings.Split(statement.Engine.Quote(""), ""), "`")
+
+		var aliasName = strings.Trim(tbs[len(tbs)-1], strings.Join(quotes, ""))
 		fmt.Fprintf(&buf, "(%s) %s ON %v", subSQL, aliasName, condition)
 		statement.joinArgs = append(statement.joinArgs, subQueryArgs...)
 	case *builder.Builder:
@@ -774,7 +753,9 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 			return statement
 		}
 		tbs := strings.Split(tp.TableName(), ".")
-		var aliasName = strings.Trim(tbs[len(tbs)-1], statement.Engine.QuoteStr())
+		quotes := append(strings.Split(statement.Engine.Quote(""), ""), "`")
+
+		var aliasName = strings.Trim(tbs[len(tbs)-1], strings.Join(quotes, ""))
 		fmt.Fprintf(&buf, "(%s) %s ON %v", subSQL, aliasName, condition)
 		statement.joinArgs = append(statement.joinArgs, subQueryArgs...)
 	default:
@@ -810,7 +791,7 @@ func (statement *Statement) genColumnStr() string {
 		return ""
 	}
 
-	var buf builder.StringBuilder
+	var buf strings.Builder
 	columns := statement.RefTable.Columns()
 
 	for _, col := range columns {
@@ -1127,7 +1108,7 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit, n
 		}
 	}
 
-	var buf builder.StringBuilder
+	var buf strings.Builder
 	fmt.Fprintf(&buf, "SELECT %v%v%v%v%v", distinct, top, columnStr, fromStr, whereStr)
 	if len(mssqlCondi) > 0 {
 		if len(whereStr) > 0 {
@@ -1157,8 +1138,12 @@ func (statement *Statement) genSelectSQL(columnStr, condSQL string, needLimit, n
 			if statement.Start != 0 || statement.LimitN != 0 {
 				oldString := buf.String()
 				buf.Reset()
+				rawColStr := columnStr
+				if rawColStr == "*" {
+					rawColStr = "at.*"
+				}
 				fmt.Fprintf(&buf, "SELECT %v FROM (SELECT %v,ROWNUM RN FROM (%v) at WHERE ROWNUM <= %d) aat WHERE RN > %d",
-					columnStr, columnStr, oldString, statement.Start+statement.LimitN, statement.Start)
+					columnStr, rawColStr, oldString, statement.Start+statement.LimitN, statement.Start)
 			}
 		}
 	}
@@ -1242,7 +1227,7 @@ func (statement *Statement) convertUpdateSQL(sqlStr string) (string, string) {
 
 	var whereStr = sqls[1]
 
-	//TODO: for postgres only, if any other database?
+	// TODO: for postgres only, if any other database?
 	var paraStr string
 	if statement.Engine.dialect.DBType() == core.POSTGRES {
 		paraStr = "$"
