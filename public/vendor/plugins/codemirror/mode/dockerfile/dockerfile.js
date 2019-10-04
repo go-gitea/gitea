@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -11,30 +11,64 @@
 })(function(CodeMirror) {
   "use strict";
 
+  var from = "from";
+  var fromRegex = new RegExp("^(\\s*)\\b(" + from + ")\\b", "i");
+
+  var shells = ["run", "cmd", "entrypoint", "shell"];
+  var shellsAsArrayRegex = new RegExp("^(\\s*)(" + shells.join('|') + ")(\\s+\\[)", "i");
+
+  var expose = "expose";
+  var exposeRegex = new RegExp("^(\\s*)(" + expose + ")(\\s+)", "i");
+
+  var others = [
+    "arg", "from", "maintainer", "label", "env",
+    "add", "copy", "volume", "user",
+    "workdir", "onbuild", "stopsignal", "healthcheck", "shell"
+  ];
+
   // Collect all Dockerfile directives
-  var instructions = ["from", "maintainer", "run", "cmd", "expose", "env",
-                      "add", "copy", "entrypoint", "volume", "user",
-                      "workdir", "onbuild"],
+  var instructions = [from, expose].concat(shells).concat(others),
       instructionRegex = "(" + instructions.join('|') + ")",
-      instructionOnlyLine = new RegExp(instructionRegex + "\\s*$", "i"),
-      instructionWithArguments = new RegExp(instructionRegex + "(\\s+)", "i");
+      instructionOnlyLine = new RegExp("^(\\s*)" + instructionRegex + "(\\s*)(#.*)?$", "i"),
+      instructionWithArguments = new RegExp("^(\\s*)" + instructionRegex + "(\\s+)", "i");
 
   CodeMirror.defineSimpleMode("dockerfile", {
     start: [
       // Block comment: This is a line starting with a comment
       {
-        regex: /#.*$/,
+        regex: /^\s*#.*$/,
+        sol: true,
         token: "comment"
+      },
+      {
+        regex: fromRegex,
+        token: [null, "keyword"],
+        sol: true,
+        next: "from"
       },
       // Highlight an instruction without any arguments (for convenience)
       {
         regex: instructionOnlyLine,
-        token: "variable-2"
+        token: [null, "keyword", null, "error"],
+        sol: true
+      },
+      {
+        regex: shellsAsArrayRegex,
+        token: [null, "keyword", null],
+        sol: true,
+        next: "array"
+      },
+      {
+        regex: exposeRegex,
+        token: [null, "keyword", null],
+        sol: true,
+        next: "expose"
       },
       // Highlight an instruction followed by arguments
       {
         regex: instructionWithArguments,
-        token: ["variable-2", null],
+        token: [null, "keyword", null],
+        sol: true,
         next: "arguments"
       },
       {
@@ -42,26 +76,21 @@
         token: null
       }
     ],
-    arguments: [
+    from: [
+      {
+        regex: /\s*$/,
+        token: null,
+        next: "start"
+      },
       {
         // Line comment without instruction arguments is an error
-        regex: /#.*$/,
-        token: "error",
+        regex: /(\s*)(#.*)$/,
+        token: [null, "error"],
         next: "start"
       },
       {
-        regex: /[^#]+\\$/,
-        token: null
-      },
-      {
-        // Match everything except for the inline comment
-        regex: /[^#]+/,
-        token: null,
-        next: "start"
-      },
-      {
-        regex: /$/,
-        token: null,
+        regex: /(\s*\S+\s+)(as)/i,
+        token: [null, "keyword"],
         next: "start"
       },
       // Fail safe return to start
@@ -70,9 +99,112 @@
         next: "start"
       }
     ],
-      meta: {
-          lineComment: "#"
+    single: [
+      {
+        regex: /(?:[^\\']|\\.)/,
+        token: "string"
+      },
+      {
+        regex: /'/,
+        token: "string",
+        pop: true
       }
+    ],
+    double: [
+      {
+        regex: /(?:[^\\"]|\\.)/,
+        token: "string"
+      },
+      {
+        regex: /"/,
+        token: "string",
+        pop: true
+      }
+    ],
+    array: [
+      {
+        regex: /\]/,
+        token: null,
+        next: "start"
+      },
+      {
+        regex: /"(?:[^\\"]|\\.)*"?/,
+        token: "string"
+      }
+    ],
+    expose: [
+      {
+        regex: /\d+$/,
+        token: "number",
+        next: "start"
+      },
+      {
+        regex: /[^\d]+$/,
+        token: null,
+        next: "start"
+      },
+      {
+        regex: /\d+/,
+        token: "number"
+      },
+      {
+        regex: /[^\d]+/,
+        token: null
+      },
+      // Fail safe return to start
+      {
+        token: null,
+        next: "start"
+      }
+    ],
+    arguments: [
+      {
+        regex: /^\s*#.*$/,
+        sol: true,
+        token: "comment"
+      },
+      {
+        regex: /"(?:[^\\"]|\\.)*"?$/,
+        token: "string",
+        next: "start"
+      },
+      {
+        regex: /"/,
+        token: "string",
+        push: "double"
+      },
+      {
+        regex: /'(?:[^\\']|\\.)*'?$/,
+        token: "string",
+        next: "start"
+      },
+      {
+        regex: /'/,
+        token: "string",
+        push: "single"
+      },
+      {
+        regex: /[^#"']+[\\`]$/,
+        token: null
+      },
+      {
+        regex: /[^#"']+$/,
+        token: null,
+        next: "start"
+      },
+      {
+        regex: /[^#"']+/,
+        token: null
+      },
+      // Fail safe return to start
+      {
+        token: null,
+        next: "start"
+      }
+    ],
+    meta: {
+      lineComment: "#"
+    }
   });
 
   CodeMirror.defineMIME("text/x-dockerfile", "dockerfile");

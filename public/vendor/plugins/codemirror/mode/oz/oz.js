@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -27,7 +27,7 @@ CodeMirror.defineMode("oz", function (conf) {
 
   var atoms = wordRegexp(["true", "false", "nil", "unit"]);
   var commonKeywords = wordRegexp(["andthen", "at", "attr", "declare", "feat", "from", "lex",
-    "mod", "mode", "orelse", "parser", "prod", "prop", "scanner", "self", "syn", "token"]);
+    "mod", "div", "mode", "orelse", "parser", "prod", "prop", "scanner", "self", "syn", "token"]);
   var openingKeywords = wordRegexp(["local", "proc", "fun", "case", "class", "if", "cond", "or", "dis",
     "choice", "not", "thread", "try", "raise", "lock", "for", "suchthat", "meth", "functor"]);
   var middleKeywords = wordRegexp(middle);

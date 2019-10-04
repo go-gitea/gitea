@@ -8,11 +8,12 @@
 <script src="../../lib/codemirror.js"></script>
 <script src="../../addon/mode/simple.js"></script>
 <script src="../../addon/mode/multiplex.js"></script>
+<script src="../../addon/edit/matchbrackets.js"></script>
 <script src="../xml/xml.js"></script>
 <script src="handlebars.js"></script>
 <style>.CodeMirror {border-top: 1px solid black; border-bottom: 1px solid black;}</style>
 <div id=nav>
-  <a href="http://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
+  <a href="https://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
 
   <ul>
     <li><a href="../../index.html">Home</a>
@@ -39,6 +40,8 @@
 <h1>{{t 'article_list'}}</h1>
 
 {{! one line comment }}
+
+{{{propertyContainingRawHtml}}}
 
 {{#each articles}}
   {{~title}}

@@ -12,7 +12,7 @@
   .CodeMirror {border-top: 1px solid black; border-bottom: 1px solid black;}
 </style>
 <div id=nav>
-  <a href="http://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
+  <a href="https://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
 
   <ul>
     <li><a href="../../index.html">Home</a>
@@ -132,6 +132,25 @@ let () =
 
 (* A Hundred Lines of Caml - http://caml.inria.fr/about/taste.en.html *)
 (* OCaml page on Wikipedia - http://en.wikipedia.org/wiki/OCaml *)
+
+module type S = sig type t end
+
+let x = {| 
+  this is a long string 
+  with many lines and stuff
+  |}
+
+let b = 0b00110
+let h = 0x123abcd
+let e = 1e-10
+let i = 1.
+let x = 30_000
+let o = 0o1234
+
+[1; 2; 3] (* lists *)
+
+1 @ 2
+1. +. 2.
 </textarea>
 
 <h2>F# mode</h2>

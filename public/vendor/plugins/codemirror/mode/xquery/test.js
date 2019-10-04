@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 // Don't take these too seriously -- the expected results appear to be
 // based on the results of actual runs without any serious manual
@@ -20,14 +20,14 @@
      "          [def&variable fn:doc]()[[ [variable foo][keyword /][variable @bar] [keyword eq] [variable $let] ]],",
      "          [keyword //][variable x] }                 [comment (: a more 'evil' test :)]",
      "      [comment (: Modified Blakeley example (: with nested comment :) ... :)]",
-     "      [keyword declare] [keyword private] [keyword function] [def&variable local:declare]() {()}[variable ;]",
-     "      [keyword declare] [keyword private] [keyword function] [def&variable local:private]() {()}[variable ;]",
-     "      [keyword declare] [keyword private] [keyword function] [def&variable local:function]() {()}[variable ;]",
-     "      [keyword declare] [keyword private] [keyword function] [def&variable local:local]() {()}[variable ;]",
+     "      [keyword declare] [variable private] [keyword function] [def&variable local:declare]() {()}[variable ;]",
+     "      [keyword declare] [variable private] [keyword function] [def&variable local:private]() {()}[variable ;]",
+     "      [keyword declare] [variable private] [keyword function] [def&variable local:function]() {()}[variable ;]",
+     "      [keyword declare] [variable private] [keyword function] [def&variable local:local]() {()}[variable ;]",
      "      [keyword let] [variable $let] [keyword :=] [variable &lt;let&gt;let] [variable $let] [keyword :=] [variable &quot;let&quot;&lt;][keyword /let][variable &gt;]",
      "      [keyword return] [keyword element] [variable element] {",
      "          [keyword attribute] [variable attribute] { [keyword try] { [def&variable xdmp:version]() } [keyword catch]([variable $e]) { [def&variable xdmp:log]([variable $e]) } },",
-     "          [keyword attribute] [variable fn:doc] { [variable &quot;bar&quot;] [variable castable] [keyword as] [atom xs:string] },",
+     "          [keyword attribute] [variable fn:doc] { [variable &quot;bar&quot;] [keyword castable] [keyword as] [atom xs:string] },",
      "          [keyword element] [variable text] { [keyword text] { [variable &quot;text&quot;] } },",
      "          [def&variable fn:doc]()[[ [qualifier child::][variable eq][keyword /]([variable @bar] [keyword |] [qualifier attribute::][variable attribute]) [keyword eq] [variable $let] ]],",
      "          [keyword //][variable fn:doc]",

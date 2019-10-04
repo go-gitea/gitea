@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -77,6 +77,7 @@
 
   function asToken(val) {
     if (!val) return null;
+    if (val.apply) return val
     if (typeof val == "string") return val.replace(/\./g, " ");
     var result = [];
     for (var i = 0; i < val.length; i++)
@@ -133,17 +134,19 @@
             state.indent.push(stream.indentation() + config.indentUnit);
           if (rule.data.dedent)
             state.indent.pop();
-          if (matches.length > 2) {
+          var token = rule.token
+          if (token && token.apply) token = token(matches)
+          if (matches.length > 2 && rule.token && typeof rule.token != "string") {
             state.pending = [];
             for (var j = 2; j < matches.length; j++)
               if (matches[j])
                 state.pending.push({text: matches[j], token: rule.token[j - 1]});
             stream.backUp(matches[0].length - (matches[1] ? matches[1].length : 0));
-            return rule.token[0];
-          } else if (rule.token && rule.token.join) {
-            return rule.token[0];
+            return token[0];
+          } else if (token && token.join) {
+            return token[0];
           } else {
-            return rule.token;
+            return token;
           }
         }
       }

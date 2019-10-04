@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -25,7 +25,7 @@ CodeMirror.defineMode("q",function(config){
         return(state.tokenize=tokenLineComment)(stream,state);
       else if(c=="\\"){
         if(stream.eol()||/\s/.test(stream.peek()))
-          return stream.skipToEnd(),/^\\\s*$/.test(stream.current())?(state.tokenize=tokenCommentToEOF)(stream, state):state.tokenize=tokenBase,"comment";
+          return stream.skipToEnd(),/^\\\s*$/.test(stream.current())?(state.tokenize=tokenCommentToEOF)(stream):state.tokenize=tokenBase,"comment";
         else
           return state.tokenize=tokenBase,"builtin";
       }
@@ -34,25 +34,25 @@ CodeMirror.defineMode("q",function(config){
     if(c=='"')
       return(state.tokenize=tokenString)(stream,state);
     if(c=='`')
-      return stream.eatWhile(/[A-Z|a-z|\d|_|:|\/|\.]/),"symbol";
+      return stream.eatWhile(/[A-Za-z\d_:\/.]/),"symbol";
     if(("."==c&&/\d/.test(stream.peek()))||/\d/.test(c)){
       var t=null;
       stream.backUp(1);
-      if(stream.match(/^\d{4}\.\d{2}(m|\.\d{2}([D|T](\d{2}(:\d{2}(:\d{2}(\.\d{1,9})?)?)?)?)?)/)
+      if(stream.match(/^\d{4}\.\d{2}(m|\.\d{2}([DT](\d{2}(:\d{2}(:\d{2}(\.\d{1,9})?)?)?)?)?)/)
       || stream.match(/^\d+D(\d{2}(:\d{2}(:\d{2}(\.\d{1,9})?)?)?)/)
       || stream.match(/^\d{2}:\d{2}(:\d{2}(\.\d{1,9})?)?/)
       || stream.match(/^\d+[ptuv]{1}/))
         t="temporal";
       else if(stream.match(/^0[NwW]{1}/)
-      || stream.match(/^0x[\d|a-f|A-F]*/)
-      || stream.match(/^[0|1]+[b]{1}/)
+      || stream.match(/^0x[\da-fA-F]*/)
+      || stream.match(/^[01]+[b]{1}/)
       || stream.match(/^\d+[chijn]{1}/)
       || stream.match(/-?\d*(\.\d*)?(e[+\-]?\d+)?(e|f)?/))
         t="number";
       return(t&&(!(c=stream.peek())||E.test(c)))?t:(stream.next(),"error");
     }
-    if(/[A-Z|a-z]|\./.test(c))
-      return stream.eatWhile(/[A-Z|a-z|\.|_|\d]/),keywords.test(stream.current())?"keyword":"variable";
+    if(/[A-Za-z]|\./.test(c))
+      return stream.eatWhile(/[A-Za-z._\d]/),keywords.test(stream.current())?"keyword":"variable";
     if(/[|/&^!+:\\\-*%$=~#;@><\.,?_\']/.test(c))
       return null;
     if(/[{}\(\[\]\)]/.test(c))

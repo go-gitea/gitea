@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -19,41 +19,52 @@ CodeMirror.defineMode("xquery", function() {
   var keywords = function(){
     // convenience functions used to build keywords object
     function kw(type) {return {type: type, style: "keyword"};}
-    var A = kw("keyword a")
-      , B = kw("keyword b")
-      , C = kw("keyword c")
-      , operator = kw("operator")
+    var operator = kw("operator")
       , atom = {type: "atom", style: "atom"}
       , punctuation = {type: "punctuation", style: null}
       , qualifier = {type: "axis_specifier", style: "qualifier"};
 
     // kwObj is what is return from this function at the end
     var kwObj = {
-      'if': A, 'switch': A, 'while': A, 'for': A,
-      'else': B, 'then': B, 'try': B, 'finally': B, 'catch': B,
-      'element': C, 'attribute': C, 'let': C, 'implements': C, 'import': C, 'module': C, 'namespace': C,
-      'return': C, 'super': C, 'this': C, 'throws': C, 'where': C, 'private': C,
-      ',': punctuation,
-      'null': atom, 'fn:false()': atom, 'fn:true()': atom
+      ',': punctuation
     };
 
     // a list of 'basic' keywords. For each add a property to kwObj with the value of
     // {type: basic[i], style: "keyword"} e.g. 'after' --> {type: "after", style: "keyword"}
-    var basic = ['after','ancestor','ancestor-or-self','and','as','ascending','assert','attribute','before',
-    'by','case','cast','child','comment','declare','default','define','descendant','descendant-or-self',
-    'descending','document','document-node','element','else','eq','every','except','external','following',
-    'following-sibling','follows','for','function','if','import','in','instance','intersect','item',
-    'let','module','namespace','node','node','of','only','or','order','parent','precedes','preceding',
-    'preceding-sibling','processing-instruction','ref','return','returns','satisfies','schema','schema-element',
-    'self','some','sortby','stable','text','then','to','treat','typeswitch','union','variable','version','where',
-    'xquery', 'empty-sequence'];
+    var basic = ['after', 'all', 'allowing', 'ancestor', 'ancestor-or-self', 'any', 'array', 'as',
+    'ascending', 'at', 'attribute', 'base-uri', 'before', 'boundary-space', 'by', 'case', 'cast',
+    'castable', 'catch', 'child', 'collation', 'comment', 'construction', 'contains', 'content',
+    'context', 'copy', 'copy-namespaces', 'count', 'decimal-format', 'declare', 'default', 'delete',
+    'descendant', 'descendant-or-self', 'descending', 'diacritics', 'different', 'distance',
+    'document', 'document-node', 'element', 'else', 'empty', 'empty-sequence', 'encoding', 'end',
+    'entire', 'every', 'exactly', 'except', 'external', 'first', 'following', 'following-sibling',
+    'for', 'from', 'ftand', 'ftnot', 'ft-option', 'ftor', 'function', 'fuzzy', 'greatest', 'group',
+    'if', 'import', 'in', 'inherit', 'insensitive', 'insert', 'instance', 'intersect', 'into',
+    'invoke', 'is', 'item', 'language', 'last', 'lax', 'least', 'let', 'levels', 'lowercase', 'map',
+    'modify', 'module', 'most', 'namespace', 'next', 'no', 'node', 'nodes', 'no-inherit',
+    'no-preserve', 'not', 'occurs', 'of', 'only', 'option', 'order', 'ordered', 'ordering',
+    'paragraph', 'paragraphs', 'parent', 'phrase', 'preceding', 'preceding-sibling', 'preserve',
+    'previous', 'processing-instruction', 'relationship', 'rename', 'replace', 'return',
+    'revalidation', 'same', 'satisfies', 'schema', 'schema-attribute', 'schema-element', 'score',
+    'self', 'sensitive', 'sentence', 'sentences', 'sequence', 'skip', 'sliding', 'some', 'stable',
+    'start', 'stemming', 'stop', 'strict', 'strip', 'switch', 'text', 'then', 'thesaurus', 'times',
+    'to', 'transform', 'treat', 'try', 'tumbling', 'type', 'typeswitch', 'union', 'unordered',
+    'update', 'updating', 'uppercase', 'using', 'validate', 'value', 'variable', 'version',
+    'weight', 'when', 'where', 'wildcards', 'window', 'with', 'without', 'word', 'words', 'xquery'];
     for(var i=0, l=basic.length; i < l; i++) { kwObj[basic[i]] = kw(basic[i]);};
 
     // a list of types. For each add a property to kwObj with the value of
     // {type: "atom", style: "atom"}
-    var types = ['xs:string', 'xs:float', 'xs:decimal', 'xs:double', 'xs:integer', 'xs:boolean', 'xs:date', 'xs:dateTime',
-    'xs:time', 'xs:duration', 'xs:dayTimeDuration', 'xs:time', 'xs:yearMonthDuration', 'numeric', 'xs:hexBinary',
-    'xs:base64Binary', 'xs:anyURI', 'xs:QName', 'xs:byte','xs:boolean','xs:anyURI','xf:yearMonthDuration'];
+    var types = ['xs:anyAtomicType', 'xs:anySimpleType', 'xs:anyType', 'xs:anyURI',
+    'xs:base64Binary', 'xs:boolean', 'xs:byte', 'xs:date', 'xs:dateTime', 'xs:dateTimeStamp',
+    'xs:dayTimeDuration', 'xs:decimal', 'xs:double', 'xs:duration', 'xs:ENTITIES', 'xs:ENTITY',
+    'xs:float', 'xs:gDay', 'xs:gMonth', 'xs:gMonthDay', 'xs:gYear', 'xs:gYearMonth', 'xs:hexBinary',
+    'xs:ID', 'xs:IDREF', 'xs:IDREFS', 'xs:int', 'xs:integer', 'xs:item', 'xs:java', 'xs:language',
+    'xs:long', 'xs:Name', 'xs:NCName', 'xs:negativeInteger', 'xs:NMTOKEN', 'xs:NMTOKENS',
+    'xs:nonNegativeInteger', 'xs:nonPositiveInteger', 'xs:normalizedString', 'xs:NOTATION',
+    'xs:numeric', 'xs:positiveInteger', 'xs:precisionDecimal', 'xs:QName', 'xs:short', 'xs:string',
+    'xs:time', 'xs:token', 'xs:unsignedByte', 'xs:unsignedInt', 'xs:unsignedLong',
+    'xs:unsignedShort', 'xs:untyped', 'xs:untypedAtomic', 'xs:yearMonthDuration'];
     for(var i=0, l=types.length; i < l; i++) { kwObj[types[i]] = atom;};
 
     // each operator will add a property to kwObj with value of {type: "operator", style: "keyword"}
@@ -102,7 +113,7 @@ CodeMirror.defineMode("xquery", function() {
     }
     // start code block
     else if(ch == "{") {
-      pushStateStack(state,{ type: "codeblock"});
+      pushStateStack(state, { type: "codeblock"});
       return null;
     }
     // end code block
@@ -132,7 +143,7 @@ CodeMirror.defineMode("xquery", function() {
       return chain(stream, state, tokenComment);
     }
     // quoted string
-    else if (  !isEQName && (ch === '"' || ch === "'"))
+    else if (!isEQName && (ch === '"' || ch === "'"))
       return chain(stream, state, tokenString(ch));
     // variable
     else if(ch === "$") {

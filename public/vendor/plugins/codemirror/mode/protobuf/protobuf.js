@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -19,7 +19,8 @@
     "package", "message", "import", "syntax",
     "required", "optional", "repeated", "reserved", "default", "extensions", "packed",
     "bool", "bytes", "double", "enum", "float", "string",
-    "int32", "int64", "uint32", "uint64", "sint32", "sint64", "fixed32", "fixed64", "sfixed32", "sfixed64"
+    "int32", "int64", "uint32", "uint64", "sint32", "sint64", "fixed32", "fixed64", "sfixed32", "sfixed64",
+    "option", "service", "rpc", "returns"
   ];
   var keywords = wordRegexp(keywordArray);
 

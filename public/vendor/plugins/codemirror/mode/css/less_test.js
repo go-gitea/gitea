@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function() {
   "use strict";
@@ -10,8 +10,8 @@
   MT("variable",
      "[variable-2 @base]: [atom #f04615];",
      "[qualifier .class] {",
-     "  [property width]: [variable percentage]([number 0.5]); [comment // returns `50%`]",
-     "  [property color]: [variable saturate]([variable-2 @base], [number 5%]);",
+     "  [property width]: [variable&callee percentage]([number 0.5]); [comment // returns `50%`]",
+     "  [property color]: [variable&callee saturate]([variable-2 @base], [number 5%]);",
      "}");
 
   MT("amp",
@@ -26,10 +26,10 @@
 
   MT("mixin",
      "[qualifier .mixin] ([variable dark]; [variable-2 @color]) {",
-     "  [property color]: [atom darken]([variable-2 @color], [number 10%]);",
+     "  [property color]: [variable&callee darken]([variable-2 @color], [number 10%]);",
      "}",
      "[qualifier .mixin] ([variable light]; [variable-2 @color]) {",
-     "  [property color]: [atom lighten]([variable-2 @color], [number 10%]);",
+     "  [property color]: [variable&callee lighten]([variable-2 @color], [number 10%]);",
      "}",
      "[qualifier .mixin] ([variable-2 @_]; [variable-2 @color]) {",
      "  [property display]: [atom block];",

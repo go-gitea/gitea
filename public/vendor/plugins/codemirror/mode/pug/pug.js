@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -11,7 +11,7 @@
 })(function(CodeMirror) {
 "use strict";
 
-CodeMirror.defineMode('jade', function (config) {
+CodeMirror.defineMode("pug", function (config) {
   // token types
   var KEYWORD = 'keyword';
   var DOCTYPE = 'meta';
@@ -585,6 +585,7 @@ CodeMirror.defineMode('jade', function (config) {
   };
 }, 'javascript', 'css', 'htmlmixed');
 
-CodeMirror.defineMIME('text/x-jade', 'jade');
+CodeMirror.defineMIME('text/x-pug', 'pug');
+CodeMirror.defineMIME('text/x-jade', 'pug');
 
 });

@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 /**
  * Author: Koh Zi Han, based on implementation by Koh Zi Chun
@@ -73,7 +73,8 @@ CodeMirror.defineMode("scheme", function () {
                 indentStack: null,
                 indentation: 0,
                 mode: false,
-                sExprComment: false
+                sExprComment: false,
+                sExprQuote: false
             };
         },
 
@@ -121,7 +122,7 @@ CodeMirror.defineMode("scheme", function () {
                         state.sExprComment = 0;
                     }else{
                         // if not we just comment the entire of the next token
-                        stream.eatWhile(/[^/s]/); // eat non spaces
+                        stream.eatWhile(/[^\s\(\)\[\]]/); // eat symbol atom
                         returnType = COMMENT;
                         break;
                     }
@@ -133,7 +134,15 @@ CodeMirror.defineMode("scheme", function () {
                         returnType = STRING;
 
                     } else if (ch == "'") {
-                        returnType = ATOM;
+                        if (stream.peek() == "(" || stream.peek() == "["){
+                            if (typeof state.sExprQuote != "number") {
+                                state.sExprQuote = 0;
+                            } // else already in a quoted expression
+                            returnType = ATOM;
+                        } else {
+                            stream.eatWhile(/[\w_\-!$%&*+\.\/:<=>?@\^~]/);
+                            returnType = ATOM;
+                        }
                     } else if (ch == '#') {
                         if (stream.eat("|")) {                    // Multi-line comment
                             state.mode = "comment"; // toggle to comment mode
@@ -209,6 +218,7 @@ CodeMirror.defineMode("scheme", function () {
                         stream.backUp(stream.current().length - 1); // undo all the eating
 
                         if(typeof state.sExprComment == "number") state.sExprComment++;
+                        if(typeof state.sExprQuote == "number") state.sExprQuote++;
 
                         returnType = BRACKET;
                     } else if (ch == ")" || ch == "]") {
@@ -222,16 +232,22 @@ CodeMirror.defineMode("scheme", function () {
                                     state.sExprComment = false; // turn off s-expr commenting mode
                                 }
                             }
+                            if(typeof state.sExprQuote == "number"){
+                                if(--state.sExprQuote == 0){
+                                    returnType = ATOM; // final closing bracket
+                                    state.sExprQuote = false; // turn off s-expr quote mode
+                                }
+                            }
                         }
                     } else {
-                        stream.eatWhile(/[\w\$_\-!$%&*+\.\/:<=>?@\^~]/);
+                        stream.eatWhile(/[\w_\-!$%&*+\.\/:<=>?@\^~]/);
 
                         if (keywords && keywords.propertyIsEnumerable(stream.current())) {
                             returnType = BUILTIN;
                         } else returnType = "variable";
                     }
             }
-            return (typeof state.sExprComment == "number") ? COMMENT : returnType;
+            return (typeof state.sExprComment == "number") ? COMMENT : ((typeof state.sExprQuote == "number") ? ATOM : returnType);
         },
 
         indent: function (state) {

@@ -15,7 +15,7 @@
       .cm-s-default span.cm-arg-is { color: brown; }
     </style>
 <div id=nav>
-  <a href="http://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
+  <a href="https://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
 
   <ul>
     <li><a href="../../index.html">Home</a>
@@ -31,47 +31,50 @@
 <article>
 <h2>R mode</h2>
 <form><textarea id="code" name="code">
-# Code from http://www.mayin.org/ajayshah/KB/R/
+X <- list(height = 5.4, weight = 54)
+cat("Printing objects: "); print(X)
+print("Accessing individual elements:")
+cat(sprintf("Your height is %s and your weight is %s\n", X$height, X$weight))
 
-# FIRST LEARN ABOUT LISTS --
-X = list(height=5.4, weight=54)
-print("Use default printing --")
-print(X)
-print("Accessing individual elements --")
-cat("Your height is ", X$height, " and your weight is ", X$weight, "\n")
-
-# FUNCTIONS --
+# Functions:
 square <- function(x) {
-  return(x*x)
+  return(x * x)
 }
-cat("The square of 3 is ", square(3), "\n")
-
-                 # default value of the arg is set to 5.
-cube <- function(x=5) {
-  return(x*x*x);
-}
-cat("Calling cube with 2 : ", cube(2), "\n")    # will give 2^3
-cat("Calling cube        : ", cube(), "\n")     # will default to 5^3.
-
-# LEARN ABOUT FUNCTIONS THAT RETURN MULTIPLE OBJECTS --
-powers <- function(x) {
-  parcel = list(x2=x*x, x3=x*x*x, x4=x*x*x*x);
-  return(parcel);
-}
-
-X = powers(3);
-print("Showing powers of 3 --"); print(X);
-
-# WRITING THIS COMPACTLY (4 lines instead of 7)
-
-powerful <- function(x) {
-  return(list(x2=x*x, x3=x*x*x, x4=x*x*x*x));
-}
-print("Showing powers of 3 --"); print(powerful(3));
+cat(sprintf("The square of 3 is %s\n", square(3)))
 
 # In R, the last expression in a function is, by default, what is
-# returned. So you could equally just say:
-powerful <- function(x) {list(x2=x*x, x3=x*x*x, x4=x*x*x*x)}
+# returned. The idiomatic way to write the function is:
+square <- function(x) {
+  x * x
+}
+# or, for functions with short content:
+square <- function(x) x * x
+
+# Function arguments with default values:
+cube <- function(x = 5) x * x * x
+cat(sprintf("Calling cube with 2 : %s\n", cube(2))  # will give 2^3
+cat(sprintf("Calling cube        : %s\n", cube())   # will default to 5^3.
+
+powers <- function(x) list(x2 = x*x, x3 = x*x*x, x4 = x*x*x*x)
+
+cat("Powers of 3: "); print(powers(3))
+
+# Data frames
+df <- data.frame(letters = letters[1:5], '#letter' = 1:5)
+print(df$letters)
+print(df$`#letter`)
+
+# Operators:
+m1 <- matrix(1:6, 2, 3)
+m2 <- m1 %*% t(m1)
+cat("Matrix product: "); print(m2)
+
+# Assignments:
+a <- 1
+b <<- 2
+c = 3
+4 -> d
+5 ->> e
 </textarea></form>
     <script>
       var editor = CodeMirror.fromTextArea(document.getElementById("code"), {});

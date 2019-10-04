@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="../../lib/codemirror.css" />
 <link rel="stylesheet" href="../../theme/neo.css" />
 <script src="../../lib/codemirror.js"></script>
+<script src="../../addon/edit/matchbrackets.js"></script>
 <script src="cypher.js"></script>
 <style>
 .CodeMirror {
@@ -15,7 +16,7 @@
 }
         </style>
 <div id=nav>
-  <a href="http://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
+  <a href="https://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
 
   <ul>
     <li><a href="../../index.html">Home</a>
@@ -53,7 +54,7 @@ window.onload = function() {
     indentWithTabs: true,
     smartIndent: true,
     lineNumbers: true,
-    matchBrackets : true,
+    matchBrackets: true,
     autofocus: true,
     theme: 'neo'
   });

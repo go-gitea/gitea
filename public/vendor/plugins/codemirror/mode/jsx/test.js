@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function() {
   var mode = CodeMirror.getMode({indentUnit: 2}, "jsx")
@@ -10,6 +10,9 @@
 
   MT("openclose",
      "([bracket&tag <][tag foo][bracket&tag >]hello [atom &amp;][bracket&tag </][tag foo][bracket&tag >][operator ++])")
+
+  MT("openclosefragment",
+     "([bracket&tag <><][tag foo][bracket&tag >]hello [atom &amp;][bracket&tag </][tag foo][bracket&tag ></>][operator ++])")
 
   MT("attr",
      "([bracket&tag <][tag foo] [attribute abc]=[string 'value'][bracket&tag >]hello [atom &amp;][bracket&tag </][tag foo][bracket&tag >][operator ++])")
@@ -32,6 +35,9 @@
 
   MT("preserve_js_context",
      "[variable x] [operator =] [string-2 `quasi${][bracket&tag <][tag foo][bracket&tag />][string-2 }quoted`]")
+
+  MT("string_interpolation",
+    "[variable x] [operator =] [string-2 `quasi<code>${] [number 10] [string-2 }</code>`]")
 
   MT("line_comment",
      "([bracket&tag <][tag foo] [comment // hello]",
@@ -66,4 +72,20 @@
 
   MT("tag_attribute",
      "([bracket&tag <][tag foo] [attribute bar]=[bracket&tag <][tag foo][bracket&tag />/>][operator ++])")
+
+  var ts_mode = CodeMirror.getMode({indentUnit: 2}, "text/typescript-jsx")
+  function TS(name) { test.mode(name, ts_mode, Array.prototype.slice.call(arguments, 1)) }
+
+  TS("tsx_react_integration",
+     "[keyword interface] [def Props] {",
+     "  [property foo]: [type string];",
+     "}",
+     "[keyword class] [def MyComponent] [keyword extends] [type React].[type Component] [operator <] [type Props], [type any] [operator >] {",
+     "  [property render]() {",
+     "    [keyword return] [bracket&tag <][tag span][bracket&tag >]{[keyword this].[property props].[property foo]}[bracket&tag </][tag span][bracket&tag >]",
+     "  }",
+     "}",
+     "[bracket&tag <][tag MyComponent] [attribute foo]=[string \"bar\"] [bracket&tag />]; [comment //ok]",
+     "[bracket&tag <][tag MyComponent] [attribute foo]={[number 0]} [bracket&tag />]; [comment //error]")
+
 })()
