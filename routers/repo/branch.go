@@ -28,6 +28,7 @@ type Branch struct {
 	Commit            *git.Commit
 	IsProtected       bool
 	IsDeleted         bool
+	IsMerged          bool
 	DeletedBranch     *models.DeletedBranch
 	CommitsAhead      int
 	CommitsBehind     int
@@ -203,10 +204,16 @@ func loadBranches(ctx *context.Context) []*Branch {
 			}
 		}
 
+		isMerged := true
+		if (divergence.Ahead != 0) || (divergence.Behind == 0) || (ctx.Repo.Repository.DefaultBranch == branchName) {
+			isMerged = false
+		}
+
 		branches[i] = &Branch{
 			Name:              branchName,
 			Commit:            commit,
 			IsProtected:       isProtected,
+			IsMerged:          isMerged,
 			CommitsAhead:      divergence.Ahead,
 			CommitsBehind:     divergence.Behind,
 			LatestPullRequest: pr,
