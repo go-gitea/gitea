@@ -37,7 +37,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 		Releases:    false,
 	}
 
-	repo, err := models.CreateRepository(user, user, models.CreateRepoOptions{
+	mirrorRepo, err := models.CreateRepository(user, user, models.CreateRepoOptions{
 		Name:        opts.RepoName,
 		Description: opts.Description,
 		IsPrivate:   opts.Private,
@@ -46,7 +46,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	mirror, err := models.MigrateRepositoryGitData(user, user, repo, opts)
+	mirror, err := models.MigrateRepositoryGitData(user, user, mirrorRepo, opts)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(repoPath)
