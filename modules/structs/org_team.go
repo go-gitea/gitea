@@ -14,7 +14,7 @@ type Team struct {
 	IncludesAllRepositories bool          `json:"includes_all_repositories"`
 	// enum: none,read,write,admin,owner
 	Permission string `json:"permission"`
-	// enum: repo.code,repo.issues,repo.ext_issues,repo.wiki,repo.pulls,repo.releases,repo.ext_wiki
+	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
 	Units []string `json:"units"`
 }
 
@@ -26,7 +26,7 @@ type CreateTeamOption struct {
 	IncludesAllRepositories bool   `json:"includes_all_repositories"`
 	// enum: read,write,admin
 	Permission string `json:"permission"`
-	// enum: repo.code,repo.issues,repo.ext_issues,repo.wiki,repo.pulls,repo.releases,repo.ext_wiki
+	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
 	Units []string `json:"units"`
 }
 
@@ -38,6 +38,6 @@ type EditTeamOption struct {
 	IncludesAllRepositories bool   `json:"includes_all_repositories"`
 	// enum: read,write,admin
 	Permission string `json:"permission"`
-	// enum: repo.code,repo.issues,repo.ext_issues,repo.wiki,repo.pulls,repo.releases,repo.ext_wiki
+	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
 	Units []string `json:"units"`
 }

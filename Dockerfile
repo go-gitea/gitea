@@ -1,7 +1,10 @@
 
 ###################################
 #Build stage
-FROM golang:1.12-alpine3.10 AS build-env
+FROM golang:1.13-alpine3.10 AS build-env
+
+ARG GOPROXY
+ENV GOPROXY ${GOPROXY:-direct}
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"

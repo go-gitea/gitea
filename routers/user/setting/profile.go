@@ -18,8 +18,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/com"
-	"github.com/Unknwon/i18n"
+	"github.com/unknwon/com"
+	"github.com/unknwon/i18n"
 )
 
 const (
@@ -104,7 +104,7 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 	}
 
 	// Update the language to the one we just set
-	ctx.SetCookie("lang", ctx.User.Language, nil, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+	ctx.SetCookie("lang", ctx.User.Language, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 
 	log.Trace("User settings updated: %s", ctx.User.Name)
 	ctx.Flash.Success(i18n.Tr(ctx.User.Language, "settings.update_profile_success"))

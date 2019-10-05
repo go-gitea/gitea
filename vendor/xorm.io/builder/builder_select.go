@@ -80,8 +80,21 @@ func (b *Builder) selectWriteTo(w Writer) error {
 	}
 
 	for _, v := range b.joins {
-		if _, err := fmt.Fprintf(w, " %s JOIN %s ON ", v.joinType, v.joinTable); err != nil {
-			return err
+		b, ok := v.joinTable.(*Builder)
+		if ok {
+			if _, err := fmt.Fprintf(w, " %s JOIN (", v.joinType); err != nil {
+				return err
+			}
+			if err := b.WriteTo(w); err != nil {
+				return err
+			}
+			if _, err := fmt.Fprintf(w, ") ON "); err != nil {
+				return err
+			}
+		} else {
+			if _, err := fmt.Fprintf(w, " %s JOIN %s ON ", v.joinType, v.joinTable); err != nil {
+				return err
+			}
 		}
 
 		if err := v.joinCond.WriteTo(w); err != nil {

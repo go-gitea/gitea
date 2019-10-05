@@ -4,22 +4,15 @@
 
 package migrations
 
-import (
-	"github.com/go-xorm/xorm"
-)
+import "github.com/go-xorm/xorm"
 
-func addTeamIncludesAllRepositories(x *xorm.Engine) error {
-
-	type Team struct {
-		ID                      int64 `xorm:"pk autoincr"`
-		IncludesAllRepositories bool  `xorm:"NOT NULL DEFAULT false"`
+func changeSomeColumnsLengthOfRepo(x *xorm.Engine) error {
+	type Repository struct {
+		ID          int64  `xorm:"pk autoincr"`
+		Description string `xorm:"TEXT"`
+		Website     string `xorm:"VARCHAR(2048)"`
+		OriginalURL string `xorm:"VARCHAR(2048)"`
 	}
 
-	if err := x.Sync2(new(Team)); err != nil {
-		return err
-	}
-
-	_, err := x.Exec("UPDATE `team` SET `includes_all_repositories` = ? WHERE `name`=?",
-		true, "Owners")
-	return err
+	return x.Sync2(new(Repository))
 }

@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -54,11 +55,11 @@ func MustEnableWiki(ctx *context.Context) {
 	}
 }
 
-// PageMeta wiki page meat information
+// PageMeta wiki page meta information
 type PageMeta struct {
 	Name        string
 	SubURL      string
-	UpdatedUnix util.TimeStamp
+	UpdatedUnix timeutil.TimeStamp
 }
 
 // findEntryForFile finds the tree entry for a target filepath.
@@ -248,9 +249,9 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get Commit Count
-	commitsHistory, err := wikiRepo.CommitsByFileAndRange("master", pageFilename, page)
+	commitsHistory, err := wikiRepo.CommitsByFileAndRangeNoFollow("master", pageFilename, page)
 	if err != nil {
-		ctx.ServerError("CommitsByFileAndRange", err)
+		ctx.ServerError("CommitsByFileAndRangeNoFollow", err)
 		return nil, nil
 	}
 	commitsHistory = models.ValidateCommitsWithEmails(commitsHistory)
@@ -413,7 +414,7 @@ func WikiPages(ctx *context.Context) {
 		pages = append(pages, PageMeta{
 			Name:        wikiName,
 			SubURL:      models.WikiNameToSubURL(wikiName),
-			UpdatedUnix: util.TimeStamp(c.Author.When.Unix()),
+			UpdatedUnix: timeutil.TimeStamp(c.Author.When.Unix()),
 		})
 	}
 	ctx.Data["Pages"] = pages
