@@ -1909,3 +1909,52 @@ func (issue *Issue) updateClosedNum(e Engine) (err error) {
 	}
 	return
 }
+
+// ResolveMentionsByVisibility returns the users mentioned in an issue, removing those that
+// don't have access to reading it. OrgUsers are returned separately for flexibility.
+func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, mentions []string) (users[]*User, orgUsers[]*OrgUser, err error) {
+	if len(mentions) == 0 {
+		return
+	}
+	if err = issue.loadRepo(ctx.e); err != nil {
+		return
+	}
+	for i := range mentions {
+		mentions[i] = strings.ToLower(mentions[i])
+	}
+	unchecked := make([]*User, 0, len(mentions))
+
+	if err := ctx.e.In("lower_name", mentions).Asc("lower_name").Find(&users); err != nil {
+		return nil, nil, fmt.Errorf("find mentioned users: %v", err)
+	}
+
+	users = make([]*User, 0, len(mentions))
+	for _, user := range unchecked {
+		if !user.IsOrganization() {
+			// Normal users must have read access to the referencing issue
+			perm, err := getUserRepoPermission(ctx.e, issue.Repo, user)
+			if err != nil {
+				return nil, nil, fmt.Errorf("getUserRepoPermission [%d]: %v", user.ID, err)
+			}
+			if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+				continue
+			}
+			users = append(users, user)
+		} else if user.NumMembers > 0 {
+			// To mention a whole organization the doer must belong to the owners team
+			if isOwner, err := isOrganizationOwner(ctx.e, user.ID, doer.ID); err != nil {
+				return nil, nil, fmt.Errorf("isOrganizationOwner [%d]: %v", user.ID, err)
+			} else if !isOwner {
+				continue
+			}
+			morgUsers, err := getOrgUsersByOrgID(ctx.e, user.ID)
+			if err != nil {
+				return nil, nil, fmt.Errorf("GetOrgUsersByOrgID [%d]: %v", user.ID, err)
+			}
+	
+			orgUsers = append(orgUsers, morgUsers...)
+		}
+	}
+
+	return
+}
