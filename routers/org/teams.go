@@ -270,6 +270,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 	ctx.Data["Units"] = models.Units
 
 	isAuthChanged := false
+	isIncludeAllChanged := false
 	if !t.IsOwnerTeam() {
 		// Validate permission level.
 		auth := models.ParseAccessMode(form.Permission)
@@ -280,7 +281,10 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 			t.Authorize = auth
 		}
 
-		t.IncludesAllRepositories = form.IncludesAllRepositories
+		if t.IncludesAllRepositories != form.IncludesAllRepositories {
+			isIncludeAllChanged = true
+			t.IncludesAllRepositories = form.IncludesAllRepositories
+		}
 	}
 	t.Description = form.Description
 	if t.Authorize < models.AccessModeOwner {
@@ -309,7 +313,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		return
 	}
 
-	if err := models.UpdateTeam(t, isAuthChanged); err != nil {
+	if err := models.UpdateTeam(t, isAuthChanged, isIncludeAllChanged); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case models.IsErrTeamAlreadyExist(err):

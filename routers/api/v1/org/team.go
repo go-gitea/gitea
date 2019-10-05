@@ -198,7 +198,7 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 		team.Units = units
 	}
 
-	if err := models.UpdateTeam(team, true); err != nil {
+	if err := models.UpdateTeam(team, true, true); err != nil {
 		ctx.Error(500, "EditTeam", err)
 		return
 	}

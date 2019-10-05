@@ -165,18 +165,19 @@ func (t *Team) addRepository(e Engine, repo *Repository) (err error) {
 // addAllRepositories adds all repositories to the team.
 // If the team already has some repositories they will be left unchanged.
 func (t *Team) addAllRepositories(e Engine) error {
-	err := e.Iterate(&Repository{OwnerID: t.OrgID}, func(i int, bean interface{}) error {
-		repo := bean.(*Repository)
+	var orgRepos []Repository
+	if err := e.Where("owner_id = ?", t.OrgID).Find(&orgRepos); err != nil {
+		return fmt.Errorf("get org repos: %v", err)
+	}
+
+	for _, repo := range orgRepos {
 		if !t.hasRepository(e, repo.ID) {
-			if err := t.addRepository(e, repo); err != nil {
+			if err := t.addRepository(e, &repo); err != nil {
 				return fmt.Errorf("addRepository: %v", err)
 			}
 		}
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("Iterate organization repositories: %v", err)
 	}
+
 	return nil
 }
 
@@ -413,7 +414,7 @@ func GetTeamByID(teamID int64) (*Team, error) {
 }
 
 // UpdateTeam updates information of team.
-func UpdateTeam(t *Team, authChanged bool) (err error) {
+func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
 	if len(t.Name) == 0 {
 		return errors.New("empty team name")
 	}
@@ -479,7 +480,7 @@ func UpdateTeam(t *Team, authChanged bool) (err error) {
 	}
 
 	// Add all repositories to the team if it has access to all of them.
-	if t.IncludesAllRepositories {
+	if includeAllChanged && t.IncludesAllRepositories {
 		err = t.addAllRepositories(sess)
 		if err != nil {
 			return fmt.Errorf("addAllRepositories: %v", err)

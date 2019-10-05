@@ -209,7 +209,7 @@ func TestUpdateTeam(t *testing.T) {
 	team.Name = "newName"
 	team.Description = strings.Repeat("A long description!", 100)
 	team.Authorize = AccessModeAdmin
-	assert.NoError(t, UpdateTeam(team, true))
+	assert.NoError(t, UpdateTeam(team, true, false))
 
 	team = AssertExistsAndLoadBean(t, &Team{Name: "newName"}).(*Team)
 	assert.True(t, strings.HasPrefix(team.Description, "A long description!"))
@@ -228,7 +228,7 @@ func TestUpdateTeam2(t *testing.T) {
 	team.LowerName = "owners"
 	team.Name = "Owners"
 	team.Description = strings.Repeat("A long description!", 100)
-	err := UpdateTeam(team, true)
+	err := UpdateTeam(team, true, false)
 	assert.True(t, IsErrTeamAlreadyExist(err))
 
 	CheckConsistencyFor(t, &Team{ID: team.ID})
@@ -471,7 +471,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	teams[4].IncludesAllRepositories = true
 	teamRepos[4] = repoIds
 	for i, team := range teams {
-		assert.NoError(t, UpdateTeam(team, false), "%s: UpdateTeam", team.Name)
+		assert.NoError(t, UpdateTeam(team, false, true), "%s: UpdateTeam", team.Name)
 		testTeamRepositories(team.ID, teamRepos[i])
 	}
 
