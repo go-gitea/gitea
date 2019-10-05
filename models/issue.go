@@ -1911,50 +1911,120 @@ func (issue *Issue) updateClosedNum(e Engine) (err error) {
 }
 
 // ResolveMentionsByVisibility returns the users mentioned in an issue, removing those that
-// don't have access to reading it. OrgUsers are returned separately for flexibility.
-func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, mentions []string) (users[]*User, orgUsers[]*OrgUser, err error) {
+// don't have access to reading it. Teams are expanded into their users, but organizations are ignored.
+func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, mentions []string) (users[]*User, err error) {
 	if len(mentions) == 0 {
 		return
 	}
 	if err = issue.loadRepo(ctx.e); err != nil {
 		return
 	}
-	for i := range mentions {
-		mentions[i] = strings.ToLower(mentions[i])
-	}
-	unchecked := make([]*User, 0, len(mentions))
-
-	if err := ctx.e.In("lower_name", mentions).Asc("lower_name").Find(&users); err != nil {
-		return nil, nil, fmt.Errorf("find mentioned users: %v", err)
-	}
-
-	users = make([]*User, 0, len(mentions))
-	for _, user := range unchecked {
-		if !user.IsOrganization() {
-			// Normal users must have read access to the referencing issue
-			perm, err := getUserRepoPermission(ctx.e, issue.Repo, user)
-			if err != nil {
-				return nil, nil, fmt.Errorf("getUserRepoPermission [%d]: %v", user.ID, err)
-			}
-			if !perm.CanReadIssuesOrPulls(issue.IsPull) {
-				continue
-			}
-			users = append(users, user)
-		} else if user.NumMembers > 0 {
-			// To mention a whole organization the doer must belong to the owners team
-			if isOwner, err := isOrganizationOwner(ctx.e, user.ID, doer.ID); err != nil {
-				return nil, nil, fmt.Errorf("isOrganizationOwner [%d]: %v", user.ID, err)
-			} else if !isOwner {
-				continue
-			}
-			morgUsers, err := getOrgUsersByOrgID(ctx.e, user.ID)
-			if err != nil {
-				return nil, nil, fmt.Errorf("GetOrgUsersByOrgID [%d]: %v", user.ID, err)
-			}
-	
-			orgUsers = append(orgUsers, morgUsers...)
+	resolved := make(map[string]bool,len(mentions))
+	for _, name := range mentions {
+		name := strings.ToLower(name)
+		if _, ok := resolved[name]; ok {
+			continue
 		}
+		resolved[name] = false
+	}
+
+	if err := issue.Repo.getOwner(ctx.e); err != nil {
+		return nil, err
+	}
+
+	names := make([]string,0,len(resolved))
+	for name, _ := range resolved {
+		names = append(names, name)
+	}
+
+	if issue.Repo.Owner.IsOrganization() {
+
+		// Since there can be users with names that match the name of a team,
+		// if the team exists and can read the issue, the team takes precedence.
+		teams := make([]*Team,0,len(names))
+		if err := ctx.e.
+			Join("INNER", "team_repo", "team_repo.team_id = team.id").
+			Where("team_repo.repo_id=?", issue.Repo.ID).
+			In("team.lower_name", names).
+			Find(&teams);
+			err != nil {
+			return nil, fmt.Errorf("find mentioned teams: %v", err)
+		}
+		if len(teams) != 0 {
+			checked := make([]*Team,0,len(teams))
+			unittype := UnitTypeIssues
+			if issue.IsPull {
+				unittype = UnitTypePullRequests
+			}
+			for _, team := range teams {
+				if team.Authorize >= AccessModeOwner {
+					checked = append(checked, team)
+					resolved[team.LowerName] = true
+					continue
+				}
+				has, err := ctx.e.Get(&TeamUnit{OrgID: issue.Repo.Owner.ID, TeamID: team.ID, Type: unittype})
+				if err != nil {
+					return nil, fmt.Errorf("get team units (%d): %v", team.ID, err)
+				}
+				if has {
+					checked = append(checked, team)
+					resolved[team.LowerName] = true
+				}
+			}
+			if len(checked) != 0 {
+				ids := make([]int64,len(checked))
+				for i, _ := range checked {
+					ids[i] = checked[i].ID
+				}
+				if err := ctx.e.
+					Join("INNER", "team_user", "team_user.team_id = `user`.id").
+					Where("`user`.prohibit_login", false).
+					And("`user`.is_active", true).
+					In("`team_user`.team_id", ids).
+					Distinct().
+					Find(users); err != nil {
+					return nil, fmt.Errorf("get teams users: %v", err)
+				}
+				for _, user := range users {
+					resolved[user.LowerName] = true
+				}
+			}
+		}
+
+		// Remove names already in the list
+		names = make([]string,0,len(resolved))
+		for name, already := range resolved {
+			if !already {
+				names = append(names, name)
+			}
+		}
+	}
+
+	unchecked := make([]*User,0,len(names))
+	if err := ctx.e.
+			Where("`user`.prohibit_login", false).
+			And("`user`.is_active", true).
+			In("`user`.lower_name", names).
+			Find(&unchecked); err != nil {
+		return nil, fmt.Errorf("find mentioned users: %v", err)
+	}
+
+	for _, user := range unchecked {
+		if _, already := resolved[user.LowerName]; already || user.IsOrganization() {
+			continue
+		}
+		// Normal users must have read access to the referencing issue
+		perm, err := getUserRepoPermission(ctx.e, issue.Repo, user)
+		if err != nil {
+			return nil, fmt.Errorf("getUserRepoPermission [%d]: %v", user.ID, err)
+		}
+		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+			continue
+		}
+		users = append(users, user)
+		resolved[user.LowerName] = true
 	}
 
 	return
 }
+
