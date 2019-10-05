@@ -183,11 +183,26 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	//   "200":
 	//     "$ref": "#/responses/Team"
 	team := ctx.Org.Team
-	team.Name = form.Name
 	team.Description = form.Description
-	team.IncludesAllRepositories = form.IncludesAllRepositories
-	team.Authorize = models.ParseAccessMode(form.Permission)
 	unitTypes := models.FindUnitTypes(form.Units...)
+
+	isAuthChanged := false
+	isIncludeAllChanged := false
+	if !team.IsOwnerTeam() {
+		// Validate permission level.
+		auth := models.ParseAccessMode(form.Permission)
+
+		team.Name = form.Name
+		if team.Authorize != auth {
+			isAuthChanged = true
+			team.Authorize = auth
+		}
+
+		if team.IncludesAllRepositories != form.IncludesAllRepositories {
+			isIncludeAllChanged = true
+			team.IncludesAllRepositories = form.IncludesAllRepositories
+		}
+	}
 
 	if team.Authorize < models.AccessModeOwner {
 		var units = make([]*models.TeamUnit, 0, len(form.Units))
@@ -200,7 +215,7 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 		team.Units = units
 	}
 
-	if err := models.UpdateTeam(team, true, true); err != nil {
+	if err := models.UpdateTeam(team, isAuthChanged, isIncludeAllChanged); err != nil {
 		ctx.Error(500, "EditTeam", err)
 		return
 	}
