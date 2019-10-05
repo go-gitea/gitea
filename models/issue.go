@@ -1925,7 +1925,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 		if _, ok := resolved[name]; ok {
 			continue
 		}
-		resolved[name] = false
+		resolved[name] = (name == doer.LowerName)
 	}
 
 	if err := issue.Repo.getOwner(ctx.e); err != nil {
@@ -1933,12 +1933,13 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 	}
 
 	names := make([]string,0,len(resolved))
-	for name, _ := range resolved {
-		names = append(names, name)
+	for name, already := range resolved {
+		if !already {
+			names = append(names, name)
+		}
 	}
 
 	if issue.Repo.Owner.IsOrganization() {
-
 		// Since there can be users with names that match the name of a team,
 		// if the team exists and can read the issue, the team takes precedence.
 		teams := make([]*Team,0,len(names))
@@ -1978,8 +1979,8 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 				}
 				if err := ctx.e.
 					Join("INNER", "team_user", "team_user.team_id = `user`.id").
-					Where("`user`.prohibit_login", false).
-					And("`user`.is_active", true).
+					Where("`user`.is_active = ?", true).
+					And("`user`.prohibit_login = ?", false).
 					In("`team_user`.team_id", ids).
 					Distinct().
 					Find(users); err != nil {
@@ -1998,19 +1999,21 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 				names = append(names, name)
 			}
 		}
+		if len(names) == 0 {
+			return
+		}
 	}
 
 	unchecked := make([]*User,0,len(names))
 	if err := ctx.e.
-			Where("`user`.prohibit_login", false).
-			And("`user`.is_active", true).
+			Where("`user`.is_active = ?", true).
+			And("`user`.prohibit_login = ?", false).
 			In("`user`.lower_name", names).
 			Find(&unchecked); err != nil {
 		return nil, fmt.Errorf("find mentioned users: %v", err)
 	}
-
 	for _, user := range unchecked {
-		if _, already := resolved[user.LowerName]; already || user.IsOrganization() {
+		if already := resolved[user.LowerName]; already || user.IsOrganization() {
 			continue
 		}
 		// Normal users must have read access to the referencing issue
