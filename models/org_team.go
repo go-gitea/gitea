@@ -314,7 +314,7 @@ func (t *Team) UnitEnabled(tp UnitType) bool {
 
 func (t *Team) unitEnabled(e Engine, tp UnitType) bool {
 	if err := t.getUnits(e); err != nil {
-		log.Warn("Error loading repository (ID: %d) units: %s", t.ID, err.Error())
+		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
 
 	for _, unit := range t.Units {
