@@ -254,7 +254,6 @@ var migrations = []Migration{
 	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
 	// v99 -> v100
 	NewMigration("add includes_all_repositories to teams", addTeamIncludesAllRepositories),
-
 }
 
 // Migrate database to current version
