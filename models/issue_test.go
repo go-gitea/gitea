@@ -366,3 +366,22 @@ func TestIssue_InsertIssue(t *testing.T) {
 	testInsertIssue(t, "my issue1", "special issue's comments?")
 	testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?")
 }
+
+func TestIssue_ResolveMentions(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	testSuccess := func(repoID, doerID int64, mentions []string, expected []int64) {
+		issue := &Issue{RepoID: repoID}
+		doer := AssertExistsAndLoadBean(t, &User{ID: doerID}).(*User)
+		resolved, err := issue.ResolveMentionsByVisibility(DefaultDBContext(), doer, mentions)
+		assert.NoError(t, err)
+		ids := make([]int64, len(resolved))
+		for i, user := range resolved {
+			ids[i] = user.ID
+		}
+		sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+		assert.EqualValues(t, expected, ids)
+	}
+
+	testSuccess(1, 1, []string{"user5"}, []int64{5})
+}
