@@ -1321,7 +1321,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.Data["Err_Password"] = true
 		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplResetPassword, nil)
 		return
-	} else if !password.CheckPasswordComplexity(passwd) {
+	} else if !password.IsComplexity(passwd) {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
 		ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplResetPassword, nil)

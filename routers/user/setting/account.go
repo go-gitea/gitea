@@ -53,7 +53,7 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
-	} else if !password.CheckPasswordComplexity(form.Password) {
+	} else if !password.IsComplexity(form.Password) {
 		ctx.Flash.Error(ctx.Tr("settings.password_complexity"))
 	} else {
 		var err error

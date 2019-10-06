@@ -233,7 +233,7 @@ func runChangePassword(c *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
-	if !pwd.CheckPasswordComplexity(c.String("password")) {
+	if !pwd.IsComplexity(c.String("password")) {
 		return errors.New("Password does not meet complexity requirements")
 	}
 	uname := c.String("username")
@@ -283,7 +283,11 @@ func runCreateUser(c *cli.Context) error {
 	if c.IsSet("password") {
 		password = c.String("password")
 	} else if c.IsSet("random-password") {
-		password = pwd.Generate(c.Int("random-password-length"))
+		var err error
+		password, err = pwd.Generate(c.Int("random-password-length"))
+		if err != nil {
+			return err
+		}
 		fmt.Printf("generated random password is '%s'\n", password)
 	} else {
 		return errors.New("must set either password or random-password flag")

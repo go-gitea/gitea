@@ -95,7 +95,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 			u.LoginName = form.LoginName
 		}
 	}
-	if !password.CheckPasswordComplexity(form.Password) {
+	if !password.IsComplexity(form.Password) {
 		ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserNew, &form)
 		return
 	}
@@ -205,7 +205,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		if !password.CheckPasswordComplexity(form.Password) {
+		if !password.IsComplexity(form.Password) {
 			ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserEdit, &form)
 			return
 		}

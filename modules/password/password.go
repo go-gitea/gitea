@@ -5,26 +5,46 @@
 package password
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 	"regexp"
 	"sync"
-	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 )
 
 var matchComplexities = map[string]regexp.Regexp{}
 var matchComplexityOnce sync.Once
+var validChars string
 
-// CheckPasswordComplexity return True if password is Complexity
-func CheckPasswordComplexity(pwd string) bool {
-	if len(setting.PasswordComplexity) > 0 {
-		matchComplexityOnce.Do(func() {
+var validComplexities = map[string]string{
+	"lower": "abcdefghijklmnopqrstuvwxyz",
+	"upper": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+	"digit": "0123456789",
+	"spec":  "_-",
+}
+
+// NewComplexity for preparation
+func NewComplexity() {
+	matchComplexityOnce.Do(func() {
+		if len(setting.PasswordComplexity) > 0 {
 			for key, val := range setting.PasswordComplexity {
 				matchComplexity := regexp.MustCompile(val)
 				matchComplexities[key] = *matchComplexity
+				validChars += validComplexities[key]
 			}
-		})
+		} else {
+			for _, val := range validComplexities {
+				validChars += val
+			}
+		}
+	})
+}
+
+// IsComplexity return True if password is Complexity
+func IsComplexity(pwd string) bool {
+	if len(setting.PasswordComplexity) > 0 {
+		NewComplexity()
 		for _, val := range matchComplexities {
 			if !val.MatchString(pwd) {
 				return false
@@ -35,20 +55,20 @@ func CheckPasswordComplexity(pwd string) bool {
 }
 
 // Generate  a random password
-func Generate(n int) string {
-	rand.Seed(time.Now().UnixNano())
-	dict := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
+func Generate(n int) (string, error) {
+	NewComplexity()
 	buffer := make([]byte, n)
+	max := big.NewInt(int64(len(validChars)))
 	for {
 		for j := 0; j < n; j++ {
-			buffer[j] = dict[rand.Intn(len(dict))]
+			rnd, err := rand.Int(rand.Reader, max)
+			if err != nil {
+				return "", err
+			}
+			buffer[j] = validChars[rnd.Int64()]
 		}
-		for i := len(buffer) - 1; i > 0; i-- {
-			j := rand.Intn(i + 1)
-			buffer[i], buffer[j] = buffer[j], buffer[i]
-		}
-		if CheckPasswordComplexity(string(buffer)) {
-			return string(buffer)
+		if IsComplexity(string(buffer)) {
+			return string(buffer), nil
 		}
 	}
 }
