@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -153,8 +154,17 @@ func createDB(driverName, connStr string) error {
 }
 
 func createTestEngine(fixturesDir string) error {
+	var helper testfixtures.Helper = &testfixtures.SQLite{}
 	if os.Getenv("GITEA_UNIT_TESTS_DB") != "" {
 		dbType = os.Getenv("GITEA_UNIT_TESTS_DB")
+		switch dbType {
+		case "mysql":
+			helper = &testfixtures.MySQL{}
+		case "postgres":
+			helper = &testfixtures.PostgreSQL{}
+		case "mssql":
+			helper = &testfixtures.SQLServer{}
+		}
 	}
 
 	if os.Getenv("GITEA_UNIT_TESTS_DB_CONNSTR") != "" {
@@ -166,16 +176,12 @@ func createTestEngine(fixturesDir string) error {
 	}
 
 	if err := createDB(dbType, dbConnstr); err != nil {
-		return err
+		return fmt.Errorf("createDB failed: %v", err)
 	}
 
 	var err error
 	x, err = xorm.NewEngine(dbType, dbConnstr)
 	if err != nil {
-		return err
-	}
-	x.SetMapper(core.GonicMapper{})
-	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
 		return err
 	}
 
@@ -184,7 +190,12 @@ func createTestEngine(fixturesDir string) error {
 		x.ShowSQL(true)
 	}
 
-	return InitFixtures(&testfixtures.SQLite{}, fixturesDir)
+	x.SetMapper(core.GonicMapper{})
+	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
+		return err
+	}
+
+	return InitFixtures(helper, fixturesDir)
 }
 
 func removeAllWithRetry(dir string) error {
@@ -199,8 +210,12 @@ func removeAllWithRetry(dir string) error {
 	return err
 }
 
+var lock sync.Mutex
+
 // PrepareTestDatabase load test fixtures into test database
 func PrepareTestDatabase() error {
+	lock.Lock()
+	defer lock.Unlock()
 	return LoadFixtures()
 }
 
