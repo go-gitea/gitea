@@ -111,8 +111,8 @@ func SearchIssues(ctx *context.APIContext) {
 		issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword)
 	}
 
-	splitted := strings.Split(ctx.Query("labels"), ",")
-	if len(splitted) > 0 {
+	labels := ctx.Query("labels")
+	if splitted := strings.Split(labels, ","); labels != "" && len(splitted) > 0 {
 		labelIDs, err = models.GetLabelIDsInReposByNames(repoIDs, splitted)
 		if err != nil {
 			ctx.Error(500, "GetLabelIDsInRepoByNames", err)
