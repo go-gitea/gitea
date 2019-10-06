@@ -9,6 +9,7 @@ import (
 	"path"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
@@ -1343,11 +1344,13 @@ type IssuesOptions struct {
 	LabelIDs    []int64
 	SortType    string
 	IssueIDs    []int64
+	// prioritize issues from this repo
+	PriorityRepoID int64
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
 // sortType string
-func sortIssuesSession(sess *xorm.Session, sortType string) {
+func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64) {
 	switch sortType {
 	case "oldest":
 		sess.Asc("issue.created_unix")
@@ -1365,6 +1368,8 @@ func sortIssuesSession(sess *xorm.Session, sortType string) {
 		sess.Asc("issue.deadline_unix")
 	case "farduedate":
 		sess.Desc("issue.deadline_unix")
+	case "priorityrepo":
+		sess.OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(priorityRepoID, 10) + " THEN 1 ELSE 2 END, issue.created_unix DESC")
 	default:
 		sess.Desc("issue.created_unix")
 	}
@@ -1462,7 +1467,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	defer sess.Close()
 
 	opts.setupSession(sess)
-	sortIssuesSession(sess, opts.SortType)
+	sortIssuesSession(sess, opts.SortType, opts.PriorityRepoID)
 
 	issues := make([]*Issue, 0, setting.UI.IssuePagingNum)
 	if err := sess.Find(&issues); err != nil {
@@ -1899,7 +1904,8 @@ func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyI
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
 		Where("issue_id = ?", issue.ID).
-		OrderBy("repository.id, issue.id ASC").
+		//sort by repo id then created date, with the issues of the same repo at the beginning of the list
+		OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE issue.repo_id END, issue.created_unix DESC").
 		Find(&issueDeps)
 }
 
@@ -1910,7 +1916,8 @@ func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*DependencyIn
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
 		Where("dependency_id = ?", issue.ID).
-		OrderBy("repository.id, issue.id ASC").
+		//sort by repo id then created date, with the issues of the same repo at the beginning of the list
+		OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE issue.repo_id END, issue.created_unix DESC").
 		Find(&issueDeps)
 }
 

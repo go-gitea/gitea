@@ -47,17 +47,22 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: search string
 	//   type: string
+	// - name: priority_repo_id
+	//   in: query
+	//   description: repository to prioritize in the results
+	//   type: integer
+	//   format: int64
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
 
-	// find repos user can access
+	// find repos user can access (for issue search)
 	repoIDs := make([]int64, 0)
 	issueCount := 0
 	for page := 1; ; page++ {
 		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
 			Page:        page,
-			PageSize:    models.RepositoryListDefaultPageSize,
+			PageSize:    15,
 			Private:     true,
 			Keyword:     "",
 			OwnerID:     ctx.User.ID,
@@ -65,7 +70,7 @@ func SearchIssues(ctx *context.APIContext) {
 			Collaborate: util.OptionalBoolNone,
 			UserIsAdmin: ctx.IsUserSiteAdmin(),
 			UserID:      ctx.Data["SignedUserID"].(int64),
-			OrderBy:     models.SearchOrderByID,
+			OrderBy:     models.SearchOrderByRecentUpdated,
 		})
 		if err != nil {
 			ctx.Error(500, "SearchRepositoryByName", err)
@@ -105,7 +110,8 @@ func SearchIssues(ctx *context.APIContext) {
 		issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword)
 	}
 
-	if splitted := strings.Split(ctx.Query("labels"), ","); len(splitted) > 0 {
+	splitted := strings.Split(ctx.Query("labels"), ",")
+	if len(splitted) > 0 {
 		labelIDs, err = models.GetLabelIDsInReposByNames(repoIDs, splitted)
 		if err != nil {
 			ctx.Error(500, "GetLabelIDsInRepoByNames", err)
@@ -117,12 +123,14 @@ func SearchIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
-			RepoIDs:  repoIDs,
-			Page:     ctx.QueryInt("page"),
-			PageSize: setting.UI.IssuePagingNum,
-			IsClosed: isClosed,
-			IssueIDs: issueIDs,
-			LabelIDs: labelIDs,
+			RepoIDs:        repoIDs,
+			Page:           ctx.QueryInt("page"),
+			PageSize:       setting.UI.IssuePagingNum,
+			IsClosed:       isClosed,
+			IssueIDs:       issueIDs,
+			LabelIDs:       labelIDs,
+			SortType:       "priorityrepo",
+			PriorityRepoID: ctx.QueryInt64("priority_repo_id"),
 		})
 	}
 
