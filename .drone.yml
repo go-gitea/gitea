@@ -120,6 +120,7 @@ steps:
     image: golang:1.13
     commands:
       - make test
+      - make unit-test-mysql
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify

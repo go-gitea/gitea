@@ -168,6 +168,14 @@ fmt-check:
 test:
 	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
 
+.PHONY: unit-test-sqlite
+unit-test-sqlite:
+	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
+
+.PHONY: unit-test-mysql
+unit-test-mysql:
+	GO111MODULE=on GITEA_UNIT_TESTS_DB=mysql GITEA_UNIT_TESTS_DB_CONNSTR="$(TEST_MYSQL_USERNAME):$(TEST_MYSQL_PASSWORD)@tcp($(TEST_MYSQL_HOST))/$(TEST_PGSQL_DBNAME)" $(GO) test -mod=vendor $(PACKAGES)
+
 .PHONY: coverage
 coverage:
 	@hash gocovmerge > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
