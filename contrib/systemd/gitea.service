@@ -20,6 +20,9 @@ Type=simple
 User=git
 Group=git
 WorkingDirectory=/var/lib/gitea/
+# If using unix socket: Tells Systemd to create /run/gitea folder to home gitea.sock
+# Manual cration would vanish after reboot.
+#RuntimeDirectory=gitea
 ExecStart=/usr/local/bin/gitea web -c /etc/gitea/app.ini
 Restart=always
 Environment=USER=git HOME=/home/git GITEA_WORK_DIR=/var/lib/gitea
