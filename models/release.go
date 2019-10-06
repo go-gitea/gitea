@@ -65,7 +65,7 @@ func (r *Release) LoadAttributes() error {
 
 // APIURL the api url for a release. release must have attributes loaded
 func (r *Release) APIURL() string {
-	return fmt.Sprintf("%sapi/v1/%s/releases/%d",
+	return fmt.Sprintf("%sapi/v1/repos/%s/releases/%d",
 		setting.AppURL, r.Repo.FullName(), r.ID)
 }
 
@@ -397,12 +397,14 @@ func UpdateRelease(doer *User, gitRepo *git.Repository, rel *Release, attachment
 		return err
 	}
 
+	if err = addReleaseAttachments(rel.ID, attachmentUUIDs); err != nil {
+		log.Error("addReleaseAttachments: %v", err)
+	}
+
 	err = rel.loadAttributes(x)
 	if err != nil {
 		return err
 	}
-
-	err = addReleaseAttachments(rel.ID, attachmentUUIDs)
 
 	mode, _ := AccessLevel(doer, rel.Repo)
 	if err1 := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{

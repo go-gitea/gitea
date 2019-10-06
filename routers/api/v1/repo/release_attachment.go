@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	api "code.gitea.io/gitea/modules/structs"
@@ -57,6 +58,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	if attach.ReleaseID != releaseID {
+		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", releaseID, attachID)
 		ctx.NotFound()
 		return
 	}
@@ -256,13 +258,14 @@ func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptio
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
-	attachID := ctx.ParamsInt64(":attachment")
+	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(500, "GetAttachmentByID", err)
 		return
 	}
 	if attach.ReleaseID != releaseID {
+		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", releaseID, attachID)
 		ctx.NotFound()
 		return
 	}
@@ -313,13 +316,14 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
-	attachID := ctx.ParamsInt64(":attachment")
+	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(500, "GetAttachmentByID", err)
 		return
 	}
 	if attach.ReleaseID != releaseID {
+		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", releaseID, attachID)
 		ctx.NotFound()
 		return
 	}
