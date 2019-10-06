@@ -266,6 +266,14 @@ func (statement *Statement) buildUpdates(bean interface{},
 			continue
 		}
 
+		if statement.incrColumns.isColExist(col.Name) {
+			continue
+		} else if statement.decrColumns.isColExist(col.Name) {
+			continue
+		} else if statement.exprColumns.isColExist(col.Name) {
+			continue
+		}
+
 		fieldValuePtr, err := col.ValueOf(bean)
 		if err != nil {
 			engine.logger.Error(err)

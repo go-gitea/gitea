@@ -12,8 +12,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	pull_service "code.gitea.io/gitea/modules/pull"
 	comment_service "code.gitea.io/gitea/services/comments"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // CreateCodeComment will create a code comment including an pending review if required

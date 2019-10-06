@@ -6,17 +6,79 @@ package xorm
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+	"time"
 
 	"xorm.io/builder"
 	"xorm.io/core"
 )
 
+func quoteNeeded(a interface{}) bool {
+	switch a.(type) {
+	case int, int8, int16, int32, int64:
+		return false
+	case uint, uint8, uint16, uint32, uint64:
+		return false
+	case float32, float64:
+		return false
+	case bool:
+		return false
+	case string:
+		return true
+	case time.Time, *time.Time:
+		return true
+	case builder.Builder, *builder.Builder:
+		return false
+	}
+
+	t := reflect.TypeOf(a)
+	switch t.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return false
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return false
+	case reflect.Float32, reflect.Float64:
+		return false
+	case reflect.Bool:
+		return false
+	case reflect.String:
+		return true
+	}
+
+	return true
+}
+
+func convertStringSingleQuote(arg string) string {
+	return "'" + strings.Replace(arg, "'", "''", -1) + "'"
+}
+
+func convertString(arg string) string {
+	var buf strings.Builder
+	buf.WriteRune('\'')
+	for _, c := range arg {
+		if c == '\\' || c == '\'' {
+			buf.WriteRune('\\')
+		}
+		buf.WriteRune(c)
+	}
+	buf.WriteRune('\'')
+	return buf.String()
+}
+
+func convertArg(arg interface{}, convertFunc func(string) string) string {
+	if quoteNeeded(arg) {
+		argv := fmt.Sprintf("%v", arg)
+		return convertFunc(argv)
+	}
+
+	return fmt.Sprintf("%v", arg)
+}
+
+const insertSelectPlaceHolder = true
+
 func (statement *Statement) writeArg(w *builder.BytesWriter, arg interface{}) error {
 	switch argv := arg.(type) {
-	case string:
-		if _, err := w.WriteString("'" + argv + "'"); err != nil {
-			return err
-		}
 	case bool:
 		if statement.Engine.dialect.DBType() == core.MSSQL {
 			if argv {
@@ -50,8 +112,19 @@ func (statement *Statement) writeArg(w *builder.BytesWriter, arg interface{}) er
 			return err
 		}
 	default:
-		if _, err := w.WriteString(fmt.Sprintf("%v", argv)); err != nil {
-			return err
+		if insertSelectPlaceHolder {
+			if err := w.WriteByte('?'); err != nil {
+				return err
+			}
+			w.Append(arg)
+		} else {
+			var convertFunc = convertStringSingleQuote
+			if statement.Engine.dialect.DBType() == core.MYSQL {
+				convertFunc = convertString
+			}
+			if _, err := w.WriteString(convertArg(arg, convertFunc)); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
