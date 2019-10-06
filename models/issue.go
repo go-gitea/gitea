@@ -1977,17 +1977,23 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 				for i, _ := range checked {
 					ids[i] = checked[i].ID
 				}
+				unchecked := make([]*User,0,20)
 				if err := ctx.e.
-					Join("INNER", "team_user", "team_user.team_id = `user`.id").
-					Where("`user`.is_active = ?", true).
-					And("`user`.prohibit_login = ?", false).
+					Join("INNER", "team_user", "team_user.uid = `user`.id").
 					In("`team_user`.team_id", ids).
-					Distinct().
-					Find(users); err != nil {
+					And("`user`.is_active = ?", true).
+					And("`user`.prohibit_login = ?", false).
+					Find(&unchecked); err != nil {
 					return nil, fmt.Errorf("get teams users: %v", err)
 				}
-				for _, user := range users {
-					resolved[user.LowerName] = true
+				if len(unchecked) > 0 {
+					users = make([]*User,0,len(unchecked))
+					for _, user := range unchecked {
+						if already, ok := resolved[user.LowerName]; !ok || !already {
+							users = append(users, user)
+							resolved[user.LowerName] = true
+						}
+					}
 				}
 			}
 		}
