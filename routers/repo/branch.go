@@ -204,9 +204,9 @@ func loadBranches(ctx *context.Context) []*Branch {
 			}
 		}
 
-		isMerged := true
-		if (divergence.Ahead != 0) || (divergence.Behind == 0) || (ctx.Repo.Repository.DefaultBranch == branchName) {
-			isMerged = false
+		isMerged := false
+		if (divergence.Ahead == 0 && divergence.Behind > 0 && ctx.Repo.Repository.DefaultBranch != branchName)  {
+			isMerged = true
 		}
 
 		branches[i] = &Branch{
