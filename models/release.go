@@ -366,3 +366,16 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 	}
 	return nil
 }
+
+// UpdateReleasesMigrationsByType updates all migrated repositories' releases from gitServiceType to replace originalAuthorID to posterID
+func UpdateReleasesMigrationsByType(gitServiceType GitServiceType, originalAuthorID, posterID int64) error {
+	_, err := x.Table("release").
+		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
+		And("original_author_id = ?", originalAuthorID).
+		Update(map[string]interface{}{
+			"publisher_id":       posterID,
+			"original_author":    "",
+			"original_author_id": 0,
+		})
+	return err
+}

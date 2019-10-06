@@ -198,20 +198,38 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 	var rels = make([]*models.Release, 0, len(releases))
 	for _, release := range releases {
 		var rel = models.Release{
-			RepoID:           g.repo.ID,
-			PublisherID:      g.doer.ID,
-			TagName:          release.TagName,
-			LowerTagName:     strings.ToLower(release.TagName),
-			Target:           release.TargetCommitish,
-			Title:            release.Name,
-			Sha1:             release.TargetCommitish,
-			Note:             release.Body,
-			IsDraft:          release.Draft,
-			IsPrerelease:     release.Prerelease,
-			IsTag:            false,
-			CreatedUnix:      timeutil.TimeStamp(release.Created.Unix()),
-			OriginalAuthor:   release.PublisherName,
-			OriginalAuthorID: release.PublisherID,
+			RepoID:       g.repo.ID,
+			TagName:      release.TagName,
+			LowerTagName: strings.ToLower(release.TagName),
+			Target:       release.TargetCommitish,
+			Title:        release.Name,
+			Sha1:         release.TargetCommitish,
+			Note:         release.Body,
+			IsDraft:      release.Draft,
+			IsPrerelease: release.Prerelease,
+			IsTag:        false,
+			CreatedUnix:  timeutil.TimeStamp(release.Created.Unix()),
+		}
+
+		userid, ok := g.userMap[release.PublisherID]
+		tp := g.gitServiceType.Name()
+		if !ok && tp != "" {
+			var err error
+			userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", release.PublisherID))
+			if err != nil {
+				log.Error("GetUserIDByExternalUserID: %v", err)
+			}
+			if userid > 0 {
+				g.userMap[release.PublisherID] = userid
+			}
+		}
+
+		if userid > 0 {
+			rel.PublisherID = userid
+		} else {
+			rel.PublisherID = g.doer.ID
+			rel.OriginalAuthor = release.PublisherName
+			rel.OriginalAuthorID = release.PublisherID
 		}
 
 		// calc NumCommits
