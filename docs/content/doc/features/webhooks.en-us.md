@@ -154,18 +154,29 @@ if (empty($payload)) {
     exit();
 }
 
+// get header signature
+$header_signature = isset($_SERVER['HTTP_X_GITEA_SIGNATURE']) ? $_SERVER['HTTP_X_GITEA_SIGNATURE'] : '';
+
+if (empty($header_signature)) {
+    error_log('FAILED - header signature missing');
+    exit();
+}
+
+// calculate payload signature
+$payload_signature = hash_hmac('sha256', $payload, $secret_key, false);
+
+// check payload signature against header signature
+if ($header_signature != $payload_signature) {
+    error_log('FAILED - payload signature');
+    exit();
+}
+
 // convert json to array
 $decoded = json_decode($payload, true);
 
 // check for json decode errors
 if (json_last_error() !== JSON_ERROR_NONE) {
     error_log('FAILED - json decode - '. json_last_error());
-    exit();
-}
-
-// check authorization
-if ($decoded['secret'] != $secret_key) {
-    error_log('FAILED - not authorized - '. $decoded['secret']);
     exit();
 }
 
