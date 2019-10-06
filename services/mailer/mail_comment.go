@@ -21,6 +21,9 @@ func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue 
 func mailParticipantsComment(ctx models.DBContext, c *models.Comment, opType models.ActionType, issue *models.Issue) (err error) {
 	rawMentions := markup.FindAllMentions(c.Content)
 	userMentions, err := issue.ResolveMentionsByVisibility(ctx, c.Poster, rawMentions)
+	if err != nil {
+		return fmt.Errorf("ResolveMentionsByVisibility [%d]: %v", c.IssueID, err)
+	}
 	if err = models.UpdateIssueMentions(ctx, c.IssueID, userMentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
