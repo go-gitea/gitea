@@ -4,32 +4,14 @@
 
 package migrations
 
-import (
-	"code.gitea.io/gitea/modules/timeutil"
+import "github.com/go-xorm/xorm"
 
-	"github.com/go-xorm/xorm"
-)
-
-func addProjectsTable(x *xorm.Engine) error {
-
-	type ProjectType uint8
-
-	type Project struct {
-		ID              int64  `xorm:"pk autoincr"`
-		Title           string `xorm:"INDEX NOT NULL"`
-		Description     string `xorm:"TEXT"`
-		RepoID          int64  `xorm:"NOT NULL"`
-		CreatorID       int64  `xorm:"NOT NULL"`
-		IsClosed        bool   `xorm:"INDEX"`
-		NumIssues       int
-		NumClosedIssues int
-
-		Type ProjectType
-
-		ClosedDateUnix timeutil.TimeStamp
-		CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
+func addOriginalAuthorOnMigratedReleases(x *xorm.Engine) error {
+	type Release struct {
+		ID               int64
+		OriginalAuthor   string
+		OriginalAuthorID int64 `xorm:"index"`
 	}
 
-	return x.Sync(new(Project))
+	return x.Sync2(new(Release))
 }

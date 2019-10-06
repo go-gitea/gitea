@@ -26,6 +26,8 @@ type Release struct {
 	PublisherID      int64       `xorm:"INDEX"`
 	Publisher        *User       `xorm:"-"`
 	TagName          string      `xorm:"INDEX UNIQUE(n)"`
+	OriginalAuthor   string
+	OriginalAuthorID int64 `xorm:"index"`
 	LowerTagName     string
 	Target           string
 	Title            string

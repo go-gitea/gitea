@@ -44,7 +44,7 @@ location. When launched manually, Gitea can be killed using `Ctrl+C`.
 
 ## Recommended server configuration
 
-**NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/advanced/specific-variables.en-us.md" >}}) as well!  
+**NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/advanced/specific-variables.en-us.md" >}}) as well!
 Of note, configuring `GITEA_WORK_DIR` will tell Gitea where to base its working directory, as well as ease installation.
 
 ### Prepare environment
@@ -80,7 +80,7 @@ chmod 770 /etc/gitea
 **NOTE:** `/etc/gitea` is temporary set with write rights for user `git` so that Web installer could write configuration file. After installation is done, it is recommended to set rights to read-only using:
 ```
 chmod 750 /etc/gitea
-chmod 644 /etc/gitea/app.ini
+chmod 640 /etc/gitea/app.ini
 ```
 If you don't want the web installer to be able to write the config file at all, it is also possible to make the config file read-only for the gitea user (owner/group `root:root`, mode `0660`), and set `INSTALL_LOCK = true`. In that case all database configuration details must be set beforehand in the config file, as well as the `SECRET_KEY` and `INTERNAL_TOKEN` values. See the [command line documentation]({{< relref "doc/usage/command-line.en-us.md" >}}) for information on using `gitea generate secret INTERNAL_TOKEN`.
 
@@ -113,16 +113,16 @@ GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
 
 ## Updating to a new version
 
-You can update to a new version of Gitea by stopping Gitea, replacing the binary at `/usr/local/bin/gitea` and restarting the instance. 
-The binary file name should not be changed during the update to avoid problems 
-in existing repositories. 
+You can update to a new version of Gitea by stopping Gitea, replacing the binary at `/usr/local/bin/gitea` and restarting the instance.
+The binary file name should not be changed during the update to avoid problems
+in existing repositories.
 
 It is recommended you do a [backup]({{< relref "doc/usage/backup-and-restore.en-us.md" >}}) before updating your installation.
 
-If you have carried out the installation steps as described above, the binary should 
-have the generic name `gitea`. Do not change this, i.e. to include the version number. 
+If you have carried out the installation steps as described above, the binary should
+have the generic name `gitea`. Do not change this, i.e. to include the version number.
 
-See below for troubleshooting instructions to repair broken repositories after 
+See below for troubleshooting instructions to repair broken repositories after
 an update of your Gitea version.
 
 ## Troubleshooting
@@ -145,7 +145,7 @@ is already running.
 
 ### Running Gitea on Raspbian
 
-As of v1.8, there is a problem with the arm7 version of Gitea and it doesn't run on Raspberry Pi and similar devices. 
+As of v1.8, there is a problem with the arm7 version of Gitea and it doesn't run on Raspberry Pi and similar devices.
 
 It is therefore recommended to switch to the arm6 version which has been tested and shown to work on Raspberry Pi and similar devices.
 
@@ -154,18 +154,18 @@ please remove after fixing the arm7 bug
 --->
 ### Git error after updating to a new version of Gitea
 
-If the binary file name has been changed during the update to a new version of Gitea, 
-git hooks in existing repositories will not work any more. In that case, a git 
+If the binary file name has been changed during the update to a new version of Gitea,
+git hooks in existing repositories will not work any more. In that case, a git
 error will be displayed when pushing to the repository.
 
 ```
 remote: ./hooks/pre-receive.d/gitea: line 2: [...]: No such file or directory
 ```
 
-The `[...]` part of the error message will contain the path to your previous Gitea 
+The `[...]` part of the error message will contain the path to your previous Gitea
 binary.
 
-To solve this, go to the admin options and run the task `Resynchronize pre-receive, 
+To solve this, go to the admin options and run the task `Resynchronize pre-receive,
 update and post-receive hooks of all repositories` to update all hooks to contain
 the new binary path. Please note that this overwrite all git hooks including ones
 with customizations made.

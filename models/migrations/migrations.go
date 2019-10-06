@@ -251,7 +251,7 @@ var migrations = []Migration{
 	// v97 -> v98
 	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
 	// v98 -> v99
-	NewMigration("add projects database table", addProjectsTable),
+	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
 	// v99 -> v100
 	NewMigration("add projects info to repository table", addProjectsInfo),
 	// v100 -> v101
