@@ -1649,16 +1649,21 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
 	}
 
+	var repoCond = builder.NewCond()
+	if opts.RepoSubQuery != nil {
+		repoCond = builder.In("issue.repo_id", opts.RepoSubQuery)
+	}
+
 	switch opts.FilterMode {
 	case FilterModeAll:
 		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
-			And(builder.In("issue.repo_id", opts.RepoSubQuery)).
+			And(repoCond).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
 		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
-			And(builder.In("issue.repo_id", opts.RepoSubQuery)).
+			And(repoCond).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
@@ -1733,7 +1738,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	stats.YourRepositoriesCount, err = x.Where(cond).
-		And(builder.In("issue.repo_id", opts.RepoSubQuery)).
+		And(repoCond).
 		Count(new(Issue))
 	if err != nil {
 		return nil, err
