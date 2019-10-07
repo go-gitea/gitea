@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -65,11 +66,12 @@ type PageMeta struct {
 // findEntryForFile finds the tree entry for a target filepath.
 func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error) {
 	entries, err := commit.ListEntries()
+	unescapedTarget, _ := url.QueryUnescape(target)
 	if err != nil {
 		return nil, err
 	}
 	for _, entry := range entries {
-		if entry.IsRegular() && entry.Name() == target {
+		if entry.IsRegular() && (entry.Name() == target || entry.Name() == unescapedTarget) {
 			return entry, nil
 		}
 	}
