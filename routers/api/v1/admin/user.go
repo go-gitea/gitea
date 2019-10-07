@@ -76,7 +76,7 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	if ctx.Written() {
 		return
 	}
-	if !password.IsComplexity(form.Password) {
+	if !password.IsComplexEnough(form.Password) {
 		err := errors.New("PasswordComplexity")
 		ctx.Error(400, "PasswordComplexity", err)
 		return
@@ -138,7 +138,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	}
 
 	if len(form.Password) > 0 {
-		if !password.IsComplexity(form.Password) {
+		if !password.IsComplexEnough(form.Password) {
 			err := errors.New("PasswordComplexity")
 			ctx.Error(400, "PasswordComplexity", err)
 			return

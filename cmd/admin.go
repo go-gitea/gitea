@@ -233,7 +233,7 @@ func runChangePassword(c *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
-	if !pwd.IsComplexity(c.String("password")) {
+	if !pwd.IsComplexEnough(c.String("password")) {
 		return errors.New("Password does not meet complexity requirements")
 	}
 	uname := c.String("username")

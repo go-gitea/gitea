@@ -41,8 +41,8 @@ func NewComplexity() {
 	})
 }
 
-// IsComplexity return True if password is Complexity
-func IsComplexity(pwd string) bool {
+// IsComplexEnough return True if password is Complexity
+func IsComplexEnough(pwd string) bool {
 	if len(setting.PasswordComplexity) > 0 {
 		NewComplexity()
 		for _, val := range matchComplexities {
@@ -67,7 +67,7 @@ func Generate(n int) (string, error) {
 			}
 			buffer[j] = validChars[rnd.Int64()]
 		}
-		if IsComplexity(string(buffer)) {
+		if IsComplexEnough(string(buffer)) {
 			return string(buffer), nil
 		}
 	}

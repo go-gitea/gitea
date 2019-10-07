@@ -792,7 +792,7 @@ func NewContext() {
 			}
 		}
 	}
-	//if misconfiguration, then use strong checks
+     // if misconfigured, then use strong checks
 	if len(PasswordComplexity) == 0 {
 		PasswordComplexity = dictPC
 	}
