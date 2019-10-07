@@ -200,6 +200,12 @@ func Issues(ctx *context.Context) {
 	// Get repositories.
 	var err error
 	var userRepoIDs []int64
+	opts := &models.IssuesOptions{
+		IsClosed: util.OptionalBoolOf(isShowClosed),
+		IsPull:   util.OptionalBoolOf(isPullList),
+		SortType: sortType,
+	}
+
 	if ctxUser.IsOrganization() {
 		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
 		if err != nil {
@@ -216,20 +222,10 @@ func Issues(ctx *context.Context) {
 		if isPullList {
 			unitType = models.UnitTypePullRequests
 		}
-		userRepoIDs, err = ctxUser.GetAccessRepoIDs(unitType)
-		if err != nil {
-			ctx.ServerError("ctxUser.GetAccessRepoIDs", err)
-			return
-		}
+		opts.RepoSubQuery = ctxUser.UnitRepositoriesSubQuery(unitType)
 	}
 	if len(userRepoIDs) == 0 {
 		userRepoIDs = []int64{-1}
-	}
-
-	opts := &models.IssuesOptions{
-		IsClosed: util.OptionalBoolOf(isShowClosed),
-		IsPull:   util.OptionalBoolOf(isPullList),
-		SortType: sortType,
 	}
 
 	if repoID > 0 {

@@ -629,6 +629,17 @@ func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 	return ids, sess.Where("owner_id = ?", u.ID).Find(&ids)
 }
 
+// UnitRepositoriesSubQuery returns repositories query builder according units
+func (u *User) UnitRepositoriesSubQuery(units ...UnitType) *builder.Builder {
+	b := builder.Select("repository.id").From("repository")
+
+	if len(units) > 0 {
+		b = b.Join("INNER", "repo_unit", "repository.id = repo_unit.repo_id")
+		b = b.Where(builder.In("repo_unit.type", units))
+	}
+	return b.Where(builder.Eq{"owner_id": u.ID})
+}
+
 // GetOrgRepositoryIDs returns repositories IDs where user's team owned and has unittypes
 func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var ids []int64

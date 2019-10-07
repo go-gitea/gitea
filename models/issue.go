@@ -1306,18 +1306,19 @@ func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
-	RepoIDs     []int64 // include all repos if empty
-	AssigneeID  int64
-	PosterID    int64
-	MentionedID int64
-	MilestoneID int64
-	Page        int
-	PageSize    int
-	IsClosed    util.OptionalBool
-	IsPull      util.OptionalBool
-	LabelIDs    []int64
-	SortType    string
-	IssueIDs    []int64
+	RepoIDs      []int64 // include all repos if empty
+	RepoSubQuery *builder.Builder
+	AssigneeID   int64
+	PosterID     int64
+	MentionedID  int64
+	MilestoneID  int64
+	Page         int
+	PageSize     int
+	IsClosed     util.OptionalBool
+	IsPull       util.OptionalBool
+	LabelIDs     []int64
+	SortType     string
+	IssueIDs     []int64
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -1360,7 +1361,9 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		sess.In("issue.id", opts.IssueIDs)
 	}
 
-	if len(opts.RepoIDs) > 0 {
+	if opts.RepoSubQuery != nil {
+		sess.In("issue.repo_id", opts.RepoSubQuery)
+	} else if len(opts.RepoIDs) > 0 {
 		// In case repository IDs are provided but actually no repository has issue.
 		sess.In("issue.repo_id", opts.RepoIDs)
 	}
