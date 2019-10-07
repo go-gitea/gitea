@@ -317,6 +317,8 @@ func updateRepoMilestoneNum(e Engine, repoID int64) error {
 	_, err := e.Exec("UPDATE `repository` SET num_milestones=(SELECT count(*) FROM milestone WHERE repo_id=?),num_closed_milestones=(SELECT count(*) FROM milestone WHERE repo_id=? AND is_closed=?) WHERE id=?",
 		repoID,
 		repoID,
+		true,
+		repoID,
 	)
 	return err
 }
