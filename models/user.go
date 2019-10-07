@@ -615,20 +615,6 @@ func (u *User) GetRepositories(page, pageSize int) (err error) {
 	return err
 }
 
-// GetRepositoryIDs returns repositories IDs where user owned and has unittypes
-func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
-	var ids []int64
-
-	sess := x.Table("repository").Cols("repository.id")
-
-	if len(units) > 0 {
-		sess = sess.Join("INNER", "repo_unit", "repository.id = repo_unit.repo_id")
-		sess = sess.In("repo_unit.type", units)
-	}
-
-	return ids, sess.Where("owner_id = ?", u.ID).Find(&ids)
-}
-
 // UnitRepositoriesSubQuery returns repositories query builder according units
 func (u *User) UnitRepositoriesSubQuery(units ...UnitType) *builder.Builder {
 	b := builder.Select("repository.id").From("repository")
@@ -638,38 +624,6 @@ func (u *User) UnitRepositoriesSubQuery(units ...UnitType) *builder.Builder {
 		b = b.Where(builder.In("repo_unit.type", units))
 	}
 	return b.Where(builder.Eq{"owner_id": u.ID})
-}
-
-// GetOrgRepositoryIDs returns repositories IDs where user's team owned and has unittypes
-func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
-	var ids []int64
-
-	sess := x.Table("repository").
-		Cols("repository.id").
-		Join("INNER", "team_user", "repository.owner_id = team_user.org_id").
-		Join("INNER", "team_repo", "repository.is_private != ? OR (team_user.team_id = team_repo.team_id AND repository.id = team_repo.repo_id)", true)
-
-	if len(units) > 0 {
-		sess = sess.Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id")
-		sess = sess.In("team_unit.type", units)
-	}
-
-	return ids, sess.
-		Where("team_user.uid = ?", u.ID).
-		GroupBy("repository.id").Find(&ids)
-}
-
-// GetAccessRepoIDs returns all repositories IDs where user's or user is a team member organizations
-func (u *User) GetAccessRepoIDs(units ...UnitType) ([]int64, error) {
-	ids, err := u.GetRepositoryIDs(units...)
-	if err != nil {
-		return nil, err
-	}
-	ids2, err := u.GetOrgRepositoryIDs(units...)
-	if err != nil {
-		return nil, err
-	}
-	return append(ids, ids2...), nil
 }
 
 // GetMirrorRepositories returns mirror repositories that user owns, including private repositories.

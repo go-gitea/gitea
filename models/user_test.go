@@ -275,28 +275,6 @@ func BenchmarkHashPassword(b *testing.B) {
 	}
 }
 
-func TestGetOrgRepositoryIDs(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
-	user5 := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
-
-	accessibleRepos, err := user2.GetOrgRepositoryIDs()
-	assert.NoError(t, err)
-	// User 2's team has access to private repos 3, 5, repo 32 is a public repo of the organization
-	assert.Equal(t, []int64{3, 5, 23, 24, 32}, accessibleRepos)
-
-	accessibleRepos, err = user4.GetOrgRepositoryIDs()
-	assert.NoError(t, err)
-	// User 4's team has access to private repo 3, repo 32 is a public repo of the organization
-	assert.Equal(t, []int64{3, 32}, accessibleRepos)
-
-	accessibleRepos, err = user5.GetOrgRepositoryIDs()
-	assert.NoError(t, err)
-	// User 5's team has no access to any repo
-	assert.Len(t, accessibleRepos, 0)
-}
-
 func TestNewGitSig(t *testing.T) {
 	users := make([]*User, 0, 20)
 	sess := x.NewSession()
