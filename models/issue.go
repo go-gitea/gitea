@@ -1630,12 +1630,12 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 
 // UserIssueStatsOptions contains parameters accepted by GetUserIssueStats.
 type UserIssueStatsOptions struct {
-	UserID      int64
-	RepoID      int64
-	UserRepoIDs []int64
-	FilterMode  int
-	IsPull      bool
-	IsClosed    bool
+	UserID       int64
+	RepoID       int64
+	RepoSubQuery *builder.Builder
+	FilterMode   int
+	IsPull       bool
+	IsClosed     bool
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
@@ -1647,18 +1647,18 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull})
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
+	} else if opts.RepoSubQuery != nil {
+		cond = cond.And(builder.In("issue.repo_id", opts.RepoSubQuery))
 	}
 
 	switch opts.FilterMode {
 	case FilterModeAll:
 		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
-			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
 		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
-			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
@@ -1733,7 +1733,6 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	stats.YourRepositoriesCount, err = x.Where(cond).
-		And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 		Count(new(Issue))
 	if err != nil {
 		return nil, err

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"xorm.io/builder"
 )
 
 func TestIssue_ReplaceLabels(t *testing.T) {
@@ -266,10 +267,12 @@ func TestGetUserIssueStats(t *testing.T) {
 		},
 		{
 			UserIssueStatsOptions{
-				UserID:      2,
-				UserRepoIDs: []int64{1, 2},
-				FilterMode:  FilterModeAll,
-				IsClosed:    true,
+				UserID: 2,
+				RepoSubQuery: builder.Select("repository.id").
+					From("repository").
+					Where(builder.In("repository.id", []int64{1, 2})),
+				FilterMode: FilterModeAll,
+				IsClosed:   true,
 			},
 			IssueStats{
 				YourRepositoriesCount: 2,

@@ -620,10 +620,30 @@ func (u *User) UnitRepositoriesSubQuery(units ...UnitType) *builder.Builder {
 	b := builder.Select("repository.id").From("repository")
 
 	if len(units) > 0 {
-		b = b.Join("INNER", "repo_unit", "repository.id = repo_unit.repo_id")
-		b = b.Where(builder.In("repo_unit.type", units))
+		b.Join("INNER", "repo_unit", builder.Expr("repository.id = repo_unit.repo_id").
+			And(builder.In("repo_unit.type", units)),
+		)
 	}
-	return b.Where(builder.Eq{"owner_id": u.ID})
+	return b.Where(builder.Eq{"repository.owner_id": u.ID})
+}
+
+// OrgUnitRepositoriesSubQuery returns repositories query builder according orgnizations and units
+func (u *User) OrgUnitRepositoriesSubQuery(userID int64, units ...UnitType) *builder.Builder {
+	b := builder.
+		Select("team_repo.repo_id").
+		From("team_repo").
+		Join("INNER", "team_user", builder.Eq{"team_user.uid": userID}.And(
+			builder.Expr("team_user.team_id = team_repo.team_id"),
+		))
+	if len(units) > 0 {
+		b.Join("INNER", "team_unit", builder.Eq{"team_unit.org_id": u.ID}.And(
+			builder.Expr("team_unit.team_id = team_repo.team_id").And(
+				builder.In("`type`", units),
+			),
+		))
+	}
+	return b.Where(builder.Eq{"team_repo.org_id": u.ID}).
+		GroupBy("team_repo.repo_id")
 }
 
 // GetMirrorRepositories returns mirror repositories that user owns, including private repositories.
