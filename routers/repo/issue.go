@@ -34,6 +34,8 @@ import (
 )
 
 const (
+	tplAttachment base.TplName = "repo/issue/view_content/attachments"
+
 	tplIssues    base.TplName = "repo/issue/list"
 	tplIssueNew  base.TplName = "repo/issue/new"
 	tplIssueView base.TplName = "repo/issue/view"
@@ -1074,8 +1076,38 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
+	files := ctx.QueryStrings("files[]")
+	for i := 0; i < len(issue.Attachments); i++ {
+		if !util.IsStringInSlice(issue.Attachments[i].UUID, files) {
+			if err := models.DeleteAttachment(issue.Attachments[i], true); err != nil {
+				ctx.ServerError("DeleteAttachment", err)
+				return
+			}
+		}
+	}
+	if len(files) > 0 {
+		if err := issue.UpdateAttachments(files); err != nil {
+			ctx.ServerError("UpdateAttachments", err)
+			return
+		}
+	}
+	var err error
+	issue.Attachments, err = models.GetAttachmentsByIssueID(issue.ID)
+	if err != nil {
+		ctx.ServerError("GetAttachmentsByIssueID", err)
+		return
+	}
+	attachHTML, err := ctx.HTMLString(string(tplAttachment), map[string]interface{}{
+		"ctx":         ctx.Data,
+		"Attachments": issue.Attachments,
+	})
+	if err != nil {
+		ctx.ServerError("UpdateIssueContent.HTMLString", err)
+		return
+	}
 	ctx.JSON(200, map[string]interface{}{
-		"content": string(markdown.Render([]byte(issue.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+		"content":     string(markdown.Render([]byte(issue.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+		"attachments": attachHTML,
 	})
 }
 
@@ -1325,6 +1357,13 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
+	if comment.Type == models.CommentTypeComment {
+		if err := comment.LoadAttachments(); err != nil {
+			ctx.ServerError("LoadAttachments", err)
+			return
+		}
+	}
+
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(403)
 		return
@@ -1346,10 +1385,41 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
+	files := ctx.QueryStrings("files[]")
+	for i := 0; i < len(comment.Attachments); i++ {
+		if !util.IsStringInSlice(comment.Attachments[i].UUID, files) {
+			if err := models.DeleteAttachment(comment.Attachments[i], true); err != nil {
+				ctx.ServerError("DeleteAttachment", err)
+				return
+			}
+		}
+	}
+	if len(files) > 0 {
+		if err := comment.UpdateAttachments(files); err != nil {
+			ctx.ServerError("UpdateAttachments", err)
+			return
+		}
+	}
+
+	comment.Attachments, err = models.GetAttachmentsByCommentID(comment.ID)
+	if err != nil {
+		ctx.ServerError("GetAttachmentsByCommentID", err)
+		return
+	}
+	attachHTML, err := ctx.HTMLString(string(tplAttachment), map[string]interface{}{
+		"ctx":         ctx.Data,
+		"Attachments": comment.Attachments,
+	})
+	if err != nil {
+		ctx.ServerError("UpdateCommentContent.HTMLString", err)
+		return
+	}
+
 	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
 
 	ctx.JSON(200, map[string]interface{}{
-		"content": string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+		"content":     string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+		"attachments": attachHTML,
 	})
 }
 
@@ -1602,4 +1672,34 @@ func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 		i++
 	}
 	return nil
+}
+
+// GetIssueAttachments returns attachments for the issue
+func GetIssueAttachments(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	var attachments = make([]*api.Attachment, len(issue.Attachments))
+	for i := 0; i < len(issue.Attachments); i++ {
+		attachments[i] = issue.Attachments[i].APIFormat()
+	}
+	ctx.JSON(200, attachments)
+}
+
+// GetCommentAttachments returns attachments for the comment
+func GetCommentAttachments(ctx *context.Context) {
+	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
+		return
+	}
+	var attachments = make([]*api.Attachment, 0)
+	if comment.Type == models.CommentTypeComment {
+		if err := comment.LoadAttachments(); err != nil {
+			ctx.ServerError("LoadAttachments", err)
+			return
+		}
+		for i := 0; i < len(comment.Attachments); i++ {
+			attachments = append(attachments, comment.Attachments[i].APIFormat())
+		}
+	}
+	ctx.JSON(200, attachments)
 }

@@ -355,6 +355,30 @@ func (c *Comment) LoadAttachments() error {
 	return nil
 }
 
+// UpdateAttachments update attachments by UUIDs for the comment
+func (c *Comment) UpdateAttachments(uuids []string) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	attachments, err := getAttachmentsByUUIDs(sess, uuids)
+	if err != nil {
+		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", uuids, err)
+	}
+	for i := 0; i < len(attachments); i++ {
+		attachments[i].IssueID = c.IssueID
+		attachments[i].CommentID = c.ID
+		if err := updateAttachment(sess, attachments[i]); err != nil {
+			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
+		}
+	}
+	if err = sess.Commit(); err != nil {
+		return err
+	}
+	return nil
+}
+
 // LoadAssigneeUser if comment.Type is CommentTypeAssignees, then load assignees
 func (c *Comment) LoadAssigneeUser() error {
 	var err error
