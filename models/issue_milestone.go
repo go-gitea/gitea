@@ -258,8 +258,12 @@ func UpdateMilestone(m *Milestone) error {
 		return err
 	}
 
-	_, err := x.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
-		m.ID,
+	return updateMilestoneCompleteness(x, m.ID)
+}
+
+func updateMilestoneCompleteness(e Engine, milestoneID int64) error {
+	_, err := e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
+		milestoneID,
 	)
 	return err
 }
@@ -331,11 +335,7 @@ func updateMilestoneTotalNum(e Engine, milestoneID int64) (err error) {
 		return
 	}
 
-	_, err = e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
-		milestoneID,
-	)
-
-	return
+	return updateMilestoneCompleteness(e, milestoneID)
 }
 
 func updateMilestoneClosedNum(e Engine, milestoneID int64) (err error) {
@@ -347,10 +347,7 @@ func updateMilestoneClosedNum(e Engine, milestoneID int64) (err error) {
 		return
 	}
 
-	_, err = e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
-		milestoneID,
-	)
-	return
+	return updateMilestoneCompleteness(e, milestoneID)
 }
 
 func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilestoneID int64) error {
