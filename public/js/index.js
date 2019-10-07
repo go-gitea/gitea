@@ -873,7 +873,7 @@ function initRepository() {
                             });
                             this.on("reload", function (){
                                 $.getJSON($editContentZone.data('attachment-url'), function(data){
-                                    let drop = $dropzone.get(0).dropzone;
+                                    const drop = $dropzone.get(0).dropzone;
                                     drop.removeAllFiles(true);
                                     $files.empty();
                                     $.each(data, function(){
@@ -914,7 +914,7 @@ function initRepository() {
                 $editContentZone.find('.save.button').click(function () {
                     $renderContent.show();
                     $editContentZone.hide();
-                    let $attachments = $files.find("[name=files]").map(function(){
+                    const $attachments = $files.find("[name=files]").map(function(){
                         return $(this).val();
                     }).get();
                     $.post($editContentZone.data('update-url'), {
@@ -933,7 +933,7 @@ function initRepository() {
                                 hljs.highlightBlock(this);
                             });
                         }
-                        let $content = $segment.parent();
+                        const $content = $segment.parent();
                         if(!$content.find(".ui.small.images").length){
                             if(data.attachments != ""){
                                 $content.append(`
