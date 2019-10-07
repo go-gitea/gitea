@@ -214,6 +214,11 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 		name = *rel.Name
 	}
 
+	var email string
+	if rel.Author.Email != nil {
+		email = *rel.Author.Email
+	}
+
 	r := &base.Release{
 		TagName:         *rel.TagName,
 		TargetCommitish: *rel.TargetCommitish,
@@ -222,6 +227,9 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 		Draft:           *rel.Draft,
 		Prerelease:      *rel.Prerelease,
 		Created:         rel.CreatedAt.Time,
+		PublisherID:     *rel.Author.ID,
+		PublisherName:   *rel.Author.Login,
+		PublisherEmail:  email,
 		Published:       rel.PublishedAt.Time,
 	}
 
