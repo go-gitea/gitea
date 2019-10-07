@@ -1652,6 +1652,8 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	var repoCond = builder.NewCond()
 	if opts.RepoSubQuery != nil {
 		repoCond = builder.In("issue.repo_id", opts.RepoSubQuery)
+	} else {
+		repoCond = builder.Expr("0=1")
 	}
 
 	switch opts.FilterMode {
