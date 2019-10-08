@@ -517,4 +517,4 @@ golangci-lint:
 		export BINARY="golangci-lint"; \
 		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.20.0; \
 	fi
-	golangci-lint run --deadline=3m
+	golangci-lint run
