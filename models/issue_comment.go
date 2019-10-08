@@ -373,7 +373,7 @@ func (c *Comment) UpdateAttachments(uuids []string) error {
 			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
 		}
 	}
-	if err = sess.Commit(); err != nil {
+	if err := sess.Commit(); err != nil {
 		return err
 	}
 	return nil
