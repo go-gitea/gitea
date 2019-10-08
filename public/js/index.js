@@ -885,6 +885,7 @@ function initRepository() {
                                             "submitted": true,
                                             "uuid": this.uuid
                                         }
+                                        $dropzone.find(`img[src='${$dropzone.data('upload-url')}/${this.uuid}']`).css("max-width", "100%");
                                         const input = $('<input id="' + this.uuid + '" name="files" type="hidden">').val(this.uuid);
                                         $files.append(input);
                                     });
