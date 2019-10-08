@@ -279,6 +279,19 @@ func TestGetUserIssueStats(t *testing.T) {
 				ClosedCount:           2,
 			},
 		},
+		{
+			UserIssueStatsOptions{
+				UserID:     1,
+				FilterMode: FilterModeMention,
+			},
+			IssueStats{
+				YourRepositoriesCount: 0,
+				AssignCount:           2,
+				CreateCount:           2,
+				OpenCount:             0,
+				ClosedCount:           0,
+			},
+		},
 	} {
 		stats, err := GetUserIssueStats(test.Opts)
 		if !assert.NoError(t, err) {

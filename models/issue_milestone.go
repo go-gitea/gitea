@@ -311,71 +311,74 @@ func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
 	return sess.Commit()
 }
 
-func changeMilestoneIssueStats(e *xorm.Session, issue *Issue) error {
-	if issue.MilestoneID == 0 {
-		return nil
+func updateMilestoneTotalNum(e Engine, milestoneID int64) (err error) {
+	if _, err = e.Exec("UPDATE `milestone` SET num_issues=(SELECT count(*) FROM issue WHERE milestone_id=?) WHERE id=?",
+		milestoneID,
+		milestoneID,
+	); err != nil {
+		return
 	}
 
-	m, err := getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
-	if err != nil {
-		return err
+	_, err = e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
+		milestoneID,
+	)
+
+	return
+}
+
+func updateMilestoneClosedNum(e Engine, milestoneID int64) (err error) {
+	if _, err = e.Exec("UPDATE `milestone` SET num_closed_issues=(SELECT count(*) FROM issue WHERE milestone_id=? AND is_closed=?) WHERE id=?",
+		milestoneID,
+		true,
+		milestoneID,
+	); err != nil {
+		return
 	}
 
-	if issue.IsClosed {
-		m.NumOpenIssues--
-		m.NumClosedIssues++
-	} else {
-		m.NumOpenIssues++
-		m.NumClosedIssues--
-	}
-
-	return updateMilestone(e, m)
+	_, err = e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
+		milestoneID,
+	)
+	return
 }
 
 func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilestoneID int64) error {
+	if err := updateIssueCols(e, issue, "milestone_id"); err != nil {
+		return err
+	}
+
 	if oldMilestoneID > 0 {
-		m, err := getMilestoneByRepoID(e, issue.RepoID, oldMilestoneID)
-		if err != nil {
+		if err := updateMilestoneTotalNum(e, oldMilestoneID); err != nil {
 			return err
 		}
-
-		m.NumIssues--
 		if issue.IsClosed {
-			m.NumClosedIssues--
-		}
-
-		if err = updateMilestone(e, m); err != nil {
-			return err
+			if err := updateMilestoneClosedNum(e, oldMilestoneID); err != nil {
+				return err
+			}
 		}
 	}
 
 	if issue.MilestoneID > 0 {
-		m, err := getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
-		if err != nil {
+		if err := updateMilestoneTotalNum(e, issue.MilestoneID); err != nil {
 			return err
 		}
-
-		m.NumIssues++
 		if issue.IsClosed {
-			m.NumClosedIssues++
+			if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
+				return err
+			}
 		}
-
-		if err = updateMilestone(e, m); err != nil {
-			return err
-		}
-	}
-
-	if err := issue.loadRepo(e); err != nil {
-		return err
 	}
 
 	if oldMilestoneID > 0 || issue.MilestoneID > 0 {
+		if err := issue.loadRepo(e); err != nil {
+			return err
+		}
+
 		if _, err := createMilestoneComment(e, doer, issue.Repo, issue, oldMilestoneID, issue.MilestoneID); err != nil {
 			return err
 		}
 	}
 
-	return updateIssueCols(e, issue, "milestone_id")
+	return nil
 }
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.

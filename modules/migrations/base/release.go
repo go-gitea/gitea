@@ -25,6 +25,9 @@ type Release struct {
 	Body            string
 	Draft           bool
 	Prerelease      bool
+	PublisherID     int64
+	PublisherName   string
+	PublisherEmail  string
 	Assets          []ReleaseAsset
 	Created         time.Time
 	Published       time.Time

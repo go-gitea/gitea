@@ -106,7 +106,12 @@
 				</h4>
 				<div class="ui attached unstackable table segment">
 					{{if ne $file.Type 4}}
-						{{$isImage := (call $.IsImageFile $file.Name)}}
+						{{$isImage := false}}
+						{{if $file.IsDeleted}}
+							{{$isImage = (call $.IsImageFileInBase $file.Name)}}
+						{{else}}
+							{{$isImage = (call $.IsImageFileInHead $file.Name)}}
+						{{end}}
 						<div class="file-body file-code code-view code-diff {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}}">
 							<table>
 								<tbody>

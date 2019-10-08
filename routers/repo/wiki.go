@@ -55,7 +55,7 @@ func MustEnableWiki(ctx *context.Context) {
 	}
 }
 
-// PageMeta wiki page meat information
+// PageMeta wiki page meta information
 type PageMeta struct {
 	Name        string
 	SubURL      string
