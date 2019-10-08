@@ -304,6 +304,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			var output bytes.Buffer
 			lines := strings.Split(fileContent, "\n")
+			ctx.Data["NumLines"] = len(lines)
+
 			//Remove blank line at the end of file
 			if len(lines) > 0 && lines[len(lines)-1] == "" {
 				lines = lines[:len(lines)-1]

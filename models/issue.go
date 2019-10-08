@@ -766,7 +766,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 	}
 
 	// Update issue count of milestone
-	if err = changeMilestoneIssueStats(e, issue); err != nil {
+	if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
 		return err
 	}
 
@@ -1119,7 +1119,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Index = inserted.Index
 
 	if opts.Issue.MilestoneID > 0 {
-		if err = changeMilestoneAssign(e, doer, opts.Issue, -1); err != nil {
+		if _, err = e.Exec("UPDATE `milestone` SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
 			return err
 		}
 	}
@@ -1306,18 +1306,19 @@ func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
-	RepoIDs     []int64 // include all repos if empty
-	AssigneeID  int64
-	PosterID    int64
-	MentionedID int64
-	MilestoneID int64
-	Page        int
-	PageSize    int
-	IsClosed    util.OptionalBool
-	IsPull      util.OptionalBool
-	LabelIDs    []int64
-	SortType    string
-	IssueIDs    []int64
+	RepoIDs      []int64 // include all repos if empty
+	RepoSubQuery *builder.Builder
+	AssigneeID   int64
+	PosterID     int64
+	MentionedID  int64
+	MilestoneID  int64
+	Page         int
+	PageSize     int
+	IsClosed     util.OptionalBool
+	IsPull       util.OptionalBool
+	LabelIDs     []int64
+	SortType     string
+	IssueIDs     []int64
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -1360,7 +1361,9 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		sess.In("issue.id", opts.IssueIDs)
 	}
 
-	if len(opts.RepoIDs) > 0 {
+	if opts.RepoSubQuery != nil {
+		sess.In("issue.repo_id", opts.RepoSubQuery)
+	} else if len(opts.RepoIDs) > 0 {
 		// In case repository IDs are provided but actually no repository has issue.
 		sess.In("issue.repo_id", opts.RepoIDs)
 	}
@@ -1627,12 +1630,12 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 
 // UserIssueStatsOptions contains parameters accepted by GetUserIssueStats.
 type UserIssueStatsOptions struct {
-	UserID      int64
-	RepoID      int64
-	UserRepoIDs []int64
-	FilterMode  int
-	IsPull      bool
-	IsClosed    bool
+	UserID       int64
+	RepoID       int64
+	RepoSubQuery *builder.Builder
+	FilterMode   int
+	IsPull       bool
+	IsClosed     bool
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
@@ -1646,16 +1649,23 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
 	}
 
+	var repoCond = builder.NewCond()
+	if opts.RepoSubQuery != nil {
+		repoCond = builder.In("issue.repo_id", opts.RepoSubQuery)
+	} else {
+		repoCond = builder.Expr("0=1")
+	}
+
 	switch opts.FilterMode {
 	case FilterModeAll:
 		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
-			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
+			And(repoCond).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
 		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
-			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
+			And(repoCond).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
@@ -1730,7 +1740,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	stats.YourRepositoriesCount, err = x.Where(cond).
-		And(builder.In("issue.repo_id", opts.UserRepoIDs)).
+		And(repoCond).
 		Count(new(Issue))
 	if err != nil {
 		return nil, err
