@@ -278,14 +278,14 @@ func runCreateUser(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "--name flag is deprecated. Use --username instead.\n")
 	}
 
-	var password string
+	if err := initDB(); err != nil {
+		return err
+	}
 
+	var password string
 	if c.IsSet("password") {
 		password = c.String("password")
 	} else if c.IsSet("random-password") {
-		if err := initDB(); err != nil {
-			return err
-		}
 		var err error
 		password, err = pwd.Generate(c.Int("random-password-length"))
 		if err != nil {
@@ -294,10 +294,6 @@ func runCreateUser(c *cli.Context) error {
 		fmt.Printf("generated random password is '%s'\n", password)
 	} else {
 		return errors.New("must set either password or random-password flag")
-	}
-
-	if err := initDB(); err != nil {
-		return err
 	}
 
 	// always default to true
