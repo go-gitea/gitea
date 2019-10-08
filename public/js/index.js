@@ -945,7 +945,7 @@ function initRepository() {
                                 `);
                                 $content.find(".ui.small.images").html(data.attachments);
                             }
-                        } else if (data.attachments == ""){
+                        } else if (data.attachments == "") {
                             $content.find(".ui.small.images").parent().remove();
                         } else {
                             $content.find(".ui.small.images").html(data.attachments);
