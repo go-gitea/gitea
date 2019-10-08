@@ -283,6 +283,9 @@ func runCreateUser(c *cli.Context) error {
 	if c.IsSet("password") {
 		password = c.String("password")
 	} else if c.IsSet("random-password") {
+		if err := initDB(); err != nil {
+			return err
+		}
 		var err error
 		password, err = pwd.Generate(c.Int("random-password-length"))
 		if err != nil {
