@@ -66,12 +66,22 @@ type PageMeta struct {
 // findEntryForFile finds the tree entry for a target filepath.
 func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error) {
 	entries, err := commit.ListEntries()
-	unescapedTarget, _ := url.QueryUnescape(target)
 	if err != nil {
 		return nil, err
 	}
+	// The longest name should be checked first
 	for _, entry := range entries {
-		if entry.IsRegular() && (entry.Name() == target || entry.Name() == unescapedTarget) {
+		if entry.IsRegular() && entry.Name() == target {
+			return entry, nil
+		}
+	}
+	// Then the unescaped, shortest alternative
+	var unescapedTarget string
+	if unescapedTarget, err = url.QueryUnescape(target); err != nil {
+		return nil, err
+	}
+	for _, entry := range entries {
+		if entry.IsRegular() && entry.Name() == unescapedTarget {
 			return entry, nil
 		}
 	}
