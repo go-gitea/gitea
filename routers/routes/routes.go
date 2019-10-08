@@ -513,9 +513,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 	}, ignSignIn)
 
-	m.Group("", func() {
-		m.Post("/attachments", repo.UploadAttachment)
-		m.Post("/attachments-remove", repo.DeleteAttachment)
+	m.Group("/attachments", func() {
+		m.Post("", repo.UploadAttachment)
+		m.Post("/delete", repo.DeleteAttachment)
 	}, reqSignIn)
 
 	m.Group("/:username", func() {
