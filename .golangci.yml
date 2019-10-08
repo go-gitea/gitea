@@ -19,6 +19,9 @@ linters:
   disable-all: true
   fast: false
 
+run:
+  timeout: 3m
+
 linters-settings:
   gocritic:
     disabled-checks:
