@@ -1078,11 +1078,12 @@ func UpdateIssueContent(ctx *context.Context) {
 
 	files := ctx.QueryStrings("files[]")
 	for i := 0; i < len(issue.Attachments); i++ {
-		if !util.IsStringInSlice(issue.Attachments[i].UUID, files) {
-			if err := models.DeleteAttachment(issue.Attachments[i], true); err != nil {
-				ctx.ServerError("DeleteAttachment", err)
-				return
-			}
+		if util.IsStringInSlice(issue.Attachments[i].UUID, files) {
+			continue
+		}
+		if err := models.DeleteAttachment(issue.Attachments[i], true); err != nil {
+			ctx.ServerError("DeleteAttachment", err)
+			return
 		}
 	}
 	if len(files) > 0 {
@@ -1387,11 +1388,12 @@ func UpdateCommentContent(ctx *context.Context) {
 
 	files := ctx.QueryStrings("files[]")
 	for i := 0; i < len(comment.Attachments); i++ {
-		if !util.IsStringInSlice(comment.Attachments[i].UUID, files) {
-			if err := models.DeleteAttachment(comment.Attachments[i], true); err != nil {
-				ctx.ServerError("DeleteAttachment", err)
-				return
-			}
+		if util.IsStringInSlice(comment.Attachments[i].UUID, files) {
+			continue
+		}
+		if err := models.DeleteAttachment(comment.Attachments[i], true); err != nil {
+			ctx.ServerError("DeleteAttachment", err)
+			return
 		}
 	}
 	if len(files) > 0 {

@@ -67,7 +67,6 @@ func UploadAttachment(ctx *context.Context) {
 // DeleteAttachment response for deleting issue's attachment
 func DeleteAttachment(ctx *context.Context) {
 	file := ctx.Query("file")
-	fmt.Printf("file %s", file)
 	attach, err := models.GetAttachmentByUUID(file)
 	if err != nil {
 		ctx.Error(400, err.Error())

@@ -891,7 +891,7 @@ function initRepository() {
                                     });
                                 });
                             });
-                        },
+                        }
                     });
                     $dropzone.get(0).dropzone.emit("reload");
                 }
@@ -945,9 +945,9 @@ function initRepository() {
                                 `);
                                 $content.find(".ui.small.images").html(data.attachments);
                             }
-                        }else if(data.attachments == ""){
+                        } else if (data.attachments == ""){
                             $content.find(".ui.small.images").parent().remove();
-                        }else{
+                        } else {
                             $content.find(".ui.small.images").html(data.attachments);
                         }
                         $dropzone.get(0).dropzone.emit("submit");
