@@ -956,10 +956,7 @@ func (issue *Issue) UpdateAttachments(uuids []string) (err error) {
 			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
 		}
 	}
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-	return nil
+	return sess.Commit()
 }
 
 // ChangeContent changes issue content, as the given user.
