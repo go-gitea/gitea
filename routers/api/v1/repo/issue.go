@@ -57,6 +57,21 @@ func SearchIssues(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
 
+	if !setting.Service.AllowCrossRepositoryDependencies {
+		ctx.Error(400, "CrossRepositoryDependenciesNotEnabled", "cross repository dependencies are not enabled")
+		return
+	}
+
+	var isClosed util.OptionalBool
+	switch ctx.Query("state") {
+	case "closed":
+		isClosed = util.OptionalBoolTrue
+	case "all":
+		isClosed = util.OptionalBoolNone
+	default:
+		isClosed = util.OptionalBoolFalse
+	}
+
 	// find repos user can access (for issue search)
 	repoIDs := make([]int64, 0)
 	issueCount := 0
@@ -83,19 +98,16 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
-			issueCount += repo.NumIssues
+			switch isClosed {
+			case util.OptionalBoolTrue:
+				issueCount += repo.NumClosedIssues
+			case util.OptionalBoolFalse:
+				issueCount += repo.NumOpenIssues
+			case util.OptionalBoolNone:
+				issueCount += repo.NumIssues
+			}
 			repoIDs = append(repoIDs, repo.ID)
 		}
-	}
-
-	var isClosed util.OptionalBool
-	switch ctx.Query("state") {
-	case "closed":
-		isClosed = util.OptionalBoolTrue
-	case "all":
-		isClosed = util.OptionalBoolNone
-	default:
-		isClosed = util.OptionalBoolFalse
 	}
 
 	var issues []*models.Issue
