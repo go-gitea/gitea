@@ -83,8 +83,6 @@ require (
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
 	github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/mschoch/smat v0.0.0-20160514031455-90eadee771ae // indirect
 	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
 	github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
@@ -137,7 +135,7 @@ require (
 	gopkg.in/stretchr/testify.v1 v1.2.2 // indirect
 	gopkg.in/testfixtures.v2 v2.5.0
 	mvdan.cc/xurls/v2 v2.0.0
-	strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a
+	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.5
 	xorm.io/core v0.6.3
 )
