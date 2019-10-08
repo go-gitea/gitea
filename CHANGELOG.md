@@ -6,7 +6,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.9.4](https://github.com/go-gitea/gitea/releases/tag/v1.9.4) - 2019-10-08
 * BUGFIXES
-  * Fix issues/pr list broken when there are many repositories (#8409) (#8418)
   * Highlight issue references (#8101) (#8404)
   * Fix bug when migrating a private repository #7917 (#8403)
   * Change general form binding to gogs form (#8334) (#8402)
