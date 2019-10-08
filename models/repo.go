@@ -275,12 +275,35 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		}
 	}
 	hasIssues := false
-	if _, err := repo.getUnit(e, UnitTypeIssues); err == nil {
+	var externalTracker *api.ExternalTracker
+	var internalTracker *api.InternalTracker
+	if unit, err := repo.getUnit(e, UnitTypeIssues); err == nil {
+		config := unit.IssuesConfig()
 		hasIssues = true
+		internalTracker = &api.InternalTracker{
+			EnableTimeTracker:                config.EnableTimetracker,
+			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
+			EnableIssueDependencies:          config.EnableDependencies,
+		}
+	} else if unit, err := repo.getUnit(e, UnitTypeExternalTracker); err == nil {
+		config := unit.ExternalTrackerConfig()
+		hasIssues = true
+		externalTracker = &api.ExternalTracker{
+			ExternalTrackerURL:    config.ExternalTrackerURL,
+			ExternalTrackerFormat: config.ExternalTrackerFormat,
+			ExternalTrackerStyle:  config.ExternalTrackerStyle,
+		}
 	}
 	hasWiki := false
+	var externalWiki *api.ExternalWiki
 	if _, err := repo.getUnit(e, UnitTypeWiki); err == nil {
 		hasWiki = true
+	} else if unit, err := repo.getUnit(e, UnitTypeExternalWiki); err == nil {
+		hasWiki = true
+		config := unit.ExternalWikiConfig()
+		externalWiki = &api.ExternalWiki{
+			ExternalWikiURL: config.ExternalWikiURL,
+		}
 	}
 	hasPullRequests := false
 	ignoreWhitespaceConflicts := false
@@ -324,7 +347,10 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		Updated:                   repo.UpdatedUnix.AsTime(),
 		Permissions:               permission,
 		HasIssues:                 hasIssues,
+		ExternalTracker:           externalTracker,
+		InternalTracker:           internalTracker,
 		HasWiki:                   hasWiki,
+		ExternalWiki:              externalWiki,
 		HasPullRequests:           hasPullRequests,
 		IgnoreWhitespaceConflicts: ignoreWhitespaceConflicts,
 		AllowMerge:                allowMerge,
@@ -1098,6 +1124,7 @@ type CreateRepoOptions struct {
 	Description string
 	OriginalURL string
 	Gitignores  string
+	IssueLabels string
 	License     string
 	Readme      string
 	IsPrivate   bool
@@ -1392,6 +1419,13 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 					"delete repo directory %s/%s failed(2): %v", u.Name, repo.Name, err2)
 			}
 			return nil, fmt.Errorf("initRepository: %v", err)
+		}
+
+		// Initialize Issue Labels if selected
+		if len(opts.IssueLabels) > 0 {
+			if err = initalizeLabels(sess, repo.ID, opts.IssueLabels); err != nil {
+				return nil, fmt.Errorf("initalizeLabels: %v", err)
+			}
 		}
 
 		_, stderr, err := process.GetManager().ExecDir(-1,
@@ -1712,6 +1746,12 @@ func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
 	return sess.Commit()
 }
 
+// UpdateRepositoryUpdatedTime updates a repository's updated time
+func UpdateRepositoryUpdatedTime(repoID int64, updateTime time.Time) error {
+	_, err := x.Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
+	return err
+}
+
 // UpdateRepositoryUnits updates a repository's units
 func UpdateRepositoryUnits(repo *Repository, units []RepoUnit) (err error) {
 	sess := x.NewSession()
@@ -1802,6 +1842,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Notification{RepoID: repoID},
 		&CommitStatus{RepoID: repoID},
 		&RepoIndexerStatus{RepoID: repoID},
+		&Comment{RefRepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1948,8 +1989,12 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 // GetRepositoryByOwnerAndName returns the repository by given ownername and reponame.
 func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error) {
+	return getRepositoryByOwnerAndName(x, ownerName, repoName)
+}
+
+func getRepositoryByOwnerAndName(e Engine, ownerName, repoName string) (*Repository, error) {
 	var repo Repository
-	has, err := x.Select("repository.*").
+	has, err := e.Table("repository").Select("repository.*").
 		Join("INNER", "`user`", "`user`.id = repository.owner_id").
 		Where("repository.lower_name = ?", strings.ToLower(repoName)).
 		And("`user`.lower_name = ?", strings.ToLower(ownerName)).
