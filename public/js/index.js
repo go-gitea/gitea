@@ -857,7 +857,7 @@ function initRepository() {
                             });
                             this.on("removedfile", function (file) {
                                 if (file.name in filenameDict) {
-                                    $('#' + file.uuid).remove();
+                                    $('#' + filenameDict[file.name].uuid).remove();
                                 }
                                 if ($dropzone.data('remove-url') && $dropzone.data('csrf') && !filenameDict[file.name].submitted) {
                                     $.post($dropzone.data('remove-url'), {
