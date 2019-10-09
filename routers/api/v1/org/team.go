@@ -6,10 +6,12 @@
 package org
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/user"
 )
@@ -288,6 +290,15 @@ func GetTeamMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
+	teamID := ctx.ParamsInt64("teamid")
+	isTeamMember, err := models.IsUserInTeams(u.ID, []int64{teamID})
+	if err != nil {
+		ctx.Error(500, "IsUserInTeams", err)
+		return
+	} else if !isTeamMember {
+		ctx.NotFound()
+		return
+	}
 	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
@@ -495,4 +506,84 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 		return
 	}
 	ctx.Status(204)
+}
+
+// SearchTeam api for searching teams
+func SearchTeam(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/teams/search organization teamSearch
+	// ---
+	// summary: Search for teams within an organization
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: q
+	//   in: query
+	//   description: keywords to search
+	//   type: string
+	// - name: include_desc
+	//   in: query
+	//   description: include search within team description (defaults to true)
+	//   type: boolean
+	// - name: limit
+	//   in: query
+	//   description: limit size of results
+	//   type: integer
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// responses:
+	//   "200":
+	//     description: "SearchResults of a successful search"
+	//     schema:
+	//       type: object
+	//       properties:
+	//         ok:
+	//           type: boolean
+	//         data:
+	//           type: array
+	//           items:
+	//             "$ref": "#/definitions/Team"
+	opts := &models.SearchTeamOptions{
+		UserID:      ctx.User.ID,
+		Keyword:     strings.TrimSpace(ctx.Query("q")),
+		OrgID:       ctx.Org.Organization.ID,
+		IncludeDesc: (ctx.Query("include_desc") == "" || ctx.QueryBool("include_desc")),
+		PageSize:    ctx.QueryInt("limit"),
+		Page:        ctx.QueryInt("page"),
+	}
+
+	teams, _, err := models.SearchTeam(opts)
+	if err != nil {
+		log.Error("SearchTeam failed: %v", err)
+		ctx.JSON(500, map[string]interface{}{
+			"ok":    false,
+			"error": "SearchTeam internal failure",
+		})
+		return
+	}
+
+	apiTeams := make([]*api.Team, len(teams))
+	for i := range teams {
+		if err := teams[i].GetUnits(); err != nil {
+			log.Error("Team GetUnits failed: %v", err)
+			ctx.JSON(500, map[string]interface{}{
+				"ok":    false,
+				"error": "SearchTeam failed to get units",
+			})
+			return
+		}
+		apiTeams[i] = convert.ToTeam(teams[i])
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ok":   true,
+		"data": apiTeams,
+	})
+
 }

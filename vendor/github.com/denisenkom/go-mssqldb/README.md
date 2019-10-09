@@ -187,6 +187,19 @@ _, err := db.ExecContext(ctx, "theproc", &rs)
 log.Printf("status=%d", rs)
 ```
 
+or
+
+```
+var rs mssql.ReturnStatus
+_, err := db.QueryContext(ctx, "theproc", &rs)
+for rows.Next() {
+	err = rows.Scan(&val)
+}
+log.Printf("status=%d", rs)
+```
+
+Limitation: ReturnStatus cannot be retrieved using `QueryRow`.
+
 ## Parameters
 
 The `sqlserver` driver uses normal MS SQL Server syntax and expects parameters in
@@ -207,9 +220,9 @@ are supported:
  * time.Time -> datetimeoffset or datetime (TDS version dependent)
  * mssql.DateTime1 -> datetime
  * mssql.DateTimeOffset -> datetimeoffset
- * "cloud.google.com/go/civil".Date -> date
- * "cloud.google.com/go/civil".DateTime -> datetime2
- * "cloud.google.com/go/civil".Time -> time
+ * "github.com/golang-sql/civil".Date -> date
+ * "github.com/golang-sql/civil".DateTime -> datetime2
+ * "github.com/golang-sql/civil".Time -> time
  * mssql.TVP -> Table Value Parameter (TDS version dependent)
 
 ## Important Notes

@@ -205,6 +205,7 @@ func TestNewIssueLabel(t *testing.T) {
 		LabelID:  label.ID,
 		Content:  "1",
 	})
+	label = AssertExistsAndLoadBean(t, &Label{ID: 2}).(*Label)
 	assert.EqualValues(t, prevNumIssues+1, label.NumIssues)
 
 	// re-add existing IssueLabel

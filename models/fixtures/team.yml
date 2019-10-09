@@ -87,3 +87,12 @@
   authorize: 1 # owner
   num_repos: 0
   num_members: 1
+
+-
+  id: 11
+  org_id: 26
+  lower_name: team11
+  name: team11
+  authorize: 1 # read
+  num_repos: 0
+  num_members: 0

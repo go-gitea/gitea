@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 //NoticeType describes the notice type

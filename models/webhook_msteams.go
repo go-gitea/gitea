@@ -236,6 +236,7 @@ func getMSTeamsPushPayload(p *api.PushPayload) (*MSTeamsPayload, error) {
 				ActivityTitle:    p.Sender.FullName,
 				ActivitySubtitle: p.Sender.UserName,
 				ActivityImage:    p.Sender.AvatarURL,
+				Text:             text,
 				Facts: []MSTeamsFact{
 					{
 						Name:  "Repository:",
