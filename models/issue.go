@@ -766,7 +766,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 	}
 
 	// Update issue count of milestone
-	if err = changeMilestoneIssueStats(e, issue); err != nil {
+	if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
 		return err
 	}
 
@@ -1119,7 +1119,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Index = inserted.Index
 
 	if opts.Issue.MilestoneID > 0 {
-		if err = changeMilestoneAssign(e, doer, opts.Issue, -1); err != nil {
+		if _, err = e.Exec("UPDATE `milestone` SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
 			return err
 		}
 	}
