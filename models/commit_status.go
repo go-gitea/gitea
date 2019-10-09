@@ -9,6 +9,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -203,6 +204,27 @@ func GetLatestCommitStatus(repo *Repository, sha string, page int) ([]*CommitSta
 		return statuses, nil
 	}
 	return statuses, x.In("id", ids).Find(&statuses)
+}
+
+// FindRepoRecentCommitStatusContexts returns repository's recent commit status contexts
+func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]string, error) {
+	start := timeutil.TimeStampNow().AddDuration(-before)
+	ids := make([]int64, 0, 10)
+	if err := x.Table("commit_status").
+		Where("repo_id = ?", repoID).
+		And("updated_unix >= ?", start).
+		Select("max( id ) as id").
+		GroupBy("context_hash").OrderBy("max( id ) desc").
+		Find(&ids); err != nil {
+		return nil, err
+	}
+
+	var contexts = make([]string, 0, len(ids))
+	if len(ids) == 0 {
+		return contexts, nil
+	}
+	return contexts, x.Select("context").Table("commit_status").In("id", ids).Find(&contexts)
+
 }
 
 // NewCommitStatusOptions holds options for creating a CommitStatus

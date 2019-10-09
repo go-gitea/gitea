@@ -175,12 +175,6 @@ func (engine *Engine) SupportInsertMany() bool {
 	return engine.dialect.SupportInsertMany()
 }
 
-// QuoteStr Engine's database use which character as quote.
-// mysql, sqlite use ` and postgres use "
-func (engine *Engine) QuoteStr() string {
-	return engine.dialect.QuoteStr()
-}
-
 func (engine *Engine) quoteColumns(columnStr string) string {
 	columns := strings.Split(columnStr, ",")
 	for i := 0; i < len(columns); i++ {
@@ -196,17 +190,14 @@ func (engine *Engine) Quote(value string) string {
 		return value
 	}
 
-	if string(value[0]) == engine.dialect.QuoteStr() || value[0] == '`' {
-		return value
-	}
+	buf := strings.Builder{}
+	engine.QuoteTo(&buf, value)
 
-	value = strings.Replace(value, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
-
-	return engine.dialect.QuoteStr() + value + engine.dialect.QuoteStr()
+	return buf.String()
 }
 
 // QuoteTo quotes string and writes into the buffer
-func (engine *Engine) QuoteTo(buf *builder.StringBuilder, value string) {
+func (engine *Engine) QuoteTo(buf *strings.Builder, value string) {
 	if buf == nil {
 		return
 	}
@@ -216,20 +207,30 @@ func (engine *Engine) QuoteTo(buf *builder.StringBuilder, value string) {
 		return
 	}
 
-	if string(value[0]) == engine.dialect.QuoteStr() || value[0] == '`' {
-		buf.WriteString(value)
+	quotePair := engine.dialect.Quote("")
+
+	if value[0] == '`' || len(quotePair) < 2 || value[0] == quotePair[0] { // no quote
+		_, _ = buf.WriteString(value)
 		return
+	} else {
+		prefix, suffix := quotePair[0], quotePair[1]
+
+		_ = buf.WriteByte(prefix)
+		for i := 0; i < len(value); i++ {
+			if value[i] == '.' {
+				_ = buf.WriteByte(suffix)
+				_ = buf.WriteByte('.')
+				_ = buf.WriteByte(prefix)
+			} else {
+				_ = buf.WriteByte(value[i])
+			}
+		}
+		_ = buf.WriteByte(suffix)
 	}
-
-	value = strings.Replace(value, ".", engine.dialect.QuoteStr()+"."+engine.dialect.QuoteStr(), -1)
-
-	buf.WriteString(engine.dialect.QuoteStr())
-	buf.WriteString(value)
-	buf.WriteString(engine.dialect.QuoteStr())
 }
 
 func (engine *Engine) quote(sql string) string {
-	return engine.dialect.QuoteStr() + sql + engine.dialect.QuoteStr()
+	return engine.dialect.Quote(sql)
 }
 
 // SqlType will be deprecated, please use SQLType instead
@@ -376,6 +377,32 @@ func (engine *Engine) NoAutoCondition(no ...bool) *Session {
 	return session.NoAutoCondition(no...)
 }
 
+func (engine *Engine) loadTableInfo(table *core.Table) error {
+	colSeq, cols, err := engine.dialect.GetColumns(table.Name)
+	if err != nil {
+		return err
+	}
+	for _, name := range colSeq {
+		table.AddColumn(cols[name])
+	}
+	indexes, err := engine.dialect.GetIndexes(table.Name)
+	if err != nil {
+		return err
+	}
+	table.Indexes = indexes
+
+	for _, index := range indexes {
+		for _, name := range index.Cols {
+			if col := table.GetColumn(name); col != nil {
+				col.Indexes[index.Name] = index.Type
+			} else {
+				return fmt.Errorf("Unknown col %s in index %v of table %v, columns %v", name, index.Name, table.Name, table.ColumnsSeq())
+			}
+		}
+	}
+	return nil
+}
+
 // DBMetas Retrieve all tables, columns, indexes' informations from database.
 func (engine *Engine) DBMetas() ([]*core.Table, error) {
 	tables, err := engine.dialect.GetTables()
@@ -384,27 +411,8 @@ func (engine *Engine) DBMetas() ([]*core.Table, error) {
 	}
 
 	for _, table := range tables {
-		colSeq, cols, err := engine.dialect.GetColumns(table.Name)
-		if err != nil {
+		if err = engine.loadTableInfo(table); err != nil {
 			return nil, err
-		}
-		for _, name := range colSeq {
-			table.AddColumn(cols[name])
-		}
-		indexes, err := engine.dialect.GetIndexes(table.Name)
-		if err != nil {
-			return nil, err
-		}
-		table.Indexes = indexes
-
-		for _, index := range indexes {
-			for _, name := range index.Cols {
-				if col := table.GetColumn(name); col != nil {
-					col.Indexes[index.Name] = index.Type
-				} else {
-					return nil, fmt.Errorf("Unknown col %s in index %v of table %v, columns %v", name, index.Name, table.Name, table.ColumnsSeq())
-				}
-			}
 		}
 	}
 	return tables, nil
@@ -728,7 +736,7 @@ func (engine *Engine) Decr(column string, arg ...interface{}) *Session {
 }
 
 // SetExpr provides a update string like "column = {expression}"
-func (engine *Engine) SetExpr(column string, expression string) *Session {
+func (engine *Engine) SetExpr(column string, expression interface{}) *Session {
 	session := engine.NewSession()
 	session.isAutoClose = true
 	return session.SetExpr(column, expression)
@@ -906,8 +914,15 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 		fieldType := fieldValue.Type()
 
 		if ormTagStr != "" {
-			col = &core.Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
-				IsAutoIncrement: false, MapType: core.TWOSIDES, Indexes: make(map[string]int)}
+			col = &core.Column{
+				FieldName:       t.Field(i).Name,
+				Nullable:        true,
+				IsPrimaryKey:    false,
+				IsAutoIncrement: false,
+				MapType:         core.TWOSIDES,
+				Indexes:         make(map[string]int),
+				DefaultIsEmpty:  true,
+			}
 			tags := splitTag(ormTagStr)
 
 			if len(tags) > 0 {
@@ -1581,7 +1596,7 @@ func (engine *Engine) formatColTime(col *core.Column, t time.Time) (v interface{
 func (engine *Engine) formatTime(sqlTypeName string, t time.Time) (v interface{}) {
 	switch sqlTypeName {
 	case core.Time:
-		s := t.Format("2006-01-02 15:04:05") //time.RFC3339
+		s := t.Format("2006-01-02 15:04:05") // time.RFC3339
 		v = s[11:19]
 	case core.Date:
 		v = t.Format("2006-01-02")

@@ -7,7 +7,12 @@ package setting
 import (
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/log"
+
+	"github.com/gobwas/glob"
 )
 
 // enumerates all the indexer queue types
@@ -31,6 +36,8 @@ var (
 		IssueQueueConnStr     string
 		IssueQueueBatchNumber int
 		StartupTimeout        time.Duration
+		IncludePatterns       []glob.Glob
+		ExcludePatterns       []glob.Glob
 	}{
 		IssueType:             "bleve",
 		IssuePath:             "indexers/issues.bleve",
@@ -53,6 +60,9 @@ func newIndexerService() {
 	if !filepath.IsAbs(Indexer.RepoPath) {
 		Indexer.RepoPath = path.Join(AppWorkPath, Indexer.RepoPath)
 	}
+	Indexer.IncludePatterns = IndexerGlobFromString(sec.Key("REPO_INDEXER_INCLUDE").MustString(""))
+	Indexer.ExcludePatterns = IndexerGlobFromString(sec.Key("REPO_INDEXER_EXCLUDE").MustString(""))
+
 	Indexer.UpdateQueueLength = sec.Key("UPDATE_BUFFER_LEN").MustInt(20)
 	Indexer.MaxIndexerFileSize = sec.Key("MAX_FILE_SIZE").MustInt64(1024 * 1024)
 	Indexer.IssueQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(LevelQueueType)
@@ -60,4 +70,20 @@ func newIndexerService() {
 	Indexer.IssueQueueConnStr = sec.Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString(path.Join(AppDataPath, ""))
 	Indexer.IssueQueueBatchNumber = sec.Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(20)
 	Indexer.StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(30 * time.Second)
+}
+
+// IndexerGlobFromString parses a comma separated list of patterns and returns a glob.Glob slice suited for repo indexing
+func IndexerGlobFromString(globstr string) []glob.Glob {
+	extarr := make([]glob.Glob, 0, 10)
+	for _, expr := range strings.Split(strings.ToLower(globstr), ",") {
+		expr = strings.TrimSpace(expr)
+		if expr != "" {
+			if g, err := glob.Compile(expr, '.', '/'); err != nil {
+				log.Info("Invalid glob expresion '%s' (skipped): %v", expr, err)
+			} else {
+				extarr = append(extarr, g)
+			}
+		}
+	}
+	return extarr
 }

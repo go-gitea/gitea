@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/sync"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 var (

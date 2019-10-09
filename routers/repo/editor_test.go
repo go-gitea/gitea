@@ -5,11 +5,11 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/test"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )

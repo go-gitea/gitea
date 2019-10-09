@@ -96,14 +96,15 @@ func (session *Session) cacheUpdate(table *core.Table, tableName, sqlStr string,
 				return ErrCacheFailed
 			}
 			kvs := strings.Split(strings.TrimSpace(sqls[1]), ",")
+
 			for idx, kv := range kvs {
 				sps := strings.SplitN(kv, "=", 2)
 				sps2 := strings.Split(sps[0], ".")
 				colName := sps2[len(sps2)-1]
-				if strings.Contains(colName, "`") {
-					colName = strings.TrimSpace(strings.Replace(colName, "`", "", -1))
-				} else if strings.Contains(colName, session.engine.QuoteStr()) {
-					colName = strings.TrimSpace(strings.Replace(colName, session.engine.QuoteStr(), "", -1))
+				// treat quote prefix, suffix and '`' as quotes
+				quotes := append(strings.Split(session.engine.Quote(""), ""), "`")
+				if strings.ContainsAny(colName, strings.Join(quotes, "")) {
+					colName = strings.TrimSpace(eraseAny(colName, quotes...))
 				} else {
 					session.engine.logger.Debug("[cacheUpdate] cannot find column", tableName, colName)
 					return ErrCacheFailed
@@ -221,22 +222,32 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		}
 	}
 
-	//for update action to like "column = column + ?"
-	incColumns := session.statement.getInc()
-	for _, v := range incColumns {
-		colNames = append(colNames, session.engine.Quote(v.colName)+" = "+session.engine.Quote(v.colName)+" + ?")
-		args = append(args, v.arg)
+	// for update action to like "column = column + ?"
+	incColumns := session.statement.incrColumns
+	for i, colName := range incColumns.colNames {
+		colNames = append(colNames, session.engine.Quote(colName)+" = "+session.engine.Quote(colName)+" + ?")
+		args = append(args, incColumns.args[i])
 	}
-	//for update action to like "column = column - ?"
-	decColumns := session.statement.getDec()
-	for _, v := range decColumns {
-		colNames = append(colNames, session.engine.Quote(v.colName)+" = "+session.engine.Quote(v.colName)+" - ?")
-		args = append(args, v.arg)
+	// for update action to like "column = column - ?"
+	decColumns := session.statement.decrColumns
+	for i, colName := range decColumns.colNames {
+		colNames = append(colNames, session.engine.Quote(colName)+" = "+session.engine.Quote(colName)+" - ?")
+		args = append(args, decColumns.args[i])
 	}
-	//for update action to like "column = expression"
-	exprColumns := session.statement.getExpr()
-	for _, v := range exprColumns {
-		colNames = append(colNames, session.engine.Quote(v.colName)+" = "+v.expr)
+	// for update action to like "column = expression"
+	exprColumns := session.statement.exprColumns
+	for i, colName := range exprColumns.colNames {
+		switch tp := exprColumns.args[i].(type) {
+		case string:
+			colNames = append(colNames, session.engine.Quote(colName)+" = "+tp)
+		case *builder.Builder:
+			subQuery, subArgs, err := builder.ToSQL(tp)
+			if err != nil {
+				return 0, err
+			}
+			colNames = append(colNames, session.engine.Quote(colName)+" = ("+subQuery+")")
+			args = append(args, subArgs...)
+		}
 	}
 
 	if err = session.statement.processIDParam(); err != nil {
@@ -382,7 +393,7 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 	}
 
 	if cacher := session.engine.getCacher(tableName); cacher != nil && session.statement.UseCache {
-		//session.cacheUpdate(table, tableName, sqlStr, args...)
+		// session.cacheUpdate(table, tableName, sqlStr, args...)
 		session.engine.logger.Debug("[cacheUpdate] clear table ", tableName)
 		cacher.ClearIds(tableName)
 		cacher.ClearBeans(tableName)
@@ -467,14 +478,17 @@ func (session *Session) genUpdateColumns(bean interface{}) ([]string, []interfac
 			continue
 		}
 
-		if len(session.statement.columnMap) > 0 {
-			if !session.statement.columnMap.contain(col.Name) {
-				continue
-			} else if _, ok := session.statement.incrColumns[col.Name]; ok {
-				continue
-			} else if _, ok := session.statement.decrColumns[col.Name]; ok {
-				continue
-			}
+		// if only update specify columns
+		if len(session.statement.columnMap) > 0 && !session.statement.columnMap.contain(col.Name) {
+			continue
+		}
+
+		if session.statement.incrColumns.isColExist(col.Name) {
+			continue
+		} else if session.statement.decrColumns.isColExist(col.Name) {
+			continue
+		} else if session.statement.exprColumns.isColExist(col.Name) {
+			continue
 		}
 
 		// !evalphobia! set fieldValue as nil when column is nullable and zero-value

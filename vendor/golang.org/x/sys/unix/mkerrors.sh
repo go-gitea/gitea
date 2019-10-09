@@ -206,6 +206,7 @@ struct ltchars {
 #include <linux/netfilter/nfnetlink.h>
 #include <linux/netlink.h>
 #include <linux/net_namespace.h>
+#include <linux/nsfs.h>
 #include <linux/perf_event.h>
 #include <linux/random.h>
 #include <linux/reboot.h>
@@ -226,6 +227,7 @@ struct ltchars {
 #include <linux/rtc.h>
 #include <linux/if_xdp.h>
 #include <linux/cryptouser.h>
+#include <linux/tipc.h>
 #include <mtd/ubi-user.h>
 #include <net/route.h>
 
@@ -451,6 +453,7 @@ ccflags="$@"
 		$2 ~ /^SYSCTL_VERS/ ||
 		$2 !~ "MNT_BITS" &&
 		$2 ~ /^(MS|MNT|UMOUNT)_/ ||
+		$2 ~ /^NS_GET_/ ||
 		$2 ~ /^TUN(SET|GET|ATTACH|DETACH)/ ||
 		$2 ~ /^(O|F|[ES]?FD|NAME|S|PTRACE|PT)_/ ||
 		$2 ~ /^KEXEC_/ ||
@@ -506,6 +509,7 @@ ccflags="$@"
 		$2 ~ /^XDP_/ ||
 		$2 ~ /^(HDIO|WIN|SMART)_/ ||
 		$2 ~ /^CRYPTO_/ ||
+		$2 ~ /^TIPC_/ ||
 		$2 !~ "WMESGLEN" &&
 		$2 ~ /^W[A-Z0-9]+$/ ||
 		$2 ~/^PPPIOC/ ||

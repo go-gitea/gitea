@@ -42,7 +42,7 @@ a:hover{color:#a0cc75}
 .ui.attached.table{border:1px solid #304251;background:#304251}
 .feeds .list ul li:not(:last-child){border-bottom:1px solid #333640}
 .feeds .list ul li.private{background:#353945;border:1px solid #333640}
-.ui.secondary.menu .dropdown.item:hover,.ui.secondary.menu .link.item:hover,.ui.secondary.menu a.item:hover{color:#fff}
+.ui.secondary.menu .active.item:hover,.ui.secondary.menu .dropdown.item:hover,.ui.secondary.menu .link.item:hover,.ui.secondary.menu a.item:hover{color:#fff}
 .ui.menu .ui.dropdown .menu>.item{background:#2c303a!important;color:#9e9e9e!important}
 .ui.secondary.menu .dropdown.item>.menu,.ui.text.menu .dropdown.item>.menu{border:1px solid #434444}
 footer{background:#2e323e;border-top:1px solid #313131}

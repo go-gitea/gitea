@@ -96,6 +96,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
   regardless of the value of `DEFAULT_THEME`.
 - `DEFAULT_SHOW_FULL_NAME`: false: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
+- `SEARCH_REPO_DESCRIPTION`: true: Whether to search within description at repository search on explore page.
 
 ### UI - Admin (`ui.admin`)
 
@@ -168,6 +169,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LOG_SQL`: **true**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
 - `DB_RETRY_BACKOFF`: **3s**: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
+- `MAX_IDLE_CONNS` **0**: Max idle database connections on connnection pool, default is 0
+- `CONN_MAX_LIFETIME` **3s**: Database connection max lifetime
 
 ## Indexer (`indexer`)
 
@@ -180,9 +183,14 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
+- `REPO_INDEXER_INCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **include** in the index. Use `**.txt` to match any files with .txt extension. An empty list means include all files.
+- `REPO_INDEXER_EXCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **exclude** from the index. Files that match this list will not be indexed, even if they match in `REPO_INDEXER_INCLUDE`.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
 - `STARTUP_TIMEOUT`: **30s**: If the indexer takes longer than this timeout to start - fail. (This timeout will be added to the hammer time above for child processes - as bleve will not start until the previous parent is shutdown.)
+
+## Admin (`admin`)
+- `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**: Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
 
 ## Security (`security`)
 
@@ -247,6 +255,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
 - `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
+- `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
 
 ## Webhook (`webhook`)
 
@@ -286,7 +295,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
 - `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.
    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
-   - Memache: `127.0.0.1:9090;127.0.0.1:9091`
+   - Memcache: `127.0.0.1:9090;127.0.0.1:9091`
+- `ITEM_TTL`: **16h**: Time to keep items in cache if not used, Setting it to 0 disables caching.
 
 ## Session (`session`)
 

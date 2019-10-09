@@ -22,8 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/com"
 	"github.com/gliderlabs/ssh"
+	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
 )
 

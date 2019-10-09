@@ -19,8 +19,9 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
-	"github.com/Unknwon/com"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/com"
 )
 
 func withKeyFile(t *testing.T, keyname string, callback func(string)) {
