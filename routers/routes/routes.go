@@ -139,14 +139,14 @@ func NewMacaron() *macaron.Macaron {
 	m.Use(public.Custom(
 		&public.Options{
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 	m.Use(public.Static(
 		&public.Options{
 			Directory:    path.Join(setting.StaticRootPath, "public"),
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 	m.Use(public.StaticHandler(
@@ -154,7 +154,7 @@ func NewMacaron() *macaron.Macaron {
 		&public.Options{
 			Prefix:       "avatars",
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 	m.Use(public.StaticHandler(
@@ -162,7 +162,7 @@ func NewMacaron() *macaron.Macaron {
 		&public.Options{
 			Prefix:       "repo-avatars",
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 
