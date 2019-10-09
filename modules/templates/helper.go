@@ -236,6 +236,8 @@ func NewFuncMap() []template.FuncMap {
 		"CommentMustAsDiff": gitdiff.CommentMustAsDiff,
 		"MirrorAddress":     mirror_service.Address,
 		"MirrorFullAddress": mirror_service.AddressNoCredentials,
+		"MirrorUserName":    mirror_service.Username,
+		"MirrorPassword":    mirror_service.Password,
 	}}
 }
 
