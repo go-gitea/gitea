@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+
 	// Needed for jpeg support
 	_ "image/jpeg"
 	"image/png"
