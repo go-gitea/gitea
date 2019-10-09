@@ -59,7 +59,7 @@ type User struct {
 	// User locale
 	Language string `json:"language"`
 	// Is the user an administrator
-	IsAdmin bool `json:"site_admin"`
+	IsAdmin bool `json:"is_admin"`
 	// swagger:strfmt date-time
 	LastLogin time.Time `json:"last_login,omitempty"`
 	// swagger:strfmt date-time
