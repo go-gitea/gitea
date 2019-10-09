@@ -1891,24 +1891,20 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 	if err = issue.loadRepo(ctx.e); err != nil {
 		return
 	}
-	resolved := make(map[string]bool, len(mentions))
+	resolved := make(map[string]bool, 20)
+	names := make([]string, 0, 20)
+	resolved[doer.LowerName] = true
 	for _, name := range mentions {
 		name := strings.ToLower(name)
 		if _, ok := resolved[name]; ok {
 			continue
 		}
-		resolved[name] = (name == doer.LowerName)
+		resolved[name] = false
+		names = append(names, name)
 	}
 
 	if err := issue.Repo.getOwner(ctx.e); err != nil {
 		return nil, err
-	}
-
-	names := make([]string, 0, len(resolved))
-	for name, already := range resolved {
-		if !already {
-			names = append(names, name)
-		}
 	}
 
 	if issue.Repo.Owner.IsOrganization() {
@@ -1948,18 +1944,18 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 				for i := range checked {
 					ids[i] = checked[i].ID
 				}
-				unchecked := make([]*User, 0, 20)
+				teamusers := make([]*User, 0, 20)
 				if err := ctx.e.
 					Join("INNER", "team_user", "team_user.uid = `user`.id").
 					In("`team_user`.team_id", ids).
 					And("`user`.is_active = ?", true).
 					And("`user`.prohibit_login = ?", false).
-					Find(&unchecked); err != nil {
+					Find(&teamusers); err != nil {
 					return nil, fmt.Errorf("get teams users: %v", err)
 				}
-				if len(unchecked) > 0 {
-					users = make([]*User, 0, len(unchecked))
-					for _, user := range unchecked {
+				if len(teamusers) > 0 {
+					users = make([]*User, 0, len(teamusers))
+					for _, user := range teamusers {
 						if already, ok := resolved[user.LowerName]; !ok || !already {
 							users = append(users, user)
 							resolved[user.LowerName] = true
@@ -1969,7 +1965,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 			}
 		}
 
-		// Remove names already in the list
+		// Remove names already in the list to avoid querying the database if pending names remain
 		names = make([]string, 0, len(resolved))
 		for name, already := range resolved {
 			if !already {
@@ -2002,7 +1998,6 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 			continue
 		}
 		users = append(users, user)
-		resolved[user.LowerName] = true
 	}
 
 	return
