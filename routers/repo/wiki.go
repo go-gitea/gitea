@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -68,8 +69,19 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 	if err != nil {
 		return nil, err
 	}
+	// The longest name should be checked first
 	for _, entry := range entries {
 		if entry.IsRegular() && entry.Name() == target {
+			return entry, nil
+		}
+	}
+	// Then the unescaped, shortest alternative
+	var unescapedTarget string
+	if unescapedTarget, err = url.QueryUnescape(target); err != nil {
+		return nil, err
+	}
+	for _, entry := range entries {
+		if entry.IsRegular() && entry.Name() == unescapedTarget {
 			return entry, nil
 		}
 	}
