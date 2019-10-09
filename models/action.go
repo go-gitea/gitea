@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"html"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -54,28 +53,8 @@ const (
 	ActionMirrorSyncDelete                        // 20
 )
 
-var (
-	// Same as GitHub. See
-	// https://help.github.com/articles/closing-issues-via-commit-messages
-	issueCloseKeywords  = []string{"close", "closes", "closed", "fix", "fixes", "fixed", "resolve", "resolves", "resolved"}
-	issueReopenKeywords = []string{"reopen", "reopens", "reopened"}
-
-	issueCloseKeywordsPat, issueReopenKeywordsPat *regexp.Regexp
-	issueReferenceKeywordsPat                     *regexp.Regexp
-)
-
 const issueRefRegexpStr = `(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)+`
 const issueRefRegexpStrNoKeyword = `(?:\s|^|\(|\[)(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`
-
-func assembleKeywordsPattern(words []string) string {
-	return fmt.Sprintf(`(?i)(?:%s)(?::?) %s`, strings.Join(words, "|"), issueRefRegexpStr)
-}
-
-func init() {
-	issueCloseKeywordsPat = regexp.MustCompile(assembleKeywordsPattern(issueCloseKeywords))
-	issueReopenKeywordsPat = regexp.MustCompile(assembleKeywordsPattern(issueReopenKeywords))
-	issueReferenceKeywordsPat = regexp.MustCompile(issueRefRegexpStrNoKeyword)
-}
 
 // Action represents user operation type and other information to
 // repository. It implemented interface base.Actioner so that can be

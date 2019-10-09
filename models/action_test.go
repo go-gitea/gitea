@@ -180,26 +180,6 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 		pushCommits.AvatarLink("nonexistent@example.com"))
 }
 
-func TestRegExp_issueReferenceKeywordsPat(t *testing.T) {
-	trueTestCases := []string{
-		"#2",
-		"[#2]",
-		"please see go-gitea/gitea#5",
-		"#2:",
-	}
-	falseTestCases := []string{
-		"kb#2",
-		"#2xy",
-	}
-
-	for _, testCase := range trueTestCases {
-		assert.True(t, issueReferenceKeywordsPat.MatchString(testCase))
-	}
-	for _, testCase := range falseTestCases {
-		assert.False(t, issueReferenceKeywordsPat.MatchString(testCase))
-	}
-}
-
 func TestUpdateIssuesCommit(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	pushCommits := []*PushCommit{
