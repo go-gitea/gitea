@@ -345,7 +345,8 @@ func (t *TemporaryUploadRepository) DiffIndex() (diff *models.Diff, err error) {
 func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...string) (map[string]map[string]string, error) {
 	binVersion, err := git.BinVersion()
 	if err != nil {
-		log.Fatal("Error retrieving git version: %v", err)
+		log.Error("Error retrieving git version: %v", err)
+		return nil, err
 	}
 
 	stdOut := new(bytes.Buffer)
@@ -358,7 +359,7 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 	cmdArgs := []string{"check-attr", "-z", attribute}
 
 	// git check-attr --cached first appears in git 1.8.0
-	if version.Compare(binVersion, "1.8.0", ">=") {
+	if version.Compare(binVersion, "1.7.8", ">=") {
 		cmdArgs = append(cmdArgs, "--cached")
 	}
 	cmdArgs = append(cmdArgs, "--")
