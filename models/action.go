@@ -53,9 +53,6 @@ const (
 	ActionMirrorSyncDelete                        // 20
 )
 
-const issueRefRegexpStr = `(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)+`
-const issueRefRegexpStrNoKeyword = `(?:\s|^|\(|\[)(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`
-
 // Action represents user operation type and other information to
 // repository. It implemented interface base.Actioner so that can be
 // used in template render.
