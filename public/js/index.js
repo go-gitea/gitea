@@ -877,15 +877,16 @@ function initRepository() {
                                     drop.removeAllFiles(true);
                                     $files.empty();
                                     $.each(data, function(){
+                                        const imgSrc =  $dropzone.data('upload-url') + "/" + this.uuid;
                                         drop.emit("addedfile", this);
-                                        drop.emit("thumbnail", this, `${$dropzone.data('upload-url')}/${this.uuid}`);
+                                        drop.emit("thumbnail", this, imgSrc);
                                         drop.emit("complete", this);
                                         drop.files.push(this);
                                         filenameDict[this.name] = {
                                             "submitted": true,
                                             "uuid": this.uuid
                                         }
-                                        $dropzone.find(`img[src='${$dropzone.data('upload-url')}/${this.uuid}']`).css("max-width", "100%");
+                                        $dropzone.find("img[src='" + imgSrc + "']").css("max-width", "100%");
                                         const input = $('<input id="' + this.uuid + '" name="files" type="hidden">').val(this.uuid);
                                         $files.append(input);
                                     });
@@ -937,12 +938,12 @@ function initRepository() {
                         const $content = $segment.parent();
                         if(!$content.find(".ui.small.images").length){
                             if(data.attachments != ""){
-                                $content.append(`
-                                <div class="ui bottom attached segment">
-                                    <div class="ui small images">
-                                    </div>
-                                </div>
-                                `);
+                                $content.append(
+                                '<div class="ui bottom attached segment">' +
+                                '    <div class="ui small images">' +
+                                '    </div>' +
+                                '</div>'
+                                );
                                 $content.find(".ui.small.images").html(data.attachments);
                             }
                         } else if (data.attachments == "") {
