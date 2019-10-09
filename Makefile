@@ -418,6 +418,10 @@ npm-check:
 		exit 1; \
 	fi;
 
+.PHONY: webpack
+webpack: npm
+	npm install webpack -g
+
 .PHONY: npm
 npm: npm-check
 	npm install --no-save
@@ -429,7 +433,7 @@ npm-update: npm-check
 	npm install --package-lock
 
 .PHONY: js
-js: npm
+js: npm webpack
 	npx eslint web_src/js
 	webpack
 
