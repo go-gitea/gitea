@@ -10456,6 +10456,11 @@
           "format": "int64",
           "x-go-name": "ID"
         },
+        "is_admin": {
+          "description": "Is the user an administrator",
+          "type": "boolean",
+          "x-go-name": "IsAdmin"
+        },
         "language": {
           "description": "User locale",
           "type": "string",
@@ -10491,11 +10496,6 @@
           "description": "URL to user's repos API endpoint",
           "type": "string",
           "x-go-name": "ReposURL"
-        },
-        "site_admin": {
-          "description": "Is the user an administrator",
-          "type": "boolean",
-          "x-go-name": "IsAdmin"
         },
         "starred_url": {
           "description": "URL to the user's starred API endpoint",
