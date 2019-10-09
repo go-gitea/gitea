@@ -1077,38 +1077,13 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	files := ctx.QueryStrings("files[]")
-	for i := 0; i < len(issue.Attachments); i++ {
-		if util.IsStringInSlice(issue.Attachments[i].UUID, files) {
-			continue
-		}
-		if err := models.DeleteAttachment(issue.Attachments[i], true); err != nil {
-			ctx.ServerError("DeleteAttachment", err)
-			return
-		}
+	if err := updateAttachments(issue, files); err != nil {
+		ctx.ServerError("UpdateAttachments", err)
 	}
-	if len(files) > 0 {
-		if err := issue.UpdateAttachments(files); err != nil {
-			ctx.ServerError("UpdateAttachments", err)
-			return
-		}
-	}
-	var err error
-	issue.Attachments, err = models.GetAttachmentsByIssueID(issue.ID)
-	if err != nil {
-		ctx.ServerError("GetAttachmentsByIssueID", err)
-		return
-	}
-	attachHTML, err := ctx.HTMLString(string(tplAttachment), map[string]interface{}{
-		"ctx":         ctx.Data,
-		"Attachments": issue.Attachments,
-	})
-	if err != nil {
-		ctx.ServerError("UpdateIssueContent.HTMLString", err)
-		return
-	}
+
 	ctx.JSON(200, map[string]interface{}{
 		"content":     string(markdown.Render([]byte(issue.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
-		"attachments": attachHTML,
+		"attachments": attachmentsHTML(ctx, issue.Attachments),
 	})
 }
 
@@ -1387,41 +1362,15 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	files := ctx.QueryStrings("files[]")
-	for i := 0; i < len(comment.Attachments); i++ {
-		if util.IsStringInSlice(comment.Attachments[i].UUID, files) {
-			continue
-		}
-		if err := models.DeleteAttachment(comment.Attachments[i], true); err != nil {
-			ctx.ServerError("DeleteAttachment", err)
-			return
-		}
-	}
-	if len(files) > 0 {
-		if err := comment.UpdateAttachments(files); err != nil {
-			ctx.ServerError("UpdateAttachments", err)
-			return
-		}
-	}
-
-	comment.Attachments, err = models.GetAttachmentsByCommentID(comment.ID)
-	if err != nil {
-		ctx.ServerError("GetAttachmentsByCommentID", err)
-		return
-	}
-	attachHTML, err := ctx.HTMLString(string(tplAttachment), map[string]interface{}{
-		"ctx":         ctx.Data,
-		"Attachments": comment.Attachments,
-	})
-	if err != nil {
-		ctx.ServerError("UpdateCommentContent.HTMLString", err)
-		return
+	if err := updateAttachments(comment, files); err != nil {
+		ctx.ServerError("UpdateAttachments", err)
 	}
 
 	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
 
 	ctx.JSON(200, map[string]interface{}{
 		"content":     string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
-		"attachments": attachHTML,
+		"attachments": attachmentsHTML(ctx, comment.Attachments),
 	})
 }
 
@@ -1704,4 +1653,59 @@ func GetCommentAttachments(ctx *context.Context) {
 		}
 	}
 	ctx.JSON(200, attachments)
+}
+
+func updateAttachments(item interface{}, files []string) error {
+	var attachments []*models.Attachment
+	switch content := item.(type) {
+	case *models.Issue:
+		attachments = content.Attachments
+	case *models.Comment:
+		attachments = content.Attachments
+	default:
+		return fmt.Errorf("Unknow Type")
+	}
+	for i := 0; i < len(attachments); i++ {
+		if util.IsStringInSlice(attachments[i].UUID, files) {
+			continue
+		}
+		if err := models.DeleteAttachment(attachments[i], true); err != nil {
+			return err
+		}
+	}
+	var err error
+	if len(files) > 0 {
+		switch content := item.(type) {
+		case *models.Issue:
+			err = content.UpdateAttachments(files)
+		case *models.Comment:
+			err = content.UpdateAttachments(files)
+		default:
+			return fmt.Errorf("Unknow Type")
+		}
+		if err != nil {
+			return err
+		}
+	}
+	switch content := item.(type) {
+	case *models.Issue:
+		content.Attachments, err = models.GetAttachmentsByIssueID(content.ID)
+	case *models.Comment:
+		content.Attachments, err = models.GetAttachmentsByCommentID(content.ID)
+	default:
+		return fmt.Errorf("Unknow Type")
+	}
+	return err
+}
+
+func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment) string {
+	attachHTML, err := ctx.HTMLString(string(tplAttachment), map[string]interface{}{
+		"ctx":         ctx.Data,
+		"Attachments": attachments,
+	})
+	if err != nil {
+		ctx.ServerError("attachmentsHTML.HTMLString", err)
+		return ""
+	}
+	return attachHTML
 }
