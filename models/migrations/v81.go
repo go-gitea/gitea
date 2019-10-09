@@ -14,8 +14,6 @@ func changeU2FCounterType(x *xorm.Engine) error {
 	var err error
 
 	switch x.Dialect().DriverName() {
-	case "tidb":
-		fallthrough
 	case "mysql":
 		_, err = x.Exec("ALTER TABLE `u2f_registration` MODIFY `counter` BIGINT")
 	case "postgres":

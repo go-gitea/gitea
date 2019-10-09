@@ -4,6 +4,16 @@ import (
 	"golang.org/x/net/html"
 )
 
+const (
+	maxUint = ^uint(0)
+	maxInt  = int(maxUint >> 1)
+
+	// ToEnd is a special index value that can be used as end index in a call
+	// to Slice so that all elements are selected until the end of the Selection.
+	// It is equivalent to passing (*Selection).Length().
+	ToEnd = maxInt
+)
+
 // First reduces the set of matched elements to the first in the set.
 // It returns a new Selection object, and an empty Selection object if the
 // the selection is empty.
@@ -35,12 +45,23 @@ func (s *Selection) Eq(index int) *Selection {
 }
 
 // Slice reduces the set of matched elements to a subset specified by a range
-// of indices.
+// of indices. The start index is 0-based and indicates the index of the first
+// element to select. The end index is 0-based and indicates the index at which
+// the elements stop being selected (the end index is not selected).
+//
+// The indices may be negative, in which case they represent an offset from the
+// end of the selection.
+//
+// The special value ToEnd may be specified as end index, in which case all elements
+// until the end are selected. This works both for a positive and negative start
+// index.
 func (s *Selection) Slice(start, end int) *Selection {
 	if start < 0 {
 		start += len(s.Nodes)
 	}
-	if end < 0 {
+	if end == ToEnd {
+		end = len(s.Nodes)
+	} else if end < 0 {
 		end += len(s.Nodes)
 	}
 	return pushStack(s, s.Nodes[start:end])

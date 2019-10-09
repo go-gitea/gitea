@@ -221,23 +221,27 @@ func (r *tdsBuffer) uint16() uint16 {
 }
 
 func (r *tdsBuffer) BVarChar() string {
-	l := int(r.byte())
-	return r.readUcs2(l)
+	return readBVarCharOrPanic(r)
 }
 
-func (r *tdsBuffer) UsVarChar() string {
-	l := int(r.uint16())
-	return r.readUcs2(l)
-}
-
-func (r *tdsBuffer) readUcs2(numchars int) string {
-	b := make([]byte, numchars*2)
-	r.ReadFull(b)
-	res, err := ucs22str(b)
+func readBVarCharOrPanic(r io.Reader) string {
+	s, err := readBVarChar(r)
 	if err != nil {
 		badStreamPanic(err)
 	}
-	return res
+	return s
+}
+
+func readUsVarCharOrPanic(r io.Reader) string {
+	s, err := readUsVarChar(r)
+	if err != nil {
+		badStreamPanic(err)
+	}
+	return s
+}
+
+func (r *tdsBuffer) UsVarChar() string {
+	return readUsVarCharOrPanic(r)
 }
 
 func (r *tdsBuffer) Read(buf []byte) (copied int, err error) {

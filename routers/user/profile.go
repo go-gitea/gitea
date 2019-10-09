@@ -169,40 +169,42 @@ func Profile(ctx *context.Context) {
 		}
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
-		repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-			Keyword:     keyword,
-			OrderBy:     orderBy,
-			Private:     ctx.IsSigned,
-			UserIsAdmin: ctx.IsUserSiteAdmin(),
-			UserID:      ctx.Data["SignedUserID"].(int64),
-			Page:        page,
-			PageSize:    setting.UI.User.RepoPagingNum,
-			StarredByID: ctxUser.ID,
-			Collaborate: util.OptionalBoolFalse,
-			TopicOnly:   topicOnly,
+		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+			Keyword:            keyword,
+			OrderBy:            orderBy,
+			Private:            ctx.IsSigned,
+			UserIsAdmin:        ctx.IsUserSiteAdmin(),
+			UserID:             ctx.Data["SignedUserID"].(int64),
+			Page:               page,
+			PageSize:           setting.UI.User.RepoPagingNum,
+			StarredByID:        ctxUser.ID,
+			Collaborate:        util.OptionalBoolFalse,
+			TopicOnly:          topicOnly,
+			IncludeDescription: setting.UI.SearchRepoDescription,
 		})
 		if err != nil {
-			ctx.ServerError("SearchRepositoryByName", err)
+			ctx.ServerError("SearchRepository", err)
 			return
 		}
 
 		total = int(count)
 	default:
-		repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-			Keyword:     keyword,
-			OwnerID:     ctxUser.ID,
-			OrderBy:     orderBy,
-			Private:     ctx.IsSigned,
-			UserIsAdmin: ctx.IsUserSiteAdmin(),
-			UserID:      ctx.Data["SignedUserID"].(int64),
-			Page:        page,
-			IsProfile:   true,
-			PageSize:    setting.UI.User.RepoPagingNum,
-			Collaborate: util.OptionalBoolFalse,
-			TopicOnly:   topicOnly,
+		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+			Keyword:            keyword,
+			OwnerID:            ctxUser.ID,
+			OrderBy:            orderBy,
+			Private:            ctx.IsSigned,
+			UserIsAdmin:        ctx.IsUserSiteAdmin(),
+			UserID:             ctx.Data["SignedUserID"].(int64),
+			Page:               page,
+			IsProfile:          true,
+			PageSize:           setting.UI.User.RepoPagingNum,
+			Collaborate:        util.OptionalBoolFalse,
+			TopicOnly:          topicOnly,
+			IncludeDescription: setting.UI.SearchRepoDescription,
 		})
 		if err != nil {
-			ctx.ServerError("SearchRepositoryByName", err)
+			ctx.ServerError("SearchRepository", err)
 			return
 		}
 

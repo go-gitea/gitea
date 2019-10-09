@@ -18,9 +18,9 @@ import (
 	"code.gitea.io/gitea/modules/gzip"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
-	"github.com/stretchr/testify/assert"
 
 	gzipp "github.com/klauspost/compress/gzip"
+	"github.com/stretchr/testify/assert"
 )
 
 func GenerateLFSOid(content io.Reader) (string, error) {
@@ -39,7 +39,7 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 	assert.NoError(t, err)
 	var lfsMetaObject *models.LFSMetaObject
 
-	if setting.UsePostgreSQL {
+	if setting.Database.UsePostgreSQL {
 		lfsMetaObject = &models.LFSMetaObject{ID: lfsID, Oid: oid, Size: int64(len(*content)), RepositoryID: repositoryID}
 	} else {
 		lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(*content)), RepositoryID: repositoryID}

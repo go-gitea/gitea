@@ -304,6 +304,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			var output bytes.Buffer
 			lines := strings.Split(fileContent, "\n")
+			ctx.Data["NumLines"] = len(lines)
+
 			//Remove blank line at the end of file
 			if len(lines) > 0 && lines[len(lines)-1] == "" {
 				lines = lines[:len(lines)-1]
@@ -319,7 +321,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			output.Reset()
 			for i := 0; i < len(lines); i++ {
-				output.WriteString(fmt.Sprintf(`<span id="L%d">%d</span>`, i+1, i+1))
+				output.WriteString(fmt.Sprintf(`<span id="L%[1]d" data-line-number="%[1]d"></span>`, i+1))
 			}
 			ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 		}

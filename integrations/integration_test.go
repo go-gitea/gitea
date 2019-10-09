@@ -27,10 +27,10 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
+	"gitea.com/macaron/macaron"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/macaron.v1"
+	"github.com/unknwon/com"
 	"gopkg.in/testfixtures.v2"
 )
 
@@ -59,13 +59,13 @@ func TestMain(m *testing.M) {
 	routes.RegisterRoutes(mac)
 
 	var helper testfixtures.Helper
-	if setting.UseMySQL {
+	if setting.Database.UseMySQL {
 		helper = &testfixtures.MySQL{}
-	} else if setting.UsePostgreSQL {
+	} else if setting.Database.UsePostgreSQL {
 		helper = &testfixtures.PostgreSQL{}
-	} else if setting.UseSQLite3 {
+	} else if setting.Database.UseSQLite3 {
 		helper = &testfixtures.SQLite{}
-	} else if setting.UseMSSQL {
+	} else if setting.Database.UseMSSQL {
 		helper = &testfixtures.SQLServer{}
 	} else {
 		fmt.Println("Unsupported RDBMS for integration tests")
@@ -121,27 +121,27 @@ func initIntegrationTest() {
 	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
 	setting.CheckLFSVersion()
-	models.LoadConfigs()
+	setting.InitDBConfig()
 
 	switch {
-	case setting.UseMySQL:
+	case setting.Database.UseMySQL:
 		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/",
-			models.DbCfg.User, models.DbCfg.Passwd, models.DbCfg.Host))
+			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
 		defer db.Close()
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
-		if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS testgitea"); err != nil {
+		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
-	case setting.UsePostgreSQL:
+	case setting.Database.UsePostgreSQL:
 		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
-			models.DbCfg.User, models.DbCfg.Passwd, models.DbCfg.Host, models.DbCfg.SSLMode))
+			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
 		defer db.Close()
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
-		rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", models.DbCfg.Name))
+		rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", setting.Database.Name))
 		if err != nil {
 			log.Fatalf("db.Query: %v", err)
 		}
@@ -150,17 +150,17 @@ func initIntegrationTest() {
 		if rows.Next() {
 			break
 		}
-		if _, err = db.Exec("CREATE DATABASE testgitea"); err != nil {
+		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
-	case setting.UseMSSQL:
-		host, port := models.ParseMSSQLHostPort(models.DbCfg.Host)
+	case setting.Database.UseMSSQL:
+		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
-			host, port, "master", models.DbCfg.User, models.DbCfg.Passwd))
+			host, port, "master", setting.Database.User, setting.Database.Passwd))
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
-		if _, err := db.Exec("If(db_id(N'gitea') IS NULL) BEGIN CREATE DATABASE gitea; END;"); err != nil {
+		if _, err := db.Exec(fmt.Sprintf("If(db_id(N'%s') IS NULL) BEGIN CREATE DATABASE %s; END;", setting.Database.Name, setting.Database.Name)); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
 		defer db.Close()

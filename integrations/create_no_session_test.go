@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/routes"
 
-	"github.com/go-macaron/session"
+	"gitea.com/macaron/session"
 	"github.com/stretchr/testify/assert"
 )
 
