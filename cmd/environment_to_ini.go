@@ -55,6 +55,7 @@ func runEnvironmentToIni(c *cli.Context) error {
 		if !strings.HasPrefix(eKey, EnvironmentPrefix) {
 			continue
 		}
+		eKey = eKey[len(EnvironmentPrefix):]
 		sectionName, keyName := DecodeSectionKey(eKey)
 		if len(keyName) == 0 {
 			continue
