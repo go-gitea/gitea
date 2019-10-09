@@ -76,10 +76,13 @@ LOCK_REASONS=Too heated,Off-topic,Resolved,Spam
 
 [repository.signing]
 ; GPG key to use to sign commits, Defaults to the default - that is the value of git config --get user.signingkey
+; run in the context of the RUN_USER
 ; Switch to none to stop signing completely
 SIGNING_KEY = default
-; If a SIGNING_KEY ID is provided, use the provided Name and Email address as the signer.
-; These should match a publicized name and email address for the key
+; If a SIGNING_KEY ID is provided and is not set to default, use the provided Name and Email address as the signer.
+; These should match a publicized name and email address for the key. (When SIGNING_KEY is default these are set to
+; the results of git config --get user.name and git config --get user.email respectively and can only be overrided
+; by setting the SIGNING_KEY ID to the correct ID.)
 SIGNING_NAME =
 SIGNING_EMAIL =
 ; Determines when gitea should sign the initial commit when creating a repository
@@ -443,7 +446,7 @@ DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Public is for everyone
 DEFAULT_ORG_VISIBILITY = public
 ; Default value for DefaultOrgMemberVisible
-; True will make the membership of the users visible when added to the organisation  
+; True will make the membership of the users visible when added to the organisation
 DEFAULT_ORG_MEMBER_VISIBLE = false
 ; Default value for EnableDependencies
 ; Repositories will use dependencies by default depending on this setting
