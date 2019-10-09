@@ -121,7 +121,7 @@ require (
 	gopkg.in/stretchr/testify.v1 v1.2.2 // indirect
 	gopkg.in/testfixtures.v2 v2.5.0
 	mvdan.cc/xurls/v2 v2.0.0
-	strk.kbt.io/projects/go/libravatar v0.0.0-20160628055650-5eed7bff870a
+	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.6
 	xorm.io/core v0.7.2
 )
