@@ -735,9 +735,22 @@ func (repo *Repository) CanEnableEditor() bool {
 	return !repo.IsMirror
 }
 
+// GetReaders returns all users that have explicit read access or higher to the repository.
+func (repo *Repository) GetReaders() (_ []*User, err error) {
+	return repo.getUsersWithAccessMode(x, AccessModeRead)
+}
+
 // GetWriters returns all users that have write access to the repository.
 func (repo *Repository) GetWriters() (_ []*User, err error) {
 	return repo.getUsersWithAccessMode(x, AccessModeWrite)
+}
+
+// IsReader returns true if user has explicit read access or higher to the repository.
+func (repo *Repository) IsReader(userID int64) (bool, error) {
+	if repo.OwnerID == userID {
+		return true, nil
+	}
+	return x.Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, AccessModeRead).Get(&Access{})
 }
 
 // getUsersWithAccessMode returns users that have at least given access mode to the repository.
