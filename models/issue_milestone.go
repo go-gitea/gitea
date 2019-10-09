@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"xorm.io/builder"
 
 	"github.com/go-xorm/xorm"
 )
@@ -191,7 +192,6 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 
 // GetMilestonesByRepoID returns all opened milestones of a repository.
 func GetMilestonesByRepoID(repoID int64, state api.StateType) (MilestoneList, error) {
-
 	sess := x.Where("repo_id = ?", repoID)
 
 	switch state {
@@ -238,13 +238,34 @@ func GetMilestones(repoID int64, page int, isClosed bool, sortType string) (Mile
 }
 
 func updateMilestone(e Engine, m *Milestone) error {
-	_, err := e.ID(m.ID).AllCols().Update(m)
+	_, err := e.ID(m.ID).AllCols().
+		SetExpr("num_issues", builder.Select("count(*)").From("issue").Where(
+			builder.Eq{"milestone_id": m.ID},
+		)).
+		SetExpr("num_closed_issues", builder.Select("count(*)").From("issue").Where(
+			builder.Eq{
+				"milestone_id": m.ID,
+				"is_closed":    true,
+			},
+		)).
+		Update(m)
 	return err
 }
 
 // UpdateMilestone updates information of given milestone.
 func UpdateMilestone(m *Milestone) error {
-	return updateMilestone(x, m)
+	if err := updateMilestone(x, m); err != nil {
+		return err
+	}
+
+	return updateMilestoneCompleteness(x, m.ID)
+}
+
+func updateMilestoneCompleteness(e Engine, milestoneID int64) error {
+	_, err := e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
+		milestoneID,
+	)
+	return err
 }
 
 func countRepoMilestones(e Engine, repoID int64) (int64, error) {
@@ -278,11 +299,6 @@ func MilestoneStats(repoID int64) (open int64, closed int64, err error) {
 
 // ChangeMilestoneStatus changes the milestone open/closed status.
 func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
-	repo, err := GetRepositoryByID(m.RepoID)
-	if err != nil {
-		return err
-	}
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -290,25 +306,25 @@ func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
 	}
 
 	m.IsClosed = isClosed
-	if err = updateMilestone(sess, m); err != nil {
+	if _, err := sess.ID(m.ID).Cols("is_closed").Update(m); err != nil {
 		return err
 	}
 
-	numMilestones, err := countRepoMilestones(sess, repo.ID)
-	if err != nil {
+	if err := updateRepoMilestoneNum(sess, m.RepoID); err != nil {
 		return err
 	}
-	numClosedMilestones, err := countRepoClosedMilestones(sess, repo.ID)
-	if err != nil {
-		return err
-	}
-	repo.NumMilestones = int(numMilestones)
-	repo.NumClosedMilestones = int(numClosedMilestones)
 
-	if _, err = sess.ID(repo.ID).Cols("num_milestones, num_closed_milestones").Update(repo); err != nil {
-		return err
-	}
 	return sess.Commit()
+}
+
+func updateRepoMilestoneNum(e Engine, repoID int64) error {
+	_, err := e.Exec("UPDATE `repository` SET num_milestones=(SELECT count(*) FROM milestone WHERE repo_id=?),num_closed_milestones=(SELECT count(*) FROM milestone WHERE repo_id=? AND is_closed=?) WHERE id=?",
+		repoID,
+		repoID,
+		true,
+		repoID,
+	)
+	return err
 }
 
 func updateMilestoneTotalNum(e Engine, milestoneID int64) (err error) {
@@ -319,11 +335,7 @@ func updateMilestoneTotalNum(e Engine, milestoneID int64) (err error) {
 		return
 	}
 
-	_, err = e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
-		milestoneID,
-	)
-
-	return
+	return updateMilestoneCompleteness(e, milestoneID)
 }
 
 func updateMilestoneClosedNum(e Engine, milestoneID int64) (err error) {
@@ -335,10 +347,7 @@ func updateMilestoneClosedNum(e Engine, milestoneID int64) (err error) {
 		return
 	}
 
-	_, err = e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
-		milestoneID,
-	)
-	return
+	return updateMilestoneCompleteness(e, milestoneID)
 }
 
 func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilestoneID int64) error {
