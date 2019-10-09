@@ -16,12 +16,13 @@ import (
 
 // ACME server response statuses used to describe Authorization and Challenge states.
 const (
-	StatusUnknown    = "unknown"
-	StatusPending    = "pending"
-	StatusProcessing = "processing"
-	StatusValid      = "valid"
-	StatusInvalid    = "invalid"
-	StatusRevoked    = "revoked"
+	StatusDeactivated = "deactivated"
+	StatusInvalid     = "invalid"
+	StatusPending     = "pending"
+	StatusProcessing  = "processing"
+	StatusRevoked     = "revoked"
+	StatusUnknown     = "unknown"
+	StatusValid       = "valid"
 )
 
 // CRLReasonCode identifies the reason for a certificate revocation.
@@ -41,8 +42,17 @@ const (
 	CRLReasonAACompromise         CRLReasonCode = 10
 )
 
-// ErrUnsupportedKey is returned when an unsupported key type is encountered.
-var ErrUnsupportedKey = errors.New("acme: unknown key type; only RSA and ECDSA are supported")
+var (
+	// ErrUnsupportedKey is returned when an unsupported key type is encountered.
+	ErrUnsupportedKey = errors.New("acme: unknown key type; only RSA and ECDSA are supported")
+
+	// ErrAccountAlreadyExists indicates that the Client's key has already been registered
+	// with the CA. It is returned by Register method.
+	ErrAccountAlreadyExists = errors.New("acme: account already exists")
+
+	// ErrNoAccount indicates that the Client's key has not been registered with the CA.
+	ErrNoAccount = errors.New("acme: account does not exist")
+)
 
 // Error is an ACME error, defined in Problem Details for HTTP APIs doc
 // http://tools.ietf.org/html/draft-ietf-appsawg-http-problem.
@@ -54,6 +64,12 @@ type Error struct {
 	ProblemType string
 	// Detail is a human-readable explanation specific to this occurrence of the problem.
 	Detail string
+	// Instance indicates a URL that the client should direct a human user to visit
+	// in order for instructions on how to agree to the updated Terms of Service.
+	// In such an event CA sets StatusCode to 403, ProblemType to
+	// "urn:ietf:params:acme:error:userActionRequired" and a Link header with relation
+	// "terms-of-service" containing the latest TOS URL.
+	Instance string
 	// Header is the original server error response headers.
 	// It may be nil.
 	Header http.Header
@@ -108,48 +124,87 @@ func RateLimit(err error) (time.Duration, bool) {
 }
 
 // Account is a user account. It is associated with a private key.
+// Non-RFC8555 fields are empty when interfacing with a compliant CA.
 type Account struct {
 	// URI is the account unique ID, which is also a URL used to retrieve
 	// account data from the CA.
+	// When interfacing with RFC8555-compliant CAs, URI is the "kid" field
+	// value in JWS signed requests.
 	URI string
 
 	// Contact is a slice of contact info used during registration.
+	// See https://tools.ietf.org/html/rfc8555#section-7.3 for supported
+	// formats.
 	Contact []string
+
+	// Status indicates current account status as returned by the CA.
+	// Possible values are "valid", "deactivated", and "revoked".
+	Status string
+
+	// OrdersURL is a URL from which a list of orders submitted by this account
+	// can be fetched.
+	OrdersURL string
 
 	// The terms user has agreed to.
 	// A value not matching CurrentTerms indicates that the user hasn't agreed
 	// to the actual Terms of Service of the CA.
+	//
+	// It is non-RFC8555 compliant. Package users can store the ToS they agree to
+	// during Client's Register call in the prompt callback function.
 	AgreedTerms string
 
 	// Actual terms of a CA.
+	//
+	// It is non-RFC8555 compliant. Use Directory's Terms field.
+	// When a CA updates their terms and requires an account agreement,
+	// a URL at which instructions to do so is available in Error's Instance field.
 	CurrentTerms string
 
 	// Authz is the authorization URL used to initiate a new authz flow.
+	//
+	// It is non-RFC8555 compliant. Use Directory's AuthzURL or OrderURL.
 	Authz string
 
 	// Authorizations is a URI from which a list of authorizations
 	// granted to this account can be fetched via a GET request.
+	//
+	// It is non-RFC8555 compliant and is obsoleted by OrdersURL.
 	Authorizations string
 
 	// Certificates is a URI from which a list of certificates
 	// issued for this account can be fetched via a GET request.
+	//
+	// It is non-RFC8555 compliant and is obsoleted by OrdersURL.
 	Certificates string
 }
 
 // Directory is ACME server discovery data.
+// See https://tools.ietf.org/html/rfc8555#section-7.1.1 for more details.
 type Directory struct {
-	// RegURL is an account endpoint URL, allowing for creating new
-	// and modifying existing accounts.
+	// NonceURL indicates an endpoint where to fetch fresh nonce values from.
+	NonceURL string
+
+	// RegURL is an account endpoint URL, allowing for creating new accounts.
+	// Pre-RFC8555 CAs also allow modifying existing accounts at this URL.
 	RegURL string
 
-	// AuthzURL is used to initiate Identifier Authorization flow.
+	// OrderURL is used to initiate the certificate issuance flow
+	// as described in RFC8555.
+	OrderURL string
+
+	// AuthzURL is used to initiate identifier pre-authorization flow.
+	// Empty string indicates the flow is unsupported by the CA.
 	AuthzURL string
 
 	// CertURL is a new certificate issuance endpoint URL.
+	// It is non-RFC8555 compliant and is obsoleted by OrderURL.
 	CertURL string
 
 	// RevokeURL is used to initiate a certificate revocation flow.
 	RevokeURL string
+
+	// KeyChangeURL allows to perform account key rollover flow.
+	KeyChangeURL string
 
 	// Term is a URI identifying the current terms of service.
 	Terms string
@@ -162,6 +217,10 @@ type Directory struct {
 	// recognises as referring to itself for the purposes of CAA record validation
 	// as defined in RFC6844.
 	CAA []string
+
+	// ExternalAccountRequired indicates that the CA requires for all account-related
+	// requests to include external account binding information.
+	ExternalAccountRequired bool
 }
 
 // Challenge encodes a returned CA challenge.
@@ -282,9 +341,10 @@ func (c *wireChallenge) challenge() *Challenge {
 // wireError is a subset of fields of the Problem Details object
 // as described in https://tools.ietf.org/html/rfc7807#section-3.1.
 type wireError struct {
-	Status int
-	Type   string
-	Detail string
+	Status   int
+	Type     string
+	Detail   string
+	Instance string
 }
 
 func (e *wireError) error(h http.Header) *Error {
@@ -292,6 +352,7 @@ func (e *wireError) error(h http.Header) *Error {
 		StatusCode:  e.Status,
 		ProblemType: e.Type,
 		Detail:      e.Detail,
+		Instance:    e.Instance,
 		Header:      h,
 	}
 }

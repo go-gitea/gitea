@@ -53,7 +53,7 @@ To work with tagged releases, the following commands can be used:
 
 ```bash
 git branch -a
-git checkout v1.0
+git checkout v{{< version >}}
 ```
 
 To validate a Pull Request, first enable the new branch (`xyz` is the PR id;
@@ -63,14 +63,14 @@ for example `2663` for [#2663](https://github.com/go-gitea/gitea/pull/2663)):
 git fetch origin pull/xyz/head:pr-xyz
 ```
 
-To build Gitea from source at a specific tagged release (like v1.0.0), list the
+To build Gitea from source at a specific tagged release (like v{{< version >}}), list the
 available tags and check out the specific tag.
 
 List available tags with the following.
 
 ```bash
 git tag -l
-git checkout v1.0.0  # or git checkout pr-xyz
+git checkout v{{< version >}}  # or git checkout pr-xyz
 ```
 
 ## Build

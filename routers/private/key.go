@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 )
 
 // UpdatePublicKeyInRepo update public key and deploy key updates

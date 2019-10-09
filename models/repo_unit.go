@@ -9,8 +9,8 @@ import (
 
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
+	"github.com/unknwon/com"
 	"xorm.io/core"
 )
 

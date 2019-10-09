@@ -20,18 +20,22 @@ const Repo = "gogits/gogs"
 const AppSubURL = AppURL + Repo + "/"
 
 // alphanumLink an HTML link to an alphanumeric-style issue
-func alphanumIssueLink(baseURL string, name string) string {
-	return link(util.URLJoin(baseURL, name), name)
+func alphanumIssueLink(baseURL, class, name string) string {
+	return link(util.URLJoin(baseURL, name), class, name)
 }
 
 // numericLink an HTML to a numeric-style issue
-func numericIssueLink(baseURL string, index int) string {
-	return link(util.URLJoin(baseURL, strconv.Itoa(index)), fmt.Sprintf("#%d", index))
+func numericIssueLink(baseURL, class string, index int) string {
+	return link(util.URLJoin(baseURL, strconv.Itoa(index)), class, fmt.Sprintf("#%d", index))
 }
 
 // link an HTML link
-func link(href, contents string) string {
-	return fmt.Sprintf("<a href=\"%s\">%s</a>", href, contents)
+func link(href, class, contents string) string {
+	if class != "" {
+		class = " class=\"" + class + "\""
+	}
+
+	return fmt.Sprintf("<a href=\"%s\"%s>%s</a>", href, class, contents)
 }
 
 var numericMetas = map[string]string{
@@ -89,13 +93,13 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 	test := func(s, expectedFmt string, indices ...int) {
 		links := make([]interface{}, len(indices))
 		for i, index := range indices {
-			links[i] = numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), index)
+			links[i] = numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), "issue", index)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNil, &postProcessCtx{metas: localMetas})
 
 		for i, index := range indices {
-			links[i] = numericIssueLink("https://someurl.com/someUser/someRepo/", index)
+			links[i] = numericIssueLink("https://someurl.com/someUser/someRepo/", "issue", index)
 		}
 		expectedNum := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNum, &postProcessCtx{metas: numericMetas})
@@ -118,6 +122,10 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 	test("wow (#54321 #1243)", "wow (%s %s)", 54321, 1243)
 	test("(#4)(#5)", "(%s)(%s)", 4, 5)
 	test("#1 (#4321) test", "%s (%s) test", 1, 4321)
+
+	// should render with :
+	test("#1234: test", "%s: test", 1234)
+	test("wow (#54321: test)", "wow (%s: test)", 54321)
 }
 
 func TestRender_IssueIndexPattern3(t *testing.T) {
@@ -154,7 +162,7 @@ func TestRender_IssueIndexPattern4(t *testing.T) {
 	test := func(s, expectedFmt string, names ...string) {
 		links := make([]interface{}, len(names))
 		for i, name := range names {
-			links[i] = alphanumIssueLink("https://someurl.com/someUser/someRepo/", name)
+			links[i] = alphanumIssueLink("https://someurl.com/someUser/someRepo/", "issue", name)
 		}
 		expected := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expected, &postProcessCtx{metas: alphanumericMetas})
@@ -193,17 +201,17 @@ func TestRender_AutoLink(t *testing.T) {
 
 	// render valid issue URLs
 	test(util.URLJoin(setting.AppSubURL, "issues", "3333"),
-		numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), 3333))
+		numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), "issue", 3333))
 
 	// render valid commit URLs
 	tmp := util.URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")
-	test(tmp, "<a href=\""+tmp+"\"><code class=\"nohighlight\">d8a994ef24</code></a>")
+	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code class=\"nohighlight\">d8a994ef24</code></a>")
 	tmp += "#diff-2"
-	test(tmp, "<a href=\""+tmp+"\"><code class=\"nohighlight\">d8a994ef24 (diff-2)</code></a>")
+	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code class=\"nohighlight\">d8a994ef24 (diff-2)</code></a>")
 
 	// render other commit URLs
 	tmp = "https://external-link.gitea.io/go-gitea/gitea/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2"
-	test(tmp, "<a href=\""+tmp+"\"><code class=\"nohighlight\">d8a994ef24 (diff-2)</code></a>")
+	test(tmp, "<a href=\""+tmp+"\" class=\"commit\"><code class=\"nohighlight\">d8a994ef24 (diff-2)</code></a>")
 }
 
 func TestRender_FullIssueURLs(t *testing.T) {
@@ -224,11 +232,11 @@ func TestRender_FullIssueURLs(t *testing.T) {
 	test("Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6",
 		"Here is a link https://git.osgeo.org/gogs/postgis/postgis/pulls/6")
 	test("Look here http://localhost:3000/person/repo/issues/4",
-		`Look here <a href="http://localhost:3000/person/repo/issues/4">person/repo#4</a>`)
+		`Look here <a href="http://localhost:3000/person/repo/issues/4" class="issue">person/repo#4</a>`)
 	test("http://localhost:3000/person/repo/issues/4#issuecomment-1234",
-		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234">person/repo#4</a>`)
+		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="issue">person/repo#4</a>`)
 	test("http://localhost:3000/gogits/gogs/issues/4",
-		`<a href="http://localhost:3000/gogits/gogs/issues/4">#4</a>`)
+		`<a href="http://localhost:3000/gogits/gogs/issues/4" class="issue">#4</a>`)
 }
 
 func TestRegExp_issueNumericPattern(t *testing.T) {
@@ -237,6 +245,8 @@ func TestRegExp_issueNumericPattern(t *testing.T) {
 		"#0",
 		"#1234567890987654321",
 		"  #12",
+		"#12:",
+		"ref: #12: msg",
 	}
 	falseTestCases := []string{
 		"# 1234",
@@ -354,6 +364,7 @@ func TestRegExp_issueAlphanumericPattern(t *testing.T) {
 		"ABC-123.",
 		"(ABC-123)",
 		"[ABC-123]",
+		"ABC-123:",
 	}
 	falseTestCases := []string{
 		"RC-08",

@@ -22,8 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 )
 

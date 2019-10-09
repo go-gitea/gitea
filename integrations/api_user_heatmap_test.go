@@ -5,11 +5,13 @@
 package integrations
 
 import (
-	"code.gitea.io/gitea/models"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
+
+	"code.gitea.io/gitea/models"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUserHeatmap(t *testing.T) {

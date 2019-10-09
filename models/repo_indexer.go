@@ -234,7 +234,21 @@ func addDelete(filename string, repo *Repository, batch rupture.FlushingBatch) e
 }
 
 func isIndexable(entry *git.TreeEntry) bool {
-	return entry.IsRegular() || entry.IsExecutable()
+	if !entry.IsRegular() && !entry.IsExecutable() {
+		return false
+	}
+	name := strings.ToLower(entry.Name())
+	for _, g := range setting.Indexer.ExcludePatterns {
+		if g.Match(name) {
+			return false
+		}
+	}
+	for _, g := range setting.Indexer.IncludePatterns {
+		if g.Match(name) {
+			return true
+		}
+	}
+	return len(setting.Indexer.IncludePatterns) == 0
 }
 
 // parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+
 	"github.com/go-redis/redis"
 )
 

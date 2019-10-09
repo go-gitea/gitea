@@ -5,6 +5,7 @@ package mssql
 import (
 	"context"
 	"database/sql/driver"
+	"errors"
 )
 
 var _ driver.Connector = &Connector{}
@@ -44,4 +45,8 @@ func (c *Connector) Connect(ctx context.Context) (driver.Conn, error) {
 // Driver underlying the Connector.
 func (c *Connector) Driver() driver.Driver {
 	return c.driver
+}
+
+func (r *Result) LastInsertId() (int64, error) {
+	return -1, errors.New("LastInsertId is not supported. Please use the OUTPUT clause or add `select ID = convert(bigint, SCOPE_IDENTITY())` to the end of your query.")
 }

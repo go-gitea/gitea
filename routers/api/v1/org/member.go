@@ -7,11 +7,10 @@ package org
 import (
 	"fmt"
 
-	api "code.gitea.io/gitea/modules/structs"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/user"
 )

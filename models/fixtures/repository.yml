@@ -165,6 +165,7 @@
   owner_id: 14
   lower_name: test_repo_14
   name: test_repo_14
+  description: test_description_14
   is_private: false
   num_issues: 0
   num_closed_issues: 0
@@ -492,6 +493,28 @@
   owner_id: 23
   lower_name: private_repo_on_private_org
   name: private_repo_on_private_org
+  is_private: true
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+
+-
+  id: 42
+  owner_id: 2
+  lower_name: glob
+  name: glob
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+
+-
+  id: 43
+  owner_id: 26
+  lower_name: repo26
+  name: repo26
   is_private: true
   num_stars: 0
   num_forks: 0
