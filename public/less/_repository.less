@@ -371,9 +371,7 @@
                 }
 
                 .file-actions {
-                    margin-top: 0;
                     margin-bottom: -5px;
-                    padding-left: 20px;
 
                     .btn-octicon {
                         display: inline-block;
@@ -429,6 +427,7 @@
 
             .csv {
                 overflow-x: auto;
+                padding: 0 !important;
             }
 
             pre {
@@ -2388,4 +2387,22 @@ tbody.commit-list {
 .issue-keyword {
     border-bottom: 1px dotted #959da5;
     display: inline-block;
+}
+
+.file-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px !important;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+}
+
+.file-info-entry + .file-info-entry {
+    border-left: 1px solid currentColor;
+    margin-left: 8px;
+    padding-left: 8px;
 }

@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"gopkg.in/editorconfig/editorconfig-core-go.v1"
 )
@@ -233,6 +234,8 @@ func NewFuncMap() []template.FuncMap {
 			return float32(n) * 100 / float32(sum)
 		},
 		"CommentMustAsDiff": gitdiff.CommentMustAsDiff,
+		"MirrorAddress":     mirror_service.Address,
+		"MirrorFullAddress": mirror_service.AddressNoCredentials,
 	}}
 }
 

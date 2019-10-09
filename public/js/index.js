@@ -1766,11 +1766,11 @@ function searchTeams() {
     $searchTeamBox.search({
         minCharacters: 2,
         apiSettings: {
-            url: suburl + '/api/v1/orgs/' + $searchTeamBox.data('org') + '/teams',
+            url: suburl + '/api/v1/orgs/' + $searchTeamBox.data('org') + '/teams/search?q={query}',
             headers: {"X-Csrf-Token": csrf},
             onResponse: function(response) {
                 const items = [];
-                $.each(response, function (_i, item) {
+                $.each(response.data, function (_i, item) {
                     const title = item.name + ' (' + item.permission + ' access)';
                     items.push({
                         title: title,
