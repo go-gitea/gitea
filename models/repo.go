@@ -323,7 +323,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 
 	return &api.Repository{
 		ID:                        repo.ID,
-		Owner:                     repo.Owner.APIFormat(),
+		Owner:                     repo.Owner.innerAPIFormat(e),
 		Name:                      repo.Name,
 		FullName:                  repo.FullName(),
 		Description:               repo.Description,
@@ -1355,8 +1355,8 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 		} else if err = prepareWebhooks(e, repo, HookEventRepository, &api.RepositoryPayload{
 			Action:       api.HookRepoCreated,
 			Repository:   repo.innerAPIFormat(e, AccessModeOwner, false),
-			Organization: u.APIFormat(),
-			Sender:       doer.APIFormat(),
+			Organization: u.innerAPIFormat(e),
+			Sender:       doer.innerAPIFormat(e),
 		}); err != nil {
 			return fmt.Errorf("prepareWebhooks: %v", err)
 		}
@@ -1448,8 +1448,8 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 	return repo, err
 }
 
-func countRepositories(userID int64, private bool) int64 {
-	sess := x.Where("id > 0")
+func countRepositories(e Engine, userID int64, private bool) int64 {
+	sess := e.Where("id > 0")
 
 	if userID > 0 {
 		sess.And("owner_id = ?", userID)
@@ -1469,14 +1469,14 @@ func countRepositories(userID int64, private bool) int64 {
 // Argument private only takes effect when it is false,
 // set it true to count all repositories.
 func CountRepositories(private bool) int64 {
-	return countRepositories(-1, private)
+	return countRepositories(x, -1, private)
 }
 
 // CountUserRepositories returns number of repositories user owns.
 // Argument private only takes effect when it is false,
 // set it true to count all repositories.
 func CountUserRepositories(userID int64, private bool) int64 {
-	return countRepositories(userID, private)
+	return countRepositories(x, userID, private)
 }
 
 // RepoPath returns repository path by given user and repository name.
@@ -2086,12 +2086,22 @@ func GetRepositoryCount(u *User) (int64, error) {
 
 // GetPublicRepositoryCount returns the total number of public repositories of user.
 func GetPublicRepositoryCount(u *User) int64 {
-	return countRepositories(u.ID, false)
+	return getPublicRepositoryCount(x, u.ID)
+}
+
+// getPublicRepositoryCount returns the total number of public repositories of user.
+func getPublicRepositoryCount(e Engine, userID int64) int64 {
+	return countRepositories(e, userID, false)
 }
 
 // GetPrivateRepositoryCount returns the total number of private repositories of user.
 func GetPrivateRepositoryCount(u *User) int64 {
-	return countRepositories(u.ID, true) - countRepositories(u.ID, false)
+	return getPrivateRepositoryCount(x, u)
+}
+
+// getPrivateRepositoryCount returns the total number of private repositories of user.
+func getPrivateRepositoryCount(e Engine, u *User) int64 {
+	return countRepositories(e, u.ID, true) - countRepositories(e, u.ID, false)
 }
 
 // DeleteRepositoryArchives deletes all repositories' archives.

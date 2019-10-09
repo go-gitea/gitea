@@ -237,6 +237,11 @@ func (u *User) GetEmail() string {
 
 // APIFormat converts a User to api.User
 func (u *User) APIFormat() *api.User {
+	return u.innerAPIFormat(x)
+}
+
+// APIFormat converts a User to api.User
+func (u *User) innerAPIFormat(e Engine) *api.User {
 	apiURL := setting.AppURL + "api/v1/users/" + u.LowerName
 	return &api.User{
 		ID:               u.ID,
@@ -258,7 +263,7 @@ func (u *User) APIFormat() *api.User {
 		Description:      u.Description,
 		Website:          u.Website,
 		Location:         u.Location,
-		PubicRepos:       GetPublicRepositoryCount(u),
+		PubicRepos:       getPublicRepositoryCount(e, u.ID),
 		Followers:        u.NumFollowers,
 		Following:        u.NumFollowing,
 		Language:         u.Language,
