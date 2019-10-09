@@ -63,6 +63,8 @@ func (session *Session) FindAndCount(rowsSlicePtr interface{}, condiBean ...inte
 }
 
 func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{}) error {
+	defer session.resetStatement()
+
 	if session.statement.lastError != nil {
 		return session.statement.lastError
 	}

@@ -87,16 +87,17 @@ var (
 	UniqueIdentifier = "UNIQUEIDENTIFIER"
 	SysName          = "SYSNAME"
 
-	Date       = "DATE"
-	DateTime   = "DATETIME"
-	SmallDateTime   = "SMALLDATETIME"
-	Time       = "TIME"
-	TimeStamp  = "TIMESTAMP"
-	TimeStampz = "TIMESTAMPZ"
+	Date          = "DATE"
+	DateTime      = "DATETIME"
+	SmallDateTime = "SMALLDATETIME"
+	Time          = "TIME"
+	TimeStamp     = "TIMESTAMP"
+	TimeStampz    = "TIMESTAMPZ"
+	Year          = "YEAR"
 
-	Decimal = "DECIMAL"
-	Numeric = "NUMERIC"
-	Money   = "MONEY"
+	Decimal    = "DECIMAL"
+	Numeric    = "NUMERIC"
+	Money      = "MONEY"
 	SmallMoney = "SMALLMONEY"
 
 	Real   = "REAL"
@@ -147,19 +148,20 @@ var (
 		Clob:       TEXT_TYPE,
 		SysName:    TEXT_TYPE,
 
-		Date:       TIME_TYPE,
-		DateTime:   TIME_TYPE,
-		Time:       TIME_TYPE,
-		TimeStamp:  TIME_TYPE,
-		TimeStampz: TIME_TYPE,
-		SmallDateTime:   TIME_TYPE,
+		Date:          TIME_TYPE,
+		DateTime:      TIME_TYPE,
+		Time:          TIME_TYPE,
+		TimeStamp:     TIME_TYPE,
+		TimeStampz:    TIME_TYPE,
+		SmallDateTime: TIME_TYPE,
+		Year:          TIME_TYPE,
 
-		Decimal: NUMERIC_TYPE,
-		Numeric: NUMERIC_TYPE,
-		Real:    NUMERIC_TYPE,
-		Float:   NUMERIC_TYPE,
-		Double:  NUMERIC_TYPE,
-		Money:   NUMERIC_TYPE,
+		Decimal:    NUMERIC_TYPE,
+		Numeric:    NUMERIC_TYPE,
+		Real:       NUMERIC_TYPE,
+		Float:      NUMERIC_TYPE,
+		Double:     NUMERIC_TYPE,
+		Money:      NUMERIC_TYPE,
 		SmallMoney: NUMERIC_TYPE,
 
 		Binary:    BLOB_TYPE,
@@ -313,7 +315,7 @@ func SQLType2Type(st SQLType) reflect.Type {
 		return reflect.TypeOf([]byte{})
 	case Bool:
 		return reflect.TypeOf(true)
-	case DateTime, Date, Time, TimeStamp, TimeStampz, SmallDateTime:
+	case DateTime, Date, Time, TimeStamp, TimeStampz, SmallDateTime, Year:
 		return reflect.TypeOf(c_TIME_DEFAULT)
 	case Decimal, Numeric, Money, SmallMoney:
 		return reflect.TypeOf("")

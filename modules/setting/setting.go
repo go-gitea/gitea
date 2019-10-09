@@ -27,10 +27,10 @@ import (
 	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
 
-	"github.com/Unknwon/cae/zip"
-	"github.com/Unknwon/com"
 	shellquote "github.com/kballard/go-shellquote"
 	version "github.com/mcuadros/go-version"
+	"github.com/unknwon/cae/zip"
+	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
@@ -148,31 +148,22 @@ var (
 	DisableGitHooks       bool
 	PasswordHashAlgo      string
 
-	// Database settings
-	UseSQLite3       bool
-	UseMySQL         bool
-	UseMSSQL         bool
-	UsePostgreSQL    bool
-	UseTiDB          bool
-	LogSQL           bool
-	DBConnectRetries int
-	DBConnectBackoff time.Duration
-
 	// UI settings
 	UI = struct {
-		ExplorePagingNum    int
-		IssuePagingNum      int
-		RepoSearchPagingNum int
-		FeedMaxCommitNum    int
-		GraphMaxCommitNum   int
-		CodeCommentLines    int
-		ReactionMaxUserNum  int
-		ThemeColorMetaTag   string
-		MaxDisplayFileSize  int64
-		ShowUserEmail       bool
-		DefaultShowFullName bool
-		DefaultTheme        string
-		Themes              []string
+		ExplorePagingNum      int
+		IssuePagingNum        int
+		RepoSearchPagingNum   int
+		FeedMaxCommitNum      int
+		GraphMaxCommitNum     int
+		CodeCommentLines      int
+		ReactionMaxUserNum    int
+		ThemeColorMetaTag     string
+		MaxDisplayFileSize    int64
+		ShowUserEmail         bool
+		DefaultShowFullName   bool
+		DefaultTheme          string
+		Themes                []string
+		SearchRepoDescription bool
 
 		Admin struct {
 			UserPagingNum   int
@@ -240,6 +231,7 @@ var (
 	// Admin settings
 	Admin struct {
 		DisableRegularOrgCreation bool
+		DefaultEmailNotification  string
 	}
 
 	// Picture settings
@@ -348,16 +340,19 @@ var (
 	ShowFooterTemplateLoadTime bool
 
 	// Global setting objects
-	Cfg               *ini.File
-	CustomPath        string // Custom directory path
-	CustomConf        string
-	CustomPID         string
-	ProdMode          bool
-	RunUser           string
-	IsWindows         bool
-	HasRobotsTxt      bool
-	InternalToken     string // internal access token
-	IterateBufferSize int
+	Cfg           *ini.File
+	CustomPath    string // Custom directory path
+	CustomConf    string
+	CustomPID     string
+	ProdMode      bool
+	RunUser       string
+	IsWindows     bool
+	HasRobotsTxt  bool
+	InternalToken string // internal access token
+
+	// UILocation is the location on the UI, so that we can display the time on UI.
+	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
+	UILocation = time.Local
 )
 
 // DateLang transforms standard language locale name to corresponding value in datetime plugin.
@@ -760,6 +755,9 @@ func NewContext() {
 		}
 	}
 
+	sec = Cfg.Section("admin")
+	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
+
 	sec = Cfg.Section("security")
 	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
 	SecretKey = sec.Key("SECRET_KEY").MustString("!#@FDEWREWR&*(")
@@ -775,10 +773,6 @@ func NewContext() {
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 
 	InternalToken = loadInternalToken(sec)
-	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
-	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
-	DBConnectRetries = Cfg.Section("database").Key("DB_RETRIES").MustInt(10)
-	DBConnectBackoff = Cfg.Section("database").Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -953,6 +947,7 @@ func NewContext() {
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
+	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 
@@ -1037,6 +1032,7 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 
 // NewServices initializes the services
 func NewServices() {
+	InitDBConfig()
 	newService()
 	NewLogServices(false)
 	newCacheService()

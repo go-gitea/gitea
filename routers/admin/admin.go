@@ -13,9 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
-	"gopkg.in/macaron.v1"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -25,6 +22,10 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/mailer"
+
+	"gitea.com/macaron/macaron"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -197,7 +198,7 @@ func Dashboard(ctx *context.Context) {
 func SendTestMail(ctx *context.Context) {
 	email := ctx.Query("email")
 	// Send a test email to the user's email address and redirect back to Config
-	if err := models.SendTestMail(email); err != nil {
+	if err := mailer.SendTestMail(email); err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.config.test_mail_failed", email, err))
 	} else {
 		ctx.Flash.Info(ctx.Tr("admin.config.test_mail_sent", email))
@@ -289,7 +290,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["LFS"] = setting.LFS
 
 	ctx.Data["Service"] = setting.Service
-	ctx.Data["DbCfg"] = models.DbCfg
+	ctx.Data["DbCfg"] = setting.Database
 	ctx.Data["Webhook"] = setting.Webhook
 
 	ctx.Data["MailerEnabled"] = false
@@ -333,7 +334,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
-	ctx.Data["LogSQL"] = setting.LogSQL
+	ctx.Data["LogSQL"] = setting.Database.LogSQL
 
 	ctx.HTML(200, tplConfig)
 }

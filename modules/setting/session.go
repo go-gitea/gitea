@@ -12,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/go-macaron/session"
+	"gitea.com/macaron/session"
 )
 
 var (

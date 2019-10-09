@@ -13,7 +13,7 @@ type Team struct {
 	Organization *Organization `json:"organization"`
 	// enum: none,read,write,admin,owner
 	Permission string `json:"permission"`
-	// enum: repo.code,repo.issues,repo.ext_issues,repo.wiki,repo.pulls,repo.releases,repo.ext_wiki
+	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
 	Units []string `json:"units"`
 }
 
@@ -24,7 +24,7 @@ type CreateTeamOption struct {
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// enum: read,write,admin
 	Permission string `json:"permission"`
-	// enum: repo.code,repo.issues,repo.ext_issues,repo.wiki,repo.pulls,repo.releases,repo.ext_wiki
+	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
 	Units []string `json:"units"`
 }
 
@@ -35,6 +35,6 @@ type EditTeamOption struct {
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// enum: read,write,admin
 	Permission string `json:"permission"`
-	// enum: repo.code,repo.issues,repo.ext_issues,repo.wiki,repo.pulls,repo.releases,repo.ext_wiki
+	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
 	Units []string `json:"units"`
 }

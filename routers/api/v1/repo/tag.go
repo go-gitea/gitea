@@ -5,11 +5,11 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/routers/api/v1/convert"
 	"net/http"
 
+	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
 // ListTags list all the tags of a repository
@@ -51,7 +51,7 @@ func ListTags(ctx *context.APIContext) {
 func GetTag(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/git/tags/{sha} repository GetTag
 	// ---
-	// summary: Gets the tag of a repository.
+	// summary: Gets the tag object of an annotated tag (not lightweight tags)
 	// produces:
 	// - application/json
 	// parameters:
@@ -67,7 +67,7 @@ func GetTag(ctx *context.APIContext) {
 	//   required: true
 	// - name: sha
 	//   in: path
-	//   description: sha of the tag
+	//   description: sha of the tag. The Git tags API only supports annotated tag objects, not lightweight tags.
 	//   type: string
 	//   required: true
 	// responses:
