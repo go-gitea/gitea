@@ -25,7 +25,7 @@
 					{{end}}
 					<div class="ui divider"></div>
 					{{range .Repos}}
-						<a class="{{if eq $.RepoID .ID}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}{{if not (eq $.RepoID .ID)}}&repo={{.ID}}{{end}}&sort={{$.SortType}}&state={{$.State}}">
+						<a class="{{if eq $.RepoID .ID}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}{{if not (eq $.RepoID .ID)}}&repo={{.ID}}{{end}}&sort={{$.SortType}}&state={{$.State}}" title="{{.FullName}}">
 							<span class="text truncate">{{.FullName}}</span>
 							<div class="floating ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts .ID}}</div>
 						</a>

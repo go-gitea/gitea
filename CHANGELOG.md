@@ -4,6 +4,32 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.9.4](https://github.com/go-gitea/gitea/releases/tag/v1.9.4) - 2019-10-08
+* BUGFIXES
+  * Highlight issue references (#8101) (#8404)
+  * Fix bug when migrating a private repository #7917 (#8403)
+  * Change general form binding to gogs form (#8334) (#8402)
+  * Fix editor commit to new branch if PR disabled (#8375) (#8401)
+  * Fix milestone num_issues (#8221) (#8400)
+  * Allow users with explicit read access to give approvals (#8398)
+  * Fix commit status in PR #8316 and PR #8321 (#8339)
+  * Fix API for edit and delete release attachment (#8290)
+  * Fix assets on release webhook (#8283)
+  * Fix release API URL generation (#8239)
+  * Allow registration when button is hidden (#8238)
+  * MS Teams webhook misses commit messages (backport v1.9) (#8225)
+  * Fix data race (#8206)
+  * Fix pull merge 500 error caused by git-fetch breaking behaviors (#8194)
+  * Fix the SSH config specification in the authorized_keys template (#8193)
+  * Fix reading git notes from nested trees (#8189)
+  * Fix team user api (#8172) (#8188)
+  * Add reviewers as participants (#8124)
+* BUILD
+  * Use vendored go-swagger (#8087) (#8165)
+  * Fix version-validation for GO 1.13 (go-macaron/cors) (#8389)
+* MISC
+  * Make show private icon when repo avatar set (#8144) (#8175)
+
 ## [1.9.3](https://github.com/go-gitea/gitea/releases/tag/v1.9.3) - 2019-09-06
 * BUGFIXES
   * Fix go get from a private repository with Go 1.13 (#8100)
