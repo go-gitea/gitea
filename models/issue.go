@@ -1919,14 +1919,14 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 			return nil, fmt.Errorf("find mentioned teams: %v", err)
 		}
 		if len(teams) != 0 {
-			checked := make([]*Team, 0, len(teams))
+			checked := make([]int64, 0, len(teams))
 			unittype := UnitTypeIssues
 			if issue.IsPull {
 				unittype = UnitTypePullRequests
 			}
 			for _, team := range teams {
 				if team.Authorize >= AccessModeOwner {
-					checked = append(checked, team)
+					checked = append(checked, team.ID)
 					resolved[team.LowerName] = true
 					continue
 				}
@@ -1935,19 +1935,15 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 					return nil, fmt.Errorf("get team units (%d): %v", team.ID, err)
 				}
 				if has {
-					checked = append(checked, team)
+					checked = append(checked, team.ID)
 					resolved[team.LowerName] = true
 				}
 			}
 			if len(checked) != 0 {
-				ids := make([]int64, len(checked))
-				for i := range checked {
-					ids[i] = checked[i].ID
-				}
 				teamusers := make([]*User, 0, 20)
 				if err := ctx.e.
 					Join("INNER", "team_user", "team_user.uid = `user`.id").
-					In("`team_user`.team_id", ids).
+					In("`team_user`.team_id", checked).
 					And("`user`.is_active = ?", true).
 					And("`user`.prohibit_login = ?", false).
 					Find(&teamusers); err != nil {
