@@ -358,7 +358,7 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 
 	cmdArgs := []string{"check-attr", "-z", attribute}
 
-	// git check-attr --cached first appears in git 1.8.0
+	// git check-attr --cached first appears in git 1.7.8
 	if version.Compare(binVersion, "1.7.8", ">=") {
 		cmdArgs = append(cmdArgs, "--cached")
 	}
