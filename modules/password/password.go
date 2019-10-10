@@ -20,7 +20,7 @@ var validComplexities = map[string]string{
 	"lower": "abcdefghijklmnopqrstuvwxyz",
 	"upper": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
 	"digit": "0123456789",
-	"spec":  "[" + `][ !"#$%&'()*+,./:;<=>?@\\^_{|}~` + "`-" + "]",
+	"spec":  `][ !"#$%&'()*+,./:;<=>?@\^_{|}~` + "`-",
 }
 
 // NewComplexity for preparation
