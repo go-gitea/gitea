@@ -779,7 +779,7 @@ func NewContext() {
 		"lower": "[a-z]+",
 		"upper": "[A-Z]+",
 		"digit": "[0-9]+",
-		"spec":  "[" + `][ !"#$%&'()*+,./:;<=>?@\\^_{|}~` + "`-" + "]",
+		"spec":  `][ !"#$%&'()*+,./:;<=>?@\^_{|}~` + "`-",
 	}
 	PasswordComplexity = make(map[string]string)
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
