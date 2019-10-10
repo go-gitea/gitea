@@ -366,3 +366,35 @@ func TestIssue_InsertIssue(t *testing.T) {
 	testInsertIssue(t, "my issue1", "special issue's comments?")
 	testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?")
 }
+
+func TestIssue_ResolveMentions(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	testSuccess := func(owner, repo, doer string, mentions []string, expected []int64) {
+		o := AssertExistsAndLoadBean(t, &User{LowerName: owner}).(*User)
+		r := AssertExistsAndLoadBean(t, &Repository{OwnerID: o.ID, LowerName: repo}).(*Repository)
+		issue := &Issue{RepoID: r.ID}
+		d := AssertExistsAndLoadBean(t, &User{LowerName: doer}).(*User)
+		resolved, err := issue.ResolveMentionsByVisibility(DefaultDBContext(), d, mentions)
+		assert.NoError(t, err)
+		ids := make([]int64, len(resolved))
+		for i, user := range resolved {
+			ids[i] = user.ID
+		}
+		sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+		assert.EqualValues(t, expected, ids)
+	}
+
+	// Public repo, existing user
+	testSuccess("user2", "repo1", "user1", []string{"user5"}, []int64{5})
+	// Public repo, non-existing user
+	testSuccess("user2", "repo1", "user1", []string{"nonexisting"}, []int64{})
+	// Public repo, doer
+	testSuccess("user2", "repo1", "user1", []string{"user1"}, []int64{})
+	// Private repo, team member
+	testSuccess("user17", "big_test_private_4", "user20", []string{"user2"}, []int64{2})
+	// Private repo, not a team member
+	testSuccess("user17", "big_test_private_4", "user20", []string{"user5"}, []int64{})
+	// Private repo, whole team
+	testSuccess("user17", "big_test_private_4", "user15", []string{"owners"}, []int64{18})
+}
