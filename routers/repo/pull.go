@@ -21,9 +21,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/pull"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
+	pull_service "code.gitea.io/gitea/services/pull"
 
 	"github.com/unknwon/com"
 )
@@ -321,6 +322,12 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	setMergeTarget(ctx, pull)
 
+	if err = pull.LoadProtectedBranch(); err != nil {
+		ctx.ServerError("GetLatestCommitStatus", err)
+		return nil
+	}
+	ctx.Data["EnableStatusCheck"] = pull.ProtectedBranch != nil && pull.ProtectedBranch.EnableStatusCheck
+
 	var headGitRepo *git.Repository
 	var headBranchExist bool
 	// HeadRepo may be missing
@@ -348,6 +355,18 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			if len(commitStatuses) > 0 {
 				ctx.Data["LatestCommitStatuses"] = commitStatuses
 				ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(commitStatuses)
+			}
+
+			if pull.ProtectedBranch != nil && pull.ProtectedBranch.EnableStatusCheck {
+				ctx.Data["is_context_required"] = func(context string) bool {
+					for _, c := range pull.ProtectedBranch.StatusCheckContexts {
+						if c == context {
+							return true
+						}
+					}
+					return false
+				}
+				ctx.Data["IsRequiredStatusCheckSuccess"] = pull_service.IsCommitStatusContextSuccess(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
 			}
 		}
 	}
@@ -517,7 +536,7 @@ func ViewPullFiles(ctx *context.Context) {
 		ctx.Data["Reponame"] = pull.HeadRepo.Name
 	}
 
-	diff, err := models.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
+	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
 		startCommitID, endCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
 		whitespaceFlags[ctx.Data["WhitespaceBehavior"].(string)])
@@ -534,16 +553,20 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles() == 0
 
+	baseCommit, err := ctx.Repo.GitRepo.GetCommit(startCommitID)
+	if err != nil {
+		ctx.ServerError("GetCommit", err)
+		return
+	}
 	commit, err := gitRepo.GetCommit(endCommitID)
 	if err != nil {
 		ctx.ServerError("GetCommit", err)
 		return
 	}
 
-	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", endCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", startCommitID)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", endCommitID)
+	setImageCompareContext(ctx, baseCommit, commit)
+	setPathsCompareContext(ctx, baseCommit, commit, headTarget)
+
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
 	if ctx.Data["Assignees"], err = ctx.Repo.Repository.GetAssignees(); err != nil {
@@ -578,6 +601,17 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 
 	if pr.IsWorkInProgress() {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+		return
+	}
+
+	isPass, err := pull_service.IsPullCommitStatusPass(pr)
+	if err != nil {
+		ctx.ServerError("IsPullCommitStatusPass", err)
+		return
+	}
+	if !isPass && !ctx.IsUserRepoAdmin() {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_status_check"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		return
 	}
@@ -620,7 +654,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if err = pull.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+	if err = pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
@@ -733,7 +767,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
 
-	if err := models.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, patch, assigneeIDs); err != nil {
+	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, patch, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return

@@ -14,6 +14,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
 )
 
 var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
@@ -125,6 +126,34 @@ func (label *Label) ForegroundColor() template.CSS {
 
 	// default to black
 	return template.CSS("#000")
+}
+
+func initalizeLabels(e Engine, repoID int64, labelTemplate string) error {
+	list, err := GetLabelTemplateFile(labelTemplate)
+	if err != nil {
+		return ErrIssueLabelTemplateLoad{labelTemplate, err}
+	}
+
+	labels := make([]*Label, len(list))
+	for i := 0; i < len(list); i++ {
+		labels[i] = &Label{
+			RepoID:      repoID,
+			Name:        list[i][0],
+			Description: list[i][2],
+			Color:       list[i][1],
+		}
+	}
+	for _, label := range labels {
+		if err = newLabel(e, label); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// InitalizeLabels adds a label set to a repository using a template
+func InitalizeLabels(repoID int64, labelTemplate string) error {
+	return initalizeLabels(x, repoID, labelTemplate)
 }
 
 func newLabel(e Engine, label *Label) error {
@@ -266,7 +295,20 @@ func GetLabelsByIssueID(issueID int64) ([]*Label, error) {
 }
 
 func updateLabel(e Engine, l *Label) error {
-	_, err := e.ID(l.ID).AllCols().Update(l)
+	_, err := e.ID(l.ID).
+		SetExpr("num_issues",
+			builder.Select("count(*)").From("issue_label").
+				Where(builder.Eq{"label_id": l.ID}),
+		).
+		SetExpr("num_closed_issues",
+			builder.Select("count(*)").From("issue_label").
+				InnerJoin("issue", "issue_label.issue_id = issue.id").
+				Where(builder.Eq{
+					"issue_label.label_id": l.ID,
+					"issue.is_closed":      true,
+				}),
+		).
+		AllCols().Update(l)
 	return err
 }
 
@@ -347,10 +389,6 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err
 		return err
 	}
 
-	label.NumIssues++
-	if issue.IsClosed {
-		label.NumClosedIssues++
-	}
 	return updateLabel(e, label)
 }
 
@@ -420,10 +458,6 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 		return err
 	}
 
-	label.NumIssues--
-	if issue.IsClosed {
-		label.NumClosedIssues--
-	}
 	return updateLabel(e, label)
 }
 

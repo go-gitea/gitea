@@ -157,11 +157,14 @@ func (repo *Repository) GetTagID(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fields := strings.Fields(stdout)
-	if len(fields) != 2 {
-		return "", ErrNotExist{ID: name}
+	// Make sure exact match is used: "v1" != "release/v1"
+	for _, line := range strings.Split(stdout, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) == 2 && fields[1] == "refs/tags/"+name {
+			return fields[0], nil
+		}
 	}
-	return fields[0], nil
+	return "", ErrNotExist{ID: name}
 }
 
 // GetTag returns a Git tag by given name.

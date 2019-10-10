@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/services/mailer"
 
 	"github.com/unknwon/com"
 )
@@ -116,8 +117,8 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	log.Trace("Account created by admin (%s): %s", ctx.User.Name, u.Name)
 
 	// Send email notification.
-	if form.SendNotify && setting.MailService != nil {
-		models.SendRegisterNotifyMail(ctx.Context, u)
+	if form.SendNotify {
+		mailer.SendRegisterNotifyMail(ctx.Locale, u)
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))

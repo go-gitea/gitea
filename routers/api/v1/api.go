@@ -771,6 +771,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Delete("", bind(api.DeleteFileOptions{}), repo.DeleteFile)
 					}, reqRepoWriter(models.UnitTypeCode), reqToken())
 				}, reqRepoReader(models.UnitTypeCode))
+				m.Group("/topics", func() {
+					m.Combo("").Get(repo.ListTopics).
+						Put(reqToken(), reqAdmin(), bind(api.RepoTopicOptions{}), repo.UpdateTopics)
+					m.Group("/:topic", func() {
+						m.Combo("").Put(reqToken(), repo.AddTopic).
+							Delete(reqToken(), repo.DeleteTopic)
+					}, reqAdmin())
+				}, reqAnyRepoReader())
 			}, repoAssignment())
 		})
 
@@ -794,8 +802,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Put(reqToken(), reqOrgMembership(), org.PublicizeMember).
 					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
 			})
-			m.Combo("/teams", reqToken(), reqOrgMembership()).Get(org.ListTeams).
-				Post(reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+			m.Group("/teams", func() {
+				m.Combo("", reqToken()).Get(org.ListTeams).
+					Post(reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+				m.Get("/search", org.SearchTeam)
+			}, reqOrgMembership())
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
 					Post(bind(api.CreateHookOption{}), org.CreateHook)

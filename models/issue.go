@@ -595,8 +595,9 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
+	sess.Close()
 
-	if err = issue.loadPoster(x); err != nil {
+	if err = issue.LoadPoster(); err != nil {
 		return fmt.Errorf("loadPoster: %v", err)
 	}
 
@@ -759,18 +760,13 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 		return err
 	}
 	for idx := range issue.Labels {
-		if issue.IsClosed {
-			issue.Labels[idx].NumClosedIssues++
-		} else {
-			issue.Labels[idx].NumClosedIssues--
-		}
 		if err = updateLabel(e, issue.Labels[idx]); err != nil {
 			return err
 		}
 	}
 
 	// Update issue count of milestone
-	if err = changeMilestoneIssueStats(e, issue); err != nil {
+	if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
 		return err
 	}
 
@@ -870,9 +866,18 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 		return fmt.Errorf("createChangeTitleComment: %v", err)
 	}
 
+	if err = issue.neuterCrossReferences(sess); err != nil {
+		return err
+	}
+
+	if err = issue.addCrossReferences(sess, doer); err != nil {
+		return err
+	}
+
 	if err = sess.Commit(); err != nil {
 		return err
 	}
+	sess.Close()
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
@@ -939,9 +944,26 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	oldContent := issue.Content
 	issue.Content = content
 
-	if err = UpdateIssueCols(issue, "content"); err != nil {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err = updateIssueCols(sess, issue, "content"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
+	if err = issue.neuterCrossReferences(sess); err != nil {
+		return err
+	}
+	if err = issue.addCrossReferences(sess, doer); err != nil {
+		return err
+	}
+
+	if err = sess.Commit(); err != nil {
+		return err
+	}
+	sess.Close()
 
 	mode, _ := AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
@@ -1082,21 +1104,10 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	// Milestone and assignee validation should happen before insert actual object.
-
-	// There's no good way to identify a duplicate key error in database/sql; brute force some retries
-	dupIndexAttempts := issueMaxDupIndexAttempts
-	for {
-		_, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
-			Where("repo_id=?", opts.Issue.RepoID).
-			Insert(opts.Issue)
-		if err == nil {
-			break
-		}
-
-		dupIndexAttempts--
-		if dupIndexAttempts <= 0 {
-			return err
-		}
+	if _, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
+		Where("repo_id=?", opts.Issue.RepoID).
+		Insert(opts.Issue); err != nil {
+		return ErrNewIssueInsert{err}
 	}
 
 	inserted, err := getIssueByID(e, opts.Issue.ID)
@@ -1108,7 +1119,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Index = inserted.Index
 
 	if opts.Issue.MilestoneID > 0 {
-		if err = changeMilestoneAssign(e, doer, opts.Issue, -1); err != nil {
+		if _, err = e.Exec("UPDATE `milestone` SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
 			return err
 		}
 	}
@@ -1171,12 +1182,32 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			}
 		}
 	}
-
-	return opts.Issue.loadAttributes(e)
+	if err = opts.Issue.loadAttributes(e); err != nil {
+		return err
+	}
+	return opts.Issue.addCrossReferences(e, doer)
 }
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
+	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
+	i := 0
+	for {
+		if err = newIssueAttempt(repo, issue, labelIDs, assigneeIDs, uuids); err == nil {
+			return nil
+		}
+		if !IsErrNewIssueInsert(err) {
+			return err
+		}
+		if i++; i == issueMaxDupIndexAttempts {
+			break
+		}
+		log.Error("NewIssue: error attempting to insert the new issue; will retry. Original error: %v", err)
+	}
+	return fmt.Errorf("NewIssue: too many errors attempting to insert the new issue. Last error was: %v", err)
+}
+
+func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -1190,7 +1221,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 		Attachments: uuids,
 		AssigneeIDs: assigneeIDs,
 	}); err != nil {
-		if IsErrUserDoesNotHaveAccessToRepo(err) {
+		if IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 			return err
 		}
 		return fmt.Errorf("newIssue: %v", err)
@@ -1198,31 +1229,6 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
-	}
-
-	if err = NotifyWatchers(&Action{
-		ActUserID: issue.Poster.ID,
-		ActUser:   issue.Poster,
-		OpType:    ActionCreateIssue,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
-	}
-
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if err = PrepareWebhooks(repo, HookEventIssues, &api.IssuePayload{
-		Action:     api.HookIssueOpened,
-		Index:      issue.Index,
-		Issue:      issue.APIFormat(),
-		Repository: repo.APIFormat(mode),
-		Sender:     issue.Poster.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
 	}
 
 	return nil
@@ -1455,7 +1461,7 @@ func getParticipantsByIssueID(e Engine, issueID int64) ([]*User, error) {
 	userIDs := make([]int64, 0, 5)
 	if err := e.Table("comment").Cols("poster_id").
 		Where("`comment`.issue_id = ?", issueID).
-		And("`comment`.type = ?", CommentTypeComment).
+		And("`comment`.type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
 		And("`user`.is_active = ?", true).
 		And("`user`.prohibit_login = ?", false).
 		Join("INNER", "`user`", "`user`.id = `comment`.poster_id").
@@ -1473,7 +1479,7 @@ func getParticipantsByIssueID(e Engine, issueID int64) ([]*User, error) {
 
 // UpdateIssueMentions extracts mentioned people from content and
 // updates issue-user relations for them.
-func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
+func UpdateIssueMentions(ctx DBContext, issueID int64, mentions []string) error {
 	if len(mentions) == 0 {
 		return nil
 	}
@@ -1483,7 +1489,7 @@ func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
 	}
 	users := make([]*User, 0, len(mentions))
 
-	if err := e.In("lower_name", mentions).Asc("lower_name").Find(&users); err != nil {
+	if err := ctx.e.In("lower_name", mentions).Asc("lower_name").Find(&users); err != nil {
 		return fmt.Errorf("find mentioned users: %v", err)
 	}
 
@@ -1495,7 +1501,7 @@ func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
 		}
 
 		memberIDs := make([]int64, 0, user.NumMembers)
-		orgUsers, err := getOrgUsersByOrgID(e, user.ID)
+		orgUsers, err := getOrgUsersByOrgID(ctx.e, user.ID)
 		if err != nil {
 			return fmt.Errorf("GetOrgUsersByOrgID [%d]: %v", user.ID, err)
 		}
@@ -1507,7 +1513,7 @@ func UpdateIssueMentions(e Engine, issueID int64, mentions []string) error {
 		ids = append(ids, memberIDs...)
 	}
 
-	if err := UpdateIssueUsersByMentions(e, issueID, ids); err != nil {
+	if err := UpdateIssueUsersByMentions(ctx, issueID, ids); err != nil {
 		return fmt.Errorf("UpdateIssueUsersByMentions: %v", err)
 	}
 
@@ -1655,14 +1661,14 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 			return nil, err
 		}
 	case FilterModeAssign:
-		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
 			Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
 			And("issue_assignees.assignee_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
+		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
 			Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
 			And("issue_assignees.assignee_id = ?", opts.UserID).
 			Count(new(Issue))
@@ -1682,6 +1688,21 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		if err != nil {
 			return nil, err
 		}
+	case FilterModeMention:
+		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+			Join("INNER", "issue_user", "issue.id = issue_user.issue_id and issue_user.is_mentioned = ?", true).
+			And("issue_user.uid = ?", opts.UserID).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
+			Join("INNER", "issue_user", "issue.id = issue_user.issue_id and issue_user.is_mentioned = ?", true).
+			And("issue_user.uid = ?", opts.UserID).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	cond = cond.And(builder.Eq{"issue.is_closed": opts.IsClosed})
@@ -1695,6 +1716,14 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 
 	stats.CreateCount, err = x.Where(cond).
 		And("poster_id = ?", opts.UserID).
+		Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+
+	stats.MentionCount, err = x.Where(cond).
+		Join("INNER", "issue_user", "issue.id = issue_user.issue_id and issue_user.is_mentioned = ?", true).
+		And("issue_user.uid = ?", opts.UserID).
 		Count(new(Issue))
 	if err != nil {
 		return nil, err
@@ -1785,7 +1814,24 @@ func updateIssue(e Engine, issue *Issue) error {
 
 // UpdateIssue updates all fields of given issue.
 func UpdateIssue(issue *Issue) error {
-	return updateIssue(x, issue)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := updateIssue(sess, issue); err != nil {
+		return err
+	}
+	if err := issue.neuterCrossReferences(sess); err != nil {
+		return err
+	}
+	if err := issue.loadPoster(sess); err != nil {
+		return err
+	}
+	if err := issue.addCrossReferences(sess, issue.Poster); err != nil {
+		return err
+	}
+	return sess.Commit()
 }
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.

@@ -250,3 +250,8 @@ func MaxBatchInsertSize(bean interface{}) int {
 	t := x.TableInfo(bean)
 	return 999 / len(t.ColumnsSeq())
 }
+
+// Count returns records number according struct's fields as database query conditions
+func Count(bean interface{}) (int64, error) {
+	return x.Count(bean)
+}

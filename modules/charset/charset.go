@@ -35,7 +35,7 @@ func ToUTF8WithErr(content []byte) (string, error) {
 	}
 
 	// If there is an error, we concatenate the nicely decoded part and the
-	// original left over. This way we won't lose data.
+	// original left over. This way we won't lose much data.
 	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
 	if err != nil {
 		result = append(result, content[n:]...)

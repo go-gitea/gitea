@@ -250,6 +250,19 @@ func Contexter() macaron.Handler {
 		if ctx.Query("go-get") == "1" {
 			ownerName := c.Params(":username")
 			repoName := c.Params(":reponame")
+			trimmedRepoName := strings.TrimSuffix(repoName, ".git")
+
+			if ownerName == "" || trimmedRepoName == "" {
+				_, _ = c.Write([]byte(`<!doctype html>
+<html>
+	<body>
+		invalid import path
+	</body>
+</html>
+`))
+				c.WriteHeader(400)
+				return
+			}
 			branchName := "master"
 
 			repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
@@ -277,7 +290,7 @@ func Contexter() macaron.Handler {
 	</body>
 </html>
 `, map[string]string{
-				"GoGetImport":    ComposeGoGetImport(ownerName, strings.TrimSuffix(repoName, ".git")),
+				"GoGetImport":    ComposeGoGetImport(ownerName, trimmedRepoName),
 				"CloneLink":      models.ComposeHTTPSCloneURL(ownerName, repoName),
 				"GoDocDirectory": prefix + "{/dir}",
 				"GoDocFile":      prefix + "{/dir}/{file}#L{line}",

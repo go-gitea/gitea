@@ -6,7 +6,6 @@
 package models
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -18,11 +17,6 @@ import (
 	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"xorm.io/builder"
-)
-
-var (
-	// ErrTeamNotExist team does not exist
-	ErrTeamNotExist = errors.New("Team does not exist")
 )
 
 // IsOwnedBy returns true if given user is in the owner team.
@@ -304,7 +298,7 @@ type OrgUser struct {
 func isOrganizationOwner(e Engine, orgID, uid int64) (bool, error) {
 	ownerTeam, err := getOwnerTeam(e, orgID)
 	if err != nil {
-		if err == ErrTeamNotExist {
+		if IsErrTeamNotExist(err) {
 			log.Error("Organization does not have owner team: %d", orgID)
 			return false, nil
 		}

@@ -140,7 +140,10 @@ func TestSearchUsers(t *testing.T) {
 	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 3, PageSize: 2},
 		[]int64{19, 25})
 
-	testOrgSuccess(&SearchUserOptions{Page: 4, PageSize: 2},
+	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 4, PageSize: 2},
+		[]int64{26})
+
+	testOrgSuccess(&SearchUserOptions{Page: 5, PageSize: 2},
 		[]int64{})
 
 	// test users

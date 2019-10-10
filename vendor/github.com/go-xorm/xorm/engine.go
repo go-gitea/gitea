@@ -190,14 +190,14 @@ func (engine *Engine) Quote(value string) string {
 		return value
 	}
 
-	buf := builder.StringBuilder{}
+	buf := strings.Builder{}
 	engine.QuoteTo(&buf, value)
 
 	return buf.String()
 }
 
 // QuoteTo quotes string and writes into the buffer
-func (engine *Engine) QuoteTo(buf *builder.StringBuilder, value string) {
+func (engine *Engine) QuoteTo(buf *strings.Builder, value string) {
 	if buf == nil {
 		return
 	}
@@ -377,6 +377,32 @@ func (engine *Engine) NoAutoCondition(no ...bool) *Session {
 	return session.NoAutoCondition(no...)
 }
 
+func (engine *Engine) loadTableInfo(table *core.Table) error {
+	colSeq, cols, err := engine.dialect.GetColumns(table.Name)
+	if err != nil {
+		return err
+	}
+	for _, name := range colSeq {
+		table.AddColumn(cols[name])
+	}
+	indexes, err := engine.dialect.GetIndexes(table.Name)
+	if err != nil {
+		return err
+	}
+	table.Indexes = indexes
+
+	for _, index := range indexes {
+		for _, name := range index.Cols {
+			if col := table.GetColumn(name); col != nil {
+				col.Indexes[index.Name] = index.Type
+			} else {
+				return fmt.Errorf("Unknown col %s in index %v of table %v, columns %v", name, index.Name, table.Name, table.ColumnsSeq())
+			}
+		}
+	}
+	return nil
+}
+
 // DBMetas Retrieve all tables, columns, indexes' informations from database.
 func (engine *Engine) DBMetas() ([]*core.Table, error) {
 	tables, err := engine.dialect.GetTables()
@@ -385,27 +411,8 @@ func (engine *Engine) DBMetas() ([]*core.Table, error) {
 	}
 
 	for _, table := range tables {
-		colSeq, cols, err := engine.dialect.GetColumns(table.Name)
-		if err != nil {
+		if err = engine.loadTableInfo(table); err != nil {
 			return nil, err
-		}
-		for _, name := range colSeq {
-			table.AddColumn(cols[name])
-		}
-		indexes, err := engine.dialect.GetIndexes(table.Name)
-		if err != nil {
-			return nil, err
-		}
-		table.Indexes = indexes
-
-		for _, index := range indexes {
-			for _, name := range index.Cols {
-				if col := table.GetColumn(name); col != nil {
-					col.Indexes[index.Name] = index.Type
-				} else {
-					return nil, fmt.Errorf("Unknown col %s in index %v of table %v, columns %v", name, index.Name, table.Name, table.ColumnsSeq())
-				}
-			}
 		}
 	}
 	return tables, nil
@@ -729,7 +736,7 @@ func (engine *Engine) Decr(column string, arg ...interface{}) *Session {
 }
 
 // SetExpr provides a update string like "column = {expression}"
-func (engine *Engine) SetExpr(column string, expression string) *Session {
+func (engine *Engine) SetExpr(column string, expression interface{}) *Session {
 	session := engine.NewSession()
 	session.isAutoClose = true
 	return session.SetExpr(column, expression)
@@ -907,8 +914,15 @@ func (engine *Engine) mapType(v reflect.Value) (*core.Table, error) {
 		fieldType := fieldValue.Type()
 
 		if ormTagStr != "" {
-			col = &core.Column{FieldName: t.Field(i).Name, Nullable: true, IsPrimaryKey: false,
-				IsAutoIncrement: false, MapType: core.TWOSIDES, Indexes: make(map[string]int)}
+			col = &core.Column{
+				FieldName:       t.Field(i).Name,
+				Nullable:        true,
+				IsPrimaryKey:    false,
+				IsAutoIncrement: false,
+				MapType:         core.TWOSIDES,
+				Indexes:         make(map[string]int),
+				DefaultIsEmpty:  true,
+			}
 			tags := splitTag(ormTagStr)
 
 			if len(tags) > 0 {

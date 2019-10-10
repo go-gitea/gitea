@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/mailer"
 )
 
 const (
@@ -130,7 +131,7 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 
 	// Send confirmation email
 	if setting.Service.RegisterEmailConfirm {
-		models.SendActivateEmailMail(ctx.Context, ctx.User, email)
+		mailer.SendActivateEmailMail(ctx.Locale, ctx.User, email)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
 			log.Error("Set cache(MailResendLimit) fail: %v", err)

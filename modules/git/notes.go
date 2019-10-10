@@ -6,6 +6,8 @@ package git
 
 import (
 	"io/ioutil"
+
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 // NotesRef is the git ref where Gitea will look for git-notes data.
@@ -25,13 +27,28 @@ func GetNote(repo *Repository, commitID string, note *Note) error {
 		return err
 	}
 
-	entry, err := notes.GetTreeEntryByPath(commitID)
-	if err != nil {
-		return err
+	remainingCommitID := commitID
+	path := ""
+	currentTree := notes.Tree.gogitTree
+	var file *object.File
+	for len(remainingCommitID) > 2 {
+		file, err = currentTree.File(remainingCommitID)
+		if err == nil {
+			path += remainingCommitID
+			break
+		}
+		if err == object.ErrFileNotFound {
+			currentTree, err = currentTree.Tree(remainingCommitID[0:2])
+			path += remainingCommitID[0:2] + "/"
+			remainingCommitID = remainingCommitID[2:]
+		}
+		if err != nil {
+			return err
+		}
 	}
 
-	blob := entry.Blob()
-	dataRc, err := blob.DataAsync()
+	blob := file.Blob
+	dataRc, err := blob.Reader()
 	if err != nil {
 		return err
 	}
@@ -43,26 +60,21 @@ func GetNote(repo *Repository, commitID string, note *Note) error {
 	}
 	note.Message = d
 
-	commit, err := repo.gogitRepo.CommitObject(notes.ID)
-	if err != nil {
-		return err
-	}
-
 	commitNodeIndex, commitGraphFile := repo.CommitNodeIndex()
 	if commitGraphFile != nil {
 		defer commitGraphFile.Close()
 	}
 
-	commitNode, err := commitNodeIndex.Get(commit.Hash)
-	if err != nil {
-		return nil
-	}
-
-	lastCommits, err := getLastCommitForPaths(commitNode, "", []string{commitID})
+	commitNode, err := commitNodeIndex.Get(notes.ID)
 	if err != nil {
 		return err
 	}
-	note.Commit = convertCommit(lastCommits[commitID])
+
+	lastCommits, err := getLastCommitForPaths(commitNode, "", []string{path})
+	if err != nil {
+		return err
+	}
+	note.Commit = convertCommit(lastCommits[path])
 
 	return nil
 }

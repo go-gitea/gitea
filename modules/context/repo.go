@@ -201,10 +201,14 @@ func ComposeGoGetImport(owner, repo string) string {
 // .netrc file.
 func EarlyResponseForGoGetMeta(ctx *Context) {
 	username := ctx.Params(":username")
-	reponame := ctx.Params(":reponame")
+	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
+	if username == "" || reponame == "" {
+		ctx.PlainText(400, []byte("invalid repository path"))
+		return
+	}
 	ctx.PlainText(200, []byte(com.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
 		map[string]string{
-			"GoGetImport": ComposeGoGetImport(username, strings.TrimSuffix(reponame, ".git")),
+			"GoGetImport": ComposeGoGetImport(username, reponame),
 			"CloneLink":   models.ComposeHTTPSCloneURL(username, reponame),
 		})))
 }
@@ -391,6 +395,7 @@ func RepoAssignment() macaron.Handler {
 		ctx.Data["Owner"] = ctx.Repo.Repository.Owner
 		ctx.Data["IsRepositoryOwner"] = ctx.Repo.IsOwner()
 		ctx.Data["IsRepositoryAdmin"] = ctx.Repo.IsAdmin()
+		ctx.Data["RepoOwnerIsOrganization"] = repo.Owner.IsOrganization()
 		ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(models.UnitTypeCode)
 		ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
 		ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)

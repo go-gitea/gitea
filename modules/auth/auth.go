@@ -310,6 +310,10 @@ func validate(errs binding.Errors, data map[string]interface{}, f Form, l macaro
 	}
 
 	data["HasError"] = true
+	// If the field with name errs[0].FieldNames[0] is not found in form
+	// somehow, some code later on will panic on Data["ErrorMsg"].(string).
+	// So initialize it to some default.
+	data["ErrorMsg"] = l.Tr("form.unknown_error")
 	AssignForm(f, data)
 
 	typ := reflect.TypeOf(f)
@@ -320,16 +324,9 @@ func validate(errs binding.Errors, data map[string]interface{}, f Form, l macaro
 		val = val.Elem()
 	}
 
-	for i := 0; i < typ.NumField(); i++ {
-		field := typ.Field(i)
-
+	if field, ok := typ.FieldByName(errs[0].FieldNames[0]); ok {
 		fieldName := field.Tag.Get("form")
-		// Allow ignored fields in the struct
-		if fieldName == "-" {
-			continue
-		}
-
-		if errs[0].FieldNames[0] == field.Name {
+		if fieldName != "-" {
 			data["Err_"+field.Name] = true
 
 			trName := field.Tag.Get("locale")
@@ -360,6 +357,8 @@ func validate(errs binding.Errors, data map[string]interface{}, f Form, l macaro
 				data["ErrorMsg"] = trName + l.Tr("form.url_error")
 			case binding.ERR_INCLUDE:
 				data["ErrorMsg"] = trName + l.Tr("form.include_error", GetInclude(field))
+			case validation.ErrGlobPattern:
+				data["ErrorMsg"] = trName + l.Tr("form.glob_pattern_error", errs[0].Message)
 			default:
 				data["ErrorMsg"] = l.Tr("form.unknown_error") + " " + errs[0].Classification
 			}

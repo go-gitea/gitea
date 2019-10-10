@@ -242,6 +242,16 @@ var migrations = []Migration{
 	NewMigration("remove orphaned repository index statuses", removeLingeringIndexStatus),
 	// v93 -> v94
 	NewMigration("add email notification enabled preference to user", addEmailNotificationEnabledToUser),
+	// v94 -> v95
+	NewMigration("add enable_status_check, status_check_contexts to protected_branch", addStatusCheckColumnsForProtectedBranches),
+	// v95 -> v96
+	NewMigration("add table columns for cross referencing issues", addCrossReferenceColumns),
+	// v96 -> v97
+	NewMigration("delete orphaned attachments", deleteOrphanedAttachments),
+	// v97 -> v98
+	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
+	// v98 -> v99
+	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
 }
 
 // Migrate database to current version
