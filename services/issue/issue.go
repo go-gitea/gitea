@@ -45,3 +45,77 @@ func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, as
 
 	return nil
 }
+
+// ChangeTitle changes the title of this issue, as the given user.
+func ChangeTitle(issue *models.Issue, doer *models.User, title string) (err error) {
+	oldTitle := issue.Title
+	issue.Title = title
+
+	err = models.WithTx(func(ctx models.DBContext) error {
+		if err = models.UpdateIssueCols(ctx, issue, "name"); err != nil {
+			return fmt.Errorf("updateIssueCols: %v", err)
+		}
+
+		if err = issue.LoadRepo(ctx); err != nil {
+			return fmt.Errorf("loadRepo: %v", err)
+		}
+
+		if _, err = models.CreateChangeTitleComment(ctx, doer, issue.Repo, issue, oldTitle, title); err != nil {
+			return fmt.Errorf("CreateChangeTitleComment: %v", err)
+		}
+
+		if err = issue.NeuterCrossReferences(ctx); err != nil {
+			return err
+		}
+
+		if err = issue.AddCrossReferences(ctx, doer); err != nil {
+			return err
+		}
+		return nil
+	})
+
+	if err != nil {
+		return
+	}
+
+	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
+	if issue.IsPull {
+		if err = issue.LoadPullRequest(); err != nil {
+			return fmt.Errorf("loadPullRequest: %v", err)
+		}
+		issue.PullRequest.Issue = issue
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+			Action: api.HookIssueEdited,
+			Index:  issue.Index,
+			Changes: &api.ChangesPayload{
+				Title: &api.ChangesFromPayload{
+					From: oldTitle,
+				},
+			},
+			PullRequest: issue.PullRequest.APIFormat(),
+			Repository:  issue.Repo.APIFormat(mode),
+			Sender:      doer.APIFormat(),
+		})
+	} else {
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+			Action: api.HookIssueEdited,
+			Index:  issue.Index,
+			Changes: &api.ChangesPayload{
+				Title: &api.ChangesFromPayload{
+					From: oldTitle,
+				},
+			},
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     issue.Poster.APIFormat(),
+		})
+	}
+
+	if err != nil {
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+	} else {
+		go models.HookQueue.Add(issue.RepoID)
+	}
+
+	return nil
+}

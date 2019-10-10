@@ -36,7 +36,7 @@ func updateIssueLock(opts *IssueLockOptions, lock bool) error {
 		commentType = CommentTypeUnlock
 	}
 
-	if err := UpdateIssueCols(opts.Issue, "is_locked"); err != nil {
+	if err := UpdateIssueCols(DefaultDBContext(), opts.Issue, "is_locked"); err != nil {
 		return err
 	}
 

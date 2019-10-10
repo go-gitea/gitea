@@ -95,8 +95,8 @@ func (issue *Issue) IsOverdue() bool {
 }
 
 // LoadRepo loads issue's repository
-func (issue *Issue) LoadRepo() error {
-	return issue.loadRepo(x)
+func (issue *Issue) LoadRepo(ctx DBContext) error {
+	return issue.loadRepo(ctx.e)
 }
 
 func (issue *Issue) loadRepo(e Engine) (err error) {
@@ -715,8 +715,8 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 }
 
 // UpdateIssueCols only updates values of specific columns for given issue.
-func UpdateIssueCols(issue *Issue, cols ...string) error {
-	return updateIssueCols(x, issue, cols...)
+func UpdateIssueCols(ctx DBContext, issue *Issue, cols ...string) error {
+	return updateIssueCols(ctx.e, issue, cols...)
 }
 
 func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (err error) {
@@ -838,84 +838,6 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 		log.Error("PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
 	} else {
 		go HookQueue.Add(issue.Repo.ID)
-	}
-
-	return nil
-}
-
-// ChangeTitle changes the title of this issue, as the given user.
-func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
-	oldTitle := issue.Title
-	issue.Title = title
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = updateIssueCols(sess, issue, "name"); err != nil {
-		return fmt.Errorf("updateIssueCols: %v", err)
-	}
-
-	if err = issue.loadRepo(sess); err != nil {
-		return fmt.Errorf("loadRepo: %v", err)
-	}
-
-	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, title); err != nil {
-		return fmt.Errorf("createChangeTitleComment: %v", err)
-	}
-
-	if err = issue.neuterCrossReferences(sess); err != nil {
-		return err
-	}
-
-	if err = issue.addCrossReferences(sess, doer); err != nil {
-		return err
-	}
-
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-	sess.Close()
-
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if issue.IsPull {
-		if err = issue.loadPullRequest(sess); err != nil {
-			return fmt.Errorf("loadPullRequest: %v", err)
-		}
-		issue.PullRequest.Issue = issue
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-			Action: api.HookIssueEdited,
-			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
-				Title: &api.ChangesFromPayload{
-					From: oldTitle,
-				},
-			},
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
-			Sender:      doer.APIFormat(),
-		})
-	} else {
-		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
-			Action: api.HookIssueEdited,
-			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
-				Title: &api.ChangesFromPayload{
-					From: oldTitle,
-				},
-			},
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     issue.Poster.APIFormat(),
-		})
-	}
-
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
 	}
 
 	return nil

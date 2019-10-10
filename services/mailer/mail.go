@@ -170,7 +170,7 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, content 
 	} else {
 		subject = mailSubject(issue)
 	}
-	err := issue.LoadRepo()
+	err := issue.LoadRepo(models.DefaultDBContext())
 	if err != nil {
 		log.Error("LoadRepo: %v", err)
 	}

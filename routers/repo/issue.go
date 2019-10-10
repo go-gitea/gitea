@@ -757,7 +757,7 @@ func ViewIssue(ctx *context.Context) {
 						ctx.ServerError("GetIssueByID", err)
 						return
 					}
-					if err = otherIssue.LoadRepo(); err != nil {
+					if err = otherIssue.LoadRepo(models.DefaultDBContext()); err != nil {
 						ctx.ServerError("LoadRepo", err)
 						return
 					}
@@ -1044,7 +1044,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 	}
 
 	oldTitle := issue.Title
-	if err := issue.ChangeTitle(ctx.User, title); err != nil {
+	if err := issue_service.ChangeTitle(issue, ctx.User, title); err != nil {
 		ctx.ServerError("ChangeTitle", err)
 		return
 	}

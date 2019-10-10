@@ -10,7 +10,6 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 )
 
@@ -51,7 +50,7 @@ type crossReferencesContext struct {
 	OrigComment *Comment
 }
 
-func newCrossReference(e *xorm.Session, ctx *crossReferencesContext, xref *crossReference) error {
+func newCrossReference(e Engine, ctx *crossReferencesContext, xref *crossReference) error {
 	var refCommentID int64
 	if ctx.OrigComment != nil {
 		refCommentID = ctx.OrigComment.ID
@@ -98,7 +97,12 @@ func neuterCrossReferences(e Engine, issueID int64, commentID int64) error {
 //          \/     \/            \/
 //
 
-func (issue *Issue) addCrossReferences(e *xorm.Session, doer *User) error {
+// AddCrossReferences adds issues cross references
+func (issue *Issue) AddCrossReferences(ctx DBContext, doer *User) error {
+	return issue.addCrossReferences(ctx.e, doer)
+}
+
+func (issue *Issue) addCrossReferences(e Engine, doer *User) error {
 	var commentType CommentType
 	if issue.IsPull {
 		commentType = CommentTypePullRef
@@ -113,7 +117,7 @@ func (issue *Issue) addCrossReferences(e *xorm.Session, doer *User) error {
 	return issue.createCrossReferences(e, ctx, issue.Title+"\n"+issue.Content)
 }
 
-func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesContext, content string) error {
+func (issue *Issue) createCrossReferences(e Engine, ctx *crossReferencesContext, content string) error {
 	xreflist, err := ctx.OrigIssue.getCrossReferences(e, ctx, content)
 	if err != nil {
 		return err
@@ -126,7 +130,7 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 	return nil
 }
 
-func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesContext, content string) ([]*crossReference, error) {
+func (issue *Issue) getCrossReferences(e Engine, ctx *crossReferencesContext, content string) ([]*crossReference, error) {
 	xreflist := make([]*crossReference, 0, 5)
 	var xref *crossReference
 
@@ -212,6 +216,11 @@ func (issue *Issue) isValidCommentReference(e Engine, ctx *crossReferencesContex
 	}, nil
 }
 
+// NeuterCrossReferences updated issues' cross references
+func (issue *Issue) NeuterCrossReferences(ctx DBContext) error {
+	return issue.neuterCrossReferences(ctx.e)
+}
+
 func (issue *Issue) neuterCrossReferences(e Engine) error {
 	return neuterCrossReferences(e, issue.ID, 0)
 }
@@ -224,7 +233,7 @@ func (issue *Issue) neuterCrossReferences(e Engine) error {
 //         \/             \/      \/     \/     \/
 //
 
-func (comment *Comment) addCrossReferences(e *xorm.Session, doer *User) error {
+func (comment *Comment) addCrossReferences(e Engine, doer *User) error {
 	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
 		return nil
 	}
