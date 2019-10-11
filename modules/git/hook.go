@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 // hookNames is a list of Git server hooks' name that are supported.

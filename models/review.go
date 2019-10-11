@@ -8,8 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-xorm/xorm"
 	"xorm.io/builder"
@@ -57,8 +56,8 @@ type Review struct {
 	IssueID    int64  `xorm:"index"`
 	Content    string
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// CodeComments are the initial code comments of the review
 	CodeComments CodeComments `xorm:"-"`
@@ -235,42 +234,6 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 		return nil, err
 	}
 
-	var reviewHookType HookEventType
-
-	switch opts.Type {
-	case ReviewTypeApprove:
-		reviewHookType = HookEventPullRequestApproved
-	case ReviewTypeComment:
-		reviewHookType = HookEventPullRequestComment
-	case ReviewTypeReject:
-		reviewHookType = HookEventPullRequestRejected
-	default:
-		// unsupported review webhook type here
-		return review, nil
-	}
-
-	pr := opts.Issue.PullRequest
-
-	if err := pr.LoadIssue(); err != nil {
-		return nil, err
-	}
-
-	mode, err := AccessLevel(opts.Issue.Poster, opts.Issue.Repo)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := PrepareWebhooks(opts.Issue.Repo, reviewHookType, &api.PullRequestPayload{
-		Action:      api.HookIssueSynchronized,
-		Index:       opts.Issue.Index,
-		PullRequest: pr.APIFormat(),
-		Repository:  opts.Issue.Repo.APIFormat(mode),
-		Sender:      opts.Reviewer.APIFormat(),
-	}); err != nil {
-		return nil, err
-	}
-	go HookQueue.Add(opts.Issue.Repo.ID)
-
 	return review, nil
 }
 
@@ -316,7 +279,7 @@ func UpdateReview(r *Review) error {
 type PullReviewersWithType struct {
 	User              `xorm:"extends"`
 	Type              ReviewType
-	ReviewUpdatedUnix util.TimeStamp `xorm:"review_updated_unix"`
+	ReviewUpdatedUnix timeutil.TimeStamp `xorm:"review_updated_unix"`
 }
 
 // GetReviewersByPullID gets all reviewers for a pull request with the statuses

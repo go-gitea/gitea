@@ -88,6 +88,16 @@ func (b *Bucket) UpdateBucket() error {
 	var failures int
 	var returnErr error
 
+	var poolServices PoolServices
+	var err error
+	tlsConfig := b.pool.client.tlsConfig
+	if tlsConfig != nil {
+		poolServices, err = b.pool.client.GetPoolServices("default")
+		if err != nil {
+			return err
+		}
+	}
+
 	for {
 
 		if failures == MAX_RETRY_COUNT {
@@ -106,15 +116,6 @@ func (b *Bucket) UpdateBucket() error {
 		streamUrl := fmt.Sprintf("http://%s/pools/default/bucketsStreaming/%s", node.Hostname, b.GetName())
 		logging.Infof(" Trying with %s", streamUrl)
 		req, err := http.NewRequest("GET", streamUrl, nil)
-		if err != nil {
-			return err
-		}
-
-		b.RLock()
-		pool := b.pool
-		bucketName := b.Name
-		b.RUnlock()
-		scopes, err := getScopesAndCollections(pool, bucketName)
 		if err != nil {
 			return err
 		}
@@ -176,16 +177,22 @@ func (b *Bucket) UpdateBucket() error {
 					continue
 				}
 				// else create a new pool
+				hostport := tmpb.VBSMJson.ServerList[i]
+				if tlsConfig != nil {
+					hostport, err = MapKVtoSSL(hostport, &poolServices)
+					if err != nil {
+						b.Unlock()
+						return err
+					}
+				}
 				if b.ah != nil {
-					newcps[i] = newConnectionPool(
-						tmpb.VBSMJson.ServerList[i],
-						b.ah, false, PoolSize, PoolOverflow)
+					newcps[i] = newConnectionPool(hostport,
+						b.ah, false, PoolSize, PoolOverflow, b.pool.client.tlsConfig, b.Name)
 
 				} else {
-					newcps[i] = newConnectionPool(
-						tmpb.VBSMJson.ServerList[i],
+					newcps[i] = newConnectionPool(hostport,
 						b.authHandler(true /* bucket already locked */),
-						false, PoolSize, PoolOverflow)
+						false, PoolSize, PoolOverflow, b.pool.client.tlsConfig, b.Name)
 				}
 			}
 
@@ -194,7 +201,6 @@ func (b *Bucket) UpdateBucket() error {
 			tmpb.ah = b.ah
 			b.vBucketServerMap = unsafe.Pointer(&tmpb.VBSMJson)
 			b.nodeList = unsafe.Pointer(&tmpb.NodesJSON)
-			b.Scopes = scopes
 			b.Unlock()
 
 			logging.Infof("Got new configuration for bucket %s", b.GetName())

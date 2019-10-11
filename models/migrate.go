@@ -62,38 +62,50 @@ func insertIssue(sess *xorm.Session, issue *Issue) error {
 	if _, err := sess.Insert(issueLabels); err != nil {
 		return err
 	}
+
+	cols := make([]string, 0)
 	if !issue.IsPull {
 		sess.ID(issue.RepoID).Incr("num_issues")
+		cols = append(cols, "num_issues")
 		if issue.IsClosed {
 			sess.Incr("num_closed_issues")
+			cols = append(cols, "num_closed_issues")
 		}
 	} else {
 		sess.ID(issue.RepoID).Incr("num_pulls")
+		cols = append(cols, "num_pulls")
 		if issue.IsClosed {
 			sess.Incr("num_closed_pulls")
+			cols = append(cols, "num_closed_pulls")
 		}
 	}
-	if _, err := sess.NoAutoTime().Update(issue.Repo); err != nil {
+	if _, err := sess.NoAutoTime().Cols(cols...).Update(issue.Repo); err != nil {
 		return err
 	}
 
+	cols = []string{"num_issues"}
 	sess.Incr("num_issues")
 	if issue.IsClosed {
 		sess.Incr("num_closed_issues")
+		cols = append(cols, "num_closed_issues")
 	}
-	if _, err := sess.In("id", labelIDs).NoAutoTime().Update(new(Label)); err != nil {
+	if _, err := sess.In("id", labelIDs).NoAutoTime().Cols(cols...).Update(new(Label)); err != nil {
 		return err
 	}
 
 	if issue.MilestoneID > 0 {
+		cols = []string{"num_issues"}
 		sess.Incr("num_issues")
+		cl := "num_closed_issues"
 		if issue.IsClosed {
 			sess.Incr("num_closed_issues")
+			cols = append(cols, "num_closed_issues")
+			cl = "(num_closed_issues + 1)"
 		}
 
 		if _, err := sess.ID(issue.MilestoneID).
-			SetExpr("completeness", "num_closed_issues * 100 / num_issues").
-			NoAutoTime().
+			SetExpr("completeness", cl+" * 100 / (num_issues + 1)").
+			NoAutoTime().Cols(cols...).
 			Update(new(Milestone)); err != nil {
 			return err
 		}

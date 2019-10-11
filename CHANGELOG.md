@@ -4,9 +4,97 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.9.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.9.0-rc1) - 2019-07-06
+## [1.9.4](https://github.com/go-gitea/gitea/releases/tag/v1.9.4) - 2019-10-08
+* BUGFIXES
+  * Highlight issue references (#8101) (#8404)
+  * Fix bug when migrating a private repository #7917 (#8403)
+  * Change general form binding to gogs form (#8334) (#8402)
+  * Fix editor commit to new branch if PR disabled (#8375) (#8401)
+  * Fix milestone num_issues (#8221) (#8400)
+  * Allow users with explicit read access to give approvals (#8398)
+  * Fix commit status in PR #8316 and PR #8321 (#8339)
+  * Fix API for edit and delete release attachment (#8290)
+  * Fix assets on release webhook (#8283)
+  * Fix release API URL generation (#8239)
+  * Allow registration when button is hidden (#8238)
+  * MS Teams webhook misses commit messages (backport v1.9) (#8225)
+  * Fix data race (#8206)
+  * Fix pull merge 500 error caused by git-fetch breaking behaviors (#8194)
+  * Fix the SSH config specification in the authorized_keys template (#8193)
+  * Fix reading git notes from nested trees (#8189)
+  * Fix team user api (#8172) (#8188)
+  * Add reviewers as participants (#8124)
+* BUILD
+  * Use vendored go-swagger (#8087) (#8165)
+  * Fix version-validation for GO 1.13 (go-macaron/cors) (#8389)
+* MISC
+  * Make show private icon when repo avatar set (#8144) (#8175)
+
+## [1.9.3](https://github.com/go-gitea/gitea/releases/tag/v1.9.3) - 2019-09-06
+* BUGFIXES
+  * Fix go get from a private repository with Go 1.13 (#8100)
+  * Strict name matching for Repository.GetTagID() (#8082)
+  * Avoid ambiguity of branch/directory names for the git-diff-tree command (#8070)
+  * Add change title notification for issues (#8064)
+  * Run CORS handler first for /api routes (#7967) (#8053)
+  * Evaluate emojis in commit messages in list view (#8044)
+  * Fix failed to synchronize tags to releases for repository (#7990) (#7994)
+  * Fix adding default Telegram webhook (#7972) (#7992)
+  * Abort synchronization from LDAP source if there is some error (#7965)
+  * Fix deformed emoji in commit message (#8071)
+* ENHANCEMENT
+  * Keep blame view buttons sequence consistent with normal view when viewing a file (#8007) (#8009)
+
+## [1.9.2](https://github.com/go-gitea/gitea/releases/tag/v1.9.2) - 2019-08-22
+* BUGFIXES
+  * Fix wrong sender when send slack webhook (#7918) (#7924)
+  * Upload support text/plain; charset=utf8 (#7899)
+  * Lfs/lock: round locked_at timestamp to second (#7872) (#7875)
+  * Fix non existent milestone with 500 error (#7867) (#7873)
+* SECURITY
+  * Fix No PGP signature on 1.9.1 tag (#7874)
+  * Release built with go 1.12.9 to fix security fixes in golang std lib, ref: https://groups.google.com/forum/#!msg/golang-announce/oeMaeUnkvVE/a49yvTLqAAAJ
+* ENHANCEMENT
+  * Fix pull creation with empty changes (#7920) (#7926)
+* BUILD
+  * Drone/docker: prepare multi-arch release + provide arm64 image (#7571) (#7884)
+
+## [1.9.1](https://github.com/go-gitea/gitea/releases/tag/v1.9.1) - 2019-08-14
+* BREAKING
+  * Add pagination for admin api get orgs and fix only list public orgs bug (#7742) (#7752)
+* SECURITY
+  * Be more strict with git arguments (#7715) (#7762)
+  * Release built with go 1.12.8 to fix security fixes in golang std lib, ref: https://groups.google.com/forum/#!topic/golang-nuts/fCQWxqxP8aA
+* BUGFIXES
+  * Fix local runs of ssh-requiring integration tests (#7855) (#7857)
+  * Fix hook problem (#7856) (#7754)
+  * Use .ExpiredUnix.IsZero to display green color of forever valid gpg key (#7850) (#7846)
+  * Do not fetch all refs (#7797) (#7837)
+  * Fix duplicate call of webhook (#7824) (#7821)
+  * Enable switching to a different source branch when PR already exists (#7823)
+  * Rewrite existing repo units if setting is not included in api body (#7811)
+  * Prevent Commit Status and Message From Overflowing On Branch Page (#7800) (#7808)
+  * API: fix multiple bugs with statuses endpoints (Backport #7785) (#7807)
+  * Fix Slack webhook fork message (1.9 release backport) (#7783)
+  * Fix approvals counting (#7757) (#7777)
+  * Fix rename failed when rewrite public keys (#7761) (#7769)
+  * Fix dropTableColumns sqlite implementation (#7710) (#7765)
+  * Fix repo_index_status lingering when deleting a repository (#7738)
+  * Fix milestone completness calculation when migrating (#7725) (#7732)
+  * Fixes indexed repos keeping outdated indexes when files grow too large (#7731)
+  * Skip non-regular files (e.g. submodules) on repo indexing (#7717)
+  * Improve branches list performance and fix protected branch icon when no-login (#7695) (#7704)
+  * Correct wrong datetime format for git (#7689) (#7690)
+
+## [1.9.0](https://github.com/go-gitea/gitea/releases/tag/v1.9.0) - 2019-07-30
 * BREAKING
   * Better logging (#6038) (#6095)
+* SECURITY
+  * Shadow the password on cache and session config on admin panel (#7300)
+  * Fix markdown invoke sequence (#7513) (#7560)
+  * Reserve .well-known username (#7638)
+  * Do not leak secrets via timing side channel (#7364)
+  * Ensure that decryption of cookie actually suceeds (#7363)
 * FEATURE
   * Content API for Creating, Updating, Deleting Files (#6314)
   * Enable tls-alpn-01: Use certmanager provided TLSConfig for LetsEncrypt (#7229)
@@ -29,6 +117,39 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Implement Default Webhooks (#4299)
   * Telegram webhook (#4227)
 * BUGFIXES
+  * Send webhook after commit when creating issue with assignees (#7681) (#7684)
+  * Upgrade macaron/captcha to fix random error problem (#7407) (#7683)
+  * Move add to hook queue for created repo to outside xorm session. (#7682) (#7675)
+  * Show protection symbol if needed on default branch (#7660) (#7668)
+  * Hide delete/restore button on archived repos (#7660)
+  * Fix bug on migrating milestone from github (#7665) (#7666) 
+  * Use flex to fix floating paginate (#7656) (#7662)
+  * Change length of some repository's columns (#7652) (#7655)
+  * Fix wrong email when use gitea as OAuth2 provider (#7640) (#7647)
+  * Fix syntax highlight initialization (#7617) (#7626) 
+  * Fix bug create/edit wiki pages when code master branch protected (#7580) (#7623)
+  * Fix panic on push at #7611 (#7615) (#7618)
+  * Handle ErrUserProhibitLogin in http git (#7586, #7591) (#7590) 
+  * Fix color of split-diff view in dark theme (#7587) (#7589)
+  * Fix file header overflow in file and blame views (#7562) (#7579) 
+  * Malformed URLs in API git/commits response (#7565) (#7567)
+  * Fix empty commits now showing in repo overview (#7521) (#7563)
+  * Fix repository's pull request count error (#7518) (#7524) 
+  * Remove duplicated webhook trigger (#7511) (#7516) 
+  * Handles all redirects for Web UI File CRUD (#7478) (#7507)
+  * Fix regex for issues in commit messages (#7444) (#7466)
+  * cmd/serv: actually exit after fatal errors (#7458) (#7460)
+  * Fix an issue with some pages throwing 'not defined' js exceptions #7450 (#7453)
+  * Fix Dropzone.js integration (#7445) (#7448)
+  * Create class for inline positioned lists (#7439) (#7393)
+  * Diff: Fix indentation on unhighlighted code (#7435) (#7443)
+  * jQuery 3 (#7442) (#7425)
+  * Only show "New Pull Request" button if repo allows pulls (#7426) (#7432)
+  * Fix vendor references (#7394) (#7396)
+  * Only return head: null if source branch was deleted (#6705) (#7376)
+  * Add missing template variable on organisation settings (#7386) (#7385)
+  * Fix post parameter on issue list which had unset assignee (#7380) (#7383)
+  * Fix migration tests due to issue 7 being resolved (#7375) (#7381)
   * Correctly adjust mirror url (#6593)
   * Handle early git version's lack of get-url (#7065)
   * Fix icon position in issue view (#7354)
@@ -166,6 +287,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Disable benchmarking during tag events on DroneIO (#6365)
   * Comments list performance optimization (#5305)
 * ENHANCEMENT
+  * Update Drone docker generation to standard format (#7480) (#7496) (#7504)
   * Add API Endpoint for Repo Edit (#7006)
   * Add state param to milestone listing API (#7131)
   * Make captcha and password optional for external accounts (#6606)
@@ -285,8 +407,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Refactor: append, build variable and type switch (#4940)
   * Git statistics in Activity tab (#4724)
   * Drop the bits argument when generating an ed25519 key (#6504)
-* SECURITY
-  * Shadow the password on cache and session config on admin panel (#7300)
 * TESTING
   * Exclude pull_request from fetch-tags step, fixes #7108 (#7120)
   * Refactor and improve git test (#7086)

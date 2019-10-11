@@ -8,8 +8,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
-
 	api "code.gitea.io/gitea/modules/structs"
+
 	"github.com/go-xorm/xorm"
 )
 
@@ -142,11 +142,15 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (err error) {
 		return err
 	}
 
-	return sess.Commit()
+	if err := sess.Commit(); err != nil {
+		return err
+	}
+
+	go HookQueue.Add(issue.RepoID)
+	return nil
 }
 
 func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID int64, isCreate bool) (err error) {
-
 	// Update the assignee
 	removed, err := updateIssueAssignee(sess, issue, assigneeID)
 	if err != nil {
@@ -209,7 +213,6 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 			return nil
 		}
 	}
-	go HookQueue.Add(issue.RepoID)
 	return nil
 }
 

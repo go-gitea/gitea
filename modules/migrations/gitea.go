@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -21,7 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	gouuid "github.com/satori/go.uuid"
 )
@@ -79,12 +80,22 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		return err
 	}
 
+	var remoteAddr = repo.CloneURL
+	if len(opts.AuthUsername) > 0 {
+		u, err := url.Parse(repo.CloneURL)
+		if err != nil {
+			return err
+		}
+		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
+		remoteAddr = u.String()
+	}
+
 	r, err := models.MigrateRepository(g.doer, owner, models.MigrateRepoOptions{
 		Name:                 g.repoName,
 		Description:          repo.Description,
 		OriginalURL:          repo.OriginalURL,
 		IsMirror:             repo.IsMirror,
-		RemoteAddr:           repo.CloneURL,
+		RemoteAddr:           remoteAddr,
 		IsPrivate:            repo.IsPrivate,
 		Wiki:                 opts.Wiki,
 		SyncReleasesWithTags: !opts.Releases, // if didn't get releases, then sync them from tags
@@ -97,26 +108,31 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	return err
 }
 
+// CreateTopics creates topics
+func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
+	return models.SaveTopics(g.repo.ID, topics...)
+}
+
 // CreateMilestones creates milestones
 func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
 	var mss = make([]*models.Milestone, 0, len(milestones))
 	for _, milestone := range milestones {
-		var deadline util.TimeStamp
+		var deadline timeutil.TimeStamp
 		if milestone.Deadline != nil {
-			deadline = util.TimeStamp(milestone.Deadline.Unix())
+			deadline = timeutil.TimeStamp(milestone.Deadline.Unix())
 		}
 		if deadline == 0 {
-			deadline = util.TimeStamp(time.Date(9999, 1, 1, 0, 0, 0, 0, setting.UILocation).Unix())
+			deadline = timeutil.TimeStamp(time.Date(9999, 1, 1, 0, 0, 0, 0, setting.DefaultUILocation).Unix())
 		}
 		var ms = models.Milestone{
 			RepoID:       g.repo.ID,
 			Name:         milestone.Title,
 			Content:      milestone.Description,
-			IsClosed:     milestone.State == "close",
+			IsClosed:     milestone.State == "closed",
 			DeadlineUnix: deadline,
 		}
 		if ms.IsClosed && milestone.Closed != nil {
-			ms.ClosedDateUnix = util.TimeStamp(milestone.Closed.Unix())
+			ms.ClosedDateUnix = timeutil.TimeStamp(milestone.Closed.Unix())
 		}
 		mss = append(mss, &ms)
 	}
@@ -159,18 +175,20 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 	var rels = make([]*models.Release, 0, len(releases))
 	for _, release := range releases {
 		var rel = models.Release{
-			RepoID:       g.repo.ID,
-			PublisherID:  g.doer.ID,
-			TagName:      release.TagName,
-			LowerTagName: strings.ToLower(release.TagName),
-			Target:       release.TargetCommitish,
-			Title:        release.Name,
-			Sha1:         release.TargetCommitish,
-			Note:         release.Body,
-			IsDraft:      release.Draft,
-			IsPrerelease: release.Prerelease,
-			IsTag:        false,
-			CreatedUnix:  util.TimeStamp(release.Created.Unix()),
+			RepoID:           g.repo.ID,
+			PublisherID:      g.doer.ID,
+			TagName:          release.TagName,
+			LowerTagName:     strings.ToLower(release.TagName),
+			Target:           release.TargetCommitish,
+			Title:            release.Name,
+			Sha1:             release.TargetCommitish,
+			Note:             release.Body,
+			IsDraft:          release.Draft,
+			IsPrerelease:     release.Prerelease,
+			IsTag:            false,
+			CreatedUnix:      timeutil.TimeStamp(release.Created.Unix()),
+			OriginalAuthor:   release.PublisherName,
+			OriginalAuthorID: release.PublisherID,
 		}
 
 		// calc NumCommits
@@ -189,7 +207,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 				Name:          asset.Name,
 				DownloadCount: int64(*asset.DownloadCount),
 				Size:          int64(*asset.Size),
-				CreatedUnix:   util.TimeStamp(asset.Created.Unix()),
+				CreatedUnix:   timeutil.TimeStamp(asset.Created.Unix()),
 			}
 
 			// download attachment
@@ -260,10 +278,10 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			IsLocked:         issue.IsLocked,
 			MilestoneID:      milestoneID,
 			Labels:           labels,
-			CreatedUnix:      util.TimeStamp(issue.Created.Unix()),
+			CreatedUnix:      timeutil.TimeStamp(issue.Created.Unix()),
 		}
 		if issue.Closed != nil {
-			is.ClosedUnix = util.TimeStamp(issue.Closed.Unix())
+			is.ClosedUnix = timeutil.TimeStamp(issue.Closed.Unix())
 		}
 		// TODO: add reactions
 		iss = append(iss, &is)
@@ -302,7 +320,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			OriginalAuthor:   comment.PosterName,
 			OriginalAuthorID: comment.PosterID,
 			Content:          comment.Content,
-			CreatedUnix:      util.TimeStamp(comment.Created.Unix()),
+			CreatedUnix:      timeutil.TimeStamp(comment.Created.Unix()),
 		})
 
 		// TODO: Reactions
@@ -448,15 +466,15 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 			IsClosed:         pr.State == "closed",
 			IsLocked:         pr.IsLocked,
 			Labels:           labels,
-			CreatedUnix:      util.TimeStamp(pr.Created.Unix()),
+			CreatedUnix:      timeutil.TimeStamp(pr.Created.Unix()),
 		},
 	}
 
 	if pullRequest.Issue.IsClosed && pr.Closed != nil {
-		pullRequest.Issue.ClosedUnix = util.TimeStamp(pr.Closed.Unix())
+		pullRequest.Issue.ClosedUnix = timeutil.TimeStamp(pr.Closed.Unix())
 	}
 	if pullRequest.HasMerged && pr.MergedTime != nil {
-		pullRequest.MergedUnix = util.TimeStamp(pr.MergedTime.Unix())
+		pullRequest.MergedUnix = timeutil.TimeStamp(pr.MergedTime.Unix())
 		pullRequest.MergedCommitID = pr.MergeCommitSHA
 		pullRequest.MergerID = g.doer.ID
 	}

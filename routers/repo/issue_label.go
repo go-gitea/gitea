@@ -33,24 +33,15 @@ func InitializeLabels(ctx *context.Context, form auth.InitializeLabelsForm) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 		return
 	}
-	list, err := models.GetLabelTemplateFile(form.TemplateName)
-	if err != nil {
-		ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, err))
-		ctx.Redirect(ctx.Repo.RepoLink + "/labels")
-		return
-	}
 
-	labels := make([]*models.Label, len(list))
-	for i := 0; i < len(list); i++ {
-		labels[i] = &models.Label{
-			RepoID:      ctx.Repo.Repository.ID,
-			Name:        list[i][0],
-			Description: list[i][2],
-			Color:       list[i][1],
+	if err := models.InitalizeLabels(ctx.Repo.Repository.ID, form.TemplateName); err != nil {
+		if models.IsErrIssueLabelTemplateLoad(err) {
+			originalErr := err.(models.ErrIssueLabelTemplateLoad).OriginalError
+			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, originalErr))
+			ctx.Redirect(ctx.Repo.RepoLink + "/labels")
+			return
 		}
-	}
-	if err := models.NewLabels(labels...); err != nil {
-		ctx.ServerError("NewLabels", err)
+		ctx.ServerError("InitalizeLabels", err)
 		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/labels")

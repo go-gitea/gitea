@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-xorm/xorm"
 	"xorm.io/builder"
@@ -17,13 +17,13 @@ import (
 
 // Reaction represents a reactions on issues and comments.
 type Reaction struct {
-	ID          int64          `xorm:"pk autoincr"`
-	Type        string         `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	IssueID     int64          `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	CommentID   int64          `xorm:"INDEX UNIQUE(s)"`
-	UserID      int64          `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	User        *User          `xorm:"-"`
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	ID          int64              `xorm:"pk autoincr"`
+	Type        string             `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	IssueID     int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	CommentID   int64              `xorm:"INDEX UNIQUE(s)"`
+	UserID      int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	User        *User              `xorm:"-"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
 // FindReactionsOptions describes the conditions to Find reactions

@@ -17,14 +17,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	gouuid "github.com/satori/go.uuid"
-	ini "gopkg.in/ini.v1"
-
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/go-xorm/xorm"
+	gouuid "github.com/satori/go.uuid"
+	"github.com/unknwon/com"
+	ini "gopkg.in/ini.v1"
 )
 
 const minDBVersion = 4
@@ -234,6 +234,24 @@ var migrations = []Migration{
 	NewMigration("add commit status context field to commit_status", addCommitStatusContext),
 	// v89 -> v90
 	NewMigration("add original author/url migration info to issues, comments, and repo ", addOriginalMigrationInfo),
+	// v90 -> v91
+	NewMigration("change length of some repository columns", changeSomeColumnsLengthOfRepo),
+	// v91 -> v92
+	NewMigration("add index on owner_id of repository and type, review_id of comment", addIndexOnRepositoryAndComment),
+	// v92 -> v93
+	NewMigration("remove orphaned repository index statuses", removeLingeringIndexStatus),
+	// v93 -> v94
+	NewMigration("add email notification enabled preference to user", addEmailNotificationEnabledToUser),
+	// v94 -> v95
+	NewMigration("add enable_status_check, status_check_contexts to protected_branch", addStatusCheckColumnsForProtectedBranches),
+	// v95 -> v96
+	NewMigration("add table columns for cross referencing issues", addCrossReferenceColumns),
+	// v96 -> v97
+	NewMigration("delete orphaned attachments", deleteOrphanedAttachments),
+	// v97 -> v98
+	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
+	// v98 -> v99
+	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
 }
 
 // Migrate database to current version
@@ -290,7 +308,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 	// TODO: This will not work if there are foreign keys
 
 	switch {
-	case setting.UseSQLite3:
+	case setting.Database.UseSQLite3:
 		// First drop the indexes on the columns
 		res, errIndex := sess.Query(fmt.Sprintf("PRAGMA index_list(`%s`)", tableName))
 		if errIndex != nil {
@@ -323,11 +341,25 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			return err
 		}
 		tableSQL := string(res[0]["sql"])
+
+		// Separate out the column definitions
 		tableSQL = tableSQL[strings.Index(tableSQL, "("):]
+
+		// Remove the required columnNames
 		for _, name := range columnNames {
-			tableSQL = regexp.MustCompile(regexp.QuoteMeta("`"+name+"`")+"[^`,)]*[,)]").ReplaceAllString(tableSQL, "")
+			tableSQL = regexp.MustCompile(regexp.QuoteMeta("`"+name+"`")+"[^`,)]*?[,)]").ReplaceAllString(tableSQL, "")
 		}
 
+		// Ensure the query is ended properly
+		tableSQL = strings.TrimSpace(tableSQL)
+		if tableSQL[len(tableSQL)-1] != ')' {
+			if tableSQL[len(tableSQL)-1] == ',' {
+				tableSQL = tableSQL[:len(tableSQL)-1]
+			}
+			tableSQL += ")"
+		}
+
+		// Find all the columns in the table
 		columns := regexp.MustCompile("`([^`]*)`").FindAllString(tableSQL, -1)
 
 		tableSQL = fmt.Sprintf("CREATE TABLE `new_%s_new` ", tableName) + tableSQL
@@ -352,7 +384,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			return err
 		}
 
-	case setting.UsePostgreSQL:
+	case setting.Database.UsePostgreSQL:
 		cols := ""
 		for _, col := range columnNames {
 			if cols != "" {
@@ -363,7 +395,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
-	case setting.UseMySQL, setting.UseTiDB:
+	case setting.Database.UseMySQL:
 		// Drop indexes on columns first
 		sql := fmt.Sprintf("SHOW INDEX FROM %s WHERE column_name IN ('%s')", tableName, strings.Join(columnNames, "','"))
 		res, err := sess.Query(sql)
@@ -389,7 +421,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
-	case setting.UseMSSQL:
+	case setting.Database.UseMSSQL:
 		cols := ""
 		for _, col := range columnNames {
 			if cols != "" {

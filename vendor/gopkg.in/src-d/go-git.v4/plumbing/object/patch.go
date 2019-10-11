@@ -278,7 +278,7 @@ func printStat(fileStats []FileStat) string {
 	var scaleFactor float64
 	if longestTotalChange > heightOfHistogram {
 		// Scale down to heightOfHistogram.
-		scaleFactor = float64(longestTotalChange / heightOfHistogram)
+		scaleFactor = longestTotalChange / heightOfHistogram
 	} else {
 		scaleFactor = 1.0
 	}

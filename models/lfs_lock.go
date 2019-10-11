@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+
 	"github.com/go-xorm/xorm"
 )
 
@@ -56,7 +57,7 @@ func (l *LFSLock) APIFormat() *api.LFSLock {
 	return &api.LFSLock{
 		ID:       strconv.FormatInt(l.ID, 10),
 		Path:     l.Path,
-		LockedAt: l.Created,
+		LockedAt: l.Created.Round(time.Second),
 		Owner: &api.LFSLockOwner{
 			Name: l.Owner.DisplayName(),
 		},

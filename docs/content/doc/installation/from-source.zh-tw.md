@@ -32,14 +32,14 @@ cd $GOPATH/src/code.gitea.io/gitea
 
 ```
 git branch -a
-git checkout v1.0
+git checkout v{{< version >}}
 ```
 
-最後您也可以直接編譯最新的標籤版本像是 `v1.0.0`，假如您想要從原始碼編譯，這方法是最合適的，在編譯標籤版本前，您需要列出當下所有標籤，並且直接切換到標籤版本，請使用底下指令：:
+最後您也可以直接編譯最新的標籤版本像是 `v{{< version >}}`，假如您想要從原始碼編譯，這方法是最合適的，在編譯標籤版本前，您需要列出當下所有標籤，並且直接切換到標籤版本，請使用底下指令：:
 
 ```
 git tag -l
-git checkout v1.0.0
+git checkout v{{< version >}}
 ```
 
 ## 編譯

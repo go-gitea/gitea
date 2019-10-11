@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	gogit "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/cache"
@@ -187,8 +187,7 @@ func Pull(repoPath string, opts PullRemoteOptions) error {
 	if opts.All {
 		cmd.AddArguments("--all")
 	} else {
-		cmd.AddArguments(opts.Remote)
-		cmd.AddArguments(opts.Branch)
+		cmd.AddArguments("--", opts.Remote, opts.Branch)
 	}
 
 	if opts.Timeout <= 0 {
@@ -213,7 +212,7 @@ func Push(repoPath string, opts PushOptions) error {
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}
-	cmd.AddArguments(opts.Remote, opts.Branch)
+	cmd.AddArguments("--", opts.Remote, opts.Branch)
 	_, err := cmd.RunInDirWithEnv(repoPath, opts.Env)
 	return err
 }

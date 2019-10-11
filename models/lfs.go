@@ -7,17 +7,17 @@ import (
 	"fmt"
 	"io"
 
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // LFSMetaObject stores metadata for LFS tracked files.
 type LFSMetaObject struct {
-	ID           int64          `xorm:"pk autoincr"`
-	Oid          string         `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Size         int64          `xorm:"NOT NULL"`
-	RepositoryID int64          `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Existing     bool           `xorm:"-"`
-	CreatedUnix  util.TimeStamp `xorm:"created"`
+	ID           int64              `xorm:"pk autoincr"`
+	Oid          string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Size         int64              `xorm:"NOT NULL"`
+	RepositoryID int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Existing     bool               `xorm:"-"`
+	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
 }
 
 // Pointer returns the string representation of an LFS pointer file

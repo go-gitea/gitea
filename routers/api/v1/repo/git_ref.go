@@ -71,19 +71,22 @@ func GetGitRefs(ctx *context.APIContext) {
 	getGitRefsInternal(ctx, ctx.Params("*"))
 }
 
-func getGitRefsInternal(ctx *context.APIContext, filter string) {
+func getGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, string, error) {
 	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
 	if err != nil {
-		ctx.Error(500, "OpenRepository", err)
-		return
+		return nil, "OpenRepository", err
 	}
 	if len(filter) > 0 {
 		filter = "refs/" + filter
 	}
-
 	refs, err := gitRepo.GetRefsFiltered(filter)
+	return refs, "GetRefsFiltered", err
+}
+
+func getGitRefsInternal(ctx *context.APIContext, filter string) {
+	refs, lastMethodName, err := getGitRefs(ctx, filter)
 	if err != nil {
-		ctx.Error(500, "GetRefsFiltered", err)
+		ctx.Error(500, lastMethodName, err)
 		return
 	}
 

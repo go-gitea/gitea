@@ -7,7 +7,7 @@ package migrations
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-xorm/xorm"
 )
@@ -20,8 +20,8 @@ func addReview(x *xorm.Engine) error {
 		ReviewerID  int64 `xorm:"index"`
 		IssueID     int64 `xorm:"index"`
 		Content     string
-		CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
 	if err := x.Sync2(new(Review)); err != nil {

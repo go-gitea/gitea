@@ -2,6 +2,7 @@
 package memcached
 
 import (
+	"crypto/tls"
 	"encoding/binary"
 	"fmt"
 	"github.com/couchbase/gomemcached"
@@ -26,11 +27,14 @@ type ClientIface interface {
 	AuthScramSha(user, pass string) (*gomemcached.MCResponse, error)
 	CASNext(vb uint16, k string, exp int, state *CASState) bool
 	CAS(vb uint16, k string, f CasFunc, initexp int) (*gomemcached.MCResponse, error)
+	CollectionsGetCID(scope string, collection string) (*gomemcached.MCResponse, error)
 	Close() error
 	Decr(vb uint16, key string, amt, def uint64, exp int) (uint64, error)
 	Del(vb uint16, key string) (*gomemcached.MCResponse, error)
 	EnableMutationToken() (*gomemcached.MCResponse, error)
 	Get(vb uint16, key string) (*gomemcached.MCResponse, error)
+	GetCollectionsManifest() (*gomemcached.MCResponse, error)
+	GetFromCollection(vb uint16, cid uint32, key string) (*gomemcached.MCResponse, error)
 	GetSubdoc(vb uint16, key string, subPaths []string) (*gomemcached.MCResponse, error)
 	GetAndTouch(vb uint16, key string, exp int) (*gomemcached.MCResponse, error)
 	GetBulk(vb uint16, keys []string, rv map[string]*gomemcached.MCResponse, subPaths []string) error
@@ -74,11 +78,19 @@ type Feature uint16
 
 const FeatureMutationToken = Feature(0x04)
 const FeatureXattr = Feature(0x06)
+const FeatureCollections = Feature(0x12)
 const FeatureDataType = Feature(0x0b)
+
+type memcachedConnection interface {
+	io.ReadWriteCloser
+
+	SetReadDeadline(time.Time) error
+	SetDeadline(time.Time) error
+}
 
 // The Client itself.
 type Client struct {
-	conn io.ReadWriteCloser
+	conn memcachedConnection
 	// use uint32 type so that it can be accessed through atomic APIs
 	healthy uint32
 	opaque  uint32
@@ -105,6 +117,15 @@ func Connect(prot, dest string) (rv *Client, err error) {
 	return Wrap(conn)
 }
 
+// Connect to a memcached server using TLS.
+func ConnectTLS(prot, dest string, config *tls.Config) (rv *Client, err error) {
+	conn, err := tls.Dial(prot, dest, config)
+	if err != nil {
+		return nil, err
+	}
+	return Wrap(conn)
+}
+
 func SetDefaultTimeouts(dial, read, write time.Duration) {
 	DefaultDialTimeout = dial
 	DefaultWriteTimeout = write
@@ -115,22 +136,25 @@ func SetDefaultDialTimeout(dial time.Duration) {
 }
 
 func (c *Client) SetKeepAliveOptions(interval time.Duration) {
-	c.conn.(*net.TCPConn).SetKeepAlive(true)
-	c.conn.(*net.TCPConn).SetKeepAlivePeriod(interval)
+	tcpConn, ok := c.conn.(*net.TCPConn)
+	if ok {
+		tcpConn.SetKeepAlive(true)
+		tcpConn.SetKeepAlivePeriod(interval)
+	}
 }
 
 func (c *Client) SetReadDeadline(t time.Time) {
-	c.conn.(*net.TCPConn).SetReadDeadline(t)
+	c.conn.SetReadDeadline(t)
 }
 
 func (c *Client) SetDeadline(t time.Time) {
-	c.conn.(*net.TCPConn).SetDeadline(t)
+	c.conn.SetDeadline(t)
 }
 
 // Wrap an existing transport.
-func Wrap(rwc io.ReadWriteCloser) (rv *Client, err error) {
+func Wrap(conn memcachedConnection) (rv *Client, err error) {
 	client := &Client{
-		conn:   rwc,
+		conn:   conn,
 		hdrBuf: make([]byte, gomemcached.HDR_LEN),
 		opaque: uint32(1),
 	}
@@ -278,6 +302,22 @@ func (c *Client) Get(vb uint16, key string) (*gomemcached.MCResponse, error) {
 	})
 }
 
+// Get the value for a key from a collection, identified by collection id.
+func (c *Client) GetFromCollection(vb uint16, cid uint32, key string) (*gomemcached.MCResponse, error) {
+	keyBytes := []byte(key)
+	encodedCid := make([]byte, binary.MaxVarintLen32)
+	lenEncodedCid := binary.PutUvarint(encodedCid, uint64(cid))
+	encodedKey := make([]byte, 0, lenEncodedCid+len(keyBytes))
+	encodedKey = append(encodedKey, encodedCid[0:lenEncodedCid]...)
+	encodedKey = append(encodedKey, keyBytes...)
+
+	return c.Send(&gomemcached.MCRequest{
+		Opcode:  gomemcached.GET,
+		VBucket: vb,
+		Key:     encodedKey,
+	})
+}
+
 // Get the xattrs, doc value for the input key
 func (c *Client) GetSubdoc(vb uint16, key string, subPaths []string) (*gomemcached.MCResponse, error) {
 
@@ -288,6 +328,33 @@ func (c *Client) GetSubdoc(vb uint16, key string, subPaths []string) (*gomemcach
 		Key:     []byte(key),
 		Extras:  extraBuf,
 		Body:    valueBuf,
+	})
+
+	if err != nil && IfResStatusError(res) {
+		return res, err
+	}
+	return res, nil
+}
+
+// Retrieve the collections manifest.
+func (c *Client) GetCollectionsManifest() (*gomemcached.MCResponse, error) {
+
+	res, err := c.Send(&gomemcached.MCRequest{
+		Opcode: gomemcached.GET_COLLECTIONS_MANIFEST,
+	})
+
+	if err != nil && IfResStatusError(res) {
+		return res, err
+	}
+	return res, nil
+}
+
+// Retrieve the collections manifest.
+func (c *Client) CollectionsGetCID(scope string, collection string) (*gomemcached.MCResponse, error) {
+
+	res, err := c.Send(&gomemcached.MCRequest{
+		Opcode: gomemcached.COLLECTIONS_GET_CID,
+		Key:    []byte(scope + "." + collection),
 	})
 
 	if err != nil && IfResStatusError(res) {
@@ -425,10 +492,9 @@ func (c *Client) AuthPlain(user, pass string) (*gomemcached.MCResponse, error) {
 
 // select bucket
 func (c *Client) SelectBucket(bucket string) (*gomemcached.MCResponse, error) {
-
 	return c.Send(&gomemcached.MCRequest{
 		Opcode: gomemcached.SELECT_BUCKET,
-		Key:    []byte(fmt.Sprintf("%s", bucket))})
+		Key:    []byte(bucket)})
 }
 
 func (c *Client) store(opcode gomemcached.CommandCode, vb uint16,

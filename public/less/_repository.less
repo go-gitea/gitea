@@ -20,6 +20,15 @@
         .ui.huge.breadcrumb {
             font-weight: 400;
             font-size: 1.5rem;
+
+            i.mega-octicon {
+                position: relative;
+                top: 5px;
+            }
+
+            i.octicon-lock {
+                margin-left: 5px;
+            }
         }
 
         .fork-flag {
@@ -277,6 +286,24 @@
                 .ui.avatar {
                     margin-bottom: 5px;
                 }
+
+                .commit-summary a {
+                    text-decoration: underline;
+                    text-decoration-style: dashed;
+
+                    &:hover {
+                        text-decoration-style: solid;
+                    }
+
+                    &.default-link {
+                        text-decoration: none;
+
+                        &:hover {
+                            text-decoration: underline;
+                            text-decoration-style: solid;
+                        }
+                    }
+                }
             }
 
             tbody {
@@ -344,9 +371,7 @@
                 }
 
                 .file-actions {
-                    margin-top: 0;
                     margin-bottom: -5px;
-                    padding-left: 20px;
 
                     .btn-octicon {
                         display: inline-block;
@@ -400,117 +425,13 @@
                 }
             }
 
-            pre {
-                overflow: auto;
+            .csv {
+                overflow-x: auto;
+                padding: 0 !important;
             }
 
-            .code-view {
-                * {
-                    font-size: 12px;
-                    font-family: @monospaced-fonts, monospace;
-                    line-height: 20px;
-                }
-
-                table {
-                    width: 100%;
-                }
-
-                .lines-num {
-                    vertical-align: top;
-                    text-align: right;
-                    color: #999999;
-                    background: #f5f5f5;
-                    width: 1%;
-                    user-select: none;
-
-                    span {
-                        line-height: 20px;
-                        padding: 0 10px;
-                        cursor: pointer;
-                        display: block;
-                    }
-                }
-
-                .lines-num,
-                .lines-code {
-                    padding: 0;
-
-                    pre,
-                    ol,
-                    .hljs {
-                        background-color: white;
-                        margin: 0;
-                        padding: 0 !important;
-
-                        li {
-                            display: block;
-                            width: 100%;
-
-                            &.active {
-                                background: #ffffdd;
-                            }
-
-                            &:before {
-                                content: ' ';
-                            }
-                        }
-                    }
-                }
-
-                .lines-commit {
-                    vertical-align: top;
-                    color: #999999;
-                    padding: 0;
-                    background: #f5f5f5;
-                    width: 1%;
-                    -moz-user-select: none;
-                    -ms-user-select: none;
-                    -webkit-user-select: none;
-                    user-select: none;
-
-                    .blame-info {
-                        width: 350px;
-                        max-width: 350px;
-                        display: block;
-                        user-select: none;
-                        padding: 0 0 0 10px;
-
-                        .blame-data {
-                            display: flex;
-                            font-family: @default-fonts;
-
-                            .blame-message {
-                                flex-grow: 2;
-                                overflow: hidden;
-                                white-space: nowrap;
-                                text-overflow: ellipsis;
-                                line-height: 20px;
-                            }
-
-                            .blame-time,
-                            .blame-avatar {
-                                flex-shrink: 0;
-                            }
-                        }
-                    }
-
-                    .ui.avatar.image {
-                        height: 18px;
-                        width: 18px;
-                    }
-                }
-
-                .lines-num,
-                .lines-code,
-                .lines-commit {
-                    .bottom-line {
-                        border-bottom: 1px solid #eaecef;
-                    }
-                }
-
-                .active {
-                    background: #ffffdd;
-                }
+            pre {
+                overflow: auto;
             }
         }
 
@@ -613,6 +534,10 @@
     }
 
     @comment-avatar-width: 3em;
+
+    .comment textarea {
+        max-height: none !important;
+    }
 
     &.new.issue {
         .comment.form {
@@ -1265,6 +1190,10 @@
             margin: 0;
         }
 
+        td.message {
+            text-overflow: unset;
+        }
+
         &.ui.basic.striped.table tbody tr:nth-child(2n) {
             background-color: rgba(0, 0, 0, 0.02) !important;
         }
@@ -1272,17 +1201,15 @@
 
     #commits-table td.sha .sha.label,
     #repo-files-table .sha.label {
-        &.isSigned {
-            border: 1px solid #bbbbbb;
+        border: 1px solid #bbbbbb;
 
-            .detail.icon {
-                background: #fafafa;
-                margin: -6px -10px -4px 0;
-                padding: 5px 3px 5px 6px;
-                border-left: 1px solid #bbbbbb;
-                border-top-left-radius: 0;
-                border-bottom-left-radius: 0;
-            }
+        .detail.icon {
+            background: #fafafa;
+            margin: -6px -10px -4px 0;
+            padding: 5px 3px 5px 6px;
+            border-left: 1px solid #bbbbbb;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
         }
 
         &.isSigned.isVerified {
@@ -1290,7 +1217,11 @@
             background: fade(#21ba45, 10%);
 
             .detail.icon {
-                border-left: 1px solid fade(#21ba45, 50%);
+                border-left: 1px solid #21ba45;
+            }
+
+            &:hover {
+                background: fade(#21ba45, 30%) !important;
             }
         }
     }
@@ -1418,7 +1349,7 @@
             font-size: 12px;
 
             td {
-                padding: 0 0 0 10px;
+                padding: 0 0 0 10px !important;
                 border-top: 0;
             }
 
@@ -1426,7 +1357,7 @@
                 border-color: #d4d4d5;
                 border-right-width: 1px;
                 border-right-style: solid;
-                padding: 0 5px;
+                padding: 0 5px !important;
             }
 
             tbody {
@@ -1436,22 +1367,9 @@
                         width: 49%;
                     }
 
-                    &.tag-code td,
-                    td.tag-code {
-                        background-color: #f0f0f0 !important;
-                        border-color: #d3cfcf !important;
-                        padding-top: 8px;
-                        padding-bottom: 8px;
-                        // td.selected-line, td.selected-line pre {
-                        //     background-color: #ffffdd !important;
-                        // }
+                    td.center {
+                        text-align: center;
                     }
-
-                    // &.same-code {
-                    //     td.selected-line, td.selected-line pre {
-                    //         background-color: #ffffdd !important;
-                    //     }
-                    // }
 
                     .removed-code {
                         background-color: #ff9999;
@@ -1540,15 +1458,12 @@
                 max-width: 100%;
                 padding: 5px 5px 0 5px;
             }
+            img.emoji {
+                padding: 0;
+            }
 
             clear: right;
         }
-    }
-
-    .code-view {
-        overflow: auto;
-        overflow-x: auto;
-        overflow-y: hidden;
     }
 
     .repo-search-result {
@@ -1820,6 +1735,19 @@
                     margin-top: -3px;
                 }
             }
+
+            #repo-collab-team-form {
+                #search-team-box {
+                    .results {
+                        left: 7px;
+                    }
+                }
+
+                .ui.button {
+                    margin-left: 5px;
+                    margin-top: -3px;
+                }
+            }
         }
 
         &.branches {
@@ -1971,6 +1899,8 @@
 &.user-cards {
     .list {
         padding: 0;
+        display: flex;
+        flex-wrap: wrap;
 
         .item {
             list-style: none;
@@ -2011,6 +1941,16 @@
                 height: 2em;
             }
 
+            .content {
+                margin: 6px 0;
+            }
+        }
+    }
+}
+
+#search-team-box {
+    .results {
+        .result {
             .content {
                 margin: 6px 0;
             }
@@ -2084,11 +2024,24 @@
             }
 
             a.milestone {
-                padding-left: 5px;
+                margin-left: 5px;
                 color: #999999 !important;
 
                 &:hover {
                     color: #000000 !important;
+                }
+            }
+
+            a.ref {
+                margin-left: 8px;
+                color: #999999 !important;
+
+                &:hover {
+                    color: #000000 !important;
+                }
+
+                span {
+                    margin-right: -4px;
                 }
             }
 
@@ -2133,7 +2086,7 @@
 
     .list {
         > .item {
-            .green {
+            .green:not(.ui.button) {
                 color: #21ba45;
             }
 
@@ -2300,12 +2253,30 @@ tbody.commit-list {
 .commit-list .message-wrapper {
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: calc(100% - 24px);
+    max-width: calc(100% - 50px);
     display: inline-block;
     vertical-align: middle;
 }
 
-.commit-list .message-wrapper .commit-status-link {
+.commit-list .commit-summary a {
+    text-decoration: underline;
+    text-decoration-style: dashed;
+
+    &:hover {
+        text-decoration-style: solid;
+    }
+
+    &.default-link {
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+            text-decoration-style: solid;
+        }
+    }
+}
+
+.commit-list .commit-status-link {
     display: inline-block;
     vertical-align: middle;
 }
@@ -2403,4 +2374,30 @@ tbody.commit-list {
 .repo-buttons .ui.labeled.button > .label {
     border-left: 0 !important;
     margin: 0 !important;
+}
+
+.tag-code,
+.tag-code td {
+    background-color: #f0f0f0 !important;
+    border-color: #d3cfcf !important;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.file-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px !important;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+}
+
+.file-info-entry + .file-info-entry {
+    border-left: 1px solid currentColor;
+    margin-left: 8px;
+    padding-left: 8px;
 }

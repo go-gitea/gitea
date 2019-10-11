@@ -23,10 +23,10 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/Unknwon/com"
 	"github.com/go-xorm/xorm"
+	"github.com/unknwon/com"
 )
 
 var pullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLength)
@@ -72,11 +72,11 @@ type PullRequest struct {
 	ProtectedBranch *ProtectedBranch `xorm:"-"`
 	MergeBase       string           `xorm:"VARCHAR(40)"`
 
-	HasMerged      bool           `xorm:"INDEX"`
-	MergedCommitID string         `xorm:"VARCHAR(40)"`
-	MergerID       int64          `xorm:"INDEX"`
-	Merger         *User          `xorm:"-"`
-	MergedUnix     util.TimeStamp `xorm:"updated INDEX"`
+	HasMerged      bool               `xorm:"INDEX"`
+	MergedCommitID string             `xorm:"VARCHAR(40)"`
+	MergerID       int64              `xorm:"INDEX"`
+	Merger         *User              `xorm:"-"`
+	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
 }
 
 // Note: don't try to get Issue because will end up recursive querying.
@@ -97,6 +97,20 @@ func (pr *PullRequest) loadAttributes(e Engine) (err error) {
 // LoadAttributes loads pull request attributes from database
 func (pr *PullRequest) LoadAttributes() error {
 	return pr.loadAttributes(x)
+}
+
+// LoadBaseRepo loads pull request base repository from database
+func (pr *PullRequest) LoadBaseRepo() error {
+	if pr.BaseRepo == nil {
+		var repo Repository
+		if has, err := x.ID(pr.BaseRepoID).Get(&repo); err != nil {
+			return err
+		} else if !has {
+			return ErrRepoNotExist{ID: pr.BaseRepoID}
+		}
+		pr.BaseRepo = &repo
+	}
+	return nil
 }
 
 // LoadIssue loads issue information from database
@@ -339,14 +353,17 @@ func (pr *PullRequest) GetLastCommitStatus() (status *CommitStatus, err error) {
 		return nil, err
 	}
 
-	repo := pr.HeadRepo
 	lastCommitID, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
 	if err != nil {
 		return nil, err
 	}
 
-	var statusList []*CommitStatus
-	statusList, err = GetLatestCommitStatus(repo, lastCommitID, 0)
+	err = pr.LoadBaseRepo()
+	if err != nil {
+		return nil, err
+	}
+
+	statusList, err := GetLatestCommitStatus(pr.BaseRepo, lastCommitID, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -443,7 +460,7 @@ func (pr *PullRequest) manuallyMerged() bool {
 	}
 	if commit != nil {
 		pr.MergedCommitID = commit.ID.String()
-		pr.MergedUnix = util.TimeStamp(commit.Author.When.Unix())
+		pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
 		pr.Status = PullRequestStatusManuallyMerged
 		merger, _ := GetUserByEmail(commit.Author.Email)
 
@@ -598,7 +615,7 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 	if err != nil {
 		for i := range patchConflicts {
 			if strings.Contains(stderr, patchConflicts[i]) {
-				log.Trace("PullRequest[%d].testPatch (apply): has conflict", pr.ID)
+				log.Trace("PullRequest[%d].testPatch (apply): has conflict: %s", pr.ID, stderr)
 				const prefix = "error: patch failed:"
 				pr.Status = PullRequestStatusConflict
 				pr.ConflictedFiles = make([]string, 0, 5)
@@ -640,6 +657,24 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte, assigneeIDs []int64) (err error) {
+	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
+	i := 0
+	for {
+		if err = newPullRequestAttempt(repo, pull, labelIDs, uuids, pr, patch, assigneeIDs); err == nil {
+			return nil
+		}
+		if !IsErrNewIssueInsert(err) {
+			return err
+		}
+		if i++; i == issueMaxDupIndexAttempts {
+			break
+		}
+		log.Error("NewPullRequest: error attempting to insert the new issue; will retry. Original error: %v", err)
+	}
+	return fmt.Errorf("NewPullRequest: too many errors attempting to insert the new issue. Last error was: %v", err)
+}
+
+func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte, assigneeIDs []int64) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -654,20 +689,23 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		IsPull:      true,
 		AssigneeIDs: assigneeIDs,
 	}); err != nil {
-		if IsErrUserDoesNotHaveAccessToRepo(err) {
+		if IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 			return err
 		}
 		return fmt.Errorf("newIssue: %v", err)
 	}
 
 	pr.Index = pull.Index
-	if err = repo.savePatch(sess, pr.Index, patch); err != nil {
-		return fmt.Errorf("SavePatch: %v", err)
-	}
-
 	pr.BaseRepo = repo
-	if err = pr.testPatch(sess); err != nil {
-		return fmt.Errorf("testPatch: %v", err)
+	pr.Status = PullRequestStatusChecking
+	if len(patch) > 0 {
+		if err = repo.savePatch(sess, pr.Index, patch); err != nil {
+			return fmt.Errorf("SavePatch: %v", err)
+		}
+
+		if err = pr.testPatch(sess); err != nil {
+			return fmt.Errorf("testPatch: %v", err)
+		}
 	}
 	// No conflict appears after test means mergeable.
 	if pr.Status == PullRequestStatusChecking {
@@ -681,33 +719,6 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
-	}
-
-	if err = NotifyWatchers(&Action{
-		ActUserID: pull.Poster.ID,
-		ActUser:   pull.Poster,
-		OpType:    ActionCreatePullRequest,
-		Content:   fmt.Sprintf("%d|%s", pull.Index, pull.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
-	}
-
-	pr.Issue = pull
-	pull.PullRequest = pr
-	mode, _ := AccessLevel(pull.Poster, repo)
-	if err = PrepareWebhooks(repo, HookEventPullRequest, &api.PullRequestPayload{
-		Action:      api.HookIssueOpened,
-		Index:       pull.Index,
-		PullRequest: pr.APIFormat(),
-		Repository:  repo.APIFormat(mode),
-		Sender:      pull.Poster.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go HookQueue.Add(repo.ID)
 	}
 
 	return nil

@@ -1,7 +1,8 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"github.com/go-xorm/xorm"
 )
 
@@ -12,8 +13,8 @@ func addU2FReg(x *xorm.Engine) error {
 		UserID      int64 `xorm:"INDEX"`
 		Raw         []byte
 		Counter     uint32
-		CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 	return x.Sync2(&U2FRegistration{})
 }

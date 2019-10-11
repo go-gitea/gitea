@@ -12,13 +12,13 @@ import (
 
 // PushingEnvironment returns an os environment to allow hooks to work on push
 func PushingEnvironment(doer *User, repo *Repository) []string {
-	return FullPushingEnvironment(doer, doer, repo, 0)
+	return FullPushingEnvironment(doer, doer, repo, repo.Name, 0)
 }
 
 // FullPushingEnvironment returns an os environment to allow hooks to work on push
-func FullPushingEnvironment(author, committer *User, repo *Repository, prID int64) []string {
+func FullPushingEnvironment(author, committer *User, repo *Repository, repoName string, prID int64) []string {
 	isWiki := "false"
-	if strings.HasSuffix(repo.Name, ".wiki") {
+	if strings.HasSuffix(repoName, ".wiki") {
 		isWiki = "true"
 	}
 
@@ -32,7 +32,7 @@ func FullPushingEnvironment(author, committer *User, repo *Repository, prID int6
 		"GIT_AUTHOR_EMAIL="+authorSig.Email,
 		"GIT_COMMITTER_NAME="+committerSig.Name,
 		"GIT_COMMITTER_EMAIL="+committerSig.Email,
-		EnvRepoName+"="+repo.Name,
+		EnvRepoName+"="+repoName,
 		EnvRepoUsername+"="+repo.MustOwnerName(),
 		EnvRepoIsWiki+"="+isWiki,
 		EnvPusherName+"="+committer.Name,

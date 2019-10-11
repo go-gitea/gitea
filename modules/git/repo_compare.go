@@ -39,7 +39,7 @@ func (repo *Repository) GetMergeBase(tmpRemote string, base, head string) (strin
 		}
 	}
 
-	stdout, err := NewCommand("merge-base", base, head).RunInDir(repo.Path)
+	stdout, err := NewCommand("merge-base", "--", base, head).RunInDir(repo.Path)
 	return strings.TrimSpace(stdout), base, err
 }
 
@@ -54,7 +54,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 	if repo.Path != basePath {
 		// Add a temporary remote
 		tmpRemote = strconv.FormatInt(time.Now().UnixNano(), 10)
-		if err = repo.AddRemote(tmpRemote, basePath, true); err != nil {
+		if err = repo.AddRemote(tmpRemote, basePath, false); err != nil {
 			return nil, fmt.Errorf("AddRemote: %v", err)
 		}
 		defer func() {

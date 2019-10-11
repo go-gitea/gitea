@@ -170,7 +170,7 @@ func (rs *Rows) ScanMap(dest interface{}) error {
 	newDest := make([]interface{}, len(cols))
 	vvv := vv.Elem()
 
-	for i, _ := range cols {
+	for i := range cols {
 		newDest[i] = rs.db.reflectNew(vvv.Type().Elem()).Interface()
 	}
 

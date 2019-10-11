@@ -5,7 +5,7 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-xorm/xorm"
 )
@@ -19,9 +19,9 @@ func addUploaderIDForAttachment(x *xorm.Engine) error {
 		UploaderID    int64  `xorm:"INDEX DEFAULT 0"`
 		CommentID     int64
 		Name          string
-		DownloadCount int64          `xorm:"DEFAULT 0"`
-		Size          int64          `xorm:"DEFAULT 0"`
-		CreatedUnix   util.TimeStamp `xorm:"created"`
+		DownloadCount int64              `xorm:"DEFAULT 0"`
+		Size          int64              `xorm:"DEFAULT 0"`
+		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 	}
 
 	return x.Sync2(new(Attachment))

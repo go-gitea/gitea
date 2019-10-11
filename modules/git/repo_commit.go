@@ -86,9 +86,9 @@ func convertPGPSignatureForTag(t *object.Tag) *CommitGPGSignature {
 func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	var tagObject *object.Tag
 
-	gogitCommit, err := repo.gogitRepo.CommitObject(plumbing.Hash(id))
+	gogitCommit, err := repo.gogitRepo.CommitObject(id)
 	if err == plumbing.ErrObjectNotFound {
-		tagObject, err = repo.gogitRepo.TagObject(plumbing.Hash(id))
+		tagObject, err = repo.gogitRepo.TagObject(id)
 		if err == nil {
 			gogitCommit, err = repo.gogitRepo.CommitObject(tagObject.Target)
 		}
@@ -117,20 +117,26 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	return commit, nil
 }
 
-// GetCommit returns commit object of by ID string.
-func (repo *Repository) GetCommit(commitID string) (*Commit, error) {
+// ConvertToSHA1 returns a Hash object from a potential ID string
+func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
 	if len(commitID) != 40 {
 		var err error
-		actualCommitID, err := NewCommand("rev-parse", commitID).RunInDir(repo.Path)
+		actualCommitID, err := NewCommand("rev-parse", "--verify", commitID).RunInDir(repo.Path)
 		if err != nil {
-			if strings.Contains(err.Error(), "unknown revision or path") {
-				return nil, ErrNotExist{commitID, ""}
+			if strings.Contains(err.Error(), "unknown revision or path") ||
+				strings.Contains(err.Error(), "fatal: Needed a single revision") {
+				return SHA1{}, ErrNotExist{commitID, ""}
 			}
-			return nil, err
+			return SHA1{}, err
 		}
 		commitID = actualCommitID
 	}
-	id, err := NewIDFromString(commitID)
+	return NewIDFromString(commitID)
+}
+
+// GetCommit returns commit object of by ID string.
+func (repo *Repository) GetCommit(commitID string) (*Commit, error) {
+	id, err := repo.ConvertToSHA1(commitID)
 	if err != nil {
 		return nil, err
 	}
@@ -202,36 +208,57 @@ func (repo *Repository) commitsByRange(id SHA1, page int) (*list.List, error) {
 }
 
 func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) (*list.List, error) {
-	cmd := NewCommand("log", id.String(), "-100", "-i", prettyLogFormat)
+	cmd := NewCommand("log", id.String(), "-100", prettyLogFormat)
+	args := []string{"-i"}
+	if len(opts.Authors) > 0 {
+		for _, v := range opts.Authors {
+			args = append(args, "--author="+v)
+		}
+	}
+	if len(opts.Committers) > 0 {
+		for _, v := range opts.Committers {
+			args = append(args, "--committer="+v)
+		}
+	}
+	if len(opts.After) > 0 {
+		args = append(args, "--after="+opts.After)
+	}
+	if len(opts.Before) > 0 {
+		args = append(args, "--before="+opts.Before)
+	}
+	if opts.All {
+		args = append(args, "--all")
+	}
 	if len(opts.Keywords) > 0 {
 		for _, v := range opts.Keywords {
 			cmd.AddArguments("--grep=" + v)
 		}
 	}
-	if len(opts.Authors) > 0 {
-		for _, v := range opts.Authors {
-			cmd.AddArguments("--author=" + v)
-		}
-	}
-	if len(opts.Committers) > 0 {
-		for _, v := range opts.Committers {
-			cmd.AddArguments("--committer=" + v)
-		}
-	}
-	if len(opts.After) > 0 {
-		cmd.AddArguments("--after=" + opts.After)
-	}
-	if len(opts.Before) > 0 {
-		cmd.AddArguments("--before=" + opts.Before)
-	}
-	if opts.All {
-		cmd.AddArguments("--all")
-	}
+	cmd.AddArguments(args...)
 	stdout, err := cmd.RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
-	return repo.parsePrettyFormatLogToList(stdout)
+	if len(stdout) != 0 {
+		stdout = append(stdout, '\n')
+	}
+	if len(opts.Keywords) > 0 {
+		for _, v := range opts.Keywords {
+			if len(v) >= 4 {
+				hashCmd := NewCommand("log", "-1", prettyLogFormat)
+				hashCmd.AddArguments(args...)
+				hashCmd.AddArguments(v)
+				hashMatching, err := hashCmd.RunInDirBytes(repo.Path)
+				if err != nil || bytes.Contains(stdout, hashMatching) {
+					continue
+				}
+				stdout = append(stdout, hashMatching...)
+				stdout = append(stdout, '\n')
+			}
+		}
+	}
+
+	return repo.parsePrettyFormatLogToList(bytes.TrimSuffix(stdout, []byte{'\n'}))
 }
 
 func (repo *Repository) getFilesChanged(id1, id2 string) ([]string, error) {
@@ -243,6 +270,7 @@ func (repo *Repository) getFilesChanged(id1, id2 string) ([]string, error) {
 }
 
 // FileChangedBetweenCommits Returns true if the file changed between commit IDs id1 and id2
+// You must ensure that id1 and id2 are valid commit ids.
 func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bool, error) {
 	stdout, err := NewCommand("diff", "--name-only", "-z", id1, id2, "--", filename).RunInDirBytes(repo.Path)
 	if err != nil {

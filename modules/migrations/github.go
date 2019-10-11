@@ -118,6 +118,12 @@ func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 	}, nil
 }
 
+// GetTopics return github topics
+func (g *GithubDownloaderV3) GetTopics() ([]string, error) {
+	r, _, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
+	return r.Topics, err
+}
+
 // GetMilestones returns milestones
 func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 	var perPage = 100
@@ -208,6 +214,11 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 		name = *rel.Name
 	}
 
+	var email string
+	if rel.Author.Email != nil {
+		email = *rel.Author.Email
+	}
+
 	r := &base.Release{
 		TagName:         *rel.TagName,
 		TargetCommitish: *rel.TargetCommitish,
@@ -216,6 +227,9 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 		Draft:           *rel.Draft,
 		Prerelease:      *rel.Prerelease,
 		Created:         rel.CreatedAt.Time,
+		PublisherID:     *rel.Author.ID,
+		PublisherName:   *rel.Author.Login,
+		PublisherEmail:  email,
 		Published:       rel.PublishedAt.Time,
 	}
 

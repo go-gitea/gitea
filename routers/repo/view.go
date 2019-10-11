@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -23,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 )
 
 const (
@@ -160,10 +160,11 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				ctx.Data["FileSize"] = fileSize
 			} else {
 				d, _ := ioutil.ReadAll(dataRc)
-				buf = templates.ToUTF8WithFallback(append(buf, d...))
+				buf = charset.ToUTF8WithFallback(append(buf, d...))
 
-				if markup.Type(readmeFile.Name()) != "" {
+				if markupType := markup.Type(readmeFile.Name()); markupType != "" {
 					ctx.Data["IsMarkup"] = true
+					ctx.Data["MarkupType"] = string(markupType)
 					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
@@ -278,12 +279,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 
 		d, _ := ioutil.ReadAll(dataRc)
-		buf = templates.ToUTF8WithFallback(append(buf, d...))
+		buf = charset.ToUTF8WithFallback(append(buf, d...))
 
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
-		if markup.Type(blob.Name()) != "" {
+		if markupType := markup.Type(blob.Name()); markupType != "" {
 			ctx.Data["IsMarkup"] = true
+			ctx.Data["MarkupType"] = markupType
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
 		} else if readmeExist {
 			ctx.Data["IsRenderedHTML"] = true
@@ -293,7 +295,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		} else {
 			// Building code view blocks with line number on server side.
 			var fileContent string
-			if content, err := templates.ToUTF8WithErr(buf); err != nil {
+			if content, err := charset.ToUTF8WithErr(buf); err != nil {
 				log.Error("ToUTF8WithErr: %v", err)
 				fileContent = string(buf)
 			} else {
@@ -302,6 +304,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			var output bytes.Buffer
 			lines := strings.Split(fileContent, "\n")
+			ctx.Data["NumLines"] = len(lines)
+
 			//Remove blank line at the end of file
 			if len(lines) > 0 && lines[len(lines)-1] == "" {
 				lines = lines[:len(lines)-1]
@@ -317,7 +321,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			output.Reset()
 			for i := 0; i < len(lines); i++ {
-				output.WriteString(fmt.Sprintf(`<span id="L%d">%d</span>`, i+1, i+1))
+				output.WriteString(fmt.Sprintf(`<span id="L%[1]d" data-line-number="%[1]d"></span>`, i+1))
 			}
 			ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 		}

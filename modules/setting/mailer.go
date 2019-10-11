@@ -8,6 +8,7 @@ import (
 	"net/mail"
 
 	"code.gitea.io/gitea/modules/log"
+
 	shellquote "github.com/kballard/go-shellquote"
 )
 

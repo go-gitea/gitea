@@ -17,10 +17,11 @@ import (
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/v1/convert"
-
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/validation"
+	"code.gitea.io/gitea/routers/api/v1/convert"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 )
 
 var searchOrderByMap = map[string]map[string]models.SearchOrderBy{
@@ -52,6 +53,14 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: keyword
 	//   type: string
+	// - name: topic
+	//   in: query
+	//   description: Limit search to repositories with keyword as topic
+	//   type: boolean
+	// - name: includeDesc
+	//   in: query
+	//   description: include search of keyword within repository description
+	//   type: boolean
 	// - name: uid
 	//   in: query
 	//   description: search only for repos that the user with the given id owns or contributes to
@@ -100,16 +109,17 @@ func Search(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	opts := &models.SearchRepoOptions{
-		Keyword:     strings.Trim(ctx.Query("q"), " "),
-		OwnerID:     ctx.QueryInt64("uid"),
-		Page:        ctx.QueryInt("page"),
-		PageSize:    convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		TopicOnly:   ctx.QueryBool("topic"),
-		Collaborate: util.OptionalBoolNone,
-		Private:     ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
-		UserIsAdmin: ctx.IsUserSiteAdmin(),
-		UserID:      ctx.Data["SignedUserID"].(int64),
-		StarredByID: ctx.QueryInt64("starredBy"),
+		Keyword:            strings.Trim(ctx.Query("q"), " "),
+		OwnerID:            ctx.QueryInt64("uid"),
+		Page:               ctx.QueryInt("page"),
+		PageSize:           convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		TopicOnly:          ctx.QueryBool("topic"),
+		Collaborate:        util.OptionalBoolNone,
+		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
+		UserIsAdmin:        ctx.IsUserSiteAdmin(),
+		UserID:             ctx.Data["SignedUserID"].(int64),
+		StarredByID:        ctx.QueryInt64("starredBy"),
+		IncludeDescription: ctx.QueryBool("includeDesc"),
 	}
 
 	if ctx.QueryBool("exclusive") {
@@ -154,7 +164,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	var err error
-	repos, count, err := models.SearchRepositoryByName(opts)
+	repos, count, err := models.SearchRepository(opts)
 	if err != nil {
 		ctx.JSON(500, api.SearchError{
 			OK:    false,
@@ -198,6 +208,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 	repo, err := models.CreateRepository(ctx.User, owner, models.CreateRepoOptions{
 		Name:        opt.Name,
 		Description: opt.Description,
+		IssueLabels: opt.IssueLabels,
 		Gitignores:  opt.Gitignores,
 		License:     opt.License,
 		Readme:      opt.Readme,
@@ -651,15 +662,48 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		})
 	}
 
-	if opts.HasIssues != nil {
-		if *opts.HasIssues {
-			// We don't currently allow setting individual issue settings through the API,
-			// only can enable/disable issues, so when enabling issues,
-			// we either get the existing config which means it was already enabled,
-			// or create a new config since it doesn't exist.
-			unit, err := repo.GetUnit(models.UnitTypeIssues)
+	if opts.HasIssues == nil {
+		// If HasIssues setting not touched, rewrite existing repo unit
+		if unit, err := repo.GetUnit(models.UnitTypeIssues); err == nil {
+			units = append(units, *unit)
+		} else if unit, err := repo.GetUnit(models.UnitTypeExternalTracker); err == nil {
+			units = append(units, *unit)
+		}
+	} else if *opts.HasIssues {
+		if opts.ExternalTracker != nil {
+
+			// Check that values are valid
+			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
+				err := fmt.Errorf("External tracker URL not valid")
+				ctx.Error(http.StatusUnprocessableEntity, "Invalid external tracker URL", err)
+				return err
+			}
+			if len(opts.ExternalTracker.ExternalTrackerFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(opts.ExternalTracker.ExternalTrackerFormat) {
+				err := fmt.Errorf("External tracker URL format not valid")
+				ctx.Error(http.StatusUnprocessableEntity, "Invalid external tracker URL format", err)
+				return err
+			}
+
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeExternalTracker,
+				Config: &models.ExternalTrackerConfig{
+					ExternalTrackerURL:    opts.ExternalTracker.ExternalTrackerURL,
+					ExternalTrackerFormat: opts.ExternalTracker.ExternalTrackerFormat,
+					ExternalTrackerStyle:  opts.ExternalTracker.ExternalTrackerStyle,
+				},
+			})
+		} else {
+			// Default to built-in tracker
 			var config *models.IssuesConfig
-			if err != nil {
+
+			if opts.InternalTracker != nil {
+				config = &models.IssuesConfig{
+					EnableTimetracker:                opts.InternalTracker.EnableTimeTracker,
+					AllowOnlyContributorsToTrackTime: opts.InternalTracker.AllowOnlyContributorsToTrackTime,
+					EnableDependencies:               opts.InternalTracker.EnableIssueDependencies,
+				}
+			} else if unit, err := repo.GetUnit(models.UnitTypeIssues); err != nil {
 				// Unit type doesn't exist so we make a new config file with default values
 				config = &models.IssuesConfig{
 					EnableTimetracker:                true,
@@ -669,6 +713,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			} else {
 				config = unit.IssuesConfig()
 			}
+
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypeIssues,
@@ -677,12 +722,31 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.HasWiki != nil {
-		if *opts.HasWiki {
-			// We don't currently allow setting individual wiki settings through the API,
-			// only can enable/disable the wiki, so when enabling the wiki,
-			// we either get the existing config which means it was already enabled,
-			// or create a new config since it doesn't exist.
+	if opts.HasWiki == nil {
+		// If HasWiki setting not touched, rewrite existing repo unit
+		if unit, err := repo.GetUnit(models.UnitTypeWiki); err == nil {
+			units = append(units, *unit)
+		} else if unit, err := repo.GetUnit(models.UnitTypeExternalWiki); err == nil {
+			units = append(units, *unit)
+		}
+	} else if *opts.HasWiki {
+		if opts.ExternalWiki != nil {
+
+			// Check that values are valid
+			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
+				err := fmt.Errorf("External wiki URL not valid")
+				ctx.Error(http.StatusUnprocessableEntity, "", "Invalid external wiki URL")
+				return err
+			}
+
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypeExternalWiki,
+				Config: &models.ExternalWikiConfig{
+					ExternalWikiURL: opts.ExternalWiki.ExternalWikiURL,
+				},
+			})
+		} else {
 			config := &models.UnitConfig{}
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
@@ -692,48 +756,51 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.HasPullRequests != nil {
-		if *opts.HasPullRequests {
-			// We do allow setting individual PR settings through the API, so
-			// we get the config settings and then set them
-			// if those settings were provided in the opts.
-			unit, err := repo.GetUnit(models.UnitTypePullRequests)
-			var config *models.PullRequestsConfig
-			if err != nil {
-				// Unit type doesn't exist so we make a new config file with default values
-				config = &models.PullRequestsConfig{
-					IgnoreWhitespaceConflicts: false,
-					AllowMerge:                true,
-					AllowRebase:               true,
-					AllowRebaseMerge:          true,
-					AllowSquash:               true,
-				}
-			} else {
-				config = unit.PullRequestsConfig()
-			}
-
-			if opts.IgnoreWhitespaceConflicts != nil {
-				config.IgnoreWhitespaceConflicts = *opts.IgnoreWhitespaceConflicts
-			}
-			if opts.AllowMerge != nil {
-				config.AllowMerge = *opts.AllowMerge
-			}
-			if opts.AllowRebase != nil {
-				config.AllowRebase = *opts.AllowRebase
-			}
-			if opts.AllowRebaseMerge != nil {
-				config.AllowRebaseMerge = *opts.AllowRebaseMerge
-			}
-			if opts.AllowSquash != nil {
-				config.AllowSquash = *opts.AllowSquash
-			}
-
-			units = append(units, models.RepoUnit{
-				RepoID: repo.ID,
-				Type:   models.UnitTypePullRequests,
-				Config: config,
-			})
+	if opts.HasPullRequests == nil {
+		// If HasPullRequest setting not touched, rewrite existing repo unit
+		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
+			units = append(units, *unit)
 		}
+	} else if *opts.HasPullRequests {
+		// We do allow setting individual PR settings through the API, so
+		// we get the config settings and then set them
+		// if those settings were provided in the opts.
+		unit, err := repo.GetUnit(models.UnitTypePullRequests)
+		var config *models.PullRequestsConfig
+		if err != nil {
+			// Unit type doesn't exist so we make a new config file with default values
+			config = &models.PullRequestsConfig{
+				IgnoreWhitespaceConflicts: false,
+				AllowMerge:                true,
+				AllowRebase:               true,
+				AllowRebaseMerge:          true,
+				AllowSquash:               true,
+			}
+		} else {
+			config = unit.PullRequestsConfig()
+		}
+
+		if opts.IgnoreWhitespaceConflicts != nil {
+			config.IgnoreWhitespaceConflicts = *opts.IgnoreWhitespaceConflicts
+		}
+		if opts.AllowMerge != nil {
+			config.AllowMerge = *opts.AllowMerge
+		}
+		if opts.AllowRebase != nil {
+			config.AllowRebase = *opts.AllowRebase
+		}
+		if opts.AllowRebaseMerge != nil {
+			config.AllowRebaseMerge = *opts.AllowRebaseMerge
+		}
+		if opts.AllowSquash != nil {
+			config.AllowSquash = *opts.AllowSquash
+		}
+
+		units = append(units, models.RepoUnit{
+			RepoID: repo.ID,
+			Type:   models.UnitTypePullRequests,
+			Config: config,
+		})
 	}
 
 	if err := models.UpdateRepositoryUnits(repo, units); err != nil {
@@ -847,48 +914,7 @@ func MirrorSync(ctx *context.APIContext) {
 		ctx.Error(403, "MirrorSync", "Must have write access")
 	}
 
-	go models.MirrorQueue.Add(repo.ID)
+	mirror_service.StartToMirror(repo.ID)
+
 	ctx.Status(200)
-}
-
-// TopicSearch search for creating topic
-func TopicSearch(ctx *context.Context) {
-	// swagger:operation GET /topics/search repository topicSearch
-	// ---
-	// summary: search topics via keyword
-	// produces:
-	//   - application/json
-	// parameters:
-	//   - name: q
-	//     in: query
-	//     description: keywords to search
-	//     required: true
-	//     type: string
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/Repository"
-	if ctx.User == nil {
-		ctx.JSON(403, map[string]interface{}{
-			"message": "Only owners could change the topics.",
-		})
-		return
-	}
-
-	kw := ctx.Query("q")
-
-	topics, err := models.FindTopics(&models.FindTopicOptions{
-		Keyword: kw,
-		Limit:   10,
-	})
-	if err != nil {
-		log.Error("SearchTopics failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
-			"message": "Search topics failed.",
-		})
-		return
-	}
-
-	ctx.JSON(200, map[string]interface{}{
-		"topics": topics,
-	})
 }

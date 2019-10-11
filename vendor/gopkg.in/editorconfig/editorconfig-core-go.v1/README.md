@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/editorconfig/editorconfig-core-go.svg?branch=master)](https://travis-ci.org/editorconfig/editorconfig-core-go)
 [![GoDoc](https://godoc.org/gopkg.in/editorconfig/editorconfig-core-go.v1?status.svg)](https://godoc.org/gopkg.in/editorconfig/editorconfig-core-go.v1)
 [![Go Report Card](https://goreportcard.com/badge/gopkg.in/editorconfig/editorconfig-core-go.v1)](https://goreportcard.com/report/gopkg.in/editorconfig/editorconfig-core-go.v1)
 
@@ -15,7 +16,7 @@ We recommend the use of [gopkg.in][gopkg] for this package:
 go get -u gopkg.in/editorconfig/editorconfig-core-go.v1
 ```
 
-Import by the same path. Tha package name you will use to access it is
+Import by the same path. The package name you will use to access it is
 `editorconfig`.
 
 ```go

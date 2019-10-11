@@ -5,7 +5,6 @@
 package options
 
 //go:generate go run -mod=vendor main.go
-//go:generate go fmt bindata.go
 
 type directorySet map[string][]string
 

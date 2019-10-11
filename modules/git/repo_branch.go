@@ -135,7 +135,7 @@ func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) erro
 		cmd.AddArguments("-d")
 	}
 
-	cmd.AddArguments(name)
+	cmd.AddArguments("--", name)
 	_, err := cmd.RunInDir(repo.Path)
 
 	return err

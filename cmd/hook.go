@@ -96,6 +96,7 @@ func runHookPreReceive(c *cli.Context) error {
 				UserID:                          userID,
 				GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
 				GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
+				GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
 				ProtectedBranchID:               prID,
 			})
 			switch statusCode {
