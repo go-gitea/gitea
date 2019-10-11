@@ -66,7 +66,7 @@ func Generate(n int) (string, error) {
 			}
 			buffer[j] = validChars[rnd.Int64()]
 		}
-		if IsComplexEnough(string(buffer)) && (string(buffer[0]) != " " || string(buffer[n-1]) != " ") {
+		if IsComplexEnough(string(buffer)) && string(buffer[0]) != " " && string(buffer[n-1]) != " " {
 			return string(buffer), nil
 		}
 	}
