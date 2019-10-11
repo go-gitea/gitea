@@ -856,7 +856,7 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 	}
 
 	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, issue.Title); err != nil {
-		return fmt.Errorf("CreateChangeTitleComment: %v", err)
+		return fmt.Errorf("createChangeTitleComment: %v", err)
 	}
 
 	if err = issue.neuterCrossReferences(sess); err != nil {
