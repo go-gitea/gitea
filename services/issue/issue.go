@@ -51,30 +51,7 @@ func ChangeTitle(issue *models.Issue, doer *models.User, title string) (err erro
 	oldTitle := issue.Title
 	issue.Title = title
 
-	err = models.WithTx(func(ctx models.DBContext) error {
-		if err = models.UpdateIssueCols(ctx, issue, "name"); err != nil {
-			return fmt.Errorf("updateIssueCols: %v", err)
-		}
-
-		if err = issue.LoadRepo(ctx); err != nil {
-			return fmt.Errorf("loadRepo: %v", err)
-		}
-
-		if _, err = models.CreateChangeTitleComment(ctx, doer, issue.Repo, issue, oldTitle, title); err != nil {
-			return fmt.Errorf("CreateChangeTitleComment: %v", err)
-		}
-
-		if err = issue.NeuterCrossReferences(ctx); err != nil {
-			return err
-		}
-
-		if err = issue.AddCrossReferences(ctx, doer); err != nil {
-			return err
-		}
-		return nil
-	})
-
-	if err != nil {
+	if err = issue.ChangeTitle(doer, oldTitle); err != nil {
 		return
 	}
 

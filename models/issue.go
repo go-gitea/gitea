@@ -95,8 +95,8 @@ func (issue *Issue) IsOverdue() bool {
 }
 
 // LoadRepo loads issue's repository
-func (issue *Issue) LoadRepo(ctx DBContext) error {
-	return issue.loadRepo(ctx.e)
+func (issue *Issue) LoadRepo() error {
+	return issue.loadRepo(x)
 }
 
 func (issue *Issue) loadRepo(e Engine) (err error) {
@@ -714,11 +714,6 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 	return nil
 }
 
-// UpdateIssueCols only updates values of specific columns for given issue.
-func UpdateIssueCols(ctx DBContext, issue *Issue, cols ...string) error {
-	return updateIssueCols(ctx.e, issue, cols...)
-}
-
 func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (err error) {
 	// Reload the issue
 	currentIssue, err := getIssueByID(e, issue.ID)
@@ -841,6 +836,38 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 	}
 
 	return nil
+}
+
+// ChangeTitle changes the title of this issue, as the given user.
+func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err = updateIssueCols(sess, issue, "name"); err != nil {
+		return fmt.Errorf("updateIssueCols: %v", err)
+	}
+
+	if err = issue.loadRepo(sess); err != nil {
+		return fmt.Errorf("loadRepo: %v", err)
+	}
+
+	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, issue.Title); err != nil {
+		return fmt.Errorf("CreateChangeTitleComment: %v", err)
+	}
+
+	if err = issue.neuterCrossReferences(sess); err != nil {
+		return err
+	}
+
+	if err = issue.addCrossReferences(sess, doer); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
 
 // AddDeletePRBranchComment adds delete branch comment for pull request issue

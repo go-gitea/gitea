@@ -88,7 +88,7 @@ func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, cont
 		names = append(names, participants[i].Name)
 	}
 
-	if err := issue.LoadRepo(models.DefaultDBContext()); err != nil {
+	if err := issue.LoadRepo(); err != nil {
 		return err
 	}
 

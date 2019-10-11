@@ -468,7 +468,7 @@ func (c *Comment) CodeCommentURL() string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
 }
 
-func createComment(e Engine, opts *CreateCommentOptions) (_ *Comment, err error) {
+func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
 	var LabelID int64
 	if opts.Label != nil {
 		LabelID = opts.Label.ID
@@ -519,7 +519,7 @@ func createComment(e Engine, opts *CreateCommentOptions) (_ *Comment, err error)
 	return comment, nil
 }
 
-func sendCreateCommentAction(e Engine, opts *CreateCommentOptions, comment *Comment) (err error) {
+func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, comment *Comment) (err error) {
 	// Compose comment action, could be plain comment, close or reopen issue/pull request.
 	// This object will be used to notify watchers in the end of function.
 	act := &Action{
@@ -690,9 +690,8 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 	})
 }
 
-// CreateChangeTitleComment created a change title comment for issue
-func CreateChangeTitleComment(ctx DBContext, doer *User, repo *Repository, issue *Issue, oldTitle, newTitle string) (*Comment, error) {
-	return createComment(ctx.e, &CreateCommentOptions{
+func createChangeTitleComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldTitle, newTitle string) (*Comment, error) {
+	return createComment(e, &CreateCommentOptions{
 		Type:     CommentTypeChangeTitle,
 		Doer:     doer,
 		Repo:     repo,
