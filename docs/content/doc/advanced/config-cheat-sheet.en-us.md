@@ -212,7 +212,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
     - lower - use one or more lower latin characters
     - upper - use one or more upper latin characters
     - digit - use one or more digits
-    - spec - use one or more special characters as `][!"#$%&'()*+,./:;<=>?@\^_{|}~-` and space symbol. 
+    - spec - use one or more special characters as ``][!"#$%&'()*+,./:;<=>?@\^_{|}~`-`` and space symbol. 
 
 ## OpenID (`openid`)
 
