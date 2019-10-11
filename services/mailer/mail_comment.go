@@ -19,11 +19,18 @@ func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue 
 }
 
 func mailParticipantsComment(ctx models.DBContext, c *models.Comment, opType models.ActionType, issue *models.Issue) (err error) {
-	mentions := markup.FindAllMentions(c.Content)
-	if err = models.UpdateIssueMentions(ctx, c.IssueID, mentions); err != nil {
+	rawMentions := markup.FindAllMentions(c.Content)
+	userMentions, err := issue.ResolveMentionsByVisibility(ctx, c.Poster, rawMentions)
+	if err != nil {
+		return fmt.Errorf("ResolveMentionsByVisibility [%d]: %v", c.IssueID, err)
+	}
+	if err = models.UpdateIssueMentions(ctx, c.IssueID, userMentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
-
+	mentions := make([]string, len(userMentions))
+	for i, u := range userMentions {
+		mentions[i] = u.LowerName
+	}
 	if len(c.Content) > 0 {
 		if err = mailIssueCommentToParticipants(issue, c.Poster, c.Content, c, mentions); err != nil {
 			log.Error("mailIssueCommentToParticipants: %v", err)

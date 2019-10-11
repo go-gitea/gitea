@@ -123,10 +123,17 @@ func MailParticipants(issue *models.Issue, doer *models.User, opType models.Acti
 }
 
 func mailParticipants(ctx models.DBContext, issue *models.Issue, doer *models.User, opType models.ActionType) (err error) {
-	mentions := markup.FindAllMentions(issue.Content)
-
-	if err = models.UpdateIssueMentions(ctx, issue.ID, mentions); err != nil {
+	rawMentions := markup.FindAllMentions(issue.Content)
+	userMentions, err := issue.ResolveMentionsByVisibility(ctx, doer, rawMentions)
+	if err != nil {
+		return fmt.Errorf("ResolveMentionsByVisibility [%d]: %v", issue.ID, err)
+	}
+	if err = models.UpdateIssueMentions(ctx, issue.ID, userMentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
+	}
+	mentions := make([]string, len(userMentions))
+	for i, u := range userMentions {
+		mentions[i] = u.LowerName
 	}
 
 	if len(issue.Content) > 0 {
