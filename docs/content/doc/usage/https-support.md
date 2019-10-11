@@ -20,6 +20,8 @@ menu:
 Before you enable HTTPS, make sure that you have valid SSL/TLS certificates.
 You could use self-generated certificates for evaluation and testing. Please run `gitea cert --host [HOST]` to generate a self signed certificate.
 
+If you are using Apache or nginx on the server, it's recommended to check the [reverse proxy guide]({{< relref "doc/usage/reverse-proxies.en-us.md" >}}).
+
 To use Gitea's built-in HTTPS support, you must change your `app.ini` file:
 
 ```ini
