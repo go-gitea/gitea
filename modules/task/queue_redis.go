@@ -90,6 +90,7 @@ func (r *RedisQueue) Run() error {
 		select {
 		case <-r.closeChan:
 			return nil
+		case <-time.After(time.Millisecond * 100):
 		}
 
 		bs, err := r.client.LPop(r.queueName).Bytes()
@@ -111,8 +112,6 @@ func (r *RedisQueue) Run() error {
 				log.Error("Run task failed: %s", err.Error())
 			}
 		}
-
-		time.Sleep(time.Millisecond * 100)
 	}
 }
 
