@@ -173,8 +173,10 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
 	}
 
 	oids := make([]interface{}, len(metas))
+	oidMap := make(map[string]*LFSMetaObject, len(metas))
 	for i, meta := range metas {
 		oids[i] = meta.Oid
+		oidMap[meta.Oid] = meta
 	}
 
 	cond := builder.NewCond()
@@ -183,10 +185,11 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
 			builder.Select("`repository`.id").From("repository").Where(accessibleRepositoryCondition(user.ID)))
 	}
 	newMetas := make([]*LFSMetaObject, 0, len(metas))
-	if err := sess.Cols("oid", "size").Where(cond).In("oid", oids...).GroupBy("oid").Find(&newMetas); err != nil {
+	if err := sess.Cols("oid").Where(cond).In("oid", oids...).GroupBy("oid").Find(&newMetas); err != nil {
 		return err
 	}
 	for i := range newMetas {
+		newMetas[i].Size = oidMap[newMetas[i].Oid].Size
 		newMetas[i].RepositoryID = repoID
 	}
 	if _, err := sess.InsertMulti(newMetas); err != nil {
