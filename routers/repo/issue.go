@@ -1130,10 +1130,18 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 		default:
-			if err := issue.ChangeAssignee(ctx.User, assigneeID); err != nil {
+			removed, err := issue.ChangeAssignee(ctx.User, assigneeID)
+			if err != nil {
 				ctx.ServerError("ChangeAssignee", err)
 				return
 			}
+
+			assignee, err := models.GetUserByID(assigneeID)
+			if err != nil {
+				ctx.ServerError("GetUserByID", err)
+				return
+			}
+			notification.NotifyIssueChangeAssignee(ctx.User, issue, assignee, removed)
 		}
 	}
 	ctx.JSON(200, map[string]interface{}{
