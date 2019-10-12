@@ -8,7 +8,7 @@
 				<div class="file-info text grey normal mono">
 					{{if .NumLines}}
 						<div class="file-info-entry">
-							{{.NumLines}} {{.i18n.Tr "repo.lines"}}
+							{{.NumLines}} {{.i18n.Tr (TrN .i18n.Lang .NumLines "repo.line" "repo.lines") }}
 						</div>
 					{{end}}
 					{{if .FileSize}}

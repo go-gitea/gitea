@@ -735,9 +735,22 @@ func (repo *Repository) CanEnableEditor() bool {
 	return !repo.IsMirror
 }
 
+// GetReaders returns all users that have explicit read access or higher to the repository.
+func (repo *Repository) GetReaders() (_ []*User, err error) {
+	return repo.getUsersWithAccessMode(x, AccessModeRead)
+}
+
 // GetWriters returns all users that have write access to the repository.
 func (repo *Repository) GetWriters() (_ []*User, err error) {
 	return repo.getUsersWithAccessMode(x, AccessModeWrite)
+}
+
+// IsReader returns true if user has explicit read access or higher to the repository.
+func (repo *Repository) IsReader(userID int64) (bool, error) {
+	if repo.OwnerID == userID {
+		return true, nil
+	}
+	return x.Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, AccessModeRead).Get(&Access{})
 }
 
 // getUsersWithAccessMode returns users that have at least given access mode to the repository.
@@ -1080,7 +1093,7 @@ func CleanUpMigrateInfo(repo *Repository) (*Repository, error) {
 		}
 	}
 
-	_, err := git.NewCommand("remote", "remove", "origin").RunInDir(repoPath)
+	_, err := git.NewCommand("remote", "rm", "origin").RunInDir(repoPath)
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %v", err)
 	}
@@ -1933,12 +1946,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		if err != nil {
 			return err
 		}
-
 		if count > 1 {
 			continue
 		}
 
-		oidPath := filepath.Join(v.Oid[0:2], v.Oid[2:4], v.Oid[4:len(v.Oid)])
+		oidPath := filepath.Join(setting.LFS.ContentPath, v.Oid[0:2], v.Oid[2:4], v.Oid[4:len(v.Oid)])
 		removeAllWithNotice(sess, "Delete orphaned LFS file", oidPath)
 	}
 

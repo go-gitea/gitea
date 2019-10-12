@@ -404,9 +404,11 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		}
 		for _, index := range res {
 			indexName := index["column_name"]
-			_, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
-			if err != nil {
-				return err
+			if len(indexName) > 0 {
+				_, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
+				if err != nil {
+					return err
+				}
 			}
 		}
 

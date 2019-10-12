@@ -1046,7 +1046,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 	}
 
 	oldTitle := issue.Title
-	if err := issue.ChangeTitle(ctx.User, title); err != nil {
+	if err := issue_service.ChangeTitle(issue, ctx.User, title); err != nil {
 		ctx.ServerError("ChangeTitle", err)
 		return
 	}
