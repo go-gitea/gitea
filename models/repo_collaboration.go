@@ -42,7 +42,7 @@ func (repo *Repository) AddCollaborator(u *User) error {
 	}
 
 	if repo.Owner.IsOrganization() {
-		err = repo.recalculateTeamAccesses(sess, 0)
+		err = repo.recalculateUserAccess(sess, u.ID)
 	} else {
 		err = repo.recalculateAccesses(sess)
 	}
@@ -87,6 +87,18 @@ func (repo *Repository) getCollaborators(e Engine) ([]*Collaborator, error) {
 // GetCollaborators returns the collaborators for a repository
 func (repo *Repository) GetCollaborators() ([]*Collaborator, error) {
 	return repo.getCollaborators(x)
+}
+
+func (repo *Repository) getCollaboration(e Engine, uid int64) (*Collaboration, error) {
+	collaboration := &Collaboration{
+		RepoID: repo.ID,
+		UserID: uid,
+	}
+	has, err := e.Get(collaboration)
+	if !has {
+		collaboration = nil
+	}
+	return collaboration, err
 }
 
 func (repo *Repository) isCollaborator(e Engine, userID int64) (bool, error) {
