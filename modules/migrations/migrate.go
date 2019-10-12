@@ -6,6 +6,8 @@
 package migrations
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
@@ -57,6 +59,10 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
+		}
+
+		if err2 := models.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.CloneAddr, err)); err2 != nil {
+			log.Error("create respotiry notice failed: ", err2)
 		}
 		return nil, err
 	}

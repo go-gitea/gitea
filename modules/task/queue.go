@@ -10,4 +10,5 @@ import "code.gitea.io/gitea/models"
 type Queue interface {
 	Run() error
 	Push(*models.Task) error
+	Stop()
 }

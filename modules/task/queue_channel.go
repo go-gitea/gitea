@@ -5,8 +5,6 @@
 package task
 
 import (
-	"time"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -29,20 +27,21 @@ func NewChannelQueue(queueLen int) *ChannelQueue {
 
 // Run starts to run the queue
 func (c *ChannelQueue) Run() error {
-	for {
-		select {
-		case task := <-c.queue:
-			err := Run(task)
-			if err != nil {
-				log.Error("Run task failed: %s", err.Error())
-			}
-		case <-time.After(time.Millisecond * 100):
+	for task := range c.queue {
+		err := Run(task)
+		if err != nil {
+			log.Error("Run task failed: %s", err.Error())
 		}
 	}
+	return nil
 }
 
 // Push will push the task ID to queue
 func (c *ChannelQueue) Push(task *models.Task) error {
 	c.queue <- task
 	return nil
+}
+
+func (c *ChannelQueue) Stop() {
+	close(c.queue)
 }

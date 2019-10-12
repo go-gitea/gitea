@@ -31,6 +31,7 @@ type redisClient interface {
 type RedisQueue struct {
 	client    redisClient
 	queueName string
+	closeChan chan bool
 }
 
 func parseConnStr(connStr string) (addrs, password string, dbIdx int, err error) {
@@ -60,6 +61,7 @@ func NewRedisQueue(addrs string, password string, dbIdx int) (*RedisQueue, error
 	dbs := strings.Split(addrs, ",")
 	var queue = RedisQueue{
 		queueName: "task_queue",
+		closeChan: make(chan bool),
 	}
 	if len(dbs) == 0 {
 		return nil, errors.New("no redis host found")
@@ -85,6 +87,11 @@ func NewRedisQueue(addrs string, password string, dbIdx int) (*RedisQueue, error
 // Run starts to run the queue
 func (r *RedisQueue) Run() error {
 	for {
+		select {
+		case <-r.closeChan:
+			return nil
+		}
+
 		bs, err := r.client.LPop(r.queueName).Bytes()
 		if err != nil {
 			if err != redis.Nil {
@@ -116,4 +123,8 @@ func (r *RedisQueue) Push(task *models.Task) error {
 		return err
 	}
 	return r.client.RPush(r.queueName, bs).Err()
+}
+
+func (r *RedisQueue) Stop() {
+	r.closeChan <- true
 }

@@ -134,8 +134,6 @@ func Create(ctx *context.Context) {
 
 func handleCreateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form interface{}) {
 	switch {
-	case migrations.IsRateLimitError(err):
-		ctx.RenderWithErr(ctx.Tr("form.visit_rate_limit"), tpl, form)
 	case models.IsErrReachLimitOfRepo(err):
 		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", owner.MaxCreationLimit()), tpl, form)
 	case models.IsErrRepoAlreadyExist(err):
@@ -222,6 +220,40 @@ func Migrate(ctx *context.Context) {
 	ctx.HTML(200, tplMigrate)
 }
 
+func handleMigrateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form *auth.MigrateRepoForm) {
+	switch {
+	case migrations.IsRateLimitError(err):
+		ctx.RenderWithErr(ctx.Tr("form.visit_rate_limit"), tpl, form)
+	case migrations.IsTwoFactorAuthError(err):
+		ctx.RenderWithErr(ctx.Tr("form.2fa_auth_required"), tpl, form)
+	case models.IsErrReachLimitOfRepo(err):
+		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", owner.MaxCreationLimit()), tpl, form)
+	case models.IsErrRepoAlreadyExist(err):
+		ctx.Data["Err_RepoName"] = true
+		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
+	case models.IsErrNameReserved(err):
+		ctx.Data["Err_RepoName"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, form)
+	case models.IsErrNamePatternNotAllowed(err):
+		ctx.Data["Err_RepoName"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tpl, form)
+	default:
+		remoteAddr, _ := form.ParseRemoteAddr(owner)
+		err = util.URLSanitizedError(err, remoteAddr)
+		if strings.Contains(err.Error(), "Authentication failed") ||
+			strings.Contains(err.Error(), "Bad credentials") ||
+			strings.Contains(err.Error(), "could not read Username") {
+			ctx.Data["Err_Auth"] = true
+			ctx.RenderWithErr(ctx.Tr("form.auth_failed", err.Error()), tpl, form)
+		} else if strings.Contains(err.Error(), "fatal:") {
+			ctx.Data["Err_CloneAddr"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", err.Error()), tpl, form)
+		} else {
+			ctx.ServerError(name, err)
+		}
+	}
+}
+
 // MigratePost response for migrating from external git repository
 func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
@@ -285,26 +317,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 
 	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName)
 	if err != nil {
-		if models.IsErrRepoAlreadyExist(err) {
-			ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplMigrate, &form)
-			return
-		}
-
-		// remoteAddr may contain credentials, so we sanitize it
-		err = util.URLSanitizedError(err, remoteAddr)
-
-		if strings.Contains(err.Error(), "Authentication failed") ||
-			strings.Contains(err.Error(), "could not read Username") {
-			ctx.Data["Err_Auth"] = true
-			ctx.RenderWithErr(ctx.Tr("form.auth_failed", err.Error()), tplMigrate, &form)
-			return
-		} else if strings.Contains(err.Error(), "fatal:") {
-			ctx.Data["Err_CloneAddr"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", err.Error()), tplMigrate, &form)
-			return
-		}
-
-		handleCreateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
+		handleMigrateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
 		return
 	}
 
@@ -313,7 +326,8 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + opts.RepoName)
 		return
 	}
-	ctx.ServerError("MigrateRepository", err)
+
+	handleMigrateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
 }
 
 // Action response for actions to a repository

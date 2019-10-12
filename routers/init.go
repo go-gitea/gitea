@@ -104,7 +104,7 @@ func GlobalInit() {
 		models.InitDeliverHooks()
 		models.InitTestPullRequests()
 		if err := task.Init(); err != nil {
-			log.Fatal("Failed to initialize task: %v", err)
+			log.Fatal("Failed to initialize task scheduler: %v", err)
 		}
 	}
 	if setting.EnableSQLite3 {
