@@ -15,11 +15,11 @@ func specifyWebhookSignatureType(x *xorm.Engine) error {
 
 	switch x.Dialect().DriverName() {
 	case "mysql":
-		_, err = x.Exec("ALTER TABLE `webhook` CHANGE COLUMN `signature` TO `signature_sha1`")
+		_, err = x.Exec("ALTER TABLE webhook CHANGE COLUMN signature signature_sha1 text")
 	case "postgres":
-		_, err = x.Exec("ALTER TABLE `webhook` RENAME COLUMN `signature` TO `signature_sha1`")
+		_, err = x.Exec("ALTER TABLE webhook RENAME COLUMN signature TO signature_sha1")
 	case "mssql":
-		_, err = x.Exec("sp_rename 'webhook.signature', 'signature_sha1', 'COLUMN'")
+		_, err = x.Exec("sp_rename @objname = 'webhook.signature', @newname = 'signature_sha1', @objtype = 'COLUMN'")
 	}
 
 	if err != nil {
