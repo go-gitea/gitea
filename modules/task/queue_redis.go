@@ -124,6 +124,7 @@ func (r *RedisQueue) Push(task *models.Task) error {
 	return r.client.RPush(r.queueName, bs).Err()
 }
 
+// Stop stop the queue
 func (r *RedisQueue) Stop() {
 	r.closeChan <- true
 }

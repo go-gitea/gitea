@@ -42,6 +42,7 @@ func (c *ChannelQueue) Push(task *models.Task) error {
 	return nil
 }
 
+// Stop stop the queue
 func (c *ChannelQueue) Stop() {
 	close(c.queue)
 }
