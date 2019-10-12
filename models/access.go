@@ -262,7 +262,9 @@ func (repo *Repository) recalculateUserAccess(e Engine, uid int64) (err error) {
 		accessMode = collaborator.Mode
 	}
 
-	if repo.Owner.IsOrganization() {
+	if err = repo.getOwner(e); err != nil {
+		return err
+	} else if repo.Owner.IsOrganization() {
 		var teams []Team
 		if err := e.Join("INNER", "team_repo", "team_repo.team_id = team.id").
 			Join("INNER", "team_user", "team_user.team_id = team.id").
