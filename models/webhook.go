@@ -574,7 +574,7 @@ type HookTask struct {
 	UUID            string
 	Type            HookTaskType
 	URL             string `xorm:"TEXT"`
-	SignatureSha1   string `xorm:"TEXT"`
+	Signature       string `xorm:"TEXT"`
 	SignatureSha256 string `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"TEXT"`
