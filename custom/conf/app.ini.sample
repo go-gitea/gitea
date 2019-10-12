@@ -303,7 +303,7 @@ ISSUE_INDEXER_QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
 ; Batch queue number, default is 20
 ISSUE_INDEXER_QUEUE_BATCH_NUMBER = 20
 ; Timeout the indexer if it takes longer than this to start.
-; Set to a negative value to disable timeout.
+; Set to zero to disable timeout.
 STARTUP_TIMEOUT=30s
 
 ; repo indexer by default disabled, since it uses a lot of disk space
@@ -424,7 +424,7 @@ DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Public is for everyone
 DEFAULT_ORG_VISIBILITY = public
 ; Default value for DefaultOrgMemberVisible
-; True will make the membership of the users visible when added to the organisation  
+; True will make the membership of the users visible when added to the organisation
 DEFAULT_ORG_MEMBER_VISIBLE = false
 ; Default value for EnableDependencies
 ; Repositories will use dependencies by default depending on this setting
