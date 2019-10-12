@@ -107,22 +107,22 @@ const (
 
 // Webhook represents a web hook object.
 type Webhook struct {
-	ID           int64  `xorm:"pk autoincr"`
-	RepoID       int64  `xorm:"INDEX"`
-	OrgID        int64  `xorm:"INDEX"`
-	URL          string `xorm:"url TEXT"`
-	SignatureSha1    string `xorm:"TEXT"`
-	SignatureSha256  string `xorm:"TEXT"`
-	HTTPMethod   string `xorm:"http_method"`
-	ContentType  HookContentType
-	Secret       string `xorm:"TEXT"`
-	Events       string `xorm:"TEXT"`
-	*HookEvent   `xorm:"-"`
-	IsSSL        bool `xorm:"is_ssl"`
-	IsActive     bool `xorm:"INDEX"`
-	HookTaskType HookTaskType
-	Meta         string     `xorm:"TEXT"` // store hook-specific attributes
-	LastStatus   HookStatus // Last delivery status
+	ID              int64  `xorm:"pk autoincr"`
+	RepoID          int64  `xorm:"INDEX"`
+	OrgID           int64  `xorm:"INDEX"`
+	URL             string `xorm:"url TEXT"`
+	SignatureSha1   string `xorm:"TEXT"`
+	SignatureSha256 string `xorm:"TEXT"`
+	HTTPMethod      string `xorm:"http_method"`
+	ContentType     HookContentType
+	Secret          string `xorm:"TEXT"`
+	Events          string `xorm:"TEXT"`
+	*HookEvent      `xorm:"-"`
+	IsSSL           bool `xorm:"is_ssl"`
+	IsActive        bool `xorm:"INDEX"`
+	HookTaskType    HookTaskType
+	Meta            string     `xorm:"TEXT"` // store hook-specific attributes
+	LastStatus      HookStatus // Last delivery status
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -574,8 +574,8 @@ type HookTask struct {
 	UUID            string
 	Type            HookTaskType
 	URL             string `xorm:"TEXT"`
-	SignatureSha1       string `xorm:"TEXT"`
-	SignatureSha256     string `xorm:"TEXT"`
+	SignatureSha1   string `xorm:"TEXT"`
+	SignatureSha256 string `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"TEXT"`
 	HTTPMethod      string `xorm:"http_method"`
@@ -772,17 +772,17 @@ func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType,
 	}
 
 	if err = createHookTask(e, &HookTask{
-		RepoID:      repo.ID,
-		HookID:      w.ID,
-		Type:        w.HookTaskType,
-		URL:         w.URL,
+		RepoID:          repo.ID,
+		HookID:          w.ID,
+		Type:            w.HookTaskType,
+		URL:             w.URL,
 		SignatureSha1:   signatureSha1,
-		SignatureSha256:   signatureSha256,
-		Payloader:   payloader,
-		HTTPMethod:  w.HTTPMethod,
-		ContentType: w.ContentType,
-		EventType:   event,
-		IsSSL:       w.IsSSL,
+		SignatureSha256: signatureSha256,
+		Payloader:       payloader,
+		HTTPMethod:      w.HTTPMethod,
+		ContentType:     w.ContentType,
+		EventType:       event,
+		IsSSL:           w.IsSSL,
 	}); err != nil {
 		return fmt.Errorf("CreateHookTask: %v", err)
 	}
