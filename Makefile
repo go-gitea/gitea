@@ -18,7 +18,7 @@ else
 	endif
 endif
 
-BINDATA := modules/{options,public,templates}/bindata.go
+BINDATA := modules/options/bindata.go modules/public/bindata.go modules/templates/bindata.go
 GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
 GOFMT ?= gofmt -s
 
@@ -42,7 +42,7 @@ endif
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
 PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell GO111MODULE=on $(GO) list -mod=vendor ./... | grep -v /vendor/)))
-SOURCES ?= $(shell find . -name "*.go" -type f)
+SOURCES ?= $(shell find . -name "*.go" -type f) $(BINDATA)
 
 TAGS ?=
 
@@ -100,6 +100,7 @@ vet:
 .PHONY: generate
 generate:
 	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
+$(BINDATA): generate
 
 .PHONY: generate-swagger
 generate-swagger:
