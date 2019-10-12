@@ -68,6 +68,10 @@ func UploadAttachment(ctx *context.Context) {
 func DeleteAttachment(ctx *context.Context) {
 	file := ctx.Query("file")
 	attach, err := models.GetAttachmentByUUID(file)
+	if !ctx.IsSigned || (ctx.User.ID != attach.UploaderID) {
+		ctx.Error(403)
+		return
+	}
 	if err != nil {
 		ctx.Error(400, err.Error())
 		return

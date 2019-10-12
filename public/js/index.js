@@ -862,7 +862,7 @@ function initRepository() {
                                 $('#' + filenameDict[file.name].uuid).remove();
                                 if ($dropzone.data('remove-url') && $dropzone.data('csrf') && !filenameDict[file.name].submitted) {
                                     $.post($dropzone.data('remove-url'), {
-                                        file: file.uuid,
+                                        file: filenameDict[file.name].uuid,
                                         _csrf: $dropzone.data('csrf')
                                     });
                                 }
