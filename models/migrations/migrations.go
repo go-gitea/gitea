@@ -252,6 +252,8 @@ var migrations = []Migration{
 	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
 	// v98 -> v99
 	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
+	// v99 -> v100
+	NewMigration("add task table and status column for repository table", addTaskTable),
 }
 
 // Migrate database to current version
