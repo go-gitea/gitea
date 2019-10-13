@@ -182,10 +182,6 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return fmt.Errorf("git read-tree HEAD: %s", errbuf.String())
 	}
 
-	messageBytes := new(bytes.Buffer)
-	_, _ = messageBytes.WriteString(message)
-	_, _ = messageBytes.WriteString("\n")
-
 	// Determine if we should sign
 	signArg := ""
 	if version.Compare(binVersion, "1.7.9", ">=") {
@@ -218,11 +214,11 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		}
 
 		if signArg == "" {
-			if err := git.NewCommand("commit").RunInDirTimeoutEnvFullPipeline(env, -1, tmpBasePath, nil, &errbuf, messageBytes); err != nil {
+			if err := git.NewCommand("commit", "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
 				return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 			}
 		} else {
-			if err := git.NewCommand("commit", signArg).RunInDirTimeoutEnvFullPipeline(env, -1, tmpBasePath, nil, &errbuf, messageBytes); err != nil {
+			if err := git.NewCommand("commit", signArg, "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
 				return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 			}
 		}
@@ -263,11 +259,11 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 
 		// Set custom message and author and create merge commit
 		if signArg == "" {
-			if err := git.NewCommand("commit").RunInDirTimeoutEnvFullPipeline(env, -1, tmpBasePath, nil, &errbuf, messageBytes); err != nil {
+			if err := git.NewCommand("commit", "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
 				return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 			}
 		} else {
-			if err := git.NewCommand("commit", signArg).RunInDirTimeoutEnvFullPipeline(env, -1, tmpBasePath, nil, &errbuf, messageBytes); err != nil {
+			if err := git.NewCommand("commit", signArg, "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
 				return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 			}
 		}
@@ -279,11 +275,11 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		}
 		sig := pr.Issue.Poster.NewGitSig()
 		if signArg == "" {
-			if err := git.NewCommand("commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email)).RunInDirTimeoutEnvFullPipeline(env, -1, tmpBasePath, nil, &errbuf, messageBytes); err != nil {
+			if err := git.NewCommand("commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
 				return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 			}
 		} else {
-			if err := git.NewCommand("commit", signArg, fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email)).RunInDirTimeoutEnvFullPipeline(env, -1, tmpBasePath, nil, &errbuf, messageBytes); err != nil {
+			if err := git.NewCommand("commit", signArg, fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
 				return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 			}
 		}

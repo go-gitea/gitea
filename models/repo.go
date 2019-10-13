@@ -1151,12 +1151,9 @@ func initRepoCommit(tmpPath string, u *User) (err error) {
 		return fmt.Errorf("Unable to get git version: %v", err)
 	}
 
-	messageBytes := new(bytes.Buffer)
-	_, _ = messageBytes.WriteString("Initial commit")
-	_, _ = messageBytes.WriteString("\n")
-
 	args := []string{
 		"commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
+		"-m", "Initial commit",
 	}
 
 	if version.Compare(binVersion, "1.7.9", ">=") {
@@ -1168,10 +1165,9 @@ func initRepoCommit(tmpPath string, u *User) (err error) {
 		}
 	}
 
-	if _, stderr, err = process.GetManager().ExecDirEnvStdIn(-1,
+	if _, stderr, err = process.GetManager().ExecDirEnv(-1,
 		tmpPath, fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath),
 		env,
-		messageBytes,
 		git.GitExecutable, args...); err != nil {
 		return fmt.Errorf("git commit: %s", stderr)
 	}
