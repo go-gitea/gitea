@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/references"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -144,10 +145,10 @@ type Comment struct {
 
 	// Reference an issue or pull from another comment, issue or PR
 	// All information is about the origin of the reference
-	RefRepoID    int64      `xorm:"index"` // Repo where the referencing
-	RefIssueID   int64      `xorm:"index"`
-	RefCommentID int64      `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
-	RefAction    XRefAction `xorm:"SMALLINT"` // What hapens if RefIssueID resolves
+	RefRepoID    int64                 `xorm:"index"` // Repo where the referencing
+	RefIssueID   int64                 `xorm:"index"`
+	RefCommentID int64                 `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
+	RefAction    references.XRefAction `xorm:"SMALLINT"` // What hapens if RefIssueID resolves
 	RefIsPull    bool
 
 	RefRepo    *Repository `xorm:"-"`
@@ -773,7 +774,7 @@ type CreateCommentOptions struct {
 	RefRepoID        int64
 	RefIssueID       int64
 	RefCommentID     int64
-	RefAction        XRefAction
+	RefAction        references.XRefAction
 	RefIsPull        bool
 }
 
