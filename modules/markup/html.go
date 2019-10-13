@@ -109,9 +109,9 @@ func CustomLinkURLSchemes(schemes []string) {
 			}
 		}
 		if without {
-			s = s + ":"
+			s += ":"
 		} else {
-			s = s + "://"
+			s += "://"
 		}
 		withAuth = append(withAuth, s)
 	}
