@@ -645,6 +645,15 @@ func rewriteAllPublicKeys(e Engine) error {
 	sshOpLocker.Lock()
 	defer sshOpLocker.Unlock()
 
+	// First of ensure that the RootPath is present, and if not make it with 0700 permissions
+	// This of course doesn't guarantee that this is the right directory for authorized_keys
+	// but at least if it's supposed to be this directory and it doesn't exist and we're the
+	// right user it will at least be created properly.
+	err := os.MkdirAll(setting.SSH.RootPath, 0700)
+	if err != nil {
+		return err
+	}
+
 	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
 	tmpPath := fPath + ".tmp"
 	t, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
