@@ -37,6 +37,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-xorm/xorm"
+	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"xorm.io/builder"
@@ -1145,17 +1146,33 @@ func initRepoCommit(tmpPath string, u *User) (err error) {
 		return fmt.Errorf("git add: %s", stderr)
 	}
 
-	signOption := "--no-gpg-sign"
-	sign, keyID := SignInitialCommit(tmpPath, u)
-	if sign {
-		signOption = "-S" + keyID
+	binVersion, err := git.BinVersion()
+	if err != nil {
+		return fmt.Errorf("Unable to get git version: %v", err)
 	}
 
-	if _, stderr, err = process.GetManager().ExecDirEnv(-1,
+	messageBytes := new(bytes.Buffer)
+	_, _ = messageBytes.WriteString("Initial commit")
+	_, _ = messageBytes.WriteString("\n")
+
+	args := []string{
+		"commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
+	}
+
+	if version.Compare(binVersion, "1.7.9", ">=") {
+		sign, keyID := SignInitialCommit(tmpPath, u)
+		if sign {
+			args = append(args, "-S"+keyID)
+		} else if version.Compare(binVersion, "2.0.0", ">=") {
+			args = append(args, "--no-gpg-sign")
+		}
+	}
+
+	if _, stderr, err = process.GetManager().ExecDirEnvStdIn(-1,
 		tmpPath, fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath),
 		env,
-		git.GitExecutable, "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
-		"-m", "Initial commit", signOption); err != nil {
+		messageBytes,
+		git.GitExecutable, args...); err != nil {
 		return fmt.Errorf("git commit: %s", stderr)
 	}
 

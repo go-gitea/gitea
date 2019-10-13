@@ -278,11 +278,13 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 	args := []string{"commit-tree", treeHash, "-p", "HEAD"}
 
 	// Determine if we should sign
-	sign, keyID := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
-	if sign {
-		args = append(args, "-S"+keyID)
-	} else if version.Compare(binVersion, "2.0.0", ">=") {
-		args = append(args, "--no-gpg-sign")
+	if version.Compare(binVersion, "1.7.9", ">=") {
+		sign, keyID := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
+		if sign {
+			args = append(args, "-S"+keyID)
+		} else if version.Compare(binVersion, "2.0.0", ">=") {
+			args = append(args, "--no-gpg-sign")
+		}
 	}
 
 	commitHash, stderr, err := process.GetManager().ExecDirEnvStdIn(5*time.Minute,

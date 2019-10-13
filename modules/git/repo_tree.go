@@ -91,7 +91,7 @@ func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOp
 	_, _ = messageBytes.WriteString(opts.Message)
 	_, _ = messageBytes.WriteString("\n")
 
-	if opts.KeyID != "" || opts.AlwaysSign {
+	if version.Compare(binVersion, "1.7.9", ">=") && (opts.KeyID != "" || opts.AlwaysSign) {
 		cmd.AddArguments(fmt.Sprintf("-S%s", opts.KeyID))
 	}
 
