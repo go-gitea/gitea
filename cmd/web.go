@@ -169,6 +169,7 @@ func runWeb(ctx *cli.Context) error {
 	var err error
 	switch setting.Protocol {
 	case setting.HTTP:
+		NoHTTPRedirector()
 		err = runHTTP(listenAddr, context2.ClearHandler(m))
 	case setting.HTTPS:
 		if setting.EnableLetsEncrypt {
@@ -177,9 +178,15 @@ func runWeb(ctx *cli.Context) error {
 		}
 		if setting.RedirectOtherPort {
 			go runHTTPRedirector()
+		} else {
+			NoHTTPRedirector()
 		}
 		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.FCGI:
+		NoHTTPRedirector()
+		// FCGI listeners are provided as stdin - this is orthogonal to the LISTEN_FDS approach
+		// in graceful and systemD
+		NoMainListener()
 		var listener net.Listener
 		listener, err = net.Listen("tcp", listenAddr)
 		if err != nil {
@@ -192,6 +199,10 @@ func runWeb(ctx *cli.Context) error {
 		}()
 		err = fcgi.Serve(listener, context2.ClearHandler(m))
 	case setting.UnixSocket:
+		// This could potentially be inherited using LISTEN_FDS but currently
+		// these cannot be inherited
+		NoHTTPRedirector()
+		NoMainListener()
 		if err := os.Remove(listenAddr); err != nil && !os.IsNotExist(err) {
 			log.Fatal("Failed to remove unix socket directory %s: %v", listenAddr, err)
 		}

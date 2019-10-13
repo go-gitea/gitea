@@ -27,3 +27,11 @@ func runHTTPSWithTLSConfig(listenAddr string, tlsConfig *tls.Config, m http.Hand
 	}
 	return server.ListenAndServeTLS("", "")
 }
+
+// NoHTTPRedirector is a no-op on Windows
+func NoHTTPRedirector() {
+}
+
+// NoMainListener is a no-op on Windows
+func NoMainListener() {
+}

@@ -24,3 +24,14 @@ func runHTTPS(listenAddr, certFile, keyFile string, m http.Handler) error {
 func runHTTPSWithTLSConfig(listenAddr string, tlsConfig *tls.Config, m http.Handler) error {
 	return graceful.HTTPListenAndServeTLSConfig("tcp", listenAddr, tlsConfig, m)
 }
+
+// NoHTTPRedirector tells our cleanup routine that we will not be using a fallback http redirector
+func NoHTTPRedirector() {
+	graceful.InformCleanup()
+}
+
+// NoMainListener tells our cleanup routine that we will not be using a possibly provided listener
+// for our main HTTP/HTTPS service
+func NoMainListener() {
+	graceful.InformCleanup()
+}

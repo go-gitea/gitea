@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 const (
@@ -69,11 +71,34 @@ func getProvidedFDs() (savedErr error) {
 	return savedErr
 }
 
+// CloseProvidedListeners closes all unused provided listeners.
+func CloseProvidedListeners() error {
+	mutex.Lock()
+	defer mutex.Unlock()
+	var returnableError error
+	for _, l := range providedListeners {
+		err := l.Close()
+		if err != nil {
+			log.Error("Error in closing unused provided listener: %v", err)
+			if returnableError != nil {
+				returnableError = fmt.Errorf("%v & %v", returnableError, err)
+			} else {
+				returnableError = err
+			}
+		}
+	}
+	providedListeners = []net.Listener{}
+
+	return returnableError
+}
+
 // GetListener obtains a listener for the local network address. The network must be
 // a stream-oriented network: "tcp", "tcp4", "tcp6", "unix" or "unixpacket". It
 // returns an provided net.Listener for the matching network and address, or
 // creates a new one using net.Listen.
 func GetListener(network, address string) (net.Listener, error) {
+	// Add a deferral to say that we've tried to grab a listener
+	defer InformCleanup()
 	switch network {
 	case "tcp", "tcp4", "tcp6":
 		tcpAddr, err := net.ResolveTCPAddr(network, address)

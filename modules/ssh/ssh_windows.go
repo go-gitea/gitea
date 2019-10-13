@@ -17,3 +17,8 @@ func listen(server *ssh.Server) {
 		log.Critical("Failed to serve with builtin SSH server. %s", err)
 	}
 }
+
+// Unused does nothing on windows
+func Unused() {
+	// Do nothing
+}

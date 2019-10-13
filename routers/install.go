@@ -386,6 +386,12 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	}
 
 	log.Info("First-time run install finished!")
+	// FIXME: This isn't really enough to completely take account of new configuration
+	// We should really be restarting:
+	// - On windows this is probably just a simple restart
+	// - On linux we can't just use graceful.RestartProcess() everything that was passed in on LISTEN_FDS
+	//   (active or not) needs to be passed out and everything new passed out too.
+	//   This means we need to prevent the cleanup goroutine from running prior to the second GlobalInit
 	ctx.Flash.Success(ctx.Tr("install.install_success"))
 	ctx.Redirect(form.AppURL + "user/login")
 }
