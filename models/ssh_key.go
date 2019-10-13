@@ -364,6 +364,7 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	// right user it will at least be created properly.
 	err := os.MkdirAll(setting.SSH.RootPath, 0700)
 	if err != nil {
+		log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
 		return err
 	}
 
@@ -660,6 +661,7 @@ func rewriteAllPublicKeys(e Engine) error {
 	// right user it will at least be created properly.
 	err := os.MkdirAll(setting.SSH.RootPath, 0700)
 	if err != nil {
+		log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
 		return err
 	}
 
