@@ -165,7 +165,7 @@ func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 
 // RemoveRemote removes a remote from repository.
 func (repo *Repository) RemoveRemote(name string) error {
-	_, err := NewCommand("remote", "remove", name).RunInDir(repo.Path)
+	_, err := NewCommand("remote", "rm", name).RunInDir(repo.Path)
 	return err
 }
 

@@ -725,11 +725,6 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 	return nil
 }
 
-// UpdateIssueCols only updates values of specific columns for given issue.
-func UpdateIssueCols(issue *Issue, cols ...string) error {
-	return updateIssueCols(x, issue, cols...)
-}
-
 func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (err error) {
 	// Reload the issue
 	currentIssue, err := getIssueByID(e, issue.ID)
@@ -777,7 +772,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 	}
 
 	// Update issue count of milestone
-	if err = changeMilestoneIssueStats(e, issue); err != nil {
+	if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
 		return err
 	}
 
@@ -855,9 +850,7 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 }
 
 // ChangeTitle changes the title of this issue, as the given user.
-func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
-	oldTitle := issue.Title
-	issue.Title = title
+func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -873,7 +866,7 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
 
-	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, title); err != nil {
+	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, issue.Title); err != nil {
 		return fmt.Errorf("createChangeTitleComment: %v", err)
 	}
 
@@ -885,51 +878,7 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-	sess.Close()
-
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if issue.IsPull {
-		if err = issue.loadPullRequest(sess); err != nil {
-			return fmt.Errorf("loadPullRequest: %v", err)
-		}
-		issue.PullRequest.Issue = issue
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-			Action: api.HookIssueEdited,
-			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
-				Title: &api.ChangesFromPayload{
-					From: oldTitle,
-				},
-			},
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
-			Sender:      doer.APIFormat(),
-		})
-	} else {
-		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
-			Action: api.HookIssueEdited,
-			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
-				Title: &api.ChangesFromPayload{
-					From: oldTitle,
-				},
-			},
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     issue.Poster.APIFormat(),
-		})
-	}
-
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 // AddDeletePRBranchComment adds delete branch comment for pull request issue
@@ -1130,7 +1079,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Index = inserted.Index
 
 	if opts.Issue.MilestoneID > 0 {
-		if err = changeMilestoneAssign(e, doer, opts.Issue, -1); err != nil {
+		if _, err = e.Exec("UPDATE `milestone` SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
 			return err
 		}
 	}
@@ -1493,46 +1442,18 @@ func getParticipantsByIssueID(e Engine, issueID int64) ([]*User, error) {
 	return users, e.In("id", userIDs).Find(&users)
 }
 
-// UpdateIssueMentions extracts mentioned people from content and
-// updates issue-user relations for them.
-func UpdateIssueMentions(ctx DBContext, issueID int64, mentions []string) error {
+// UpdateIssueMentions updates issue-user relations for mentioned users.
+func UpdateIssueMentions(ctx DBContext, issueID int64, mentions []*User) error {
 	if len(mentions) == 0 {
 		return nil
 	}
-
-	for i := range mentions {
-		mentions[i] = strings.ToLower(mentions[i])
+	ids := make([]int64, len(mentions))
+	for i, u := range mentions {
+		ids[i] = u.ID
 	}
-	users := make([]*User, 0, len(mentions))
-
-	if err := ctx.e.In("lower_name", mentions).Asc("lower_name").Find(&users); err != nil {
-		return fmt.Errorf("find mentioned users: %v", err)
-	}
-
-	ids := make([]int64, 0, len(mentions))
-	for _, user := range users {
-		ids = append(ids, user.ID)
-		if !user.IsOrganization() || user.NumMembers == 0 {
-			continue
-		}
-
-		memberIDs := make([]int64, 0, user.NumMembers)
-		orgUsers, err := getOrgUsersByOrgID(ctx.e, user.ID)
-		if err != nil {
-			return fmt.Errorf("GetOrgUsersByOrgID [%d]: %v", user.ID, err)
-		}
-
-		for _, orgUser := range orgUsers {
-			memberIDs = append(memberIDs, orgUser.ID)
-		}
-
-		ids = append(ids, memberIDs...)
-	}
-
 	if err := UpdateIssueUsersByMentions(ctx, issueID, ids); err != nil {
 		return fmt.Errorf("UpdateIssueUsersByMentions: %v", err)
 	}
-
 	return nil
 }
 
@@ -1923,5 +1844,122 @@ func (issue *Issue) updateClosedNum(e Engine) (err error) {
 			issue.RepoID,
 		)
 	}
+	return
+}
+
+// ResolveMentionsByVisibility returns the users mentioned in an issue, removing those that
+// don't have access to reading it. Teams are expanded into their users, but organizations are ignored.
+func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, mentions []string) (users []*User, err error) {
+	if len(mentions) == 0 {
+		return
+	}
+	if err = issue.loadRepo(ctx.e); err != nil {
+		return
+	}
+	resolved := make(map[string]bool, 20)
+	names := make([]string, 0, 20)
+	resolved[doer.LowerName] = true
+	for _, name := range mentions {
+		name := strings.ToLower(name)
+		if _, ok := resolved[name]; ok {
+			continue
+		}
+		resolved[name] = false
+		names = append(names, name)
+	}
+
+	if err := issue.Repo.getOwner(ctx.e); err != nil {
+		return nil, err
+	}
+
+	if issue.Repo.Owner.IsOrganization() {
+		// Since there can be users with names that match the name of a team,
+		// if the team exists and can read the issue, the team takes precedence.
+		teams := make([]*Team, 0, len(names))
+		if err := ctx.e.
+			Join("INNER", "team_repo", "team_repo.team_id = team.id").
+			Where("team_repo.repo_id=?", issue.Repo.ID).
+			In("team.lower_name", names).
+			Find(&teams); err != nil {
+			return nil, fmt.Errorf("find mentioned teams: %v", err)
+		}
+		if len(teams) != 0 {
+			checked := make([]int64, 0, len(teams))
+			unittype := UnitTypeIssues
+			if issue.IsPull {
+				unittype = UnitTypePullRequests
+			}
+			for _, team := range teams {
+				if team.Authorize >= AccessModeOwner {
+					checked = append(checked, team.ID)
+					resolved[team.LowerName] = true
+					continue
+				}
+				has, err := ctx.e.Get(&TeamUnit{OrgID: issue.Repo.Owner.ID, TeamID: team.ID, Type: unittype})
+				if err != nil {
+					return nil, fmt.Errorf("get team units (%d): %v", team.ID, err)
+				}
+				if has {
+					checked = append(checked, team.ID)
+					resolved[team.LowerName] = true
+				}
+			}
+			if len(checked) != 0 {
+				teamusers := make([]*User, 0, 20)
+				if err := ctx.e.
+					Join("INNER", "team_user", "team_user.uid = `user`.id").
+					In("`team_user`.team_id", checked).
+					And("`user`.is_active = ?", true).
+					And("`user`.prohibit_login = ?", false).
+					Find(&teamusers); err != nil {
+					return nil, fmt.Errorf("get teams users: %v", err)
+				}
+				if len(teamusers) > 0 {
+					users = make([]*User, 0, len(teamusers))
+					for _, user := range teamusers {
+						if already, ok := resolved[user.LowerName]; !ok || !already {
+							users = append(users, user)
+							resolved[user.LowerName] = true
+						}
+					}
+				}
+			}
+		}
+
+		// Remove names already in the list to avoid querying the database if pending names remain
+		names = make([]string, 0, len(resolved))
+		for name, already := range resolved {
+			if !already {
+				names = append(names, name)
+			}
+		}
+		if len(names) == 0 {
+			return
+		}
+	}
+
+	unchecked := make([]*User, 0, len(names))
+	if err := ctx.e.
+		Where("`user`.is_active = ?", true).
+		And("`user`.prohibit_login = ?", false).
+		In("`user`.lower_name", names).
+		Find(&unchecked); err != nil {
+		return nil, fmt.Errorf("find mentioned users: %v", err)
+	}
+	for _, user := range unchecked {
+		if already := resolved[user.LowerName]; already || user.IsOrganization() {
+			continue
+		}
+		// Normal users must have read access to the referencing issue
+		perm, err := getUserRepoPermission(ctx.e, issue.Repo, user)
+		if err != nil {
+			return nil, fmt.Errorf("getUserRepoPermission [%d]: %v", user.ID, err)
+		}
+		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+			continue
+		}
+		users = append(users, user)
+	}
+
 	return
 }

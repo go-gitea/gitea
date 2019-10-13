@@ -21,6 +21,8 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
+
+	"github.com/mcuadros/go-version"
 )
 
 // TemporaryUploadRepository is a type to wrap our upload repositories as a shallow clone
@@ -254,6 +256,11 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
+	binVersion, err := git.BinVersion()
+	if err != nil {
+		return "", fmt.Errorf("Unable to get git version: %v", err)
+	}
+
 	// FIXME: Should we add SSH_ORIGINAL_COMMAND to this
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),
@@ -264,11 +271,21 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 		"GIT_COMMITTER_EMAIL="+committerSig.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
-	commitHash, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
+	messageBytes := new(bytes.Buffer)
+	_, _ = messageBytes.WriteString(message)
+	_, _ = messageBytes.WriteString("\n")
+
+	args := []string{"commit-tree", treeHash, "-p", "HEAD"}
+	if version.Compare(binVersion, "2.0.0", ">=") {
+		args = append(args, "--no-gpg-sign")
+	}
+
+	commitHash, stderr, err := process.GetManager().ExecDirEnvStdIn(5*time.Minute,
 		t.basePath,
 		fmt.Sprintf("commitTree (git commit-tree): %s", t.basePath),
 		env,
-		git.GitExecutable, "commit-tree", treeHash, "-p", "HEAD", "-m", message)
+		messageBytes,
+		git.GitExecutable, args...)
 	if err != nil {
 		return "", fmt.Errorf("git commit-tree: %s", stderr)
 	}
@@ -328,6 +345,12 @@ func (t *TemporaryUploadRepository) DiffIndex() (diff *gitdiff.Diff, err error) 
 
 // CheckAttribute checks the given attribute of the provided files
 func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...string) (map[string]map[string]string, error) {
+	binVersion, err := git.BinVersion()
+	if err != nil {
+		log.Error("Error retrieving git version: %v", err)
+		return nil, err
+	}
+
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
@@ -335,7 +358,14 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	cmdArgs := []string{"check-attr", "-z", attribute, "--cached", "--"}
+	cmdArgs := []string{"check-attr", "-z", attribute}
+
+	// git check-attr --cached first appears in git 1.7.8
+	if version.Compare(binVersion, "1.7.8", ">=") {
+		cmdArgs = append(cmdArgs, "--cached")
+	}
+	cmdArgs = append(cmdArgs, "--")
+
 	for _, arg := range args {
 		if arg != "" {
 			cmdArgs = append(cmdArgs, arg)
@@ -353,7 +383,7 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 	}
 
 	pid := process.GetManager().Add(desc, cmd)
-	err := cmd.Wait()
+	err = cmd.Wait()
 	process.GetManager().Remove(pid)
 
 	if err != nil {

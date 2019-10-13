@@ -126,6 +126,15 @@ func NewRepoContext() {
 	RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
 }
 
+// RepositoryStatus defines the status of repository
+type RepositoryStatus int
+
+// all kinds of RepositoryStatus
+const (
+	RepositoryReady         RepositoryStatus = iota // a normal repository
+	RepositoryBeingMigrated                         // repository is migrating
+)
+
 // Repository represents a git repository.
 type Repository struct {
 	ID            int64  `xorm:"pk autoincr"`
@@ -159,9 +168,9 @@ type Repository struct {
 	IsPrivate  bool `xorm:"INDEX"`
 	IsEmpty    bool `xorm:"INDEX"`
 	IsArchived bool `xorm:"INDEX"`
-
-	IsMirror bool `xorm:"INDEX"`
-	*Mirror  `xorm:"-"`
+	IsMirror   bool `xorm:"INDEX"`
+	*Mirror    `xorm:"-"`
+	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
 	ExternalMetas map[string]string `xorm:"-"`
 	Units         []*RepoUnit       `xorm:"-"`
@@ -198,6 +207,16 @@ func (repo *Repository) ColorFormat(s fmt.State) {
 		log.NewColoredIDValue(repo.ID),
 		ownerName,
 		repo.Name)
+}
+
+// IsBeingMigrated indicates that repository is being migtated
+func (repo *Repository) IsBeingMigrated() bool {
+	return repo.Status == RepositoryBeingMigrated
+}
+
+// IsBeingCreated indicates that repository is being migrated or forked
+func (repo *Repository) IsBeingCreated() bool {
+	return repo.IsBeingMigrated()
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
@@ -739,9 +758,22 @@ func (repo *Repository) CanEnableEditor() bool {
 	return !repo.IsMirror
 }
 
+// GetReaders returns all users that have explicit read access or higher to the repository.
+func (repo *Repository) GetReaders() (_ []*User, err error) {
+	return repo.getUsersWithAccessMode(x, AccessModeRead)
+}
+
 // GetWriters returns all users that have write access to the repository.
 func (repo *Repository) GetWriters() (_ []*User, err error) {
 	return repo.getUsersWithAccessMode(x, AccessModeWrite)
+}
+
+// IsReader returns true if user has explicit read access or higher to the repository.
+func (repo *Repository) IsReader(userID int64) (bool, error) {
+	if repo.OwnerID == userID {
+		return true, nil
+	}
+	return x.Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, AccessModeRead).Get(&Access{})
 }
 
 // getUsersWithAccessMode returns users that have at least given access mode to the repository.
@@ -875,18 +907,6 @@ func (repo *Repository) CloneLink() (cl *CloneLink) {
 	return repo.cloneLink(x, false)
 }
 
-// MigrateRepoOptions contains the repository migrate options
-type MigrateRepoOptions struct {
-	Name                 string
-	Description          string
-	OriginalURL          string
-	IsPrivate            bool
-	IsMirror             bool
-	RemoteAddr           string
-	Wiki                 bool // include wiki repository
-	SyncReleasesWithTags bool // sync releases from tags
-}
-
 /*
 	GitHub, GitLab, Gogs: *.wiki.git
 	BitBucket: *.git/wiki
@@ -906,20 +926,28 @@ func wikiRemoteURL(remote string) string {
 	return ""
 }
 
-// MigrateRepository migrates an existing repository from other project hosting.
-func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, error) {
-	repo, err := CreateRepository(doer, u, CreateRepoOptions{
-		Name:        opts.Name,
-		Description: opts.Description,
-		OriginalURL: opts.OriginalURL,
-		IsPrivate:   opts.IsPrivate,
-		IsMirror:    opts.IsMirror,
-	})
-	if err != nil {
-		return nil, err
+// CheckCreateRepository check if could created a repository
+func CheckCreateRepository(doer, u *User, name string) error {
+	if !doer.CanCreateRepo() {
+		return ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
 
-	repoPath := RepoPath(u.Name, opts.Name)
+	if err := IsUsableRepoName(name); err != nil {
+		return err
+	}
+
+	has, err := isRepositoryExist(x, u, name)
+	if err != nil {
+		return fmt.Errorf("IsRepositoryExist: %v", err)
+	} else if has {
+		return ErrRepoAlreadyExist{u.Name, name}
+	}
+	return nil
+}
+
+// MigrateRepositoryGitData starts migrating git related data after created migrating repository
+func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts api.MigrateRepoOption) (*Repository, error) {
+	repoPath := RepoPath(u.Name, opts.RepoName)
 
 	if u.IsOrganization() {
 		t, err := u.GetOwnerTeam()
@@ -933,11 +961,12 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 
 	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
 
-	if err := os.RemoveAll(repoPath); err != nil {
+	var err error
+	if err = os.RemoveAll(repoPath); err != nil {
 		return repo, fmt.Errorf("Failed to remove %s: %v", repoPath, err)
 	}
 
-	if err = git.Clone(opts.RemoteAddr, repoPath, git.CloneRepoOptions{
+	if err = git.Clone(opts.CloneAddr, repoPath, git.CloneRepoOptions{
 		Mirror:  true,
 		Quiet:   true,
 		Timeout: migrateTimeout,
@@ -946,8 +975,8 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 	}
 
 	if opts.Wiki {
-		wikiPath := WikiPath(u.Name, opts.Name)
-		wikiRemotePath := wikiRemoteURL(opts.RemoteAddr)
+		wikiPath := WikiPath(u.Name, opts.RepoName)
+		wikiRemotePath := wikiRemoteURL(opts.CloneAddr)
 		if len(wikiRemotePath) > 0 {
 			if err := os.RemoveAll(wikiPath); err != nil {
 				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
@@ -977,7 +1006,7 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		return repo, fmt.Errorf("git.IsEmpty: %v", err)
 	}
 
-	if opts.SyncReleasesWithTags && !repo.IsEmpty {
+	if !opts.Releases && !repo.IsEmpty {
 		// Try to get HEAD branch and set it as default branch.
 		headBranch, err := gitRepo.GetHEADBranch()
 		if err != nil {
@@ -996,7 +1025,7 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
-	if opts.IsMirror {
+	if opts.Mirror {
 		if _, err = x.InsertOne(&Mirror{
 			RepoID:         repo.ID,
 			Interval:       setting.Mirror.DefaultInterval,
@@ -1084,7 +1113,7 @@ func CleanUpMigrateInfo(repo *Repository) (*Repository, error) {
 		}
 	}
 
-	_, err := git.NewCommand("remote", "remove", "origin").RunInDir(repoPath)
+	_, err := git.NewCommand("remote", "rm", "origin").RunInDir(repoPath)
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %v", err)
 	}
@@ -1134,6 +1163,7 @@ type CreateRepoOptions struct {
 	IsPrivate   bool
 	IsMirror    bool
 	AutoInit    bool
+	Status      RepositoryStatus
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
@@ -1401,6 +1431,7 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 		IsPrivate:                       opts.IsPrivate,
 		IsFsckEnabled:                   !opts.IsMirror,
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
+		Status:                          opts.Status,
 	}
 
 	sess := x.NewSession()
@@ -1847,6 +1878,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&CommitStatus{RepoID: repoID},
 		&RepoIndexerStatus{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
+		&Task{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1937,12 +1969,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		if err != nil {
 			return err
 		}
-
 		if count > 1 {
 			continue
 		}
 
-		oidPath := filepath.Join(v.Oid[0:2], v.Oid[2:4], v.Oid[4:len(v.Oid)])
+		oidPath := filepath.Join(setting.LFS.ContentPath, v.Oid[0:2], v.Oid[2:4], v.Oid[4:len(v.Oid)])
 		removeAllWithNotice(sess, "Delete orphaned LFS file", oidPath)
 	}
 
