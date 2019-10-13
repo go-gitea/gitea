@@ -135,7 +135,7 @@ func (issue *Issue) mailParticipants(e Engine, doer *User, opType ActionType) (e
 	for i, u := range userMentions {
 		mentions[i] = u.LowerName
 	}
-	
+
 	if len(issue.Content) > 0 {
 		if err = mailIssueCommentToParticipants(e, issue, doer, issue.Content, nil, mentions); err != nil {
 			log.Error("mailIssueCommentToParticipants: %v", err)

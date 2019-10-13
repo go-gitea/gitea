@@ -1827,7 +1827,6 @@ func (issue *Issue) updateClosedNum(e Engine) (err error) {
 	return
 }
 
-
 // ResolveMentionsByVisibility returns the users mentioned in an issue, removing those that
 // don't have access to reading it. Teams are expanded into their users, but organizations are ignored.
 func (issue *Issue) ResolveMentionsByVisibility(e Engine, doer *User, mentions []string) (users []*User, err error) {
