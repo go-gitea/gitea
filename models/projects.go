@@ -10,8 +10,8 @@ import (
 	"github.com/go-xorm/xorm"
 )
 
-// ProjectType is used to represent a project board type
-type ProjectType uint8
+// ProjectBoardType is used to represent a project board type
+type ProjectBoardType uint8
 
 // ProjectBoards is a list of all project boards in a repository.
 type ProjectBoards []ProjectBoard
@@ -32,17 +32,17 @@ type ProjectBoard struct {
 
 const (
 	// None is a project board type that has no predefined columns
-	None ProjectType = iota
+	None ProjectBoardType = iota
 	// BasicKanban is a project board type that has basic predefined columns
 	BasicKanban
-	// BugTriage is a project type that has predefined columns suited to
+	// BugTriage is a project board type that has predefined columns suited to
 	// hunting down bugs
 	BugTriage
 )
 
 // ProjectsConfig is used to identify the type of board that is being created
 type ProjectsConfig struct {
-	Type        ProjectType
+	BoardType   ProjectBoardType
 	Translation string
 }
 
@@ -56,7 +56,7 @@ func GetProjectsConfig() []ProjectsConfig {
 }
 
 // IsProjectTypeValid checks if the project type is valid
-func IsProjectTypeValid(p ProjectType) bool {
+func IsProjectTypeValid(p ProjectBoardType) bool {
 	switch p {
 	case None, BasicKanban, BugTriage:
 		return true
@@ -76,7 +76,7 @@ type Project struct {
 	NumIssues       int
 	NumClosedIssues int
 	NumOpenIssues   int `xorm:"-"`
-	Type            ProjectType
+	BoardType       ProjectBoardType
 
 	RenderedContent string `xorm:"-"`
 
@@ -117,8 +117,8 @@ func GetProjects(repoID int64, page int, isClosed bool, sortType string) ([]*Pro
 
 // NewProject creates a new Project
 func NewProject(p *Project) error {
-	if !IsProjectTypeValid(p.Type) {
-		p.Type = None
+	if !IsProjectTypeValid(p.BoardType) {
+		p.BoardType = None
 	}
 
 	sess := x.NewSession()
@@ -147,7 +147,7 @@ func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
 
 	var items []string
 
-	switch project.Type {
+	switch project.BoardType {
 
 	case BugTriage:
 		items = setting.Repository.ProjectBoardBugTriageType

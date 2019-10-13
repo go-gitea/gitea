@@ -112,7 +112,7 @@ func NewProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 		Title:       form.Title,
 		Description: form.Content,
 		CreatorID:   ctx.User.ID,
-		Type:        form.Type,
+		BoardType:   form.BoardType,
 	}); err != nil {
 		ctx.ServerError("NewProject", err)
 		return
