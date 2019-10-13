@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -93,8 +94,11 @@ func runMigrateTask(t *models.Task) (err error) {
 		return err
 	}
 
-	repo, err := models.MigrateRepositoryGitData(t.Doer, t.Owner, t.Repo, *opts)
+	opts.MigrateToRepoID = t.RepoID
+	repo, err := migrations.MigrateRepository(t.Doer, t.Owner.Name, *opts)
 	if err == nil {
+		notification.NotifyMigrateRepository(t.Doer, t.Owner, repo)
+
 		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, t.Owner.Name, repo.Name)
 		return nil
 	}

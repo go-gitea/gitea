@@ -243,6 +243,7 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
 
 function initRepoStatusChecker() {
     const migrating = $("#repo_migrating");
+    $('#repo_migrating_failed').hide();
     if (migrating) {
         const repo_name = migrating.attr('repo');
         if (typeof repo_name === 'undefined') {
@@ -253,17 +254,23 @@ function initRepoStatusChecker() {
             url: suburl +"/"+repo_name+"/status",
             data: {
                 "_csrf": csrf,
-            }
-        }).done(function(resp) {
-            if (resp) {
-                if (resp["status"] == 0) {
-                    location.reload();
-                    return
+            },
+            complete: function(xhr) {
+                if (xhr.status == 200) {
+                    if (xhr.responseJSON) {
+                        if (xhr.responseJSON["status"] == 0) {
+                            location.reload();
+                            return
+                        }
+            
+                        setTimeout(function () {
+                            initRepoStatusChecker()
+                        }, 2000);
+                        return
+                    }
                 }
-    
-                setTimeout(function () {
-                    initRepoStatusChecker()
-                }, 2000);
+                $('#repo_migrating_progress').hide();
+                $('#repo_migrating_failed').show();
             }
         })
     }

@@ -15,8 +15,11 @@
 					</div>
 					<div class="ui stackable middle very relaxed page grid">
 						<div class="sixteen wide center aligned centered column">
-							<div>
+							<div id="repo_migrating_progress">
 								<p>{{.i18n.Tr "repo.migrate.migrating" .CloneAddr | Safe}}</p>
+							</div>
+							<div id="repo_migrating_failed">
+								<p>{{.i18n.Tr "repo.migrate.migrating_failed" .CloneAddr | Safe}}</p>
 							</div>
 						</div>
 					</div>
