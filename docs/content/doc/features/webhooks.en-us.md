@@ -17,7 +17,15 @@ menu:
 
 Gitea supports web hooks for repository events. This can be found in the settings
 page `/:username/:reponame/settings/hooks`. All event pushes are POST requests.
-The two methods currently supported are Gitea and Slack.
+The methods currently supported are:
+
+- Gitea
+- Gogs
+- Slack
+- Discord
+- Dingtalk
+- Telegram
+- Microsoft Teams
 
 ### Event information
 
@@ -104,3 +112,75 @@ X-Gitea-Event: push
   }
 }
 ```
+
+### Example
+
+This is an example of how to use webhooks to run a php script upon push requests to the repository.
+In your repository Settings, under Webhooks, Setup a Gitea webhook as follows:
+
+- Target URL: http://mydomain.com/webhook.php
+- HTTP Method: POST
+- POST Content Type: application/json
+- Secret: 123
+- Trigger On: Push Events
+- Active: Checked
+
+Now on your server create the php file webhook.php
+
+```
+<?php
+
+$secret_key = '123';
+
+// check for POST request
+if ($_SERVER['REQUEST_METHOD'] != 'POST') {
+    error_log('FAILED - not POST - '. $_SERVER['REQUEST_METHOD']);
+    exit();
+}
+
+// get content type
+$content_type = isset($_SERVER['CONTENT_TYPE']) ? strtolower(trim($_SERVER['CONTENT_TYPE'])) : '';
+
+if ($content_type != 'application/json') {
+    error_log('FAILED - not application/json - '. $content_type);
+    exit();
+}
+
+// get payload
+$payload = trim(file_get_contents("php://input"));
+
+if (empty($payload)) {
+    error_log('FAILED - no payload');
+    exit();
+}
+
+// get header signature
+$header_signature = isset($_SERVER['HTTP_X_GITEA_SIGNATURE']) ? $_SERVER['HTTP_X_GITEA_SIGNATURE'] : '';
+
+if (empty($header_signature)) {
+    error_log('FAILED - header signature missing');
+    exit();
+}
+
+// calculate payload signature
+$payload_signature = hash_hmac('sha256', $payload, $secret_key, false);
+
+// check payload signature against header signature
+if ($header_signature != $payload_signature) {
+    error_log('FAILED - payload signature');
+    exit();
+}
+
+// convert json to array
+$decoded = json_decode($payload, true);
+
+// check for json decode errors
+if (json_last_error() !== JSON_ERROR_NONE) {
+    error_log('FAILED - json decode - '. json_last_error());
+    exit();
+}
+
+// success, do something
+```
+
+There is a Test Delivery button in the webhook settings that allows to test the configuration as well as a list of the most Recent Deliveries.

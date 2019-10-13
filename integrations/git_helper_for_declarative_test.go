@@ -12,7 +12,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -37,7 +39,12 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 	err = ssh.GenKeyPair(keyFile)
 	assert.NoError(t, err)
 
+	err = ioutil.WriteFile(path.Join(tmpDir, "ssh"), []byte("#!/bin/bash\n"+
+		"ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"IdentitiesOnly=yes\" -i \""+keyFile+"\" \"$@\""), 0700)
+	assert.NoError(t, err)
+
 	//Setup ssh wrapper
+	os.Setenv("GIT_SSH", path.Join(tmpDir, "ssh"))
 	os.Setenv("GIT_SSH_COMMAND",
 		"ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -i \""+keyFile+"\"")
 	os.Setenv("GIT_SSH_VARIANT", "ssh")
@@ -52,6 +59,24 @@ func createSSHUrl(gitPath string, u *url.URL) *url.URL {
 	u2.Host = fmt.Sprintf("%s:%d", setting.SSH.ListenHost, setting.SSH.ListenPort)
 	u2.Path = gitPath
 	return &u2
+}
+
+func allowLFSFilters() []string {
+	// Now here we should explicitly allow lfs filters to run
+	globalArgs := git.GlobalCommandArgs
+	filteredLFSGlobalArgs := make([]string, len(git.GlobalCommandArgs))
+	j := 0
+	for _, arg := range git.GlobalCommandArgs {
+		if strings.Contains(arg, "lfs") {
+			j--
+		} else {
+			filteredLFSGlobalArgs[j] = arg
+			j++
+		}
+	}
+	filteredLFSGlobalArgs = filteredLFSGlobalArgs[:j]
+	git.GlobalCommandArgs = filteredLFSGlobalArgs
+	return globalArgs
 }
 
 func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL)) {
@@ -79,7 +104,9 @@ func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL)) {
 
 func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
+		oldGlobals := allowLFSFilters()
 		assert.NoError(t, git.Clone(u.String(), dstLocalPath, git.CloneRepoOptions{}))
+		git.GlobalCommandArgs = oldGlobals
 		assert.True(t, com.IsExist(filepath.Join(dstLocalPath, "README.md")))
 	}
 }
@@ -140,7 +167,9 @@ func doGitCreateBranch(dstPath, branch string) func(*testing.T) {
 
 func doGitCheckoutBranch(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
+		oldGlobals := allowLFSFilters()
 		_, err := git.NewCommand(append([]string{"checkout"}, args...)...).RunInDir(dstPath)
+		git.GlobalCommandArgs = oldGlobals
 		assert.NoError(t, err)
 	}
 }
@@ -154,7 +183,9 @@ func doGitMerge(dstPath string, args ...string) func(*testing.T) {
 
 func doGitPull(dstPath string, args ...string) func(*testing.T) {
 	return func(t *testing.T) {
+		oldGlobals := allowLFSFilters()
 		_, err := git.NewCommand(append([]string{"pull"}, args...)...).RunInDir(dstPath)
+		git.GlobalCommandArgs = oldGlobals
 		assert.NoError(t, err)
 	}
 }

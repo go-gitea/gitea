@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/structs"
 	release_service "code.gitea.io/gitea/services/release"
 
 	"github.com/stretchr/testify/assert"
@@ -26,16 +27,26 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repoPath := models.RepoPath(user.Name, repo.Name)
 
-	migrationOptions := models.MigrateRepoOptions{
-		Name:                 "test_mirror",
-		Description:          "Test mirror",
-		IsPrivate:            false,
-		IsMirror:             true,
-		RemoteAddr:           repoPath,
-		Wiki:                 true,
-		SyncReleasesWithTags: true,
+	opts := structs.MigrateRepoOption{
+		RepoName:    "test_mirror",
+		Description: "Test mirror",
+		Private:     false,
+		Mirror:      true,
+		CloneAddr:   repoPath,
+		Wiki:        true,
+		Releases:    false,
 	}
-	mirror, err := models.MigrateRepository(user, user, migrationOptions)
+
+	mirrorRepo, err := models.CreateRepository(user, user, models.CreateRepoOptions{
+		Name:        opts.RepoName,
+		Description: opts.Description,
+		IsPrivate:   opts.Private,
+		IsMirror:    opts.Mirror,
+		Status:      models.RepositoryBeingMigrated,
+	})
+	assert.NoError(t, err)
+
+	mirror, err := models.MigrateRepositoryGitData(user, user, mirrorRepo, opts)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(repoPath)
