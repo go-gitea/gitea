@@ -15,7 +15,10 @@ func addProjectsInfo(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	type ProjectType uint8
+	type (
+		ProjectType      uint8
+		ProjectBoardType uint8
+	)
 
 	type Project struct {
 		ID              int64  `xorm:"pk autoincr"`
@@ -27,7 +30,8 @@ func addProjectsInfo(x *xorm.Engine) error {
 		NumIssues       int
 		NumClosedIssues int
 
-		Type ProjectType
+		BoardType ProjectBoardType
+		Type      ProjectType
 
 		ClosedDateUnix timeutil.TimeStamp
 		CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`

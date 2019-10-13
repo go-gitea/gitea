@@ -5,46 +5,67 @@
 package models
 
 import (
+	"errors"
+
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"github.com/go-xorm/xorm"
 )
 
-// ProjectBoardType is used to represent a project board type
-type ProjectBoardType uint8
+type (
+	// ProjectsConfig is used to identify the type of board that is being created
+	ProjectsConfig struct {
+		BoardType   ProjectBoardType
+		Translation string
+	}
 
-// ProjectBoards is a list of all project boards in a repository.
-type ProjectBoards []ProjectBoard
+	// ProjectBoardType is used to represent a project board type
+	ProjectBoardType uint8
 
-// ProjectBoard is used to represent boards on a kanban project
-type ProjectBoard struct {
-	ID        int64 `xorm:"pk autoincr"`
-	ProjectID int64 `xorm:"INDEX NOT NULL"`
-	Title     string
-	RepoID    int64 `xorm:"INDEX NOT NULL"`
+	// ProjectBoards is a list of all project boards in a repository.
+	ProjectBoards []ProjectBoard
 
-	// Not really needed but helpful
-	CreatorID int64 `xorm:"NOT NULL"`
+	// ProjectBoard is used to represent boards on a kanban project
+	ProjectBoard struct {
+		ID        int64 `xorm:"pk autoincr"`
+		ProjectID int64 `xorm:"INDEX NOT NULL"`
+		Title     string
+		RepoID    int64 `xorm:"INDEX NOT NULL"`
 
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-}
+		// Not really needed but helpful
+		CreatorID int64 `xorm:"NOT NULL"`
+
+		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	}
+
+	// ProjectType is used to identify the type of project in question and
+	// ownership
+	ProjectType uint8
+)
 
 const (
 	// None is a project board type that has no predefined columns
 	None ProjectBoardType = iota
+
 	// BasicKanban is a project board type that has basic predefined columns
 	BasicKanban
+
 	// BugTriage is a project board type that has predefined columns suited to
 	// hunting down bugs
 	BugTriage
-)
 
-// ProjectsConfig is used to identify the type of board that is being created
-type ProjectsConfig struct {
-	BoardType   ProjectBoardType
-	Translation string
-}
+	// IndividualType is a type of project board that is owned by an
+	// individual.
+	IndividualType ProjectType = iota + 1
+
+	// RepositoryType is a project that is tied to a repository.
+	RepositoryType
+
+	// OrganizationType is a project that is tied to an organisation.
+	OrganizationType
+)
 
 // GetProjectsConfig retrieves the types of configurations projects could have
 func GetProjectsConfig() []ProjectsConfig {
@@ -55,10 +76,20 @@ func GetProjectsConfig() []ProjectsConfig {
 	}
 }
 
-// IsProjectTypeValid checks if the project type is valid
-func IsProjectTypeValid(p ProjectBoardType) bool {
+// IsProjectBoardTypeValid checks if the project board type is valid
+func IsProjectBoardTypeValid(p ProjectBoardType) bool {
 	switch p {
 	case None, BasicKanban, BugTriage:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsProjectTypeValid checks if a project typeis valid
+func IsProjectTypeValid(p ProjectType) bool {
+	switch p {
+	case IndividualType, RepositoryType, OrganizationType:
 		return true
 	default:
 		return false
@@ -77,6 +108,7 @@ type Project struct {
 	NumClosedIssues int
 	NumOpenIssues   int `xorm:"-"`
 	BoardType       ProjectBoardType
+	Type            ProjectType
 
 	RenderedContent string `xorm:"-"`
 
@@ -117,8 +149,12 @@ func GetProjects(repoID int64, page int, isClosed bool, sortType string) ([]*Pro
 
 // NewProject creates a new Project
 func NewProject(p *Project) error {
-	if !IsProjectTypeValid(p.BoardType) {
+	if !IsProjectBoardTypeValid(p.BoardType) {
 		p.BoardType = None
+	}
+
+	if !IsProjectTypeValid(p.Type) {
+		return errors.New("project type is not valid")
 	}
 
 	sess := x.NewSession()

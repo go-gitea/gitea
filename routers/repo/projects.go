@@ -97,8 +97,8 @@ func NewProject(ctx *context.Context) {
 	ctx.HTML(200, tplProjectsNew)
 }
 
-// NewProjectPost creates a new project
-func NewProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
+// NewRepoProjectPost creates a new project
+func NewRepoProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 
@@ -113,6 +113,7 @@ func NewProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
 		Description: form.Content,
 		CreatorID:   ctx.User.ID,
 		BoardType:   form.BoardType,
+		Type:        models.RepositoryType,
 	}); err != nil {
 		ctx.ServerError("NewProject", err)
 		return

@@ -821,7 +821,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 			m.Get("", repo.Projects)
 			m.Get("/new", repo.NewProject)
-			m.Post("/new", bindIgnErr(auth.CreateProjectForm{}), repo.NewProjectPost)
+			m.Post("/new", bindIgnErr(auth.CreateProjectForm{}), repo.NewRepoProjectPost)
 			m.Get("/:id", repo.ViewProject)
 			m.Get("/:id/:action", repo.ChangeProjectStatus)
 			m.Post("/:id/edit", bindIgnErr(auth.CreateProjectForm{}), repo.EditProjectPost)
