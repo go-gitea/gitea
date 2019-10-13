@@ -358,6 +358,15 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	sshOpLocker.Lock()
 	defer sshOpLocker.Unlock()
 
+	// First of ensure that the RootPath is present, and if not make it with 0700 permissions
+	// This of course doesn't guarantee that this is the right directory for authorized_keys
+	// but at least if it's supposed to be this directory and it doesn't exist and we're the
+	// right user it will at least be created properly.
+	err := os.MkdirAll(setting.SSH.RootPath, 0700)
+	if err != nil {
+		return err
+	}
+
 	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
 	f, err := os.OpenFile(fPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
