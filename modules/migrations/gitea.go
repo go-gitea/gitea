@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	gouuid "github.com/satori/go.uuid"
@@ -90,16 +91,33 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		remoteAddr = u.String()
 	}
 
-	r, err := models.MigrateRepository(g.doer, owner, models.MigrateRepoOptions{
-		Name:                 g.repoName,
-		Description:          repo.Description,
-		OriginalURL:          repo.OriginalURL,
-		IsMirror:             repo.IsMirror,
-		RemoteAddr:           remoteAddr,
-		IsPrivate:            repo.IsPrivate,
-		Wiki:                 opts.Wiki,
-		SyncReleasesWithTags: !opts.Releases, // if didn't get releases, then sync them from tags
+	var r *models.Repository
+	if opts.MigrateToRepoID <= 0 {
+		r, err = models.CreateRepository(g.doer, owner, models.CreateRepoOptions{
+			Name:        g.repoName,
+			Description: repo.Description,
+			OriginalURL: repo.OriginalURL,
+			IsPrivate:   opts.Private,
+			IsMirror:    opts.Mirror,
+			Status:      models.RepositoryBeingMigrated,
+		})
+	} else {
+		r, err = models.GetRepositoryByID(opts.MigrateToRepoID)
+	}
+	if err != nil {
+		return err
+	}
+
+	r, err = models.MigrateRepositoryGitData(g.doer, owner, r, structs.MigrateRepoOption{
+		RepoName:    g.repoName,
+		Description: repo.Description,
+		Mirror:      repo.IsMirror,
+		CloneAddr:   remoteAddr,
+		Private:     repo.IsPrivate,
+		Wiki:        opts.Wiki,
+		Releases:    opts.Releases, // if didn't get releases, then sync them from tags
 	})
+
 	g.repo = r
 	if err != nil {
 		return err
