@@ -24,10 +24,13 @@ Keys are also not checked with keyservers.
 
 A commit will be marked with a grey unlocked icon if no key can be
 found to verify it. If a commit is marked with a red unlocked icon,
-it is reported to be signed with a key with an id 
+it is reported to be signed with a key with an id.
 
 Please note: The signer of a commit does not have to be an author or
 committer of a commit.
+
+This functionality requires git >= 1.7.9 but for full functionality
+this requires git >= 2.0.0.
 
 ## Automatic Signing
 
