@@ -28,6 +28,9 @@ func IsBranchExist(repoPath, name string) bool {
 
 // IsBranchExist returns true if given branch exists in current repository.
 func (repo *Repository) IsBranchExist(name string) bool {
+	if name == "" {
+		return false
+	}
 	_, err := repo.gogitRepo.Reference(plumbing.ReferenceName(BranchPrefix+name), true)
 	return err == nil
 }
