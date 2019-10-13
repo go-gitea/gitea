@@ -387,11 +387,18 @@ func (c *Comment) MailParticipants(opType ActionType, issue *Issue) (err error) 
 }
 
 func (c *Comment) mailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
-	mentions := markup.FindAllMentions(c.Content)
-	if err = UpdateIssueMentions(e, c.IssueID, mentions); err != nil {
+	rawMentions := markup.FindAllMentions(c.Content)
+	userMentions, err := issue.ResolveMentionsByVisibility(e, c.Poster, rawMentions)
+	if err != nil {
+		return fmt.Errorf("ResolveMentionsByVisibility [%d]: %v", c.IssueID, err)
+	}
+	if err = UpdateIssueMentions(e, c.IssueID, userMentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
-
+	mentions := make([]string, len(userMentions))
+	for i, u := range userMentions {
+		mentions[i] = u.LowerName
+	}
 	if len(c.Content) > 0 {
 		if err = mailIssueCommentToParticipants(e, issue, c.Poster, c.Content, c, mentions); err != nil {
 			log.Error("mailIssueCommentToParticipants: %v", err)
