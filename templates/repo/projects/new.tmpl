@@ -35,12 +35,12 @@
 
 					<label>{{.i18n.Tr "repo.projects.template.desc"}}</label>
 						<div class="ui selection dropdown">
-							<input type="hidden" name="type" value="{{.type}}">
+							<input type="hidden" name="board_type" value="{{.type}}">
 							<div class="default text">{{.i18n.Tr "repo.projects.template.desc_helper"}}</div>
 							<div class="menu">
 
 		{{range $element := .ProjectTypes}}
-			<div class="item" data-id="{{$element.Type}}" data-value="{{$element.Type}}">{{$.i18n.Tr $element.Translation}}</div>
+			<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{$.i18n.Tr $element.Translation}}</div>
 		{{end}}
 							</div>
 						</div>

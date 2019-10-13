@@ -55,7 +55,9 @@ const (
 	// BugTriage is a project board type that has predefined columns suited to
 	// hunting down bugs
 	BugTriage
+)
 
+const (
 	// IndividualType is a type of project board that is owned by an
 	// individual.
 	IndividualType ProjectType = iota + 1
