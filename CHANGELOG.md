@@ -49,7 +49,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix API for edit and delete release attachment (#8285)
   * Fix nil object access in some conditions when parsing cross references (#8281)
   * Fix label count (#8267)
-  * Do only show teams access for organization repositories on collaboration setting page (#8265)
+  * Only show teams access for organization repositories on collaboration setting page (#8265)
   * Test more reserved usernames (#8263)
   * Rewrite reference processing code in preparation for opening/closing from comment references (#8261)
   * Fix assets key on release webhook (#8253)
