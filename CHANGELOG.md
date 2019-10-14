@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.10.0](https://github.com/go-gitea/gitea/releases/tag/v1.10.0) - 2019-10-14
+## [1.10.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.10.0-rc1) - 2019-10-14
 * BREAKING
   * Remove legacy handling of drone token (#8191)
   * Change repo search to use exact match for topic search. (#7941)
