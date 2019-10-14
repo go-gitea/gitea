@@ -283,7 +283,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Tweak label border CSS (#7739)
   * Fix create menu item widths (#7708)
   * Extract the username and password from the mirror url (#7651)
-  * [Branch View] Protection Symbole (delete dublicate) (#7624)
+  * [Branch View] Delete duplicate protection symbol (#7624)
   * [Branch View] Delete Table Header (#7622)
   * [Branch View] icons to buttons (#7602)
   * update js dependencies (#7462)
