@@ -808,3 +808,12 @@ IS_INPUT_FILE = false
 ENABLED = false
 ; If you want to add authorization, specify a token here
 TOKEN =
+
+[task]
+; Task queue type, could be `channel` or `redis`.
+QUEUE_TYPE = channel
+; Task queue length, available only when `QUEUE_TYPE` is `channel`.
+QUEUE_LENGTH = 1000
+; Task queue connction string, available only when `QUEUE_TYPE` is `redis`. 
+; If there is a password of redis, use `addrs=127.0.0.1:6379 password=123 db=0`.
+QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"

@@ -4,13 +4,31 @@
 
 package migrations
 
-import "github.com/go-xorm/xorm"
+import (
+	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 
-func addWhitelistDeployKeysToBranches(x *xorm.Engine) error {
-	type ProtectedBranch struct {
-		ID                  int64
-		WhitelistDeployKeys bool
+	"github.com/go-xorm/xorm"
+)
+
+func addTaskTable(x *xorm.Engine) error {
+	type Task struct {
+		ID             int64
+		DoerID         int64 `xorm:"index"` // operator
+		OwnerID        int64 `xorm:"index"` // repo owner id, when creating, the repoID maybe zero
+		RepoID         int64 `xorm:"index"`
+		Type           structs.TaskType
+		Status         structs.TaskStatus `xorm:"index"`
+		StartTime      timeutil.TimeStamp
+		EndTime        timeutil.TimeStamp
+		PayloadContent string             `xorm:"TEXT"`
+		Errors         string             `xorm:"TEXT"` // if task failed, saved the error reason
+		Created        timeutil.TimeStamp `xorm:"created"`
 	}
 
-	return x.Sync2(new(ProtectedBranch))
+	type Repository struct {
+		Status int `xorm:"NOT NULL DEFAULT 0"`
+	}
+
+	return x.Sync2(new(Task), new(Repository))
 }

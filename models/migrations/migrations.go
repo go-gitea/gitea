@@ -253,6 +253,8 @@ var migrations = []Migration{
 	// v98 -> v99
 	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
 	// v99 -> v100
+	NewMigration("add task table and status column for repository table", addTaskTable),
+	// v100 -> v101
 	NewMigration("Add WhitelistDeployKeys to protected branch", addWhitelistDeployKeysToBranches),
 }
 

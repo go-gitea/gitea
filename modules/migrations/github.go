@@ -34,7 +34,7 @@ type GithubDownloaderV3Factory struct {
 
 // Match returns ture if the migration remote URL matched this downloader factory
 func (f *GithubDownloaderV3Factory) Match(opts base.MigrateOptions) (bool, error) {
-	u, err := url.Parse(opts.RemoteURL)
+	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return false, err
 	}
@@ -44,7 +44,7 @@ func (f *GithubDownloaderV3Factory) Match(opts base.MigrateOptions) (bool, error
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GithubDownloaderV3Factory) New(opts base.MigrateOptions) (base.Downloader, error) {
-	u, err := url.Parse(opts.RemoteURL)
+	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return nil, err
 	}
