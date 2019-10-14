@@ -146,6 +146,9 @@ func (r *Repository) FileExists(path string, branch string) (bool, error) {
 // GetEditorconfig returns the .editorconfig definition if found in the
 // HEAD of the default repo branch.
 func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
+	if r.GitRepo == nil {
+		return nil, nil
+	}
 	commit, err := r.GitRepo.GetBranchCommit(r.Repository.DefaultBranch)
 	if err != nil {
 		return nil, err
@@ -358,12 +361,6 @@ func RepoAssignment() macaron.Handler {
 			return
 		}
 
-		gitRepo, err := git.OpenRepository(models.RepoPath(userName, repoName))
-		if err != nil {
-			ctx.ServerError("RepoAssignment Invalid repo "+models.RepoPath(userName, repoName), err)
-			return
-		}
-		ctx.Repo.GitRepo = gitRepo
 		ctx.Repo.RepoLink = repo.Link()
 		ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 		ctx.Data["RepoRelPath"] = ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
@@ -372,13 +369,6 @@ func RepoAssignment() macaron.Handler {
 		if err == nil {
 			ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 		}
-
-		tags, err := ctx.Repo.GitRepo.GetTags()
-		if err != nil {
-			ctx.ServerError("GetTags", err)
-			return
-		}
-		ctx.Data["Tags"] = tags
 
 		count, err := models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
 			IncludeDrafts: false,
@@ -425,12 +415,25 @@ func RepoAssignment() macaron.Handler {
 		}
 
 		// repo is empty and display enable
-		if ctx.Repo.Repository.IsEmpty {
+		if ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsBeingCreated() {
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
 			return
 		}
 
-		ctx.Data["TagName"] = ctx.Repo.TagName
+		gitRepo, err := git.OpenRepository(models.RepoPath(userName, repoName))
+		if err != nil {
+			ctx.ServerError("RepoAssignment Invalid repo "+models.RepoPath(userName, repoName), err)
+			return
+		}
+		ctx.Repo.GitRepo = gitRepo
+
+		tags, err := ctx.Repo.GitRepo.GetTags()
+		if err != nil {
+			ctx.ServerError("GetTags", err)
+			return
+		}
+		ctx.Data["Tags"] = tags
+
 		brs, err := ctx.Repo.GitRepo.GetBranches()
 		if err != nil {
 			ctx.ServerError("GetBranches", err)
@@ -438,6 +441,8 @@ func RepoAssignment() macaron.Handler {
 		}
 		ctx.Data["Branches"] = brs
 		ctx.Data["BranchesCount"] = len(brs)
+
+		ctx.Data["TagName"] = ctx.Repo.TagName
 
 		// If not branch selected, try default one.
 		// If default branch doesn't exists, fall back to some other branch.
