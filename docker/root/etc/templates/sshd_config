@@ -1,4 +1,4 @@
-Port ${SSH_PORT}
+Port ${SSH_LISTEN_PORT}
 Protocol 2
 
 AddressFamily any

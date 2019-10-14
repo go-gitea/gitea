@@ -812,8 +812,8 @@ honnef.co/go/tools v0.0.0-20190106161140-3f1c8253044a/go.mod h1:rf3lG4BRIbNafJWh
 honnef.co/go/tools v0.0.0-20190418001031-e561f6794a2a/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.1-2019.2.2/go.mod h1:a3bituU0lyd329TUQxRnasdCoJDkEUEAqEt0JzvZhAg=
-mvdan.cc/xurls/v2 v2.0.0 h1:r1zSOSNS/kqtpmATyMMMvaZ4/djsesbYz5kr0+qMRWc=
-mvdan.cc/xurls/v2 v2.0.0/go.mod h1:2/webFPYOXN9jp/lzuj0zuAVlF+9g4KPFJANH1oJhRU=
+mvdan.cc/xurls/v2 v2.1.0 h1:KaMb5GLhlcSX+e+qhbRJODnUUBvlw01jt4yrjFIHAuA=
+mvdan.cc/xurls/v2 v2.1.0/go.mod h1:5GrSd9rOnKOpZaji1OZLYL/yeAAtGDlo/cFe+8K5n8E=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251 h1:mUcz5b3FJbP5Cvdq7Khzn6J9OCUQJaBwgBkCR+MOwSs=
 strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251/go.mod h1:FJGmPh3vz9jSos1L/F91iAgnC/aejc0wIIrF2ZwJxdY=
