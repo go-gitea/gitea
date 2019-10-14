@@ -3148,6 +3148,6 @@ function onOAuthLoginClick() {
     },5000);
 }
 
-$("div.button").attr("tabindex", "0");
-$("div.dropdown").find("a.item").attr("tabindex", "-1");
-$("div.dropdown").find("i.dropdown.icon").attr("tabindex", "-1");
+$("div.button:not([tabindex])").attr("tabindex", "0");
+$("div.dropdown").find("a.item:not([tabindex])").attr("tabindex", "-1");
+$("div.dropdown").find("i.dropdown.icon:not([tabindex])").attr("tabindex", "-1");
