@@ -60,7 +60,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix data race (#8204)
   * Fix team user api (#8172)
   * Fix pull merge 500 error caused by git-fetch breaking behaviors (#8161)
-  * [fix #7384] make show private icon when repo avatar set (#8144)
+  * Make show private icon when repo avatar set (#8144)
   * Add reviewers as participants (#8121)
   * Fix Go 1.13 private repository go get issue (#8112)
   * feat: highlight issue references with : (#8101)
