@@ -136,6 +136,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * fix/define autochecked checkboxes on issue list in firefox (#7320)
   * only return head: null if source branch was deleted (#6705)
 * ENHANCEMENT
+  * Add nofollow to sign in links (#8509)
   * vendor: update mvdan.cc/xurls/v2 to v2.1.0 (#8495)
   * Update milestone issues numbers when save milestone and other code improvements (#8411)
   * Add extra user information when migrating release (#8331)
