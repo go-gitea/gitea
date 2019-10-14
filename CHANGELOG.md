@@ -11,7 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add pagination for admin api get orgs and fix only list public orgs bug (#7742)
   * Implement the ability to change the ssh port to match what is in the gitea config (#7286)
 * FEATURE
-  * org/members: display 2FA members states + optimize sql requests (#7621)
+  * Org/Members: display 2FA members states + optimize sql requests (#7621)
   * SetDefaultBranch on pushing to empty repository (#7610)
   * Adds side-by-side diff for images (#6784)
   * API method to list all commits of a repository (#6408)
@@ -30,9 +30,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix template bug on mirror repository setting page (#8438)
   * Fix migration v96 to keep issue attachments (#8435)
   * Update strk.kbt.io/projects/go/libravatar to latest (#8429)
-  * Revert "Fix issues/pr list broken when there are many repositories" (#8427)
   * Singular form for files that has only one line (#8416)
-  * Fix issues/pr list broken when there are many repositories (#8409)
   * Check for either escaped or unescaped wiki filenames (#8408)
   * Allow users with explicit read access to give approvals (#8382)
   * Fix editor commit to new branch if PR disabled (#8375)
