@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	// ConfigNameDefault represents the name of the configuration file
 	ConfigNameDefault = ".editorconfig"
 )
 
@@ -37,6 +38,7 @@ const (
 	CharsetUTF8    = "utf-8"
 	CharsetUTF16BE = "utf-16be"
 	CharsetUTF16LE = "utf-16le"
+	CharsetUTF8BOM = "utf-8 bom"
 )
 
 // Definition represents a definition inside the .editorconfig file.
@@ -81,28 +83,21 @@ func ParseBytes(data []byte) (*Editorconfig, error) {
 		var (
 			iniSection = iniFile.Section(sectionStr)
 			definition = &Definition{}
-			raw  = make(map[string]string)
+			raw        = make(map[string]string)
 		)
 		err := iniSection.MapTo(&definition)
 		if err != nil {
 			return nil, err
 		}
 
-		// tab_width defaults to indent_size:
-		// https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#tab_width
-		if definition.TabWidth <= 0 {
-			if num, err := strconv.Atoi(definition.IndentSize); err == nil {
-				definition.TabWidth = num
-			}
-		}
-
 		// Shallow copy all properties
 		for k, v := range iniSection.KeysHash() {
-			raw[k] = v
+			raw[strings.ToLower(k)] = v
 		}
 
 		definition.Selector = sectionStr
 		definition.Raw = raw
+		definition.normalize()
 		editorConfig.Definitions = append(editorConfig.Definitions, definition)
 	}
 	return editorConfig, nil
@@ -122,44 +117,18 @@ var (
 	regexpBraces = regexp.MustCompile("{.*}")
 )
 
-func filenameMatches(pattern, name string) bool {
-	// basic match
-	matched, _ := filepath.Match(pattern, name)
-	if matched {
-		return true
-	}
-	// foo/bar/main.go should match main.go
-	matched, _ = filepath.Match(pattern, filepath.Base(name))
-	if matched {
-		return true
-	}
-	// foo should match foo/main.go
-	matched, _ = filepath.Match(filepath.Join(pattern, "*"), name)
-	if matched {
-		return true
-	}
-	// *.{js,go} should match main.go
-	if str := regexpBraces.FindString(pattern); len(str) > 0 {
-		// remote initial "{" and final "}"
-		str = strings.TrimPrefix(str, "{")
-		str = strings.TrimSuffix(str, "}")
+// normalize fixes some values to their lowercaes value
+func (d *Definition) normalize() {
+	d.Charset = strings.ToLower(d.Charset)
+	d.EndOfLine = strings.ToLower(d.EndOfLine)
+	d.IndentStyle = strings.ToLower(d.IndentStyle)
 
-		// testing for empty brackets: "{}"
-		if len(str) == 0 {
-			patt := regexpBraces.ReplaceAllString(pattern, "*")
-			matched, _ = filepath.Match(patt, filepath.Base(name))
-			return matched
-		}
-
-		for _, patt := range strings.Split(str, ",") {
-			patt = regexpBraces.ReplaceAllString(pattern, patt)
-			matched, _ = filepath.Match(patt, filepath.Base(name))
-			if matched {
-				return true
-			}
-		}
+	// tab_width defaults to indent_size:
+	// https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#tab_width
+	num, err := strconv.Atoi(d.IndentSize)
+	if err == nil && d.TabWidth <= 0 {
+		d.TabWidth = num
 	}
-	return false
 }
 
 func (d *Definition) merge(md *Definition) {
@@ -192,26 +161,71 @@ func (d *Definition) merge(md *Definition) {
 	}
 }
 
+// InsertToIniFile ... TODO
 func (d *Definition) InsertToIniFile(iniFile *ini.File) {
 	iniSec := iniFile.Section(d.Selector)
 	for k, v := range d.Raw {
-		iniSec.Key(k).SetValue(v)
+		if k == "insert_final_newline" {
+			iniSec.Key(k).SetValue(strconv.FormatBool(d.InsertFinalNewline))
+		} else if k == "trim_trailing_whitespace" {
+			iniSec.Key(k).SetValue(strconv.FormatBool(d.TrimTrailingWhitespace))
+		} else if k == "charset" {
+			iniSec.Key(k).SetValue(d.Charset)
+		} else if k == "end_of_line" {
+			iniSec.Key(k).SetValue(d.EndOfLine)
+		} else if k == "indent_style" {
+			iniSec.Key(k).SetValue(d.IndentStyle)
+		} else if k == "tab_width" {
+			iniSec.Key(k).SetValue(strconv.Itoa(d.TabWidth))
+		} else if k == "indent_size" {
+			iniSec.Key(k).SetValue(d.IndentSize)
+		} else {
+			iniSec.Key(k).SetValue(v)
+		}
+	}
+	if _, ok := d.Raw["indent_size"]; !ok {
+		if d.TabWidth > 0 {
+			iniSec.Key("indent_size").SetValue(strconv.Itoa(d.TabWidth))
+		} else if d.IndentStyle == IndentStyleTab {
+			iniSec.Key("indent_size").SetValue(IndentStyleTab)
+		}
+	}
+
+	if _, ok := d.Raw["tab_width"]; !ok && len(d.IndentSize) > 0 {
+		if _, err := strconv.Atoi(d.IndentSize); err == nil {
+			iniSec.Key("tab_width").SetValue(d.IndentSize)
+		}
 	}
 }
 
 // GetDefinitionForFilename returns a definition for the given filename.
 // The result is a merge of the selectors that matched the file.
 // The last section has preference over the priors.
-func (e *Editorconfig) GetDefinitionForFilename(name string) *Definition {
+func (e *Editorconfig) GetDefinitionForFilename(name string) (*Definition, error) {
 	def := &Definition{}
 	def.Raw = make(map[string]string)
 	for i := len(e.Definitions) - 1; i >= 0; i-- {
 		actualDef := e.Definitions[i]
-		if filenameMatches(actualDef.Selector, name) {
+		selector := actualDef.Selector
+		if !strings.HasPrefix(selector, "/") {
+			if strings.ContainsRune(selector, '/') {
+				selector = "/" + selector
+			} else {
+				selector = "/**/" + selector
+			}
+		}
+		if !strings.HasPrefix(name, "/") {
+			name = "/" + name
+		}
+		ok, err := FnmatchCase(selector, name)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
 			def.merge(actualDef)
 		}
 	}
-	return def
+	return def, nil
 }
 
 func boolToString(b bool) string {
@@ -279,10 +293,23 @@ func GetDefinitionForFilenameWithConfigname(filename string, configname string) 
 		if err != nil {
 			return nil, err
 		}
-		definition.merge(ec.GetDefinitionForFilename(filename))
+
+		relativeFilename := filename
+		if len(dir) < len(abs) {
+			relativeFilename = abs[len(dir):]
+		}
+
+		def, err := ec.GetDefinitionForFilename(relativeFilename)
+		if err != nil {
+			return nil, err
+		}
+
+		definition.merge(def)
+
 		if ec.Root {
 			break
 		}
 	}
+
 	return definition, nil
 }
