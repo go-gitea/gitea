@@ -20,7 +20,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add additional password hash algorithms (#6023)
 * BUGFIXES
   * Fix errors in create org UI regarding team access permission (#8506)
-  * Nofollow to sign in links (#8509)
   * Fix bug on FindExternalUsersByProvider (#8504)
   * Create .ssh dir as necessary (#8486)
   * IsBranchExist: return false if provided name is empty (#8485)
