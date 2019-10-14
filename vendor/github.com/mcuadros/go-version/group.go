@@ -11,14 +11,14 @@ type ConstraintGroup struct {
 	constraints []*Constraint
 }
 
-// Return a new NewConstrainGroup
+// NewConstrainGroup returns a new NewConstrainGroup
 func NewConstrainGroup() *ConstraintGroup {
 	group := new(ConstraintGroup)
 
 	return group
 }
 
-// Return a new NewConstrainGroup and create the constraints based on a string
+// NewConstrainGroupFromString returns a new NewConstrainGroup and create the constraints based on a string
 //
 // Version constraints can be specified in a few different ways:
 //
@@ -55,7 +55,7 @@ func NewConstrainGroupFromString(name string) *ConstraintGroup {
 	return group
 }
 
-// Adds a Contraint to the group
+// AddConstraint adds a Contraint to the group
 func (self *ConstraintGroup) AddConstraint(constraint ...*Constraint) {
 	if self.constraints == nil {
 		self.constraints = make([]*Constraint, 0)
@@ -64,7 +64,7 @@ func (self *ConstraintGroup) AddConstraint(constraint ...*Constraint) {
 	self.constraints = append(self.constraints, constraint...)
 }
 
-// Return all the constraints
+// GetConstraints returns all the constraints
 func (self *ConstraintGroup) GetConstraints() []*Constraint {
 	return self.constraints
 }

@@ -273,9 +273,13 @@ func (c *ringShards) Heartbeat(frequency time.Duration) {
 
 // rebalance removes dead shards from the Ring.
 func (c *ringShards) rebalance() {
+	c.mu.RLock()
+	shards := c.shards
+	c.mu.RUnlock()
+
 	hash := newConsistentHash(c.opt)
 	var shardsNum int
-	for name, shard := range c.shards {
+	for name, shard := range shards {
 		if shard.IsUp() {
 			hash.Add(name)
 			shardsNum++
@@ -357,7 +361,8 @@ func NewRing(opt *RingOptions) *Ring {
 
 	ring.process = ring.defaultProcess
 	ring.processPipeline = ring.defaultProcessPipeline
-	ring.cmdable.setProcessor(ring.Process)
+
+	ring.init()
 
 	for name, addr := range opt.Addrs {
 		clopt := opt.clientOptions()
@@ -368,6 +373,10 @@ func NewRing(opt *RingOptions) *Ring {
 	go ring.shards.Heartbeat(opt.HeartbeatFrequency)
 
 	return ring
+}
+
+func (c *Ring) init() {
+	c.cmdable.setProcessor(c.Process)
 }
 
 func (c *Ring) Context() context.Context {
@@ -381,13 +390,15 @@ func (c *Ring) WithContext(ctx context.Context) *Ring {
 	if ctx == nil {
 		panic("nil context")
 	}
-	c2 := c.copy()
+	c2 := c.clone()
 	c2.ctx = ctx
 	return c2
 }
 
-func (c *Ring) copy() *Ring {
+func (c *Ring) clone() *Ring {
 	cp := *c
+	cp.init()
+
 	return &cp
 }
 
@@ -651,6 +662,39 @@ func (c *Ring) TxPipelined(fn func(Pipeliner) error) ([]Cmder, error) {
 // and shared between many goroutines.
 func (c *Ring) Close() error {
 	return c.shards.Close()
+}
+
+func (c *Ring) Watch(fn func(*Tx) error, keys ...string) error {
+	if len(keys) == 0 {
+		return fmt.Errorf("redis: Watch requires at least one key")
+	}
+
+	var shards []*ringShard
+	for _, key := range keys {
+		if key != "" {
+			shard, err := c.shards.GetByKey(hashtag.Key(key))
+			if err != nil {
+				return err
+			}
+
+			shards = append(shards, shard)
+		}
+	}
+
+	if len(shards) == 0 {
+		return fmt.Errorf("redis: Watch requires at least one shard")
+	}
+
+	if len(shards) > 1 {
+		for _, shard := range shards[1:] {
+			if shard.Client != shards[0].Client {
+				err := fmt.Errorf("redis: Watch requires all keys to be in the same shard")
+				return err
+			}
+		}
+	}
+
+	return shards[0].Client.Watch(fn, keys...)
 }
 
 func newConsistentHash(opt *RingOptions) *consistenthash.Map {

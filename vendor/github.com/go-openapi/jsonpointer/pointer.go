@@ -135,7 +135,7 @@ func getSingleImpl(node interface{}, decodedToken string, nameProvider *swag.Nam
 		kv := reflect.ValueOf(decodedToken)
 		mv := rValue.MapIndex(kv)
 
-		if mv.IsValid() {
+		if mv.IsValid() && !swag.IsZero(mv) {
 			return mv.Interface(), kind, nil
 		}
 		return nil, kind, fmt.Errorf("object has no key %q", decodedToken)

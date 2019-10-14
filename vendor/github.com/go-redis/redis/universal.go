@@ -155,6 +155,7 @@ type UniversalClient interface {
 	Watch(fn func(*Tx) error, keys ...string) error
 	Process(cmd Cmder) error
 	WrapProcess(fn func(oldProcess func(cmd Cmder) error) func(cmd Cmder) error)
+	WrapProcessPipeline(fn func(oldProcess func([]Cmder) error) func([]Cmder) error)
 	Subscribe(channels ...string) *PubSub
 	PSubscribe(channels ...string) *PubSub
 	Close() error

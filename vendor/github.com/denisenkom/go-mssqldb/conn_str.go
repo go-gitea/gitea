@@ -205,6 +205,9 @@ func parseConnectParams(dsn string) (connectParams, error) {
 	appintent, ok := params["applicationintent"]
 	if ok {
 		if appintent == "ReadOnly" {
+			if p.database == "" {
+				return p, fmt.Errorf("Database must be specified when ApplicationIntent is ReadOnly")
+			}
 			p.typeFlags |= fReadOnlyIntent
 		}
 	}

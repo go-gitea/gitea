@@ -240,14 +240,11 @@ func (b *Base64) UnmarshalText(data []byte) error { // validation is performed l
 func (b *Base64) Scan(raw interface{}) error {
 	switch v := raw.(type) {
 	case []byte:
-		dbuf := make([]byte, base64.StdEncoding.DecodedLen(len(v)))
-		n, err := base64.StdEncoding.Decode(dbuf, v)
-		if err != nil {
+		if err := b.UnmarshalText(v); err != nil {
 			return err
 		}
-		*b = dbuf[:n]
 	case string:
-		vv, err := base64.StdEncoding.DecodeString(v)
+		vv, err := base64.URLEncoding.DecodeString(v)
 		if err != nil {
 			return err
 		}
@@ -265,7 +262,7 @@ func (b Base64) Value() (driver.Value, error) {
 }
 
 func (b Base64) String() string {
-	return base64.StdEncoding.EncodeToString([]byte(b))
+	return base64.URLEncoding.EncodeToString([]byte(b))
 }
 
 // MarshalJSON returns the Base64 as JSON
@@ -279,7 +276,7 @@ func (b *Base64) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &b64str); err != nil {
 		return err
 	}
-	vb, err := base64.StdEncoding.DecodeString(b64str)
+	vb, err := base64.URLEncoding.DecodeString(b64str)
 	if err != nil {
 		return err
 	}
@@ -300,7 +297,7 @@ func (b *Base64) UnmarshalBSON(data []byte) error {
 	}
 
 	if bd, ok := m["data"].(string); ok {
-		vb, err := base64.StdEncoding.DecodeString(bd)
+		vb, err := base64.URLEncoding.DecodeString(bd)
 		if err != nil {
 			return err
 		}

@@ -36,3 +36,12 @@ oid.Verify(...)
 ## License
 
 Distributed under the [Apache v2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
+
+## Libraries
+
+Here is a set of libraries I found on GitHub that could make using this library easier depending on your backends. I haven't tested them, this list is for reference only, and in no particular order:
+
+- [Gacnt/myopenid](https://github.com/Gacnt/myopenid) "A Yohcop-Openid Nonce/Discovery storage replacement", using MySQL.
+- [Gacnt/sqlxid](https://github.com/Gacnt/sqlxid) "An SQLX Adapter for Nonce / Discovery Cache store"
+- [Gacnt/gormid](https://github.com/Gacnt/gormid) "Use GORM (Go Object Relational Mapping) to store OpenID DiscoveryCache / Nonce in a database"
+- [hectorj/mysqlOpenID](https://github.com/hectorj/mysqlOpenID) "MySQL OpenID is a package to replace the in memory storage of discoveryCache and nonceStore."

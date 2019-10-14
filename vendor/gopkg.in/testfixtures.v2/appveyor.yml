@@ -27,7 +27,7 @@ environment:
   MINGW_PATH: C:\MinGW
 
   GOPATH: C:\GOPATH
-  GOVERSION: 1.10.3
+  GOVERSION: 1.11.2
 
 install:
   - SET PATH=%POSTGRES_PATH%\bin;%MYSQL_PATH%\bin;%MINGW_PATH%\bin;%PATH%

@@ -19,4 +19,4 @@
 //   }
 package cli
 
-//go:generate python ./generate-flag-types cli -i flag-types.json -o flag_generated.go
+//go:generate go run flag-gen/main.go flag-gen/assets_vfsdata.go

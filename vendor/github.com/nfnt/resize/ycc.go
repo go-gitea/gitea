@@ -88,70 +88,34 @@ func newYCC(r image.Rectangle, s image.YCbCrSubsampleRatio) *ycc {
 	return &ycc{Pix: buf, Stride: 3 * w, Rect: r, SubsampleRatio: s}
 }
 
+// Copy of image.YCbCrSubsampleRatio constants - this allows us to support
+// older versions of Go where these constants are not defined (i.e. Go 1.4)
+const (
+	ycbcrSubsampleRatio444 image.YCbCrSubsampleRatio = iota
+	ycbcrSubsampleRatio422
+	ycbcrSubsampleRatio420
+	ycbcrSubsampleRatio440
+	ycbcrSubsampleRatio411
+	ycbcrSubsampleRatio410
+)
+
 // YCbCr converts ycc to a YCbCr image with the same subsample ratio
 // as the YCbCr image that ycc was generated from.
 func (p *ycc) YCbCr() *image.YCbCr {
 	ycbcr := image.NewYCbCr(p.Rect, p.SubsampleRatio)
-	var off int
-
 	switch ycbcr.SubsampleRatio {
-	case image.YCbCrSubsampleRatio422:
-		for y := ycbcr.Rect.Min.Y; y < ycbcr.Rect.Max.Y; y++ {
-			yy := (y - ycbcr.Rect.Min.Y) * ycbcr.YStride
-			cy := (y - ycbcr.Rect.Min.Y) * ycbcr.CStride
-			for x := ycbcr.Rect.Min.X; x < ycbcr.Rect.Max.X; x++ {
-				xx := (x - ycbcr.Rect.Min.X)
-				yi := yy + xx
-				ci := cy + xx/2
-				ycbcr.Y[yi] = p.Pix[off+0]
-				ycbcr.Cb[ci] = p.Pix[off+1]
-				ycbcr.Cr[ci] = p.Pix[off+2]
-				off += 3
-			}
-		}
-	case image.YCbCrSubsampleRatio420:
-		for y := ycbcr.Rect.Min.Y; y < ycbcr.Rect.Max.Y; y++ {
-			yy := (y - ycbcr.Rect.Min.Y) * ycbcr.YStride
-			cy := (y/2 - ycbcr.Rect.Min.Y/2) * ycbcr.CStride
-			for x := ycbcr.Rect.Min.X; x < ycbcr.Rect.Max.X; x++ {
-				xx := (x - ycbcr.Rect.Min.X)
-				yi := yy + xx
-				ci := cy + xx/2
-				ycbcr.Y[yi] = p.Pix[off+0]
-				ycbcr.Cb[ci] = p.Pix[off+1]
-				ycbcr.Cr[ci] = p.Pix[off+2]
-				off += 3
-			}
-		}
-	case image.YCbCrSubsampleRatio440:
-		for y := ycbcr.Rect.Min.Y; y < ycbcr.Rect.Max.Y; y++ {
-			yy := (y - ycbcr.Rect.Min.Y) * ycbcr.YStride
-			cy := (y/2 - ycbcr.Rect.Min.Y/2) * ycbcr.CStride
-			for x := ycbcr.Rect.Min.X; x < ycbcr.Rect.Max.X; x++ {
-				xx := (x - ycbcr.Rect.Min.X)
-				yi := yy + xx
-				ci := cy + xx
-				ycbcr.Y[yi] = p.Pix[off+0]
-				ycbcr.Cb[ci] = p.Pix[off+1]
-				ycbcr.Cr[ci] = p.Pix[off+2]
-				off += 3
-			}
-		}
-	default:
-		// Default to 4:4:4 subsampling.
-		for y := ycbcr.Rect.Min.Y; y < ycbcr.Rect.Max.Y; y++ {
-			yy := (y - ycbcr.Rect.Min.Y) * ycbcr.YStride
-			cy := (y - ycbcr.Rect.Min.Y) * ycbcr.CStride
-			for x := ycbcr.Rect.Min.X; x < ycbcr.Rect.Max.X; x++ {
-				xx := (x - ycbcr.Rect.Min.X)
-				yi := yy + xx
-				ci := cy + xx
-				ycbcr.Y[yi] = p.Pix[off+0]
-				ycbcr.Cb[ci] = p.Pix[off+1]
-				ycbcr.Cr[ci] = p.Pix[off+2]
-				off += 3
-			}
-		}
+	case ycbcrSubsampleRatio422:
+		return p.ycbcr422(ycbcr)
+	case ycbcrSubsampleRatio420:
+		return p.ycbcr420(ycbcr)
+	case ycbcrSubsampleRatio440:
+		return p.ycbcr440(ycbcr)
+	case ycbcrSubsampleRatio444:
+		return p.ycbcr444(ycbcr)
+	case ycbcrSubsampleRatio411:
+		return p.ycbcr411(ycbcr)
+	case ycbcrSubsampleRatio410:
+		return p.ycbcr410(ycbcr)
 	}
 	return ycbcr
 }
@@ -159,69 +123,265 @@ func (p *ycc) YCbCr() *image.YCbCr {
 // imageYCbCrToYCC converts a YCbCr image to a ycc image for resizing.
 func imageYCbCrToYCC(in *image.YCbCr) *ycc {
 	w, h := in.Rect.Dx(), in.Rect.Dy()
-	r := image.Rect(0, 0, w, h)
-	buf := make([]uint8, 3*w*h)
-	p := ycc{Pix: buf, Stride: 3 * w, Rect: r, SubsampleRatio: in.SubsampleRatio}
-	var off int
-
+	p := ycc{
+		Pix:            make([]uint8, 3*w*h),
+		Stride:         3 * w,
+		Rect:           image.Rect(0, 0, w, h),
+		SubsampleRatio: in.SubsampleRatio,
+	}
 	switch in.SubsampleRatio {
-	case image.YCbCrSubsampleRatio422:
-		for y := in.Rect.Min.Y; y < in.Rect.Max.Y; y++ {
-			yy := (y - in.Rect.Min.Y) * in.YStride
-			cy := (y - in.Rect.Min.Y) * in.CStride
-			for x := in.Rect.Min.X; x < in.Rect.Max.X; x++ {
-				xx := (x - in.Rect.Min.X)
-				yi := yy + xx
-				ci := cy + xx/2
-				p.Pix[off+0] = in.Y[yi]
-				p.Pix[off+1] = in.Cb[ci]
-				p.Pix[off+2] = in.Cr[ci]
-				off += 3
-			}
-		}
-	case image.YCbCrSubsampleRatio420:
-		for y := in.Rect.Min.Y; y < in.Rect.Max.Y; y++ {
-			yy := (y - in.Rect.Min.Y) * in.YStride
-			cy := (y/2 - in.Rect.Min.Y/2) * in.CStride
-			for x := in.Rect.Min.X; x < in.Rect.Max.X; x++ {
-				xx := (x - in.Rect.Min.X)
-				yi := yy + xx
-				ci := cy + xx/2
-				p.Pix[off+0] = in.Y[yi]
-				p.Pix[off+1] = in.Cb[ci]
-				p.Pix[off+2] = in.Cr[ci]
-				off += 3
-			}
-		}
-	case image.YCbCrSubsampleRatio440:
-		for y := in.Rect.Min.Y; y < in.Rect.Max.Y; y++ {
-			yy := (y - in.Rect.Min.Y) * in.YStride
-			cy := (y/2 - in.Rect.Min.Y/2) * in.CStride
-			for x := in.Rect.Min.X; x < in.Rect.Max.X; x++ {
-				xx := (x - in.Rect.Min.X)
-				yi := yy + xx
-				ci := cy + xx
-				p.Pix[off+0] = in.Y[yi]
-				p.Pix[off+1] = in.Cb[ci]
-				p.Pix[off+2] = in.Cr[ci]
-				off += 3
-			}
-		}
-	default:
-		// Default to 4:4:4 subsampling.
-		for y := in.Rect.Min.Y; y < in.Rect.Max.Y; y++ {
-			yy := (y - in.Rect.Min.Y) * in.YStride
-			cy := (y - in.Rect.Min.Y) * in.CStride
-			for x := in.Rect.Min.X; x < in.Rect.Max.X; x++ {
-				xx := (x - in.Rect.Min.X)
-				yi := yy + xx
-				ci := cy + xx
-				p.Pix[off+0] = in.Y[yi]
-				p.Pix[off+1] = in.Cb[ci]
-				p.Pix[off+2] = in.Cr[ci]
-				off += 3
-			}
-		}
+	case ycbcrSubsampleRatio422:
+		return convertToYCC422(in, &p)
+	case ycbcrSubsampleRatio420:
+		return convertToYCC420(in, &p)
+	case ycbcrSubsampleRatio440:
+		return convertToYCC440(in, &p)
+	case ycbcrSubsampleRatio444:
+		return convertToYCC444(in, &p)
+	case ycbcrSubsampleRatio411:
+		return convertToYCC411(in, &p)
+	case ycbcrSubsampleRatio410:
+		return convertToYCC410(in, &p)
 	}
 	return &p
+}
+
+func (p *ycc) ycbcr422(ycbcr *image.YCbCr) *image.YCbCr {
+	var off int
+	Pix := p.Pix
+	Y := ycbcr.Y
+	Cb := ycbcr.Cb
+	Cr := ycbcr.Cr
+	for y := 0; y < ycbcr.Rect.Max.Y-ycbcr.Rect.Min.Y; y++ {
+		yy := y * ycbcr.YStride
+		cy := y * ycbcr.CStride
+		for x := 0; x < ycbcr.Rect.Max.X-ycbcr.Rect.Min.X; x++ {
+			ci := cy + x/2
+			Y[yy+x] = Pix[off+0]
+			Cb[ci] = Pix[off+1]
+			Cr[ci] = Pix[off+2]
+			off += 3
+		}
+	}
+	return ycbcr
+}
+
+func (p *ycc) ycbcr420(ycbcr *image.YCbCr) *image.YCbCr {
+	var off int
+	Pix := p.Pix
+	Y := ycbcr.Y
+	Cb := ycbcr.Cb
+	Cr := ycbcr.Cr
+	for y := 0; y < ycbcr.Rect.Max.Y-ycbcr.Rect.Min.Y; y++ {
+		yy := y * ycbcr.YStride
+		cy := (y / 2) * ycbcr.CStride
+		for x := 0; x < ycbcr.Rect.Max.X-ycbcr.Rect.Min.X; x++ {
+			ci := cy + x/2
+			Y[yy+x] = Pix[off+0]
+			Cb[ci] = Pix[off+1]
+			Cr[ci] = Pix[off+2]
+			off += 3
+		}
+	}
+	return ycbcr
+}
+
+func (p *ycc) ycbcr440(ycbcr *image.YCbCr) *image.YCbCr {
+	var off int
+	Pix := p.Pix
+	Y := ycbcr.Y
+	Cb := ycbcr.Cb
+	Cr := ycbcr.Cr
+	for y := 0; y < ycbcr.Rect.Max.Y-ycbcr.Rect.Min.Y; y++ {
+		yy := y * ycbcr.YStride
+		cy := (y / 2) * ycbcr.CStride
+		for x := 0; x < ycbcr.Rect.Max.X-ycbcr.Rect.Min.X; x++ {
+			ci := cy + x
+			Y[yy+x] = Pix[off+0]
+			Cb[ci] = Pix[off+1]
+			Cr[ci] = Pix[off+2]
+			off += 3
+		}
+	}
+	return ycbcr
+}
+
+func (p *ycc) ycbcr444(ycbcr *image.YCbCr) *image.YCbCr {
+	var off int
+	Pix := p.Pix
+	Y := ycbcr.Y
+	Cb := ycbcr.Cb
+	Cr := ycbcr.Cr
+	for y := 0; y < ycbcr.Rect.Max.Y-ycbcr.Rect.Min.Y; y++ {
+		yy := y * ycbcr.YStride
+		cy := y * ycbcr.CStride
+		for x := 0; x < ycbcr.Rect.Max.X-ycbcr.Rect.Min.X; x++ {
+			ci := cy + x
+			Y[yy+x] = Pix[off+0]
+			Cb[ci] = Pix[off+1]
+			Cr[ci] = Pix[off+2]
+			off += 3
+		}
+	}
+	return ycbcr
+}
+
+func (p *ycc) ycbcr411(ycbcr *image.YCbCr) *image.YCbCr {
+	var off int
+	Pix := p.Pix
+	Y := ycbcr.Y
+	Cb := ycbcr.Cb
+	Cr := ycbcr.Cr
+	for y := 0; y < ycbcr.Rect.Max.Y-ycbcr.Rect.Min.Y; y++ {
+		yy := y * ycbcr.YStride
+		cy := y * ycbcr.CStride
+		for x := 0; x < ycbcr.Rect.Max.X-ycbcr.Rect.Min.X; x++ {
+			ci := cy + x/4
+			Y[yy+x] = Pix[off+0]
+			Cb[ci] = Pix[off+1]
+			Cr[ci] = Pix[off+2]
+			off += 3
+		}
+	}
+	return ycbcr
+}
+
+func (p *ycc) ycbcr410(ycbcr *image.YCbCr) *image.YCbCr {
+	var off int
+	Pix := p.Pix
+	Y := ycbcr.Y
+	Cb := ycbcr.Cb
+	Cr := ycbcr.Cr
+	for y := 0; y < ycbcr.Rect.Max.Y-ycbcr.Rect.Min.Y; y++ {
+		yy := y * ycbcr.YStride
+		cy := (y / 2) * ycbcr.CStride
+		for x := 0; x < ycbcr.Rect.Max.X-ycbcr.Rect.Min.X; x++ {
+			ci := cy + x/4
+			Y[yy+x] = Pix[off+0]
+			Cb[ci] = Pix[off+1]
+			Cr[ci] = Pix[off+2]
+			off += 3
+		}
+	}
+	return ycbcr
+}
+
+func convertToYCC422(in *image.YCbCr, p *ycc) *ycc {
+	var off int
+	Pix := p.Pix
+	Y := in.Y
+	Cb := in.Cb
+	Cr := in.Cr
+	for y := 0; y < in.Rect.Max.Y-in.Rect.Min.Y; y++ {
+		yy := y * in.YStride
+		cy := y * in.CStride
+		for x := 0; x < in.Rect.Max.X-in.Rect.Min.X; x++ {
+			ci := cy + x/2
+			Pix[off+0] = Y[yy+x]
+			Pix[off+1] = Cb[ci]
+			Pix[off+2] = Cr[ci]
+			off += 3
+		}
+	}
+	return p
+}
+
+func convertToYCC420(in *image.YCbCr, p *ycc) *ycc {
+	var off int
+	Pix := p.Pix
+	Y := in.Y
+	Cb := in.Cb
+	Cr := in.Cr
+	for y := 0; y < in.Rect.Max.Y-in.Rect.Min.Y; y++ {
+		yy := y * in.YStride
+		cy := (y / 2) * in.CStride
+		for x := 0; x < in.Rect.Max.X-in.Rect.Min.X; x++ {
+			ci := cy + x/2
+			Pix[off+0] = Y[yy+x]
+			Pix[off+1] = Cb[ci]
+			Pix[off+2] = Cr[ci]
+			off += 3
+		}
+	}
+	return p
+}
+
+func convertToYCC440(in *image.YCbCr, p *ycc) *ycc {
+	var off int
+	Pix := p.Pix
+	Y := in.Y
+	Cb := in.Cb
+	Cr := in.Cr
+	for y := 0; y < in.Rect.Max.Y-in.Rect.Min.Y; y++ {
+		yy := y * in.YStride
+		cy := (y / 2) * in.CStride
+		for x := 0; x < in.Rect.Max.X-in.Rect.Min.X; x++ {
+			ci := cy + x
+			Pix[off+0] = Y[yy+x]
+			Pix[off+1] = Cb[ci]
+			Pix[off+2] = Cr[ci]
+			off += 3
+		}
+	}
+	return p
+}
+
+func convertToYCC444(in *image.YCbCr, p *ycc) *ycc {
+	var off int
+	Pix := p.Pix
+	Y := in.Y
+	Cb := in.Cb
+	Cr := in.Cr
+	for y := 0; y < in.Rect.Max.Y-in.Rect.Min.Y; y++ {
+		yy := y * in.YStride
+		cy := y * in.CStride
+		for x := 0; x < in.Rect.Max.X-in.Rect.Min.X; x++ {
+			ci := cy + x
+			Pix[off+0] = Y[yy+x]
+			Pix[off+1] = Cb[ci]
+			Pix[off+2] = Cr[ci]
+			off += 3
+		}
+	}
+	return p
+}
+
+func convertToYCC411(in *image.YCbCr, p *ycc) *ycc {
+	var off int
+	Pix := p.Pix
+	Y := in.Y
+	Cb := in.Cb
+	Cr := in.Cr
+	for y := 0; y < in.Rect.Max.Y-in.Rect.Min.Y; y++ {
+		yy := y * in.YStride
+		cy := y * in.CStride
+		for x := 0; x < in.Rect.Max.X-in.Rect.Min.X; x++ {
+			ci := cy + x/4
+			Pix[off+0] = Y[yy+x]
+			Pix[off+1] = Cb[ci]
+			Pix[off+2] = Cr[ci]
+			off += 3
+		}
+	}
+	return p
+}
+
+func convertToYCC410(in *image.YCbCr, p *ycc) *ycc {
+	var off int
+	Pix := p.Pix
+	Y := in.Y
+	Cb := in.Cb
+	Cr := in.Cr
+	for y := 0; y < in.Rect.Max.Y-in.Rect.Min.Y; y++ {
+		yy := y * in.YStride
+		cy := (y / 2) * in.CStride
+		for x := 0; x < in.Rect.Max.X-in.Rect.Min.X; x++ {
+			ci := cy + x/4
+			Pix[off+0] = Y[yy+x]
+			Pix[off+1] = Cb[ci]
+			Pix[off+2] = Cr[ci]
+			off += 3
+		}
+	}
+	return p
 }

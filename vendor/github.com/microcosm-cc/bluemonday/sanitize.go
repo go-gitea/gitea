@@ -33,9 +33,16 @@ import (
 	"bytes"
 	"io"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"golang.org/x/net/html"
+)
+
+var (
+	dataAttribute             = regexp.MustCompile("^data-.+")
+	dataAttributeXMLPrefix    = regexp.MustCompile("^xml.+")
+	dataAttributeInvalidChars = regexp.MustCompile("[A-Z;]+")
 )
 
 // Sanitize takes a string that contains a HTML fragment or document and applies
@@ -112,9 +119,13 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 		switch token.Type {
 		case html.DoctypeToken:
 
-			if p.allowDocType {
-				buff.WriteString(token.String())
-			}
+			// DocType is not handled as there is no safe parsing mechanism
+			// provided by golang.org/x/net/html for the content, and this can
+			// be misused to insert HTML tags that are not then sanitized
+			//
+			// One might wish to recursively sanitize here using the same policy
+			// but I will need to do some further testing before considering
+			// this.
 
 		case html.CommentToken:
 
@@ -156,6 +167,10 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 			}
 
 		case html.EndTagToken:
+
+			if mostRecentlyStartedToken == token.Data {
+				mostRecentlyStartedToken = ""
+			}
 
 			if skipClosingTag && closingTagToSkipStack[len(closingTagToSkipStack)-1] == token.Data {
 				closingTagToSkipStack = closingTagToSkipStack[:len(closingTagToSkipStack)-1]
@@ -213,8 +228,8 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 		case html.TextToken:
 
 			if !skipElementContent {
-				switch strings.ToLower(mostRecentlyStartedToken) {
-				case "javascript":
+				switch mostRecentlyStartedToken {
+				case "script":
 					// not encouraged, but if a policy allows JavaScript we
 					// should not HTML escape it as that would break the output
 					buff.WriteString(token.Data)
@@ -227,7 +242,6 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 					buff.WriteString(token.String())
 				}
 			}
-
 		default:
 			// A token that didn't exist in the html package when we wrote this
 			return &bytes.Buffer{}
@@ -252,6 +266,13 @@ func (p *Policy) sanitizeAttrs(
 	// whitelisted explicitly or globally.
 	cleanAttrs := []html.Attribute{}
 	for _, htmlAttr := range attrs {
+		if p.allowDataAttributes {
+			// If we see a data attribute, let it through.
+			if isDataAttribute(htmlAttr.Key) {
+				cleanAttrs = append(cleanAttrs, htmlAttr)
+				continue
+			}
+		}
 		// Is there an element specific attribute policy that applies?
 		if ap, ok := aps[htmlAttr.Key]; ok {
 			if ap.regexp != nil {
@@ -267,6 +288,7 @@ func (p *Policy) sanitizeAttrs(
 
 		// Is there a global attribute policy that applies?
 		if ap, ok := p.globalAttrs[htmlAttr.Key]; ok {
+
 			if ap.regexp != nil {
 				if ap.regexp.MatchString(htmlAttr.Val) {
 					cleanAttrs = append(cleanAttrs, htmlAttr)
@@ -486,13 +508,18 @@ func (p *Policy) allowNoAttrs(elementName string) bool {
 
 func (p *Policy) validURL(rawurl string) (string, bool) {
 	if p.requireParseableURLs {
-		// URLs do not contain whitespace
-		if strings.Contains(rawurl, " ") ||
+		// URLs are valid if when space is trimmed the URL is valid
+		rawurl = strings.TrimSpace(rawurl)
+
+		// URLs cannot contain whitespace, unless it is a data-uri
+		if (strings.Contains(rawurl, " ") ||
 			strings.Contains(rawurl, "\t") ||
-			strings.Contains(rawurl, "\n") {
+			strings.Contains(rawurl, "\n")) &&
+			!strings.HasPrefix(rawurl, `data:`) {
 			return "", false
 		}
 
+		// URLs are valid if they parse
 		u, err := url.Parse(rawurl)
 		if err != nil {
 			return "", false
@@ -532,4 +559,23 @@ func linkable(elementName string) bool {
 	default:
 		return false
 	}
+}
+
+func isDataAttribute(val string) bool {
+	if !dataAttribute.MatchString(val) {
+		return false
+	}
+	rest := strings.Split(val, "data-")
+	if len(rest) == 1 {
+		return false
+	}
+	// data-xml* is invalid.
+	if dataAttributeXMLPrefix.MatchString(rest[1]) {
+		return false
+	}
+	// no uppercase or semi-colons allowed.
+	if dataAttributeInvalidChars.MatchString(rest[1]) {
+		return false
+	}
+	return true
 }

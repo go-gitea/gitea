@@ -90,9 +90,7 @@ func NewFailoverClient(failoverOpt *FailoverOptions) *Client {
 			opt:      opt,
 			connPool: failover.Pool(),
 
-			onClose: func() error {
-				return failover.Close()
-			},
+			onClose: failover.Close,
 		},
 	}
 	c.baseClient.init()
@@ -182,6 +180,21 @@ func (c *SentinelClient) Reset(pattern string) *IntCmd {
 	return cmd
 }
 
+// FlushConfig forces Sentinel to rewrite its configuration on disk, including
+// the current Sentinel state.
+func (c *SentinelClient) FlushConfig() *StatusCmd {
+	cmd := NewStatusCmd("sentinel", "flushconfig")
+	c.Process(cmd)
+	return cmd
+}
+
+// Master shows the state and info of the specified master.
+func (c *SentinelClient) Master(name string) *StringStringMapCmd {
+	cmd := NewStringStringMapCmd("sentinel", "master", name)
+	c.Process(cmd)
+	return cmd
+}
+
 type sentinelFailover struct {
 	sentinelAddrs []string
 
@@ -232,13 +245,24 @@ func (c *sentinelFailover) MasterAddr() (string, error) {
 }
 
 func (c *sentinelFailover) masterAddr() (string, error) {
+	c.mu.RLock()
 	addr := c.getMasterAddr()
+	c.mu.RUnlock()
 	if addr != "" {
 		return addr, nil
 	}
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	addr = c.getMasterAddr()
+	if addr != "" {
+		return addr, nil
+	}
+
+	if c.sentinel != nil {
+		c.closeSentinel()
+	}
 
 	for i, sentinelAddr := range c.sentinelAddrs {
 		sentinel := NewSentinelClient(&Options{
@@ -278,9 +302,7 @@ func (c *sentinelFailover) masterAddr() (string, error) {
 }
 
 func (c *sentinelFailover) getMasterAddr() string {
-	c.mu.RLock()
 	sentinel := c.sentinel
-	c.mu.RUnlock()
 
 	if sentinel == nil {
 		return ""
@@ -290,11 +312,6 @@ func (c *sentinelFailover) getMasterAddr() string {
 	if err != nil {
 		internal.Logf("sentinel: GetMasterAddrByName name=%q failed: %s",
 			c.masterName, err)
-		c.mu.Lock()
-		if c.sentinel == sentinel {
-			c.closeSentinel()
-		}
-		c.mu.Unlock()
 		return ""
 	}
 
@@ -376,8 +393,7 @@ func (c *sentinelFailover) listen(pubsub *PubSub) {
 			break
 		}
 
-		switch msg.Channel {
-		case "+switch-master":
+		if msg.Channel == "+switch-master" {
 			parts := strings.Split(msg.Payload, " ")
 			if parts[0] != c.masterName {
 				internal.Logf("sentinel: ignore addr for master=%q", parts[0])

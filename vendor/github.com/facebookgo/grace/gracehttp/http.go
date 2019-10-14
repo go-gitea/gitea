@@ -5,7 +5,6 @@ package gracehttp
 import (
 	"bytes"
 	"crypto/tls"
-	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -20,19 +19,22 @@ import (
 )
 
 var (
-	verbose    = flag.Bool("gracehttp.log", true, "Enable logging.")
+	logger     *log.Logger
 	didInherit = os.Getenv("LISTEN_FDS") != ""
 	ppid       = os.Getppid()
 )
 
+type option func(*app)
+
 // An app contains one or more servers and associated configuration.
 type app struct {
-	servers   []*http.Server
-	http      *httpdown.HTTP
-	net       *gracenet.Net
-	listeners []net.Listener
-	sds       []httpdown.Server
-	errors    chan error
+	servers         []*http.Server
+	http            *httpdown.HTTP
+	net             *gracenet.Net
+	listeners       []net.Listener
+	sds             []httpdown.Server
+	preStartProcess func() error
+	errors          chan error
 }
 
 func newApp(servers []*http.Server) *app {
@@ -43,6 +45,7 @@ func newApp(servers []*http.Server) *app {
 		listeners: make([]net.Listener, 0, len(servers)),
 		sds:       make([]httpdown.Server, 0, len(servers)),
 
+		preStartProcess: func() error { return nil },
 		// 2x num servers for possible Close or Stop errors + 1 for possible
 		// StartProcess error.
 		errors: make(chan error, 1+(len(servers)*2)),
@@ -109,6 +112,10 @@ func (a *app) signalHandler(wg *sync.WaitGroup) {
 			a.term(wg)
 			return
 		case syscall.SIGUSR2:
+			err := a.preStartProcess()
+			if err != nil {
+				a.errors <- err
+			}
 			// we only return here if there's an error, otherwise the new process
 			// will send us a TERM when it's ready to trigger the actual shutdown.
 			if _, err := a.net.StartProcess(); err != nil {
@@ -118,28 +125,24 @@ func (a *app) signalHandler(wg *sync.WaitGroup) {
 	}
 }
 
-// Serve will serve the given http.Servers and will monitor for signals
-// allowing for graceful termination (SIGTERM) or restart (SIGUSR2).
-func Serve(servers ...*http.Server) error {
-	a := newApp(servers)
-
+func (a *app) run() error {
 	// Acquire Listeners
 	if err := a.listen(); err != nil {
 		return err
 	}
 
 	// Some useful logging.
-	if *verbose {
+	if logger != nil {
 		if didInherit {
 			if ppid == 1 {
-				log.Printf("Listening on init activated %s", pprintAddr(a.listeners))
+				logger.Printf("Listening on init activated %s", pprintAddr(a.listeners))
 			} else {
 				const msg = "Graceful handoff of %s with new pid %d and old pid %d"
-				log.Printf(msg, pprintAddr(a.listeners), os.Getpid(), ppid)
+				logger.Printf(msg, pprintAddr(a.listeners), os.Getpid(), ppid)
 			}
 		} else {
 			const msg = "Serving %s with pid %d"
-			log.Printf(msg, pprintAddr(a.listeners), os.Getpid())
+			logger.Printf(msg, pprintAddr(a.listeners), os.Getpid())
 		}
 	}
 
@@ -166,10 +169,36 @@ func Serve(servers ...*http.Server) error {
 		}
 		return err
 	case <-waitdone:
-		if *verbose {
-			log.Printf("Exiting pid %d.", os.Getpid())
+		if logger != nil {
+			logger.Printf("Exiting pid %d.", os.Getpid())
 		}
 		return nil
+	}
+}
+
+// ServeWithOptions does the same as Serve, but takes a set of options to
+// configure the app struct.
+func ServeWithOptions(servers []*http.Server, options ...option) error {
+	a := newApp(servers)
+	for _, opt := range options {
+		opt(a)
+	}
+	return a.run()
+}
+
+// Serve will serve the given http.Servers and will monitor for signals
+// allowing for graceful termination (SIGTERM) or restart (SIGUSR2).
+func Serve(servers ...*http.Server) error {
+	a := newApp(servers)
+	return a.run()
+}
+
+// PreStartProcess configures a callback to trigger during graceful restart
+// directly before starting the successor process. This allows the current
+// process to release holds on resources that the new process will need.
+func PreStartProcess(hook func() error) option {
+	return func(a *app) {
+		a.preStartProcess = hook
 	}
 }
 
@@ -183,4 +212,9 @@ func pprintAddr(listeners []net.Listener) []byte {
 		fmt.Fprint(&out, l.Addr())
 	}
 	return out.Bytes()
+}
+
+// SetLogger sets logger to be able to grab some useful logs
+func SetLogger(l *log.Logger) {
+	logger = l
 }

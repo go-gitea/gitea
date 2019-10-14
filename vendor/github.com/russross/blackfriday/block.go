@@ -1143,6 +1143,7 @@ func (p *parser) listItem(out *bytes.Buffer, data []byte, flags *int) int {
 	// process the following lines
 	containsBlankLine := false
 	sublist := 0
+	codeBlockMarker := ""
 
 gatherlines:
 	for line < len(data) {
@@ -1169,6 +1170,28 @@ gatherlines:
 		}
 
 		chunk := data[line+indent : i]
+
+		if p.flags&EXTENSION_FENCED_CODE != 0 {
+			// determine if in or out of codeblock
+			// if in codeblock, ignore normal list processing
+			_, marker := isFenceLine(chunk, nil, codeBlockMarker, false)
+			if marker != "" {
+				if codeBlockMarker == "" {
+					// start of codeblock
+					codeBlockMarker = marker
+				} else {
+					// end of codeblock.
+					*flags |= LIST_ITEM_CONTAINS_BLOCK
+					codeBlockMarker = ""
+				}
+			}
+			// we are in a codeblock, write line, and continue
+			if codeBlockMarker != "" || marker != "" {
+				raw.Write(data[line+indent : i])
+				line = i
+				continue gatherlines
+			}
+		}
 
 		// evaluate how this line fits in
 		switch {

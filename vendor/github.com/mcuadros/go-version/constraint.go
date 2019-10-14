@@ -9,7 +9,7 @@ type Constraint struct {
 	version  string
 }
 
-// Return a new Constrain and sets operator and version to compare
+// NewConstrain returns a new Constrain and sets operator and version to compare
 func NewConstrain(operator, version string) *Constraint {
 	constraint := new(Constraint)
 	constraint.SetOperator(operator)
@@ -23,7 +23,7 @@ func (self *Constraint) SetOperator(operator string) {
 	self.operator = operator
 }
 
-// Get operator to compare
+// GetOperator gets operator to compare
 func (self *Constraint) GetOperator() string {
 	return self.operator
 }
@@ -33,7 +33,7 @@ func (self *Constraint) SetVersion(version string) {
 	self.version = version
 }
 
-// Get version to compare
+// GetVersion gets version to compare
 func (self *Constraint) GetVersion() string {
 	return self.version
 }
@@ -43,7 +43,7 @@ func (self *Constraint) Match(version string) bool {
 	return Compare(version, self.version, self.operator)
 }
 
-// Return a string representation
+// String returns a string representation
 func (self *Constraint) String() string {
 	return strings.Trim(self.operator+" "+self.version, " ")
 }

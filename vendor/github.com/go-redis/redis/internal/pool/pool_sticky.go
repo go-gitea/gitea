@@ -55,13 +55,13 @@ func (p *StickyConnPool) putUpstream() {
 
 func (p *StickyConnPool) Put(cn *Conn) {}
 
-func (p *StickyConnPool) removeUpstream() {
-	p.pool.Remove(p.cn)
+func (p *StickyConnPool) removeUpstream(reason error) {
+	p.pool.Remove(p.cn, reason)
 	p.cn = nil
 }
 
-func (p *StickyConnPool) Remove(cn *Conn) {
-	p.removeUpstream()
+func (p *StickyConnPool) Remove(cn *Conn, reason error) {
+	p.removeUpstream(reason)
 }
 
 func (p *StickyConnPool) Len() int {
@@ -101,7 +101,7 @@ func (p *StickyConnPool) Close() error {
 		if p.reusable {
 			p.putUpstream()
 		} else {
-			p.removeUpstream()
+			p.removeUpstream(ErrClosed)
 		}
 	}
 

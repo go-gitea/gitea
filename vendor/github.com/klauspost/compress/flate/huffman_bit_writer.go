@@ -35,7 +35,7 @@ const (
 )
 
 // The number of extra bits needed by length code X - LENGTH_CODES_START.
-var lengthExtraBits = []int8{
+var lengthExtraBits = [32]int8{
 	/* 257 */ 0, 0, 0,
 	/* 260 */ 0, 0, 0, 0, 0, 1, 1, 1, 1, 2,
 	/* 270 */ 2, 2, 2, 3, 3, 3, 3, 4, 4, 4,
@@ -43,14 +43,14 @@ var lengthExtraBits = []int8{
 }
 
 // The length indicated by length code X - LENGTH_CODES_START.
-var lengthBase = []uint32{
+var lengthBase = [32]uint8{
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 10,
 	12, 14, 16, 20, 24, 28, 32, 40, 48, 56,
 	64, 80, 96, 112, 128, 160, 192, 224, 255,
 }
 
 // offset code word extra bits.
-var offsetExtraBits = []int8{
+var offsetExtraBits = [64]int8{
 	0, 0, 0, 0, 1, 1, 2, 2, 3, 3,
 	4, 4, 5, 5, 6, 6, 7, 7, 8, 8,
 	9, 9, 10, 10, 11, 11, 12, 12, 13, 13,
@@ -58,7 +58,7 @@ var offsetExtraBits = []int8{
 	14, 14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 20,
 }
 
-var offsetBase = []uint32{
+var offsetBase = [64]uint32{
 	/* normal deflate */
 	0x000000, 0x000001, 0x000002, 0x000003, 0x000004,
 	0x000006, 0x000008, 0x00000c, 0x000010, 0x000018,
@@ -86,9 +86,9 @@ type huffmanBitWriter struct {
 	// and then the low nbits of bits.
 	bits            uint64
 	nbits           uint
-	bytes           [bufferSize]byte
+	bytes           [256]byte
 	codegenFreq     [codegenCodeCount]int32
-	nbytes          int
+	nbytes          uint8
 	literalFreq     []int32
 	offsetFreq      []int32
 	codegen         []uint8
@@ -101,8 +101,8 @@ type huffmanBitWriter struct {
 func newHuffmanBitWriter(w io.Writer) *huffmanBitWriter {
 	return &huffmanBitWriter{
 		writer:          w,
-		literalFreq:     make([]int32, maxNumLit),
-		offsetFreq:      make([]int32, offsetCodeCount),
+		literalFreq:     make([]int32, lengthCodesStart+32),
+		offsetFreq:      make([]int32, 32),
 		codegen:         make([]uint8, maxNumLit+offsetCodeCount+1),
 		literalEncoding: newHuffmanEncoder(maxNumLit),
 		codegenEncoding: newHuffmanEncoder(codegenCodeCount),
@@ -113,7 +113,7 @@ func newHuffmanBitWriter(w io.Writer) *huffmanBitWriter {
 func (w *huffmanBitWriter) reset(writer io.Writer) {
 	w.writer = writer
 	w.bits, w.nbits, w.nbytes, w.err = 0, 0, 0, nil
-	w.bytes = [bufferSize]byte{}
+	w.bytes = [256]byte{}
 }
 
 func (w *huffmanBitWriter) flush() {
@@ -145,9 +145,6 @@ func (w *huffmanBitWriter) write(b []byte) {
 }
 
 func (w *huffmanBitWriter) writeBits(b int32, nb uint) {
-	if w.err != nil {
-		return
-	}
 	w.bits |= uint64(b) << w.nbits
 	w.nbits += nb
 	if w.nbits >= 48 {
@@ -155,15 +152,18 @@ func (w *huffmanBitWriter) writeBits(b int32, nb uint) {
 		w.bits >>= 48
 		w.nbits -= 48
 		n := w.nbytes
-		bytes := w.bytes[n : n+6]
-		bytes[0] = byte(bits)
-		bytes[1] = byte(bits >> 8)
-		bytes[2] = byte(bits >> 16)
-		bytes[3] = byte(bits >> 24)
-		bytes[4] = byte(bits >> 32)
-		bytes[5] = byte(bits >> 40)
+		w.bytes[n] = byte(bits)
+		w.bytes[n+1] = byte(bits >> 8)
+		w.bytes[n+2] = byte(bits >> 16)
+		w.bytes[n+3] = byte(bits >> 24)
+		w.bytes[n+4] = byte(bits >> 32)
+		w.bytes[n+5] = byte(bits >> 40)
 		n += 6
 		if n >= bufferFlushSize {
+			if w.err != nil {
+				n = 0
+				return
+			}
 			w.write(w.bytes[:n])
 			n = 0
 		}
@@ -333,9 +333,6 @@ func (w *huffmanBitWriter) storedSize(in []byte) (int, bool) {
 }
 
 func (w *huffmanBitWriter) writeCode(c hcode) {
-	if w.err != nil {
-		return
-	}
 	w.bits |= uint64(c.code) << w.nbits
 	w.nbits += uint(c.len)
 	if w.nbits >= 48 {
@@ -343,15 +340,18 @@ func (w *huffmanBitWriter) writeCode(c hcode) {
 		w.bits >>= 48
 		w.nbits -= 48
 		n := w.nbytes
-		bytes := w.bytes[n : n+6]
-		bytes[0] = byte(bits)
-		bytes[1] = byte(bits >> 8)
-		bytes[2] = byte(bits >> 16)
-		bytes[3] = byte(bits >> 24)
-		bytes[4] = byte(bits >> 32)
-		bytes[5] = byte(bits >> 40)
+		w.bytes[n] = byte(bits)
+		w.bytes[n+1] = byte(bits >> 8)
+		w.bytes[n+2] = byte(bits >> 16)
+		w.bytes[n+3] = byte(bits >> 24)
+		w.bytes[n+4] = byte(bits >> 32)
+		w.bytes[n+5] = byte(bits >> 40)
 		n += 6
 		if n >= bufferFlushSize {
+			if w.err != nil {
+				n = 0
+				return
+			}
 			w.write(w.bytes[:n])
 			n = 0
 		}
@@ -460,7 +460,7 @@ func (w *huffmanBitWriter) writeBlock(tokens []token, eof bool, input []byte) {
 		}
 		for offsetCode := 4; offsetCode < numOffsets; offsetCode++ {
 			// First four offset codes have extra size = 0.
-			extraBits += int(w.offsetFreq[offsetCode]) * int(offsetExtraBits[offsetCode])
+			extraBits += int(w.offsetFreq[offsetCode]) * int(offsetExtraBits[offsetCode&63])
 		}
 	}
 
@@ -548,15 +548,30 @@ func (w *huffmanBitWriter) indexTokens(tokens []token) (numLiterals, numOffsets 
 		w.offsetFreq[i] = 0
 	}
 
+	if len(tokens) == 0 {
+		return
+	}
+
+	// Only last token should be endBlockMarker.
+	if tokens[len(tokens)-1] == endBlockMarker {
+		w.literalFreq[endBlockMarker]++
+		tokens = tokens[:len(tokens)-1]
+	}
+
+	// Create slices up to the next power of two to avoid bounds checks.
+	lits := w.literalFreq[:256]
+	offs := w.offsetFreq[:32]
+	lengths := w.literalFreq[lengthCodesStart:]
+	lengths = lengths[:32]
 	for _, t := range tokens {
-		if t < matchType {
-			w.literalFreq[t.literal()]++
+		if t < endBlockMarker {
+			lits[t.literal()]++
 			continue
 		}
 		length := t.length()
 		offset := t.offset()
-		w.literalFreq[lengthCodesStart+lengthCode(length)]++
-		w.offsetFreq[offsetCode(offset)]++
+		lengths[lengthCode(length)&31]++
+		offs[offsetCode(offset)&31]++
 	}
 
 	// get the number of literals
@@ -575,8 +590,8 @@ func (w *huffmanBitWriter) indexTokens(tokens []token) (numLiterals, numOffsets 
 		w.offsetFreq[0] = 1
 		numOffsets = 1
 	}
-	w.literalEncoding.generate(w.literalFreq, 15)
-	w.offsetEncoding.generate(w.offsetFreq, 15)
+	w.literalEncoding.generate(w.literalFreq[:maxNumLit], 15)
+	w.offsetEncoding.generate(w.offsetFreq[:offsetCodeCount], 15)
 	return
 }
 
@@ -586,29 +601,49 @@ func (w *huffmanBitWriter) writeTokens(tokens []token, leCodes, oeCodes []hcode)
 	if w.err != nil {
 		return
 	}
+	if len(tokens) == 0 {
+		return
+	}
+
+	// Only last token should be endBlockMarker.
+	var deferEOB bool
+	if tokens[len(tokens)-1] == endBlockMarker {
+		tokens = tokens[:len(tokens)-1]
+		deferEOB = true
+	}
+
+	// Create slices up to the next power of two to avoid bounds checks.
+	lits := leCodes[:256]
+	offs := oeCodes[:32]
+	lengths := leCodes[lengthCodesStart:]
+	lengths = lengths[:32]
 	for _, t := range tokens {
 		if t < matchType {
-			w.writeCode(leCodes[t.literal()])
+			w.writeCode(lits[t.literal()])
 			continue
 		}
+
 		// Write the length
 		length := t.length()
 		lengthCode := lengthCode(length)
-		w.writeCode(leCodes[lengthCode+lengthCodesStart])
-		extraLengthBits := uint(lengthExtraBits[lengthCode])
+		w.writeCode(lengths[lengthCode&31])
+		extraLengthBits := uint(lengthExtraBits[lengthCode&31])
 		if extraLengthBits > 0 {
-			extraLength := int32(length - lengthBase[lengthCode])
+			extraLength := int32(length - lengthBase[lengthCode&31])
 			w.writeBits(extraLength, extraLengthBits)
 		}
 		// Write the offset
 		offset := t.offset()
 		offsetCode := offsetCode(offset)
-		w.writeCode(oeCodes[offsetCode])
-		extraOffsetBits := uint(offsetExtraBits[offsetCode])
+		w.writeCode(offs[offsetCode&31])
+		extraOffsetBits := uint(offsetExtraBits[offsetCode&63])
 		if extraOffsetBits > 0 {
-			extraOffset := int32(offset - offsetBase[offsetCode])
+			extraOffset := int32(offset - offsetBase[offsetCode&63])
 			w.writeBits(extraOffset, extraOffsetBits)
 		}
+	}
+	if deferEOB {
+		w.writeCode(leCodes[endBlockMarker])
 	}
 }
 
@@ -620,7 +655,7 @@ func init() {
 	w := newHuffmanBitWriter(nil)
 	w.offsetFreq[0] = 1
 	huffOffset = newHuffmanEncoder(offsetCodeCount)
-	huffOffset.generate(w.offsetFreq, 15)
+	huffOffset.generate(w.offsetFreq[:offsetCodeCount], 15)
 }
 
 // writeBlockHuff encodes a block of bytes as either
@@ -644,7 +679,7 @@ func (w *huffmanBitWriter) writeBlockHuff(eof bool, input []byte) {
 	const numLiterals = endBlockMarker + 1
 	const numOffsets = 1
 
-	w.literalEncoding.generate(w.literalFreq, 15)
+	w.literalEncoding.generate(w.literalFreq[:maxNumLit], 15)
 
 	// Figure out smallest code.
 	// Always use dynamic Huffman or Store
@@ -679,13 +714,12 @@ func (w *huffmanBitWriter) writeBlockHuff(eof bool, input []byte) {
 		bits := w.bits
 		w.bits >>= 48
 		w.nbits -= 48
-		bytes := w.bytes[n : n+6]
-		bytes[0] = byte(bits)
-		bytes[1] = byte(bits >> 8)
-		bytes[2] = byte(bits >> 16)
-		bytes[3] = byte(bits >> 24)
-		bytes[4] = byte(bits >> 32)
-		bytes[5] = byte(bits >> 40)
+		w.bytes[n] = byte(bits)
+		w.bytes[n+1] = byte(bits >> 8)
+		w.bytes[n+2] = byte(bits >> 16)
+		w.bytes[n+3] = byte(bits >> 24)
+		w.bytes[n+4] = byte(bits >> 32)
+		w.bytes[n+5] = byte(bits >> 40)
 		n += 6
 		if n < bufferFlushSize {
 			continue

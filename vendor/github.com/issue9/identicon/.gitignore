@@ -29,4 +29,4 @@ _testmain.go
 #osx
 .DS_Store
 
-testdata
+/testdata/*.png

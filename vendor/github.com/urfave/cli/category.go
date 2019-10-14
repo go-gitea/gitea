@@ -10,7 +10,7 @@ type CommandCategory struct {
 }
 
 func (c CommandCategories) Less(i, j int) bool {
-	return c[i].Name < c[j].Name
+	return lexicographicLess(c[i].Name, c[j].Name)
 }
 
 func (c CommandCategories) Len() int {

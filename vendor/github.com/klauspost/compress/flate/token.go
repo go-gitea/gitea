@@ -4,8 +4,6 @@
 
 package flate
 
-import "fmt"
-
 const (
 	// 2 bits:   type   0 = literal  1=EOF  2=Match   3=Unused
 	// 8 bits:   xlength = length - MIN_MATCH_LENGTH
@@ -19,7 +17,7 @@ const (
 
 // The length code for length X (MIN_MATCH_LENGTH <= X <= MAX_MATCH_LENGTH)
 // is lengthCodes[length - MIN_MATCH_LENGTH]
-var lengthCodes = [...]uint32{
+var lengthCodes = [256]uint8{
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 8,
 	9, 9, 10, 10, 11, 11, 12, 12, 12, 12,
 	13, 13, 13, 13, 14, 14, 14, 14, 15, 15,
@@ -48,7 +46,7 @@ var lengthCodes = [...]uint32{
 	27, 27, 27, 27, 27, 28,
 }
 
-var offsetCodes = [...]uint32{
+var offsetCodes = [256]uint32{
 	0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7,
 	8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9,
 	10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
@@ -82,34 +80,27 @@ func matchToken(xlength uint32, xoffset uint32) token {
 	return token(matchType + xlength<<lengthShift + xoffset)
 }
 
-func matchTokend(xlength uint32, xoffset uint32) token {
-	if xlength > maxMatchLength || xoffset > maxMatchOffset {
-		panic(fmt.Sprintf("Invalid match: len: %d, offset: %d\n", xlength, xoffset))
-		return token(matchType)
-	}
-	return token(matchType + xlength<<lengthShift + xoffset)
-}
-
 // Returns the type of a token
 func (t token) typ() uint32 { return uint32(t) & typeMask }
 
 // Returns the literal of a literal token
-func (t token) literal() uint32 { return uint32(t - literalType) }
+func (t token) literal() uint8 { return uint8(t) }
 
 // Returns the extra offset of a match token
 func (t token) offset() uint32 { return uint32(t) & offsetMask }
 
-func (t token) length() uint32 { return uint32((t - matchType) >> lengthShift) }
+func (t token) length() uint8 { return uint8(t >> lengthShift) }
 
-func lengthCode(len uint32) uint32 { return lengthCodes[len] }
+// The code is never more than 8 bits, but is returned as uint32 for convenience.
+func lengthCode(len uint8) uint32 { return uint32(lengthCodes[len]) }
 
 // Returns the offset code corresponding to a specific offset
 func offsetCode(off uint32) uint32 {
 	if off < uint32(len(offsetCodes)) {
-		return offsetCodes[off]
+		return offsetCodes[off&255]
 	} else if off>>7 < uint32(len(offsetCodes)) {
-		return offsetCodes[off>>7] + 14
+		return offsetCodes[(off>>7)&255] + 14
 	} else {
-		return offsetCodes[off>>14] + 28
+		return offsetCodes[(off>>14)&255] + 28
 	}
 }

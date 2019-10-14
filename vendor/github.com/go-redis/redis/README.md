@@ -9,7 +9,7 @@ Supports:
 - Redis 3 commands except QUIT, MONITOR, SLOWLOG and SYNC.
 - Automatic connection pooling with [circuit breaker](https://en.wikipedia.org/wiki/Circuit_breaker_design_pattern) support.
 - [Pub/Sub](https://godoc.org/github.com/go-redis/redis#PubSub).
-- [Transactions](https://godoc.org/github.com/go-redis/redis#Multi).
+- [Transactions](https://godoc.org/github.com/go-redis/redis#example-Client-TxPipeline).
 - [Pipeline](https://godoc.org/github.com/go-redis/redis#example-Client-Pipeline) and [TxPipeline](https://godoc.org/github.com/go-redis/redis#example-Client-TxPipeline).
 - [Scripting](https://godoc.org/github.com/go-redis/redis#Script).
 - [Timeouts](https://godoc.org/github.com/go-redis/redis#Options).
@@ -143,4 +143,4 @@ BenchmarkRedisClusterPing-4         	  100000	     11535 ns/op	     117 B/op	   
 
 - [Golang PostgreSQL ORM](https://github.com/go-pg/pg)
 - [Golang msgpack](https://github.com/vmihailenco/msgpack)
-- [Golang message task queue](https://github.com/go-msgqueue/msgqueue)
+- [Golang message task queue](https://github.com/vmihailenco/taskq)

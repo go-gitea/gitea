@@ -47,9 +47,6 @@ type Policy struct {
 	// exceptions
 	initialized bool
 
-	// Allows the <!DOCTYPE > tag to exist in the sanitized document
-	allowDocType bool
-
 	// If true then we add spaces when stripping tags, specifically the closing
 	// tag is replaced by a space character.
 	addSpaces bool
@@ -72,6 +69,9 @@ type Policy struct {
 
 	// When true, u, _ := url.Parse("url"); !u.IsAbs() is permitted
 	allowRelativeURLs bool
+
+	// When true, allow data attributes.
+	allowDataAttributes bool
 
 	// map[htmlElementName]map[htmlAttributeName]attrPolicy
 	elsAndAttrs map[string]map[string]attrPolicy
@@ -159,6 +159,21 @@ func (p *Policy) AllowAttrs(attrNames ...string) *attrPolicyBuilder {
 	}
 
 	return &abp
+}
+
+// AllowDataAttributes whitelists all data attributes. We can't specify the name
+// of each attribute exactly as they are customized.
+//
+// NOTE: These values are not sanitized and applications that evaluate or process
+// them without checking and verification of the input may be at risk if this option
+// is enabled. This is a 'caveat emptor' option and the person enabling this option
+// needs to fully understand the potential impact with regards to whatever application
+// will be consuming the sanitized HTML afterwards, i.e. if you know you put a link in a
+// data attribute and use that to automatically load some new window then you're giving
+// the author of a HTML fragment the means to open a malicious destination automatically.
+// Use with care!
+func (p *Policy) AllowDataAttributes() {
+	p.allowDataAttributes = true
 }
 
 // AllowNoAttrs says that attributes on element are optional.
@@ -369,21 +384,6 @@ func (p *Policy) AllowURLSchemeWithCustomPolicy(
 	return p
 }
 
-// AllowDocType states whether the HTML sanitised by the sanitizer is allowed to
-// contain the HTML DocType tag: <!DOCTYPE HTML> or one of it's variants.
-//
-// The HTML spec only permits one doctype per document, and as you know how you
-// are using the output of this, you know best as to whether we should ignore it
-// (default) or not.
-//
-// If you are sanitizing a HTML fragment the default (false) is fine.
-func (p *Policy) AllowDocType(allow bool) *Policy {
-
-	p.allowDocType = allow
-
-	return p
-}
-
 // AddSpaceWhenStrippingTag states whether to add a single space " " when
 // removing tags that are not whitelisted by the policy.
 //
@@ -402,7 +402,7 @@ func (p *Policy) AddSpaceWhenStrippingTag(allow bool) *Policy {
 }
 
 // SkipElementsContent adds the HTML elements whose tags is needed to be removed
-// with it's content.
+// with its content.
 func (p *Policy) SkipElementsContent(names ...string) *Policy {
 
 	p.init()
@@ -440,6 +440,7 @@ func (p *Policy) addDefaultElementsWithoutAttrs() {
 
 	p.setOfElementsAllowedWithoutAttrs["abbr"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["acronym"] = struct{}{}
+	p.setOfElementsAllowedWithoutAttrs["address"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["article"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["aside"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["audio"] = struct{}{}
@@ -451,6 +452,7 @@ func (p *Policy) addDefaultElementsWithoutAttrs() {
 	p.setOfElementsAllowedWithoutAttrs["button"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["canvas"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["caption"] = struct{}{}
+	p.setOfElementsAllowedWithoutAttrs["center"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["cite"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["code"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["col"] = struct{}{}
@@ -484,6 +486,7 @@ func (p *Policy) addDefaultElementsWithoutAttrs() {
 	p.setOfElementsAllowedWithoutAttrs["kbd"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["li"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["mark"] = struct{}{}
+	p.setOfElementsAllowedWithoutAttrs["marquee"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["nav"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["ol"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["optgroup"] = struct{}{}
@@ -496,6 +499,7 @@ func (p *Policy) addDefaultElementsWithoutAttrs() {
 	p.setOfElementsAllowedWithoutAttrs["ruby"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["s"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["samp"] = struct{}{}
+	p.setOfElementsAllowedWithoutAttrs["script"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["section"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["select"] = struct{}{}
 	p.setOfElementsAllowedWithoutAttrs["small"] = struct{}{}

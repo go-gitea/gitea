@@ -23,6 +23,22 @@ type CommandNotFoundFunc func(*Context, string)
 // is displayed and the execution is interrupted.
 type OnUsageErrorFunc func(context *Context, err error, isSubcommand bool) error
 
+// ExitErrHandlerFunc is executed if provided in order to handle ExitError values
+// returned by Actions and Before/After functions.
+type ExitErrHandlerFunc func(context *Context, err error)
+
 // FlagStringFunc is used by the help generation to display a flag, which is
 // expected to be a single line.
 type FlagStringFunc func(Flag) string
+
+// FlagNamePrefixFunc is used by the default FlagStringFunc to create prefix
+// text for a flag's full name.
+type FlagNamePrefixFunc func(fullName, placeholder string) string
+
+// FlagEnvHintFunc is used by the default FlagStringFunc to annotate flag help
+// with the environment variable details.
+type FlagEnvHintFunc func(envVar, str string) string
+
+// FlagFileHintFunc is used by the default FlagStringFunc to annotate flag help
+// with the file path details.
+type FlagFileHintFunc func(filePath, str string) string

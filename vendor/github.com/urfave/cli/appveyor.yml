@@ -8,19 +8,16 @@ clone_folder: c:\gopath\src\github.com\urfave\cli
 
 environment:
   GOPATH: C:\gopath
-  GOVERSION: 1.8.x
-  PYTHON: C:\Python36-x64
-  PYTHON_VERSION: 3.6.x
-  PYTHON_ARCH: 64
+  GOVERSION: 1.11.x
 
 install:
-- set PATH=%GOPATH%\bin;C:\go\bin;%PATH%
-- go version
-- go env
-- go get github.com/urfave/gfmrun/...
-- go get -v -t ./...
+  - set PATH=%GOPATH%\bin;C:\go\bin;%PATH%
+  - go version
+  - go env
+  - go get github.com/urfave/gfmrun/...
+  - go get -v -t ./...
 
 build_script:
-- python runtests vet
-- python runtests test
-- python runtests gfmrun
+  - go run build.go vet
+  - go run build.go test
+  - go run build.go gfmrun

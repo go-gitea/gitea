@@ -16,6 +16,10 @@ type scaledBarcode struct {
 	rect        image.Rectangle
 }
 
+type intCSscaledBC struct {
+	scaledBarcode
+}
+
 func (bc *scaledBarcode) Content() string {
 	return bc.wrapped.Content()
 }
@@ -36,8 +40,11 @@ func (bc *scaledBarcode) At(x, y int) color.Color {
 	return bc.wrapperFunc(x, y)
 }
 
-func (bc *scaledBarcode) CheckSum() int {
-	return bc.wrapped.CheckSum()
+func (bc *intCSscaledBC) CheckSum() int {
+	if cs, ok := bc.wrapped.(BarcodeIntCS); ok {
+		return cs.CheckSum()
+	}
+	return 0
 }
 
 // Scale returns a resized barcode with the given width and height.
@@ -52,6 +59,19 @@ func Scale(bc Barcode, width, height int) (Barcode, error) {
 	return nil, errors.New("unsupported barcode format")
 }
 
+func newScaledBC(wrapped Barcode, wrapperFunc wrapFunc, rect image.Rectangle) Barcode {
+	result := &scaledBarcode{
+		wrapped:     wrapped,
+		wrapperFunc: wrapperFunc,
+		rect:        rect,
+	}
+
+	if _, ok := wrapped.(BarcodeIntCS); ok {
+		return &intCSscaledBC{*result}
+	}
+	return result
+}
+
 func scale2DCode(bc Barcode, width, height int) (Barcode, error) {
 	orgBounds := bc.Bounds()
 	orgWidth := orgBounds.Max.X - orgBounds.Min.X
@@ -59,7 +79,7 @@ func scale2DCode(bc Barcode, width, height int) (Barcode, error) {
 
 	factor := int(math.Min(float64(width)/float64(orgWidth), float64(height)/float64(orgHeight)))
 	if factor <= 0 {
-		return nil, fmt.Errorf("can not scale barcode to an image smaller then %dx%d", orgWidth, orgHeight)
+		return nil, fmt.Errorf("can not scale barcode to an image smaller than %dx%d", orgWidth, orgHeight)
 	}
 
 	offsetX := (width - (orgWidth * factor)) / 2
@@ -77,11 +97,11 @@ func scale2DCode(bc Barcode, width, height int) (Barcode, error) {
 		return bc.At(x, y)
 	}
 
-	return &scaledBarcode{
+	return newScaledBC(
 		bc,
 		wrap,
 		image.Rect(0, 0, width, height),
-	}, nil
+	), nil
 }
 
 func scale1DCode(bc Barcode, width, height int) (Barcode, error) {
@@ -90,7 +110,7 @@ func scale1DCode(bc Barcode, width, height int) (Barcode, error) {
 	factor := int(float64(width) / float64(orgWidth))
 
 	if factor <= 0 {
-		return nil, fmt.Errorf("can not scale barcode to an image smaller then %dx1", orgWidth)
+		return nil, fmt.Errorf("can not scale barcode to an image smaller than %dx1", orgWidth)
 	}
 	offsetX := (width - (orgWidth * factor)) / 2
 
@@ -106,10 +126,9 @@ func scale1DCode(bc Barcode, width, height int) (Barcode, error) {
 		return bc.At(x, 0)
 	}
 
-	return &scaledBarcode{
+	return newScaledBC(
 		bc,
 		wrap,
 		image.Rect(0, 0, width, height),
-	}, nil
-
+	), nil
 }

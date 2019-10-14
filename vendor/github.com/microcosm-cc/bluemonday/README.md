@@ -1,4 +1,4 @@
-# bluemonday [![Build Status](https://travis-ci.org/microcosm-cc/bluemonday.svg?branch=master)](https://travis-ci.org/microcosm-cc/bluemonday) [![GoDoc](https://godoc.org/github.com/microcosm-cc/bluemonday?status.png)](https://godoc.org/github.com/microcosm-cc/bluemonday)
+# bluemonday [![Build Status](https://travis-ci.org/microcosm-cc/bluemonday.svg?branch=master)](https://travis-ci.org/microcosm-cc/bluemonday) [![GoDoc](https://godoc.org/github.com/microcosm-cc/bluemonday?status.png)](https://godoc.org/github.com/microcosm-cc/bluemonday) [![Sourcegraph](https://sourcegraph.com/github.com/microcosm-cc/bluemonday/-/badge.svg)](https://sourcegraph.com/github.com/microcosm-cc/bluemonday?badge)
 
 bluemonday is a HTML sanitizer implemented in Go. It is fast and highly configurable.
 
@@ -58,7 +58,7 @@ We expect to be supplied with well-formatted HTML (closing elements for every ap
 
 ### Supported Go Versions
 
-bluemonday is regularly tested against Go 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7 and tip.
+bluemonday is tested against Go 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, and tip.
 
 We do not support Go 1.0 as we depend on `golang.org/x/net/html` which includes a reference to `io.ErrNoProgress` which did not exist in Go 1.0.
 
@@ -87,7 +87,11 @@ import (
 )
 
 func main() {
+	// Do this once for each unique policy, and use the policy for the life of the program
+	// Policy creation/editing is not safe to use in multiple goroutines
 	p := bluemonday.UGCPolicy()
+	
+	// The policy can then be used to sanitize lots of input and it is safe to use the policy in multiple goroutines
 	html := p.Sanitize(
 		`<a onblur="alert(secret)" href="http://www.google.com">Google</a>`,
 	)
@@ -140,7 +144,7 @@ func main() {
 
 We ship two default policies:
 
-1. `bluemonday.StrictPolicy()` which can be thought of as equivalent to stripping all HTML elements and their attributes as it has nothing on it's whitelist. An example usage scenario would be blog post titles where HTML tags are not expected at all and if they are then the elements *and* the content of the elements should be stripped. This is a *very* strict policy.
+1. `bluemonday.StrictPolicy()` which can be thought of as equivalent to stripping all HTML elements and their attributes as it has nothing on its whitelist. An example usage scenario would be blog post titles where HTML tags are not expected at all and if they are then the elements *and* the content of the elements should be stripped. This is a *very* strict policy.
 2. `bluemonday.UGCPolicy()` which allows a broad selection of HTML elements and attributes that are safe for user generated content. Note that this policy does *not* whitelist iframes, object, embed, styles, script, etc. An example usage scenario would be blog post bodies where a variety of formatting is expected along with the potential for TABLEs and IMGs.
 
 ## Policy Building
@@ -273,7 +277,7 @@ We also bundle some helpers to simplify policy building:
 // Permits the "dir", "id", "lang", "title" attributes globally
 p.AllowStandardAttributes()
 
-// Permits the "img" element and it's standard attributes
+// Permits the "img" element and its standard attributes
 p.AllowImages()
 
 // Permits ordered and unordered lists, and also definition lists
@@ -312,7 +316,7 @@ It is not the job of bluemonday to fix your bad HTML, it is merely the job of bl
 
 ## TODO
 
-* Add support for CSS sanitisation to allow some CSS properties based on a whitelist, possibly using the [Gorilla CSS3 scanner](http://www.gorillatoolkit.org/pkg/css/scanner)
+* Add support for CSS sanitisation to allow some CSS properties based on a whitelist, possibly using the [Gorilla CSS3 scanner](http://www.gorillatoolkit.org/pkg/css/scanner) - PRs welcome so long as testing covers XSS and demonstrates safety first
 * Investigate whether devs want to blacklist elements and attributes. This would allow devs to take an existing policy (such as the `bluemonday.UGCPolicy()` ) that encapsulates 90% of what they're looking for but does more than they need, and to remove the extra things they do not want to make it 100% what they want
 * Investigate whether devs want a validating HTML mode, in which the HTML elements are not just transformed into a balanced tree (every start tag has a closing tag at the correct depth) but also that elements and character data appear only in their allowed context (i.e. that a `table` element isn't a descendent of a `caption`, that `colgroup`, `thead`, `tbody`, `tfoot` and `tr` are permitted, and that character data is not permitted)
 

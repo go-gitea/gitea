@@ -20,12 +20,12 @@ func emitCopy(dst *tokens, offset, length int) {
 	dst.n++
 }
 
-type snappyEnc interface {
+type fastEnc interface {
 	Encode(dst *tokens, src []byte)
 	Reset()
 }
 
-func newSnappy(level int) snappyEnc {
+func newFastEnc(level int) fastEnc {
 	switch level {
 	case 1:
 		return &snappyL1{}
@@ -135,8 +135,7 @@ func (e *snappyL1) Encode(dst *tokens, src []byte) {
 			candidate = int(table[nextHash&tableMask])
 			table[nextHash&tableMask] = uint16(s)
 			nextHash = hash(load32(src, nextS))
-			// TODO: < should be <=, and add a test for that.
-			if s-candidate < maxMatchOffset && load32(src, s) == load32(src, candidate) {
+			if s-candidate <= maxMatchOffset && load32(src, s) == load32(src, candidate) {
 				break
 			}
 		}
@@ -200,8 +199,7 @@ func (e *snappyL1) Encode(dst *tokens, src []byte) {
 			currHash := hash(uint32(x >> 8))
 			candidate = int(table[currHash&tableMask])
 			table[currHash&tableMask] = uint16(s)
-			// TODO: >= should be >, and add a test for that.
-			if s-candidate >= maxMatchOffset || uint32(x>>8) != load32(src, candidate) {
+			if s-candidate > maxMatchOffset || uint32(x>>8) != load32(src, candidate) {
 				nextHash = hash(uint32(x >> 16))
 				s++
 				break
@@ -251,13 +249,13 @@ type snappyL2 struct {
 // of matching across blocks giving better compression at a small slowdown.
 func (e *snappyL2) Encode(dst *tokens, src []byte) {
 	const (
-		inputMargin            = 16 - 1
+		inputMargin            = 8 - 1
 		minNonLiteralBlockSize = 1 + 1 + inputMargin
 	)
 
-	// Ensure that e.cur doesn't wrap, mainly an issue on 32 bits.
+	// Protect against e.cur wraparound.
 	if e.cur > 1<<30 {
-		for i := range e.table {
+		for i := range e.table[:] {
 			e.table[i] = tableEntry{}
 		}
 		e.cur = maxStoreBlockSize
@@ -319,7 +317,7 @@ func (e *snappyL2) Encode(dst *tokens, src []byte) {
 			nextHash = hash(now)
 
 			offset := s - (candidate.offset - e.cur)
-			if offset >= maxMatchOffset || cv != candidate.val {
+			if offset > maxMatchOffset || cv != candidate.val {
 				// Out of range or not matched.
 				cv = now
 				continue
@@ -356,6 +354,12 @@ func (e *snappyL2) Encode(dst *tokens, src []byte) {
 			s += l
 			nextEmit = s
 			if s >= sLimit {
+				t += l
+				// Index first pair after match end.
+				if int(t+4) < len(src) && t > 0 {
+					cv := load3232(src, t)
+					e.table[hash(cv)&tableMask] = tableEntry{offset: t + e.cur, val: cv}
+				}
 				goto emitRemainder
 			}
 
@@ -374,7 +378,7 @@ func (e *snappyL2) Encode(dst *tokens, src []byte) {
 			e.table[currHash&tableMask] = tableEntry{offset: e.cur + s, val: uint32(x)}
 
 			offset := s - (candidate.offset - e.cur)
-			if offset >= maxMatchOffset || uint32(x) != candidate.val {
+			if offset > maxMatchOffset || uint32(x) != candidate.val {
 				cv = uint32(x >> 8)
 				nextHash = hash(cv)
 				s++
@@ -406,16 +410,16 @@ type snappyL3 struct {
 // Encode uses a similar algorithm to level 2, will check up to two candidates.
 func (e *snappyL3) Encode(dst *tokens, src []byte) {
 	const (
-		inputMargin            = 16 - 1
+		inputMargin            = 8 - 1
 		minNonLiteralBlockSize = 1 + 1 + inputMargin
 	)
 
-	// Ensure that e.cur doesn't wrap, mainly an issue on 32 bits.
+	// Protect against e.cur wraparound.
 	if e.cur > 1<<30 {
-		for i := range e.table {
+		for i := range e.table[:] {
 			e.table[i] = tableEntryPrev{}
 		}
-		e.cur = maxStoreBlockSize
+		e.snappyGen = snappyGen{cur: maxStoreBlockSize, prev: e.prev[:0]}
 	}
 
 	// This check isn't in the Snappy implementation, but there, the caller
@@ -477,7 +481,7 @@ func (e *snappyL3) Encode(dst *tokens, src []byte) {
 			candidate = candidates.Cur
 			if cv == candidate.val {
 				offset := s - (candidate.offset - e.cur)
-				if offset < maxMatchOffset {
+				if offset <= maxMatchOffset {
 					break
 				}
 			} else {
@@ -486,7 +490,7 @@ func (e *snappyL3) Encode(dst *tokens, src []byte) {
 				candidate = candidates.Prev
 				if cv == candidate.val {
 					offset := s - (candidate.offset - e.cur)
-					if offset < maxMatchOffset {
+					if offset <= maxMatchOffset {
 						break
 					}
 				}
@@ -523,17 +527,33 @@ func (e *snappyL3) Encode(dst *tokens, src []byte) {
 			s += l
 			nextEmit = s
 			if s >= sLimit {
+				t += l
+				// Index first pair after match end.
+				if int(t+4) < len(src) && t > 0 {
+					cv := load3232(src, t)
+					nextHash = hash(cv)
+					e.table[nextHash&tableMask] = tableEntryPrev{
+						Prev: e.table[nextHash&tableMask].Cur,
+						Cur:  tableEntry{offset: e.cur + t, val: cv},
+					}
+				}
 				goto emitRemainder
 			}
 
 			// We could immediately start working at s now, but to improve
-			// compression we first update the hash table at s-2, s-1 and at s. If
+			// compression we first update the hash table at s-3 to s. If
 			// another emitCopy is not our next move, also calculate nextHash
 			// at s+1. At least on GOARCH=amd64, these three hash calculations
 			// are faster as one load64 call (with some shifts) instead of
 			// three load32 calls.
-			x := load6432(src, s-2)
+			x := load6432(src, s-3)
 			prevHash := hash(uint32(x))
+			e.table[prevHash&tableMask] = tableEntryPrev{
+				Prev: e.table[prevHash&tableMask].Cur,
+				Cur:  tableEntry{offset: e.cur + s - 3, val: uint32(x)},
+			}
+			x >>= 8
+			prevHash = hash(uint32(x))
 
 			e.table[prevHash&tableMask] = tableEntryPrev{
 				Prev: e.table[prevHash&tableMask].Cur,
@@ -559,7 +579,7 @@ func (e *snappyL3) Encode(dst *tokens, src []byte) {
 			candidate = candidates.Cur
 			if cv == candidate.val {
 				offset := s - (candidate.offset - e.cur)
-				if offset < maxMatchOffset {
+				if offset <= maxMatchOffset {
 					continue
 				}
 			} else {
@@ -568,7 +588,7 @@ func (e *snappyL3) Encode(dst *tokens, src []byte) {
 				candidate = candidates.Prev
 				if cv == candidate.val {
 					offset := s - (candidate.offset - e.cur)
-					if offset < maxMatchOffset {
+					if offset <= maxMatchOffset {
 						continue
 					}
 				}
@@ -598,17 +618,17 @@ type snappyL4 struct {
 // but will check up to two candidates if first isn't long enough.
 func (e *snappyL4) Encode(dst *tokens, src []byte) {
 	const (
-		inputMargin            = 16 - 1
+		inputMargin            = 8 - 3
 		minNonLiteralBlockSize = 1 + 1 + inputMargin
 		matchLenGood           = 12
 	)
 
-	// Ensure that e.cur doesn't wrap, mainly an issue on 32 bits.
+	// Protect against e.cur wraparound.
 	if e.cur > 1<<30 {
-		for i := range e.table {
+		for i := range e.table[:] {
 			e.table[i] = tableEntryPrev{}
 		}
-		e.cur = maxStoreBlockSize
+		e.snappyGen = snappyGen{cur: maxStoreBlockSize, prev: e.prev[:0]}
 	}
 
 	// This check isn't in the Snappy implementation, but there, the caller
@@ -729,17 +749,33 @@ func (e *snappyL4) Encode(dst *tokens, src []byte) {
 			s += l
 			nextEmit = s
 			if s >= sLimit {
+				t += l
+				// Index first pair after match end.
+				if int(t+4) < len(src) && t > 0 {
+					cv := load3232(src, t)
+					nextHash = hash(cv)
+					e.table[nextHash&tableMask] = tableEntryPrev{
+						Prev: e.table[nextHash&tableMask].Cur,
+						Cur:  tableEntry{offset: e.cur + t, val: cv},
+					}
+				}
 				goto emitRemainder
 			}
 
 			// We could immediately start working at s now, but to improve
-			// compression we first update the hash table at s-2, s-1 and at s. If
+			// compression we first update the hash table at s-3 to s. If
 			// another emitCopy is not our next move, also calculate nextHash
 			// at s+1. At least on GOARCH=amd64, these three hash calculations
 			// are faster as one load64 call (with some shifts) instead of
 			// three load32 calls.
-			x := load6432(src, s-2)
+			x := load6432(src, s-3)
 			prevHash := hash(uint32(x))
+			e.table[prevHash&tableMask] = tableEntryPrev{
+				Prev: e.table[prevHash&tableMask].Cur,
+				Cur:  tableEntry{offset: e.cur + s - 3, val: uint32(x)},
+			}
+			x >>= 8
+			prevHash = hash(uint32(x))
 
 			e.table[prevHash&tableMask] = tableEntryPrev{
 				Prev: e.table[prevHash&tableMask].Cur,
@@ -766,9 +802,9 @@ func (e *snappyL4) Encode(dst *tokens, src []byte) {
 			candidateAlt = tableEntry{}
 			if cv == candidate.val {
 				offset := s - (candidate.offset - e.cur)
-				if offset < maxMatchOffset {
+				if offset <= maxMatchOffset {
 					offset = s - (candidates.Prev.offset - e.cur)
-					if cv == candidates.Prev.val && offset < maxMatchOffset {
+					if cv == candidates.Prev.val && offset <= maxMatchOffset {
 						candidateAlt = candidates.Prev
 					}
 					continue
@@ -779,7 +815,7 @@ func (e *snappyL4) Encode(dst *tokens, src []byte) {
 				candidate = candidates.Prev
 				if cv == candidate.val {
 					offset := s - (candidate.offset - e.cur)
-					if offset < maxMatchOffset {
+					if offset <= maxMatchOffset {
 						continue
 					}
 				}
@@ -838,7 +874,15 @@ func (e *snappyGen) matchlen(s, t int32, src []byte) int32 {
 			return int32(i)
 		}
 	}
+
+	// If we reached our limit, we matched everything we are
+	// allowed to in the previous block and we return.
 	n := int32(len(b))
+	if int(s+n) == s1 {
+		return n
+	}
+
+	// Continue looking for more matches in the current block.
 	a = src[s+n : s1]
 	b = src[:len(a)]
 	for i := range a {
@@ -852,5 +896,5 @@ func (e *snappyGen) matchlen(s, t int32, src []byte) int32 {
 // Reset the encoding table.
 func (e *snappyGen) Reset() {
 	e.prev = e.prev[:0]
-	e.cur += maxMatchOffset + 1
+	e.cur += maxMatchOffset
 }

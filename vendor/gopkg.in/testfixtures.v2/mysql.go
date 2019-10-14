@@ -70,13 +70,6 @@ func (h *MySQL) tableNames(q queryable) ([]string, error) {
 }
 
 func (h *MySQL) disableReferentialIntegrity(db *sql.DB, loadFn loadFunction) (err error) {
-	// re-enable after load
-	defer func() {
-		if _, err2 := db.Exec("SET FOREIGN_KEY_CHECKS = 1"); err2 != nil && err == nil {
-			err = err2
-		}
-	}()
-
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -87,8 +80,13 @@ func (h *MySQL) disableReferentialIntegrity(db *sql.DB, loadFn loadFunction) (er
 		return err
 	}
 
-	if err = loadFn(tx); err != nil {
+	err = loadFn(tx)
+	_, err2 := tx.Exec("SET FOREIGN_KEY_CHECKS = 1")
+	if err != nil {
 		return err
+	}
+	if err2 != nil {
+		return err2
 	}
 
 	return tx.Commit()

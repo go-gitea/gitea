@@ -1,4 +1,4 @@
-# github.com/go-task/task
+# https://taskfile.org
 
 version: '2'
 
@@ -6,7 +6,7 @@ tasks:
   dl-deps:
     desc: Download cli deps
     cmds:
-      - go get -u github.com/golang/lint/golint
+      - go get -u golang.org/x/lint/golint
 
   lint:
     desc: Runs golint

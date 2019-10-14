@@ -38,7 +38,7 @@ type Pooler interface {
 
 	Get() (*Conn, error)
 	Put(*Conn)
-	Remove(*Conn)
+	Remove(*Conn, error)
 
 	Len() int
 	IdleLen() int
@@ -289,7 +289,7 @@ func (p *ConnPool) popIdle() *Conn {
 
 func (p *ConnPool) Put(cn *Conn) {
 	if !cn.pooled {
-		p.Remove(cn)
+		p.Remove(cn, nil)
 		return
 	}
 
@@ -300,7 +300,7 @@ func (p *ConnPool) Put(cn *Conn) {
 	p.freeTurn()
 }
 
-func (p *ConnPool) Remove(cn *Conn) {
+func (p *ConnPool) Remove(cn *Conn, reason error) {
 	p.removeConn(cn)
 	p.freeTurn()
 	_ = p.closeConn(cn)
@@ -468,7 +468,7 @@ func (p *ConnPool) isStaleConn(cn *Conn) bool {
 	if p.opt.IdleTimeout > 0 && now.Sub(cn.UsedAt()) >= p.opt.IdleTimeout {
 		return true
 	}
-	if p.opt.MaxConnAge > 0 && now.Sub(cn.InitedAt) >= p.opt.MaxConnAge {
+	if p.opt.MaxConnAge > 0 && now.Sub(cn.createdAt) >= p.opt.MaxConnAge {
 		return true
 	}
 

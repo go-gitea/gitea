@@ -976,11 +976,10 @@ const (
 	aliasTag
 )
 
-var predeclOnce sync.Once
 var predecl []types.Type // initialized lazily
 
 func predeclared() []types.Type {
-	predeclOnce.Do(func() {
+	if predecl == nil {
 		// initialize lazily to be sure that all
 		// elements have been initialized before
 		predecl = []types.Type{ // basic types
@@ -1027,7 +1026,7 @@ func predeclared() []types.Type {
 			// used internally by gc; never used by this package or in .a files
 			anyType{},
 		}
-	})
+	}
 	return predecl
 }
 

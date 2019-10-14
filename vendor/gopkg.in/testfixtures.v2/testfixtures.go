@@ -268,7 +268,8 @@ func fixturesFromFolder(folderName string) ([]*fixtureFile, error) {
 	}
 
 	for _, fileinfo := range fileinfos {
-		if !fileinfo.IsDir() && filepath.Ext(fileinfo.Name()) == ".yml" {
+		fileExt := filepath.Ext(fileinfo.Name())
+		if !fileinfo.IsDir() && (fileExt == ".yml" || fileExt == ".yaml") {
 			fixture := &fixtureFile{
 				path:     path.Join(folderName, fileinfo.Name()),
 				fileName: fileinfo.Name(),

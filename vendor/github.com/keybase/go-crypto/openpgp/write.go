@@ -458,6 +458,17 @@ func AttachedSign(out io.WriteCloser, signed Entity, hints *FileHints,
 		return
 	}
 
+	if algo := config.Compression(); algo != packet.CompressionNone {
+		var compConfig *packet.CompressionConfig
+		if config != nil {
+			compConfig = config.CompressionConfig
+		}
+		out, err = packet.SerializeCompressed(out, algo, compConfig)
+		if err != nil {
+			return
+		}
+	}
+
 	hasher := crypto.SHA512
 
 	ops := &packet.OnePassSignature{

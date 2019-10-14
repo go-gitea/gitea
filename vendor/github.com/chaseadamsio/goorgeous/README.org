@@ -12,7 +12,7 @@
 #+BEGIN_QUOTE
 "Org mode is for keeping notes, maintaining TODO lists, planning projects, and authoring documents with a fast and effective plain-text system."
 
-- [[orgmode.org]]
+- [[http://orgmode.org/][orgmode.org]]
 #+END_QUOTE
 
 The purpose of this package is to come as close as possible as parsing an =*.org= document into HTML, the same way one might publish [[http://orgmode.org/worg/org-tutorials/org-publish-html-tutorial.html][with org-publish-html from Emacs]]. 
@@ -31,7 +31,7 @@ To retrieve the headers from a =[]byte=, call =OrgHeaders= and it will return a 
 
 #+BEGIN_SRC go
   input := "#+title: goorgeous\n* Some Headline\n"
-  out := goorgeous.OrgHeaders(input) 
+  out, _ := goorgeous.OrgHeaders(input) 
 #+END_SRC
 
 #+BEGIN_SRC go
@@ -46,7 +46,7 @@ After importing =github.com/chaseadamsio/goorgeous=, you can call =Org= with a =
 
 #+BEGIN_SRC go
   input := "#+TITLE: goorgeous\n* Some Headline\n"
-  out := goorgeous.Org(input) 
+  out := goorgeous.OrgCommon([]byte(input)) 
 #+END_SRC
 
 =out= will be:

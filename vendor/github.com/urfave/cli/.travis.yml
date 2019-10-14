@@ -1,27 +1,35 @@
 language: go
 sudo: false
-dist: trusty
-osx_image: xcode8.3
-go: 1.8.x
+dist: bionic
+osx_image: xcode10
+go:
+  - 1.11.x
+  - 1.12.x
+  - 1.13.x
 
 os:
-- linux
-- osx
+  - linux
+  - osx
+
+env:
+  GO111MODULE=on
+  GOPROXY=https://proxy.golang.org
 
 cache:
   directories:
-  - node_modules
+    - node_modules
 
 before_script:
-- go get github.com/urfave/gfmrun/... || true
-- go get golang.org/x/tools/cmd/goimports
-- if [ ! -f node_modules/.bin/markdown-toc ] ; then
-    npm install markdown-toc ;
-  fi
+  - go get github.com/urfave/gfmrun/cmd/gfmrun
+  - go get golang.org/x/tools/cmd/goimports
+  - npm install markdown-toc
+  - go mod tidy
 
 script:
-- ./runtests gen
-- ./runtests vet
-- ./runtests test
-- ./runtests gfmrun
-- ./runtests toc
+  - go run build.go vet
+  - go run build.go test
+  - go run build.go gfmrun
+  - go run build.go toc
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

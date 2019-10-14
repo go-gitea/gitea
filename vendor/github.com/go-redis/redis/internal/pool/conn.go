@@ -17,14 +17,16 @@ type Conn struct {
 	rdLocked bool
 	wr       *proto.Writer
 
-	InitedAt time.Time
-	pooled   bool
-	usedAt   atomic.Value
+	Inited    bool
+	pooled    bool
+	createdAt time.Time
+	usedAt    atomic.Value
 }
 
 func NewConn(netConn net.Conn) *Conn {
 	cn := &Conn{
-		netConn: netConn,
+		netConn:   netConn,
+		createdAt: time.Now(),
 	}
 	cn.rd = proto.NewReader(netConn)
 	cn.wr = proto.NewWriter(netConn)

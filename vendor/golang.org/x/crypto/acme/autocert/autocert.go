@@ -35,6 +35,9 @@ import (
 	"golang.org/x/net/idna"
 )
 
+// DefaultACMEDirectory is the default ACME Directory URL used when the Manager's Client is nil.
+const DefaultACMEDirectory = "https://acme-v02.api.letsencrypt.org/directory"
+
 // createCertRetryAfter is how much time to wait before removing a failed state
 // entry due to an unsuccessful createCert call.
 // This is a variable instead of a const for testing.
@@ -135,9 +138,10 @@ type Manager struct {
 	// Client is used to perform low-level operations, such as account registration
 	// and requesting new certificates.
 	//
-	// If Client is nil, a zero-value acme.Client is used with acme.LetsEncryptURL
-	// as directory endpoint. If the Client.Key is nil, a new ECDSA P-256 key is
-	// generated and, if Cache is not nil, stored in cache.
+	// If Client is nil, a zero-value acme.Client is used with DefaultACMEDirectory
+	// as the directory endpoint.
+	// If the Client.Key is nil, a new ECDSA P-256 key is generated and,
+	// if Cache is not nil, stored in cache.
 	//
 	// Mutating the field after the first call of GetCertificate method will have no effect.
 	Client *acme.Client
@@ -174,8 +178,8 @@ type Manager struct {
 	renewalMu sync.Mutex
 	renewal   map[certKey]*domainRenewal
 
-	// tokensMu guards the rest of the fields: tryHTTP01, certTokens and httpTokens.
-	tokensMu sync.RWMutex
+	// challengeMu guards tryHTTP01, certTokens and httpTokens.
+	challengeMu sync.RWMutex
 	// tryHTTP01 indicates whether the Manager should try "http-01" challenge type
 	// during the authorization flow.
 	tryHTTP01 bool
@@ -188,6 +192,7 @@ type Manager struct {
 	// and is keyed by the domain name which matches the ClientHello server name.
 	// The entries are stored for the duration of the authorization flow.
 	certTokens map[string]*tls.Certificate
+
 	// nowFunc, if not nil, returns the current time. This may be set for
 	// testing purposes.
 	nowFunc func() time.Time
@@ -267,8 +272,8 @@ func (m *Manager) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, 
 
 	// Check whether this is a token cert requested for TLS-ALPN challenge.
 	if wantsTokenCert(hello) {
-		m.tokensMu.RLock()
-		defer m.tokensMu.RUnlock()
+		m.challengeMu.RLock()
+		defer m.challengeMu.RUnlock()
 		if cert := m.certTokens[name]; cert != nil {
 			return cert, nil
 		}
@@ -376,8 +381,8 @@ func supportsECDSA(hello *tls.ClientHelloInfo) bool {
 // If HTTPHandler is never called, the Manager will only use the "tls-alpn-01"
 // challenge for domain verification.
 func (m *Manager) HTTPHandler(fallback http.Handler) http.Handler {
-	m.tokensMu.Lock()
-	defer m.tokensMu.Unlock()
+	m.challengeMu.Lock()
+	defer m.challengeMu.Unlock()
 	m.tryHTTP01 = true
 
 	if fallback == nil {
@@ -640,71 +645,64 @@ func (m *Manager) certState(ck certKey) (*certState, error) {
 // authorizedCert starts the domain ownership verification process and requests a new cert upon success.
 // The key argument is the certificate private key.
 func (m *Manager) authorizedCert(ctx context.Context, key crypto.Signer, ck certKey) (der [][]byte, leaf *x509.Certificate, err error) {
-	client, err := m.acmeClient(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if err := m.verify(ctx, client, ck.domain); err != nil {
-		return nil, nil, err
-	}
 	csr, err := certRequest(key, ck.domain, m.ExtraExtensions)
 	if err != nil {
 		return nil, nil, err
 	}
-	der, _, err = client.CreateCert(ctx, csr, 0, true)
-	if err != nil {
-		return nil, nil, err
-	}
-	leaf, err = validCert(ck, der, key, m.now())
-	if err != nil {
-		return nil, nil, err
-	}
-	return der, leaf, nil
-}
 
-// revokePendingAuthz revokes all authorizations idenfied by the elements of uri slice.
-// It ignores revocation errors.
-func (m *Manager) revokePendingAuthz(ctx context.Context, uri []string) {
 	client, err := m.acmeClient(ctx)
 	if err != nil {
-		return
+		return nil, nil, err
 	}
-	for _, u := range uri {
-		client.RevokeAuthorization(ctx, u)
+	dir, err := client.Discover(ctx)
+	if err != nil {
+		return nil, nil, err
 	}
+
+	var chain [][]byte
+	switch {
+	// Pre-RFC legacy CA.
+	case dir.OrderURL == "":
+		if err := m.verify(ctx, client, ck.domain); err != nil {
+			return nil, nil, err
+		}
+		der, _, err := client.CreateCert(ctx, csr, 0, true)
+		if err != nil {
+			return nil, nil, err
+		}
+		chain = der
+	// RFC 8555 compliant CA.
+	default:
+		o, err := m.verifyRFC(ctx, client, ck.domain)
+		if err != nil {
+			return nil, nil, err
+		}
+		der, _, err := client.CreateOrderCert(ctx, o.FinalizeURL, csr, true)
+		if err != nil {
+			return nil, nil, err
+		}
+		chain = der
+	}
+	leaf, err = validCert(ck, chain, key, m.now())
+	if err != nil {
+		return nil, nil, err
+	}
+	return chain, leaf, nil
 }
 
-// verify runs the identifier (domain) authorization flow
+// verify runs the identifier (domain) pre-authorization flow for legacy CAs
 // using each applicable ACME challenge type.
 func (m *Manager) verify(ctx context.Context, client *acme.Client, domain string) error {
-	// The list of challenge types we'll try to fulfill
-	// in this specific order.
-	challengeTypes := []string{"tls-alpn-01"}
-	m.tokensMu.RLock()
-	if m.tryHTTP01 {
-		challengeTypes = append(challengeTypes, "http-01")
-	}
-	m.tokensMu.RUnlock()
-
-	// Keep track of pending authzs and revoke the ones that did not validate.
-	pendingAuthzs := make(map[string]bool)
+	// Remove all hanging authorizations to reduce rate limit quotas
+	// after we're done.
+	var authzURLs []string
 	defer func() {
-		var uri []string
-		for k, pending := range pendingAuthzs {
-			if pending {
-				uri = append(uri, k)
-			}
-		}
-		if len(uri) > 0 {
-			// Use "detached" background context.
-			// The revocations need not happen in the current verification flow.
-			go m.revokePendingAuthz(context.Background(), uri)
-		}
+		go m.deactivatePendingAuthz(authzURLs)
 	}()
 
 	// errs accumulates challenge failure errors, printed if all fail
 	errs := make(map[*acme.Challenge]error)
+	challengeTypes := m.supportedChallengeTypes()
 	var nextTyp int // challengeType index of the next challenge type to try
 	for {
 		// Start domain authorization and get the challenge.
@@ -712,6 +710,7 @@ func (m *Manager) verify(ctx context.Context, client *acme.Client, domain string
 		if err != nil {
 			return err
 		}
+		authzURLs = append(authzURLs, authz.URI)
 		// No point in accepting challenges if the authorization status
 		// is in a final state.
 		switch authz.Status {
@@ -720,8 +719,6 @@ func (m *Manager) verify(ctx context.Context, client *acme.Client, domain string
 		case acme.StatusInvalid:
 			return fmt.Errorf("acme/autocert: invalid authorization %q", authz.URI)
 		}
-
-		pendingAuthzs[authz.URI] = true
 
 		// Pick the next preferred challenge.
 		var chal *acme.Challenge
@@ -752,8 +749,123 @@ func (m *Manager) verify(ctx context.Context, client *acme.Client, domain string
 			errs[chal] = err
 			continue
 		}
-		delete(pendingAuthzs, authz.URI)
 		return nil
+	}
+}
+
+// verifyRFC runs the identifier (domain) order-based authorization flow for RFC compliant CAs
+// using each applicable ACME challenge type.
+func (m *Manager) verifyRFC(ctx context.Context, client *acme.Client, domain string) (*acme.Order, error) {
+	// Try each supported challenge type starting with a new order each time.
+	// The nextTyp index of the next challenge type to try is shared across
+	// all order authorizations: if we've tried a challenge type once and it didn't work,
+	// it will most likely not work on another order's authorization either.
+	challengeTypes := m.supportedChallengeTypes()
+	nextTyp := 0 // challengeTypes index
+AuthorizeOrderLoop:
+	for {
+		o, err := client.AuthorizeOrder(ctx, acme.DomainIDs(domain))
+		if err != nil {
+			return nil, err
+		}
+		// Remove all hanging authorizations to reduce rate limit quotas
+		// after we're done.
+		defer func() {
+			go m.deactivatePendingAuthz(o.AuthzURLs)
+		}()
+
+		// Check if there's actually anything we need to do.
+		switch o.Status {
+		case acme.StatusReady:
+			// Already authorized.
+			return o, nil
+		case acme.StatusPending:
+			// Continue normal Order-based flow.
+		default:
+			return nil, fmt.Errorf("acme/autocert: invalid new order status %q; order URL: %q", o.Status, o.URI)
+		}
+
+		// Satisfy all pending authorizations.
+		for _, zurl := range o.AuthzURLs {
+			z, err := client.GetAuthorization(ctx, zurl)
+			if err != nil {
+				return nil, err
+			}
+			if z.Status != acme.StatusPending {
+				// We are interested only in pending authorizations.
+				continue
+			}
+			// Pick the next preferred challenge.
+			var chal *acme.Challenge
+			for chal == nil && nextTyp < len(challengeTypes) {
+				chal = pickChallenge(challengeTypes[nextTyp], z.Challenges)
+				nextTyp++
+			}
+			if chal == nil {
+				return nil, fmt.Errorf("acme/autocert: unable to satisfy %q for domain %q: no viable challenge type found", z.URI, domain)
+			}
+			// Respond to the challenge and wait for validation result.
+			cleanup, err := m.fulfill(ctx, client, chal, domain)
+			if err != nil {
+				continue AuthorizeOrderLoop
+			}
+			defer cleanup()
+			if _, err := client.Accept(ctx, chal); err != nil {
+				continue AuthorizeOrderLoop
+			}
+			if _, err := client.WaitAuthorization(ctx, z.URI); err != nil {
+				continue AuthorizeOrderLoop
+			}
+		}
+
+		// All authorizations are satisfied.
+		// Wait for the CA to update the order status.
+		o, err = client.WaitOrder(ctx, o.URI)
+		if err != nil {
+			continue AuthorizeOrderLoop
+		}
+		return o, nil
+	}
+}
+
+func pickChallenge(typ string, chal []*acme.Challenge) *acme.Challenge {
+	for _, c := range chal {
+		if c.Type == typ {
+			return c
+		}
+	}
+	return nil
+}
+
+func (m *Manager) supportedChallengeTypes() []string {
+	m.challengeMu.RLock()
+	defer m.challengeMu.RUnlock()
+	typ := []string{"tls-alpn-01"}
+	if m.tryHTTP01 {
+		typ = append(typ, "http-01")
+	}
+	return typ
+}
+
+// deactivatePendingAuthz relinquishes all authorizations identified by the elements
+// of the provided uri slice which are in "pending" state.
+// It ignores revocation errors.
+//
+// deactivatePendingAuthz takes no context argument and instead runs with its own
+// "detached" context because deactivations are done in a goroutine separate from
+// that of the main issuance or renewal flow.
+func (m *Manager) deactivatePendingAuthz(uri []string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	client, err := m.acmeClient(ctx)
+	if err != nil {
+		return
+	}
+	for _, u := range uri {
+		z, err := client.GetAuthorization(ctx, u)
+		if err == nil && z.Status == acme.StatusPending {
+			client.RevokeAuthorization(ctx, u)
+		}
 	}
 }
 
@@ -780,20 +892,11 @@ func (m *Manager) fulfill(ctx context.Context, client *acme.Client, chal *acme.C
 	return nil, fmt.Errorf("acme/autocert: unknown challenge type %q", chal.Type)
 }
 
-func pickChallenge(typ string, chal []*acme.Challenge) *acme.Challenge {
-	for _, c := range chal {
-		if c.Type == typ {
-			return c
-		}
-	}
-	return nil
-}
-
 // putCertToken stores the token certificate with the specified name
 // in both m.certTokens map and m.Cache.
 func (m *Manager) putCertToken(ctx context.Context, name string, cert *tls.Certificate) {
-	m.tokensMu.Lock()
-	defer m.tokensMu.Unlock()
+	m.challengeMu.Lock()
+	defer m.challengeMu.Unlock()
 	if m.certTokens == nil {
 		m.certTokens = make(map[string]*tls.Certificate)
 	}
@@ -804,8 +907,8 @@ func (m *Manager) putCertToken(ctx context.Context, name string, cert *tls.Certi
 // deleteCertToken removes the token certificate with the specified name
 // from both m.certTokens map and m.Cache.
 func (m *Manager) deleteCertToken(name string) {
-	m.tokensMu.Lock()
-	defer m.tokensMu.Unlock()
+	m.challengeMu.Lock()
+	defer m.challengeMu.Unlock()
 	delete(m.certTokens, name)
 	if m.Cache != nil {
 		ck := certKey{domain: name, isToken: true}
@@ -816,8 +919,8 @@ func (m *Manager) deleteCertToken(name string) {
 // httpToken retrieves an existing http-01 token value from an in-memory map
 // or the optional cache.
 func (m *Manager) httpToken(ctx context.Context, tokenPath string) ([]byte, error) {
-	m.tokensMu.RLock()
-	defer m.tokensMu.RUnlock()
+	m.challengeMu.RLock()
+	defer m.challengeMu.RUnlock()
 	if v, ok := m.httpTokens[tokenPath]; ok {
 		return v, nil
 	}
@@ -832,8 +935,8 @@ func (m *Manager) httpToken(ctx context.Context, tokenPath string) ([]byte, erro
 //
 // It ignores any error returned from Cache.Put.
 func (m *Manager) putHTTPToken(ctx context.Context, tokenPath, val string) {
-	m.tokensMu.Lock()
-	defer m.tokensMu.Unlock()
+	m.challengeMu.Lock()
+	defer m.challengeMu.Unlock()
 	if m.httpTokens == nil {
 		m.httpTokens = make(map[string][]byte)
 	}
@@ -849,8 +952,8 @@ func (m *Manager) putHTTPToken(ctx context.Context, tokenPath, val string) {
 //
 // If m.Cache is non-nil, it blocks until Cache.Delete returns without a timeout.
 func (m *Manager) deleteHTTPToken(tokenPath string) {
-	m.tokensMu.Lock()
-	defer m.tokensMu.Unlock()
+	m.challengeMu.Lock()
+	defer m.challengeMu.Unlock()
 	delete(m.httpTokens, tokenPath)
 	if m.Cache != nil {
 		m.Cache.Delete(context.Background(), httpTokenCacheKey(tokenPath))
@@ -949,7 +1052,7 @@ func (m *Manager) acmeClient(ctx context.Context) (*acme.Client, error) {
 
 	client := m.Client
 	if client == nil {
-		client = &acme.Client{DirectoryURL: acme.LetsEncryptURL}
+		client = &acme.Client{DirectoryURL: DefaultACMEDirectory}
 	}
 	if client.Key == nil {
 		var err error
@@ -967,12 +1070,21 @@ func (m *Manager) acmeClient(ctx context.Context) (*acme.Client, error) {
 	}
 	a := &acme.Account{Contact: contact}
 	_, err := client.Register(ctx, a, m.Prompt)
-	if ae, ok := err.(*acme.Error); err == nil || ok && ae.StatusCode == http.StatusConflict {
-		// conflict indicates the key is already registered
+	if err == nil || isAccountAlreadyExist(err) {
 		m.client = client
 		err = nil
 	}
 	return m.client, err
+}
+
+// isAccountAlreadyExist reports whether the err, as returned from acme.Client.Register,
+// indicates the account has already been registered.
+func isAccountAlreadyExist(err error) bool {
+	if err == acme.ErrAccountAlreadyExists {
+		return true
+	}
+	ae, ok := err.(*acme.Error)
+	return ok && ae.StatusCode == http.StatusConflict
 }
 
 func (m *Manager) hostPolicy() HostPolicy {

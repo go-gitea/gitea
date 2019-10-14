@@ -703,12 +703,12 @@ func (c *ClusterClient) WithContext(ctx context.Context) *ClusterClient {
 	if ctx == nil {
 		panic("nil context")
 	}
-	c2 := c.copy()
+	c2 := c.clone()
 	c2.ctx = ctx
 	return c2
 }
 
-func (c *ClusterClient) copy() *ClusterClient {
+func (c *ClusterClient) clone() *ClusterClient {
 	cp := *c
 	cp.init()
 	return &cp
@@ -1198,6 +1198,7 @@ func (c *ClusterClient) WrapProcessPipeline(
 	fn func(oldProcess func([]Cmder) error) func([]Cmder) error,
 ) {
 	c.processPipeline = fn(c.processPipeline)
+	c.processTxPipeline = fn(c.processTxPipeline)
 }
 
 func (c *ClusterClient) defaultProcessPipeline(cmds []Cmder) error {
@@ -1537,16 +1538,21 @@ func (c *ClusterClient) pubSub() *PubSub {
 				panic("node != nil")
 			}
 
-			slot := hashtag.Slot(channels[0])
-
 			var err error
-			node, err = c.slotMasterNode(slot)
+			if len(channels) > 0 {
+				slot := hashtag.Slot(channels[0])
+				node, err = c.slotMasterNode(slot)
+			} else {
+				node, err = c.nodes.Random()
+			}
 			if err != nil {
 				return nil, err
 			}
 
 			cn, err := node.Client.newConn()
 			if err != nil {
+				node = nil
+
 				return nil, err
 			}
 

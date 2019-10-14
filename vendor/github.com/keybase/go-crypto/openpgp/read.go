@@ -61,6 +61,9 @@ type MessageDetails struct {
 	Signature      *packet.Signature   // the signature packet itself, if v4 (default)
 	SignatureV3    *packet.SignatureV3 // the signature packet if it is a v2 or v3 signature
 
+	// Does the Message include multiple signatures? Also called "nested signatures".
+	MultiSig bool
+
 	decrypted io.ReadCloser
 }
 
@@ -158,8 +161,15 @@ FindKey:
 				continue
 			}
 			if !pk.key.PrivateKey.Encrypted {
+				if pk.key.PrivateKey.PrivateKey == nil {
+					// Key is stubbed
+					continue
+				}
 				if len(pk.encryptedKey.Key) == 0 {
-					pk.encryptedKey.Decrypt(pk.key.PrivateKey, config)
+					err := pk.encryptedKey.Decrypt(pk.key.PrivateKey, config)
+					if err != nil {
+						continue
+					}
 				}
 				if len(pk.encryptedKey.Key) == 0 {
 					continue
@@ -244,8 +254,17 @@ FindLiteralData:
 				return nil, err
 			}
 		case *packet.OnePassSignature:
-			if !p.IsLast {
-				return nil, errors.UnsupportedError("nested signatures")
+			if md.IsSigned {
+				// If IsSigned is set, it means we have multiple
+				// OnePassSignature packets.
+				md.MultiSig = true
+				if md.SignedBy != nil {
+					// We've already found the signature we were looking
+					// for, made by key that we had in keyring and can
+					// check signature against. Continue with that instead
+					// of trying to find another.
+					continue FindLiteralData
+				}
 			}
 
 			h, wrappedHash, err = hashForSignature(p.Hash, p.SigType)
@@ -329,29 +348,54 @@ func (scr *signatureCheckReader) Read(buf []byte) (n int, err error) {
 	n, err = scr.md.LiteralData.Body.Read(buf)
 	scr.wrappedHash.Write(buf[:n])
 	if err == io.EOF {
-		var p packet.Packet
-		p, scr.md.SignatureError = scr.packets.Next()
-		if scr.md.SignatureError != nil {
-			return
-		}
-
-		var ok bool
-		if scr.md.Signature, ok = p.(*packet.Signature); ok {
-			var err error
-			if fingerprint := scr.md.Signature.IssuerFingerprint; fingerprint != nil {
-				if !hmac.Equal(fingerprint, scr.md.SignedBy.PublicKey.Fingerprint[:]) {
-					err = errors.StructuralError("bad key fingerprint")
+		for {
+			var p packet.Packet
+			p, scr.md.SignatureError = scr.packets.Next()
+			if scr.md.SignatureError != nil {
+				if scr.md.MultiSig {
+					// If we are in MultiSig, we might have found other
+					// signature that cannot be verified using our key.
+					// Clear Signature field so it's clear for consumers
+					// that this message failed to verify.
+					scr.md.Signature = nil
 				}
+				return
 			}
-			if err == nil {
-				err = scr.md.SignedBy.PublicKey.VerifySignature(scr.h, scr.md.Signature)
+
+			var ok bool
+			if scr.md.Signature, ok = p.(*packet.Signature); ok {
+				var err error
+				if keyID := scr.md.Signature.IssuerKeyId; keyID != nil {
+					if *keyID != scr.md.SignedBy.PublicKey.KeyId {
+						if scr.md.MultiSig {
+							continue // try again to find a sig we can verify
+						}
+						err = errors.StructuralError("bad key id")
+					}
+				}
+				if fingerprint := scr.md.Signature.IssuerFingerprint; fingerprint != nil {
+					if !hmac.Equal(fingerprint, scr.md.SignedBy.PublicKey.Fingerprint[:]) {
+						if scr.md.MultiSig {
+							continue // try again to find a sig we can verify
+						}
+						err = errors.StructuralError("bad key fingerprint")
+					}
+				}
+				if err == nil {
+					err = scr.md.SignedBy.PublicKey.VerifySignature(scr.h, scr.md.Signature)
+				}
+				scr.md.SignatureError = err
+			} else if scr.md.SignatureV3, ok = p.(*packet.SignatureV3); ok {
+				scr.md.SignatureError = scr.md.SignedBy.PublicKey.VerifySignatureV3(scr.h, scr.md.SignatureV3)
+			} else {
+				scr.md.SignatureError = errors.StructuralError("LiteralData not followed by Signature")
+				return
 			}
-			scr.md.SignatureError = err
-		} else if scr.md.SignatureV3, ok = p.(*packet.SignatureV3); ok {
-			scr.md.SignatureError = scr.md.SignedBy.PublicKey.VerifySignatureV3(scr.h, scr.md.SignatureV3)
-		} else {
-			scr.md.SignatureError = errors.StructuralError("LiteralData not followed by Signature")
-			return
+
+			// Parse only one packet by default, unless message is MultiSig. Then
+			// we ask for more packets after discovering non-matching signature,
+			// until we find one that we can verify.
+			break
 		}
 
 		// The SymmetricallyEncrypted packet, if any, might have an

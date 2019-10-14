@@ -21,7 +21,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 
 	"golang.org/x/tools/go/internal/packagesdriver"
 	"golang.org/x/tools/internal/gopathwalk"
@@ -832,8 +831,7 @@ func golistargs(cfg *Config, words []string) []string {
 		fmt.Sprintf("-compiled=%t", cfg.Mode&(NeedCompiledGoFiles|NeedSyntax|NeedTypesInfo|NeedTypesSizes) != 0),
 		fmt.Sprintf("-test=%t", cfg.Tests),
 		fmt.Sprintf("-export=%t", usesExportData(cfg)),
-		fmt.Sprintf("-deps=%t", cfg.Mode&NeedDeps != 0 ||
-			cfg.Mode&NeedTypesInfo != 0), // Dependencies are required to do typechecking on sources, which is required for the TypesInfo.
+		fmt.Sprintf("-deps=%t", cfg.Mode&NeedDeps != 0),
 		// go list doesn't let you pass -test and -find together,
 		// probably because you'd just get the TestMain.
 		fmt.Sprintf("-find=%t", !cfg.Tests && cfg.Mode&findFlags == 0),
@@ -888,21 +886,8 @@ func invokeGo(cfg *Config, args ...string) (*bytes.Buffer, error) {
 
 		// Is there an error running the C compiler in cgo? This will be reported in the "Error" field
 		// and should be suppressed by go list -e.
-		//
-		// This condition is not perfect yet because the error message can include other error messages than runtime/cgo.
-		isPkgPathRune := func(r rune) bool {
-			// From https://golang.org/ref/spec#Import_declarations:
-			//    Implementation restriction: A compiler may restrict ImportPaths to non-empty strings
-			//    using only characters belonging to Unicode's L, M, N, P, and S general categories
-			//    (the Graphic characters without spaces) and may also exclude the
-			//    characters !"#$%&'()*,:;<=>?[\]^`{|} and the Unicode replacement character U+FFFD.
-			return unicode.IsOneOf([]*unicode.RangeTable{unicode.L, unicode.M, unicode.N, unicode.P, unicode.S}, r) &&
-				strings.IndexRune("!\"#$%&'()*,:;<=>?[\\]^`{|}\uFFFD", r) == -1
-		}
-		if len(stderr.String()) > 0 && strings.HasPrefix(stderr.String(), "# ") {
-			if strings.HasPrefix(strings.TrimLeftFunc(stderr.String()[len("# "):], isPkgPathRune), "\n") {
-				return stdout, nil
-			}
+		if len(stderr.String()) > 0 && strings.HasPrefix(stderr.String(), "# runtime/cgo\n") && strings.Count(stderr.String(), "\n") == 2 {
+			return stdout, nil
 		}
 
 		// This error only appears in stderr. See golang.org/cl/166398 for a fix in go list to show

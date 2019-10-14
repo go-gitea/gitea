@@ -25,7 +25,7 @@ func Normalize(id string) (string, error) {
 	// Global Context Symbol ("=", "@", "+", "$", "!") or "(", as
 	// defined in Section 2.2.1 of [XRI_Syntax_2.0], then the input
 	// SHOULD be treated as an XRI.
-	if b := id[0]; b == '=' || b == '@' || b == '+' || b == '$' || b == '!' {
+	if b := id[0]; b == '=' || b == '@' || b == '+' || b == '$' || b == '!' || b == '(' {
 		return id, errors.New("XRI identifiers not supported")
 	}
 

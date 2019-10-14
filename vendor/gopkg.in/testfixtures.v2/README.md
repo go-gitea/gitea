@@ -229,6 +229,15 @@ errors with the previous approach. It is as simple as using:
 &testfixtures.PostgreSQL{UseAlterConstraint: true}
 ```
 
+#### Skipping reset of sequences
+
+You can skip the reset of PostgreSQL sequences if you're debugging a problem
+with it, but most of the time you shouldn't do it:
+
+```go
+&testfixtures.PostgreSQL{SkipResetSequences: true}
+```
+
 ### MySQL / MariaDB
 
 Just make sure the connection string have
@@ -301,6 +310,27 @@ if err != nil {
 
 > This was thought to run in small sample databases. It will likely break
 if run in a production/big database.
+
+## Gotchas
+
+### Parallel testing
+
+This library doesn't yet support running tests in parallel! Running tests
+in parallel can result in random data being present in the database, which
+will likely cause tests to randomly/intermittently fail.
+
+This is specially tricky since it's not immediately clear that `go test ./...`
+run tests for each package in parallel. If more than one package use this
+library, you can face this issue. Please, use `go test -p 1 ./...` or run tests
+for each package in separated commands to fix this issue.
+
+See [#40](https://github.com/go-testfixtures/testfixtures/issues/40)
+and [golang/go#11521](https://github.com/golang/go/issues/11521) for more information.
+
+We're also planning to implement transactional tests to allow running tests
+in parallel (see [#24](https://github.com/go-testfixtures/testfixtures/issues/24)).
+Running each test package in a separated database would also allow you to do that.
+Open issues for other ideas :slightly_smiling_face:.
 
 ## Contributing
 

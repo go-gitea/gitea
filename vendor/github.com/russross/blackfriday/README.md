@@ -331,6 +331,12 @@ are a few of note:
 *   [LaTeX output](https://bitbucket.org/ambrevar/blackfriday-latex):
     renders output as LaTeX.
 
+*   [bfchroma](https://github.com/Depado/bfchroma/): provides convenience
+    integration with the [Chroma](https://github.com/alecthomas/chroma) code
+    highlighting library. bfchroma is only compatible with v2 of Blackfriday and
+    provides a drop-in renderer ready to use with Blackfriday, as well as
+    options and means for further customization.
+
 
 TODO
 ----

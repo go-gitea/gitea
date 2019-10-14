@@ -67,6 +67,8 @@ func OrgOptions(input []byte, renderer blackfriday.Renderer) []byte {
 	inList := false
 	inTable := false
 	inFixedWidthArea := false
+	inFootNote := false
+	curFootNoteId := ""
 	var tmpBlock bytes.Buffer
 
 	for scanner.Scan() {
@@ -100,6 +102,9 @@ func OrgOptions(input []byte, renderer blackfriday.Renderer) []byte {
 				}
 				inFixedWidthArea = false
 				tmpBlock.Reset()
+			case inFootNote:
+				inFootNote = false
+				curFootNoteId = ""
 			}
 
 		}
@@ -133,6 +138,9 @@ func OrgOptions(input []byte, renderer blackfriday.Renderer) []byte {
 				}
 				inFixedWidthArea = false
 				tmpBlock.Reset()
+			case inFootNote:
+				inFootNote = false
+				curFootNoteId = ""
 			case marker != "":
 				tmpBlock.WriteByte('\n')
 			default:
@@ -189,11 +197,22 @@ func OrgOptions(input []byte, renderer blackfriday.Renderer) []byte {
 				marker = string(matches[2])
 				syntax = string(matches[3])
 			}
-		case isFootnoteDef(data):
-			matches := reFootnoteDef.FindSubmatch(data)
-			for i := range p.notes {
-				if p.notes[i].id == string(matches[1]) {
-					p.notes[i].def = string(matches[2])
+		case isFootnoteDef(data) || inFootNote:
+			if isFootnoteDef(data) {
+				matches := reFootnoteDef.FindSubmatch(data)
+				for i := range p.notes {
+					if p.notes[i].id == string(matches[1]) {
+						p.notes[i].def = string(matches[2])
+						inFootNote = true
+						curFootNoteId = string(matches[1])
+					}
+				}
+			} else if inFootNote {
+				for i := range p.notes {
+					if p.notes[i].id == curFootNoteId {
+						p.notes[i].def += " "
+						p.notes[i].def += string(data)
+					}
 				}
 			}
 		case isTable(data):
@@ -525,7 +544,7 @@ func IsKeyword(data []byte) bool {
 
 // ~~ Comments
 func isComment(data []byte) bool {
-	return charMatches(data[0], '#') && charMatches(data[1], ' ')
+	return len(data) > 1 && charMatches(data[0], '#') && charMatches(data[1], ' ')
 }
 
 func (p *parser) generateComment(out *bytes.Buffer, data []byte) {

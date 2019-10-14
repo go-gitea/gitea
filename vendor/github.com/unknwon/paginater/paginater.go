@@ -96,6 +96,11 @@ func (p *Paginater) Current() int {
 	return p.current
 }
 
+// PagingNum returns number of page size.
+func (p *Paginater) PagingNum() int {
+	return p.pagingNum
+}
+
 // Page presents a page in the paginater.
 type Page struct {
 	num       int
