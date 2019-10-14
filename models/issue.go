@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -32,7 +33,7 @@ type Issue struct {
 	PosterID         int64       `xorm:"INDEX"`
 	Poster           *User       `xorm:"-"`
 	OriginalAuthor   string
-	OriginalAuthorID int64
+	OriginalAuthorID int64      `xorm:"index"`
 	Title            string     `xorm:"name"`
 	Content          string     `xorm:"TEXT"`
 	RenderedContent  string     `xorm:"-"`
@@ -714,11 +715,6 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 	return nil
 }
 
-// UpdateIssueCols only updates values of specific columns for given issue.
-func UpdateIssueCols(issue *Issue, cols ...string) error {
-	return updateIssueCols(x, issue, cols...)
-}
-
 func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (err error) {
 	// Reload the issue
 	currentIssue, err := getIssueByID(e, issue.ID)
@@ -844,9 +840,7 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 }
 
 // ChangeTitle changes the title of this issue, as the given user.
-func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
-	oldTitle := issue.Title
-	issue.Title = title
+func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -862,7 +856,7 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
 
-	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, title); err != nil {
+	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, issue.Title); err != nil {
 		return fmt.Errorf("createChangeTitleComment: %v", err)
 	}
 
@@ -874,51 +868,7 @@ func (issue *Issue) ChangeTitle(doer *User, title string) (err error) {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-	sess.Close()
-
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if issue.IsPull {
-		if err = issue.loadPullRequest(sess); err != nil {
-			return fmt.Errorf("loadPullRequest: %v", err)
-		}
-		issue.PullRequest.Issue = issue
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-			Action: api.HookIssueEdited,
-			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
-				Title: &api.ChangesFromPayload{
-					From: oldTitle,
-				},
-			},
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
-			Sender:      doer.APIFormat(),
-		})
-	} else {
-		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
-			Action: api.HookIssueEdited,
-			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
-				Title: &api.ChangesFromPayload{
-					From: oldTitle,
-				},
-			},
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     issue.Poster.APIFormat(),
-		})
-	}
-
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 // AddDeletePRBranchComment adds delete branch comment for pull request issue
@@ -1997,4 +1947,17 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 	}
 
 	return
+}
+
+// UpdateIssuesMigrationsByType updates all migrated repositories' issues from gitServiceType to replace originalAuthorID to posterID
+func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID, posterID int64) error {
+	_, err := x.Table("issue").
+		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
+		And("original_author_id = ?", originalAuthorID).
+		Update(map[string]interface{}{
+			"poster_id":          posterID,
+			"original_author":    "",
+			"original_author_id": 0,
+		})
+	return err
 }
