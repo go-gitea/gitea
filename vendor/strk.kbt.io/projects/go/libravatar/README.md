@@ -1,12 +1,14 @@
 Simple [golang](https://www.golang.org) library for serving
 [federated avatars](https://www.libravatar.org)
 
+[![trunk](https://goreportcard.com/badge/strk.kbt.io/projects/go/libravatar)]
+(https://goreportcard.com/report/strk.kbt.io/projects/go/libravatar)
+
 # Use
 
 ```sh
 go get strk.kbt.io/projects/go/libravatar
-cd $GOPATH/src/strk.kbt.io/projects/go/libravatar
-go doc
+go doc strk.kbt.io/projects/go/libravatar
 ```
 
 # Contribute

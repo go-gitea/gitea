@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -35,17 +36,6 @@ var (
 	// Thus a link is produced even if the linked entity does not exist.
 	// While fast, this is also incorrect and lead to false positives.
 	// TODO: fix invalid linking issue
-
-	// mentionPattern matches all mentions in the form of "@user"
-	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_\.]+)(?:\s|$|\)|\])`)
-
-	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
-	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
-	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$))`)
-	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
-	// e.g. gogits/gogs#12345
-	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
 
 	// sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
 	// Although SHA1 hashes are 40 chars long, the regex matches the hash from 7 to 40 chars in length
@@ -69,6 +59,9 @@ var (
 
 	linkRegex, _ = xurls.StrictMatchingScheme("https?://")
 )
+
+// CSS class for action keywords (e.g. "closes: #1")
+const keywordClass = "issue-keyword"
 
 // regexp for full links to issues/pulls
 var issueFullPattern *regexp.Regexp
@@ -97,17 +90,6 @@ func getIssueFullPattern() *regexp.Regexp {
 			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
 	}
 	return issueFullPattern
-}
-
-// FindAllMentions matches mention patterns in given content
-// and returns a list of found user names without @ prefix.
-func FindAllMentions(content string) []string {
-	mentions := mentionPattern.FindAllStringSubmatch(content, -1)
-	ret := make([]string, len(mentions))
-	for i, val := range mentions {
-		ret[i] = val[1][1:]
-	}
-	return ret
 }
 
 // IsSameDomain checks if given url string has the same hostname as current Gitea instance
@@ -142,7 +124,6 @@ var defaultProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
-	crossReferenceIssueIndexPatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
 }
@@ -183,7 +164,6 @@ var commitMessageProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
-	crossReferenceIssueIndexPatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
 }
@@ -217,7 +197,6 @@ var commitMessageSubjectProcessors = []processor{
 	linkProcessor,
 	mentionProcessor,
 	issueIndexPatternProcessor,
-	crossReferenceIssueIndexPatternProcessor,
 	sha1CurrentPatternProcessor,
 }
 
@@ -330,6 +309,24 @@ func (ctx *postProcessCtx) textNode(node *html.Node) {
 	}
 }
 
+// createKeyword() renders a highlighted version of an action keyword
+func createKeyword(content string) *html.Node {
+	span := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.Span.String(),
+		Attr: []html.Attribute{},
+	}
+	span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: keywordClass})
+
+	text := &html.Node{
+		Type: html.TextNode,
+		Data: content,
+	}
+	span.AppendChild(text)
+
+	return span
+}
+
 func createLink(href, content, class string) *html.Node {
 	a := &html.Node{
 		Type: html.ElementNode,
@@ -377,10 +374,16 @@ func createCodeLink(href, content, class string) *html.Node {
 	return a
 }
 
-// replaceContent takes a text node, and in its content it replaces a section of
-// it with the specified newNode. An example to visualize how this can work can
-// be found here: https://play.golang.org/p/5zP8NnHZ03s
+// replaceContent takes text node, and in its content it replaces a section of
+// it with the specified newNode.
 func replaceContent(node *html.Node, i, j int, newNode *html.Node) {
+	replaceContentList(node, i, j, []*html.Node{newNode})
+}
+
+// replaceContentList takes text node, and in its content it replaces a section of
+// it with the specified newNodes. An example to visualize how this can work can
+// be found here: https://play.golang.org/p/5zP8NnHZ03s
+func replaceContentList(node *html.Node, i, j int, newNodes []*html.Node) {
 	// get the data before and after the match
 	before := node.Data[:i]
 	after := node.Data[j:]
@@ -392,7 +395,9 @@ func replaceContent(node *html.Node, i, j int, newNode *html.Node) {
 	// Get the current next sibling, before which we place the replaced data,
 	// and after that we place the new text node.
 	nextSibling := node.NextSibling
-	node.Parent.InsertBefore(newNode, nextSibling)
+	for _, n := range newNodes {
+		node.Parent.InsertBefore(n, nextSibling)
+	}
 	if after != "" {
 		node.Parent.InsertBefore(&html.Node{
 			Type: html.TextNode,
@@ -402,13 +407,13 @@ func replaceContent(node *html.Node, i, j int, newNode *html.Node) {
 }
 
 func mentionProcessor(_ *postProcessCtx, node *html.Node) {
-	m := mentionPattern.FindStringSubmatchIndex(node.Data)
-	if m == nil {
+	// We replace only the first mention; other mentions will be addressed later
+	found, loc := references.FindFirstMentionBytes([]byte(node.Data))
+	if !found {
 		return
 	}
-	// Replace the mention with a link to the specified user.
-	mention := node.Data[m[2]:m[3]]
-	replaceContent(node, m[2], m[3], createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
+	mention := node.Data[loc.Start:loc.End]
+	replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
 }
 
 func shortLinkProcessor(ctx *postProcessCtx, node *html.Node) {
@@ -597,45 +602,44 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	if ctx.metas == nil {
 		return
 	}
-	// default to numeric pattern, unless alphanumeric is requested.
-	pattern := issueNumericPattern
+
+	var (
+		found bool
+		ref   *references.RenderizableReference
+	)
+
 	if ctx.metas["style"] == IssueNameStyleAlphanumeric {
-		pattern = issueAlphanumericPattern
-	}
-
-	match := pattern.FindStringSubmatchIndex(node.Data)
-	if match == nil {
-		return
-	}
-
-	id := node.Data[match[2]:match[3]]
-	var link *html.Node
-	if _, ok := ctx.metas["format"]; ok {
-		// Support for external issue tracker
-		if ctx.metas["style"] == IssueNameStyleAlphanumeric {
-			ctx.metas["index"] = id
-		} else {
-			ctx.metas["index"] = id[1:]
-		}
-		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), id, "issue")
+		found, ref = references.FindRenderizableReferenceAlphanumeric(node.Data)
 	} else {
-		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", id[1:]), id, "issue")
+		found, ref = references.FindRenderizableReferenceNumeric(node.Data)
 	}
-	replaceContent(node, match[2], match[3], link)
-}
-
-func crossReferenceIssueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := crossReferenceIssueNumericPattern.FindStringSubmatchIndex(node.Data)
-	if m == nil {
+	if !found {
 		return
 	}
-	ref := node.Data[m[2]:m[3]]
 
-	parts := strings.SplitN(ref, "#", 2)
-	repo, issue := parts[0], parts[1]
+	var link *html.Node
+	reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
+	if _, ok := ctx.metas["format"]; ok {
+		ctx.metas["index"] = ref.Issue
+		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), reftext, "issue")
+	} else if ref.Owner == "" {
+		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", ref.Issue), reftext, "issue")
+	} else {
+		link = createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, "issues", ref.Issue), reftext, "issue")
+	}
 
-	replaceContent(node, m[2], m[3],
-		createLink(util.URLJoin(setting.AppURL, repo, "issues", issue), ref, issue))
+	if ref.Action == references.XRefActionNone {
+		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
+		return
+	}
+
+	// Decorate action keywords
+	keyword := createKeyword(node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
+	spaces := &html.Node{
+		Type: html.TextNode,
+		Data: node.Data[ref.ActionLocation.End:ref.RefLocation.Start],
+	}
+	replaceContentList(node, ref.ActionLocation.Start, ref.RefLocation.End, []*html.Node{keyword, spaces, link})
 }
 
 // fullSha1PatternProcessor renders SHA containing URLs
