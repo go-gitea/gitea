@@ -46,7 +46,7 @@ func updateMigrationPosterIDByGitService(tp structs.GitServiceType) error {
 				continue
 			}
 			if err := models.UpdateMigrationsByType(tp, externalUserID, user.UserID); err != nil {
-				log.Error("UpdateMigrationsByType type %v, github user id %v, user id %v failed: %v", tp, user.ExternalID, user.UserID, err)
+				log.Error("UpdateMigrationsByType type %s external user id %v to local user id %v failed: %v", tp.Name(), user.ExternalID, user.UserID, err)
 			}
 		}
 
