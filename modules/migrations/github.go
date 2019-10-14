@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/google/go-github/v24/github"
 	"golang.org/x/oauth2"
@@ -39,7 +40,7 @@ func (f *GithubDownloaderV3Factory) Match(opts base.MigrateOptions) (bool, error
 		return false, err
 	}
 
-	return u.Host == "github.com" && opts.AuthUsername != "", nil
+	return strings.EqualFold(u.Host, "github.com") && opts.AuthUsername != "", nil
 }
 
 // New returns a Downloader related to this factory according MigrateOptions
@@ -56,6 +57,11 @@ func (f *GithubDownloaderV3Factory) New(opts base.MigrateOptions) (base.Download
 	log.Trace("Create github downloader: %s/%s", oldOwner, oldName)
 
 	return NewGithubDownloaderV3(opts.AuthUsername, opts.AuthPassword, oldOwner, oldName), nil
+}
+
+// GitServiceType returns the type of git service
+func (f *GithubDownloaderV3Factory) GitServiceType() structs.GitServiceType {
+	return structs.GithubService
 }
 
 // GithubDownloaderV3 implements a Downloader interface to get repository informations

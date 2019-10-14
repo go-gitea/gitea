@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/unknwon/com"
@@ -123,7 +123,7 @@ func MailParticipants(issue *models.Issue, doer *models.User, opType models.Acti
 }
 
 func mailParticipants(ctx models.DBContext, issue *models.Issue, doer *models.User, opType models.ActionType) (err error) {
-	rawMentions := markup.FindAllMentions(issue.Content)
+	rawMentions := references.FindAllMentionsMarkdown(issue.Content)
 	userMentions, err := issue.ResolveMentionsByVisibility(ctx, doer, rawMentions)
 	if err != nil {
 		return fmt.Errorf("ResolveMentionsByVisibility [%d]: %v", issue.ID, err)
