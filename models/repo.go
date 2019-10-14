@@ -32,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -137,16 +138,17 @@ const (
 
 // Repository represents a git repository.
 type Repository struct {
-	ID            int64  `xorm:"pk autoincr"`
-	OwnerID       int64  `xorm:"UNIQUE(s) index"`
-	OwnerName     string `xorm:"-"`
-	Owner         *User  `xorm:"-"`
-	LowerName     string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Name          string `xorm:"INDEX NOT NULL"`
-	Description   string `xorm:"TEXT"`
-	Website       string `xorm:"VARCHAR(2048)"`
-	OriginalURL   string `xorm:"VARCHAR(2048)"`
-	DefaultBranch string
+	ID                  int64                  `xorm:"pk autoincr"`
+	OwnerID             int64                  `xorm:"UNIQUE(s) index"`
+	OwnerName           string                 `xorm:"-"`
+	Owner               *User                  `xorm:"-"`
+	LowerName           string                 `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Name                string                 `xorm:"INDEX NOT NULL"`
+	Description         string                 `xorm:"TEXT"`
+	Website             string                 `xorm:"VARCHAR(2048)"`
+	OriginalServiceType structs.GitServiceType `xorm:"index"`
+	OriginalURL         string                 `xorm:"VARCHAR(2048)"`
+	DefaultBranch       string
 
 	NumWatches          int
 	NumStars            int

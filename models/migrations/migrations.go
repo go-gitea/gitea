@@ -253,6 +253,10 @@ var migrations = []Migration{
 	// v98 -> v99
 	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
 	// v99 -> v100
+	NewMigration("add task table and status column for repository table", addTaskTable),
+	// v100 -> v101
+	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
+	// v101 -> v102
 	NewMigration("add projects info to repository table", addProjectsInfo),
 }
 

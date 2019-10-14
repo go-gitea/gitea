@@ -5,87 +5,79 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"net/url"
+	"strings"
+	"time"
 
 	"github.com/go-xorm/xorm"
 )
 
-func addProjectsInfo(x *xorm.Engine) error {
-
-	sess := x.NewSession()
-	defer sess.Close()
-
-	type (
-		ProjectType      uint8
-		ProjectBoardType uint8
-	)
-
-	type Project struct {
-		ID              int64  `xorm:"pk autoincr"`
-		Title           string `xorm:"INDEX NOT NULL"`
-		Description     string `xorm:"TEXT"`
-		RepoID          int64  `xorm:"NOT NULL"`
-		CreatorID       int64  `xorm:"NOT NULL"`
-		IsClosed        bool   `xorm:"INDEX"`
-		NumIssues       int
-		NumClosedIssues int
-
-		BoardType ProjectBoardType
-		Type      ProjectType
-
-		ClosedDateUnix timeutil.TimeStamp
-		CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
-	}
-
-	if err := sess.Sync2(new(Project)); err != nil {
-		return err
-	}
-
-	type Comment struct {
-		OldProjectID int64
-		ProjectID    int64
-	}
-
-	if err := sess.Sync2(new(Comment)); err != nil {
-		return err
-	}
-
+func updateMigrationServiceTypes(x *xorm.Engine) error {
 	type Repository struct {
-		NumProjects       int `xorm:"NOT NULL DEFAULT 0"`
-		NumClosedProjects int `xorm:"NOT NULL DEFAULT 0"`
-		NumOpenProjects   int `xorm:"-"`
+		ID                  int64
+		OriginalServiceType int    `xorm:"index default(0)"`
+		OriginalURL         string `xorm:"VARCHAR(2048)"`
 	}
 
-	if err := sess.Sync2(new(Repository)); err != nil {
+	if err := x.Sync2(new(Repository)); err != nil {
 		return err
 	}
 
-	type Issue struct {
-		ProjectID      int64 `xorm:"INDEX"`
-		ProjectBoardID int64 `xorm:"INDEX"`
+	var last int
+	const batchSize = 50
+	for {
+		var results = make([]Repository, 0, batchSize)
+		err := x.Where("original_url <> '' AND original_url IS NOT NULL").
+			And("original_service_type = 0 OR original_service_type IS NULL").
+			OrderBy("id").
+			Limit(batchSize, last).
+			Find(&results)
+		if err != nil {
+			return err
+		}
+		if len(results) == 0 {
+			break
+		}
+		last += len(results)
+
+		const PlainGitService = 1 // 1 plain git service
+		const GithubService = 2   // 2 github.com
+
+		for _, res := range results {
+			u, err := url.Parse(res.OriginalURL)
+			if err != nil {
+				return err
+			}
+			var serviceType = PlainGitService
+			if strings.EqualFold(u.Host, "github.com") {
+				serviceType = GithubService
+			}
+			_, err = x.Exec("UPDATE repository SET original_service_type = ? WHERE id = ?", serviceType, res.ID)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	if err := sess.Sync2(new(Issue)); err != nil {
-		return err
+	type ExternalLoginUser struct {
+		ExternalID        string                 `xorm:"pk NOT NULL"`
+		UserID            int64                  `xorm:"INDEX NOT NULL"`
+		LoginSourceID     int64                  `xorm:"pk NOT NULL"`
+		RawData           map[string]interface{} `xorm:"TEXT JSON"`
+		Provider          string                 `xorm:"index VARCHAR(25)"`
+		Email             string
+		Name              string
+		FirstName         string
+		LastName          string
+		NickName          string
+		Description       string
+		AvatarURL         string
+		Location          string
+		AccessToken       string
+		AccessTokenSecret string
+		RefreshToken      string
+		ExpiresAt         time.Time
 	}
 
-	type ProjectBoard struct {
-		ID        int64 `xorm:"pk autoincr"`
-		ProjectID int64 `xorm:"INDEX NOT NULL"`
-		Title     string
-		RepoID    int64 `xorm:"INDEX NOT NULL"`
-
-		// Not really needed but helpful
-		CreatorID int64 `xorm:"NOT NULL"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-	}
-
-	if err := sess.Sync2(new(ProjectBoard)); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return x.Sync2(new(ExternalLoginUser))
 }

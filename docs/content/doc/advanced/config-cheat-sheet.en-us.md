@@ -208,6 +208,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `INTERNAL_TOKEN_URI`: **<empty>**: Instead of defining internal token in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
 - `PASSWORD_HASH_ALGO`: **pbkdf2**: The hash algorithm to use \[pbkdf2, argon2, scrypt, bcrypt\].
 - `CSRF_COOKIE_HTTP_ONLY`: **true**: Set false to allow JavaScript to read CSRF cookie.
+- `PASSWORD_COMPLEXITY`: **lower,upper,digit,spec**: Comma separated list of character classes required to pass minimum complexity. If left empty or no valid values are specified, the default values will be used. Possible values are: 
+    - lower - use one or more lower latin characters
+    - upper - use one or more upper latin characters
+    - digit - use one or more digits
+    - spec - use one or more special characters as ``][!"#$%&'()*+,./:;<=>?@\^_{|}~`-`` and space symbol. 
 
 ## OpenID (`openid`)
 
@@ -418,6 +423,10 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 
 - `RUN_AT_START`: **true**: Run repository statistics check at start time.
 - `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository statistics check.
+
+### Cron - Update Migration Poster ID (`cron.update_migration_post_id`)
+
+- `SCHEDULE`: **@every 24h** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 
 ## Git (`git`)
 
