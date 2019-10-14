@@ -159,7 +159,7 @@ func FindExternalUsersByProvider(opts FindExternalUserOptions) ([]ExternalLoginU
 	var users []ExternalLoginUser
 	err := x.Where(opts.toConds()).
 		Limit(opts.Limit, opts.Start).
-		Asc("id").
+		OrderBy("login_source_id ASC, external_id ASC").
 		Find(&users)
 	if err != nil {
 		return nil, err
