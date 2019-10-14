@@ -108,6 +108,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Markdown (`markdown`)
 
 - `ENABLE_HARD_LINE_BREAK`: **false**: Enable Markdown's hard line break extension.
+- `CUSTOM_URL_SCHEMES`: : Use a comma separated list (http,https,ftp,git,svn) to indicate 
+  URI hyperlinks that should be rendered in Markdown. The default is only http and https.
 
 ## Server (`server`)
 
