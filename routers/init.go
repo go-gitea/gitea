@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
+	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 
@@ -102,6 +103,9 @@ func GlobalInit() {
 		mirror_service.InitSyncMirrors()
 		models.InitDeliverHooks()
 		models.InitTestPullRequests()
+		if err := task.Init(); err != nil {
+			log.Fatal("Failed to initialize task scheduler: %v", err)
+		}
 	}
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 Supported")
