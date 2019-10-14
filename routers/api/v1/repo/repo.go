@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
@@ -397,21 +399,28 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
+	var gitServiceType = structs.PlainGitService
+	u, err := url.Parse(remoteAddr)
+	if err == nil && strings.EqualFold(u.Host, "github.com") {
+		gitServiceType = structs.GithubService
+	}
+
 	var opts = migrations.MigrateOptions{
-		CloneAddr:    remoteAddr,
-		RepoName:     form.RepoName,
-		Description:  form.Description,
-		Private:      form.Private || setting.Repository.ForcePrivate,
-		Mirror:       form.Mirror,
-		AuthUsername: form.AuthUsername,
-		AuthPassword: form.AuthPassword,
-		Wiki:         form.Wiki,
-		Issues:       form.Issues,
-		Milestones:   form.Milestones,
-		Labels:       form.Labels,
-		Comments:     true,
-		PullRequests: form.PullRequests,
-		Releases:     form.Releases,
+		CloneAddr:      remoteAddr,
+		RepoName:       form.RepoName,
+		Description:    form.Description,
+		Private:        form.Private || setting.Repository.ForcePrivate,
+		Mirror:         form.Mirror,
+		AuthUsername:   form.AuthUsername,
+		AuthPassword:   form.AuthPassword,
+		Wiki:           form.Wiki,
+		Issues:         form.Issues,
+		Milestones:     form.Milestones,
+		Labels:         form.Labels,
+		Comments:       true,
+		PullRequests:   form.PullRequests,
+		Releases:       form.Releases,
+		GitServiceType: gitServiceType,
 	}
 	if opts.Mirror {
 		opts.Issues = false
