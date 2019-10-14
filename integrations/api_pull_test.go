@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	issue_service "code.gitea.io/gitea/services/issue"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -40,7 +41,7 @@ func TestAPIMergePullWIP(t *testing.T) {
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 	pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{Status: models.PullRequestStatusMergeable}, models.Cond("has_merged = ?", false)).(*models.PullRequest)
 	pr.LoadIssue()
-	pr.Issue.ChangeTitle(owner, setting.Repository.PullRequest.WorkInProgressPrefixes[0]+" "+pr.Issue.Title)
+	issue_service.ChangeTitle(pr.Issue, owner, setting.Repository.PullRequest.WorkInProgressPrefixes[0]+" "+pr.Issue.Title)
 
 	// force reload
 	pr.LoadAttributes()
