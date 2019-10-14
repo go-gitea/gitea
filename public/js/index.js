@@ -3147,3 +3147,5 @@ function onOAuthLoginClick() {
         oauthNav.show();
     },5000);
 }
+
+$("div.dropdown").find("a.item").attr("tabindex", "-1");
