@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -144,10 +146,10 @@ type Comment struct {
 
 	// Reference an issue or pull from another comment, issue or PR
 	// All information is about the origin of the reference
-	RefRepoID    int64      `xorm:"index"` // Repo where the referencing
-	RefIssueID   int64      `xorm:"index"`
-	RefCommentID int64      `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
-	RefAction    XRefAction `xorm:"SMALLINT"` // What hapens if RefIssueID resolves
+	RefRepoID    int64                 `xorm:"index"` // Repo where the referencing
+	RefIssueID   int64                 `xorm:"index"`
+	RefCommentID int64                 `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
+	RefAction    references.XRefAction `xorm:"SMALLINT"` // What hapens if RefIssueID resolves
 	RefIsPull    bool
 
 	RefRepo    *Repository `xorm:"-"`
@@ -773,7 +775,7 @@ type CreateCommentOptions struct {
 	RefRepoID        int64
 	RefIssueID       int64
 	RefCommentID     int64
-	RefAction        XRefAction
+	RefAction        references.XRefAction
 	RefIsPull        bool
 }
 
@@ -1020,4 +1022,24 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
 func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 	return fetchCodeComments(x, issue, currentUser)
+}
+
+// UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
+func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID, posterID int64) error {
+	_, err := x.Table("comment").
+		Where(builder.In("issue_id",
+			builder.Select("issue.id").
+				From("issue").
+				InnerJoin("repository", "issue.repo_id = repository.id").
+				Where(builder.Eq{
+					"repository.original_service_type": tp,
+				}),
+		)).
+		And("comment.original_author_id = ?", originalAuthorID).
+		Update(map[string]interface{}{
+			"poster_id":          posterID,
+			"original_author":    "",
+			"original_author_id": 0,
+		})
+	return err
 }

@@ -693,6 +693,11 @@ SCHEDULE = @every 24h
 ;   or only create new users if UPDATE_EXISTING is set to false
 UPDATE_EXISTING = true
 
+; Update migrated repositories' issues and comments' posterid, it will always attempt synchronization when the instance starts.
+[cron.update_migration_post_id]
+; Interval as a duration between each synchronization. (default every 24h)
+SCHEDULE = @every 24h
+
 [git]
 ; The path of git executable. If empty, Gitea searches through the PATH environment.
 PATH =
@@ -811,3 +816,12 @@ IS_INPUT_FILE = false
 ENABLED = false
 ; If you want to add authorization, specify a token here
 TOKEN =
+
+[task]
+; Task queue type, could be `channel` or `redis`.
+QUEUE_TYPE = channel
+; Task queue length, available only when `QUEUE_TYPE` is `channel`.
+QUEUE_LENGTH = 1000
+; Task queue connction string, available only when `QUEUE_TYPE` is `redis`. 
+; If there is a password of redis, use `addrs=127.0.0.1:6379 password=123 db=0`.
+QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"

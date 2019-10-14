@@ -424,6 +424,10 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `RUN_AT_START`: **true**: Run repository statistics check at start time.
 - `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository statistics check.
 
+### Cron - Update Migration Poster ID (`cron.update_migration_post_id`)
+
+- `SCHEDULE`: **@every 24h** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
+
 ## Git (`git`)
 
 - `PATH`: **""**: The path of git executable. If empty, Gitea searches through the PATH environment.
@@ -519,8 +523,15 @@ Two special environment variables are passed to the render command:
 - `GITEA_PREFIX_RAW`, which contains the current URL prefix in the `raw` path tree. To be used as prefix for image paths.
 
 ## Time (`time`)
+
 - `FORMAT`: Time format to diplay on UI. i.e. RFC1123 or 2006-01-02 15:04:05
 - `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Shanghai/Asia
+
+## Task (`task`)
+
+- `QUEUE_TYPE`: **channel**: Task queue type, could be `channel` or `redis`.
+- `QUEUE_LENGTH`: **1000**: Task queue length, available only when `QUEUE_TYPE` is `channel`.
+- `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If there redis needs a password, use `addrs=127.0.0.1:6379 password=123 db=0`.
 
 ## Other (`other`)
 
