@@ -253,7 +253,7 @@ func (u *User) innerAPIFormat(e Engine) *api.User {
 		URL:              apiURL,
 		HTMLURL:          setting.AppURL + u.LowerName,
 		FollowersURL:     apiURL + "/followers",
-		FollowingURL:     apiURL + "/followers",
+		FollowingURL:     apiURL + "/following",
 		StarredURL:       apiURL + "/starred",
 		SubscriptionsURL: apiURL + "/subscriptions",
 		OrganizationsURL: apiURL + "/orgs",
