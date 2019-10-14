@@ -14,8 +14,10 @@ import (
 
 // UpdateMigrationPosterID updates all migrated repositories' issues and comments posterID
 func UpdateMigrationPosterID() {
-	if err := updateMigrationPosterIDByGitService(structs.GithubService); err != nil {
-		log.Error("updateMigrationPosterIDByGitService failed: %v", err)
+	for _, gitService := range structs.SupportedFullGitService {
+		if err := updateMigrationPosterIDByGitService(gitService); err != nil {
+			log.Error("updateMigrationPosterIDByGitService failed: %v", err)
+		}
 	}
 }
 

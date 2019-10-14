@@ -157,7 +157,10 @@ func (opts FindExternalUserOptions) toConds() builder.Cond {
 // FindExternalUsersByProvider represents external users via provider
 func FindExternalUsersByProvider(opts FindExternalUserOptions) ([]ExternalLoginUser, error) {
 	var users []ExternalLoginUser
-	err := x.Where(opts.toConds()).Limit(opts.Limit, opts.Start).Find(&users)
+	err := x.Where(opts.toConds()).
+		Limit(opts.Limit, opts.Start).
+		Asc("id").
+		Find(&users)
 	if err != nil {
 		return nil, err
 	}
