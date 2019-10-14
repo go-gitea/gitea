@@ -1047,4 +1047,5 @@ func NewServices() {
 	newNotifyMailService()
 	newWebhookService()
 	newIndexerService()
+	newTaskService()
 }
