@@ -32,6 +32,7 @@ func NewSanitizer() {
 	})
 }
 
+// ReplaceSanitizer replaces the current sanitizer to account for changes in settings
 func ReplaceSanitizer() {
 	sanitizer = &Sanitizer{}
 	sanitizer.policy = bluemonday.UGCPolicy()
