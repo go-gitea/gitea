@@ -9,7 +9,7 @@ import "github.com/go-xorm/xorm"
 func addWhitelistDeployKeysToBranches(x *xorm.Engine) error {
 	type ProtectedBranch struct {
 		ID                  int64
-		WhitelistDeployKeys bool
+		WhitelistDeployKeys bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
 	return x.Sync2(new(ProtectedBranch))
