@@ -63,7 +63,7 @@ func updateMigrationServiceTypes(x *xorm.Engine) error {
 		ExternalID        string                 `xorm:"pk NOT NULL"`
 		UserID            int64                  `xorm:"INDEX NOT NULL"`
 		LoginSourceID     int64                  `xorm:"pk NOT NULL"`
-		RawData           map[string]interface{} `xorm:"TEXT"`
+		RawData           map[string]interface{} `xorm:"TEXT JSON"`
 		Provider          string                 `xorm:"index VARCHAR(25)"`
 		Email             string
 		Name              string
