@@ -153,6 +153,43 @@ type EditRepoOption struct {
 	Archived *bool `json:"archived,omitempty"`
 }
 
+// GitServiceType represents a git service
+type GitServiceType int
+
+// enumerate all GitServiceType
+const (
+	NotMigrated     GitServiceType = iota // 0 not migrated from external sites
+	PlainGitService                       // 1 plain git service
+	GithubService                         // 2 github.com
+	GiteaService                          // 3 gitea service
+	GitlabService                         // 4 gitlab service
+	GogsService                           // 5 gogs service
+)
+
+// Name represents the service type's name
+// WARNNING: the name have to be equal to that on goth's library
+func (gt GitServiceType) Name() string {
+	switch gt {
+	case GithubService:
+		return "github"
+	case GiteaService:
+		return "gitea"
+	case GitlabService:
+		return "gitlab"
+	case GogsService:
+		return "gogs"
+	}
+	return ""
+}
+
+var (
+	// SupportedFullGitService represents all git services supported to migrate issues/labels/prs and etc.
+	// TODO: add to this list after new git service added
+	SupportedFullGitService = []GitServiceType{
+		GithubService,
+	}
+)
+
 // MigrateRepoOption options for migrating a repository from an external service
 type MigrateRepoOption struct {
 	// required: true
@@ -166,6 +203,8 @@ type MigrateRepoOption struct {
 	Mirror          bool   `json:"mirror"`
 	Private         bool   `json:"private"`
 	Description     string `json:"description"`
+	OriginalURL     string
+	GitServiceType  GitServiceType
 	Wiki            bool
 	Issues          bool
 	Milestones      bool
