@@ -255,6 +255,8 @@ var migrations = []Migration{
 	// v99 -> v100
 	NewMigration("add task table and status column for repository table", addTaskTable),
 	// v100 -> v101
+	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
+	// v101 -> v102
 	NewMigration("Add WhitelistDeployKeys to protected branch", addWhitelistDeployKeysToBranches),
 }
 

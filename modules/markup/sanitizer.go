@@ -38,6 +38,9 @@ func NewSanitizer() {
 
 		// Custom URL-Schemes
 		sanitizer.policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
+
+		// Allow keyword markup
+		sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^` + keywordClass + `$`)).OnElements("span")
 	})
 }
 

@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/references"
 )
 
 // MailParticipantsComment sends new comment emails to repository watchers
@@ -19,7 +19,7 @@ func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue 
 }
 
 func mailParticipantsComment(ctx models.DBContext, c *models.Comment, opType models.ActionType, issue *models.Issue) (err error) {
-	rawMentions := markup.FindAllMentions(c.Content)
+	rawMentions := references.FindAllMentionsMarkdown(c.Content)
 	userMentions, err := issue.ResolveMentionsByVisibility(ctx, c.Poster, rawMentions)
 	if err != nil {
 		return fmt.Errorf("ResolveMentionsByVisibility [%d]: %v", c.IssueID, err)

@@ -196,7 +196,11 @@ menu:
 ### Cron - Repository Statistics Check (`cron.check_repo_stats`)
 
 - `RUN_AT_START`: 是否启动时自动运行仓库统计。
-- `SCHEDULE`: 藏亏统计时的Cron 语法，比如：`@every 24h`.
+- `SCHEDULE`: 仓库统计时的Cron 语法，比如：`@every 24h`.
+
+### Cron - Update Migration Poster ID (`cron.update_migration_post_id`)
+
+- `SCHEDULE`: **@every 24h** : 每次同步的间隔时间。此任务总是在启动时自动进行。
 
 ## Git (`git`)
 
