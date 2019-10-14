@@ -7,7 +7,7 @@ package mdstripper
 import (
 	"bytes"
 
-	"github.com/russross/blackfriday"
+	"github.com/russross/blackfriday/v2"
 )
 
 // MarkdownStripper extends blackfriday.Renderer
@@ -19,18 +19,18 @@ type MarkdownStripper struct {
 
 const (
 	blackfridayExtensions = 0 |
-		blackfriday.EXTENSION_NO_INTRA_EMPHASIS |
-		blackfriday.EXTENSION_TABLES |
-		blackfriday.EXTENSION_FENCED_CODE |
-		blackfriday.EXTENSION_STRIKETHROUGH |
-		blackfriday.EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK |
-		blackfriday.EXTENSION_DEFINITION_LISTS |
-		blackfriday.EXTENSION_FOOTNOTES |
-		blackfriday.EXTENSION_HEADER_IDS |
-		blackfriday.EXTENSION_AUTO_HEADER_IDS |
+		blackfriday.NoIntraEmphasis |
+		blackfriday.Tables |
+		blackfriday.FencedCode |
+		blackfriday.Strikethrough |
+		blackfriday.NoEmptyLineBeforeBlock |
+		blackfriday.DefinitionLists |
+		blackfriday.Footnotes |
+		blackfriday.HeadingIDs |
+		blackfriday.AutoHeadingIDs |
 		// Not included in modules/markup/markdown/markdown.go;
 		// required here to process inline links
-		blackfriday.EXTENSION_AUTOLINK
+		blackfriday.Autolink
 )
 
 //revive:disable:var-naming Implementing the Rendering interface requires breaking some linting rules
@@ -41,8 +41,8 @@ func StripMarkdown(rawBytes []byte) (string, []string) {
 	stripper := &MarkdownStripper{
 		links: make([]string, 0, 10),
 	}
-	body := blackfriday.Markdown(rawBytes, stripper, blackfridayExtensions)
-	return string(body), stripper.GetLinks()
+	body := blackfriday.New(blackfriday.WithExtensions(blackfridayExtensions), blackfriday.WithRenderer(stripper)).Parse(rawBytes)
+	return body.String(), stripper.GetLinks()
 }
 
 // StripMarkdownBytes parses markdown content by removing all markup and code blocks
@@ -51,8 +51,8 @@ func StripMarkdownBytes(rawBytes []byte) ([]byte, []string) {
 	stripper := &MarkdownStripper{
 		links: make([]string, 0, 10),
 	}
-	body := blackfriday.Markdown(rawBytes, stripper, blackfridayExtensions)
-	return body, stripper.GetLinks()
+	body := blackfriday.New(blackfriday.WithExtensions(blackfridayExtensions), blackfriday.WithRenderer(stripper)).Parse(rawBytes)
+	return []byte(body.String()), stripper.GetLinks()
 }
 
 // block-level callbacks

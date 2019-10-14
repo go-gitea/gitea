@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/russross/blackfriday"
+	"github.com/russross/blackfriday/v2"
 )
 
 // Renderer is a extended version of underlying render object.
@@ -58,9 +58,9 @@ func (r *Renderer) List(out *bytes.Buffer, text func() bool, flags int) {
 		out.WriteByte('\n')
 	}
 
-	if flags&blackfriday.LIST_TYPE_DEFINITION != 0 {
+	if flags&blackfriday.ListTypeDefinition != 0 {
 		out.WriteString("<dl>")
-	} else if flags&blackfriday.LIST_TYPE_ORDERED != 0 {
+	} else if flags&blackfriday.ListTypeOrdered != 0 {
 		out.WriteString("<ol class='ui list'>")
 	} else {
 		out.WriteString("<ul class='ui list'>")
@@ -69,9 +69,9 @@ func (r *Renderer) List(out *bytes.Buffer, text func() bool, flags int) {
 		out.Truncate(marker)
 		return
 	}
-	if flags&blackfriday.LIST_TYPE_DEFINITION != 0 {
+	if flags&blackfriday.ListTypeDefinition != 0 {
 		out.WriteString("</dl>\n")
-	} else if flags&blackfriday.LIST_TYPE_ORDERED != 0 {
+	} else if flags&blackfriday.ListTypeOrdered != 0 {
 		out.WriteString("</ol>\n")
 	} else {
 		out.WriteString("</ul>\n")
@@ -124,36 +124,35 @@ func (r *Renderer) Image(out *bytes.Buffer, link []byte, title []byte, alt []byt
 
 const (
 	blackfridayExtensions = 0 |
-		blackfriday.EXTENSION_NO_INTRA_EMPHASIS |
-		blackfriday.EXTENSION_TABLES |
-		blackfriday.EXTENSION_FENCED_CODE |
-		blackfriday.EXTENSION_STRIKETHROUGH |
-		blackfriday.EXTENSION_NO_EMPTY_LINE_BEFORE_BLOCK |
-		blackfriday.EXTENSION_DEFINITION_LISTS |
-		blackfriday.EXTENSION_FOOTNOTES |
-		blackfriday.EXTENSION_HEADER_IDS |
-		blackfriday.EXTENSION_AUTO_HEADER_IDS
+		blackfriday.NoIntraEmphasis |
+		blackfriday.Tables |
+		blackfriday.FencedCode |
+		blackfriday.Strikethrough |
+		blackfriday.NoEmptyLineBeforeBlock |
+		blackfriday.DefinitionLists |
+		blackfriday.Footnotes |
+		blackfriday.HeadingIDs |
+		blackfriday.AutoHeadingIDs
 	blackfridayHTMLFlags = 0 |
-		blackfriday.HTML_SKIP_STYLE |
-		blackfriday.HTML_OMIT_CONTENTS |
-		blackfriday.HTML_USE_SMARTYPANTS
+		blackfriday.SkipHTML |
+		blackfriday.Smartypants
 )
 
 // RenderRaw renders Markdown to HTML without handling special links.
 func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 	renderer := &Renderer{
-		Renderer:  blackfriday.HtmlRenderer(blackfridayHTMLFlags, "", ""),
+		Renderer:  blackfriday.HTMLRenderer(blackfridayHTMLFlags, "", ""),
 		URLPrefix: urlPrefix,
 		IsWiki:    wikiMarkdown,
 	}
 
 	exts := blackfridayExtensions
 	if setting.Markdown.EnableHardLineBreak {
-		exts |= blackfriday.EXTENSION_HARD_LINE_BREAK
+		exts |= blackfriday.HardLineBreak
 	}
 
-	body = blackfriday.Markdown(body, renderer, exts)
-	return markup.SanitizeBytes(body)
+	s := blackfriday.New(blackfriday.WithExtensions(exts), blackfriday.WithRenderer(renderer)).Parse(body).String()
+	return []byte(markup.Sanitize(s))
 }
 
 var (

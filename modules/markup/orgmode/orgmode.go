@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 
 	"github.com/chaseadamsio/goorgeous"
-	"github.com/russross/blackfriday"
+	blackfriday "github.com/russross/blackfriday/v2"
 )
 
 func init() {
