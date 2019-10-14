@@ -19,6 +19,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add option to initialize repository with labels (#6061)
   * Add additional password hash algorithms (#6023)
 * BUGFIXES
+  * Nofollow to sign in links (#8509)
   * Fix bug on FindExternalUsersByProvider (#8504)
   * Fixes #8369: Create .ssh dir as necessary (#8486)
   * IsBranchExist: return false if provided name is empty (#8485)
