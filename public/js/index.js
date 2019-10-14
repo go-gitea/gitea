@@ -3149,3 +3149,4 @@ function onOAuthLoginClick() {
 }
 
 $("div.dropdown").find("a.item").attr("tabindex", "-1");
+$("div.dropdown").find("i.dropdown.icon").attr("tabindex", "-1");
