@@ -313,12 +313,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		}
 	}
 
-	// Check there is no way this can return multiple infos
-	filename2attribute2info, err := t.CheckAttribute("filter", treePath)
-	if err != nil {
-		return nil, err
-	}
-
 	content := opts.Content
 	if bom {
 		content = string(charset.UTF8BOM) + content
@@ -341,16 +335,23 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	opts.Content = content
 	var lfsMetaObject *models.LFSMetaObject
 
-	if setting.LFS.StartServer && filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
-		// OK so we are supposed to LFS this data!
-		oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
+	if setting.LFS.StartServer {
+		// Check there is no way this can return multiple infos
+		filename2attribute2info, err := t.CheckAttribute("filter", treePath)
 		if err != nil {
 			return nil, err
 		}
-		lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(opts.Content)), RepositoryID: repo.ID}
-		content = lfsMetaObject.Pointer()
-	}
 
+		if filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
+			// OK so we are supposed to LFS this data!
+			oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
+			if err != nil {
+				return nil, err
+			}
+			lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(opts.Content)), RepositoryID: repo.ID}
+			content = lfsMetaObject.Pointer()
+		}
+	}
 	// Add the object to the database
 	objectHash, err := t.HashObject(strings.NewReader(content))
 	if err != nil {

@@ -252,6 +252,10 @@ var migrations = []Migration{
 	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
 	// v98 -> v99
 	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
+	// v99 -> v100
+	NewMigration("add task table and status column for repository table", addTaskTable),
+	// v100 -> v101
+	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
 }
 
 // Migrate database to current version
@@ -404,9 +408,11 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		}
 		for _, index := range res {
 			indexName := index["column_name"]
-			_, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
-			if err != nil {
-				return err
+			if len(indexName) > 0 {
+				_, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
+				if err != nil {
+					return err
+				}
 			}
 		}
 

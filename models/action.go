@@ -10,15 +10,14 @@ import (
 	"fmt"
 	"html"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -53,29 +52,6 @@ const (
 	ActionMirrorSyncCreate                        // 19
 	ActionMirrorSyncDelete                        // 20
 )
-
-var (
-	// Same as GitHub. See
-	// https://help.github.com/articles/closing-issues-via-commit-messages
-	issueCloseKeywords  = []string{"close", "closes", "closed", "fix", "fixes", "fixed", "resolve", "resolves", "resolved"}
-	issueReopenKeywords = []string{"reopen", "reopens", "reopened"}
-
-	issueCloseKeywordsPat, issueReopenKeywordsPat *regexp.Regexp
-	issueReferenceKeywordsPat                     *regexp.Regexp
-)
-
-const issueRefRegexpStr = `(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)+`
-const issueRefRegexpStrNoKeyword = `(?:\s|^|\(|\[)(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`
-
-func assembleKeywordsPattern(words []string) string {
-	return fmt.Sprintf(`(?i)(?:%s)(?::?) %s`, strings.Join(words, "|"), issueRefRegexpStr)
-}
-
-func init() {
-	issueCloseKeywordsPat = regexp.MustCompile(assembleKeywordsPattern(issueCloseKeywords))
-	issueReopenKeywordsPat = regexp.MustCompile(assembleKeywordsPattern(issueReopenKeywords))
-	issueReferenceKeywordsPat = regexp.MustCompile(issueRefRegexpStrNoKeyword)
-}
 
 // Action represents user operation type and other information to
 // repository. It implemented interface base.Actioner so that can be
@@ -351,10 +327,6 @@ func RenameRepoAction(actUser *User, oldRepoName string, repo *Repository) error
 	return renameRepoAction(x, actUser, oldRepoName, repo)
 }
 
-func issueIndexTrimRight(c rune) bool {
-	return !unicode.IsDigit(c)
-}
-
 // PushCommit represents a commit in a push operation.
 type PushCommit struct {
 	Sha1           string
@@ -480,39 +452,9 @@ func (pc *PushCommits) AvatarLink(email string) string {
 }
 
 // getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
-// if the provided ref is misformatted or references a non-existent issue.
-func getIssueFromRef(repo *Repository, ref string) (*Issue, error) {
-	ref = ref[strings.IndexByte(ref, ' ')+1:]
-	ref = strings.TrimRightFunc(ref, issueIndexTrimRight)
-
-	var refRepo *Repository
-	poundIndex := strings.IndexByte(ref, '#')
-	if poundIndex < 0 {
-		return nil, nil
-	} else if poundIndex == 0 {
-		refRepo = repo
-	} else {
-		slashIndex := strings.IndexByte(ref, '/')
-		if slashIndex < 0 || slashIndex >= poundIndex {
-			return nil, nil
-		}
-		ownerName := ref[:slashIndex]
-		repoName := ref[slashIndex+1 : poundIndex]
-		var err error
-		refRepo, err = GetRepositoryByOwnerAndName(ownerName, repoName)
-		if err != nil {
-			if IsErrRepoNotExist(err) {
-				return nil, nil
-			}
-			return nil, err
-		}
-	}
-	issueIndex, err := strconv.ParseInt(ref[poundIndex+1:], 10, 64)
-	if err != nil {
-		return nil, nil
-	}
-
-	issue, err := GetIssueByIndex(refRepo.ID, issueIndex)
+// if the provided ref references a non-existent issue.
+func getIssueFromRef(repo *Repository, index int64) (*Issue, error) {
+	issue, err := GetIssueByIndex(repo.ID, index)
 	if err != nil {
 		if IsErrIssueNotExist(err) {
 			return nil, nil
@@ -522,20 +464,7 @@ func getIssueFromRef(repo *Repository, ref string) (*Issue, error) {
 	return issue, nil
 }
 
-func changeIssueStatus(repo *Repository, doer *User, ref string, refMarked map[int64]bool, status bool) error {
-	issue, err := getIssueFromRef(repo, ref)
-	if err != nil {
-		return err
-	}
-
-	if issue == nil || refMarked[issue.ID] {
-		return nil
-	}
-	refMarked[issue.ID] = true
-
-	if issue.RepoID != repo.ID || issue.IsClosed == status {
-		return nil
-	}
+func changeIssueStatus(repo *Repository, issue *Issue, doer *User, status bool) error {
 
 	stopTimerIfAvailable := func(doer *User, issue *Issue) error {
 
@@ -549,7 +478,7 @@ func changeIssueStatus(repo *Repository, doer *User, ref string, refMarked map[i
 	}
 
 	issue.Repo = repo
-	if err = issue.ChangeStatus(doer, status); err != nil {
+	if err := issue.ChangeStatus(doer, status); err != nil {
 		// Don't return an error when dependencies are open as this would let the push fail
 		if IsErrDependenciesLeft(err) {
 			return stopTimerIfAvailable(doer, issue)
@@ -566,99 +495,67 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
 
-		refMarked := make(map[int64]bool)
+		type markKey struct {
+			ID     int64
+			Action references.XRefAction
+		}
+
+		refMarked := make(map[markKey]bool)
 		var refRepo *Repository
+		var refIssue *Issue
 		var err error
-		for _, m := range issueReferenceKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
-			if len(m[3]) == 0 {
-				continue
-			}
-			ref := m[3]
+		for _, ref := range references.FindAllIssueReferences(c.Message) {
 
 			// issue is from another repo
-			if len(m[1]) > 0 && len(m[2]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(m[1], m[2])
+			if len(ref.Owner) > 0 && len(ref.Name) > 0 {
+				refRepo, err = GetRepositoryFromMatch(ref.Owner, ref.Name)
 				if err != nil {
 					continue
 				}
 			} else {
 				refRepo = repo
 			}
-			issue, err := getIssueFromRef(refRepo, ref)
-			if err != nil {
+			if refIssue, err = getIssueFromRef(refRepo, ref.Index); err != nil {
 				return err
 			}
-
-			if issue == nil || refMarked[issue.ID] {
+			if refIssue == nil {
 				continue
-			}
-			refMarked[issue.ID] = true
-
-			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
-			if err = CreateRefComment(doer, refRepo, issue, message, c.Sha1); err != nil {
-				return err
-			}
-		}
-
-		// Change issue status only if the commit has been pushed to the default branch.
-		// and if the repo is configured to allow only that
-		if repo.DefaultBranch != branchName && !repo.CloseIssuesViaCommitInAnyBranch {
-			continue
-		}
-		refMarked = make(map[int64]bool)
-		for _, m := range issueCloseKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
-			if len(m[3]) == 0 {
-				continue
-			}
-			ref := m[3]
-
-			// issue is from another repo
-			if len(m[1]) > 0 && len(m[2]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(m[1], m[2])
-				if err != nil {
-					continue
-				}
-			} else {
-				refRepo = repo
 			}
 
 			perm, err := GetUserRepoPermission(refRepo, doer)
 			if err != nil {
 				return err
 			}
-			// only close issues in another repo if user has push access
-			if perm.CanWrite(UnitTypeCode) {
-				if err := changeIssueStatus(refRepo, doer, ref, refMarked, true); err != nil {
+
+			key := markKey{ID: refIssue.ID, Action: ref.Action}
+			if refMarked[key] {
+				continue
+			}
+			refMarked[key] = true
+
+			// only create comments for issues if user has permission for it
+			if perm.IsAdmin() || perm.IsOwner() || perm.CanWrite(UnitTypeIssues) {
+				message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
+				if err = CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
 					return err
 				}
 			}
-		}
 
-		// It is conflict to have close and reopen at same time, so refsMarked doesn't need to reinit here.
-		for _, m := range issueReopenKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
-			if len(m[3]) == 0 {
+			// Process closing/reopening keywords
+			if ref.Action != references.XRefActionCloses && ref.Action != references.XRefActionReopens {
 				continue
 			}
-			ref := m[3]
 
-			// issue is from another repo
-			if len(m[1]) > 0 && len(m[2]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(m[1], m[2])
-				if err != nil {
-					continue
-				}
-			} else {
-				refRepo = repo
+			// Change issue status only if the commit has been pushed to the default branch.
+			// and if the repo is configured to allow only that
+			// FIXME: we should be using Issue.ref if set instead of repo.DefaultBranch
+			if repo.DefaultBranch != branchName && !repo.CloseIssuesViaCommitInAnyBranch {
+				continue
 			}
 
-			perm, err := GetUserRepoPermission(refRepo, doer)
-			if err != nil {
-				return err
-			}
-
-			// only reopen issues in another repo if user has push access
-			if perm.CanWrite(UnitTypeCode) {
-				if err := changeIssueStatus(refRepo, doer, ref, refMarked, false); err != nil {
+			// only close issues in another repo if user has push access
+			if perm.IsAdmin() || perm.IsOwner() || perm.CanWrite(UnitTypeCode) {
+				if err := changeIssueStatus(refRepo, refIssue, doer, ref.Action == references.XRefActionCloses); err != nil {
 					return err
 				}
 			}

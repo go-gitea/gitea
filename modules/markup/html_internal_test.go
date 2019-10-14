@@ -239,34 +239,6 @@ func TestRender_FullIssueURLs(t *testing.T) {
 		`<a href="http://localhost:3000/gogits/gogs/issues/4" class="issue">#4</a>`)
 }
 
-func TestRegExp_issueNumericPattern(t *testing.T) {
-	trueTestCases := []string{
-		"#1234",
-		"#0",
-		"#1234567890987654321",
-		"  #12",
-		"#12:",
-		"ref: #12: msg",
-	}
-	falseTestCases := []string{
-		"# 1234",
-		"# 0",
-		"# ",
-		"#",
-		"#ABC",
-		"#1A2B",
-		"",
-		"ABC",
-	}
-
-	for _, testCase := range trueTestCases {
-		assert.True(t, issueNumericPattern.MatchString(testCase))
-	}
-	for _, testCase := range falseTestCases {
-		assert.False(t, issueNumericPattern.MatchString(testCase))
-	}
-}
-
 func TestRegExp_sha1CurrentPattern(t *testing.T) {
 	trueTestCases := []string{
 		"d8a994ef243349f321568f9e36d5c3f444b99cae",
@@ -322,70 +294,6 @@ func TestRegExp_anySHA1Pattern(t *testing.T) {
 
 	for k, v := range testCases {
 		assert.Equal(t, anySHA1Pattern.FindStringSubmatch(k)[1:], v)
-	}
-}
-
-func TestRegExp_mentionPattern(t *testing.T) {
-	trueTestCases := []string{
-		"@Unknwon",
-		"@ANT_123",
-		"@xxx-DiN0-z-A..uru..s-xxx",
-		"   @lol   ",
-		" @Te-st",
-		"(@gitea)",
-		"[@gitea]",
-	}
-	falseTestCases := []string{
-		"@ 0",
-		"@ ",
-		"@",
-		"",
-		"ABC",
-		"/home/gitea/@gitea",
-		"\"@gitea\"",
-	}
-
-	for _, testCase := range trueTestCases {
-		res := mentionPattern.MatchString(testCase)
-		assert.True(t, res)
-	}
-	for _, testCase := range falseTestCases {
-		res := mentionPattern.MatchString(testCase)
-		assert.False(t, res)
-	}
-}
-
-func TestRegExp_issueAlphanumericPattern(t *testing.T) {
-	trueTestCases := []string{
-		"ABC-1234",
-		"A-1",
-		"RC-80",
-		"ABCDEFGHIJ-1234567890987654321234567890",
-		"ABC-123.",
-		"(ABC-123)",
-		"[ABC-123]",
-		"ABC-123:",
-	}
-	falseTestCases := []string{
-		"RC-08",
-		"PR-0",
-		"ABCDEFGHIJK-1",
-		"PR_1",
-		"",
-		"#ABC",
-		"",
-		"ABC",
-		"GG-",
-		"rm-1",
-		"/home/gitea/ABC-1234",
-		"MY-STRING-ABC-123",
-	}
-
-	for _, testCase := range trueTestCases {
-		assert.True(t, issueAlphanumericPattern.MatchString(testCase))
-	}
-	for _, testCase := range falseTestCases {
-		assert.False(t, issueAlphanumericPattern.MatchString(testCase))
 	}
 }
 
