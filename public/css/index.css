@@ -229,6 +229,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .lines-num span:before{content:attr(data-line-number);line-height:20px!important;padding:0 10px;cursor:pointer;display:block}
 .lines-code,.lines-num{padding:0!important}
 .lines-code .hljs,.lines-code ol,.lines-code pre,.lines-num .hljs,.lines-num ol,.lines-num pre{background-color:#fff;margin:0;padding:0!important}
+input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {-webkit-appearance: none;margin: 0;}
+input[type=number] {-moz-appearance:textfield;}
 .lines-code .hljs li,.lines-code ol li,.lines-code pre li,.lines-num .hljs li,.lines-num ol li,.lines-num pre li{display:block;width:100%}
 .lines-code .hljs li:before,.lines-code ol li:before,.lines-code pre li:before,.lines-num .hljs li:before,.lines-num ol li:before,.lines-num pre li:before{content:' '}
 .lines-commit{vertical-align:top;color:#999;padding:0!important;background:#f5f5f5;width:1%;-moz-user-select:none;-ms-user-select:none;-webkit-user-select:none;user-select:none}
