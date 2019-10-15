@@ -81,7 +81,7 @@ func SyncCreateAction(repo *models.Repository, refName string) error {
 	return syncAction(models.ActionMirrorSyncCreate, repo, refName, nil)
 }
 
-// MirrorSyncDeleteAction adds new action for mirror synchronization of delete reference.
+// SyncDeleteAction adds new action for mirror synchronization of delete reference.
 func SyncDeleteAction(repo *models.Repository, refName string) error {
 	return syncAction(models.ActionMirrorSyncDelete, repo, refName, nil)
 }
