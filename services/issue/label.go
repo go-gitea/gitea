@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 )
 
-// ClearLabels clear an issue's all labels
+// ClearLabels clears all of an issue's labels
 func ClearLabels(issue *models.Issue, doer *models.User) (err error) {
 	if err = issue.ClearLabels(doer); err != nil {
 		return

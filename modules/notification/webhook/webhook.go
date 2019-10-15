@@ -19,7 +19,7 @@ var (
 	_ base.Notifier = &webhookNotifier{}
 )
 
-// NewNotifier create a new mailNotifier notifier
+// NewNotifier create a new webhookNotifier notifier
 func NewNotifier() base.Notifier {
 	return &webhookNotifier{}
 }
