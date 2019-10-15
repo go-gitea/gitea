@@ -5,42 +5,16 @@
 package models
 
 import (
-	"regexp"
-	"strconv"
-
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/references"
 
 	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 )
 
-var (
-	// TODO: Unify all regexp treatment of cross references in one place
-
-	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(?:#)([0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
-	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
-	// e.g. gogits/gogs#12345
-	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+)#([0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
-)
-
-// XRefAction represents the kind of effect a cross reference has once is resolved
-type XRefAction int64
-
-const (
-	// XRefActionNone means the cross-reference is a mention (commit, etc.)
-	XRefActionNone XRefAction = iota // 0
-	// XRefActionCloses means the cross-reference should close an issue if it is resolved
-	XRefActionCloses // 1 - not implemented yet
-	// XRefActionReopens means the cross-reference should reopen an issue if it is resolved
-	XRefActionReopens // 2 - Not implemented yet
-	// XRefActionNeutered means the cross-reference will no longer affect the source
-	XRefActionNeutered // 3
-)
-
 type crossReference struct {
 	Issue  *Issue
-	Action XRefAction
+	Action references.XRefAction
 }
 
 // crossReferencesContext is context to pass along findCrossReference functions
@@ -72,7 +46,7 @@ func newCrossReference(e *xorm.Session, ctx *crossReferencesContext, xref *cross
 
 func neuterCrossReferences(e Engine, issueID int64, commentID int64) error {
 	active := make([]*Comment, 0, 10)
-	sess := e.Where("`ref_action` IN (?, ?, ?)", XRefActionNone, XRefActionCloses, XRefActionReopens)
+	sess := e.Where("`ref_action` IN (?, ?, ?)", references.XRefActionNone, references.XRefActionCloses, references.XRefActionReopens)
 	if issueID != 0 {
 		sess = sess.And("`ref_issue_id` = ?", issueID)
 	}
@@ -86,7 +60,7 @@ func neuterCrossReferences(e Engine, issueID int64, commentID int64) error {
 	for i, c := range active {
 		ids[i] = c.ID
 	}
-	_, err := e.In("id", ids).Cols("`ref_action`").Update(&Comment{RefAction: XRefActionNeutered})
+	_, err := e.In("id", ids).Cols("`ref_action`").Update(&Comment{RefAction: references.XRefActionNeutered})
 	return err
 }
 
@@ -110,11 +84,11 @@ func (issue *Issue) addCrossReferences(e *xorm.Session, doer *User) error {
 		Doer:      doer,
 		OrigIssue: issue,
 	}
-	return issue.createCrossReferences(e, ctx, issue.Title+"\n"+issue.Content)
+	return issue.createCrossReferences(e, ctx, issue.Title, issue.Content)
 }
 
-func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesContext, content string) error {
-	xreflist, err := ctx.OrigIssue.getCrossReferences(e, ctx, content)
+func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesContext, plaincontent, mdcontent string) error {
+	xreflist, err := ctx.OrigIssue.getCrossReferences(e, ctx, plaincontent, mdcontent)
 	if err != nil {
 		return err
 	}
@@ -126,47 +100,43 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 	return nil
 }
 
-func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesContext, content string) ([]*crossReference, error) {
+func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesContext, plaincontent, mdcontent string) ([]*crossReference, error) {
 	xreflist := make([]*crossReference, 0, 5)
-	var xref *crossReference
+	var (
+		refRepo  *Repository
+		refIssue *Issue
+		err      error
+	)
 
-	// Issues in the same repository
-	// FIXME: Should we support IssueNameStyleAlphanumeric?
-	matches := issueNumericPattern.FindAllStringSubmatch(content, -1)
-	for _, match := range matches {
-		if index, err := strconv.ParseInt(match[1], 10, 64); err == nil {
-			if err = ctx.OrigIssue.loadRepo(e); err != nil {
+	allrefs := append(references.FindAllIssueReferences(plaincontent), references.FindAllIssueReferencesMarkdown(mdcontent)...)
+
+	for _, ref := range allrefs {
+		if ref.Owner == "" && ref.Name == "" {
+			// Issues in the same repository
+			if err := ctx.OrigIssue.loadRepo(e); err != nil {
 				return nil, err
 			}
-			if xref, err = ctx.OrigIssue.isValidCommentReference(e, ctx, issue.Repo, index); err != nil {
-				return nil, err
-			}
-			if xref != nil {
-				xreflist = ctx.OrigIssue.updateCrossReferenceList(xreflist, xref)
-			}
-		}
-	}
-
-	// Issues in other repositories
-	matches = crossReferenceIssueNumericPattern.FindAllStringSubmatch(content, -1)
-	for _, match := range matches {
-		if index, err := strconv.ParseInt(match[3], 10, 64); err == nil {
-			repo, err := getRepositoryByOwnerAndName(e, match[1], match[2])
+			refRepo = ctx.OrigIssue.Repo
+		} else {
+			// Issues in other repositories
+			refRepo, err = getRepositoryByOwnerAndName(e, ref.Owner, ref.Name)
 			if err != nil {
 				if IsErrRepoNotExist(err) {
 					continue
 				}
 				return nil, err
 			}
-			if err = ctx.OrigIssue.loadRepo(e); err != nil {
-				return nil, err
-			}
-			if xref, err = issue.isValidCommentReference(e, ctx, repo, index); err != nil {
-				return nil, err
-			}
-			if xref != nil {
-				xreflist = issue.updateCrossReferenceList(xreflist, xref)
-			}
+		}
+		if refIssue, err = ctx.OrigIssue.findReferencedIssue(e, ctx, refRepo, ref.Index); err != nil {
+			return nil, err
+		}
+		if refIssue != nil {
+			xreflist = ctx.OrigIssue.updateCrossReferenceList(xreflist, &crossReference{
+				Issue: refIssue,
+				// FIXME: currently ignore keywords
+				// Action: ref.Action,
+				Action: references.XRefActionNone,
+			})
 		}
 	}
 
@@ -179,7 +149,7 @@ func (issue *Issue) updateCrossReferenceList(list []*crossReference, xref *cross
 	}
 	for i, r := range list {
 		if r.Issue.ID == xref.Issue.ID {
-			if xref.Action != XRefActionNone {
+			if xref.Action != references.XRefActionNone {
 				list[i].Action = xref.Action
 			}
 			return list
@@ -188,7 +158,7 @@ func (issue *Issue) updateCrossReferenceList(list []*crossReference, xref *cross
 	return append(list, xref)
 }
 
-func (issue *Issue) isValidCommentReference(e Engine, ctx *crossReferencesContext, repo *Repository, index int64) (*crossReference, error) {
+func (issue *Issue) findReferencedIssue(e Engine, ctx *crossReferencesContext, repo *Repository, index int64) (*Issue, error) {
 	refIssue := &Issue{RepoID: repo.ID, Index: index}
 	if has, _ := e.Get(refIssue); !has {
 		return nil, nil
@@ -206,10 +176,7 @@ func (issue *Issue) isValidCommentReference(e Engine, ctx *crossReferencesContex
 			return nil, nil
 		}
 	}
-	return &crossReference{
-		Issue:  refIssue,
-		Action: XRefActionNone,
-	}, nil
+	return refIssue, nil
 }
 
 func (issue *Issue) neuterCrossReferences(e Engine) error {
@@ -237,7 +204,7 @@ func (comment *Comment) addCrossReferences(e *xorm.Session, doer *User) error {
 		OrigIssue:   comment.Issue,
 		OrigComment: comment,
 	}
-	return comment.Issue.createCrossReferences(e, ctx, comment.Content)
+	return comment.Issue.createCrossReferences(e, ctx, "", comment.Content)
 }
 
 func (comment *Comment) neuterCrossReferences(e Engine) error {
