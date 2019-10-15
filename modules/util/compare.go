@@ -35,6 +35,16 @@ func ExistsInSlice(target string, slice []string) bool {
 	return i < len(slice)
 }
 
+// IsStringInSlice sequential searches if string exists in slice.
+func IsStringInSlice(target string, slice []string) bool {
+	for i := 0; i < len(slice); i++ {
+		if slice[i] == target {
+			return true
+		}
+	}
+	return false
+}
+
 // IsEqualSlice returns true if slices are equal.
 func IsEqualSlice(target []string, source []string) bool {
 	if len(target) != len(source) {

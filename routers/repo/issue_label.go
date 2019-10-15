@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 const (
@@ -132,7 +133,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 	switch action := ctx.Query("action"); action {
 	case "clear":
 		for _, issue := range issues {
-			if err := issue.ClearLabels(ctx.User); err != nil {
+			if err := issue_service.ClearLabels(issue, ctx.User); err != nil {
 				ctx.ServerError("ClearLabels", err)
 				return
 			}

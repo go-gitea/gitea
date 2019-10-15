@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -70,9 +72,30 @@ func InitRepoIndexer() {
 	if !setting.Indexer.RepoIndexerEnabled {
 		return
 	}
+	waitChannel := make(chan time.Duration)
 	repoIndexerOperationQueue = make(chan repoIndexerOperation, setting.Indexer.UpdateQueueLength)
-	indexer.InitRepoIndexer(populateRepoIndexerAsynchronously)
-	go processRepoIndexerOperationQueue()
+	go func() {
+		start := time.Now()
+		log.Info("Initializing Repository Indexer")
+		indexer.InitRepoIndexer(populateRepoIndexerAsynchronously)
+		go processRepoIndexerOperationQueue()
+		waitChannel <- time.Since(start)
+	}()
+	if setting.Indexer.StartupTimeout > 0 {
+		go func() {
+			timeout := setting.Indexer.StartupTimeout
+			if graceful.IsChild && setting.GracefulHammerTime > 0 {
+				timeout += setting.GracefulHammerTime
+			}
+			select {
+			case duration := <-waitChannel:
+				log.Info("Repository Indexer Initialization took %v", duration)
+			case <-time.After(timeout):
+				log.Fatal("Repository Indexer Initialization Timed-Out after: %v", timeout)
+			}
+		}()
+
+	}
 }
 
 // populateRepoIndexerAsynchronously asynchronously populates the repo indexer

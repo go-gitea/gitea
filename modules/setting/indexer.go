@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 
@@ -34,6 +35,7 @@ var (
 		IssueQueueDir         string
 		IssueQueueConnStr     string
 		IssueQueueBatchNumber int
+		StartupTimeout        time.Duration
 		IncludePatterns       []glob.Glob
 		ExcludePatterns       []glob.Glob
 	}{
@@ -67,6 +69,7 @@ func newIndexerService() {
 	Indexer.IssueQueueDir = sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(path.Join(AppDataPath, "indexers/issues.queue"))
 	Indexer.IssueQueueConnStr = sec.Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString(path.Join(AppDataPath, ""))
 	Indexer.IssueQueueBatchNumber = sec.Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(20)
+	Indexer.StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(30 * time.Second)
 }
 
 // IndexerGlobFromString parses a comma separated list of patterns and returns a glob.Glob slice suited for repo indexing
