@@ -254,6 +254,8 @@ var migrations = []Migration{
 	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
 	// v99 -> v100
 	NewMigration("add task table and status column for repository table", addTaskTable),
+	// v100 -> v101
+	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
 }
 
 // Migrate database to current version

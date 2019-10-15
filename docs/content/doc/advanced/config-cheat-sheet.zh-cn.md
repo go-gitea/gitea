@@ -65,6 +65,7 @@ menu:
 - `CERT_FILE`: 启用HTTPS的证书文件。
 - `KEY_FILE`: 启用HTTPS的密钥文件。
 - `STATIC_ROOT_PATH`: 存放模板和静态文件的根目录，默认是 Gitea 的根目录。
+- `STATIC_CACHE_TIME`: **6h**: 静态资源文件，包括 `custom/`, `public/` 和所有上传的头像的浏览器缓存时间。
 - `ENABLE_GZIP`: 启用应用级别的 GZIP 压缩。
 - `LANDING_PAGE`: 未登录用户的默认页面，可选 `home` 或 `explore`。
 - `LFS_START_SERVER`: 是否启用 git-lfs 支持. 可以为 `true` 或 `false`， 默认是 `false`。
@@ -196,7 +197,11 @@ menu:
 ### Cron - Repository Statistics Check (`cron.check_repo_stats`)
 
 - `RUN_AT_START`: 是否启动时自动运行仓库统计。
-- `SCHEDULE`: 藏亏统计时的Cron 语法，比如：`@every 24h`.
+- `SCHEDULE`: 仓库统计时的Cron 语法，比如：`@every 24h`.
+
+### Cron - Update Migration Poster ID (`cron.update_migration_post_id`)
+
+- `SCHEDULE`: **@every 24h** : 每次同步的间隔时间。此任务总是在启动时自动进行。
 
 ## Git (`git`)
 

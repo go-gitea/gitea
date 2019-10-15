@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -18,12 +19,13 @@ import (
 )
 
 const (
-	mirrorUpdate           = "mirror_update"
-	gitFsck                = "git_fsck"
-	checkRepos             = "check_repos"
-	archiveCleanup         = "archive_cleanup"
-	syncExternalUsers      = "sync_external_users"
-	deletedBranchesCleanup = "deleted_branches_cleanup"
+	mirrorUpdate            = "mirror_update"
+	gitFsck                 = "git_fsck"
+	checkRepos              = "check_repos"
+	archiveCleanup          = "archive_cleanup"
+	syncExternalUsers       = "sync_external_users"
+	deletedBranchesCleanup  = "deleted_branches_cleanup"
+	updateMigrationPosterID = "update_migration_post_id"
 )
 
 var c = cron.New()
@@ -117,6 +119,15 @@ func NewContext() {
 			go WithUnique(deletedBranchesCleanup, models.RemoveOldDeletedBranches)()
 		}
 	}
+
+	entry, err = c.AddFunc("Update migrated repositories' issues and comments' posterid", setting.Cron.UpdateMigrationPosterID.Schedule, WithUnique(updateMigrationPosterID, migrations.UpdateMigrationPosterID))
+	if err != nil {
+		log.Fatal("Cron[Update migrated repositories]: %v", err)
+	}
+	entry.Prev = time.Now()
+	entry.ExecTimes++
+	go WithUnique(updateMigrationPosterID, migrations.UpdateMigrationPosterID)()
+
 	c.Start()
 }
 
