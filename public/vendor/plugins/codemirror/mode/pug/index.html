@@ -1,6 +1,6 @@
 <!doctype html>
 
-<title>CodeMirror: Jade Templating Mode</title>
+<title>CodeMirror: Pug Templating Mode</title>
 <meta charset="utf-8"/>
 <link rel=stylesheet href="../../doc/docs.css">
 
@@ -10,10 +10,10 @@
 <script src="../css/css.js"></script>
 <script src="../xml/xml.js"></script>
 <script src="../htmlmixed/htmlmixed.js"></script>
-<script src="jade.js"></script>
-<style type="text/css">.CodeMirror {border-top: 1px solid black; border-bottom: 1px solid black;}</style>
+<script src="pug.js"></script>
+<style>.CodeMirror {border-top: 1px solid black; border-bottom: 1px solid black;}</style>
 <div id=nav>
-  <a href="http://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
+  <a href="https://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
 
   <ul>
     <li><a href="../../index.html">Home</a>
@@ -22,17 +22,17 @@
   </ul>
   <ul>
     <li><a href="../index.html">Language modes</a>
-    <li><a class=active href="#">Jade Templating Mode</a>
+    <li><a class=active href="#">Pug Templating Mode</a>
   </ul>
 </div>
 
 <article>
-<h2>Jade Templating Mode</h2>
+<h2>Pug Templating Mode</h2>
 <form><textarea id="code" name="code">
 doctype html
   html
     head
-      title= "Jade Templating CodeMirror Mode Example"
+      title= "Pug Templating CodeMirror Mode Example"
       link(rel='stylesheet', href='/css/bootstrap.min.css')
       link(rel='stylesheet', href='/css/index.css')
       script(type='text/javascript', src='/js/jquery-1.9.1.min.js')
@@ -60,11 +60,11 @@ doctype html
 </textarea></form>
     <script>
       var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
-        mode: {name: "jade", alignCDATA: true},
+        mode: {name: "pug", alignCDATA: true},
         lineNumbers: true
       });
     </script>
-    <h3>The Jade Templating Mode</h3>
+    <h3>The Pug Templating Mode</h3>
       <p> Created by Forbes Lindesay. Managed as part of a Brackets extension at <a href="https://github.com/ForbesLindesay/jade-brackets">https://github.com/ForbesLindesay/jade-brackets</a>.</p>
-    <p><strong>MIME type defined:</strong> <code>text/x-jade</code>.</p>
+    <p><strong>MIME type defined:</strong> <code>text/x-pug</code>, <code>text/x-jade</code>.</p>
   </article>
