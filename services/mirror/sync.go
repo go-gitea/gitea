@@ -13,7 +13,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func mirrorSyncAction(opType models.ActionType, repo *models.Repository, refName string, data []byte) error {
+func syncAction(opType models.ActionType, repo *models.Repository, refName string, data []byte) error {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(),
@@ -34,16 +34,16 @@ func mirrorSyncAction(opType models.ActionType, repo *models.Repository, refName
 	return nil
 }
 
-// MirrorSyncPushActionOptions mirror synchronization action options.
-type MirrorSyncPushActionOptions struct {
+// SyncPushActionOptions mirror synchronization action options.
+type SyncPushActionOptions struct {
 	RefName     string
 	OldCommitID string
 	NewCommitID string
 	Commits     *models.PushCommits
 }
 
-// MirrorSyncPushAction adds new action for mirror synchronization of pushed commits.
-func MirrorSyncPushAction(repo *models.Repository, opts MirrorSyncPushActionOptions) error {
+// SyncPushAction adds new action for mirror synchronization of pushed commits.
+func SyncPushAction(repo *models.Repository, opts SyncPushActionOptions) error {
 	if len(opts.Commits.Commits) > setting.UI.FeedMaxCommitNum {
 		opts.Commits.Commits = opts.Commits.Commits[:setting.UI.FeedMaxCommitNum]
 	}
@@ -73,15 +73,15 @@ func MirrorSyncPushAction(repo *models.Repository, opts MirrorSyncPushActionOpti
 		return err
 	}
 
-	return mirrorSyncAction(models.ActionMirrorSyncPush, repo, opts.RefName, data)
+	return syncAction(models.ActionMirrorSyncPush, repo, opts.RefName, data)
 }
 
-// MirrorSyncCreateAction adds new action for mirror synchronization of new reference.
-func MirrorSyncCreateAction(repo *models.Repository, refName string) error {
-	return mirrorSyncAction(models.ActionMirrorSyncCreate, repo, refName, nil)
+// SyncCreateAction adds new action for mirror synchronization of new reference.
+func SyncCreateAction(repo *models.Repository, refName string) error {
+	return syncAction(models.ActionMirrorSyncCreate, repo, refName, nil)
 }
 
 // MirrorSyncDeleteAction adds new action for mirror synchronization of delete reference.
-func MirrorSyncDeleteAction(repo *models.Repository, refName string) error {
-	return mirrorSyncAction(models.ActionMirrorSyncDelete, repo, refName, nil)
+func SyncDeleteAction(repo *models.Repository, refName string) error {
+	return syncAction(models.ActionMirrorSyncDelete, repo, refName, nil)
 }
