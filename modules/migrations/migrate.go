@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // MigrateOptions is equal to base.MigrateOptions
@@ -30,6 +31,7 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 	var (
 		downloader base.Downloader
 		uploader   = NewGiteaLocalUploader(doer, ownerName, opts.RepoName)
+		theFactory base.DownloaderFactory
 	)
 
 	for _, factory := range factories {
@@ -40,6 +42,7 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 			if err != nil {
 				return nil, err
 			}
+			theFactory = factory
 			break
 		}
 	}
@@ -52,10 +55,14 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 		opts.Comments = false
 		opts.Issues = false
 		opts.PullRequests = false
+		opts.GitServiceType = structs.PlainGitService
 		downloader = NewPlainGitDownloader(ownerName, opts.RepoName, opts.CloneAddr)
 		log.Trace("Will migrate from git: %s", opts.CloneAddr)
+	} else if opts.GitServiceType == structs.NotMigrated {
+		opts.GitServiceType = theFactory.GitServiceType()
 	}
 
+	uploader.gitServiceType = opts.GitServiceType
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
