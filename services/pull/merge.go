@@ -50,7 +50,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	}
 
 	defer func() {
-		go models.AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false)
+		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false)
 	}()
 
 	// Clone base repo.
