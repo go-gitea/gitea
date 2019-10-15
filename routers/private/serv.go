@@ -119,6 +119,15 @@ func ServCommand(ctx *macaron.Context) {
 	repo.OwnerName = ownerName
 	results.RepoID = repo.ID
 
+	if repo.IsBeingCreated() {
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"results": results,
+			"type":    "InternalServerError",
+			"err":     "Repository is being created, you could retry after it finished",
+		})
+		return
+	}
+
 	// We can shortcut at this point if the repo is a mirror
 	if mode > models.AccessModeRead && repo.IsMirror {
 		ctx.JSON(http.StatusUnauthorized, map[string]interface{}{

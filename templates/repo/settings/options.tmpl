@@ -80,7 +80,7 @@
 					</div>
 					<div class="field {{if .Err_MirrorAddress}}error{{end}}">
 						<label for="mirror_address">{{.i18n.Tr "repo.mirror_address"}}</label>
-						<input id="mirror_address" name="mirror_address" value="{{.Mirror.AddressNoCredentials}}" required>
+						<input id="mirror_address" name="mirror_address" value="{{MirrorFullAddress .Mirror}}" required>
 						<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
 					</div>
 					<div class="ui accordion optional field">
@@ -88,15 +88,15 @@
 							<i class="icon dropdown"></i>
 							<label for="">{{.i18n.Tr "repo.need_auth"}}</label>
 						</label>
-						<div class="content {{if .Err_Auth}}active{{else if .Mirror.Username}}active{{end}}">
+						<div class="content {{if .Err_Auth}}active{{else if (MirrorUserName .Mirror)}}active{{end}}">
 							<div class="inline field {{if .Err_Auth}}error{{end}}">
 								<label for="mirror_username">{{.i18n.Tr "username"}}</label>
-								<input id="mirror_username" name="mirror_username" value="{{.Mirror.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
+								<input id="mirror_username" name="mirror_username" value="{{MirrorUserName .Mirror}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
 							</div>
 							<input class="fake" type="password">
 							<div class="inline field {{if .Err_Auth}}error{{end}}">
 								<label for="mirror_password">{{.i18n.Tr "password"}}</label>
-								<input id="mirror_password" name="mirror_password" type="password" value="{{.Mirror.Password}}" {{if not .mirror_password}}data-need-clear="true"{{end}}>
+								<input id="mirror_password" name="mirror_password" type="password" value="{{MirrorPassword .Mirror}}" {{if not .mirror_password}}data-need-clear="true"{{end}}>
 							</div>
 						</div>
 					</div>

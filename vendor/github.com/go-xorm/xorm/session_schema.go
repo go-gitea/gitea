@@ -228,7 +228,7 @@ func (session *Session) Sync2(beans ...interface{}) error {
 		defer session.Close()
 	}
 
-	tables, err := engine.DBMetas()
+	tables, err := engine.dialect.GetTables()
 	if err != nil {
 		return err
 	}
@@ -239,26 +239,29 @@ func (session *Session) Sync2(beans ...interface{}) error {
 		session.resetStatement()
 	}()
 
-	var structTables []*core.Table
-
 	for _, bean := range beans {
 		v := rValue(bean)
 		table, err := engine.mapType(v)
 		if err != nil {
 			return err
 		}
-		structTables = append(structTables, table)
-		tbName := engine.TableName(bean)
-		tbNameWithSchema := engine.TableName(tbName, true)
+		var tbName string
+		if len(session.statement.AltTableName) > 0 {
+			tbName = session.statement.AltTableName
+		} else {
+			tbName = engine.TableName(bean)
+		}
+		tbNameWithSchema := engine.tbNameWithSchema(tbName)
 
 		var oriTable *core.Table
 		for _, tb := range tables {
-			if strings.EqualFold(tb.Name, tbName) {
+			if strings.EqualFold(engine.tbNameWithSchema(tb.Name), engine.tbNameWithSchema(tbName)) {
 				oriTable = tb
 				break
 			}
 		}
 
+		// this is a new table
 		if oriTable == nil {
 			err = session.StoreEngine(session.statement.StoreEngine).createTable(bean)
 			if err != nil {
@@ -274,148 +277,154 @@ func (session *Session) Sync2(beans ...interface{}) error {
 			if err != nil {
 				return err
 			}
-		} else {
-			for _, col := range table.Columns() {
-				var oriCol *core.Column
-				for _, col2 := range oriTable.Columns() {
-					if strings.EqualFold(col.Name, col2.Name) {
-						oriCol = col2
-						break
-					}
-				}
+			continue
+		}
 
-				if oriCol != nil {
-					expectedType := engine.dialect.SqlType(col)
-					curType := engine.dialect.SqlType(oriCol)
-					if expectedType != curType {
-						if expectedType == core.Text &&
-							strings.HasPrefix(curType, core.Varchar) {
-							// currently only support mysql & postgres
-							if engine.dialect.DBType() == core.MYSQL ||
-								engine.dialect.DBType() == core.POSTGRES {
-								engine.logger.Infof("Table %s column %s change type from %s to %s\n",
-									tbNameWithSchema, col.Name, curType, expectedType)
-								_, err = session.exec(engine.dialect.ModifyColumnSql(tbNameWithSchema, col))
-							} else {
-								engine.logger.Warnf("Table %s column %s db type is %s, struct type is %s\n",
-									tbNameWithSchema, col.Name, curType, expectedType)
-							}
-						} else if strings.HasPrefix(curType, core.Varchar) && strings.HasPrefix(expectedType, core.Varchar) {
-							if engine.dialect.DBType() == core.MYSQL {
-								if oriCol.Length < col.Length {
-									engine.logger.Infof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
-										tbNameWithSchema, col.Name, oriCol.Length, col.Length)
-									_, err = session.exec(engine.dialect.ModifyColumnSql(tbNameWithSchema, col))
-								}
-							}
-						} else {
-							if !(strings.HasPrefix(curType, expectedType) && curType[len(expectedType)] == '(') {
-								engine.logger.Warnf("Table %s column %s db type is %s, struct type is %s",
-									tbNameWithSchema, col.Name, curType, expectedType)
-							}
-						}
-					} else if expectedType == core.Varchar {
-						if engine.dialect.DBType() == core.MYSQL {
-							if oriCol.Length < col.Length {
-								engine.logger.Infof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
-									tbNameWithSchema, col.Name, oriCol.Length, col.Length)
-								_, err = session.exec(engine.dialect.ModifyColumnSql(tbNameWithSchema, col))
-							}
-						}
-					}
-					if col.Default != oriCol.Default {
-						engine.logger.Warnf("Table %s Column %s db default is %s, struct default is %s",
-							tbName, col.Name, oriCol.Default, col.Default)
-					}
-					if col.Nullable != oriCol.Nullable {
-						engine.logger.Warnf("Table %s Column %s db nullable is %v, struct nullable is %v",
-							tbName, col.Name, oriCol.Nullable, col.Nullable)
-					}
-				} else {
-					session.statement.RefTable = table
-					session.statement.tableName = tbNameWithSchema
-					err = session.addColumn(col.Name)
+		// this will modify an old table
+		if err = engine.loadTableInfo(oriTable); err != nil {
+			return err
+		}
+
+		// check columns
+		for _, col := range table.Columns() {
+			var oriCol *core.Column
+			for _, col2 := range oriTable.Columns() {
+				if strings.EqualFold(col.Name, col2.Name) {
+					oriCol = col2
+					break
 				}
-				if err != nil {
+			}
+
+			// column is not exist on table
+			if oriCol == nil {
+				session.statement.RefTable = table
+				session.statement.tableName = tbNameWithSchema
+				if err = session.addColumn(col.Name); err != nil {
 					return err
 				}
+				continue
 			}
 
-			var foundIndexNames = make(map[string]bool)
-			var addedNames = make(map[string]*core.Index)
-
-			for name, index := range table.Indexes {
-				var oriIndex *core.Index
-				for name2, index2 := range oriTable.Indexes {
-					if index.Equal(index2) {
-						oriIndex = index2
-						foundIndexNames[name2] = true
-						break
+			err = nil
+			expectedType := engine.dialect.SqlType(col)
+			curType := engine.dialect.SqlType(oriCol)
+			if expectedType != curType {
+				if expectedType == core.Text &&
+					strings.HasPrefix(curType, core.Varchar) {
+					// currently only support mysql & postgres
+					if engine.dialect.DBType() == core.MYSQL ||
+						engine.dialect.DBType() == core.POSTGRES {
+						engine.logger.Infof("Table %s column %s change type from %s to %s\n",
+							tbNameWithSchema, col.Name, curType, expectedType)
+						_, err = session.exec(engine.dialect.ModifyColumnSql(tbNameWithSchema, col))
+					} else {
+						engine.logger.Warnf("Table %s column %s db type is %s, struct type is %s\n",
+							tbNameWithSchema, col.Name, curType, expectedType)
 					}
-				}
-
-				if oriIndex != nil {
-					if oriIndex.Type != index.Type {
-						sql := engine.dialect.DropIndexSql(tbNameWithSchema, oriIndex)
-						_, err = session.exec(sql)
-						if err != nil {
-							return err
+				} else if strings.HasPrefix(curType, core.Varchar) && strings.HasPrefix(expectedType, core.Varchar) {
+					if engine.dialect.DBType() == core.MYSQL {
+						if oriCol.Length < col.Length {
+							engine.logger.Infof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
+								tbNameWithSchema, col.Name, oriCol.Length, col.Length)
+							_, err = session.exec(engine.dialect.ModifyColumnSql(tbNameWithSchema, col))
 						}
-						oriIndex = nil
+					}
+				} else {
+					if !(strings.HasPrefix(curType, expectedType) && curType[len(expectedType)] == '(') {
+						engine.logger.Warnf("Table %s column %s db type is %s, struct type is %s",
+							tbNameWithSchema, col.Name, curType, expectedType)
 					}
 				}
-
-				if oriIndex == nil {
-					addedNames[name] = index
+			} else if expectedType == core.Varchar {
+				if engine.dialect.DBType() == core.MYSQL {
+					if oriCol.Length < col.Length {
+						engine.logger.Infof("Table %s column %s change type from varchar(%d) to varchar(%d)\n",
+							tbNameWithSchema, col.Name, oriCol.Length, col.Length)
+						_, err = session.exec(engine.dialect.ModifyColumnSql(tbNameWithSchema, col))
+					}
 				}
 			}
 
+			if col.Default != oriCol.Default {
+				if (col.SQLType.Name == core.Bool || col.SQLType.Name == core.Boolean) &&
+					((strings.EqualFold(col.Default, "true") && oriCol.Default == "1") ||
+						(strings.EqualFold(col.Default, "false") && oriCol.Default == "0")) {
+				} else {
+					engine.logger.Warnf("Table %s Column %s db default is %s, struct default is %s",
+						tbName, col.Name, oriCol.Default, col.Default)
+				}
+			}
+			if col.Nullable != oriCol.Nullable {
+				engine.logger.Warnf("Table %s Column %s db nullable is %v, struct nullable is %v",
+					tbName, col.Name, oriCol.Nullable, col.Nullable)
+			}
+
+			if err != nil {
+				return err
+			}
+		}
+
+		var foundIndexNames = make(map[string]bool)
+		var addedNames = make(map[string]*core.Index)
+
+		for name, index := range table.Indexes {
+			var oriIndex *core.Index
 			for name2, index2 := range oriTable.Indexes {
-				if _, ok := foundIndexNames[name2]; !ok {
-					sql := engine.dialect.DropIndexSql(tbNameWithSchema, index2)
+				if index.Equal(index2) {
+					oriIndex = index2
+					foundIndexNames[name2] = true
+					break
+				}
+			}
+
+			if oriIndex != nil {
+				if oriIndex.Type != index.Type {
+					sql := engine.dialect.DropIndexSql(tbNameWithSchema, oriIndex)
 					_, err = session.exec(sql)
 					if err != nil {
 						return err
 					}
+					oriIndex = nil
 				}
 			}
 
-			for name, index := range addedNames {
-				if index.Type == core.UniqueType {
-					session.statement.RefTable = table
-					session.statement.tableName = tbNameWithSchema
-					err = session.addUnique(tbNameWithSchema, name)
-				} else if index.Type == core.IndexType {
-					session.statement.RefTable = table
-					session.statement.tableName = tbNameWithSchema
-					err = session.addIndex(tbNameWithSchema, name)
-				}
+			if oriIndex == nil {
+				addedNames[name] = index
+			}
+		}
+
+		for name2, index2 := range oriTable.Indexes {
+			if _, ok := foundIndexNames[name2]; !ok {
+				sql := engine.dialect.DropIndexSql(tbNameWithSchema, index2)
+				_, err = session.exec(sql)
 				if err != nil {
 					return err
 				}
 			}
 		}
-	}
 
-	for _, table := range tables {
-		var oriTable *core.Table
-		for _, structTable := range structTables {
-			if strings.EqualFold(table.Name, session.tbNameNoSchema(structTable)) {
-				oriTable = structTable
-				break
+		for name, index := range addedNames {
+			if index.Type == core.UniqueType {
+				session.statement.RefTable = table
+				session.statement.tableName = tbNameWithSchema
+				err = session.addUnique(tbNameWithSchema, name)
+			} else if index.Type == core.IndexType {
+				session.statement.RefTable = table
+				session.statement.tableName = tbNameWithSchema
+				err = session.addIndex(tbNameWithSchema, name)
+			}
+			if err != nil {
+				return err
 			}
 		}
 
-		if oriTable == nil {
-			//engine.LogWarnf("Table %s has no struct to mapping it", table.Name)
-			continue
-		}
-
-		for _, colName := range table.ColumnsSeq() {
-			if oriTable.GetColumn(colName) == nil {
-				engine.logger.Warnf("Table %s has column %s but struct has not related field", engine.TableName(table.Name, true), colName)
+		// check all the columns which removed from struct fields but left on database tables.
+		for _, colName := range oriTable.ColumnsSeq() {
+			if table.GetColumn(colName) == nil {
+				engine.logger.Warnf("Table %s has column %s but struct has not related field", engine.TableName(oriTable.Name, true), colName)
 			}
 		}
 	}
+
 	return nil
 }
