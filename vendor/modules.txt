@@ -132,15 +132,6 @@ github.com/emirpasic/gods/utils
 github.com/etcd-io/bbolt
 # github.com/ethantkoenig/rupture v0.0.0-20180203182544-0a76f03a811a
 github.com/ethantkoenig/rupture
-# github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a
-github.com/facebookgo/clock
-# github.com/facebookgo/grace v0.0.0-20160926231715-5729e484473f
-github.com/facebookgo/grace/gracehttp
-github.com/facebookgo/grace/gracenet
-# github.com/facebookgo/httpdown v0.0.0-20160323221027-a3b1354551a2
-github.com/facebookgo/httpdown
-# github.com/facebookgo/stats v0.0.0-20151006221625-1b76add642e4
-github.com/facebookgo/stats
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
 # github.com/gliderlabs/ssh v0.2.2
