@@ -39,7 +39,7 @@ There are a number of places where Gitea will generate commits itself:
 * Repository Initialisation
 * Wiki Changes
 * CRUD actions using the editor or the API
-* Merges
+* Merges from Pull Requests
 
 Depending on configuration and server trust you may want Gitea to
 sign these commits.
