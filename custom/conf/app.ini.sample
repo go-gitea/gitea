@@ -244,6 +244,12 @@ LFS_CONTENT_PATH = data/lfs
 LFS_JWT_SECRET =
 ; LFS authentication validity period (in time.Duration), pushes taking longer than this may fail.
 LFS_HTTP_AUTH_EXPIRY = 20m
+; Allow graceful restarts using SIGHUP to fork
+ALLOW_GRACEFUL_RESTARTS = true
+; After a restart the parent will finish ongoing requests before
+; shutting down. Force shutdown if this process takes longer than this delay.
+; set to a negative value to disable
+GRACEFUL_HAMMER_TIME = 60s
 ; Static resources, includes resources on custom/, public/ and all uploaded avatars web browser cache time, default is 6h
 STATIC_CACHE_TIME = 6h
 
@@ -299,6 +305,9 @@ ISSUE_INDEXER_QUEUE_DIR = indexers/issues.queue
 ISSUE_INDEXER_QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
 ; Batch queue number, default is 20
 ISSUE_INDEXER_QUEUE_BATCH_NUMBER = 20
+; Timeout the indexer if it takes longer than this to start.
+; Set to zero to disable timeout.
+STARTUP_TIMEOUT=30s
 
 ; repo indexer by default disabled, since it uses a lot of disk space
 REPO_INDEXER_ENABLED = false
