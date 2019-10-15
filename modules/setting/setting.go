@@ -87,6 +87,7 @@ var (
 	CertFile             string
 	KeyFile              string
 	StaticRootPath       string
+	StaticCacheTime      time.Duration
 	EnableGzip           bool
 	LandingPageURL       LandingPage
 	UnixSocketPermission uint32
@@ -146,6 +147,7 @@ var (
 	MinPasswordLength     int
 	ImportLocalPaths      bool
 	DisableGitHooks       bool
+	PasswordComplexity    map[string]string
 	PasswordHashAlgo      string
 
 	// UI settings
@@ -606,6 +608,7 @@ func NewContext() {
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
+	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
@@ -773,6 +776,27 @@ func NewContext() {
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 
 	InternalToken = loadInternalToken(sec)
+
+	var dictPC = map[string]string{
+		"lower": "[a-z]+",
+		"upper": "[A-Z]+",
+		"digit": "[0-9]+",
+		"spec":  `][ !"#$%&'()*+,./:;<=>?@\\^_{|}~` + "`-",
+	}
+	PasswordComplexity = make(map[string]string)
+	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
+	for _, y := range cfgdata {
+		ts := strings.TrimSpace(y)
+		for a := range dictPC {
+			if strings.ToLower(ts) == a {
+				PasswordComplexity[ts] = dictPC[ts]
+				break
+			}
+		}
+	}
+	if len(PasswordComplexity) == 0 {
+		PasswordComplexity = dictPC
+	}
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))

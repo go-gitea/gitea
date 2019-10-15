@@ -30,7 +30,7 @@ type GraphItem struct {
 type GraphItems []GraphItem
 
 // GetCommitGraph return a list of commit (GraphItems) from all branches
-func GetCommitGraph(r *git.Repository) (GraphItems, error) {
+func GetCommitGraph(r *git.Repository, page int) (GraphItems, error) {
 
 	var CommitGraph []GraphItem
 
@@ -43,6 +43,7 @@ func GetCommitGraph(r *git.Repository) (GraphItems, error) {
 		"-C",
 		"-M",
 		fmt.Sprintf("-n %d", setting.UI.GraphMaxCommitNum),
+		fmt.Sprintf("--skip=%d", setting.UI.GraphMaxCommitNum*(page-1)),
 		"--date=iso",
 		fmt.Sprintf("--pretty=format:%s", format),
 	)
