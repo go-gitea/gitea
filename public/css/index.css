@@ -229,8 +229,6 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .lines-num span:before{content:attr(data-line-number);line-height:20px!important;padding:0 10px;cursor:pointer;display:block}
 .lines-code,.lines-num{padding:0!important}
 .lines-code .hljs,.lines-code ol,.lines-code pre,.lines-num .hljs,.lines-num ol,.lines-num pre{background-color:#fff;margin:0;padding:0!important}
-input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {-webkit-appearance: none;margin: 0;}
-input[type=number] {-moz-appearance:textfield;}
 .lines-code .hljs li,.lines-code ol li,.lines-code pre li,.lines-num .hljs li,.lines-num ol li,.lines-num pre li{display:block;width:100%}
 .lines-code .hljs li:before,.lines-code ol li:before,.lines-code pre li:before,.lines-num .hljs li:before,.lines-num ol li:before,.lines-num pre li:before{content:' '}
 .lines-commit{vertical-align:top;color:#999;padding:0!important;background:#f5f5f5;width:1%;-moz-user-select:none;-ms-user-select:none;-webkit-user-select:none;user-select:none}
@@ -394,6 +392,8 @@ input[type=number] {-moz-appearance:textfield;}
 .user.activate form .inline.field>label,.user.forgot.password form .inline.field>label,.user.reset.password form .inline.field>label,.user.signin form .inline.field>label,.user.signup form .inline.field>label{width:200px}
 @media only screen and (max-width:768px){.user.activate form .inline.field>label,.user.activate form input,.user.forgot.password form .inline.field>label,.user.forgot.password form input,.user.reset.password form .inline.field>label,.user.reset.password form input,.user.signin form .inline.field>label,.user.signin form input,.user.signup form .inline.field>label,.user.signup form input{width:100%!important}
 }
+.user.activate form input[type=number],.user.forgot.password form input[type=number],.user.reset.password form input[type=number],.user.signin form input[type=number],.user.signup form input[type=number]{-moz-appearance:textfield}
+.user.activate form input::-webkit-inner-spin-button,.user.activate form input::-webkit-outer-spin-button,.user.forgot.password form input::-webkit-inner-spin-button,.user.forgot.password form input::-webkit-outer-spin-button,.user.reset.password form input::-webkit-inner-spin-button,.user.reset.password form input::-webkit-outer-spin-button,.user.signin form input::-webkit-inner-spin-button,.user.signin form input::-webkit-outer-spin-button,.user.signup form input::-webkit-inner-spin-button,.user.signup form input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .repository.new.fork form,.repository.new.migrate form,.repository.new.repo form{margin:auto}
 .repository.new.fork form .ui.message,.repository.new.migrate form .ui.message,.repository.new.repo form .ui.message{text-align:center}
 @media only screen and (min-width:768px){.repository.new.fork form,.repository.new.migrate form,.repository.new.repo form{width:800px!important}
