@@ -6,7 +6,6 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 	"html"
 	"path"
@@ -608,79 +607,6 @@ func mergePullRequestAction(e Engine, doer *User, repo *Repository, issue *Issue
 // MergePullRequestAction adds new action for merging pull request.
 func MergePullRequestAction(actUser *User, repo *Repository, pull *Issue) error {
 	return mergePullRequestAction(x, actUser, repo, pull)
-}
-
-func mirrorSyncAction(e Engine, opType ActionType, repo *Repository, refName string, data []byte) error {
-	if err := notifyWatchers(e, &Action{
-		ActUserID: repo.OwnerID,
-		ActUser:   repo.MustOwner(),
-		OpType:    opType,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-		RefName:   refName,
-		Content:   string(data),
-	}); err != nil {
-		return fmt.Errorf("notifyWatchers: %v", err)
-	}
-
-	defer func() {
-		go HookQueue.Add(repo.ID)
-	}()
-
-	return nil
-}
-
-// MirrorSyncPushActionOptions mirror synchronization action options.
-type MirrorSyncPushActionOptions struct {
-	RefName     string
-	OldCommitID string
-	NewCommitID string
-	Commits     *PushCommits
-}
-
-// MirrorSyncPushAction adds new action for mirror synchronization of pushed commits.
-func MirrorSyncPushAction(repo *Repository, opts MirrorSyncPushActionOptions) error {
-	if len(opts.Commits.Commits) > setting.UI.FeedMaxCommitNum {
-		opts.Commits.Commits = opts.Commits.Commits[:setting.UI.FeedMaxCommitNum]
-	}
-
-	apiCommits, err := opts.Commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
-	if err != nil {
-		return err
-	}
-
-	opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
-	apiPusher := repo.MustOwner().APIFormat()
-	if err := PrepareWebhooks(repo, HookEventPush, &api.PushPayload{
-		Ref:        opts.RefName,
-		Before:     opts.OldCommitID,
-		After:      opts.NewCommitID,
-		CompareURL: setting.AppURL + opts.Commits.CompareURL,
-		Commits:    apiCommits,
-		Repo:       repo.APIFormat(AccessModeOwner),
-		Pusher:     apiPusher,
-		Sender:     apiPusher,
-	}); err != nil {
-		return fmt.Errorf("PrepareWebhooks: %v", err)
-	}
-
-	data, err := json.Marshal(opts.Commits)
-	if err != nil {
-		return err
-	}
-
-	return mirrorSyncAction(x, ActionMirrorSyncPush, repo, opts.RefName, data)
-}
-
-// MirrorSyncCreateAction adds new action for mirror synchronization of new reference.
-func MirrorSyncCreateAction(repo *Repository, refName string) error {
-	return mirrorSyncAction(x, ActionMirrorSyncCreate, repo, refName, nil)
-}
-
-// MirrorSyncDeleteAction adds new action for mirror synchronization of delete reference.
-func MirrorSyncDeleteAction(repo *Repository, refName string) error {
-	return mirrorSyncAction(x, ActionMirrorSyncDelete, repo, refName, nil)
 }
 
 // GetFeedsOptions options for retrieving feeds
