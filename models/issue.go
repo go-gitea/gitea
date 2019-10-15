@@ -855,6 +855,26 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 	return sess.Commit()
 }
 
+// UpdateAttachments update attachments by UUIDs for the issue
+func (issue *Issue) UpdateAttachments(uuids []string) (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+	attachments, err := getAttachmentsByUUIDs(sess, uuids)
+	if err != nil {
+		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", uuids, err)
+	}
+	for i := 0; i < len(attachments); i++ {
+		attachments[i].IssueID = issue.ID
+		if err := updateAttachment(sess, attachments[i]); err != nil {
+			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
+		}
+	}
+	return sess.Commit()
+}
+
 // ChangeContent changes issue content, as the given user.
 func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	oldContent := issue.Content

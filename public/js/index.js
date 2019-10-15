@@ -865,6 +865,73 @@ function initRepository() {
                 issuesTribute.attach($textarea.get());
                 emojiTribute.attach($textarea.get());
 
+                const $dropzone = $editContentZone.find('.dropzone');
+                $dropzone.data("saved", false);
+                const $files = $editContentZone.find('.comment-files');
+                if ($dropzone.length > 0) {
+                    const filenameDict = {};
+                    $dropzone.dropzone({
+                        url: $dropzone.data('upload-url'),
+                        headers: {"X-Csrf-Token": csrf},
+                        maxFiles: $dropzone.data('max-file'),
+                        maxFilesize: $dropzone.data('max-size'),
+                        acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
+                        addRemoveLinks: true,
+                        dictDefaultMessage: $dropzone.data('default-message'),
+                        dictInvalidFileType: $dropzone.data('invalid-input-type'),
+                        dictFileTooBig: $dropzone.data('file-too-big'),
+                        dictRemoveFile: $dropzone.data('remove-file'),
+                        init: function () {
+                            this.on("success", function (file, data) {
+                                filenameDict[file.name] = {
+                                    "uuid": data.uuid,
+                                    "submitted": false
+                                }
+                                const input = $('<input id="' + data.uuid + '" name="files" type="hidden">').val(data.uuid);
+                                $files.append(input);
+                            });
+                            this.on("removedfile", function (file) {
+                                if (!(file.name in filenameDict)) {
+                                    return;
+                                }
+                                $('#' + filenameDict[file.name].uuid).remove();
+                                if ($dropzone.data('remove-url') && $dropzone.data('csrf') && !filenameDict[file.name].submitted) {
+                                    $.post($dropzone.data('remove-url'), {
+                                        file: filenameDict[file.name].uuid,
+                                        _csrf: $dropzone.data('csrf')
+                                    });
+                                }
+                            });
+                            this.on("submit", function () {
+                                $.each(filenameDict, function(name){
+                                    filenameDict[name].submitted = true;
+                                });
+                            });
+                            this.on("reload", function (){
+                                $.getJSON($editContentZone.data('attachment-url'), function(data){
+                                    const drop = $dropzone.get(0).dropzone;
+                                    drop.removeAllFiles(true);
+                                    $files.empty();
+                                    $.each(data, function(){
+                                        const imgSrc =  $dropzone.data('upload-url') + "/" + this.uuid;
+                                        drop.emit("addedfile", this);
+                                        drop.emit("thumbnail", this, imgSrc);
+                                        drop.emit("complete", this);
+                                        drop.files.push(this);
+                                        filenameDict[this.name] = {
+                                            "submitted": true,
+                                            "uuid": this.uuid
+                                        }
+                                        $dropzone.find("img[src='" + imgSrc + "']").css("max-width", "100%");
+                                        const input = $('<input id="' + this.uuid + '" name="files" type="hidden">').val(this.uuid);
+                                        $files.append(input);
+                                    });
+                                });
+                            });
+                        }
+                    });
+                    $dropzone.get(0).dropzone.emit("reload");
+                }
                 // Give new write/preview data-tab name to distinguish from others
                 const $editContentForm = $editContentZone.find('.ui.comment.form');
                 const $tabMenu = $editContentForm.find('.tabular.menu');
@@ -880,27 +947,49 @@ function initRepository() {
                 $editContentZone.find('.cancel.button').click(function () {
                     $renderContent.show();
                     $editContentZone.hide();
+                    $dropzone.get(0).dropzone.emit("reload");
                 });
                 $editContentZone.find('.save.button').click(function () {
                     $renderContent.show();
                     $editContentZone.hide();
-
+                    const $attachments = $files.find("[name=files]").map(function(){
+                        return $(this).val();
+                    }).get();
                     $.post($editContentZone.data('update-url'), {
-                            "_csrf": csrf,
-                            "content": $textarea.val(),
-                            "context": $editContentZone.data('context')
-                        },
-                        function (data) {
-                            if (data.length == 0) {
-                                $renderContent.html($('#no-content').html());
-                            } else {
-                                $renderContent.html(data.content);
-                                emojify.run($renderContent[0]);
-                                $('pre code', $renderContent[0]).each(function () {
-                                    hljs.highlightBlock(this);
-                                });
+                        "_csrf": csrf,
+                        "content": $textarea.val(),
+                        "context": $editContentZone.data('context'),
+                        "files": $attachments
+                    },
+                    function (data) {
+                        if (data.length == 0) {
+                            $renderContent.html($('#no-content').html());
+                        } else {
+                            $renderContent.html(data.content);
+                            emojify.run($renderContent[0]);
+                            $('pre code', $renderContent[0]).each(function () {
+                                hljs.highlightBlock(this);
+                            });
+                        }
+                        const $content = $segment.parent();
+                        if(!$content.find(".ui.small.images").length){
+                            if(data.attachments != ""){
+                                $content.append(
+                                '<div class="ui bottom attached segment">' +
+                                '    <div class="ui small images">' +
+                                '    </div>' +
+                                '</div>'
+                                );
+                                $content.find(".ui.small.images").html(data.attachments);
                             }
-                        });
+                        } else if (data.attachments == "") {
+                            $content.find(".ui.small.images").parent().remove();
+                        } else {
+                            $content.find(".ui.small.images").html(data.attachments);
+                        }
+                        $dropzone.get(0).dropzone.emit("submit");
+                        $dropzone.get(0).dropzone.emit("reload");
+                    });
                 });
             } else {
                 $textarea = $segment.find('textarea');
