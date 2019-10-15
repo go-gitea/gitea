@@ -32,8 +32,6 @@ func NewComplexity() {
 }
 
 func setupComplexity(values []string) {
-	validChars = ""
-	requiredChars = make([]string, 0, len(values))
 	if len(values) != 1 || values[0] != "off" {
 		for _, val := range values {
 			if chars, ok := charComplexities[val]; ok {
@@ -42,6 +40,7 @@ func setupComplexity(values []string) {
 			}
 		}
 		if len(requiredChars) == 0 {
+			// No valid character classes found; use all classes as default
 			for _, chars := range charComplexities {
 				validChars += chars
 				requiredChars = append(requiredChars, chars)
@@ -49,7 +48,7 @@ func setupComplexity(values []string) {
 		}
 	}
 	if validChars == "" {
-		// Provide a sensible default for password generation
+		// No complexities to check; provide a sensible default for password generation
 		validChars = charComplexities["lower"] + charComplexities["upper"] + charComplexities["digit"]
 	}
 }
