@@ -59,7 +59,7 @@ func IsComplexEnough(pwd string) bool {
 	NewComplexity()
 	if len(validChars) > 0 {
 		for _, req := range requiredChars {
-			if strings.IndexAny(req, pwd) == -1 {
+			if !strings.ContainsAny(req, pwd) {
 				return false
 			}
 		}
