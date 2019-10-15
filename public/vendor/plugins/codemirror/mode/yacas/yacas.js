@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 // Yacas mode copyright (c) 2015 by Grzegorz Mazur
 // Loosely based on mathematica mode by Calin Barbat
@@ -125,7 +125,7 @@ CodeMirror.defineMode('yacas', function(_config, _parserConfig) {
     }
 
     // operators; note that operators like @@ or /; are matched separately for each symbol.
-    if (stream.match(/(?:\\|\+|\-|\*|\/|,|;|\.|:|@|~|=|>|<|&|\||_|`|'|\^|\?|!|%)/, true, false)) {
+    if (stream.match(/(?:\\|\+|\-|\*|\/|,|;|\.|:|@|~|=|>|<|&|\||_|`|'|\^|\?|!|%|#)/, true, false)) {
       return 'operator';
     }
 

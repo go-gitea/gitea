@@ -7,7 +7,7 @@
 				{{else}}
 					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
 				{{end}}
-				<a class="ui tiny basic toggle button" data-target="#diff-files">{{.i18n.Tr "repo.diff.show_diff_stats"}}</a>
+				{{template "repo/diff/options_dropdown" .}}
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					{{template "repo/diff/new_review" .}}
 				{{end}}
@@ -26,7 +26,7 @@
 				{{else}}
 					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
 				{{end}}
-				<a class="ui tiny basic toggle button" data-target="#diff-files">{{.i18n.Tr "repo.diff.show_diff_stats"}}</a>
+				{{template "repo/diff/options_dropdown" .}}
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					{{template "repo/diff/new_review" .}}
 				{{end}}

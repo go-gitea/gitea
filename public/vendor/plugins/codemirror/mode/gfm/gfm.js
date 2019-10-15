@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -81,7 +81,7 @@ CodeMirror.defineMode("gfm", function(config, modeConfig) {
       if (stream.sol() || state.ateSpace) {
         state.ateSpace = false;
         if (modeConfig.gitHubSpice !== false) {
-          if(stream.match(/^(?:[a-zA-Z0-9\-_]+\/)?(?:[a-zA-Z0-9\-_]+@)?(?:[a-f0-9]{7,40}\b)/)) {
+          if(stream.match(/^(?:[a-zA-Z0-9\-_]+\/)?(?:[a-zA-Z0-9\-_]+@)?(?=.{0,6}\d)(?:[a-f0-9]{7,40}\b)/)) {
             // User/Project@SHA
             // User@SHA
             // SHA
@@ -113,10 +113,9 @@ CodeMirror.defineMode("gfm", function(config, modeConfig) {
   };
 
   var markdownConfig = {
-    underscoresBreakWords: false,
     taskLists: true,
-    fencedCodeBlocks: '```',
-    strikethrough: true
+    strikethrough: true,
+    emoji: true
   };
   for (var attr in modeConfig) {
     markdownConfig[attr] = modeConfig[attr];
