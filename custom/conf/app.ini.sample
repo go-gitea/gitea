@@ -141,8 +141,9 @@ KEYWORDS = go,git,self-hosted,gitea
 [markdown]
 ; Enable hard line break extension
 ENABLE_HARD_LINE_BREAK = false
-; List of custom URL-Schemes that are allowed as links when rendering Markdown
-; for example git,magnet
+; Comma separated list of custom URL-Schemes that are allowed as links when rendering Markdown
+; for example git,magnet,ftp (more at https://en.wikipedia.org/wiki/List_of_URI_schemes)
+; URLs starting with http and https are always displayed, whatever is put in this entry.
 CUSTOM_URL_SCHEMES =
 ; List of file extensions that should be rendered/edited as Markdown
 ; Separate the extensions with a comma. To render files without any extension as markdown, just put a comma
