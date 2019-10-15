@@ -723,7 +723,7 @@ func AddTeamMember(team *Team, userID int64) error {
 
 	// Give access to team repositories.
 	for _, repo := range team.Repos {
-		if err := repo.recalculateTeamAccesses(sess, 0); err != nil {
+		if err := repo.recalculateUserAccess(sess, userID); err != nil {
 			return err
 		}
 		if setting.Service.AutoWatchNewRepos {
@@ -768,7 +768,7 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 
 	// Delete access to team repositories.
 	for _, repo := range team.Repos {
-		if err := repo.recalculateTeamAccesses(e, 0); err != nil {
+		if err := repo.recalculateUserAccess(e, userID); err != nil {
 			return err
 		}
 

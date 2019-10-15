@@ -91,7 +91,9 @@ func Graph(ctx *context.Context) {
 		return
 	}
 
-	graph, err := models.GetCommitGraph(ctx.Repo.GitRepo)
+	page := ctx.QueryInt("page")
+
+	graph, err := models.GetCommitGraph(ctx.Repo.GitRepo, page)
 	if err != nil {
 		ctx.ServerError("GetCommitGraph", err)
 		return
@@ -103,8 +105,8 @@ func Graph(ctx *context.Context) {
 	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Branch"] = ctx.Repo.BranchName
 	ctx.Data["RequireGitGraph"] = true
+	ctx.Data["Page"] = context.NewPagination(int(commitsCount), setting.UI.GraphMaxCommitNum, page, 5)
 	ctx.HTML(200, tplGraph)
-
 }
 
 // SearchCommits render commits filtered by keyword

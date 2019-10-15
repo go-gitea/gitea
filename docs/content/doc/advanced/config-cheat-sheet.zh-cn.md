@@ -65,6 +65,7 @@ menu:
 - `CERT_FILE`: 启用HTTPS的证书文件。
 - `KEY_FILE`: 启用HTTPS的密钥文件。
 - `STATIC_ROOT_PATH`: 存放模板和静态文件的根目录，默认是 Gitea 的根目录。
+- `STATIC_CACHE_TIME`: **6h**: 静态资源文件，包括 `custom/`, `public/` 和所有上传的头像的浏览器缓存时间。
 - `ENABLE_GZIP`: 启用应用级别的 GZIP 压缩。
 - `LANDING_PAGE`: 未登录用户的默认页面，可选 `home` 或 `explore`。
 - `LFS_START_SERVER`: 是否启用 git-lfs 支持. 可以为 `true` 或 `false`， 默认是 `false`。
