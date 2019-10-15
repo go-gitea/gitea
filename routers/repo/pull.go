@@ -659,6 +659,14 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 			return
+		} else if models.IsErrMergeConflicts(err) {
+			conflictError := err.(models.ErrMergeConflicts)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_conflict", conflictError.StdErr, conflictError.StdOut))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+		} else if models.IsErrRebaseConflicts(err) {
+			conflictError := err.(models.ErrRebaseConflicts)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.rebase_conflict", conflictError.CommitSHA, conflictError.StdErr, conflictError.StdOut))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		}
 		ctx.ServerError("Merge", err)
 		return

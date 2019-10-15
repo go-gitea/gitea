@@ -99,7 +99,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return fmt.Errorf("addCacheRepo [%s -> %s]: %v", headRepoPath, tmpBasePath, err)
 	}
 
-	var errbuf strings.Builder
+	var outbuf, errbuf strings.Builder
 	if err := git.NewCommand("remote", "add", "-t", pr.BaseBranch, "-m", pr.BaseBranch, "origin", baseGitRepo.Path).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git remote add [%s -> %s]: %s", baseGitRepo.Path, tmpBasePath, errbuf.String())
 	}
@@ -209,9 +209,20 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	// Merge commits.
 	switch mergeStyle {
 	case models.MergeStyleMerge:
-		if err := git.NewCommand("merge", "--no-ff", "--no-commit", trackingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		if err := git.NewCommand("merge", "--no-ff", "--no-commit", trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
+			// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
+			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "MERGE_HEAD")); statErr == nil {
+				// We have a merge conflict error
+				return models.ErrMergeConflicts{
+					Style:  mergeStyle,
+					StdOut: outbuf.String(),
+					StdErr: errbuf.String(),
+					Err:    err,
+				}
+			}
 			return fmt.Errorf("git merge --no-ff --no-commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 		}
+		outbuf.Reset()
 
 		if signArg == "" {
 			if err := git.NewCommand("commit", "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
@@ -229,33 +240,89 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		}
 		// Rebase before merging
 		if err := git.NewCommand("rebase", "-q", baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			// Rebase will leave a REBASE_HEAD file in .git if there is a conflict
+			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "REBASE_HEAD")); statErr == nil {
+				// The original commit SHA1 that is failing will be in .git/rebase-apply/original-commit
+				commitShaBytes, readErr := ioutil.ReadFile(filepath.Join(tmpBasePath, ".git", "rebase-apply", "original-commit"))
+				if readErr != nil {
+					// Abandon this attempt to handle the error
+					return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
+				}
+				return models.ErrRebaseConflicts{
+					Style:     mergeStyle,
+					CommitSHA: strings.TrimSpace(string(commitShaBytes)),
+					StdOut:    outbuf.String(),
+					StdErr:    errbuf.String(),
+					Err:       err,
+				}
+			}
 			return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
+		outbuf.Reset()
 		// Checkout base branch again
 		if err := git.NewCommand("checkout", baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Merge fast forward
-		if err := git.NewCommand("merge", "--ff-only", "-q", stagingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		if err := git.NewCommand("merge", "--ff-only", "-q", stagingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
+			// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
+			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "MERGE_HEAD")); statErr == nil {
+				// We have a merge conflict error
+				return models.ErrMergeConflicts{
+					Style:  mergeStyle,
+					StdOut: outbuf.String(),
+					StdErr: errbuf.String(),
+					Err:    err,
+				}
+			}
 			return fmt.Errorf("git merge --ff-only [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
+		outbuf.Reset()
 	case models.MergeStyleRebaseMerge:
 		// Checkout head branch
 		if err := git.NewCommand("checkout", "-b", stagingBranch, trackingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Rebase before merging
-		if err := git.NewCommand("rebase", "-q", baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		if err := git.NewCommand("rebase", "-q", baseBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
+			// Rebase will leave a REBASE_HEAD file in .git if there is a conflict
+			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "REBASE_HEAD")); statErr == nil {
+				// The original commit SHA1 that is failing will be in .git/rebase-apply/original-commit
+				commitShaBytes, readErr := ioutil.ReadFile(filepath.Join(tmpBasePath, ".git", "rebase-apply", "original-commit"))
+				if readErr != nil {
+					// Abandon this attempt to handle the error
+					return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
+				}
+				return models.ErrRebaseConflicts{
+					Style:     mergeStyle,
+					CommitSHA: strings.TrimSpace(string(commitShaBytes)),
+					StdOut:    outbuf.String(),
+					StdErr:    errbuf.String(),
+					Err:       err,
+				}
+			}
 			return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
+		outbuf.Reset()
 		// Checkout base branch again
 		if err := git.NewCommand("checkout", baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Prepare merge with commit
-		if err := git.NewCommand("merge", "--no-ff", "--no-commit", "-q", stagingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		if err := git.NewCommand("merge", "--no-ff", "--no-commit", "-q", stagingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
+			// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
+			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "MERGE_HEAD")); statErr == nil {
+				// We have a merge conflict error
+				return models.ErrMergeConflicts{
+					Style:  mergeStyle,
+					StdOut: outbuf.String(),
+					StdErr: errbuf.String(),
+					Err:    err,
+				}
+			}
 			return fmt.Errorf("git merge --no-ff [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
+		outbuf.Reset()
 
 		// Set custom message and author and create merge commit
 		if signArg == "" {
@@ -271,8 +338,20 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	case models.MergeStyleSquash:
 		// Merge with squash
 		if err := git.NewCommand("merge", "-q", "--squash", trackingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+			// Merge will leave a MERGE_MSG file in the .git folder if there is a conflict
+			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "MERGE_MSG")); statErr == nil {
+				// We have a merge conflict error
+				return models.ErrMergeConflicts{
+					Style:  mergeStyle,
+					StdOut: outbuf.String(),
+					StdErr: errbuf.String(),
+					Err:    err,
+				}
+			}
 			return fmt.Errorf("git merge --squash [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
+		outbuf.Reset()
+
 		sig := pr.Issue.Poster.NewGitSig()
 		if signArg == "" {
 			if err := git.NewCommand("commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {

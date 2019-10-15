@@ -1189,6 +1189,43 @@ func (err ErrInvalidMergeStyle) Error() string {
 		err.ID, err.Style)
 }
 
+// ErrMergeConflicts represents an error if merging fails with a conflict
+type ErrMergeConflicts struct {
+	Style  MergeStyle
+	StdOut string
+	StdErr string
+	Err    error
+}
+
+// IsErrMergeConflicts checks if an error is a ErrMergeConflicts.
+func IsErrMergeConflicts(err error) bool {
+	_, ok := err.(ErrMergeConflicts)
+	return ok
+}
+
+func (err ErrMergeConflicts) Error() string {
+	return fmt.Sprintf("Merge Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
+// ErrRebaseConflicts represents an error if rebase fails with a conflict
+type ErrRebaseConflicts struct {
+	Style     MergeStyle
+	CommitSHA string
+	StdOut    string
+	StdErr    string
+	Err       error
+}
+
+// IsErrRebaseConflicts checks if an error is a ErrRebaseConflicts.
+func IsErrRebaseConflicts(err error) bool {
+	_, ok := err.(ErrRebaseConflicts)
+	return ok
+}
+
+func (err ErrRebaseConflicts) Error() string {
+	return fmt.Sprintf("Rebase Error: %v: Whilst Rebasing: %s\n%s\n%s", err.Err, err.CommitSHA, err.StdErr, err.StdOut)
+}
+
 // _________                                       __
 // \_   ___ \  ____   _____   _____   ____   _____/  |_
 // /    \  \/ /  _ \ /     \ /     \_/ __ \ /    \   __\
