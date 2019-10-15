@@ -596,40 +596,6 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
-	sess.Close()
-
-	if err = issue.LoadPoster(); err != nil {
-		return fmt.Errorf("loadPoster: %v", err)
-	}
-
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if issue.IsPull {
-		err = issue.PullRequest.LoadIssue()
-		if err != nil {
-			log.Error("LoadIssue: %v", err)
-			return
-		}
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-			Action:      api.HookIssueLabelCleared,
-			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
-			Sender:      doer.APIFormat(),
-		})
-	} else {
-		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
-			Action:     api.HookIssueLabelCleared,
-			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     doer.APIFormat(),
-		})
-	}
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
-	}
 
 	return nil
 }

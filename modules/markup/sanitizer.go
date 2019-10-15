@@ -28,20 +28,26 @@ var sanitizer = &Sanitizer{}
 // entire application lifecycle.
 func NewSanitizer() {
 	sanitizer.init.Do(func() {
-		sanitizer.policy = bluemonday.UGCPolicy()
-		// We only want to allow HighlightJS specific classes for code blocks
-		sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^language-\w+$`)).OnElements("code")
-
-		// Checkboxes
-		sanitizer.policy.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
-		sanitizer.policy.AllowAttrs("checked", "disabled").OnElements("input")
-
-		// Custom URL-Schemes
-		sanitizer.policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
-
-		// Allow keyword markup
-		sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^` + keywordClass + `$`)).OnElements("span")
+		ReplaceSanitizer()
 	})
+}
+
+// ReplaceSanitizer replaces the current sanitizer to account for changes in settings
+func ReplaceSanitizer() {
+	sanitizer = &Sanitizer{}
+	sanitizer.policy = bluemonday.UGCPolicy()
+	// We only want to allow HighlightJS specific classes for code blocks
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^language-\w+$`)).OnElements("code")
+
+	// Checkboxes
+	sanitizer.policy.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
+	sanitizer.policy.AllowAttrs("checked", "disabled").OnElements("input")
+
+	// Custom URL-Schemes
+	sanitizer.policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
+
+	// Allow keyword markup
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^` + keywordClass + `$`)).OnElements("span")
 }
 
 // Sanitize takes a string that contains a HTML fragment or document and applies policy whitelist.

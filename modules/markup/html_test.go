@@ -89,6 +89,11 @@ func TestRender_links(t *testing.T) {
 	}
 	// Text that should be turned into URL
 
+	defaultCustom := setting.Markdown.CustomURLSchemes
+	setting.Markdown.CustomURLSchemes = []string{"ftp", "magnet"}
+	ReplaceSanitizer()
+	CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
+
 	test(
 		"https://www.example.com",
 		`<p><a href="https://www.example.com" rel="nofollow">https://www.example.com</a></p>`)
@@ -131,6 +136,12 @@ func TestRender_links(t *testing.T) {
 	test(
 		"https://username:password@gitea.com",
 		`<p><a href="https://username:password@gitea.com" rel="nofollow">https://username:password@gitea.com</a></p>`)
+	test(
+		"ftp://gitea.com/file.txt",
+		`<p><a href="ftp://gitea.com/file.txt" rel="nofollow">ftp://gitea.com/file.txt</a></p>`)
+	test(
+		"magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&dn=download",
+		`<p><a href="magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download" rel="nofollow">magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download</a></p>`)
 
 	// Test that should *not* be turned into URL
 	test(
@@ -154,6 +165,14 @@ func TestRender_links(t *testing.T) {
 	test(
 		"www",
 		`<p>www</p>`)
+	test(
+		"ftps://gitea.com",
+		`<p>ftps://gitea.com</p>`)
+
+	// Restore previous settings
+	setting.Markdown.CustomURLSchemes = defaultCustom
+	ReplaceSanitizer()
+	CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 }
 
 func TestRender_email(t *testing.T) {
