@@ -141,8 +141,9 @@ KEYWORDS = go,git,self-hosted,gitea
 [markdown]
 ; Enable hard line break extension
 ENABLE_HARD_LINE_BREAK = false
-; List of custom URL-Schemes that are allowed as links when rendering Markdown
-; for example git,magnet
+; Comma separated list of custom URL-Schemes that are allowed as links when rendering Markdown
+; for example git,magnet,ftp (more at https://en.wikipedia.org/wiki/List_of_URI_schemes)
+; URLs starting with http and https are always displayed, whatever is put in this entry.
 CUSTOM_URL_SCHEMES =
 ; List of file extensions that should be rendered/edited as Markdown
 ; Separate the extensions with a comma. To render files without any extension as markdown, just put a comma
@@ -243,6 +244,14 @@ LFS_CONTENT_PATH = data/lfs
 LFS_JWT_SECRET =
 ; LFS authentication validity period (in time.Duration), pushes taking longer than this may fail.
 LFS_HTTP_AUTH_EXPIRY = 20m
+; Allow graceful restarts using SIGHUP to fork
+ALLOW_GRACEFUL_RESTARTS = true
+; After a restart the parent will finish ongoing requests before
+; shutting down. Force shutdown if this process takes longer than this delay.
+; set to a negative value to disable
+GRACEFUL_HAMMER_TIME = 60s
+; Static resources, includes resources on custom/, public/ and all uploaded avatars web browser cache time, default is 6h
+STATIC_CACHE_TIME = 6h
 
 ; Define allowed algorithms and their minimum key length (use -1 to disable a type)
 [ssh.minimum_key_sizes]
@@ -296,6 +305,9 @@ ISSUE_INDEXER_QUEUE_DIR = indexers/issues.queue
 ISSUE_INDEXER_QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
 ; Batch queue number, default is 20
 ISSUE_INDEXER_QUEUE_BATCH_NUMBER = 20
+; Timeout the indexer if it takes longer than this to start.
+; Set to zero to disable timeout.
+STARTUP_TIMEOUT=30s
 
 ; repo indexer by default disabled, since it uses a lot of disk space
 REPO_INDEXER_ENABLED = false

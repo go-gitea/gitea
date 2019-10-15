@@ -87,6 +87,7 @@ var (
 	CertFile             string
 	KeyFile              string
 	StaticRootPath       string
+	StaticCacheTime      time.Duration
 	EnableGzip           bool
 	LandingPageURL       LandingPage
 	UnixSocketPermission uint32
@@ -96,6 +97,8 @@ var (
 	LetsEncryptTOS       bool
 	LetsEncryptDirectory string
 	LetsEncryptEmail     string
+	GracefulRestartable  bool
+	GracefulHammerTime   time.Duration
 
 	SSH = struct {
 		Disabled                 bool           `ini:"DISABLE_SSH"`
@@ -562,6 +565,8 @@ func NewContext() {
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
+	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
+	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
 
 	defaultAppURL := string(Protocol) + "://" + Domain
 	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
@@ -607,6 +612,7 @@ func NewContext() {
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
+	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)

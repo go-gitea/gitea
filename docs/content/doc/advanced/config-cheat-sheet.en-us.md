@@ -108,6 +108,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Markdown (`markdown`)
 
 - `ENABLE_HARD_LINE_BREAK`: **false**: Enable Markdown's hard line break extension.
+- `CUSTOM_URL_SCHEMES`: Use a comma separated list (ftp,git,svn) to indicate additional
+  URL hyperlinks to be rendered in Markdown. URLs beginning in http and https are
+  always displayed
 
 ## Server (`server`)
 
@@ -140,6 +143,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `CERT_FILE`: **custom/https/cert.pem**: Cert file path used for HTTPS.
 - `KEY_FILE`: **custom/https/key.pem**: Key file path used for HTTPS.
 - `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.
+- `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars.
 - `ENABLE_GZIP`: **false**: Enables application-level GZIP support.
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users  \[home, explore\].
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
@@ -153,6 +157,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LETSENCRYPT_ACCEPTTOS`: **false**: This is an explicit check that you accept the terms of service for Let's Encrypt.
 - `LETSENCRYPT_DIRECTORY`: **https**: Directory that Letsencrypt will use to cache information such as certs and private keys.
 - `LETSENCRYPT_EMAIL`: **email@example.com**: Email used by Letsencrypt to notify about problems with issued certificates. (No default)
+- `ALLOW_GRACEFUL_RESTARTS`: **true**: Perform a graceful restart on SIGHUP
+- `GRACEFUL_HAMMER_TIME`: **60s**: After a restart the parent process will stop accepting new connections and will allow requests to finish before stopping. Shutdown will be forced if it takes longer than this time.
 
 ## Database (`database`)
 
@@ -185,6 +191,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `REPO_INDEXER_EXCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **exclude** from the index. Files that match this list will not be indexed, even if they match in `REPO_INDEXER_INCLUDE`.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
+- `STARTUP_TIMEOUT`: **30s**: If the indexer takes longer than this timeout to start - fail. (This timeout will be added to the hammer time above for child processes - as bleve will not start until the previous parent is shutdown.) Set to zero to never timeout.
 
 ## Admin (`admin`)
 - `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**: Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
