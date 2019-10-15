@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/mailer"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"github.com/unknwon/com"
 	"mvdan.cc/xurls/v2"
@@ -190,7 +191,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		address = u.String()
 
-		if err := ctx.Repo.Mirror.SaveAddress(address); err != nil {
+		if err := mirror_service.SaveAddress(ctx.Repo.Mirror, address); err != nil {
 			ctx.ServerError("SaveAddress", err)
 			return
 		}
@@ -204,7 +205,8 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		go models.MirrorQueue.Add(repo.ID)
+		mirror_service.StartToMirror(repo.ID)
+
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
 		ctx.Redirect(repo.Link() + "/settings")
 

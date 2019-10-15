@@ -241,6 +241,41 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
     })
 }
 
+function initRepoStatusChecker() {
+    const migrating = $("#repo_migrating");
+    $('#repo_migrating_failed').hide();
+    if (migrating) {
+        const repo_name = migrating.attr('repo');
+        if (typeof repo_name === 'undefined') {
+            return
+        }
+        $.ajax({
+            type: "GET",
+            url: suburl +"/"+repo_name+"/status",
+            data: {
+                "_csrf": csrf,
+            },
+            complete: function(xhr) {
+                if (xhr.status == 200) {
+                    if (xhr.responseJSON) {
+                        if (xhr.responseJSON["status"] == 0) {
+                            location.reload();
+                            return
+                        }
+            
+                        setTimeout(function () {
+                            initRepoStatusChecker()
+                        }, 2000);
+                        return
+                    }
+                }
+                $('#repo_migrating_progress').hide();
+                $('#repo_migrating_failed').show();
+            }
+        })
+    }
+}
+
 function initReactionSelector(parent) {
     let reactions = '';
     if (!parent) {
@@ -1766,11 +1801,11 @@ function searchTeams() {
     $searchTeamBox.search({
         minCharacters: 2,
         apiSettings: {
-            url: suburl + '/api/v1/orgs/' + $searchTeamBox.data('org') + '/teams',
+            url: suburl + '/api/v1/orgs/' + $searchTeamBox.data('org') + '/teams/search?q={query}',
             headers: {"X-Csrf-Token": csrf},
             onResponse: function(response) {
                 const items = [];
-                $.each(response, function (_i, item) {
+                $.each(response.data, function (_i, item) {
                     const title = item.name + ' (' + item.permission + ' access)';
                     items.push({
                         title: title,
@@ -2219,6 +2254,7 @@ $(document).ready(function () {
     initIssueList();
     initWipTitle();
     initPullRequestReview();
+    initRepoStatusChecker();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
