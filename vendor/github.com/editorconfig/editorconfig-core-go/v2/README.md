@@ -1,27 +1,30 @@
-[![Build Status](https://travis-ci.org/editorconfig/editorconfig-core-go.svg?branch=master)](https://travis-ci.org/editorconfig/editorconfig-core-go)
-[![GoDoc](https://godoc.org/gopkg.in/editorconfig/editorconfig-core-go.v1?status.svg)](https://godoc.org/gopkg.in/editorconfig/editorconfig-core-go.v1)
-[![Go Report Card](https://goreportcard.com/badge/gopkg.in/editorconfig/editorconfig-core-go.v1)](https://goreportcard.com/report/gopkg.in/editorconfig/editorconfig-core-go.v1)
+<!-- Currently tests against core-test are not done so hide build status badge for now -->
+<!-- [![Build Status](https://travis-ci.org/editorconfig/editorconfig-core-go.svg?branch=master)](https://travis-ci.org/editorconfig/editorconfig-core-go) -->
+[![GoDoc](https://godoc.org/github.com/editorconfig/editorconfig-core-go?status.svg)](https://godoc.org/github.com/editorconfig/editorconfig-core-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/editorconfig/editorconfig-core-go)](https://goreportcard.com/report/github.com/editorconfig/editorconfig-core-go)
 
 # Editorconfig Core Go
 
 A [Editorconfig][editorconfig] file parser and manipulator for Go.
 
-> This package is already working, but still under testing.
+> Currently this package does some basic work but does not fully support
+> EditorConfig specs, so using it in "real world" is not recommended.
+
+## Missing features
+
+- `unset`
+- escaping comments in values, probably in [go-ini/ini](https://github.com/go-ini/ini)
 
 ## Installing
 
-We recommend the use of [gopkg.in][gopkg] for this package:
-
-```bash
-go get -u gopkg.in/editorconfig/editorconfig-core-go.v1
-```
+We recommend the use of Go 1.11+ modules for this package.
 
 Import by the same path. The package name you will use to access it is
 `editorconfig`.
 
 ```go
 import (
-    "gopkg.in/editorconfig/editorconfig-core-go.v1"
+    "github.com/editorconfig/editorconfig-core-go/v2"
 )
 ```
 
@@ -70,6 +73,7 @@ type Definition struct {
 	EndOfLine              string
 	TrimTrailingWhitespace bool
 	InsertFinalNewline     bool
+	Raw                    map[string]string
 }
 ```
 
@@ -115,8 +119,7 @@ if err != nil {
 To run the tests:
 
 ```bash
-go test -v
+go test -v ./...
 ```
 
 [editorconfig]: http://editorconfig.org/
-[gopkg]: https://gopkg.in
