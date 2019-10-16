@@ -19,76 +19,64 @@ import (
 func TestChangePassword(t *testing.T) {
 	oldPassword := "password"
 	setting.MinPasswordLength = 6
-	setting.PasswordComplexity = map[string]string{
-		"lower": "[a-z]+",
-		"upper": "[A-Z]+",
-		"digit": "[0-9]+",
-		"spec":  "[-_]+",
-	}
-	var pcLUN = map[string]string{
-		"lower": "[a-z]+",
-		"upper": "[A-Z]+",
-		"digit": "[0-9]+",
-	}
-	var pcLU = map[string]string{
-		"lower": "[a-z]+",
-		"upper": "[A-Z]+",
-	}
+	var pcALL = []string{"lower", "upper", "digit", "spec"}
+	var pcLUN = []string{"lower", "upper", "digit"}
+	var pcLU = []string{"lower", "upper"}
 
 	for _, req := range []struct {
 		OldPassword        string
 		NewPassword        string
 		Retype             string
 		Message            string
-		PasswordComplexity map[string]string
+		PasswordComplexity []string
 	}{
 		{
 			OldPassword:        oldPassword,
 			NewPassword:        "Qwerty123456-",
 			Retype:             "Qwerty123456-",
 			Message:            "",
-			PasswordComplexity: setting.PasswordComplexity,
+			PasswordComplexity: pcALL,
 		},
 		{
 			OldPassword:        oldPassword,
 			NewPassword:        "12345",
 			Retype:             "12345",
 			Message:            "auth.password_too_short",
-			PasswordComplexity: setting.PasswordComplexity,
+			PasswordComplexity: pcALL,
 		},
 		{
 			OldPassword:        "12334",
 			NewPassword:        "123456",
 			Retype:             "123456",
 			Message:            "settings.password_incorrect",
-			PasswordComplexity: setting.PasswordComplexity,
+			PasswordComplexity: pcALL,
 		},
 		{
 			OldPassword:        oldPassword,
 			NewPassword:        "123456",
 			Retype:             "12345",
 			Message:            "form.password_not_match",
-			PasswordComplexity: setting.PasswordComplexity,
+			PasswordComplexity: pcALL,
 		},
 		{
 			OldPassword:        oldPassword,
 			NewPassword:        "Qwerty",
 			Retype:             "Qwerty",
-			Message:            "settings.password_complexity",
-			PasswordComplexity: setting.PasswordComplexity,
+			Message:            "form.password_complexity",
+			PasswordComplexity: pcALL,
 		},
 		{
 			OldPassword:        oldPassword,
 			NewPassword:        "Qwerty",
 			Retype:             "Qwerty",
-			Message:            "settings.password_complexity",
+			Message:            "form.password_complexity",
 			PasswordComplexity: pcLUN,
 		},
 		{
 			OldPassword:        oldPassword,
 			NewPassword:        "QWERTY",
 			Retype:             "QWERTY",
-			Message:            "settings.password_complexity",
+			Message:            "form.password_complexity",
 			PasswordComplexity: pcLU,
 		},
 	} {

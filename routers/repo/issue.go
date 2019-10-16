@@ -34,6 +34,8 @@ import (
 )
 
 const (
+	tplAttachment base.TplName = "repo/issue/view_content/attachments"
+
 	tplIssues    base.TplName = "repo/issue/list"
 	tplIssueNew  base.TplName = "repo/issue/new"
 	tplIssueView base.TplName = "repo/issue/view"
@@ -1074,8 +1076,14 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
+	files := ctx.QueryStrings("files[]")
+	if err := updateAttachments(issue, files); err != nil {
+		ctx.ServerError("UpdateAttachments", err)
+	}
+
 	ctx.JSON(200, map[string]interface{}{
-		"content": string(markdown.Render([]byte(issue.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+		"content":     string(markdown.Render([]byte(issue.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+		"attachments": attachmentsHTML(ctx, issue.Attachments),
 	})
 }
 
@@ -1325,6 +1333,13 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
+	if comment.Type == models.CommentTypeComment {
+		if err := comment.LoadAttachments(); err != nil {
+			ctx.ServerError("LoadAttachments", err)
+			return
+		}
+	}
+
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(403)
 		return
@@ -1346,10 +1361,16 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
+	files := ctx.QueryStrings("files[]")
+	if err := updateAttachments(comment, files); err != nil {
+		ctx.ServerError("UpdateAttachments", err)
+	}
+
 	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
 
 	ctx.JSON(200, map[string]interface{}{
-		"content": string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+		"content":     string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+		"attachments": attachmentsHTML(ctx, comment.Attachments),
 	})
 }
 
@@ -1602,4 +1623,89 @@ func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 		i++
 	}
 	return nil
+}
+
+// GetIssueAttachments returns attachments for the issue
+func GetIssueAttachments(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	var attachments = make([]*api.Attachment, len(issue.Attachments))
+	for i := 0; i < len(issue.Attachments); i++ {
+		attachments[i] = issue.Attachments[i].APIFormat()
+	}
+	ctx.JSON(200, attachments)
+}
+
+// GetCommentAttachments returns attachments for the comment
+func GetCommentAttachments(ctx *context.Context) {
+	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
+		return
+	}
+	var attachments = make([]*api.Attachment, 0)
+	if comment.Type == models.CommentTypeComment {
+		if err := comment.LoadAttachments(); err != nil {
+			ctx.ServerError("LoadAttachments", err)
+			return
+		}
+		for i := 0; i < len(comment.Attachments); i++ {
+			attachments = append(attachments, comment.Attachments[i].APIFormat())
+		}
+	}
+	ctx.JSON(200, attachments)
+}
+
+func updateAttachments(item interface{}, files []string) error {
+	var attachments []*models.Attachment
+	switch content := item.(type) {
+	case *models.Issue:
+		attachments = content.Attachments
+	case *models.Comment:
+		attachments = content.Attachments
+	default:
+		return fmt.Errorf("Unknow Type")
+	}
+	for i := 0; i < len(attachments); i++ {
+		if util.IsStringInSlice(attachments[i].UUID, files) {
+			continue
+		}
+		if err := models.DeleteAttachment(attachments[i], true); err != nil {
+			return err
+		}
+	}
+	var err error
+	if len(files) > 0 {
+		switch content := item.(type) {
+		case *models.Issue:
+			err = content.UpdateAttachments(files)
+		case *models.Comment:
+			err = content.UpdateAttachments(files)
+		default:
+			return fmt.Errorf("Unknow Type")
+		}
+		if err != nil {
+			return err
+		}
+	}
+	switch content := item.(type) {
+	case *models.Issue:
+		content.Attachments, err = models.GetAttachmentsByIssueID(content.ID)
+	case *models.Comment:
+		content.Attachments, err = models.GetAttachmentsByCommentID(content.ID)
+	default:
+		return fmt.Errorf("Unknow Type")
+	}
+	return err
+}
+
+func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment) string {
+	attachHTML, err := ctx.HTMLString(string(tplAttachment), map[string]interface{}{
+		"ctx":         ctx.Data,
+		"Attachments": attachments,
+	})
+	if err != nil {
+		ctx.ServerError("attachmentsHTML.HTMLString", err)
+		return ""
+	}
+	return attachHTML
 }
