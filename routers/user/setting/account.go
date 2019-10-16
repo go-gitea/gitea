@@ -54,7 +54,7 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
 	} else if !password.IsComplexEnough(form.Password) {
-		ctx.Flash.Error(ctx.Tr("settings.password_complexity"))
+		ctx.Flash.Error(ctx.Tr("form.password_complexity"))
 	} else {
 		var err error
 		if ctx.User.Salt, err = models.GetUserSalt(); err != nil {
