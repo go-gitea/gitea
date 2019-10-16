@@ -4,7 +4,7 @@
 
 package migrations
 
-import "github.com/go-xorm/xorm"
+import "xorm.io/xorm"
 
 func addOriginalAuthorOnMigratedReleases(x *xorm.Engine) error {
 	type Release struct {
