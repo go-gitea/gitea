@@ -19,8 +19,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"gitea.com/macaron/macaron"
+	"github.com/editorconfig/editorconfig-core-go/v2"
 	"github.com/unknwon/com"
-	"gopkg.in/editorconfig/editorconfig-core-go.v1"
 )
 
 // PullRequest contains informations to make a pull request
