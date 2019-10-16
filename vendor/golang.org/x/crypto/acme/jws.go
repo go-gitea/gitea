@@ -17,19 +17,38 @@ import (
 	"math/big"
 )
 
+// keyID is the account identity provided by a CA during registration.
+type keyID string
+
+// noKeyID indicates that jwsEncodeJSON should compute and use JWK instead of a KID.
+// See jwsEncodeJSON for details.
+const noKeyID = keyID("")
+
 // jwsEncodeJSON signs claimset using provided key and a nonce.
-// The result is serialized in JSON format.
+// The result is serialized in JSON format containing either kid or jwk
+// fields based on the provided keyID value.
+//
+// If kid is non-empty, its quoted value is inserted in the protected head
+// as "kid" field value. Otherwise, JWK is computed using jwkEncode and inserted
+// as "jwk" field value. The "jwk" and "kid" fields are mutually exclusive.
+//
 // See https://tools.ietf.org/html/rfc7515#section-7.
-func jwsEncodeJSON(claimset interface{}, key crypto.Signer, nonce string) ([]byte, error) {
-	jwk, err := jwkEncode(key.Public())
-	if err != nil {
-		return nil, err
-	}
+func jwsEncodeJSON(claimset interface{}, key crypto.Signer, kid keyID, nonce, url string) ([]byte, error) {
 	alg, sha := jwsHasher(key.Public())
 	if alg == "" || !sha.Available() {
 		return nil, ErrUnsupportedKey
 	}
-	phead := fmt.Sprintf(`{"alg":%q,"jwk":%s,"nonce":%q}`, alg, jwk, nonce)
+	var phead string
+	switch kid {
+	case noKeyID:
+		jwk, err := jwkEncode(key.Public())
+		if err != nil {
+			return nil, err
+		}
+		phead = fmt.Sprintf(`{"alg":%q,"jwk":%s,"nonce":%q,"url":%q}`, alg, jwk, nonce, url)
+	default:
+		phead = fmt.Sprintf(`{"alg":%q,"kid":%q,"nonce":%q,"url":%q}`, alg, kid, nonce, url)
+	}
 	phead = base64.RawURLEncoding.EncodeToString([]byte(phead))
 	cs, err := json.Marshal(claimset)
 	if err != nil {

@@ -1,22 +1,24 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function() {
   var mode = CodeMirror.getMode({indentUnit: 2}, "powershell");
   function MT(name) { test.mode(name, mode, Array.prototype.slice.call(arguments, 1)); }
+
+  function forEach(arr, f) { for (var i = 0; i < arr.length; i++) f(arr[i], i) }
 
   MT('comment', '[number 1][comment # A]');
   MT('comment_multiline', '[number 1][comment <#]',
     '[comment ABC]',
   '[comment #>][number 2]');
 
-  [
+  forEach([
     '0', '1234',
     '12kb', '12mb', '12Gb', '12Tb', '12PB', '12L', '12D', '12lkb', '12dtb',
     '1.234', '1.234e56', '1.', '1.e2', '.2', '.2e34',
     '1.2MB', '1.kb', '.1dTB', '1.e1gb', '.2', '.2e34',
     '0x1', '0xabcdef', '0x3tb', '0xelmb'
-  ].forEach(function(number) {
+  ], function(number) {
     MT("number_" + number, "[number " + number + "]");
   });
 
@@ -60,9 +62,9 @@
   MT('operator_unary', "[operator +][number 3]");
   MT('operator_long', "[operator -match]");
 
-  [
+  forEach([
     '(', ')', '[[', ']]', '{', '}', ',', '`', ';', '.'
-  ].forEach(function(punctuation) {
+  ], function(punctuation) {
     MT("punctuation_" + punctuation.replace(/^[\[\]]/,''), "[punctuation " + punctuation + "]");
   });
 
