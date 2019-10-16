@@ -47,9 +47,6 @@ var (
 		IterateBufferSize int
 	}{
 		Timeout:         500,
-		MaxIdleConns:    2,
-		ConnMaxLifetime: 15 * time.Minute,
-		MaxOpenConns:    0,
 	}
 )
 
