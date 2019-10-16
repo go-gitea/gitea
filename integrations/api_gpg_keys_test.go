@@ -23,20 +23,20 @@ func TestGPGKeys(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	tt := []struct {
-		name        string
-		makeRequest makeRequestFunc
-		token       string
-		results     []int
+		name                         string
+		makeRequest                  makeRequestFunc
+		token                        string
+		RequireAuthForUsersEndpoints bool
+		results                      []int
 	}{
-		{name: "NoLogin", makeRequest: MakeRequest, token: "",
-			results: []int{http.StatusUnauthorized, http.StatusOK, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized},
+		{name: "NoLoginReqAuth", makeRequest: MakeRequest, token: "", RequireAuthForUsersEndpoints: false,
+			results: []int{http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized},
 		},
 		{name: "LoggedAsUser2", makeRequest: session.MakeRequest, token: token,
 			results: []int{http.StatusOK, http.StatusOK, http.StatusNotFound, http.StatusNoContent, http.StatusInternalServerError, http.StatusInternalServerError, http.StatusCreated, http.StatusCreated}},
 	}
 
 	for _, tc := range tt {
-
 		//Basic test on result code
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("ViewOwnGPGKeys", func(t *testing.T) {

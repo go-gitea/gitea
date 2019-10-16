@@ -11,6 +11,10 @@ type Team struct {
 	Name         string        `json:"name"`
 	Description  string        `json:"description"`
 	Organization *Organization `json:"organization"`
+	URL          string        `json:"url"`
+	HTMLURL      string        `json:"html_url"`
+	MembersURL   string        `json:"members_url"`
+	ReposURL     string        `json:"repositories_url"`
 	// enum: none,read,write,admin,owner
 	Permission string `json:"permission"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]

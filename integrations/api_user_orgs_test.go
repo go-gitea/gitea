@@ -31,7 +31,7 @@ func TestUserOrgs(t *testing.T) {
 	assert.Equal(t, 1, len(orgs))
 
 	user3 := models.AssertExistsAndLoadBean(t, &models.User{Name: "user3"}).(*models.User)
-	apiURL := setting.AppURL + "api/v1/orgs/" + user3.LowerName
+	apiURL := fmt.Sprintf("%sapi/v1/orgs/%s", setting.AppURL, user3.LowerName)
 	expectedOrg := &api.Organization{
 		ID:               3,
 		UserName:         user3.Name,
@@ -40,6 +40,7 @@ func TestUserOrgs(t *testing.T) {
 		URL:              apiURL,
 		ReposURL:         apiURL + "/repos",
 		MembersURL:       apiURL + "/members{/member}",
+		TeamsURL:         apiURL + "/teams",
 		PublicMembersURL: apiURL + "/public_members{/member}",
 		Description:      "",
 		Website:          "",
@@ -68,6 +69,7 @@ func TestMyOrgs(t *testing.T) {
 
 	user3 := models.AssertExistsAndLoadBean(t, &models.User{Name: "user3"}).(*models.User)
 	apiURL := setting.AppURL + "api/v1/orgs/" + user3.LowerName
+	apiURL := fmt.Sprintf("%sapi/v1/orgs/%s", setting.AppURL, user3.LowerName)
 	expectedOrg := &api.Organization{
 		ID:               3,
 		UserName:         user3.Name,
@@ -75,7 +77,9 @@ func TestMyOrgs(t *testing.T) {
 		AvatarURL:        user3.AvatarLink(),
 		URL:              apiURL,
 		ReposURL:         apiURL + "/repos",
+		HooksURL:         apiURL + "/hooks",
 		MembersURL:       apiURL + "/members{/member}",
+		TeamsURL:         apiURL + "/teams",
 		PublicMembersURL: apiURL + "/public_members{/member}",
 		Description:      "",
 		Website:          "",

@@ -168,6 +168,14 @@ func repoAssignment() macaron.Handler {
 	}
 }
 
+// Determine if users/<username>'s endpoints require authorization
+func reqAuthUserEndpoints() macaron.Handler {
+	if setting.API.RequireAuthForUsersEndpoints {
+		return reqToken()
+	}
+	return func(*context.APIContext) {}
+}
+
 // Contexter middleware already checks token for user sign in process.
 func reqToken() macaron.Handler {
 	return func(ctx *context.APIContext) {
@@ -522,7 +530,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
 					m.Combo("/:id").Delete(user.DeleteAccessToken)
 				}, reqToken())
-			})
+			}, reqAuthUserEndpoints())
 		})
 
 		m.Group("/user", func() {
@@ -588,10 +596,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Delete(reqToken(), reqOwner(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
 				m.Group("/hooks", func() {
-					m.Combo("").Get(repo.ListHooks).
+					m.Combo("").
+						Get(repo.ListHooks).
 						Post(bind(api.CreateHookOption{}), repo.CreateHook)
 					m.Group("/:id", func() {
-						m.Combo("").Get(repo.GetHook).
+						m.Combo("").
+							Get(repo.GetHook).
 							Patch(bind(api.EditHookOption{}), repo.EditHook).
 							Delete(repo.DeleteHook)
 						m.Post("/tests", context.RepoRef(), repo.TestHook)
@@ -769,7 +779,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/orgs", reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Group("/orgs/:orgname", func() {
 			m.Get("/repos", user.ListOrgRepos)
-			m.Combo("").Get(org.Get).
+			m.Combo("").
+				Get(org.Get).
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)
 			m.Group("/members", func() {
@@ -779,23 +790,27 @@ func RegisterRoutes(m *macaron.Macaron) {
 			})
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
-				m.Combo("/:username").Get(org.IsPublicMember).
+				m.Combo("/:username").
+					Get(org.IsPublicMember).
 					Put(reqToken(), reqOrgMembership(), org.PublicizeMember).
 					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
 			})
 			m.Group("/teams", func() {
-				m.Combo("", reqToken()).Get(org.ListTeams).
+				m.Combo("", reqToken()).
+					Get(org.ListTeams).
 					Post(reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
 				m.Get("/search", org.SearchTeam)
 			}, reqOrgMembership())
 			m.Group("/hooks", func() {
-				m.Combo("").Get(org.ListHooks).
+				m.Combo("").
+					Get(org.ListHooks).
 					Post(bind(api.CreateHookOption{}), org.CreateHook)
-				m.Combo("/:id").Get(org.GetHook).
+				m.Combo("/:id").
+					Get(org.GetHook).
 					Patch(bind(api.EditHookOption{}), org.EditHook).
 					Delete(org.DeleteHook)
 			}, reqToken(), reqOrgOwnership())
-		}, orgAssignment(true))
+		}, orgAssignment(true), reqAuthUserEndpoints())
 		m.Group("/teams/:teamid", func() {
 			m.Combo("").Get(org.GetTeam).
 				Patch(reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).

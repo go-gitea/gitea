@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/go-xorm/xorm"
 	"xorm.io/builder"
@@ -22,17 +23,37 @@ const ownerTeamName = "Owners"
 
 // Team represents a organization team.
 type Team struct {
-	ID          int64 `xorm:"pk autoincr"`
-	OrgID       int64 `xorm:"INDEX"`
-	LowerName   string
-	Name        string
-	Description string
-	Authorize   AccessMode
-	Repos       []*Repository `xorm:"-"`
-	Members     []*User       `xorm:"-"`
-	NumRepos    int
-	NumMembers  int
-	Units       []*TeamUnit `xorm:"-"`
+	ID           int64 `xorm:"pk autoincr"`
+	OrgID        int64 `xorm:"INDEX"`
+	Organization *User `xorm:"-"`
+	LowerName    string
+	Name         string
+	Description  string
+	Authorize    AccessMode
+	Repos        []*Repository `xorm:"-"`
+	Members      []*User       `xorm:"-"`
+	NumRepos     int
+	NumMembers   int
+	Units        []*TeamUnit `xorm:"-"`
+}
+
+// AfterLoad is invoked from XORM after setting the values of all fields of this object.
+func (t *Team) AfterLoad() {
+	t.GetOrganization()
+}
+
+// GetOrganization returns the team's organization
+func (t *Team) GetOrganization() error {
+	return t.getOrganization(x)
+}
+
+func (t *Team) getOrganization(e Engine) (err error) {
+	if t.Organization != nil {
+		return nil
+	}
+
+	t.Organization, err = getUserByID(e, t.OrgID)
+	return err
 }
 
 // SearchTeamOptions holds the search options
@@ -104,6 +125,11 @@ func (t *Team) ColorFormat(s fmt.State) {
 		log.NewColoredIDValue(t.OrgID),
 		t.Authorize)
 
+}
+
+// HTMLURL returns the team HTML URL
+func (t *Team) HTMLURL() string {
+	return fmt.Sprintf("%sorg/%s/teams/%s", setting.AppURL, t.Organization.LowerName, t.LowerName)
 }
 
 // GetUnits return a list of available units for a team
@@ -323,6 +349,27 @@ func (t *Team) unitEnabled(e Engine, tp UnitType) bool {
 		}
 	}
 	return false
+}
+
+// APIFormat converts a Team to api.Team
+func (t *Team) APIFormat() *api.Team {
+	return t.innerAPIFormat(x)
+}
+
+func (t *Team) innerAPIFormat(e Engine) *api.Team {
+	apiURL := fmt.Sprintf("%sapi/v1/teams/%d", setting.AppURL, t.ID)
+	return &api.Team{
+		ID:           t.ID,
+		Name:         t.Name,
+		URL:          apiURL,
+		HTMLURL:      t.HTMLURL(),
+		MembersURL:   apiURL + "/members{/member}",
+		ReposURL:     apiURL + "/repos",
+		Description:  t.Description,
+		Organization: t.Organization.innerOrgAPIFormat(e),
+		Permission:   t.Authorize.String(),
+		Units:        t.GetUnitNames(),
+	}
 }
 
 // IsUsableTeamName tests if a name could be as team name

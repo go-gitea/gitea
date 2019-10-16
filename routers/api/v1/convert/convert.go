@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -205,37 +204,12 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 
 // ToOrganization convert models.User to api.Organization
 func ToOrganization(org *models.User) *api.Organization {
-	apiURL := setting.AppURL + "api/v1/orgs/" + org.LowerName
-	// hide primary email if API caller isn't user itself or an admin
-	return &api.Organization{
-		ID:                        org.ID,
-		AvatarURL:                 org.AvatarLink(),
-		UserName:                  org.Name,
-		FullName:                  org.FullName,
-		URL:                       apiURL,
-		ReposURL:                  apiURL + "/repos",
-		MembersURL:                apiURL + "/members{/member}",
-		PublicMembersURL:          apiURL + "/public_members{/member}",
-		PublicRepoCount:           models.GetPublicRepositoryCount(org),
-		Description:               org.Description,
-		Website:                   org.Website,
-		Location:                  org.Location,
-		Visibility:                org.Visibility.String(),
-		Created:                   org.CreatedUnix.AsTime(),
-		RepoAdminChangeTeamAccess: org.RepoAdminChangeTeamAccess,
-		Updated:                   org.UpdatedUnix.AsTime(),
-	}
+	return org.OrgAPIFormat()
 }
 
 // ToTeam convert models.Team to api.Team
 func ToTeam(team *models.Team) *api.Team {
-	return &api.Team{
-		ID:          team.ID,
-		Name:        team.Name,
-		Description: team.Description,
-		Permission:  team.Authorize.String(),
-		Units:       team.GetUnitNames(),
-	}
+	return team.APIFormat()
 }
 
 // ToUser convert models.User to api.User

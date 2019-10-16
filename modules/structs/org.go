@@ -15,13 +15,18 @@ type Organization struct {
 	FullName                  string `json:"full_name"`
 	AvatarURL                 string `json:"avatar_url"`
 	URL                       string `json:"url"`
+	HTMLURL                   string `json:"html_url"`
 	ReposURL                  string `json:"repos_url"`
+	HooksURL                  string `json:"hooks_url"`
 	MembersURL                string `json:"members_url"`
+	TeamsURL                  string `json:"teams_url"`
 	PublicMembersURL          string `json:"public_members_url"`
 	Description               string `json:"description"`
 	Website                   string `json:"website"`
 	Location                  string `json:"location"`
-	PublicRepoCount           int64  `json:"public_repo_count"`
+	PublicRepos               int64  `json:"public_repos"`
+	Followers                 int    `json:"followers"`
+	Following                 int    `json:"following"`
 	Visibility                string `json:"visibility"`
 	RepoAdminChangeTeamAccess bool   `json:"repo_admin_change_team_access"`
 	// swagger:strfmt date-time

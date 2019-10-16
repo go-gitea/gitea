@@ -227,6 +227,7 @@ menu:
 - `DEFAULT_PAGING_NUM`: **30**: API中默认分页条数。
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: GIT TREES API每页的默认最大项数.
 - `DEFAULT_MAX_BLOB_SIZE`: **10485760**: BLOBS API默认最大大小.
+- `REQUIRE_AUTH_FOR_USER_ENDPOINTS`: **true**: 需要授权为了访问users/<username>或orgs/<orgname>GET的端点（关注中，关注者，仓库，已点赞，热图等。false = 行为类似于GitHub，即公开的）
 
 ## Markup (`markup`)
 

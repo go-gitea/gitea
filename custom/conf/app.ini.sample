@@ -743,6 +743,8 @@ DEFAULT_PAGING_NUM = 30
 DEFAULT_GIT_TREES_PER_PAGE = 1000
 ; Default size of a blob returned by the blobs API (default is 10MiB)
 DEFAULT_MAX_BLOB_SIZE = 10485760
+; Require authorization for users/<username> or orgs/<orgname> GET Endpoints (following, followers, repos, stars, heatmap, etc.; false = behave like GitHub, ie. open)
+REQUIRE_AUTH_FOR_USERS_ENDPOINTS = true
 
 [oauth2]
 ; Enables OAuth2 provider

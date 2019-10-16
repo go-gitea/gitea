@@ -240,9 +240,8 @@ func (u *User) APIFormat() *api.User {
 	return u.innerAPIFormat(x)
 }
 
-// APIFormat converts a User to api.User
 func (u *User) innerAPIFormat(e Engine) *api.User {
-	apiURL := setting.AppURL + "api/v1/users/" + u.LowerName
+	apiURL := fmt.Sprintf("%sapi/v1/users/%s", setting.AppURL, u.LowerName)
 	return &api.User{
 		ID:               u.ID,
 		UserName:         u.Name,
@@ -271,6 +270,37 @@ func (u *User) innerAPIFormat(e Engine) *api.User {
 		LastLogin:        u.LastLoginUnix.AsTime(),
 		Created:          u.CreatedUnix.AsTime(),
 		Updated:          u.UpdatedUnix.AsTime(),
+	}
+}
+
+// APIFormat converts a User [of type Organization] to api.Organization
+func (org *User) OrgAPIFormat() *api.Organization {
+	return org.innerOrgAPIFormat(x)
+}
+
+func (org *User) innerOrgAPIFormat(e Engine) *api.Organization {
+	apiURL := fmt.Sprintf("%sapi/v1/orgs/%s", setting.AppURL, org.LowerName)
+	return &api.Organization{
+		ID:                        org.ID,
+		UserName:                  org.Name,
+		FullName:                  org.FullName,
+		AvatarURL:                 org.AvatarLink(),
+		URL:                       apiURL,
+		HTMLURL:                   setting.AppURL + org.LowerName,
+		ReposURL:                  apiURL + "/repos",
+		HooksURL:                  apiURL + "/hooks",
+		MembersURL:                apiURL + "/members{/member}",
+		TeamsURL:                  apiURL + "/teams",
+		PublicMembersURL:          apiURL + "/public_members{/member}",
+		Description:               org.Description,
+		Website:                   org.Website,
+		Location:                  org.Location,
+		PublicRepos:               getPublicRepositoryCount(e, org.ID),
+		Followers:                 org.NumFollowers,
+		Following:                 org.NumFollowing,
+		RepoAdminChangeTeamAccess: org.RepoAdminChangeTeamAccess,
+		Created:                   org.CreatedUnix.AsTime(),
+		Updated:                   org.UpdatedUnix.AsTime(),
 	}
 }
 

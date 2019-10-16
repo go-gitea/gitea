@@ -458,6 +458,7 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `DEFAULT_PAGING_NUM`: **30**: Default paging number of API.
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Default and maximum number of items per page for git trees API.
 - `DEFAULT_MAX_BLOB_SIZE`: **10485760**: Default max size of a blob that can be return by the blobs API.
+- `REQUIRE_AUTH_FOR_USER_ENDPOINTS`: **true**: Require authorization for users/<username> or orgs/<orgname> GET Endpoints (following, followers, repos, stars, heatmap, etc.; false = behave like GitHub, ie. open)
 
 ## OAuth2 (`oauth2`)
 

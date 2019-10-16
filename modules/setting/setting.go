@@ -286,19 +286,21 @@ var (
 
 	// API settings
 	API = struct {
-		EnableSwagger          bool
-		SwaggerURL             string
-		MaxResponseItems       int
-		DefaultPagingNum       int
-		DefaultGitTreesPerPage int
-		DefaultMaxBlobSize     int64
+		EnableSwagger                bool
+		SwaggerURL                   string
+		MaxResponseItems             int
+		DefaultPagingNum             int
+		DefaultGitTreesPerPage       int
+		DefaultMaxBlobSize           int64
+		RequireAuthForUsersEndpoints bool
 	}{
-		EnableSwagger:          true,
-		SwaggerURL:             "",
-		MaxResponseItems:       50,
-		DefaultPagingNum:       30,
-		DefaultGitTreesPerPage: 1000,
-		DefaultMaxBlobSize:     10485760,
+		EnableSwagger:                true,
+		SwaggerURL:                   "",
+		MaxResponseItems:             50,
+		DefaultPagingNum:             30,
+		DefaultGitTreesPerPage:       1000,
+		DefaultMaxBlobSize:           10485760,
+		RequireAuthForUsersEndpoints: true,
 	}
 
 	OAuth2 = struct {

@@ -9427,9 +9427,27 @@
           "type": "string",
           "x-go-name": "Description"
         },
+        "followers": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Followers"
+        },
+        "following": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Following"
+        },
         "full_name": {
           "type": "string",
           "x-go-name": "FullName"
+        },
+        "hooks_url": {
+          "type": "string",
+          "x-go-name": "HooksURL"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
         },
         "id": {
           "type": "integer",
@@ -9448,10 +9466,10 @@
           "type": "string",
           "x-go-name": "PublicMembersURL"
         },
-        "public_repo_count": {
+        "public_repos": {
           "type": "integer",
           "format": "int64",
-          "x-go-name": "PublicRepoCount"
+          "x-go-name": "PublicRepos"
         },
         "repo_admin_change_team_access": {
           "type": "boolean",
@@ -9460,6 +9478,10 @@
         "repos_url": {
           "type": "string",
           "x-go-name": "ReposURL"
+        },
+        "teams_url": {
+          "type": "string",
+          "x-go-name": "TeamsURL"
         },
         "updated": {
           "type": "string",
@@ -10211,10 +10233,18 @@
           "type": "string",
           "x-go-name": "Description"
         },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
         "id": {
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "members_url": {
+          "type": "string",
+          "x-go-name": "MembersURL"
         },
         "name": {
           "type": "string",
@@ -10234,6 +10264,10 @@
           ],
           "x-go-name": "Permission"
         },
+        "repositories_url": {
+          "type": "string",
+          "x-go-name": "ReposURL"
+        },
         "units": {
           "type": "array",
           "items": {
@@ -10249,6 +10283,10 @@
             "repo.releases",
             "repo.ext_wiki"
           ]
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
