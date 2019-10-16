@@ -3112,9 +3112,9 @@ function initIssueList() {
         });
     });
 
-    $(".menu .ui.dropdown.filter-labels").keydown(function(e) {
+    $(".menu .ui.dropdown.label-filter").keydown(function(e) {
         if (e.altKey && e.keyCode == 13) {
-            const selectedItems = $(".menu .ui.dropdown.filter-labels .menu .item.selected");
+            const selectedItems = $(".menu .ui.dropdown.label-filter .menu .item.selected");
 
             if (selectedItems.length > 0) {
                 const item = $(selectedItems[0]);
