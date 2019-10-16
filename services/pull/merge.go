@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
@@ -22,11 +22,18 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"github.com/mcuadros/go-version"
 )
 
 // Merge merges pull request to base repository.
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
 func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, mergeStyle models.MergeStyle, message string) (err error) {
+	binVersion, err := git.BinVersion()
+	if err != nil {
+		return fmt.Errorf("Unable to get git version: %v", err)
+	}
+
 	if err = pr.GetHeadRepo(); err != nil {
 		return fmt.Errorf("GetHeadRepo: %v", err)
 	} else if err = pr.GetBaseRepo(); err != nil {
@@ -49,7 +56,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	}
 
 	defer func() {
-		go models.AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false)
+		go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false)
 	}()
 
 	// Clone base repo.
@@ -66,20 +73,17 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 
 	headRepoPath := models.RepoPath(pr.HeadUserName, pr.HeadRepo.Name)
 
-	if err := git.Clone(baseGitRepo.Path, tmpBasePath, git.CloneRepoOptions{
-		Shared:     true,
-		NoCheckout: true,
-		Branch:     pr.BaseBranch,
-	}); err != nil {
-		return fmt.Errorf("git clone: %v", err)
+	if err := git.InitRepository(tmpBasePath, false); err != nil {
+		return fmt.Errorf("git init: %v", err)
 	}
 
 	remoteRepoName := "head_repo"
+	baseBranch := "base"
 
 	// Add head repo remote.
 	addCacheRepo := func(staging, cache string) error {
 		p := filepath.Join(staging, ".git", "objects", "info", "alternates")
-		f, err := os.OpenFile(p, os.O_APPEND|os.O_WRONLY, 0600)
+		f, err := os.OpenFile(p, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 		if err != nil {
 			return err
 		}
@@ -91,25 +95,41 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return nil
 	}
 
-	if err := addCacheRepo(tmpBasePath, headRepoPath); err != nil {
+	if err := addCacheRepo(tmpBasePath, baseGitRepo.Path); err != nil {
 		return fmt.Errorf("addCacheRepo [%s -> %s]: %v", headRepoPath, tmpBasePath, err)
 	}
 
 	var errbuf strings.Builder
+	if err := git.NewCommand("remote", "add", "-t", pr.BaseBranch, "-m", pr.BaseBranch, "origin", baseGitRepo.Path).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git remote add [%s -> %s]: %s", baseGitRepo.Path, tmpBasePath, errbuf.String())
+	}
+
+	if err := git.NewCommand("fetch", "origin", "--no-tags", pr.BaseBranch+":"+baseBranch, pr.BaseBranch+":original_"+baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
+	}
+
+	if err := git.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		return fmt.Errorf("git symbolic-ref HEAD base [%s]: %s", tmpBasePath, errbuf.String())
+	}
+
+	if err := addCacheRepo(tmpBasePath, headRepoPath); err != nil {
+		return fmt.Errorf("addCacheRepo [%s -> %s]: %v", headRepoPath, tmpBasePath, err)
+	}
+
 	if err := git.NewCommand("remote", "add", remoteRepoName, headRepoPath).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git remote add [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 	}
 
+	trackingBranch := "tracking"
 	// Fetch head branch
-	if err := git.NewCommand("fetch", remoteRepoName, fmt.Sprintf("%s:refs/remotes/%s/%s", pr.HeadBranch, remoteRepoName, pr.HeadBranch)).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := git.NewCommand("fetch", "--no-tags", remoteRepoName, pr.HeadBranch+":"+trackingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git fetch [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 	}
 
-	trackingBranch := path.Join(remoteRepoName, pr.HeadBranch)
-	stagingBranch := fmt.Sprintf("%s_%s", remoteRepoName, pr.HeadBranch)
+	stagingBranch := "staging"
 
 	// Enable sparse-checkout
-	sparseCheckoutList, err := getDiffTree(tmpBasePath, pr.BaseBranch, trackingBranch)
+	sparseCheckoutList, err := getDiffTree(tmpBasePath, baseBranch, trackingBranch)
 	if err != nil {
 		return fmt.Errorf("getDiffTree: %v", err)
 	}
@@ -123,21 +143,37 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return fmt.Errorf("Writing sparse-checkout file to %s: %v", sparseCheckoutListPath, err)
 	}
 
+	gitConfigCommand := func() func() *git.Command {
+		binVersion, err := git.BinVersion()
+		if err != nil {
+			log.Fatal("Error retrieving git version: %v", err)
+		}
+
+		if version.Compare(binVersion, "1.8.0", ">=") {
+			return func() *git.Command {
+				return git.NewCommand("config", "--local")
+			}
+		}
+		return func() *git.Command {
+			return git.NewCommand("config")
+		}
+	}()
+
 	// Switch off LFS process (set required, clean and smudge here also)
-	if err := git.NewCommand("config", "--local", "filter.lfs.process", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := gitConfigCommand().AddArguments("filter.lfs.process", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git config [filter.lfs.process -> <> ]: %v", errbuf.String())
 	}
-	if err := git.NewCommand("config", "--local", "filter.lfs.required", "false").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := gitConfigCommand().AddArguments("filter.lfs.required", "false").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git config [filter.lfs.required -> <false> ]: %v", errbuf.String())
 	}
-	if err := git.NewCommand("config", "--local", "filter.lfs.clean", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := gitConfigCommand().AddArguments("filter.lfs.clean", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git config [filter.lfs.clean -> <> ]: %v", errbuf.String())
 	}
-	if err := git.NewCommand("config", "--local", "filter.lfs.smudge", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := gitConfigCommand().AddArguments("filter.lfs.smudge", "").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git config [filter.lfs.smudge -> <> ]: %v", errbuf.String())
 	}
 
-	if err := git.NewCommand("config", "--local", "core.sparseCheckout", "true").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+	if err := gitConfigCommand().AddArguments("core.sparseCheckout", "true").RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git config [core.sparsecheckout -> true]: %v", errbuf.String())
 	}
 
@@ -146,6 +182,30 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return fmt.Errorf("git read-tree HEAD: %s", errbuf.String())
 	}
 
+	// Determine if we should sign
+	signArg := ""
+	if version.Compare(binVersion, "1.7.9", ">=") {
+		sign, keyID := pr.BaseRepo.SignMerge(doer, tmpBasePath, "HEAD", trackingBranch)
+		if sign {
+			signArg = "-S" + keyID
+		} else if version.Compare(binVersion, "2.0.0", ">=") {
+			signArg = "--no-gpg-sign"
+		}
+	}
+
+	sig := doer.NewGitSig()
+	commitTimeStr := time.Now().Format(time.RFC3339)
+
+	// Because this may call hooks we should pass in the environment
+	env := append(os.Environ(),
+		"GIT_AUTHOR_NAME="+sig.Name,
+		"GIT_AUTHOR_EMAIL="+sig.Email,
+		"GIT_AUTHOR_DATE="+commitTimeStr,
+		"GIT_COMMITTER_NAME="+sig.Name,
+		"GIT_COMMITTER_EMAIL="+sig.Email,
+		"GIT_COMMITTER_DATE="+commitTimeStr,
+	)
+
 	// Merge commits.
 	switch mergeStyle {
 	case models.MergeStyleMerge:
@@ -153,9 +213,14 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 			return fmt.Errorf("git merge --no-ff --no-commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
 		}
 
-		sig := doer.NewGitSig()
-		if err := git.NewCommand("commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
-			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+		if signArg == "" {
+			if err := git.NewCommand("commit", "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
+				return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+			}
+		} else {
+			if err := git.NewCommand("commit", signArg, "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
+				return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+			}
 		}
 	case models.MergeStyleRebase:
 		// Checkout head branch
@@ -163,11 +228,11 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Rebase before merging
-		if err := git.NewCommand("rebase", "-q", pr.BaseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		if err := git.NewCommand("rebase", "-q", baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 			return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
 		// Checkout base branch again
-		if err := git.NewCommand("checkout", pr.BaseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		if err := git.NewCommand("checkout", baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Merge fast forward
@@ -180,11 +245,11 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Rebase before merging
-		if err := git.NewCommand("rebase", "-q", pr.BaseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		if err := git.NewCommand("rebase", "-q", baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 			return fmt.Errorf("git rebase [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
 		// Checkout base branch again
-		if err := git.NewCommand("checkout", pr.BaseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		if err := git.NewCommand("checkout", baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
 			return fmt.Errorf("git checkout: %s", errbuf.String())
 		}
 		// Prepare merge with commit
@@ -193,9 +258,14 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		}
 
 		// Set custom message and author and create merge commit
-		sig := doer.NewGitSig()
-		if err := git.NewCommand("commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
-			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+		if signArg == "" {
+			if err := git.NewCommand("commit", "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
+				return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+			}
+		} else {
+			if err := git.NewCommand("commit", signArg, "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
+				return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+			}
 		}
 
 	case models.MergeStyleSquash:
@@ -204,8 +274,14 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 			return fmt.Errorf("git merge --squash [%s -> %s]: %s", headRepoPath, tmpBasePath, errbuf.String())
 		}
 		sig := pr.Issue.Poster.NewGitSig()
-		if err := git.NewCommand("commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
-			return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+		if signArg == "" {
+			if err := git.NewCommand("commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
+				return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+			}
+		} else {
+			if err := git.NewCommand("commit", signArg, fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
+				return fmt.Errorf("git commit [%s]: %v - %s", tmpBasePath, err, errbuf.String())
+			}
 		}
 	default:
 		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: mergeStyle}
@@ -216,7 +292,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	if err != nil {
 		return fmt.Errorf("Failed to get full commit id for HEAD: %v", err)
 	}
-	mergeBaseSHA, err := git.GetFullCommitID(tmpBasePath, "origin/"+pr.BaseBranch)
+	mergeBaseSHA, err := git.GetFullCommitID(tmpBasePath, "original_"+baseBranch)
 	if err != nil {
 		return fmt.Errorf("Failed to get full commit id for origin/%s: %v", pr.BaseBranch, err)
 	}
@@ -240,7 +316,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		headUser = doer
 	}
 
-	env := models.FullPushingEnvironment(
+	env = models.FullPushingEnvironment(
 		headUser,
 		doer,
 		pr.BaseRepo,
@@ -249,7 +325,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	)
 
 	// Push back to upstream.
-	if err := git.NewCommand("push", "origin", pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
+	if err := git.NewCommand("push", "origin", baseBranch+":"+pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, nil, &errbuf); err != nil {
 		return fmt.Errorf("git push: %s", errbuf.String())
 	}
 

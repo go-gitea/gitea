@@ -6,20 +6,17 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 	"html"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
-	"unicode"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -54,26 +51,6 @@ const (
 	ActionMirrorSyncCreate                        // 19
 	ActionMirrorSyncDelete                        // 20
 )
-
-var (
-	issueCloseKeywordsPat, issueReopenKeywordsPat *regexp.Regexp
-	issueReferenceKeywordsPat                     *regexp.Regexp
-	issueKeywordsOnce                             sync.Once
-)
-
-const issueRefRegexpStr = `(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)+`
-const issueRefRegexpStrNoKeyword = `(?:\s|^|\(|\[)(?:([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+))?(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`
-
-func init() {
-	issueReferenceKeywordsPat = regexp.MustCompile(issueRefRegexpStrNoKeyword)
-}
-
-func initKeywordsRegexp() {
-	issueKeywordsOnce.Do(func() {
-		issueCloseKeywordsPat = buildKeywordsRegexp(setting.Repository.PullRequest.CloseKeywords)
-		issueReopenKeywordsPat = buildKeywordsRegexp(setting.Repository.PullRequest.ReopenKeywords)
-	})
-}
 
 // Action represents user operation type and other information to
 // repository. It implemented interface base.Actioner so that can be
@@ -349,10 +326,6 @@ func RenameRepoAction(actUser *User, oldRepoName string, repo *Repository) error
 	return renameRepoAction(x, actUser, oldRepoName, repo)
 }
 
-func issueIndexTrimRight(c rune) bool {
-	return !unicode.IsDigit(c)
-}
-
 // PushCommit represents a commit in a push operation.
 type PushCommit struct {
 	Sha1           string
@@ -478,39 +451,9 @@ func (pc *PushCommits) AvatarLink(email string) string {
 }
 
 // getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
-// if the provided ref is misformatted or references a non-existent issue.
-func getIssueFromRef(repo *Repository, ref string) (*Issue, error) {
-	ref = ref[strings.IndexByte(ref, ' ')+1:]
-	ref = strings.TrimRightFunc(ref, issueIndexTrimRight)
-
-	var refRepo *Repository
-	poundIndex := strings.IndexByte(ref, '#')
-	if poundIndex < 0 {
-		return nil, nil
-	} else if poundIndex == 0 {
-		refRepo = repo
-	} else {
-		slashIndex := strings.IndexByte(ref, '/')
-		if slashIndex < 0 || slashIndex >= poundIndex {
-			return nil, nil
-		}
-		ownerName := ref[:slashIndex]
-		repoName := ref[slashIndex+1 : poundIndex]
-		var err error
-		refRepo, err = GetRepositoryByOwnerAndName(ownerName, repoName)
-		if err != nil {
-			if IsErrRepoNotExist(err) {
-				return nil, nil
-			}
-			return nil, err
-		}
-	}
-	issueIndex, err := strconv.ParseInt(ref[poundIndex+1:], 10, 64)
-	if err != nil {
-		return nil, nil
-	}
-
-	issue, err := GetIssueByIndex(refRepo.ID, issueIndex)
+// if the provided ref references a non-existent issue.
+func getIssueFromRef(repo *Repository, index int64) (*Issue, error) {
+	issue, err := GetIssueByIndex(repo.ID, index)
 	if err != nil {
 		if IsErrIssueNotExist(err) {
 			return nil, nil
@@ -520,20 +463,7 @@ func getIssueFromRef(repo *Repository, ref string) (*Issue, error) {
 	return issue, nil
 }
 
-func changeIssueStatus(repo *Repository, doer *User, ref string, refMarked map[int64]bool, status bool) error {
-	issue, err := getIssueFromRef(repo, ref)
-	if err != nil {
-		return err
-	}
-
-	if issue == nil || refMarked[issue.ID] {
-		return nil
-	}
-	refMarked[issue.ID] = true
-
-	if issue.RepoID != repo.ID || issue.IsClosed == status {
-		return nil
-	}
+func changeIssueStatus(repo *Repository, issue *Issue, doer *User, status bool) error {
 
 	stopTimerIfAvailable := func(doer *User, issue *Issue) error {
 
@@ -547,7 +477,7 @@ func changeIssueStatus(repo *Repository, doer *User, ref string, refMarked map[i
 	}
 
 	issue.Repo = repo
-	if err = issue.ChangeStatus(doer, status); err != nil {
+	if err := issue.ChangeStatus(doer, status); err != nil {
 		// Don't return an error when dependencies are open as this would let the push fail
 		if IsErrDependenciesLeft(err) {
 			return stopTimerIfAvailable(doer, issue)
@@ -560,109 +490,72 @@ func changeIssueStatus(repo *Repository, doer *User, ref string, refMarked map[i
 
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
 func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, branchName string) error {
-	initKeywordsRegexp()
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
 
-		refMarked := make(map[int64]bool)
+		type markKey struct {
+			ID     int64
+			Action references.XRefAction
+		}
+
+		refMarked := make(map[markKey]bool)
 		var refRepo *Repository
+		var refIssue *Issue
 		var err error
-		for _, m := range issueReferenceKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
-			if len(m[3]) == 0 {
-				continue
-			}
-			ref := m[3]
+		for _, ref := range references.FindAllIssueReferences(c.Message) {
 
 			// issue is from another repo
-			if len(m[1]) > 0 && len(m[2]) > 0 {
-				refRepo, err = GetRepositoryFromMatch(m[1], m[2])
+			if len(ref.Owner) > 0 && len(ref.Name) > 0 {
+				refRepo, err = GetRepositoryFromMatch(ref.Owner, ref.Name)
 				if err != nil {
 					continue
 				}
 			} else {
 				refRepo = repo
 			}
-			issue, err := getIssueFromRef(refRepo, ref)
+			if refIssue, err = getIssueFromRef(refRepo, ref.Index); err != nil {
+				return err
+			}
+			if refIssue == nil {
+				continue
+			}
+
+			perm, err := GetUserRepoPermission(refRepo, doer)
 			if err != nil {
 				return err
 			}
 
-			if issue == nil || refMarked[issue.ID] {
+			key := markKey{ID: refIssue.ID, Action: ref.Action}
+			if refMarked[key] {
 				continue
 			}
-			refMarked[issue.ID] = true
+			refMarked[key] = true
 
-			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
-			if err = CreateRefComment(doer, refRepo, issue, message, c.Sha1); err != nil {
-				return err
-			}
-		}
-
-		// Change issue status only if the commit has been pushed to the default branch.
-		// and if the repo is configured to allow only that
-		if repo.DefaultBranch != branchName && !repo.CloseIssuesViaCommitInAnyBranch {
-			continue
-		}
-		refMarked = make(map[int64]bool)
-		if issueCloseKeywordsPat != nil {
-			for _, m := range issueCloseKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
-				if len(m[3]) == 0 {
-					continue
-				}
-				ref := m[3]
-
-				// issue is from another repo
-				if len(m[1]) > 0 && len(m[2]) > 0 {
-					refRepo, err = GetRepositoryFromMatch(m[1], m[2])
-					if err != nil {
-						continue
-					}
-				} else {
-					refRepo = repo
-				}
-
-				perm, err := GetUserRepoPermission(refRepo, doer)
-				if err != nil {
+			// only create comments for issues if user has permission for it
+			if perm.IsAdmin() || perm.IsOwner() || perm.CanWrite(UnitTypeIssues) {
+				message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
+				if err = CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
 					return err
 				}
-				// only close issues in another repo if user has push access
-				if perm.CanWrite(UnitTypeCode) {
-					if err := changeIssueStatus(refRepo, doer, ref, refMarked, true); err != nil {
-						return err
-					}
-				}
 			}
-		}
 
-		// It is conflict to have close and reopen at same time, so refsMarked doesn't need to reinit here.
-		if issueReopenKeywordsPat != nil {
-			for _, m := range issueReopenKeywordsPat.FindAllStringSubmatch(c.Message, -1) {
-				if len(m[3]) == 0 {
-					continue
-				}
-				ref := m[3]
+			// Process closing/reopening keywords
+			if ref.Action != references.XRefActionCloses && ref.Action != references.XRefActionReopens {
+				continue
+			}
 
-				// issue is from another repo
-				if len(m[1]) > 0 && len(m[2]) > 0 {
-					refRepo, err = GetRepositoryFromMatch(m[1], m[2])
-					if err != nil {
-						continue
-					}
-				} else {
-					refRepo = repo
-				}
+			// Change issue status only if the commit has been pushed to the default branch.
+			// and if the repo is configured to allow only that
+			// FIXME: we should be using Issue.ref if set instead of repo.DefaultBranch
+			if repo.DefaultBranch != branchName && !repo.CloseIssuesViaCommitInAnyBranch {
+				continue
+			}
 
-				perm, err := GetUserRepoPermission(refRepo, doer)
-				if err != nil {
+			// only close issues in another repo if user has push access
+			if perm.IsAdmin() || perm.IsOwner() || perm.CanWrite(UnitTypeCode) {
+				if err := changeIssueStatus(refRepo, refIssue, doer, ref.Action == references.XRefActionCloses); err != nil {
 					return err
-				}
-
-				// only reopen issues in another repo if user has push access
-				if perm.CanWrite(UnitTypeCode) {
-					if err := changeIssueStatus(refRepo, doer, ref, refMarked, false); err != nil {
-						return err
-					}
 				}
 			}
 		}
@@ -716,79 +609,6 @@ func MergePullRequestAction(actUser *User, repo *Repository, pull *Issue) error 
 	return mergePullRequestAction(x, actUser, repo, pull)
 }
 
-func mirrorSyncAction(e Engine, opType ActionType, repo *Repository, refName string, data []byte) error {
-	if err := notifyWatchers(e, &Action{
-		ActUserID: repo.OwnerID,
-		ActUser:   repo.MustOwner(),
-		OpType:    opType,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-		RefName:   refName,
-		Content:   string(data),
-	}); err != nil {
-		return fmt.Errorf("notifyWatchers: %v", err)
-	}
-
-	defer func() {
-		go HookQueue.Add(repo.ID)
-	}()
-
-	return nil
-}
-
-// MirrorSyncPushActionOptions mirror synchronization action options.
-type MirrorSyncPushActionOptions struct {
-	RefName     string
-	OldCommitID string
-	NewCommitID string
-	Commits     *PushCommits
-}
-
-// MirrorSyncPushAction adds new action for mirror synchronization of pushed commits.
-func MirrorSyncPushAction(repo *Repository, opts MirrorSyncPushActionOptions) error {
-	if len(opts.Commits.Commits) > setting.UI.FeedMaxCommitNum {
-		opts.Commits.Commits = opts.Commits.Commits[:setting.UI.FeedMaxCommitNum]
-	}
-
-	apiCommits, err := opts.Commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
-	if err != nil {
-		return err
-	}
-
-	opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
-	apiPusher := repo.MustOwner().APIFormat()
-	if err := PrepareWebhooks(repo, HookEventPush, &api.PushPayload{
-		Ref:        opts.RefName,
-		Before:     opts.OldCommitID,
-		After:      opts.NewCommitID,
-		CompareURL: setting.AppURL + opts.Commits.CompareURL,
-		Commits:    apiCommits,
-		Repo:       repo.APIFormat(AccessModeOwner),
-		Pusher:     apiPusher,
-		Sender:     apiPusher,
-	}); err != nil {
-		return fmt.Errorf("PrepareWebhooks: %v", err)
-	}
-
-	data, err := json.Marshal(opts.Commits)
-	if err != nil {
-		return err
-	}
-
-	return mirrorSyncAction(x, ActionMirrorSyncPush, repo, opts.RefName, data)
-}
-
-// MirrorSyncCreateAction adds new action for mirror synchronization of new reference.
-func MirrorSyncCreateAction(repo *Repository, refName string) error {
-	return mirrorSyncAction(x, ActionMirrorSyncCreate, repo, refName, nil)
-}
-
-// MirrorSyncDeleteAction adds new action for mirror synchronization of delete reference.
-func MirrorSyncDeleteAction(repo *Repository, refName string) error {
-	return mirrorSyncAction(x, ActionMirrorSyncDelete, repo, refName, nil)
-}
-
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
 	RequestedUser    *User
@@ -839,28 +659,4 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	}
 
 	return actions, nil
-}
-
-func parseKeywords(words []string) []string {
-	acceptedWords := make([]string, 0, 5)
-	wordPat := regexp.MustCompile(`^[\pL]+$`)
-	for _, word := range words {
-		word = strings.ToLower(strings.TrimSpace(word))
-		// Accept Unicode letter class runes (a-z, á, à, ä, )
-		if wordPat.MatchString(word) {
-			acceptedWords = append(acceptedWords, word)
-		} else {
-			log.Info("Invalid keyword: %s", word)
-		}
-	}
-	return acceptedWords
-}
-
-func buildKeywordsRegexp(words []string) *regexp.Regexp {
-	acceptedWords := parseKeywords(words)
-	if len(acceptedWords) == 0 {
-		// Never match
-		return nil
-	}
-	return regexp.MustCompile(fmt.Sprintf(`(?i)(?:%s)(?::?) %s`, strings.Join(acceptedWords, "|"), issueRefRegexpStr))
 }

@@ -46,7 +46,7 @@
 							{{end}}
 						</div>
 						<div class="raw-content hide">{{.Issue.Content}}</div>
-						<div class="edit-content-zone hide" data-write="issue-{{.Issue.ID}}-write" data-preview="issue-{{.Issue.ID}}-preview" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}"></div>
+						<div class="edit-content-zone hide" data-write="issue-{{.Issue.ID}}-write" data-preview="issue-{{.Issue.ID}}-preview" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
 					</div>
 					{{$reactions := .Issue.Reactions.GroupByType}}
 					{{if $reactions}}
@@ -57,15 +57,7 @@
 					{{if .Issue.Attachments}}
 						<div class="ui bottom attached segment">
 							<div class="ui small images">
-								{{range .Issue.Attachments}}
-									<a target="_blank" rel="noopener noreferrer" href="{{AppSubUrl}}/attachments/{{.UUID}}">
-										{{if FilenameIsImage .Name}}
-											<img class="ui image" src="{{AppSubUrl}}/attachments/{{.UUID}}" title='{{$.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
-										{{else}}
-											<span class="ui image octicon octicon-desktop-download" title='{{$.i18n.Tr "repo.issues.attachment.download" .Name}}'></span>
-										{{end}}
-									</a>
-								{{end}}
+								{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Issue.Attachments}}
 							</div>
 						</div>
 					{{end}}
@@ -182,6 +174,19 @@
 		<div class="ui bottom attached tab preview segment markdown">
 			{{$.i18n.Tr "loading"}}
 		</div>
+		{{if .IsAttachmentEnabled}}
+			<div class="comment-files"></div>
+			<div class="ui basic button dropzone" id="comment-dropzone"
+				data-upload-url="{{AppSubUrl}}/attachments"
+				data-remove-url="{{AppSubUrl}}/attachments/delete"
+				data-csrf="{{.CsrfToken}}" data-accepts="{{.AttachmentAllowedTypes}}"
+				data-max-file="{{.AttachmentMaxFiles}}" data-max-size="{{.AttachmentMaxSize}}"
+				data-default-message="{{.i18n.Tr "dropzone.default_message"}}"
+				data-invalid-input-type="{{.i18n.Tr "dropzone.invalid_input_type"}}"
+				data-file-too-big="{{.i18n.Tr "dropzone.file_too_big"}}"
+				data-remove-file="{{.i18n.Tr "dropzone.remove_file"}}">
+			</div>
+		{{end}}
 		<div class="text right edit buttons">
 			<div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
 			<div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>

@@ -13,8 +13,8 @@ require (
 	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24 // indirect
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	github.com/ziutek/mymysql v1.5.4
 	xorm.io/builder v0.3.6
-	xorm.io/core v0.7.0
+	xorm.io/core v0.7.2-0.20190928055935-90aeac8d08eb
 )

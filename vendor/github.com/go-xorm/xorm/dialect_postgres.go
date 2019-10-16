@@ -1005,16 +1005,18 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 
 		col.Name = strings.Trim(colName, `" `)
 
-		if colDefault != nil || isPK {
-			if isPK {
-				col.IsPrimaryKey = true
-			} else {
-				col.Default = *colDefault
+		if colDefault != nil {
+			col.Default = *colDefault
+			col.DefaultIsEmpty = false
+			if strings.HasPrefix(col.Default, "nextval(") {
+				col.IsAutoIncrement = true
 			}
+		} else {
+			col.DefaultIsEmpty = true
 		}
 
-		if colDefault != nil && strings.HasPrefix(*colDefault, "nextval(") {
-			col.IsAutoIncrement = true
+		if isPK {
+			col.IsPrimaryKey = true
 		}
 
 		col.Nullable = (isNullable == "YES")
@@ -1043,12 +1045,16 @@ WHERE c.relkind = 'r'::char AND c.relname = $1%s AND f.attnum > 0 ORDER BY f.att
 
 		col.Length = maxLen
 
-		if col.SQLType.IsText() || col.SQLType.IsTime() {
-			if col.Default != "" {
-				col.Default = "'" + col.Default + "'"
-			} else {
-				if col.DefaultIsEmpty {
-					col.Default = "''"
+		if !col.DefaultIsEmpty {
+			if col.SQLType.IsText() {
+				if strings.HasSuffix(col.Default, "::character varying") {
+					col.Default = strings.TrimRight(col.Default, "::character varying")
+				} else if !strings.HasPrefix(col.Default, "'") {
+					col.Default = "'" + col.Default + "'"
+				}
+			} else if col.SQLType.IsTime() {
+				if strings.HasSuffix(col.Default, "::timestamp without time zone") {
+					col.Default = strings.TrimRight(col.Default, "::timestamp without time zone")
 				}
 			}
 		}
