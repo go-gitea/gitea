@@ -136,7 +136,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 	}
 
 	fileName := ctx.Params("filename")
-	def := ec.GetDefinitionForFilename(fileName)
+	def, _ := ec.GetDefinitionForFilename(fileName)
 	if def == nil {
 		ctx.NotFound(err)
 		return
