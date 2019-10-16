@@ -1141,7 +1141,9 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				ctx.ServerError("GetUserByID", err)
 				return
 			}
-			notification.NotifyIssueChangeAssignee(ctx.User, issue, assignee, removed)
+			if setting.Service.EnableNotifyMail && !assignee.IsOrganization() && assignee.EmailNotifications() == models.EmailNotificationsEnabled {
+				notification.NotifyIssueChangeAssignee(ctx.User, issue, assignee, removed)
+			}
 		}
 	}
 	ctx.JSON(200, map[string]interface{}{
