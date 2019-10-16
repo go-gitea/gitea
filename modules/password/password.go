@@ -13,16 +13,18 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-var matchComplexityOnce sync.Once
-var validChars string
-var requiredChars []string
+var (
+	matchComplexityOnce sync.Once
+	validChars          string
+	requiredChars       []string
 
-var charComplexities = map[string]string{
-	"lower": `abcdefghijklmnopqrstuvwxyz`,
-	"upper": `ABCDEFGHIJKLMNOPQRSTUVWXYZ`,
-	"digit": `0123456789`,
-	"spec":  ` !"#$%&'()*+,-./:;<=>?@[\]^_{|}~` + "`",
-}
+	charComplexities = map[string]string{
+		"lower": `abcdefghijklmnopqrstuvwxyz`,
+		"upper": `ABCDEFGHIJKLMNOPQRSTUVWXYZ`,
+		"digit": `0123456789`,
+		"spec":  ` !"#$%&'()*+,-./:;<=>?@[\]^_{|}~` + "`",
+	}
+)
 
 // NewComplexity for preparation
 func NewComplexity() {
