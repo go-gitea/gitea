@@ -76,6 +76,25 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `LOCK_REASONS`: **Too heated,Off-topic,Resolved,Spam**: A list of reasons why a Pull Request or Issue can be locked
 
+### Repository - Signing (`repository.signing`)
+
+- `SIGNING_KEY`: **default**: \[none, KEYID, default \]: Key to sign with.
+- `SIGNING_NAME` &amp; `SIGNING_EMAIL`: if a KEYID is provided as the `SIGNING_KEY`, use these as the Name and Email address of the signer. These should match publicized name and email address for the key.
+- `INITIAL_COMMIT`: **always**: \[never, pubkey, twofa, always\]: Sign initial commit.
+  - `never`: Never sign
+  - `pubkey`: Only sign if the user has a public key
+  - `twofa`: Only sign if the user is logged in with twofa
+  - `always`: Always sign
+  - Options other than `never` and `always` can be combined as a comma separated list.
+- `WIKI`: **never**: \[never, pubkey, twofa, always, parentsigned\]: Sign commits to wiki.
+- `CRUD_ACTIONS`: **pubkey, twofa, parentsigned**: \[never, pubkey, twofa, parentsigned, always\]: Sign CRUD actions.
+  - Options as above, with the addition of:
+  - `parentsigned`: Only sign if the parent commit is signed.
+- `MERGES`: **pubkey, twofa, basesigned, commitssigned**: \[never, pubkey, twofa, basesigned, commitssigned, always\]: Sign merges.
+  - `basesigned`: Only sign if the parent commit in the base repo is signed.
+  - `headsigned`: Only sign if the head commit in the head branch is signed.
+  - `commitssigned`: Only sign if all the commits in the head branch to the merge point are signed.
+
 ## CORS (`cors`)
 
 - `ENABLED`: **false**: enable cors headers (disabled by default)

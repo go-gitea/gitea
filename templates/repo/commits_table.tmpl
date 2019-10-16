@@ -56,12 +56,21 @@
 							{{end}}
 						</td>
 						<td class="sha">
-							<a rel="nofollow" class="ui sha label {{if .Signature}} isSigned {{if .Verification.Verified }} isVerified {{end}}{{end}}" href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.ID}}">
+							<a rel="nofollow" class="ui sha label {{if .Signature}} isSigned {{if .Verification.Verified }} isVerified {{else if .Verification.Warning}} isWarning {{end}}{{end}}" href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.ID}}">
 								{{ShortSha .ID.String}}
 								{{if .Signature}}
 									<div class="ui detail icon button">
 										{{if .Verification.Verified}}
-											<i title="{{.Verification.Reason}}" class="lock green icon"></i>
+											{{if ne .Verification.SigningUser.ID 0}}
+												<i title="{{.Verification.Reason}}" class="lock green icon"></i>
+											{{else}}
+												<i title="{{.Verification.Reason}}" class="icons">
+													<i class="green lock icon"></i>
+													<i class="tiny inverted cog icon centerlock"></i>
+												</i>
+											{{end}}
+										{{else if .Verification.Warning}}
+											<i title="{{$.i18n.Tr .Verification.Reason}}" class="red unlock icon"></i>
 										{{else}}
 											<i title="{{$.i18n.Tr .Verification.Reason}}" class="unlock icon"></i>
 										{{end}}
