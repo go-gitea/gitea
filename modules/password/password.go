@@ -7,45 +7,60 @@ package password
 import (
 	"crypto/rand"
 	"math/big"
-	"regexp"
+	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/setting"
 )
 
-var matchComplexities = map[string]regexp.Regexp{}
-var matchComplexityOnce sync.Once
-var validChars string
-var validComplexities = map[string]string{
-	"lower": "abcdefghijklmnopqrstuvwxyz",
-	"upper": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-	"digit": "0123456789",
-	"spec":  `][ !"#$%&'()*+,./:;<=>?@\^_{|}~` + "`-",
-}
+var (
+	matchComplexityOnce sync.Once
+	validChars          string
+	requiredChars       []string
+
+	charComplexities = map[string]string{
+		"lower": `abcdefghijklmnopqrstuvwxyz`,
+		"upper": `ABCDEFGHIJKLMNOPQRSTUVWXYZ`,
+		"digit": `0123456789`,
+		"spec":  ` !"#$%&'()*+,-./:;<=>?@[\]^_{|}~` + "`",
+	}
+)
 
 // NewComplexity for preparation
 func NewComplexity() {
 	matchComplexityOnce.Do(func() {
-		if len(setting.PasswordComplexity) > 0 {
-			for key, val := range setting.PasswordComplexity {
-				matchComplexity := regexp.MustCompile(val)
-				matchComplexities[key] = *matchComplexity
-				validChars += validComplexities[key]
-			}
-		} else {
-			for _, val := range validComplexities {
-				validChars += val
-			}
-		}
+		setupComplexity(setting.PasswordComplexity)
 	})
 }
 
-// IsComplexEnough return True if password is Complexity
+func setupComplexity(values []string) {
+	if len(values) != 1 || values[0] != "off" {
+		for _, val := range values {
+			if chars, ok := charComplexities[val]; ok {
+				validChars += chars
+				requiredChars = append(requiredChars, chars)
+			}
+		}
+		if len(requiredChars) == 0 {
+			// No valid character classes found; use all classes as default
+			for _, chars := range charComplexities {
+				validChars += chars
+				requiredChars = append(requiredChars, chars)
+			}
+		}
+	}
+	if validChars == "" {
+		// No complexities to check; provide a sensible default for password generation
+		validChars = charComplexities["lower"] + charComplexities["upper"] + charComplexities["digit"]
+	}
+}
+
+// IsComplexEnough return True if password meets complexity settings
 func IsComplexEnough(pwd string) bool {
-	if len(setting.PasswordComplexity) > 0 {
-		NewComplexity()
-		for _, val := range matchComplexities {
-			if !val.MatchString(pwd) {
+	NewComplexity()
+	if len(validChars) > 0 {
+		for _, req := range requiredChars {
+			if !strings.ContainsAny(req, pwd) {
 				return false
 			}
 		}
