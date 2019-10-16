@@ -5,6 +5,8 @@
 
 package base
 
+import "code.gitea.io/gitea/modules/structs"
+
 // Downloader downloads the site repo informations
 type Downloader interface {
 	GetRepoInfo() (*Repository, error)
@@ -21,4 +23,5 @@ type Downloader interface {
 type DownloaderFactory interface {
 	Match(opts MigrateOptions) (bool, error)
 	New(opts MigrateOptions) (Downloader, error)
+	GitServiceType() structs.GitServiceType
 }

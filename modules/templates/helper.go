@@ -30,7 +30,7 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 
-	"gopkg.in/editorconfig/editorconfig-core-go.v1"
+	"github.com/editorconfig/editorconfig-core-go/v2"
 )
 
 // NewFuncMap returns functions for injecting to templates
@@ -148,7 +148,11 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"TabSizeClass": func(ec *editorconfig.Editorconfig, filename string) string {
 			if ec != nil {
-				def := ec.GetDefinitionForFilename(filename)
+				def, err := ec.GetDefinitionForFilename(filename)
+				if err != nil {
+					log.Error("tab size class: getting definition for filename: %v", err)
+					return "tab-size-8"
+				}
 				if def.TabWidth > 0 {
 					return fmt.Sprintf("tab-size-%d", def.TabWidth)
 				}
@@ -239,6 +243,8 @@ func NewFuncMap() []template.FuncMap {
 		"CommentMustAsDiff": gitdiff.CommentMustAsDiff,
 		"MirrorAddress":     mirror_service.Address,
 		"MirrorFullAddress": mirror_service.AddressNoCredentials,
+		"MirrorUserName":    mirror_service.Username,
+		"MirrorPassword":    mirror_service.Password,
 	}}
 }
 

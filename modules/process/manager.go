@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -9,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os/exec"
 	"sync"
 	"time"
@@ -93,6 +95,14 @@ func (pm *Manager) ExecDir(timeout time.Duration, dir, desc, cmdName string, arg
 // Returns its complete stdout and stderr
 // outputs and an error, if any (including timeout)
 func (pm *Manager) ExecDirEnv(timeout time.Duration, dir, desc string, env []string, cmdName string, args ...string) (string, string, error) {
+	return pm.ExecDirEnvStdIn(timeout, dir, desc, env, nil, cmdName, args...)
+}
+
+// ExecDirEnvStdIn runs a command in given path and environment variables with provided stdIN, and waits for its completion
+// up to the given timeout (or DefaultTimeout if -1 is given).
+// Returns its complete stdout and stderr
+// outputs and an error, if any (including timeout)
+func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env []string, stdIn io.Reader, cmdName string, args ...string) (string, string, error) {
 	if timeout == -1 {
 		timeout = 60 * time.Second
 	}
@@ -108,6 +118,10 @@ func (pm *Manager) ExecDirEnv(timeout time.Duration, dir, desc string, env []str
 	cmd.Env = env
 	cmd.Stdout = stdOut
 	cmd.Stderr = stdErr
+	if stdIn != nil {
+		cmd.Stdin = stdIn
+	}
+
 	if err := cmd.Start(); err != nil {
 		return "", "", err
 	}
