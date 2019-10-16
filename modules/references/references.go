@@ -128,14 +128,14 @@ func parseKeywords(words []string) []string {
 	return acceptedWords
 }
 
-func NewKeywords() {
+func newKeywords() {
 	issueKeywordsOnce.Do(func() {
 		// Delay initialization until after the settings module is initialized
-		newKeywords(setting.Repository.PullRequest.CloseKeywords, setting.Repository.PullRequest.ReopenKeywords)
+		doNewKeywords(setting.Repository.PullRequest.CloseKeywords, setting.Repository.PullRequest.ReopenKeywords)
 	})
 }
 
-func newKeywords(close []string, reopen []string) {
+func doNewKeywords(close []string, reopen []string) {
 	issueCloseKeywordsPat = makeKeywordsPat(close)
 	issueReopenKeywordsPat = makeKeywordsPat(reopen)
 }
@@ -334,7 +334,7 @@ func getCrossReference(content []byte, start, end int, fromLink bool) *rawRefere
 }
 
 func findActionKeywords(content []byte, start int) (XRefAction, *RefSpan) {
-	NewKeywords()
+	newKeywords()
 	var m []int
 	if issueCloseKeywordsPat != nil {
 		m = issueCloseKeywordsPat.FindSubmatchIndex(content[:start])

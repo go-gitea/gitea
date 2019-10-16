@@ -329,11 +329,11 @@ func TestCustomizeCloseKeywords(t *testing.T) {
 
 	issueKeywordsOnce.Do(func() {})
 
-	newKeywords([]string{"cierra", "cerró"}, []string{"reabre"})
+	doNewKeywords([]string{"cierra", "cerró"}, []string{"reabre"})
 	testFixtures(t, fixtures, "spanish")
 
 	// Restore default settings
-	newKeywords(setting.Repository.PullRequest.CloseKeywords, setting.Repository.PullRequest.ReopenKeywords)
+	doNewKeywords(setting.Repository.PullRequest.CloseKeywords, setting.Repository.PullRequest.ReopenKeywords)
 }
 
 func TestParseCloseKeywords(t *testing.T) {
