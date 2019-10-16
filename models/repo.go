@@ -38,6 +38,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-xorm/xorm"
+	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"xorm.io/builder"
@@ -1126,7 +1127,20 @@ func CleanUpMigrateInfo(repo *Repository) (*Repository, error) {
 }
 
 // initRepoCommit temporarily changes with work directory.
-func initRepoCommit(tmpPath string, sig *git.Signature) (err error) {
+func initRepoCommit(tmpPath string, u *User) (err error) {
+	commitTimeStr := time.Now().Format(time.RFC3339)
+
+	sig := u.NewGitSig()
+	// Because this may call hooks we should pass in the environment
+	env := append(os.Environ(),
+		"GIT_AUTHOR_NAME="+sig.Name,
+		"GIT_AUTHOR_EMAIL="+sig.Email,
+		"GIT_AUTHOR_DATE="+commitTimeStr,
+		"GIT_COMMITTER_NAME="+sig.Name,
+		"GIT_COMMITTER_EMAIL="+sig.Email,
+		"GIT_COMMITTER_DATE="+commitTimeStr,
+	)
+
 	var stderr string
 	if _, stderr, err = process.GetManager().ExecDir(-1,
 		tmpPath, fmt.Sprintf("initRepoCommit (git add): %s", tmpPath),
@@ -1134,10 +1148,29 @@ func initRepoCommit(tmpPath string, sig *git.Signature) (err error) {
 		return fmt.Errorf("git add: %s", stderr)
 	}
 
-	if _, stderr, err = process.GetManager().ExecDir(-1,
+	binVersion, err := git.BinVersion()
+	if err != nil {
+		return fmt.Errorf("Unable to get git version: %v", err)
+	}
+
+	args := []string{
+		"commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
+		"-m", "Initial commit",
+	}
+
+	if version.Compare(binVersion, "1.7.9", ">=") {
+		sign, keyID := SignInitialCommit(tmpPath, u)
+		if sign {
+			args = append(args, "-S"+keyID)
+		} else if version.Compare(binVersion, "2.0.0", ">=") {
+			args = append(args, "--no-gpg-sign")
+		}
+	}
+
+	if _, stderr, err = process.GetManager().ExecDirEnv(-1,
 		tmpPath, fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath),
-		git.GitExecutable, "commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
-		"-m", "Initial commit"); err != nil {
+		env,
+		git.GitExecutable, args...); err != nil {
 		return fmt.Errorf("git commit: %s", stderr)
 	}
 
@@ -1189,9 +1222,24 @@ func getRepoInitFile(tp, name string) ([]byte, error) {
 }
 
 func prepareRepoCommit(e Engine, repo *Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
+	commitTimeStr := time.Now().Format(time.RFC3339)
+	authorSig := repo.Owner.NewGitSig()
+
+	// Because this may call hooks we should pass in the environment
+	env := append(os.Environ(),
+		"GIT_AUTHOR_NAME="+authorSig.Name,
+		"GIT_AUTHOR_EMAIL="+authorSig.Email,
+		"GIT_AUTHOR_DATE="+commitTimeStr,
+		"GIT_COMMITTER_NAME="+authorSig.Name,
+		"GIT_COMMITTER_EMAIL="+authorSig.Email,
+		"GIT_COMMITTER_DATE="+commitTimeStr,
+	)
+
 	// Clone to temporary path and do the init commit.
-	_, stderr, err := process.GetManager().Exec(
+	_, stderr, err := process.GetManager().ExecDirEnv(
+		-1, "",
 		fmt.Sprintf("initRepository(git clone): %s", repoPath),
+		env,
 		git.GitExecutable, "clone", repoPath, tmpDir,
 	)
 	if err != nil {
@@ -1282,7 +1330,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 		}
 
 		// Apply changes and commit.
-		if err = initRepoCommit(tmpDir, u.NewGitSig()); err != nil {
+		if err = initRepoCommit(tmpDir, u); err != nil {
 			return fmt.Errorf("initRepoCommit: %v", err)
 		}
 	}
