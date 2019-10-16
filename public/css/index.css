@@ -225,6 +225,10 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .inline-grouped-list{display:inline-block;vertical-align:top}
 .inline-grouped-list>.ui{display:block;margin-top:5px;margin-bottom:10px}
 .inline-grouped-list>.ui:first-child{margin-top:1px}
+i.icons .icon:first-child{margin-right:0}
+i.icon.centerlock{top:1.5em}
+.ui.label>.detail .icons{margin-right:.25em}
+.ui.label>.detail .icons .icon{margin-right:0}
 .lines-num{vertical-align:top;text-align:right!important;color:#999;background:#f5f5f5;width:1%;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
 .lines-num span:before{content:attr(data-line-number);line-height:20px!important;padding:0 10px;cursor:pointer;display:block}
 .lines-code,.lines-num{padding:0!important}
@@ -654,6 +658,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n){background-color:rgba(0,0,0,.02)!important}
 .repository #commits-table td.sha .sha.label,.repository #repo-files-table .sha.label{border:1px solid #bbb}
 .repository #commits-table td.sha .sha.label .detail.icon,.repository #repo-files-table .sha.label .detail.icon{background:#fafafa;margin:-6px -10px -4px 0;padding:5px 3px 5px 6px;border-left:1px solid #bbb;border-top-left-radius:0;border-bottom-left-radius:0}
+.repository #commits-table td.sha .sha.label.isSigned.isWarning,.repository #repo-files-table .sha.label.isSigned.isWarning{border:1px solid #db2828;background:rgba(219,40,40,.1)}
+.repository #commits-table td.sha .sha.label.isSigned.isWarning .detail.icon,.repository #repo-files-table .sha.label.isSigned.isWarning .detail.icon{border-left:1px solid rgba(219,40,40,.5)}
 .repository #commits-table td.sha .sha.label.isSigned.isVerified,.repository #repo-files-table .sha.label.isSigned.isVerified{border:1px solid #21ba45;background:rgba(33,186,69,.1)}
 .repository #commits-table td.sha .sha.label.isSigned.isVerified .detail.icon,.repository #repo-files-table .sha.label.isSigned.isVerified .detail.icon{border-left:1px solid #21ba45}
 .repository #commits-table td.sha .sha.label.isSigned.isVerified:hover,.repository #repo-files-table .sha.label.isSigned.isVerified:hover{background:rgba(33,186,69,.3)!important}
