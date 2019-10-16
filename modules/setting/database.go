@@ -80,7 +80,7 @@ func InitDBConfig() {
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
 	if Database.UseMySQL {
-		Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(0)
+		Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
 		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFE_TIME").MustDuration(3 * time.Second)
 	} else {
 		Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
