@@ -35,7 +35,7 @@
 				{{ template "admin/auth/source/smtp" . }}
 
 				<!-- PAM -->
-				<div class="pam required field {{if not (eq .type 4)}}hide{{end}}">
+				<div class="pam required field">
 					<label for="pam_service_name">{{.i18n.Tr "admin.auths.pam_service_name"}}</label>
 					<input id="pam_service_name" name="pam_service_name" value="{{.pam_service_name}}" />
 				</div>
