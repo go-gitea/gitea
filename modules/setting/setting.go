@@ -149,7 +149,7 @@ var (
 	MinPasswordLength     int
 	ImportLocalPaths      bool
 	DisableGitHooks       bool
-	PasswordComplexity    map[string]string
+	PasswordComplexity    []string
 	PasswordHashAlgo      string
 
 	// UI settings
@@ -781,25 +781,13 @@ func NewContext() {
 
 	InternalToken = loadInternalToken(sec)
 
-	var dictPC = map[string]string{
-		"lower": "[a-z]+",
-		"upper": "[A-Z]+",
-		"digit": "[0-9]+",
-		"spec":  `][ !"#$%&'()*+,./:;<=>?@\\^_{|}~` + "`-",
-	}
-	PasswordComplexity = make(map[string]string)
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
-	for _, y := range cfgdata {
-		ts := strings.TrimSpace(y)
-		for a := range dictPC {
-			if strings.ToLower(ts) == a {
-				PasswordComplexity[ts] = dictPC[ts]
-				break
-			}
+	PasswordComplexity = make([]string, 0, len(cfgdata))
+	for _, name := range cfgdata {
+		name := strings.ToLower(strings.Trim(name, `"`))
+		if name != "" {
+			PasswordComplexity = append(PasswordComplexity, name)
 		}
-	}
-	if len(PasswordComplexity) == 0 {
-		PasswordComplexity = dictPC
 	}
 
 	sec = Cfg.Section("attachment")
