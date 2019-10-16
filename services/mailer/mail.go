@@ -191,9 +191,9 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 		}
 		// Default subject
 		if comment != nil {
-			subject = "Re: " + defaultMailSubject(issue)
+			subject = "Re: " + fallbackMailSubject(issue)
 		} else {
-			subject = defaultMailSubject(issue)
+			subject = fallbackMailSubject(issue)
 		}
 	}
 

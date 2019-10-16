@@ -15,7 +15,7 @@ import (
 	"github.com/unknwon/com"
 )
 
-func defaultMailSubject(issue *models.Issue) string {
+func fallbackMailSubject(issue *models.Issue) string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.FullName(), issue.Title, issue.Index)
 }
 
