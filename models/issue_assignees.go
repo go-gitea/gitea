@@ -8,6 +8,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/go-xorm/xorm"
@@ -119,9 +121,20 @@ func AddAssigneeIfNotAssigned(issue *Issue, doer *User, assigneeID int64) (err e
 	}
 
 	if !isAssigned {
-		_, err = issue.ChangeAssignee(doer, assigneeID)
+		if _, err = issue.ChangeAssignee(doer, assigneeID); err != nil {
+			return err
+		}
+
+		assignee, err := models.GetUserByID(assigneeID)
+		if err != nil {
+			return err
+		}
+
+		if setting.Service.EnableNotifyMail && !assignee.IsOrganization() && assignee.EmailNotifications() == models.EmailNotificationsEnabled {
+			notification.NotifyIssueChangeAssignee(ctx.User, issue, assignee, removed)
+		}
 	}
-	return err
+	return nil
 }
 
 // UpdateAssignee deletes or adds an assignee to an issue
