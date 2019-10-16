@@ -8,8 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/go-xorm/xorm"
@@ -112,31 +110,6 @@ func clearAssigneeByUserID(sess *xorm.Session, userID int64) (err error) {
 	return
 }
 
-// AddAssigneeIfNotAssigned adds an assignee only if he isn't aleady assigned to the issue
-func AddAssigneeIfNotAssigned(issue *Issue, doer *User, assigneeID int64) (err error) {
-	// Check if the user is already assigned
-	isAssigned, err := IsUserAssignedToIssue(issue, &User{ID: assigneeID})
-	if err != nil {
-		return err
-	}
-
-	if !isAssigned {
-		if _, err = issue.ChangeAssignee(doer, assigneeID); err != nil {
-			return err
-		}
-
-		assignee, err := models.GetUserByID(assigneeID)
-		if err != nil {
-			return err
-		}
-
-		if setting.Service.EnableNotifyMail && !assignee.IsOrganization() && assignee.EmailNotifications() == models.EmailNotificationsEnabled {
-			notification.NotifyIssueChangeAssignee(ctx.User, issue, assignee, removed)
-		}
-	}
-	return nil
-}
-
 // UpdateAssignee deletes or adds an assignee to an issue
 func UpdateAssignee(issue *Issue, doer *User, assigneeID int64) (err error) {
 	_, err = issue.ChangeAssignee(doer, assigneeID)
@@ -230,61 +203,6 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 		}
 	}
 	return removed, nil
-}
-
-// UpdateAPIAssignee is a helper function to add or delete one or multiple issue assignee(s)
-// Deleting is done the GitHub way (quote from their api documentation):
-// https://developer.github.com/v3/issues/#edit-an-issue
-// "assignees" (array): Logins for Users to assign to this issue.
-// Pass one or more user logins to replace the set of assignees on this Issue.
-// Send an empty array ([]) to clear all assignees from the Issue.
-func UpdateAPIAssignee(issue *Issue, oneAssignee string, multipleAssignees []string, doer *User) (err error) {
-	var allNewAssignees []*User
-
-	// Keep the old assignee thingy for compatibility reasons
-	if oneAssignee != "" {
-		// Prevent double adding assignees
-		var isDouble bool
-		for _, assignee := range multipleAssignees {
-			if assignee == oneAssignee {
-				isDouble = true
-				break
-			}
-		}
-
-		if !isDouble {
-			multipleAssignees = append(multipleAssignees, oneAssignee)
-		}
-	}
-
-	// Loop through all assignees to add them
-	for _, assigneeName := range multipleAssignees {
-		assignee, err := GetUserByName(assigneeName)
-		if err != nil {
-			return err
-		}
-
-		allNewAssignees = append(allNewAssignees, assignee)
-	}
-
-	// Delete all old assignees not passed
-	if err = DeleteNotPassedAssignee(issue, doer, allNewAssignees); err != nil {
-		return err
-	}
-
-	// Add all new assignees
-	// Update the assignee. The function will check if the user exists, is already
-	// assigned (which he shouldn't as we deleted all assignees before) and
-	// has access to the repo.
-	for _, assignee := range allNewAssignees {
-		// Extra method to prevent double adding (which would result in removing)
-		err = AddAssigneeIfNotAssigned(issue, doer, assignee.ID)
-		if err != nil {
-			return err
-		}
-	}
-
-	return
 }
 
 // MakeIDsFromAPIAssigneesToAdd returns an array with all assignee IDs

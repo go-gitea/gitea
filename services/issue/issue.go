@@ -9,6 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -94,5 +96,86 @@ func ChangeTitle(issue *models.Issue, doer *models.User, title string) (err erro
 		go models.HookQueue.Add(issue.RepoID)
 	}
 
+	return nil
+}
+
+// UpdateAPIAssignee is a helper function to add or delete one or multiple issue assignee(s)
+// Deleting is done the GitHub way (quote from their api documentation):
+// https://developer.github.com/v3/issues/#edit-an-issue
+// "assignees" (array): Logins for Users to assign to this issue.
+// Pass one or more user logins to replace the set of assignees on this Issue.
+// Send an empty array ([]) to clear all assignees from the Issue.
+func UpdateAPIAssignee(issue *models.Issue, oneAssignee string, multipleAssignees []string, doer *models.User) (err error) {
+	var allNewAssignees []*models.User
+
+	// Keep the old assignee thingy for compatibility reasons
+	if oneAssignee != "" {
+		// Prevent double adding assignees
+		var isDouble bool
+		for _, assignee := range multipleAssignees {
+			if assignee == oneAssignee {
+				isDouble = true
+				break
+			}
+		}
+
+		if !isDouble {
+			multipleAssignees = append(multipleAssignees, oneAssignee)
+		}
+	}
+
+	// Loop through all assignees to add them
+	for _, assigneeName := range multipleAssignees {
+		assignee, err := models.GetUserByName(assigneeName)
+		if err != nil {
+			return err
+		}
+
+		allNewAssignees = append(allNewAssignees, assignee)
+	}
+
+	// Delete all old assignees not passed
+	if err = models.DeleteNotPassedAssignee(issue, doer, allNewAssignees); err != nil {
+		return err
+	}
+
+	// Add all new assignees
+	// Update the assignee. The function will check if the user exists, is already
+	// assigned (which he shouldn't as we deleted all assignees before) and
+	// has access to the repo.
+	for _, assignee := range allNewAssignees {
+		// Extra method to prevent double adding (which would result in removing)
+		err = AddAssigneeIfNotAssigned(issue, doer, assignee.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+// AddAssigneeIfNotAssigned adds an assignee only if he isn't aleady assigned to the issue
+func AddAssigneeIfNotAssigned(issue *models.Issue, doer *models.User, assigneeID int64) (err error) {
+	// Check if the user is already assigned
+	isAssigned, err := models.IsUserAssignedToIssue(issue, &models.User{ID: assigneeID})
+	if err != nil {
+		return err
+	}
+
+	if !isAssigned {
+		removed, err := issue.ChangeAssignee(doer, assigneeID)
+		if err != nil {
+			return err
+		}
+
+		assignee, err := models.GetUserByID(assigneeID)
+		if err != nil {
+			return err
+		}
+
+		if setting.Service.EnableNotifyMail && !assignee.IsOrganization() && assignee.EmailNotifications() == models.EmailNotificationsEnabled {
+			notification.NotifyIssueChangeAssignee(doer, issue, assignee, removed)
+		}
+	}
 	return nil
 }

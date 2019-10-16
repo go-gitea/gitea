@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	issue_service "code.gitea.io/gitea/services/issue"
 	milestone_service "code.gitea.io/gitea/services/milestone"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -388,7 +389,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
 	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
-		err = models.UpdateAPIAssignee(issue, form.Assignee, form.Assignees, ctx.User)
+		err = issue_service.UpdateAPIAssignee(issue, form.Assignee, form.Assignees, ctx.User)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))

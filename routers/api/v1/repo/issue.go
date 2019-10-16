@@ -336,7 +336,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 			oneAssignee = *form.Assignee
 		}
 
-		err = models.UpdateAPIAssignee(issue, oneAssignee, form.Assignees, ctx.User)
+		err = issue_service.UpdateAPIAssignee(issue, oneAssignee, form.Assignees, ctx.User)
 		if err != nil {
 			ctx.Error(500, "UpdateAPIAssignee", err)
 			return
