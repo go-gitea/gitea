@@ -74,6 +74,37 @@ WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
 ; List of reasons why a Pull Request or Issue can be locked
 LOCK_REASONS=Too heated,Off-topic,Resolved,Spam
 
+[repository.signing]
+; GPG key to use to sign commits, Defaults to the default - that is the value of git config --get user.signingkey
+; run in the context of the RUN_USER
+; Switch to none to stop signing completely
+SIGNING_KEY = default
+; If a SIGNING_KEY ID is provided and is not set to default, use the provided Name and Email address as the signer.
+; These should match a publicized name and email address for the key. (When SIGNING_KEY is default these are set to
+; the results of git config --get user.name and git config --get user.email respectively and can only be overrided
+; by setting the SIGNING_KEY ID to the correct ID.)
+SIGNING_NAME =
+SIGNING_EMAIL =
+; Determines when gitea should sign the initial commit when creating a repository
+; Either:
+; - never
+; - pubkey: only sign if the user has a pubkey
+; - twofa: only sign if the user has logged in with twofa
+; - always
+; options other than none and always can be combined as comma separated list
+INITIAL_COMMIT = always
+; Determines when to sign for CRUD actions
+; - as above
+; - parentsigned: requires that the parent commit is signed.
+CRUD_ACTIONS = pubkey, twofa, parentsigned
+; Determines when to sign Wiki commits
+; - as above
+WIKI = never
+; Determines when to sign on merges
+; - basesigned: require that the parent of commit on the base repo is signed.
+; - commitssigned: require that all the commits in the head branch are signed.
+MERGES = pubkey, twofa, basesigned, commitssigned
+
 [cors]
 ; More information about CORS can be found here: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#The_HTTP_response_headers
 ; enable cors headers (disabled by default)
