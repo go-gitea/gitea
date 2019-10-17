@@ -284,6 +284,8 @@ var migrations = []Migration{
 	NewMigration("new feature: change target branch of pull requests", featureChangeTargetBranch),
 	// v114 -> v115
 	NewMigration("Remove authentication credentials from stored URL", sanitizeOriginalURL),
+	// v115 -> v116
+	NewMigration("add user_id prefix to existing user avatar name", renameExistingUserAvatarName),
 }
 
 // Migrate database to current version
