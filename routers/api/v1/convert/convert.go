@@ -6,7 +6,6 @@ package convert
 
 import (
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -236,7 +235,6 @@ func ToUser(user *models.User, signed, authed bool) *api.User {
 // ToUserDetails convert models.User to api.UserDetails
 func ToUserDetails(user *models.User, signed, authed bool) *api.UserDetails {
 	apiUserDetails := user.APIFormatUserDetails()
-	spew.Dump(apiUserDetails)
 	if !signed {
 		apiUserDetails.Email = ""
 	} else if authed {

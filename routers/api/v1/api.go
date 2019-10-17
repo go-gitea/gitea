@@ -514,24 +514,27 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/search", user.Search)
 			m.Group("/:username", func() {
 				m.Get("", user.GetInfo)
-				m.Get("/followers", user.ListFollowers)
-				m.Group("/following", func() {
-					m.Get("", user.ListFollowing)
-					m.Get("/:target", user.CheckFollowing)
-				})
-				m.Get("/gpg_keys", user.ListGPGKeys)
-				m.Get("/heatmap", mustEnableUserHeatmap, user.GetUserHeatmapData)
-				m.Get("/keys", user.ListPublicKeys)
-				m.Get("/orgs", org.ListUserOrgs)
 				m.Get("/repos", user.ListUserRepos)
-				m.Get("/starred", user.GetStarredRepos)
-				m.Get("/subscriptions", user.GetWatchedRepos)
-				m.Group("/tokens", func() {
-					m.Combo("").Get(user.ListAccessTokens).
-						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
-					m.Combo("/:id").Delete(user.DeleteAccessToken)
-				}, reqToken())
-			}, reqAuthUserEndpoints())
+				m.Get("/heatmap", mustEnableUserHeatmap, user.GetUserHeatmapData)
+				m.Group("", func() {
+					m.Get("/followers", user.ListFollowers)
+					m.Group("/following", func() {
+						m.Get("", user.ListFollowing)
+						m.Get("/:target", user.CheckFollowing)
+					})
+					m.Get("/gpg_keys", user.ListGPGKeys)
+					m.Get("/keys", user.ListPublicKeys)
+					m.Get("/orgs", org.ListUserOrgs)
+					m.Get("/starred", user.GetStarredRepos)
+					m.Get("/subscriptions", user.GetWatchedRepos)
+					m.Group("/tokens", func() {
+						m.Combo("").
+							Get(user.ListAccessTokens).
+							Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
+						m.Combo("/:id").Delete(user.DeleteAccessToken)
+					}, reqToken())
+				}, reqAuthUserEndpoints())
+			})
 		})
 
 		m.Group("/user", func() {
@@ -780,40 +783,42 @@ func RegisterRoutes(m *macaron.Macaron) {
 		// Organizations
 		m.Post("/orgs", reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Group("/orgs/:orgname", func() {
-			m.Get("/repos", user.ListOrgRepos)
 			m.Combo("").
 				Get(org.Get).
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)
-			m.Group("/members", func() {
-				m.Get("", org.ListMembers)
-				m.Combo("/:username").
-					Get(org.IsMember).
-					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
-			})
-			m.Group("/public_members", func() {
-				m.Get("", org.ListPublicMembers)
-				m.Combo("/:username").
-					Get(org.IsPublicMember).
-					Put(reqToken(), reqOrgMembership(), org.PublicizeMember).
-					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
-			})
-			m.Group("/teams", func() {
-				m.Combo("", reqToken()).
-					Get(org.ListTeams).
-					Post(reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
-				m.Get("/search", org.SearchTeam)
-			}, reqOrgMembership())
-			m.Group("/hooks", func() {
-				m.Combo("").
-					Get(org.ListHooks).
-					Post(bind(api.CreateHookOption{}), org.CreateHook)
-				m.Combo("/:id").
-					Get(org.GetHook).
-					Patch(bind(api.EditHookOption{}), org.EditHook).
-					Delete(org.DeleteHook)
-			}, reqToken(), reqOrgOwnership())
-		}, orgAssignment(true), reqAuthUserEndpoints())
+			m.Get("/repos", user.ListOrgRepos)
+			m.Group("", func() {
+				m.Group("/members", func() {
+					m.Get("", org.ListMembers)
+					m.Combo("/:username").
+						Get(org.IsMember).
+						Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
+				})
+				m.Group("/public_members", func() {
+					m.Get("", org.ListPublicMembers)
+					m.Combo("/:username").
+						Get(org.IsPublicMember).
+						Put(reqToken(), reqOrgMembership(), org.PublicizeMember).
+						Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
+				})
+				m.Group("/teams", func() {
+					m.Combo("", reqToken()).
+						Get(org.ListTeams).
+						Post(reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+					m.Get("/search", org.SearchTeam)
+				}, reqOrgMembership())
+				m.Group("/hooks", func() {
+					m.Combo("").
+						Get(org.ListHooks).
+						Post(bind(api.CreateHookOption{}), org.CreateHook)
+					m.Combo("/:id").
+						Get(org.GetHook).
+						Patch(bind(api.EditHookOption{}), org.EditHook).
+						Delete(org.DeleteHook)
+				}, reqToken(), reqOrgOwnership())
+			}, reqAuthUserEndpoints())
+		}, orgAssignment(true))
 		m.Group("/teams/:teamid", func() {
 			m.Combo("").
 				Get(org.GetTeam).
