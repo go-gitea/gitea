@@ -82,11 +82,10 @@ func (r *Renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool
 				escapeHTML(w, link)
 				w.Write([]byte(`">`))
 				return r.Renderer.RenderNode(w, node, entering)
-			} else {
-				s := r.Renderer.RenderNode(w, node, entering)
-				w.Write([]byte(`</a>`))
-				return s
 			}
+			s := r.Renderer.RenderNode(w, node, entering)
+			w.Write([]byte(`</a>`))
+			return s
 		}
 		return r.Renderer.RenderNode(w, node, entering)
 	case blackfriday.Link:
