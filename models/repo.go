@@ -1430,15 +1430,9 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 		t, err := u.getOwnerTeam(e)
 		if err != nil {
 			return fmt.Errorf("getOwnerTeam: %v", err)
-		} else if err = t.addRepository(e, repo); err != nil {
+		}
+		if err = t.addRepository(e, repo); err != nil {
 			return fmt.Errorf("addRepository: %v", err)
-		} else if err = prepareWebhooks(e, repo, HookEventRepository, &api.RepositoryPayload{
-			Action:       api.HookRepoCreated,
-			Repository:   repo.innerAPIFormat(e, AccessModeOwner, false),
-			Organization: u.APIFormat(),
-			Sender:       doer.APIFormat(),
-		}); err != nil {
-			return fmt.Errorf("prepareWebhooks: %v", err)
 		}
 	} else if err = repo.recalculateAccesses(e); err != nil {
 		// Organization automatically called this in addRepository method.
@@ -1520,11 +1514,6 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 
 	if err = sess.Commit(); err != nil {
 		return nil, err
-	}
-
-	// Add to hook queue for created repo after session commit.
-	if u.IsOrganization() {
-		go HookQueue.Add(repo.ID)
 	}
 
 	return repo, err
@@ -2044,18 +2033,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return fmt.Errorf("Commit: %v", err)
 	}
 
-	if org.IsOrganization() {
-		if err = PrepareWebhooks(repo, HookEventRepository, &api.RepositoryPayload{
-			Action:       api.HookRepoDeleted,
-			Repository:   repo.APIFormat(AccessModeOwner),
-			Organization: org.APIFormat(),
-			Sender:       doer.APIFormat(),
-		}); err != nil {
-			return err
-		}
-		go HookQueue.Add(repo.ID)
-	}
-
 	if len(repo.Avatar) > 0 {
 		avatarPath := repo.CustomAvatarPath()
 		if com.IsExist(avatarPath) {
@@ -2065,7 +2042,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	DeleteRepoFromIndexer(repo)
 	return nil
 }
 
@@ -2521,22 +2497,22 @@ func HasForkedRepo(ownerID, repoID int64) (*Repository, bool) {
 }
 
 // ForkRepository forks a repository
-func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *Repository, err error) {
-	forkedRepo, err := oldRepo.GetUserFork(u.ID)
+func ForkRepository(doer, owner *User, oldRepo *Repository, name, desc string) (_ *Repository, err error) {
+	forkedRepo, err := oldRepo.GetUserFork(owner.ID)
 	if err != nil {
 		return nil, err
 	}
 	if forkedRepo != nil {
 		return nil, ErrForkAlreadyExist{
-			Uname:    u.Name,
+			Uname:    owner.Name,
 			RepoName: oldRepo.FullName(),
 			ForkName: forkedRepo.FullName(),
 		}
 	}
 
 	repo := &Repository{
-		OwnerID:       u.ID,
-		Owner:         u,
+		OwnerID:       owner.ID,
+		Owner:         owner,
 		Name:          name,
 		LowerName:     strings.ToLower(name),
 		Description:   desc,
@@ -2553,7 +2529,7 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 		return nil, err
 	}
 
-	if err = createRepository(sess, doer, u, repo); err != nil {
+	if err = createRepository(sess, doer, owner, repo); err != nil {
 		return nil, err
 	}
 
@@ -2561,9 +2537,9 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 		return nil, err
 	}
 
-	repoPath := RepoPath(u.Name, repo.Name)
+	repoPath := RepoPath(owner.Name, repo.Name)
 	_, stderr, err := process.GetManager().ExecTimeout(10*time.Minute,
-		fmt.Sprintf("ForkRepository(git clone): %s/%s", u.Name, repo.Name),
+		fmt.Sprintf("ForkRepository(git clone): %s/%s", owner.Name, repo.Name),
 		git.GitExecutable, "clone", "--bare", oldRepo.repoPath(sess), repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("git clone: %v", stderr)
@@ -2586,24 +2562,6 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 		return nil, err
 	}
 
-	oldMode, _ := AccessLevel(doer, oldRepo)
-	mode, _ := AccessLevel(doer, repo)
-
-	if err = PrepareWebhooks(oldRepo, HookEventFork, &api.ForkPayload{
-		Forkee: oldRepo.APIFormat(oldMode),
-		Repo:   repo.APIFormat(mode),
-		Sender: doer.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks [repo_id: %d]: %v", oldRepo.ID, err)
-	} else {
-		go HookQueue.Add(oldRepo.ID)
-	}
-
-	// Add to hook queue for created repo after session commit.
-	if u.IsOrganization() {
-		go HookQueue.Add(repo.ID)
-	}
-
 	if err = repo.UpdateSize(); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
@@ -2616,7 +2574,6 @@ func ForkRepository(doer, u *User, oldRepo *Repository, name, desc string) (_ *R
 	}
 
 	var lfsObjects []*LFSMetaObject
-
 	if err = sess2.Where("repository_id=?", oldRepo.ID).Find(&lfsObjects); err != nil {
 		return nil, err
 	}

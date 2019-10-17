@@ -17,10 +17,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/unknwon/com"
 )
@@ -170,7 +170,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		return
 	}
 
-	repo, err := models.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+	repo, err := repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
 		Name:        form.RepoName,
 		Description: form.Description,
 		Gitignores:  form.Gitignores,
@@ -181,17 +181,9 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		AutoInit:    form.AutoInit,
 	})
 	if err == nil {
-		notification.NotifyCreateRepository(ctx.User, ctxUser, repo)
-
 		log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
 		return
-	}
-
-	if repo != nil {
-		if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
-			log.Error("DeleteRepository: %v", errDelete)
-		}
 	}
 
 	handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
