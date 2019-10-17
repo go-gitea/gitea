@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func addIssueClosedTime(x *xorm.Engine) error {
