@@ -428,52 +428,6 @@ func (issue *Issue) HasLabel(labelID int64) bool {
 	return issue.hasLabel(x, labelID)
 }
 
-func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
-	var err error
-
-	if err = issue.loadRepo(x); err != nil {
-		log.Error("loadRepo: %v", err)
-		return
-	}
-
-	if err = issue.loadPoster(x); err != nil {
-		log.Error("loadPoster: %v", err)
-		return
-	}
-
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if issue.IsPull {
-		if err = issue.loadPullRequest(x); err != nil {
-			log.Error("loadPullRequest: %v", err)
-			return
-		}
-		if err = issue.PullRequest.LoadIssue(); err != nil {
-			log.Error("LoadIssue: %v", err)
-			return
-		}
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-			Action:      api.HookIssueLabelUpdated,
-			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(AccessModeNone),
-			Sender:      doer.APIFormat(),
-		})
-	} else {
-		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
-			Action:     api.HookIssueLabelUpdated,
-			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     doer.APIFormat(),
-		})
-	}
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
-	}
-}
-
 // ReplyReference returns tokenized address to use for email reply headers
 func (issue *Issue) ReplyReference() string {
 	var path string
@@ -490,28 +444,8 @@ func (issue *Issue) addLabel(e *xorm.Session, label *Label, doer *User) error {
 	return newIssueLabel(e, issue, label, doer)
 }
 
-// AddLabel adds a new label to the issue.
-func (issue *Issue) AddLabel(doer *User, label *Label) error {
-	if err := NewIssueLabel(issue, label, doer); err != nil {
-		return err
-	}
-
-	issue.sendLabelUpdatedWebhook(doer)
-	return nil
-}
-
 func (issue *Issue) addLabels(e *xorm.Session, labels []*Label, doer *User) error {
 	return newIssueLabels(e, issue, labels, doer)
-}
-
-// AddLabels adds a list of new labels to the issue.
-func (issue *Issue) AddLabels(doer *User, labels []*Label) error {
-	if err := NewIssueLabels(issue, labels, doer); err != nil {
-		return err
-	}
-
-	issue.sendLabelUpdatedWebhook(doer)
-	return nil
 }
 
 func (issue *Issue) getLabels(e Engine) (err error) {
@@ -528,28 +462,6 @@ func (issue *Issue) getLabels(e Engine) (err error) {
 
 func (issue *Issue) removeLabel(e *xorm.Session, doer *User, label *Label) error {
 	return deleteIssueLabel(e, issue, label, doer)
-}
-
-// RemoveLabel removes a label from issue by given ID.
-func (issue *Issue) RemoveLabel(doer *User, label *Label) error {
-	if err := issue.loadRepo(x); err != nil {
-		return err
-	}
-
-	perm, err := GetUserRepoPermission(issue.Repo, doer)
-	if err != nil {
-		return err
-	}
-	if !perm.CanWriteIssuesOrPulls(issue.IsPull) {
-		return ErrLabelNotExist{}
-	}
-
-	if err := DeleteIssueLabel(issue, label, doer); err != nil {
-		return err
-	}
-
-	issue.sendLabelUpdatedWebhook(doer)
-	return nil
 }
 
 func (issue *Issue) clearLabels(e *xorm.Session, doer *User) (err error) {
