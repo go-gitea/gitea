@@ -39,7 +39,9 @@ type Team struct {
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (t *Team) AfterLoad() {
-	t.GetOrganization()
+	if err := t.GetOrganization(); err != nil {
+		log.Error("GetOrganization[%d]: %v", t.ID, err)
+	}
 }
 
 // GetOrganization returns the team's organization
