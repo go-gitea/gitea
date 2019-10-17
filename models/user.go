@@ -294,7 +294,7 @@ func (u *User) APIFormatOrganization() *api.Organization {
 	apiURL := u.APIURL()
 	return &api.Organization{
 		ID:        u.ID,
-		UserName:     u.Name,
+		UserName:  u.Name,
 		FullName:  u.FullName,
 		AvatarURL: u.AvatarLink(),
 		URL:       apiURL,

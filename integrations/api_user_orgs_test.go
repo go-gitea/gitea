@@ -50,21 +50,20 @@ func TestMyOrgs(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 	req := NewRequest(t, "GET", "/api/v1/user/orgs?token="+token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
-
 	var orgs []*api.Organization
 	DecodeJSON(t, resp, &orgs)
 	assert.Equal(t, 1, len(orgs))
 
 	user3 := models.AssertExistsAndLoadBean(t, &models.User{Name: "user3"}).(*models.User)
 	expectedOrg := &api.Organization{
-		ID:               3,
-		UserName:         user3.Name,
-		FullName:         user3.FullName,
-		AvatarURL:        user3.AvatarLink(),
-		URL:              user3.APIURL(),
-		HTMLURL:          user3.HTMLURL(),
-		Created:          orgs[0].Created,
-		Updated:          orgs[0].Updated,
+		ID:        3,
+		UserName:  user3.Name,
+		FullName:  user3.FullName,
+		AvatarURL: user3.AvatarLink(),
+		URL:       user3.APIURL(),
+		HTMLURL:   user3.HTMLURL(),
+		Created:   orgs[0].Created,
+		Updated:   orgs[0].Updated,
 	}
 
 	assert.Equal(t, expectedOrg, orgs[0])
