@@ -32,7 +32,7 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs?token="+token, &org)
 		resp := session.MakeRequest(t, req, http.StatusCreated)
 
-		var apiOrg api.Organization
+		var apiOrg api.OrganizationDetails
 		DecodeJSON(t, resp, &apiOrg)
 
 		assert.Equal(t, org.UserName, apiOrg.UserName)

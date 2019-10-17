@@ -33,7 +33,7 @@ func TestAPIOrgCreate(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs?token="+token, &org)
 		resp := session.MakeRequest(t, req, http.StatusCreated)
 
-		var apiOrg api.Organization
+		var apiOrg api.OrganizationDetails
 		DecodeJSON(t, resp, &apiOrg)
 
 		assert.Equal(t, org.UserName, apiOrg.UserName)
@@ -89,7 +89,7 @@ func TestAPIOrgEdit(t *testing.T) {
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user3?token="+token, &org)
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
-		var apiOrg api.Organization
+		var apiOrg api.OrganizationDetails
 		DecodeJSON(t, resp, &apiOrg)
 
 		assert.Equal(t, "user3", apiOrg.UserName)
