@@ -25,8 +25,8 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
+	"xorm.io/xorm"
 )
 
 var pullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLength)

@@ -5,7 +5,6 @@
 package externalaccount
 
 import (
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -45,10 +44,7 @@ func LinkAccountToUser(user *models.User, gothUser goth.User) error {
 		return err
 	}
 
-	externalID, err := strconv.ParseInt(externalLoginUser.ExternalID, 10, 64)
-	if err != nil {
-		return err
-	}
+	externalID := externalLoginUser.ExternalID
 
 	var tp structs.GitServiceType
 	for _, s := range structs.SupportedFullGitService {

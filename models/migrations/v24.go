@@ -7,7 +7,7 @@ package migrations
 import (
 	"time"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func changeGPGKeysColumns(x *xorm.Engine) error {
