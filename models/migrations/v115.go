@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
@@ -25,7 +24,12 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 		return err
 	}
 
-	users := make([]models.User, 0)
+	type User struct {
+		ID     int64 `xorm:"pk autoincr"`
+		Avatar string
+	}
+
+	users := make([]User, 0)
 	if err := sess.Find(&users); err != nil {
 		return err
 	}
