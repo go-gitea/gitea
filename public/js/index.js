@@ -3149,5 +3149,6 @@ function onOAuthLoginClick() {
 }
 
 $("div.button:not([tabindex])").attr("tabindex", "0");
+$("div.dropdown:not(div.search)").attr("role", "menuitem");
 $("div.dropdown").find("a.item:not([tabindex])").attr("tabindex", "-1");
 $("div.dropdown").find("i.dropdown.icon:not([tabindex])").attr("tabindex", "-1");
