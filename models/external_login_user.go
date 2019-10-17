@@ -168,7 +168,7 @@ func FindExternalUsersByProvider(opts FindExternalUserOptions) ([]ExternalLoginU
 }
 
 // UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
-func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID, userID int64) error {
+func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID string, userID int64) error {
 	if err := UpdateIssuesMigrationsByType(tp, externalUserID, userID); err != nil {
 		return err
 	}
