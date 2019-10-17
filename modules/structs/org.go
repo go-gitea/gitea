@@ -13,8 +13,8 @@ import (
 type Organization struct {
 	// the org's id
 	ID int64 `json:"id"`
-	// the org's login
-	Login string `json:"login"`
+	// the org's username
+	UserName string `json:"username"`
 	// the org's full name
 	FullName string `json:"full_name"`
 	// URL to the org's avatar

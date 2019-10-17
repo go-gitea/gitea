@@ -235,14 +235,8 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// GetAPIURL returns the API URL for the user or org based on type
-func (u *User) GetAPIURL() string {
-	return fmt.Sprintf("%sapi/v1/%ss/%s", setting.AppURL, strings.ToLower(u.Type.String()), u.LowerName)
-}
-
 // APIFormat converts a User to api.User
 func (u *User) APIFormat() *api.User {
-	apiURL := u.GetAPIURL()
 	return &api.User{
 		ID:        u.ID,
 		Login:     u.Name,
@@ -251,8 +245,8 @@ func (u *User) APIFormat() *api.User {
 		AvatarURL: u.AvatarLink(),
 		Email:     u.GetEmail(),
 		IsAdmin:   u.IsAdmin,
-		URL:       apiURL,
-		HTMLURL:   setting.AppURL + u.LowerName,
+		URL:       u.APIURL(),
+		HTMLURL:   u.HTMLURL(),
 		Type:      u.Type.String(),
 		LastLogin: u.LastLoginUnix.AsTime(),
 		Created:   u.CreatedUnix.AsTime(),
@@ -262,7 +256,7 @@ func (u *User) APIFormat() *api.User {
 
 // APIFormatUserDetails converts a User to api.User
 func (u *User) APIFormatUserDetails() *api.UserDetails {
-	apiURL := u.GetAPIURL()
+	apiURL := u.APIURL()
 	return &api.UserDetails{
 		ID:               u.ID,
 		Login:            u.Name,
@@ -297,10 +291,10 @@ func (u *User) APIFormatUserDetails() *api.UserDetails {
 
 // APIFormatOrganization converts a User of type Org to api.Organization
 func (u *User) APIFormatOrganization() *api.Organization {
-	apiURL := u.GetAPIURL()
+	apiURL := u.APIURL()
 	return &api.Organization{
 		ID:        u.ID,
-		Login:     u.Name,
+		UserName:     u.Name,
 		FullName:  u.FullName,
 		AvatarURL: u.AvatarLink(),
 		URL:       apiURL,
@@ -312,7 +306,7 @@ func (u *User) APIFormatOrganization() *api.Organization {
 
 // APIFormatOrganizationDetails converts a User of type Org to api.OrganizationDetails
 func (u *User) APIFormatOrganizationDetails() *api.OrganizationDetails {
-	apiURL := u.GetAPIURL()
+	apiURL := u.APIURL()
 	return &api.OrganizationDetails{
 		ID:                        u.ID,
 		UserName:                  u.Name,
@@ -410,6 +404,11 @@ func (u *User) HomeLink() string {
 // HTMLURL returns the user or organization's full link.
 func (u *User) HTMLURL() string {
 	return setting.AppURL + u.Name
+}
+
+// APIURL returns the API URL for the user or org based on type
+func (u *User) APIURL() string {
+	return fmt.Sprintf("%sapi/v1/%ss/%s", setting.AppURL, strings.ToLower(u.Type.String()), u.LowerName)
 }
 
 // GenerateEmailActivateCode generates an activate code based on user information and given e-mail.
