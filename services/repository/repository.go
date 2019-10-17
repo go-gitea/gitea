@@ -42,10 +42,6 @@ func ForkRepository(doer, u *models.User, oldRepo *models.Repository, name, desc
 
 // DeleteRepository deletes a repository for a user or organization.
 func DeleteRepository(doer *models.User, repo *models.Repository) error {
-	if err := repo.GetOwner(); err != nil {
-		return err
-	}
-
 	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
 		return err
 	}
