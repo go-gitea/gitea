@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
+	"xorm.io/xorm"
 )
 
 func ldapUseSSLToSecurityProtocol(x *xorm.Engine) error {

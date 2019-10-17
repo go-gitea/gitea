@@ -5,7 +5,7 @@
 package migrations
 
 import (
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func addAvatarFieldToRepository(x *xorm.Engine) error {

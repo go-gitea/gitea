@@ -21,10 +21,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
+	"xorm.io/xorm"
 )
 
 const minDBVersion = 4

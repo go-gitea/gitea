@@ -23,8 +23,8 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
 	"github.com/stretchr/testify/assert"
+	"xorm.io/xorm"
 )
 
 var currentEngine *xorm.Engine

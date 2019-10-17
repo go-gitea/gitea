@@ -5,8 +5,6 @@
 package migrations
 
 import (
-	"strconv"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
@@ -40,11 +38,7 @@ func updateMigrationPosterIDByGitService(tp structs.GitServiceType) error {
 		}
 
 		for _, user := range users {
-			externalUserID, err := strconv.ParseInt(user.ExternalID, 10, 64)
-			if err != nil {
-				log.Warn("Parse externalUser %#v 's userID failed: %v", user, err)
-				continue
-			}
+			externalUserID := user.ExternalID
 			if err := models.UpdateMigrationsByType(tp, externalUserID, user.UserID); err != nil {
 				log.Error("UpdateMigrationsByType type %s external user id %v to local user id %v failed: %v", tp.Name(), user.ExternalID, user.UserID, err)
 			}

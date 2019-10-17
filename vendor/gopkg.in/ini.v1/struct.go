@@ -29,8 +29,8 @@ type NameMapper func(string) string
 
 // Built-in name getters.
 var (
-	// AllCapsUnderscore converts to format ALL_CAPS_UNDERSCORE.
-	AllCapsUnderscore NameMapper = func(raw string) string {
+	// SnackCase converts to format SNACK_CASE.
+	SnackCase NameMapper = func(raw string) string {
 		newstr := make([]rune, 0, len(raw))
 		for i, chr := range raw {
 			if isUpper := 'A' <= chr && chr <= 'Z'; isUpper {
@@ -50,7 +50,7 @@ var (
 				if i > 0 {
 					newstr = append(newstr, '_')
 				}
-				chr -= ('A' - 'a')
+				chr -= 'A' - 'a'
 			}
 			newstr = append(newstr, chr)
 		}
@@ -108,6 +108,8 @@ func setSliceWithProperType(key *Key, field reflect.Value, delim string, allowSh
 		vals, err = key.parseUint64s(strs, true, false)
 	case reflect.Float64:
 		vals, err = key.parseFloat64s(strs, true, false)
+	case reflect.Bool:
+		vals, err = key.parseBools(strs, true, false)
 	case reflectTime:
 		vals, err = key.parseTimesFormat(time.RFC3339, strs, true, false)
 	default:
@@ -132,6 +134,8 @@ func setSliceWithProperType(key *Key, field reflect.Value, delim string, allowSh
 			slice.Index(i).Set(reflect.ValueOf(vals.([]uint64)[i]))
 		case reflect.Float64:
 			slice.Index(i).Set(reflect.ValueOf(vals.([]float64)[i]))
+		case reflect.Bool:
+			slice.Index(i).Set(reflect.ValueOf(vals.([]bool)[i]))
 		case reflectTime:
 			slice.Index(i).Set(reflect.ValueOf(vals.([]time.Time)[i]))
 		}
@@ -380,6 +384,8 @@ func reflectSliceWithProperType(key *Key, field reflect.Value, delim string, all
 				val = fmt.Sprint(slice.Index(i).Uint())
 			case reflect.Float64:
 				val = fmt.Sprint(slice.Index(i).Float())
+			case reflect.Bool:
+				val = fmt.Sprint(slice.Index(i).Bool())
 			case reflectTime:
 				val = slice.Index(i).Interface().(time.Time).Format(time.RFC3339)
 			default:
@@ -407,6 +413,8 @@ func reflectSliceWithProperType(key *Key, field reflect.Value, delim string, all
 			buf.WriteString(fmt.Sprint(slice.Index(i).Uint()))
 		case reflect.Float64:
 			buf.WriteString(fmt.Sprint(slice.Index(i).Float()))
+		case reflect.Bool:
+			buf.WriteString(fmt.Sprint(slice.Index(i).Bool()))
 		case reflectTime:
 			buf.WriteString(slice.Index(i).Interface().(time.Time).Format(time.RFC3339))
 		default:

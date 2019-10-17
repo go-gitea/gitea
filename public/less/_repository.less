@@ -1212,6 +1212,15 @@
             border-bottom-left-radius: 0;
         }
 
+        &.isSigned.isWarning {
+            border: 1px solid #db2828;
+            background: fade(#db2828, 10%);
+
+            .detail.icon {
+                border-left: 1px solid fade(#db2828, 50%);
+            }
+        }
+
         &.isSigned.isVerified {
             border: 1px solid #21ba45;
             background: fade(#21ba45, 10%);

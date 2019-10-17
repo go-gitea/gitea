@@ -7,7 +7,7 @@ package migrations
 import (
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func addUploaderIDForAttachment(x *xorm.Engine) error {

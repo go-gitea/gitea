@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -12,8 +12,8 @@
   "use strict";
 
   var keywords = ("this super static final const abstract class extends external factory " +
-    "implements get native operator set typedef with enum throw rethrow " +
-    "assert break case continue default in return new deferred async await " +
+    "implements mixin get native set typedef with enum throw rethrow " +
+    "assert break case continue default in return new deferred async await covariant " +
     "try catch finally do else for if switch while import library export " +
     "part of show hide is as").split(" ");
   var blockKeywords = "try catch finally do else for if switch while".split(" ");
@@ -78,6 +78,15 @@
         if (!stream.eat("*")) return false
         state.tokenize = tokenNestedComment(1)
         return state.tokenize(stream, state)
+      },
+      token: function(stream, _, style) {
+        if (style == "variable") {
+          // Assume uppercase symbols are classes using variable-2
+          var isUpper = RegExp('^[_$]*[A-Z][a-zA-Z0-9_$]*$','g');
+          if (isUpper.test(stream.current())) {
+            return 'variable-2';
+          }
+        }
       }
     }
   });
