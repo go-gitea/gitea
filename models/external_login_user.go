@@ -28,9 +28,9 @@ type ExternalLoginUser struct {
 	Description       string
 	AvatarURL         string
 	Location          string
-	AccessToken       string
-	AccessTokenSecret string
-	RefreshToken      string
+	AccessToken       string `xorm:"TEXT"`
+	AccessTokenSecret string `xorm:"TEXT"`
+	RefreshToken      string `xorm:"TEXT"`
 	ExpiresAt         time.Time
 }
 
