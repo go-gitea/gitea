@@ -1046,7 +1046,7 @@ func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
-func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID, posterID int64) error {
+func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
 	_, err := x.Table("comment").
 		Where(builder.In("issue_id",
 			builder.Select("issue.id").
