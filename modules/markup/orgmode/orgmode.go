@@ -6,6 +6,9 @@ package markup
 
 import (
 	"bytes"
+	"fmt"
+	"html"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -32,7 +35,7 @@ func (Parser) Extensions() []string {
 }
 
 // Render renders orgmode rawbytes to HTML
-func Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) (result []byte) {
+func Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
 	// 	defer func() {
 	// 		if err := recover(); err != nil {
 	// 			log.Error("Panic in orgmode.Render: %v Just returning the rawBytes", err)
@@ -49,15 +52,19 @@ func Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki b
 	// 	}
 	// 	result = goorgeous.Org(rawBytes, renderer)
 	// 	return
-	renderer := org.NewHTMLWriter()
+	renderer := &Renderer{
+		HTMLWriter: org.NewHTMLWriter(),
+		URLPrefix:  urlPrefix,
+		IsWiki:     isWiki,
+	}
 	res, err := org.New().Silent().Parse(bytes.NewReader(rawBytes), "").Write(renderer)
 	if err != nil {
 		log.Error("Panic in orgmode.Render: %v Just returning the rawBytes", err)
-		result = rawBytes
-		return
+		//result = rawBytes
+		return rawBytes
 	}
-	result = []byte(res)
-	return
+	//result = []byte(res)
+	return []byte(res)
 }
 
 // RenderString reners orgmode string to HTML string
@@ -68,4 +75,41 @@ func RenderString(rawContent string, urlPrefix string, metas map[string]string, 
 // Render implements markup.Parser
 func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
 	return Render(rawBytes, urlPrefix, metas, isWiki)
+}
+
+type Renderer struct {
+	*org.HTMLWriter
+	URLPrefix string
+	IsWiki    bool
+}
+
+func (r *Renderer) WriteRegularLink(l org.RegularLink) {
+	url := html.EscapeString(l.URL)
+	if l.Protocol == "file" {
+		url = url[len("file:"):]
+	}
+	description := url
+	if l.Description != nil {
+		description = r.nodesAsString(l.Description...)
+	}
+	switch l.Kind() {
+	case "image":
+		r.WriteString(fmt.Sprintf(`<img src="%s" alt="%s" title="%s" />`, url, description, description))
+	case "video":
+		r.WriteString(fmt.Sprintf(`<video src="%s" title="%s">%s</video>`, url, description, description))
+	default:
+		r.WriteString(fmt.Sprintf(`<a href="%s">%s</a>`, url, description))
+	}
+}
+
+func (r *Renderer) emptyClone() *Renderer {
+	wcopy := *r
+	wcopy.Builder = strings.Builder{}
+	return &wcopy
+}
+
+func (r *Renderer) nodesAsString(nodes ...org.Node) string {
+	tmp := r.emptyClone()
+	org.WriteNodes(tmp, nodes...)
+	return tmp.String()
 }
