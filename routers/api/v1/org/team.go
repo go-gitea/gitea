@@ -79,6 +79,10 @@ func ListUserTeams(ctx *context.APIContext) {
 			apiOrg = convert.ToOrganization(org)
 			cache[teams[i].OrgID] = apiOrg
 		}
+		if err := teams[i].GetUnits(); err != nil {
+			ctx.Error(500, "GetUnits", err)
+			return
+		}
 		apiTeams[i] = convert.ToTeam(teams[i])
 		apiTeams[i].Organization = apiOrg
 	}
@@ -102,6 +106,10 @@ func GetTeam(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Team"
+	if err := ctx.Org.Team.GetUnits(); err != nil {
+		ctx.Error(500, "GetUnits", err)
+		return
+	}
 	ctx.JSON(200, convert.ToTeam(ctx.Org.Team))
 }
 
@@ -285,7 +293,7 @@ func GetTeamMember(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/User"
+	//     "$ref": "#/responses/UserDetails"
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -299,7 +307,7 @@ func GetTeamMember(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
+	ctx.JSON(200, convert.ToUserDetails(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
 // AddTeamMember api for add a member to a team

@@ -98,7 +98,7 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	if form.SendNotify {
 		mailer.SendRegisterNotifyMail(ctx.Locale, u)
 	}
-	ctx.JSON(201, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
+	ctx.JSON(201, convert.ToUserDetails(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
 // EditUser api for modifying a user's information
@@ -122,7 +122,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	//     "$ref": "#/definitions/EditUserOption"
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/User"
+	//     "$ref": "#/responses/UserDetails"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
@@ -192,7 +192,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	}
 	log.Trace("Account profile updated by admin (%s): %s", ctx.User.Name, u.Name)
 
-	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
+	ctx.JSON(200, convert.ToUserDetails(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
 // DeleteUser api for deleting a user
@@ -358,7 +358,7 @@ func GetUserInfo(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/User"
+	//     "$ref": "#/responses/UserDetails"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	u, err := models.GetUserByName(ctx.Params(":username"))
@@ -370,5 +370,5 @@ func GetUserInfo(ctx *context.APIContext) {
 		}
 		return
 	}
-	ctx.JSON(200, convert.ToUser(u, true, true))
+	ctx.JSON(200, convert.ToUserDetails(u, true, true))
 }

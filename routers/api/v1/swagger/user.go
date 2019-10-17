@@ -16,6 +16,13 @@ type swaggerResponseUser struct {
 	Body api.User `json:"body"`
 }
 
+// UserDetails
+// swagger:response UserDetails
+type swaggerResponseUserDetails struct {
+	// in:body
+	Body api.UserDetails `json:"body"`
+}
+
 // UserList
 // swagger:response UserList
 type swaggerResponseUserList struct {

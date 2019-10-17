@@ -6,6 +6,7 @@ package convert
 
 import (
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -204,7 +205,12 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 
 // ToOrganization convert models.User to api.Organization
 func ToOrganization(org *models.User) *api.Organization {
-	return org.OrgAPIFormat()
+	return org.APIFormatOrganization()
+}
+
+// ToOrganizationDetails convert models.User to api.OrganizationDetails
+func ToOrganizationDetails(org *models.User) *api.OrganizationDetails {
+	return org.APIFormatOrganizationDetails()
 }
 
 // ToTeam convert models.Team to api.Team
@@ -221,6 +227,18 @@ func ToUser(user *models.User, signed, authed bool) *api.User {
 		apiUser.Email = user.Email
 	}
 	return apiUser
+}
+
+// ToUserDetails convert models.User to api.UserDetails
+func ToUserDetails(user *models.User, signed, authed bool) *api.UserDetails {
+	apiUserDetails := user.APIFormatUserDetails()
+	spew.Dump(apiUserDetails)
+	if !signed {
+		apiUserDetails.Email = ""
+	} else if authed {
+		apiUserDetails.Email = user.Email
+	}
+	return apiUserDetails
 }
 
 // ToAnnotatedTag convert git.Tag to api.AnnotatedTag

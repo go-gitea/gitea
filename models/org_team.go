@@ -366,7 +366,7 @@ func (t *Team) innerAPIFormat(e Engine) *api.Team {
 		MembersURL:   apiURL + "/members{/member}",
 		ReposURL:     apiURL + "/repos",
 		Description:  t.Description,
-		Organization: t.Organization.innerOrgAPIFormat(e),
+		Organization: t.Organization.APIFormatOrganization(),
 		Permission:   t.Authorize.String(),
 		Units:        t.GetUnitNames(),
 	}

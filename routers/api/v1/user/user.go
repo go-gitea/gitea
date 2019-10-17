@@ -91,7 +91,7 @@ func GetInfo(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/User"
+	//     "$ref": "#/responses/UserDetails"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	u, err := models.GetUserByName(ctx.Params(":username"))
@@ -104,7 +104,7 @@ func GetInfo(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User != nil && (ctx.User.ID == u.ID || ctx.User.IsAdmin)))
+	ctx.JSON(200, convert.ToUserDetails(u, ctx.IsSigned, ctx.User != nil && (ctx.User.ID == u.ID || ctx.User.IsAdmin)))
 }
 
 // GetAuthenticatedUser get current user's information
@@ -116,8 +116,8 @@ func GetAuthenticatedUser(ctx *context.APIContext) {
 	// - application/json
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/User"
-	ctx.JSON(200, convert.ToUser(ctx.User, ctx.IsSigned, ctx.User != nil))
+	//     "$ref": "#/responses/UserDetails"
+	ctx.JSON(200, convert.ToUserDetails(ctx.User, ctx.IsSigned, ctx.User != nil))
 }
 
 // GetUserHeatmapData is the handler to get a users heatmap

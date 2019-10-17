@@ -344,7 +344,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 
 	return &api.Repository{
 		ID:                        repo.ID,
-		Owner:                     repo.Owner.innerAPIFormat(e),
+		Owner:                     repo.Owner.APIFormat(),
 		Name:                      repo.Name,
 		FullName:                  repo.FullName(),
 		Description:               repo.Description,
@@ -1387,8 +1387,8 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 		} else if err = prepareWebhooks(e, repo, HookEventRepository, &api.RepositoryPayload{
 			Action:       api.HookRepoCreated,
 			Repository:   repo.innerAPIFormat(e, AccessModeOwner, false),
-			Organization: u.innerAPIFormat(e),
-			Sender:       doer.innerAPIFormat(e),
+			Organization: u.APIFormatOrganization(),
+			Sender:       doer.APIFormat(),
 		}); err != nil {
 			return fmt.Errorf("prepareWebhooks: %v", err)
 		}
@@ -1999,7 +1999,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		if err = PrepareWebhooks(repo, HookEventRepository, &api.RepositoryPayload{
 			Action:       api.HookRepoDeleted,
 			Repository:   repo.APIFormat(AccessModeOwner),
-			Organization: org.APIFormat(),
+			Organization: org.APIFormatOrganization(),
 			Sender:       doer.APIFormat(),
 		}); err != nil {
 			return err

@@ -812,7 +812,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			}, reqToken(), reqOrgOwnership())
 		}, orgAssignment(true), reqAuthUserEndpoints())
 		m.Group("/teams/:teamid", func() {
-			m.Combo("").Get(org.GetTeam).
+			m.Combo("").
+				Get(org.GetTeam).
 				Patch(reqOrgOwnership(), bind(api.EditTeamOption{}), org.EditTeam).
 				Delete(reqOrgOwnership(), org.DeleteTeam)
 			m.Group("/members", func() {

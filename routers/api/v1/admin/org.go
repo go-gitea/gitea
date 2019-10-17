@@ -34,7 +34,7 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 	//   schema: { "$ref": "#/definitions/CreateOrgOption" }
 	// responses:
 	//   "201":
-	//     "$ref": "#/responses/Organization"
+	//     "$ref": "#/responses/OrganizationDetails"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
@@ -71,7 +71,7 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 		return
 	}
 
-	ctx.JSON(201, convert.ToOrganization(org))
+	ctx.JSON(201, convert.ToOrganizationDetails(org))
 }
 
 //GetAllOrgs API for getting information of all the organizations

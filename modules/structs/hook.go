@@ -452,7 +452,7 @@ type RepositoryPayload struct {
 	Secret       string         `json:"secret"`
 	Action       HookRepoAction `json:"action"`
 	Repository   *Repository    `json:"repository"`
-	Organization *User          `json:"organization"`
+	Organization *Organization  `json:"organization"`
 	Sender       *User          `json:"sender"`
 }
 

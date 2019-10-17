@@ -8,31 +8,74 @@ import (
 	"time"
 )
 
-// Organization represents an organization
+// Organization represents the brief API response fields for an Organization
+// swagger:model
 type Organization struct {
-	ID                        int64  `json:"id"`
-	UserName                  string `json:"username"`
-	FullName                  string `json:"full_name"`
-	AvatarURL                 string `json:"avatar_url"`
-	URL                       string `json:"url"`
-	HTMLURL                   string `json:"html_url"`
-	ReposURL                  string `json:"repos_url"`
-	HooksURL                  string `json:"hooks_url"`
-	MembersURL                string `json:"members_url"`
-	TeamsURL                  string `json:"teams_url"`
-	PublicMembersURL          string `json:"public_members_url"`
-	Description               string `json:"description"`
-	Website                   string `json:"website"`
-	Location                  string `json:"location"`
-	PublicRepos               int64  `json:"public_repos"`
-	Followers                 int    `json:"followers"`
-	Following                 int    `json:"following"`
-	Visibility                string `json:"visibility"`
-	RepoAdminChangeTeamAccess bool   `json:"repo_admin_change_team_access"`
+	// the org's id
+	ID int64 `json:"id"`
+	// the org's login
+	Login string `json:"login"`
+	// the org's full name
+	FullName string `json:"full_name"`
+	// URL to the org's avatar
+	AvatarURL string `json:"avatar_url"`
+	// URL to the org's API endpoint
+	URL string `json:"url"`
+	// URL to the org's Gitea HTML page
+	HTMLURL string `json:"html_url"`
 	// swagger:strfmt date-time
-	Created time.Time `json:"created"`
+	Created time.Time `json:"created,omitempty"`
 	// swagger:strfmt date-time
-	Updated time.Time `json:"updated"`
+	Updated time.Time `json:"updated,omitempty"`
+}
+
+// OrganizationDetails represents all the API response fields for an Organization
+// swagger:model
+type OrganizationDetails struct {
+	// the org's id
+	ID int64 `json:"id"`
+	// the org's username
+	UserName string `json:"username"`
+	// the org's full name
+	FullName string `json:"full_name"`
+	// URL to the org's avatar
+	AvatarURL string `json:"avatar_url"`
+	// Biography about the user
+	Description string `json:"bio"`
+	// Website of the user
+	Website string `json:"website"`
+	// Location of the user
+	Location string `json:"location"`
+	// URL to the org's API endpoint
+	URL string `json:"url"`
+	// URL to the org's Gitea HTML page
+	HTMLURL string `json:"html_url"`
+	// URL to the org's repos API endpoint
+	ReposURL string `json:"repos_url"`
+	// URL to org's members API endpoint
+	MembersURL string `json:"members_url"`
+	// URL to org's public members API endpoint
+	PublicMembersURL string `json:"public_members_url"`
+	// URL to org's teams API endpoint
+	TeamsURL string `json:"teams_url"`
+	// URL to org's hooks API endpoint
+	HooksURL string `json:"hooks_url"`
+	// The org's followers count
+	Followers int `json:"followers"`
+	// The org's following count
+	Following int `json:"following"`
+	// The org's public repo count
+	PublicRepos int64 `json:"public_repos"`
+	// Type
+	Type string `json:"type"`
+	// Visibility of the organization
+	Visibility string `json:"visibility"`
+	// Repo admin can change team access
+	RepoAdminChangeTeamAccess bool `json:"repo_admin_change_team_access"`
+	// swagger:strfmt date-time
+	Created time.Time `json:"created,omitempty"`
+	// swagger:strfmt date-time
+	Updated time.Time `json:"updated,omitempty"`
 }
 
 // CreateOrgOption options for creating an organization

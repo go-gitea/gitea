@@ -235,72 +235,106 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// APIFormat converts a User to api.User
-func (u *User) APIFormat() *api.User {
-	return u.innerAPIFormat(x)
+// GetAPIURL returns the API URL for the user or org based on type
+func (u *User) GetAPIURL() string {
+	return fmt.Sprintf("%sapi/v1/%ss/%s", setting.AppURL, strings.ToLower(u.Type.String()), u.LowerName)
 }
 
-func (u *User) innerAPIFormat(e Engine) *api.User {
-	apiURL := fmt.Sprintf("%sapi/v1/users/%s", setting.AppURL, u.LowerName)
+// APIFormat converts a User to api.User
+func (u *User) APIFormat() *api.User {
+	apiURL := u.GetAPIURL()
 	return &api.User{
+		ID:        u.ID,
+		Login:     u.Name,
+		UserName:  u.Name,
+		FullName:  u.FullName,
+		AvatarURL: u.AvatarLink(),
+		Email:     u.GetEmail(),
+		IsAdmin:   u.IsAdmin,
+		URL:       apiURL,
+		HTMLURL:   setting.AppURL + u.LowerName,
+		Type:      u.Type.String(),
+		LastLogin: u.LastLoginUnix.AsTime(),
+		Created:   u.CreatedUnix.AsTime(),
+		Updated:   u.UpdatedUnix.AsTime(),
+	}
+}
+
+// APIFormatUserDetails converts a User to api.User
+func (u *User) APIFormatUserDetails() *api.UserDetails {
+	apiURL := u.GetAPIURL()
+	return &api.UserDetails{
 		ID:               u.ID,
+		Login:            u.Name,
 		UserName:         u.Name,
 		FullName:         u.FullName,
 		Email:            u.GetEmail(),
 		HideEmail:        u.KeepEmailPrivate,
+		IsAdmin:          u.IsAdmin,
 		AvatarURL:        u.AvatarLink(),
 		URL:              apiURL,
 		HTMLURL:          setting.AppURL + u.LowerName,
+		Website:          u.Website,
+		Description:      u.Description,
+		Location:         u.Location,
+		Language:         u.Language,
+		ReposURL:         apiURL + "/repos",
 		FollowersURL:     apiURL + "/followers",
 		FollowingURL:     apiURL + "/following",
 		StarredURL:       apiURL + "/starred",
 		SubscriptionsURL: apiURL + "/subscriptions",
 		OrganizationsURL: apiURL + "/orgs",
-		ReposURL:         apiURL + "/repos",
 		HeatmapURL:       apiURL + "/heatmap",
-		Type:             u.Type.String(),
-		Description:      u.Description,
-		Website:          u.Website,
-		Location:         u.Location,
-		PubicRepos:       getPublicRepositoryCount(e, u.ID),
 		Followers:        u.NumFollowers,
 		Following:        u.NumFollowing,
-		Language:         u.Language,
-		IsAdmin:          u.IsAdmin,
+		PublicRepos:      getPublicRepositoryCount(e, u.ID),
+		Type:             u.Type.String(),
 		LastLogin:        u.LastLoginUnix.AsTime(),
 		Created:          u.CreatedUnix.AsTime(),
 		Updated:          u.UpdatedUnix.AsTime(),
 	}
 }
 
-// APIFormat converts a User [of type Organization] to api.Organization
-func (org *User) OrgAPIFormat() *api.Organization {
-	return org.innerOrgAPIFormat(x)
+// APIFormatOrganization converts a User of type Org to api.Organization
+func (u *User) APIFormatOrganization() *api.Organization {
+	apiURL := u.GetAPIURL()
+	return &api.Organization{
+		ID:        u.ID,
+		Login:     u.Name,
+		FullName:  u.FullName,
+		AvatarURL: u.AvatarLink(),
+		URL:       apiURL,
+		HTMLURL:   setting.AppURL + u.LowerName,
+		Created:   u.CreatedUnix.AsTime(),
+		Updated:   u.UpdatedUnix.AsTime(),
+	}
 }
 
-func (org *User) innerOrgAPIFormat(e Engine) *api.Organization {
-	apiURL := fmt.Sprintf("%sapi/v1/orgs/%s", setting.AppURL, org.LowerName)
-	return &api.Organization{
-		ID:                        org.ID,
-		UserName:                  org.Name,
-		FullName:                  org.FullName,
-		AvatarURL:                 org.AvatarLink(),
+// APIFormatOrganizationDetails converts a User of type Org to api.OrganizationDetails
+func (u *User) APIFormatOrganizationDetails() *api.OrganizationDetails {
+	apiURL := u.GetAPIURL()
+	return &api.OrganizationDetails{
+		ID:                        u.ID,
+		UserName:                  u.Name,
+		FullName:                  u.FullName,
+		Website:                   u.Website,
+		Description:               u.Description,
 		URL:                       apiURL,
-		HTMLURL:                   setting.AppURL + org.LowerName,
+		HTMLURL:                   setting.AppURL + u.LowerName,
+		AvatarURL:                 u.AvatarLink(),
 		ReposURL:                  apiURL + "/repos",
-		HooksURL:                  apiURL + "/hooks",
 		MembersURL:                apiURL + "/members{/member}",
-		TeamsURL:                  apiURL + "/teams",
 		PublicMembersURL:          apiURL + "/public_members{/member}",
-		Description:               org.Description,
-		Website:                   org.Website,
-		Location:                  org.Location,
-		PublicRepos:               getPublicRepositoryCount(e, org.ID),
-		Followers:                 org.NumFollowers,
-		Following:                 org.NumFollowing,
-		RepoAdminChangeTeamAccess: org.RepoAdminChangeTeamAccess,
-		Created:                   org.CreatedUnix.AsTime(),
-		Updated:                   org.UpdatedUnix.AsTime(),
+		TeamsURL:                  apiURL + "/teams",
+		HooksURL:                  apiURL + "/hooks",
+		Followers:                 u.NumFollowers,
+		Following:                 u.NumFollowing,
+		PublicRepos:               getPublicRepositoryCount(e, u.ID),
+		Type:                      u.Type.String(),
+		Visibility:                u.Visibility.String(),
+		RepoAdminChangeTeamAccess: u.RepoAdminChangeTeamAccess,
+		Created:                   u.CreatedUnix.AsTime(),
+		Updated:                   u.UpdatedUnix.AsTime(),
 	}
 }
 
