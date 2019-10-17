@@ -1936,7 +1936,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, menti
 }
 
 // UpdateIssuesMigrationsByType updates all migrated repositories' issues from gitServiceType to replace originalAuthorID to posterID
-func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID, posterID int64) error {
+func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, posterID int64) error {
 	_, err := x.Table("issue").
 		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
