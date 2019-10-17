@@ -742,6 +742,28 @@ func (repo *Repository) CanUserFork(user *User) (bool, error) {
 	return false, nil
 }
 
+// CanUserDelete returns true if user could delete the repository
+func (repo *Repository) CanUserDelete(user *User) (bool, error) {
+	if user.IsAdmin || user.ID == repo.OwnerID {
+		return true, nil
+	}
+
+	if err := repo.GetOwner(); err != nil {
+		return false, err
+	}
+
+	if repo.Owner.IsOrganization() {
+		isOwner, err := repo.Owner.IsOwnedBy(user.ID)
+		if err != nil {
+			return false, err
+		} else if isOwner {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // CanEnablePulls returns true if repository meets the requirements of accepting pulls.
 func (repo *Repository) CanEnablePulls() bool {
 	return !repo.IsMirror && !repo.IsEmpty

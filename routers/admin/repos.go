@@ -39,7 +39,7 @@ func DeleteRepo(ctx *context.Context) {
 		return
 	}
 
-	if err := repo_service.DeleteRepository(ctx.User, repo.MustOwner().ID, repo.ID); err != nil {
+	if err := repo_service.DeleteRepository(ctx.User, repo); err != nil {
 		ctx.ServerError("DeleteRepository", err)
 		return
 	}

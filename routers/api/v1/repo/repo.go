@@ -870,18 +870,16 @@ func Delete(ctx *context.APIContext) {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	if owner.IsOrganization() && !ctx.User.IsAdmin {
-		isOwner, err := owner.IsOwnedBy(ctx.User.ID)
-		if err != nil {
-			ctx.Error(500, "IsOwnedBy", err)
-			return
-		} else if !isOwner {
-			ctx.Error(403, "", "Given user is not owner of organization.")
-			return
-		}
+	canDelete, err := repo.CanUserDelete(ctx.User)
+	if err != nil {
+		ctx.Error(500, "CanUserDelete", err)
+		return
+	} else if !canDelete {
+		ctx.Error(403, "", "Given user is not owner of organization.")
+		return
 	}
 
-	if err := repo_service.DeleteRepository(ctx.User, owner.ID, repo.ID); err != nil {
+	if err := repo_service.DeleteRepository(ctx.User, repo); err != nil {
 		ctx.Error(500, "DeleteRepository", err)
 		return
 	}
