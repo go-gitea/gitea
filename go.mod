@@ -22,7 +22,6 @@ require (
 	github.com/blevesearch/go-porterstemmer v0.0.0-20141230013033-23a2c8e5cf1f // indirect
 	github.com/blevesearch/segment v0.0.0-20160105220820-db70c57796cc // indirect
 	github.com/boombuler/barcode v0.0.0-20161226211916-fe0f26ff6d26 // indirect
-	github.com/chaseadamsio/goorgeous v0.0.0-20170901132237-098da33fde5f
 	github.com/couchbase/vellum v0.0.0-20190111184608-e91b68ff3efe // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
@@ -70,6 +69,8 @@ require (
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
 	github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/mschoch/smat v0.0.0-20160514031455-90eadee771ae // indirect
 	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
 	github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
@@ -80,7 +81,7 @@ require (
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/procfs v0.0.4 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20190321074620-2f0d2b0e0001 // indirect
-	github.com/russross/blackfriday v0.0.0-20180428102519-11635eb403ff
+	github.com/russross/blackfriday v2.0.0+incompatible
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.0.0
