@@ -121,7 +121,7 @@ func (pr *PullRequest) LoadBaseRepo() error {
 	return nil
 }
 
-// LoadBaseRepo loads pull request base repository from database
+// LoadHeadRepo loads pull request head repository from database
 func (pr *PullRequest) LoadHeadRepo() error {
 	if pr.HeadRepo == nil {
 		if pr.HeadRepoID == pr.BaseRepoID && pr.BaseRepo != nil {

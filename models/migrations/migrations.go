@@ -258,6 +258,8 @@ var migrations = []Migration{
 	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
 	// v101 -> v102
 	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
+	// v102 -> v103
+	NewMigration("update migration repositories' service type", dropColumnHeadUserNameOnPullRequest),
 }
 
 // Migrate database to current version
