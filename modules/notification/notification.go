@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/notification/mail"
 	"code.gitea.io/gitea/modules/notification/ui"
 	"code.gitea.io/gitea/modules/notification/webhook"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 var (
@@ -26,7 +27,9 @@ func RegisterNotifier(notifier base.Notifier) {
 
 func init() {
 	RegisterNotifier(ui.NewNotifier())
-	RegisterNotifier(mail.NewNotifier())
+	if setting.Service.EnableNotifyMail {
+		RegisterNotifier(mail.NewNotifier())
+	}
 	RegisterNotifier(indexer.NewNotifier())
 	RegisterNotifier(webhook.NewNotifier())
 }

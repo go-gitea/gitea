@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -173,7 +172,7 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *models.User, assigneeID
 			return err
 		}
 
-		if setting.Service.EnableNotifyMail && !assignee.IsOrganization() && assignee.EmailNotifications() == models.EmailNotificationsEnabled {
+		if !assignee.IsOrganization() && assignee.EmailNotifications() == models.EmailNotificationsEnabled {
 			notification.NotifyIssueChangeAssignee(doer, issue, assignee, removed)
 		}
 	}
