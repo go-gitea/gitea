@@ -172,7 +172,7 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *models.User, assigneeID
 			return err
 		}
 
-		if !assignee.IsOrganization() && assignee.EmailNotifications() == models.EmailNotificationsEnabled {
+		if !assignee.IsOrganization() {
 			notification.NotifyIssueChangeAssignee(doer, issue, assignee, removed)
 		}
 	}

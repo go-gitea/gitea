@@ -93,7 +93,7 @@ func (m *mailNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models
 
 func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool) {
 	// mail only sent to added assignees and not self-assignee
-	if !removed && doer.ID != assignee.ID {
+	if !removed && doer.ID != assignee.ID && assignee.EmailNotifications() == models.EmailNotificationsEnabled {
 		ct := fmt.Sprintf("Assigned #%d.", issue.Index)
 		mailer.SendIssueAssignedMail(issue, doer, ct, []string{assignee.Email})
 	}
