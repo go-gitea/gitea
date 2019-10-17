@@ -9,8 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 
-	"github.com/go-xorm/xorm"
 	"xorm.io/core"
+	"xorm.io/xorm"
 )
 
 func removeCommitsUnitType(x *xorm.Engine) (err error) {

@@ -261,7 +261,6 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 		return "", fmt.Errorf("Unable to get git version: %v", err)
 	}
 
-	// FIXME: Should we add SSH_ORIGINAL_COMMAND to this
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),
 		"GIT_AUTHOR_NAME="+authorSig.Name,
@@ -271,13 +270,21 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 		"GIT_COMMITTER_EMAIL="+committerSig.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
+
 	messageBytes := new(bytes.Buffer)
 	_, _ = messageBytes.WriteString(message)
 	_, _ = messageBytes.WriteString("\n")
 
 	args := []string{"commit-tree", treeHash, "-p", "HEAD"}
-	if version.Compare(binVersion, "2.0.0", ">=") {
-		args = append(args, "--no-gpg-sign")
+
+	// Determine if we should sign
+	if version.Compare(binVersion, "1.7.9", ">=") {
+		sign, keyID := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
+		if sign {
+			args = append(args, "-S"+keyID)
+		} else if version.Compare(binVersion, "2.0.0", ">=") {
+			args = append(args, "--no-gpg-sign")
+		}
 	}
 
 	commitHash, stderr, err := process.GetManager().ExecDirEnvStdIn(5*time.Minute,

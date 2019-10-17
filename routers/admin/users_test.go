@@ -34,7 +34,7 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 		LoginName:          "local",
 		UserName:           username,
 		Email:              email,
-		Password:           "xxxxxxxx",
+		Password:           "abc123ABC!=$",
 		SendNotify:         false,
 		MustChangePassword: true,
 	}
@@ -71,7 +71,7 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 		LoginName:          "local",
 		UserName:           username,
 		Email:              email,
-		Password:           "xxxxxxxx",
+		Password:           "abc123ABC!=$",
 		SendNotify:         false,
 		MustChangePassword: false,
 	}

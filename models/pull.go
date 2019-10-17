@@ -25,8 +25,8 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
+	"xorm.io/xorm"
 )
 
 var pullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLength)
@@ -1070,93 +1070,6 @@ func (prs PullRequestList) invalidateCodeComments(e Engine, doer *User, repo *gi
 // InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
 func (prs PullRequestList) InvalidateCodeComments(doer *User, repo *git.Repository, branch string) error {
 	return prs.invalidateCodeComments(x, doer, repo, branch)
-}
-
-func addHeadRepoTasks(prs []*PullRequest) {
-	for _, pr := range prs {
-		log.Trace("addHeadRepoTasks[%d]: composing new test task", pr.ID)
-		if err := pr.UpdatePatch(); err != nil {
-			log.Error("UpdatePatch: %v", err)
-			continue
-		} else if err := pr.PushToBaseRepo(); err != nil {
-			log.Error("PushToBaseRepo: %v", err)
-			continue
-		}
-
-		pr.AddToTaskQueue()
-	}
-}
-
-// AddTestPullRequestTask adds new test tasks by given head/base repository and head/base branch,
-// and generate new patch for testing as needed.
-func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool) {
-	log.Trace("AddTestPullRequestTask [head_repo_id: %d, head_branch: %s]: finding pull requests", repoID, branch)
-	prs, err := GetUnmergedPullRequestsByHeadInfo(repoID, branch)
-	if err != nil {
-		log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repoID, branch, err)
-		return
-	}
-
-	if isSync {
-		requests := PullRequestList(prs)
-		if err = requests.LoadAttributes(); err != nil {
-			log.Error("PullRequestList.LoadAttributes: %v", err)
-		}
-		if invalidationErr := checkForInvalidation(requests, repoID, doer, branch); invalidationErr != nil {
-			log.Error("checkForInvalidation: %v", invalidationErr)
-		}
-		if err == nil {
-			for _, pr := range prs {
-				pr.Issue.PullRequest = pr
-				if err = pr.Issue.LoadAttributes(); err != nil {
-					log.Error("LoadAttributes: %v", err)
-					continue
-				}
-				if err = PrepareWebhooks(pr.Issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-					Action:      api.HookIssueSynchronized,
-					Index:       pr.Issue.Index,
-					PullRequest: pr.Issue.PullRequest.APIFormat(),
-					Repository:  pr.Issue.Repo.APIFormat(AccessModeNone),
-					Sender:      doer.APIFormat(),
-				}); err != nil {
-					log.Error("PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
-					continue
-				}
-				go HookQueue.Add(pr.Issue.Repo.ID)
-			}
-		}
-
-	}
-
-	addHeadRepoTasks(prs)
-
-	log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", repoID, branch)
-	prs, err = GetUnmergedPullRequestsByBaseInfo(repoID, branch)
-	if err != nil {
-		log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", repoID, branch, err)
-		return
-	}
-	for _, pr := range prs {
-		pr.AddToTaskQueue()
-	}
-}
-
-func checkForInvalidation(requests PullRequestList, repoID int64, doer *User, branch string) error {
-	repo, err := GetRepositoryByID(repoID)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryByID: %v", err)
-	}
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
-	if err != nil {
-		return fmt.Errorf("git.OpenRepository: %v", err)
-	}
-	go func() {
-		err := requests.InvalidateCodeComments(doer, gitRepo, branch)
-		if err != nil {
-			log.Error("PullRequestList.InvalidateCodeComments: %v", err)
-		}
-	}()
-	return nil
 }
 
 // ChangeUsernameInPullRequests changes the name of head_user_name
