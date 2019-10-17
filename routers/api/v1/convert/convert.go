@@ -84,17 +84,21 @@ func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
 func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
 	verif := models.ParseCommitWithSignature(c)
-	var signature, payload string
+	commitVerification := &api.PayloadCommitVerification{
+		Verified: verif.Verified,
+		Reason:   verif.Reason,
+	}
 	if c.Signature != nil {
-		signature = c.Signature.Signature
-		payload = c.Signature.Payload
+		commitVerification.Signature = c.Signature.Signature
+		commitVerification.Payload = c.Signature.Payload
 	}
-	return &api.PayloadCommitVerification{
-		Verified:  verif.Verified,
-		Reason:    verif.Reason,
-		Signature: signature,
-		Payload:   payload,
+	if verif.SigningUser != nil {
+		commitVerification.Signer = &api.PayloadUser{
+			Name:  verif.SigningUser.Name,
+			Email: verif.SigningUser.Email,
+		}
 	}
+	return commitVerification
 }
 
 // ToPublicKey convert models.PublicKey to api.PublicKey

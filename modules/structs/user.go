@@ -55,7 +55,7 @@ type UserDetails struct {
 	Email string `json:"email"`
 	// Is the user an administrator
 	HideEmail bool `json:"hide_email"`
-	IsAdmin bool `json:"is_admin"`
+	IsAdmin   bool `json:"is_admin"`
 	// URL to the user's avatar
 	AvatarURL string `json:"avatar_url"`
 	// URL to the user's API endpoint

@@ -91,10 +91,11 @@ type PayloadCommit struct {
 
 // PayloadCommitVerification represents the GPG verification of a commit
 type PayloadCommitVerification struct {
-	Verified  bool   `json:"verified"`
-	Reason    string `json:"reason"`
-	Signature string `json:"signature"`
-	Payload   string `json:"payload"`
+	Verified  bool         `json:"verified"`
+	Reason    string       `json:"reason"`
+	Signature string       `json:"signature"`
+	Signer    *PayloadUser `json:"signer"`
+	Payload   string       `json:"payload"`
 }
 
 var (
