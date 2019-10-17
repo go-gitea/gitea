@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/russross/blackfriday"
+	"github.com/russross/blackfriday/v2"
 )
 
 // MarkdownStripper extends blackfriday.Renderer

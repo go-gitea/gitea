@@ -23,8 +23,22 @@ var (
 	urlRe    = `((https?|ftp):\/\/|\/)[-A-Za-z0-9+&@#\/%?=~_|!:,.;\(\)]+`
 	anchorRe = regexp.MustCompile(`^(<a\shref="` + urlRe + `"(\stitle="[^"<>]+")?\s?>` + urlRe + `<\/a>)`)
 
-	// TODO: improve this regexp to catch all possible entities:
-	htmlEntityRe = regexp.MustCompile(`&[a-z]{2,5};`)
+	// https://www.w3.org/TR/html5/syntax.html#character-references
+	// highest unicode code point in 17 planes (2^20): 1,114,112d =
+	// 7 dec digits or 6 hex digits
+	// named entity references can be 2-31 characters with stuff like &lt;
+	// at one end and &CounterClockwiseContourIntegral; at the other. There
+	// are also sometimes numbers at the end, although this isn't inherent
+	// in the specification; there are never numbers anywhere else in
+	// current character references, though; see &frac34; and &blk12;, etc.
+	// https://www.w3.org/TR/html5/syntax.html#named-character-references
+	//
+	// entity := "&" (named group | number ref) ";"
+	// named group := [a-zA-Z]{2,31}[0-9]{0,2}
+	// number ref := "#" (dec ref | hex ref)
+	// dec ref := [0-9]{1,7}
+	// hex ref := ("x" | "X") [0-9a-fA-F]{1,6}
+	htmlEntityRe = regexp.MustCompile(`&([a-zA-Z]{2,31}[0-9]{0,2}|#([0-9]{1,7}|[xX][0-9a-fA-F]{1,6}));`)
 )
 
 // Functions to parse text within a block

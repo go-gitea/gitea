@@ -93,46 +93,46 @@ const (
 // blockTags is a set of tags that are recognized as HTML block tags.
 // Any of these can be included in markdown text without special escaping.
 var blockTags = map[string]struct{}{
-	"blockquote": struct{}{},
-	"del":        struct{}{},
-	"div":        struct{}{},
-	"dl":         struct{}{},
-	"fieldset":   struct{}{},
-	"form":       struct{}{},
-	"h1":         struct{}{},
-	"h2":         struct{}{},
-	"h3":         struct{}{},
-	"h4":         struct{}{},
-	"h5":         struct{}{},
-	"h6":         struct{}{},
-	"iframe":     struct{}{},
-	"ins":        struct{}{},
-	"math":       struct{}{},
-	"noscript":   struct{}{},
-	"ol":         struct{}{},
-	"pre":        struct{}{},
-	"p":          struct{}{},
-	"script":     struct{}{},
-	"style":      struct{}{},
-	"table":      struct{}{},
-	"ul":         struct{}{},
+	"blockquote": {},
+	"del":        {},
+	"div":        {},
+	"dl":         {},
+	"fieldset":   {},
+	"form":       {},
+	"h1":         {},
+	"h2":         {},
+	"h3":         {},
+	"h4":         {},
+	"h5":         {},
+	"h6":         {},
+	"iframe":     {},
+	"ins":        {},
+	"math":       {},
+	"noscript":   {},
+	"ol":         {},
+	"pre":        {},
+	"p":          {},
+	"script":     {},
+	"style":      {},
+	"table":      {},
+	"ul":         {},
 
 	// HTML5
-	"address":    struct{}{},
-	"article":    struct{}{},
-	"aside":      struct{}{},
-	"canvas":     struct{}{},
-	"figcaption": struct{}{},
-	"figure":     struct{}{},
-	"footer":     struct{}{},
-	"header":     struct{}{},
-	"hgroup":     struct{}{},
-	"main":       struct{}{},
-	"nav":        struct{}{},
-	"output":     struct{}{},
-	"progress":   struct{}{},
-	"section":    struct{}{},
-	"video":      struct{}{},
+	"address":    {},
+	"article":    {},
+	"aside":      {},
+	"canvas":     {},
+	"figcaption": {},
+	"figure":     {},
+	"footer":     {},
+	"header":     {},
+	"hgroup":     {},
+	"main":       {},
+	"nav":        {},
+	"output":     {},
+	"progress":   {},
+	"section":    {},
+	"video":      {},
 }
 
 // Renderer is the rendering interface. This is mostly of interest if you are
@@ -480,11 +480,11 @@ func (p *Markdown) parseRefsToAST() {
 //    [^note]: This is the explanation.
 //
 // Footnotes should be placed at the end of the document in an ordered list.
-// Inline footnotes such as:
+// Finally, there are inline footnotes such as:
 //
-//    Inline footnotes^[Not supported.] also exist.
+//    Inline footnotes^[Also supported.] provide a quick inline explanation,
+//    but are rendered at the bottom of the document.
 //
-// are not yet supported.
 
 // reference holds all information necessary for a reference-style links or
 // footnotes.
@@ -813,7 +813,17 @@ func ispunct(c byte) bool {
 
 // Test if a character is a whitespace character.
 func isspace(c byte) bool {
-	return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v'
+	return ishorizontalspace(c) || isverticalspace(c)
+}
+
+// Test if a character is a horizontal whitespace character.
+func ishorizontalspace(c byte) bool {
+	return c == ' ' || c == '\t'
+}
+
+// Test if a character is a vertical character.
+func isverticalspace(c byte) bool {
+	return c == '\n' || c == '\r' || c == '\f' || c == '\v'
 }
 
 // Test if a character is letter.

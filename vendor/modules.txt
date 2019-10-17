@@ -358,8 +358,8 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/russross/blackfriday v2.0.0+incompatible
-github.com/russross/blackfriday
+# github.com/russross/blackfriday/v2 v2.0.1
+github.com/russross/blackfriday/v2
 # github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
 # github.com/sergi/go-diff v1.0.0
