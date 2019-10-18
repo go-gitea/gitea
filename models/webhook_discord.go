@@ -320,6 +320,8 @@ func getDiscordIssueCommentPayload(p *api.IssueCommentPayload, discord *DiscordM
 		color = redColor
 	}
 
+	title = fmt.Sprintf("[%s] %s", p.Repository.FullName, title)
+
 	return &DiscordPayload{
 		Username:  discord.Username,
 		AvatarURL: discord.IconURL,

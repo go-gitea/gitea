@@ -389,6 +389,8 @@ func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload,
 		color = redColor
 	}
 
+	title = fmt.Sprintf("[%s] %s", p.Repository.FullName, title)
+
 	return &MSTeamsPayload{
 		Type:       "MessageCard",
 		Context:    "https://schema.org/extensions",
