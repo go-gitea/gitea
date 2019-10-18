@@ -1117,7 +1117,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 	})
 }
 
-// UpdateIssueAssignee change issue's assignee
+// UpdateIssueAssignee change issue's or pull's assignee
 func UpdateIssueAssignee(ctx *context.Context) {
 	issues := getActionIssues(ctx)
 	if ctx.Written() {
@@ -1135,20 +1135,37 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 		default:
+			assignee, err := models.GetUserByID(assigneeID)
+			if err != nil {
+				ctx.ServerError("GetUserByID", err)
+				return
+			}
+			if assignee.IsOrganization() {
+				ctx.ServerError("assignee.IsOrganization", fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", assigneeID, issue.RepoID))
+				return
+			}
+			var valid bool
+			if issue.IsPull {
+				valid, err = models.CanBeAssignedPullRequests(assignee, issue.Repo)
+			} else {
+				valid, err = models.CanBeAssignedIssues(assignee, issue.Repo)
+			}
+
+			if err != nil {
+				ctx.ServerError("canBeAssigned", err)
+				return
+			}
+			if !valid {
+				ctx.ServerError("caanBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name})
+			}
+
 			removed, comment, err := issue.ChangeAssignee(ctx.User, assigneeID)
 			if err != nil {
 				ctx.ServerError("ChangeAssignee", err)
 				return
 			}
 
-			assignee, err := models.GetUserByID(assigneeID)
-			if err != nil {
-				ctx.ServerError("GetUserByID", err)
-				return
-			}
-			if !assignee.IsOrganization() {
-				notification.NotifyIssueChangeAssignee(ctx.User, issue, assignee, removed, comment)
-			}
+			notification.NotifyIssueChangeAssignee(ctx.User, issue, assignee, removed, comment)
 		}
 	}
 	ctx.JSON(200, map[string]interface{}{

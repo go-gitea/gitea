@@ -329,10 +329,23 @@ func HasAccessUnit(user *User, repo *Repository, unitType UnitType, testMode Acc
 	return hasAccessUnit(x, user, repo, unitType, testMode)
 }
 
-// canBeAssigned return true if user could be assigned to a repo
+func canBeAssignedIssues(e Engine, user *User, repo *Repository) (bool, error) {
+	return hasAccessUnit(e, user, repo, UnitTypeIssues, AccessModeWrite)
+}
+
+// CanBeAssignedIssues return true if user can be assigned to issues in repo
+func CanBeAssignedIssues(user *User, repo *Repository) (bool, error) {
+	return canBeAssignedIssues(x, user, repo)
+}
+
 // FIXME: user could send PullRequest also could be assigned???
-func canBeAssigned(e Engine, user *User, repo *Repository) (bool, error) {
-	return hasAccessUnit(e, user, repo, UnitTypeCode, AccessModeWrite)
+func canBeAssignedPullRequests(e Engine, user *User, repo *Repository) (bool, error) {
+	return hasAccessUnit(e, user, repo, UnitTypePullRequests, AccessModeWrite)
+}
+
+// CanBeAssignedPullRequests return true if user can be assigned to pull requests in repo
+func CanBeAssignedPullRequests(user *User, repo *Repository) (bool, error) {
+	return canBeAssignedPullRequests(x, user, repo)
 }
 
 func hasAccess(e Engine, userID int64, repo *Repository) (bool, error) {
