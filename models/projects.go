@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 type (
