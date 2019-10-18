@@ -984,7 +984,6 @@ type NewIssueOptions struct {
 	Repo        *Repository
 	Issue       *Issue
 	LabelIDs    []int64
-	AssigneeIDs []int64
 	Attachments []string // In UUID format.
 	IsPull      bool
 }
@@ -1006,39 +1005,6 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	// Keep the old assignee id thingy for compatibility reasons
-	if opts.Issue.AssigneeID > 0 {
-		isAdded := false
-		// Check if the user has already been passed to issue.AssigneeIDs, if not, add it
-		for _, aID := range opts.AssigneeIDs {
-			if aID == opts.Issue.AssigneeID {
-				isAdded = true
-				break
-			}
-		}
-
-		if !isAdded {
-			opts.AssigneeIDs = append(opts.AssigneeIDs, opts.Issue.AssigneeID)
-		}
-	}
-
-	// Check for and validate assignees
-	if len(opts.AssigneeIDs) > 0 {
-		for _, assigneeID := range opts.AssigneeIDs {
-			user, err := getUserByID(e, assigneeID)
-			if err != nil {
-				return fmt.Errorf("getUserByID [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
-			}
-			valid, err := canBeAssigned(e, user, opts.Repo)
-			if err != nil {
-				return fmt.Errorf("canBeAssigned [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
-			}
-			if !valid {
-				return ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: opts.Repo.Name}
-			}
-		}
-	}
-
 	// Milestone and assignee validation should happen before insert actual object.
 	if _, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
 		Where("repo_id=?", opts.Issue.RepoID).
@@ -1056,14 +1022,6 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 	if opts.Issue.MilestoneID > 0 {
 		if _, err = e.Exec("UPDATE `milestone` SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
-			return err
-		}
-	}
-
-	// Insert the assignees
-	for _, assigneeID := range opts.AssigneeIDs {
-		_, _, err = opts.Issue.changeAssignee(e, doer, assigneeID, true)
-		if err != nil {
 			return err
 		}
 	}
@@ -1125,11 +1083,11 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 }
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
+func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
 	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
 	i := 0
 	for {
-		if err = newIssueAttempt(repo, issue, labelIDs, assigneeIDs, uuids); err == nil {
+		if err = newIssueAttempt(repo, issue, labelIDs, uuids); err == nil {
 			return nil
 		}
 		if !IsErrNewIssueInsert(err) {
@@ -1143,7 +1101,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 	return fmt.Errorf("NewIssue: too many errors attempting to insert the new issue. Last error was: %v", err)
 }
 
-func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
+func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -1155,7 +1113,6 @@ func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, assigneeI
 		Issue:       issue,
 		LabelIDs:    labelIDs,
 		Attachments: uuids,
-		AssigneeIDs: assigneeIDs,
 	}); err != nil {
 		if IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 			return err

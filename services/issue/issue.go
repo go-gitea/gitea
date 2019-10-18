@@ -14,8 +14,8 @@ import (
 )
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) error {
-	if err := models.NewIssue(repo, issue, labelIDs, assigneeIDs, uuids); err != nil {
+func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uuids []string) error {
+	if err := models.NewIssue(repo, issue, labelIDs, uuids); err != nil {
 		return err
 	}
 
@@ -98,13 +98,13 @@ func ChangeTitle(issue *models.Issue, doer *models.User, title string) (err erro
 	return nil
 }
 
-// UpdateAPIAssignee is a helper function to add or delete one or multiple issue assignee(s)
+// UpdateAssignees is a helper function to add or delete one or multiple issue assignee(s)
 // Deleting is done the GitHub way (quote from their api documentation):
 // https://developer.github.com/v3/issues/#edit-an-issue
 // "assignees" (array): Logins for Users to assign to this issue.
 // Pass one or more user logins to replace the set of assignees on this Issue.
 // Send an empty array ([]) to clear all assignees from the Issue.
-func UpdateAPIAssignee(issue *models.Issue, oneAssignee string, multipleAssignees []string, doer *models.User) (err error) {
+func UpdateAssignees(issue *models.Issue, oneAssignee string, multipleAssignees []string, doer *models.User) (err error) {
 	var allNewAssignees []*models.User
 
 	// Keep the old assignee thingy for compatibility reasons
@@ -174,6 +174,16 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *models.User, assigneeID
 
 		if !assignee.IsOrganization() {
 			notification.NotifyIssueChangeAssignee(doer, issue, assignee, removed, comment)
+		}
+	}
+	return nil
+}
+
+// AddAssignees adds a list of assignes (from IDs) to an issue
+func AddAssignees(issue *models.Issue, doer *models.User, assigneeIDs []int64) (err error) {
+	for _, assigneeID := range assigneeIDs {
+		if err = AddAssigneeIfNotAssigned(issue, doer, assigneeID); err != nil {
+			return err
 		}
 	}
 	return nil

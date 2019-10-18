@@ -288,7 +288,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		return
 	}
 
-	if err := pull_service.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch, assigneeIDs); err != nil {
+	if err := pull_service.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
 			return
@@ -299,6 +299,8 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		ctx.Error(500, "PushToBaseRepo", err)
 		return
 	}
+
+	issue_service.AddAssignees(prIssue, ctx.User, assigneeIDs)
 
 	notification.NotifyNewPullRequest(pr)
 
@@ -389,12 +391,12 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
 	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
-		err = issue_service.UpdateAPIAssignee(issue, form.Assignee, form.Assignees, ctx.User)
+		err = issue_service.UpdateAssignees(issue, form.Assignee, form.Assignees, ctx.User)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
 			} else {
-				ctx.Error(500, "UpdateAPIAssignee", err)
+				ctx.Error(500, "UpdateAssignees", err)
 			}
 			return
 		}

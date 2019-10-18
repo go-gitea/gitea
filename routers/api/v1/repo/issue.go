@@ -218,7 +218,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		form.Labels = make([]int64, 0)
 	}
 
-	if err := issue_service.NewIssue(ctx.Repo.Repository, issue, form.Labels, assigneeIDs, nil); err != nil {
+	if err := issue_service.NewIssue(ctx.Repo.Repository, issue, form.Labels, nil); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
 			return
@@ -226,6 +226,8 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		ctx.Error(500, "NewIssue", err)
 		return
 	}
+
+	issue_service.AddAssignees(issue, ctx.User, assigneeIDs)
 
 	notification.NotifyNewIssue(issue)
 
@@ -336,9 +338,9 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 			oneAssignee = *form.Assignee
 		}
 
-		err = issue_service.UpdateAPIAssignee(issue, oneAssignee, form.Assignees, ctx.User)
+		err = issue_service.UpdateAssignees(issue, oneAssignee, form.Assignees, ctx.User)
 		if err != nil {
-			ctx.Error(500, "UpdateAPIAssignee", err)
+			ctx.Error(500, "UpdateAssignees", err)
 			return
 		}
 	}
