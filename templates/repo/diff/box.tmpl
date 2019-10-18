@@ -32,27 +32,29 @@
 				{{end}}
 			</div>
 		</div>
-		<ol class="detail-files hide" id="diff-files">
-			{{range .Diff.Files}}
-				<li>
-					<div class="diff-counter count pull-right">
-						{{if not .IsBin}}
-							<span class="add" data-line="{{.Addition}}">{{.Addition}}</span>
-							<span class="bar">
-								<div class="pull-left add"></div>
-								<div class="pull-left del"></div>
-							</span>
-							<span class="del" data-line="{{.Deletion}}">{{.Deletion}}</span>
-						{{else}}
-							<span>{{$.i18n.Tr "repo.diff.bin"}}</span>
-						{{end}}
-					</div>
-					<!-- todo finish all file status, now modify, add, delete and rename -->
-					<span class="status {{DiffTypeToStr .GetType}} poping up" data-content="{{DiffTypeToStr .GetType}}" data-variation="inverted tiny" data-position="right center">&nbsp;</span>
-					<a class="file" href="#diff-{{.Index}}">{{.Name}}</a>
-				</li>
-			{{end}}
-		</ol>
+		<div class="diff-detail-box" style="max-height: 300pt; overflow: auto; margin-bottom: 4pt">
+			<ol class="detail-files hide" id="diff-files">
+				{{range .Diff.Files}}
+					<li>
+						<div class="diff-counter count pull-right">
+							{{if not .IsBin}}
+								<span class="add" data-line="{{.Addition}}">{{.Addition}}</span>
+								<span class="bar">
+									<div class="pull-left add"></div>
+									<div class="pull-left del"></div>
+								</span>
+								<span class="del" data-line="{{.Deletion}}">{{.Deletion}}</span>
+							{{else}}
+								<span>{{$.i18n.Tr "repo.diff.bin"}}</span>
+							{{end}}
+						</div>
+						<!-- todo finish all file status, now modify, add, delete and rename -->
+						<span class="status {{DiffTypeToStr .GetType}} poping up" data-content="{{DiffTypeToStr .GetType}}" data-variation="inverted tiny" data-position="right center">&nbsp;</span>
+						<a class="file" href="#diff-{{.Index}}">{{.Name}}</a>
+					</li>
+				{{end}}
+			</ol>
+		</div>
 		{{range $i, $file := .Diff.Files}}
 			{{if $file.IsIncomplete}}
 				<div class="diff-file-box diff-box file-content">
