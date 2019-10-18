@@ -300,7 +300,10 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		return
 	}
 
-	issue_service.AddAssignees(prIssue, ctx.User, assigneeIDs)
+	if err := issue_service.AddAssignees(prIssue, ctx.User, assigneeIDs); err != nil {
+		ctx.ServerError("AddAssignees", err)
+		return
+	}
 
 	notification.NotifyNewPullRequest(pr)
 

@@ -227,7 +227,10 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		return
 	}
 
-	issue_service.AddAssignees(issue, ctx.User, assigneeIDs)
+	if err := issue_service.AddAssignees(issue, ctx.User, assigneeIDs); err != nil {
+		ctx.ServerError("AddAssignees", err)
+		return
+	}
 
 	notification.NotifyNewIssue(issue)
 
