@@ -16,8 +16,8 @@
 	</div>
 	<h4>{{.i18n.Tr "repo.diff.data_not_available"}}</h4>
 {{else}}
-	<div class="diff-detail-box diff-box">
-		<div>
+	<div class="diff-box">
+		<div class="diff-detail-box diff-box ui sticky">
 			<i class="fa fa-retweet"></i>
 			{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 			<div class="ui right">
