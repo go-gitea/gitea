@@ -125,17 +125,25 @@ func (p *Project) AfterLoad() {
 	p.NumOpenIssues = p.NumIssues - p.NumClosedIssues
 }
 
+type ProjectSearchOptions struct {
+	RepoID   int64
+	Page     int
+	IsClosed bool
+	SortType string
+	Type     ProjectType
+}
+
 // GetProjects returns a list of all projects that have been created in the
 // repository
-func GetProjects(repoID int64, page int, isClosed bool, sortType string) ([]*Project, error) {
+func GetProjects(opts ProjectSearchOptions) ([]*Project, error) {
 
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
-	sess := x.Where("repo_id = ? AND is_closed = ?", repoID, isClosed)
-	if page > 0 {
-		sess = sess.Limit(setting.UI.IssuePagingNum, (page-1)*setting.UI.IssuePagingNum)
+	sess := x.Where("repo_id = ? AND is_closed = ? AND type = ?", opts.RepoID, opts.IsClosed, opts.Type)
+	if opts.Page > 0 {
+		sess = sess.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
 	}
 
-	switch sortType {
+	switch opts.SortType {
 	case "oldest":
 		sess.Desc("created_unix")
 	case "recentupdate":
