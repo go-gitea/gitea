@@ -14,9 +14,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // IsOwnedBy returns true if given user is in the owner team.

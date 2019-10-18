@@ -149,8 +149,12 @@ func (statement *Statement) And(query interface{}, args ...interface{}) *Stateme
 		cond := builder.Expr(query.(string), args...)
 		statement.cond = statement.cond.And(cond)
 	case map[string]interface{}:
-		cond := builder.Eq(query.(map[string]interface{}))
-		statement.cond = statement.cond.And(cond)
+		queryMap := query.(map[string]interface{})
+		newMap := make(map[string]interface{})
+		for k, v := range queryMap {
+			newMap[statement.Engine.Quote(k)] = v
+		}
+		statement.cond = statement.cond.And(builder.Eq(newMap))
 	case builder.Cond:
 		cond := query.(builder.Cond)
 		statement.cond = statement.cond.And(cond)

@@ -7,7 +7,7 @@ package migrations
 import (
 	"html"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func unescapeUserFullNames(x *xorm.Engine) (err error) {
