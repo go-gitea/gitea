@@ -282,7 +282,7 @@ func getDingtalkPullRequestApprovalPayload(p *api.PullRequestPayload, event Hook
 		}
 
 		title = fmt.Sprintf("[%s] Pull request review %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
+		text = p.Review.Content
 
 	}
 
