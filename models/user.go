@@ -33,7 +33,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
@@ -41,6 +40,7 @@ import (
 	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // UserType defines the user type
@@ -992,10 +992,6 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	} else if isExist {
 		return ErrUserAlreadyExist{newUserName}
-	}
-
-	if err = ChangeUsernameInPullRequests(u.Name, newUserName); err != nil {
-		return fmt.Errorf("ChangeUsernameInPullRequests: %v", err)
 	}
 
 	// Do not fail if directory does not exist

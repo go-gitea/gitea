@@ -246,6 +246,55 @@ func (repo *Repository) recalculateTeamAccesses(e Engine, ignTeamID int64) (err 
 	return repo.refreshAccesses(e, accessMap)
 }
 
+// recalculateUserAccess recalculates new access for a single user
+// Usable if we know access only affected one user
+func (repo *Repository) recalculateUserAccess(e Engine, uid int64) (err error) {
+	minMode := AccessModeRead
+	if !repo.IsPrivate {
+		minMode = AccessModeWrite
+	}
+
+	accessMode := AccessModeNone
+	collaborator, err := repo.getCollaboration(e, uid)
+	if err != nil {
+		return err
+	} else if collaborator != nil {
+		accessMode = collaborator.Mode
+	}
+
+	if err = repo.getOwner(e); err != nil {
+		return err
+	} else if repo.Owner.IsOrganization() {
+		var teams []Team
+		if err := e.Join("INNER", "team_repo", "team_repo.team_id = team.id").
+			Join("INNER", "team_user", "team_user.team_id = team.id").
+			Where("team.org_id = ?", repo.OwnerID).
+			And("team_repo.repo_id=?", repo.ID).
+			And("team_user.uid=?", uid).
+			Find(&teams); err != nil {
+			return err
+		}
+
+		for _, t := range teams {
+			if t.IsOwnerTeam() {
+				t.Authorize = AccessModeOwner
+			}
+
+			accessMode = maxAccessMode(accessMode, t.Authorize)
+		}
+	}
+
+	// Delete old user accesses and insert new one for repository.
+	if _, err = e.Delete(&Access{RepoID: repo.ID, UserID: uid}); err != nil {
+		return fmt.Errorf("delete old user accesses: %v", err)
+	} else if accessMode >= minMode {
+		if _, err = e.Insert(&Access{RepoID: repo.ID, UserID: uid, Mode: accessMode}); err != nil {
+			return fmt.Errorf("insert new user accesses: %v", err)
+		}
+	}
+	return nil
+}
+
 func (repo *Repository) recalculateAccesses(e Engine) error {
 	if repo.Owner.IsOrganization() {
 		return repo.recalculateTeamAccesses(e, 0)

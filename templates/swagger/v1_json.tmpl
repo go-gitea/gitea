@@ -5140,6 +5140,42 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/signing-key.gpg": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get signing-key.gpg for given repository",
+        "operationId": "repoSigningKey",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GPG armored public key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/stargazers": {
       "get": {
         "produces": [
@@ -5687,6 +5723,26 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Repository"
+          }
+        }
+      }
+    },
+    "/signing-key.gpg": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Get default signing-key.gpg",
+        "operationId": "getSigningKey",
+        "responses": {
+          "200": {
+            "description": "GPG armored public key",
+            "schema": {
+              "type": "string"
+            }
           }
         }
       }
@@ -9524,6 +9580,9 @@
         "signature": {
           "type": "string",
           "x-go-name": "Signature"
+        },
+        "signer": {
+          "$ref": "#/definitions/PayloadUser"
         },
         "verified": {
           "type": "boolean",

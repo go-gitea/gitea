@@ -119,6 +119,8 @@ github.com/denisenkom/go-mssqldb/internal/decimal
 github.com/denisenkom/go-mssqldb/internal/querytext
 # github.com/dgrijalva/jwt-go v3.2.0+incompatible
 github.com/dgrijalva/jwt-go
+# github.com/editorconfig/editorconfig-core-go/v2 v2.1.1
+github.com/editorconfig/editorconfig-core-go/v2
 # github.com/edsrzf/mmap-go v1.0.0
 github.com/edsrzf/mmap-go
 # github.com/emirpasic/gods v1.12.0
@@ -132,15 +134,6 @@ github.com/emirpasic/gods/utils
 github.com/etcd-io/bbolt
 # github.com/ethantkoenig/rupture v0.0.0-20180203182544-0a76f03a811a
 github.com/ethantkoenig/rupture
-# github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a
-github.com/facebookgo/clock
-# github.com/facebookgo/grace v0.0.0-20160926231715-5729e484473f
-github.com/facebookgo/grace/gracehttp
-github.com/facebookgo/grace/gracenet
-# github.com/facebookgo/httpdown v0.0.0-20160323221027-a3b1354551a2
-github.com/facebookgo/httpdown
-# github.com/facebookgo/stats v0.0.0-20151006221625-1b76add642e4
-github.com/facebookgo/stats
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
 # github.com/gliderlabs/ssh v0.2.2
@@ -198,8 +191,6 @@ github.com/go-swagger/go-swagger/cmd/swagger/commands/initcmd
 github.com/go-swagger/go-swagger/codescan
 github.com/go-swagger/go-swagger/generator
 github.com/go-swagger/go-swagger/scan
-# github.com/go-xorm/xorm v0.7.9
-github.com/go-xorm/xorm
 # github.com/gobwas/glob v0.2.3
 github.com/gobwas/glob
 github.com/gobwas/glob/compiler
@@ -281,7 +272,7 @@ github.com/klauspost/crc32
 github.com/kr/pretty
 # github.com/kr/text v0.1.0
 github.com/kr/text
-# github.com/lafriks/xormstore v1.3.1
+# github.com/lafriks/xormstore v1.3.2
 github.com/lafriks/xormstore
 github.com/lafriks/xormstore/util
 # github.com/lib/pq v1.2.0
@@ -546,11 +537,9 @@ google.golang.org/appengine/urlfetch
 gopkg.in/alexcesaro/quotedprintable.v3
 # gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175
 gopkg.in/asn1-ber.v1
-# gopkg.in/editorconfig/editorconfig-core-go.v1 v1.3.0
-gopkg.in/editorconfig/editorconfig-core-go.v1
 # gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 gopkg.in/gomail.v2
-# gopkg.in/ini.v1 v1.46.0
+# gopkg.in/ini.v1 v1.48.0
 gopkg.in/ini.v1
 # gopkg.in/ldap.v3 v3.0.2
 gopkg.in/ldap.v3
@@ -618,3 +607,5 @@ strk.kbt.io/projects/go/libravatar
 xorm.io/builder
 # xorm.io/core v0.7.2
 xorm.io/core
+# xorm.io/xorm v0.8.0
+xorm.io/xorm

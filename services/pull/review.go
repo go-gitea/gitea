@@ -17,9 +17,23 @@ func CreateReview(opts models.CreateReviewOptions) (*models.Review, error) {
 		return nil, err
 	}
 
+	return review, reviewHook(review)
+}
+
+// UpdateReview updates a review
+func UpdateReview(review *models.Review) error {
+	err := models.UpdateReview(review)
+	if err != nil {
+		return err
+	}
+
+	return reviewHook(review)
+}
+
+func reviewHook(review *models.Review) error {
 	var reviewHookType models.HookEventType
 
-	switch opts.Type {
+	switch review.Type {
 	case models.ReviewTypeApprove:
 		reviewHookType = models.HookEventPullRequestApproved
 	case models.ReviewTypeComment:
@@ -28,30 +42,30 @@ func CreateReview(opts models.CreateReviewOptions) (*models.Review, error) {
 		reviewHookType = models.HookEventPullRequestRejected
 	default:
 		// unsupported review webhook type here
-		return review, nil
+		return nil
 	}
 
-	pr := opts.Issue.PullRequest
+	pr := review.Issue.PullRequest
 
 	if err := pr.LoadIssue(); err != nil {
-		return nil, err
+		return err
 	}
 
-	mode, err := models.AccessLevel(opts.Issue.Poster, opts.Issue.Repo)
+	mode, err := models.AccessLevel(review.Issue.Poster, review.Issue.Repo)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if err := models.PrepareWebhooks(opts.Issue.Repo, reviewHookType, &api.PullRequestPayload{
+	if err := models.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
-		Index:       opts.Issue.Index,
+		Index:       review.Issue.Index,
 		PullRequest: pr.APIFormat(),
-		Repository:  opts.Issue.Repo.APIFormat(mode),
-		Sender:      opts.Reviewer.APIFormat(),
+		Repository:  review.Issue.Repo.APIFormat(mode),
+		Sender:      review.Reviewer.APIFormat(),
 	}); err != nil {
-		return nil, err
+		return err
 	}
-	go models.HookQueue.Add(opts.Issue.Repo.ID)
+	go models.HookQueue.Add(review.Issue.Repo.ID)
 
-	return review, nil
+	return nil
 }

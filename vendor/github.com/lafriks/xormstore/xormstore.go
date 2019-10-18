@@ -44,7 +44,7 @@ import (
 
 	"github.com/lafriks/xormstore/util"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 	"github.com/gorilla/context"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"

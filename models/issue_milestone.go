@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"xorm.io/builder"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 // Milestone represents a milestone of repository.
