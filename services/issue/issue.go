@@ -162,7 +162,7 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *models.User, assigneeID
 	}
 
 	if !isAssigned {
-		removed, err := issue.ChangeAssignee(doer, assigneeID)
+		removed, comment, err := issue.ChangeAssignee(doer, assigneeID)
 		if err != nil {
 			return err
 		}
@@ -173,7 +173,7 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *models.User, assigneeID
 		}
 
 		if !assignee.IsOrganization() {
-			notification.NotifyIssueChangeAssignee(doer, issue, assignee, removed)
+			notification.NotifyIssueChangeAssignee(doer, issue, assignee, removed, comment)
 		}
 	}
 	return nil

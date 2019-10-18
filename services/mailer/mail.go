@@ -224,6 +224,6 @@ func SendIssueMentionMail(issue *models.Issue, doer *models.User, content string
 }
 
 // SendIssueAssignedMail composes and sends issue assigned email
-func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, tos []string) {
-	SendAsync(composeIssueCommentMessage(issue, doer, content, nil, mailIssueAssigned, tos, "issue assigned"))
+func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
+	SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueAssigned, tos, "issue assigned"))
 }

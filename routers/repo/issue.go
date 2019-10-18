@@ -1130,7 +1130,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 		default:
-			removed, err := issue.ChangeAssignee(ctx.User, assigneeID)
+			removed, comment, err := issue.ChangeAssignee(ctx.User, assigneeID)
 			if err != nil {
 				ctx.ServerError("ChangeAssignee", err)
 				return
@@ -1142,7 +1142,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 			if !assignee.IsOrganization() {
-				notification.NotifyIssueChangeAssignee(ctx.User, issue, assignee, removed)
+				notification.NotifyIssueChangeAssignee(ctx.User, issue, assignee, removed, comment)
 			}
 		}
 	}

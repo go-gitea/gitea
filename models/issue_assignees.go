@@ -112,60 +112,61 @@ func clearAssigneeByUserID(sess *xorm.Session, userID int64) (err error) {
 
 // UpdateAssignee deletes or adds an assignee to an issue
 func UpdateAssignee(issue *Issue, doer *User, assigneeID int64) (err error) {
-	_, err = issue.ChangeAssignee(doer, assigneeID)
+	_, _, err = issue.ChangeAssignee(doer, assigneeID)
 	return err
 }
 
 // ChangeAssignee changes the Assignee of this issue.
-func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (removed bool, err error) {
+func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (removed bool, comment *Comment, err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {
-		return false, err
+		return false, nil, err
 	}
 
-	removed, err = issue.changeAssignee(sess, doer, assigneeID, false)
+	removed, comment, err = issue.changeAssignee(sess, doer, assigneeID, false)
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
 
 	if err := sess.Commit(); err != nil {
-		return false, err
+		return false, nil, err
 	}
 
 	go HookQueue.Add(issue.RepoID)
 
-	return removed, nil
+	return removed, comment, nil
 }
 
-func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID int64, isCreate bool) (removed bool, err error) {
+func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID int64, isCreate bool) (removed bool, comment *Comment, err error) {
 	// Update the assignee
 	removed, err = updateIssueAssignee(sess, issue, assigneeID)
 	if err != nil {
-		return false, fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
+		return false, nil, fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
 	}
 
 	// Repo infos
 	if err = issue.loadRepo(sess); err != nil {
-		return false, fmt.Errorf("loadRepo: %v", err)
+		return false, nil, fmt.Errorf("loadRepo: %v", err)
 	}
 
 	// Comment
-	if _, err = createAssigneeComment(sess, doer, issue.Repo, issue, assigneeID, removed); err != nil {
-		return false, fmt.Errorf("createAssigneeComment: %v", err)
+	comment, err = createAssigneeComment(sess, doer, issue.Repo, issue, assigneeID, removed)
+	if err != nil {
+		return false, nil, fmt.Errorf("createAssigneeComment: %v", err)
 	}
 
 	// if pull request is in the middle of creation - don't call webhook
 	if isCreate {
-		return removed, err
+		return removed, comment, err
 	}
 
 	if issue.IsPull {
 		mode, _ := accessLevelUnit(sess, doer, issue.Repo, UnitTypePullRequests)
 
 		if err = issue.loadPullRequest(sess); err != nil {
-			return false, fmt.Errorf("loadPullRequest: %v", err)
+			return false, nil, fmt.Errorf("loadPullRequest: %v", err)
 		}
 		issue.PullRequest.Issue = issue
 		apiPullRequest := &api.PullRequestPayload{
@@ -181,7 +182,7 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 		}
 		if err := prepareWebhooks(sess, issue.Repo, HookEventPullRequest, apiPullRequest); err != nil {
 			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
-			return false, err
+			return false, nil, err
 		}
 	} else {
 		mode, _ := accessLevelUnit(sess, doer, issue.Repo, UnitTypeIssues)
@@ -199,10 +200,10 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 		}
 		if err := prepareWebhooks(sess, issue.Repo, HookEventIssues, apiIssue); err != nil {
 			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
-			return false, err
+			return false, nil, err
 		}
 	}
-	return removed, nil
+	return removed, comment, nil
 }
 
 // MakeIDsFromAPIAssigneesToAdd returns an array with all assignee IDs

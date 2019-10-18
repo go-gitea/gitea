@@ -142,9 +142,9 @@ func NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent
 }
 
 // NotifyIssueChangeAssignee notifies change content to notifiers
-func NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool) {
+func NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
 	for _, notifier := range notifiers {
-		notifier.NotifyIssueChangeAssignee(doer, issue, assignee, removed)
+		notifier.NotifyIssueChangeAssignee(doer, issue, assignee, removed, comment)
 	}
 }
 
