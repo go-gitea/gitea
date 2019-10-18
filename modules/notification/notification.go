@@ -25,7 +25,8 @@ func RegisterNotifier(notifier base.Notifier) {
 	notifiers = append(notifiers, notifier)
 }
 
-func init() {
+// NewContext registers notification handlers
+func NewContext() {
 	RegisterNotifier(ui.NewNotifier())
 	if setting.Service.EnableNotifyMail {
 		RegisterNotifier(mail.NewNotifier())
