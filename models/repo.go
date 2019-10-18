@@ -1486,6 +1486,13 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("update owner: %v", err)
 	}
 
+	// Update pull request headusername
+	if _, err := sess.Where("head_repo_id = ?", repo.ID).Update(&PullRequest{
+		HeadUserName: newOwner.LowerName,
+	}); err != nil {
+		return fmt.Errorf("update pull request: %v", err)
+	}
+
 	// Remove redundant collaborators.
 	collaborators, err := repo.getCollaborators(sess)
 	if err != nil {
