@@ -272,7 +272,7 @@ func getMSTeamsIssuesPayload(p *api.IssuePayload) (*MSTeamsPayload, error) {
 	case api.HookIssueOpened:
 		title = fmt.Sprintf("[%s] Issue opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
-		color = yellowColor
+		color = orangeColor
 	case api.HookIssueClosed:
 		title = fmt.Sprintf("[%s] Issue closed: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		color = redColor
@@ -356,24 +356,37 @@ func getMSTeamsIssuesPayload(p *api.IssuePayload) (*MSTeamsPayload, error) {
 }
 
 func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload, error) {
-	title := fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title)
+	title := fmt.Sprintf("#%d: %s", p.Issue.Index, p.Issue.Title)
 	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, CommentHashTag(p.Comment.ID))
 	content := ""
 	var color int
 	switch p.Action {
 	case api.HookIssueCommentCreated:
-		title = "New comment: " + title
+		if p.IsPull {
+			title = "New comment on pull request " + title
+			color = greenColorLight
+		} else {
+			title = "New comment on issue " + title
+			color = orangeColorLight
+		}
 		content = p.Comment.Body
-		color = greenColor
 	case api.HookIssueCommentEdited:
-		title = "Comment edited: " + title
+		if p.IsPull {
+			title = "Comment edited on pull request " + title
+		} else {
+			title = "Comment edited on issue " + title
+		}
 		content = p.Comment.Body
 		color = yellowColor
 	case api.HookIssueCommentDeleted:
-		title = "Comment deleted: " + title
+		if p.IsPull {
+			title = "Comment deleted on pull request " + title
+		} else {
+			title = "Comment deleted on issue " + title
+		}
 		url = fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index)
 		content = p.Comment.Body
-		color = yellowColor
+		color = redColor
 	}
 
 	return &MSTeamsPayload{
@@ -422,11 +435,11 @@ func getMSTeamsPullRequestPayload(p *api.PullRequestPayload) (*MSTeamsPayload, e
 	case api.HookIssueOpened:
 		title = fmt.Sprintf("[%s] Pull request opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
-		color = yellowColor
+		color = greenColor
 	case api.HookIssueClosed:
 		if p.PullRequest.HasMerged {
 			title = fmt.Sprintf("[%s] Pull request merged: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-			color = greenColor
+			color = purpleColor
 		} else {
 			title = fmt.Sprintf("[%s] Pull request closed: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 			color = redColor
@@ -534,7 +547,7 @@ func getMSTeamsPullRequestApprovalPayload(p *api.PullRequestPayload, event HookE
 		case HookEventPullRequestRejected:
 			color = redColor
 		case HookEventPullRequestComment:
-			fallthrough
+			color = greyColor
 		default:
 			color = yellowColor
 		}

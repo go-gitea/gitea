@@ -433,7 +433,7 @@ func (p *PullRequestPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
 
-// ReviewPayload
+// ReviewPayload FIXME
 type ReviewPayload struct {
 	Type    string `json:"type"`
 	Content string `json:"content"`
