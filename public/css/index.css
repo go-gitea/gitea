@@ -701,9 +701,8 @@ i.icon.centerlock{top:1.5em}
 .repository .diff-file-box.file-content{clear:right}
 .repository .diff-file-box.file-content img{max-width:100%;padding:5px 5px 0 5px}
 .repository .diff-file-box.file-content img.emoji{padding:0}
-.repository .diff-stats{max-height:400px;overflow:auto;margin-bottom:5px}
-.repository .diff-stats ol{clear:both;padding-left:0;margin-top:5px;margin-bottom:28px}
-.repository .diff-stats ol li{list-style:none;padding-bottom:4px;margin-bottom:4px;border-bottom:1px dashed #ddd;padding-left:6px}
+.repository .diff-stats{clear:both;margin-bottom:5px;max-height:400px;overflow:auto;padding-left:0}
+.repository .diff-stats li{list-style:none;padding-bottom:4px;margin-bottom:4px;border-bottom:1px dashed #ddd;padding-left:6px}
 .repository .repo-search-result{padding-top:10px;padding-bottom:10px}
 .repository .repo-search-result .lines-num a{color:inherit}
 .repository.quickstart .guide .item{padding:1em}
