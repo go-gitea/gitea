@@ -110,6 +110,10 @@ func (pr *PullRequest) LoadAttributes() error {
 // LoadBaseRepo loads pull request base repository from database
 func (pr *PullRequest) LoadBaseRepo() error {
 	if pr.BaseRepo == nil {
+		if pr.HeadRepoID == pr.BaseRepoID && pr.HeadRepo != nil {
+			pr.BaseRepo = pr.HeadRepo
+			return nil
+		}
 		var repo Repository
 		if has, err := x.ID(pr.BaseRepoID).Get(&repo); err != nil {
 			return err
