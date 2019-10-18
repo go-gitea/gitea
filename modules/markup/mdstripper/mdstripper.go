@@ -13,7 +13,6 @@ import (
 
 // MarkdownStripper extends blackfriday.Renderer
 type MarkdownStripper struct {
-	renderer  blackfriday.Renderer
 	links     []string
 	coallesce bool
 	empty     bool
@@ -93,7 +92,7 @@ func (r *MarkdownStripper) RenderFooter(w io.Writer, ast *blackfriday.Node) {
 
 func (r *MarkdownStripper) doubleSpace(w io.Writer) {
 	if !r.empty {
-		w.Write([]byte{'\n'})
+		_, _ = w.Write([]byte{'\n'})
 	}
 }
 
@@ -102,7 +101,7 @@ func (r *MarkdownStripper) processString(w io.Writer, text []byte, coallesce boo
 	if !coallesce || !r.coallesce {
 		r.doubleSpace(w)
 	}
-	w.Write(text)
+	_, _ = w.Write(text)
 	r.coallesce = coallesce
 	r.empty = false
 }

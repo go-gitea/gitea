@@ -38,14 +38,14 @@ func escapeHTML(w io.Writer, s []byte) {
 	for end < len(s) {
 		escSeq := htmlEscaper[s[end]]
 		if escSeq != nil {
-			w.Write(s[start:end])
-			w.Write(escSeq)
+			_, _ = w.Write(s[start:end])
+			_, _ = w.Write(escSeq)
 			start = end + 1
 		}
 		end++
 	}
 	if start < len(s) && end <= len(s) {
-		w.Write(s[start:end])
+		_, _ = w.Write(s[start:end])
 	}
 }
 
@@ -78,13 +78,13 @@ func (r *Renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool
 		// Render link around image only if parent is not link already
 		if node.Parent != nil && node.Parent.Type != blackfriday.Link {
 			if entering {
-				w.Write([]byte(`<a href="`))
+				_, _ = w.Write([]byte(`<a href="`))
 				escapeHTML(w, link)
-				w.Write([]byte(`">`))
+				_, _ = w.Write([]byte(`">`))
 				return r.Renderer.RenderNode(w, node, entering)
 			}
 			s := r.Renderer.RenderNode(w, node, entering)
-			w.Write([]byte(`</a>`))
+			_, _ = w.Write([]byte(`</a>`))
 			return s
 		}
 		return r.Renderer.RenderNode(w, node, entering)
@@ -115,10 +115,10 @@ func (r *Renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool
 			text := node.Literal
 			switch {
 			case bytes.HasPrefix(text, []byte("[ ] ")):
-				w.Write([]byte(`<span class="ui fitted disabled checkbox"><input type="checkbox" disabled="disabled" /><label /></span>`))
+				_, _ = w.Write([]byte(`<span class="ui fitted disabled checkbox"><input type="checkbox" disabled="disabled" /><label /></span>`))
 				text = text[3:]
 			case bytes.HasPrefix(text, []byte("[x] ")):
-				w.Write([]byte(`<span class="ui checked fitted disabled checkbox"><input type="checkbox" checked="" disabled="disabled" /><label /></span>`))
+				_, _ = w.Write([]byte(`<span class="ui checked fitted disabled checkbox"><input type="checkbox" checked="" disabled="disabled" /><label /></span>`))
 				text = text[3:]
 			}
 			node.Literal = text
