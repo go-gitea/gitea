@@ -157,9 +157,9 @@ func SetEngine() (err error) {
 	// so use log file to instead print to stdout.
 	x.SetLogger(NewXORMLogger(setting.Database.LogSQL))
 	x.ShowSQL(setting.Database.LogSQL)
+	x.SetMaxOpenConns(setting.Database.MaxOpenConns)
 	x.SetMaxIdleConns(setting.Database.MaxIdleConns)
 	x.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
-	x.SetMaxOpenConns(setting.Database.MaxOpenConns)
 	return nil
 }
 
