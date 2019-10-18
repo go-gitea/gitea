@@ -24,7 +24,7 @@ func TestIssue_AddLabels(t *testing.T) {
 	}
 	for _, test := range tests {
 		assert.NoError(t, models.PrepareTestDatabase())
-		issue := models.AssertExistsAndLoadBean(t, &models.AccessMode{ID: test.issueID}).(*models.Issue)
+		issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: test.issueID}).(*models.Issue)
 		labels := make([]*models.Label, len(test.labelIDs))
 		for i, labelID := range test.labelIDs {
 			labels[i] = models.AssertExistsAndLoadBean(t, &models.Label{ID: labelID}).(*models.Label)
