@@ -33,42 +33,66 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 		return err
 	}
 
-	deleteList := make([]string, 0, len(users))
+	deleteList := make(map[string]struct{})
+	sessionOpCount := 0
 	for _, user := range users {
 		oldAvatar := user.Avatar
 		newAvatar := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%s", user.ID, user.Avatar))))
-
 		if _, err := os.Stat(filepath.Join(setting.AvatarUploadPath, oldAvatar)); err != nil {
 			continue
 		}
 
 		fr, err := os.Open(filepath.Join(setting.AvatarUploadPath, oldAvatar))
 		if err != nil {
-			return err
+			_ = commitSession(sess)
+			return fmt.Errorf("os.Open: %v", err)
 		}
 		defer fr.Close()
 
 		fw, err := os.Create(filepath.Join(setting.AvatarUploadPath, newAvatar))
 		if err != nil {
-			return err
+			_ = commitSession(sess)
+			return fmt.Errorf("os.Create: %v", err)
 		}
 		defer fw.Close()
 
 		if _, err := io.Copy(fw, fr); err != nil {
-			return err
+			_ = commitSession(sess)
+			return fmt.Errorf("io.Copy: %v", err)
 		}
 
 		user.Avatar = newAvatar
 		if _, err := sess.ID(user.ID).Update(&user); err != nil {
-			return err
+			return fmt.Errorf("user table update: %v", err)
 		}
 
-		deleteList = append(deleteList, filepath.Join(setting.AvatarUploadPath, oldAvatar))
-	}
-	for _, file := range deleteList {
-		if err := os.Remove(file); err != nil {
-			return err
+		deleteList[filepath.Join(setting.AvatarUploadPath, oldAvatar)] = struct{}{}
+
+		if sessionOpCount++; sessionOpCount >= 100 {
+			if err := commitSession(sess); err != nil {
+				return err
+			}
+			sessionOpCount = 0
+			if err := sess.Begin(); err != nil {
+				return err
+			}
 		}
 	}
-	return sess.Commit()
+	if err := commitSession(sess); err != nil {
+		return err
+	}
+	for file := range deleteList {
+		if err := os.Remove(file); err != nil {
+			return fmt.Errorf("os.Remove: %v", err)
+		}
+	}
+	return nil
+}
+
+func commitSession(sess *xorm.Session) error {
+	if err := sess.Commit(); err != nil {
+		_ = sess.Rollback()
+		return fmt.Errorf("db update: %v", err)
+	}
+	return nil
 }
