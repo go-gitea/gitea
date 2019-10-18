@@ -1825,11 +1825,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("delete repo redirect: %v", err)
 	}
 
-	if err := sess.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
