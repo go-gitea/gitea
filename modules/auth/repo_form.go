@@ -386,6 +386,15 @@ type CreateProjectForm struct {
 	BoardType models.ProjectBoardType
 }
 
+// UserCreateProjectForm is a from for creating an individual or organization
+// form.
+type UserCreateProjectForm struct {
+	Title     string `binding:"Required;MaxSize(50)"`
+	Content   string
+	BoardType models.ProjectBoardType
+	UID       int64 `binding:"Required"`
+}
+
 //    _____  .__.__                   __
 //   /     \ |__|  |   ____   _______/  |_  ____   ____   ____
 //  /  \ /  \|  |  | _/ __ \ /  ___/\   __\/  _ \ /    \_/ __ \

@@ -66,6 +66,11 @@
 						<i class="octicon octicon-organization"></i> {{.i18n.Tr "new_org"}}
 					</a>
 					{{end}}
+					{{ if .IsKanbanEnabled }}
+					<a class="item" href="{{AppSubUrl}}/projects/create">
+						<i class="octicon octicon-plus"></i> {{ .i18n.Tr "new_project" }}
+					</a>
+					{{ end }}
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 

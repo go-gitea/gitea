@@ -619,6 +619,19 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
 	}, reqSignIn)
 
+	m.Group("/projects", func() {
+		m.Get("/create", repo.CreateProject)
+		m.Post("/create", bindIgnErr(auth.UserCreateProjectForm{}), repo.CreateProjectPost)
+	}, repo.MustEnableProjects, func(ctx *context.Context) {
+
+		if err := ctx.User.GetOrganizations(true); err != nil {
+			ctx.ServerError("GetOrganizations", err)
+			return
+		}
+
+		ctx.Data["Orgs"] = ctx.User.Orgs
+	})
+
 	// ***** Release Attachment Download without Signin
 	m.Get("/:username/:reponame/releases/download/:vTag/:fileName", ignSignIn, context.RepoAssignment(), repo.MustBeNotEmpty, repo.RedirectDownload)
 

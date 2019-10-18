@@ -17,9 +17,10 @@ import (
 )
 
 const (
-	tplProjects     base.TplName = "repo/projects/list"
-	tplProjectsNew  base.TplName = "repo/projects/new"
-	tplProjectsView base.TplName = "repo/projects/view"
+	tplProjects           base.TplName = "repo/projects/list"
+	tplProjectsNew        base.TplName = "repo/projects/new"
+	tplProjectsView       base.TplName = "repo/projects/view"
+	tplGenericProjectsNew base.TplName = "user/project"
 
 	projectTemplateKey = "ProjectTemplate"
 )
@@ -31,9 +32,11 @@ func MustEnableProjects(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.CanRead(models.UnitTypeProjects) {
-		ctx.NotFound("MustEnableProjects", nil)
-		return
+	if ctx.Repo.Repository != nil {
+		if !ctx.Repo.CanRead(models.UnitTypeProjects) {
+			ctx.NotFound("MustEnableProjects", nil)
+			return
+		}
 	}
 }
 
@@ -402,4 +405,48 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"ok": true,
 	})
+}
+
+// CreateProject renders the generic project creation page
+func CreateProject(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
+	ctx.Data["ProjectTypes"] = models.GetProjectsConfig()
+
+	ctx.HTML(200, tplGenericProjectsNew)
+}
+
+// CreateProjectPost creates an individual and/or organization project
+func CreateProjectPost(ctx *context.Context, form auth.UserCreateProjectForm) {
+
+	user := checkContextUser(ctx, form.UID)
+	if ctx.Written() {
+		return
+	}
+
+	ctx.Data["ContextUser"] = user
+
+	if ctx.HasError() {
+		ctx.HTML(200, tplGenericProjectsNew)
+		return
+	}
+
+	var projectType = models.IndividualType
+	fmt.Println(user.IsOrganization())
+	if user.IsOrganization() {
+		projectType = models.OrganizationType
+	}
+
+	if err := models.NewProject(&models.Project{
+		Title:       form.Title,
+		Description: form.Content,
+		CreatorID:   user.ID,
+		BoardType:   form.BoardType,
+		Type:        projectType,
+	}); err != nil {
+		ctx.ServerError("NewProject", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
+	ctx.Redirect(setting.AppSubURL + "/")
 }
