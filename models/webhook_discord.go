@@ -413,7 +413,17 @@ func getDiscordPullRequestApprovalPayload(p *api.PullRequestPayload, meta *Disco
 
 		title = fmt.Sprintf("[%s] Pull request review %s: #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
-		color = warnColor
+
+		switch event {
+		case HookEventPullRequestApproved:
+			color = successColor
+		case HookEventPullRequestRejected:
+			color = failedColor
+		case HookEventPullRequestComment:
+			fallthrough
+		default:
+			color = warnColor
+		}
 	}
 
 	return &DiscordPayload{
