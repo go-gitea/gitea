@@ -66,7 +66,6 @@ type PullRequest struct {
 	HeadRepo        *Repository `xorm:"-"`
 	BaseRepoID      int64       `xorm:"INDEX"`
 	BaseRepo        *Repository `xorm:"-"`
-	HeadUserName    string
 	HeadBranch      string
 	BaseBranch      string
 	ProtectedBranch *ProtectedBranch `xorm:"-"`
@@ -77,6 +76,15 @@ type PullRequest struct {
 	MergerID       int64              `xorm:"INDEX"`
 	Merger         *User              `xorm:"-"`
 	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
+}
+
+// MustHeadUserName returns the HeadRepo's username if failed return blank
+func (pr *PullRequest) MustHeadUserName() string {
+	if err := pr.LoadHeadRepo(); err != nil {
+		log.Error("LoadHeadRepo: %v", err)
+		return ""
+	}
+	return pr.HeadRepo.MustOwnerName()
 }
 
 // Note: don't try to get Issue because will end up recursive querying.
@@ -102,6 +110,10 @@ func (pr *PullRequest) LoadAttributes() error {
 // LoadBaseRepo loads pull request base repository from database
 func (pr *PullRequest) LoadBaseRepo() error {
 	if pr.BaseRepo == nil {
+		if pr.HeadRepoID == pr.BaseRepoID && pr.HeadRepo != nil {
+			pr.BaseRepo = pr.HeadRepo
+			return nil
+		}
 		var repo Repository
 		if has, err := x.ID(pr.BaseRepoID).Get(&repo); err != nil {
 			return err
@@ -109,6 +121,24 @@ func (pr *PullRequest) LoadBaseRepo() error {
 			return ErrRepoNotExist{ID: pr.BaseRepoID}
 		}
 		pr.BaseRepo = &repo
+	}
+	return nil
+}
+
+// LoadHeadRepo loads pull request head repository from database
+func (pr *PullRequest) LoadHeadRepo() error {
+	if pr.HeadRepo == nil {
+		if pr.HeadRepoID == pr.BaseRepoID && pr.BaseRepo != nil {
+			pr.HeadRepo = pr.BaseRepo
+			return nil
+		}
+		var repo Repository
+		if has, err := x.ID(pr.HeadRepoID).Get(&repo); err != nil {
+			return err
+		} else if !has {
+			return ErrRepoNotExist{ID: pr.BaseRepoID}
+		}
+		pr.HeadRepo = &repo
 	}
 	return nil
 }
@@ -152,7 +182,7 @@ func (pr *PullRequest) GetDefaultMergeMessage() string {
 			return ""
 		}
 	}
-	return fmt.Sprintf("Merge branch '%s' of %s/%s into %s", pr.HeadBranch, pr.HeadUserName, pr.HeadRepo.Name, pr.BaseBranch)
+	return fmt.Sprintf("Merge branch '%s' of %s/%s into %s", pr.HeadBranch, pr.MustHeadUserName(), pr.HeadRepo.Name, pr.BaseBranch)
 }
 
 // GetDefaultSquashMessage returns default message used when squash and merging pull request
@@ -1070,18 +1100,6 @@ func (prs PullRequestList) invalidateCodeComments(e Engine, doer *User, repo *gi
 // InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
 func (prs PullRequestList) InvalidateCodeComments(doer *User, repo *git.Repository, branch string) error {
 	return prs.invalidateCodeComments(x, doer, repo, branch)
-}
-
-// ChangeUsernameInPullRequests changes the name of head_user_name
-func ChangeUsernameInPullRequests(oldUserName, newUserName string) error {
-	pr := PullRequest{
-		HeadUserName: strings.ToLower(newUserName),
-	}
-	_, err := x.
-		Cols("head_user_name").
-		Where("head_user_name = ?", strings.ToLower(oldUserName)).
-		Update(pr)
-	return err
 }
 
 // checkAndUpdateStatus checks if pull request is possible to leaving checking status,
