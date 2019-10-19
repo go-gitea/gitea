@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -63,7 +64,13 @@ func Projects(ctx *context.Context) {
 		total = int(repo.NumClosedProjects)
 	}
 
-	projects, err := models.GetProjects(repo.ID, page, isShowClosed, sortType)
+	projects, err := models.GetProjects(models.ProjectSearchOptions{
+		RepoID:   repo.ID,
+		Page:     page,
+		IsClosed: util.OptionalBoolOf(isShowClosed),
+		SortType: sortType,
+		Type:     models.RepositoryType,
+	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
 		return

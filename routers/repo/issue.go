@@ -351,13 +351,23 @@ func retrieveProjects(ctx *context.Context, repo *models.Repository) {
 
 	var err error
 
-	ctx.Data["OpenProjects"], err = models.GetProjects(repo.ID, -1, false, "")
+	ctx.Data["OpenProjects"], err = models.GetProjects(models.ProjectSearchOptions{
+		RepoID:   repo.ID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolTrue,
+		Type:     models.RepositoryType,
+	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
 		return
 	}
 
-	ctx.Data["ClosedProjects"], err = models.GetProjects(repo.ID, -1, true, "")
+	ctx.Data["ClosedProjects"], err = models.GetProjects(models.ProjectSearchOptions{
+		RepoID:   repo.ID,
+		Page:     -1,
+		IsClosed: util.OptionalBoolFalse,
+		Type:     models.RepositoryType,
+	})
 	if err != nil {
 		ctx.ServerError("GetProjects", err)
 		return

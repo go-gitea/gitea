@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 )
@@ -128,7 +129,7 @@ func (p *Project) AfterLoad() {
 type ProjectSearchOptions struct {
 	RepoID   int64
 	Page     int
-	IsClosed bool
+	IsClosed util.OptionalBool
 	SortType string
 	Type     ProjectType
 }
@@ -138,7 +139,26 @@ type ProjectSearchOptions struct {
 func GetProjects(opts ProjectSearchOptions) ([]*Project, error) {
 
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
-	sess := x.Where("repo_id = ? AND is_closed = ? AND type = ?", opts.RepoID, opts.IsClosed, opts.Type)
+
+	sess := x.Where("repo_id = ?", opts.RepoID)
+	switch opts.IsClosed {
+	case util.OptionalBoolTrue:
+		sess = sess.Where("is_closed = ?", true)
+	case util.OptionalBoolFalse:
+		sess = sess.Where("is_closed = ?", false)
+	}
+
+	switch opts.Type {
+	case RepositoryType:
+		sess = sess.Where("type = ?", opts.Type)
+
+	case IndividualType:
+		sess = sess.Where("type = ?", opts.Type)
+
+	case OrganizationType:
+		sess = sess.Where("type = ?", opts.Type)
+	}
+
 	if opts.Page > 0 {
 		sess = sess.Limit(setting.UI.IssuePagingNum, (opts.Page-1)*setting.UI.IssuePagingNum)
 	}

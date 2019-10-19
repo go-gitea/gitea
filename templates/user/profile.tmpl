@@ -104,6 +104,11 @@
 					<a class='{{if eq .TabName "stars"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=stars">
 						<i class="octicon octicon-star"></i> {{.i18n.Tr "user.starred"}}
 					</a>
+					{{ if .IsKanbanEnabled }}
+					<a class='{{if eq .TabName "projects"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=projects">
+						<i class="octicon octicon-repo"></i> {{.i18n.Tr "user.projects"}}
+					</a>
+					{{ end }}
 				</div>
 
 				{{if eq .TabName "activity"}}
