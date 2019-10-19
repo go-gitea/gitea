@@ -256,6 +256,8 @@ var migrations = []Migration{
 	NewMigration("add task table and status column for repository table", addTaskTable),
 	// v100 -> v101
 	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
+	// v101 -> v102
+	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
 }
 
 // Migrate database to current version
