@@ -190,3 +190,19 @@ func TestGetContentsOrListErrors(t *testing.T) {
 		assert.Nil(t, fileContentResponse)
 	})
 }
+
+func TestGetContentsOrListOfEmptyRepos(t *testing.T) {
+	models.PrepareTestEnv(t)
+	ctx := test.MockContext(t, "user2/repo15")
+	ctx.SetParams(":id", "15")
+	test.LoadRepo(t, ctx, 15)
+	test.LoadUser(t, ctx, 2)
+	test.LoadGitRepo(t, ctx)
+	repo := ctx.Repo.Repository
+
+	t.Run("empty repo", func(t *testing.T) {
+		contents, err := GetContentsOrList(repo, "", "")
+		assert.NoError(t, err)
+		assert.Empty(t, contents)
+	})
+}
