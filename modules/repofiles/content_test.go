@@ -196,7 +196,6 @@ func TestGetContentsOrListOfEmptyRepos(t *testing.T) {
 	ctx := test.MockContext(t, "user2/repo15")
 	ctx.SetParams(":id", "15")
 	test.LoadRepo(t, ctx, 15)
-	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
 	repo := ctx.Repo.Repository
