@@ -193,6 +193,7 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 		if f.RequiredApprovals < 0 {
 			ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_approvals_min"))
 			ctx.Redirect(fmt.Sprintf("%s/settings/branches/%s", ctx.Repo.RepoLink, branch))
+			return
 		}
 
 		var whitelistUsers, whitelistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams []int64
@@ -213,6 +214,7 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 
 		protectBranch.EnableStatusCheck = f.EnableStatusCheck
 		protectBranch.StatusCheckContexts = f.StatusCheckContexts
+		protectBranch.RequireSignedCommits = f.RequireSignedCommits
 
 		protectBranch.RequiredApprovals = f.RequiredApprovals
 		if strings.TrimSpace(f.ApprovalsWhitelistUsers) != "" {

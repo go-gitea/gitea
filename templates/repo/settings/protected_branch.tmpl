@@ -137,6 +137,14 @@
 					</div>
 
 					<div class="field">
+						<div class="ui checkbox">
+							<input class="require-signedcommits" name="require_signed_commits" type="checkbox" {{if .Branch.RequireSignedCommits}}checked{{end}}>
+							<label>{{.i18n.Tr "repo.settings.requrie_signed_commits"}}</label>
+							<p class="help">{{.i18n.Tr "repo.settings.requrie_signed_commits_desc"}}</p>
+						</div>
+					</div>
+
+					<div class="field">
 						<label for="required-approvals">{{.i18n.Tr "repo.settings.protect_required_approvals"}}</label>
 						<input name="required_approvals" id="required-approvals" type="number" value="{{.Branch.RequiredApprovals}}">
 						<p class="help">{{.i18n.Tr "repo.settings.protect_required_approvals_desc"}}</p>

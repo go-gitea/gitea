@@ -6,6 +6,7 @@
 package private
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"os"
@@ -118,6 +119,48 @@ func HookPreReceive(ctx *macaron.Context) {
 				"err": fmt.Sprintf("protected branch %s can not be pushed to", branchName),
 			})
 			return
+		}
+
+		// check signed commits
+		if protectBranch.RequireSignedCommits {
+			gitRepo, err := git.OpenRepository(repo.RepoPath())
+			if err != nil {
+				log.Error("Unable to find the git repository %s/%s: %v", ownerName, repoName, err)
+				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"err": fmt.Sprintf("Unable to find the git repository %s/%s", ownerName, repoName),
+				})
+				return
+			}
+
+			stdout, err := git.NewCommand("rev-list", oldCommitID+"..."+newCommitID).RunInDirBytes(repo.RepoPath())
+			if err != nil {
+				log.Error("Unable to get commit via id %v : %v", newCommitID, err)
+				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"err": fmt.Sprintf("Unable to get commit via id %v", newCommitID),
+				})
+				return
+			}
+
+			parts := bytes.Split(stdout, []byte{'\n'})
+			for _, commitID := range parts {
+				commit, err := gitRepo.GetCommit(string(commitID))
+				if err != nil {
+					log.Error("Unable to get commit via id %v : %v", newCommitID, err)
+					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+						"err": fmt.Sprintf("Unable to get commit via id %v", newCommitID),
+					})
+					return
+				}
+
+				v := models.ParseCommitWithSignature(commit)
+				if !v.Verified {
+					log.Warn("protected branch %s require signed commits, but %v isn't signed", branchName, commit.ID)
+					ctx.JSON(http.StatusForbidden, map[string]interface{}{
+						"err": fmt.Sprintf("protected branch %s require signed commits, but %v isn't signed", branchName, commit.ID),
+					})
+					return
+				}
+			}
 		}
 	}
 	ctx.PlainText(http.StatusOK, []byte("ok"))

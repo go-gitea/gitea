@@ -41,6 +41,7 @@ type ProtectedBranch struct {
 	ApprovalsWhitelistUserIDs []int64            `xorm:"JSON TEXT"`
 	ApprovalsWhitelistTeamIDs []int64            `xorm:"JSON TEXT"`
 	RequiredApprovals         int64              `xorm:"NOT NULL DEFAULT 0"`
+	RequireSignedCommits      bool               `xorm:"NOT NULL DEFAULT false"`
 	CreatedUnix               timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix               timeutil.TimeStamp `xorm:"updated"`
 }
