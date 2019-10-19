@@ -183,21 +183,35 @@ func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
 }
 
 func getDingtalkIssueCommentPayload(p *api.IssueCommentPayload) (*DingtalkPayload, error) {
-	title := fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title)
+	title := fmt.Sprintf("#%d: %s", p.Issue.Index, p.Issue.Title)
 	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, CommentHashTag(p.Comment.ID))
 	var content string
 	switch p.Action {
 	case api.HookIssueCommentCreated:
-		title = "New comment: " + title
+		if p.IsPull {
+			title = "New comment on pull request " + title
+		} else {
+			title = "New comment on issue " + title
+		}
 		content = p.Comment.Body
 	case api.HookIssueCommentEdited:
-		title = "Comment edited: " + title
+		if p.IsPull {
+			title = "Comment edited on pull request " + title
+		} else {
+			title = "Comment edited on issue " + title
+		}
 		content = p.Comment.Body
 	case api.HookIssueCommentDeleted:
-		title = "Comment deleted: " + title
+		if p.IsPull {
+			title = "Comment deleted on pull request " + title
+		} else {
+			title = "Comment deleted on issue " + title
+		}
 		url = fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index)
 		content = p.Comment.Body
 	}
+
+	title = fmt.Sprintf("[%s] %s", p.Repository.FullName, title)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
@@ -282,7 +296,7 @@ func getDingtalkPullRequestApprovalPayload(p *api.PullRequestPayload, event Hook
 		}
 
 		title = fmt.Sprintf("[%s] Pull request review %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
+		text = p.Review.Content
 
 	}
 

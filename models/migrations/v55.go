@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func addModeToDeploKeys(x *xorm.Engine) error {
