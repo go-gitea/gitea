@@ -20,9 +20,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/user"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"gopkg.in/ini.v1"
+	"xorm.io/xorm"
 )
 
 const (
