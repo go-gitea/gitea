@@ -71,7 +71,7 @@ type Label struct {
 	IsChecked       bool `xorm:"-"`
 	QueryString     string
 	IsSelected      bool
-	IsExcluded      bool
+	IsExcluded      bool `xorm:"-"`
 }
 
 // APIFormat converts a Label to the api.Label format
