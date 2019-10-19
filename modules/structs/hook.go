@@ -236,6 +236,7 @@ type IssueCommentPayload struct {
 	Changes    *ChangesPayload        `json:"changes,omitempty"`
 	Repository *Repository            `json:"repository"`
 	Sender     *User                  `json:"sender"`
+	IsPull     bool                   `json:"is_pull"`
 }
 
 // SetSecret modifies the secret of the IssueCommentPayload
@@ -419,6 +420,7 @@ type PullRequestPayload struct {
 	PullRequest *PullRequest    `json:"pull_request"`
 	Repository  *Repository     `json:"repository"`
 	Sender      *User           `json:"sender"`
+	Review      *ReviewPayload  `json:"review"`
 }
 
 // SetSecret modifies the secret of the PullRequestPayload.
@@ -429,6 +431,12 @@ func (p *PullRequestPayload) SetSecret(secret string) {
 // JSONPayload FIXME
 func (p *PullRequestPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
+}
+
+// ReviewPayload FIXME
+type ReviewPayload struct {
+	Type    string `json:"type"`
+	Content string `json:"content"`
 }
 
 //__________                           .__  __

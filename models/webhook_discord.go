@@ -75,9 +75,14 @@ func color(clr string) int {
 }
 
 var (
-	successColor = color("1ac600")
-	warnColor    = color("ffd930")
-	failedColor  = color("ff3232")
+	greenColor       = color("1ac600")
+	greenColorLight  = color("bfe5bf")
+	yellowColor      = color("ffd930")
+	greyColor        = color("4f545c")
+	purpleColor      = color("7289da")
+	orangeColor      = color("eb6420")
+	orangeColorLight = color("e68d60")
+	redColor         = color("ff3232")
 )
 
 // SetSecret sets the discord secret
@@ -104,7 +109,7 @@ func getDiscordCreatePayload(p *api.CreatePayload, meta *DiscordMeta) (*DiscordP
 			{
 				Title: title,
 				URL:   p.Repo.HTMLURL + "/src/" + refName,
-				Color: successColor,
+				Color: greenColor,
 				Author: DiscordEmbedAuthor{
 					Name:    p.Sender.UserName,
 					URL:     setting.AppURL + p.Sender.UserName,
@@ -127,7 +132,7 @@ func getDiscordDeletePayload(p *api.DeletePayload, meta *DiscordMeta) (*DiscordP
 			{
 				Title: title,
 				URL:   p.Repo.HTMLURL + "/src/" + refName,
-				Color: warnColor,
+				Color: redColor,
 				Author: DiscordEmbedAuthor{
 					Name:    p.Sender.UserName,
 					URL:     setting.AppURL + p.Sender.UserName,
@@ -149,7 +154,7 @@ func getDiscordForkPayload(p *api.ForkPayload, meta *DiscordMeta) (*DiscordPaylo
 			{
 				Title: title,
 				URL:   p.Repo.HTMLURL,
-				Color: successColor,
+				Color: greenColor,
 				Author: DiscordEmbedAuthor{
 					Name:    p.Sender.UserName,
 					URL:     setting.AppURL + p.Sender.UserName,
@@ -199,7 +204,7 @@ func getDiscordPushPayload(p *api.PushPayload, meta *DiscordMeta) (*DiscordPaylo
 				Title:       title,
 				Description: text,
 				URL:         titleLink,
-				Color:       successColor,
+				Color:       greenColor,
 				Author: DiscordEmbedAuthor{
 					Name:    p.Sender.UserName,
 					URL:     setting.AppURL + p.Sender.UserName,
@@ -218,48 +223,48 @@ func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPa
 	case api.HookIssueOpened:
 		title = fmt.Sprintf("[%s] Issue opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
-		color = warnColor
+		color = orangeColor
 	case api.HookIssueClosed:
 		title = fmt.Sprintf("[%s] Issue closed: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		color = failedColor
+		color = redColor
 		text = p.Issue.Body
 	case api.HookIssueReOpened:
 		title = fmt.Sprintf("[%s] Issue re-opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueEdited:
 		title = fmt.Sprintf("[%s] Issue edited: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueAssigned:
 		title = fmt.Sprintf("[%s] Issue assigned to %s: #%d %s", p.Repository.FullName,
 			p.Issue.Assignee.UserName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
-		color = successColor
+		color = greenColor
 	case api.HookIssueUnassigned:
 		title = fmt.Sprintf("[%s] Issue unassigned: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueLabelUpdated:
 		title = fmt.Sprintf("[%s] Issue labels updated: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueLabelCleared:
 		title = fmt.Sprintf("[%s] Issue labels cleared: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueSynchronized:
 		title = fmt.Sprintf("[%s] Issue synchronized: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueMilestoned:
 		title = fmt.Sprintf("[%s] Issue milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueDemilestoned:
 		title = fmt.Sprintf("[%s] Issue clear milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
-		color = warnColor
+		color = yellowColor
 	}
 
 	return &DiscordPayload{
@@ -282,25 +287,40 @@ func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPa
 }
 
 func getDiscordIssueCommentPayload(p *api.IssueCommentPayload, discord *DiscordMeta) (*DiscordPayload, error) {
-	title := fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title)
+	title := fmt.Sprintf("#%d: %s", p.Issue.Index, p.Issue.Title)
 	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, CommentHashTag(p.Comment.ID))
 	content := ""
 	var color int
 	switch p.Action {
 	case api.HookIssueCommentCreated:
-		title = "New comment: " + title
+		if p.IsPull {
+			title = "New comment on pull request " + title
+			color = greenColorLight
+		} else {
+			title = "New comment on issue " + title
+			color = orangeColorLight
+		}
 		content = p.Comment.Body
-		color = successColor
 	case api.HookIssueCommentEdited:
-		title = "Comment edited: " + title
+		if p.IsPull {
+			title = "Comment edited on pull request " + title
+		} else {
+			title = "Comment edited on issue " + title
+		}
 		content = p.Comment.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueCommentDeleted:
-		title = "Comment deleted: " + title
+		if p.IsPull {
+			title = "Comment deleted on pull request " + title
+		} else {
+			title = "Comment deleted on issue " + title
+		}
 		url = fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index)
 		content = p.Comment.Body
-		color = warnColor
+		color = redColor
 	}
+
+	title = fmt.Sprintf("[%s] %s", p.Repository.FullName, title)
 
 	return &DiscordPayload{
 		Username:  discord.Username,
@@ -328,24 +348,24 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 	case api.HookIssueOpened:
 		title = fmt.Sprintf("[%s] Pull request opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
-		color = warnColor
+		color = greenColor
 	case api.HookIssueClosed:
 		if p.PullRequest.HasMerged {
 			title = fmt.Sprintf("[%s] Pull request merged: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-			color = successColor
+			color = purpleColor
 		} else {
 			title = fmt.Sprintf("[%s] Pull request closed: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-			color = failedColor
+			color = redColor
 		}
 		text = p.PullRequest.Body
 	case api.HookIssueReOpened:
 		title = fmt.Sprintf("[%s] Pull request re-opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueEdited:
 		title = fmt.Sprintf("[%s] Pull request edited: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueAssigned:
 		list := make([]string, len(p.PullRequest.Assignees))
 		for i, user := range p.PullRequest.Assignees {
@@ -355,31 +375,31 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 			strings.Join(list, ", "),
 			p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
-		color = successColor
+		color = greenColor
 	case api.HookIssueUnassigned:
 		title = fmt.Sprintf("[%s] Pull request unassigned: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueLabelUpdated:
 		title = fmt.Sprintf("[%s] Pull request labels updated: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueLabelCleared:
 		title = fmt.Sprintf("[%s] Pull request labels cleared: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueSynchronized:
 		title = fmt.Sprintf("[%s] Pull request synchronized: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueMilestoned:
 		title = fmt.Sprintf("[%s] Pull request milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
-		color = warnColor
+		color = yellowColor
 	case api.HookIssueDemilestoned:
 		title = fmt.Sprintf("[%s] Pull request clear milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
-		color = warnColor
+		color = yellowColor
 	}
 
 	return &DiscordPayload{
@@ -412,8 +432,18 @@ func getDiscordPullRequestApprovalPayload(p *api.PullRequestPayload, meta *Disco
 		}
 
 		title = fmt.Sprintf("[%s] Pull request review %s: #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-		color = warnColor
+		text = p.Review.Content
+
+		switch event {
+		case HookEventPullRequestApproved:
+			color = greenColor
+		case HookEventPullRequestRejected:
+			color = redColor
+		case HookEventPullRequestComment:
+			color = greyColor
+		default:
+			color = yellowColor
+		}
 	}
 
 	return &DiscordPayload{
@@ -442,10 +472,10 @@ func getDiscordRepositoryPayload(p *api.RepositoryPayload, meta *DiscordMeta) (*
 	case api.HookRepoCreated:
 		title = fmt.Sprintf("[%s] Repository created", p.Repository.FullName)
 		url = p.Repository.HTMLURL
-		color = successColor
+		color = greenColor
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)
-		color = warnColor
+		color = redColor
 	}
 
 	return &DiscordPayload{
@@ -473,15 +503,15 @@ func getDiscordReleasePayload(p *api.ReleasePayload, meta *DiscordMeta) (*Discor
 	case api.HookReleasePublished:
 		title = fmt.Sprintf("[%s] Release created", p.Release.TagName)
 		url = p.Release.URL
-		color = successColor
+		color = greenColor
 	case api.HookReleaseUpdated:
 		title = fmt.Sprintf("[%s] Release updated", p.Release.TagName)
 		url = p.Release.URL
-		color = successColor
+		color = yellowColor
 	case api.HookReleaseDeleted:
 		title = fmt.Sprintf("[%s] Release deleted", p.Release.TagName)
 		url = p.Release.URL
-		color = successColor
+		color = redColor
 	}
 
 	return &DiscordPayload{

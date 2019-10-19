@@ -38,6 +38,7 @@ func CreateIssueComment(doer *models.User, repo *models.Repository, issue *model
 		Comment:    comment.APIFormat(),
 		Repository: repo.APIFormat(mode),
 		Sender:     doer.APIFormat(),
+		IsPull:     issue.IsPull,
 	}); err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
 	} else {
@@ -128,6 +129,7 @@ func UpdateComment(c *models.Comment, doer *models.User, oldContent string) erro
 		},
 		Repository: c.Issue.Repo.APIFormat(mode),
 		Sender:     doer.APIFormat(),
+		IsPull:     c.Issue.IsPull,
 	}); err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
 	} else {
@@ -162,6 +164,7 @@ func DeleteComment(comment *models.Comment, doer *models.User) error {
 		Comment:    comment.APIFormat(),
 		Repository: comment.Issue.Repo.APIFormat(mode),
 		Sender:     doer.APIFormat(),
+		IsPull:     comment.Issue.IsPull,
 	}); err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
 	} else {
