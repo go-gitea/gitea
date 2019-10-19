@@ -55,13 +55,16 @@ func reviewHook(review *models.Review) error {
 	if err != nil {
 		return err
 	}
-
 	if err := models.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
 		Index:       review.Issue.Index,
 		PullRequest: pr.APIFormat(),
 		Repository:  review.Issue.Repo.APIFormat(mode),
 		Sender:      review.Reviewer.APIFormat(),
+		Review: &api.ReviewPayload{
+			Type:    string(reviewHookType),
+			Content: review.Content,
+		},
 	}); err != nil {
 		return err
 	}
