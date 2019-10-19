@@ -7,7 +7,7 @@ package migrations
 import (
 	"code.gitea.io/gitea/models"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func regenerateGitHooks36(x *xorm.Engine) (err error) {

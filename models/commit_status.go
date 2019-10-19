@@ -16,7 +16,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 // CommitStatusState holds the state of a Status

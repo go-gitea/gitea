@@ -1,0 +1,5 @@
+project(editorconfig-core-go)
+cmake_minimum_required(VERSION 3.14)
+enable_testing()
+set(EDITORCONFIG_CMD ${CMAKE_CURRENT_LIST_DIR}/editorconfig)
+add_subdirectory(core-test)

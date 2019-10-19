@@ -11,8 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // Reaction represents a reactions on issues and comments.
