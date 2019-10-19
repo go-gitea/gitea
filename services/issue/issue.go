@@ -167,16 +167,8 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *models.User, assigneeID
 		if err != nil {
 			return err
 		}
-		if assignee.IsOrganization() {
-			return fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", assigneeID, issue.RepoID)
-		}
-		var valid bool
-		if issue.IsPull {
-			valid, err = models.CanBeAssignedPullRequests(assignee, issue.Repo)
-		} else {
-			valid, err = models.CanBeAssignedIssues(assignee, issue.Repo)
-		}
 
+		valid, err := models.CanBeAssigned(assignee, issue.Repo, issue.IsPull)
 		if err != nil {
 			return err
 		}

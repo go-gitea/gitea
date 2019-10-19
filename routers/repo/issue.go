@@ -503,21 +503,21 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 			return nil, nil, 0
 		}
 
-		// Check if the passed assignees actually exists and has write access to the repo
+		// Check if the passed assignees actually exists and is assignable
 		for _, aID := range assigneeIDs {
-			user, err := models.GetUserByID(aID)
+			assignee, err := models.GetUserByID(aID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
 				return nil, nil, 0
 			}
 
-			perm, err := models.GetUserRepoPermission(repo, user)
+			valid, err := models.CanBeAssigned(assignee, repo, isPull)
 			if err != nil {
-				ctx.ServerError("GetUserRepoPermission", err)
+				ctx.ServerError("canBeAssigned", err)
 				return nil, nil, 0
 			}
-			if !perm.CanWriteIssuesOrPulls(isPull) {
-				ctx.ServerError("CanWriteIssuesOrPulls", fmt.Errorf("No permission for %s", user.Name))
+			if !valid {
+				ctx.ServerError("canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
 				return nil, nil, 0
 			}
 		}
@@ -1140,17 +1140,8 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				ctx.ServerError("GetUserByID", err)
 				return
 			}
-			if assignee.IsOrganization() {
-				ctx.ServerError("assignee.IsOrganization", fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", assigneeID, issue.RepoID))
-				return
-			}
-			var valid bool
-			if issue.IsPull {
-				valid, err = models.CanBeAssignedPullRequests(assignee, issue.Repo)
-			} else {
-				valid, err = models.CanBeAssignedIssues(assignee, issue.Repo)
-			}
 
+			valid, err := models.CanBeAssigned(assignee, issue.Repo, issue.IsPull)
 			if err != nil {
 				ctx.ServerError("canBeAssigned", err)
 				return
