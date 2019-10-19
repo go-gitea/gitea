@@ -58,7 +58,11 @@ func getAssigneesByIssue(e Engine, issue *Issue) (assignees []*User, err error) 
 
 // IsUserAssignedToIssue returns true when the user is assigned to the issue
 func IsUserAssignedToIssue(issue *Issue, user *User) (isAssigned bool, err error) {
-	isAssigned, err = x.Exist(&IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
+	return isUserAssignedToIssue(x, issue, user)
+}
+
+func isUserAssignedToIssue(e Engine, issue *Issue, user *User) (isAssigned bool, err error) {
+	isAssigned, err = e.Get(&IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
 	return
 }
 
@@ -78,7 +82,7 @@ func DeleteNotPassedAssignee(issue *Issue, doer *User, assignees []*User) (err e
 
 		if !found {
 			// This function also does comments and hooks, which is why we call it seperatly instead of directly removing the assignees here
-			if err := UpdateAssignee(issue, doer, assignee.ID); err != nil {
+			if _, _, err := issue.ToggleAssignee(doer, assignee.ID); err != nil {
 				return err
 			}
 		}
@@ -110,14 +114,8 @@ func clearAssigneeByUserID(sess *xorm.Session, userID int64) (err error) {
 	return
 }
 
-// UpdateAssignee deletes or adds an assignee to an issue
-func UpdateAssignee(issue *Issue, doer *User, assigneeID int64) (err error) {
-	_, _, err = issue.ChangeAssignee(doer, assigneeID)
-	return err
-}
-
-// ChangeAssignee changes the Assignee of this issue.
-func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (removed bool, comment *Comment, err error) {
+// ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
+func (issue *Issue) ToggleAssignee(doer *User, assigneeID int64) (removed bool, comment *Comment, err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -125,7 +123,7 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (removed bool, 
 		return false, nil, err
 	}
 
-	removed, comment, err = issue.changeAssignee(sess, doer, assigneeID, false)
+	removed, comment, err = issue.toggleAssignee(sess, doer, assigneeID, false)
 	if err != nil {
 		return false, nil, err
 	}
@@ -139,9 +137,8 @@ func (issue *Issue) ChangeAssignee(doer *User, assigneeID int64) (removed bool, 
 	return removed, comment, nil
 }
 
-func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID int64, isCreate bool) (removed bool, comment *Comment, err error) {
-	// Update the assignee
-	removed, err = updateIssueAssignee(sess, issue, assigneeID)
+func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID int64, isCreate bool) (removed bool, comment *Comment, err error) {
+	removed, err = toggleUserAssignee(sess, issue, assigneeID)
 	if err != nil {
 		return false, nil, fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
 	}
@@ -180,6 +177,7 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 		} else {
 			apiPullRequest.Action = api.HookIssueAssigned
 		}
+		// Assignee comment triggers a webhook
 		if err := prepareWebhooks(sess, issue.Repo, HookEventPullRequest, apiPullRequest); err != nil {
 			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
 			return false, nil, err
@@ -198,12 +196,50 @@ func (issue *Issue) changeAssignee(sess *xorm.Session, doer *User, assigneeID in
 		} else {
 			apiIssue.Action = api.HookIssueAssigned
 		}
+		// Assignee comment triggers a webhook
 		if err := prepareWebhooks(sess, issue.Repo, HookEventIssues, apiIssue); err != nil {
 			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
 			return false, nil, err
 		}
 	}
 	return removed, comment, nil
+}
+
+// toggles user assignee state in database
+func toggleUserAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (removed bool, err error) {
+
+	// Check if the user exists
+	assignee, err := getUserByID(e, assigneeID)
+	if err != nil {
+		return false, err
+	}
+
+	// Check if the submitted user is already assigne, if yes delete him otherwise add him
+	var i int
+	for i = 0; i < len(issue.Assignees); i++ {
+		if issue.Assignees[i].ID == assigneeID {
+			break
+		}
+	}
+
+	assigneeIn := IssueAssignees{AssigneeID: assigneeID, IssueID: issue.ID}
+
+	toBeDeleted := i < len(issue.Assignees)
+	if toBeDeleted {
+		issue.Assignees = append(issue.Assignees[:i], issue.Assignees[i:]...)
+		_, err = e.Delete(assigneeIn)
+		if err != nil {
+			return toBeDeleted, err
+		}
+	} else {
+		issue.Assignees = append(issue.Assignees, assignee)
+		_, err = e.Insert(assigneeIn)
+		if err != nil {
+			return toBeDeleted, err
+		}
+	}
+
+	return toBeDeleted, nil
 }
 
 // MakeIDsFromAPIAssigneesToAdd returns an array with all assignee IDs

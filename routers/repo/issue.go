@@ -1151,9 +1151,9 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 
-			removed, comment, err := issue.ChangeAssignee(ctx.User, assigneeID)
+			removed, comment, err := issue.ToggleAssignee(ctx.User, assigneeID)
 			if err != nil {
-				ctx.ServerError("ChangeAssignee", err)
+				ctx.ServerError("ToggleAssignee", err)
 				return
 			}
 

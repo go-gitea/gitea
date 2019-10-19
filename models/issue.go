@@ -1005,7 +1005,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	// Milestone and assignee validation should happen before insert actual object.
+	// Milestone validation should happen before insert actual object.
 	if _, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
 		Where("repo_id=?", opts.Issue.RepoID).
 		Insert(opts.Issue); err != nil {

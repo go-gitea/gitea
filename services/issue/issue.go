@@ -156,33 +156,36 @@ func UpdateAssignees(issue *models.Issue, oneAssignee string, multipleAssignees 
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
 // Also checks for access of assigned user
 func AddAssigneeIfNotAssigned(issue *models.Issue, doer *models.User, assigneeID int64) (err error) {
-	// Check if the user is already assigned
-	isAssigned, err := models.IsUserAssignedToIssue(issue, &models.User{ID: assigneeID})
+	assignee, err := models.GetUserByID(assigneeID)
 	if err != nil {
 		return err
 	}
 
-	if !isAssigned {
-		assignee, err := models.GetUserByID(assigneeID)
-		if err != nil {
-			return err
-		}
-
-		valid, err := models.CanBeAssigned(assignee, issue.Repo, issue.IsPull)
-		if err != nil {
-			return err
-		}
-		if !valid {
-			return models.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name}
-		}
-
-		removed, comment, err := issue.ChangeAssignee(doer, assigneeID)
-		if err != nil {
-			return err
-		}
-
-		notification.NotifyIssueChangeAssignee(doer, issue, assignee, removed, comment)
+	// Check if the user is already assigned
+	isAssigned, err := models.IsUserAssignedToIssue(issue, assignee)
+	if err != nil {
+		return err
 	}
+	if isAssigned {
+		// nothing to to
+		return nil
+	}
+
+	valid, err := models.CanBeAssigned(assignee, issue.Repo, issue.IsPull)
+	if err != nil {
+		return err
+	}
+	if !valid {
+		return models.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name}
+	}
+
+	removed, comment, err := issue.ToggleAssignee(doer, assigneeID)
+	if err != nil {
+		return err
+	}
+
+	notification.NotifyIssueChangeAssignee(doer, issue, assignee, removed, comment)
+
 	return nil
 }
 
