@@ -1,46 +1,48 @@
 # xorm
 
-[English](https://github.com/go-xorm/xorm/blob/master/README.md)
+[中文](https://gitea.com/xorm/xorm/src/branch/master/README_CN.md)
 
-xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作非常简便。
+Xorm is a simple and powerful ORM for Go.
 
-[![CircleCI](https://circleci.com/gh/go-xorm/xorm.svg?style=shield)](https://circleci.com/gh/go-xorm/xorm) [![codecov](https://codecov.io/gh/go-xorm/xorm/branch/master/graph/badge.svg)](https://codecov.io/gh/go-xorm/xorm)
-[![](https://goreportcard.com/badge/github.com/go-xorm/xorm)](https://goreportcard.com/report/github.com/go-xorm/xorm)
+[![Build Status](https://drone.gitea.com/api/badges/xorm/xorm/status.svg)](https://drone.gitea.com/xorm/xorm) [![](http://gocover.io/_badge/xorm.io/xorm)](https://gocover.io/xorm.io/xorm)
+[![](https://goreportcard.com/badge/xorm.io/xorm)](https://goreportcard.com/report/xorm.io/xorm)
 [![Join the chat at https://img.shields.io/discord/323460943201959939.svg](https://img.shields.io/discord/323460943201959939.svg)](https://discord.gg/HuR2CF3)
 
-## 特性
+## Features
 
-* 支持Struct和数据库表之间的灵活映射，并支持自动同步
+* Struct <-> Table Mapping Support
 
-* 事务支持
+* Chainable APIs
 
-* 同时支持原始SQL语句和ORM操作的混合执行
+* Transaction Support
 
-* 使用连写来简化调用
+* Both ORM and raw SQL operation Support
 
-* 支持使用Id, In, Where, Limit, Join, Having, Table, Sql, Cols等函数和结构体等方式作为条件
+* Sync database schema Support
 
-* 支持级联加载Struct
+* Query Cache speed up
 
-* Schema支持（仅Postgres）
+* Database Reverse support, See [Xorm Tool README](https://github.com/go-xorm/cmd/blob/master/README.md)
 
-* 支持缓存
+* Simple cascade loading support
 
-* 支持根据数据库自动生成xorm的结构体
+* Optimistic Locking support
 
-* 支持记录版本（即乐观锁）
+* SQL Builder support via [xorm.io/builder](https://xorm.io/builder)
 
-* 内置SQL Builder支持
+* Automatical Read/Write seperatelly
 
-* 上下文缓存支持
+* Postgres schema support
 
-## 驱动支持
+* Context Cache support
 
-目前支持的Go数据库驱动和对应的数据库如下：
+## Drivers Support
+
+Drivers for Go's sql package which currently support database/sql includes:
 
 * Mysql: [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
 
-* MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/godrv)
+* MyMysql: [github.com/ziutek/mymysql/godrv](https://github.com/ziutek/mymysql/tree/master/godrv)
 
 * Postgres: [github.com/lib/pq](https://github.com/lib/pq)
 
@@ -50,31 +52,27 @@ xorm是一个简单而强大的Go语言ORM库. 通过它可以使数据库操作
 
 * MsSql: [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
-* MsSql: [github.com/lunny/godbc](https://github.com/lunny/godbc)
+* Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (experiment)
 
-* Oracle: [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (试验性支持)
+## Installation
 
-## 安装
+	go get xorm.io/xorm
 
-	go get github.com/go-xorm/xorm
+## Documents
 
-## 文档
+* [Manual](http://xorm.io/docs)
 
-* [操作指南](http://xorm.io/docs)
+* [GoDoc](http://godoc.org/xorm.io/xorm)
 
-* [GoWalker代码文档](http://gowalker.org/github.com/go-xorm/xorm)
+## Quick Start
 
-* [Godoc代码文档](http://godoc.org/github.com/go-xorm/xorm)
-
-# 快速开始
-
-* 第一步创建引擎，driverName, dataSourceName和database/sql接口相同
+* Create Engine
 
 ```Go
 engine, err := xorm.NewEngine(driverName, dataSourceName)
 ```
 
-* 定义一个和表同步的结构体，并且自动同步结构体到数据库
+* Define a struct and Sync2 table struct to database
 
 ```Go
 type User struct {
@@ -90,7 +88,7 @@ type User struct {
 err := engine.Sync2(new(User))
 ```
 
-* 创建Engine组
+* Create Engine Group
 
 ```Go
 dataSourceNameSlice := []string{masterDataSourceName, slave1DataSourceName, slave2DataSourceName}
@@ -104,9 +102,9 @@ slave2Engine, err := xorm.NewEngine(driverName, slave2DataSourceName)
 engineGroup, err := xorm.NewEngineGroup(masterEngine, []*Engine{slave1Engine, slave2Engine})
 ```
 
-所有使用 `engine` 都可以简单的用 `engineGroup` 来替换。
+Then all place where `engine` you can just use `engineGroup`.
 
-* `Query` 最原始的也支持SQL语句查询，返回的结果类型为 []map[string][]byte。`QueryString` 返回 []map[string]string, `QueryInterface` 返回 `[]map[string]interface{}`.
+* `Query` runs a SQL string, the returned results is `[]map[string][]byte`, `QueryString` returns `[]map[string]string`, `QueryInterface` returns `[]map[string]interface{}`.
 
 ```Go
 results, err := engine.Query("select * from user")
@@ -119,13 +117,13 @@ results, err := engine.QueryInterface("select * from user")
 results, err := engine.Where("a = 1").QueryInterface()
 ```
 
-* `Exec` 执行一个SQL语句
+* `Exec` runs a SQL string, it returns `affected` and `error`
 
 ```Go
 affected, err := engine.Exec("update user set age = ? where name = ?", age, name)
 ```
 
-* `Insert` 插入一条或者多条记录
+* `Insert` one or multiple records to database
 
 ```Go
 affected, err := engine.Insert(&user)
@@ -143,7 +141,7 @@ affected, err := engine.Insert(&user1, &users)
 // INSERT INTO struct2 () values (),(),()
 ```
 
-* `Get` 查询单条记录
+* `Get` query one record from database
 
 ```Go
 has, err := engine.Get(&user)
@@ -170,7 +168,7 @@ has, err := engine.Table(&user).Where("id = ?", id).Cols(cols...).Get(&valuesSli
 // SELECT col1, col2, col3 FROM user WHERE id = ?
 ```
 
-* `Exist` 检测记录是否存在
+* `Exist` check if one record exist on table
 
 ```Go
 has, err := testEngine.Exist(new(RecordExist))
@@ -194,7 +192,7 @@ has, err = testEngine.Table("record_exist").Where("name = ?", "test1").Exist()
 // SELECT * FROM record_exist WHERE name = ? LIMIT 1
 ```
 
-* `Find` 查询多条记录，当然可以使用Join和extends来组合使用
+* `Find` query multiple records from database, also you can use join and extends
 
 ```Go
 var users []User
@@ -212,14 +210,14 @@ type UserDetail struct {
 }
 
 var users []UserDetail
-err := engine.Table("user").Select("user.*, detail.*")
+err := engine.Table("user").Select("user.*, detail.*").
     Join("INNER", "detail", "detail.user_id = user.id").
     Where("user.name = ?", name).Limit(10, 0).
     Find(&users)
 // SELECT user.*, detail.* FROM user INNER JOIN detail WHERE user.name = ? limit 10 offset 0
 ```
 
-* `Iterate` 和 `Rows` 根据条件遍历数据库，可以有两种方式: Iterate and Rows
+* `Iterate` and `Rows` query multiple records and record by record handle, there are two methods Iterate and Rows
 
 ```Go
 err := engine.Iterate(&User{Name:name}, func(idx int, bean interface{}) error {
@@ -244,7 +242,7 @@ for rows.Next() {
 }
 ```
 
-* `Update` 更新数据，除非使用Cols,AllCols函数指明，默认只更新非空和非0的字段
+* `Update` update one or more records, default will update non-empty and non-zero fields except when you use Cols, AllCols and so on.
 
 ```Go
 affected, err := engine.ID(1).Update(&user)
@@ -254,7 +252,7 @@ affected, err := engine.Update(&user, &User{Name:name})
 // UPDATE user SET ... Where name = ?
 
 var ids = []int64{1, 2, 3}
-affected, err := engine.In(ids).Update(&user)
+affected, err := engine.In("id", ids).Update(&user)
 // UPDATE user SET ... Where id IN (?, ?, ?)
 
 // force update indicated columns by Cols
@@ -269,7 +267,7 @@ affected, err := engine.ID(1).AllCols().Update(&user)
 // UPDATE user SET name=?,age=?,salt=?,passwd=?,updated=? Where id = ?
 ```
 
-* `Delete` 删除记录，需要注意，删除必须至少有一个条件，否则会报错。要清空数据库可以用EmptyTable
+* `Delete` delete one or more records, Delete MUST have condition
 
 ```Go
 affected, err := engine.Where(...).Delete(&user)
@@ -279,14 +277,21 @@ affected, err := engine.ID(2).Delete(&user)
 // DELETE FROM user Where id = ?
 ```
 
-* `Count` 获取记录条数
+* `Count` count records
 
 ```Go
 counts, err := engine.Count(&user)
 // SELECT count(*) AS total FROM user
 ```
 
-* `Sum` 求和函数
+* `FindAndCount` combines function `Find` with `Count` which is usually used in query by page
+
+```Go
+var users []User
+counts, err := engine.FindAndCount(&users)
+```
+
+* `Sum` sum functions
 
 ```Go
 agesFloat64, err := engine.Sum(&user, "age")
@@ -302,14 +307,14 @@ sumInt64Slice, err := engine.SumsInt(&user, "age", "score")
 // SELECT sum(age), sum(score) FROM user
 ```
 
-* 条件编辑器
+* Query conditions builder
 
 ```Go
 err := engine.Where(builder.NotIn("a", 1, 2).And(builder.In("b", "c", "d", "e"))).Find(&users)
 // SELECT id, name ... FROM user WHERE a NOT IN (?, ?) AND b IN (?, ?, ?)
 ```
 
-* 在一个Go程中多次操作数据库，但没有事务
+* Multiple operations in one go routine, no transation here but resue session memory
 
 ```Go
 session := engine.NewSession()
@@ -332,7 +337,7 @@ if _, err := session.Exec("delete from userinfo where username = ?", user2.Usern
 return nil
 ```
 
-* 在一个Go程中有事务
+* Transation should be on one go routine. There is transaction and resue session memory
 
 ```Go
 session := engine.NewSession()
@@ -362,7 +367,7 @@ if _, err := session.Exec("delete from userinfo where username = ?", user2.Usern
 return session.Commit()
 ```
 
-* 事务的简写方法
+* Or you can use `Transaction` to replace above codes.
 
 ```Go
 res, err := engine.Transaction(func(session *xorm.Session) (interface{}, error) {
@@ -383,7 +388,7 @@ res, err := engine.Transaction(func(session *xorm.Session) (interface{}, error) 
 })
 ```
 
-* 上下文缓存，如果启用，那么针对单个对象的查询将会被缓存到系统中，可以被下一个查询使用。
+* Context Cache, if enabled, current query result will be cached on session and be used by next same statement on the same session.
 
 ```Go
 	sess := engine.NewSession()
@@ -412,32 +417,54 @@ res, err := engine.Transaction(func(session *xorm.Session) (interface{}, error) 
 	assert.True(t, len(args) == 0)
 ```
 
-## 贡献
+## Contributing
 
-如果您也想为Xorm贡献您的力量，请查看 [CONTRIBUTING](https://github.com/go-xorm/xorm/blob/master/CONTRIBUTING.md)。您也可以加入QQ群  技术帮助和讨论。
-群一：280360085 （已满）
-群二：795010183
+If you want to pull request, please see [CONTRIBUTING](https://gitea.com/xorm/xorm/src/branch/master/CONTRIBUTING.md). And we also provide [Xorm on Google Groups](https://groups.google.com/forum/#!forum/xorm) to discuss.
 
 ## Credits
 
 ### Contributors
 
-感谢所有的贡献者. [[Contribute](CONTRIBUTING.md)].
+This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
 <a href="graphs/contributors"><img src="https://opencollective.com/xorm/contributors.svg?width=890&button=false" /></a>
 
 ### Backers
 
-感谢我们所有的 backers! 🙏 [[成为 backer](https://opencollective.com/xorm#backer)]
+Thank you to all our backers! 🙏 [[Become a backer](https://opencollective.com/xorm#backer)]
 
 <a href="https://opencollective.com/xorm#backers" target="_blank"><img src="https://opencollective.com/xorm/backers.svg?width=890"></a>
 
 ### Sponsors
 
-成为 sponsor 来支持 xorm。您的 logo 将会被显示并被链接到您的网站。 [[成为 sponsor](https://opencollective.com/xorm#sponsor)]
+Support this project by becoming a sponsor. Your logo will show up here with a link to your website. [[Become a sponsor](https://opencollective.com/xorm#sponsor)]
 
-# 案例
+## Changelog
 
-* [Go语言中文网](http://studygolang.com/) - [github.com/studygolang/studygolang](https://github.com/studygolang/studygolang)
+* **v0.7.0**
+    * Some bugs fixed
+
+* **v0.6.6**
+    * Some bugs fixed
+
+* **v0.6.5**
+    * Postgres schema support
+    * vgo support
+    * Add FindAndCount
+    * Database special params support via NewEngineWithParams
+    * Some bugs fixed
+
+* **v0.6.4**
+    * Automatical Read/Write seperatelly
+    * Query/QueryString/QueryInterface and action with Where/And
+    * Get support non-struct variables
+    * BufferSize on Iterate
+    * fix some other bugs.
+
+[More changes ...](https://github.com/go-xorm/manual-en-US/tree/master/chapter-16)
+
+## Cases
+
+* [studygolang](http://studygolang.com/) - [github.com/studygolang/studygolang](https://github.com/studygolang/studygolang)
 
 * [Gitea](http://gitea.io) - [github.com/go-gitea/gitea](http://github.com/go-gitea/gitea)
 
@@ -452,6 +479,8 @@ res, err := engine.Transaction(func(session *xorm.Session) (interface{}, error) 
 * [Docker.cn](https://docker.cn/)
 
 * [Xorm Adapter](https://github.com/casbin/xorm-adapter) for [Casbin](https://github.com/casbin/casbin) - [github.com/casbin/xorm-adapter](https://github.com/casbin/xorm-adapter)
+
+* [Gorevel](http://gorevel.cn/) - [github.com/goofcc/gorevel](http://github.com/goofcc/gorevel)
 
 * [Gowalker](http://gowalker.org) - [github.com/Unknwon/gowalker](http://github.com/Unknwon/gowalker)
 
@@ -469,32 +498,6 @@ res, err := engine.Transaction(func(session *xorm.Session) (interface{}, error) 
 
 * [go-blog](http://wangcheng.me) - [github.com/easykoo/go-blog](https://github.com/easykoo/go-blog)
 
-
-## 更新日志
-
-* **v0.7.0**
-    * 修正部分Bug
-
-* **v0.6.6**
-    * 修正部分Bug
-
-* **v0.6.5**
-    * 通过 engine.SetSchema 来支持 schema，当前仅支持Postgres
-    * vgo 支持
-    * 新增 `FindAndCount` 函数
-    * 通过 `NewEngineWithParams` 支持数据库特别参数
-    * 修正部分Bug
-
-* **v0.6.4**
-    * 自动读写分离支持
-    * Query/QueryString/QueryInterface 支持与 Where/And 合用
-    * `Get` 支持获取非结构体变量
-    * `Iterate` 支持 `BufferSize` 
-    * 修正部分Bug
-
-[更多更新日志...](https://github.com/go-xorm/manual-zh-CN/tree/master/chapter-16)
-
 ## LICENSE
 
-BSD License
-[http://creativecommons.org/licenses/BSD/](http://creativecommons.org/licenses/BSD/)
+BSD License [http://creativecommons.org/licenses/BSD/](http://creativecommons.org/licenses/BSD/)

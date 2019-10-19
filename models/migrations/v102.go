@@ -8,10 +8,8 @@ import (
 	"xorm.io/xorm"
 )
 
-func addHTTPMethodToWebhook(x *xorm.Engine) error {
-	type Webhook struct {
-		HTTPMethod string `xorm:"http_method DEFAULT 'POST'"`
-	}
-
-	return x.Sync2(new(Webhook))
+func dropColumnHeadUserNameOnPullRequest(x *xorm.Engine) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	return dropTableColumns(sess, "pull_request", "head_user_name")
 }

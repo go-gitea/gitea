@@ -28,9 +28,9 @@ type ExternalLoginUser struct {
 	Description       string
 	AvatarURL         string
 	Location          string
-	AccessToken       string
-	AccessTokenSecret string
-	RefreshToken      string
+	AccessToken       string `xorm:"TEXT"`
+	AccessTokenSecret string `xorm:"TEXT"`
+	RefreshToken      string `xorm:"TEXT"`
 	ExpiresAt         time.Time
 }
 
@@ -168,7 +168,7 @@ func FindExternalUsersByProvider(opts FindExternalUserOptions) ([]ExternalLoginU
 }
 
 // UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
-func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID, userID int64) error {
+func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID string, userID int64) error {
 	if err := UpdateIssuesMigrationsByType(tp, externalUserID, userID); err != nil {
 		return err
 	}
