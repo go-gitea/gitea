@@ -7,7 +7,7 @@ package models
 import (
 	"fmt"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 // IssueUser represents an issue-user relation.

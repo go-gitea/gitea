@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
@@ -207,7 +208,7 @@ func TestIssueCrossReference(t *testing.T) {
 		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
 		RefIsPull:    false,
-		RefAction:    models.XRefActionNone})
+		RefAction:    references.XRefActionNone})
 
 	// Edit title, neuter ref
 	testIssueChangeInfo(t, "user2", issueRefURL, "title", "Title no ref")
@@ -217,7 +218,7 @@ func TestIssueCrossReference(t *testing.T) {
 		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
 		RefIsPull:    false,
-		RefAction:    models.XRefActionNeutered})
+		RefAction:    references.XRefActionNeutered})
 
 	// Ref from issue content
 	issueRefURL, issueRef = testIssueWithBean(t, "user2", 1, "TitleXRef", fmt.Sprintf("Description ref #%d", issueBase.Index))
@@ -227,7 +228,7 @@ func TestIssueCrossReference(t *testing.T) {
 		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
 		RefIsPull:    false,
-		RefAction:    models.XRefActionNone})
+		RefAction:    references.XRefActionNone})
 
 	// Edit content, neuter ref
 	testIssueChangeInfo(t, "user2", issueRefURL, "content", "Description no ref")
@@ -237,7 +238,7 @@ func TestIssueCrossReference(t *testing.T) {
 		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
 		RefIsPull:    false,
-		RefAction:    models.XRefActionNeutered})
+		RefAction:    references.XRefActionNeutered})
 
 	// Ref from a comment
 	session := loginUser(t, "user2")
@@ -248,7 +249,7 @@ func TestIssueCrossReference(t *testing.T) {
 		RefIssueID:   issueRef.ID,
 		RefCommentID: commentID,
 		RefIsPull:    false,
-		RefAction:    models.XRefActionNone}
+		RefAction:    references.XRefActionNone}
 	models.AssertExistsAndLoadBean(t, comment)
 
 	// Ref from a different repository
@@ -259,7 +260,7 @@ func TestIssueCrossReference(t *testing.T) {
 		RefIssueID:   issueRef.ID,
 		RefCommentID: 0,
 		RefIsPull:    false,
-		RefAction:    models.XRefActionNone})
+		RefAction:    references.XRefActionNone})
 }
 
 func testIssueWithBean(t *testing.T, user string, repoID int64, title, content string) (string, *models.Issue) {

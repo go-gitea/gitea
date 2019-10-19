@@ -13,8 +13,8 @@ import (
 
 	api "code.gitea.io/gitea/modules/structs"
 
-	"github.com/go-xorm/xorm"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
