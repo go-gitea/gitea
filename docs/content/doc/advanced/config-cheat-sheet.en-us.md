@@ -265,6 +265,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
 - `ENABLE_NOTIFY_MAIL`: **false**: Enable this to send e-mail to watchers of a repository when
    something happens, like creating issues. Requires `Mailer` to be enabled.
+- `ENABLE_BASIC_AUTHENTICATION`: **true**: Disable this to disallow authenticaton using HTTP
+   BASIC and the user's password. Please note if you disable this you will not be able to access the
+   tokens API endpoints using a password. Further, this only disables BASIC authentication using the
+   password - not tokens or OAuth Basic.
 - `ENABLE_REVERSE_PROXY_AUTHENTICATION`: **false**: Enable this to allow reverse proxy authentication.
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration
    for reverse authentication.
