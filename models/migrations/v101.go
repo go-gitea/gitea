@@ -5,7 +5,7 @@
 package migrations
 
 import (
-	"xorm.io/xorm"
+	"github.com/go-xorm/xorm"
 )
 
 func changeSomeColumnsLengthOfExternalLoginUser(x *xorm.Engine) error {
