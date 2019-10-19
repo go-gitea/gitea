@@ -28,7 +28,6 @@ func Account(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.User.Email
-	ctx.Data["EmailNotificationsPreference"] = ctx.User.EmailNotifications()
 
 	loadAccountData(ctx)
 
@@ -230,4 +229,5 @@ func loadAccountData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Emails"] = emails
+	ctx.Data["EmailNotificationsPreference"] = ctx.User.EmailNotifications()
 }
