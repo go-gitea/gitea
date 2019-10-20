@@ -62,8 +62,7 @@ func IsUserAssignedToIssue(issue *Issue, user *User) (isAssigned bool, err error
 }
 
 func isUserAssignedToIssue(e Engine, issue *Issue, user *User) (isAssigned bool, err error) {
-	isAssigned, err = e.Get(&IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
-	return
+	return e.Get(&IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
 }
 
 // DeleteNotPassedAssignee deletes all assignees who aren't passed via the "assignees" array
@@ -214,7 +213,7 @@ func toggleUserAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (remove
 		return false, err
 	}
 
-	// Check if the submitted user is already assigne, if yes delete him otherwise add him
+	// Check if the submitted user is already assigned, if yes delete him otherwise add him
 	var i int
 	for i = 0; i < len(issue.Assignees); i++ {
 		if issue.Assignees[i].ID == assigneeID {
