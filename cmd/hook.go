@@ -21,6 +21,10 @@ import (
 	"github.com/urfave/cli"
 )
 
+const (
+	hookBatchSize = 200
+)
+
 var (
 	// CmdHook represents the available hooks sub-command.
 	CmdHook = cli.Command{
@@ -75,12 +79,23 @@ Gitea or set your environment appropriately.`, "")
 	prID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchPRID), 10, 64)
 	isDeployKey, _ := strconv.ParseBool(os.Getenv(models.EnvIsDeployKey))
 
-	buf := bytes.NewBuffer(nil)
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		buf.Write(scanner.Bytes())
-		buf.WriteByte('\n')
+	hookOptions := private.HookOptions{
+		UserID:                          userID,
+		GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
+		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
+		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
+		ProtectedBranchID:               prID,
+		IsDeployKey:                     isDeployKey,
+	}
 
+	scanner := bufio.NewScanner(os.Stdin)
+
+	oldCommitIDs := make([]string, hookBatchSize)
+	newCommitIDs := make([]string, hookBatchSize)
+	refFullNames := make([]string, hookBatchSize)
+	count := 0
+
+	for scanner.Scan() {
 		// TODO: support news feeds for wiki
 		if isWiki {
 			continue
@@ -97,23 +112,37 @@ Gitea or set your environment appropriately.`, "")
 
 		// If the ref is a branch, check if it's protected
 		if strings.HasPrefix(refFullName, git.BranchPrefix) {
-			statusCode, msg := private.HookPreReceive(username, reponame, private.HookOptions{
-				OldCommitID:                     oldCommitID,
-				NewCommitID:                     newCommitID,
-				RefFullName:                     refFullName,
-				UserID:                          userID,
-				GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
-				GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
-				GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
-				ProtectedBranchID:               prID,
-				IsDeployKey:                     isDeployKey,
-			})
-			switch statusCode {
-			case http.StatusInternalServerError:
-				fail("Internal Server Error", msg)
-			case http.StatusForbidden:
-				fail(msg, "")
+			oldCommitIDs[count] = oldCommitID
+			newCommitIDs[count] = newCommitID
+			refFullNames[count] = refFullName
+			count++
+			if count >= hookBatchSize {
+				hookOptions.OldCommitIDs = oldCommitIDs
+				hookOptions.NewCommitIDs = newCommitIDs
+				hookOptions.RefFullNames = refFullNames
+				statusCode, msg := private.HookPreReceive(username, reponame, hookOptions)
+				switch statusCode {
+				case http.StatusInternalServerError:
+					fail("Internal Server Error", msg)
+				case http.StatusForbidden:
+					fail(msg, "")
+				}
+				count = 0
 			}
+		}
+	}
+
+	if count > 0 {
+		hookOptions.OldCommitIDs = oldCommitIDs[:count]
+		hookOptions.NewCommitIDs = newCommitIDs[:count]
+		hookOptions.RefFullNames = refFullNames[:count]
+
+		statusCode, msg := private.HookPreReceive(username, reponame, hookOptions)
+		switch statusCode {
+		case http.StatusInternalServerError:
+			fail("Internal Server Error", msg)
+		case http.StatusForbidden:
+			fail(msg, "")
 		}
 	}
 
@@ -156,6 +185,18 @@ Gitea or set your environment appropriately.`, "")
 	pusherID, _ := strconv.ParseInt(os.Getenv(models.EnvPusherID), 10, 64)
 	pusherName := os.Getenv(models.EnvPusherName)
 
+	hookOptions := private.HookOptions{
+		UserName:                        pusherName,
+		UserID:                          pusherID,
+		GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
+		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
+		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
+	}
+	oldCommitIDs := make([]string, hookBatchSize)
+	newCommitIDs := make([]string, hookBatchSize)
+	refFullNames := make([]string, hookBatchSize)
+	count := 0
+
 	buf := bytes.NewBuffer(nil)
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
@@ -172,33 +213,61 @@ Gitea or set your environment appropriately.`, "")
 			continue
 		}
 
-		oldCommitID := string(fields[0])
-		newCommitID := string(fields[1])
-		refFullName := string(fields[2])
+		oldCommitIDs[count] = string(fields[0])
+		newCommitIDs[count] = string(fields[1])
+		refFullNames[count] = string(fields[2])
+		count++
 
-		res, err := private.HookPostReceive(repoUser, repoName, private.HookOptions{
-			OldCommitID: oldCommitID,
-			NewCommitID: newCommitID,
-			RefFullName: refFullName,
-			UserID:      pusherID,
-			UserName:    pusherName,
-		})
+		if count >= hookBatchSize {
+			hookOptions.OldCommitIDs = oldCommitIDs
+			hookOptions.NewCommitIDs = newCommitIDs
+			hookOptions.RefFullNames = refFullNames
+			resps, err := private.HookPostReceive(repoUser, repoName, hookOptions)
+			if resps == nil {
+				fail("Internal Server Error", err)
+			}
+			for _, res := range resps {
+				if !res.Message {
+					continue
+				}
 
-		if res == nil {
-			fail("Internal Server Error", err)
+				fmt.Fprintln(os.Stderr, "")
+				if res.Create {
+					fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", res.Branch)
+					fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
+				} else {
+					fmt.Fprint(os.Stderr, "Visit the existing pull request:\n")
+					fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
+				}
+				fmt.Fprintln(os.Stderr, "")
+			}
+			count = 0
 		}
+	}
 
-		if res["message"] == false {
+	if count == 0 {
+		return nil
+	}
+
+	hookOptions.OldCommitIDs = oldCommitIDs[:count]
+	hookOptions.NewCommitIDs = newCommitIDs[:count]
+	hookOptions.RefFullNames = refFullNames[:count]
+	resps, err := private.HookPostReceive(repoUser, repoName, hookOptions)
+	if resps == nil {
+		fail("Internal Server Error", err)
+	}
+	for _, res := range resps {
+		if !res.Message {
 			continue
 		}
 
 		fmt.Fprintln(os.Stderr, "")
-		if res["create"] == true {
-			fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", res["branch"])
-			fmt.Fprintf(os.Stderr, "  %s\n", res["url"])
+		if res.Create {
+			fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", res.Branch)
+			fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
 		} else {
 			fmt.Fprint(os.Stderr, "Visit the existing pull request:\n")
-			fmt.Fprintf(os.Stderr, "  %s\n", res["url"])
+			fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
 		}
 		fmt.Fprintln(os.Stderr, "")
 	}
