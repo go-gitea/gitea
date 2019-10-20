@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/services/mailer"
@@ -27,7 +28,6 @@ func Account(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.User.Email
-	ctx.Data["EmailNotificationsPreference"] = ctx.User.EmailNotifications()
 
 	loadAccountData(ctx)
 
@@ -52,6 +52,8 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 		ctx.Flash.Error(ctx.Tr("settings.password_incorrect"))
 	} else if form.Password != form.Retype {
 		ctx.Flash.Error(ctx.Tr("form.password_not_match"))
+	} else if !password.IsComplexEnough(form.Password) {
+		ctx.Flash.Error(ctx.Tr("form.password_complexity"))
 	} else {
 		var err error
 		if ctx.User.Salt, err = models.GetUserSalt(); err != nil {
@@ -227,4 +229,5 @@ func loadAccountData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Emails"] = emails
+	ctx.Data["EmailNotificationsPreference"] = ctx.User.EmailNotifications()
 }

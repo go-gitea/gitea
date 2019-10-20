@@ -498,3 +498,11 @@ func GetFullCommitID(repoPath, shortID string) (string, error) {
 	}
 	return strings.TrimSpace(commitID), nil
 }
+
+// GetRepositoryDefaultPublicGPGKey returns the default public key for this commit
+func (c *Commit) GetRepositoryDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, error) {
+	if c.repo == nil {
+		return nil, nil
+	}
+	return c.repo.GetDefaultPublicGPGKey(forceUpdate)
+}

@@ -4,13 +4,16 @@
 
 package migrations
 
-import "github.com/go-xorm/xorm"
+import (
+	"xorm.io/xorm"
+)
 
-func addWhitelistDeployKeysToBranches(x *xorm.Engine) error {
-	type ProtectedBranch struct {
-		ID                  int64
-		WhitelistDeployKeys bool `xorm:"NOT NULL DEFAULT false"`
+func changeSomeColumnsLengthOfExternalLoginUser(x *xorm.Engine) error {
+	type ExternalLoginUser struct {
+		AccessToken       string `xorm:"TEXT"`
+		AccessTokenSecret string `xorm:"TEXT"`
+		RefreshToken      string `xorm:"TEXT"`
 	}
 
-	return x.Sync2(new(ProtectedBranch))
+	return x.Sync2(new(ExternalLoginUser))
 }

@@ -139,14 +139,14 @@ func NewMacaron() *macaron.Macaron {
 	m.Use(public.Custom(
 		&public.Options{
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 	m.Use(public.Static(
 		&public.Options{
 			Directory:    path.Join(setting.StaticRootPath, "public"),
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 	m.Use(public.StaticHandler(
@@ -154,7 +154,7 @@ func NewMacaron() *macaron.Macaron {
 		&public.Options{
 			Prefix:       "avatars",
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 	m.Use(public.StaticHandler(
@@ -162,7 +162,7 @@ func NewMacaron() *macaron.Macaron {
 		&public.Options{
 			Prefix:       "repo-avatars",
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 
@@ -513,8 +513,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 	}, ignSignIn)
 
-	m.Group("", func() {
-		m.Post("/attachments", repo.UploadAttachment)
+	m.Group("/attachments", func() {
+		m.Post("", repo.UploadAttachment)
+		m.Post("/delete", repo.DeleteAttachment)
 	}, reqSignIn)
 
 	m.Group("/:username", func() {
@@ -710,6 +711,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
 				m.Post("/lock", reqRepoIssueWriter, bindIgnErr(auth.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoIssueWriter, repo.UnlockIssue)
+				m.Get("/attachments", repo.GetIssueAttachments)
 			}, context.RepoMustNotBeArchived())
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
@@ -721,6 +723,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeCommentReaction)
+			m.Get("/attachments", repo.GetCommentAttachments)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/labels", func() {
 			m.Post("/new", bindIgnErr(auth.CreateLabelForm{}), repo.NewLabel)

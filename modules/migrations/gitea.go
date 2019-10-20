@@ -579,14 +579,13 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	}
 
 	var pullRequest = models.PullRequest{
-		HeadRepoID:   g.repo.ID,
-		HeadBranch:   head,
-		HeadUserName: g.repoOwner,
-		BaseRepoID:   g.repo.ID,
-		BaseBranch:   pr.Base.Ref,
-		MergeBase:    pr.Base.SHA,
-		Index:        pr.Number,
-		HasMerged:    pr.Merged,
+		HeadRepoID: g.repo.ID,
+		HeadBranch: head,
+		BaseRepoID: g.repo.ID,
+		BaseBranch: pr.Base.Ref,
+		MergeBase:  pr.Base.SHA,
+		Index:      pr.Number,
+		HasMerged:  pr.Merged,
 
 		Issue: &issue,
 	}

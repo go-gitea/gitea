@@ -96,9 +96,7 @@ func GlobalInit() {
 
 		// Booting long running goroutines.
 		cron.NewContext()
-		if err := issue_indexer.InitIssueIndexer(false); err != nil {
-			log.Fatal("Failed to initialize issue indexer: %v", err)
-		}
+		issue_indexer.InitIssueIndexer(false)
 		models.InitRepoIndexer()
 		mirror_service.InitSyncMirrors()
 		models.InitDeliverHooks()
@@ -112,8 +110,15 @@ func GlobalInit() {
 	}
 	checkRunMode()
 
-	if setting.InstallLock && setting.SSH.StartBuiltinServer {
-		ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-		log.Info("SSH server started on %s:%d. Cipher list (%v), key exchange algorithms (%v), MACs (%v)", setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
+	// Now because Install will re-run GlobalInit once it has set InstallLock
+	// we can't tell if the ssh port will remain unused until that's done.
+	// However, see FIXME comment in install.go
+	if setting.InstallLock {
+		if setting.SSH.StartBuiltinServer {
+			ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
+			log.Info("SSH server started on %s:%d. Cipher list (%v), key exchange algorithms (%v), MACs (%v)", setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
+		} else {
+			ssh.Unused()
+		}
 	}
 }

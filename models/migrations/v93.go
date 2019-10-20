@@ -4,7 +4,7 @@
 
 package migrations
 
-import "github.com/go-xorm/xorm"
+import "xorm.io/xorm"
 
 func addEmailNotificationEnabledToUser(x *xorm.Engine) error {
 	// User see models/user.go

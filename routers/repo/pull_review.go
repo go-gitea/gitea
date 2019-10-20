@@ -157,7 +157,7 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 			return
 		}
 		// No current review. Create a new one!
-		if review, err = models.CreateReview(models.CreateReviewOptions{
+		if review, err = pull_service.CreateReview(models.CreateReviewOptions{
 			Type:     reviewType,
 			Issue:    issue,
 			Reviewer: ctx.User,
@@ -169,7 +169,7 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 	} else {
 		review.Content = form.Content
 		review.Type = reviewType
-		if err = models.UpdateReview(review); err != nil {
+		if err = pull_service.UpdateReview(review); err != nil {
 			ctx.ServerError("UpdateReview", err)
 			return
 		}
