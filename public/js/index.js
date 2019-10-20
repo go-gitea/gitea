@@ -1576,14 +1576,20 @@ function initEditor() {
     // to enable or disable the commit button
     const $commitButton = $('#commit-button');
     const $editForm = $('.ui.edit.form');
+    const dirtyFileClass = 'dirty-file';
 
     // Disabling the button at the start
     $commitButton.prop('disabled', true);
-    $editForm.on('dirty.areYouSure', function() {
-        $commitButton.prop('disabled', false);
-    });
-    $editForm.on('clean.areYouSure', function() {
-        $commitButton.prop('disabled', true);
+
+    // Registering a custom listener for the file path and the file content
+    $editForm.areYouSure({
+        slient: true,
+        dirtyClass: dirtyFileClass,
+        fieldSelector: ':input:not(.commit-form-wrapper :input)',
+        change: function () {
+            const dirty = $(this).hasClass(dirtyFileClass);
+            $commitButton.prop('disabled', !dirty);
+        }
     });
 
     $commitButton.click(function (event) {
