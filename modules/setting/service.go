@@ -23,6 +23,7 @@ var Service struct {
 	ShowRegistrationButton                  bool
 	RequireSignInView                       bool
 	EnableNotifyMail                        bool
+	EnableBasicAuth                         bool
 	EnableReverseProxyAuth                  bool
 	EnableReverseProxyAutoRegister          bool
 	EnableReverseProxyEmail                 bool
@@ -60,6 +61,7 @@ func newService() {
 	Service.EmailDomainWhitelist = sec.Key("EMAIL_DOMAIN_WHITELIST").Strings(",")
 	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!(Service.DisableRegistration || Service.AllowOnlyExternalRegistration))
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
+	Service.EnableBasicAuth = sec.Key("ENABLE_BASIC_AUTHENTICATION").MustBool(true)
 	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
 	Service.EnableReverseProxyEmail = sec.Key("ENABLE_REVERSE_PROXY_EMAIL").MustBool()

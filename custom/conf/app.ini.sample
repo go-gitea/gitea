@@ -436,6 +436,10 @@ ALLOW_ONLY_EXTERNAL_REGISTRATION = false
 REQUIRE_SIGNIN_VIEW = false
 ; Mail notification
 ENABLE_NOTIFY_MAIL = false
+; This setting enables gitea to be signed in with HTTP BASIC Authentication using the user's password
+; If you set this to false you will not be able to access the tokens endpoints on the API with your password
+; Please note that setting this to false will not disable OAuth Basic or Basic authentication using a token
+ENABLE_BASIC_AUTHENTICATION = true
 ; More detail: https://github.com/gogits/gogs/issues/165
 ENABLE_REVERSE_PROXY_AUTHENTICATION = false
 ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = false
@@ -866,6 +870,6 @@ TOKEN =
 QUEUE_TYPE = channel
 ; Task queue length, available only when `QUEUE_TYPE` is `channel`.
 QUEUE_LENGTH = 1000
-; Task queue connction string, available only when `QUEUE_TYPE` is `redis`. 
+; Task queue connction string, available only when `QUEUE_TYPE` is `redis`.
 ; If there is a password of redis, use `addrs=127.0.0.1:6379 password=123 db=0`.
 QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
