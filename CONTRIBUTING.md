@@ -164,16 +164,16 @@ import (
 
 To maintain understandable code and avoid circular dependencies it is important to have a good structure of the code. The gitea code is divided into the following parts:
 
-- integration: Integrations tests 
-- models: Contains the data structures used by xorm to construct database tables. It also contains supporting functions to query and update the database. Dependecies to other code in Gitea should be avoided although some modules might be needed (for example for logging).
-- models/fixtures: Sample model data used in integration tests.
-- models/migrations: Handling of database migrations between versions. PRs that changes a database structure shall also have a migration step.
-- modules: Different modules to handle specific functionality in Gitea.
-- public: Frontend files (javascript, images, css, etc.)
-- routers: Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers
-- services: Support functions for common routing operations. Uses models and modules to handle the request.
-- templates: Golang templates for generating the html output.
-- vendor: External code that Gitea depends on.
+- **integration:** Integrations tests 
+- **models:** Contains the data structures used by xorm to construct database tables. It also contains supporting functions to query and update the database. Dependecies to other code in Gitea should be avoided although some modules might be needed (for example for logging).
+- **models/fixtures:** Sample model data used in integration tests.
+- **models/migrations:** Handling of database migrations between versions. PRs that changes a database structure shall also have a migration step.
+- **modules:** Different modules to handle specific functionality in Gitea.
+- **public:** Frontend files (javascript, images, css, etc.)
+- **routers:** Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers
+- **services:** Support functions for common routing operations. Uses models and modules to handle the request.
+- **templates:** Golang templates for generating the html output.
+- **vendor:** External code that Gitea depends on.
 
 
 ## Developer Certificate of Origin (DCO)
