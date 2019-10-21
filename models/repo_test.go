@@ -14,8 +14,8 @@ import (
 
 	"code.gitea.io/gitea/modules/markup"
 
-	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/com"
 )
 
 func TestRepo(t *testing.T) {
@@ -88,6 +88,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 
 	// Get sample repo and change visibility
 	repo, err := GetRepositoryByID(9)
+	assert.NoError(t, err)
 	repo.IsPrivate = true
 
 	// Update it

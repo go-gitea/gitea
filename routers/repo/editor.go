@@ -14,12 +14,12 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -118,7 +118,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 
 		d, _ := ioutil.ReadAll(dataRc)
 		buf = append(buf, d...)
-		if content, err := templates.ToUTF8WithErr(buf); err != nil {
+		if content, err := charset.ToUTF8WithErr(buf); err != nil {
 			log.Error("ToUTF8WithErr: %v", err)
 			ctx.Data["FileContent"] = string(buf)
 		} else {
@@ -269,7 +269,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		}
 	}
 
-	if form.CommitChoice == frmCommitChoiceNewBranch {
+	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + ctx.Repo.BranchName + "..." + form.NewBranchName)
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
@@ -434,7 +434,7 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", ctx.Repo.TreePath))
-	if form.CommitChoice == frmCommitChoiceNewBranch {
+	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + ctx.Repo.BranchName + "..." + form.NewBranchName)
 	} else {
 		treePath := filepath.Dir(ctx.Repo.TreePath)
@@ -589,7 +589,7 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		return
 	}
 
-	if form.CommitChoice == frmCommitChoiceNewBranch {
+	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + ctx.Repo.BranchName + "..." + form.NewBranchName)
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))

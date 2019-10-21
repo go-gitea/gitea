@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -22,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 const (
@@ -212,7 +211,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			if index == 0 {
 				// User avatar image
 				avatar := ""
-				commitSince := base.TimeSinceUnix(util.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
+				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
 				if commit.User != nil {
 					authorName := commit.Author.Name
 					if len(commit.User.FullName) > 0 {

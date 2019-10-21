@@ -7,17 +7,17 @@ package models
 import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // IssueDependency represents an issue dependency
 type IssueDependency struct {
-	ID           int64          `xorm:"pk autoincr"`
-	UserID       int64          `xorm:"NOT NULL"`
-	IssueID      int64          `xorm:"UNIQUE(issue_dependency) NOT NULL"`
-	DependencyID int64          `xorm:"UNIQUE(issue_dependency) NOT NULL"`
-	CreatedUnix  util.TimeStamp `xorm:"created"`
-	UpdatedUnix  util.TimeStamp `xorm:"updated"`
+	ID           int64              `xorm:"pk autoincr"`
+	UserID       int64              `xorm:"NOT NULL"`
+	IssueID      int64              `xorm:"UNIQUE(issue_dependency) NOT NULL"`
+	DependencyID int64              `xorm:"UNIQUE(issue_dependency) NOT NULL"`
+	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"updated"`
 }
 
 // DependencyType Defines Dependency Type Constants

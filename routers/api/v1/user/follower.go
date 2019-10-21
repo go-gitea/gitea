@@ -5,16 +5,16 @@
 package user
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
 func responseAPIUsers(ctx *context.APIContext, users []*models.User) {
 	apiUsers := make([]*api.User, len(users))
 	for i := range users {
-		apiUsers[i] = users[i].APIFormat()
+		apiUsers[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
 	ctx.JSON(200, &apiUsers)
 }

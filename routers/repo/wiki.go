@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -19,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -54,11 +56,11 @@ func MustEnableWiki(ctx *context.Context) {
 	}
 }
 
-// PageMeta wiki page meat information
+// PageMeta wiki page meta information
 type PageMeta struct {
 	Name        string
 	SubURL      string
-	UpdatedUnix util.TimeStamp
+	UpdatedUnix timeutil.TimeStamp
 }
 
 // findEntryForFile finds the tree entry for a target filepath.
@@ -67,8 +69,19 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 	if err != nil {
 		return nil, err
 	}
+	// The longest name should be checked first
 	for _, entry := range entries {
 		if entry.IsRegular() && entry.Name() == target {
+			return entry, nil
+		}
+	}
+	// Then the unescaped, shortest alternative
+	var unescapedTarget string
+	if unescapedTarget, err = url.QueryUnescape(target); err != nil {
+		return nil, err
+	}
+	for _, entry := range entries {
+		if entry.IsRegular() && entry.Name() == unescapedTarget {
 			return entry, nil
 		}
 	}
@@ -413,7 +426,7 @@ func WikiPages(ctx *context.Context) {
 		pages = append(pages, PageMeta{
 			Name:        wikiName,
 			SubURL:      models.WikiNameToSubURL(wikiName),
-			UpdatedUnix: util.TimeStamp(c.Author.When.Unix()),
+			UpdatedUnix: timeutil.TimeStamp(c.Author.When.Unix()),
 		})
 	}
 	ctx.Data["Pages"] = pages

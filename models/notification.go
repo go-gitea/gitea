@@ -7,7 +7,7 @@ package models
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 type (
@@ -52,8 +52,8 @@ type Notification struct {
 	Issue      *Issue      `xorm:"-"`
 	Repository *Repository `xorm:"-"`
 
-	CreatedUnix util.TimeStamp `xorm:"created INDEX NOT NULL"`
-	UpdatedUnix util.TimeStamp `xorm:"updated INDEX NOT NULL"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"updated INDEX NOT NULL"`
 }
 
 // CreateOrUpdateIssueNotifications creates an issue notification

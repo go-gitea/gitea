@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-macaron/session"
+	"gitea.com/macaron/session"
 )
 
 // MemStore represents a in-memory session store implementation.

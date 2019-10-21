@@ -71,6 +71,10 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		OriginalURL: "https://github.com/go-gitea/gitea",
 	}, repo)
 
+	topics, err := downloader.GetTopics()
+	assert.NoError(t, err)
+	assert.Contains(t, topics, "gitea")
+
 	milestones, err := downloader.GetMilestones()
 	assert.NoError(t, err)
 	// before this tool release, we have 39 milestones on github.com/go-gitea/gitea
@@ -163,6 +167,8 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			Body:            "Forked source from Gogs into Gitea\n",
 			Created:         time.Date(2016, 10, 17, 02, 17, 59, 0, time.UTC),
 			Published:       time.Date(2016, 11, 17, 15, 37, 0, 0, time.UTC),
+			PublisherID:     4726179,
+			PublisherName:   "bkcsoft",
 		},
 	}, releases[len(releases)-1:])
 
