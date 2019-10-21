@@ -51,7 +51,7 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	InitMailRender(email)
 
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
-	msg := composeIssueCommentMessage(issue, doer, models.ActionCommentIssue, false, "test body", comment, mailIssueComment, tos, "issue comment")
+	msg := composeIssueCommentMessage(issue, doer, models.ActionCommentIssue, false, "test body", comment, tos, "issue comment")
 
 	subject := msg.GetHeader("Subject")
 	inreplyTo := msg.GetHeader("In-Reply-To")
@@ -79,7 +79,7 @@ func TestComposeIssueMessage(t *testing.T) {
 	InitMailRender(email)
 
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
-	msg := composeIssueCommentMessage(issue, doer, models.ActionCreateIssue, false, "test body", nil, mailIssueComment, tos, "issue create")
+	msg := composeIssueCommentMessage(issue, doer, models.ActionCreateIssue, false, "test body", nil, tos, "issue create")
 
 	subject := msg.GetHeader("Subject")
 	messageID := msg.GetHeader("Message-ID")

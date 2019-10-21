@@ -1730,20 +1730,20 @@ func (issue *Issue) updateClosedNum(e Engine) (err error) {
 	return
 }
 
-// ComposeSubjectTplData composes a map of metas for properly rendering a mail subject.
-func (issue *Issue) ComposeSubjectTplData(doer *User, comment *Comment, actionType ActionType, fromMention bool) (map[string]interface{}, error) {
+// ComposeMailMetas composes a map of metas used for rendering a mail subject or body.
+func (issue *Issue) ComposeMailMetas(doer *User, comment *Comment, actionType ActionType, fromMention bool) (map[string]interface{}, error) {
 	if err := issue.LoadPullRequest(); err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{
-		"Issue":       issue,
-		"Comment":     comment,
-		"IsPull":      issue.IsPull,
-		"User":        issue.Repo.MustOwner().Name,
-		"Repo":        issue.Repo.FullName(),
-		"Doer":        doer.Name,
-		"Action":      actionType,
-		"FromMention": fromMention,
+		"Issue":     issue,
+		"Comment":   comment,
+		"IsPull":    issue.IsPull,
+		"User":      issue.Repo.MustOwner().Name,
+		"Repo":      issue.Repo.FullName(),
+		"Doer":      doer.Name,
+		"Action":    actionType,
+		"IsMention": fromMention,
 	}, nil
 }
 

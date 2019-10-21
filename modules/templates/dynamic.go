@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"path"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -20,7 +21,8 @@ import (
 )
 
 var (
-	templates = template.New("")
+	templates        = template.New("")
+	mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 )
 
 // HTMLRenderer implements the macaron handler for serving HTML templates.
@@ -84,15 +86,7 @@ func Mailer() *template.Template {
 					continue
 				}
 
-				_, err = templates.New(
-					strings.TrimSuffix(
-						filePath,
-						".tmpl",
-					),
-				).Parse(string(content))
-				if err != nil {
-					log.Warn("Failed to parse template %v", err)
-				}
+				buildSubjectBodyTemplate(strings.TrimSuffix(filePath, ".tmpl"), content)
 			}
 		}
 	}
@@ -117,18 +111,31 @@ func Mailer() *template.Template {
 					continue
 				}
 
-				_, err = templates.New(
-					strings.TrimSuffix(
-						filePath,
-						".tmpl",
-					),
-				).Parse(string(content))
-				if err != nil {
-					log.Warn("Failed to parse template %v", err)
-				}
+				buildSubjectBodyTemplate(strings.TrimSuffix(filePath, ".tmpl"), content)
 			}
 		}
 	}
 
 	return templates
+}
+
+func buildSubjectBodyTemplate(name string, content []byte) {
+	// Split template into subject and body
+	var subjectContent []byte
+	bodyContent := content
+	loc := mailSubjectSplit.FindIndex(content)
+	if loc != nil {
+		subjectContent = content[0:loc[0]]
+		bodyContent = content[loc[1]:]
+	}
+	body := templates.New(name + "/body")
+	if _, err := body.Parse(string(bodyContent)); err != nil {
+		log.Warn("Failed to parse template [%s/body]: %v", name, err)
+		return
+	}
+	subject := templates.New(name + "/subject")
+	if _, err := subject.Parse(string(subjectContent)); err != nil {
+		log.Warn("Failed to parse template [%s/subject]: %v", name, err)
+		return
+	}
 }

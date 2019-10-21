@@ -31,9 +31,18 @@ const (
 	mailAuthResetPassword  base.TplName = "auth/reset_passwd"
 	mailAuthRegisterNotify base.TplName = "auth/register_notify"
 
-	mailIssueSubject base.TplName = "issue/subject"
-	mailIssueComment base.TplName = "issue/comment"
-	mailIssueMention base.TplName = "issue/mention"
+	mailIssueDefault base.TplName = "issue/default"
+	mailNewIssue     base.TplName = "issue/new"
+	mailCommentIssue base.TplName = "issue/comment"
+	mailCloseIssue   base.TplName = "issue/close"
+	mailReopenIssue  base.TplName = "issue/reopen"
+
+	mailPullRequestDefault base.TplName = "pull/default"
+	mailNewPullRequest     base.TplName = "pull/new"
+	mailCommentPullRequest base.TplName = "pull/comment"
+	mailClosePullRequest   base.TplName = "pull/close"
+	mailReopenPullRequest  base.TplName = "pull/reopen"
+	mailMergePullRequest   base.TplName = "pull/merge" // FIXME: Where can I use this?
 
 	mailNotifyCollaborator base.TplName = "notify/collaborator"
 
@@ -41,8 +50,10 @@ const (
 	mailMaxSubjectRunes = 256
 )
 
-var templates *template.Template
-var subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
+var (
+	templates           *template.Template
+	subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
+)
 
 // InitMailRender initializes the mail renderer
 func InitMailRender(tmpls *template.Template) {
@@ -163,54 +174,74 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 	SendAsync(msg)
 }
 
-func composeTplData(subject, body, link string) map[string]interface{} {
-	data := make(map[string]interface{}, 10)
-	data["Subject"] = subject
-	data["Body"] = body
-	data["Link"] = link
-	return data
-}
-
 func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionType models.ActionType, fromMention bool,
-	content string, comment *models.Comment, tplBody base.TplName, tos []string, info string) *Message {
-	var subject string
-	err := issue.LoadRepo()
-	if err != nil {
+	content string, comment *models.Comment, tos []string, info string) *Message {
+
+	if err := issue.LoadRepo(); err != nil {
 		log.Error("LoadRepo: %v", err)
+		return nil
+	}
+	if err := issue.LoadPullRequest(); err != nil {
+		log.Error("LoadPullRequest: %v", err)
+		return nil
 	}
 
-	var mailSubject bytes.Buffer
-	if subjectData, err := issue.ComposeSubjectTplData(doer, comment, actionType, fromMention); err == nil {
-		if err = templates.ExecuteTemplate(&mailSubject, string(mailIssueSubject), subjectData); err == nil {
-			subject = sanitizeSubject(mailSubject.String())
-		}
-	}
-	if subject == "" {
-		if err != nil {
-			log.Error("Template: %v", err)
-		}
-		// Default subject
-		if comment != nil {
-			subject = "Re: " + fallbackMailSubject(issue)
-		} else {
-			subject = fallbackMailSubject(issue)
-		}
+	var (
+		subject string
+		link    string
+		prefix  string
+		// Fall back subject for bad templates, make sure subject is never empty
+		fallback string
+	)
+
+	if comment != nil {
+		prefix = "Re: "
 	}
 
+	fallback = prefix + fallbackMailSubject(issue)
+
+	// This is the body of the new issue or comment, not the mail body
 	body := string(markup.RenderByType(markdown.MarkupName, []byte(content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
 
-	var data map[string]interface{}
 	if comment != nil {
-		data = composeTplData(subject, body, issue.HTMLURL()+"#"+comment.HashTag())
+		link = issue.HTMLURL() + "#" + comment.HashTag()
 	} else {
-		data = composeTplData(subject, body, issue.HTMLURL())
+		link = issue.HTMLURL()
 	}
-	data["Doer"] = doer
+
+	mailMeta := map[string]interface{}{
+		"FallbackSubject": fallback,
+		"Body":            body,
+		"Link":            link,
+		"Issue":           issue,
+		"Comment":         comment,
+		"IsPull":          issue.IsPull,
+		"User":            issue.Repo.MustOwner().Name,
+		"Repo":            issue.Repo.FullName(),
+		"Doer":            doer,
+		"Action":          actionType,
+		"IsMention":       fromMention,
+		"SubjectPrefix":   prefix,
+	}
+
+	tplBody := actionToTemplate(issue, actionType)
+
+	var mailSubject bytes.Buffer
+	if err := templates.ExecuteTemplate(&mailSubject, string(tplBody)+"/subject", mailMeta); err == nil {
+		subject = sanitizeSubject(mailSubject.String())
+	} else {
+		log.Error("ExecuteTemplate [%s]: %v", string(tplBody)+"/subject", err)
+	}
+
+	if subject == "" {
+		subject = fallback
+	}
+	mailMeta["Subject"] = subject
 
 	var mailBody bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&mailBody, string(tplBody), data); err != nil {
-		log.Error("Template: %v", err)
+	if err := templates.ExecuteTemplate(&mailBody, string(tplBody)+"/body", mailMeta); err != nil {
+		log.Error("ExecuteTemplate [%s]: %v", string(tplBody)+"/body", err)
 	}
 
 	msg := NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
@@ -242,7 +273,7 @@ func SendIssueCommentMail(issue *models.Issue, doer *models.User, actionType mod
 		return
 	}
 
-	SendAsync(composeIssueCommentMessage(issue, doer, actionType, false, content, comment, mailIssueComment, tos, "issue comment"))
+	SendAsync(composeIssueCommentMessage(issue, doer, actionType, false, content, comment, tos, "issue comment"))
 }
 
 // SendIssueMentionMail composes and sends issue mention emails to target receivers.
@@ -250,5 +281,38 @@ func SendIssueMentionMail(issue *models.Issue, doer *models.User, actionType mod
 	if len(tos) == 0 {
 		return
 	}
-	SendAsync(composeIssueCommentMessage(issue, doer, actionType, true, content, comment, mailIssueMention, tos, "issue mention"))
+	SendAsync(composeIssueCommentMessage(issue, doer, actionType, true, content, comment, tos, "issue mention"))
+}
+
+func actionToTemplate(issue *models.Issue, actionType models.ActionType) base.TplName {
+	var name base.TplName
+	switch actionType {
+	case models.ActionCreateIssue:
+		name = mailNewIssue
+	case models.ActionCreatePullRequest:
+		name = mailNewPullRequest
+	case models.ActionCommentIssue:
+		if issue.IsPull {
+			name = mailCommentPullRequest
+		} else {
+			name = mailCommentIssue
+		}
+	case models.ActionCloseIssue:
+		name = mailCloseIssue
+	case models.ActionReopenIssue:
+		name = mailReopenIssue
+	case models.ActionClosePullRequest:
+		name = mailClosePullRequest
+	case models.ActionReopenPullRequest:
+		name = mailReopenPullRequest
+	case models.ActionMergePullRequest:
+		name = mailMergePullRequest
+	}
+	if name != "" && templates.Lookup(string(name)+"/body") != nil {
+		return name
+	}
+	if issue.IsPull {
+		return mailPullRequestDefault
+	}
+	return mailIssueDefault
 }
