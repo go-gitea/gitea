@@ -584,8 +584,8 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 	}
 
 	if err := issue_service.AddAssignees(issue, ctx.User, assigneeIDs); err != nil {
-		ctx.ServerError("AddAssignees", err)
-		return
+		log.Error("AddAssignees: %v", err)
+		ctx.Flash.Error(ctx.Tr("issues.assignee.error"))
 	}
 
 	notification.NotifyNewIssue(issue)

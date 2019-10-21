@@ -780,8 +780,8 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	}
 
 	if err := issue_service.AddAssignees(pullIssue, ctx.User, assigneeIDs); err != nil {
-		ctx.ServerError("AddAssignees", err)
-		return
+		log.Error("AddAssignees: %v", err)
+		ctx.Flash.Error(ctx.Tr("issues.assignee.error"))
 	}
 
 	notification.NotifyNewPullRequest(pullRequest)
