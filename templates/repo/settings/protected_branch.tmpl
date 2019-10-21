@@ -59,6 +59,13 @@
 								</div>
 							</div>
 						{{end}}
+						<br>
+						<div class="whitelist field">
+							<div class="ui checkbox">
+								<input type="checkbox" name="whitelist_deploy_keys" {{if .Branch.WhitelistDeployKeys}}checked{{end}}>
+								<label for="whitelist_deploy_keys">{{.i18n.Tr "repo.settings.protect_whitelist_deploy_keys"}}</label>
+							</div>
+						</div>
 					</div>
 
 					<div class="field">
