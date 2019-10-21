@@ -272,12 +272,12 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 }
 
 func setMergeTarget(ctx *context.Context, pull *models.PullRequest) {
-	if ctx.Repo.Owner.Name == pull.HeadUserName {
+	if ctx.Repo.Owner.Name == pull.MustHeadUserName() {
 		ctx.Data["HeadTarget"] = pull.HeadBranch
 	} else if pull.HeadRepo == nil {
-		ctx.Data["HeadTarget"] = pull.HeadUserName + ":" + pull.HeadBranch
+		ctx.Data["HeadTarget"] = pull.MustHeadUserName() + ":" + pull.HeadBranch
 	} else {
-		ctx.Data["HeadTarget"] = pull.HeadUserName + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
+		ctx.Data["HeadTarget"] = pull.MustHeadUserName() + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
 	}
 	ctx.Data["BaseTarget"] = pull.BaseBranch
 }
@@ -440,7 +440,7 @@ func ViewPullCommits(ctx *context.Context) {
 			ctx.NotFound("ViewPullCommits", nil)
 			return
 		}
-		ctx.Data["Username"] = pull.HeadUserName
+		ctx.Data["Username"] = pull.MustHeadUserName()
 		ctx.Data["Reponame"] = pull.HeadRepo.Name
 		commits = prInfo.Commits
 	}
@@ -512,7 +512,7 @@ func ViewPullFiles(ctx *context.Context) {
 			return
 		}
 
-		headRepoPath := models.RepoPath(pull.HeadUserName, pull.HeadRepo.Name)
+		headRepoPath := pull.HeadRepo.RepoPath()
 
 		headGitRepo, err := git.OpenRepository(headRepoPath)
 		if err != nil {
@@ -531,8 +531,8 @@ func ViewPullFiles(ctx *context.Context) {
 		endCommitID = headCommitID
 		gitRepo = headGitRepo
 
-		headTarget = path.Join(pull.HeadUserName, pull.HeadRepo.Name)
-		ctx.Data["Username"] = pull.HeadUserName
+		headTarget = path.Join(pull.MustHeadUserName(), pull.HeadRepo.Name)
+		ctx.Data["Username"] = pull.MustHeadUserName()
 		ctx.Data["Reponame"] = pull.HeadRepo.Name
 	}
 
@@ -754,15 +754,14 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		Content:     form.Content,
 	}
 	pullRequest := &models.PullRequest{
-		HeadRepoID:   headRepo.ID,
-		BaseRepoID:   repo.ID,
-		HeadUserName: headUser.Name,
-		HeadBranch:   headBranch,
-		BaseBranch:   baseBranch,
-		HeadRepo:     headRepo,
-		BaseRepo:     repo,
-		MergeBase:    prInfo.MergeBase,
-		Type:         models.PullRequestGitea,
+		HeadRepoID: headRepo.ID,
+		BaseRepoID: repo.ID,
+		HeadBranch: headBranch,
+		BaseBranch: baseBranch,
+		HeadRepo:   headRepo,
+		BaseRepo:   repo,
+		MergeBase:  prInfo.MergeBase,
+		Type:       models.PullRequestGitea,
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.

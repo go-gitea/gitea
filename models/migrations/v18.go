@@ -7,7 +7,7 @@ package migrations
 import (
 	"fmt"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 // ExternalLoginUser makes the connecting between some existing user and additional external login sources

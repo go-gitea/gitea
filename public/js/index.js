@@ -262,7 +262,7 @@ function initRepoStatusChecker() {
                             location.reload();
                             return
                         }
-            
+
                         setTimeout(function () {
                             initRepoStatusChecker()
                         }, 2000);
@@ -306,7 +306,7 @@ function initReactionSelector(parent) {
             if (resp && (resp.html || resp.empty)) {
                 const content = $(vm).closest('.content');
                 let react = content.find('.segment.reactions');
-                if (react.length > 0) {
+                if (!resp.empty && react.length > 0) {
                     react.remove();
                 }
                 if (!resp.empty) {
@@ -1571,6 +1571,18 @@ function initEditor() {
             codeMirrorEditor.setOption("tabSize", editorconfig.tab_width || 4);
         });
     }).trigger('keyup');
+
+    $('#commit-button').click(function (event) {
+        // A modal which asks if an empty file should be committed
+        if ($editArea.val().length === 0) {
+            $('#edit-empty-content-modal').modal({
+                onApprove: function () {
+                    $('.edit.form').submit();
+                }
+            }).modal('show');
+            event.preventDefault();
+        }
+    });
 }
 
 function initOrganization() {

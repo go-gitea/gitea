@@ -26,6 +26,16 @@
 						<img class="ui avatar image" src="{{AvatarLink .Commit.Author.Email}}" />
 						<strong>{{.Commit.Author.Name}}</strong>
 					{{end}}
+					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
+						<span> </span>
+						{{if ne .Verification.CommittingUser.ID 0}}
+							<img class="ui avatar image" src="{{.Verification.CommittingUser.RelAvatarLink}}" />
+							<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a> <{{.Commit.Committer.Email}}>
+						{{else}}
+							<img class="ui avatar image" src="{{AvatarLink .Commit.Committer.Email}}" />
+							<strong>{{.Commit.Committer.Name}}</strong>
+						{{end}}
+					{{end}}
 					<span class="text grey" id="authored-time">{{TimeSince .Commit.Author.When $.Lang}}</span>
 				</div>
 				<div class="seven wide right aligned column">
@@ -50,15 +60,36 @@
 		{{if .Commit.Signature}}
 			{{if .Verification.Verified }}
 				<div class="ui bottom attached positive message">
-				  <i class="green lock icon"></i>
-					<span>{{.i18n.Tr "repo.commits.signed_by"}}:</span>
-					<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a> <{{.Commit.Committer.Email}}>
-					<span class="pull-right"><span>{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> {{.Verification.SigningKey.KeyID}}</span>
+					{{if ne .Verification.SigningUser.ID 0}}
+						<i class="green lock icon"></i>
+						<span>{{.i18n.Tr "repo.commits.signed_by"}}:</span>
+						<img class="ui avatar image" src="{{.Verification.SigningUser.RelAvatarLink}}" />
+						<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.Name}}</strong></a> <{{.Verification.SigningEmail}}>
+						<span class="pull-right"><span>{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> {{.Verification.SigningKey.KeyID}}</span>
+					{{else}}
+						<i class="icons" title="{{.i18n.Tr "gpg.default_key"}}">
+							<i class="green lock icon"></i>
+							<i class="tiny inverted cog icon centerlock"></i>
+						</i>
+						<span>{{.i18n.Tr "repo.commits.signed_by"}}:</span>
+						<img class="ui avatar image" src="{{AvatarLink .Verification.SigningEmail}}" />
+						<strong>{{.Verification.SigningUser.Name}}</strong> <{{.Verification.SigningEmail}}>
+						<span class="pull-right"><span>{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="cogs icon" title="{{.i18n.Tr "gpg.default_key"}}"></i>{{.Verification.SigningKey.KeyID}}</span>
+					{{end}}
+				</div>
+			{{else if .Verification.Warning}}
+				<div class="ui bottom attached message">
+				  <i class="red unlock icon"></i>
+				  <span class="red text">{{.i18n.Tr .Verification.Reason}}</span>
+				  <span class="pull-right"><span class="red text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="red warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
 				</div>
 			{{else}}
 				<div class="ui bottom attached message">
 				  <i class="grey unlock icon"></i>
 				  {{.i18n.Tr .Verification.Reason}}
+				  {{if and .Verification.SigningKey (ne .Verification.SigningKey.KeyID "")}}
+					<span class="pull-right"><span class="red text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="red warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
+				  {{end}}
 				</div>
 			{{end}}
 		{{end}}

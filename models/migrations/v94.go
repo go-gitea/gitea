@@ -4,7 +4,7 @@
 
 package migrations
 
-import "github.com/go-xorm/xorm"
+import "xorm.io/xorm"
 
 func addStatusCheckColumnsForProtectedBranches(x *xorm.Engine) error {
 	type ProtectedBranch struct {
