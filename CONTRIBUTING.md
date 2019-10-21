@@ -304,7 +304,7 @@ be reviewed by two maintainers and must pass the automatic tests.
 * Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`.
 * And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically created a release and upload all the compiled binary. (But currently it didn't add the release notes automatically. Maybe we should fix that.)
 * If needed send PR for changelog on branch `master`.
-* Send PR to [blog repository](https://github.com/go-gitea/blog) announcing the release.
+* Send PR to [blog repository](https://gitea.com/gitea/blog) announcing the release.
 
 ## Copyright
 
