@@ -192,8 +192,12 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LOG_SQL`: **true**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
 - `DB_RETRY_BACKOFF`: **3s**: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
-- `MAX_IDLE_CONNS` **0**: Max idle database connections on connnection pool, default is 0
-- `CONN_MAX_LIFETIME` **3s**: Database connection max lifetime
+- `MAX_OPEN_CONNS` **0**: Database maximum open connections - default is 0, meaning there is no limit.
+- `MAX_IDLE_CONNS` **2**: Max idle database connections on connnection pool, default is 2 - this will be capped to `MAX_OPEN_CONNS`.
+- `CONN_MAX_LIFETIME` **0 or 3s**: Sets the maximum amount of time a DB connection may be reused - default is 0, meaning there is no limit (except on MySQL where it is 3s - see #6804 & #7071).
+  
+Please see #8540 & #8273 for further discussion of the appropriate values for `MAX_OPEN_CONNS`, `MAX_IDLE_CONNS` & `CONN_MAX_LIFETIME` and their
+relation to port exhaustion.
 
 ## Indexer (`indexer`)
 
