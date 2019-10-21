@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/notification/indexer"
 	"code.gitea.io/gitea/modules/notification/mail"
 	"code.gitea.io/gitea/modules/notification/ui"
+	"code.gitea.io/gitea/modules/notification/webhook"
 )
 
 var (
@@ -27,6 +28,7 @@ func init() {
 	RegisterNotifier(ui.NewNotifier())
 	RegisterNotifier(mail.NewNotifier())
 	RegisterNotifier(indexer.NewNotifier())
+	RegisterNotifier(webhook.NewNotifier())
 }
 
 // NotifyCreateIssueComment notifies issue comment related message to notifiers

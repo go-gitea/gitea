@@ -21,9 +21,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"xorm.io/core"
+	"xorm.io/xorm"
 )
 
 // LoginType represents an login type.

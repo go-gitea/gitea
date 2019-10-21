@@ -21,10 +21,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
+	"xorm.io/xorm"
 )
 
 const minDBVersion = 4
@@ -252,6 +252,14 @@ var migrations = []Migration{
 	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
 	// v98 -> v99
 	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
+	// v99 -> v100
+	NewMigration("add task table and status column for repository table", addTaskTable),
+	// v100 -> v101
+	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
+	// v101 -> v102
+	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
+	// v102 -> v103
+	NewMigration("update migration repositories' service type", dropColumnHeadUserNameOnPullRequest),
 }
 
 // Migrate database to current version
@@ -404,9 +412,11 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		}
 		for _, index := range res {
 			indexName := index["column_name"]
-			_, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
-			if err != nil {
-				return err
+			if len(indexName) > 0 {
+				_, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
+				if err != nil {
+					return err
+				}
 			}
 		}
 

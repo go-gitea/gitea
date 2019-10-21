@@ -232,20 +232,6 @@ func TestPullRequestList_LoadAttributes(t *testing.T) {
 
 // TODO TestAddTestPullRequestTask
 
-func TestChangeUsernameInPullRequests(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	const newUsername = "newusername"
-	assert.NoError(t, ChangeUsernameInPullRequests("user1", newUsername))
-
-	prs := make([]*PullRequest, 0, 10)
-	assert.NoError(t, x.Where("head_user_name = ?", newUsername).Find(&prs))
-	assert.Len(t, prs, 2)
-	for _, pr := range prs {
-		assert.Equal(t, newUsername, pr.HeadUserName)
-	}
-	CheckConsistencyFor(t, &PullRequest{})
-}
-
 func TestPullRequest_IsWorkInProgress(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
