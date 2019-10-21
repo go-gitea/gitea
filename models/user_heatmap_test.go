@@ -41,7 +41,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		// Get the heatmap and compare
 		heatmap, err := GetUserHeatmapDataByUser(user)
 		assert.NoError(t, err)
-		assert.Equal(t, len(actions), len(heatmap))
+		assert.Equal(t, len(actions), len(heatmap), "invalid action count: did the test data became too old?")
 		assert.Equal(t, tc.CountResult, len(heatmap))
 
 		//Test JSON rendering
