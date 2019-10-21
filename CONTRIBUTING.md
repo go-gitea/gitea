@@ -11,6 +11,7 @@
   - [Translation](#translation)
   - [Code review](#code-review)
   - [Styleguide](#styleguide)
+  - [Design guideline](#design-guideline)
   - [Developer Certificate of Origin (DCO)](#developer-certificate-of-origin-dco)
   - [Release Cycle](#release-cycle)
   - [Maintainers](#maintainers)
@@ -118,6 +119,8 @@ An exception are the tools to build the CSS and images.
 - To build Images: ImageMagick, inkscape and zopflipng binaries must be
   available in your `PATH` to run `make generate-images`.
 
+For more details on how to generate files, build and test Gitea, see the [hacking instructions](https://docs.gitea.io/en-us/hacking-on-gitea/)
+
 ## Code review
 
 Changes to Gitea must be reviewed before they are accepted—no matter who
@@ -156,6 +159,22 @@ import (
   "gopkg.io/baz.v1"
 )
 ```
+
+## Design guideline
+
+To maintain understandable code and avoid circular dependencies it is important to have a good structure of the code. The gitea code is divided into the following parts:
+
+- **integration:** Integrations tests 
+- **models:** Contains the data structures used by xorm to construct database tables. It also contains supporting functions to query and update the database. Dependecies to other code in Gitea should be avoided although some modules might be needed (for example for logging).
+- **models/fixtures:** Sample model data used in integration tests.
+- **models/migrations:** Handling of database migrations between versions. PRs that changes a database structure shall also have a migration step.
+- **modules:** Different modules to handle specific functionality in Gitea.
+- **public:** Frontend files (javascript, images, css, etc.)
+- **routers:** Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers
+- **services:** Support functions for common routing operations. Uses models and modules to handle the request.
+- **templates:** Golang templates for generating the html output.
+- **vendor:** External code that Gitea depends on.
+
 
 ## Developer Certificate of Origin (DCO)
 
