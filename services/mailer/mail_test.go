@@ -7,6 +7,7 @@ package mailer
 import (
 	"html/template"
 	"testing"
+	texttmpl "text/template"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
@@ -48,7 +49,7 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	comment := models.AssertExistsAndLoadBean(t, &models.Comment{ID: 2, Issue: issue}).(*models.Comment)
 
 	email := template.Must(template.New("issue/comment").Parse(tmpl))
-	InitMailRender(email)
+	InitMailRender(texttmpl.New(""), email)
 
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
 	msg := composeIssueCommentMessage(issue, doer, models.ActionCommentIssue, false, "test body", comment, tos, "issue comment")
@@ -76,7 +77,7 @@ func TestComposeIssueMessage(t *testing.T) {
 	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 1, Repo: repo, Poster: doer}).(*models.Issue)
 
 	email := template.Must(template.New("issue/comment").Parse(tmpl))
-	InitMailRender(email)
+	InitMailRender(texttmpl.New(""), email)
 
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
 	msg := composeIssueCommentMessage(issue, doer, models.ActionCreateIssue, false, "test body", nil, tos, "issue create")

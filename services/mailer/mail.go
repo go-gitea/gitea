@@ -13,6 +13,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	texttmpl "text/template"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -51,13 +52,15 @@ const (
 )
 
 var (
-	templates           *template.Template
+	bodyTemplates       *template.Template
+	subjectTemplates    *texttmpl.Template
 	subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
 )
 
 // InitMailRender initializes the mail renderer
-func InitMailRender(tmpls *template.Template) {
-	templates = tmpls
+func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
+	subjectTemplates = subjectTpl
+	bodyTemplates = bodyTpl
 }
 
 // SendTestMail sends a test mail
@@ -76,7 +79,7 @@ func SendUserMail(language string, u *models.User, tpl base.TplName, code, subje
 
 	var content bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&content, string(tpl), data); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&content, string(tpl), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -114,7 +117,7 @@ func SendActivateEmailMail(locale Locale, u *models.User, email *models.EmailAdd
 
 	var content bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -139,7 +142,7 @@ func SendRegisterNotifyMail(locale Locale, u *models.User) {
 
 	var content bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -163,7 +166,7 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 
 	var content bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -227,7 +230,7 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 	tplBody := actionToTemplate(issue, actionType)
 
 	var mailSubject bytes.Buffer
-	if err := templates.ExecuteTemplate(&mailSubject, string(tplBody)+"/subject", mailMeta); err == nil {
+	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplBody), mailMeta); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
 	} else {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplBody)+"/subject", err)
@@ -240,7 +243,7 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 
 	var mailBody bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&mailBody, string(tplBody)+"/body", mailMeta); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplBody), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplBody)+"/body", err)
 	}
 
@@ -308,7 +311,7 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType) base.Tp
 	case models.ActionMergePullRequest:
 		name = mailMergePullRequest
 	}
-	if name != "" && templates.Lookup(string(name)+"/body") != nil {
+	if name != "" && bodyTemplates.Lookup(string(name)) != nil {
 		return name
 	}
 	if issue.IsPull {

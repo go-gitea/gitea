@@ -12,6 +12,7 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	texttmpl "text/template"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -21,7 +22,8 @@ import (
 )
 
 var (
-	templates        = template.New("")
+	bodyTemplates    = template.New("")
+	subjectTemplates = texttmpl.New("")
 	mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 )
 
@@ -61,9 +63,12 @@ func JSRenderer() macaron.Handler {
 }
 
 // Mailer provides the templates required for sending notification mails.
-func Mailer() *template.Template {
+func Mailer() (*texttmpl.Template, *template.Template) {
+	for _, funcs := range NewTextFuncMap() {
+		subjectTemplates.Funcs(funcs)
+	}
 	for _, funcs := range NewFuncMap() {
-		templates.Funcs(funcs)
+		bodyTemplates.Funcs(funcs)
 	}
 
 	staticDir := path.Join(setting.StaticRootPath, "templates", "mail")
@@ -116,7 +121,7 @@ func Mailer() *template.Template {
 		}
 	}
 
-	return templates
+	return subjectTemplates, bodyTemplates
 }
 
 func buildSubjectBodyTemplate(name string, content []byte) {
@@ -128,14 +133,12 @@ func buildSubjectBodyTemplate(name string, content []byte) {
 		subjectContent = content[0:loc[0]]
 		bodyContent = content[loc[1]:]
 	}
-	body := templates.New(name + "/body")
-	if _, err := body.Parse(string(bodyContent)); err != nil {
-		log.Warn("Failed to parse template [%s/body]: %v", name, err)
-		return
-	}
-	subject := templates.New(name + "/subject")
-	if _, err := subject.Parse(string(subjectContent)); err != nil {
+	if _, err := subjectTemplates.New(name).
+		Parse(string(subjectContent)); err != nil {
 		log.Warn("Failed to parse template [%s/subject]: %v", name, err)
-		return
+	}
+	if _, err := bodyTemplates.New(name).
+		Parse(string(bodyContent)); err != nil {
+		log.Warn("Failed to parse template [%s/body]: %v", name, err)
 	}
 }
