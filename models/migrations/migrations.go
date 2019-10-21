@@ -260,6 +260,8 @@ var migrations = []Migration{
 	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
 	// v102 -> v103
 	NewMigration("update migration repositories' service type", dropColumnHeadUserNameOnPullRequest),
+	// v103 -> v104
+	NewMigration("Add WhitelistDeployKeys to protected branch", addWhitelistDeployKeysToBranches),
 }
 
 // Migrate database to current version
