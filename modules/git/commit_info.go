@@ -72,6 +72,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache LastCom
 		treeCommit = commit
 	} else if rev, ok := revs[""]; ok {
 		treeCommit = convertCommit(rev)
+		treeCommit.repo = commit.repo
 	}
 	return commitsInfo, treeCommit, nil
 }

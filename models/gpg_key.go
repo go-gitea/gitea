@@ -682,6 +682,8 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	defaultGPGSettings, err := c.GetRepositoryDefaultPublicGPGKey(false)
 	if err != nil {
 		log.Error("Error getting default public gpg key: %v", err)
+	} else if defaultGPGSettings == nil {
+		log.Warn("Unable to get defaultGPGSettings for unattached commit: %s", c.ID.String())
 	} else if defaultGPGSettings.Sign {
 		if commitVerification := verifyWithGPGSettings(defaultGPGSettings, sig, c.Signature.Payload, committer, keyID); commitVerification != nil {
 			if commitVerification.Reason == BadSignature {
