@@ -37,12 +37,12 @@
 				<li>
 					<div class="diff-counter count pull-right">
 						{{if not .IsBin}}
-							<span class="add" data-line="{{.Addition}}">{{.Addition}}</span>
+							<span class="add" data-line="{{.Addition}}">+{{.Addition}}</span>
 							<span class="bar">
 								<div class="pull-left add"></div>
 								<div class="pull-left del"></div>
 							</span>
-							<span class="del" data-line="{{.Deletion}}">{{.Deletion}}</span>
+							<span class="del" data-line="{{.Deletion}}">-{{.Deletion}}</span>
 						{{else}}
 							<span>{{$.i18n.Tr "repo.diff.bin"}}</span>
 						{{end}}
