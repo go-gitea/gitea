@@ -52,7 +52,7 @@ func ListUserRepos(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	private := ctx.IsSigned && (ctx.User.ID == user.ID || ctx.User.IsAdmin)
+	private := ctx.IsSigned
 	listUserRepos(ctx, user, private)
 }
 
