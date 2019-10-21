@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	hookBatchSize = 200
+	hookBatchSize = 30
 )
 
 var (
@@ -197,12 +197,8 @@ Gitea or set your environment appropriately.`, "")
 	refFullNames := make([]string, hookBatchSize)
 	count := 0
 
-	buf := bytes.NewBuffer(nil)
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		buf.Write(scanner.Bytes())
-		buf.WriteByte('\n')
-
 		// TODO: support news feeds for wiki
 		if isWiki {
 			continue
