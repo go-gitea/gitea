@@ -213,6 +213,7 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 
 		protectBranch.EnableStatusCheck = f.EnableStatusCheck
 		protectBranch.StatusCheckContexts = f.StatusCheckContexts
+		protectBranch.WhitelistDeployKeys = f.WhitelistDeployKeys
 
 		protectBranch.RequiredApprovals = f.RequiredApprovals
 		if strings.TrimSpace(f.ApprovalsWhitelistUsers) != "" {
