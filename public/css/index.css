@@ -667,8 +667,6 @@ i.icon.centerlock{top:1.5em}
 .repository #commits-table td.sha .sha.label.isSigned.isVerified:hover,.repository #repo-files-table .sha.label.isSigned.isVerified:hover{background:rgba(33,186,69,.3)!important}
 .repository .diff-detail-box{padding:7px 0;background:#fff;line-height:30px}
 .repository .diff-detail-box>div:after{clear:both;content:"";display:block}
-.repository .diff-detail-box ol{clear:both;padding-left:0;margin-top:5px;margin-bottom:28px}
-.repository .diff-detail-box ol li{list-style:none;padding-bottom:4px;margin-bottom:4px;border-bottom:1px dashed #ddd;padding-left:6px}
 .repository .diff-detail-box span.status{display:inline-block;width:12px;height:12px;margin-right:8px;vertical-align:middle}
 .repository .diff-detail-box span.status.modify{background-color:#f0db88}
 .repository .diff-detail-box span.status.add{background-color:#b4e2b4}
@@ -705,6 +703,11 @@ i.icon.centerlock{top:1.5em}
 .repository .diff-file-box.file-content{clear:right}
 .repository .diff-file-box.file-content img{max-width:100%;padding:5px 5px 0 5px}
 .repository .diff-file-box.file-content img.emoji{padding:0}
+.repository .diff-stats{clear:both;margin-bottom:5px;max-height:400px;overflow:auto;padding-left:0}
+.repository .diff-stats li{list-style:none;padding-bottom:4px;margin-bottom:4px;border-bottom:1px dashed #ddd;padding-left:6px}
+.repository .diff-stats .diff-counter{margin-right:15px}
+.repository .diff-stats .diff-counter .del{color:red}
+.repository .diff-stats .diff-counter .add{color:green}
 .repository .repo-search-result{padding-top:10px;padding-bottom:10px}
 .repository .repo-search-result .lines-num a{color:inherit}
 .repository.quickstart .guide .item{padding:1em}

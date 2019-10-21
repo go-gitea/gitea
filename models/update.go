@@ -22,6 +22,8 @@ const (
 	EnvPusherName   = "GITEA_PUSHER_NAME"
 	EnvPusherEmail  = "GITEA_PUSHER_EMAIL"
 	EnvPusherID     = "GITEA_PUSHER_ID"
+	EnvKeyID        = "GITEA_KEY_ID"
+	EnvIsDeployKey  = "GITEA_IS_DEPLOY_KEY"
 )
 
 // CommitToPushCommit transforms a git.Commit to PushCommit type.

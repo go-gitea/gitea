@@ -261,6 +261,8 @@ var migrations = []Migration{
 	// v102 -> v103
 	NewMigration("update migration repositories' service type", dropColumnHeadUserNameOnPullRequest),
 	// v103 -> v104
+	NewMigration("Add WhitelistDeployKeys to protected branch", addWhitelistDeployKeysToBranches),
+	// v104 -> v105
 	NewMigration("add projects info to repository table", addProjectsInfo),
 }
 
