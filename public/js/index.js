@@ -1583,7 +1583,7 @@ function initEditor() {
 
     // Registering a custom listener for the file path and the file content
     $editForm.areYouSure({
-        slient: true,
+        silent: true,
         dirtyClass: dirtyFileClass,
         fieldSelector: ':input:not(.commit-form-wrapper :input)',
         change: function () {
