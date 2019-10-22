@@ -2592,19 +2592,19 @@ func ForkRepository(doer, owner *User, oldRepo *Repository, name, desc string) (
 	sess2 := x.NewSession()
 	defer sess2.Close()
 	if err = sess2.Begin(); err != nil {
-		return nil, err
+		return repo, err
 	}
 
 	var lfsObjects []*LFSMetaObject
 	if err = sess2.Where("repository_id=?", oldRepo.ID).Find(&lfsObjects); err != nil {
-		return nil, err
+		return repo, err
 	}
 
 	for _, v := range lfsObjects {
 		v.ID = 0
 		v.RepositoryID = repo.ID
 		if _, err = sess2.Insert(v); err != nil {
-			return nil, err
+			return repo, err
 		}
 	}
 
