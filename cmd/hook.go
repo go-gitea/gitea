@@ -196,6 +196,8 @@ Gitea or set your environment appropriately.`, "")
 	newCommitIDs := make([]string, hookBatchSize)
 	refFullNames := make([]string, hookBatchSize)
 	count := 0
+	total := 0
+	results := make([]private.HookPostReceiveResult, 0)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
@@ -209,34 +211,26 @@ Gitea or set your environment appropriately.`, "")
 			continue
 		}
 
+		fmt.Fprintf(os.Stderr, ".")
 		oldCommitIDs[count] = string(fields[0])
 		newCommitIDs[count] = string(fields[1])
 		refFullNames[count] = string(fields[2])
 		count++
+		total++
+		os.Stderr.Sync()
 
 		if count >= hookBatchSize {
+			fmt.Fprintf(os.Stderr, " Processing %d references\n", count)
+			os.Stderr.Sync()
 			hookOptions.OldCommitIDs = oldCommitIDs
 			hookOptions.NewCommitIDs = newCommitIDs
 			hookOptions.RefFullNames = refFullNames
 			resps, err := private.HookPostReceive(repoUser, repoName, hookOptions)
 			if resps == nil {
+				hookPrintResults(results)
 				fail("Internal Server Error", err)
 			}
-			for _, res := range resps {
-				if !res.Message {
-					continue
-				}
-
-				fmt.Fprintln(os.Stderr, "")
-				if res.Create {
-					fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", res.Branch)
-					fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
-				} else {
-					fmt.Fprint(os.Stderr, "Visit the existing pull request:\n")
-					fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
-				}
-				fmt.Fprintln(os.Stderr, "")
-			}
+			results = append(results, resps...)
 			count = 0
 		}
 	}
@@ -248,11 +242,25 @@ Gitea or set your environment appropriately.`, "")
 	hookOptions.OldCommitIDs = oldCommitIDs[:count]
 	hookOptions.NewCommitIDs = newCommitIDs[:count]
 	hookOptions.RefFullNames = refFullNames[:count]
+
+	fmt.Fprintf(os.Stderr, " Processing %d references\n", count)
+	os.Stderr.Sync()
+	fmt.Fprintf(os.Stderr, "Processed %d references in total\n", total)
+	os.Stderr.Sync()
+
 	resps, err := private.HookPostReceive(repoUser, repoName, hookOptions)
 	if resps == nil {
+		hookPrintResults(results)
 		fail("Internal Server Error", err)
 	}
-	for _, res := range resps {
+	results = append(results, resps...)
+	hookPrintResults(results)
+
+	return nil
+}
+
+func hookPrintResults(results []private.HookPostReceiveResult) {
+	for _, res := range results {
 		if !res.Message {
 			continue
 		}
@@ -266,7 +274,6 @@ Gitea or set your environment appropriately.`, "")
 			fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
 		}
 		fmt.Fprintln(os.Stderr, "")
+		os.Stderr.Sync()
 	}
-
-	return nil
 }

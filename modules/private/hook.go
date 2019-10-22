@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -53,6 +54,7 @@ func HookPreReceive(ownerName, repoName string, opts HookOptions) (int, string) 
 	req = req.Header("Content-Type", "application/json")
 	jsonBytes, _ := json.Marshal(opts)
 	req.Body(jsonBytes)
+	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
 	resp, err := req.Response()
 	if err != nil {
 		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
@@ -75,6 +77,7 @@ func HookPostReceive(ownerName, repoName string, opts HookOptions) ([]HookPostRe
 
 	req := newInternalRequest(reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
+	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
 	jsonBytes, _ := json.Marshal(opts)
 	req.Body(jsonBytes)
 	resp, err := req.Response()
