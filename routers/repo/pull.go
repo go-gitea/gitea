@@ -663,7 +663,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 				x = "..." + string(runes[len(runes)-512:])
 			}
 
-			return strings.ReplaceAll(html.EscapeString(x), "\n", "<br>")
+			return strings.Replace(html.EscapeString(x), "\n", "<br>", -1)
 		}
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
