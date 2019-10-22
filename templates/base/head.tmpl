@@ -70,35 +70,35 @@
 	THE SOFTWARE.
 	---
 	Licensing information for additional javascript libraries can be found at:
-	  {{AppSubUrl}}/vendor/librejs.html
+	  {{StaticUrlPrefix}}/vendor/librejs.html
 
 	@licend  The above is the entire license notice
         for the JavaScript code in this page.
 	*/`}}
 	</script>
 
-	<link rel="shortcut icon" href="{{AppSubUrl}}/img/favicon.png" />
-	<link rel="mask-icon" href="{{AppSubUrl}}/img/gitea-safari.svg" color="#609926">
-	<link rel="preload" href="{{AppSubUrl}}/vendor/assets/font-awesome/css/font-awesome.min.css" as="style" onload="this.rel='stylesheet'">
-	<noscript><link rel="stylesheet" href="{{AppSubUrl}}/vendor/assets/font-awesome/css/font-awesome.min.css"></noscript>
-	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/assets/octicons/octicons.min.css">
+	<link rel="shortcut icon" href="{{StaticUrlPrefix}}/img/favicon.png" />
+	<link rel="mask-icon" href="{{StaticUrlPrefix}}/img/gitea-safari.svg" color="#609926">
+	<link rel="preload" href="{{StaticUrlPrefix}}/vendor/assets/font-awesome/css/font-awesome.min.css" as="style" onload="this.rel='stylesheet'">
+	<noscript><link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/assets/font-awesome/css/font-awesome.min.css"></noscript>
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/assets/octicons/octicons.min.css">
 
 {{if .RequireSimpleMDE}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/simplemde/simplemde.min.css">
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/simplemde/simplemde.min.css">
 {{end}}
 
 {{if .RequireGitGraph}}
 	<!-- graph -->
-	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/gitgraph/gitgraph.css">
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/gitgraph/gitgraph.css">
 {{end}}
 
 {{if .RequireTribute}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/tribute/tribute.css">
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/tribute/tribute.css">
 {{end}}
 
 	<!-- Stylesheet -->
-	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/semantic/semantic.min.css">
-	<link rel="stylesheet" href="{{AppSubUrl}}/css/index.css?v={{MD5 AppVer}}">
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/semantic/semantic.min.css">
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
 	<noscript>
 		<style>
 			.dropdown:hover > .menu { display: block; }
@@ -107,25 +107,25 @@
 	</noscript>
 
 {{if .RequireHighlightJS}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/highlight/github.css">
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/highlight/github.css">
 {{end}}
 {{if .RequireMinicolors}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/jquery.minicolors/jquery.minicolors.css">
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.minicolors/jquery.minicolors.css">
 {{end}}
 {{if .RequireDatetimepicker}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.css">
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/jquery.datetimepicker/jquery.datetimepicker.css">
 {{end}}
 {{if .RequireDropzone}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/dropzone/dropzone.css">
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/dropzone/dropzone.css">
 {{end}}
 {{if .EnableHeatmap}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/vendor/plugins/vue-calendar-heatmap/vue-calendar-heatmap.css">
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/vendor/plugins/vue-calendar-heatmap/vue-calendar-heatmap.css">
 {{end}}
 	<style class="list-search-style"></style>
 
-	<script src="{{AppSubUrl}}/vendor/plugins/promise-polyfill/polyfill.min.js"></script>
-	<script src="{{AppSubUrl}}/vendor/plugins/cssrelpreload/loadCSS.min.js"></script>
-	<script src="{{AppSubUrl}}/vendor/plugins/cssrelpreload/cssrelpreload.min.js"></script>
+	<script src="{{StaticUrlPrefix}}/vendor/plugins/promise-polyfill/polyfill.min.js"></script>
+	<script src="{{StaticUrlPrefix}}/vendor/plugins/cssrelpreload/loadCSS.min.js"></script>
+	<script src="{{StaticUrlPrefix}}/vendor/plugins/cssrelpreload/cssrelpreload.min.js"></script>
 {{if .PageIsUserProfile}}
 	<meta property="og:title" content="{{.Owner.Name}}" />
 	<meta property="og:type" content="profile" />
@@ -144,16 +144,16 @@
 {{else}}
 	<meta property="og:title" content="{{AppName}}">
 	<meta property="og:type" content="website" />
-	<meta property="og:image" content="{{AppUrl}}img/gitea-lg.png" />
+	<meta property="og:image" content="{{StaticUrlPrefix}}img/gitea-lg.png" />
 	<meta property="og:url" content="{{AppUrl}}" />
 	<meta property="og:description" content="{{MetaDescription}}">
 {{end}}
 {{if .IsSigned }}
 	{{ if ne .SignedUser.Theme "gitea" }}
-		<link rel="stylesheet" href="{{AppSubUrl}}/css/theme-{{.SignedUser.Theme}}.css">
+		<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/theme-{{.SignedUser.Theme}}.css">
 	{{end}}
 {{else if ne DefaultTheme "gitea"}}
-	<link rel="stylesheet" href="{{AppSubUrl}}/css/theme-{{DefaultTheme}}.css">
+	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/theme-{{DefaultTheme}}.css">
 {{end}}
 {{template "custom/header" .}}
 </head>
