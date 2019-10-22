@@ -255,7 +255,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		errbuf.Reset()
 
 		// Rebase before merging
-		if err := git.NewCommand("rebase", baseBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		if err := git.NewCommand("rebase", baseBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 			// Rebase will leave a REBASE_HEAD file in .git if there is a conflict
 			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "REBASE_HEAD")); statErr == nil {
 				// The original commit SHA1 that is failing will be in .git/rebase-apply/original-commit
@@ -365,7 +365,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		errbuf.Reset()
 	case models.MergeStyleSquash:
 		// Merge with squash
-		if err := git.NewCommand("merge", "--squash", trackingBranch).RunInDirPipeline(tmpBasePath, nil, &errbuf); err != nil {
+		if err := git.NewCommand("merge", "--squash", trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 			// Merge will leave a MERGE_MSG file in the .git folder if there is a conflict
 			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "MERGE_MSG")); statErr == nil {
 				// We have a merge conflict error
