@@ -13,7 +13,8 @@ import (
 
 	api "code.gitea.io/gitea/modules/structs"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
@@ -298,7 +299,20 @@ func GetLabelsByIssueID(issueID int64) ([]*Label, error) {
 }
 
 func updateLabel(e Engine, l *Label) error {
-	_, err := e.ID(l.ID).AllCols().Update(l)
+	_, err := e.ID(l.ID).
+		SetExpr("num_issues",
+			builder.Select("count(*)").From("issue_label").
+				Where(builder.Eq{"label_id": l.ID}),
+		).
+		SetExpr("num_closed_issues",
+			builder.Select("count(*)").From("issue_label").
+				InnerJoin("issue", "issue_label.issue_id = issue.id").
+				Where(builder.Eq{
+					"issue_label.label_id": l.ID,
+					"issue.is_closed":      true,
+				}),
+		).
+		AllCols().Update(l)
 	return err
 }
 
@@ -379,10 +393,6 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err
 		return err
 	}
 
-	label.NumIssues++
-	if issue.IsClosed {
-		label.NumClosedIssues++
-	}
 	return updateLabel(e, label)
 }
 
@@ -452,10 +462,6 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 		return err
 	}
 
-	label.NumIssues--
-	if issue.IsClosed {
-		label.NumClosedIssues--
-	}
 	return updateLabel(e, label)
 }
 

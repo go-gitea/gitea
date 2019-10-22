@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -10,9 +11,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -27,6 +27,8 @@ type Release struct {
 	PublisherID      int64       `xorm:"INDEX"`
 	Publisher        *User       `xorm:"-"`
 	TagName          string      `xorm:"INDEX UNIQUE(n)"`
+	OriginalAuthor   string
+	OriginalAuthorID int64 `xorm:"index"`
 	LowerTagName     string
 	Target           string
 	Title            string
@@ -65,7 +67,7 @@ func (r *Release) LoadAttributes() error {
 
 // APIURL the api url for a release. release must have attributes loaded
 func (r *Release) APIURL() string {
-	return fmt.Sprintf("%sapi/v1/%s/releases/%d",
+	return fmt.Sprintf("%sapi/v1/repos/%s/releases/%d",
 		setting.AppURL, r.Repo.FullName(), r.ID)
 }
 
@@ -317,59 +319,10 @@ func SortReleases(rels []*Release) {
 	sort.Sort(sorter)
 }
 
-// DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
-func DeleteReleaseByID(id int64, doer *User, delTag bool) error {
-	rel, err := GetReleaseByID(id)
-	if err != nil {
-		return fmt.Errorf("GetReleaseByID: %v", err)
-	}
-
-	repo, err := GetRepositoryByID(rel.RepoID)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryByID: %v", err)
-	}
-
-	if delTag {
-		_, stderr, err := process.GetManager().ExecDir(-1, repo.RepoPath(),
-			fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID),
-			git.GitExecutable, "tag", "-d", rel.TagName)
-		if err != nil && !strings.Contains(stderr, "not found") {
-			return fmt.Errorf("git tag -d: %v - %s", err, stderr)
-		}
-
-		if _, err = x.ID(rel.ID).Delete(new(Release)); err != nil {
-			return fmt.Errorf("Delete: %v", err)
-		}
-	} else {
-		rel.IsTag = true
-		rel.IsDraft = false
-		rel.IsPrerelease = false
-		rel.Title = ""
-		rel.Note = ""
-
-		if _, err = x.ID(rel.ID).AllCols().Update(rel); err != nil {
-			return fmt.Errorf("Update: %v", err)
-		}
-	}
-
-	rel.Repo = repo
-	if err = rel.LoadAttributes(); err != nil {
-		return fmt.Errorf("LoadAttributes: %v", err)
-	}
-
-	mode, _ := AccessLevel(doer, rel.Repo)
-	if err := PrepareWebhooks(rel.Repo, HookEventRelease, &api.ReleasePayload{
-		Action:     api.HookReleaseDeleted,
-		Release:    rel.APIFormat(),
-		Repository: rel.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go HookQueue.Add(rel.Repo.ID)
-	}
-
-	return nil
+// DeleteReleaseByID deletes a release from database by given ID.
+func DeleteReleaseByID(id int64) error {
+	_, err := x.ID(id).Delete(new(Release))
+	return err
 }
 
 // SyncReleasesWithTags synchronizes release table with repository tags
@@ -413,4 +366,17 @@ func SyncReleasesWithTags(repo *Repository, gitRepo *git.Repository) error {
 		}
 	}
 	return nil
+}
+
+// UpdateReleasesMigrationsByType updates all migrated repositories' releases from gitServiceType to replace originalAuthorID to posterID
+func UpdateReleasesMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, posterID int64) error {
+	_, err := x.Table("release").
+		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
+		And("original_author_id = ?", originalAuthorID).
+		Update(map[string]interface{}{
+			"publisher_id":       posterID,
+			"original_author":    "",
+			"original_author_id": 0,
+		})
+	return err
 }

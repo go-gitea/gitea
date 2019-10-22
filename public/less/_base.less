@@ -950,6 +950,22 @@ footer {
     }
 }
 
+i.icons .icon:first-child {
+    margin-right: 0;
+}
+
+i.icon.centerlock {
+    top: 1.5em;
+}
+
+.ui.label > .detail .icons {
+    margin-right: 0.25em;
+}
+
+.ui.label > .detail .icons .icon {
+    margin-right: 0;
+}
+
 .lines-num {
     vertical-align: top;
     text-align: right !important;
@@ -1047,7 +1063,7 @@ footer {
     overflow-x: auto;
     overflow-y: hidden;
 
-    * {
+    *:not(.fa):not(.octicon):not(.icon) {
         font-size: 12px;
         font-family: @monospaced-fonts, monospace;
         line-height: 20px;

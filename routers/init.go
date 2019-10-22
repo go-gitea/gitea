@@ -16,11 +16,13 @@ import (
 	"code.gitea.io/gitea/modules/highlight"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/mailer"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
+	"code.gitea.io/gitea/modules/task"
+	"code.gitea.io/gitea/services/mailer"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"gitea.com/macaron/macaron"
 )
@@ -94,21 +96,29 @@ func GlobalInit() {
 
 		// Booting long running goroutines.
 		cron.NewContext()
-		if err := issue_indexer.InitIssueIndexer(false); err != nil {
-			log.Fatal("Failed to initialize issue indexer: %v", err)
-		}
+		issue_indexer.InitIssueIndexer(false)
 		models.InitRepoIndexer()
-		models.InitSyncMirrors()
+		mirror_service.InitSyncMirrors()
 		models.InitDeliverHooks()
 		models.InitTestPullRequests()
+		if err := task.Init(); err != nil {
+			log.Fatal("Failed to initialize task scheduler: %v", err)
+		}
 	}
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 Supported")
 	}
 	checkRunMode()
 
-	if setting.InstallLock && setting.SSH.StartBuiltinServer {
-		ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-		log.Info("SSH server started on %s:%d. Cipher list (%v), key exchange algorithms (%v), MACs (%v)", setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
+	// Now because Install will re-run GlobalInit once it has set InstallLock
+	// we can't tell if the ssh port will remain unused until that's done.
+	// However, see FIXME comment in install.go
+	if setting.InstallLock {
+		if setting.SSH.StartBuiltinServer {
+			ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
+			log.Info("SSH server started on %s:%d. Cipher list (%v), key exchange algorithms (%v), MACs (%v)", setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
+		} else {
+			ssh.Unused()
+		}
 	}
 }

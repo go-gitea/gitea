@@ -31,6 +31,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
+	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.HTML(200, tplSettingsOptions)
 }
 
@@ -83,6 +84,7 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	org.Website = form.Website
 	org.Location = form.Location
 	org.Visibility = form.Visibility
+	org.RepoAdminChangeTeamAccess = form.RepoAdminChangeTeamAccess
 	if err := models.UpdateUser(org); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return

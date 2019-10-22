@@ -181,6 +181,8 @@ func Issues(ctx *context.Context) {
 			filterMode = models.FilterModeAssign
 		case "created_by":
 			filterMode = models.FilterModeCreate
+		case "mentioned":
+			filterMode = models.FilterModeMention
 		case "all": // filterMode already set to All
 		default:
 			viewType = "all"

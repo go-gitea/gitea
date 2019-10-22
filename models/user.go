@@ -17,6 +17,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -32,7 +33,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
@@ -40,6 +40,7 @@ import (
 	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // UserType defines the user type
@@ -147,12 +148,13 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	NumTeams        int
-	NumMembers      int
-	Teams           []*Team             `xorm:"-"`
-	Members         UserList            `xorm:"-"`
-	MembersIsPublic map[int64]bool      `xorm:"-"`
-	Visibility      structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+	NumTeams                  int
+	NumMembers                int
+	Teams                     []*Team             `xorm:"-"`
+	Members                   UserList            `xorm:"-"`
+	MembersIsPublic           map[int64]bool      `xorm:"-"`
+	Visibility                structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
@@ -373,9 +375,20 @@ func (u *User) generateRandomAvatar(e Engine) error {
 	return nil
 }
 
-// SizedRelAvatarLink returns a relative link to the user's avatar. When
-// applicable, the link is for an avatar of the indicated size (in pixels).
+// SizedRelAvatarLink returns a link to the user's avatar via
+// the local explore page. Function returns immediately.
+// When applicable, the link is for an avatar of the indicated size (in pixels).
 func (u *User) SizedRelAvatarLink(size int) string {
+	return strings.TrimRight(setting.AppSubURL, "/") + "/user/avatar/" + u.Name + "/" + strconv.Itoa(size)
+}
+
+// RealSizedAvatarLink returns a link to the user's avatar. When
+// applicable, the link is for an avatar of the indicated size (in pixels).
+//
+// This function make take time to return when federated avatars
+// are in use, due to a DNS lookup need
+//
+func (u *User) RealSizedAvatarLink(size int) string {
 	if u.ID == -1 {
 		return base.DefaultAvatarLink()
 	}
@@ -775,6 +788,7 @@ func NewGhostUser() *User {
 
 var (
 	reservedUsernames = []string{
+		"attachments",
 		"admin",
 		"api",
 		"assets",
@@ -978,10 +992,6 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	} else if isExist {
 		return ErrUserAlreadyExist{newUserName}
-	}
-
-	if err = ChangeUsernameInPullRequests(u.Name, newUserName); err != nil {
-		return fmt.Errorf("ChangeUsernameInPullRequests: %v", err)
 	}
 
 	// Do not fail if directory does not exist
