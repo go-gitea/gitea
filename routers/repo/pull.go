@@ -10,6 +10,7 @@ import (
 	"container/list"
 	"crypto/subtle"
 	"fmt"
+	"html"
 	"io"
 	"path"
 	"strings"
@@ -655,17 +656,20 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 	}
 
 	if err = pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+		sanitize := func(x string) string {
+			return strings.ReplaceAll(html.EscapeString(x), "\n", "<br>")
+		}
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 			return
 		} else if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
-			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_conflict", conflictError.StdErr, conflictError.StdOut))
+			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_conflict", sanitize(conflictError.StdErr), sanitize(conflictError.StdOut)))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		} else if models.IsErrRebaseConflicts(err) {
 			conflictError := err.(models.ErrRebaseConflicts)
-			ctx.Flash.Error(ctx.Tr("repo.pulls.rebase_conflict", conflictError.CommitSHA, conflictError.StdErr, conflictError.StdOut))
+			ctx.Flash.Error(ctx.Tr("repo.pulls.rebase_conflict", sanitize(conflictError.CommitSHA), sanitize(conflictError.StdErr), sanitize(conflictError.StdOut)))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 		}
 		ctx.ServerError("Merge", err)
