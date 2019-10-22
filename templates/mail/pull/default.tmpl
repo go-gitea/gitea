@@ -1,4 +1,4 @@
-{{.SubjectPrefix}}[{{.Repo}}] @{{.Doer.Name}} Pull Request #{{.Issue.Index}} - {{.Issue.Title}}
+{{.SubjectPrefix}}[{{.FallbackSubject}}
 -------------------------------------------------------------
 <!DOCTYPE html>
 <html>
@@ -9,7 +9,21 @@
 
 <body>
 	{{if .IsMention}}<p>@{{.Doer.Name}} mentioned you:</p>{{end}}
-	<p>{{.Body | Str2html}}</p>
+	<p>
+		{{- if eq .Body ""}}
+			{{if .ActionName "create"}}
+				Created #{{.Issue.Index}}.
+			{{else if .ActionName "close"}}
+				Closed #{{.Issue.Index}}.
+			{{else if .ActionName "reopen"}}
+				Reopened #{{.Issue.Index}}.
+			{{else}}
+				Empty comment on #{{.Issue.Index}}.
+			{{end}}
+		{{else}}
+			{{.Body | Str2html}}
+		{{end -}}
+	</p>
 	<p>
 		---
 		<br>

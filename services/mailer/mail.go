@@ -32,19 +32,6 @@ const (
 	mailAuthResetPassword  base.TplName = "auth/reset_passwd"
 	mailAuthRegisterNotify base.TplName = "auth/register_notify"
 
-	mailIssueDefault base.TplName = "issue/default"
-	mailNewIssue     base.TplName = "issue/new"
-	mailCommentIssue base.TplName = "issue/comment"
-	mailCloseIssue   base.TplName = "issue/close"
-	mailReopenIssue  base.TplName = "issue/reopen"
-
-	mailPullRequestDefault base.TplName = "pull/default"
-	mailNewPullRequest     base.TplName = "pull/new"
-	mailCommentPullRequest base.TplName = "pull/comment"
-	mailClosePullRequest   base.TplName = "pull/close"
-	mailReopenPullRequest  base.TplName = "pull/reopen"
-	mailMergePullRequest   base.TplName = "pull/merge" // FIXME: Where can I use this?
-
 	mailNotifyCollaborator base.TplName = "notify/collaborator"
 
 	// There's no actual limit for subject in RFC 5322
@@ -180,10 +167,6 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionType models.ActionType, fromMention bool,
 	content string, comment *models.Comment, tos []string, info string) *Message {
 
-	if err := issue.LoadRepo(); err != nil {
-		log.Error("LoadRepo: %v", err)
-		return nil
-	}
 	if err := issue.LoadPullRequest(); err != nil {
 		log.Error("LoadPullRequest: %v", err)
 		return nil
@@ -212,6 +195,8 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 		link = issue.HTMLURL()
 	}
 
+	actType, actName, tplName := actionToTemplate(issue, actionType)
+
 	mailMeta := map[string]interface{}{
 		"FallbackSubject": fallback,
 		"Body":            body,
@@ -222,12 +207,11 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 		"User":            issue.Repo.MustOwner().Name,
 		"Repo":            issue.Repo.FullName(),
 		"Doer":            doer,
-		"Action":          actionType,
 		"IsMention":       fromMention,
 		"SubjectPrefix":   prefix,
+		"ActionType":      actType,
+		"ActionName":      actName,
 	}
-
-	tplName := actionToTemplate(issue, actionType)
 
 	var mailSubject bytes.Buffer
 	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplName), mailMeta); err == nil {
@@ -287,35 +271,41 @@ func SendIssueMentionMail(issue *models.Issue, doer *models.User, actionType mod
 	SendAsync(composeIssueCommentMessage(issue, doer, actionType, true, content, comment, tos, "issue mention"))
 }
 
-func actionToTemplate(issue *models.Issue, actionType models.ActionType) base.TplName {
-	var name base.TplName
-	switch actionType {
-	case models.ActionCreateIssue:
-		name = mailNewIssue
-	case models.ActionCreatePullRequest:
-		name = mailNewPullRequest
-	case models.ActionCommentIssue:
-		if issue.IsPull {
-			name = mailCommentPullRequest
-		} else {
-			name = mailCommentIssue
-		}
-	case models.ActionCloseIssue:
-		name = mailCloseIssue
-	case models.ActionReopenIssue:
-		name = mailReopenIssue
-	case models.ActionClosePullRequest:
-		name = mailClosePullRequest
-	case models.ActionReopenPullRequest:
-		name = mailReopenPullRequest
-	case models.ActionMergePullRequest:
-		name = mailMergePullRequest
-	}
-	if name != "" && bodyTemplates.Lookup(string(name)) != nil {
-		return name
-	}
+// actionToTemplate returns the type and name of the action facing the user
+// (slightly different from models.ActionType) and the name of the template to use (based on availability)
+func actionToTemplate(issue *models.Issue, actionType models.ActionType) (typeName, name, template string) {
 	if issue.IsPull {
-		return mailPullRequestDefault
+		typeName = "pull"
+	} else {
+		typeName = "issue"
 	}
-	return mailIssueDefault
+	switch actionType {
+	case models.ActionCreateIssue, models.ActionCreatePullRequest:
+		name = "new"
+	case models.ActionCommentIssue:
+		name = "comment"
+	case models.ActionCloseIssue, models.ActionClosePullRequest:
+		name = "close"
+	case models.ActionReopenIssue, models.ActionReopenPullRequest:
+		name = "reopen"
+	case models.ActionMergePullRequest:
+		name = "merge"
+	default:
+		name = "default"
+	}
+
+	template = typeName + "/" + name
+	ok := bodyTemplates.Lookup(template) != nil
+	if !ok && typeName != "issue" {
+		template = "issue/" + name
+		ok = bodyTemplates.Lookup(template) != nil
+	}
+	if !ok {
+		template = typeName + "/default"
+		ok = bodyTemplates.Lookup(template) != nil
+	}
+	if !ok {
+		template = "issue/default"
+	}
+	return
 }

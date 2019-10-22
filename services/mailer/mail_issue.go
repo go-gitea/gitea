@@ -135,32 +135,8 @@ func mailParticipants(ctx models.DBContext, issue *models.Issue, doer *models.Us
 	for i, u := range userMentions {
 		mentions[i] = u.LowerName
 	}
-
-	if len(issue.Content) > 0 {
-		if err = mailIssueCommentToParticipants(issue, doer, opType, issue.Content, nil, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
+	if err = mailIssueCommentToParticipants(issue, doer, opType, issue.Content, nil, mentions); err != nil {
+		log.Error("mailIssueCommentToParticipants: %v", err)
 	}
-
-	switch opType {
-	case models.ActionCreateIssue, models.ActionCreatePullRequest:
-		if len(issue.Content) == 0 {
-			ct := fmt.Sprintf("Created #%d.", issue.Index)
-			if err = mailIssueCommentToParticipants(issue, doer, opType, ct, nil, mentions); err != nil {
-				log.Error("mailIssueCommentToParticipants: %v", err)
-			}
-		}
-	case models.ActionCloseIssue, models.ActionClosePullRequest:
-		ct := fmt.Sprintf("Closed #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(issue, doer, opType, ct, nil, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
-	case models.ActionReopenIssue, models.ActionReopenPullRequest:
-		ct := fmt.Sprintf("Reopened #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(issue, doer, opType, ct, nil, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
-	}
-
 	return nil
 }
