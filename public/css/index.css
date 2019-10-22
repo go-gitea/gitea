@@ -243,7 +243,7 @@ i.icon.centerlock{top:1.5em}
 .lines-commit .ui.avatar.image{height:18px;width:18px}
 .lines-code .bottom-line,.lines-commit .bottom-line,.lines-num .bottom-line{border-bottom:1px solid #eaecef}
 .code-view{overflow:auto;overflow-x:auto;overflow-y:hidden}
-.code-view *{font-size:12px;font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;line-height:20px}
+.code-view :not(.fa):not(.octicon):not(.icon){font-size:12px;font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;line-height:20px}
 .code-view table{width:100%}
 .code-view .active{background:#fff866}
 .markdown:not(code){overflow:hidden;font-size:16px;line-height:1.6!important;word-wrap:break-word}

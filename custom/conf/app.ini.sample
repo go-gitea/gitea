@@ -317,10 +317,12 @@ LOG_SQL = true
 DB_RETRIES = 10
 ; Backoff time per DB retry (time.Duration)
 DB_RETRY_BACKOFF = 3s
-; Max idle database connections on connnection pool, default is 0
-MAX_IDLE_CONNS = 0
-; Database connection max life time, default is 3s
+; Max idle database connections on connnection pool, default is 2
+MAX_IDLE_CONNS = 2
+; Database connection max life time, default is 0 or 3s mysql (See #6804 & #7071 for reasoning)
 CONN_MAX_LIFETIME = 3s
+; Database maximum number of open connections, default is 0 meaning no maximum
+MAX_OPEN_CONNS = 0
 
 [indexer]
 ; Issue indexer type, currently support: bleve or db, default is bleve
@@ -870,6 +872,6 @@ TOKEN =
 QUEUE_TYPE = channel
 ; Task queue length, available only when `QUEUE_TYPE` is `channel`.
 QUEUE_LENGTH = 1000
-; Task queue connction string, available only when `QUEUE_TYPE` is `redis`.
+; Task queue connection string, available only when `QUEUE_TYPE` is `redis`.
 ; If there is a password of redis, use `addrs=127.0.0.1:6379 password=123 db=0`.
 QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
