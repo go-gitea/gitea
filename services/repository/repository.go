@@ -19,7 +19,6 @@ func CreateRepository(doer, owner *models.User, opts models.CreateRepoOptions) (
 				log.Error("Rollback deleteRepository: %v", errDelete)
 			}
 		}
-
 		return nil, err
 	}
 
@@ -32,6 +31,11 @@ func CreateRepository(doer, owner *models.User, opts models.CreateRepoOptions) (
 func ForkRepository(doer, u *models.User, oldRepo *models.Repository, name, desc string) (*models.Repository, error) {
 	repo, err := models.ForkRepository(doer, u, oldRepo, name, desc)
 	if err != nil {
+		if repo != nil {
+			if errDelete := models.DeleteRepository(doer, u.ID, repo.ID); errDelete != nil {
+				log.Error("Rollback deleteRepository: %v", errDelete)
+			}
+		}
 		return nil, err
 	}
 
