@@ -67,7 +67,7 @@
 							<strong>{{.i18n.Tr "repo.audio_not_supported_in_browser"}}</strong>
 						</audio>
 					{{else if .IsPDFFile}}
-						<iframe width="100%" height="600px" src="{{AppSubUrl}}/vendor/plugins/pdfjs/web/viewer.html?file={{EscapePound $.RawFileLink}}"></iframe>
+						<iframe width="100%" height="600px" src="{{StaticUrlPrefix}}/vendor/plugins/pdfjs/web/viewer.html?file={{EscapePound $.RawFileLink}}"></iframe>
 					{{else}}
 						<a href="{{EscapePound $.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.i18n.Tr "repo.file_view_raw"}}</a>
 					{{end}}
