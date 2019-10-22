@@ -657,8 +657,10 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 
 	if err = pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		sanitize := func(x string) string {
-			if len(x) > 512 {
-				x = "..." + x[len(x)-512:]
+			runes := []rune(x)
+
+			if len(runes) > 512 {
+				x = "..." + string(runes[len(runes)-512:])
 			}
 
 			return strings.ReplaceAll(html.EscapeString(x), "\n", "<br>")
