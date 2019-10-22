@@ -15,7 +15,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const tmpl = `
+const subjectTpl = `
+{{.SubjectPrefix}}[{{.Repo}}] @{{.Doer.Name}} #{{.Issue.Index}} - {{.Issue.Title}}
+`
+
+const bodyTpl = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -48,8 +52,9 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 1, Repo: repo, Poster: doer}).(*models.Issue)
 	comment := models.AssertExistsAndLoadBean(t, &models.Comment{ID: 2, Issue: issue}).(*models.Comment)
 
-	email := template.Must(template.New("issue/comment").Parse(tmpl))
-	InitMailRender(texttmpl.New(""), email)
+	stpl := texttmpl.Must(texttmpl.New("issue/comment").Parse(subjectTpl))
+	btpl := template.Must(template.New("issue/comment").Parse(bodyTpl))
+	InitMailRender(stpl, btpl)
 
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
 	msg := composeIssueCommentMessage(issue, doer, models.ActionCommentIssue, false, "test body", comment, tos, "issue comment")
@@ -58,7 +63,8 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	inreplyTo := msg.GetHeader("In-Reply-To")
 	references := msg.GetHeader("References")
 
-	assert.Equal(t, subject[0], "Re: "+fallbackMailSubject(issue), "Comment reply subject should contain Re:")
+	assert.Equal(t, "Re: ", subject[0][:4], "Comment reply subject should contain Re:")
+	assert.Equal(t, "Re: [user2/repo1] @user2 #1 - issue1", subject[0])
 	assert.Equal(t, inreplyTo[0], "<user2/repo1/issues/1@localhost>", "In-Reply-To header doesn't match")
 	assert.Equal(t, references[0], "<user2/repo1/issues/1@localhost>", "References header doesn't match")
 }
@@ -76,8 +82,9 @@ func TestComposeIssueMessage(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1, Owner: doer}).(*models.Repository)
 	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 1, Repo: repo, Poster: doer}).(*models.Issue)
 
-	email := template.Must(template.New("issue/comment").Parse(tmpl))
-	InitMailRender(texttmpl.New(""), email)
+	stpl := texttmpl.Must(texttmpl.New("issue/new").Parse(subjectTpl))
+	btpl := template.Must(template.New("issue/new").Parse(bodyTpl))
+	InitMailRender(stpl, btpl)
 
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
 	msg := composeIssueCommentMessage(issue, doer, models.ActionCreateIssue, false, "test body", nil, tos, "issue create")
@@ -85,8 +92,11 @@ func TestComposeIssueMessage(t *testing.T) {
 	subject := msg.GetHeader("Subject")
 	messageID := msg.GetHeader("Message-ID")
 
-	assert.Equal(t, subject[0], fallbackMailSubject(issue), "Subject not equal to issue.mailSubject()")
+	assert.Equal(t, "[user2/repo1] @user2 #1 - issue1", subject[0])
 	assert.Nil(t, msg.GetHeader("In-Reply-To"))
 	assert.Nil(t, msg.GetHeader("References"))
 	assert.Equal(t, messageID[0], "<user2/repo1/issues/1@localhost>", "Message-ID header doesn't match")
+
+	// GAP: TODO: test fallback subject + default subject
+	// assert.Equal(t, subject[0], fallbackMailSubject(issue), "Subject not equal to issue.mailSubject()")
 }
