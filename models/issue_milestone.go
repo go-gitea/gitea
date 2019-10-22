@@ -453,3 +453,54 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 	}
 	return sess.Commit()
 }
+
+// CountMilestonesByRepo map from repoID to number of milestones matching the options`
+func CountMilestonesByRepo(repoIDs []int64, isClosed bool) (map[int64]int64, error) {
+	sess := x.Where("is_closed = ?", isClosed)
+	sess.In("repo_id", repoIDs)
+
+	countsSlice := make([]*struct {
+		RepoID int64
+		Count  int64
+	}, 0, 10)
+	if err := sess.GroupBy("repo_id").
+		Select("repo_id AS repo_id, COUNT(*) AS count").
+		Table("milestone").
+		Find(&countsSlice); err != nil {
+		return nil, err
+	}
+
+	countMap := make(map[int64]int64, len(countsSlice))
+	for _, c := range countsSlice {
+		countMap[c.RepoID] = c.Count
+	}
+	return countMap, nil
+}
+
+// GetMilestonesForRepos returns a list of milestones of given repositories and status.
+func GetMilestonesForRepos(repoIDs []int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
+	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
+	sess := x.Where("is_closed = ?", isClosed)
+	sess.In("repo_id", repoIDs)
+	if page > 0 {
+		sess = sess.Limit(setting.UI.IssuePagingNum, (page-1)*setting.UI.IssuePagingNum)
+	}
+
+	switch sortType {
+	case "furthestduedate":
+		sess.Desc("deadline_unix")
+	case "leastcomplete":
+		sess.Asc("completeness")
+	case "mostcomplete":
+		sess.Desc("completeness")
+	case "leastissues":
+		sess.Asc("num_issues")
+	case "mostissues":
+		sess.Desc("num_issues")
+	default:
+		sess.Asc("deadline_unix")
+	}
+	return miles, sess.Find(&miles)
+}
+
+//TODO models.GetUserMilestoneStats(ctxUser.ID, repoID, userRepoIDs, filterMode, isShowClosed)
