@@ -105,6 +105,7 @@ _Symbols used in table:_
 | Revert specific commits or a merge request | [✘](https://github.com/go-gitea/gitea/issues/5158) | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Pull/Merge requests templates | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Cherry-picking changes | [✘](https://github.com/go-gitea/gitea/issues/5158) | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
+| Download Patch | ✓ | ✘ | ✓ | ✓ | ✓ | [/](https://jira.atlassian.com/plugins/servlet/mobile#issue/BCLOUD-8323) | ✘ |
 
 
 #### 3rd-party integrations

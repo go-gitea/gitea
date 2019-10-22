@@ -14,8 +14,8 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
+	"xorm.io/xorm"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -253,5 +253,11 @@ func updateAttachment(e Engine, atta *Attachment) error {
 		sess = e.Where("uuid = ?", atta.UUID)
 	}
 	_, err := sess.Cols("name", "issue_id", "release_id", "comment_id", "download_count").Update(atta)
+	return err
+}
+
+// DeleteAttachmentsByRelease deletes all attachments associated with the given release.
+func DeleteAttachmentsByRelease(releaseID int64) error {
+	_, err := x.Where("release_id = ?", releaseID).Delete(&Attachment{})
 	return err
 }

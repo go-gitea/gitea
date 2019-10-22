@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/util"
 
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 )
 
 // HookPreReceive checks whether a individual commit is acceptable
@@ -33,6 +33,7 @@ func HookPreReceive(ctx *macaron.Context) {
 	gitAlternativeObjectDirectories := ctx.QueryTrim("gitAlternativeObjectDirectories")
 	gitQuarantinePath := ctx.QueryTrim("gitQuarantinePath")
 	prID := ctx.QueryInt64("prID")
+	isDeployKey := ctx.QueryBool("isDeployKey")
 
 	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
@@ -95,7 +96,12 @@ func HookPreReceive(ctx *macaron.Context) {
 			}
 		}
 
-		canPush := protectBranch.CanUserPush(userID)
+		canPush := false
+		if isDeployKey {
+			canPush = protectBranch.WhitelistDeployKeys
+		} else {
+			canPush = protectBranch.CanUserPush(userID)
+		}
 		if !canPush && prID > 0 {
 			pr, err := models.GetPullRequestByID(prID)
 			if err != nil {

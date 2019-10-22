@@ -15,11 +15,11 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/Unknwon/com"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/go-xorm/xorm"
 	uuid "github.com/satori/go.uuid"
+	"github.com/unknwon/com"
 	"golang.org/x/crypto/bcrypt"
+	"xorm.io/xorm"
 )
 
 // OAuth2Application represents an OAuth2 client (RFC 6749)

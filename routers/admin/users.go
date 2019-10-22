@@ -7,15 +7,17 @@ package admin
 import (
 	"strings"
 
-	"github.com/Unknwon/com"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/services/mailer"
+
+	"github.com/unknwon/com"
 )
 
 const (
@@ -93,7 +95,10 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 			u.LoginName = form.LoginName
 		}
 	}
-
+	if !password.IsComplexEnough(form.Password) {
+		ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserNew, &form)
+		return
+	}
 	if err := models.CreateUser(u); err != nil {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
@@ -116,8 +121,8 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	log.Trace("Account created by admin (%s): %s", ctx.User.Name, u.Name)
 
 	// Send email notification.
-	if form.SendNotify && setting.MailService != nil {
-		models.SendRegisterNotifyMail(ctx.Context, u)
+	if form.SendNotify {
+		mailer.SendRegisterNotifyMail(ctx.Locale, u)
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
@@ -198,6 +203,10 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 		var err error
 		if u.Salt, err = models.GetUserSalt(); err != nil {
 			ctx.ServerError("UpdateUser", err)
+			return
+		}
+		if !password.IsComplexEnough(form.Password) {
+			ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserEdit, &form)
 			return
 		}
 		u.HashPassword(form.Password)

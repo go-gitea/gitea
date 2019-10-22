@@ -12,7 +12,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	pull_service "code.gitea.io/gitea/modules/pull"
+	comment_service "code.gitea.io/gitea/services/comments"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // CreateCodeComment will create a code comment including an pending review if required
@@ -69,7 +70,7 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 		review.ID = form.Reply
 	}
 	//FIXME check if line, commit and treepath exist
-	comment, err := models.CreateCodeComment(
+	comment, err := comment_service.CreateCodeComment(
 		ctx.User,
 		issue.Repo,
 		issue,
@@ -156,7 +157,7 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 			return
 		}
 		// No current review. Create a new one!
-		if review, err = models.CreateReview(models.CreateReviewOptions{
+		if review, err = pull_service.CreateReview(models.CreateReviewOptions{
 			Type:     reviewType,
 			Issue:    issue,
 			Reviewer: ctx.User,
@@ -168,7 +169,7 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 	} else {
 		review.Content = form.Content
 		review.Type = reviewType
-		if err = models.UpdateReview(review); err != nil {
+		if err = pull_service.UpdateReview(review); err != nil {
 			ctx.ServerError("UpdateReview", err)
 			return
 		}

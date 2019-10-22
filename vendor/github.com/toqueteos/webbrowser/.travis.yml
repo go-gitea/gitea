@@ -1,0 +1,9 @@
+language: go
+
+go:
+  - 1.2
+  - 1.12
+  - tip
+
+script:
+  - go build ./...

@@ -15,6 +15,35 @@ type Permission struct {
 	Pull  bool `json:"pull"`
 }
 
+// InternalTracker represents settings for internal tracker
+// swagger:model
+type InternalTracker struct {
+	// Enable time tracking (Built-in issue tracker)
+	EnableTimeTracker bool `json:"enable_time_tracker"`
+	// Let only contributors track time (Built-in issue tracker)
+	AllowOnlyContributorsToTrackTime bool `json:"allow_only_contributors_to_track_time"`
+	// Enable dependencies for issues and pull requests (Built-in issue tracker)
+	EnableIssueDependencies bool `json:"enable_issue_dependencies"`
+}
+
+// ExternalTracker represents settings for external tracker
+// swagger:model
+type ExternalTracker struct {
+	// URL of external issue tracker.
+	ExternalTrackerURL string `json:"external_tracker_url"`
+	// External Issue Tracker URL Format. Use the placeholders {user}, {repo} and {index} for the username, repository name and issue index.
+	ExternalTrackerFormat string `json:"external_tracker_format"`
+	// External Issue Tracker Number Format, either `numeric` or `alphanumeric`
+	ExternalTrackerStyle string `json:"external_tracker_style"`
+}
+
+// ExternalWiki represents setting for external wiki
+// swagger:model
+type ExternalWiki struct {
+	// URL of external wiki.
+	ExternalWikiURL string `json:"external_wiki_url"`
+}
+
 // Repository represents a repository
 type Repository struct {
 	ID            int64       `json:"id"`
@@ -42,17 +71,20 @@ type Repository struct {
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	Updated                   time.Time   `json:"updated_at"`
-	Permissions               *Permission `json:"permissions,omitempty"`
-	HasIssues                 bool        `json:"has_issues"`
-	HasWiki                   bool        `json:"has_wiki"`
-	HasPullRequests           bool        `json:"has_pull_requests"`
-	IgnoreWhitespaceConflicts bool        `json:"ignore_whitespace_conflicts"`
-	AllowMerge                bool        `json:"allow_merge_commits"`
-	AllowRebase               bool        `json:"allow_rebase"`
-	AllowRebaseMerge          bool        `json:"allow_rebase_explicit"`
-	AllowSquash               bool        `json:"allow_squash_merge"`
-	AvatarURL                 string      `json:"avatar_url"`
+	Updated                   time.Time        `json:"updated_at"`
+	Permissions               *Permission      `json:"permissions,omitempty"`
+	HasIssues                 bool             `json:"has_issues"`
+	InternalTracker           *InternalTracker `json:"internal_tracker,omitempty"`
+	ExternalTracker           *ExternalTracker `json:"external_tracker,omitempty"`
+	HasWiki                   bool             `json:"has_wiki"`
+	ExternalWiki              *ExternalWiki    `json:"external_wiki,omitempty"`
+	HasPullRequests           bool             `json:"has_pull_requests"`
+	IgnoreWhitespaceConflicts bool             `json:"ignore_whitespace_conflicts"`
+	AllowMerge                bool             `json:"allow_merge_commits"`
+	AllowRebase               bool             `json:"allow_rebase"`
+	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
+	AllowSquash               bool             `json:"allow_squash_merge"`
+	AvatarURL                 string           `json:"avatar_url"`
 }
 
 // CreateRepoOption options when creating repository
@@ -67,6 +99,8 @@ type CreateRepoOption struct {
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// Whether the repository is private
 	Private bool `json:"private"`
+	// Issue Label set to use
+	IssueLabels string `json:"issue_labels"`
 	// Whether the repository should be auto-intialized?
 	AutoInit bool `json:"auto_init"`
 	// Gitignores to use
@@ -93,8 +127,14 @@ type EditRepoOption struct {
 	Private *bool `json:"private,omitempty"`
 	// either `true` to enable issues for this repository or `false` to disable them.
 	HasIssues *bool `json:"has_issues,omitempty"`
+	// set this structure to configure internal issue tracker (requires has_issues)
+	InternalTracker *InternalTracker `json:"internal_tracker,omitempty"`
+	// set this structure to use external issue tracker (requires has_issues)
+	ExternalTracker *ExternalTracker `json:"external_tracker,omitempty"`
 	// either `true` to enable the wiki for this repository or `false` to disable it.
 	HasWiki *bool `json:"has_wiki,omitempty"`
+	// set this structure to use external wiki instead of internal (requires has_wiki)
+	ExternalWiki *ExternalWiki `json:"external_wiki,omitempty"`
 	// sets the default branch for this repository.
 	DefaultBranch *string `json:"default_branch,omitempty"`
 	// either `true` to allow pull requests, or `false` to prevent pull request.
@@ -113,6 +153,43 @@ type EditRepoOption struct {
 	Archived *bool `json:"archived,omitempty"`
 }
 
+// GitServiceType represents a git service
+type GitServiceType int
+
+// enumerate all GitServiceType
+const (
+	NotMigrated     GitServiceType = iota // 0 not migrated from external sites
+	PlainGitService                       // 1 plain git service
+	GithubService                         // 2 github.com
+	GiteaService                          // 3 gitea service
+	GitlabService                         // 4 gitlab service
+	GogsService                           // 5 gogs service
+)
+
+// Name represents the service type's name
+// WARNNING: the name have to be equal to that on goth's library
+func (gt GitServiceType) Name() string {
+	switch gt {
+	case GithubService:
+		return "github"
+	case GiteaService:
+		return "gitea"
+	case GitlabService:
+		return "gitlab"
+	case GogsService:
+		return "gogs"
+	}
+	return ""
+}
+
+var (
+	// SupportedFullGitService represents all git services supported to migrate issues/labels/prs and etc.
+	// TODO: add to this list after new git service added
+	SupportedFullGitService = []GitServiceType{
+		GithubService,
+	}
+)
+
 // MigrateRepoOption options for migrating a repository from an external service
 type MigrateRepoOption struct {
 	// required: true
@@ -122,8 +199,18 @@ type MigrateRepoOption struct {
 	// required: true
 	UID int `json:"uid" binding:"Required"`
 	// required: true
-	RepoName    string `json:"repo_name" binding:"Required"`
-	Mirror      bool   `json:"mirror"`
-	Private     bool   `json:"private"`
-	Description string `json:"description"`
+	RepoName        string `json:"repo_name" binding:"Required"`
+	Mirror          bool   `json:"mirror"`
+	Private         bool   `json:"private"`
+	Description     string `json:"description"`
+	OriginalURL     string
+	GitServiceType  GitServiceType
+	Wiki            bool
+	Issues          bool
+	Milestones      bool
+	Labels          bool
+	Releases        bool
+	Comments        bool
+	PullRequests    bool
+	MigrateToRepoID int64
 }

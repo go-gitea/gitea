@@ -62,6 +62,16 @@ func TestRepository_GetTag(t *testing.T) {
 	assert.NotEqual(t, aTagID, aTag.Object.String())
 	assert.EqualValues(t, aTagCommitID, aTag.Object.String())
 	assert.EqualValues(t, "tag", aTag.Type)
+
+	rTagCommitID := "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"
+	rTagName := "release/" + lTagName
+	bareRepo1.CreateTag(rTagName, rTagCommitID)
+	rTagID, err := bareRepo1.GetTagID(rTagName)
+	assert.NoError(t, err)
+	assert.EqualValues(t, rTagCommitID, rTagID)
+	oTagID, err := bareRepo1.GetTagID(lTagName)
+	assert.NoError(t, err)
+	assert.EqualValues(t, lTagCommitID, oTagID)
 }
 
 func TestRepository_GetAnnotatedTag(t *testing.T) {

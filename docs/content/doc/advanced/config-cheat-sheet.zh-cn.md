@@ -65,6 +65,7 @@ menu:
 - `CERT_FILE`: 启用HTTPS的证书文件。
 - `KEY_FILE`: 启用HTTPS的密钥文件。
 - `STATIC_ROOT_PATH`: 存放模板和静态文件的根目录，默认是 Gitea 的根目录。
+- `STATIC_CACHE_TIME`: **6h**: 静态资源文件，包括 `custom/`, `public/` 和所有上传的头像的浏览器缓存时间。
 - `ENABLE_GZIP`: 启用应用级别的 GZIP 压缩。
 - `LANDING_PAGE`: 未登录用户的默认页面，可选 `home` 或 `explore`。
 - `LFS_START_SERVER`: 是否启用 git-lfs 支持. 可以为 `true` 或 `false`， 默认是 `false`。
@@ -82,6 +83,8 @@ menu:
 - `CHARSET`: **utf8**: 仅当数据库为 MySQL 时有效, 可以为 "utf8" 或 "utf8mb4"。注意：如果使用 "utf8mb4"，你的 MySQL InnoDB 版本必须在 5.6 以上。
 - `PATH`: Tidb 或者 SQLite3 数据文件存放路径。
 - `LOG_SQL`: **true**: 显示生成的SQL，默认为真。
+- `MAX_IDLE_CONNS` **0**: 最大空闲数据库连接
+- `CONN_MAX_LIFETIME` **3s**: 数据库连接最大存活时间
 
 ## Indexer (`indexer`)
 
@@ -142,11 +145,12 @@ menu:
 
 ## Cache (`cache`)
 
-- `ADAPTER`: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
-- `INTERVAL`: 只对内存缓存有效，GC间隔，单位秒。
-- `HOST`: 针对redis和memcache有效，主机地址和端口。
+- `ADAPTER`: **memory**: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
+- `INTERVAL`: **60**: 只对内存缓存有效，GC间隔，单位秒。
+- `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。
     - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
     - Memache: `127.0.0.1:9090;127.0.0.1:9091`
+- `ITEM_TTL`: **16h**: 缓存项目失效时间，设置为 0 则禁用缓存。
 
 ## Session (`session`)
 
@@ -193,7 +197,11 @@ menu:
 ### Cron - Repository Statistics Check (`cron.check_repo_stats`)
 
 - `RUN_AT_START`: 是否启动时自动运行仓库统计。
-- `SCHEDULE`: 藏亏统计时的Cron 语法，比如：`@every 24h`.
+- `SCHEDULE`: 仓库统计时的Cron 语法，比如：`@every 24h`.
+
+### Cron - Update Migration Poster ID (`cron.update_migration_post_id`)
+
+- `SCHEDULE`: **@every 24h** : 每次同步的间隔时间。此任务总是在启动时自动进行。
 
 ## Git (`git`)
 
@@ -238,8 +246,15 @@ IS_INPUT_FILE = false
 - IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。
 
 ## Time (`time`)
+
 - `FORMAT`: 显示在界面上的时间格式。比如： RFC1123 或者 2006-01-02 15:04:05
 - `DEFAULT_UI_LOCATION`: 默认显示在界面上的时区，默认为本地时区。比如： Asia/Shanghai
+
+## Task (`task`)
+
+- `QUEUE_TYPE`: **channel**: 任务队列类型，可以为 `channel` 或 `redis`。
+- `QUEUE_LENGTH`: **1000**: 任务队列长度，当 `QUEUE_TYPE` 为 `channel` 时有效。
+- `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: 任务队列连接字符串，当 `QUEUE_TYPE` 为 `redis` 时有效。如果redis有密码，则可以 `addrs=127.0.0.1:6379 password=123 db=0`。
 
 ## Other (`other`)
 

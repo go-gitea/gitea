@@ -10,23 +10,28 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
-	"github.com/go-macaron/binding"
-	"github.com/go-macaron/session"
-	gouuid "github.com/satori/go.uuid"
-	"gopkg.in/macaron.v1"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
+
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
+	"gitea.com/macaron/session"
+	gouuid "github.com/satori/go.uuid"
+	"github.com/unknwon/com"
 )
 
 // IsAPIPath if URL is an api path
 func IsAPIPath(url string) bool {
 	return strings.HasPrefix(url, "/api/")
+}
+
+// IsAttachmentDownload check if request is a file download (GET) with URL to an attachment
+func IsAttachmentDownload(ctx *macaron.Context) bool {
+	return strings.HasPrefix(ctx.Req.URL.Path, "/attachments/") && ctx.Req.Method == "GET"
 }
 
 // SignedInID returns the id of signed in user.
@@ -36,7 +41,7 @@ func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
 	}
 
 	// Check access token.
-	if IsAPIPath(ctx.Req.URL.Path) {
+	if IsAPIPath(ctx.Req.URL.Path) || IsAttachmentDownload(ctx) {
 		tokenSHA := ctx.Query("token")
 		if len(tokenSHA) == 0 {
 			tokenSHA = ctx.Query("access_token")
@@ -219,6 +224,9 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 			}
 
 			if u == nil {
+				if !setting.Service.EnableBasicAuth {
+					return nil, false
+				}
 				u, err = models.UserSignIn(uname, passwd)
 				if err != nil {
 					if !models.IsErrUserNotExist(err) {
@@ -305,6 +313,10 @@ func validate(errs binding.Errors, data map[string]interface{}, f Form, l macaro
 	}
 
 	data["HasError"] = true
+	// If the field with name errs[0].FieldNames[0] is not found in form
+	// somehow, some code later on will panic on Data["ErrorMsg"].(string).
+	// So initialize it to some default.
+	data["ErrorMsg"] = l.Tr("form.unknown_error")
 	AssignForm(f, data)
 
 	typ := reflect.TypeOf(f)
@@ -315,16 +327,9 @@ func validate(errs binding.Errors, data map[string]interface{}, f Form, l macaro
 		val = val.Elem()
 	}
 
-	for i := 0; i < typ.NumField(); i++ {
-		field := typ.Field(i)
-
+	if field, ok := typ.FieldByName(errs[0].FieldNames[0]); ok {
 		fieldName := field.Tag.Get("form")
-		// Allow ignored fields in the struct
-		if fieldName == "-" {
-			continue
-		}
-
-		if errs[0].FieldNames[0] == field.Name {
+		if fieldName != "-" {
 			data["Err_"+field.Name] = true
 
 			trName := field.Tag.Get("locale")
@@ -355,6 +360,8 @@ func validate(errs binding.Errors, data map[string]interface{}, f Form, l macaro
 				data["ErrorMsg"] = trName + l.Tr("form.url_error")
 			case binding.ERR_INCLUDE:
 				data["ErrorMsg"] = trName + l.Tr("form.include_error", GetInclude(field))
+			case validation.ErrGlobPattern:
+				data["ErrorMsg"] = trName + l.Tr("form.glob_pattern_error", errs[0].Message)
 			default:
 				data["ErrorMsg"] = l.Tr("form.unknown_error") + " " + errs[0].Classification
 			}

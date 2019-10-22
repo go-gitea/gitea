@@ -12,9 +12,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"gitea.com/macaron/macaron"
 	gzipp "github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
-	macaron "gopkg.in/macaron.v1"
 )
 
 func setup(sampleResponse []byte) (*macaron.Macaron, *[]byte) {
