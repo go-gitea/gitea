@@ -55,6 +55,7 @@ var (
 		{models.LoginNames[models.LoginSMTP], models.LoginSMTP},
 		{models.LoginNames[models.LoginPAM], models.LoginPAM},
 		{models.LoginNames[models.LoginOAuth2], models.LoginOAuth2},
+		{models.LoginNames[models.LoginSSPI], models.LoginSSPI},
 	}
 	securityProtocols = []dropdownItem{
 		{models.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted], ldap.SecurityProtocolUnencrypted},
@@ -80,6 +81,11 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
 	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 	ctx.Data["OAuth2DefaultCustomURLMappings"] = models.OAuth2DefaultCustomURLMappings
+
+	ctx.Data["SSPIAutoCreateUsers"] = true
+	ctx.Data["SSPIAutoActivateUsers"] = true
+	ctx.Data["SSPISeparatorReplacement"] = "_"
+	ctx.Data["SSPIDefaultLanguage"] = "en-US"
 
 	// only the first as default
 	for key := range models.OAuth2Providers {
@@ -152,6 +158,15 @@ func parseOAuth2Config(form auth.AuthenticationForm) *models.OAuth2Config {
 	}
 }
 
+func parseSSPIConfig(form auth.AuthenticationForm) *models.SSPIConfig {
+	return &models.SSPIConfig{
+		AutoCreateUsers:      form.SSPIAutoCreateUsers,
+		AutoActivateUsers:    form.SSPIAutoActivateUsers,
+		SeparatorReplacement: form.SSPISeparatorReplacement,
+		DefaultLanguage:      form.SSPIDefaultLanguage,
+	}
+}
+
 // NewAuthSourcePost response for adding an auth source
 func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
@@ -165,6 +180,11 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["SMTPAuths"] = models.SMTPAuths
 	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 	ctx.Data["OAuth2DefaultCustomURLMappings"] = models.OAuth2DefaultCustomURLMappings
+
+	ctx.Data["SSPIAutoCreateUsers"] = true
+	ctx.Data["SSPIAutoActivateUsers"] = true
+	ctx.Data["SSPISeparatorReplacement"] = "_"
+	ctx.Data["SSPIDefaultLanguage"] = "en-US"
 
 	hasTLS := false
 	var config core.Conversion
@@ -181,6 +201,8 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 		}
 	case models.LoginOAuth2:
 		config = parseOAuth2Config(form)
+	case models.LoginSSPI:
+		config = parseSSPIConfig(form)
 	default:
 		ctx.Error(400)
 		return
@@ -274,6 +296,8 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 		}
 	case models.LoginOAuth2:
 		config = parseOAuth2Config(form)
+	case models.LoginSSPI:
+		config = parseSSPIConfig(form)
 	default:
 		ctx.Error(400)
 		return
