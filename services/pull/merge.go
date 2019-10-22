@@ -393,7 +393,12 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	out := bytes.Buffer{}
 	scanner := bufio.NewScanner(strings.NewReader(list))
 	for scanner.Scan() {
-		fmt.Fprintf(&out, "/%s\n", scanner.Text())
+		filepath := scanner.Text()
+		if strings.HasPrefix(filepath, `"`) { // the filepath contains " or \.
+			filepath = strings.TrimPrefix(filepath, `"`)
+			filepath = strings.TrimSuffix(filepath, `"`)
+		}
+		fmt.Fprintf(&out, "/%s\n", filepath)
 	}
 	return out.String(), nil
 }
