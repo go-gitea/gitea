@@ -16,6 +16,7 @@ import (
 	"mime"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	texttmpl "text/template"
@@ -33,6 +34,9 @@ import (
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
+
+// Used from static.go && dynamic.go
+var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
@@ -629,5 +633,24 @@ func MigrationIcon(hostname string) string {
 		return "fa-github"
 	default:
 		return "fa-git-alt"
+	}
+}
+
+func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, name string, content []byte) {
+	// Split template into subject and body
+	var subjectContent []byte
+	bodyContent := content
+	loc := mailSubjectSplit.FindIndex(content)
+	if loc != nil {
+		subjectContent = content[0:loc[0]]
+		bodyContent = content[loc[1]:]
+	}
+	if _, err := stpl.New(name).
+		Parse(string(subjectContent)); err != nil {
+		log.Warn("Failed to parse template [%s/subject]: %v", name, err)
+	}
+	if _, err := btpl.New(name).
+		Parse(string(bodyContent)); err != nil {
+		log.Warn("Failed to parse template [%s/body]: %v", name, err)
 	}
 }

@@ -10,7 +10,6 @@ import (
 	"html/template"
 	"io/ioutil"
 	"path"
-	"regexp"
 	"strings"
 	texttmpl "text/template"
 
@@ -22,9 +21,8 @@ import (
 )
 
 var (
-	bodyTemplates    = template.New("")
 	subjectTemplates = texttmpl.New("")
-	mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
+	bodyTemplates    = template.New("")
 )
 
 // HTMLRenderer implements the macaron handler for serving HTML templates.
@@ -91,7 +89,7 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 					continue
 				}
 
-				buildSubjectBodyTemplate(strings.TrimSuffix(filePath, ".tmpl"), content)
+				buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, strings.TrimSuffix(filePath, ".tmpl"), content)
 			}
 		}
 	}
@@ -116,29 +114,10 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 					continue
 				}
 
-				buildSubjectBodyTemplate(strings.TrimSuffix(filePath, ".tmpl"), content)
+				buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, strings.TrimSuffix(filePath, ".tmpl"), content)
 			}
 		}
 	}
 
 	return subjectTemplates, bodyTemplates
-}
-
-func buildSubjectBodyTemplate(name string, content []byte) {
-	// Split template into subject and body
-	var subjectContent []byte
-	bodyContent := content
-	loc := mailSubjectSplit.FindIndex(content)
-	if loc != nil {
-		subjectContent = content[0:loc[0]]
-		bodyContent = content[loc[1]:]
-	}
-	if _, err := subjectTemplates.New(name).
-		Parse(string(subjectContent)); err != nil {
-		log.Warn("Failed to parse template [%s/subject]: %v", name, err)
-	}
-	if _, err := bodyTemplates.New(name).
-		Parse(string(bodyContent)); err != nil {
-		log.Warn("Failed to parse template [%s/body]: %v", name, err)
-	}
 }
