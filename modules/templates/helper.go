@@ -300,7 +300,6 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		},
 		"EllipsisString": base.EllipsisString,
 		"URLJoin":        util.URLJoin,
-		"TrN":            TrN,
 		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values)%2 != 0 {
 				return nil, errors.New("invalid dict call")

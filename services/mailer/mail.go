@@ -227,13 +227,13 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 		"SubjectPrefix":   prefix,
 	}
 
-	tplBody := actionToTemplate(issue, actionType)
+	tplName := actionToTemplate(issue, actionType)
 
 	var mailSubject bytes.Buffer
-	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplBody), mailMeta); err == nil {
+	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplName), mailMeta); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
 	} else {
-		log.Error("ExecuteTemplate [%s]: %v", string(tplBody)+"/subject", err)
+		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/subject", err)
 	}
 
 	if subject == "" {
@@ -243,8 +243,8 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 
 	var mailBody bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplBody), mailMeta); err != nil {
-		log.Error("ExecuteTemplate [%s]: %v", string(tplBody)+"/body", err)
+	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplName), mailMeta); err != nil {
+		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/body", err)
 	}
 
 	msg := NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
