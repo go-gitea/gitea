@@ -138,6 +138,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**:
    Overwrite the automatically generated public URL.
    This is useful if the internal and the external URL don't match (e.g. in Docker).
+- `STATIC_URL_PREFIX`: **\<empty\>**:
+   Overwrite this option to request static resources from a different URL.
+   This includes CSS files, images, JS files and web fonts.
+   Avatar images are dynamic resources and still served by gitea.
+   The option can be just a different path, as in `/static`, or another domain, as in `https://cdn.example.com`.
+   Requests are then made as `%(ROOT_URL)s/static/css/index.css` and `https://cdn.example.com/css/index.css` respective.
+   The static files are located in the `public/` directory of the gitea source repository.
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
