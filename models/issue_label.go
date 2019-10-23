@@ -68,10 +68,10 @@ type Label struct {
 	Color           string `xorm:"VARCHAR(7)"`
 	NumIssues       int
 	NumClosedIssues int
-	NumOpenIssues   int  `xorm:"-"`
-	IsChecked       bool `xorm:"-"`
-	QueryString     string
-	IsSelected      bool
+	NumOpenIssues   int    `xorm:"-"`
+	IsChecked       bool   `xorm:"-"`
+	QueryString     string `xorm:"-"`
+	IsSelected      bool   `xorm:"-"`
 }
 
 // APIFormat converts a Label to the api.Label format
