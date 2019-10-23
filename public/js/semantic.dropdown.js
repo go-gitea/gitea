@@ -335,6 +335,7 @@ $.fn.dropdown = function(parameters) {
             if(settings.allowTab) {
               module.set.tabbable();
             }
+            $item.attr('tabindex', '-1');
           },
           select: function() {
             var
