@@ -1572,7 +1572,27 @@ function initEditor() {
         });
     }).trigger('keyup');
 
-    $('#commit-button').click(function (event) {
+    // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
+    // to enable or disable the commit button
+    const $commitButton = $('#commit-button');
+    const $editForm = $('.ui.edit.form');
+    const dirtyFileClass = 'dirty-file';
+
+    // Disabling the button at the start
+    $commitButton.prop('disabled', true);
+
+    // Registering a custom listener for the file path and the file content
+    $editForm.areYouSure({
+        silent: true,
+        dirtyClass: dirtyFileClass,
+        fieldSelector: ':input:not(.commit-form-wrapper :input)',
+        change: function () {
+            const dirty = $(this).hasClass(dirtyFileClass);
+            $commitButton.prop('disabled', !dirty);
+        }
+    });
+
+    $commitButton.click(function (event) {
         // A modal which asks if an empty file should be committed
         if ($editArea.val().length === 0) {
             $('#edit-empty-content-modal').modal({
