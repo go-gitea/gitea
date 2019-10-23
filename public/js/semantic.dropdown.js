@@ -114,6 +114,8 @@ $.fn.dropdown = function(parameters) {
 
             module.observeChanges();
             module.instantiate();
+
+            module.aria.setup();
           }
 
         },
@@ -293,6 +295,34 @@ $.fn.dropdown = function(parameters) {
               module.verbose('Moving selection to', $prevAvailable);
               $prevAvailable.addClass(className.selected);
             }
+          }
+        },
+
+        aria: {
+          setup: function() {
+            var role = module.aria.guessRole();
+            if( role !== 'menu' ) {
+              return;
+            }
+            $module.attr('aria-busy', 'true');
+            $module.attr('role', 'menu');
+            $module.attr('aria-haspopup', 'menu');
+            $module.attr('aria-expanded', 'false');
+            $menu.find('.divider').attr('role', 'separator');
+            $item.attr('role', 'menuitem');
+            $module.attr('aria-busy', 'false');
+          },
+          guessRole: function() {
+            var
+              isIcon = $module.hasClass('icon'),
+              hasSearch = module.has.search(),
+              hasInput = ($input.length > 0),
+              isMultiple = module.is.multiple()
+            ;
+            if ( !isIcon && !hasSearch && !hasInput && !isMultiple ) {
+              return 'menu';
+            }
+            return 'unknown';
           }
         },
 
