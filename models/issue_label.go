@@ -61,18 +61,18 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 
 // Label represents a label of repository for issues.
 type Label struct {
-	ID              int64 `xorm:"pk autoincr"`
-	RepoID          int64 `xorm:"INDEX"`
+	ID              int64  `xorm:"pk autoincr"`
+	RepoID          int64  `xorm:"INDEX"`
 	Name            string
 	Description     string
 	Color           string `xorm:"VARCHAR(7)"`
 	NumIssues       int
 	NumClosedIssues int
-	NumOpenIssues   int  `xorm:"-"`
-	IsChecked       bool `xorm:"-"`
-	QueryString     string
-	IsSelected      bool
-	IsExcluded      bool `xorm:"-"`
+	NumOpenIssues   int    `xorm:"-"`
+	IsChecked       bool   `xorm:"-"`
+	QueryString     string `xorm:"-"`
+	IsSelected      bool   `xorm:"-"`
+	IsExcluded      bool   `xorm:"-"`
 }
 
 // APIFormat converts a Label to the api.Label format
