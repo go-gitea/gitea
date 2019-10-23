@@ -33,6 +33,7 @@ $.fn.dropdown = function(parameters) {
     query          = arguments[0],
     methodInvoked  = (typeof query == 'string'),
     queryArguments = [].slice.call(arguments, 1),
+    lastAriaID = 1,
     returnedValue
   ;
 
@@ -310,7 +311,26 @@ $.fn.dropdown = function(parameters) {
             $module.attr('aria-expanded', 'false');
             $menu.find('.divider').attr('role', 'separator');
             $item.attr('role', 'menuitem');
+            $text = $module
+              .find('> .text')
+              .eq(0)
+            ;
+            if( $module.data('content') ) {
+              $text.attr('aria-hidden');
+              $module.attr('aria-label', $module.data('content'));
+            }
+            else {
+              $text.attr('id', module.aria.nextID('menutext'));
+              $module.attr('aria-labelledby', $text.attr('id'));
+            }
             $module.attr('aria-busy', 'false');
+          },
+          nextID: function(prefix) {
+            var nextID;
+            do {
+              nextID = prefix + '_' + lastAriaID++;
+            } while( document.getElementById(nextID) );
+            return nextID;
           },
           setExpanded: function(expanded) {
             if( $module.attr('aria-haspopup') ) {
