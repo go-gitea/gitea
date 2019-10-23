@@ -44,7 +44,6 @@ require (
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/go-swagger/go-swagger v0.20.1
-	github.com/go-xorm/xorm v0.7.9
 	github.com/gobwas/glob v0.2.3
 	github.com/gogits/chardet v0.0.0-20150115103509-2404f7772561
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
@@ -60,7 +59,7 @@ require (
 	github.com/klauspost/compress v0.0.0-20161025140425-8df558b6cb6f
 	github.com/klauspost/cpuid v0.0.0-20160302075316-09cded8978dc // indirect
 	github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6 // indirect
-	github.com/lafriks/xormstore v1.3.1
+	github.com/lafriks/xormstore v1.3.2
 	github.com/lib/pq v1.2.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/lunny/levelqueue v0.0.0-20190217115915-02b525a4418e
@@ -118,4 +117,5 @@ require (
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.6
 	xorm.io/core v0.7.2
+	xorm.io/xorm v0.8.0
 )

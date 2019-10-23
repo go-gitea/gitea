@@ -18,9 +18,9 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
@@ -1046,7 +1046,7 @@ func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
-func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID, posterID int64) error {
+func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
 	_, err := x.Table("comment").
 		Where(builder.In("issue_id",
 			builder.Select("issue.id").

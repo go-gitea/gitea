@@ -1,3 +1,5 @@
+// +build !windows
+
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -10,7 +12,23 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
+	"syscall"
 )
+
+var killParent sync.Once
+
+// KillParent sends the kill signal to the parent process if we are a child
+func KillParent() {
+	killParent.Do(func() {
+		if IsChild {
+			ppid := syscall.Getppid()
+			if ppid > 1 {
+				_ = syscall.Kill(ppid, syscall.SIGTERM)
+			}
+		}
+	})
+}
 
 // RestartProcess starts a new process passing it the active listeners. It
 // doesn't fork, but starts a new process using the same environment and

@@ -110,7 +110,7 @@ func (session *Session) find(rowsSlicePtr interface{}, condiBean ...interface{})
 			}
 		} else {
 			// !oinume! Add "<col> IS NULL" to WHERE whatever condiBean is given.
-			// See https://github.com/go-xorm/xorm/issues/179
+			// See https://gitea.com/xorm/xorm/issues/179
 			if col := table.DeletedColumn(); col != nil && !session.statement.unscoped { // tag "deleted" is enabled
 				var colName = session.engine.Quote(col.Name)
 				if addedTableName {

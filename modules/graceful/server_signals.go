@@ -1,3 +1,5 @@
+// +build !windows
+
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -46,7 +48,7 @@ func (srv *Server) handleSignals() {
 			if setting.GracefulRestartable {
 				log.Info("PID: %d. Received SIGHUP. Forking...", pid)
 				err := srv.fork()
-				if err != nil {
+				if err != nil && err.Error() != "another process already forked. Ignoring this one" {
 					log.Error("Error whilst forking from PID: %d : %v", pid, err)
 				}
 			} else {

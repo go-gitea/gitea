@@ -14,8 +14,8 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
+	"xorm.io/xorm"
 )
 
 // Attachment represent a attachment of issue/comment/release.
