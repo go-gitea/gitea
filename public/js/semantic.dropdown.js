@@ -312,6 +312,11 @@ $.fn.dropdown = function(parameters) {
             $item.attr('role', 'menuitem');
             $module.attr('aria-busy', 'false');
           },
+          setExpanded: function(expanded) {
+            if( $module.attr('aria-haspopup') ) {
+              $module.attr('aria-expanded', expanded);
+            }
+          },
           guessRole: function() {
             var
               isIcon = $module.hasClass('icon'),
@@ -508,6 +513,7 @@ $.fn.dropdown = function(parameters) {
               return true;
             }
             if(settings.onShow.call(element) !== false) {
+              module.aria.setExpanded(true);
               module.animate.show(function() {
                 if( module.can.click() ) {
                   module.bind.intent();
@@ -530,6 +536,7 @@ $.fn.dropdown = function(parameters) {
           if( module.is.active() && !module.is.animatingOutward() ) {
             module.debug('Hiding dropdown');
             if(settings.onHide.call(element) !== false) {
+              module.aria.setExpanded(false);
               module.animate.hide(function() {
                 module.remove.visible();
                 callback.call(element);
