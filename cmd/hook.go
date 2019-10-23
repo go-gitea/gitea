@@ -236,6 +236,10 @@ Gitea or set your environment appropriately.`, "")
 	}
 
 	if count == 0 {
+
+		fmt.Fprintf(os.Stderr, "Processed %d references in total\n", total)
+		os.Stderr.Sync()
+
 		return nil
 	}
 
@@ -245,8 +249,6 @@ Gitea or set your environment appropriately.`, "")
 
 	fmt.Fprintf(os.Stderr, " Processing %d references\n", count)
 	os.Stderr.Sync()
-	fmt.Fprintf(os.Stderr, "Processed %d references in total\n", total)
-	os.Stderr.Sync()
 
 	resps, err := private.HookPostReceive(repoUser, repoName, hookOptions)
 	if resps == nil {
@@ -254,6 +256,10 @@ Gitea or set your environment appropriately.`, "")
 		fail("Internal Server Error", err)
 	}
 	results = append(results, resps...)
+
+	fmt.Fprintf(os.Stderr, "Processed %d references in total\n", total)
+	os.Stderr.Sync()
+
 	hookPrintResults(results)
 
 	return nil
