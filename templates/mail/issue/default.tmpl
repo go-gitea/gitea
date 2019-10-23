@@ -9,11 +9,11 @@
 	{{if .IsMention}}<p>@{{.Doer.Name}} mentioned you:</p>{{end}}
 	<p>
 		{{- if eq .Body ""}}
-			{{if .ActionName "create"}}
+			{{if eq .ActionName "new"}}
 				Created #{{.Issue.Index}}.
-			{{else if .ActionName "close"}}
+			{{else if eq .ActionName "close"}}
 				Closed #{{.Issue.Index}}.
-			{{else if .ActionName "reopen"}}
+			{{else if eq .ActionName "reopen"}}
 				Reopened #{{.Issue.Index}}.
 			{{else}}
 				Empty comment on #{{.Issue.Index}}.
