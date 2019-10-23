@@ -100,7 +100,8 @@ are provided with a _metadata context_ assembled for each notification. The cont
 
 ### The _subject_ part of the template
 
-The template engine used for the mail _subject_ is golang's `text/template`.
+The template engine used for the mail _subject_ is golang's [`text/template`](https://golang.org/pkg/text/template/).
+Please refer to the linked documentation for details about its syntax.
 
 The _subject_ is built using the following steps:
 
@@ -127,20 +128,28 @@ the two templates, even if a valid subject template is present.
 
 ### The _mail body_ part of the template
 
-The template engine used for the _mail body_ is golang's `html/template`.
+The template engine used for the _mail body_ is golang's [`html/template`](https://golang.org/pkg/html/template/).
+Please refer to the linked documentation for details about its syntax.
 
 The _mail body_ is parsed after the mail subject, so there is an additional _metadata_ field which is
 the actual rendered subject, after all considerations.
 
-The expected result is HTML (including structural elements like`<HTML>`, `<BODY>`, etc.).
-Once the template is executed, the resulting HTML is ran through the same sanitizer used for issues
-and pull request, which means that only a specific subset of elements and attributes is permitted.
-Everything else is removed.
+The expected result is HTML (including structural elements like`<html>`, `<body>`, etc.). Styling
+through `<style>` blocks, `class` and `style` attributes is possible. However, `html/template`
+does some [automatic escaping](https://golang.org/pkg/html/template/#hdr-Contexts) that should be considered.
+
+Attachments (such as images or external style sheets) are not supported. However, other templates can
+be referenced too, for example to provide the contents of a `<style>` element in a centralized fashion.
+The external template must be placed under `custom/mail` and referenced relative to that directory.
+For example, `custom/mail/styles/base.tmpl` can be included using `{{template styles/base}}`.
 
 The mail is sent with `Content-Type: multipart/alternative`, so the body is sent in both HTML
 and text formats. The latter is obtained by stripping the HTML markup.
 
 ## Troubleshooting
+
+How a mail is rendered is directly dependent on the capabilities of the mail application. Many mail
+clients don't even support HTML, so they show the text version included in the generated mail.
 
 If the template fails to render, it will be noticed only at the moment the mail is sent.
 A default subject is used if the subject template fails, and whatever was rendered successfully
@@ -240,17 +249,19 @@ This template produces something along these lines:
 The template system contains several functions that can be used to further process and format
 the messages. Here's a list of some of them:
 
-| Name                 | Parameters  | Usage                                                               |
-|----------------------|-------------|---------------------------------------------------------------------|
-| `AppUrl`             | -           | Gitea's URL                                                         |
-| `AppName`            | -           | Set from `app.ini`, usually "Gitea"                                 |
-| `AppDomain`          | -           | Gitea's host name                                                   |
-| `EllipsisString`     | string, int | Truncates a string to the specified length; adds ellipsis as needed |
+| Name                 | Parameters  | Available | Usage                                                               |
+|----------------------|-------------|-----------|---------------------------------------------------------------------|
+| `AppUrl`             | -           | Any       | Gitea's URL                                                         |
+| `AppName`            | -           | Any       | Set from `app.ini`, usually "Gitea"                                 |
+| `AppDomain`          | -           | Any       | Gitea's host name                                                   |
+| `EllipsisString`     | string, int | Any       | Truncates a string to the specified length; adds ellipsis as needed |
+| `Str2html`           | string      | Body only | Sanitizes text by removing any HTML tags from it.                   |
 
-
-These are _functions_, not metadata, so they need to be used:
+These are _functions_, not metadata, so they have to be used:
 
 ```
-Like this:     {{AppUrl}}
-Not like this: {{.AppUrl}}
+Like this:         {{Str2html "Escape<my>text"}}
+Or this:           {{"Escape<my>text" | Str2html}}
+Or this:           {{AppUrl}}
+But not like this: {{.AppUrl}}
 ```
