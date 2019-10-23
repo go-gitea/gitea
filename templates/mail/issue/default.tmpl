@@ -1,4 +1,4 @@
-{{.SubjectPrefix}}[{{.FallbackSubject}}
+{{.SubjectPrefix}}{{.FallbackSubject}}
 -------------------------------------------------------------
 <!DOCTYPE html>
 <html>
@@ -10,7 +10,7 @@
 <body>
 	{{if .IsMention}}<p>@{{.Doer.Name}} mentioned you:</p>{{end}}
 	<p>
-		{{- if eq .Body "" -}}
+		{{- if eq .Body ""}}
 			{{if .ActionName "create"}}
 				Created #{{.Issue.Index}}.
 			{{else if .ActionName "close"}}
@@ -22,7 +22,7 @@
 			{{end}}
 		{{else}}
 			{{.Body | Str2html}}
-		{{- end -}}
+		{{end -}}
 	</p>
 	<p>
 		---
