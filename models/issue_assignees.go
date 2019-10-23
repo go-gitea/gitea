@@ -262,7 +262,7 @@ func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string
 	}
 
 	// Get the IDs of all assignees
-	assigneeIDs = GetUserIDsByNames(multipleAssignees)
+	assigneeIDs, err = GetUserIDsByNames(multipleAssignees, false)
 
 	return
 }
