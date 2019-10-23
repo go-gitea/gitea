@@ -94,6 +94,8 @@ Gitea or set your environment appropriately.`, "")
 	newCommitIDs := make([]string, hookBatchSize)
 	refFullNames := make([]string, hookBatchSize)
 	count := 0
+	total := 0
+	lastline := 0
 
 	for scanner.Scan() {
 		// TODO: support news feeds for wiki
@@ -109,6 +111,8 @@ Gitea or set your environment appropriately.`, "")
 		oldCommitID := string(fields[0])
 		newCommitID := string(fields[1])
 		refFullName := string(fields[2])
+		total++
+		lastline++
 
 		// If the ref is a branch, check if it's protected
 		if strings.HasPrefix(refFullName, git.BranchPrefix) {
@@ -116,7 +120,13 @@ Gitea or set your environment appropriately.`, "")
 			newCommitIDs[count] = newCommitID
 			refFullNames[count] = refFullName
 			count++
+			fmt.Fprintf(os.Stdout, "*")
+			os.Stdout.Sync()
+
 			if count >= hookBatchSize {
+				fmt.Fprintf(os.Stdout, " Checking %d branches\n", count)
+				os.Stdout.Sync()
+
 				hookOptions.OldCommitIDs = oldCommitIDs
 				hookOptions.NewCommitIDs = newCommitIDs
 				hookOptions.RefFullNames = refFullNames
@@ -128,7 +138,16 @@ Gitea or set your environment appropriately.`, "")
 					fail(msg, "")
 				}
 				count = 0
+				lastline = 0
 			}
+		} else {
+			fmt.Fprintf(os.Stdout, ".")
+			os.Stdout.Sync()
+		}
+		if lastline >= hookBatchSize {
+			fmt.Fprintf(os.Stdout, "\n")
+			os.Stdout.Sync()
+			lastline = 0
 		}
 	}
 
@@ -137,6 +156,9 @@ Gitea or set your environment appropriately.`, "")
 		hookOptions.NewCommitIDs = newCommitIDs[:count]
 		hookOptions.RefFullNames = refFullNames[:count]
 
+		fmt.Fprintf(os.Stdout, " Checking %d branches\n", count)
+		os.Stdout.Sync()
+
 		statusCode, msg := private.HookPreReceive(username, reponame, hookOptions)
 		switch statusCode {
 		case http.StatusInternalServerError:
@@ -144,7 +166,14 @@ Gitea or set your environment appropriately.`, "")
 		case http.StatusForbidden:
 			fail(msg, "")
 		}
+	} else if lastline > 0 {
+		fmt.Fprintf(os.Stdout, "\n")
+		os.Stdout.Sync()
+		lastline = 0
 	}
+
+	fmt.Fprintf(os.Stdout, "Checked %d references in total\n", total)
+	os.Stdout.Sync()
 
 	return nil
 }
@@ -211,17 +240,17 @@ Gitea or set your environment appropriately.`, "")
 			continue
 		}
 
-		fmt.Fprintf(os.Stderr, ".")
+		fmt.Fprintf(os.Stdout, ".")
 		oldCommitIDs[count] = string(fields[0])
 		newCommitIDs[count] = string(fields[1])
 		refFullNames[count] = string(fields[2])
 		count++
 		total++
-		os.Stderr.Sync()
+		os.Stdout.Sync()
 
 		if count >= hookBatchSize {
-			fmt.Fprintf(os.Stderr, " Processing %d references\n", count)
-			os.Stderr.Sync()
+			fmt.Fprintf(os.Stdout, " Processing %d references\n", count)
+			os.Stdout.Sync()
 			hookOptions.OldCommitIDs = oldCommitIDs
 			hookOptions.NewCommitIDs = newCommitIDs
 			hookOptions.RefFullNames = refFullNames
@@ -237,8 +266,8 @@ Gitea or set your environment appropriately.`, "")
 
 	if count == 0 {
 
-		fmt.Fprintf(os.Stderr, "Processed %d references in total\n", total)
-		os.Stderr.Sync()
+		fmt.Fprintf(os.Stdout, "Processed %d references in total\n", total)
+		os.Stdout.Sync()
 
 		return nil
 	}
@@ -247,8 +276,8 @@ Gitea or set your environment appropriately.`, "")
 	hookOptions.NewCommitIDs = newCommitIDs[:count]
 	hookOptions.RefFullNames = refFullNames[:count]
 
-	fmt.Fprintf(os.Stderr, " Processing %d references\n", count)
-	os.Stderr.Sync()
+	fmt.Fprintf(os.Stdout, " Processing %d references\n", count)
+	os.Stdout.Sync()
 
 	resps, err := private.HookPostReceive(repoUser, repoName, hookOptions)
 	if resps == nil {
@@ -257,8 +286,8 @@ Gitea or set your environment appropriately.`, "")
 	}
 	results = append(results, resps...)
 
-	fmt.Fprintf(os.Stderr, "Processed %d references in total\n", total)
-	os.Stderr.Sync()
+	fmt.Fprintf(os.Stdout, "Processed %d references in total\n", total)
+	os.Stdout.Sync()
 
 	hookPrintResults(results)
 
