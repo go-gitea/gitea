@@ -72,6 +72,7 @@ type Label struct {
 	IsChecked       bool   `xorm:"-"`
 	QueryString     string `xorm:"-"`
 	IsSelected      bool   `xorm:"-"`
+	IsExcluded      bool   `xorm:"-"`
 }
 
 // APIFormat converts a Label to the api.Label format
@@ -97,7 +98,10 @@ func (label *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64) 
 	for _, s := range currentSelectedLabels {
 		if s == label.ID {
 			labelSelected = true
-		} else if s > 0 {
+		} else if -s == label.ID {
+			labelSelected = true
+			label.IsExcluded = true
+		} else if s != 0 {
 			labelQuerySlice = append(labelQuerySlice, strconv.FormatInt(s, 10))
 		}
 	}

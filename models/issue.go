@@ -1248,8 +1248,12 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 
 	if opts.LabelIDs != nil {
 		for i, labelID := range opts.LabelIDs {
-			sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
-				fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+			if labelID > 0 {
+				sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
+					fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+			} else {
+				sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
+			}
 		}
 	}
 }
