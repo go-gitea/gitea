@@ -162,11 +162,8 @@ func Milestones(ctx *context.Context) {
 
 	//milestone sorts: closest due date, furthest due date, least complete, most complete, most issues, least issues
 
-	var (
-		viewType   = "all"
-		sortType   = ctx.Query("sort")
-		filterMode = models.FilterModeAll
-	)
+	viewType := "all"
+	sortType := ctx.Query("sort")
 
 	page := ctx.QueryInt("page")
 	if page <= 1 {
@@ -191,7 +188,6 @@ func Milestones(ctx *context.Context) {
 			return
 		}
 	} else {
-		//TODO is unit type issues correct? there's no unit type for milestones
 		unitType := models.UnitTypeIssues
 		userRepoIDs, err = ctxUser.GetAccessRepoIDs(unitType)
 		if err != nil {
@@ -220,9 +216,9 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	milestones, err := models.GetMilestonesForRepos(repoIDs, page, isShowClosed, sortType)
+	milestones, err := models.GetMilestonesByRepoIDs(repoIDs, page, isShowClosed, sortType)
 	if err != nil {
-		ctx.ServerError("GetMilestones", err)
+		ctx.ServerError("GetMilestonesByRepoIDs", err)
 		return
 	}
 
@@ -283,8 +279,7 @@ func Milestones(ctx *context.Context) {
 	//for _, issue := range issues {
 	//	issue.Repo = showReposMap[issue.RepoID]
 
-	//TODO need to write this method in issue_milestone.go
-	milestoneStats, err := models.GetUserMilestoneStats(ctxUser.ID, repoID, userRepoIDs, filterMode, isShowClosed)
+	milestoneStats, err := models.GetUserMilestoneStats(ctxUser.ID, repoID, userRepoIDs)
 	if err != nil {
 		ctx.ServerError("GetUserMilestoneStats", err)
 		return
@@ -318,8 +313,8 @@ func Milestones(ctx *context.Context) {
 	pager.AddParam(ctx, "repo", "RepoID")
 	pager.AddParam(ctx, "sort", "SortType")
 	pager.AddParam(ctx, "state", "State")
-	pager.AddParam(ctx, "milestone", "MilestoneID")
-	pager.AddParam(ctx, "assignee", "AssigneeID")
+	//pager.AddParam(ctx, "milestone", "MilestoneID")
+	//pager.AddParam(ctx, "assignee", "AssigneeID")
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, tplMilestones)

@@ -477,8 +477,8 @@ func CountMilestonesByRepo(repoIDs []int64, isClosed bool) (map[int64]int64, err
 	return countMap, nil
 }
 
-// GetMilestonesForRepos returns a list of milestones of given repositories and status.
-func GetMilestonesForRepos(repoIDs []int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
+// GetMilestonesByRepoIDs returns a list of milestones of given repositories and status.
+func GetMilestonesByRepoIDs(repoIDs []int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
 	sess := x.Where("is_closed = ?", isClosed)
 	sess.In("repo_id", repoIDs)
@@ -503,4 +503,41 @@ func GetMilestonesForRepos(repoIDs []int64, page int, isClosed bool, sortType st
 	return miles, sess.Find(&miles)
 }
 
-//TODO models.GetUserMilestoneStats(ctxUser.ID, repoID, userRepoIDs, filterMode, isShowClosed)
+// UserMilestoneStats represents milestone statistic information.
+type UserMilestoneStats struct {
+	OpenCount, ClosedCount int64
+	YourRepositoriesCount  int64
+}
+
+// GetUserMilestoneStats returns milestone statistic information for dashboard by given conditions.
+func GetUserMilestoneStats(userID int64, repoID int64, userRepoIDs []int64) (*UserMilestoneStats, error) {
+	var err error
+	stats := &UserMilestoneStats{}
+
+	cond := builder.NewCond()
+	if repoID > 0 {
+		cond = cond.And(builder.Eq{"repo_id": repoID})
+	}
+
+	stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+		And(builder.In("repo_id", userRepoIDs)).
+		Count(new(Milestone))
+	if err != nil {
+		return nil, err
+	}
+	stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
+		And(builder.In("repo_id", userRepoIDs)).
+		Count(new(Milestone))
+	if err != nil {
+		return nil, err
+	}
+
+	stats.YourRepositoriesCount, err = x.Where(cond).
+		And(builder.In("repo_id", userRepoIDs)).
+		Count(new(Milestone))
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
