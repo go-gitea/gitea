@@ -22,7 +22,10 @@ var killParent sync.Once
 func KillParent() {
 	killParent.Do(func() {
 		if IsChild {
-			_ = syscall.Kill(syscall.Getppid(), syscall.SIGTERM)
+			ppid := syscall.Getppid()
+			if ppid > 1 {
+				_ = syscall.Kill(ppid, syscall.SIGTERM)
+			}
 		}
 	})
 }
