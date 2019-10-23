@@ -20,8 +20,5 @@ func removeLabelUneededCols(x *xorm.Engine) error {
 	if err := dropTableColumns(sess, "label", "is_selected"); err != nil {
 		return err
 	}
-	if err := sess.Commit(); err != nil {
-		return err
-	}
-	return nil
+	return sess.Commit()
 }
