@@ -311,6 +311,11 @@ $.fn.dropdown = function(parameters) {
             $module.attr('aria-expanded', 'false');
             $menu.find('.divider').attr('role', 'separator');
             $item.attr('role', 'menuitem');
+            $item.each(function (index, item) {
+              if( !item.id ) {
+                item.id = module.aria.nextID('menuitem');
+              }
+            });
             $text = $module
               .find('> .text')
               .eq(0)
@@ -335,6 +340,29 @@ $.fn.dropdown = function(parameters) {
           setExpanded: function(expanded) {
             if( $module.attr('aria-haspopup') ) {
               $module.attr('aria-expanded', expanded);
+            }
+          },
+          refreshDescendant: function() {
+            if( $module.attr('aria-haspopup') !== 'menu' ) {
+              return;
+            }
+            var
+              $currentlySelected = $item.not(selector.unselectable).filter('.' + className.selected).eq(0),
+              $activeItem        = $menu.children('.' + className.active).eq(0),
+              $selectedItem      = ($currentlySelected.length > 0)
+                ? $currentlySelected
+                : $activeItem
+            ;
+            if( $selectedItem ) {
+              $module.attr('aria-activedescendant', $selectedItem.attr('id'));
+            }
+            else {
+              module.aria.removeDescendant();
+            }
+          },
+          removeDescendant: function() {
+            if( $module.attr('aria-haspopup') == 'menu' ) {
+              $module.removeAttr('aria-activedescendant');
             }
           },
           guessRole: function() {
@@ -534,6 +562,7 @@ $.fn.dropdown = function(parameters) {
             }
             if(settings.onShow.call(element) !== false) {
               module.aria.setExpanded(true);
+              module.aria.refreshDescendant();
               module.animate.show(function() {
                 if( module.can.click() ) {
                   module.bind.intent();
@@ -557,6 +586,7 @@ $.fn.dropdown = function(parameters) {
             module.debug('Hiding dropdown');
             if(settings.onHide.call(element) !== false) {
               module.aria.setExpanded(false);
+              module.aria.removeDescendant();
               module.animate.hide(function() {
                 module.remove.visible();
                 callback.call(element);
@@ -1463,6 +1493,7 @@ $.fn.dropdown = function(parameters) {
                         .closest(selector.item)
                           .addClass(className.selected)
                       ;
+                      module.aria.refreshDescendant();
                       event.preventDefault();
                     }
                   }
@@ -1479,6 +1510,7 @@ $.fn.dropdown = function(parameters) {
                         .find(selector.item).eq(0)
                           .addClass(className.selected)
                       ;
+                      module.aria.refreshDescendant();
                       event.preventDefault();
                     }
                   }
@@ -1503,6 +1535,7 @@ $.fn.dropdown = function(parameters) {
                     $nextItem
                       .addClass(className.selected)
                     ;
+                    module.aria.refreshDescendant();
                     module.set.scrollPosition($nextItem);
                     if(settings.selectOnKeydown && module.is.single()) {
                       module.set.selectedItem($nextItem);
@@ -1530,6 +1563,7 @@ $.fn.dropdown = function(parameters) {
                     $nextItem
                       .addClass(className.selected)
                     ;
+                    module.aria.refreshDescendant();
                     module.set.scrollPosition($nextItem);
                     if(settings.selectOnKeydown && module.is.single()) {
                       module.set.selectedItem($nextItem);
@@ -2457,6 +2491,7 @@ $.fn.dropdown = function(parameters) {
               module.set.scrollPosition($nextValue);
               $selectedItem.removeClass(className.selected);
               $nextValue.addClass(className.selected);
+              module.aria.refreshDescendant();
               if(settings.selectOnKeydown && module.is.single()) {
                 module.set.selectedItem($nextValue);
               }
