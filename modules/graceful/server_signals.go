@@ -48,7 +48,7 @@ func (srv *Server) handleSignals() {
 			if setting.GracefulRestartable {
 				log.Info("PID: %d. Received SIGHUP. Forking...", pid)
 				err := srv.fork()
-				if err != nil {
+				if err != nil && err.Error() != "another process already forked. Ignoring this one" {
 					log.Error("Error whilst forking from PID: %d : %v", pid, err)
 				}
 			} else {

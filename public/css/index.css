@@ -458,6 +458,8 @@ i.icon.centerlock{top:1.5em}
 .repository .filter.menu .label.color{border-radius:3px;margin-left:15px;padding:0 8px}
 .repository .filter.menu .octicon{float:left;margin:5px -7px 0 -5px;width:16px}
 .repository .filter.menu.labels .octicon{margin:-2px -7px 0 -5px}
+.repository .filter.menu.labels .label-filter .menu .info{display:inline-block;padding:9px 7px 7px 7px;text-align:center;border-bottom:1px solid #ccc;font-size:12px}
+.repository .filter.menu.labels .label-filter .menu .info code{border:1px solid #ccc;border-radius:3px;padding:3px 2px 1px 2px;font-size:11px}
 .repository .filter.menu .text{margin-left:.9em}
 .repository .filter.menu .menu{max-height:300px;overflow-x:auto;right:0!important;left:auto!important}
 .repository .filter.menu .dropdown.item{margin:1px;padding-right:0}
