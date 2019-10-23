@@ -9,6 +9,16 @@ import (
 )
 
 func removeLabelUneededCols(x *xorm.Engine) error {
+
+	// Make sure the columns exist before dropping them
+	type Label struct {
+		QueryString string
+		IsSelected  bool
+	}
+	if err := x.Sync2(new(Label)); err != nil {
+		return err
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
