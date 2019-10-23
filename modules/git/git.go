@@ -82,12 +82,13 @@ func SetExecutablePath(path string) error {
 	// If path is empty, we use the default value of GitExecutable "git" to search for the location of git.
 	if path != "" {
 		GitExecutable = path
+	} else {
+		absPath, err := exec.LookPath(GitExecutable)
+		if err != nil {
+			return fmt.Errorf("Git not found: %v", err)
+		}
+		GitExecutable = absPath
 	}
-	absPath, err := exec.LookPath(GitExecutable)
-	if err != nil {
-		return fmt.Errorf("Git not found: %v", err)
-	}
-	GitExecutable = absPath
 
 	gitVersion, err := BinVersion()
 	if err != nil {
