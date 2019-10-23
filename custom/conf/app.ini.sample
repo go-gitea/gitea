@@ -185,6 +185,8 @@ FILE_EXTENSIONS = .md,.markdown,.mdown,.mkd
 PROTOCOL = http
 DOMAIN = localhost
 ROOT_URL = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
+; when STATIC_URL_PREFIX is empty it will follow APP_URL
+STATIC_URL_PREFIX = 
 ; The address to listen on. Either a IPv4/IPv6 address or the path to a unix socket.
 HTTP_ADDR = 0.0.0.0
 HTTP_PORT = 3000
