@@ -204,7 +204,7 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 		"Issue":           issue,
 		"Comment":         comment,
 		"IsPull":          issue.IsPull,
-		"User":            issue.Repo.MustOwner().Name,
+		"User":            issue.Repo.MustOwner(),
 		"Repo":            issue.Repo.FullName(),
 		"Doer":            doer,
 		"IsMention":       fromMention,
