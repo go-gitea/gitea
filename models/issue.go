@@ -1730,23 +1730,6 @@ func (issue *Issue) updateClosedNum(e Engine) (err error) {
 	return
 }
 
-// ComposeMailMetas composes a map of metas used for rendering a mail subject or body.
-func (issue *Issue) ComposeMailMetas(doer *User, comment *Comment, actionType ActionType, fromMention bool) (map[string]interface{}, error) {
-	if err := issue.LoadPullRequest(); err != nil {
-		return nil, err
-	}
-	return map[string]interface{}{
-		"Issue":     issue,
-		"Comment":   comment,
-		"IsPull":    issue.IsPull,
-		"User":      issue.Repo.MustOwner().Name,
-		"Repo":      issue.Repo.FullName(),
-		"Doer":      doer.Name,
-		"Action":    actionType,
-		"IsMention": fromMention,
-	}, nil
-}
-
 // ResolveMentionsByVisibility returns the users mentioned in an issue, removing those that
 // don't have access to reading it. Teams are expanded into their users, but organizations are ignored.
 func (issue *Issue) ResolveMentionsByVisibility(ctx DBContext, doer *User, mentions []string) (users []*User, err error) {
