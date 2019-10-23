@@ -110,9 +110,7 @@ func (srv *Server) ListenAndServe(serve ServeFunction) error {
 
 	srv.listener = newWrappedListener(l, srv)
 
-	if IsChild {
-		_ = syscall.Kill(syscall.Getppid(), syscall.SIGTERM)
-	}
+	KillParent()
 
 	srv.BeforeBegin(srv.network, srv.address)
 
@@ -156,9 +154,7 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 	wl := newWrappedListener(l, srv)
 	srv.listener = tls.NewListener(wl, tlsConfig)
 
-	if IsChild {
-		_ = syscall.Kill(syscall.Getppid(), syscall.SIGTERM)
-	}
+	KillParent()
 	srv.BeforeBegin(srv.network, srv.address)
 
 	return srv.Serve(serve)
