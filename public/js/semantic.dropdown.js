@@ -8,6 +8,13 @@
  *
  */
 
+/*
+ * Copyright 2019 The Gitea Authors
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ * This version has been modified by Gitea to improve accessibility.
+ */
+
 ;(function ($, window, document, undefined) {
 
 'use strict';
