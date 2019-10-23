@@ -903,7 +903,7 @@ $.fn.dropdown = function(parameters) {
           ;
           if(hasSelected && !module.is.multiple()) {
             module.debug('Forcing partial selection to selected item', $selectedItem);
-            module.event.item.click.call($selectedItem, {}, true);
+            $selectedItem[0].click();
             return;
           }
           else {
@@ -1364,7 +1364,7 @@ $.fn.dropdown = function(parameters) {
               // allow selection with menu closed
               if(isAdditionWithoutMenu) {
                 module.verbose('Selecting item from keyboard shortcut', $selectedItem);
-                module.event.item.click.call($selectedItem, event);
+                $selectedItem[0].click();
                 if(module.is.searchSelection()) {
                   module.remove.searchTerm();
                 }
@@ -1381,7 +1381,7 @@ $.fn.dropdown = function(parameters) {
                   }
                   else if(selectedIsSelectable) {
                     module.verbose('Selecting item from keyboard shortcut', $selectedItem);
-                    module.event.item.click.call($selectedItem, event);
+                    $selectedItem[0].click();
                     if(module.is.searchSelection()) {
                       module.remove.searchTerm();
                     }
