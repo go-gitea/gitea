@@ -31,6 +31,7 @@ const (
 var (
 	// RWMutex for when adding servers or shutting down
 	runningServerReg sync.RWMutex
+	runningServerWG  sync.WaitGroup
 	// ensure we only fork once
 	runningServersForked bool
 
@@ -47,6 +48,7 @@ var (
 
 func init() {
 	runningServerReg = sync.RWMutex{}
+	runningServerWG = sync.WaitGroup{}
 
 	DefaultMaxHeaderBytes = 0 // use http.DefaultMaxHeaderBytes - which currently is 1 << 20 (1MB)
 }
@@ -67,6 +69,11 @@ type Server struct {
 	lock            *sync.RWMutex
 	BeforeBegin     func(network, address string)
 	OnShutdown      func()
+}
+
+// WaitForServers waits for all running servers to finish
+func WaitForServers() {
+	runningServerWG.Wait()
 }
 
 // NewServer creates a server on network at provided address
@@ -110,9 +117,7 @@ func (srv *Server) ListenAndServe(serve ServeFunction) error {
 
 	srv.listener = newWrappedListener(l, srv)
 
-	if IsChild {
-		_ = syscall.Kill(syscall.Getppid(), syscall.SIGTERM)
-	}
+	KillParent()
 
 	srv.BeforeBegin(srv.network, srv.address)
 
@@ -156,9 +161,7 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 	wl := newWrappedListener(l, srv)
 	srv.listener = tls.NewListener(wl, tlsConfig)
 
-	if IsChild {
-		_ = syscall.Kill(syscall.Getppid(), syscall.SIGTERM)
-	}
+	KillParent()
 	srv.BeforeBegin(srv.network, srv.address)
 
 	return srv.Serve(serve)
@@ -175,10 +178,12 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 func (srv *Server) Serve(serve ServeFunction) error {
 	defer log.Debug("Serve() returning... (PID: %d)", syscall.Getpid())
 	srv.setState(stateRunning)
+	runningServerWG.Add(1)
 	err := serve(srv.listener)
 	log.Debug("Waiting for connections to finish... (PID: %d)", syscall.Getpid())
 	srv.wg.Wait()
 	srv.setState(stateTerminate)
+	runningServerWG.Done()
 	// use of closed means that the listeners are closed - i.e. we should be shutting down - return nil
 	if err != nil && strings.Contains(err.Error(), "use of closed") {
 		return nil
