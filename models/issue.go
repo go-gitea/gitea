@@ -971,7 +971,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			return err
 		}
 
-		if _, err = createMilestoneComment(e, doer, opts.Repo, opts.Issue, -1, opts.Issue.MilestoneID); err != nil {
+		if _, err = createMilestoneComment(e, doer, opts.Repo, opts.Issue, 0, opts.Issue.MilestoneID); err != nil {
 			return err
 		}
 	}
