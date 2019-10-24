@@ -862,7 +862,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		})
-	}, securityHeaders(), context.APIContexter(), sudo())
+	}, securityHeaders(), reqTokenBySetting(), context.APIContexter(), sudo())
 }
 
 func securityHeaders() macaron.Handler {
@@ -873,4 +873,11 @@ func securityHeaders() macaron.Handler {
 			w.Header().Set("x-content-type-options", "nosniff")
 		})
 	}
+}
+
+func reqTokenBySetting() macaron.Handler {
+	if setting.Service.RequireSignInView {
+		return reqToken()
+	}
+	return func(ctx *macaron.Context) {}
 }
