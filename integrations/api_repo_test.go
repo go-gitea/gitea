@@ -334,7 +334,7 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
 		respJSON := map[string]string{}
 		DecodeJSON(t, resp, &respJSON)
-		assert.Equal(t, "repository already exists [uname: user2, name: repo-tmp-17]", respJSON["message"])
+		assert.Equal(t, "The repository with the same name already exists.", respJSON["message"])
 	})
 }
 
