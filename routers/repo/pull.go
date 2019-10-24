@@ -242,6 +242,10 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 		ctx.ServerError("LoadPoster", err)
 		return nil
 	}
+	if err := issue.LoadRepo(); err != nil {
+		ctx.ServerError("LoadRepo", err)
+		return nil
+	}
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
 	ctx.Data["Issue"] = issue
 
@@ -272,12 +276,12 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 }
 
 func setMergeTarget(ctx *context.Context, pull *models.PullRequest) {
-	if ctx.Repo.Owner.Name == pull.HeadUserName {
+	if ctx.Repo.Owner.Name == pull.MustHeadUserName() {
 		ctx.Data["HeadTarget"] = pull.HeadBranch
 	} else if pull.HeadRepo == nil {
-		ctx.Data["HeadTarget"] = pull.HeadUserName + ":" + pull.HeadBranch
+		ctx.Data["HeadTarget"] = pull.MustHeadUserName() + ":" + pull.HeadBranch
 	} else {
-		ctx.Data["HeadTarget"] = pull.HeadUserName + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
+		ctx.Data["HeadTarget"] = pull.MustHeadUserName() + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
 	}
 	ctx.Data["BaseTarget"] = pull.BaseBranch
 }
@@ -440,7 +444,7 @@ func ViewPullCommits(ctx *context.Context) {
 			ctx.NotFound("ViewPullCommits", nil)
 			return
 		}
-		ctx.Data["Username"] = pull.HeadUserName
+		ctx.Data["Username"] = pull.MustHeadUserName()
 		ctx.Data["Reponame"] = pull.HeadRepo.Name
 		commits = prInfo.Commits
 	}
@@ -512,7 +516,7 @@ func ViewPullFiles(ctx *context.Context) {
 			return
 		}
 
-		headRepoPath := models.RepoPath(pull.HeadUserName, pull.HeadRepo.Name)
+		headRepoPath := pull.HeadRepo.RepoPath()
 
 		headGitRepo, err := git.OpenRepository(headRepoPath)
 		if err != nil {
@@ -531,8 +535,8 @@ func ViewPullFiles(ctx *context.Context) {
 		endCommitID = headCommitID
 		gitRepo = headGitRepo
 
-		headTarget = path.Join(pull.HeadUserName, pull.HeadRepo.Name)
-		ctx.Data["Username"] = pull.HeadUserName
+		headTarget = path.Join(pull.MustHeadUserName(), pull.HeadRepo.Name)
+		ctx.Data["Username"] = pull.MustHeadUserName()
 		ctx.Data["Reponame"] = pull.HeadRepo.Name
 	}
 
@@ -564,29 +568,8 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["IsImageFile"] = commit.IsImageFile
-	ctx.Data["ImageInfoBase"] = func(name string) *git.ImageMetaData {
-		result, err := baseCommit.ImageInfo(name)
-		if err != nil {
-			log.Error("ImageInfo failed: %v", err)
-			return nil
-		}
-		return result
-	}
-	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
-		result, err := commit.ImageInfo(name)
-		if err != nil {
-			log.Error("ImageInfo failed: %v", err)
-			return nil
-		}
-		return result
-	}
-
-	baseTarget := path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-	ctx.Data["SourcePath"] = setting.AppSubURL + "/" + path.Join(headTarget, "src", "commit", endCommitID)
-	ctx.Data["RawPath"] = setting.AppSubURL + "/" + path.Join(headTarget, "raw", "commit", endCommitID)
-	ctx.Data["BeforeSourcePath"] = setting.AppSubURL + "/" + path.Join(baseTarget, "src", "commit", startCommitID)
-	ctx.Data["BeforeRawPath"] = setting.AppSubURL + "/" + path.Join(baseTarget, "raw", "commit", startCommitID)
+	setImageCompareContext(ctx, baseCommit, commit)
+	setPathsCompareContext(ctx, baseCommit, commit, headTarget)
 
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
@@ -775,15 +758,14 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		Content:     form.Content,
 	}
 	pullRequest := &models.PullRequest{
-		HeadRepoID:   headRepo.ID,
-		BaseRepoID:   repo.ID,
-		HeadUserName: headUser.Name,
-		HeadBranch:   headBranch,
-		BaseBranch:   baseBranch,
-		HeadRepo:     headRepo,
-		BaseRepo:     repo,
-		MergeBase:    prInfo.MergeBase,
-		Type:         models.PullRequestGitea,
+		HeadRepoID: headRepo.ID,
+		BaseRepoID: repo.ID,
+		HeadBranch: headBranch,
+		BaseBranch: baseBranch,
+		HeadRepo:   headRepo,
+		BaseRepo:   repo,
+		MergeBase:  prInfo.MergeBase,
+		Type:       models.PullRequestGitea,
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
@@ -841,7 +823,7 @@ func TriggerTask(ctx *context.Context) {
 	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
 	go models.HookQueue.Add(repo.ID)
-	go models.AddTestPullRequestTask(pusher, repo.ID, branch, true)
+	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true)
 	ctx.Status(202)
 }
 

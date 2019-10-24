@@ -6,9 +6,12 @@
 package admin
 
 import (
+	"errors"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/password"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/user"
@@ -73,7 +76,11 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	if ctx.Written() {
 		return
 	}
-
+	if !password.IsComplexEnough(form.Password) {
+		err := errors.New("PasswordComplexity")
+		ctx.Error(400, "PasswordComplexity", err)
+		return
+	}
 	if err := models.CreateUser(u); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrEmailAlreadyUsed(err) ||
@@ -131,6 +138,11 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	}
 
 	if len(form.Password) > 0 {
+		if !password.IsComplexEnough(form.Password) {
+			err := errors.New("PasswordComplexity")
+			ctx.Error(400, "PasswordComplexity", err)
+			return
+		}
 		var err error
 		if u.Salt, err = models.GetUserSalt(); err != nil {
 			ctx.Error(500, "UpdateUser", err)

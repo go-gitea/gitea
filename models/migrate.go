@@ -4,7 +4,7 @@
 
 package models
 
-import "github.com/go-xorm/xorm"
+import "xorm.io/xorm"
 
 // InsertMilestones creates milestones of repository.
 func InsertMilestones(ms ...*Milestone) (err error) {

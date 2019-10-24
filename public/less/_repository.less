@@ -158,6 +158,23 @@
             margin: -2px -7px 0 -5px;
         }
 
+        &.labels {
+            .label-filter .menu .info {
+                display: inline-block;
+                padding: 9px 7px 7px 7px;
+                text-align: center;
+                border-bottom: 1px solid #cccccc;
+                font-size: 12px;
+
+                code {
+                    border: 1px solid #cccccc;
+                    border-radius: 3px;
+                    padding: 3px 2px 1px 2px;
+                    font-size: 11px;
+                }
+            }
+        }
+
         .text {
             margin-left: 0.9em;
         }
@@ -371,9 +388,7 @@
                 }
 
                 .file-actions {
-                    margin-top: 0;
                     margin-bottom: -5px;
-                    padding-left: 20px;
 
                     .btn-octicon {
                         display: inline-block;
@@ -429,6 +444,7 @@
 
             .csv {
                 overflow-x: auto;
+                padding: 0 !important;
             }
 
             pre {
@@ -1213,6 +1229,15 @@
             border-bottom-left-radius: 0;
         }
 
+        &.isSigned.isWarning {
+            border: 1px solid #db2828;
+            background: fade(#db2828, 10%);
+
+            .detail.icon {
+                border-left: 1px solid fade(#db2828, 50%);
+            }
+        }
+
         &.isSigned.isVerified {
             border: 1px solid #21ba45;
             background: fade(#21ba45, 10%);
@@ -1236,21 +1261,6 @@
             clear: both;
             content: "";
             display: block;
-        }
-
-        ol {
-            clear: both;
-            padding-left: 0;
-            margin-top: 5px;
-            margin-bottom: 28px;
-
-            li {
-                list-style: none;
-                padding-bottom: 4px;
-                margin-bottom: 4px;
-                border-bottom: 1px dashed #dddddd;
-                padding-left: 6px;
-            }
         }
 
         span.status {
@@ -1464,6 +1474,34 @@
             }
 
             clear: right;
+        }
+    }
+
+    .diff-stats {
+
+        clear: both;
+        margin-bottom: 5px;
+        max-height: 400px;
+        overflow: auto;
+        padding-left: 0;
+
+        li {
+            list-style: none;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+            border-bottom: 1px dashed #dddddd;
+            padding-left: 6px;
+        }
+
+        .diff-counter {
+            margin-right: 15px;
+
+            .del {
+                color: red;
+            }
+            .add {
+                color: green;
+            }
         }
     }
 
@@ -2383,4 +2421,27 @@ tbody.commit-list {
     border-color: #d3cfcf !important;
     padding-top: 8px;
     padding-bottom: 8px;
+}
+
+.issue-keyword {
+    border-bottom: 1px dotted #959da5;
+    display: inline-block;
+}
+
+.file-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px !important;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+}
+
+.file-info-entry + .file-info-entry {
+    border-left: 1px solid currentColor;
+    margin-left: 8px;
+    padding-left: 8px;
 }

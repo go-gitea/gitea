@@ -6,7 +6,6 @@
   index: 2
   head_repo_id: 1
   base_repo_id: 1
-  head_user_name: user1
   head_branch: branch1
   base_branch: master
   merge_base: 1234567890abcdef
@@ -21,7 +20,6 @@
   index: 3
   head_repo_id: 1
   base_repo_id: 1
-  head_user_name: user1
   head_branch: branch2
   base_branch: master
   merge_base: fedcba9876543210
@@ -35,7 +33,6 @@
   index: 1
   head_repo_id: 11
   base_repo_id: 10
-  head_user_name: user13
   head_branch: branch2
   base_branch: master
   merge_base: 0abcb056019adb83

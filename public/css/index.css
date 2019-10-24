@@ -225,6 +225,10 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .inline-grouped-list{display:inline-block;vertical-align:top}
 .inline-grouped-list>.ui{display:block;margin-top:5px;margin-bottom:10px}
 .inline-grouped-list>.ui:first-child{margin-top:1px}
+i.icons .icon:first-child{margin-right:0}
+i.icon.centerlock{top:1.5em}
+.ui.label>.detail .icons{margin-right:.25em}
+.ui.label>.detail .icons .icon{margin-right:0}
 .lines-num{vertical-align:top;text-align:right!important;color:#999;background:#f5f5f5;width:1%;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
 .lines-num span:before{content:attr(data-line-number);line-height:20px!important;padding:0 10px;cursor:pointer;display:block}
 .lines-code,.lines-num{padding:0!important}
@@ -239,7 +243,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .lines-commit .ui.avatar.image{height:18px;width:18px}
 .lines-code .bottom-line,.lines-commit .bottom-line,.lines-num .bottom-line{border-bottom:1px solid #eaecef}
 .code-view{overflow:auto;overflow-x:auto;overflow-y:hidden}
-.code-view *{font-size:12px;font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;line-height:20px}
+.code-view :not(.fa):not(.octicon):not(.icon){font-size:12px;font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;line-height:20px}
 .code-view table{width:100%}
 .code-view .active{background:#fff866}
 .markdown:not(code){overflow:hidden;font-size:16px;line-height:1.6!important;word-wrap:break-word}
@@ -392,6 +396,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .user.activate form .inline.field>label,.user.forgot.password form .inline.field>label,.user.reset.password form .inline.field>label,.user.signin form .inline.field>label,.user.signup form .inline.field>label{width:200px}
 @media only screen and (max-width:768px){.user.activate form .inline.field>label,.user.activate form input,.user.forgot.password form .inline.field>label,.user.forgot.password form input,.user.reset.password form .inline.field>label,.user.reset.password form input,.user.signin form .inline.field>label,.user.signin form input,.user.signup form .inline.field>label,.user.signup form input{width:100%!important}
 }
+.user.activate form input[type=number],.user.forgot.password form input[type=number],.user.reset.password form input[type=number],.user.signin form input[type=number],.user.signup form input[type=number]{-moz-appearance:textfield}
+.user.activate form input::-webkit-inner-spin-button,.user.activate form input::-webkit-outer-spin-button,.user.forgot.password form input::-webkit-inner-spin-button,.user.forgot.password form input::-webkit-outer-spin-button,.user.reset.password form input::-webkit-inner-spin-button,.user.reset.password form input::-webkit-outer-spin-button,.user.signin form input::-webkit-inner-spin-button,.user.signin form input::-webkit-outer-spin-button,.user.signup form input::-webkit-inner-spin-button,.user.signup form input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .repository.new.fork form,.repository.new.migrate form,.repository.new.repo form{margin:auto}
 .repository.new.fork form .ui.message,.repository.new.migrate form .ui.message,.repository.new.repo form .ui.message{text-align:center}
 @media only screen and (min-width:768px){.repository.new.fork form,.repository.new.migrate form,.repository.new.repo form{width:800px!important}
@@ -452,6 +458,8 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .filter.menu .label.color{border-radius:3px;margin-left:15px;padding:0 8px}
 .repository .filter.menu .octicon{float:left;margin:5px -7px 0 -5px;width:16px}
 .repository .filter.menu.labels .octicon{margin:-2px -7px 0 -5px}
+.repository .filter.menu.labels .label-filter .menu .info{display:inline-block;padding:9px 7px 7px 7px;text-align:center;border-bottom:1px solid #ccc;font-size:12px}
+.repository .filter.menu.labels .label-filter .menu .info code{border:1px solid #ccc;border-radius:3px;padding:3px 2px 1px 2px;font-size:11px}
 .repository .filter.menu .text{margin-left:.9em}
 .repository .filter.menu .menu{max-height:300px;overflow-x:auto;right:0!important;left:auto!important}
 .repository .filter.menu .dropdown.item{margin:1px;padding-right:0}
@@ -494,7 +502,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.file.list #repo-files-table tr:hover{background-color:#ffe}
 .repository.file.list #repo-files-table .jumpable-path{color:#888}
 .repository.file.list .non-diff-file-content .header .icon{font-size:1em}
-.repository.file.list .non-diff-file-content .header .file-actions{margin-top:0;margin-bottom:-5px;padding-left:20px}
+.repository.file.list .non-diff-file-content .header .file-actions{margin-bottom:-5px}
 .repository.file.list .non-diff-file-content .header .file-actions .btn-octicon{display:inline-block;padding:5px;margin-left:5px;line-height:1;color:#767676;vertical-align:middle;background:0 0;border:0;outline:0}
 .repository.file.list .non-diff-file-content .header .file-actions .btn-octicon:hover{color:#4078c0}
 .repository.file.list .non-diff-file-content .header .file-actions .btn-octicon-danger:hover{color:#bd2c00}
@@ -505,7 +513,7 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository.file.list .non-diff-file-content .view-raw img{padding:5px 5px 0 5px}
 .repository.file.list .non-diff-file-content .plain-text{padding:1em 2em 1em 2em}
 .repository.file.list .non-diff-file-content .plain-text pre{word-break:break-word;white-space:pre-wrap}
-.repository.file.list .non-diff-file-content .csv{overflow-x:auto}
+.repository.file.list .non-diff-file-content .csv{overflow-x:auto;padding:0!important}
 .repository.file.list .non-diff-file-content pre{overflow:auto}
 .repository.file.list .sidebar{padding-left:0}
 .repository.file.list .sidebar .octicon{width:16px}
@@ -654,13 +662,13 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository #commits-table.ui.basic.striped.table tbody tr:nth-child(2n){background-color:rgba(0,0,0,.02)!important}
 .repository #commits-table td.sha .sha.label,.repository #repo-files-table .sha.label{border:1px solid #bbb}
 .repository #commits-table td.sha .sha.label .detail.icon,.repository #repo-files-table .sha.label .detail.icon{background:#fafafa;margin:-6px -10px -4px 0;padding:5px 3px 5px 6px;border-left:1px solid #bbb;border-top-left-radius:0;border-bottom-left-radius:0}
+.repository #commits-table td.sha .sha.label.isSigned.isWarning,.repository #repo-files-table .sha.label.isSigned.isWarning{border:1px solid #db2828;background:rgba(219,40,40,.1)}
+.repository #commits-table td.sha .sha.label.isSigned.isWarning .detail.icon,.repository #repo-files-table .sha.label.isSigned.isWarning .detail.icon{border-left:1px solid rgba(219,40,40,.5)}
 .repository #commits-table td.sha .sha.label.isSigned.isVerified,.repository #repo-files-table .sha.label.isSigned.isVerified{border:1px solid #21ba45;background:rgba(33,186,69,.1)}
 .repository #commits-table td.sha .sha.label.isSigned.isVerified .detail.icon,.repository #repo-files-table .sha.label.isSigned.isVerified .detail.icon{border-left:1px solid #21ba45}
 .repository #commits-table td.sha .sha.label.isSigned.isVerified:hover,.repository #repo-files-table .sha.label.isSigned.isVerified:hover{background:rgba(33,186,69,.3)!important}
 .repository .diff-detail-box{padding:7px 0;background:#fff;line-height:30px}
 .repository .diff-detail-box>div:after{clear:both;content:"";display:block}
-.repository .diff-detail-box ol{clear:both;padding-left:0;margin-top:5px;margin-bottom:28px}
-.repository .diff-detail-box ol li{list-style:none;padding-bottom:4px;margin-bottom:4px;border-bottom:1px dashed #ddd;padding-left:6px}
 .repository .diff-detail-box span.status{display:inline-block;width:12px;height:12px;margin-right:8px;vertical-align:middle}
 .repository .diff-detail-box span.status.modify{background-color:#f0db88}
 .repository .diff-detail-box span.status.add{background-color:#b4e2b4}
@@ -697,6 +705,11 @@ footer .ui.left,footer .ui.right{line-height:40px}
 .repository .diff-file-box.file-content{clear:right}
 .repository .diff-file-box.file-content img{max-width:100%;padding:5px 5px 0 5px}
 .repository .diff-file-box.file-content img.emoji{padding:0}
+.repository .diff-stats{clear:both;margin-bottom:5px;max-height:400px;overflow:auto;padding-left:0}
+.repository .diff-stats li{list-style:none;padding-bottom:4px;margin-bottom:4px;border-bottom:1px dashed #ddd;padding-left:6px}
+.repository .diff-stats .diff-counter{margin-right:15px}
+.repository .diff-stats .diff-counter .del{color:red}
+.repository .diff-stats .diff-counter .add{color:green}
 .repository .repo-search-result{padding-top:10px;padding-bottom:10px}
 .repository .repo-search-result .lines-num a{color:inherit}
 .repository.quickstart .guide .item{padding:1em}
@@ -878,6 +891,10 @@ tbody.commit-list{vertical-align:baseline}
 .repo-buttons .disabled-repo-button a.button:hover{background:0 0!important;color:rgba(0,0,0,.6)!important;box-shadow:0 0 0 1px rgba(34,36,38,.15) inset!important}
 .repo-buttons .ui.labeled.button>.label{border-left:0!important;margin:0!important}
 .tag-code,.tag-code td{background-color:#f0f0f0!important;border-color:#d3cfcf!important;padding-top:8px;padding-bottom:8px}
+.issue-keyword{border-bottom:1px dotted #959da5;display:inline-block}
+.file-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px!important}
+.file-info{display:flex;align-items:center}
+.file-info-entry+.file-info-entry{border-left:1px solid currentColor;margin-left:8px;padding-left:8px}
 .CodeMirror{font:14px 'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace}
 .CodeMirror.cm-s-default{border-radius:3px;padding:0!important}
 .CodeMirror .cm-comment{background:inherit!important}
@@ -955,6 +972,7 @@ tbody.commit-list{vertical-align:baseline}
 .dashboard{padding-top:15px}
 .dashboard.feeds .context.user.menu,.dashboard.issues .context.user.menu{z-index:101;min-width:200px}
 .dashboard.feeds .context.user.menu .ui.header,.dashboard.issues .context.user.menu .ui.header{font-size:1rem;text-transform:none}
+.dashboard.feeds .filter.menu,.dashboard.issues .filter.menu{width:initial}
 .dashboard.feeds .filter.menu .item,.dashboard.issues .filter.menu .item{text-align:left}
 .dashboard.feeds .filter.menu .item .text,.dashboard.issues .filter.menu .item .text{height:16px;vertical-align:middle}
 .dashboard.feeds .filter.menu .item .text.truncate,.dashboard.issues .filter.menu .item .text.truncate{width:85%}

@@ -507,6 +507,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/swagger", misc.Swagger)
 		}
 		m.Get("/version", misc.Version)
+		m.Get("/signing-key.gpg", misc.SigningKey)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
 
@@ -771,6 +772,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Delete("", bind(api.DeleteFileOptions{}), repo.DeleteFile)
 					}, reqRepoWriter(models.UnitTypeCode), reqToken())
 				}, reqRepoReader(models.UnitTypeCode))
+				m.Get("/signing-key.gpg", misc.SigningKey)
 				m.Group("/topics", func() {
 					m.Combo("").Get(repo.ListTopics).
 						Put(reqToken(), reqAdmin(), bind(api.RepoTopicOptions{}), repo.UpdateTopics)
@@ -860,7 +862,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		})
-	}, securityHeaders(), context.APIContexter(), sudo())
+	}, securityHeaders(), reqTokenBySetting(), context.APIContexter(), sudo())
 }
 
 func securityHeaders() macaron.Handler {
@@ -871,4 +873,11 @@ func securityHeaders() macaron.Handler {
 			w.Header().Set("x-content-type-options", "nosniff")
 		})
 	}
+}
+
+func reqTokenBySetting() macaron.Handler {
+	if setting.Service.RequireSignInView {
+		return reqToken()
+	}
+	return func(ctx *macaron.Context) {}
 }
