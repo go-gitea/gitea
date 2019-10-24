@@ -161,9 +161,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
 - `START_SSH_SERVER`: **false**: When enabled, use the built-in SSH server.
 - `SSH_DOMAIN`: **%(DOMAIN)s**: Domain name of this server, used for displayed clone URL.
-- `SSH_PORT`: **22**: SSH port displayed in clone URL.
 - `SSH_LISTEN_HOST`: **0.0.0.0**: Listen address for the built-in SSH server.
-- `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
+- `SSH_LISTEN_PORT`: **22**: Port for the built-in SSH server.
+- `SSH_PORT`: **%(SSH\_LISTEN\_PORT)s**: SSH port displayed in clone URL.
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
 - `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
 - `CERT_FILE`: **custom/https/cert.pem**: Cert file path used for HTTPS.

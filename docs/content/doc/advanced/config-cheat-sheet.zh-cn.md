@@ -59,7 +59,8 @@ menu:
 - `HTTP_PORT`: HTTP 监听端口。
 - `DISABLE_SSH`: 是否禁用SSH。
 - `START_SSH_SERVER`: 是否启用内部SSH服务器。
-- `SSH_PORT`: SSH端口，默认为 `22`。
+- `SSH_LISTEN_PORT`: SSH端口，默认为 `22`。
+- `SSH_PORT`: 克隆URL中显示的SSH端口，默认为 `SSH_LISTEN_PORT`。
 - `OFFLINE_MODE`: 针对静态和头像文件禁用 CDN。
 - `DISABLE_ROUTER_LOG`: 关闭日志中的路由日志。
 - `CERT_FILE`: 启用HTTPS的证书文件。

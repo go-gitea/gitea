@@ -654,8 +654,8 @@ func NewContext() {
 	}
 
 	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
-	SSH.Port = sec.Key("SSH_PORT").MustInt(22)
-	SSH.ListenPort = sec.Key("SSH_LISTEN_PORT").MustInt(SSH.Port)
+	SSH.ListenPort = sec.Key("SSH_LISTEN_PORT").MustInt(22)
+	SSH.Port = sec.Key("SSH_PORT").MustInt(SSH.ListenPort)
 
 	// When disable SSH, start builtin server value is ignored.
 	if SSH.Disabled {
