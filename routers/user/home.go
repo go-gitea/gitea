@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -231,6 +232,16 @@ func Milestones(ctx *context.Context) {
 		}
 		showReposMap[repoID] = repo
 	}
+	//TODO yes have to do this...
+	//if ctx.Repo.Repository.IsTimetrackerEnabled() {
+	//	if err := miles.LoadTotalTrackedTimes(); err != nil {
+	//		ctx.ServerError("LoadTotalTrackedTimes", err)
+	//		return
+	//	}
+	//}
+	for _, m := range milestones {
+		m.RenderedContent = string(markdown.Render([]byte(m.Content), showReposMap[m.RepoID].Link(), showReposMap[m.RepoID].ComposeMetas()))
+	}
 
 	if repoID > 0 {
 		if _, ok := showReposMap[repoID]; !ok {
@@ -294,6 +305,7 @@ func Milestones(ctx *context.Context) {
 
 	ctx.Data["Milestones"] = milestones
 	ctx.Data["Repos"] = showRepos
+	ctx.Data["RepoMap"] = showReposMap
 	ctx.Data["Counts"] = counts
 	ctx.Data["MilestoneStats"] = milestoneStats
 	ctx.Data["ViewType"] = viewType
