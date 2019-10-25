@@ -295,6 +295,8 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType, comment
 			name = "review"
 		case models.CommentTypeCode:
 			name = "code"
+		case models.CommentTypeAssignees:
+			name = "assigned"
 		default:
 			name = "default"
 		}
@@ -314,4 +316,9 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType, comment
 		template = "issue/default"
 	}
 	return
+}
+
+// SendIssueAssignedMail composes and sends issue assigned email
+func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
+	SendAsync(composeIssueCommentMessage(issue, doer, models.ActionType(0), false, content, comment, tos, "issue assigned"))
 }

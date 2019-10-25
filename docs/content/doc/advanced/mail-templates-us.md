@@ -33,6 +33,7 @@ Currently, the following notification events make use of templates:
 | `reopen`      | An issue or pull request was reopened.                                                                       |
 | `review`      | The head comment of a review in a pull request.                                                              |
 | `code`        | A single comment on the code of a pull request.                                                              |
+| `assigned`    | Used was assigned to an issue or pull request.                                                               |
 | `default`     | Any action not included in the above categories, or when the corresponding category template is not present. |
 
 The path for the template of a particular message type is:
