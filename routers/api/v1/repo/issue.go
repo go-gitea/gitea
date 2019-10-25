@@ -213,17 +213,41 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 			}
 			return
 		}
+
+		// Check if the passed assignees is assignable
+		for _, aID := range assigneeIDs {
+			assignee, err := models.GetUserByID(aID)
+			if err != nil {
+				ctx.Error(500, "GetUserByID", err)
+				return
+			}
+
+			valid, err := models.CanBeAssigned(assignee, ctx.Repo.Repository, false)
+			if err != nil {
+				ctx.Error(500, "canBeAssigned", err)
+				return
+			}
+			if !valid {
+				ctx.Error(422, "canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: ctx.Repo.Repository.Name})
+				return
+			}
+		}
 	} else {
 		// setting labels is not allowed if user is not a writer
 		form.Labels = make([]int64, 0)
 	}
 
-	if err := issue_service.NewIssue(ctx.Repo.Repository, issue, form.Labels, assigneeIDs, nil); err != nil {
+	if err := issue_service.NewIssue(ctx.Repo.Repository, issue, form.Labels, nil); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
 			return
 		}
 		ctx.Error(500, "NewIssue", err)
+		return
+	}
+
+	if err := issue_service.AddAssignees(issue, ctx.User, assigneeIDs); err != nil {
+		ctx.ServerError("AddAssignees", err)
 		return
 	}
 
@@ -336,9 +360,9 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 			oneAssignee = *form.Assignee
 		}
 
-		err = models.UpdateAPIAssignee(issue, oneAssignee, form.Assignees, ctx.User)
+		err = issue_service.UpdateAssignees(issue, oneAssignee, form.Assignees, ctx.User)
 		if err != nil {
-			ctx.Error(500, "UpdateAPIAssignee", err)
+			ctx.Error(500, "UpdateAssignees", err)
 			return
 		}
 	}
