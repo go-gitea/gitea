@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	issue_service "code.gitea.io/gitea/services/issue"
 	milestone_service "code.gitea.io/gitea/services/milestone"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -285,8 +286,26 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		}
 		return
 	}
+	// Check if the passed assignees is assignable
+	for _, aID := range assigneeIDs {
+		assignee, err := models.GetUserByID(aID)
+		if err != nil {
+			ctx.Error(500, "GetUserByID", err)
+			return
+		}
 
-	if err := pull_service.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch, assigneeIDs); err != nil {
+		valid, err := models.CanBeAssigned(assignee, repo, true)
+		if err != nil {
+			ctx.Error(500, "canBeAssigned", err)
+			return
+		}
+		if !valid {
+			ctx.Error(422, "canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
+			return
+		}
+	}
+
+	if err := pull_service.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
 			return
@@ -295,6 +314,11 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		return
 	} else if err := pr.PushToBaseRepo(); err != nil {
 		ctx.Error(500, "PushToBaseRepo", err)
+		return
+	}
+
+	if err := issue_service.AddAssignees(prIssue, ctx.User, assigneeIDs); err != nil {
+		ctx.ServerError("AddAssignees", err)
 		return
 	}
 
@@ -387,12 +411,12 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
 	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
-		err = models.UpdateAPIAssignee(issue, form.Assignee, form.Assignees, ctx.User)
+		err = issue_service.UpdateAssignees(issue, form.Assignee, form.Assignees, ctx.User)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
 			} else {
-				ctx.Error(500, "UpdateAPIAssignee", err)
+				ctx.Error(500, "UpdateAssignees", err)
 			}
 			return
 		}
