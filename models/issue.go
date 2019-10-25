@@ -970,6 +970,10 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		if _, err = e.Exec("UPDATE `milestone` SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
 			return err
 		}
+
+		if _, err = createMilestoneComment(e, doer, opts.Repo, opts.Issue, 0, opts.Issue.MilestoneID); err != nil {
+			return err
+		}
 	}
 
 	// Insert the assignees
