@@ -180,8 +180,13 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 		fallback string
 	)
 
+	commentType := models.CommentTypeComment
 	if comment != nil {
 		prefix = "Re: "
+		commentType = comment.Type
+		link = issue.HTMLURL() + "#" + comment.HashTag()
+	} else {
+		link = issue.HTMLURL()
 	}
 
 	fallback = prefix + fallbackMailSubject(issue)
@@ -189,13 +194,7 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 	// This is the body of the new issue or comment, not the mail body
 	body := string(markup.RenderByType(markdown.MarkupName, []byte(content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
 
-	if comment != nil {
-		link = issue.HTMLURL() + "#" + comment.HashTag()
-	} else {
-		link = issue.HTMLURL()
-	}
-
-	actType, actName, tplName := actionToTemplate(issue, actionType)
+	actType, actName, tplName := actionToTemplate(issue, actionType, commentType)
 
 	mailMeta := map[string]interface{}{
 		"FallbackSubject": fallback,
@@ -273,7 +272,7 @@ func SendIssueMentionMail(issue *models.Issue, doer *models.User, actionType mod
 
 // actionToTemplate returns the type and name of the action facing the user
 // (slightly different from models.ActionType) and the name of the template to use (based on availability)
-func actionToTemplate(issue *models.Issue, actionType models.ActionType) (typeName, name, template string) {
+func actionToTemplate(issue *models.Issue, actionType models.ActionType, commentType models.CommentType) (typeName, name, template string) {
 	if issue.IsPull {
 		typeName = "pull"
 	} else {
@@ -291,7 +290,14 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType) (typeNa
 	case models.ActionMergePullRequest:
 		name = "merge"
 	default:
-		name = "default"
+		switch commentType {
+		case models.CommentTypeReview:
+			name = "review"
+		case models.CommentTypeCode:
+			name = "code"
+		default:
+			name = "default"
+		}
 	}
 
 	template = typeName + "/" + name

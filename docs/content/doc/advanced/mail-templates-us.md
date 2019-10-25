@@ -31,6 +31,8 @@ Currently, the following notification events make use of templates:
 | `comment`     | A new comment was created in an existing issue or pull request.                                              |
 | `close`       | An issue or pull request was closed.                                                                         |
 | `reopen`      | An issue or pull request was reopened.                                                                       |
+| `review`      | The head comment of a review in a pull request.                                                              |
+| `code`        | A single comment on the code of a pull request.                                                              |
 | `default`     | Any action not included in the above categories, or when the corresponding category template is not present. |
 
 The path for the template of a particular message type is:
@@ -97,6 +99,8 @@ are provided with a _metadata context_ assembled for each notification. The cont
 | `.SubjectPrefix`   | string         | Always        | `Re: ` if the notification is about other than issue or pull request creation; otherwise an empty string.                                                                                                                                         |
 | `.ActionType`      | string         | Always        | `"issue"` or `"pull"`. Will correspond to the actual _action type_ independently of which template was selected.                                                                                                                                  |
 | `.ActionName`      | string         | Always        | It will be one of the action types described above (`new`, `comment`, etc.), and will correspond to the actual _action name_ independently of which template was selected.                                                                        |
+
+All names are case sensitive.
 
 ### The _subject_ part of the template
 
