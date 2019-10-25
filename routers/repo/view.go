@@ -11,6 +11,7 @@ import (
 	"fmt"
 	gotemplate "html/template"
 	"io/ioutil"
+	"net/url"
 	"path"
 	"strings"
 
@@ -31,6 +32,7 @@ const (
 	tplRepoHome  base.TplName = "repo/home"
 	tplWatchers  base.TplName = "repo/watchers"
 	tplForks     base.TplName = "repo/forks"
+	tplMigrating base.TplName = "repo/migrating"
 )
 
 func renderDirectory(ctx *context.Context, treeLink string) {
@@ -304,6 +306,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			var output bytes.Buffer
 			lines := strings.Split(fileContent, "\n")
+			ctx.Data["NumLines"] = len(lines)
+
 			//Remove blank line at the end of file
 			if len(lines) > 0 && lines[len(lines)-1] == "" {
 				lines = lines[:len(lines)-1]
@@ -342,6 +346,20 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["IsAudioFile"] = true
 	case base.IsImageFile(buf):
 		ctx.Data["IsImageFile"] = true
+	default:
+		if fileSize >= setting.UI.MaxDisplayFileSize {
+			ctx.Data["IsFileTooLarge"] = true
+			break
+		}
+
+		if markupType := markup.Type(blob.Name()); markupType != "" {
+			d, _ := ioutil.ReadAll(dataRc)
+			buf = append(buf, d...)
+			ctx.Data["IsMarkup"] = true
+			ctx.Data["MarkupType"] = markupType
+			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
+		}
+
 	}
 
 	if ctx.Repo.CanEnableEditor() {
@@ -354,9 +372,37 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 }
 
+func safeURL(address string) string {
+	u, err := url.Parse(address)
+	if err != nil {
+		return address
+	}
+	u.User = nil
+	return u.String()
+}
+
 // Home render repository home page
 func Home(ctx *context.Context) {
 	if len(ctx.Repo.Units) > 0 {
+		if ctx.Repo.Repository.IsBeingCreated() {
+			task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
+			if err != nil {
+				ctx.ServerError("models.GetMigratingTask", err)
+				return
+			}
+			cfg, err := task.MigrateConfig()
+			if err != nil {
+				ctx.ServerError("task.MigrateConfig", err)
+				return
+			}
+
+			ctx.Data["Repo"] = ctx.Repo
+			ctx.Data["MigrateTask"] = task
+			ctx.Data["CloneAddr"] = safeURL(cfg.CloneAddr)
+			ctx.HTML(200, tplMigrating)
+			return
+		}
+
 		var firstUnit *models.Unit
 		for _, repoUnit := range ctx.Repo.Units {
 			if repoUnit.Type == models.UnitTypeCode {

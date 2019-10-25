@@ -84,53 +84,6 @@ func TestGetParticipantsByIssueID(t *testing.T) {
 	checkParticipants(1, []int{5})
 }
 
-func TestIssue_AddLabel(t *testing.T) {
-	var tests = []struct {
-		issueID int64
-		labelID int64
-		doerID  int64
-	}{
-		{1, 2, 2}, // non-pull-request, not-already-added label
-		{1, 1, 2}, // non-pull-request, already-added label
-		{2, 2, 2}, // pull-request, not-already-added label
-		{2, 1, 2}, // pull-request, already-added label
-	}
-	for _, test := range tests {
-		assert.NoError(t, PrepareTestDatabase())
-		issue := AssertExistsAndLoadBean(t, &Issue{ID: test.issueID}).(*Issue)
-		label := AssertExistsAndLoadBean(t, &Label{ID: test.labelID}).(*Label)
-		doer := AssertExistsAndLoadBean(t, &User{ID: test.doerID}).(*User)
-		assert.NoError(t, issue.AddLabel(doer, label))
-		AssertExistsAndLoadBean(t, &IssueLabel{IssueID: test.issueID, LabelID: test.labelID})
-	}
-}
-
-func TestIssue_AddLabels(t *testing.T) {
-	var tests = []struct {
-		issueID  int64
-		labelIDs []int64
-		doerID   int64
-	}{
-		{1, []int64{1, 2}, 2}, // non-pull-request
-		{1, []int64{}, 2},     // non-pull-request, empty
-		{2, []int64{1, 2}, 2}, // pull-request
-		{2, []int64{}, 1},     // pull-request, empty
-	}
-	for _, test := range tests {
-		assert.NoError(t, PrepareTestDatabase())
-		issue := AssertExistsAndLoadBean(t, &Issue{ID: test.issueID}).(*Issue)
-		labels := make([]*Label, len(test.labelIDs))
-		for i, labelID := range test.labelIDs {
-			labels[i] = AssertExistsAndLoadBean(t, &Label{ID: labelID}).(*Label)
-		}
-		doer := AssertExistsAndLoadBean(t, &User{ID: test.doerID}).(*User)
-		assert.NoError(t, issue.AddLabels(doer, labels))
-		for _, labelID := range test.labelIDs {
-			AssertExistsAndLoadBean(t, &IssueLabel{IssueID: test.issueID, LabelID: labelID})
-		}
-	}
-}
-
 func TestIssue_ClearLabels(t *testing.T) {
 	var tests = []struct {
 		issueID int64
@@ -160,7 +113,7 @@ func TestUpdateIssueCols(t *testing.T) {
 	issue.Content = "This should have no effect"
 
 	now := time.Now().Unix()
-	assert.NoError(t, UpdateIssueCols(issue, "name"))
+	assert.NoError(t, updateIssueCols(x, issue, "name"))
 	then := time.Now().Unix()
 
 	updatedIssue := AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)
@@ -344,7 +297,7 @@ func testInsertIssue(t *testing.T, title, content string) {
 		Title:    title,
 		Content:  content,
 	}
-	err := NewIssue(repo, &issue, nil, nil, nil)
+	err := NewIssue(repo, &issue, nil, nil)
 	assert.NoError(t, err)
 
 	var newIssue Issue
@@ -365,4 +318,36 @@ func TestIssue_InsertIssue(t *testing.T) {
 
 	testInsertIssue(t, "my issue1", "special issue's comments?")
 	testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?")
+}
+
+func TestIssue_ResolveMentions(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	testSuccess := func(owner, repo, doer string, mentions []string, expected []int64) {
+		o := AssertExistsAndLoadBean(t, &User{LowerName: owner}).(*User)
+		r := AssertExistsAndLoadBean(t, &Repository{OwnerID: o.ID, LowerName: repo}).(*Repository)
+		issue := &Issue{RepoID: r.ID}
+		d := AssertExistsAndLoadBean(t, &User{LowerName: doer}).(*User)
+		resolved, err := issue.ResolveMentionsByVisibility(DefaultDBContext(), d, mentions)
+		assert.NoError(t, err)
+		ids := make([]int64, len(resolved))
+		for i, user := range resolved {
+			ids[i] = user.ID
+		}
+		sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+		assert.EqualValues(t, expected, ids)
+	}
+
+	// Public repo, existing user
+	testSuccess("user2", "repo1", "user1", []string{"user5"}, []int64{5})
+	// Public repo, non-existing user
+	testSuccess("user2", "repo1", "user1", []string{"nonexisting"}, []int64{})
+	// Public repo, doer
+	testSuccess("user2", "repo1", "user1", []string{"user1"}, []int64{})
+	// Private repo, team member
+	testSuccess("user17", "big_test_private_4", "user20", []string{"user2"}, []int64{2})
+	// Private repo, not a team member
+	testSuccess("user17", "big_test_private_4", "user20", []string{"user5"}, []int64{})
+	// Private repo, whole team
+	testSuccess("user17", "big_test_private_4", "user15", []string{"owners"}, []int64{18})
 }

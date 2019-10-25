@@ -83,7 +83,7 @@ func (*NullNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.I
 }
 
 // NotifyIssueChangeAssignee places a place holder function
-func (*NullNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, removed bool) {
+func (*NullNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
 }
 
 // NotifyIssueClearLabels places a place holder function

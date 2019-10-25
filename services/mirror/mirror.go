@@ -91,7 +91,7 @@ func AddressNoCredentials(m *models.Mirror) string {
 func SaveAddress(m *models.Mirror, addr string) error {
 	repoPath := m.Repo.RepoPath()
 	// Remove old origin
-	_, err := git.NewCommand("remote", "remove", "origin").RunInDir(repoPath)
+	_, err := git.NewCommand("remote", "rm", "origin").RunInDir(repoPath)
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
@@ -329,16 +329,16 @@ func SyncMirrors() {
 
 			// Create reference
 			if result.oldCommitID == gitShortEmptySha {
-				if err = models.MirrorSyncCreateAction(m.Repo, result.refName); err != nil {
-					log.Error("MirrorSyncCreateAction [repo_id: %d]: %v", m.RepoID, err)
+				if err = SyncCreateAction(m.Repo, result.refName); err != nil {
+					log.Error("SyncCreateAction [repo_id: %d]: %v", m.RepoID, err)
 				}
 				continue
 			}
 
 			// Delete reference
 			if result.newCommitID == gitShortEmptySha {
-				if err = models.MirrorSyncDeleteAction(m.Repo, result.refName); err != nil {
-					log.Error("MirrorSyncDeleteAction [repo_id: %d]: %v", m.RepoID, err)
+				if err = SyncDeleteAction(m.Repo, result.refName); err != nil {
+					log.Error("SyncDeleteAction [repo_id: %d]: %v", m.RepoID, err)
 				}
 				continue
 			}
@@ -359,13 +359,13 @@ func SyncMirrors() {
 				log.Error("CommitsBetweenIDs [repo_id: %d, new_commit_id: %s, old_commit_id: %s]: %v", m.RepoID, newCommitID, oldCommitID, err)
 				continue
 			}
-			if err = models.MirrorSyncPushAction(m.Repo, models.MirrorSyncPushActionOptions{
+			if err = SyncPushAction(m.Repo, SyncPushActionOptions{
 				RefName:     result.refName,
 				OldCommitID: oldCommitID,
 				NewCommitID: newCommitID,
 				Commits:     models.ListToPushCommits(commits),
 			}); err != nil {
-				log.Error("MirrorSyncPushAction [repo_id: %d]: %v", m.RepoID, err)
+				log.Error("SyncPushAction [repo_id: %d]: %v", m.RepoID, err)
 				continue
 			}
 		}

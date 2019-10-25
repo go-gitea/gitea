@@ -75,7 +75,11 @@
 									</td>
 									<td class="two wide right aligned">
 										{{if not .LatestPullRequest}}
-											{{if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
+											{{if .IsIncluded}}
+												<a class="ui poping up orange small label" data-content="{{$.i18n.Tr "repo.branch.included_desc"}}" data-variation="tiny inverted" data-position="top right">
+													<i class="octicon octicon-git-pull-request"></i> {{$.i18n.Tr "repo.branch.included"}}
+												</a>
+											{{else if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
 											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}">
 												<button id="new-pull-request" class="ui compact basic button">{{$.i18n.Tr "repo.pulls.compare_changes"}}</button>
 											</a>

@@ -9,8 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/references"
 
 	"github.com/unknwon/com"
 )
@@ -24,9 +23,6 @@ func mailSubject(issue *models.Issue) string {
 // 1. Repository watchers and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
 func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, content string, comment *models.Comment, mentions []string) error {
-	if !setting.Service.EnableNotifyMail {
-		return nil
-	}
 
 	watchers, err := models.GetWatchers(issue.RepoID)
 	if err != nil {
@@ -123,10 +119,17 @@ func MailParticipants(issue *models.Issue, doer *models.User, opType models.Acti
 }
 
 func mailParticipants(ctx models.DBContext, issue *models.Issue, doer *models.User, opType models.ActionType) (err error) {
-	mentions := markup.FindAllMentions(issue.Content)
-
-	if err = models.UpdateIssueMentions(ctx, issue.ID, mentions); err != nil {
+	rawMentions := references.FindAllMentionsMarkdown(issue.Content)
+	userMentions, err := issue.ResolveMentionsByVisibility(ctx, doer, rawMentions)
+	if err != nil {
+		return fmt.Errorf("ResolveMentionsByVisibility [%d]: %v", issue.ID, err)
+	}
+	if err = models.UpdateIssueMentions(ctx, issue.ID, userMentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
+	}
+	mentions := make([]string, len(userMentions))
+	for i, u := range userMentions {
+		mentions[i] = u.LowerName
 	}
 
 	if len(issue.Content) > 0 {

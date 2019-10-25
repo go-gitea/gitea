@@ -5,21 +5,30 @@
 package migrations
 
 import (
-	"github.com/go-xorm/xorm"
+	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
+
+	"xorm.io/xorm"
 )
 
-func addTeamIncludesAllRepositories(x *xorm.Engine) error {
-
-	type Team struct {
-		ID                      int64 `xorm:"pk autoincr"`
-		IncludesAllRepositories bool  `xorm:"NOT NULL DEFAULT false"`
+func addTaskTable(x *xorm.Engine) error {
+	type Task struct {
+		ID             int64
+		DoerID         int64 `xorm:"index"` // operator
+		OwnerID        int64 `xorm:"index"` // repo owner id, when creating, the repoID maybe zero
+		RepoID         int64 `xorm:"index"`
+		Type           structs.TaskType
+		Status         structs.TaskStatus `xorm:"index"`
+		StartTime      timeutil.TimeStamp
+		EndTime        timeutil.TimeStamp
+		PayloadContent string             `xorm:"TEXT"`
+		Errors         string             `xorm:"TEXT"` // if task failed, saved the error reason
+		Created        timeutil.TimeStamp `xorm:"created"`
 	}
 
-	if err := x.Sync2(new(Team)); err != nil {
-		return err
+	type Repository struct {
+		Status int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	_, err := x.Exec("UPDATE `team` SET `includes_all_repositories` = ? WHERE `name`=?",
-		true, "Owners")
-	return err
+	return x.Sync2(new(Task), new(Repository))
 }
