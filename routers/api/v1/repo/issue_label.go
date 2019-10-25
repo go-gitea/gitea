@@ -117,7 +117,7 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		return
 	}
 
-	if err = issue.AddLabels(ctx.User, labels); err != nil {
+	if err = issue_service.AddLabels(issue, ctx.User, labels); err != nil {
 		ctx.Error(500, "AddLabels", err)
 		return
 	}

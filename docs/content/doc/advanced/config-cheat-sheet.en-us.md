@@ -138,6 +138,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**:
    Overwrite the automatically generated public URL.
    This is useful if the internal and the external URL don't match (e.g. in Docker).
+- `STATIC_URL_PREFIX`: **\<empty\>**:
+   Overwrite this option to request static resources from a different URL.
+   This includes CSS files, images, JS files and web fonts.
+   Avatar images are dynamic resources and still served by gitea.
+   The option can be just a different path, as in `/static`, or another domain, as in `https://cdn.example.com`.
+   Requests are then made as `%(ROOT_URL)s/static/css/index.css` and `https://cdn.example.com/css/index.css` respective.
+   The static files are located in the `public/` directory of the gitea source repository.
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
@@ -192,8 +199,12 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LOG_SQL`: **true**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
 - `DB_RETRY_BACKOFF`: **3s**: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
-- `MAX_IDLE_CONNS` **0**: Max idle database connections on connnection pool, default is 0
-- `CONN_MAX_LIFETIME` **3s**: Database connection max lifetime
+- `MAX_OPEN_CONNS` **0**: Database maximum open connections - default is 0, meaning there is no limit.
+- `MAX_IDLE_CONNS` **2**: Max idle database connections on connnection pool, default is 2 - this will be capped to `MAX_OPEN_CONNS`.
+- `CONN_MAX_LIFETIME` **0 or 3s**: Sets the maximum amount of time a DB connection may be reused - default is 0, meaning there is no limit (except on MySQL where it is 3s - see #6804 & #7071).
+  
+Please see #8540 & #8273 for further discussion of the appropriate values for `MAX_OPEN_CONNS`, `MAX_IDLE_CONNS` & `CONN_MAX_LIFETIME` and their
+relation to port exhaustion.
 
 ## Indexer (`indexer`)
 
@@ -265,6 +276,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
 - `ENABLE_NOTIFY_MAIL`: **false**: Enable this to send e-mail to watchers of a repository when
    something happens, like creating issues. Requires `Mailer` to be enabled.
+- `ENABLE_BASIC_AUTHENTICATION`: **true**: Disable this to disallow authenticaton using HTTP
+   BASIC and the user's password. Please note if you disable this you will not be able to access the
+   tokens API endpoints using a password. Further, this only disables BASIC authentication using the
+   password - not tokens or OAuth Basic.
 - `ENABLE_REVERSE_PROXY_AUTHENTICATION`: **false**: Enable this to allow reverse proxy authentication.
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration
    for reverse authentication.

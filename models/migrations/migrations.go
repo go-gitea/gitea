@@ -21,10 +21,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
+	"xorm.io/xorm"
 )
 
 const minDBVersion = 4
@@ -256,6 +256,14 @@ var migrations = []Migration{
 	NewMigration("add task table and status column for repository table", addTaskTable),
 	// v100 -> v101
 	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
+	// v101 -> v102
+	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
+	// v102 -> v103
+	NewMigration("update migration repositories' service type", dropColumnHeadUserNameOnPullRequest),
+	// v103 -> v104
+	NewMigration("Add WhitelistDeployKeys to protected branch", addWhitelistDeployKeysToBranches),
+	// v104 -> v105
+	NewMigration("remove unnecessary columns from label", removeLabelUneededCols),
 }
 
 // Migrate database to current version

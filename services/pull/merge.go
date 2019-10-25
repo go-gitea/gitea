@@ -71,7 +71,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		}
 	}()
 
-	headRepoPath := models.RepoPath(pr.HeadUserName, pr.HeadRepo.Name)
+	headRepoPath := pr.HeadRepo.RepoPath()
 
 	if err := git.InitRepository(tmpBasePath, false); err != nil {
 		return fmt.Errorf("git init: %v", err)
@@ -306,14 +306,17 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		}
 	}
 
-	headUser, err := models.GetUserByName(pr.HeadUserName)
+	var headUser *models.User
+	err = pr.HeadRepo.GetOwner()
 	if err != nil {
 		if !models.IsErrUserNotExist(err) {
-			log.Error("Can't find user: %s for head repository - %v", pr.HeadUserName, err)
+			log.Error("Can't find user: %d for head repository - %v", pr.HeadRepo.OwnerID, err)
 			return err
 		}
-		log.Error("Can't find user: %s for head repository - defaulting to doer: %s - %v", pr.HeadUserName, doer.Name, err)
+		log.Error("Can't find user: %d for head repository - defaulting to doer: %s - %v", pr.HeadRepo.OwnerID, doer.Name, err)
 		headUser = doer
+	} else {
+		headUser = pr.HeadRepo.Owner
 	}
 
 	env = models.FullPushingEnvironment(

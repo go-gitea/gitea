@@ -162,14 +162,14 @@ func UpdateIssueLabel(ctx *context.Context) {
 
 		if action == "attach" {
 			for _, issue := range issues {
-				if err = issue.AddLabel(ctx.User, label); err != nil {
+				if err = issue_service.AddLabel(issue, ctx.User, label); err != nil {
 					ctx.ServerError("AddLabel", err)
 					return
 				}
 			}
 		} else {
 			for _, issue := range issues {
-				if err = issue.RemoveLabel(ctx.User, label); err != nil {
+				if err = issue_service.RemoveLabel(issue, ctx.User, label); err != nil {
 					ctx.ServerError("RemoveLabel", err)
 					return
 				}

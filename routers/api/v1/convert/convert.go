@@ -228,6 +228,8 @@ func ToUser(user *models.User, signed, authed bool) *api.User {
 		apiUser.Email = ""
 	} else if authed {
 		apiUser.Email = user.Email
+	} else if user.KeepEmailPrivate {
+		apiUser.Email = user.GetEmail()
 	}
 	return apiUser
 }
@@ -239,6 +241,8 @@ func ToUserDetails(user *models.User, signed, authed bool) *api.UserDetails {
 		apiUserDetails.Email = ""
 	} else if authed {
 		apiUserDetails.Email = user.Email
+	} else if user.KeepEmailPrivate {
+		apiUserDetails.Email = user.GetEmail()
 	}
 	return apiUserDetails
 }
