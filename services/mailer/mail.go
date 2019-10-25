@@ -28,8 +28,9 @@ const (
 	mailAuthResetPassword  base.TplName = "auth/reset_passwd"
 	mailAuthRegisterNotify base.TplName = "auth/register_notify"
 
-	mailIssueComment base.TplName = "issue/comment"
-	mailIssueMention base.TplName = "issue/mention"
+	mailIssueComment  base.TplName = "issue/comment"
+	mailIssueMention  base.TplName = "issue/mention"
+	mailIssueAssigned base.TplName = "issue/assigned"
 
 	mailNotifyCollaborator base.TplName = "notify/collaborator"
 )
@@ -183,6 +184,7 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, content 
 		data = composeTplData(subject, body, issue.HTMLURL())
 	}
 	data["Doer"] = doer
+	data["Issue"] = issue
 
 	var mailBody bytes.Buffer
 
@@ -219,4 +221,9 @@ func SendIssueMentionMail(issue *models.Issue, doer *models.User, content string
 		return
 	}
 	SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueMention, tos, "issue mention"))
+}
+
+// SendIssueAssignedMail composes and sends issue assigned email
+func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
+	SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueAssigned, tos, "issue assigned"))
 }
