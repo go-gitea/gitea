@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
@@ -226,6 +227,7 @@ func runWeb(ctx *cli.Context) error {
 		log.Critical("Failed to start server: %v", err)
 	}
 	log.Info("HTTP Listener: %s Closed", listenAddr)
+	graceful.WaitForServers()
 	log.Close()
 	return nil
 }

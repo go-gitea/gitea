@@ -273,7 +273,7 @@ func ExploreOrganizations(ctx *context.Context) {
 // ExploreCode render explore code page
 func ExploreCode(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled {
-		ctx.Redirect("/explore", 302)
+		ctx.Redirect(setting.AppSubURL+"/explore", 302)
 		return
 	}
 
