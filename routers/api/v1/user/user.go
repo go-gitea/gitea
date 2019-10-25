@@ -104,7 +104,7 @@ func GetInfo(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.ID == u.ID || ctx.User.IsAdmin))
+	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User != nil && (ctx.User.ID == u.ID || ctx.User.IsAdmin)))
 }
 
 // GetAuthenticatedUser get current user's information

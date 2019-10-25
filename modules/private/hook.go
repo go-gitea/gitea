@@ -31,11 +31,12 @@ type HookOptions struct {
 	GitAlternativeObjectDirectories string
 	GitQuarantinePath               string
 	ProtectedBranchID               int64
+	IsDeployKey                     bool
 }
 
 // HookPreReceive check whether the provided commits are allowed
 func HookPreReceive(ownerName, repoName string, opts HookOptions) (int, string) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s?old=%s&new=%s&ref=%s&userID=%d&gitObjectDirectory=%s&gitAlternativeObjectDirectories=%s&gitQuarantinePath=%s&prID=%d",
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s?old=%s&new=%s&ref=%s&userID=%d&gitObjectDirectory=%s&gitAlternativeObjectDirectories=%s&gitQuarantinePath=%s&prID=%d&isDeployKey=%t",
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
 		url.QueryEscape(opts.OldCommitID),
@@ -46,6 +47,7 @@ func HookPreReceive(ownerName, repoName string, opts HookOptions) (int, string) 
 		url.QueryEscape(opts.GitAlternativeObjectDirectories),
 		url.QueryEscape(opts.GitQuarantinePath),
 		opts.ProtectedBranchID,
+		opts.IsDeployKey,
 	)
 
 	resp, err := newInternalRequest(reqURL, "GET").Response()

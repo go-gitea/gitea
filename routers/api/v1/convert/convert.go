@@ -237,12 +237,9 @@ func ToTeam(team *models.Team) *api.Team {
 // ToUser convert models.User to api.User
 func ToUser(user *models.User, signed, authed bool) *api.User {
 	result := &api.User{
-		ID:        user.ID,
 		UserName:  user.Name,
 		AvatarURL: user.AvatarLink(),
 		FullName:  markup.Sanitize(user.FullName),
-		IsAdmin:   user.IsAdmin,
-		LastLogin: user.LastLoginUnix.AsTime(),
 		Created:   user.CreatedUnix.AsTime(),
 	}
 	// hide primary email if API caller isn't user itself or an admin
@@ -250,8 +247,11 @@ func ToUser(user *models.User, signed, authed bool) *api.User {
 		result.Email = ""
 	} else if user.KeepEmailPrivate && !authed {
 		result.Email = user.GetEmail()
-	} else {
+	} else { // only user himself and admin could visit these information
+		result.ID = user.ID
 		result.Email = user.Email
+		result.IsAdmin = user.IsAdmin
+		result.LastLogin = user.LastLoginUnix.AsTime()
 	}
 	return result
 }
