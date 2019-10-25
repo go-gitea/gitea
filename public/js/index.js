@@ -3283,6 +3283,8 @@ function initIssueList() {
     $(".menu a.label-filter-item").each(function() {
         $(this).click(function(e) {
             if (e.altKey) {
+                e.preventDefault();
+
                 const href = $(this).attr("href");
                 const id = $(this).data("label-id");
 
