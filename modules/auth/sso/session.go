@@ -7,6 +7,11 @@ import (
 	"gitea.com/macaron/session"
 )
 
+// Ensure the struct implements the interface.
+var (
+	_ SingleSignOn = &Basic{}
+)
+
 // Session checks if there is a user uid stored in the session and returns the user
 // object for that uid.
 type Session struct {

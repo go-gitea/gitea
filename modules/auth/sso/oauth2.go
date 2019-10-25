@@ -12,6 +12,11 @@ import (
 	"gitea.com/macaron/session"
 )
 
+// Ensure the struct implements the interface.
+var (
+	_ SingleSignOn = &Basic{}
+)
+
 // CheckOAuthAccessToken returns uid of user from oauth token
 func CheckOAuthAccessToken(accessToken string) int64 {
 	// JWT tokens require a "."

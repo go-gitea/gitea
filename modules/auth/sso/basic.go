@@ -13,6 +13,11 @@ import (
 	"gitea.com/macaron/session"
 )
 
+// Ensure the struct implements the interface.
+var (
+	_ SingleSignOn = &Basic{}
+)
+
 // Basic implements the SingleSignOn interface and authenticates requests (API requests
 // only) by looking for Basic authentication data or "x-oauth-basic" token in the "Authorization"
 // header.
