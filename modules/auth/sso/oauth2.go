@@ -14,7 +14,7 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ SingleSignOn = &Basic{}
+	_ SingleSignOn = &OAuth2{}
 )
 
 // CheckOAuthAccessToken returns uid of user from oauth token

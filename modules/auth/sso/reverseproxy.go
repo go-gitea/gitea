@@ -14,7 +14,7 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ SingleSignOn = &Basic{}
+	_ SingleSignOn = &ReverseProxy{}
 )
 
 // ReverseProxy implements the SingleSignOn interface, but actually relies on
