@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"regexp"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
@@ -378,10 +379,23 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	getDiffTreeFromBranch := func(repoPath, baseBranch, headBranch string) (string, error) {
 		var outbuf, errbuf strings.Builder
 		// Compute the diff-tree for sparse-checkout
-		if err := git.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "--root", baseBranch, headBranch, "--").RunInDirPipeline(repoPath, &outbuf, &errbuf); err != nil {
+		if err := git.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-z", "--root", baseBranch, headBranch, "--").RunInDirPipeline(repoPath, &outbuf, &errbuf); err != nil {
 			return "", fmt.Errorf("git diff-tree [%s base:%s head:%s]: %s", repoPath, baseBranch, headBranch, errbuf.String())
 		}
 		return outbuf.String(), nil
+	}
+
+	scanNullTerminatedStrings := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		if atEOF && len(data) == 0 {
+			return 0, nil, nil
+		}
+		if i := bytes.IndexByte(data, '\x00'); i >= 0 {
+			return i + 1, data[0:i], nil
+		}
+		if atEOF {
+			return len(data), data, nil
+		}
+		return 0, nil, nil
 	}
 
 	list, err := getDiffTreeFromBranch(repoPath, baseBranch, headBranch)
@@ -390,15 +404,30 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	}
 
 	// Prefixing '/' for each entry, otherwise all files with the same name in subdirectories would be matched.
+	rightTrailingSpacesRE := regexp.MustCompile(`\ +$`)
+	optionalNPrefixRE := regexp.MustCompile(`(?:^|/)(!.+?)$`)
+
 	out := bytes.Buffer{}
 	scanner := bufio.NewScanner(strings.NewReader(list))
+	scanner.Split(scanNullTerminatedStrings)
 	for scanner.Scan() {
 		filepath := scanner.Text()
-		if strings.HasPrefix(filepath, `"`) { // the filepath contains " or \.
-			filepath = strings.TrimPrefix(filepath, `"`)
-			filepath = strings.TrimSuffix(filepath, `"`)
-		}
+
+		// Trailing spaces
+		filepath = rightTrailingSpacesRE.ReplaceAllStringFunc(filepath, func(s string) string {
+			return strings.Repeat(`\ `, len(s))
+		})
+
+		// An optional prefix !
+		filepath = optionalNPrefixRE.ReplaceAllString(filepath, `/\$1`)
+
+		// * ? [
+		filepath = strings.Replace(filepath, "*", `\*`, -1)
+		filepath = strings.Replace(filepath, "?", `\?`, -1)
+		filepath = strings.Replace(filepath, "[", `\[`, -1)
+
 		fmt.Fprintf(&out, "/%s\n", filepath)
 	}
+
 	return out.String(), nil
 }
