@@ -50,12 +50,8 @@
                 <div class="milestone list">
                     {{range .Milestones}}
                         <li class="item">
-                            <div class="ui label">
-                                {{if not $.RepoID}}
-                                    {{ with (index $.RepoMap .RepoID) }}{{ .FullName }}{{ end }}
-                                {{end}}
-                            </div>
-                            <i class="octicon octicon-milestone"></i> <a href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
+                            <div class="ui label">{{if not $.RepoID}}{{.Repo.FullName}}{{end}}</div>
+                            <i class="octicon octicon-milestone"></i> <a href="{{.Repo.Link }}/milestone/{{.ID}}">{{.Name}}</a>
                             <div class="ui right green progress" data-percent="{{.Completeness}}">
                                 <div class="bar" {{if not .Completeness}}style="background-color: transparent"{{end}}>
                                     <div class="progress"></div>

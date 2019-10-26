@@ -232,16 +232,6 @@ func Milestones(ctx *context.Context) {
 		}
 		showReposMap[repoID] = repo
 	}
-	//TODO yes have to do this...
-	//if ctx.Repo.Repository.IsTimetrackerEnabled() {
-	//	if err := miles.LoadTotalTrackedTimes(); err != nil {
-	//		ctx.ServerError("LoadTotalTrackedTimes", err)
-	//		return
-	//	}
-	//}
-	for _, m := range milestones {
-		m.RenderedContent = string(markdown.Render([]byte(m.Content), showReposMap[m.RepoID].Link(), showReposMap[m.RepoID].ComposeMetas()))
-	}
 
 	if repoID > 0 {
 		if _, ok := showReposMap[repoID]; !ok {
@@ -285,10 +275,23 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	//TODO in the issues code, it would do something like this to assign the repo to the issue object,
-	//but the milestone object does not have a repo reference...is this a problem?
-	//for _, issue := range issues {
-	//	issue.Repo = showReposMap[issue.RepoID]
+	//TODO yes have to do this...
+	//if ctx.Repo.Repository.IsTimetrackerEnabled() {
+	//	if err := miles.LoadTotalTrackedTimes(); err != nil {
+	//		ctx.ServerError("LoadTotalTrackedTimes", err)
+	//		return
+	//	}
+	//}
+	//for _, m := range milestones {
+	//	m.RenderedContent = string(markdown.Render([]byte(m.Content), showReposMap[m.RepoID].Link(), showReposMap[m.RepoID].ComposeMetas()))
+	//}
+	for _, m := range milestones {
+		m.Repo = showReposMap[m.RepoID]
+		m.RenderedContent = string(markdown.Render([]byte(m.Content), m.Repo.Link(), m.Repo.ComposeMetas()))
+		if m.Repo.IsTimetrackerEnabled() {
+			m.LoadTotalTrackedTime()
+		}
+	}
 
 	milestoneStats, err := models.GetUserMilestoneStats(ctxUser.ID, repoID, userRepoIDs)
 	if err != nil {
@@ -305,7 +308,6 @@ func Milestones(ctx *context.Context) {
 
 	ctx.Data["Milestones"] = milestones
 	ctx.Data["Repos"] = showRepos
-	ctx.Data["RepoMap"] = showReposMap
 	ctx.Data["Counts"] = counts
 	ctx.Data["MilestoneStats"] = milestoneStats
 	ctx.Data["ViewType"] = viewType
@@ -320,7 +322,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
-	//TODO what are these for???
+	//TODO do I need all these?
 	pager.AddParam(ctx, "type", "ViewType")
 	pager.AddParam(ctx, "repo", "RepoID")
 	pager.AddParam(ctx, "sort", "SortType")

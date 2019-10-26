@@ -17,8 +17,9 @@ import (
 
 // Milestone represents a milestone of repository.
 type Milestone struct {
-	ID              int64 `xorm:"pk autoincr"`
-	RepoID          int64 `xorm:"INDEX"`
+	ID              int64       `xorm:"pk autoincr"`
+	RepoID          int64       `xorm:"INDEX"`
+	Repo            *Repository `xorm:"-"`
 	Name            string
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
@@ -177,9 +178,57 @@ func (milestones MilestoneList) loadTotalTrackedTimes(e Engine) error {
 	return nil
 }
 
+func (m *Milestone) loadTotalTrackedTime(e Engine) error {
+	type totalTimesByMilestone struct {
+		MilestoneID int64
+		Time        int64
+	}
+
+	//TODO don't do it this way, instead just select out one row (?)
+	totalTime, err := e.Table("issue").
+		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
+		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
+		Select("milestone_id, sum(time) as time").
+		Where("milestone_id = ?", m.ID).
+		GroupBy("milestone_id").
+		Find(new(totalTimesByMilestone))
+	if err != nil {
+		return err
+	}
+	m.TotalTrackedTime = totalTime.Time
+	//TODO don't do it this way, instead just select out one row (?)
+	//rows, err := e.Table("issue").
+	//	Join("INNER", "milestone", "issue.milestone_id = milestone.id").
+	//	Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
+	//	Select("milestone_id, sum(time) as time").
+	//	Where("milestone_id = ?", m.ID).
+	//	GroupBy("milestone_id").
+	//	Rows(new(totalTimesByMilestone))
+	//if err != nil {
+	//	return err
+	//}
+
+	//defer rows.Close()
+
+	//if rows.Next() {
+	//	var totalTime totalTimesByMilestone
+	//	err = rows.Scan(&totalTime)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	m.TotalTrackedTime = totalTime.Time
+	//}
+	return nil
+}
+
 // LoadTotalTrackedTimes loads for every milestone in the list the TotalTrackedTime by a batch request
 func (milestones MilestoneList) LoadTotalTrackedTimes() error {
 	return milestones.loadTotalTrackedTimes(x)
+}
+
+// LoadTotalTrackedTime loads the tracked time for the milestone
+func (m *Milestone) LoadTotalTrackedTime() error {
+	return m.loadTotalTrackedTime(x)
 }
 
 func (milestones MilestoneList) getMilestoneIDs() []int64 {
