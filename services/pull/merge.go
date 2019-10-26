@@ -419,13 +419,13 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 		})
 
 		// An optional prefix !
-		filepath = optionalNPrefixRE.ReplaceAllString(filepath, `/\$1`)
+		filepath = optionalNPrefixRE.ReplaceAllString(filepath, `\$1`)
 
 		// * ? [
 		filepath = strings.Replace(filepath, "*", `\*`, -1)
 		filepath = strings.Replace(filepath, "?", `\?`, -1)
 		filepath = strings.Replace(filepath, "[", `\[`, -1)
-
+fmt.Printf("%s\n", filepath)
 		fmt.Fprintf(&out, "/%s\n", filepath)
 	}
 
