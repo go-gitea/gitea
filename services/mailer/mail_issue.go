@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/unknwon/com"
 )
@@ -24,9 +23,6 @@ func mailSubject(issue *models.Issue) string {
 // 1. Repository watchers and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
 func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, content string, comment *models.Comment, mentions []string) error {
-	if !setting.Service.EnableNotifyMail {
-		return nil
-	}
 
 	watchers, err := models.GetWatchers(issue.RepoID)
 	if err != nil {
