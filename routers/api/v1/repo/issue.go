@@ -56,12 +56,6 @@ func SearchIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
-
-	if !setting.Service.AllowCrossRepositoryDependencies {
-		ctx.Error(400, "CrossRepositoryDependenciesNotEnabled", "cross repository dependencies are not enabled")
-		return
-	}
-
 	var isClosed util.OptionalBool
 	switch ctx.Query("state") {
 	case "closed":

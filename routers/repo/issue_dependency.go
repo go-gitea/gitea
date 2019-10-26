@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // AddDependency adds new dependencies
@@ -36,6 +37,12 @@ func AddDependency(ctx *context.Context) {
 	dep, err := models.GetIssueByID(depID)
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_issue_not_exist"))
+		return
+	}
+
+	// Check if both issues are in the same repo if cross repository dependencies is not enabled
+	if issue.RepoID != dep.RepoID && !setting.Service.AllowCrossRepositoryDependencies {
+		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_same_repo"))
 		return
 	}
 
