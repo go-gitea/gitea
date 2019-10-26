@@ -833,6 +833,8 @@ func (t *HookTask) deliver() error {
 
 				return err
 			}
+
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
 	case http.MethodGet:
 		u, err := url.Parse(t.URL)

@@ -435,52 +435,6 @@ func (issue *Issue) HasLabel(labelID int64) bool {
 	return issue.hasLabel(x, labelID)
 }
 
-func (issue *Issue) sendLabelUpdatedWebhook(doer *User) {
-	var err error
-
-	if err = issue.loadRepo(x); err != nil {
-		log.Error("loadRepo: %v", err)
-		return
-	}
-
-	if err = issue.loadPoster(x); err != nil {
-		log.Error("loadPoster: %v", err)
-		return
-	}
-
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if issue.IsPull {
-		if err = issue.loadPullRequest(x); err != nil {
-			log.Error("loadPullRequest: %v", err)
-			return
-		}
-		if err = issue.PullRequest.LoadIssue(); err != nil {
-			log.Error("LoadIssue: %v", err)
-			return
-		}
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-			Action:      api.HookIssueLabelUpdated,
-			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(AccessModeNone),
-			Sender:      doer.APIFormat(),
-		})
-	} else {
-		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
-			Action:     api.HookIssueLabelUpdated,
-			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     doer.APIFormat(),
-		})
-	}
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
-	}
-}
-
 // ReplyReference returns tokenized address to use for email reply headers
 func (issue *Issue) ReplyReference() string {
 	var path string
@@ -497,28 +451,8 @@ func (issue *Issue) addLabel(e *xorm.Session, label *Label, doer *User) error {
 	return newIssueLabel(e, issue, label, doer)
 }
 
-// AddLabel adds a new label to the issue.
-func (issue *Issue) AddLabel(doer *User, label *Label) error {
-	if err := NewIssueLabel(issue, label, doer); err != nil {
-		return err
-	}
-
-	issue.sendLabelUpdatedWebhook(doer)
-	return nil
-}
-
 func (issue *Issue) addLabels(e *xorm.Session, labels []*Label, doer *User) error {
 	return newIssueLabels(e, issue, labels, doer)
-}
-
-// AddLabels adds a list of new labels to the issue.
-func (issue *Issue) AddLabels(doer *User, labels []*Label) error {
-	if err := NewIssueLabels(issue, labels, doer); err != nil {
-		return err
-	}
-
-	issue.sendLabelUpdatedWebhook(doer)
-	return nil
 }
 
 func (issue *Issue) getLabels(e Engine) (err error) {
@@ -535,28 +469,6 @@ func (issue *Issue) getLabels(e Engine) (err error) {
 
 func (issue *Issue) removeLabel(e *xorm.Session, doer *User, label *Label) error {
 	return deleteIssueLabel(e, issue, label, doer)
-}
-
-// RemoveLabel removes a label from issue by given ID.
-func (issue *Issue) RemoveLabel(doer *User, label *Label) error {
-	if err := issue.loadRepo(x); err != nil {
-		return err
-	}
-
-	perm, err := GetUserRepoPermission(issue.Repo, doer)
-	if err != nil {
-		return err
-	}
-	if !perm.CanWriteIssuesOrPulls(issue.IsPull) {
-		return ErrLabelNotExist{}
-	}
-
-	if err := DeleteIssueLabel(issue, label, doer); err != nil {
-		return err
-	}
-
-	issue.sendLabelUpdatedWebhook(doer)
-	return nil
 }
 
 func (issue *Issue) clearLabels(e *xorm.Session, doer *User) (err error) {
@@ -991,7 +903,6 @@ type NewIssueOptions struct {
 	Repo        *Repository
 	Issue       *Issue
 	LabelIDs    []int64
-	AssigneeIDs []int64
 	Attachments []string // In UUID format.
 	IsPull      bool
 }
@@ -1013,40 +924,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	// Keep the old assignee id thingy for compatibility reasons
-	if opts.Issue.AssigneeID > 0 {
-		isAdded := false
-		// Check if the user has already been passed to issue.AssigneeIDs, if not, add it
-		for _, aID := range opts.AssigneeIDs {
-			if aID == opts.Issue.AssigneeID {
-				isAdded = true
-				break
-			}
-		}
-
-		if !isAdded {
-			opts.AssigneeIDs = append(opts.AssigneeIDs, opts.Issue.AssigneeID)
-		}
-	}
-
-	// Check for and validate assignees
-	if len(opts.AssigneeIDs) > 0 {
-		for _, assigneeID := range opts.AssigneeIDs {
-			user, err := getUserByID(e, assigneeID)
-			if err != nil {
-				return fmt.Errorf("getUserByID [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
-			}
-			valid, err := canBeAssigned(e, user, opts.Repo)
-			if err != nil {
-				return fmt.Errorf("canBeAssigned [user_id: %d, repo_id: %d]: %v", assigneeID, opts.Repo.ID, err)
-			}
-			if !valid {
-				return ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: opts.Repo.Name}
-			}
-		}
-	}
-
-	// Milestone and assignee validation should happen before insert actual object.
+	// Milestone validation should happen before insert actual object.
 	if _, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
 		Where("repo_id=?", opts.Issue.RepoID).
 		Insert(opts.Issue); err != nil {
@@ -1065,12 +943,8 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		if _, err = e.Exec("UPDATE `milestone` SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
 			return err
 		}
-	}
 
-	// Insert the assignees
-	for _, assigneeID := range opts.AssigneeIDs {
-		err = opts.Issue.changeAssignee(e, doer, assigneeID, true)
-		if err != nil {
+		if _, err = createMilestoneComment(e, doer, opts.Repo, opts.Issue, 0, opts.Issue.MilestoneID); err != nil {
 			return err
 		}
 	}
@@ -1132,11 +1006,11 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 }
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
+func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
 	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
 	i := 0
 	for {
-		if err = newIssueAttempt(repo, issue, labelIDs, assigneeIDs, uuids); err == nil {
+		if err = newIssueAttempt(repo, issue, labelIDs, uuids); err == nil {
 			return nil
 		}
 		if !IsErrNewIssueInsert(err) {
@@ -1150,7 +1024,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []in
 	return fmt.Errorf("NewIssue: too many errors attempting to insert the new issue. Last error was: %v", err)
 }
 
-func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, assigneeIDs []int64, uuids []string) (err error) {
+func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -1162,7 +1036,6 @@ func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, assigneeI
 		Issue:       issue,
 		LabelIDs:    labelIDs,
 		Attachments: uuids,
-		AssigneeIDs: assigneeIDs,
 	}); err != nil {
 		if IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 			return err
@@ -1347,8 +1220,12 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 
 	if opts.LabelIDs != nil {
 		for i, labelID := range opts.LabelIDs {
-			sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
-				fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+			if labelID > 0 {
+				sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
+					fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+			} else {
+				sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
+			}
 		}
 	}
 }

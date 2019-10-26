@@ -224,6 +224,9 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 			}
 
 			if u == nil {
+				if !setting.Service.EnableBasicAuth {
+					return nil, false
+				}
 				u, err = models.UserSignIn(uname, passwd)
 				if err != nil {
 					if !models.IsErrUserNotExist(err) {

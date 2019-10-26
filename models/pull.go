@@ -686,11 +686,11 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 }
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte, assigneeIDs []int64) (err error) {
+func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte) (err error) {
 	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
 	i := 0
 	for {
-		if err = newPullRequestAttempt(repo, pull, labelIDs, uuids, pr, patch, assigneeIDs); err == nil {
+		if err = newPullRequestAttempt(repo, pull, labelIDs, uuids, pr, patch); err == nil {
 			return nil
 		}
 		if !IsErrNewIssueInsert(err) {
@@ -704,7 +704,7 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	return fmt.Errorf("NewPullRequest: too many errors attempting to insert the new issue. Last error was: %v", err)
 }
 
-func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte, assigneeIDs []int64) (err error) {
+func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -717,7 +717,6 @@ func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuid
 		LabelIDs:    labelIDs,
 		Attachments: uuids,
 		IsPull:      true,
-		AssigneeIDs: assigneeIDs,
 	}); err != nil {
 		if IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 			return err
