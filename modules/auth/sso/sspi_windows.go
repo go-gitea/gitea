@@ -2,6 +2,8 @@ package sso
 
 import (
 	"errors"
+	"fmt"
+	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -11,6 +13,7 @@ import (
 
 	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
+
 	"github.com/quasoft/websspi"
 	gouuid "github.com/satori/go.uuid"
 )
@@ -170,6 +173,93 @@ func (s *SSPI) newUser(ctx *macaron.Context, username string, cfg *models.SSPICo
 		return nil
 	}
 	return user
+}
+
+// isPublicResource checks if the url is of a public resource file that should be served
+// without authentication (eg. the Web App Manifest, the Service Worker script or the favicon)
+func isPublicResource(ctx *macaron.Context) bool {
+	path := strings.TrimSuffix(ctx.Req.URL.Path, "/")
+	return path == "/robots.txt" ||
+		path == "/favicon.ico" ||
+		path == "/favicon.png" ||
+		path == "/manifest.json" ||
+		path == "/serviceworker.js"
+}
+
+// isPublicPage checks if the url is of a public page that should not require authentication
+func isPublicPage(ctx *macaron.Context) bool {
+	path := strings.TrimSuffix(ctx.Req.URL.Path, "/")
+	homePage := strings.TrimSuffix(setting.AppSubURL, "/")
+	currentURL := homePage + path
+	return currentURL == homePage ||
+		path == "/user/login" ||
+		path == "/user/login/openid" ||
+		path == "/user/sign_up" ||
+		path == "/user/forgot_password" ||
+		path == "/user/openid/connect" ||
+		path == "/user/openid/register" ||
+		strings.HasPrefix(path, "/user/oauth2") ||
+		path == "/user/link_account" ||
+		path == "/user/link_account_signin" ||
+		path == "/user/link_account_signup" ||
+		path == "/user/two_factor" ||
+		path == "/user/two_factor/scratch" ||
+		path == "/user/u2f" ||
+		path == "/user/u2f/challenge" ||
+		path == "/user/u2f/sign" ||
+		(!setting.Service.RequireSignInView && (path == "/explore/repos" ||
+			path == "/explore/users" ||
+			path == "/explore/organizations" ||
+			path == "/explore/code"))
+}
+
+// handleSignIn clears existing session variables and stores new ones for the specified user object
+func handleSignIn(ctx *macaron.Context, sess session.Store, user *models.User) {
+	_ = sess.Delete("openid_verified_uri")
+	_ = sess.Delete("openid_signin_remember")
+	_ = sess.Delete("openid_determined_email")
+	_ = sess.Delete("openid_determined_username")
+	_ = sess.Delete("twofaUid")
+	_ = sess.Delete("twofaRemember")
+	_ = sess.Delete("u2fChallenge")
+	_ = sess.Delete("linkAccount")
+	err := sess.Set("uid", user.ID)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
+	err = sess.Set("uname", user.Name)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error setting session: %v", err))
+	}
+
+	// Language setting of the user overwrites the one previously set
+	// If the user does not have a locale set, we save the current one.
+	if len(user.Language) == 0 {
+		user.Language = ctx.Locale.Language()
+		if err := models.UpdateUserCols(user, "language"); err != nil {
+			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", user.ID, user.Language))
+			return
+		}
+	}
+
+	ctx.SetCookie("lang", user.Language, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+
+	// Clear whatever CSRF has right now, force to generate a new one
+	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+}
+
+// addFlashErr adds an error message to the Flash object mapped to a macaron.Context
+func addFlashErr(ctx *macaron.Context, err string) {
+	fv := ctx.GetVal(reflect.TypeOf(&session.Flash{}))
+	if !fv.IsValid() {
+		return
+	}
+	flash, ok := fv.Interface().(*session.Flash)
+	if !ok {
+		return
+	}
+	flash.Error(err)
+	ctx.Data["Flash"] = flash
 }
 
 // init registers the plugin to the list of available SSO methods
