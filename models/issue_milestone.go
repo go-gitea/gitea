@@ -183,41 +183,20 @@ func (m *Milestone) loadTotalTrackedTime(e Engine) error {
 		MilestoneID int64
 		Time        int64
 	}
-
-	//TODO don't do it this way, instead just select out one row (?)
-	totalTime, err := e.Table("issue").
+	totalTime := &totalTimesByMilestone{MilestoneID: m.ID}
+	has, err := e.Table("issue").
 		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
 		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
 		Select("milestone_id, sum(time) as time").
 		Where("milestone_id = ?", m.ID).
 		GroupBy("milestone_id").
-		Find(new(totalTimesByMilestone))
+		Get(totalTime)
 	if err != nil {
 		return err
+	} else if !has {
+		return nil
 	}
 	m.TotalTrackedTime = totalTime.Time
-	//TODO don't do it this way, instead just select out one row (?)
-	//rows, err := e.Table("issue").
-	//	Join("INNER", "milestone", "issue.milestone_id = milestone.id").
-	//	Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
-	//	Select("milestone_id, sum(time) as time").
-	//	Where("milestone_id = ?", m.ID).
-	//	GroupBy("milestone_id").
-	//	Rows(new(totalTimesByMilestone))
-	//if err != nil {
-	//	return err
-	//}
-
-	//defer rows.Close()
-
-	//if rows.Next() {
-	//	var totalTime totalTimesByMilestone
-	//	err = rows.Scan(&totalTime)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	m.TotalTrackedTime = totalTime.Time
-	//}
 	return nil
 }
 

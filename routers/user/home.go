@@ -275,16 +275,6 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	//TODO yes have to do this...
-	//if ctx.Repo.Repository.IsTimetrackerEnabled() {
-	//	if err := miles.LoadTotalTrackedTimes(); err != nil {
-	//		ctx.ServerError("LoadTotalTrackedTimes", err)
-	//		return
-	//	}
-	//}
-	//for _, m := range milestones {
-	//	m.RenderedContent = string(markdown.Render([]byte(m.Content), showReposMap[m.RepoID].Link(), showReposMap[m.RepoID].ComposeMetas()))
-	//}
 	for _, m := range milestones {
 		m.Repo = showReposMap[m.RepoID]
 		m.RenderedContent = string(markdown.Render([]byte(m.Content), m.Repo.Link(), m.Repo.ComposeMetas()))
