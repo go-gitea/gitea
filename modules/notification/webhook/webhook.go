@@ -65,3 +65,67 @@ func (m *webhookNotifier) NotifyIssueClearLabels(doer *models.User, issue *model
 		go models.HookQueue.Add(issue.RepoID)
 	}
 }
+
+func (m *webhookNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
+	oldMode, _ := models.AccessLevel(doer, oldRepo)
+	mode, _ := models.AccessLevel(doer, repo)
+
+	// forked webhook
+	if err := models.PrepareWebhooks(oldRepo, models.HookEventFork, &api.ForkPayload{
+		Forkee: oldRepo.APIFormat(oldMode),
+		Repo:   repo.APIFormat(mode),
+		Sender: doer.APIFormat(),
+	}); err != nil {
+		log.Error("PrepareWebhooks [repo_id: %d]: %v", oldRepo.ID, err)
+	} else {
+		go models.HookQueue.Add(oldRepo.ID)
+	}
+
+	u := repo.MustOwner()
+
+	// Add to hook queue for created repo after session commit.
+	if u.IsOrganization() {
+		if err := models.PrepareWebhooks(repo, models.HookEventRepository, &api.RepositoryPayload{
+			Action:       api.HookRepoCreated,
+			Repository:   repo.APIFormat(models.AccessModeOwner),
+			Organization: u.APIFormat(),
+			Sender:       doer.APIFormat(),
+		}); err != nil {
+			log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+		} else {
+			go models.HookQueue.Add(repo.ID)
+		}
+	}
+}
+
+func (m *webhookNotifier) NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+	// Add to hook queue for created repo after session commit.
+	if u.IsOrganization() {
+		if err := models.PrepareWebhooks(repo, models.HookEventRepository, &api.RepositoryPayload{
+			Action:       api.HookRepoCreated,
+			Repository:   repo.APIFormat(models.AccessModeOwner),
+			Organization: u.APIFormat(),
+			Sender:       doer.APIFormat(),
+		}); err != nil {
+			log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+		} else {
+			go models.HookQueue.Add(repo.ID)
+		}
+	}
+}
+
+func (m *webhookNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
+	u := repo.MustOwner()
+
+	if u.IsOrganization() {
+		if err := models.PrepareWebhooks(repo, models.HookEventRepository, &api.RepositoryPayload{
+			Action:       api.HookRepoDeleted,
+			Repository:   repo.APIFormat(models.AccessModeOwner),
+			Organization: u.APIFormat(),
+			Sender:       doer.APIFormat(),
+		}); err != nil {
+			log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+		}
+		go models.HookQueue.Add(repo.ID)
+	}
+}
