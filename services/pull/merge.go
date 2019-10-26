@@ -12,9 +12,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
-	"regexp"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
