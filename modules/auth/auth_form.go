@@ -51,7 +51,7 @@ type AuthenticationForm struct {
 	Oauth2EmailURL                string
 	SSPIAutoCreateUsers           bool
 	SSPIAutoActivateUsers         bool
-	SSPISeparatorReplacement      string `binding:"Required;AlphaDashDot;MaxSize(5)"`
+	SSPISeparatorReplacement      string `binding:"AlphaDashDot;MaxSize(5)"`
 	SSPIDefaultLanguage           string
 }
 
