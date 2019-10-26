@@ -576,11 +576,6 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 				ctx.ServerError("canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
 				return nil, nil, 0, 0
 			}
-
-			if !perm.CanWriteIssuesOrPulls(isPull) {
-				ctx.ServerError("CanWriteIssuesOrPulls", fmt.Errorf("No permission for %s", user.Name))
-				return nil, nil, 0, 0
-			}
 		}
 	}
 
