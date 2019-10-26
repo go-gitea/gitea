@@ -567,6 +567,7 @@ i.icon.centerlock{top:1.5em}
 .repository.view.issue .comment-list .timeline-line:before{display:block;content:"";position:absolute;margin-top:12px;margin-bottom:14px;top:0;bottom:0;left:82px;width:2px;background-color:#f3f3f3;z-index:-1}
 .repository.view.issue .comment-list .comment .avatar{width:3em}
 .repository.view.issue .comment-list .comment .tag{color:#767676;margin-top:3px;padding:2px 5px;font-size:12px;border:1px solid rgba(0,0,0,.1);border-radius:3px}
+.repository.view.issue .comment-list .comment .tag.pending{color:#000;background-color:#fffbb2;margin-left:5px}
 .repository.view.issue .comment-list .comment .actions .item{float:left}
 .repository.view.issue .comment-list .comment .actions .item.tag{margin-right:5px}
 .repository.view.issue .comment-list .comment .actions .item.action{margin-top:6px;margin-left:10px}
