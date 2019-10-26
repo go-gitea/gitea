@@ -74,7 +74,7 @@ shouldn't be touched without fully understanding these components.
 
 ### Customizing startpage / homepage
 
-Copy [`home.tmpl`](https://github.com/go-gitea/gitea/blob/master/templates/home.tmpl) from `templates` to `custom/templates`.
+Copy [`home.tmpl`](https://github.com/go-gitea/gitea/blob/master/templates/home.tmpl) for your version of Gitea from `templates` to `custom/templates`.
 Edit as you wish.
 
 ### Adding links and tabs
