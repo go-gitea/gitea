@@ -236,7 +236,7 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	if ctx.Req.URL.RawQuery != "" {
 		redirectPath += "?" + ctx.Req.URL.RawQuery
 	}
-	ctx.Redirect(redirectPath)
+	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
 }
 
 func repoAssignment(ctx *Context, repo *models.Repository) {

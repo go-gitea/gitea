@@ -263,6 +263,8 @@ var migrations = []Migration{
 	// v103 -> v104
 	NewMigration("Add WhitelistDeployKeys to protected branch", addWhitelistDeployKeysToBranches),
 	// v104 -> v105
+	NewMigration("remove unnecessary columns from label", removeLabelUneededCols),
+	// v105 -> v106
 	NewMigration("add projects info to repository table", addProjectsInfo),
 }
 

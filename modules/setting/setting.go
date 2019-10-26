@@ -99,6 +99,7 @@ var (
 	LetsEncryptEmail     string
 	GracefulRestartable  bool
 	GracefulHammerTime   time.Duration
+	StaticURLPrefix      string
 
 	SSH = struct {
 		Disabled                 bool           `ini:"DISABLE_SSH"`
@@ -573,7 +574,7 @@ func NewContext() {
 		defaultAppURL += ":" + HTTPPort
 	}
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
-	AppURL = strings.TrimRight(AppURL, "/") + "/"
+	AppURL = strings.TrimSuffix(AppURL, "/") + "/"
 
 	// Check if has app suburl.
 	appURL, err := url.Parse(AppURL)
@@ -583,6 +584,7 @@ func NewContext() {
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
+	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
 	// TODO: Can be replaced with url.Hostname() when minimal GoLang version is 1.8

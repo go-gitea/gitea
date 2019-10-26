@@ -9,3 +9,8 @@ package graceful
 
 // This file contains shims for windows builds
 const IsChild = false
+
+// WaitForServers waits for all running servers to finish
+func WaitForServers() {
+
+}

@@ -72,13 +72,15 @@ Here's how to run the test suite:
 
 - Install the correct version of the drone-cli package.  As of this
   writing, the correct drone-cli version is
-  [1.1.0](https://docs.drone.io/cli/install/).
+  [1.2.0](https://docs.drone.io/cli/install/).
 - Ensure you have enough free disk space.  You will need at least
   15-20 Gb of free disk space to hold all of the containers drone
   creates (a default AWS or GCE disk size won't work -- see
   [#6243](https://github.com/go-gitea/gitea/issues/6243)).
 - Change into the base directory of your copy of the gitea repository,
   and run `drone exec --event pull_request`.
+- At the moment `drone exec` doesn't support the Docker Toolbox on Windows 10
+  (see [drone-cli#135](https://github.com/drone/drone-cli/issues/135))
 
 The drone version, command line, and disk requirements do change over
 time (see [#4053](https://github.com/go-gitea/gitea/issues/4053) and
@@ -302,7 +304,7 @@ be reviewed by two maintainers and must pass the automatic tests.
 * Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`.
 * And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically created a release and upload all the compiled binary. (But currently it didn't add the release notes automatically. Maybe we should fix that.)
 * If needed send PR for changelog on branch `master`.
-* Send PR to [blog repository](https://github.com/go-gitea/blog) announcing the release.
+* Send PR to [blog repository](https://gitea.com/gitea/blog) announcing the release.
 
 ## Copyright
 
