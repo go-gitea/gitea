@@ -392,9 +392,8 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	}
 
 	// Update Deadline
-	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil {
-		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
+		deadlineUnix := timeutil.TimeStamp(form.Deadline.Unix())
 		if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
 			ctx.Error(500, "UpdateIssueDeadline", err)
 			return
