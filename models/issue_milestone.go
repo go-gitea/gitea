@@ -482,7 +482,7 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 	return sess.Commit()
 }
 
-// CountMilestonesByRepo map from repoID to number of milestones matching the options`
+// CountMilestonesByRepo map from repoIDs to number of milestones matching the options`
 func CountMilestonesByRepo(repoIDs []int64, isClosed bool) (map[int64]int64, error) {
 	sess := x.Where("is_closed = ?", isClosed)
 	sess.In("repo_id", repoIDs)

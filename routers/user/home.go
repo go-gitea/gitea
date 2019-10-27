@@ -311,13 +311,10 @@ func Milestones(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
-	//TODO do I need all these?
 	pager.AddParam(ctx, "type", "ViewType")
 	pager.AddParam(ctx, "repo", "RepoID")
 	pager.AddParam(ctx, "sort", "SortType")
 	pager.AddParam(ctx, "state", "State")
-	//pager.AddParam(ctx, "milestone", "MilestoneID")
-	//pager.AddParam(ctx, "assignee", "AssigneeID")
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, tplMilestones)
