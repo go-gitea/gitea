@@ -125,7 +125,7 @@ func (o *OAuth2) VerifyAuthData(ctx *macaron.Context, sess session.Store) *model
 		return nil
 	}
 
-	if !isAPIPath(ctx.Req.URL.Path) {
+	if !isAPIPath(ctx) && !isAttachmentDownload(ctx) {
 		return nil
 	}
 

@@ -8,6 +8,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 
+	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
 )
 
@@ -86,6 +87,11 @@ func SessionUser(sess session.Store) *models.User {
 }
 
 // isAPIPath returns true if the specified URL is an API path
-func isAPIPath(url string) bool {
-	return strings.HasPrefix(url, "/api/")
+func isAPIPath(ctx *macaron.Context) bool {
+	return strings.HasPrefix(ctx.Req.URL.Path, "/api/")
+}
+
+// isAttachmentDownload check if request is a file download (GET) with URL to an attachment
+func isAttachmentDownload(ctx *macaron.Context) bool {
+	return strings.HasPrefix(ctx.Req.URL.Path, "/attachments/") && ctx.Req.Method == "GET"
 }

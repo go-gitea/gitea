@@ -24,11 +24,6 @@ func IsAPIPath(url string) bool {
 	return strings.HasPrefix(url, "/api/")
 }
 
-// IsAttachmentDownload check if request is a file download (GET) with URL to an attachment
-func IsAttachmentDownload(ctx *macaron.Context) bool {
-	return strings.HasPrefix(ctx.Req.URL.Path, "/attachments/") && ctx.Req.Method == "GET"
-}
-
 // SignedInUser returns the user object of signed user.
 // It returns a bool value to indicate whether user uses basic auth or not.
 func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool) {
