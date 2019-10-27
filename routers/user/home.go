@@ -161,8 +161,6 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	//milestone sorts: closest due date, furthest due date, least complete, most complete, most issues, least issues
-
 	viewType := "all"
 	sortType := ctx.Query("sort")
 
@@ -300,6 +298,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = counts
 	ctx.Data["MilestoneStats"] = milestoneStats
+	ctx.Data["Total"] = total
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["RepoID"] = repoID

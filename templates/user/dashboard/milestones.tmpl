@@ -7,7 +7,7 @@
 				<div class="ui secondary vertical filter menu">
 					<a class="{{if eq .ViewType "your_repositories"}}ui basic blue button{{end}} item" href="{{.Link}}?type=your_repositories&repo={{.RepoID}}&sort={{$.SortType}}&state={{.State}}">
 						{{.i18n.Tr "home.issues.in_your_repos"}}
-						<strong class="ui right">{{.MilestoneStats.YourRepositoriesCount}}</strong>
+						<strong class="ui right">{{.Total}}</strong>
 					</a>
 					<div class="ui divider"></div>
 					{{range .Repos}}
