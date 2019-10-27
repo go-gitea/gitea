@@ -217,9 +217,9 @@ configure this, set the fields below:
 - Log in to Gitea as an Administrator and click on "Authentication" under Admin Panel.
   Then click `Add New Source` and fill in the details, changing all where appropriate.
 
-## SSPI (Kerberos/NTLM SPNEGO, for Windows only)
+## SPNEGO with SSPI (Kerberos/NTLM, for Windows only)
 
-Gitea supports SPNEGO single sign-on authentication (the scheme defined by RFC4559) for the web part of the server via the Security Support Provider Interface (SSPI) built in Windows. SSPI works only in Windows environments - when both the server and the clients are running Windows.
+Gitea supports SPNEGO single sign-on authentication (the scheme defined by RFC4559) for the web part of the server () via the Security Support Provider Interface (SSPI) built in Windows. SSPI works only in Windows environments - when both the server and the clients are running Windows.
 
 Before activating SSPI single sign-on authentication (SSO) you have to prepare your environment:
 
@@ -236,15 +236,15 @@ Before activating SSPI single sign-on authentication (SSO) you have to prepare y
 
 - Start the web server (`gitea.exe web`)
 
-- Enable SSPI authentication by adding an SSPI authentication source in `Site Administration -> Authentication Sources`
+- Enable SSPI authentication by adding an `SPNEGO with SSPI` authentication source in `Site Administration -> Authentication Sources`
 
-- Sign in to a client computer in the same domain with any domain user
+- Sign in to a client computer in the same domain with any domain user (client computer, different from the server running `gitea.exe`)
 
 - If you are using Chrome, Edge or Internet Explorer, add the URL of the web app to the Local intranet sites (`Internet Options -> Security -> Local intranet -> Sites`)
 
-- Start Chrome, Edge or Internet Explorer and navigate to FQDN URL of gitea (eg. `http://host.domain.local:3000`)
+- Start Chrome, Edge or Internet Explorer and navigate to the FQDN URL of gitea (eg. `http://host.domain.local:3000`)
 
-- Click the `Sign In` button on the dashboard and you should be automatically logged in with the same user that is currently logged on to the computer
+- Click the `Sign In` button on the dashboard and choose SSPI to be automatically logged in with the same user that is currently logged on to the computer
 
 - If it does not work, make sure that:
   - You are not running the web browser on the same server where gitea is running. You should be running the web browser on a domain joined computer (client) that is different from the server. If both the client and server are runnning on the same computer NTLM will be prefered over Kerberos.
