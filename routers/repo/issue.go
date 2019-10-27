@@ -503,21 +503,21 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 			return nil, nil, 0
 		}
 
-		// Check if the passed assignees actually exists and has write access to the repo
+		// Check if the passed assignees actually exists and is assignable
 		for _, aID := range assigneeIDs {
-			user, err := models.GetUserByID(aID)
+			assignee, err := models.GetUserByID(aID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
 				return nil, nil, 0
 			}
 
-			perm, err := models.GetUserRepoPermission(repo, user)
+			valid, err := models.CanBeAssigned(assignee, repo, isPull)
 			if err != nil {
-				ctx.ServerError("GetUserRepoPermission", err)
+				ctx.ServerError("canBeAssigned", err)
 				return nil, nil, 0
 			}
-			if !perm.CanWriteIssuesOrPulls(isPull) {
-				ctx.ServerError("CanWriteIssuesOrPulls", fmt.Errorf("No permission for %s", user.Name))
+			if !valid {
+				ctx.ServerError("canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
 				return nil, nil, 0
 			}
 		}
@@ -574,13 +574,18 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		Content:     form.Content,
 		Ref:         form.Ref,
 	}
-	if err := issue_service.NewIssue(repo, issue, labelIDs, assigneeIDs, attachments); err != nil {
+	if err := issue_service.NewIssue(repo, issue, labelIDs, attachments); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
 		}
 		ctx.ServerError("NewIssue", err)
 		return
+	}
+
+	if err := issue_service.AddAssignees(issue, ctx.User, assigneeIDs); err != nil {
+		log.Error("AddAssignees: %v", err)
+		ctx.Flash.Error(ctx.Tr("issues.assignee.error"))
 	}
 
 	notification.NotifyNewIssue(issue)
@@ -1112,7 +1117,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 	})
 }
 
-// UpdateIssueAssignee change issue's assignee
+// UpdateIssueAssignee change issue's or pull's assignee
 func UpdateIssueAssignee(ctx *context.Context) {
 	issues := getActionIssues(ctx)
 	if ctx.Written() {
@@ -1130,10 +1135,29 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 		default:
-			if err := issue.ChangeAssignee(ctx.User, assigneeID); err != nil {
-				ctx.ServerError("ChangeAssignee", err)
+			assignee, err := models.GetUserByID(assigneeID)
+			if err != nil {
+				ctx.ServerError("GetUserByID", err)
 				return
 			}
+
+			valid, err := models.CanBeAssigned(assignee, issue.Repo, issue.IsPull)
+			if err != nil {
+				ctx.ServerError("canBeAssigned", err)
+				return
+			}
+			if !valid {
+				ctx.ServerError("canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name})
+				return
+			}
+
+			removed, comment, err := issue.ToggleAssignee(ctx.User, assigneeID)
+			if err != nil {
+				ctx.ServerError("ToggleAssignee", err)
+				return
+			}
+
+			notification.NotifyIssueChangeAssignee(ctx.User, issue, assignee, removed, comment)
 		}
 	}
 	ctx.JSON(200, map[string]interface{}{

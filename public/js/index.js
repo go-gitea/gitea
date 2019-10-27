@@ -306,7 +306,7 @@ function initReactionSelector(parent) {
             if (resp && (resp.html || resp.empty)) {
                 const content = $(vm).closest('.content');
                 let react = content.find('.segment.reactions');
-                if (react.length > 0) {
+                if (!resp.empty && react.length > 0) {
                     react.remove();
                 }
                 if (!resp.empty) {
@@ -1572,7 +1572,27 @@ function initEditor() {
         });
     }).trigger('keyup');
 
-    $('#commit-button').click(function (event) {
+    // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
+    // to enable or disable the commit button
+    const $commitButton = $('#commit-button');
+    const $editForm = $('.ui.edit.form');
+    const dirtyFileClass = 'dirty-file';
+
+    // Disabling the button at the start
+    $commitButton.prop('disabled', true);
+
+    // Registering a custom listener for the file path and the file content
+    $editForm.areYouSure({
+        silent: true,
+        dirtyClass: dirtyFileClass,
+        fieldSelector: ':input:not(.commit-form-wrapper :input)',
+        change: function () {
+            const dirty = $(this).hasClass(dirtyFileClass);
+            $commitButton.prop('disabled', !dirty);
+        }
+    });
+
+    $commitButton.click(function (event) {
         // A modal which asks if an empty file should be committed
         if ($editArea.val().length === 0) {
             $('#edit-empty-content-modal').modal({
@@ -3258,8 +3278,41 @@ function initIssueList() {
             },
 
             fullTextSearch: true
-        })
-    ;
+        });
+
+    $(".menu a.label-filter-item").each(function() {
+        $(this).click(function(e) {
+            if (e.altKey) {
+                e.preventDefault();
+
+                const href = $(this).attr("href");
+                const id = $(this).data("label-id");
+
+                const regStr = "labels=(-?[0-9]+%2c)*(" + id + ")(%2c-?[0-9]+)*&";
+                const newStr = "labels=$1-$2$3&";
+
+                window.location = href.replace(new RegExp(regStr), newStr);
+            }
+        });
+    });
+
+    $(".menu .ui.dropdown.label-filter").keydown(function(e) {
+        if (e.altKey && e.keyCode == 13) {
+            const selectedItems = $(".menu .ui.dropdown.label-filter .menu .item.selected");
+
+            if (selectedItems.length > 0) {
+                const item = $(selectedItems[0]);
+
+                const href = item.attr("href");
+                const id = item.data("label-id");
+
+                const regStr = "labels=(-?[0-9]+%2c)*(" + id + ")(%2c-?[0-9]+)*&";
+                const newStr = "labels=$1-$2$3&";
+
+                window.location = href.replace(new RegExp(regStr), newStr);
+            }
+        }
+    });
 }
 function cancelCodeComment(btn) {
     const form = $(btn).closest("form");

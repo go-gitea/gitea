@@ -24,7 +24,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
+	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/unknwon/com"
 )
@@ -208,7 +210,7 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 	}
 
-	repo, err := models.ForkRepository(ctx.User, ctxUser, forkRepo, form.RepoName, form.Description)
+	repo, err := repo_service.ForkRepository(ctx.User, ctxUser, forkRepo, form.RepoName, form.Description)
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
 		switch {
@@ -240,6 +242,10 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 	}
 	if err = issue.LoadPoster(); err != nil {
 		ctx.ServerError("LoadPoster", err)
+		return nil
+	}
+	if err := issue.LoadRepo(); err != nil {
+		ctx.ServerError("LoadRepo", err)
 		return nil
 	}
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
@@ -766,7 +772,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
 
-	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, patch, assigneeIDs); err != nil {
+	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, patch); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
@@ -776,6 +782,11 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	} else if err := pullRequest.PushToBaseRepo(); err != nil {
 		ctx.ServerError("PushToBaseRepo", err)
 		return
+	}
+
+	if err := issue_service.AddAssignees(pullIssue, ctx.User, assigneeIDs); err != nil {
+		log.Error("AddAssignees: %v", err)
+		ctx.Flash.Error(ctx.Tr("issues.assignee.error"))
 	}
 
 	notification.NotifyNewPullRequest(pullRequest)
