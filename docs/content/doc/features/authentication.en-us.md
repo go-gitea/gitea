@@ -234,6 +234,8 @@ Before activating SSPI single sign-on authentication (SSO) you have to prepare y
 
 - Sign in (*sign out if you were already signed in*) with the user created
 
+- Make sure that `ROOT_URL` in the `[server]` section of `custom/conf/app.ini` is the fully qualified domain name of the server where the web application will be running - the same you used when creating the service principal name (eg. `host.domain.local`)
+
 - Start the web server (`gitea.exe web`)
 
 - Enable SSPI authentication by adding an `SPNEGO with SSPI` authentication source in `Site Administration -> Authentication Sources`
