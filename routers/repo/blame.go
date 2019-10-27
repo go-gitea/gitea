@@ -94,6 +94,16 @@ func RefBlame(ctx *context.Context) {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
 
+	// Check LFS Lock
+	isLFSLock := false
+	lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
+	if err != nil {
+		ctx.ServerError("GetTreePathLock", err)
+	}
+	if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
+		isLFSLock = true
+	}
+
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
@@ -119,8 +129,13 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["IsBlame"] = true
 
 	if ctx.Repo.CanEnableEditor() {
-		ctx.Data["CanDeleteFile"] = true
-		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
+		if isLFSLock {
+			ctx.Data["CanDeleteFile"] = false
+			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
+		} else {
+			ctx.Data["CanDeleteFile"] = true
+			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
+		}
 	} else if !ctx.Repo.IsViewBranch {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
 	} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
