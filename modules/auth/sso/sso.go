@@ -39,9 +39,6 @@ func Register(method SingleSignOn) {
 // to allocate necessary resources
 func Init() {
 	for _, method := range Methods() {
-		if !method.IsEnabled() {
-			continue
-		}
 		err := method.Init()
 		if err != nil {
 			log.Error("Could not initialize '%s' SSO method, error: %s", reflect.TypeOf(method).String(), err)
@@ -53,9 +50,6 @@ func Init() {
 // to release necessary resources
 func Free() {
 	for _, method := range Methods() {
-		if !method.IsEnabled() {
-			continue
-		}
 		err := method.Free()
 		if err != nil {
 			log.Error("Could not free '%s' SSO method, error: %s", reflect.TypeOf(method).String(), err)
