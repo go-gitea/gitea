@@ -154,7 +154,7 @@ func Dashboard(ctx *context.Context) {
 // Milestones render the user milestones page
 func Milestones(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("milestones")
-	ctx.Data["PageIsMilestones"] = true
+	ctx.Data["PageIsMilestonesDashboard"] = true
 
 	ctxUser := getDashboardContextUser(ctx)
 	if ctx.Written() {
