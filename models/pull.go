@@ -474,6 +474,10 @@ func (pr *PullRequest) SetMerged() (err error) {
 		return fmt.Errorf("update pull request: %v", err)
 	}
 
+	if err = pr.ResolveCrossReferences(sess); err != nil {
+		return fmt.Errorf("Resolve cross references: %v", err)
+	}
+
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}

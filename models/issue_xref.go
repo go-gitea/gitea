@@ -5,6 +5,8 @@
 package models
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 
@@ -131,11 +133,14 @@ func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesCont
 			return nil, err
 		}
 		if refIssue != nil {
+			action := ref.Action
+			if !issue.IsPull || refIssue.IsPull {
+				// Close/reopen actions can only be from pull requests to issues
+				action = references.XRefActionNone
+			}
 			xreflist = ctx.OrigIssue.updateCrossReferenceList(xreflist, &crossReference{
-				Issue: refIssue,
-				// FIXME: currently ignore keywords
-				// Action: ref.Action,
-				Action: references.XRefActionNone,
+				Issue:  refIssue,
+				Action: action,
 			})
 		}
 	}
@@ -272,4 +277,52 @@ func (comment *Comment) RefIssueIdent() string {
 	}
 	// FIXME: check this name for cross-repository references (#7901 if it gets merged)
 	return "#" + com.ToStr(comment.RefIssue.Index)
+}
+
+// __________      .__  .__ __________                                     __
+// \______   \__ __|  | |  |\______   \ ____  ________ __   ____   _______/  |_
+//  |     ___/  |  \  | |  | |       _// __ \/ ____/  |  \_/ __ \ /  ___/\   __\
+//  |    |   |  |  /  |_|  |_|    |   \  ___< <_|  |  |  /\  ___/ \___ \  |  |
+//  |____|   |____/|____/____/____|_  /\___  >__   |____/  \___  >____  > |__|
+//                                  \/     \/   |__|           \/     \/
+
+func (pr *PullRequest) ResolveCrossReferences(sess *xorm.Session) (err error) {
+	// Find issues that need to be closed/reopened as this PR resolved
+	unfiltered := make([]*Comment, 0, 5)
+	if err = sess.
+		Where("ref_repo_id = ? AND ref_issue_id = ?", pr.Issue.RepoID, pr.Issue.ID).
+		In("ref_action", []references.XRefAction{references.XRefActionCloses, references.XRefActionReopens}).
+		OrderBy("id").
+		Find(&unfiltered); err != nil {
+		return fmt.Errorf("get reference: %v", err)
+	}
+
+	refs := make([]*Comment, 0, len(unfiltered))
+	for _, ref := range unfiltered {
+		found := false
+		for i, r := range refs {
+			if r.IssueID == ref.IssueID {
+				// Keep only the latest
+				refs[i] = r
+				found = true
+				break
+			}
+		}
+		if !found {
+			refs = append(refs, ref)
+		}
+	}
+
+	for _, ref := range refs {
+		ref.loadIssue(sess)
+		ref.Issue.loadRepo(sess)
+		closedOrOpen := (ref.RefAction == references.XRefActionCloses)
+		if ref.Issue.IsClosed != closedOrOpen {
+			if err = ref.Issue.changeStatus(sess, pr.Merger, closedOrOpen); err != nil {
+				return fmt.Errorf("Issue.changeStatus: %v", err)
+			}
+		}
+	}
+
+	return nil
 }
