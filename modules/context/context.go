@@ -340,13 +340,6 @@ func Contexter() macaron.Handler {
 		ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 		ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 
-		if models.HasEngine {
-			sspiSrc, err := models.ActiveLoginSources(models.LoginSSPI)
-			ctx.Data["EnableSSPI"] = err == nil && len(sspiSrc) > 0
-		} else {
-			ctx.Data["EnableSSPI"] = false
-		}
-
 		c.Map(ctx)
 	}
 }

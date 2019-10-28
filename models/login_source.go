@@ -343,6 +343,19 @@ func ActiveLoginSources(loginType LoginType) ([]*LoginSource, error) {
 	return sources, nil
 }
 
+// IsSSPIEnabled returns true if there is at least one activated login
+// source of type LoginSSPI
+func IsSSPIEnabled() bool {
+	if !HasEngine {
+		return false
+	}
+	sources, err := ActiveLoginSources(LoginSSPI)
+	if err != nil {
+		return false
+	}
+	return len(sources) > 0
+}
+
 // GetLoginSourceByID returns login source by given ID.
 func GetLoginSourceByID(id int64) (*LoginSource, error) {
 	source := new(LoginSource)
