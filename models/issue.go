@@ -768,11 +768,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 // GetTasks returns the amount of tasks in the issues content
