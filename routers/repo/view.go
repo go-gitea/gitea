@@ -267,11 +267,16 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 	}
 	lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
+	ctx.Data["LFSLock"] = lfsLock
 	if err != nil {
 		ctx.ServerError("GetTreePathLock", err)
 	}
-	if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
-		isLFSLock = true
+	if lfsLock != nil {
+		ctx.Data["LFSLockOwner"] = lfsLock.Owner.DisplayName()
+		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")
+		if lfsLock.OwnerID != ctx.User.ID {
+			isLFSLock = true
+		}
 	}
 
 	// Assume file is not editable first.
