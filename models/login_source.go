@@ -449,7 +449,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 		IsAdmin:     sr.IsAdmin,
 	}
 
-	err := CreateUser(user)
+	err = CreateUser(user)
 
 	if err == nil && isAttributeSSHPublicKeySet && addLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
 		err = RewriteAllPublicKeys()
