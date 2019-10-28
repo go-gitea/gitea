@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -237,7 +236,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		form.Labels = make([]int64, 0)
 	}
 
-	if err := issue_service.NewIssue(ctx.Repo.Repository, issue, form.Labels, nil); err != nil {
+	if err := issue_service.NewIssue(ctx.Repo.Repository, issue, form.Labels, nil, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
 			return
@@ -245,13 +244,6 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 		ctx.Error(500, "NewIssue", err)
 		return
 	}
-
-	if err := issue_service.AddAssignees(issue, ctx.User, assigneeIDs); err != nil {
-		ctx.ServerError("AddAssignees", err)
-		return
-	}
-
-	notification.NotifyNewIssue(issue)
 
 	if form.Closed {
 		if err := issue_service.ChangeStatus(issue, ctx.User, true); err != nil {
