@@ -76,6 +76,7 @@ shouldn't be touched without fully understanding these components.
 
 Copy [`home.tmpl`](https://github.com/go-gitea/gitea/blob/master/templates/home.tmpl) for your version of Gitea from `templates` to `custom/templates`.
 Edit as you wish.
+Dont forget to restart your gitea to apply the changes.
 
 ### Adding links and tabs
 
