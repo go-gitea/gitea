@@ -450,6 +450,10 @@ ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = false
 ENABLE_REVERSE_PROXY_EMAIL = false
 ; Enable captcha validation for registration
 ENABLE_CAPTCHA = false
+; Enable captcha validation for login
+ENABLE_LOGIN_CAPTCHA = false
+; Maximum login failure count without captcha  
+MAX_LOGIN_FAILURE_COUNT = 3
 ; Type of captcha you want to use. Options: image, recaptcha
 CAPTCHA_TYPE = image
 ; Enable recaptcha to use Google's recaptcha service
