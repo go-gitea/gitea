@@ -1050,13 +1050,10 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
-	oldTitle := issue.Title
 	if err := issue_service.ChangeTitle(issue, ctx.User, title); err != nil {
 		ctx.ServerError("ChangeTitle", err)
 		return
 	}
-
-	notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
 
 	ctx.JSON(200, map[string]interface{}{
 		"title": issue.Title,
@@ -1130,7 +1127,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	for _, issue := range issues {
 		switch action {
 		case "clear":
-			if err := models.DeleteNotPassedAssignee(issue, ctx.User, []*models.User{}); err != nil {
+			if err := issue_service.DeleteNotPassedAssignee(issue, ctx.User, []*models.User{}); err != nil {
 				ctx.ServerError("ClearAssignees", err)
 				return
 			}
@@ -1151,7 +1148,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 
-			removed, comment, err := issue.ToggleAssignee(ctx.User, assigneeID)
+			removed, comment, err := issue_service.ToggleAssignee(issue, ctx.User, assigneeID)
 			if err != nil {
 				ctx.ServerError("ToggleAssignee", err)
 				return
