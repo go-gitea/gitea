@@ -92,6 +92,32 @@ func getIssueFullPattern() *regexp.Regexp {
 	return issueFullPattern
 }
 
+// CustomLinkURLSchemes allows for additional schemes to be detected when parsing links within text
+func CustomLinkURLSchemes(schemes []string) {
+	schemes = append(schemes, "http", "https")
+	withAuth := make([]string, 0, len(schemes))
+	validScheme := regexp.MustCompile(`^[a-z]+$`)
+	for _, s := range schemes {
+		if !validScheme.MatchString(s) {
+			continue
+		}
+		without := false
+		for _, sna := range xurls.SchemesNoAuthority {
+			if s == sna {
+				without = true
+				break
+			}
+		}
+		if without {
+			s += ":"
+		} else {
+			s += "://"
+		}
+		withAuth = append(withAuth, s)
+	}
+	linkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
+}
+
 // IsSameDomain checks if given url string has the same hostname as current Gitea instance
 func IsSameDomain(s string) bool {
 	if strings.HasPrefix(s, "/") {

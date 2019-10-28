@@ -8,8 +8,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
+	"xorm.io/xorm"
 )
 
 type crossReference struct {

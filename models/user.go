@@ -33,7 +33,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
@@ -41,6 +40,7 @@ import (
 	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // UserType defines the user type
@@ -994,10 +994,6 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return ErrUserAlreadyExist{newUserName}
 	}
 
-	if err = ChangeUsernameInPullRequests(u.Name, newUserName); err != nil {
-		return fmt.Errorf("ChangeUsernameInPullRequests: %v", err)
-	}
-
 	// Do not fail if directory does not exist
 	if err = os.Rename(UserPath(u.Name), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Rename user directory: %v", err)
@@ -1324,16 +1320,20 @@ func GetUsersByIDs(ids []int64) ([]*User, error) {
 }
 
 // GetUserIDsByNames returns a slice of ids corresponds to names.
-func GetUserIDsByNames(names []string) []int64 {
+func GetUserIDsByNames(names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))
 	for _, name := range names {
 		u, err := GetUserByName(name)
 		if err != nil {
-			continue
+			if ignoreNonExistent {
+				continue
+			} else {
+				return nil, err
+			}
 		}
 		ids = append(ids, u.ID)
 	}
-	return ids
+	return ids, nil
 }
 
 // UserCommit represents a commit with validation of user.

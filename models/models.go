@@ -14,8 +14,8 @@ import (
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/go-xorm/xorm"
 	"xorm.io/core"
+	"xorm.io/xorm"
 
 	// Needed for the Postgresql driver
 	_ "github.com/lib/pq"
@@ -157,11 +157,9 @@ func SetEngine() (err error) {
 	// so use log file to instead print to stdout.
 	x.SetLogger(NewXORMLogger(setting.Database.LogSQL))
 	x.ShowSQL(setting.Database.LogSQL)
-	if setting.Database.UseMySQL {
-		x.SetMaxIdleConns(setting.Database.MaxIdleConns)
-		x.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
-	}
-
+	x.SetMaxOpenConns(setting.Database.MaxOpenConns)
+	x.SetMaxIdleConns(setting.Database.MaxIdleConns)
+	x.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
 	return nil
 }
 

@@ -18,9 +18,9 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
@@ -355,6 +355,27 @@ func (c *Comment) LoadAttachments() error {
 		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
 	}
 	return nil
+}
+
+// UpdateAttachments update attachments by UUIDs for the comment
+func (c *Comment) UpdateAttachments(uuids []string) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	attachments, err := getAttachmentsByUUIDs(sess, uuids)
+	if err != nil {
+		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", uuids, err)
+	}
+	for i := 0; i < len(attachments); i++ {
+		attachments[i].IssueID = c.IssueID
+		attachments[i].CommentID = c.ID
+		if err := updateAttachment(sess, attachments[i]); err != nil {
+			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
+		}
+	}
+	return sess.Commit()
 }
 
 // LoadAssigneeUser if comment.Type is CommentTypeAssignees, then load assignees
@@ -1025,7 +1046,7 @@ func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
-func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID, posterID int64) error {
+func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
 	_, err := x.Table("comment").
 		Where(builder.In("issue_id",
 			builder.Select("issue.id").

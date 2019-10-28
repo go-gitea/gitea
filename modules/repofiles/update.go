@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	pull_service "code.gitea.io/gitea/services/pull"
 
 	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
@@ -498,7 +499,7 @@ func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOp
 
 	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
-	go models.AddTestPullRequestTask(pusher, repo.ID, branch, true)
+	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true)
 
 	if opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
 		models.UpdateRepoIndexer(repo)

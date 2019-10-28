@@ -108,7 +108,7 @@ func getExpectedFileResponseForRepofilesCreate(commitID string) *api.FileRespons
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
-			Reason:    "unsigned",
+			Reason:    "gpg.error.not_signed_commit",
 			Signature: "",
 			Payload:   "",
 		},
@@ -175,7 +175,7 @@ func getExpectedFileResponseForRepofilesUpdate(commitID, filename string) *api.F
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
-			Reason:    "unsigned",
+			Reason:    "gpg.error.not_signed_commit",
 			Signature: "",
 			Payload:   "",
 		},

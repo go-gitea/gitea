@@ -904,23 +904,23 @@ footer {
 }
 
 .heatmap-color-1 {
-    background-color: #d7e5db;
+    background-color: #d8efbf;
 }
 
 .heatmap-color-2 {
-    background-color: #adc7ab;
+    background-color: #9fdb81;
 }
 
 .heatmap-color-3 {
-    background-color: #83a87b;
+    background-color: #66c74b;
 }
 
 .heatmap-color-4 {
-    background-color: #598a4b;
+    background-color: #609926;
 }
 
 .heatmap-color-5 {
-    background-color: #2f6b1b;
+    background-color: #025900;
 }
 
 .archived-icon {
@@ -958,6 +958,22 @@ footer {
             margin-top: 1px;
         }
     }
+}
+
+i.icons .icon:first-child {
+    margin-right: 0;
+}
+
+i.icon.centerlock {
+    top: 1.5em;
+}
+
+.ui.label > .detail .icons {
+    margin-right: 0.25em;
+}
+
+.ui.label > .detail .icons .icon {
+    margin-right: 0;
 }
 
 .lines-num {
@@ -1057,7 +1073,7 @@ footer {
     overflow-x: auto;
     overflow-y: hidden;
 
-    * {
+    *:not(.fa):not(.octicon):not(.icon) {
         font-size: 12px;
         font-family: @monospaced-fonts, monospace;
         line-height: 20px;
