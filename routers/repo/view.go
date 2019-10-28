@@ -223,7 +223,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	isTextFile := base.IsTextFile(buf)
 	isLFSFile := false
-	isLFSLock := false
 	ctx.Data["IsTextFile"] = isTextFile
 
 	//Check for LFS meta file
@@ -266,17 +265,16 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 		}
 	}
+	// Check LFS Lock
 	lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
 	ctx.Data["LFSLock"] = lfsLock
 	if err != nil {
 		ctx.ServerError("GetTreePathLock", err)
+		return
 	}
 	if lfsLock != nil {
 		ctx.Data["LFSLockOwner"] = lfsLock.Owner.DisplayName()
 		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")
-		if lfsLock.OwnerID != ctx.User.ID {
-			isLFSLock = true
-		}
 	}
 
 	// Assume file is not editable first.
@@ -342,7 +340,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 		if !isLFSFile {
 			if ctx.Repo.CanEnableEditor() {
-				if isLFSLock {
+				if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
 					ctx.Data["CanEditFile"] = false
 					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
 				} else {
@@ -381,7 +379,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 
 	if ctx.Repo.CanEnableEditor() {
-		if isLFSLock {
+		if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
 			ctx.Data["CanDeleteFile"] = false
 			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
 		} else {

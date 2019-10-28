@@ -94,16 +94,6 @@ func RefBlame(ctx *context.Context) {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
 
-	// Check LFS Lock
-	isLFSLock := false
-	lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
-	if err != nil {
-		ctx.ServerError("GetTreePathLock", err)
-	}
-	if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
-		isLFSLock = true
-	}
-
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
@@ -129,7 +119,13 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["IsBlame"] = true
 
 	if ctx.Repo.CanEnableEditor() {
-		if isLFSLock {
+		// Check LFS Lock
+		lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
+		if err != nil {
+			ctx.ServerError("GetTreePathLock", err)
+			return
+		}
+		if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
 			ctx.Data["CanDeleteFile"] = false
 			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
 		} else {
