@@ -157,7 +157,6 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *mo
 		}
 	} else {
 		mode, _ := models.AccessLevelUnit(doer, issue.Repo, models.UnitTypeIssues)
-
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
 			Issue:      issue.APIFormat(),
@@ -219,5 +218,47 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *model
 		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	} else {
 		go models.HookQueue.Add(issue.RepoID)
+	}
+}
+
+func (m *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
+	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
+	var err error
+	if issue.IsPull {
+		if err = issue.LoadPullRequest(); err != nil {
+			log.Error("LoadPullRequest: %v", err)
+			return
+		}
+		// Merge pull request calls issue.changeStatus so we need to handle separately.
+		apiPullRequest := &api.PullRequestPayload{
+			Index:       issue.Index,
+			PullRequest: issue.PullRequest.APIFormat(),
+			Repository:  issue.Repo.APIFormat(mode),
+			Sender:      doer.APIFormat(),
+		}
+		if isClosed {
+			apiPullRequest.Action = api.HookIssueClosed
+		} else {
+			apiPullRequest.Action = api.HookIssueReOpened
+		}
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, apiPullRequest)
+	} else {
+		apiIssue := &api.IssuePayload{
+			Index:      issue.Index,
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		}
+		if isClosed {
+			apiIssue.Action = api.HookIssueClosed
+		} else {
+			apiIssue.Action = api.HookIssueReOpened
+		}
+		err = models.PrepareWebhooks(issue.Repo, models.HookEventIssues, apiIssue)
+	}
+	if err != nil {
+		log.Error("PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
+	} else {
+		go models.HookQueue.Add(issue.Repo.ID)
 	}
 }
