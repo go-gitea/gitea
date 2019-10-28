@@ -112,11 +112,15 @@ func (s *SSPI) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models.
 
 	user, err := models.GetUserByName(username)
 	if err != nil {
-		if models.IsErrUserNotExist(err) && cfg.AutoCreateUsers {
-			return s.newUser(ctx, username, cfg)
+		if !models.IsErrUserNotExist(err) {
+			log.Error("GetUserByName: %v", err)
+			return nil
 		}
-		log.Error("GetUserByName: %v", err)
-		return nil
+		if !cfg.AutoCreateUsers {
+			log.Error("User '%s' not found", username)
+			return nil
+		}
+		user = s.newUser(ctx, username, cfg)
 	}
 
 	// Make sure requests to API paths and PWA resources do not create a new session
