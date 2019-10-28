@@ -21,6 +21,23 @@
 				<input id="password" name="password" type="password" value="{{.password}}" autocomplete="off" required>
 			</div>
 			{{end}}
+
+			{{if and .EnableLoginCaptcha (eq .CaptchaType "image")}}
+			<div class="inline field">
+				<label></label>
+				{{.Captcha.CreateHtml}}
+			</div>
+			<div class="required inline field {{if .Err_Captcha}}error{{end}}">
+				<label for="captcha">{{.i18n.Tr "captcha"}}</label>
+				<input id="captcha" name="captcha" value="{{.captcha}}" autocomplete="off">
+			</div>
+			{{end}}
+			{{if and .EnableLoginCaptcha (eq .CaptchaType "recaptcha")}}
+			<div class="inline field required">
+				<div class="g-recaptcha" data-sitekey="{{ .RecaptchaSitekey }}"></div>
+			</div>
+			{{end}}
+
 			{{if not .LinkAccountMode}}
 			<div class="inline field">
 				<label></label>

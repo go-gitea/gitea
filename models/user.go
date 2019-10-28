@@ -119,9 +119,10 @@ type User struct {
 	Language    string `xorm:"VARCHAR(5)"`
 	Description string
 
-	CreatedUnix   timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix   timeutil.TimeStamp `xorm:"INDEX updated"`
-	LastLoginUnix timeutil.TimeStamp `xorm:"INDEX"`
+	CreatedUnix          timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix          timeutil.TimeStamp `xorm:"INDEX updated"`
+	LastLoginUnix        timeutil.TimeStamp `xorm:"INDEX"`
+	LastLoginFailureUnix timeutil.TimeStamp
 
 	// Remember visibility choice for convenience, true for private
 	LastRepoVisibility bool
@@ -135,6 +136,7 @@ type User struct {
 	AllowImportLocal        bool // Allow migrate repository by local path
 	AllowCreateOrganization bool `xorm:"DEFAULT true"`
 	ProhibitLogin           bool `xorm:"NOT NULL DEFAULT false"`
+	LoginFailures           int  `xorm:"NOT NULL DEFAULT 0"`
 
 	// Avatar
 	Avatar          string `xorm:"VARCHAR(2048) NOT NULL"`

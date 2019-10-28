@@ -28,6 +28,8 @@ var Service struct {
 	EnableReverseProxyAutoRegister          bool
 	EnableReverseProxyEmail                 bool
 	EnableCaptcha                           bool
+	EnableLoginCaptcha                      bool
+	MaxLoginFailureCount                    int
 	RequireExternalRegistrationCaptcha      bool
 	RequireExternalRegistrationPassword     bool
 	CaptchaType                             string
@@ -66,6 +68,8 @@ func newService() {
 	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
 	Service.EnableReverseProxyEmail = sec.Key("ENABLE_REVERSE_PROXY_EMAIL").MustBool()
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool(false)
+	Service.EnableLoginCaptcha = sec.Key("ENABLE_LOGIN_CAPTCHA").MustBool(true)
+	Service.MaxLoginFailureCount = sec.Key("MAX_LOGIN_FAILURE_COUNT").MustInt(3)
 	Service.RequireExternalRegistrationCaptcha = sec.Key("REQUIRE_EXTERNAL_REGISTRATION_CAPTCHA").MustBool(Service.EnableCaptcha)
 	Service.RequireExternalRegistrationPassword = sec.Key("REQUIRE_EXTERNAL_REGISTRATION_PASSWORD").MustBool()
 	Service.CaptchaType = sec.Key("CAPTCHA_TYPE").MustString(ImageCaptcha)

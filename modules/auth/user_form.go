@@ -130,8 +130,9 @@ func (f *MustChangePasswordForm) Validate(ctx *macaron.Context, errs binding.Err
 type SignInForm struct {
 	UserName string `binding:"Required;MaxSize(254)"`
 	// TODO remove required from password for SecondFactorAuthentication
-	Password string `binding:"Required;MaxSize(255)"`
-	Remember bool
+	Password           string `binding:"Required;MaxSize(255)"`
+	Remember           bool
+	GRecaptchaResponse string `form:"g-recaptcha-response"`
 }
 
 // Validate valideates the fields

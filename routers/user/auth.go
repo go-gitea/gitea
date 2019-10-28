@@ -137,12 +137,14 @@ func SignIn(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
+	ctx.Data["EnableLoginCaptcha"] = false
+	ctx.Data["CaptchaType"] = ""
 
 	ctx.HTML(200, tplSignIn)
 }
 
 // SignInPost response for sign in request
-func SignInPost(ctx *context.Context, form auth.SignInForm) {
+func SignInPost(ctx *context.Context, cpt *captcha.Captcha, form auth.SignInForm) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
 	orderedOAuth2Names, oauth2Providers, err := models.GetActiveOAuth2Providers()
@@ -156,10 +158,44 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
+	ctx.Data["EnableLoginCaptcha"] = false
+	ctx.Data["CaptchaType"] = ""
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplSignIn)
 		return
+	}
+
+	if setting.Service.EnableLoginCaptcha {
+		mustSolve, err := models.UserMustSolveCaptcha(form.UserName, setting.Service.MaxLoginFailureCount)
+
+		if err != nil {
+			ctx.ServerError("UserMustSolveCaptcha", err)
+		}
+
+		if mustSolve {
+			ctx.Data["EnableLoginCaptcha"] = true
+			ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
+			ctx.Data["CaptchaType"] = setting.Service.CaptchaType
+			ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
+
+			var valid bool
+			switch setting.Service.CaptchaType {
+			case setting.ImageCaptcha:
+				valid = cpt.VerifyReq(ctx.Req)
+			case setting.ReCaptcha:
+				valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+			default:
+				ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
+				return
+			}
+
+			if !valid {
+				ctx.Data["Err_Captcha"] = true
+				ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignIn, &form)
+				return
+			}
+		}
 	}
 
 	u, err := models.UserSignIn(form.UserName, form.Password)
@@ -186,8 +222,18 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 		} else {
 			ctx.ServerError("UserSignIn", err)
 		}
+
+		if err = models.IncrementUserLoginFailure(form.UserName); err != nil {
+			ctx.ServerError("IncrementUserLoginFailure", err)
+		}
+
 		return
 	}
+
+	if err = models.ResetUserLoginFailure(u.ID); err != nil {
+		ctx.ServerError("ResetUserLoginFailure", err)
+	}
+
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
 	_, err = models.GetTwoFactorByUID(u.ID)

@@ -633,6 +633,84 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource, 
 	return user, nil
 }
 
+// UserMustSolveCaptcha gives if user must solve captcha to login
+func UserMustSolveCaptcha(username string, maxLoginFailureCount int) (bool, error) {
+	var user *User
+	if strings.Contains(username, "@") {
+		user = &User{Email: strings.ToLower(strings.TrimSpace(username))}
+		// check same email
+		cnt, err := x.Count(user)
+		if err != nil {
+			return true, err
+		}
+		if cnt > 1 {
+			return false, nil
+		}
+	} else {
+		trimmedUsername := strings.TrimSpace(username)
+		if len(trimmedUsername) == 0 {
+			return false, nil
+		}
+
+		user = &User{LowerName: strings.ToLower(trimmedUsername)}
+	}
+
+	hasUser, err := x.Get(user)
+	if err != nil {
+		return true, err
+	}
+
+	if hasUser {
+		return user.LoginFailures >= maxLoginFailureCount, nil
+	}
+
+	return false, nil
+}
+
+// IncrementUserLoginFailure increments the user's login_failure value
+func IncrementUserLoginFailure(username string) error {
+	var user *User
+	if strings.Contains(username, "@") {
+		user = &User{Email: strings.ToLower(strings.TrimSpace(username))}
+		// check same email
+		cnt, err := x.Count(user)
+		if err != nil {
+			return err
+		}
+		if cnt > 1 {
+			return ErrEmailAlreadyUsed{ // TODO: Is this correct?
+				Email: user.Email,
+			}
+		}
+	} else {
+		trimmedUsername := strings.TrimSpace(username)
+		if len(trimmedUsername) == 0 {
+			return nil
+		}
+
+		user = &User{LowerName: strings.ToLower(trimmedUsername)}
+	}
+
+	hasUser, err := x.Get(user)
+	if err != nil {
+		return err
+	}
+
+	if hasUser {
+		_, err = x.Where("id = ?", user.ID).Update(&User{LoginFailures: user.LoginFailures + 1, LastLoginFailureUnix: timeutil.TimeStampNow()})
+		return err
+	}
+
+	return nil
+}
+
+// ResetUserLoginFailure resets user's LoginFailures to 0
+func ResetUserLoginFailure(userID int64) error {
+	_, err := x.ID(userID).Cols("login_failures").Update(&User{LoginFailures: 0})
+
+	return err
+}
+
 // UserSignIn validates user name and password.
 func UserSignIn(username, password string) (*User, error) {
 	var user *User
