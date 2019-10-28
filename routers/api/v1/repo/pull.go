@@ -305,7 +305,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		}
 	}
 
-	if err := pull_service.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch); err != nil {
+	if err := pull_service.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
 			return
@@ -314,11 +314,6 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		return
 	} else if err := pr.PushToBaseRepo(); err != nil {
 		ctx.Error(500, "PushToBaseRepo", err)
-		return
-	}
-
-	if err := issue_service.AddAssignees(prIssue, ctx.User, assigneeIDs); err != nil {
-		ctx.ServerError("AddAssignees", err)
 		return
 	}
 
