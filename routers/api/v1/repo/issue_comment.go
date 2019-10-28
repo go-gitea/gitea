@@ -196,8 +196,6 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		return
 	}
 
-	notification.NotifyCreateIssueComment(ctx.User, ctx.Repo.Repository, issue, comment)
-
 	ctx.JSON(201, comment.APIFormat())
 }
 
@@ -304,8 +302,6 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		ctx.Error(500, "UpdateComment", err)
 		return
 	}
-
-	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
 
 	ctx.JSON(200, comment.APIFormat())
 }

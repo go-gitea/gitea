@@ -1324,8 +1324,6 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
-	notification.NotifyCreateIssueComment(ctx.User, ctx.Repo.Repository, issue, comment)
-
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
 }
 
@@ -1374,8 +1372,6 @@ func UpdateCommentContent(ctx *context.Context) {
 	if err := updateAttachments(comment, files); err != nil {
 		ctx.ServerError("UpdateAttachments", err)
 	}
-
-	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
 
 	ctx.JSON(200, map[string]interface{}{
 		"content":     string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
