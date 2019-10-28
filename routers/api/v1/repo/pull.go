@@ -392,14 +392,13 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	}
 
 	// Update Deadline
-	var deadlineUnix timeutil.TimeStamp
-	if form.Deadline != nil && !form.Deadline.IsZero() {
-		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
-	}
-
-	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
-		ctx.Error(500, "UpdateIssueDeadline", err)
-		return
+	if form.Deadline != nil {
+		deadlineUnix := timeutil.TimeStamp(form.Deadline.Unix())
+		if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
+			ctx.Error(500, "UpdateIssueDeadline", err)
+			return
+		}
+		issue.DeadlineUnix = deadlineUnix
 	}
 
 	// Add/delete assignees
@@ -449,7 +448,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		return
 	}
 	if form.State != nil {
-		if err = issue.ChangeStatus(ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
+		if err = issue_service.ChangeStatus(issue, ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
 			if models.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
 				return
@@ -457,8 +456,6 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 			ctx.Error(500, "ChangeStatus", err)
 			return
 		}
-
-		notification.NotifyIssueChangeStatus(ctx.User, issue, api.StateClosed == api.StateType(*form.State))
 	}
 
 	// Refetch from database

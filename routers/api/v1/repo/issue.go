@@ -254,7 +254,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	notification.NotifyNewIssue(issue)
 
 	if form.Closed {
-		if err := issue.ChangeStatus(ctx.User, true); err != nil {
+		if err := issue_service.ChangeStatus(issue, ctx.User, true); err != nil {
 			if models.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
 				return
@@ -336,14 +336,13 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 
 	// Update the deadline
-	var deadlineUnix timeutil.TimeStamp
-	if form.Deadline != nil && !form.Deadline.IsZero() && ctx.Repo.CanWrite(models.UnitTypeIssues) {
-		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
-	}
-
-	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
-		ctx.Error(500, "UpdateIssueDeadline", err)
-		return
+	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
+		deadlineUnix := timeutil.TimeStamp(form.Deadline.Unix())
+		if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
+			ctx.Error(500, "UpdateIssueDeadline", err)
+			return
+		}
+		issue.DeadlineUnix = deadlineUnix
 	}
 
 	// Add/delete assignees
@@ -382,7 +381,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		return
 	}
 	if form.State != nil {
-		if err = issue.ChangeStatus(ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
+		if err = issue_service.ChangeStatus(issue, ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
 			if models.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
 				return
@@ -390,8 +389,6 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 			ctx.Error(500, "ChangeStatus", err)
 			return
 		}
-
-		notification.NotifyIssueChangeStatus(ctx.User, issue, api.StateClosed == api.StateType(*form.State))
 	}
 
 	// Refetch from database to assign some automatic values
