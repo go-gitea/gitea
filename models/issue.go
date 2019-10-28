@@ -674,45 +674,6 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
-	sess.Close()
-
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if issue.IsPull {
-		if err = issue.loadPullRequest(sess); err != nil {
-			return err
-		}
-		// Merge pull request calls issue.changeStatus so we need to handle separately.
-		apiPullRequest := &api.PullRequestPayload{
-			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
-			Sender:      doer.APIFormat(),
-		}
-		if isClosed {
-			apiPullRequest.Action = api.HookIssueClosed
-		} else {
-			apiPullRequest.Action = api.HookIssueReOpened
-		}
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, apiPullRequest)
-	} else {
-		apiIssue := &api.IssuePayload{
-			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     doer.APIFormat(),
-		}
-		if isClosed {
-			apiIssue.Action = api.HookIssueClosed
-		} else {
-			apiIssue.Action = api.HookIssueReOpened
-		}
-		err = PrepareWebhooks(issue.Repo, HookEventIssues, apiIssue)
-	}
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
-	} else {
-		go HookQueue.Add(issue.Repo.ID)
-	}
 
 	return nil
 }
