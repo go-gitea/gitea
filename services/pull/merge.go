@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -404,28 +403,22 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	}
 
 	// Prefixing '/' for each entry, otherwise all files with the same name in subdirectories would be matched.
-	rightTrailingSpacesRE := regexp.MustCompile(`\ +$`)
-	optionalNPrefixRE := regexp.MustCompile(`(?:^|/)(!.+?)$`)
-
 	out := bytes.Buffer{}
 	scanner := bufio.NewScanner(strings.NewReader(list))
 	scanner.Split(scanNullTerminatedStrings)
 	for scanner.Scan() {
 		filepath := scanner.Text()
 
-		// Trailing spaces
-		filepath = rightTrailingSpacesRE.ReplaceAllStringFunc(filepath, func(s string) string {
-			return strings.Repeat(`\ `, len(s))
-		})
+		// escape '\', '*', '?', '[', spaces and '!' prefix
+		// replace '\' first
+		filepath = strings.ReplaceAll(filepath, `\`, `\\`)
+		filepath = strings.ReplaceAll(filepath, "*", `\*`)
+		filepath = strings.ReplaceAll(filepath, "?", `\?`)
+		filepath = strings.ReplaceAll(filepath, "[", `\[`)
+		filepath = strings.ReplaceAll(filepath, " ", `\ `)
+		filepath = strings.ReplaceAll(filepath, "!", `\!`)
 
-		// An optional prefix !
-		filepath = optionalNPrefixRE.ReplaceAllString(filepath, `\$1`)
-
-		// * ? [
-		filepath = strings.Replace(filepath, "*", `\*`, -1)
-		filepath = strings.Replace(filepath, "?", `\?`, -1)
-		filepath = strings.Replace(filepath, "[", `\[`, -1)
-fmt.Printf("%s\n", filepath)
+		// no necessary to escape the first '#' symbol because the first symbol is '/'
 		fmt.Fprintf(&out, "/%s\n", filepath)
 	}
 
