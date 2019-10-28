@@ -413,7 +413,7 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 		filepath := scanner.Text()
 
 		// replace '\' first
-		filepath = strings.ReplaceAll(filepath, `\`, `\\`)
+		filepath = strings.Replace(filepath, `\`, `\\`, -1)
 		// escape '*', '?', '[', spaces and '!' prefix
 		filepath = escapedSymbols.ReplaceAllString(filepath, `\$1`)
 
