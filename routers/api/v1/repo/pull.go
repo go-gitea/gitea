@@ -392,14 +392,13 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	}
 
 	// Update Deadline
-	var deadlineUnix timeutil.TimeStamp
-	if form.Deadline != nil && !form.Deadline.IsZero() {
-		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
-	}
-
-	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
-		ctx.Error(500, "UpdateIssueDeadline", err)
-		return
+	if form.Deadline != nil {
+		deadlineUnix := timeutil.TimeStamp(form.Deadline.Unix())
+		if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
+			ctx.Error(500, "UpdateIssueDeadline", err)
+			return
+		}
+		issue.DeadlineUnix = deadlineUnix
 	}
 
 	// Add/delete assignees
