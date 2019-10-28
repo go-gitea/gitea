@@ -212,11 +212,11 @@ footer .ui.left,footer .ui.right{line-height:40px}
 }
 #user-heatmap .total-contributions{text-align:left;font-weight:500;margin-top:0}
 .heatmap-color-0{background-color:#f4f4f4}
-.heatmap-color-1{background-color:#d7e5db}
-.heatmap-color-2{background-color:#adc7ab}
-.heatmap-color-3{background-color:#83a87b}
-.heatmap-color-4{background-color:#598a4b}
-.heatmap-color-5{background-color:#2f6b1b}
+.heatmap-color-1{background-color:#d8efbf}
+.heatmap-color-2{background-color:#9fdb81}
+.heatmap-color-3{background-color:#66c74b}
+.heatmap-color-4{background-color:#609926}
+.heatmap-color-5{background-color:#025900}
 .archived-icon{color:#b3b3b3!important}
 .oauth2-authorize-application-box{margin-top:3em!important}
 .ui.tabular.menu .item{color:rgba(0,0,0,.5)}
