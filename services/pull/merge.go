@@ -375,7 +375,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	return nil
 }
 
-var escapedSymbols = regexp.MustCompile(`([*[?! ])`)
+var escapedSymbols = regexp.MustCompile(`([*[?! \\])`)
 
 func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	getDiffTreeFromBranch := func(repoPath, baseBranch, headBranch string) (string, error) {
@@ -411,12 +411,8 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	scanner.Split(scanNullTerminatedStrings)
 	for scanner.Scan() {
 		filepath := scanner.Text()
-
-		// replace '\' first
-		filepath = strings.Replace(filepath, `\`, `\\`, -1)
 		// escape '*', '?', '[', spaces and '!' prefix
 		filepath = escapedSymbols.ReplaceAllString(filepath, `\$1`)
-
 		// no necessary to escape the first '#' symbol because the first symbol is '/'
 		fmt.Fprintf(&out, "/%s\n", filepath)
 	}
