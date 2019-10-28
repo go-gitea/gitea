@@ -262,3 +262,18 @@ func (m *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *mode
 		go models.HookQueue.Add(issue.Repo.ID)
 	}
 }
+
+func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue) {
+	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
+	if err := models.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+		Action:     api.HookIssueOpened,
+		Index:      issue.Index,
+		Issue:      issue.APIFormat(),
+		Repository: issue.Repo.APIFormat(mode),
+		Sender:     issue.Poster.APIFormat(),
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	} else {
+		go models.HookQueue.Add(issue.RepoID)
+	}
+}

@@ -574,7 +574,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		Content:     form.Content,
 		Ref:         form.Ref,
 	}
-	if err := issue_service.NewIssue(repo, issue, labelIDs, attachments); err != nil {
+	if err := issue_service.NewIssue(repo, issue, labelIDs, attachments, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
@@ -582,13 +582,6 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		ctx.ServerError("NewIssue", err)
 		return
 	}
-
-	if err := issue_service.AddAssignees(issue, ctx.User, assigneeIDs); err != nil {
-		log.Error("AddAssignees: %v", err)
-		ctx.Flash.Error(ctx.Tr("issues.assignee.error"))
-	}
-
-	notification.NotifyNewIssue(issue)
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
