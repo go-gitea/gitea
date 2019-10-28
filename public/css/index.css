@@ -247,6 +247,7 @@ i.icon.centerlock{top:1.5em}
 .code-view :not(.fa):not(.octicon):not(.icon){font-size:12px;font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;line-height:20px}
 .code-view table{width:100%}
 .code-view .active{background:#fff866}
+.octicon-tiny{font-size:.85714286rem}
 .markdown:not(code){overflow:hidden;font-size:16px;line-height:1.6!important;word-wrap:break-word}
 .markdown:not(code).ui.segment{padding:3em}
 .markdown:not(code).file-view{padding:2em 2em 2em!important}

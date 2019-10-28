@@ -38,6 +38,7 @@ import (
 
 const (
 	tplSettingsLFS         base.TplName = "repo/settings/lfs"
+	tplSettingsLFSLocks    base.TplName = "repo/settings/lfs_locks"
 	tplSettingsLFSFile     base.TplName = "repo/settings/lfs_file"
 	tplSettingsLFSFileFind base.TplName = "repo/settings/lfs_file_find"
 	tplSettingsLFSPointers base.TplName = "repo/settings/lfs_pointers"
@@ -58,6 +59,7 @@ func LFSFiles(ctx *context.Context) {
 		ctx.ServerError("LFSFiles", err)
 		return
 	}
+	ctx.Data["Total"] = total
 
 	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs")
@@ -70,6 +72,71 @@ func LFSFiles(ctx *context.Context) {
 	ctx.Data["LFSFiles"] = lfsMetaObjects
 	ctx.Data["Page"] = pager
 	ctx.HTML(200, tplSettingsLFS)
+}
+
+// LFSLocks shows a repository's LFS locks
+func LFSLocks(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		ctx.NotFound("LFSLocks", nil)
+		return
+	}
+	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
+
+	page := ctx.QueryInt("page")
+	if page <= 1 {
+		page = 1
+	}
+	total, err := models.CountLFSLockByRepoID(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("LFSLocks", err)
+		return
+	}
+	ctx.Data["Total"] = total
+
+	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
+	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs_locks")
+	ctx.Data["PageIsSettingsLFS"] = true
+	lfsLocks, err := models.GetLFSLockByRepoID(ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.UI.ExplorePagingNum)
+	if err != nil {
+		ctx.ServerError("LFSLocks", err)
+		return
+	}
+	ctx.Data["LFSLocks"] = lfsLocks
+	ctx.Data["Page"] = pager
+	ctx.HTML(200, tplSettingsLFSLocks)
+}
+
+// LFSLockFile locks a file
+func LFSLockFile(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		ctx.NotFound("LFSLocks", nil)
+		return
+	}
+	path := ctx.Query("path")
+	_, err := models.CreateLFSLock(&models.LFSLock{
+		Repo:  ctx.Repo.Repository,
+		Path:  path,
+		Owner: ctx.User,
+	})
+	if err != nil {
+		ctx.ServerError("LFSLockFile", err)
+		return
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+}
+
+// LFSUnlock forcibly unlocks an LFS lock
+func LFSUnlock(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		ctx.NotFound("LFSUnlock", nil)
+		return
+	}
+	_, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.User, true)
+	if err != nil {
+		ctx.ServerError("LFSUnlock", err)
+		return
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
 }
 
 // LFSFileGet serves a single LFS file
