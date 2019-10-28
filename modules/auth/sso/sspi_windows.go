@@ -104,10 +104,7 @@ func (s *SSPI) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models.
 		sspiAuth.AppendAuthenticateHeader(ctx.Resp, outToken)
 	}
 
-	newSep := cfg.SeparatorReplacement
-	username := strings.ReplaceAll(userInfo.Username, "\\", newSep)
-	username = strings.ReplaceAll(username, "/", newSep)
-	username = strings.ReplaceAll(username, "@", newSep)
+	username := sanitizeUsername(userInfo.Username, cfg)
 	log.Info("Authenticated as %s\n", username)
 	if len(username) == 0 {
 		return nil
@@ -211,6 +208,45 @@ func isPublicPage(ctx *macaron.Context) bool {
 			path == "/explore/users" ||
 			path == "/explore/organizations" ||
 			path == "/explore/code"))
+}
+
+// stripDomainNames removes NETBIOS domain name and separator from down-level logon names
+// (eg. "DOMAIN\user" becomes "user"), and removes the UPN suffix (domain name) and separator
+// from UPNs (eg. "user@domain.local" becomes "user")
+func stripDomainNames(username string) string {
+	if strings.Contains(username, "\\") {
+		parts := strings.SplitN(username, "\\", 2)
+		if len(parts) > 1 {
+			username = parts[1]
+		}
+	} else if strings.Contains(username, "@") {
+		parts := strings.Split(username, "@")
+		if len(parts) > 1 {
+			username = parts[0]
+		}
+	}
+	return username
+}
+
+func replaceSeparators(username string, cfg *models.SSPIConfig) string {
+	newSep := cfg.SeparatorReplacement
+	username = strings.ReplaceAll(username, "\\", newSep)
+	username = strings.ReplaceAll(username, "/", newSep)
+	username = strings.ReplaceAll(username, "@", newSep)
+	return username
+}
+
+func sanitizeUsername(username string, cfg *models.SSPIConfig) string {
+	if len(username) == 0 {
+		return ""
+	}
+	if cfg.StripDomainNames {
+		username = stripDomainNames(username)
+	}
+	// Replace separators even if we have already stripped the domain name part,
+	// as the username can contain several separators: eg. "MICROSOFT\useremail@live.com"
+	username = replaceSeparators(username, cfg)
+	return username
 }
 
 // handleSignIn clears existing session variables and stores new ones for the specified user object

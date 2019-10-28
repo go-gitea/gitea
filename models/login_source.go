@@ -147,6 +147,7 @@ func (cfg *OAuth2Config) ToDB() ([]byte, error) {
 type SSPIConfig struct {
 	AutoCreateUsers      bool
 	AutoActivateUsers    bool
+	StripDomainNames     bool
 	SeparatorReplacement string
 	DefaultLanguage      string
 }

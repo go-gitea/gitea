@@ -230,6 +230,13 @@
 							<p class="help">{{.i18n.Tr "admin.auths.sspi_auto_activate_users_helper"}}</p>
 						</div>
 					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<label for="sspi_strip_domain_names"><strong>{{.i18n.Tr "admin.auths.sspi_strip_domain_names"}}</strong></label>
+							<input id="sspi_strip_domain_names" name="sspi_strip_domain_names" class="sspi-strip-domain-names" type="checkbox" {{if $cfg.StripDomainNames}}checked{{end}}>
+							<p class="help">{{.i18n.Tr "admin.auths.sspi_strip_domain_names_helper"}}</p>
+						</div>
+					</div>
 					<div class="required field">
 						<label for="sspi_separator_replacement">{{.i18n.Tr "admin.auths.sspi_separator_replacement"}}</label>
 						<input id="sspi_separator_replacement" name="sspi_separator_replacement" value="{{$cfg.SeparatorReplacement}}" required>

@@ -84,6 +84,7 @@ func NewAuthSource(ctx *context.Context) {
 
 	ctx.Data["SSPIAutoCreateUsers"] = true
 	ctx.Data["SSPIAutoActivateUsers"] = true
+	ctx.Data["SSPIStripDomainNames"] = true
 	ctx.Data["SSPISeparatorReplacement"] = "_"
 	ctx.Data["SSPIDefaultLanguage"] = "en-US"
 
@@ -162,6 +163,7 @@ func parseSSPIConfig(form auth.AuthenticationForm) *models.SSPIConfig {
 	return &models.SSPIConfig{
 		AutoCreateUsers:      form.SSPIAutoCreateUsers,
 		AutoActivateUsers:    form.SSPIAutoActivateUsers,
+		StripDomainNames:     form.SSPIStripDomainNames,
 		SeparatorReplacement: form.SSPISeparatorReplacement,
 		DefaultLanguage:      form.SSPIDefaultLanguage,
 	}
@@ -183,6 +185,7 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 
 	ctx.Data["SSPIAutoCreateUsers"] = true
 	ctx.Data["SSPIAutoActivateUsers"] = true
+	ctx.Data["SSPIStripDomainNames"] = true
 	ctx.Data["SSPISeparatorReplacement"] = "_"
 	ctx.Data["SSPIDefaultLanguage"] = "en-US"
 
