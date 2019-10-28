@@ -98,6 +98,7 @@ func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models
 
 func (r *indexerNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
 	issue_indexer.DeleteRepoIssueIndexer(repo)
+	models.DeleteRepoFromIndexer(repo)
 }
 
 func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {

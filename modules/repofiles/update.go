@@ -385,7 +385,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
 		if !contentStore.Exists(lfsMetaObject) {
 			if err := contentStore.Put(lfsMetaObject, strings.NewReader(opts.Content)); err != nil {
-				if err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
+				if _, err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
 					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
 				}
 				return nil, err
