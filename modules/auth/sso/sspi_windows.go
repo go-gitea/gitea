@@ -54,12 +54,7 @@ func (s *SSPI) Free() error {
 
 // IsEnabled checks if there is an active SSPI authentication source
 func (s *SSPI) IsEnabled() bool {
-	sources, err := models.ActiveLoginSources(models.LoginSSPI)
-	if err != nil {
-		log.Warn("Could not get login sources: %v\n", err)
-		return false
-	}
-	return len(sources) > 0
+	return models.IsSSPIEnabled()
 }
 
 // Priority determines the order in which authentication methods are executed.
