@@ -11,10 +11,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -107,31 +105,7 @@ func DeleteComment(comment *models.Comment, doer *models.User) error {
 		return err
 	}
 
-	if err := comment.LoadPoster(); err != nil {
-		return err
-	}
-	if err := comment.LoadIssue(); err != nil {
-		return err
-	}
-
-	if err := comment.Issue.LoadAttributes(); err != nil {
-		return err
-	}
-
-	mode, _ := models.AccessLevel(doer, comment.Issue.Repo)
-
-	if err := models.PrepareWebhooks(comment.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentDeleted,
-		Issue:      comment.Issue.APIFormat(),
-		Comment:    comment.APIFormat(),
-		Repository: comment.Issue.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-		IsPull:     comment.Issue.IsPull,
-	}); err != nil {
-		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
-	} else {
-		go models.HookQueue.Add(comment.Issue.Repo.ID)
-	}
+	notification.NotifyDeleteComment(doer, comment)
 
 	return nil
 }

@@ -367,3 +367,34 @@ func (m *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *mode
 		go models.HookQueue.Add(repo.ID)
 	}
 }
+
+func (m *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models.Comment) {
+	if err := comment.LoadPoster(); err != nil {
+		log.Error("LoadPoster: %v", err)
+		return
+	}
+	if err := comment.LoadIssue(); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+
+	if err := comment.Issue.LoadAttributes(); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(doer, comment.Issue.Repo)
+
+	if err := models.PrepareWebhooks(comment.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+		Action:     api.HookIssueCommentDeleted,
+		Issue:      comment.Issue.APIFormat(),
+		Comment:    comment.APIFormat(),
+		Repository: comment.Issue.Repo.APIFormat(mode),
+		Sender:     doer.APIFormat(),
+		IsPull:     comment.Issue.IsPull,
+	}); err != nil {
+		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+	} else {
+		go models.HookQueue.Add(comment.Issue.Repo.ID)
+	}
+}

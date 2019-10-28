@@ -10,7 +10,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
 	comment_service "code.gitea.io/gitea/services/comments"
 )
@@ -391,8 +390,6 @@ func deleteIssueComment(ctx *context.APIContext) {
 		ctx.Error(500, "DeleteCommentByID", err)
 		return
 	}
-
-	notification.NotifyDeleteComment(ctx.User, comment)
 
 	ctx.Status(204)
 }
