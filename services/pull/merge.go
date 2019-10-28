@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -374,6 +375,8 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	return nil
 }
 
+var escapedSymbols = regexp.MustCompile(`([*[?! ])`)
+
 func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	getDiffTreeFromBranch := func(repoPath, baseBranch, headBranch string) (string, error) {
 		var outbuf, errbuf strings.Builder
@@ -409,14 +412,10 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	for scanner.Scan() {
 		filepath := scanner.Text()
 
-		// escape '\', '*', '?', '[', spaces and '!' prefix
 		// replace '\' first
 		filepath = strings.ReplaceAll(filepath, `\`, `\\`)
-		filepath = strings.ReplaceAll(filepath, "*", `\*`)
-		filepath = strings.ReplaceAll(filepath, "?", `\?`)
-		filepath = strings.ReplaceAll(filepath, "[", `\[`)
-		filepath = strings.ReplaceAll(filepath, " ", `\ `)
-		filepath = strings.ReplaceAll(filepath, "!", `\!`)
+		// escape '*', '?', '[', spaces and '!' prefix
+		filepath = escapedSymbols.ReplaceAllString(filepath, `\$1`)
 
 		// no necessary to escape the first '#' symbol because the first symbol is '/'
 		fmt.Fprintf(&out, "/%s\n", filepath)
