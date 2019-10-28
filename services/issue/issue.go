@@ -10,13 +10,18 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	api "code.gitea.io/gitea/modules/structs"
 )
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uuids []string) error {
+func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
 	if err := models.NewIssue(repo, issue, labelIDs, uuids); err != nil {
 		return err
+	}
+
+	for _, assigneeID := range assigneeIDs {
+		if err := AddAssigneeIfNotAssigned(issue, issue.Poster, assigneeID); err != nil {
+			return err
+		}
 	}
 
 	if err := models.NotifyWatchers(&models.Action{
@@ -31,18 +36,7 @@ func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uu
 		log.Error("NotifyWatchers: %v", err)
 	}
 
-	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
-	if err := models.PrepareWebhooks(repo, models.HookEventIssues, &api.IssuePayload{
-		Action:     api.HookIssueOpened,
-		Index:      issue.Index,
-		Issue:      issue.APIFormat(),
-		Repository: repo.APIFormat(mode),
-		Sender:     issue.Poster.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go models.HookQueue.Add(issue.RepoID)
-	}
+	notification.NotifyNewIssue(issue)
 
 	return nil
 }
@@ -147,15 +141,5 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *models.User, assigneeID
 		return err
 	}
 
-	return nil
-}
-
-// AddAssignees adds a list of assignes (from IDs) to an issue
-func AddAssignees(issue *models.Issue, doer *models.User, assigneeIDs []int64) (err error) {
-	for _, assigneeID := range assigneeIDs {
-		if err = AddAssigneeIfNotAssigned(issue, doer, assigneeID); err != nil {
-			return err
-		}
-	}
 	return nil
 }
