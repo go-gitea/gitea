@@ -793,6 +793,7 @@ i.icon.centerlock{top:1.5em}
 .repository .segment.reactions .select-reaction{float:none}
 .repository .segment.reactions .select-reaction:not(.active) a{display:none}
 .repository .segment.reactions:hover .select-reaction a{display:block}
+.repository .ui.fluid.action.input .ui.search.action.input{flex:auto}
 .user-cards .list{padding:0;display:flex;flex-wrap:wrap}
 .user-cards .list .item{list-style:none;width:32%;margin:10px 10px 10px 0;padding-bottom:14px;float:left}
 .user-cards .list .item .avatar{width:48px;height:48px;float:left;display:block;margin-right:10px}
