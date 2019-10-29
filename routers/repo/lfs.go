@@ -143,7 +143,10 @@ func LFSLocks(ctx *context.Context) {
 		filenames[i] = lock.Path
 	}
 
-	gitRepo.ReadTreeToIndex(ctx.Repo.Repository.DefaultBranch)
+	if err := gitRepo.ReadTreeToIndex(ctx.Repo.Repository.DefaultBranch); err != nil {
+		log.Error("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err)
+		ctx.ServerError("LFSLocks", fmt.Errorf("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err))
+	}
 
 	name2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
 		Attributes: []string{"lockable"},
