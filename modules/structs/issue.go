@@ -113,3 +113,9 @@ type EditPriorityOption struct {
 	// required:true
 	Priority int `json:"priority"`
 }
+
+// IssueWatchers list of subscribers of an issue
+type IssueWatchers struct {
+	// required:true
+	Subscribers []string `json:"subscribers"`
+}

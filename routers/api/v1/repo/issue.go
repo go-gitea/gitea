@@ -598,3 +598,208 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 
 	ctx.Status(201)
 }
+
+// AddIssueSubscription add user to subscription list
+func AddIssueSubscription(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/issues/{index}/subscriptions/{user} issue issueAddSubscription
+	// ---
+	// summary: Add user to subscription list
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: user
+	//   in: path
+	//   description: user witch subscribe to issue
+	//   type: string
+	//   required: true
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/empty"
+	//   "304":
+	//     description: User has no right to add subscribe of other user
+	//   "404":
+	//     description: Issue not found
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(500, "GetIssueByIndex", err)
+		}
+
+		return
+	}
+
+	user, err := models.GetUserByName(ctx.Params(":user"))
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(500, "GetUserByName", err)
+			return
+		}
+	}
+
+	if user.ID != ctx.User.ID && !ctx.User.IsAdmin {
+		ctx.Error(403, "User", nil)
+		return
+	}
+
+	if err := models.CreateOrUpdateIssueWatch(user.ID, issue.ID, true); err != nil {
+		ctx.Error(500, "CreateOrUpdateIssueWatch", err)
+		return
+	}
+
+	ctx.Status(201)
+}
+
+// DelIssueSubscription remove user to subscription list
+func DelIssueSubscription(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/subscriptions/{user} issue issueDeleteSubscription
+	// ---
+	// summary: Delete user from subscription list
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: user
+	//   in: path
+	//   description: user witch unsubscribe to issue
+	//   type: string
+	//   required: true
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/empty"
+	//   "304":
+	//     description: User has no right to remove subscribe of other user
+	//   "404":
+	//     description: Issue not found
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(500, "GetIssueByIndex", err)
+		}
+
+		return
+	}
+
+	user, err := models.GetUserByName(ctx.Params(":user"))
+	if err != nil {
+		if models.IsErrUserNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(500, "GetUserByName", err)
+			return
+		}
+	}
+
+	if user.ID != ctx.User.ID && !ctx.User.IsAdmin {
+		ctx.Error(403, "User", nil)
+		return
+	}
+
+	if err := models.CreateOrUpdateIssueWatch(user.ID, issue.ID, false); err != nil {
+		ctx.Error(500, "CreateOrUpdateIssueWatch", err)
+		return
+	}
+
+	ctx.Status(201)
+}
+
+// GetIssueWatchers return subscribers of an issue
+func GetIssueWatchers(ctx *context.APIContext, form api.IssueWatchers) {
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/subscriptions issue issueSubscriptions
+	// ---
+	// summary: Get users who subscribed on an issue.
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     description: Issue not found
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(500, "GetIssueByIndex", err)
+		}
+
+		return
+	}
+
+	var subscribers []string
+
+	iw, err := models.GetIssueWatchers(issue.ID)
+	if err != nil {
+		ctx.Error(500, "GetIssueWatchers", err)
+		return
+	}
+
+	for _, s := range iw {
+		user, err := models.GetUserByID(s.UserID)
+		if err != nil {
+			continue
+		}
+		subscribers = append(subscribers, user.LoginName)
+	}
+
+	ctx.JSON(200, api.IssueWatchers{Subscribers: subscribers})
+}
