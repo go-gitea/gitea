@@ -351,6 +351,7 @@ func IsSSPIEnabled() bool {
 	}
 	sources, err := ActiveLoginSources(LoginSSPI)
 	if err != nil {
+		log.Error("ActiveLoginSources: %v", err)
 		return false
 	}
 	return len(sources) > 0
