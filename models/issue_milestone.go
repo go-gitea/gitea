@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -291,7 +292,7 @@ func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
 
 	m.IsClosed = isClosed
 	if isClosed {
-		m.ClosedDateUnix = timeutil.TimeStampNow()
+		m.ClosedDateUnix = time.Now().Unix()
 	}
 
 	if err = updateMilestone(sess, m); err != nil {
