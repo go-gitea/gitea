@@ -154,6 +154,7 @@ func LFSLocks(ctx *context.Context) {
 		CachedOnly: true,
 	})
 	if err != nil {
+		log.Error("Unable to check attributes in %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", err)
 	}
 
@@ -168,8 +169,24 @@ func LFSLocks(ctx *context.Context) {
 		}
 		lockables[i] = true
 	}
-
 	ctx.Data["Lockables"] = lockables
+
+	filelist, err := gitRepo.LsFiles(filenames...)
+	if err != nil {
+		log.Error("Unable to lsfiles in %s (%v)", tmpBasePath, err)
+		ctx.ServerError("LFSLocks", err)
+	}
+
+	filemap := make(map[string]bool, len(filelist))
+	for _, name := range filelist {
+		filemap[name] = true
+	}
+
+	linkable := make([]bool, len(lfsLocks))
+	for i, lock := range lfsLocks {
+		linkable[i] = filemap[lock.Path]
+	}
+	ctx.Data["Linkable"] = linkable
 
 	ctx.Data["Page"] = pager
 	ctx.HTML(200, tplSettingsLFSLocks)
