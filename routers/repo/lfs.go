@@ -104,15 +104,51 @@ func LFSLocks(ctx *context.Context) {
 	}
 	ctx.Data["LFSLocks"] = lfsLocks
 
+	if len(lfsLocks) == 0 {
+		ctx.Data["Page"] = pager
+		ctx.HTML(200, tplSettingsLFSLocks)
+		return
+	}
+
+	// Clone base repo.
+	tmpBasePath, err := models.CreateTemporaryPath("locks")
+	if err != nil {
+		log.Error("Failed to create temporary path: %v", err)
+		ctx.ServerError("LFSLocks", err)
+		return
+	}
+	defer func() {
+		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
+			log.Error("LFSLocks: RemoveTemporaryPath: %v", err)
+		}
+	}()
+
+	if err := git.Clone(ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
+		Bare:   true,
+		Shared: true,
+	}); err != nil {
+		log.Error("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err)
+		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err))
+	}
+
+	gitRepo, err := git.OpenRepository(tmpBasePath)
+	if err != nil {
+		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
+		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to open new temporary repository in: %s %v", tmpBasePath, err))
+	}
+
 	filenames := make([]string, len(lfsLocks))
 
 	for i, lock := range lfsLocks {
 		filenames[i] = lock.Path
 	}
 
-	name2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
+	gitRepo.ReadTreeToIndex(ctx.Repo.Repository.DefaultBranch)
+
+	name2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
 		Attributes: []string{"lockable"},
 		Filenames:  filenames,
+		CachedOnly: true,
 	})
 	if err != nil {
 		ctx.ServerError("LFSLocks", err)
@@ -120,9 +156,14 @@ func LFSLocks(ctx *context.Context) {
 
 	lockables := make([]bool, len(lfsLocks))
 	for i, lock := range lfsLocks {
-		if _, has := name2attribute2info[lock.Path]; has {
-			lockables[i] = true
+		attribute2info, has := name2attribute2info[lock.Path]
+		if !has {
+			continue
 		}
+		if attribute2info["lockable"] != "set" {
+			continue
+		}
+		lockables[i] = true
 	}
 
 	ctx.Data["Lockables"] = lockables

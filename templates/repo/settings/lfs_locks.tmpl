@@ -24,7 +24,7 @@
 							<td>
 								<span class="octicon octicon-file-text"></span>
 								<a href="{{EscapePound $.RepoLink}}/src/branch/{{EscapePound $lock.Repo.DefaultBranch}}/{{EscapePound $lock.Path}}" title="{{$lock.Path}}">{{$lock.Path}}</a>
-								{{if index $.Lockables $index}}
+								{{if not (index $.Lockables $index)}}
 									<i class="octicon octicon-alert poping up" title="{{$.i18n.Tr "repo.settings.lfs_noattribute"}}"></i>
 								{{end}}
 							</td>
