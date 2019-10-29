@@ -178,6 +178,9 @@ type Repository struct {
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
 	BaseRepo                        *Repository        `xorm:"-"`
+	IsTemplate                      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	TemplateID                      int64              `xorm:"INDEX"`
+	TemplateRepo                    *Repository        `xorm:"-"`
 	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
 	IndexerStatus                   *RepoIndexerStatus `xorm:"-"`
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
@@ -659,6 +662,22 @@ func (repo *Repository) getBaseRepo(e Engine) (err error) {
 	}
 
 	repo.BaseRepo, err = getRepositoryByID(e, repo.ForkID)
+	return err
+}
+
+// GetTemplateRepo populates repo.TemplateRepo for a template repository and
+// returns an error on failure (NOTE: no error is returned for
+// non-template repositories, and TemplateRepo will be left untouched)
+func (repo *Repository) GetTemplateRepo() (err error) {
+	return repo.getTemplateRepo(x)
+}
+
+func (repo *Repository) getTemplateRepo(e Engine) (err error) {
+	if !repo.IsTemplate {
+		return nil
+	}
+
+	repo.TemplateRepo, err = getRepositoryByID(e, repo.TemplateID)
 	return err
 }
 

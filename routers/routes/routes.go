@@ -616,6 +616,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Combo("/:repoid").Get(repo.Fork).
 				Post(bindIgnErr(auth.CreateRepoForm{}), repo.ForkPost)
 		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
+		m.Group("/generate", func() {
+			m.Combo("/:repoid").Get(repo.TemplateGenerate).
+				Post(bindIgnErr(auth.CreateRepoForm{}), repo.TemplateGeneratePost)
+		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
 	}, reqSignIn)
 
 	// ***** Release Attachment Download without Signin

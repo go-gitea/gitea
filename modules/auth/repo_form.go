@@ -107,6 +107,7 @@ type RepoSettingForm struct {
 	MirrorUsername string
 	MirrorPassword string
 	Private        bool
+	Template       bool
 	EnablePrune    bool
 
 	// Advanced settings

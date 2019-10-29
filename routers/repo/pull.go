@@ -229,6 +229,93 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 	ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
 }
 
+// TemplateGenerate render repository template generate page
+func TemplateGenerate(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("template_generate")
+
+	getForkRepository(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	ctx.HTML(200, tplFork)
+}
+
+// TemplateGeneratePost response for generating a repository template
+func TemplateGeneratePost(ctx *context.Context, form auth.CreateRepoForm) {
+	ctx.Data["Title"] = ctx.Tr("template_generate")
+
+	ctxUser := checkContextUser(ctx, form.UID)
+	if ctx.Written() {
+		return
+	}
+
+	forkRepo := getForkRepository(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	ctx.Data["ContextUser"] = ctxUser
+
+	if ctx.HasError() {
+		ctx.HTML(200, tplFork)
+		return
+	}
+
+	var err error
+	var traverseParentRepo = forkRepo
+	for {
+		if ctxUser.ID == traverseParentRepo.OwnerID {
+			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
+			return
+		}
+		repo, has := models.HasForkedRepo(ctxUser.ID, traverseParentRepo.ID)
+		if has {
+			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+			return
+		}
+		if !traverseParentRepo.IsFork {
+			break
+		}
+		traverseParentRepo, err = models.GetRepositoryByID(traverseParentRepo.ForkID)
+		if err != nil {
+			ctx.ServerError("GetRepositoryByID", err)
+			return
+		}
+	}
+
+	// Check ownership of organization.
+	if ctxUser.IsOrganization() {
+		isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("IsOwnedBy", err)
+			return
+		} else if !isOwner {
+			ctx.Error(403)
+			return
+		}
+	}
+
+	repo, err := repo_service.ForkRepository(ctx.User, ctxUser, forkRepo, form.RepoName, form.Description)
+	if err != nil {
+		ctx.Data["Err_RepoName"] = true
+		switch {
+		case models.IsErrRepoAlreadyExist(err):
+			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
+		case models.IsErrNameReserved(err):
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tplFork, &form)
+		case models.IsErrNamePatternNotAllowed(err):
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplFork, &form)
+		default:
+			ctx.ServerError("ForkPost", err)
+		}
+		return
+	}
+
+	log.Trace("Repository forked[%d]: %s/%s", forkRepo.ID, ctxUser.Name, repo.Name)
+	ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+}
+
 func checkPullInfo(ctx *context.Context) *models.Issue {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
