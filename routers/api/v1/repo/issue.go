@@ -634,7 +634,7 @@ func AddIssueSubscription(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/empty"
 	//   "304":
-	//     description: User has no right to add subscribe of other user
+	//     description: User can only subscribe itself if he is no admin
 	//   "404":
 	//     description: Issue not found
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
@@ -707,7 +707,7 @@ func DelIssueSubscription(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/empty"
 	//   "304":
-	//     description: User has no right to remove subscribe of other user
+	//     description: User can only subscribe itself if he is no admin
 	//   "404":
 	//     description: Issue not found
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
