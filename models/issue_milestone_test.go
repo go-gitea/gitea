@@ -289,3 +289,9 @@ func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
 
 	assert.Equal(t, miles[0].TotalTrackedTime, int64(3662))
 }
+
+//TODO write tests for the following...
+//func (m *Milestone) LoadTotalTrackedTime() error {
+//func CountMilestonesByRepo(repoIDs []int64, isClosed bool) (map[int64]int64, error) {
+//func GetMilestonesByRepoIDs(repoIDs []int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
+//func GetUserMilestoneStats(userID int64, repoID int64, userRepoIDs []int64) (*UserMilestoneStats, error) {

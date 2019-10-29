@@ -31,3 +31,6 @@ func TestIssues(t *testing.T) {
 	assert.Len(t, ctx.Data["Issues"], 1)
 	assert.Len(t, ctx.Data["Repos"], 1)
 }
+
+//TODO write test for
+//func Milestones(ctx *context.Context) {
