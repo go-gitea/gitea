@@ -155,7 +155,7 @@ func (s *SSPI) shouldAuthenticate(ctx *macaron.Context) bool {
 // newUser creates a new user object for the purpose of automatic registration
 // and populates its name and email with the information present in request headers.
 func (s *SSPI) newUser(ctx *macaron.Context, username string, cfg *models.SSPIConfig) *models.User {
-	email := gouuid.NewV4().String() + "@example.org"
+	email := gouuid.NewV4().String() + "@localhost.localdomain"
 	user := &models.User{
 		Name:                         username,
 		Email:                        email,
