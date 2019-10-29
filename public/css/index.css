@@ -126,6 +126,7 @@ a{cursor:pointer}
 .ui .form .fake{display:none!important}
 .ui .form .sub.field{margin-left:25px}
 .ui .sha.label{font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;font-size:13px;padding:6px 10px 4px 10px;font-weight:400;margin:0 6px}
+.ui .button.truncate{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:top;white-space:nowrap;margin-right:6px}
 .ui.status.buttons .octicon{margin-right:4px}
 .ui.inline.delete-button{padding:8px 15px;font-weight:400}
 .ui .background.red{background-color:#d95c5c!important}
@@ -792,6 +793,7 @@ i.icon.centerlock{top:1.5em}
 .repository .segment.reactions .select-reaction{float:none}
 .repository .segment.reactions .select-reaction:not(.active) a{display:none}
 .repository .segment.reactions:hover .select-reaction a{display:block}
+.repository .ui.fluid.action.input .ui.search.action.input{flex:auto}
 .user-cards .list{padding:0;display:flex;flex-wrap:wrap}
 .user-cards .list .item{list-style:none;width:32%;margin:10px 10px 10px 0;padding-bottom:14px;float:left}
 .user-cards .list .item .avatar{width:48px;height:48px;float:left;display:block;margin-right:10px}
@@ -896,6 +898,7 @@ tbody.commit-list{vertical-align:baseline}
 .file-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px!important}
 .file-info{display:flex;align-items:center}
 .file-info-entry+.file-info-entry{border-left:1px solid currentColor;margin-left:8px;padding-left:8px}
+.title_wip_desc{margin-top:1em}
 .CodeMirror{font:14px 'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace}
 .CodeMirror.cm-s-default{border-radius:3px;padding:0!important}
 .CodeMirror .cm-comment{background:inherit!important}
