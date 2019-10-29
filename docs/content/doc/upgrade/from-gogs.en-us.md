@@ -74,6 +74,11 @@ After successful migration from `gogs` to `gitea 1.0.x`, it is possible to upgra
 Simply download the file matching the destination platform from the [downloads page](https://dl.gitea.io/gitea)
 and replace the binary.
 
+## Upgrading from a more recent version of Gogs
+
+Upgrading from a more recent version of Gogs is also possible, but requires a bit more work. 
+See [#4286](https://github.com/go-gitea/gitea/issues/4286).
+
 ## Troubleshooting
 
 * If errors are encountered relating to custom templates in the `gitea/custom/templates`

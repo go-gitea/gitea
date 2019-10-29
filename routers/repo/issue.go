@@ -631,7 +631,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		Content:     form.Content,
 		Ref:         form.Ref,
 	}
-	if err := issue_service.NewIssue(repo, issue, labelIDs, attachments); err != nil {
+	if err := issue_service.NewIssue(repo, issue, labelIDs, attachments, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
@@ -639,13 +639,6 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		ctx.ServerError("NewIssue", err)
 		return
 	}
-
-	if err := issue_service.AddAssignees(issue, ctx.User, assigneeIDs); err != nil {
-		log.Error("AddAssignees: %v", err)
-		ctx.Flash.Error(ctx.Tr("issues.assignee.error"))
-	}
-
-	notification.NotifyNewIssue(issue)
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
@@ -1131,13 +1124,10 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
-	oldTitle := issue.Title
 	if err := issue_service.ChangeTitle(issue, ctx.User, title); err != nil {
 		ctx.ServerError("ChangeTitle", err)
 		return
 	}
-
-	notification.NotifyIssueChangeTitle(ctx.User, issue, oldTitle)
 
 	ctx.JSON(200, map[string]interface{}{
 		"title": issue.Title,
@@ -1211,7 +1201,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	for _, issue := range issues {
 		switch action {
 		case "clear":
-			if err := models.DeleteNotPassedAssignee(issue, ctx.User, []*models.User{}); err != nil {
+			if err := issue_service.DeleteNotPassedAssignee(issue, ctx.User, []*models.User{}); err != nil {
 				ctx.ServerError("ClearAssignees", err)
 				return
 			}
@@ -1232,7 +1222,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 
-			removed, comment, err := issue.ToggleAssignee(ctx.User, assigneeID)
+			removed, comment, err := issue_service.ToggleAssignee(issue, ctx.User, assigneeID)
 			if err != nil {
 				ctx.ServerError("ToggleAssignee", err)
 				return
@@ -1269,7 +1259,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 	for _, issue := range issues {
 		if issue.IsClosed != isClosed {
-			if err := issue.ChangeStatus(ctx.User, isClosed); err != nil {
+			if err := issue_service.ChangeStatus(issue, ctx.User, isClosed); err != nil {
 				if models.IsErrDependenciesLeft(err) {
 					ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
 						"error": "cannot close this issue because it still has open dependencies",
@@ -1279,8 +1269,6 @@ func UpdateIssueStatus(ctx *context.Context) {
 				ctx.ServerError("ChangeStatus", err)
 				return
 			}
-
-			notification.NotifyIssueChangeStatus(ctx.User, issue, isClosed)
 		}
 	}
 	ctx.JSON(200, map[string]interface{}{
@@ -1370,7 +1358,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
 				isClosed := form.Status == "close"
-				if err := issue.ChangeStatus(ctx.User, isClosed); err != nil {
+				if err := issue_service.ChangeStatus(issue, ctx.User, isClosed); err != nil {
 					log.Error("ChangeStatus: %v", err)
 
 					if models.IsErrDependenciesLeft(err) {
@@ -1384,15 +1372,12 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 						return
 					}
 				} else {
-
 					if err := stopTimerIfAvailable(ctx.User, issue); err != nil {
 						ctx.ServerError("CreateOrStopIssueStopwatch", err)
 						return
 					}
 
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
-
-					notification.NotifyIssueChangeStatus(ctx.User, issue, isClosed)
 				}
 			}
 		}

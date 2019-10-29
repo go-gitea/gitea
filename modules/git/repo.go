@@ -117,6 +117,11 @@ func OpenRepository(repoPath string) (*Repository, error) {
 	}, nil
 }
 
+// GoGitRepo gets the go-git repo representation
+func (repo *Repository) GoGitRepo() *gogit.Repository {
+	return repo.gogitRepo
+}
+
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf strings.Builder
