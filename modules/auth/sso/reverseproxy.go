@@ -93,7 +93,7 @@ func (r *ReverseProxy) newUser(ctx *macaron.Context) *models.User {
 		return nil
 	}
 
-	email := gouuid.NewV4().String() + "@example.org"
+	email := gouuid.NewV4().String() + "@localhost"
 	if setting.Service.EnableReverseProxyEmail {
 		webAuthEmail := ctx.Req.Header.Get(setting.ReverseProxyAuthEmail)
 		if len(webAuthEmail) > 0 {
