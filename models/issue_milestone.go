@@ -290,6 +290,10 @@ func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
 	}
 
 	m.IsClosed = isClosed
+	if isClosed {
+		m.ClosedDateUnix = timeutil.TimeStampNow()
+	}
+
 	if err = updateMilestone(sess, m); err != nil {
 		return err
 	}
