@@ -105,11 +105,11 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 		return err
 	}
 	if ctx.RemoveOld {
-		var commentId int64
+		var commentID int64
 		if ctx.OrigComment != nil {
-			commentId = ctx.OrigComment.ID
+			commentID = ctx.OrigComment.ID
 		}
-		active, err := findOldCrossReferences(e, ctx.OrigIssue.ID, commentId)
+		active, err := findOldCrossReferences(e, ctx.OrigIssue.ID, commentID)
 		if err != nil {
 			return err
 		}
@@ -218,10 +218,6 @@ func (issue *Issue) findReferencedIssue(e Engine, ctx *crossReferencesContext, r
 		}
 	}
 	return refIssue, nil
-}
-
-func (issue *Issue) neuterCrossReferences(e Engine) error {
-	return neuterCrossReferences(e, issue.ID, 0)
 }
 
 // _________                                       __
