@@ -658,6 +658,7 @@ func AddIssueSubscription(ctx *context.APIContext) {
 		}
 	}
 
+	//only admin and user for itself can change subscription
 	if user.ID != ctx.User.ID && !ctx.User.IsAdmin {
 		ctx.Error(403, "User", nil)
 		return
@@ -730,6 +731,7 @@ func DelIssueSubscription(ctx *context.APIContext) {
 		}
 	}
 
+	//only admin and user for itself can change subscription
 	if user.ID != ctx.User.ID && !ctx.User.IsAdmin {
 		ctx.Error(403, "User", nil)
 		return
