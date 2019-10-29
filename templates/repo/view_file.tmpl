@@ -6,7 +6,7 @@
 				<strong>{{.FileName}}</strong>
 			{{else}}
 				<div class="file-info text grey normal mono">
-					{{if .NumLines}}
+					{{if .NumLinesSet}}
 						<div class="file-info-entry">
 							{{.NumLines}} {{.i18n.Tr (TrN .i18n.Lang .NumLines "repo.line" "repo.lines") }}
 						</div>
