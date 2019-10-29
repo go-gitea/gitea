@@ -654,8 +654,9 @@ func AddIssueSubscription(ctx *context.APIContext) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetUserByName", err)
-			return
 		}
+
+		return
 	}
 
 	//only admin and user for itself can change subscription
@@ -727,8 +728,9 @@ func DelIssueSubscription(ctx *context.APIContext) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetUserByName", err)
-			return
 		}
+
+		return
 	}
 
 	//only admin and user for itself can change subscription
