@@ -744,7 +744,7 @@ func DelIssueSubscription(ctx *context.APIContext) {
 }
 
 // GetIssueWatchers return subscribers of an issue
-func GetIssueWatchers(ctx *context.APIContext, form api.IssueWatchers) {
+func GetIssueWatchers(ctx *context.APIContext, form api.User) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/subscriptions issue issueSubscriptions
 	// ---
 	// summary: Get users who subscribed on an issue.
@@ -785,21 +785,20 @@ func GetIssueWatchers(ctx *context.APIContext, form api.IssueWatchers) {
 		return
 	}
 
-	var subscribers []string
-
 	iw, err := models.GetIssueWatchers(issue.ID)
 	if err != nil {
 		ctx.Error(500, "GetIssueWatchers", err)
 		return
 	}
 
-	for _, s := range iw {
+	subscribers := make([]*api.User, len(iw))
+	for i, s := range iw {
 		user, err := models.GetUserByID(s.UserID)
 		if err != nil {
 			continue
 		}
-		subscribers = append(subscribers, user.LoginName)
+		subscribers[i] = user.APIFormat()
 	}
 
-	ctx.JSON(200, api.IssueWatchers{Subscribers: subscribers})
+	ctx.JSON(200, subscribers)
 }
