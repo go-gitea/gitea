@@ -54,8 +54,7 @@ func findOldCrossReferences(e Engine, issueID int64, commentID int64) ([]*Commen
 	if commentID != 0 {
 		sess = sess.And("`ref_comment_id` = ?", commentID)
 	}
-	err := sess.Find(&active)
-	return active, err
+	return active, sess.Find(&active)
 }
 
 func neuterCrossReferences(e Engine, issueID int64, commentID int64) error {
