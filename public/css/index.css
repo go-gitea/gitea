@@ -898,6 +898,7 @@ tbody.commit-list{vertical-align:baseline}
 .file-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px!important}
 .file-info{display:flex;align-items:center}
 .file-info-entry+.file-info-entry{border-left:1px solid currentColor;margin-left:8px;padding-left:8px}
+.title_wip_desc{margin-top:1em}
 .CodeMirror{font:14px 'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace}
 .CodeMirror.cm-s-default{border-radius:3px;padding:0!important}
 .CodeMirror .cm-comment{background:inherit!important}
