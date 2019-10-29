@@ -52,7 +52,7 @@ type AuthenticationForm struct {
 	SSPIAutoCreateUsers           bool
 	SSPIAutoActivateUsers         bool
 	SSPIStripDomainNames          bool
-	SSPISeparatorReplacement      string `binding:"AlphaDashDot;MaxSize(5)"`
+	SSPISeparatorReplacement      string `binding:"AlphaDashDot;MaxSize(5)" locale:"form.sspi_separator_replacement"`
 	SSPIDefaultLanguage           string
 }
 
