@@ -699,11 +699,7 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 		return fmt.Errorf("createChangeTitleComment: %v", err)
 	}
 
-	if err = issue.neuterCrossReferences(sess); err != nil {
-		return err
-	}
-
-	if err = issue.addCrossReferences(sess, doer); err != nil {
+	if err = issue.addCrossReferences(sess, doer, true); err != nil {
 		return err
 	}
 
@@ -762,10 +758,8 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	if err = updateIssueCols(sess, issue, "content"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
-	if err = issue.neuterCrossReferences(sess); err != nil {
-		return err
-	}
-	if err = issue.addCrossReferences(sess, doer); err != nil {
+
+	if err = issue.addCrossReferences(sess, doer, true); err != nil {
 		return err
 	}
 
@@ -956,7 +950,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	if err = opts.Issue.loadAttributes(e); err != nil {
 		return err
 	}
-	return opts.Issue.addCrossReferences(e, doer)
+	return opts.Issue.addCrossReferences(e, doer, false)
 }
 
 // NewIssue creates new issue with labels for repository.
@@ -1568,13 +1562,10 @@ func UpdateIssue(issue *Issue) error {
 	if err := updateIssue(sess, issue); err != nil {
 		return err
 	}
-	if err := issue.neuterCrossReferences(sess); err != nil {
-		return err
-	}
 	if err := issue.loadPoster(sess); err != nil {
 		return err
 	}
-	if err := issue.addCrossReferences(sess, issue.Poster); err != nil {
+	if err := issue.addCrossReferences(sess, issue.Poster, true); err != nil {
 		return err
 	}
 	return sess.Commit()
