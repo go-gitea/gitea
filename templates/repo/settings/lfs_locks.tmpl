@@ -19,21 +19,24 @@
 			</div>
 			<table id="lfs-files-locks-table" class="ui attached segment single line table">
 				<tbody>
-					{{range .LFSLocks}}
+					{{range $index, $lock := .LFSLocks}}
 						<tr>
 							<td>
 								<span class="octicon octicon-file-text"></span>
-								<a href="{{EscapePound $.RepoLink}}/src/branch/{{EscapePound .Repo.DefaultBranch}}/{{EscapePound .Path}}" title="{{.Path}}">{{.Path}}</a>
+								<a href="{{EscapePound $.RepoLink}}/src/branch/{{EscapePound $lock.Repo.DefaultBranch}}/{{EscapePound $lock.Path}}" title="{{$lock.Path}}">{{$lock.Path}}</a>
+								{{if index $.Lockables $index}}
+									<i class="octicon octicon-alert poping up" title="{{$.i18n.Tr "repo.settings.lfs_noattribute"}}"></i>
+								{{end}}
 							</td>
 							<td>
-								<a href="{{$.AppSubUrl}}/{{.Owner.Name}}">
-									<img class="ui avatar image" src="{{.Owner.RelAvatarLink}}">
-									{{.Owner.DisplayName}}
+								<a href="{{$.AppSubUrl}}/{{$lock.Owner.Name}}">
+									<img class="ui avatar image" src="{{$lock.Owner.RelAvatarLink}}">
+									{{$lock.Owner.DisplayName}}
 								</a>
 							</td>
 							<td>{{TimeSince .Created $.Lang}}</td>
 							<td class="right aligned">
-								<form action="{{$.LFSFilesLink}}/locks/{{.ID}}/unlock" method="POST">
+								<form action="{{$.LFSFilesLink}}/locks/{{$lock.ID}}/unlock" method="POST">
 									{{$.CsrfTokenHtml}}
 									<button class="ui blue button"><i class="octicon octicon-lock btn-octicon"></i>{{$.i18n.Tr "repo.settings.lfs_force_unlock"}}</button>
 								</form>

@@ -12,6 +12,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -102,6 +103,30 @@ func LFSLocks(ctx *context.Context) {
 		return
 	}
 	ctx.Data["LFSLocks"] = lfsLocks
+
+	filenames := make([]string, len(lfsLocks))
+
+	for i, lock := range lfsLocks {
+		filenames[i] = lock.Path
+	}
+
+	name2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
+		Attributes: []string{"lockable"},
+		Filenames:  filenames,
+	})
+	if err != nil {
+		ctx.ServerError("LFSLocks", err)
+	}
+
+	lockables := make([]bool, len(lfsLocks))
+	for i, lock := range lfsLocks {
+		if _, has := name2attribute2info[lock.Path]; has {
+			lockables[i] = true
+		}
+	}
+
+	ctx.Data["Lockables"] = lockables
+
 	ctx.Data["Page"] = pager
 	ctx.HTML(200, tplSettingsLFSLocks)
 }
@@ -112,13 +137,39 @@ func LFSLockFile(ctx *context.Context) {
 		ctx.NotFound("LFSLocks", nil)
 		return
 	}
-	path := ctx.Query("path")
+	originalPath := ctx.Query("path")
+	lockPath := originalPath
+	if len(lockPath) == 0 {
+		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_locking_path", originalPath))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+		return
+	}
+	if lockPath[len(lockPath)-1] == '/' {
+		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_lock_directory", originalPath))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+		return
+	}
+	lockPath = path.Clean(lockPath)
+	if lockPath[0] == '/' {
+		lockPath = lockPath[1:]
+	}
+	if len(lockPath) == 0 {
+		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_locking_path", originalPath))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+		return
+	}
+
 	_, err := models.CreateLFSLock(&models.LFSLock{
 		Repo:  ctx.Repo.Repository,
-		Path:  path,
+		Path:  lockPath,
 		Owner: ctx.User,
 	})
 	if err != nil {
+		if models.IsErrLFSLockAlreadyExist(err) {
+			ctx.Flash.Error(ctx.Tr("repo.settings.lfs_lock_already_exists", originalPath))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+			return
+		}
 		ctx.ServerError("LFSLockFile", err)
 		return
 	}
