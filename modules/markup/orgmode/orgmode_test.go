@@ -45,10 +45,8 @@ func TestRender_Images(t *testing.T) {
 	}
 
 	url := "../../.images/src/02/train.jpg"
-	title := "Train"
 	result := util.URLJoin(AppSubURL, url)
 
-	test(
-		"[[file:"+url+"]["+title+"]]",
-		`<p><a href="`+result+`"><img src="`+result+`" alt="`+title+`" title="`+title+`" /></a></p>`)
+	test("[[file:"+url+"]]",
+		"<p>\n<img src=\""+result+"\" alt=\""+result+"\" title=\""+result+"\" />\n</p>")
 }
