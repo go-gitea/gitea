@@ -259,48 +259,10 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	// Merge commits.
 	switch mergeStyle {
 	case models.MergeStyleMerge:
-		if err := git.NewCommand("merge", "--no-ff", "--no-commit", trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
-			// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
-			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "MERGE_HEAD")); statErr == nil {
-				// We have a merge conflict error
-				log.Debug("MergeConflict [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return models.ErrMergeConflicts{
-					Style:  mergeStyle,
-					StdOut: outbuf.String(),
-					StdErr: errbuf.String(),
-					Err:    err,
-				}
-			} else if strings.Contains(err.Error(), "refusing to merge unrelated histories") {
-				log.Debug("MergeUnrelatedHistories [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return models.ErrMergeUnrelatedHistories{
-					Style:  mergeStyle,
-					StdOut: outbuf.String(),
-					StdErr: errbuf.String(),
-					Err:    err,
-				}
-			}
-			log.Error("git merge --no-ff --no-commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-			return fmt.Errorf("git merge --no-ff --no-commit[%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-		}
-		outbuf.Reset()
-		errbuf.Reset()
-
-		if signArg == "" {
-			if err := git.NewCommand("commit", "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
-				log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-			}
-		} else {
-			if err := git.NewCommand("commit", signArg, "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
-				log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-			}
-		}
-		outbuf.Reset()
-		errbuf.Reset()
+		fallthrough
 	case models.MergeStyleMergeUnrelated:
 		cmd := git.NewCommand("merge", "--no-ff", "--no-commit")
-		if version.Compare(binVersion, "2.9.0", ">=") {
+		if mergeStyle == models.MergeStyleMergeUnrelated && version.Compare(binVersion, "2.9.0", ">=") {
 			cmd.AddArguments("--allow-unrelated-histories")
 		}
 		cmd.AddArguments(trackingBranch)
