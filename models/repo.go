@@ -1341,6 +1341,54 @@ func prepareRepoCommit(e Engine, repo *Repository, tmpDir, repoPath string, opts
 	return nil
 }
 
+func generateRepoCommit(e Engine, repo, templateRepo *Repository, tmpDir string) error {
+	commitTimeStr := time.Now().Format(time.RFC3339)
+	authorSig := repo.Owner.NewGitSig()
+
+	// Because this may call hooks we should pass in the environment
+	env := append(os.Environ(),
+		"GIT_AUTHOR_NAME="+authorSig.Name,
+		"GIT_AUTHOR_EMAIL="+authorSig.Email,
+		"GIT_AUTHOR_DATE="+commitTimeStr,
+		"GIT_COMMITTER_NAME="+authorSig.Name,
+		"GIT_COMMITTER_EMAIL="+authorSig.Email,
+		"GIT_COMMITTER_DATE="+commitTimeStr,
+	)
+
+	// Clone to temporary path and do the init commit.
+	templateRepoPath := templateRepo.repoPath(e)
+	_, stderr, err := process.GetManager().ExecDirEnv(
+		-1, "",
+		fmt.Sprintf("generateRepoCommit(git clone): %s", templateRepoPath),
+		env,
+		git.GitExecutable, "clone", "--depth 1", templateRepoPath, tmpDir,
+	)
+	if err != nil {
+		return fmt.Errorf("git clone: %v - %s", err, stderr)
+	}
+
+	if err := os.RemoveAll(path.Join(tmpDir, ".git")); err != nil {
+		return fmt.Errorf("remove git dir: %v", err)
+	}
+
+	if err := git.InitRepository(tmpDir, false); err != nil {
+		return err
+	}
+
+	repoPath := repo.repoPath(e)
+	_, stderr, err = process.GetManager().ExecDirEnv(
+		-1, "",
+		fmt.Sprintf("generateRepoCommit(git remote add): %s", repoPath),
+		env,
+		git.GitExecutable, "remote", "add", "origin", repoPath,
+	)
+	if err != nil {
+		return fmt.Errorf("git remote add: %v - %s", err, stderr)
+	}
+
+	return initRepoCommit(tmpDir, repo.Owner)
+}
+
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts CreateRepoOptions) (err error) {
 	// Somehow the directory could exist.
@@ -1384,6 +1432,46 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 
 	if !opts.AutoInit {
 		repo.IsEmpty = true
+	}
+
+	repo.DefaultBranch = "master"
+	if err = updateRepository(e, repo, false); err != nil {
+		return fmt.Errorf("updateRepository: %v", err)
+	}
+
+	return nil
+}
+
+// generateRepository initializes repository from template
+func generateRepository(e Engine, repoPath string, u *User, repo, templateRepo *Repository) (err error) {
+	// Somehow the directory could exist.
+	if com.IsExist(repoPath) {
+		return fmt.Errorf("generateRepository: path already exists: %s", repoPath)
+	}
+
+	// Init git bare new repository.
+	if err = git.InitRepository(repoPath, true); err != nil {
+		return fmt.Errorf("InitRepository: %v", err)
+	} else if err = createDelegateHooks(repoPath); err != nil {
+		return fmt.Errorf("createDelegateHooks: %v", err)
+	}
+
+	tmpDir := filepath.Join(os.TempDir(), "gitea-"+repo.Name+"-"+com.ToStr(time.Now().Nanosecond()))
+
+	if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
+		return fmt.Errorf("Failed to create dir %s: %v", tmpDir, err)
+	}
+
+	defer os.RemoveAll(tmpDir)
+
+	if err = generateRepoCommit(e, repo, templateRepo, tmpDir); err != nil {
+		return fmt.Errorf("generateRepoCommit: %v", err)
+	}
+
+	// Re-fetch the repository from database before updating it (else it would
+	// override changes that were done earlier with sql)
+	if repo, err = getRepositoryByID(e, repo.ID); err != nil {
+		return fmt.Errorf("getRepositoryByID: %v", err)
 	}
 
 	repo.DefaultBranch = "master"
@@ -2616,6 +2704,68 @@ func ForkRepository(doer, owner *User, oldRepo *Repository, name, desc string) (
 
 	var lfsObjects []*LFSMetaObject
 	if err = sess2.Where("repository_id=?", oldRepo.ID).Find(&lfsObjects); err != nil {
+		return repo, err
+	}
+
+	for _, v := range lfsObjects {
+		v.ID = 0
+		v.RepositoryID = repo.ID
+		if _, err = sess2.Insert(v); err != nil {
+			return repo, err
+		}
+	}
+
+	return repo, sess2.Commit()
+}
+
+// GenerateRepository generates a repository from a template
+func GenerateRepository(doer, owner *User, templateRepo *Repository, name, desc string, private bool) (_ *Repository, err error) {
+	repo := &Repository{
+		OwnerID:     owner.ID,
+		Owner:       owner,
+		Name:        name,
+		LowerName:   strings.ToLower(name),
+		Description: desc,
+		IsPrivate:   private,
+		IsEmpty:     templateRepo.IsEmpty,
+		IsTemplate:  true,
+		TemplateID:  templateRepo.ID,
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	if err = createRepository(sess, doer, owner, repo); err != nil {
+		return nil, err
+	}
+
+	repoPath := RepoPath(owner.Name, repo.Name)
+	if err := generateRepository(sess, repoPath, owner, repo, templateRepo); err != nil {
+		return nil, err
+	}
+
+	//Commit repo to get Fork ID
+	err = sess.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	if err = repo.UpdateSize(); err != nil {
+		log.Error("Failed to update size for repository: %v", err)
+	}
+
+	// Copy LFS meta objects in new session
+	sess2 := x.NewSession()
+	defer sess2.Close()
+	if err = sess2.Begin(); err != nil {
+		return repo, err
+	}
+
+	var lfsObjects []*LFSMetaObject
+	if err = sess2.Where("repository_id=?", templateRepo.ID).Find(&lfsObjects); err != nil {
 		return repo, err
 	}
 
