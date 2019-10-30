@@ -289,6 +289,30 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * wiki - editor - add buttons 'inline code', 'empty checkbox', 'checked checkbox' (#7243)
   * Fix Statuses API only shows first 10 statuses: Add paging and extend API GetCommitStatuses (#7141)
 
+## [1.9.5](https://github.com/go-gitea/gitea/releases/tag/v1.9.5) - 2019-10-30
+* BREAKING
+  * Hide some user information via API if user doesn't have enough permission (#8655) (#8658)
+* BUGFIXES
+  * Fix milestone close timestamp (#8728) (#8731)
+  * Fix deadline on update issue or PR via API (#8699)
+  * Fix 'New Issue Missing Milestone Comment' (#8678) (#8682)
+  * Fix 500 when getting user as unauthenticated user (#8653) (#8662)
+  * Use AppSubUrl for more redirections (#8647) (#8652)
+  * Add SubURL to redirect path (#8632) (#8634) (#8640)
+  * Fix #8582 by handling empty repos (#8587) (#8593)
+  * Fix bug on pull requests when transfer head repository (#8571)
+  * Add missed close in ServeBlobLFS (#8527) (#8543)
+  * Return false if provided branch name is empty for IsBranchExist (#8485) (#8492)
+  * Create .ssh dir as necessary (#8369) (#8486) (#8489)
+  * Restore functionality for early gits (#7775) (#8476)
+  * Add check for empty set when dropping indexes during migration (#8475)
+  * Ensure Request Body Readers are closed in LFS server (#8454) (#8459)
+  * Ensure that LFS files are relative to the LFS content path (#8455) (#8458)
+* SECURITY
+  * Ignore mentions for users with no access (#8395) (#8484)
+* TESTING
+  * Update heatmap fixtures to restore tests (#8615) (#8617)
+
 ## [1.9.4](https://github.com/go-gitea/gitea/releases/tag/v1.9.4) - 2019-10-08
 * BUGFIXES
   * Highlight issue references (#8101) (#8404)
