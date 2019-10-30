@@ -6,10 +6,9 @@
 package org
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/user"
 )
@@ -96,14 +95,15 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 	}
 
 	org := &models.User{
-		Name:        form.UserName,
-		FullName:    form.FullName,
-		Description: form.Description,
-		Website:     form.Website,
-		Location:    form.Location,
-		IsActive:    true,
-		Type:        models.UserTypeOrganization,
-		Visibility:  visibility,
+		Name:                      form.UserName,
+		FullName:                  form.FullName,
+		Description:               form.Description,
+		Website:                   form.Website,
+		Location:                  form.Location,
+		IsActive:                  true,
+		Type:                      models.UserTypeOrganization,
+		Visibility:                visibility,
+		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
 	if err := models.CreateOrganization(org, ctx.User); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||

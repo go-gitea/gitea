@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/go-macaron/cors"
+	"gitea.com/macaron/cors"
 )
 
 var (
@@ -28,7 +28,7 @@ func newCORSService() {
 
 	CORSConfig = cors.Options{
 		Scheme:           sec.Key("SCHEME").String(),
-		AllowDomain:      sec.Key("ALLOW_DOMAIN").String(),
+		AllowDomain:      sec.Key("ALLOW_DOMAIN").Strings(","),
 		AllowSubdomain:   sec.Key("ALLOW_SUBDOMAIN").MustBool(),
 		Methods:          sec.Key("METHODS").Strings(","),
 		MaxAgeSeconds:    int(maxAge.Seconds()),

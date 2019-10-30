@@ -13,7 +13,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 // Search search users
@@ -104,7 +104,7 @@ func GetInfo(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.ID == u.ID || ctx.User.IsAdmin))
+	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User != nil && (ctx.User.ID == u.ID || ctx.User.IsAdmin)))
 }
 
 // GetAuthenticatedUser get current user's information

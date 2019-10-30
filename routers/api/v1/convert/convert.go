@@ -12,10 +12,11 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -84,17 +85,21 @@ func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
 func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
 	verif := models.ParseCommitWithSignature(c)
-	var signature, payload string
+	commitVerification := &api.PayloadCommitVerification{
+		Verified: verif.Verified,
+		Reason:   verif.Reason,
+	}
 	if c.Signature != nil {
-		signature = c.Signature.Signature
-		payload = c.Signature.Payload
+		commitVerification.Signature = c.Signature.Signature
+		commitVerification.Payload = c.Signature.Payload
 	}
-	return &api.PayloadCommitVerification{
-		Verified:  verif.Verified,
-		Reason:    verif.Reason,
-		Signature: signature,
-		Payload:   payload,
+	if verif.SigningUser != nil {
+		commitVerification.Signer = &structs.PayloadUser{
+			Name:  verif.SigningUser.Name,
+			Email: verif.SigningUser.Email,
+		}
 	}
+	return commitVerification
 }
 
 // ToPublicKey convert models.PublicKey to api.PublicKey
@@ -206,14 +211,15 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 // ToOrganization convert models.User to api.Organization
 func ToOrganization(org *models.User) *api.Organization {
 	return &api.Organization{
-		ID:          org.ID,
-		AvatarURL:   org.AvatarLink(),
-		UserName:    org.Name,
-		FullName:    org.FullName,
-		Description: org.Description,
-		Website:     org.Website,
-		Location:    org.Location,
-		Visibility:  org.Visibility.String(),
+		ID:                        org.ID,
+		AvatarURL:                 org.AvatarLink(),
+		UserName:                  org.Name,
+		FullName:                  org.FullName,
+		Description:               org.Description,
+		Website:                   org.Website,
+		Location:                  org.Location,
+		Visibility:                org.Visibility.String(),
+		RepoAdminChangeTeamAccess: org.RepoAdminChangeTeamAccess,
 	}
 }
 
@@ -231,12 +237,9 @@ func ToTeam(team *models.Team) *api.Team {
 // ToUser convert models.User to api.User
 func ToUser(user *models.User, signed, authed bool) *api.User {
 	result := &api.User{
-		ID:        user.ID,
 		UserName:  user.Name,
 		AvatarURL: user.AvatarLink(),
 		FullName:  markup.Sanitize(user.FullName),
-		IsAdmin:   user.IsAdmin,
-		LastLogin: user.LastLoginUnix.AsTime(),
 		Created:   user.CreatedUnix.AsTime(),
 	}
 	// hide primary email if API caller isn't user itself or an admin
@@ -244,8 +247,11 @@ func ToUser(user *models.User, signed, authed bool) *api.User {
 		result.Email = ""
 	} else if user.KeepEmailPrivate && !authed {
 		result.Email = user.GetEmail()
-	} else {
+	} else { // only user himself and admin could visit these information
+		result.ID = user.ID
 		result.Email = user.Email
+		result.IsAdmin = user.IsAdmin
+		result.LastLogin = user.LastLoginUnix.AsTime()
 	}
 	return result
 }
@@ -289,5 +295,16 @@ func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
 		SHA: tag.Object.String(),
 		// TODO: Add the /commits API endpoint and use it here (https://developer.github.com/v3/repos/commits/#get-a-single-commit)
 		URL: util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
+	}
+}
+
+// ToTopicResponse convert from models.Topic to api.TopicResponse
+func ToTopicResponse(topic *models.Topic) *api.TopicResponse {
+	return &api.TopicResponse{
+		ID:        topic.ID,
+		Name:      topic.Name,
+		RepoCount: topic.RepoCount,
+		Created:   topic.CreatedUnix.AsTime(),
+		Updated:   topic.UpdatedUnix.AsTime(),
 	}
 }

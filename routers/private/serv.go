@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 )
 
 // ServNoCommand returns information about the provided keyid
@@ -118,6 +118,15 @@ func ServCommand(ctx *macaron.Context) {
 	}
 	repo.OwnerName = ownerName
 	results.RepoID = repo.ID
+
+	if repo.IsBeingCreated() {
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"results": results,
+			"type":    "InternalServerError",
+			"err":     "Repository is being created, you could retry after it finished",
+		})
+		return
+	}
 
 	// We can shortcut at this point if the repo is a mirror
 	if mode > models.AccessModeRead && repo.IsMirror {

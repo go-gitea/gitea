@@ -73,7 +73,7 @@ func NewColumn(name, fieldName string, sqlType SQLType, len1, len2 int, nullable
 
 // String generate column description string according dialect
 func (col *Column) String(d Dialect) string {
-	sql := d.QuoteStr() + col.Name + d.QuoteStr() + " "
+	sql := d.Quote(col.Name) + " "
 
 	sql += d.SqlType(col) + " "
 
@@ -101,7 +101,7 @@ func (col *Column) String(d Dialect) string {
 
 // StringNoPk generate column description string according dialect without primary keys
 func (col *Column) StringNoPk(d Dialect) string {
-	sql := d.QuoteStr() + col.Name + d.QuoteStr() + " "
+	sql := d.Quote(col.Name) + " "
 
 	sql += d.SqlType(col) + " "
 

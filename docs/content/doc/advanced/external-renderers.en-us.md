@@ -28,13 +28,13 @@ In order to get file rendering through external binaries, their associated packa
 If you're using a Docker image, your `Dockerfile` should contain something along this lines:
 
 ```
-FROM gitea/gitea:1.6.0
+FROM gitea/gitea:{{< version >}}
 [...]
 
 COPY custom/app.ini /data/gitea/conf/app.ini
 [...]
 
-RUN apk --no-cache add asciidoctor freetype freetype-dev gcc g++ libpng python-dev py-pip python3-dev py3-pip
+RUN apk --no-cache add asciidoctor freetype freetype-dev gcc g++ libpng python-dev py-pip python3-dev py3-pip py3-zmq
 # install any other package you need for your external renderers
 
 RUN pip3 install --upgrade pip
@@ -51,7 +51,7 @@ add one `[markup.XXXXX]` section per external renderer on your custom `app.ini`:
 [markup.asciidoc]
 ENABLED = true
 FILE_EXTENSIONS = .adoc,.asciidoc
-RENDER_COMMAND = "asciidoctor --out-file=- -"
+RENDER_COMMAND = "asciidoctor -e -a leveloffset=-1 --out-file=- -"
 ; Input is not a standard input but a file
 IS_INPUT_FILE = false
 

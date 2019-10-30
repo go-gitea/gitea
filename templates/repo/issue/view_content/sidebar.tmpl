@@ -60,7 +60,7 @@
 			<span class="no-select item {{if .Issue.Milestone}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_milestone"}}</span>
 			<div class="selected">
 				{{if .Issue.Milestone}}
-					<a class="item" href="{{.RepoLink}}/issues?milestone={{.Issue.Milestone.ID}}"> {{.Issue.Milestone.Name}}</a>
+					<a class="item" href="{{.RepoLink}}/milestone/{{.Issue.Milestone.ID}}"> {{.Issue.Milestone.Name}}</a>
 				{{end}}
 			</div>
 		</div>

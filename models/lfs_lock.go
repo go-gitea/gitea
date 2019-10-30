@@ -13,7 +13,8 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
-	"github.com/go-xorm/xorm"
+
+	"xorm.io/xorm"
 )
 
 // LFSLock represents a git lfs lock of repository.

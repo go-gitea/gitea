@@ -7,12 +7,12 @@ package models
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"xorm.io/builder"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 // Milestone represents a milestone of repository.
@@ -192,7 +192,6 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 
 // GetMilestonesByRepoID returns all opened milestones of a repository.
 func GetMilestonesByRepoID(repoID int64, state api.StateType) (MilestoneList, error) {
-
 	sess := x.Where("repo_id = ?", repoID)
 
 	switch state {
@@ -239,13 +238,34 @@ func GetMilestones(repoID int64, page int, isClosed bool, sortType string) (Mile
 }
 
 func updateMilestone(e Engine, m *Milestone) error {
-	_, err := e.ID(m.ID).AllCols().Update(m)
+	_, err := e.ID(m.ID).AllCols().
+		SetExpr("num_issues", builder.Select("count(*)").From("issue").Where(
+			builder.Eq{"milestone_id": m.ID},
+		)).
+		SetExpr("num_closed_issues", builder.Select("count(*)").From("issue").Where(
+			builder.Eq{
+				"milestone_id": m.ID,
+				"is_closed":    true,
+			},
+		)).
+		Update(m)
 	return err
 }
 
 // UpdateMilestone updates information of given milestone.
 func UpdateMilestone(m *Milestone) error {
-	return updateMilestone(x, m)
+	if err := updateMilestone(x, m); err != nil {
+		return err
+	}
+
+	return updateMilestoneCompleteness(x, m.ID)
+}
+
+func updateMilestoneCompleteness(e Engine, milestoneID int64) error {
+	_, err := e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
+		milestoneID,
+	)
+	return err
 }
 
 func countRepoMilestones(e Engine, repoID int64) (int64, error) {
@@ -279,11 +299,6 @@ func MilestoneStats(repoID int64) (open int64, closed int64, err error) {
 
 // ChangeMilestoneStatus changes the milestone open/closed status.
 func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
-	repo, err := GetRepositoryByID(m.RepoID)
-	if err != nil {
-		return err
-	}
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -291,92 +306,92 @@ func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
 	}
 
 	m.IsClosed = isClosed
-	if err = updateMilestone(sess, m); err != nil {
+	if isClosed {
+		m.ClosedDateUnix = timeutil.TimeStampNow()
+	}
+
+	if _, err := sess.ID(m.ID).Cols("is_closed", "closed_date_unix").Update(m); err != nil {
 		return err
 	}
 
-	numMilestones, err := countRepoMilestones(sess, repo.ID)
-	if err != nil {
+	if err := updateRepoMilestoneNum(sess, m.RepoID); err != nil {
 		return err
 	}
-	numClosedMilestones, err := countRepoClosedMilestones(sess, repo.ID)
-	if err != nil {
-		return err
-	}
-	repo.NumMilestones = int(numMilestones)
-	repo.NumClosedMilestones = int(numClosedMilestones)
 
-	if _, err = sess.ID(repo.ID).Cols("num_milestones, num_closed_milestones").Update(repo); err != nil {
-		return err
-	}
 	return sess.Commit()
 }
 
-func changeMilestoneIssueStats(e *xorm.Session, issue *Issue) error {
-	if issue.MilestoneID == 0 {
-		return nil
+func updateRepoMilestoneNum(e Engine, repoID int64) error {
+	_, err := e.Exec("UPDATE `repository` SET num_milestones=(SELECT count(*) FROM milestone WHERE repo_id=?),num_closed_milestones=(SELECT count(*) FROM milestone WHERE repo_id=? AND is_closed=?) WHERE id=?",
+		repoID,
+		repoID,
+		true,
+		repoID,
+	)
+	return err
+}
+
+func updateMilestoneTotalNum(e Engine, milestoneID int64) (err error) {
+	if _, err = e.Exec("UPDATE `milestone` SET num_issues=(SELECT count(*) FROM issue WHERE milestone_id=?) WHERE id=?",
+		milestoneID,
+		milestoneID,
+	); err != nil {
+		return
 	}
 
-	m, err := getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
-	if err != nil {
-		return err
+	return updateMilestoneCompleteness(e, milestoneID)
+}
+
+func updateMilestoneClosedNum(e Engine, milestoneID int64) (err error) {
+	if _, err = e.Exec("UPDATE `milestone` SET num_closed_issues=(SELECT count(*) FROM issue WHERE milestone_id=? AND is_closed=?) WHERE id=?",
+		milestoneID,
+		true,
+		milestoneID,
+	); err != nil {
+		return
 	}
 
-	if issue.IsClosed {
-		m.NumOpenIssues--
-		m.NumClosedIssues++
-	} else {
-		m.NumOpenIssues++
-		m.NumClosedIssues--
-	}
-
-	return updateMilestone(e, m)
+	return updateMilestoneCompleteness(e, milestoneID)
 }
 
 func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilestoneID int64) error {
+	if err := updateIssueCols(e, issue, "milestone_id"); err != nil {
+		return err
+	}
+
 	if oldMilestoneID > 0 {
-		m, err := getMilestoneByRepoID(e, issue.RepoID, oldMilestoneID)
-		if err != nil {
+		if err := updateMilestoneTotalNum(e, oldMilestoneID); err != nil {
 			return err
 		}
-
-		m.NumIssues--
 		if issue.IsClosed {
-			m.NumClosedIssues--
-		}
-
-		if err = updateMilestone(e, m); err != nil {
-			return err
+			if err := updateMilestoneClosedNum(e, oldMilestoneID); err != nil {
+				return err
+			}
 		}
 	}
 
 	if issue.MilestoneID > 0 {
-		m, err := getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
-		if err != nil {
+		if err := updateMilestoneTotalNum(e, issue.MilestoneID); err != nil {
 			return err
 		}
-
-		m.NumIssues++
 		if issue.IsClosed {
-			m.NumClosedIssues++
+			if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
+				return err
+			}
 		}
-
-		if err = updateMilestone(e, m); err != nil {
-			return err
-		}
-	}
-
-	if err := issue.loadRepo(e); err != nil {
-		return err
 	}
 
 	if oldMilestoneID > 0 || issue.MilestoneID > 0 {
+		if err := issue.loadRepo(e); err != nil {
+			return err
+		}
+
 		if _, err := createMilestoneComment(e, doer, issue.Repo, issue, oldMilestoneID, issue.MilestoneID); err != nil {
 			return err
 		}
 	}
 
-	return updateIssueCols(e, issue, "milestone_id")
+	return nil
 }
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.
@@ -393,46 +408,6 @@ func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err 
 
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
-	}
-
-	var hookAction api.HookIssueAction
-	if issue.MilestoneID > 0 {
-		hookAction = api.HookIssueMilestoned
-	} else {
-		hookAction = api.HookIssueDemilestoned
-	}
-
-	if err = issue.LoadAttributes(); err != nil {
-		return err
-	}
-
-	mode, _ := AccessLevel(doer, issue.Repo)
-	if issue.IsPull {
-		err = issue.PullRequest.LoadIssue()
-		if err != nil {
-			log.Error("LoadIssue: %v", err)
-			return
-		}
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-			Action:      hookAction,
-			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
-			Sender:      doer.APIFormat(),
-		})
-	} else {
-		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
-			Action:     hookAction,
-			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     doer.APIFormat(),
-		})
-	}
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
 	}
 	return nil
 }

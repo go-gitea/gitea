@@ -40,17 +40,19 @@ type CreateHookOption struct {
 	// enum: gitea,gogs,slack,discord
 	Type string `json:"type" binding:"Required"`
 	// required: true
-	Config map[string]string `json:"config" binding:"Required"`
-	Events []string          `json:"events"`
+	Config       map[string]string `json:"config" binding:"Required"`
+	Events       []string          `json:"events"`
+	BranchFilter string            `json:"branch_filter" binding:"GlobPattern"`
 	// default: false
 	Active bool `json:"active"`
 }
 
 // EditHookOption options when modify one hook
 type EditHookOption struct {
-	Config map[string]string `json:"config"`
-	Events []string          `json:"events"`
-	Active *bool             `json:"active"`
+	Config       map[string]string `json:"config"`
+	Events       []string          `json:"events"`
+	BranchFilter string            `json:"branch_filter" binding:"GlobPattern"`
+	Active       *bool             `json:"active"`
 }
 
 // Payloader payload is some part of one hook
@@ -89,10 +91,11 @@ type PayloadCommit struct {
 
 // PayloadCommitVerification represents the GPG verification of a commit
 type PayloadCommitVerification struct {
-	Verified  bool   `json:"verified"`
-	Reason    string `json:"reason"`
-	Signature string `json:"signature"`
-	Payload   string `json:"payload"`
+	Verified  bool         `json:"verified"`
+	Reason    string       `json:"reason"`
+	Signature string       `json:"signature"`
+	Signer    *PayloadUser `json:"signer"`
+	Payload   string       `json:"payload"`
 }
 
 var (
@@ -233,6 +236,7 @@ type IssueCommentPayload struct {
 	Changes    *ChangesPayload        `json:"changes,omitempty"`
 	Repository *Repository            `json:"repository"`
 	Sender     *User                  `json:"sender"`
+	IsPull     bool                   `json:"is_pull"`
 }
 
 // SetSecret modifies the secret of the IssueCommentPayload
@@ -416,6 +420,7 @@ type PullRequestPayload struct {
 	PullRequest *PullRequest    `json:"pull_request"`
 	Repository  *Repository     `json:"repository"`
 	Sender      *User           `json:"sender"`
+	Review      *ReviewPayload  `json:"review"`
 }
 
 // SetSecret modifies the secret of the PullRequestPayload.
@@ -426,6 +431,12 @@ func (p *PullRequestPayload) SetSecret(secret string) {
 // JSONPayload FIXME
 func (p *PullRequestPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
+}
+
+// ReviewPayload FIXME
+type ReviewPayload struct {
+	Type    string `json:"type"`
+	Content string `json:"content"`
 }
 
 //__________                           .__  __

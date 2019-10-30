@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	gogit "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/cache"
@@ -32,6 +32,16 @@ type Repository struct {
 
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
+	gpgSettings  *GPGSettings
+}
+
+// GPGSettings represents the default GPG settings for this repository
+type GPGSettings struct {
+	Sign             bool
+	KeyID            string
+	Email            string
+	Name             string
+	PublicKeyContent string
 }
 
 const prettyLogFormat = `--pretty=format:%H`
@@ -105,6 +115,11 @@ func OpenRepository(repoPath string) (*Repository, error) {
 		gogitStorage: storage,
 		tagCache:     newObjectCache(),
 	}, nil
+}
+
+// GoGitRepo gets the go-git repo representation
+func (repo *Repository) GoGitRepo() *gogit.Repository {
+	return repo.gogitRepo
 }
 
 // IsEmpty Check if repository is empty.

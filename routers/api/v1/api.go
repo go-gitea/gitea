@@ -74,9 +74,8 @@ import (
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
 
-	"github.com/go-macaron/binding"
-	"github.com/go-macaron/cors"
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
 )
 
 func sudo() macaron.Handler {
@@ -502,18 +501,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/swagger", misc.Swagger) //Render V1 by default
 	}
 
-	var handlers []macaron.Handler
-	if setting.EnableCORS {
-		handlers = append(handlers, cors.CORS(setting.CORSConfig))
-	}
-	handlers = append(handlers, securityHeaders(), context.APIContexter(), sudo())
-
 	m.Group("/v1", func() {
 		// Miscellaneous
 		if setting.API.EnableSwagger {
 			m.Get("/swagger", misc.Swagger)
 		}
 		m.Get("/version", misc.Version)
+		m.Get("/signing-key.gpg", misc.SigningKey)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
 
@@ -751,10 +745,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Combo("/:sha").Get(repo.GetCommitStatuses).
 						Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				}, reqRepoReader(models.UnitTypeCode))
-				m.Group("/commits/:ref", func() {
-					// TODO: Add m.Get("") for single commit (https://developer.github.com/v3/repos/commits/#get-a-single-commit)
-					m.Get("/status", repo.GetCombinedCommitStatusByRef)
-					m.Get("/statuses", repo.GetCommitStatusesByRef)
+				m.Group("/commits", func() {
+					m.Get("", repo.GetAllCommits)
+					m.Group("/:ref", func() {
+						// TODO: Add m.Get("") for single commit (https://developer.github.com/v3/repos/commits/#get-a-single-commit)
+						m.Get("/status", repo.GetCombinedCommitStatusByRef)
+						m.Get("/statuses", repo.GetCommitStatusesByRef)
+					})
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
@@ -775,6 +772,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Delete("", bind(api.DeleteFileOptions{}), repo.DeleteFile)
 					}, reqRepoWriter(models.UnitTypeCode), reqToken())
 				}, reqRepoReader(models.UnitTypeCode))
+				m.Get("/signing-key.gpg", misc.SigningKey)
+				m.Group("/topics", func() {
+					m.Combo("").Get(repo.ListTopics).
+						Put(reqToken(), reqAdmin(), bind(api.RepoTopicOptions{}), repo.UpdateTopics)
+					m.Group("/:topic", func() {
+						m.Combo("").Put(reqToken(), repo.AddTopic).
+							Delete(reqToken(), repo.DeleteTopic)
+					}, reqAdmin())
+				}, reqAnyRepoReader())
 			}, repoAssignment())
 		})
 
@@ -798,8 +804,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Put(reqToken(), reqOrgMembership(), org.PublicizeMember).
 					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
 			})
-			m.Combo("/teams", reqToken(), reqOrgMembership()).Get(org.ListTeams).
-				Post(reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+			m.Group("/teams", func() {
+				m.Combo("", reqToken()).Get(org.ListTeams).
+					Post(reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+				m.Get("/search", org.SearchTeam)
+			}, reqOrgMembership())
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
 					Post(bind(api.CreateHookOption{}), org.CreateHook)
@@ -853,7 +862,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		})
-	}, handlers...)
+	}, securityHeaders(), context.APIContexter(), sudo())
 }
 
 func securityHeaders() macaron.Handler {

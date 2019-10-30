@@ -69,10 +69,45 @@ MAX_FILES = 5
 [repository.pull-request]
 ; List of prefixes used in Pull Request title to mark them as Work In Progress
 WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
+; List of keywords used in Pull Request comments to automatically close a related issue
+CLOSE_KEYWORDS=close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved
+; List of keywords used in Pull Request comments to automatically reopen a related issue
+REOPEN_KEYWORDS=reopen,reopens,reopened
 
 [repository.issue]
 ; List of reasons why a Pull Request or Issue can be locked
 LOCK_REASONS=Too heated,Off-topic,Resolved,Spam
+
+[repository.signing]
+; GPG key to use to sign commits, Defaults to the default - that is the value of git config --get user.signingkey
+; run in the context of the RUN_USER
+; Switch to none to stop signing completely
+SIGNING_KEY = default
+; If a SIGNING_KEY ID is provided and is not set to default, use the provided Name and Email address as the signer.
+; These should match a publicized name and email address for the key. (When SIGNING_KEY is default these are set to
+; the results of git config --get user.name and git config --get user.email respectively and can only be overrided
+; by setting the SIGNING_KEY ID to the correct ID.)
+SIGNING_NAME =
+SIGNING_EMAIL =
+; Determines when gitea should sign the initial commit when creating a repository
+; Either:
+; - never
+; - pubkey: only sign if the user has a pubkey
+; - twofa: only sign if the user has logged in with twofa
+; - always
+; options other than none and always can be combined as comma separated list
+INITIAL_COMMIT = always
+; Determines when to sign for CRUD actions
+; - as above
+; - parentsigned: requires that the parent commit is signed.
+CRUD_ACTIONS = pubkey, twofa, parentsigned
+; Determines when to sign Wiki commits
+; - as above
+WIKI = never
+; Determines when to sign on merges
+; - basesigned: require that the parent of commit on the base repo is signed.
+; - commitssigned: require that all the commits in the head branch are signed.
+MERGES = pubkey, twofa, basesigned, commitssigned
 
 [cors]
 ; More information about CORS can be found here: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#The_HTTP_response_headers
@@ -116,6 +151,8 @@ DEFAULT_THEME = gitea
 THEMES = gitea,arc-green
 ; Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 DEFAULT_SHOW_FULL_NAME = false
+; Whether to search within description at repository search on explore page.
+SEARCH_REPO_DESCRIPTION = true
 
 [ui.admin]
 ; Number of users that are displayed on one page
@@ -139,8 +176,9 @@ KEYWORDS = go,git,self-hosted,gitea
 [markdown]
 ; Enable hard line break extension
 ENABLE_HARD_LINE_BREAK = false
-; List of custom URL-Schemes that are allowed as links when rendering Markdown
-; for example git,magnet
+; Comma separated list of custom URL-Schemes that are allowed as links when rendering Markdown
+; for example git,magnet,ftp (more at https://en.wikipedia.org/wiki/List_of_URI_schemes)
+; URLs starting with http and https are always displayed, whatever is put in this entry.
 CUSTOM_URL_SCHEMES =
 ; List of file extensions that should be rendered/edited as Markdown
 ; Separate the extensions with a comma. To render files without any extension as markdown, just put a comma
@@ -151,6 +189,8 @@ FILE_EXTENSIONS = .md,.markdown,.mdown,.mkd
 PROTOCOL = http
 DOMAIN = localhost
 ROOT_URL = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
+; when STATIC_URL_PREFIX is empty it will follow APP_URL
+STATIC_URL_PREFIX = 
 ; The address to listen on. Either a IPv4/IPv6 address or the path to a unix socket.
 HTTP_ADDR = 0.0.0.0
 HTTP_PORT = 3000
@@ -241,6 +281,14 @@ LFS_CONTENT_PATH = data/lfs
 LFS_JWT_SECRET =
 ; LFS authentication validity period (in time.Duration), pushes taking longer than this may fail.
 LFS_HTTP_AUTH_EXPIRY = 20m
+; Allow graceful restarts using SIGHUP to fork
+ALLOW_GRACEFUL_RESTARTS = true
+; After a restart the parent will finish ongoing requests before
+; shutting down. Force shutdown if this process takes longer than this delay.
+; set to a negative value to disable
+GRACEFUL_HAMMER_TIME = 60s
+; Static resources, includes resources on custom/, public/ and all uploaded avatars web browser cache time, default is 6h
+STATIC_CACHE_TIME = 6h
 
 ; Define allowed algorithms and their minimum key length (use -1 to disable a type)
 [ssh.minimum_key_sizes]
@@ -275,6 +323,12 @@ LOG_SQL = true
 DB_RETRIES = 10
 ; Backoff time per DB retry (time.Duration)
 DB_RETRY_BACKOFF = 3s
+; Max idle database connections on connnection pool, default is 2
+MAX_IDLE_CONNS = 2
+; Database connection max life time, default is 0 or 3s mysql (See #6804 & #7071 for reasoning)
+CONN_MAX_LIFETIME = 3s
+; Database maximum number of open connections, default is 0 meaning no maximum
+MAX_OPEN_CONNS = 0
 
 [indexer]
 ; Issue indexer type, currently support: bleve or db, default is bleve
@@ -290,16 +344,26 @@ ISSUE_INDEXER_QUEUE_DIR = indexers/issues.queue
 ISSUE_INDEXER_QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
 ; Batch queue number, default is 20
 ISSUE_INDEXER_QUEUE_BATCH_NUMBER = 20
+; Timeout the indexer if it takes longer than this to start.
+; Set to zero to disable timeout.
+STARTUP_TIMEOUT=30s
 
 ; repo indexer by default disabled, since it uses a lot of disk space
 REPO_INDEXER_ENABLED = false
 REPO_INDEXER_PATH = indexers/repos.bleve
 UPDATE_BUFFER_LEN = 20
 MAX_FILE_SIZE = 1048576
+; A comma separated list of glob patterns (see https://github.com/gobwas/glob) to include
+; in the index; default is empty
+REPO_INDEXER_INCLUDE =
+; A comma separated list of glob patterns to exclude from the index; ; default is empty
+REPO_INDEXER_EXCLUDE =
 
 [admin]
 ; Disallow regular (non-admin) users from creating organizations.
 DISABLE_REGULAR_ORG_CREATION = false
+; Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
+DEFAULT_EMAIL_NOTIFICATIONS = enabled
 
 [security]
 ; Whether the installer is disabled
@@ -319,6 +383,10 @@ MIN_PASSWORD_LENGTH = 6
 IMPORT_LOCAL_PATHS = false
 ; Set to true to prevent all users (including admin) from creating custom git hooks
 DISABLE_GIT_HOOKS = false
+;Comma separated list of character classes required to pass minimum complexity.
+;If left empty or no valid values are specified, the default values ("lower,upper,digit,spec") will be used.
+;Use "off" to disable checking.
+PASSWORD_COMPLEXITY = lower,upper,digit,spec
 ; Password Hash algorithm, either "pbkdf2", "argon2", "scrypt" or "bcrypt"
 PASSWORD_HASH_ALGO = pbkdf2
 ; Set false to allow JavaScript to read CSRF cookie
@@ -376,6 +444,10 @@ ALLOW_ONLY_EXTERNAL_REGISTRATION = false
 REQUIRE_SIGNIN_VIEW = false
 ; Mail notification
 ENABLE_NOTIFY_MAIL = false
+; This setting enables gitea to be signed in with HTTP BASIC Authentication using the user's password
+; If you set this to false you will not be able to access the tokens endpoints on the API with your password
+; Please note that setting this to false will not disable OAuth Basic or Basic authentication using a token
+ENABLE_BASIC_AUTHENTICATION = true
 ; More detail: https://github.com/gogits/gogs/issues/165
 ENABLE_REVERSE_PROXY_AUTHENTICATION = false
 ENABLE_REVERSE_PROXY_AUTO_REGISTRATION = false
@@ -401,6 +473,9 @@ DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 ; Private is only for member of the organization
 ; Public is for everyone
 DEFAULT_ORG_VISIBILITY = public
+; Default value for DefaultOrgMemberVisible
+; True will make the membership of the users visible when added to the organisation
+DEFAULT_ORG_MEMBER_VISIBLE = false
 ; Default value for EnableDependencies
 ; Repositories will use dependencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
@@ -674,6 +749,11 @@ SCHEDULE = @every 24h
 ;   or only create new users if UPDATE_EXISTING is set to false
 UPDATE_EXISTING = true
 
+; Update migrated repositories' issues and comments' posterid, it will always attempt synchronization when the instance starts.
+[cron.update_migration_post_id]
+; Interval as a duration between each synchronization. (default every 24h)
+SCHEDULE = @every 24h
+
 [git]
 ; The path of git executable. If empty, Gitea searches through the PATH environment.
 PATH =
@@ -792,3 +872,12 @@ IS_INPUT_FILE = false
 ENABLED = false
 ; If you want to add authorization, specify a token here
 TOKEN =
+
+[task]
+; Task queue type, could be `channel` or `redis`.
+QUEUE_TYPE = channel
+; Task queue length, available only when `QUEUE_TYPE` is `channel`.
+QUEUE_LENGTH = 1000
+; Task queue connection string, available only when `QUEUE_TYPE` is `redis`.
+; If there is a password of redis, use `addrs=127.0.0.1:6379 password=123 db=0`.
+QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"

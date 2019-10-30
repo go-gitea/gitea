@@ -20,6 +20,15 @@
         .ui.huge.breadcrumb {
             font-weight: 400;
             font-size: 1.5rem;
+
+            i.mega-octicon {
+                position: relative;
+                top: 5px;
+            }
+
+            i.octicon-lock {
+                margin-left: 5px;
+            }
         }
 
         .fork-flag {
@@ -147,6 +156,23 @@
 
         &.labels .octicon {
             margin: -2px -7px 0 -5px;
+        }
+
+        &.labels {
+            .label-filter .menu .info {
+                display: inline-block;
+                padding: 9px 7px 7px 7px;
+                text-align: center;
+                border-bottom: 1px solid #cccccc;
+                font-size: 12px;
+
+                code {
+                    border: 1px solid #cccccc;
+                    border-radius: 3px;
+                    padding: 3px 2px 1px 2px;
+                    font-size: 11px;
+                }
+            }
         }
 
         .text {
@@ -277,6 +303,24 @@
                 .ui.avatar {
                     margin-bottom: 5px;
                 }
+
+                .commit-summary a {
+                    text-decoration: underline;
+                    text-decoration-style: dashed;
+
+                    &:hover {
+                        text-decoration-style: solid;
+                    }
+
+                    &.default-link {
+                        text-decoration: none;
+
+                        &:hover {
+                            text-decoration: underline;
+                            text-decoration-style: solid;
+                        }
+                    }
+                }
             }
 
             tbody {
@@ -344,9 +388,7 @@
                 }
 
                 .file-actions {
-                    margin-top: 0;
                     margin-bottom: -5px;
-                    padding-left: 20px;
 
                     .btn-octicon {
                         display: inline-block;
@@ -402,6 +444,7 @@
 
             .csv {
                 overflow-x: auto;
+                padding: 0 !important;
             }
 
             pre {
@@ -508,6 +551,10 @@
     }
 
     @comment-avatar-width: 3em;
+
+    .comment textarea {
+        max-height: none !important;
+    }
 
     &.new.issue {
         .comment.form {
@@ -691,6 +738,11 @@
                     font-size: 12px;
                     border: 1px solid rgba(0, 0, 0, 0.1);
                     border-radius: 3px;
+                    &.pending {
+                        color: black;
+                        background-color: #fffbb2;
+                        margin-left: 5px;
+                    }
                 }
 
                 .actions {
@@ -1182,6 +1234,15 @@
             border-bottom-left-radius: 0;
         }
 
+        &.isSigned.isWarning {
+            border: 1px solid #db2828;
+            background: fade(#db2828, 10%);
+
+            .detail.icon {
+                border-left: 1px solid fade(#db2828, 50%);
+            }
+        }
+
         &.isSigned.isVerified {
             border: 1px solid #21ba45;
             background: fade(#21ba45, 10%);
@@ -1205,21 +1266,6 @@
             clear: both;
             content: "";
             display: block;
-        }
-
-        ol {
-            clear: both;
-            padding-left: 0;
-            margin-top: 5px;
-            margin-bottom: 28px;
-
-            li {
-                list-style: none;
-                padding-bottom: 4px;
-                margin-bottom: 4px;
-                border-bottom: 1px dashed #dddddd;
-                padding-left: 6px;
-            }
         }
 
         span.status {
@@ -1337,6 +1383,10 @@
                         width: 49%;
                     }
 
+                    td.center {
+                        text-align: center;
+                    }
+
                     .removed-code {
                         background-color: #ff9999;
                     }
@@ -1424,8 +1474,39 @@
                 max-width: 100%;
                 padding: 5px 5px 0 5px;
             }
+            img.emoji {
+                padding: 0;
+            }
 
             clear: right;
+        }
+    }
+
+    .diff-stats {
+
+        clear: both;
+        margin-bottom: 5px;
+        max-height: 400px;
+        overflow: auto;
+        padding-left: 0;
+
+        li {
+            list-style: none;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+            border-bottom: 1px dashed #dddddd;
+            padding-left: 6px;
+        }
+
+        .diff-counter {
+            margin-right: 15px;
+
+            .del {
+                color: red;
+            }
+            .add {
+                color: green;
+            }
         }
     }
 
@@ -1698,6 +1779,19 @@
                     margin-top: -3px;
                 }
             }
+
+            #repo-collab-team-form {
+                #search-team-box {
+                    .results {
+                        left: 7px;
+                    }
+                }
+
+                .ui.button {
+                    margin-left: 5px;
+                    margin-top: -3px;
+                }
+            }
         }
 
         &.branches {
@@ -1842,6 +1936,12 @@
             display: block;
         }
     }
+
+    .ui.fluid.action.input {
+        .ui.search.action.input {
+            flex: auto;
+        }
+    }
 }
 
 // End of .repository
@@ -1891,6 +1991,16 @@
                 height: 2em;
             }
 
+            .content {
+                margin: 6px 0;
+            }
+        }
+    }
+}
+
+#search-team-box {
+    .results {
+        .result {
             .content {
                 margin: 6px 0;
             }
@@ -1964,11 +2074,24 @@
             }
 
             a.milestone {
-                padding-left: 5px;
+                margin-left: 5px;
                 color: #999999 !important;
 
                 &:hover {
                     color: #000000 !important;
+                }
+            }
+
+            a.ref {
+                margin-left: 8px;
+                color: #999999 !important;
+
+                &:hover {
+                    color: #000000 !important;
+                }
+
+                span {
+                    margin-right: -4px;
                 }
             }
 
@@ -2013,7 +2136,7 @@
 
     .list {
         > .item {
-            .green {
+            .green:not(.ui.button) {
                 color: #21ba45;
             }
 
@@ -2185,6 +2308,24 @@ tbody.commit-list {
     vertical-align: middle;
 }
 
+.commit-list .commit-summary a {
+    text-decoration: underline;
+    text-decoration-style: dashed;
+
+    &:hover {
+        text-decoration-style: solid;
+    }
+
+    &.default-link {
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+            text-decoration-style: solid;
+        }
+    }
+}
+
 .commit-list .commit-status-link {
     display: inline-block;
     vertical-align: middle;
@@ -2291,4 +2432,31 @@ tbody.commit-list {
     border-color: #d3cfcf !important;
     padding-top: 8px;
     padding-bottom: 8px;
+}
+
+.issue-keyword {
+    border-bottom: 1px dotted #959da5;
+    display: inline-block;
+}
+
+.file-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px !important;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+}
+
+.file-info-entry + .file-info-entry {
+    border-left: 1px solid currentColor;
+    margin-left: 8px;
+    padding-left: 8px;
+}
+
+.title_wip_desc {
+    margin-top: 1em;
 }

@@ -55,7 +55,7 @@
 						{{end}}
 					</div>
 					<div class="raw-content hide">{{.Content}}</div>
-					<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}"></div>
+					<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 				</div>
 				{{$reactions := .Reactions.GroupByType}}
 				{{if $reactions}}
@@ -66,22 +66,14 @@
 				{{if .Attachments}}
 					<div class="ui bottom attached segment">
 						<div class="ui small images">
-							{{range .Attachments}}
-								<a target="_blank" rel="noopener noreferrer" href="{{AppSubUrl}}/attachments/{{.UUID}}">
-									{{if FilenameIsImage .Name}}
-										<img class="ui image" src="{{AppSubUrl}}/attachments/{{.UUID}}" title='{{$.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
-									{{else}}
-										<span class="ui image octicon octicon-desktop-download" title='{{$.i18n.Tr "repo.issues.attachment.download" .Name}}'></span>
-									{{end}}
-								</a>
-							{{end}}
+							{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Attachments}}
 						</div>
 					</div>
 				{{end}}
 			</div>
 		</div>
 	{{else if eq .Type 1}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -89,15 +81,43 @@
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.reopened_at" .EventTag $createdStr | Safe}}</span>
 		</div>
 	{{else if eq .Type 2}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-circle-slash issue-symbol"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}</span>
 		</div>
+	{{else if or (eq .Type 3) (eq .Type 5) (eq .Type 6)}}
+		<div class="event" id="{{.HashTag}}">
+			<span class="octicon octicon-bookmark"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			{{if eq .RefAction 3}}<del>{{end}}
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+			{{if (eq .RefRepoID .Issue.RepoID)}}
+				{{if .Issue.IsPull}}
+					<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_pull_at" $createdStr | Safe}}</a>
+				{{else}}
+					<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_issue_at" $createdStr | Safe}}</a>
+				{{end}}
+			{{else}}
+				{{if .Issue.IsPull}}
+					<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_pull_ext_at" .RefRepo.FullName $createdStr | Safe}}</a>
+				{{else}}
+					<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_issue_ext_at" .RefRepo.FullName $createdStr | Safe}}</a>
+				{{end}}
+			{{end}}
+			</span>
+			{{if eq .RefAction 3}}</del>{{end}}
+
+			<div class="detail">
+				<span class="text grey"><a href="{{.RefIssueHTMLURL}}"><b>{{.RefIssueTitle | Str2html}}</b> {{.RefIssueIdent | Str2html}}</a></span>
+			</div>
+		</div>
 	{{else if eq .Type 4}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-bookmark"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -111,7 +131,7 @@
 		</div>
 	{{else if eq .Type 7}}
 		{{if .Label}}
-			<div class="event">
+			<div class="event" id="{{.HashTag}}">
 				<span class="octicon octicon-primitive-dot"></span>
 				<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 					<img src="{{.Poster.RelAvatarLink}}">
@@ -121,7 +141,7 @@
 			</div>
 		{{end}}
 	{{else if eq .Type 8}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -130,7 +150,7 @@
 			{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}</span>
 		</div>
 	{{else if eq .Type 9}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-primitive-dot"></span>
 			{{if gt .AssigneeID 0}}
 				{{if .RemovedAssignee}}
@@ -161,7 +181,7 @@
 			{{end}}
 		</div>
 	{{else if eq .Type 10}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -171,7 +191,7 @@
 			</span>
 		</div>
 	{{else if eq .Type 11}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -181,7 +201,7 @@
 			</span>
 		</div>
 	{{else if eq .Type 12}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -189,7 +209,7 @@
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.start_tracking_history"  $createdStr | Safe}}</span>
 		</div>
 	{{else if eq .Type 13}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -202,7 +222,7 @@
 			</div>
 		</div>
 	{{else if eq .Type 14}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -214,7 +234,7 @@
 			</div>
 		</div>
 	{{else if eq .Type 15}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -222,7 +242,7 @@
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}</span>
 		</div>
 	{{else if eq .Type 16}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -232,7 +252,7 @@
 			</span>
 		</div>
 	{{else if eq .Type 17}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -242,7 +262,7 @@
 			</span>
 		</div>
 	{{else if eq .Type 18}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -252,7 +272,7 @@
 			</span>
 		</div>
 	{{else if eq .Type 19}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-primitive-dot"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -266,7 +286,7 @@
 		 	</div>
 	 	</div>
 	{{else if eq .Type 20}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 		 	<span class="octicon octicon-primitive-dot"></span>
 		 	<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 			 	<img src="{{.Poster.RelAvatarLink}}">
@@ -319,7 +339,7 @@
 							{{end}}
 								<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment">{{$filename}}</a>
 							</div>
-							{{$diff := ((index $comms 0).MustAsDiff)}}
+							{{$diff := (CommentMustAsDiff (index $comms 0))}}
 							{{if $diff}}
 								{{$file := (index $diff.Files 0)}}
 								<div id="code-preview-{{(index $comms 0).ID}}" class="ui table segment{{if $invalid}} hide{{end}}">
@@ -368,7 +388,7 @@
 			{{end}}
 		</div>
 	{{else if eq .Type 23}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-lock issue-symbol"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">
@@ -385,7 +405,7 @@
 			{{ end }}
 		</div>
 	{{else if eq .Type 24}}
-		<div class="event">
+		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-key issue-symbol"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
 				<img src="{{.Poster.RelAvatarLink}}">

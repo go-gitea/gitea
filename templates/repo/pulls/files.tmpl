@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div class="repository view issue pull files diff">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui container {{if .IsSplitStyle}}fluid padded{{end}}">
 		<div class="navbar">
 			{{template "repo/issue/navbar" .}}
 			<div class="ui right">

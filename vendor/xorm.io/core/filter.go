@@ -19,7 +19,23 @@ type QuoteFilter struct {
 }
 
 func (s *QuoteFilter) Do(sql string, dialect Dialect, table *Table) string {
-	return strings.Replace(sql, "`", dialect.QuoteStr(), -1)
+	dummy := dialect.Quote("")
+	if len(dummy) != 2 {
+		return sql
+	}
+	prefix, suffix := dummy[0], dummy[1]
+	raw := []byte(sql)
+	for i, cnt := 0, 0; i < len(raw); i = i + 1 {
+		if raw[i] == '`' {
+			if cnt%2 == 0 {
+				raw[i] = prefix
+			} else {
+				raw[i] = suffix
+			}
+			cnt++
+		}
+	}
+	return string(raw)
 }
 
 // IdFilter filter SQL replace (id) to primary key column name
@@ -35,7 +51,7 @@ func NewQuoter(dialect Dialect) *Quoter {
 }
 
 func (q *Quoter) Quote(content string) string {
-	return q.dialect.QuoteStr() + content + q.dialect.QuoteStr()
+	return q.dialect.Quote(content)
 }
 
 func (i *IdFilter) Do(sql string, dialect Dialect, table *Table) string {
@@ -54,15 +70,24 @@ type SeqFilter struct {
 	Start  int
 }
 
-func (s *SeqFilter) Do(sql string, dialect Dialect, table *Table) string {
-	segs := strings.Split(sql, "?")
-	size := len(segs)
-	res := ""
-	for i, c := range segs {
-		if i < size-1 {
-			res += c + fmt.Sprintf("%s%v", s.Prefix, i+s.Start)
+func convertQuestionMark(sql, prefix string, start int) string {
+	var buf strings.Builder
+	var beginSingleQuote bool
+	var index = start
+	for _, c := range sql {
+		if !beginSingleQuote && c == '?' {
+			buf.WriteString(fmt.Sprintf("%s%v", prefix, index))
+			index++
+		} else {
+			if c == '\'' {
+				beginSingleQuote = !beginSingleQuote
+			}
+			buf.WriteRune(c)
 		}
 	}
-	res += segs[size-1]
-	return res
+	return buf.String()
+}
+
+func (s *SeqFilter) Do(sql string, dialect Dialect, table *Table) string {
+	return convertQuestionMark(sql, s.Prefix, s.Start)
 }

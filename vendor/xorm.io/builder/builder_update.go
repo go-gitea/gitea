@@ -8,8 +8,14 @@ import (
 	"fmt"
 )
 
+// UpdateCond defines an interface that cond could be used with update
+type UpdateCond interface {
+	IsValid() bool
+	OpWriteTo(op string, w Writer) error
+}
+
 // Update creates an update Builder
-func Update(updates ...Eq) *Builder {
+func Update(updates ...Cond) *Builder {
 	builder := &Builder{cond: NewCond()}
 	return builder.Update(updates...)
 }
@@ -27,7 +33,8 @@ func (b *Builder) updateWriteTo(w Writer) error {
 	}
 
 	for i, s := range b.updates {
-		if err := s.opWriteTo(",", w); err != nil {
+
+		if err := s.OpWriteTo(",", w); err != nil {
 			return err
 		}
 

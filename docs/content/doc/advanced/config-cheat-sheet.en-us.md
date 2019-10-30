@@ -71,10 +71,33 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
  title to mark them as Work In Progress
+- `CLOSE_KEYWORDS`: **close**, **closes**, **closed**, **fix**, **fixes**, **fixed**, **resolve**, **resolves**, **resolved**: List of
+ keywords used in Pull Request comments to automatically close a related issue
+- `REOPEN_KEYWORDS`: **reopen**, **reopens**, **reopened**: List of keywords used in Pull Request comments to automatically reopen
+ a related issue
 
 ### Repository - Issue (`repository.issue`)
 
 - `LOCK_REASONS`: **Too heated,Off-topic,Resolved,Spam**: A list of reasons why a Pull Request or Issue can be locked
+
+### Repository - Signing (`repository.signing`)
+
+- `SIGNING_KEY`: **default**: \[none, KEYID, default \]: Key to sign with.
+- `SIGNING_NAME` &amp; `SIGNING_EMAIL`: if a KEYID is provided as the `SIGNING_KEY`, use these as the Name and Email address of the signer. These should match publicized name and email address for the key.
+- `INITIAL_COMMIT`: **always**: \[never, pubkey, twofa, always\]: Sign initial commit.
+  - `never`: Never sign
+  - `pubkey`: Only sign if the user has a public key
+  - `twofa`: Only sign if the user is logged in with twofa
+  - `always`: Always sign
+  - Options other than `never` and `always` can be combined as a comma separated list.
+- `WIKI`: **never**: \[never, pubkey, twofa, always, parentsigned\]: Sign commits to wiki.
+- `CRUD_ACTIONS`: **pubkey, twofa, parentsigned**: \[never, pubkey, twofa, parentsigned, always\]: Sign CRUD actions.
+  - Options as above, with the addition of:
+  - `parentsigned`: Only sign if the parent commit is signed.
+- `MERGES`: **pubkey, twofa, basesigned, commitssigned**: \[never, pubkey, twofa, basesigned, commitssigned, always\]: Sign merges.
+  - `basesigned`: Only sign if the parent commit in the base repo is signed.
+  - `headsigned`: Only sign if the head commit in the head branch is signed.
+  - `commitssigned`: Only sign if all the commits in the head branch to the merge point are signed.
 
 ## CORS (`cors`)
 
@@ -96,6 +119,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
   regardless of the value of `DEFAULT_THEME`.
 - `DEFAULT_SHOW_FULL_NAME`: false: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
+- `SEARCH_REPO_DESCRIPTION`: true: Whether to search within description at repository search on explore page.
 
 ### UI - Admin (`ui.admin`)
 
@@ -107,6 +131,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Markdown (`markdown`)
 
 - `ENABLE_HARD_LINE_BREAK`: **false**: Enable Markdown's hard line break extension.
+- `CUSTOM_URL_SCHEMES`: Use a comma separated list (ftp,git,svn) to indicate additional
+  URL hyperlinks to be rendered in Markdown. URLs beginning in http and https are
+  always displayed
 
 ## Server (`server`)
 
@@ -115,6 +142,13 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**:
    Overwrite the automatically generated public URL.
    This is useful if the internal and the external URL don't match (e.g. in Docker).
+- `STATIC_URL_PREFIX`: **\<empty\>**:
+   Overwrite this option to request static resources from a different URL.
+   This includes CSS files, images, JS files and web fonts.
+   Avatar images are dynamic resources and still served by gitea.
+   The option can be just a different path, as in `/static`, or another domain, as in `https://cdn.example.com`.
+   Requests are then made as `%(ROOT_URL)s/static/css/index.css` and `https://cdn.example.com/css/index.css` respective.
+   The static files are located in the `public/` directory of the gitea source repository.
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
@@ -139,6 +173,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `CERT_FILE`: **custom/https/cert.pem**: Cert file path used for HTTPS.
 - `KEY_FILE`: **custom/https/key.pem**: Key file path used for HTTPS.
 - `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.
+- `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars.
 - `ENABLE_GZIP`: **false**: Enables application-level GZIP support.
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users  \[home, explore\].
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
@@ -152,6 +187,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LETSENCRYPT_ACCEPTTOS`: **false**: This is an explicit check that you accept the terms of service for Let's Encrypt.
 - `LETSENCRYPT_DIRECTORY`: **https**: Directory that Letsencrypt will use to cache information such as certs and private keys.
 - `LETSENCRYPT_EMAIL`: **email@example.com**: Email used by Letsencrypt to notify about problems with issued certificates. (No default)
+- `ALLOW_GRACEFUL_RESTARTS`: **true**: Perform a graceful restart on SIGHUP
+- `GRACEFUL_HAMMER_TIME`: **60s**: After a restart the parent process will stop accepting new connections and will allow requests to finish before stopping. Shutdown will be forced if it takes longer than this time.
 
 ## Database (`database`)
 
@@ -166,6 +203,12 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LOG_SQL`: **true**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
 - `DB_RETRY_BACKOFF`: **3s**: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
+- `MAX_OPEN_CONNS` **0**: Database maximum open connections - default is 0, meaning there is no limit.
+- `MAX_IDLE_CONNS` **2**: Max idle database connections on connnection pool, default is 2 - this will be capped to `MAX_OPEN_CONNS`.
+- `CONN_MAX_LIFETIME` **0 or 3s**: Sets the maximum amount of time a DB connection may be reused - default is 0, meaning there is no limit (except on MySQL where it is 3s - see #6804 & #7071).
+  
+Please see #8540 & #8273 for further discussion of the appropriate values for `MAX_OPEN_CONNS`, `MAX_IDLE_CONNS` & `CONN_MAX_LIFETIME` and their
+relation to port exhaustion.
 
 ## Indexer (`indexer`)
 
@@ -178,8 +221,14 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
 - `REPO_INDEXER_PATH`: **indexers/repos.bleve**: Index file used for code search.
+- `REPO_INDEXER_INCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **include** in the index. Use `**.txt` to match any files with .txt extension. An empty list means include all files.
+- `REPO_INDEXER_EXCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **exclude** from the index. Files that match this list will not be indexed, even if they match in `REPO_INDEXER_INCLUDE`.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
+- `STARTUP_TIMEOUT`: **30s**: If the indexer takes longer than this timeout to start - fail. (This timeout will be added to the hammer time above for child processes - as bleve will not start until the previous parent is shutdown.) Set to zero to never timeout.
+
+## Admin (`admin`)
+- `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**: Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
 
 ## Security (`security`)
 
@@ -200,6 +249,12 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `INTERNAL_TOKEN_URI`: **<empty>**: Instead of defining internal token in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
 - `PASSWORD_HASH_ALGO`: **pbkdf2**: The hash algorithm to use \[pbkdf2, argon2, scrypt, bcrypt\].
 - `CSRF_COOKIE_HTTP_ONLY`: **true**: Set false to allow JavaScript to read CSRF cookie.
+- `PASSWORD_COMPLEXITY`: **lower,upper,digit,spec**: Comma separated list of character classes required to pass minimum complexity. If left empty or no valid values are specified, the default values will be used. Possible values are: 
+    - lower - use one or more lower latin characters
+    - upper - use one or more upper latin characters
+    - digit - use one or more digits
+    - spec - use one or more special characters as ``!"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~``
+    - off - do not check password complexity
 
 ## OpenID (`openid`)
 
@@ -225,6 +280,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
 - `ENABLE_NOTIFY_MAIL`: **false**: Enable this to send e-mail to watchers of a repository when
    something happens, like creating issues. Requires `Mailer` to be enabled.
+- `ENABLE_BASIC_AUTHENTICATION`: **true**: Disable this to disallow authenticaton using HTTP
+   BASIC and the user's password. Please note if you disable this you will not be able to access the
+   tokens API endpoints using a password. Further, this only disables BASIC authentication using the
+   password - not tokens or OAuth Basic.
 - `ENABLE_REVERSE_PROXY_AUTHENTICATION`: **false**: Enable this to allow reverse proxy authentication.
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration
    for reverse authentication.
@@ -244,6 +303,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
 - `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
+- `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
 
 ## Webhook (`webhook`)
 
@@ -283,7 +343,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
 - `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.
    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
-   - Memache: `127.0.0.1:9090;127.0.0.1:9091`
+   - Memcache: `127.0.0.1:9090;127.0.0.1:9091`
+- `ITEM_TTL`: **16h**: Time to keep items in cache if not used, Setting it to 0 disables caching.
 
 ## Session (`session`)
 
@@ -409,6 +470,10 @@ NB: You must `REDIRECT_MACARON_LOG` and have `DISABLE_ROUTER_LOG` set to `false`
 - `RUN_AT_START`: **true**: Run repository statistics check at start time.
 - `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository statistics check.
 
+### Cron - Update Migration Poster ID (`cron.update_migration_post_id`)
+
+- `SCHEDULE`: **@every 24h** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
+
 ## Git (`git`)
 
 - `PATH`: **""**: The path of git executable. If empty, Gitea searches through the PATH environment.
@@ -504,8 +569,15 @@ Two special environment variables are passed to the render command:
 - `GITEA_PREFIX_RAW`, which contains the current URL prefix in the `raw` path tree. To be used as prefix for image paths.
 
 ## Time (`time`)
+
 - `FORMAT`: Time format to diplay on UI. i.e. RFC1123 or 2006-01-02 15:04:05
 - `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Shanghai/Asia
+
+## Task (`task`)
+
+- `QUEUE_TYPE`: **channel**: Task queue type, could be `channel` or `redis`.
+- `QUEUE_LENGTH`: **1000**: Task queue length, available only when `QUEUE_TYPE` is `channel`.
+- `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If there redis needs a password, use `addrs=127.0.0.1:6379 password=123 db=0`.
 
 ## Other (`other`)
 

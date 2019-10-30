@@ -44,3 +44,9 @@ type MarkdownRender string
 type ServerVersion struct {
 	Version string `json:"version"`
 }
+
+// APIError is an api error with a message
+type APIError struct {
+	Message string `json:"message"`
+	URL     string `json:"url"`
+}

@@ -74,6 +74,8 @@ func TestGetUserEmailsByNames(t *testing.T) {
 	// ignore none active user email
 	assert.Equal(t, []string{"user8@example.com"}, GetUserEmailsByNames([]string{"user8", "user9"}))
 	assert.Equal(t, []string{"user8@example.com", "user5@example.com"}, GetUserEmailsByNames([]string{"user8", "user5"}))
+
+	assert.Equal(t, []string{"user8@example.com"}, GetUserEmailsByNames([]string{"user8", "user7"}))
 }
 
 func TestUser_APIFormat(t *testing.T) {
@@ -138,7 +140,10 @@ func TestSearchUsers(t *testing.T) {
 	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 3, PageSize: 2},
 		[]int64{19, 25})
 
-	testOrgSuccess(&SearchUserOptions{Page: 4, PageSize: 2},
+	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 4, PageSize: 2},
+		[]int64{26})
+
+	testOrgSuccess(&SearchUserOptions{Page: 5, PageSize: 2},
 		[]int64{})
 
 	// test users
@@ -194,6 +199,37 @@ func TestDeleteUser(t *testing.T) {
 	test(4)
 	test(8)
 	test(11)
+}
+
+func TestEmailNotificationPreferences(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	for _, test := range []struct {
+		expected string
+		userID   int64
+	}{
+		{EmailNotificationsEnabled, 1},
+		{EmailNotificationsEnabled, 2},
+		{EmailNotificationsOnMention, 3},
+		{EmailNotificationsOnMention, 4},
+		{EmailNotificationsEnabled, 5},
+		{EmailNotificationsEnabled, 6},
+		{EmailNotificationsDisabled, 7},
+		{EmailNotificationsEnabled, 8},
+		{EmailNotificationsOnMention, 9},
+	} {
+		user := AssertExistsAndLoadBean(t, &User{ID: test.userID}).(*User)
+		assert.Equal(t, test.expected, user.EmailNotifications())
+
+		// Try all possible settings
+		assert.NoError(t, user.SetEmailNotifications(EmailNotificationsEnabled))
+		assert.Equal(t, EmailNotificationsEnabled, user.EmailNotifications())
+
+		assert.NoError(t, user.SetEmailNotifications(EmailNotificationsOnMention))
+		assert.Equal(t, EmailNotificationsOnMention, user.EmailNotifications())
+
+		assert.NoError(t, user.SetEmailNotifications(EmailNotificationsDisabled))
+		assert.Equal(t, EmailNotificationsDisabled, user.EmailNotifications())
+	}
 }
 
 func TestHashPasswordDeterministic(t *testing.T) {

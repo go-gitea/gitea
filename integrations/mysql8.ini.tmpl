@@ -21,6 +21,9 @@ ROOT = integrations/gitea-integration-mysql8/gitea-repositories
 LOCAL_COPY_PATH = tmp/local-repo-mysql8
 LOCAL_WIKI_PATH = tmp/local-wiki-mysql8
 
+[repository.signing]
+SIGNING_KEY = none
+
 [server]
 SSH_DOMAIN       = localhost
 HTTP_PORT        = 3004
@@ -59,7 +62,7 @@ PROVIDER_CONFIG = data/sessions-mysql8
 
 [log]
 MODE                 = test,file
-ROOT_PATH            = sqlite-log
+ROOT_PATH            = mysql8-log
 REDIRECT_MACARON_LOG = true
 ROUTER               = ,
 MACARON              = ,

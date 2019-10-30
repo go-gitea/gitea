@@ -539,6 +539,16 @@ code,
         margin: 0 6px;
     }
 
+    .button.truncate {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: top;
+        white-space: nowrap;
+        margin-right: 6px;
+    }
+
     &.status.buttons {
         .octicon {
             margin-right: 4px;
@@ -597,6 +607,45 @@ code,
             &:hover {
                 color: #000000 !important;
             }
+        }
+    }
+
+    .border {
+        border: 1px solid;
+        &.red {
+            border-color: #d95c5c !important;
+        }
+
+        &.blue {
+            border-color: #428bca !important;
+        }
+
+        &.black {
+            border-color: #444444;
+        }
+
+        &.grey {
+            border-color: #767676 !important;
+        }
+
+        &.light.grey {
+            border-color: #888888 !important;
+        }
+
+        &.green {
+            border-color: #6cc644 !important;
+        }
+
+        &.purple {
+            border-color: #6e5494 !important;
+        }
+
+        &.yellow {
+            border-color: #fbbd08 !important;
+        }
+
+        &.gold {
+            border-color: #a1882b !important;
         }
     }
 
@@ -855,23 +904,23 @@ footer {
 }
 
 .heatmap-color-1 {
-    background-color: #d7e5db;
+    background-color: #d8efbf;
 }
 
 .heatmap-color-2 {
-    background-color: #adc7ab;
+    background-color: #9fdb81;
 }
 
 .heatmap-color-3 {
-    background-color: #83a87b;
+    background-color: #66c74b;
 }
 
 .heatmap-color-4 {
-    background-color: #598a4b;
+    background-color: #609926;
 }
 
 .heatmap-color-5 {
-    background-color: #2f6b1b;
+    background-color: #025900;
 }
 
 .archived-icon {
@@ -911,6 +960,22 @@ footer {
     }
 }
 
+i.icons .icon:first-child {
+    margin-right: 0;
+}
+
+i.icon.centerlock {
+    top: 1.5em;
+}
+
+.ui.label > .detail .icons {
+    margin-right: 0.25em;
+}
+
+.ui.label > .detail .icons .icon {
+    margin-right: 0;
+}
+
 .lines-num {
     vertical-align: top;
     text-align: right !important;
@@ -920,10 +985,13 @@ footer {
     user-select: none;
 
     span {
-        line-height: 20px !important;
-        padding: 0 10px;
-        cursor: pointer;
-        display: block;
+        &:before {
+            content: attr(data-line-number);
+            line-height: 20px !important;
+            padding: 0 10px;
+            cursor: pointer;
+            display: block;
+        }
     }
 }
 
@@ -1005,7 +1073,7 @@ footer {
     overflow-x: auto;
     overflow-y: hidden;
 
-    * {
+    *:not(.fa):not(.octicon):not(.icon) {
         font-size: 12px;
         font-family: @monospaced-fonts, monospace;
         line-height: 20px;
