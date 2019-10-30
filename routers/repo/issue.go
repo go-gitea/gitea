@@ -1066,7 +1066,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	content := ctx.Query("content")
-	if err := issue.ChangeContent(ctx.User, content); err != nil {
+	if err := issue_service.ChangeContent(issue, ctx.User, content); err != nil {
 		ctx.ServerError("ChangeContent", err)
 		return
 	}
