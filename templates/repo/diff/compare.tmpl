@@ -28,6 +28,11 @@
 						{{range .Branches}}
 							<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{EscapePound .}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}:{{end}}{{EscapePound $.HeadBranch}}">{{$.BaseName}}:{{.}}</div>
 						{{end}}
+						{{if .Repository.IsFork}}
+							{{range .BaseRepoBranches}}
+							<div class="item" data-url="{{$.PullRequestCtx.BaseRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}:{{EscapePound $.HeadBranch}}">{{$.PullRequestCtx.BaseRepo.OwnerName}}:{{.}}</div>
+							{{end}}
+						{{end}}
 					</div>
 				</div>
 			</div>
@@ -54,7 +59,7 @@
 
 	{{if .IsNothingToCompare}}
     	<div class="ui segment">{{.i18n.Tr "repo.pulls.nothing_to_compare"}}</div>
-    {{else if .PageIsComparePull}}
+	{{else if .PageIsComparePull}}
 		{{if .HasPullRequest}}
         	<div class="ui segment">
         		{{.i18n.Tr "repo.pulls.has_pull_request" $.RepoLink $.RepoRelPath .PullRequest.Index | Safe}}
