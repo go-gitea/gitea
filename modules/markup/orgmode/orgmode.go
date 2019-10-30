@@ -50,10 +50,8 @@ func Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki b
 	res, err := org.New().Silent().Parse(bytes.NewReader(rawBytes), "").Write(renderer)
 	if err != nil {
 		log.Error("Panic in orgmode.Render: %v Just returning the rawBytes", err)
-		//result = rawBytes
 		return rawBytes
 	}
-	//result = []byte(res)
 	return []byte(res)
 }
 
