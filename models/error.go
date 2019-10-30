@@ -1204,7 +1204,43 @@ func IsErrMergeConflicts(err error) bool {
 }
 
 func (err ErrMergeConflicts) Error() string {
-	return fmt.Sprintf("Merge Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+	return fmt.Sprintf("Merge Conflict Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
+// ErrMergeUnrelatedHistories represents an error if merging fails due to unrelated histories
+type ErrMergeUnrelatedHistories struct {
+	Style  MergeStyle
+	StdOut string
+	StdErr string
+	Err    error
+}
+
+// IsErrMergeUnrelatedHistories checks if an error is a ErrMergeUnrelatedHistories.
+func IsErrMergeUnrelatedHistories(err error) bool {
+	_, ok := err.(ErrMergeUnrelatedHistories)
+	return ok
+}
+
+func (err ErrMergeUnrelatedHistories) Error() string {
+	return fmt.Sprintf("Merge UnrelatedHistories Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
+// ErrMergePushOutOfDate represents an error if merging fails due to unrelated histories
+type ErrMergePushOutOfDate struct {
+	Style  MergeStyle
+	StdOut string
+	StdErr string
+	Err    error
+}
+
+// IsErrMergePushOutOfDate checks if an error is a ErrMergePushOutOfDate.
+func IsErrMergePushOutOfDate(err error) bool {
+	_, ok := err.(ErrMergePushOutOfDate)
+	return ok
+}
+
+func (err ErrMergePushOutOfDate) Error() string {
+	return fmt.Sprintf("Merge PushOutOfDate Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
 }
 
 // ErrRebaseConflicts represents an error if rebase fails with a conflict

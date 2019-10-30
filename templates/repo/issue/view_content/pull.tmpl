@@ -219,6 +219,9 @@
 									{{if eq .MergeStyle "squash"}}
 										{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}
 									{{end}}
+									{{if eq .MergeStyle "merge-unrelated"}}
+										{{$.i18n.Tr "repo.pulls.merge_pull_request"}}
+									{{end}}
 									</span>
 								</button>
 								<div class="ui dropdown icon button">
@@ -235,6 +238,9 @@
 										{{end}}
 										{{if $prUnit.PullRequestsConfig.AllowSquash}}
 										<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}</div>
+										{{end}}
+										{{if $prUnit.PullRequestsConfig.AllowMergeUnrelated}}
+										<div class="item{{if eq .MergeStyle "merge-unrelated"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.unrelated_merge_pull_request"}}</div>
 										{{end}}
 									</div>
 								</div>

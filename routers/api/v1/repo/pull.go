@@ -603,7 +603,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 
 	message := strings.TrimSpace(form.MergeTitleField)
 	if len(message) == 0 {
-		if models.MergeStyle(form.Do) == models.MergeStyleMerge {
+		if models.MergeStyle(form.Do) == models.MergeStyleMerge || models.MergeStyle(form.Do) == models.MergeStyleMergeUnrelated {
 			message = pr.GetDefaultMergeMessage()
 		}
 		if models.MergeStyle(form.Do) == models.MergeStyleSquash {
@@ -619,6 +619,18 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	if err := pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Status(405)
+			return
+		} else if models.IsErrMergeConflicts(err) {
+			conflictError := err.(models.ErrMergeConflicts)
+			ctx.JSON(http.StatusConflict, conflictError)
+		} else if models.IsErrRebaseConflicts(err) {
+			conflictError := err.(models.ErrRebaseConflicts)
+			ctx.JSON(http.StatusConflict, conflictError)
+		} else if models.IsErrMergeUnrelatedHistories(err) {
+			conflictError := err.(models.ErrMergeUnrelatedHistories)
+			ctx.JSON(http.StatusConflict, conflictError)
+		} else if models.IsErrMergePushOutOfDate(err) {
+			ctx.Status(http.StatusConflict)
 			return
 		}
 		ctx.Error(500, "Merge", err)

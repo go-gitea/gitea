@@ -630,7 +630,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 
 	message := strings.TrimSpace(form.MergeTitleField)
 	if len(message) == 0 {
-		if models.MergeStyle(form.Do) == models.MergeStyleMerge {
+		if models.MergeStyle(form.Do) == models.MergeStyleMerge || models.MergeStyle(form.Do) == models.MergeStyleMergeUnrelated {
 			message = pr.GetDefaultMergeMessage()
 		}
 		if models.MergeStyle(form.Do) == models.MergeStyleRebaseMerge {
@@ -682,6 +682,16 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		} else if models.IsErrRebaseConflicts(err) {
 			conflictError := err.(models.ErrRebaseConflicts)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.rebase_conflict", sanitize(conflictError.CommitSHA), sanitize(conflictError.StdErr), sanitize(conflictError.StdOut)))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if models.IsErrMergeUnrelatedHistories(err) {
+			log.Debug("MergeUnrelatedHistories error: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.unrelated_histories"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if models.IsErrMergePushOutOfDate(err) {
+			log.Debug("MergePushOutOfDate error: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 			return
 		}
