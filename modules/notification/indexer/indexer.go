@@ -74,6 +74,11 @@ func (r *indexerNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 
 func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models.Comment) {
 	if comment.Type == models.CommentTypeComment {
+		if err := comment.LoadIssue(); err != nil {
+			log.Error("LoadIssue: %v", err)
+			return
+		}
+
 		var found bool
 		if comment.Issue.Comments != nil {
 			for i := 0; i < len(comment.Issue.Comments); i++ {

@@ -1069,7 +1069,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	content := ctx.Query("content")
-	if err := issue.ChangeContent(ctx.User, content); err != nil {
+	if err := issue_service.ChangeContent(issue, ctx.User, content); err != nil {
 		ctx.ServerError("ChangeContent", err)
 		return
 	}
@@ -1327,8 +1327,6 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
-	notification.NotifyCreateIssueComment(ctx.User, ctx.Repo.Repository, issue, comment)
-
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
 }
 
@@ -1378,8 +1376,6 @@ func UpdateCommentContent(ctx *context.Context) {
 		ctx.ServerError("UpdateAttachments", err)
 	}
 
-	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
-
 	ctx.JSON(200, map[string]interface{}{
 		"content":     string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
 		"attachments": attachmentsHTML(ctx, comment.Attachments),
@@ -1407,12 +1403,10 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if err = models.DeleteComment(comment, ctx.User); err != nil {
+	if err = comment_service.DeleteComment(comment, ctx.User); err != nil {
 		ctx.ServerError("DeleteCommentByID", err)
 		return
 	}
-
-	notification.NotifyDeleteComment(ctx.User, comment)
 
 	ctx.Status(200)
 }
