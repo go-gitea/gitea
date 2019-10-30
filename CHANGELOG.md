@@ -17,7 +17,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix #8582 by handling empty repos (#8587) (#8593)
   * Fix bug on pull requests when transfer head repository (#8571)
   * Add missed close in ServeBlobLFS (#8527) (#8543)
-  * Return false if provided branch name is empty (#8485) (#8492)
+  * Return false if provided branch name is empty for IsBranchExist (#8485) (#8492)
   * Create .ssh dir as necessary (#8369) (#8486) (#8489)
   * Restore functionality for early gits (#7775) (#8476)
   * Add check for empty set when dropping indexes during migration (#8475)
