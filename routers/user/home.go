@@ -277,7 +277,11 @@ func Milestones(ctx *context.Context) {
 		m.Repo = showReposMap[m.RepoID]
 		m.RenderedContent = string(markdown.Render([]byte(m.Content), m.Repo.Link(), m.Repo.ComposeMetas()))
 		if m.Repo.IsTimetrackerEnabled() {
-			m.LoadTotalTrackedTime()
+			err := m.LoadTotalTrackedTime()
+			if err != nil {
+				ctx.ServerError("LoadTotalTrackedTime", err)
+				return
+			}
 		}
 	}
 
