@@ -4,6 +4,32 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.10.0-RC2](https://github.com/go-gitea/gitea/releases/tag/v1.10.0-rc2) - 2019-10-30
+* BREAKING
+  * Fix deadline on update issue or PR via API (#8698)
+  * Hide some user information via API if user doesn't have enough permission (#8655) (#8657)
+* BUGFIXES
+  * Expose db.SetMaxOpenConns and allow non MySQL dbs to set conn pool params (#8528) (#8618)
+  * Fix milestone close timestamp (#8728) (#8730)
+  * Fix 500 when getting user as unauthenticated user (#8653) (#8663)
+  * Fix 'New Issue Missing Milestone Comment' (#8678) (#8681)
+  * Use AppSubUrl for more redirections (#8647) (#8651)
+  * Add SubURL to redirect path (#8632) (#8634)
+  * Fix template error on account page (#8562) (#8622)
+  * Allow externalID to be UUID (#8551) (#8624)
+  * Prevent removal of non-empty emoji panel following selection of duplicate (#8609) (#8623)
+  * Update heatmap fixtures to restore tests (#8615) (#8616)
+  * Ensure that diff stats can scroll independently of the diff (#8581) (#8621)
+  * Webhook: set Content-Type for application/x-www-form-urlencoded (#8600)
+  * Fix #8582 by handling empty repos (#8587) (#8594)
+  * Fix bug on pull requests when transfer head repository (#8564) (#8569)
+  * Add missed close in ServeBlobLFS (#8527) (#8542)
+  * Ensure that GitRepo is set on Empty repositories (#8539) (#8541)
+  * Fix migrate mirror 500 bug (#8526) (#8530)
+  * Fix password complexity regex for special characters (#8524)
+  * Prevent .code-view from overriding font on icon fonts (#8614) (#8627)
+  * Allow more than 255 characters for tokens in external_login_user table (#8554)
+
 ## [1.10.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.10.0-rc1) - 2019-10-14
 * BREAKING
   * Remove legacy handling of drone token (#8191)
