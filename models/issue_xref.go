@@ -135,7 +135,7 @@ func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesCont
 		if refIssue != nil {
 			action := ref.Action
 			if !issue.IsPull || refIssue.IsPull {
-				// Close/reopen actions can only be from pull requests to issues
+				// Close/reopen actions can only be set from pull requests to issues
 				action = references.XRefActionNone
 			}
 			xreflist = ctx.OrigIssue.updateCrossReferenceList(xreflist, &crossReference{
