@@ -368,7 +368,7 @@ github.com/satori/go.uuid
 github.com/sergi/go-diff/diffmatchpatch
 # github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b
 github.com/shurcooL/httpfs/vfsutil
-# github.com/shurcooL/sanitized_anchor_name v0.0.0-20160918041101-1dba4b3954bc
+# github.com/shurcooL/sanitized_anchor_name v1.0.0
 github.com/shurcooL/sanitized_anchor_name
 # github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
 github.com/shurcooL/vfsgen
