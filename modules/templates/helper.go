@@ -339,33 +339,37 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 // the provided default url, handling for special links without email to links.
 func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
-	// we can safely assume that it will not return any error, since there
-	// shouldn't be any special HTML.
-	fullMessage, err := markup.RenderCommitMessageSubject([]byte(cleanMsg), urlPrefix, urlDefault, metas)
-	if err != nil {
-		log.Error("RenderCommitMessageSubject: %v", err)
-		return ""
-	}
-	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
+
+	msgLines := strings.Split(strings.TrimSpace(string(cleanMsg)), "\n")
 	if len(msgLines) == 0 {
 		return template.HTML("")
 	}
-	return template.HTML(msgLines[0])
+
+	// we can safely assume that it will not return any error, since there
+	// shouldn't be any special HTML.
+	renderedMessage, err := markup.RenderCommitMessageSubject([]byte(msgLines[0]), urlPrefix, urlDefault, metas)
+	if err != nil {
+		log.Error("RenderCommitMessageSubject: %v", err)
+		return template.HTML("")
+	}
+	return template.HTML(renderedMessage)
 }
 
 // RenderCommitBody extracts the body of a commit message without its title.
 func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
-	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, "", metas)
+
+	msgLines := strings.Split(strings.TrimSpace(string(cleanMsg)), "\n")
+	if len(msgLines) <= 1 {
+		return template.HTML("")
+	}
+
+	renderedMessage, err := markup.RenderCommitMessage([]byte(strings.Join(msgLines[1:], "\n")), urlPrefix, "", metas)
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
 	}
-	body := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
-	if len(body) == 0 {
-		return template.HTML("")
-	}
-	return template.HTML(strings.Join(body[1:], "\n"))
+	return template.HTML(renderedMessage)
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
