@@ -328,7 +328,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/pulls/{index} repository repoEditPullRequest
 	// ---
-	// summary: Update a pull request
+	// summary: Update a pull request. If using deadline only the date will be taken into account, and time of day ignored. Deadline can be removed by setting it to "0001-01-01T00:00:00Z".
 	// consumes:
 	// - application/json
 	// produces:

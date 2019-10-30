@@ -269,7 +269,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index} issue issueEditIssue
 	// ---
-	// summary: Edit an issue. If using deadline only the date will be taken into account, and time of day ignored.
+	// summary: Edit an issue. If using deadline only the date will be taken into account, and time of day ignored. Deadline can be removed by setting it to "0001-01-01T00:00:00Z".
 	// consumes:
 	// - application/json
 	// produces:
