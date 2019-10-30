@@ -12,7 +12,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Expose db.SetMaxOpenConns and allow non MySQL dbs to set conn pool params (#8528) (#8618)
   * Fix milestone close timestamp (#8728) (#8730)
   * Fix 500 when getting user as unauthenticated user (#8653) (#8663)
-  * Call createMilestoneComment on newIssue func (#8678) (#8681)
+  * Fix 'New Issue Missing Milestone Comment' (#8678) (#8681)
   * Use AppSubUrl for more redirections (#8647) (#8651)
   * Add SubURL to redirect path (#8632) (#8634)
   * Fix template error on account page (#8562) (#8622)
