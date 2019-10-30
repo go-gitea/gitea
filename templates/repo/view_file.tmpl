@@ -6,7 +6,7 @@
 				<strong>{{.FileName}}</strong>
 			{{else}}
 				<div class="file-info text grey normal mono">
-					{{if .NumLines}}
+					{{if .NumLinesSet}}
 						<div class="file-info-entry">
 							{{.NumLines}} {{.i18n.Tr (TrN .i18n.Lang .NumLines "repo.line" "repo.lines") }}
 						</div>
@@ -14,6 +14,12 @@
 					{{if .FileSize}}
 						<div class="file-info-entry">
 							{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.i18n.Tr "repo.stored_lfs"}}){{end}}
+						</div>
+					{{end}}
+					{{if .LFSLock}}
+						<div class="file-info-entry">
+							<i class="fa fa-lock poping up disabled" data-content="{{.LFSLockHint}}" data-position="bottom center" data-variation="tiny inverted"></i>
+							<a href="{{AppSubUrl}}/{{.LFSLock.Owner.Name}}">{{.LFSLockOwner}}</a>
 						</div>
 					{{end}}
 				</div>
