@@ -9,7 +9,7 @@ import (
 )
 
 func prependRefsHeadsToIssueRefs(x *xorm.Engine) error {
-	query := "UPDATE `issue` SET `ref` = 'refs/heads/' || `ref` WHERE `ref` IS NOT NULL AND `ref` <> ''"
+	query := "UPDATE `issue` SET `ref` = CONCAT('refs/heads/', `ref`) WHERE `ref` IS NOT NULL AND `ref` <> ''"
 	_, err := x.Exec(query)
 	return err
 }
