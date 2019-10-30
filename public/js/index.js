@@ -212,9 +212,8 @@ function initBranchSelector() {
     const $selectBranch = $('.ui.select-branch')
     const $branchMenu = $selectBranch.find('.reference-list-menu');
     $branchMenu.find('.item:not(.no-select)').click(function () {
-        const selectedValue = $(this).data('id');
-        $($(this).data('id-selector')).val(selectedValue);
-        $selectBranch.find('.ui .branch-name').text(selectedValue);
+        $($(this).data('id-selector')).val($(this).data('id'));
+        $selectBranch.find('.ui .branch-name').text($(this).data('name'));
     });
     $selectBranch.find('.reference.column').click(function () {
         $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');

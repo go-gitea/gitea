@@ -69,7 +69,7 @@
 						{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 						<li class="item">
 							<div class="ui label">{{if not $.RepoID}}{{.Repo.FullName}}{{end}}#{{.Index}}</div>
-							<a class="title has-emoji" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/issues/{{.Index}}">{{.Title}}</a>
+							<a class="title has-emoji" href="{{.Repo.Link}}/issues/{{.Index}}">{{.Title}}</a>
 
                             {{if .IsPull }}
                                 {{if (index $.CommitStatus .PullRequest.ID)}}
@@ -105,13 +105,13 @@
 									{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
 								{{end}}
 								{{if .Milestone}}
-									<a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
+									<a class="milestone" href="{{.Repo.Link}}{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
 										<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
 									</a>
 								{{end}}
 								{{if .Ref}}
-									<a class="ref" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/src/branch/{{.Ref}}">
-										<span class="octicon octicon-git-branch"></span> {{.Ref}}
+									<a class="ref" href="{{.RefURL .Repo.Link}}">
+										<span class="octicon octicon-git-branch"></span> {{.RefEndName}}
 									</a>
 								{{end}}
 								{{range .Assignees}}

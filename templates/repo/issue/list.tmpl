@@ -246,8 +246,8 @@
 							</a>
 						{{end}}
 						{{if .Ref}}
-							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">
-								<span class="octicon octicon-git-branch"></span> {{.Ref}}
+							<a class="ref" href="{{.RefURL $.RepoLink}}">
+								<span class="octicon octicon-git-branch"></span> {{.RefEndName}}
 							</a>
 						{{end}}
 						{{$tasks := .GetTasks}}

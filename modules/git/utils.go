@@ -88,6 +88,18 @@ func RefEndName(refStr string) string {
 	return refStr
 }
 
+func RefURL(repoURL, ref string) string {
+	refName := RefEndName(ref)
+	switch {
+	case strings.HasPrefix(ref, BranchPrefix):
+		return repoURL + "/src/branch/" + refName
+	case strings.HasPrefix(ref, TagPrefix):
+		return repoURL + "/src/tag/" + refName
+	default:
+		return repoURL + "/src/commit/" + refName
+	}
+}
+
 // ParseBool returns the boolean value represented by the string as per git's git_config_bool
 // true will be returned for the result if the string is empty, but valid will be false.
 // "true", "yes", "on" are all true, true
