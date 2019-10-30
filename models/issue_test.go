@@ -297,7 +297,7 @@ func testInsertIssue(t *testing.T, title, content string) {
 		Title:    title,
 		Content:  content,
 	}
-	err := NewIssue(repo, &issue, nil, nil, nil)
+	err := NewIssue(repo, &issue, nil, nil)
 	assert.NoError(t, err)
 
 	var newIssue Issue

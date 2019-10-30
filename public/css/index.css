@@ -126,6 +126,7 @@ a{cursor:pointer}
 .ui .form .fake{display:none!important}
 .ui .form .sub.field{margin-left:25px}
 .ui .sha.label{font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;font-size:13px;padding:6px 10px 4px 10px;font-weight:400;margin:0 6px}
+.ui .button.truncate{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:top;white-space:nowrap;margin-right:6px}
 .ui.status.buttons .octicon{margin-right:4px}
 .ui.inline.delete-button{padding:8px 15px;font-weight:400}
 .ui .background.red{background-color:#d95c5c!important}
@@ -212,11 +213,11 @@ footer .ui.left,footer .ui.right{line-height:40px}
 }
 #user-heatmap .total-contributions{text-align:left;font-weight:500;margin-top:0}
 .heatmap-color-0{background-color:#f4f4f4}
-.heatmap-color-1{background-color:#d7e5db}
-.heatmap-color-2{background-color:#adc7ab}
-.heatmap-color-3{background-color:#83a87b}
-.heatmap-color-4{background-color:#598a4b}
-.heatmap-color-5{background-color:#2f6b1b}
+.heatmap-color-1{background-color:#d8efbf}
+.heatmap-color-2{background-color:#9fdb81}
+.heatmap-color-3{background-color:#66c74b}
+.heatmap-color-4{background-color:#609926}
+.heatmap-color-5{background-color:#025900}
 .archived-icon{color:#b3b3b3!important}
 .oauth2-authorize-application-box{margin-top:3em!important}
 .ui.tabular.menu .item{color:rgba(0,0,0,.5)}
@@ -567,6 +568,7 @@ i.icon.centerlock{top:1.5em}
 .repository.view.issue .comment-list .timeline-line:before{display:block;content:"";position:absolute;margin-top:12px;margin-bottom:14px;top:0;bottom:0;left:82px;width:2px;background-color:#f3f3f3;z-index:-1}
 .repository.view.issue .comment-list .comment .avatar{width:3em}
 .repository.view.issue .comment-list .comment .tag{color:#767676;margin-top:3px;padding:2px 5px;font-size:12px;border:1px solid rgba(0,0,0,.1);border-radius:3px}
+.repository.view.issue .comment-list .comment .tag.pending{color:#000;background-color:#fffbb2;margin-left:5px}
 .repository.view.issue .comment-list .comment .actions .item{float:left}
 .repository.view.issue .comment-list .comment .actions .item.tag{margin-right:5px}
 .repository.view.issue .comment-list .comment .actions .item.action{margin-top:6px;margin-left:10px}
@@ -791,6 +793,7 @@ i.icon.centerlock{top:1.5em}
 .repository .segment.reactions .select-reaction{float:none}
 .repository .segment.reactions .select-reaction:not(.active) a{display:none}
 .repository .segment.reactions:hover .select-reaction a{display:block}
+.repository .ui.fluid.action.input .ui.search.action.input{flex:auto}
 .user-cards .list{padding:0;display:flex;flex-wrap:wrap}
 .user-cards .list .item{list-style:none;width:32%;margin:10px 10px 10px 0;padding-bottom:14px;float:left}
 .user-cards .list .item .avatar{width:48px;height:48px;float:left;display:block;margin-right:10px}
@@ -895,6 +898,7 @@ tbody.commit-list{vertical-align:baseline}
 .file-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px!important}
 .file-info{display:flex;align-items:center}
 .file-info-entry+.file-info-entry{border-left:1px solid currentColor;margin-left:8px;padding-left:8px}
+.title_wip_desc{margin-top:1em}
 .CodeMirror{font:14px 'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace}
 .CodeMirror.cm-s-default{border-radius:3px;padding:0!important}
 .CodeMirror .cm-comment{background:inherit!important}
