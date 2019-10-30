@@ -9,25 +9,7 @@ import (
 )
 
 func prependRefsHeadsToIssueRefs(x *xorm.Engine) error {
-	type Issue struct {
-		ID  int64
-		Ref string
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	query := `
-		UPDATE issue SET ref = 'refs/heads/' || ref
-		WHERE ref IS NOT NULL AND ref <> ''
-	`
-	if _, err := sess.Exec(query); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	query := "UPDATE `issue` SET `ref` = 'refs/heads/' || `ref` WHERE `ref` IS NOT NULL AND `ref` <> ''"
+	_, err := x.Exec(query)
+	return err
 }
