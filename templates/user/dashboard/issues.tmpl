@@ -30,7 +30,7 @@
 					</a>
 					{{range .Repos}}
 						{{with $Repo := .}}
-							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&repos=[
+							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}ui basic blue button{{end}}{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&repos=[
 									{{with $include := true}}
 										{{range $.RepoIDs}}
 											{{if eq . $Repo.ID}}
