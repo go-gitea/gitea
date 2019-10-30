@@ -750,7 +750,6 @@ func (issue *Issue) UpdateAttachments(uuids []string) (err error) {
 
 // ChangeContent changes issue content, as the given user.
 func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
-	oldContent := issue.Content
 	issue.Content = content
 
 	sess := x.NewSession()
@@ -769,47 +768,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-	sess.Close()
-
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if issue.IsPull {
-		issue.PullRequest.Issue = issue
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-			Action: api.HookIssueEdited,
-			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
-				Body: &api.ChangesFromPayload{
-					From: oldContent,
-				},
-			},
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
-			Sender:      doer.APIFormat(),
-		})
-	} else {
-		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
-			Action: api.HookIssueEdited,
-			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
-				Body: &api.ChangesFromPayload{
-					From: oldContent,
-				},
-			},
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     doer.APIFormat(),
-		})
-	}
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 // GetTasks returns the amount of tasks in the issues content

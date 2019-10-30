@@ -10,7 +10,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
 	comment_service "code.gitea.io/gitea/services/comments"
 )
@@ -196,8 +195,6 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		return
 	}
 
-	notification.NotifyCreateIssueComment(ctx.User, ctx.Repo.Repository, issue, comment)
-
 	ctx.JSON(201, comment.APIFormat())
 }
 
@@ -305,8 +302,6 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
-	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
-
 	ctx.JSON(200, comment.APIFormat())
 }
 
@@ -395,8 +390,6 @@ func deleteIssueComment(ctx *context.APIContext) {
 		ctx.Error(500, "DeleteCommentByID", err)
 		return
 	}
-
-	notification.NotifyDeleteComment(ctx.User, comment)
 
 	ctx.Status(204)
 }
