@@ -18,7 +18,7 @@ menu:
 所有下载均包括 SQLite, MySQL 和 PostgreSQL 的支持，同时所有资源均已嵌入到可执行程序中，这一点和老版本有所不同。 基于二进制的安装非常简单，只要从 [下载页面](https://dl.gitea.io/gitea) 选择对应平台，拷贝下载URL，执行以下命令即可（以Linux为例）：
 
 ```
-wget -O gitea https://dl.gitea.io/gitea/1.3.2/gitea-1.3.2-linux-amd64
+wget -O gitea https://dl.gitea.io/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
 chmod +x gitea
 ```
 

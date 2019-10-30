@@ -14,8 +14,9 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"github.com/Unknwon/com"
-	"gopkg.in/macaron.v1"
+
+	"gitea.com/macaron/macaron"
+	"github.com/unknwon/com"
 )
 
 var (
@@ -83,12 +84,15 @@ func Mailer() *template.Template {
 					continue
 				}
 
-				templates.New(
+				_, err = templates.New(
 					strings.TrimSuffix(
 						filePath,
 						".tmpl",
 					),
 				).Parse(string(content))
+				if err != nil {
+					log.Warn("Failed to parse template %v", err)
+				}
 			}
 		}
 	}
@@ -113,12 +117,15 @@ func Mailer() *template.Template {
 					continue
 				}
 
-				templates.New(
+				_, err = templates.New(
 					strings.TrimSuffix(
 						filePath,
 						".tmpl",
 					),
 				).Parse(string(content))
+				if err != nil {
+					log.Warn("Failed to parse template %v", err)
+				}
 			}
 		}
 	}

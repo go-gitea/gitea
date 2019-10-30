@@ -11,6 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/notification/indexer"
 	"code.gitea.io/gitea/modules/notification/mail"
 	"code.gitea.io/gitea/modules/notification/ui"
+	"code.gitea.io/gitea/modules/notification/webhook"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 var (
@@ -23,10 +25,14 @@ func RegisterNotifier(notifier base.Notifier) {
 	notifiers = append(notifiers, notifier)
 }
 
-func init() {
+// NewContext registers notification handlers
+func NewContext() {
 	RegisterNotifier(ui.NewNotifier())
-	RegisterNotifier(mail.NewNotifier())
+	if setting.Service.EnableNotifyMail {
+		RegisterNotifier(mail.NewNotifier())
+	}
 	RegisterNotifier(indexer.NewNotifier())
+	RegisterNotifier(webhook.NewNotifier())
 }
 
 // NotifyCreateIssueComment notifies issue comment related message to notifiers
@@ -136,9 +142,9 @@ func NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent
 }
 
 // NotifyIssueChangeAssignee notifies change content to notifiers
-func NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, removed bool) {
+func NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
 	for _, notifier := range notifiers {
-		notifier.NotifyIssueChangeAssignee(doer, issue, removed)
+		notifier.NotifyIssueChangeAssignee(doer, issue, assignee, removed, comment)
 	}
 }
 

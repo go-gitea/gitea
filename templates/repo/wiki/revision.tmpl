@@ -1,0 +1,114 @@
+{{template "base/head" .}}
+<div class="repository wiki revisions">
+	{{template "repo/header" .}}
+	{{ $title := .title}}
+	<div class="ui container">
+		<div class="ui stackable grid">
+			<div class="ui eight wide column text right">
+				<div class="ui action small input" id="clone-panel">
+					{{if not $.DisableHTTP}}
+						<button class="ui basic clone button" id="repo-clone-https" data-link="{{.WikiCloneLink.HTTPS}}">
+							{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
+						</button>
+					{{end}}
+					{{if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
+						<button class="ui basic clone button" id="repo-clone-ssh" data-link="{{.WikiCloneLink.SSH}}">
+							SSH
+						</button>
+					{{end}}
+					{{if not $.DisableHTTP}}
+						<input id="repo-clone-url" value="{{$.WikiCloneLink.HTTPS}}" readonly>
+					{{else if and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)}}
+						<input id="repo-clone-url" value="{{$.WikiCloneLink.SSH}}" readonly>
+					{{end}}
+					{{if or ((not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH)))}}
+						<button class="ui basic icon button poping up clipboard" id="clipboard-btn" data-original="{{.i18n.Tr "repo.copy_link"}}" data-success="{{.i18n.Tr "repo.copy_link_success"}}" data-error="{{.i18n.Tr "repo.copy_link_error"}}" data-content="{{.i18n.Tr "repo.copy_link"}}" data-variation="inverted tiny" data-clipboard-target="#repo-clone-url">
+							<i class="octicon octicon-clippy"></i>
+						</button>
+					{{end}}
+				</div>
+			</div>
+			<div class="ui header eight wide column">
+				<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.back_to_wiki"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}" ><span>{{.revision}}</span> <i class="fa fa-fw fa-file-text-o"></i></a>
+				{{$title}}
+				<div class="ui sub header wrap">
+					{{$timeSince := TimeSince .Author.When $.Lang}}
+					{{.i18n.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
+				</div>
+			</div>
+		</div>
+		<h2 class="ui top header">{{.i18n.Tr "repo.wiki.wiki_page_revisions"}}</h2>
+		<div class="ui" style="margin-top: 1rem;">
+			<h4 class="ui top attached header">
+				<div class="ui stackable grid">
+					<div class="sixteen wide column">
+						{{.CommitCount}} {{.i18n.Tr "repo.commits.commits"}}
+					</div>
+				</div>
+			</h4>
+
+			{{if and .Commits (gt .CommitCount 0)}}
+				<div class="ui attached table segment">
+					<table class="ui very basic striped fixed table single line" id="commits-table">
+						<thead>
+							<tr>
+								<th class="four wide">{{.i18n.Tr "repo.commits.author"}}</th>
+								<th class="tree wide sha">SHA1</th>
+								<th class="five wide message">{{.i18n.Tr "repo.commits.message"}}</th>
+								<th class="four wide">{{.i18n.Tr "repo.commits.date"}}</th>
+							</tr>
+						</thead>
+						<tbody class="commit-list">
+							{{ $r:= List .Commits}}
+							{{range $r}}
+								<tr>
+									<td class="author">
+										{{if .User}}
+										  {{if .User.FullName}}
+											<img class="ui avatar image" src="{{.User.RelAvatarLink}}" alt=""/>&nbsp;&nbsp;<a href="{{AppSubUrl}}/{{.User.Name}}">{{.User.FullName}}</a>
+										  {{else}}
+											<img class="ui avatar image" src="{{.User.RelAvatarLink}}" alt=""/>&nbsp;&nbsp;<a href="{{AppSubUrl}}/{{.User.Name}}">{{.Author.Name}}</a>
+										  {{end}}
+										{{else}}
+											<img class="ui avatar image" src="{{AvatarLink .Author.Email}}" alt=""/>&nbsp;&nbsp;{{.Author.Name}}
+										{{end}}
+									</td>
+									<td class="sha">
+										<label rel="nofollow" class="ui sha label {{if .Signature}} isSigned {{if .Verification.Verified }} isVerified {{end}}{{end}}">
+											{{ShortSha .ID.String}}
+											{{if .Signature}}
+												<div class="ui detail icon button">
+													{{if .Verification.Verified}}
+														<i title="{{.Verification.Reason}}" class="lock green icon"></i>
+													{{else}}
+														<i title="{{$.i18n.Tr .Verification.Reason}}" class="unlock icon"></i>
+													{{end}}
+												</div>
+											{{end}}
+										</label>
+									</td>
+									<td class="message">
+										<span class="message-wrapper">
+											<span class="commit-summary has-emoji{{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary}}</span>
+											{{if IsMultilineCommitMessage .Message}}
+											<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
+											<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+											{{end}}
+										</span>
+									</td>
+									<td class="grey text">{{TimeSince .Author.When $.Lang}}</td>
+								</tr>
+							{{end}}
+						</tbody>
+					</table>
+				</div>
+			{{end}}
+
+			{{template "base/paginate" .}}
+
+		</div>
+	</div>
+</div>
+
+
+{{template "base/footer" .}}

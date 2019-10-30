@@ -20,17 +20,17 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/util"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 
-	"golang.org/x/net/html/charset"
-	"golang.org/x/text/transform"
-	"gopkg.in/editorconfig/editorconfig-core-go.v1"
+	"github.com/editorconfig/editorconfig-core-go/v2"
 )
 
 // NewFuncMap returns functions for injecting to templates
@@ -47,6 +47,9 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"AppSubUrl": func() string {
 			return setting.AppSubURL
+		},
+		"StaticUrlPrefix": func() string {
+			return setting.StaticURLPrefix
 		},
 		"AppUrl": func() string {
 			return setting.AppURL
@@ -76,12 +79,13 @@ func NewFuncMap() []template.FuncMap {
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
 		"Str2html":      Str2html,
-		"TimeSince":     base.TimeSince,
-		"TimeSinceUnix": base.TimeSinceUnix,
-		"RawTimeSince":  base.RawTimeSince,
+		"TimeSince":     timeutil.TimeSince,
+		"TimeSinceUnix": timeutil.TimeSinceUnix,
+		"RawTimeSince":  timeutil.RawTimeSince,
 		"FileSize":      base.FileSize,
 		"Subtract":      base.Subtract,
 		"EntryIcon":     base.EntryIcon,
+		"MigrationIcon": MigrationIcon,
 		"Add": func(a, b int) int {
 			return a + b
 		},
@@ -92,10 +96,8 @@ func NewFuncMap() []template.FuncMap {
 		"DateFmtShort": func(t time.Time) string {
 			return t.Format("Jan 02, 2006")
 		},
-		"SizeFmt": func(s int64) string {
-			return base.FileSize(s)
-		},
-		"List": List,
+		"SizeFmt": base.FileSize,
+		"List":    List,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
 				return ""
@@ -120,13 +122,14 @@ func NewFuncMap() []template.FuncMap {
 		"EscapePound": func(str string) string {
 			return strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(str)
 		},
-		"PathEscapeSegments":       util.PathEscapeSegments,
-		"URLJoin":                  util.URLJoin,
-		"RenderCommitMessage":      RenderCommitMessage,
-		"RenderCommitMessageLink":  RenderCommitMessageLink,
-		"RenderCommitBody":         RenderCommitBody,
-		"RenderNote":               RenderNote,
-		"IsMultilineCommitMessage": IsMultilineCommitMessage,
+		"PathEscapeSegments":             util.PathEscapeSegments,
+		"URLJoin":                        util.URLJoin,
+		"RenderCommitMessage":            RenderCommitMessage,
+		"RenderCommitMessageLink":        RenderCommitMessageLink,
+		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
+		"RenderCommitBody":               RenderCommitBody,
+		"RenderNote":                     RenderNote,
+		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
 		},
@@ -145,7 +148,11 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"TabSizeClass": func(ec *editorconfig.Editorconfig, filename string) string {
 			if ec != nil {
-				def := ec.GetDefinitionForFilename(filename)
+				def, err := ec.GetDefinitionForFilename(filename)
+				if err != nil {
+					log.Error("tab size class: getting definition for filename: %v", err)
+					return "tab-size-8"
+				}
 				if def.TabWidth > 0 {
 					return fmt.Sprintf("tab-size-%d", def.TabWidth)
 				}
@@ -156,8 +163,7 @@ func NewFuncMap() []template.FuncMap {
 			var path []string
 			index := strings.LastIndex(str, "/")
 			if index != -1 && index != len(str) {
-				path = append(path, str[0:index+1])
-				path = append(path, str[index+1:])
+				path = append(path, str[0:index+1], str[index+1:])
 			} else {
 				path = append(path, str)
 			}
@@ -234,6 +240,11 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return float32(n) * 100 / float32(sum)
 		},
+		"CommentMustAsDiff": gitdiff.CommentMustAsDiff,
+		"MirrorAddress":     mirror_service.Address,
+		"MirrorFullAddress": mirror_service.AddressNoCredentials,
+		"MirrorUserName":    mirror_service.Username,
+		"MirrorPassword":    mirror_service.Password,
 	}}
 }
 
@@ -276,64 +287,10 @@ func Sha1(str string) string {
 	return base.EncodeSha1(str)
 }
 
-// ToUTF8WithErr converts content to UTF8 encoding
-func ToUTF8WithErr(content []byte) (string, error) {
-	charsetLabel, err := base.DetectEncoding(content)
-	if err != nil {
-		return "", err
-	} else if charsetLabel == "UTF-8" {
-		return string(base.RemoveBOMIfPresent(content)), nil
-	}
-
-	encoding, _ := charset.Lookup(charsetLabel)
-	if encoding == nil {
-		return string(content), fmt.Errorf("Unknown encoding: %s", charsetLabel)
-	}
-
-	// If there is an error, we concatenate the nicely decoded part and the
-	// original left over. This way we won't lose data.
-	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
-	if err != nil {
-		result = append(result, content[n:]...)
-	}
-
-	result = base.RemoveBOMIfPresent(result)
-
-	return string(result), err
-}
-
-// ToUTF8WithFallback detects the encoding of content and coverts to UTF-8 if possible
-func ToUTF8WithFallback(content []byte) []byte {
-	charsetLabel, err := base.DetectEncoding(content)
-	if err != nil || charsetLabel == "UTF-8" {
-		return base.RemoveBOMIfPresent(content)
-	}
-
-	encoding, _ := charset.Lookup(charsetLabel)
-	if encoding == nil {
-		return content
-	}
-
-	// If there is an error, we concatenate the nicely decoded part and the
-	// original left over. This way we won't lose data.
-	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
-	if err != nil {
-		return append(result, content[n:]...)
-	}
-
-	return base.RemoveBOMIfPresent(result)
-}
-
-// ToUTF8 converts content to UTF8 encoding and ignore error
-func ToUTF8(content string) string {
-	res, _ := ToUTF8WithErr([]byte(content))
-	return res
-}
-
-// ReplaceLeft replaces all prefixes 'old' in 's' with 'new'.
-func ReplaceLeft(s, old, new string) string {
-	oldLen, newLen, i, n := len(old), len(new), 0, 0
-	for ; i < len(s) && strings.HasPrefix(s[i:], old); n++ {
+// ReplaceLeft replaces all prefixes 'oldS' in 's' with 'newS'.
+func ReplaceLeft(s, oldS, newS string) string {
+	oldLen, newLen, i, n := len(oldS), len(newS), 0, 0
+	for ; i < len(s) && strings.HasPrefix(s[i:], oldS); n++ {
 		i += oldLen
 	}
 
@@ -344,11 +301,11 @@ func ReplaceLeft(s, old, new string) string {
 
 	// allocating space for the new string
 	curLen := n*newLen + len(s[i:])
-	replacement := make([]byte, curLen, curLen)
+	replacement := make([]byte, curLen)
 
 	j := 0
 	for ; j < n*newLen; j += newLen {
-		copy(replacement[j:j+newLen], new)
+		copy(replacement[j:j+newLen], newS)
 	}
 
 	copy(replacement[j:], s[i:])
@@ -369,6 +326,24 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, urlDefault, metas)
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
+		return ""
+	}
+	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
+	if len(msgLines) == 0 {
+		return template.HTML("")
+	}
+	return template.HTML(msgLines[0])
+}
+
+// RenderCommitMessageLinkSubject renders commit message as a XXS-safe link to
+// the provided default url, handling for special links without email to links.
+func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
+	cleanMsg := template.HTMLEscapeString(msg)
+	// we can safely assume that it will not return any error, since there
+	// shouldn't be any special HTML.
+	fullMessage, err := markup.RenderCommitMessageSubject([]byte(cleanMsg), urlPrefix, urlDefault, metas)
+	if err != nil {
+		log.Error("RenderCommitMessageSubject: %v", err)
 		return ""
 	}
 	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
@@ -540,4 +515,14 @@ func TrN(lang string, cnt interface{}, key1, keyN string) string {
 		return key1
 	}
 	return keyN
+}
+
+// MigrationIcon returns a Font Awesome name matching the service an issue/comment was migrated from
+func MigrationIcon(hostname string) string {
+	switch hostname {
+	case "github.com":
+		return "fa-github"
+	default:
+		return "fa-git-alt"
+	}
 }

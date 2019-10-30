@@ -21,6 +21,9 @@ import (
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
 
+	// for embed
+	_ "github.com/shurcooL/vfsgen"
+
 	"github.com/urfave/cli"
 )
 
@@ -39,7 +42,7 @@ var (
 
 func init() {
 	setting.AppVer = Version
-	setting.AppBuiltWith = formatBuiltWith(Tags)
+	setting.AppBuiltWith = formatBuiltWith()
 
 	// Grab the original help templates
 	originalAppHelpTemplate = cli.AppHelpTemplate
@@ -53,7 +56,7 @@ func main() {
 	app.Usage = "A painless self-hosted Git service"
 	app.Description = `By default, gitea will start serving using the webserver with no
 arguments - which can alternatively be run by running the subcommand web.`
-	app.Version = Version + formatBuiltWith(Tags)
+	app.Version = Version + formatBuiltWith()
 	app.Commands = []cli.Command{
 		cmd.CmdWeb,
 		cmd.CmdServ,
@@ -64,6 +67,7 @@ arguments - which can alternatively be run by running the subcommand web.`
 		cmd.CmdGenerate,
 		cmd.CmdMigrate,
 		cmd.CmdKeys,
+		cmd.CmdConvert,
 	}
 	// Now adjust these commands to add our global configuration options
 
@@ -175,7 +179,7 @@ DEFAULT CONFIGURATION:
 `, originalTemplate, setting.CustomPath, overrided, setting.CustomConf, setting.AppPath, setting.AppWorkPath)
 }
 
-func formatBuiltWith(makeTags string) string {
+func formatBuiltWith() string {
 	var version = runtime.Version()
 	if len(MakeVersion) > 0 {
 		version = MakeVersion + ", " + runtime.Version()

@@ -32,7 +32,7 @@ necessary. To be able to use these you must have the `"$GOPATH"/bin` directory
 on the executable path. If you don't add the go bin directory to the
 executable path you will have to manage this yourself.
 
-**Note 2**: Go version 1.9 or higher is required; however, it is important
+**Note 2**: Go version 1.11 or higher is required; however, it is important
 to note that our continuous integration will check that the formatting of the
 source code is not changed by `gofmt` using `make fmt-check`. Unfortunately,
 the results of `gofmt` can differ by the version of `go`. It is therefore
@@ -108,10 +108,10 @@ and look at our
 [`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see
 how our continuous integration works.
 
-### Formatting, linting, vetting and spell-check
+### Formatting, code analysis and spell check
 
 Our continous integration will reject PRs that are not properly formatted, fail
-linting, vet or spell-check.
+code analysis or spell check.
 
 You should format your code with `go fmt` using:
 
@@ -130,22 +130,15 @@ You should run the same version of go that is on the continuous integration
 server as mentioned above. `make fmt-check` will only check if your `go` would
 format differently - this may be different from the CI server version.
 
-You should lint, vet and spell-check with:
+You should run revive, vet and spell-check on the code with:
 
 ```bash
-make vet lint misspell-check
+make revive vet misspell-check
 ```
 
 ### Updating CSS
 
-To generate the CSS, you will need [Node.js](https://nodejs.org/) 8.0 or greater and the build dependencies:
-
-```bash
-npm install
-```
-
-At present we use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our CSS. Do
-**not** edit the files in `public/css` directly, as they are generated from `lessc` from the files in `public/less`.
+To generate the CSS, you will need [Node.js](https://nodejs.org/) 8.0 or greater with npm. At present we use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our CSS. Do **not** edit the files in `public/css` directly, as they are generated from `lessc` from the files in `public/less`.
 
 Edit files in `public/less`, run the linter, regenerate the CSS and commit all changed files:
 
@@ -155,13 +148,7 @@ make css
 
 ### Updating JS
 
-To run the JavaScript linter you will need [Node.js](https://nodejs.org/) 8.0 or greater and the build dependencies:
-
-```bash
-npm install
-```
-
-Edit files in `public/js` and run the linter:
+To run the JavaScript linter you will need [Node.js](https://nodejs.org/) 8.0 or greater with npm. Edit files in `public/js` and run the linter:
 
 ```bash
 make js
@@ -191,7 +178,7 @@ make generate-swagger
 You should validate your generated Swagger file and spell-check it with:
 
 ```bash
-make swagger-validate mispell-check
+make swagger-validate misspell-check
 ```
 
 You should commit the changed swagger JSON file. The continous integration
@@ -209,7 +196,7 @@ OpenAPI 3 documentation.
 When creating new configuration options, it is not enough to add them to the
 `modules/setting` files. You should add information to `custom/conf/app.ini`
 and to the
-<a href='{{ relref "doc/advanced/config-cheat-sheet.en-us.md"}}'>configuration cheat sheet</a>
+<a href='{{< relref "doc/advanced/config-cheat-sheet.en-us.md" >}}'>configuration cheat sheet</a>
 found in `docs/content/doc/advanced/config-cheat-sheet.en-us.md`
 
 ### Changing the logo
@@ -250,7 +237,7 @@ TAGS="bindata sqlite sqlite_unlock_notify" make generate build test-sqlite
 ```
 
 will run the integration tests in an sqlite environment. Other database tests
-are available but may need adjustment to the local environment. 
+are available but may need adjustment to the local environment.
 
 Look at
 [`integrations/README.md`](https://github.com/go-gitea/gitea/blob/master/integrations/README.md)

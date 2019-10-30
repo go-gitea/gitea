@@ -31,7 +31,15 @@ func TestPullRequest_LoadIssue(t *testing.T) {
 	assert.Equal(t, int64(2), pr.Issue.ID)
 }
 
-// TODO TestPullRequest_APIFormat
+func TestPullRequest_APIFormat(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
+	assert.NoError(t, pr.LoadAttributes())
+	assert.NoError(t, pr.LoadIssue())
+	apiPullRequest := pr.APIFormat()
+	assert.NotNil(t, apiPullRequest)
+	assert.Nil(t, apiPullRequest.Head)
+}
 
 func TestPullRequest_GetBaseRepo(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
@@ -94,7 +102,7 @@ func TestGetUnmergedPullRequest(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.ID)
 
-	pr, err = GetUnmergedPullRequest(1, 9223372036854775807, "branch1", "master")
+	_, err = GetUnmergedPullRequest(1, 9223372036854775807, "branch1", "master")
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
@@ -128,7 +136,7 @@ func TestGetPullRequestByIndex(t *testing.T) {
 	assert.Equal(t, int64(1), pr.BaseRepoID)
 	assert.Equal(t, int64(2), pr.Index)
 
-	pr, err = GetPullRequestByIndex(9223372036854775807, 9223372036854775807)
+	_, err = GetPullRequestByIndex(9223372036854775807, 9223372036854775807)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
@@ -151,7 +159,7 @@ func TestGetPullRequestByIssueID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.IssueID)
 
-	pr, err = GetPullRequestByIssueID(9223372036854775807)
+	_, err = GetPullRequestByIssueID(9223372036854775807)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
@@ -223,20 +231,6 @@ func TestPullRequestList_LoadAttributes(t *testing.T) {
 }
 
 // TODO TestAddTestPullRequestTask
-
-func TestChangeUsernameInPullRequests(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	const newUsername = "newusername"
-	assert.NoError(t, ChangeUsernameInPullRequests("user1", newUsername))
-
-	prs := make([]*PullRequest, 0, 10)
-	assert.NoError(t, x.Where("head_user_name = ?", newUsername).Find(&prs))
-	assert.Len(t, prs, 2)
-	for _, pr := range prs {
-		assert.Equal(t, newUsername, pr.HeadUserName)
-	}
-	CheckConsistencyFor(t, &PullRequest{})
-}
 
 func TestPullRequest_IsWorkInProgress(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())

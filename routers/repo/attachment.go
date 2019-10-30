@@ -6,13 +6,13 @@ package repo
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/upload"
 )
 
 func renderAttachmentSettings(ctx *context.Context) {
@@ -42,21 +42,10 @@ func UploadAttachment(ctx *context.Context) {
 	if n > 0 {
 		buf = buf[:n]
 	}
-	fileType := http.DetectContentType(buf)
 
-	allowedTypes := strings.Split(setting.AttachmentAllowedTypes, ",")
-	allowed := false
-	for _, t := range allowedTypes {
-		t := strings.Trim(t, " ")
-		if t == "*/*" || t == fileType {
-			allowed = true
-			break
-		}
-	}
-
-	if !allowed {
-		log.Info("Attachment with type %s blocked from upload", fileType)
-		ctx.Error(400, ErrFileTypeForbidden.Error())
+	err = upload.VerifyAllowedContentType(buf, strings.Split(setting.AttachmentAllowedTypes, ","))
+	if err != nil {
+		ctx.Error(400, err.Error())
 		return
 	}
 
@@ -70,6 +59,28 @@ func UploadAttachment(ctx *context.Context) {
 	}
 
 	log.Trace("New attachment uploaded: %s", attach.UUID)
+	ctx.JSON(200, map[string]string{
+		"uuid": attach.UUID,
+	})
+}
+
+// DeleteAttachment response for deleting issue's attachment
+func DeleteAttachment(ctx *context.Context) {
+	file := ctx.Query("file")
+	attach, err := models.GetAttachmentByUUID(file)
+	if !ctx.IsSigned || (ctx.User.ID != attach.UploaderID) {
+		ctx.Error(403)
+		return
+	}
+	if err != nil {
+		ctx.Error(400, err.Error())
+		return
+	}
+	err = models.DeleteAttachment(attach, true)
+	if err != nil {
+		ctx.Error(500, fmt.Sprintf("DeleteAttachment: %v", err))
+		return
+	}
 	ctx.JSON(200, map[string]string{
 		"uuid": attach.UUID,
 	})

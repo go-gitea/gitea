@@ -39,7 +39,7 @@ func CheckConsistencyFor(t *testing.T, beansToCheck ...interface{}) {
 		ptrToSliceValue := reflect.New(sliceType)
 		ptrToSliceValue.Elem().Set(sliceValue)
 
-		assert.NoError(t, x.Where(bean).Find(ptrToSliceValue.Interface()))
+		assert.NoError(t, x.Table(bean).Find(ptrToSliceValue.Interface()))
 		sliceValue = ptrToSliceValue.Elem()
 
 		for i := 0; i < sliceValue.Len(); i++ {

@@ -8,7 +8,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 )
 
-// GetTagsByPath returns repo tags by it's path
+// GetTagsByPath returns repo tags by its path
 func GetTagsByPath(path string) ([]*git.Tag, error) {
 	gitRepo, err := git.OpenRepository(path)
 	if err != nil {

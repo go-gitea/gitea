@@ -11,14 +11,17 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 const (
 	// ProtectedBranchRepoID protected Repo ID
 	ProtectedBranchRepoID = "GITEA_REPO_ID"
+	// ProtectedBranchPRID protected Repo PR ID
+	ProtectedBranchPRID = "GITEA_PR_ID"
 )
 
 // ProtectedBranch struct
@@ -28,16 +31,19 @@ type ProtectedBranch struct {
 	BranchName                string `xorm:"UNIQUE(s)"`
 	CanPush                   bool   `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist           bool
-	WhitelistUserIDs          []int64        `xorm:"JSON TEXT"`
-	WhitelistTeamIDs          []int64        `xorm:"JSON TEXT"`
-	EnableMergeWhitelist      bool           `xorm:"NOT NULL DEFAULT false"`
-	MergeWhitelistUserIDs     []int64        `xorm:"JSON TEXT"`
-	MergeWhitelistTeamIDs     []int64        `xorm:"JSON TEXT"`
-	ApprovalsWhitelistUserIDs []int64        `xorm:"JSON TEXT"`
-	ApprovalsWhitelistTeamIDs []int64        `xorm:"JSON TEXT"`
-	RequiredApprovals         int64          `xorm:"NOT NULL DEFAULT 0"`
-	CreatedUnix               util.TimeStamp `xorm:"created"`
-	UpdatedUnix               util.TimeStamp `xorm:"updated"`
+	WhitelistUserIDs          []int64            `xorm:"JSON TEXT"`
+	WhitelistTeamIDs          []int64            `xorm:"JSON TEXT"`
+	EnableMergeWhitelist      bool               `xorm:"NOT NULL DEFAULT false"`
+	WhitelistDeployKeys       bool               `xorm:"NOT NULL DEFAULT false"`
+	MergeWhitelistUserIDs     []int64            `xorm:"JSON TEXT"`
+	MergeWhitelistTeamIDs     []int64            `xorm:"JSON TEXT"`
+	EnableStatusCheck         bool               `xorm:"NOT NULL DEFAULT false"`
+	StatusCheckContexts       []string           `xorm:"JSON TEXT"`
+	ApprovalsWhitelistUserIDs []int64            `xorm:"JSON TEXT"`
+	ApprovalsWhitelistTeamIDs []int64            `xorm:"JSON TEXT"`
+	RequiredApprovals         int64              `xorm:"NOT NULL DEFAULT 0"`
+	CreatedUnix               timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix               timeutil.TimeStamp `xorm:"updated"`
 }
 
 // IsProtected returns if the branch is protected
@@ -99,7 +105,7 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 
 // GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
-	reviews, err := GetReviewersByPullID(pr.Issue.ID)
+	reviews, err := GetReviewersByPullID(pr.IssueID)
 	if err != nil {
 		log.Error("GetReviewersByPullID: %v", err)
 		return 0
@@ -126,14 +132,14 @@ func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) 
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID
-func GetProtectedBranchByRepoID(RepoID int64) ([]*ProtectedBranch, error) {
+func GetProtectedBranchByRepoID(repoID int64) ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)
-	return protectedBranches, x.Where("repo_id = ?", RepoID).Desc("updated_unix").Find(&protectedBranches)
+	return protectedBranches, x.Where("repo_id = ?", repoID).Desc("updated_unix").Find(&protectedBranches)
 }
 
 // GetProtectedBranchBy getting protected branch by ID/Name
-func GetProtectedBranchBy(repoID int64, BranchName string) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{RepoID: repoID, BranchName: BranchName}
+func GetProtectedBranchBy(repoID int64, branchName string) (*ProtectedBranch, error) {
+	rel := &ProtectedBranch{RepoID: repoID, BranchName: branchName}
 	has, err := x.Get(rel)
 	if err != nil {
 		return nil, err
@@ -190,7 +196,7 @@ func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, opts 
 	}
 	protectBranch.MergeWhitelistUserIDs = whitelist
 
-	whitelist, err = updateUserWhitelist(repo, protectBranch.ApprovalsWhitelistUserIDs, opts.ApprovalsUserIDs)
+	whitelist, err = updateApprovalWhitelist(repo, protectBranch.ApprovalsWhitelistUserIDs, opts.ApprovalsUserIDs)
 	if err != nil {
 		return err
 	}
@@ -296,6 +302,27 @@ func (repo *Repository) IsProtectedBranchForMerging(pr *PullRequest, branchName 
 	return false, nil
 }
 
+// updateApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with
+// the users from newWhitelist which have explicit read or write access to the repo.
+func updateApprovalWhitelist(repo *Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+	hasUsersChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
+	if !hasUsersChanged {
+		return currentWhitelist, nil
+	}
+
+	whitelist = make([]int64, 0, len(newWhitelist))
+	for _, userID := range newWhitelist {
+		if reader, err := repo.IsReader(userID); err != nil {
+			return nil, err
+		} else if !reader {
+			continue
+		}
+		whitelist = append(whitelist, userID)
+	}
+
+	return
+}
+
 // updateUserWhitelist checks whether the user whitelist changed and returns a whitelist with
 // the users from newWhitelist which have write access to the repo.
 func updateUserWhitelist(repo *Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
@@ -372,13 +399,13 @@ func (repo *Repository) DeleteProtectedBranch(id int64) (err error) {
 
 // DeletedBranch struct
 type DeletedBranch struct {
-	ID          int64          `xorm:"pk autoincr"`
-	RepoID      int64          `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Name        string         `xorm:"UNIQUE(s) NOT NULL"`
-	Commit      string         `xorm:"UNIQUE(s) NOT NULL"`
-	DeletedByID int64          `xorm:"INDEX"`
-	DeletedBy   *User          `xorm:"-"`
-	DeletedUnix util.TimeStamp `xorm:"INDEX created"`
+	ID          int64              `xorm:"pk autoincr"`
+	RepoID      int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Name        string             `xorm:"UNIQUE(s) NOT NULL"`
+	Commit      string             `xorm:"UNIQUE(s) NOT NULL"`
+	DeletedByID int64              `xorm:"INDEX"`
+	DeletedBy   *User              `xorm:"-"`
+	DeletedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
 // AddDeletedBranch adds a deleted branch to the database
@@ -456,11 +483,6 @@ func (deletedBranch *DeletedBranch) LoadUser() {
 
 // RemoveOldDeletedBranches removes old deleted branches
 func RemoveOldDeletedBranches() {
-	if !taskStatusTable.StartIfNotRunning(`deleted_branches_cleanup`) {
-		return
-	}
-	defer taskStatusTable.Stop(`deleted_branches_cleanup`)
-
 	log.Trace("Doing: DeletedBranchesCleanup")
 
 	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)

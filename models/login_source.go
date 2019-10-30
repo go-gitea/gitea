@@ -14,15 +14,16 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/core"
-	"github.com/go-xorm/xorm"
-
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+
+	"github.com/unknwon/com"
+	"xorm.io/core"
+	"xorm.io/xorm"
 )
 
 // LoginType represents an login type.
@@ -147,8 +148,8 @@ type LoginSource struct {
 	IsSyncEnabled bool            `xorm:"INDEX NOT NULL DEFAULT false"`
 	Cfg           core.Conversion `xorm:"TEXT"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 // Cell2Int64 converts a xorm.Cell type to int64,
@@ -164,8 +165,7 @@ func Cell2Int64(val xorm.Cell) int64 {
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
-	switch colName {
-	case "type":
+	if colName == "type" {
 		switch LoginType(Cell2Int64(val)) {
 		case LoginLDAP, LoginDLDAP:
 			source.Cfg = new(LDAPConfig)
@@ -282,10 +282,12 @@ func CreateLoginSource(source *LoginSource) error {
 		oAuth2Config := source.OAuth2()
 		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
-
 		if err != nil {
 			// remove the LoginSource in case of errors while registering OAuth2 providers
-			x.Delete(source)
+			if _, err := x.Delete(source); err != nil {
+				log.Error("CreateLoginSource: Error while wrapOpenIDConnectInitializeError: %v", err)
+			}
+			return err
 		}
 	}
 	return err
@@ -325,10 +327,12 @@ func UpdateSource(source *LoginSource) error {
 		oAuth2Config := source.OAuth2()
 		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
-
 		if err != nil {
 			// restore original values since we cannot update the provider it self
-			x.ID(source.ID).AllCols().Update(originalLoginSource)
+			if _, err := x.ID(source.ID).AllCols().Update(originalLoginSource); err != nil {
+				log.Error("UpdateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
+			}
+			return err
 		}
 	}
 	return err
@@ -385,7 +389,7 @@ func composeFullName(firstname, surname, username string) string {
 }
 
 var (
-	alphaDashDotPattern = regexp.MustCompile("[^\\w-\\.]")
+	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
 
 // LoginViaLDAP queries if login/password is valid against the LDAP directory pool,
@@ -401,7 +405,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 
 	if !autoRegister {
 		if isAttributeSSHPublicKeySet && synchronizeLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
-			RewriteAllPublicKeys()
+			return user, RewriteAllPublicKeys()
 		}
 
 		return user, nil
@@ -435,7 +439,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 	err := CreateUser(user)
 
 	if err == nil && isAttributeSSHPublicKeySet && addLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
-		RewriteAllPublicKeys()
+		err = RewriteAllPublicKeys()
 	}
 
 	return user, err
@@ -662,6 +666,15 @@ func UserSignIn(username, password string) (*User, error) {
 		switch user.LoginType {
 		case LoginNoType, LoginPlain, LoginOAuth2:
 			if user.IsPasswordSet() && user.ValidatePassword(password) {
+
+				// Update password hash if server password hash algorithm have changed
+				if user.PasswdHashAlgo != setting.PasswordHashAlgo {
+					user.HashPassword(password)
+					if err := UpdateUserCols(user, "passwd", "passwd_hash_algo"); err != nil {
+						return nil, err
+					}
+				}
+
 				// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
 				// user could be hint to resend confirm email.
 				if user.ProhibitLogin {

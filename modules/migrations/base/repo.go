@@ -15,4 +15,5 @@ type Repository struct {
 	AuthUsername string
 	AuthPassword string
 	CloneURL     string
+	OriginalURL  string
 }

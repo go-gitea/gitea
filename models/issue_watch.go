@@ -4,16 +4,16 @@
 
 package models
 
-import "code.gitea.io/gitea/modules/util"
+import "code.gitea.io/gitea/modules/timeutil"
 
 // IssueWatch is connection request for receiving issue notification.
 type IssueWatch struct {
-	ID          int64          `xorm:"pk autoincr"`
-	UserID      int64          `xorm:"UNIQUE(watch) NOT NULL"`
-	IssueID     int64          `xorm:"UNIQUE(watch) NOT NULL"`
-	IsWatching  bool           `xorm:"NOT NULL"`
-	CreatedUnix util.TimeStamp `xorm:"created NOT NULL"`
-	UpdatedUnix util.TimeStamp `xorm:"updated NOT NULL"`
+	ID          int64              `xorm:"pk autoincr"`
+	UserID      int64              `xorm:"UNIQUE(watch) NOT NULL"`
+	IssueID     int64              `xorm:"UNIQUE(watch) NOT NULL"`
+	IsWatching  bool               `xorm:"NOT NULL"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
 }
 
 // CreateOrUpdateIssueWatch set watching for a user and issue

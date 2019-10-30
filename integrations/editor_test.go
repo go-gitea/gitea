@@ -34,7 +34,7 @@ func TestCreateFile(t *testing.T) {
 			"content":       "Content",
 			"commit_choice": "direct",
 		})
-		resp = session.MakeRequest(t, req, http.StatusFound)
+		session.MakeRequest(t, req, http.StatusFound)
 	})
 }
 
@@ -48,7 +48,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 			"_csrf":     csrf,
 			"protected": "on",
 		})
-		resp := session.MakeRequest(t, req, http.StatusFound)
+		session.MakeRequest(t, req, http.StatusFound)
 		// Check if master branch has been locked successfully
 		flashCookie := session.GetCookie("macaron_flash")
 		assert.NotNil(t, flashCookie)
@@ -56,7 +56,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 
 		// Request editor page
 		req = NewRequest(t, "GET", "/user2/repo1/_new/master/")
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		resp := session.MakeRequest(t, req, http.StatusOK)
 
 		doc := NewHTMLParser(t, resp.Body)
 		lastCommit := doc.GetInputValueByName("last_commit")

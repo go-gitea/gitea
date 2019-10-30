@@ -9,7 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
-	macaron "gopkg.in/macaron.v1"
+
+	"gitea.com/macaron/macaron"
 )
 
 // Organization contains organization context
@@ -62,7 +63,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 
 	// Force redirection when username is actually a user.
 	if !org.IsOrganization() {
-		ctx.Redirect("/" + org.Name)
+		ctx.Redirect(setting.AppSubURL + "/" + org.Name)
 		return
 	}
 

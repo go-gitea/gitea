@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	// "github.com/Unknwon/com"
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/armor"
 )
@@ -184,6 +183,8 @@ func Issues(ctx *context.Context) {
 			filterMode = models.FilterModeAssign
 		case "created_by":
 			filterMode = models.FilterModeCreate
+		case "mentioned":
+			filterMode = models.FilterModeMention
 		case "all": // filterMode already set to All
 		default:
 			viewType = "all"
@@ -525,19 +526,20 @@ func showOrgProfile(ctx *context.Context) {
 		count int64
 		err   error
 	)
-	repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-		Keyword:     keyword,
-		OwnerID:     org.ID,
-		OrderBy:     orderBy,
-		Private:     ctx.IsSigned,
-		UserIsAdmin: ctx.IsUserSiteAdmin(),
-		UserID:      ctx.Data["SignedUserID"].(int64),
-		Page:        page,
-		IsProfile:   true,
-		PageSize:    setting.UI.User.RepoPagingNum,
+	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+		Keyword:            keyword,
+		OwnerID:            org.ID,
+		OrderBy:            orderBy,
+		Private:            ctx.IsSigned,
+		UserIsAdmin:        ctx.IsUserSiteAdmin(),
+		UserID:             ctx.Data["SignedUserID"].(int64),
+		Page:               page,
+		IsProfile:          true,
+		PageSize:           setting.UI.User.RepoPagingNum,
+		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
 	if err != nil {
-		ctx.ServerError("SearchRepositoryByName", err)
+		ctx.ServerError("SearchRepository", err)
 		return
 	}
 

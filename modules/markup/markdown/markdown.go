@@ -153,7 +153,7 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 	}
 
 	body = blackfriday.Markdown(body, renderer, exts)
-	return body
+	return markup.SanitizeBytes(body)
 }
 
 var (

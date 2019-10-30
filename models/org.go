@@ -6,22 +6,17 @@
 package models
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
-)
-
-var (
-	// ErrTeamNotExist team does not exist
-	ErrTeamNotExist = errors.New("Team does not exist")
+	"github.com/unknwon/com"
+	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // IsOwnedBy returns true if given user is in the owner team.
@@ -72,9 +67,12 @@ func (org *User) GetMembers() error {
 	}
 
 	var ids = make([]int64, len(ous))
+	var idsIsPublic = make(map[int64]bool, len(ous))
 	for i, ou := range ous {
 		ids[i] = ou.UID
+		idsIsPublic[ou.UID] = ou.IsPublic
 	}
+	org.MembersIsPublic = idsIsPublic
 	org.Members, err = GetUsersByIDs(ids)
 	return err
 }
@@ -162,8 +160,8 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	// insert units for team
-	var units = make([]TeamUnit, 0, len(allRepUnitTypes))
-	for _, tp := range allRepUnitTypes {
+	var units = make([]TeamUnit, 0, len(AllRepoUnitTypes))
+	for _, tp := range AllRepoUnitTypes {
 		units = append(units, TeamUnit{
 			OrgID:  org.ID,
 			TeamID: t.ID,
@@ -172,7 +170,9 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	if _, err = sess.Insert(&units); err != nil {
-		sess.Rollback()
+		if err := sess.Rollback(); err != nil {
+			log.Error("CreateOrganization: sess.Rollback: %v", err)
+		}
 		return err
 	}
 
@@ -296,15 +296,13 @@ type OrgUser struct {
 }
 
 func isOrganizationOwner(e Engine, orgID, uid int64) (bool, error) {
-	ownerTeam := &Team{
-		OrgID: orgID,
-		Name:  ownerTeamName,
-	}
-	if has, err := e.Get(ownerTeam); err != nil {
+	ownerTeam, err := getOwnerTeam(e, orgID)
+	if err != nil {
+		if IsErrTeamNotExist(err) {
+			log.Error("Organization does not have owner team: %d", orgID)
+			return false, nil
+		}
 		return false, err
-	} else if !has {
-		log.Error("Organization does not have owner team: %d", orgID)
-		return false, nil
 	}
 	return isTeamMember(e, orgID, ownerTeam.ID, uid)
 }
@@ -376,10 +374,7 @@ func HasOrgVisible(org *User, user *User) bool {
 func hasOrgVisible(e Engine, org *User, user *User) bool {
 	// Not SignedUser
 	if user == nil {
-		if org.Visibility == structs.VisibleTypePublic {
-			return true
-		}
-		return false
+		return org.Visibility == structs.VisibleTypePublic
 	}
 
 	if user.IsAdmin {
@@ -480,15 +475,20 @@ func AddOrgUser(orgID, uid int64) error {
 	}
 
 	ou := &OrgUser{
-		UID:   uid,
-		OrgID: orgID,
+		UID:      uid,
+		OrgID:    orgID,
+		IsPublic: setting.Service.DefaultOrgMemberVisible,
 	}
 
 	if _, err := sess.Insert(ou); err != nil {
-		sess.Rollback()
+		if err := sess.Rollback(); err != nil {
+			log.Error("AddOrgUser: sess.Rollback: %v", err)
+		}
 		return err
 	} else if _, err = sess.Exec("UPDATE `user` SET num_members = num_members + 1 WHERE id = ?", orgID); err != nil {
-		sess.Rollback()
+		if err := sess.Rollback(); err != nil {
+			log.Error("AddOrgUser: sess.Rollback: %v", err)
+		}
 		return err
 	}
 

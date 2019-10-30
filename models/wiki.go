@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/sync"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 var (
@@ -115,7 +115,11 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 	if err != nil {
 		return err
 	}
-	defer RemoveTemporaryPath(basePath)
+	defer func() {
+		if err := RemoveTemporaryPath(basePath); err != nil {
+			log.Error("Merge: RemoveTemporaryPath: %s", err)
+		}
+	}()
 
 	cloneOpts := git.CloneRepoOptions{
 		Bare:   true,
@@ -201,6 +205,13 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 	commitTreeOpts := git.CommitTreeOpts{
 		Message: message,
 	}
+
+	sign, signingKey := repo.SignWikiCommit(doer)
+	if sign {
+		commitTreeOpts.KeyID = signingKey
+	} else {
+		commitTreeOpts.NoGPGSign = true
+	}
 	if hasMasterBranch {
 		commitTreeOpts.Parents = []string{"HEAD"}
 	}
@@ -213,7 +224,13 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 	if err := git.Push(basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
-		Env:    PushingEnvironment(doer, repo),
+		Env: FullPushingEnvironment(
+			doer,
+			doer,
+			repo,
+			repo.Name+".wiki",
+			0,
+		),
 	}); err != nil {
 		log.Error("%v", err)
 		return fmt.Errorf("Push: %v", err)
@@ -246,7 +263,11 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiName string) (err error) 
 	if err != nil {
 		return err
 	}
-	defer RemoveTemporaryPath(basePath)
+	defer func() {
+		if err := RemoveTemporaryPath(basePath); err != nil {
+			log.Error("Merge: RemoveTemporaryPath: %s", err)
+		}
+	}()
 
 	if err := git.Clone(repo.WikiPath(), basePath, git.CloneRepoOptions{
 		Bare:   true,
@@ -293,11 +314,19 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiName string) (err error) 
 		return err
 	}
 	message := "Delete page '" + wikiName + "'"
-
-	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), tree, git.CommitTreeOpts{
+	commitTreeOpts := git.CommitTreeOpts{
 		Message: message,
 		Parents: []string{"HEAD"},
-	})
+	}
+
+	sign, signingKey := repo.SignWikiCommit(doer)
+	if sign {
+		commitTreeOpts.KeyID = signingKey
+	} else {
+		commitTreeOpts.NoGPGSign = true
+	}
+
+	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), tree, commitTreeOpts)
 	if err != nil {
 		return err
 	}

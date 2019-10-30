@@ -57,7 +57,7 @@ func FlagsFromString(from string) int {
 	for _, flag := range strings.Split(strings.ToLower(from), ",") {
 		f, ok := flagFromString[strings.TrimSpace(flag)]
 		if ok {
-			flags = flags | f
+			flags |= f
 		}
 	}
 	return flags

@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -145,6 +145,7 @@ func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
 			PullRequest:  form.PullRequest,
 			Repository:   form.Repository,
 		},
+		BranchFilter: form.BranchFilter,
 	}
 }
 
@@ -198,6 +199,11 @@ func WebHooksNewPost(ctx *context.Context, form auth.NewWebhookForm) {
 
 // GogsHooksNewPost response for creating webhook
 func GogsHooksNewPost(ctx *context.Context, form auth.NewGogshookForm) {
+	newGogsWebhookPost(ctx, form, models.GOGS)
+}
+
+// newGogsWebhookPost response for creating gogs hook
+func newGogsWebhookPost(ctx *context.Context, form auth.NewGogshookForm, kind models.HookTaskType) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
@@ -228,7 +234,7 @@ func GogsHooksNewPost(ctx *context.Context, form auth.NewGogshookForm) {
 		Secret:       form.Secret,
 		HookEvent:    ParseHookEvent(form.WebhookForm),
 		IsActive:     form.Active,
-		HookTaskType: models.GOGS,
+		HookTaskType: kind,
 		OrgID:        orCtx.OrgID,
 	}
 	if err := w.UpdateEvent(); err != nil {

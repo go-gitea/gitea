@@ -6,6 +6,7 @@ package setting
 
 import (
 	"encoding/json"
+	"fmt"
 	golog "log"
 	"os"
 	"path"
@@ -16,6 +17,8 @@ import (
 
 	ini "gopkg.in/ini.v1"
 )
+
+var filenameSuffix = ""
 
 type defaultLogOptions struct {
 	levelName      string // LogLevel
@@ -112,7 +115,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 			panic(err.Error())
 		}
 
-		logConfig["filename"] = logPath
+		logConfig["filename"] = logPath + filenameSuffix
 		logConfig["rotate"] = sec.Key("LOG_ROTATE").MustBool(true)
 		logConfig["maxsize"] = 1 << uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28))
 		logConfig["daily"] = sec.Key("DAILY_ROTATE").MustBool(true)
@@ -150,8 +153,6 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 
 	sections := strings.Split(Cfg.Section("log").Key(strings.ToUpper(key)).MustString(""), ",")
 
-	//description.Configs = make([]string, len(description.Sections))
-
 	for i := 0; i < len(sections); i++ {
 		sections[i] = strings.TrimSpace(sections[i])
 	}
@@ -167,7 +168,10 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 
 		provider, config, levelName := generateLogConfig(sec, name, options)
 
-		log.NewNamedLogger(key, options.bufferLength, name, provider, config)
+		if err := log.NewNamedLogger(key, options.bufferLength, name, provider, config); err != nil {
+			// Maybe panic here?
+			log.Error("Could not create new named logger: %v", err.Error())
+		}
 
 		description.SubLogDescriptions = append(description.SubLogDescriptions, SubLogDescription{
 			Name:     name,
@@ -242,7 +246,10 @@ func newLogService() {
 	}
 
 	if !useConsole {
-		log.DelLogger("console")
+		err := log.DelLogger("console")
+		if err != nil {
+			log.Fatal("DelLogger: %v", err)
+		}
 	}
 
 	for _, name := range sections {
@@ -271,6 +278,12 @@ func newLogService() {
 	golog.SetFlags(0)
 	golog.SetPrefix("")
 	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
+}
+
+// RestartLogsWithPIDSuffix restarts the logs with a PID suffix on files
+func RestartLogsWithPIDSuffix() {
+	filenameSuffix = fmt.Sprintf(".%d", os.Getpid())
+	NewLogServices(false)
 }
 
 // NewLogServices creates all the log services

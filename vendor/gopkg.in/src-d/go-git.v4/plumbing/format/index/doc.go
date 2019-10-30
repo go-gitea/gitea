@@ -320,7 +320,7 @@
 //  == End of Index Entry
 //
 //    The End of Index Entry (EOIE) is used to locate the end of the variable
-//    length index entries and the begining of the extensions. Code can take
+//    length index entries and the beginning of the extensions. Code can take
 //    advantage of this to quickly locate the index extensions without having
 //    to parse through all of the index entries.
 //
@@ -353,7 +353,7 @@
 //
 //    - A number of index offset entries each consisting of:
 //
-//    - 32-bit offset from the begining of the file to the first cache entry
+//    - 32-bit offset from the beginning of the file to the first cache entry
 //      in this block of entries.
 //
 //    - 32-bit count of cache entries in this blockpackage index

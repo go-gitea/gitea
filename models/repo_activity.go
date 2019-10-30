@@ -11,7 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 // ActivityAuthorData represents statistical git commit count data
@@ -114,7 +114,7 @@ func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int)
 		v = append(v, u)
 	}
 
-	sort.Slice(v[:], func(i, j int) bool {
+	sort.Slice(v, func(i, j int) bool {
 		return v[i].Commits < v[j].Commits
 	})
 

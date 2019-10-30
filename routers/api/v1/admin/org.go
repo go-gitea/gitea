@@ -6,10 +6,9 @@
 package admin
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/user"
 )
@@ -45,6 +44,11 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 		return
 	}
 
+	visibility := api.VisibleTypePublic
+	if form.Visibility != "" {
+		visibility = api.VisibilityModes[form.Visibility]
+	}
+
 	org := &models.User{
 		Name:        form.UserName,
 		FullName:    form.FullName,
@@ -53,7 +57,9 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 		Location:    form.Location,
 		IsActive:    true,
 		Type:        models.UserTypeOrganization,
+		Visibility:  visibility,
 	}
+
 	if err := models.CreateOrganization(org, u); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrNameReserved(err) ||
@@ -75,6 +81,15 @@ func GetAllOrgs(ctx *context.APIContext) {
 	// summary: List all organizations
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
@@ -83,7 +98,9 @@ func GetAllOrgs(ctx *context.APIContext) {
 	users, _, err := models.SearchUsers(&models.SearchUserOptions{
 		Type:     models.UserTypeOrganization,
 		OrderBy:  models.SearchOrderByAlphabetically,
-		PageSize: -1,
+		Page:     ctx.QueryInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		Private:  true,
 	})
 	if err != nil {
 		ctx.Error(500, "SearchOrganizations", err)

@@ -170,17 +170,28 @@ func runCert(c *cli.Context) error {
 	if err != nil {
 		log.Fatalf("Failed to open cert.pem for writing: %v", err)
 	}
-	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
-	certOut.Close()
+	err = pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	if err != nil {
+		log.Fatalf("Failed to encode certificate: %v", err)
+	}
+	err = certOut.Close()
+	if err != nil {
+		log.Fatalf("Failed to write cert: %v", err)
+	}
 	log.Println("Written cert.pem")
 
 	keyOut, err := os.OpenFile("key.pem", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		log.Fatalf("Failed to open key.pem for writing: %v", err)
 	}
-	pem.Encode(keyOut, pemBlockForKey(priv))
-	keyOut.Close()
+	err = pem.Encode(keyOut, pemBlockForKey(priv))
+	if err != nil {
+		log.Fatalf("Failed to encode key: %v", err)
+	}
+	err = keyOut.Close()
+	if err != nil {
+		log.Fatalf("Failed to write key: %v", err)
+	}
 	log.Println("Written key.pem")
-
 	return nil
 }
