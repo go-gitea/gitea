@@ -66,7 +66,7 @@ var (
 			},
 			cli.BoolFlag{
 				Name:  "must-change-password",
-				Usage: "Force the user to change his/her password after initial login",
+				Usage: "Set this option to false to prevent forcing the user to change their password after initial login, (Default: true)",
 			},
 			cli.IntFlag{
 				Name:  "random-password-length",
