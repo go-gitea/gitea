@@ -434,7 +434,7 @@ npm-update: npm-check
 
 .PHONY: js
 js: npm
-	npx eslint --ignore-pattern semantic.dropdown.js public/js
+	npx eslint public/js
 
 .PHONY: css
 css: npm
