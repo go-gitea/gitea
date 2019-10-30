@@ -43,11 +43,16 @@
 					</div>
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.visibility"}}</label>
-						<div class="ui read-only checkbox">
-							<input type="checkbox" {{if .IsPrivate}}checked{{end}}>
-							<label>{{.i18n.Tr "repo.visibility_helper" | Safe}}</label>
+						<div class="ui checkbox">
+							{{if .IsForcedPrivate}}
+								<input name="private" type="checkbox" checked readonly>
+								<label>{{.i18n.Tr "repo.visibility_helper_forced" | Safe}}</label>
+							{{else}}
+								<input name="private" type="checkbox" {{if .private}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.visibility_helper" | Safe}}</label>
+							{{end}}
 						</div>
-						<span class="help">{{.i18n.Tr "repo.fork_visibility_helper"}}</span>
+						<span class="help">{{.i18n.Tr "repo.visibility_description"}}</span>
 					</div>
 					<div class="inline field {{if .Err_Description}}error{{end}}">
 						<label for="description">{{.i18n.Tr "repo.repo_desc"}}</label>

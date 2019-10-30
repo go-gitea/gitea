@@ -194,7 +194,6 @@ func RetrieveTemplateRepo(ctx *Context, repo *models.Repository) {
 	// Non-template repository will not return error in this method.
 	if err := repo.GetTemplateRepo(); err != nil {
 		if models.IsErrRepoNotExist(err) {
-			repo.IsTemplate = false
 			repo.TemplateID = 0
 			return
 		}
@@ -431,7 +430,7 @@ func RepoAssignment() macaron.Handler {
 			}
 		}
 
-		if repo.IsTemplate {
+		if repo.IsGenerated() {
 			RetrieveTemplateRepo(ctx, repo)
 			if ctx.Written() {
 				return

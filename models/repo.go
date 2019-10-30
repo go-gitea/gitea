@@ -665,6 +665,11 @@ func (repo *Repository) getBaseRepo(e Engine) (err error) {
 	return err
 }
 
+// IsGenerated returns whether _this_ repository was generated from a template
+func (repo *Repository) IsGenerated() bool {
+	return repo.TemplateID != 0
+}
+
 // GetTemplateRepo populates repo.TemplateRepo for a template repository and
 // returns an error on failure (NOTE: no error is returned for
 // non-template repositories, and TemplateRepo will be left untouched)
@@ -673,7 +678,7 @@ func (repo *Repository) GetTemplateRepo() (err error) {
 }
 
 func (repo *Repository) getTemplateRepo(e Engine) (err error) {
-	if !repo.IsTemplate {
+	if !repo.IsGenerated() {
 		return nil
 	}
 
@@ -1361,7 +1366,7 @@ func generateRepoCommit(e Engine, repo, templateRepo *Repository, tmpDir string)
 		-1, "",
 		fmt.Sprintf("generateRepoCommit(git clone): %s", templateRepoPath),
 		env,
-		git.GitExecutable, "clone", "--depth 1", templateRepoPath, tmpDir,
+		git.GitExecutable, "clone", "--depth", "1", templateRepoPath, tmpDir,
 	)
 	if err != nil {
 		return fmt.Errorf("git clone: %v - %s", err, stderr)
@@ -1377,7 +1382,7 @@ func generateRepoCommit(e Engine, repo, templateRepo *Repository, tmpDir string)
 
 	repoPath := repo.repoPath(e)
 	_, stderr, err = process.GetManager().ExecDirEnv(
-		-1, "",
+		-1, tmpDir,
 		fmt.Sprintf("generateRepoCommit(git remote add): %s", repoPath),
 		env,
 		git.GitExecutable, "remote", "add", "origin", repoPath,
@@ -2728,7 +2733,6 @@ func GenerateRepository(doer, owner *User, templateRepo *Repository, name, desc 
 		Description: desc,
 		IsPrivate:   private,
 		IsEmpty:     templateRepo.IsEmpty,
-		IsTemplate:  true,
 		TemplateID:  templateRepo.ID,
 	}
 

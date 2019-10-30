@@ -179,7 +179,8 @@ func getTemplateRepository(ctx *context.Context) *models.Repository {
 
 	ctx.Data["repo_name"] = templateRepo.Name
 	ctx.Data["description"] = templateRepo.Description
-	ctx.Data["IsPrivate"] = templateRepo.IsPrivate
+	ctx.Data["private"] = templateRepo.IsPrivate
+	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 
 	if err = templateRepo.GetOwner(); err != nil {
 		ctx.ServerError("GetOwner", err)
@@ -332,7 +333,8 @@ func TemplateGeneratePost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 	}
 
-	repo, err := repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, form.RepoName, form.Description, form.Private)
+	private := form.Private || setting.Repository.ForcePrivate
+	repo, err := repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, form.RepoName, form.Description, private)
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
 		switch {
