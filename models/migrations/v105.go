@@ -21,35 +21,13 @@ func prependRefsHeadsToIssueRefs(x *xorm.Engine) error {
 		return err
 	}
 
-	const batchSize = 100
-	count := 0
-	for start := 0; ; start += batchSize {
-		issues := make([]*Issue, 0, batchSize)
-		if err := sess.Limit(batchSize, start).Asc("id").Find(&issues); err != nil {
-			return err
-		}
-
-		if len(issues) == 0 {
-			break
-		}
-
-		for _, issue := range issues {
-			issue.Ref = "refs/heads/" + issue.Ref
-			if _, err := sess.ID(issue.ID).Cols("ref").Update(issue); err != nil {
-				return err
-			}
-		}
-
-		count++
-		if count >= 1000 {
-			if err := sess.Commit(); err != nil {
-				return err
-			}
-			if err := sess.Begin(); err != nil {
-				return err
-			}
-			count = 0
-		}
+	query := `
+		UPDATE issue SET ref = 'refs/heads/' || ref
+		WHERE ref IS NOT NULL AND ref <> ''
+	`;
+	if _, err := sess.Exec(query); err != nil {
+		return err
 	}
+
 	return sess.Commit()
 }
