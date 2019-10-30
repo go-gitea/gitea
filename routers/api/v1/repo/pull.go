@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -386,9 +387,15 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		issue.Content = form.Body
 	}
 
-	// Update Deadline
+	// Update or remove deadline if set
 	if form.Deadline != nil {
-		deadlineUnix := timeutil.TimeStamp(form.Deadline.Unix())
+		var deadlineUnix timeutil.TimeStamp
+		if !form.Deadline.IsZero() {
+			deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
+				23, 59, 59, 0, form.Deadline.Location())
+			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
+		}
+
 		if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
 			ctx.Error(500, "UpdateIssueDeadline", err)
 			return
