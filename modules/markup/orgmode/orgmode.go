@@ -60,11 +60,12 @@ func RenderString(rawContent string, urlPrefix string, metas map[string]string, 
 	return string(Render([]byte(rawContent), urlPrefix, metas, isWiki))
 }
 
-// Render implements markup.Parser
+// Render reners orgmode string to HTML string
 func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
 	return Render(rawBytes, urlPrefix, metas, isWiki)
 }
 
+// Renderer implements org.Writer
 type Renderer struct {
 	*org.HTMLWriter
 	URLPrefix string
@@ -73,6 +74,7 @@ type Renderer struct {
 
 var byteMailto = []byte("mailto:")
 
+// WriteRegularLink renders images, links or videos
 func (r *Renderer) WriteRegularLink(l org.RegularLink) {
 	link := []byte(html.EscapeString(l.URL))
 	if l.Protocol == "file" {
