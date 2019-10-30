@@ -16,6 +16,12 @@
 							{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.i18n.Tr "repo.stored_lfs"}}){{end}}
 						</div>
 					{{end}}
+					{{if .LFSLock}}
+						<div class="file-info-entry">
+							<i class="fa fa-lock poping up disabled" data-content="{{.LFSLockHint}}" data-position="bottom center" data-variation="tiny inverted"></i>
+							<a href="{{AppSubUrl}}/{{.LFSLock.Owner.Name}}">{{.LFSLockOwner}}</a>
+						</div>
+					{{end}}
 				</div>
 			{{end}}
 		</div>
