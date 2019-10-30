@@ -341,7 +341,7 @@ func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map
 	cleanMsg := template.HTMLEscapeString(msg)
 
 	msgLines := strings.Split(strings.TrimSpace(string(cleanMsg)), "\n")
-	if len(msgLines) == 0 {
+	if len(msgLines[0]) == 0 {
 		return template.HTML("")
 	}
 
