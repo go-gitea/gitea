@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/webhook"
 )
 
 func sendLabelUpdatedWebhook(issue *models.Issue, doer *models.User) {
@@ -34,7 +35,7 @@ func sendLabelUpdatedWebhook(issue *models.Issue, doer *models.User) {
 			log.Error("LoadIssue: %v", err)
 			return
 		}
-		err = models.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+		err = webhook.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 			Action:      api.HookIssueLabelUpdated,
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
@@ -42,7 +43,7 @@ func sendLabelUpdatedWebhook(issue *models.Issue, doer *models.User) {
 			Sender:      doer.APIFormat(),
 		})
 	} else {
-		err = models.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+		err = webhook.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
 			Action:     api.HookIssueLabelUpdated,
 			Index:      issue.Index,
 			Issue:      issue.APIFormat(),
@@ -53,7 +54,7 @@ func sendLabelUpdatedWebhook(issue *models.Issue, doer *models.User) {
 	if err != nil {
 		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	} else {
-		go models.HookQueue.Add(issue.RepoID)
+		go webhook.HookQueue.Add(issue.RepoID)
 	}
 }
 
