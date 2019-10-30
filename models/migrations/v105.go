@@ -24,7 +24,7 @@ func prependRefsHeadsToIssueRefs(x *xorm.Engine) error {
 	query := `
 		UPDATE issue SET ref = 'refs/heads/' || ref
 		WHERE ref IS NOT NULL AND ref <> ''
-	`;
+	`
 	if _, err := sess.Exec(query); err != nil {
 		return err
 	}
