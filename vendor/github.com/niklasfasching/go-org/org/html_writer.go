@@ -14,12 +14,14 @@ import (
 
 // HTMLWriter exports an org document into a html document.
 type HTMLWriter struct {
-	strings.Builder
-	document           *Document
+	ExtendingWriter    Writer
 	HighlightCodeBlock func(source, lang string) string
-	htmlEscape         bool
-	log                *log.Logger
-	footnotes          *footnotes
+
+	strings.Builder
+	document   *Document
+	htmlEscape bool
+	log        *log.Logger
+	footnotes  *footnotes
 }
 
 type footnotes struct {
@@ -77,6 +79,13 @@ func (w *HTMLWriter) nodesAsString(nodes ...Node) string {
 	tmp := w.emptyClone()
 	WriteNodes(tmp, nodes...)
 	return tmp.String()
+}
+
+func (w *HTMLWriter) WriterWithExtensions() Writer {
+	if w.ExtendingWriter != nil {
+		return w.ExtendingWriter
+	}
+	return w
 }
 
 func (w *HTMLWriter) Before(d *Document) {
@@ -395,6 +404,10 @@ func (w *HTMLWriter) WriteNodeWithMeta(n NodeWithMeta) {
 		out = fmt.Sprintf("<figure>\n%s<figcaption>\n%s\n</figcaption>\n</figure>\n", out, caption)
 	}
 	w.WriteString(out)
+}
+
+func (w *HTMLWriter) WriteNodeWithName(n NodeWithName) {
+	WriteNodes(w, n.Node)
 }
 
 func (w *HTMLWriter) WriteTable(t Table) {

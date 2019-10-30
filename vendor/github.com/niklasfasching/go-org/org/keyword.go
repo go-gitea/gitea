@@ -2,7 +2,6 @@ package org
 
 import (
 	"bytes"
-	"io/ioutil"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -13,6 +12,11 @@ type Comment struct{ Content string }
 type Keyword struct {
 	Key   string
 	Value string
+}
+
+type NodeWithName struct {
+	Name string
+	Node Node
 }
 
 type NodeWithMeta struct {
@@ -52,10 +56,12 @@ func (d *Document) parseComment(i int, stop stopFn) (int, Node) {
 func (d *Document) parseKeyword(i int, stop stopFn) (int, Node) {
 	k := parseKeyword(d.tokens[i])
 	switch k.Key {
+	case "NAME":
+		return d.parseNodeWithName(k, i, stop)
 	case "SETUPFILE":
 		return d.loadSetupFile(k)
 	case "INCLUDE":
-		return d.newInclude(k)
+		return d.parseInclude(k)
 	case "CAPTION", "ATTR_HTML":
 		consumed, node := d.parseAffiliated(i, stop)
 		if consumed != 0 {
@@ -70,6 +76,18 @@ func (d *Document) parseKeyword(i int, stop stopFn) (int, Node) {
 		}
 		return 1, k
 	}
+}
+
+func (d *Document) parseNodeWithName(k Keyword, i int, stop stopFn) (int, Node) {
+	if stop(d, i+1) {
+		return 0, nil
+	}
+	consumed, node := d.parseOne(i+1, stop)
+	if consumed == 0 || node == nil {
+		return 0, nil
+	}
+	d.NamedNodes[k.Value] = node
+	return consumed + 1, NodeWithName{k.Value, node}
 }
 
 func (d *Document) parseAffiliated(i int, stop stopFn) (int, Node) {
@@ -116,7 +134,7 @@ func parseKeyword(t token) Keyword {
 	return Keyword{strings.ToUpper(k), strings.TrimSpace(v)}
 }
 
-func (d *Document) newInclude(k Keyword) (int, Node) {
+func (d *Document) parseInclude(k Keyword) (int, Node) {
 	resolve := func() Node {
 		d.Log.Printf("Bad include %#v", k)
 		return k
@@ -143,7 +161,7 @@ func (d *Document) loadSetupFile(k Keyword) (int, Node) {
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(filepath.Dir(d.Path), path)
 	}
-	bs, err := ioutil.ReadFile(path)
+	bs, err := d.ReadFile(path)
 	if err != nil {
 		d.Log.Printf("Bad setup file: %#v: %s", k, err)
 		return 1, k
@@ -162,4 +180,5 @@ func (d *Document) loadSetupFile(k Keyword) (int, Node) {
 func (n Comment) String() string      { return orgWriter.nodesAsString(n) }
 func (n Keyword) String() string      { return orgWriter.nodesAsString(n) }
 func (n NodeWithMeta) String() string { return orgWriter.nodesAsString(n) }
+func (n NodeWithName) String() string { return orgWriter.nodesAsString(n) }
 func (n Include) String() string      { return orgWriter.nodesAsString(n) }

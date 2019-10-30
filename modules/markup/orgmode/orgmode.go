@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/niklasfasching/go-org/org"
 )
@@ -36,27 +37,16 @@ func (Parser) Extensions() []string {
 
 // Render renders orgmode rawbytes to HTML
 func Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
-	// 	defer func() {
-	// 		if err := recover(); err != nil {
-	// 			log.Error("Panic in orgmode.Render: %v Just returning the rawBytes", err)
-	// 			result = rawBytes
-	// 		}
-	// 	}()
-	// 	htmlFlags := blackfriday.HTML_USE_XHTML
-	// 	htmlFlags |= blackfriday.HTML_SKIP_STYLE
-	// 	htmlFlags |= blackfriday.HTML_OMIT_CONTENTS
-	// 	renderer := &markdown.Renderer{
-	// 		Renderer:  blackfriday.HtmlRenderer(htmlFlags, "", ""),
-	// 		URLPrefix: urlPrefix,
-	// 		IsWiki:    isWiki,
-	// 	}
-	// 	result = goorgeous.Org(rawBytes, renderer)
-	// 	return
+	htmlWriter := org.NewHTMLWriter()
+
 	renderer := &Renderer{
-		HTMLWriter: org.NewHTMLWriter(),
+		HTMLWriter: htmlWriter,
 		URLPrefix:  urlPrefix,
 		IsWiki:     isWiki,
 	}
+
+	htmlWriter.ExtendingWriter = renderer
+
 	res, err := org.New().Silent().Parse(bytes.NewReader(rawBytes), "").Write(renderer)
 	if err != nil {
 		log.Error("Panic in orgmode.Render: %v Just returning the rawBytes", err)
@@ -83,29 +73,46 @@ type Renderer struct {
 	IsWiki    bool
 }
 
+var byteMailto = []byte("mailto:")
+
 func (r *Renderer) WriteRegularLink(l org.RegularLink) {
-	url := html.EscapeString(l.URL)
+	link := []byte(html.EscapeString(l.URL))
 	if l.Protocol == "file" {
-		url = url[len("file:"):]
+		link = link[len("file:"):]
 	}
-	description := url
+	if len(link) > 0 && !markup.IsLink(link) &&
+		link[0] != '#' && !bytes.HasPrefix(link, byteMailto) {
+		lnk := string(link)
+		if r.IsWiki {
+			lnk = util.URLJoin("wiki", lnk)
+		}
+		link = []byte(util.URLJoin(r.URLPrefix, lnk))
+	}
+
+	description := string(link)
 	if l.Description != nil {
 		description = r.nodesAsString(l.Description...)
 	}
 	switch l.Kind() {
 	case "image":
-		r.WriteString(fmt.Sprintf(`<img src="%s" alt="%s" title="%s" />`, url, description, description))
+		r.WriteString(fmt.Sprintf(`<img src="%s" alt="%s" title="%s" />`, link, description, description))
 	case "video":
-		r.WriteString(fmt.Sprintf(`<video src="%s" title="%s">%s</video>`, url, description, description))
+		r.WriteString(fmt.Sprintf(`<video src="%s" title="%s">%s</video>`, link, description, description))
 	default:
-		r.WriteString(fmt.Sprintf(`<a href="%s">%s</a>`, url, description))
+		r.WriteString(fmt.Sprintf(`<a href="%s" title="%s">%s</a>`, link, description, description))
 	}
 }
 
 func (r *Renderer) emptyClone() *Renderer {
-	wcopy := *r
+	wcopy := *(r.HTMLWriter)
 	wcopy.Builder = strings.Builder{}
-	return &wcopy
+
+	rcopy := *r
+	rcopy.HTMLWriter = &wcopy
+
+	wcopy.ExtendingWriter = &rcopy
+
+	return &rcopy
 }
 
 func (r *Renderer) nodesAsString(nodes ...org.Node) string {

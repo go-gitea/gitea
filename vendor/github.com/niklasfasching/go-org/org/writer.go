@@ -8,10 +8,13 @@ type Writer interface {
 	After(*Document)  // After is called after all nodes have been passed to the writer.
 	String() string   // String is called at the very end to retrieve the final output.
 
+	WriterWithExtensions() Writer
+
 	WriteKeyword(Keyword)
 	WriteInclude(Include)
 	WriteComment(Comment)
 	WriteNodeWithMeta(NodeWithMeta)
+	WriteNodeWithName(NodeWithName)
 	WriteHeadline(Headline)
 	WriteBlock(Block)
 	WriteExample(Example)
@@ -36,6 +39,7 @@ type Writer interface {
 }
 
 func WriteNodes(w Writer, nodes ...Node) {
+	w = w.WriterWithExtensions()
 	for _, n := range nodes {
 		switch n := n.(type) {
 		case Keyword:
@@ -46,6 +50,8 @@ func WriteNodes(w Writer, nodes ...Node) {
 			w.WriteComment(n)
 		case NodeWithMeta:
 			w.WriteNodeWithMeta(n)
+		case NodeWithName:
+			w.WriteNodeWithName(n)
 		case Headline:
 			w.WriteHeadline(n)
 		case Block:
@@ -90,7 +96,7 @@ func WriteNodes(w Writer, nodes ...Node) {
 			w.WriteFootnoteDefinition(n)
 		default:
 			if n != nil {
-				panic(fmt.Sprintf("bad node %#v", n))
+				panic(fmt.Sprintf("bad node %T %#v", n, n))
 			}
 		}
 	}

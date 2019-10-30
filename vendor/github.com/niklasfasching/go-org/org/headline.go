@@ -56,7 +56,7 @@ func (d *Document) parseHeadline(i int, parentStop stopFn) (int, Node) {
 		}
 	}
 
-	if len(text) >= 3 && text[0:2] == "[#" && strings.Contains("ABC", text[2:3]) && text[3] == ']' {
+	if len(text) >= 4 && text[0:2] == "[#" && strings.Contains("ABC", text[2:3]) && text[3] == ']' {
 		headline.Priority = text[2:3]
 		text = strings.TrimSpace(text[4:])
 	}

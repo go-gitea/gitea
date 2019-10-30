@@ -36,6 +36,7 @@ type Document struct {
 	Path           string // Path of the file containing the parse input - used to resolve relative paths during parsing (e.g. INCLUDE).
 	tokens         []token
 	Nodes          []Node
+	NamedNodes     map[string]Node
 	Outline        Outline           // Outline is a Table Of Contents for the document and contains all sections (headline + content).
 	BufferSettings map[string]string // Settings contains all settings that were parsed from keywords.
 	Error          error
@@ -117,6 +118,7 @@ func (c *Configuration) Parse(input io.Reader, path string) (d *Document) {
 		Configuration:  c,
 		Outline:        Outline{outlineSection, outlineSection, 0},
 		BufferSettings: map[string]string{},
+		NamedNodes:     map[string]Node{},
 		Path:           path,
 	}
 	defer func() {

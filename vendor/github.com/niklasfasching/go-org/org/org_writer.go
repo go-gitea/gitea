@@ -9,7 +9,9 @@ import (
 
 // OrgWriter export an org document into pretty printed org document.
 type OrgWriter struct {
-	TagsColumn int
+	ExtendingWriter Writer
+	TagsColumn      int
+
 	strings.Builder
 	indent string
 }
@@ -29,6 +31,13 @@ func NewOrgWriter() *OrgWriter {
 	return &OrgWriter{
 		TagsColumn: 77,
 	}
+}
+
+func (w *OrgWriter) WriterWithExtensions() Writer {
+	if w.ExtendingWriter != nil {
+		return w.ExtendingWriter
+	}
+	return w
 }
 
 func (w *OrgWriter) Before(d *Document) {}
@@ -161,6 +170,11 @@ func (w *OrgWriter) WriteNodeWithMeta(n NodeWithMeta) {
 		w.WriteString("#+ATTR_HTML: ")
 		w.WriteString(strings.Join(attributes, " ") + "\n")
 	}
+	WriteNodes(w, n.Node)
+}
+
+func (w *OrgWriter) WriteNodeWithName(n NodeWithName) {
+	w.WriteString(fmt.Sprintf("#+NAME: %s\n", n.Name))
 	WriteNodes(w, n.Node)
 }
 
