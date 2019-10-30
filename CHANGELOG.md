@@ -7,17 +7,17 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.10.0-RC2](https://github.com/go-gitea/gitea/releases/tag/v1.10.0-rc2) - 2019-10-30
 * BREAKING
   * Fix deadline on update issue or PR via API (#8698)
-  * Hide some user information via API if user have no enough permission (#8655) (#8657)
+  * Hide some user information via API if user doesn't have enough permission (#8655) (#8657)
 * BUGFIXES
   * Expose db.SetMaxOpenConns and allow non MySQL dbs to set conn pool params (#8528) (#8618)
   * Fix milestone close timestamp (#8728) (#8730)
   * Fix 500 when getting user as unauthenticated user (#8653) (#8663)
-  * Make call createMilestoneComment on newIssue func (#8678) (#8681)
+  * Call createMilestoneComment on newIssue func (#8678) (#8681)
   * Use AppSubUrl for more redirections (#8647) (#8651)
   * Add SubURL to redirect path (#8632) (#8634)
   * Fix template error on account page (#8562) (#8622)
   * Allow externalID to be UUID (#8551) (#8624)
-  * Fix emoji panel be removed bug in issue page, when the sub issue summit the duplicate emoji (#8609) (#8623)
+  * Prevent removal of non-empty emoji panel following selection of duplicate (#8609) (#8623)
   * Update heatmap fixtures to restore tests (#8615) (#8616)
   * Ensure that diff stats can scroll independently of the diff (#8581) (#8621)
   * Webhook: set Content-Type for application/x-www-form-urlencoded (#8600)
