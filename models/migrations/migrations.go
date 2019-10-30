@@ -264,6 +264,8 @@ var migrations = []Migration{
 	NewMigration("Add WhitelistDeployKeys to protected branch", addWhitelistDeployKeysToBranches),
 	// v104 -> v105
 	NewMigration("remove unnecessary columns from label", removeLabelUneededCols),
+	// v105 -> v106
+	NewMigration("prepend refs/heads/ to issue refs", prependRefsHeadsToIssueRefs),
 }
 
 // Migrate database to current version

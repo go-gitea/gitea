@@ -88,6 +88,7 @@ func RefEndName(refStr string) string {
 	return refStr
 }
 
+// RefURL returns the absolute URL for a ref in a repository
 func RefURL(repoURL, ref string) string {
 	refName := RefEndName(ref)
 	switch {

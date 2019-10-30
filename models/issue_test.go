@@ -379,4 +379,3 @@ func TestIssue_RefURL(t *testing.T) {
 	testSuccess(1, "refs/tags/tag1", "tag1")
 	testSuccess(1, "c0ffee", "c0ffee")
 }
-
