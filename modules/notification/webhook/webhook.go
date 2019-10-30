@@ -315,3 +315,86 @@ func (m *webhookNotifier) NotifyIssueChangeContent(doer *models.User, issue *mod
 		go models.HookQueue.Add(issue.RepoID)
 	}
 }
+
+func (m *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
+	if err := c.LoadPoster(); err != nil {
+		log.Error("LoadPoster: %v", err)
+		return
+	}
+	if err := c.LoadIssue(); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+
+	if err := c.Issue.LoadAttributes(); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(doer, c.Issue.Repo)
+	if err := models.PrepareWebhooks(c.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+		Action:  api.HookIssueCommentEdited,
+		Issue:   c.Issue.APIFormat(),
+		Comment: c.APIFormat(),
+		Changes: &api.ChangesPayload{
+			Body: &api.ChangesFromPayload{
+				From: oldContent,
+			},
+		},
+		Repository: c.Issue.Repo.APIFormat(mode),
+		Sender:     doer.APIFormat(),
+		IsPull:     c.Issue.IsPull,
+	}); err != nil {
+		log.Error("PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
+	} else {
+		go models.HookQueue.Add(c.Issue.Repo.ID)
+	}
+}
+
+func (m *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
+	issue *models.Issue, comment *models.Comment) {
+	mode, _ := models.AccessLevel(doer, repo)
+	if err := models.PrepareWebhooks(repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+		Action:     api.HookIssueCommentCreated,
+		Issue:      issue.APIFormat(),
+		Comment:    comment.APIFormat(),
+		Repository: repo.APIFormat(mode),
+		Sender:     doer.APIFormat(),
+		IsPull:     issue.IsPull,
+	}); err != nil {
+		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+	} else {
+		go models.HookQueue.Add(repo.ID)
+	}
+}
+
+func (m *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models.Comment) {
+	if err := comment.LoadPoster(); err != nil {
+		log.Error("LoadPoster: %v", err)
+		return
+	}
+	if err := comment.LoadIssue(); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+
+	if err := comment.Issue.LoadAttributes(); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(doer, comment.Issue.Repo)
+
+	if err := models.PrepareWebhooks(comment.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+		Action:     api.HookIssueCommentDeleted,
+		Issue:      comment.Issue.APIFormat(),
+		Comment:    comment.APIFormat(),
+		Repository: comment.Issue.Repo.APIFormat(mode),
+		Sender:     doer.APIFormat(),
+		IsPull:     comment.Issue.IsPull,
+	}); err != nil {
+		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+	} else {
+		go models.HookQueue.Add(comment.Issue.Repo.ID)
+	}
+}
