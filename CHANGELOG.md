@@ -6,7 +6,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.9.5](https://github.com/go-gitea/gitea/releases/tag/v1.9.5) - 2019-10-30
 * BREAKING
-  * Hide some user information via API if user have no enough permission (#8655) (#8658)
+  * Hide some user information via API if user doesn't have enough permission (#8655) (#8658)
 * BUGFIXES
   * Fix milestone close timestamp (#8728) (#8731)
   * Fix deadline on update issue or PR via API (#8699)
