@@ -20,11 +20,11 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * IsBranchExist: return false if provided name is empty (#8485) (#8492)
   * Fixes #8369: Create .ssh dir as necessary (#8486) (#8489)
   * Restore functionality for early gits (#7775) (#8476)
-  * Backport: Add check for empty set when dropping indexes during migration (#8475)
+  * Add check for empty set when dropping indexes during migration (#8475)
   * Ensure Request Body Readers are closed in LFS server (#8454) (#8459)
   * Ensure that LFS files are relative to the LFS content path (#8455) (#8458)
 * SECURITY
-  * Backport: Ignore mentions for users with no access (#8395) (#8484)
+  * Ignore mentions for users with no access (#8395) (#8484)
 * TESTING
   * Update heatmap fixtures to restore tests (#8615) (#8617)
 
