@@ -221,7 +221,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	// Merge commits.
 	switch mergeStyle {
 	case models.MergeStyleMerge:
-		if err := git.NewCommand("merge", "--no-ff", "--no-commit", trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
+		if err := git.NewCommand("merge", "--no-ff", "--no-commit", trackingBranch).RunInDirTimeoutEnvPipeline(append(os.Environ(), "LC_ALL=C"), -1, tmpBasePath, &outbuf, &errbuf); err != nil {
 			// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
 			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "MERGE_HEAD")); statErr == nil {
 				// We have a merge conflict error
