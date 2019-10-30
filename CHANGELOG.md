@@ -8,7 +8,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BREAKING
   * Hide some user information via API if user have no enough permission (#8655) (#8658)
 * BUGFIXES
-  * Fixmilestone close timestamp (#8728) (#8731)
+  * Fix milestone close timestamp (#8728) (#8731)
   * Fix deadline on update issue or PR via API (#8699)
   * Fix 'New Issue Missing Milestone Comment' (#8678) (#8682)
   * Fix 500 when getting user as unauthenticated user (#8653) (#8662)
