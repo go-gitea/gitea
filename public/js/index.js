@@ -1572,7 +1572,27 @@ function initEditor() {
         });
     }).trigger('keyup');
 
-    $('#commit-button').click(function (event) {
+    // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
+    // to enable or disable the commit button
+    const $commitButton = $('#commit-button');
+    const $editForm = $('.ui.edit.form');
+    const dirtyFileClass = 'dirty-file';
+
+    // Disabling the button at the start
+    $commitButton.prop('disabled', true);
+
+    // Registering a custom listener for the file path and the file content
+    $editForm.areYouSure({
+        silent: true,
+        dirtyClass: dirtyFileClass,
+        fieldSelector: ':input:not(.commit-form-wrapper :input)',
+        change: function () {
+            const dirty = $(this).hasClass(dirtyFileClass);
+            $commitButton.prop('disabled', !dirty);
+        }
+    });
+
+    $commitButton.click(function (event) {
         // A modal which asks if an empty file should be committed
         if ($editArea.val().length === 0) {
             $('#edit-empty-content-modal').modal({
@@ -3234,10 +3254,16 @@ function deleteDependencyModal(id, type) {
 
 function initIssueList() {
     const repolink = $('#repolink').val();
+    const repoId = $('#repoId').val();
+    const crossRepoSearch = $('#crossRepoSearch').val();
+    let issueSearchUrl = suburl + '/api/v1/repos/' + repolink + '/issues?q={query}';
+    if (crossRepoSearch === 'true') {
+        issueSearchUrl = suburl + '/api/v1/repos/issues/search?q={query}&priority_repo_id=' + repoId;
+    }
     $('#new-dependency-drop-list')
         .dropdown({
             apiSettings: {
-                url: suburl + '/api/v1/repos/' + repolink + '/issues?q={query}',
+                url: issueSearchUrl,                
                 onResponse: function(response) {
                     const filteredResponse = {'success': true, 'results': []};
                     const currIssueId = $('#new-dependency-drop-list').data('issue-id');
@@ -3248,7 +3274,8 @@ function initIssueList() {
                             return;
                         }
                         filteredResponse.results.push({
-                            'name'  : '#' + issue.number + '&nbsp;' + htmlEncode(issue.title),
+                            'name'  : '#' + issue.number + ' ' + htmlEncode(issue.title) + 
+                                '<div class="text small dont-break-out">' + htmlEncode(issue.repository.full_name) + '</div>',
                             'value' : issue.id
                         });
                     });
@@ -3258,8 +3285,41 @@ function initIssueList() {
             },
 
             fullTextSearch: true
-        })
-    ;
+        });
+
+    $(".menu a.label-filter-item").each(function() {
+        $(this).click(function(e) {
+            if (e.altKey) {
+                e.preventDefault();
+
+                const href = $(this).attr("href");
+                const id = $(this).data("label-id");
+
+                const regStr = "labels=(-?[0-9]+%2c)*(" + id + ")(%2c-?[0-9]+)*&";
+                const newStr = "labels=$1-$2$3&";
+
+                window.location = href.replace(new RegExp(regStr), newStr);
+            }
+        });
+    });
+
+    $(".menu .ui.dropdown.label-filter").keydown(function(e) {
+        if (e.altKey && e.keyCode == 13) {
+            const selectedItems = $(".menu .ui.dropdown.label-filter .menu .item.selected");
+
+            if (selectedItems.length > 0) {
+                const item = $(selectedItems[0]);
+
+                const href = item.attr("href");
+                const id = item.data("label-id");
+
+                const regStr = "labels=(-?[0-9]+%2c)*(" + id + ")(%2c-?[0-9]+)*&";
+                const newStr = "labels=$1-$2$3&";
+
+                window.location = href.replace(new RegExp(regStr), newStr);
+            }
+        }
+    });
 }
 function cancelCodeComment(btn) {
     const form = $(btn).closest("form");
