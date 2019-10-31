@@ -262,31 +262,11 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 			cmd.AddArguments("--allow-unrelated-histories")
 		}
 		cmd.AddArguments(trackingBranch)
-		if err := cmd.RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
-			// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
-			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "MERGE_HEAD")); statErr == nil {
-				// We have a merge conflict error
-				log.Debug("MergeConflict [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return models.ErrMergeConflicts{
-					Style:  mergeStyle,
-					StdOut: outbuf.String(),
-					StdErr: errbuf.String(),
-					Err:    err,
-				}
-			} else if strings.Contains(err.Error(), "refusing to merge unrelated histories") {
-				log.Debug("MergeUnrelatedHistories [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return models.ErrMergeUnrelatedHistories{
-					Style:  mergeStyle,
-					StdOut: outbuf.String(),
-					StdErr: errbuf.String(),
-					Err:    err,
-				}
-			}
-			log.Error("git merge --no-ff --no-commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-			return fmt.Errorf("git merge --no-ff --no-commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
+			log.Error("Unable to merge tracking into base: %v", err)
+			return err
 		}
-		outbuf.Reset()
-		errbuf.Reset()
+
 		if err := commitAndSignNoAuthor(pr, message, signArg, tmpBasePath, env); err != nil {
 			log.Error("Unable to make final commit: %v", err)
 			return err
@@ -336,42 +316,19 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		outbuf.Reset()
 		errbuf.Reset()
 
-		mergeCommand := git.NewCommand("merge")
+		cmd := git.NewCommand("merge")
 		if mergeStyle == models.MergeStyleRebase {
-			mergeCommand.AddArguments("--ff-only")
+			cmd.AddArguments("--ff-only")
 		} else {
-			mergeCommand.AddArguments("--no-ff", "--no-commit")
+			cmd.AddArguments("--no-ff", "--no-commit")
 		}
-		mergeCommand.AddArguments(stagingBranch)
+		cmd.AddArguments(stagingBranch)
 
 		// Prepare merge with commit
-		if err := mergeCommand.RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
-			// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
-			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "MERGE_HEAD")); statErr == nil {
-				// We have a merge conflict error
-				log.Debug("MergeConflict [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return models.ErrMergeConflicts{
-					Style:  mergeStyle,
-					StdOut: outbuf.String(),
-					StdErr: errbuf.String(),
-					Err:    err,
-				}
-			} else if strings.Contains(err.Error(), "refusing to merge unrelated histories") {
-				// This shouldn't happen but may aswell check.
-				log.Debug("MergeUnrelatedHistories [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return models.ErrMergeUnrelatedHistories{
-					Style:  mergeStyle,
-					StdOut: outbuf.String(),
-					StdErr: errbuf.String(),
-					Err:    err,
-				}
-			}
-			log.Error("git merge [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-			return fmt.Errorf("git merge [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
+			log.Error("Unable to merge staging into base: %v", err)
+			return err
 		}
-		outbuf.Reset()
-		errbuf.Reset()
-
 		if mergeStyle == models.MergeStyleRebaseMerge {
 			if err := commitAndSignNoAuthor(pr, message, signArg, tmpBasePath, env); err != nil {
 				log.Error("Unable to make final commit: %v", err)
@@ -380,31 +337,11 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		}
 	case models.MergeStyleSquash:
 		// Merge with squash
-		if err := git.NewCommand("merge", "--squash", trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
-			// Merge will leave a MERGE_MSG file in the .git folder if there is a conflict
-			if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "MERGE_MSG")); statErr == nil {
-				// We have a merge conflict error
-				log.Debug("MergeConflict [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return models.ErrMergeConflicts{
-					Style:  mergeStyle,
-					StdOut: outbuf.String(),
-					StdErr: errbuf.String(),
-					Err:    err,
-				}
-			} else if strings.Contains(err.Error(), "refusing to merge unrelated histories") {
-				log.Debug("MergeUnrelatedHistories [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-				return models.ErrMergeUnrelatedHistories{
-					Style:  mergeStyle,
-					StdOut: outbuf.String(),
-					StdErr: errbuf.String(),
-					Err:    err,
-				}
-			}
-			log.Error("git merge --squash [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
-			return fmt.Errorf("git merge --squash [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+		cmd := git.NewCommand("merge", "--squash", trackingBranch)
+		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
+			log.Error("Unable to merge --squash tracking into base: %v", err)
+			return err
 		}
-		outbuf.Reset()
-		errbuf.Reset()
 
 		sig := pr.Issue.Poster.NewGitSig()
 		if signArg == "" {
@@ -534,6 +471,35 @@ func commitAndSignNoAuthor(pr *models.PullRequest, message, signArg, tmpBasePath
 			return fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 		}
 	}
+	return nil
+}
+
+func runMergeCommand(pr *models.PullRequest, mergeStyle models.MergeStyle, cmd *git.Command, tmpBasePath string) error {
+	var outbuf, errbuf strings.Builder
+	if err := cmd.RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
+		// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
+		if _, statErr := os.Stat(filepath.Join(tmpBasePath, ".git", "MERGE_HEAD")); statErr == nil {
+			// We have a merge conflict error
+			log.Debug("MergeConflict [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+			return models.ErrMergeConflicts{
+				Style:  mergeStyle,
+				StdOut: outbuf.String(),
+				StdErr: errbuf.String(),
+				Err:    err,
+			}
+		} else if strings.Contains(err.Error(), "refusing to merge unrelated histories") {
+			log.Debug("MergeUnrelatedHistories [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+			return models.ErrMergeUnrelatedHistories{
+				Style:  mergeStyle,
+				StdOut: outbuf.String(),
+				StdErr: errbuf.String(),
+				Err:    err,
+			}
+		}
+		log.Error("git merge [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+		return fmt.Errorf("git merge [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
+	}
+
 	return nil
 }
 
