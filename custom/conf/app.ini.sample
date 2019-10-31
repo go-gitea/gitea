@@ -500,8 +500,7 @@ SHOW_REGISTRATION_BUTTON = true
 ; repo automatically if enabled
 AUTO_WATCH_NEW_REPOS = true
 ; Default value for AutoWatchOnChanges
-; When pushing changes (git-receive-pack), the user will watch the repo
-; automatically if enabled
+; Make the user watch a repository When they commit for the first time
 AUTO_WATCH_ON_CHANGES = false
 
 [webhook]
