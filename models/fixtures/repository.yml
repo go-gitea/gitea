@@ -4,7 +4,6 @@
   lower_name: repo1
   name: repo1
   is_private: false
-  is_template: true
   num_issues: 2
   num_closed_issues: 1
   num_pulls: 2
@@ -565,7 +564,7 @@
 
 -
   id: 44
-  owner_id: 6
+  owner_id: 27
   lower_name: template1
   name: template1
   is_private: false
@@ -578,7 +577,7 @@
 
 -
   id: 45
-  owner_id: 6
+  owner_id: 27
   lower_name: template2
   name: template2
   is_private: false
