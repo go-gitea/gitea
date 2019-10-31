@@ -11,12 +11,19 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, patch []byte) error {
+func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, patch []byte, assigneeIDs []int64) error {
 	if err := models.NewPullRequest(repo, pull, labelIDs, uuids, pr, patch); err != nil {
 		return err
+	}
+
+	for _, assigneeID := range assigneeIDs {
+		if err := issue_service.AddAssigneeIfNotAssigned(pull, pull.Poster, assigneeID); err != nil {
+			return err
+		}
 	}
 
 	if err := models.NotifyWatchers(&models.Action{

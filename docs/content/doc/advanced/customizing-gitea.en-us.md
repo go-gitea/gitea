@@ -72,6 +72,12 @@ matching source.
 Any statement contained inside `{{` and `}}` are Gitea's template syntax and
 shouldn't be touched without fully understanding these components.
 
+### Customizing startpage / homepage
+
+Copy [`home.tmpl`](https://github.com/go-gitea/gitea/blob/master/templates/home.tmpl) for your version of Gitea from `templates` to `custom/templates`.
+Edit as you wish.
+Dont forget to restart your gitea to apply the changes.
+
 ### Adding links and tabs
 
 If all you want is to add extra links to the top navigation bar, or extra tabs to the repository view, you can put them in `extra_links.tmpl` and `extra_tabs.tmpl` inside your `custom/templates/custom/` directory.
@@ -140,7 +146,7 @@ To add a custom license, add a file with the license text to `custom/options/lic
 Locales are managed via our [crowdin](https://crowdin.com/project/gitea).  
 You can override a locale by placing an altered locale file in `custom/options/locale`.  
 Gitea's default locale files can be found in  the [`options/locale`](https://github.com/go-gitea/gitea/tree/master/options/locale) source folder and these should be used as examples for your changes.  
-  
+
 To add a completely new locale, as well as placing the file in the above location, you will need to add the new lang and name to the `[i18n]` section in your `app.ini`. Keep in mind that Gitea will use those settings as **overrides**, so if you want to keep the other languages as well you will need to copy/paste the default values and add your own to them.
 
 ```

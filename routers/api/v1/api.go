@@ -590,6 +590,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/search", repo.Search)
 		})
 
+		m.Get("/repos/issues/search", repo.SearchIssues)
+
 		m.Combo("/repositories/:id", reqToken()).Get(repo.GetByID)
 
 		m.Group("/repos", func() {
