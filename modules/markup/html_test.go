@@ -323,6 +323,6 @@ func TestRender_ShortLinks(t *testing.T) {
 		`<p><a href="`+notencodedImgurlWiki+`" rel="nofollow"><img src="`+notencodedImgurlWiki+`"/></a></p>`)
 	test(
 		"<p><a href=\"https://example.org\">[[foobar]]</a></p>",
-		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`,
-		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`)
+		`<p></p><p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p><p></p>`,
+		`<p></p><p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p><p></p>`)
 }
