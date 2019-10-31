@@ -1455,7 +1455,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 }
 
 // generateRepository initializes repository from template
-func generateRepository(e Engine, repoPath string, u *User, repo, templateRepo *Repository) (err error) {
+func generateRepository(e Engine, repoPath string, repo, templateRepo *Repository) (err error) {
 	if err = checkInitRepository(repoPath); err != nil {
 		return err
 	}
@@ -2752,7 +2752,7 @@ func GenerateRepository(doer, owner *User, templateRepo *Repository, name, desc 
 	}
 
 	repoPath := RepoPath(owner.Name, repo.Name)
-	if err := generateRepository(sess, repoPath, owner, repo, templateRepo); err != nil {
+	if err := generateRepository(sess, repoPath, repo, templateRepo); err != nil {
 		return nil, err
 	}
 
