@@ -15,18 +15,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testRepoGenerate(t *testing.T, session *TestSession, ownerName, repoName, generateOwnerName, generateRepoName string) *httptest.ResponseRecorder {
+func testRepoGenerate(t *testing.T, session *TestSession, templateOwnerName, templateRepoName, generateOwnerName, generateRepoName string) *httptest.ResponseRecorder {
 	forkOwner := models.AssertExistsAndLoadBean(t, &models.User{Name: generateOwnerName}).(*models.User)
 
-	// Step0: check the existence of the to-fork repo
+	// Step0: check the existence of the generated repo
 	req := NewRequestf(t, "GET", "/%s/%s", generateOwnerName, generateRepoName)
 	resp := session.MakeRequest(t, req, http.StatusNotFound)
 
-	// Step1: go to the main page of repo
-	req = NewRequestf(t, "GET", "/%s/%s", ownerName, repoName)
+	// Step1: go to the main page of template repo
+	req = NewRequestf(t, "GET", "/%s/%s", templateOwnerName, templateRepoName)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
-	// Step2: click the fork button
+	// Step2: click the "Use this template" button
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find("a.ui.button[href^=\"/repo/generate/\"]").Attr("href")
 	assert.True(t, exists, "The template has changed")
@@ -46,7 +46,7 @@ func testRepoGenerate(t *testing.T, session *TestSession, ownerName, repoName, g
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
-	// Step4: check the existence of the forked repo
+	// Step4: check the existence of the generated repo
 	req = NewRequestf(t, "GET", "/%s/%s", generateOwnerName, generateRepoName)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
@@ -56,11 +56,11 @@ func testRepoGenerate(t *testing.T, session *TestSession, ownerName, repoName, g
 func TestRepoGenerate(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user1")
-	testRepoGenerate(t, session, "user2", "repo1", "user1", "generated1")
+	testRepoGenerate(t, session, "user2", "template1", "user1", "generated1")
 }
 
 func TestRepoGenerateToOrg(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user2")
-	testRepoGenerate(t, session, "user2", "repo1", "user3", "generated2")
+	testRepoGenerate(t, session, "user2", "template2", "user3", "generated2")
 }
