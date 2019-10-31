@@ -117,7 +117,6 @@ type SearchRepoOptions struct {
 	OwnerID     int64
 	OrderBy     SearchOrderBy
 	Private     bool // Include private repositories in results
-	Template    bool // Include template repositories in results
 	StarredByID int64
 	Page        int
 	IsProfile   bool
@@ -131,6 +130,10 @@ type SearchRepoOptions struct {
 	// True -> include just forks
 	// False -> include just non-forks
 	Fork util.OptionalBool
+	// None -> include templates AND non-templates
+	// True -> include just templates
+	// False -> include just non-templates
+	Template    util.OptionalBool
 	// None -> include mirrors AND non-mirrors
 	// True -> include just mirrors
 	// False -> include just non-mirrors
@@ -191,10 +194,8 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 		cond = cond.And(accessCond)
 	}
 
-	if opts.Template {
-		cond = cond.And(builder.Eq{"is_template": true})
-	} else {
-		cond = cond.And(builder.Eq{"is_template": false})
+	if opts.Template != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"is_template": opts.Fork == util.OptionalBoolTrue})
 	}
 
 	// Restrict to starred repositories
