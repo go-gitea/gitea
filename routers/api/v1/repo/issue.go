@@ -78,7 +78,7 @@ func SearchIssues(ctx *context.APIContext) {
 			TopicOnly:   false,
 			Collaborate: util.OptionalBoolNone,
 			UserIsAdmin: ctx.IsUserSiteAdmin(),
-			UserID:      ctx.Data["SignedUserID"].(int64),
+			UserID:      ctx.User.ID,
 			OrderBy:     models.SearchOrderByRecentUpdated,
 		})
 		if err != nil {
