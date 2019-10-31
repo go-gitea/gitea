@@ -1,51 +1,61 @@
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
-	<h4 class="ui top attached header" id="{{if .ReadmeExist}}repo-readme{{else}}repo-read-file{{end}}">
-		<div class="ui stackable grid">
-			<div class="eight wide column">
-				{{if .ReadmeExist}}
-					<i class="book icon ui left"></i>
-					{{if .ReadmeInList}}
-						<strong>{{.FileName}}</strong>
-					{{else}}
-						<strong>{{.FileName}}</strong> <span class="text grey normal">{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
-					{{end}}
-				{{else}}
-					<i class="file text outline icon ui left"></i>
-					<strong>{{.FileName}}</strong> <span class="text grey normal">{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
-				{{end}}
-			</div>
-			<div class="eight wide right aligned column">
-				{{if not .ReadmeInList}}
-					<div class="ui right file-actions">
-						<div class="ui buttons">
-							<a class="ui button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
-							{{if not .IsViewCommit}}
-								<a class="ui button" href="{{.RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_permalink"}}</a>
-							{{end}}
-							{{if .IsTextFile}}
-								<a class="ui button" href="{{.RepoLink}}/blame/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.blame"}}</a>
-							{{end}}
-							<a class="ui button" href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
+	<h4 class="file-header ui top attached header">
+		<div class="file-header-left">
+			{{if .ReadmeInList}}
+				<i class="book icon"></i>
+				<strong>{{.FileName}}</strong>
+			{{else}}
+				<div class="file-info text grey normal mono">
+					{{if .NumLinesSet}}
+						<div class="file-info-entry">
+							{{.NumLines}} {{.i18n.Tr (TrN .i18n.Lang .NumLines "repo.line" "repo.lines") }}
 						</div>
-						{{if .Repository.CanEnableEditor}}
-							{{if .CanEditFile}}
-								<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><i class="octicon octicon-pencil btn-octicon poping up"  data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i></a>
-							{{else}}
-								<i class="octicon octicon-pencil btn-octicon poping up disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i>
-							{{end}}
-							{{if .CanDeleteFile}}
-								<a href="{{.RepoLink}}/_delete/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><i class="octicon octicon-trashcan btn-octicon btn-octicon-danger poping up"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i></a>
-							{{else}}
-								<i class="octicon octicon-trashcan btn-octicon poping up disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i>
-							{{end}}
-						{{end}}
-					</div>
+					{{end}}
+					{{if .FileSize}}
+						<div class="file-info-entry">
+							{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.i18n.Tr "repo.stored_lfs"}}){{end}}
+						</div>
+					{{end}}
+					{{if .LFSLock}}
+						<div class="file-info-entry">
+							<i class="fa fa-lock poping up disabled" data-content="{{.LFSLockHint}}" data-position="bottom center" data-variation="tiny inverted"></i>
+							<a href="{{AppSubUrl}}/{{.LFSLock.Owner.Name}}">{{.LFSLockOwner}}</a>
+						</div>
+					{{end}}
+				</div>
+			{{end}}
+		</div>
+		{{if not .ReadmeInList}}
+		<div class="file-header-right">
+			<div class="ui right file-actions">
+				<div class="ui buttons">
+					<a class="ui button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
+					{{if not .IsViewCommit}}
+						<a class="ui button" href="{{.RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_permalink"}}</a>
+					{{end}}
+					{{if .IsTextFile}}
+						<a class="ui button" href="{{.RepoLink}}/blame/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.blame"}}</a>
+					{{end}}
+					<a class="ui button" href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
+				</div>
+				{{if .Repository.CanEnableEditor}}
+					{{if .CanEditFile}}
+						<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><i class="octicon octicon-pencil btn-octicon poping up"  data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i></a>
+					{{else}}
+						<i class="octicon octicon-pencil btn-octicon poping up disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i>
+					{{end}}
+					{{if .CanDeleteFile}}
+						<a href="{{.RepoLink}}/_delete/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><i class="octicon octicon-trashcan btn-octicon btn-octicon-danger poping up"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i></a>
+					{{else}}
+						<i class="octicon octicon-trashcan btn-octicon poping up disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i>
+					{{end}}
 				{{end}}
 			</div>
 		</div>
+		{{end}}
 	</h4>
 	<div class="ui attached table unstackable segment">
-		<div class="file-view {{if .IsMarkup}}{{.MarkupType}}{{else if .IsRenderedHTML}}plain-text{{else if .IsTextFile}}code-view{{end}} has-emoji">
+		<div class="file-view {{if .IsMarkup}}{{.MarkupType}} markdown{{else if .IsRenderedHTML}}plain-text{{else if .IsTextFile}}code-view{{end}} has-emoji">
 			{{if .IsMarkup}}
 				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
 			{{else if .IsRenderedHTML}}
@@ -63,7 +73,7 @@
 							<strong>{{.i18n.Tr "repo.audio_not_supported_in_browser"}}</strong>
 						</audio>
 					{{else if .IsPDFFile}}
-						<iframe width="100%" height="600px" src="{{AppSubUrl}}/vendor/plugins/pdfjs/web/viewer.html?file={{EscapePound $.RawFileLink}}"></iframe>
+						<iframe width="100%" height="600px" src="{{StaticUrlPrefix}}/vendor/plugins/pdfjs/web/viewer.html?file={{EscapePound $.RawFileLink}}"></iframe>
 					{{else}}
 						<a href="{{EscapePound $.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.i18n.Tr "repo.file_view_raw"}}</a>
 					{{end}}

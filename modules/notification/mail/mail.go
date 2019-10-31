@@ -5,9 +5,12 @@
 package mail
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/gitea/services/mailer"
 )
 
 type mailNotifier struct {
@@ -36,13 +39,13 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.
 		act = models.ActionCommentIssue
 	}
 
-	if err := comment.MailParticipants(act, issue); err != nil {
+	if err := mailer.MailParticipantsComment(comment, act, issue); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
 
 func (m *mailNotifier) NotifyNewIssue(issue *models.Issue) {
-	if err := issue.MailParticipants(issue.Poster, models.ActionCreateIssue); err != nil {
+	if err := mailer.MailParticipants(issue, issue.Poster, models.ActionCreateIssue); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
@@ -63,13 +66,13 @@ func (m *mailNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.
 		}
 	}
 
-	if err := issue.MailParticipants(doer, actionType); err != nil {
+	if err := mailer.MailParticipants(issue, doer, actionType); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
 
 func (m *mailNotifier) NotifyNewPullRequest(pr *models.PullRequest) {
-	if err := pr.Issue.MailParticipants(pr.Issue.Poster, models.ActionCreatePullRequest); err != nil {
+	if err := mailer.MailParticipants(pr.Issue, pr.Issue.Poster, models.ActionCreatePullRequest); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
@@ -83,7 +86,15 @@ func (m *mailNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models
 	} else if comment.Type == models.CommentTypeComment {
 		act = models.ActionCommentIssue
 	}
-	if err := comment.MailParticipants(act, pr.Issue); err != nil {
+	if err := mailer.MailParticipantsComment(comment, act, pr.Issue); err != nil {
 		log.Error("MailParticipants: %v", err)
+	}
+}
+
+func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
+	// mail only sent to added assignees and not self-assignee
+	if !removed && doer.ID != assignee.ID && assignee.EmailNotifications() == models.EmailNotificationsEnabled {
+		ct := fmt.Sprintf("Assigned #%d.", issue.Index)
+		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []string{assignee.Email})
 	}
 }

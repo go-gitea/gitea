@@ -36,7 +36,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 			continue
 		}
 		if !info.lfsMetaObject.Existing {
-			if err := t.repo.RemoveLFSMetaObjectByOid(info.lfsMetaObject.Oid); err != nil {
+			if _, err := t.repo.RemoveLFSMetaObjectByOid(info.lfsMetaObject.Oid); err != nil {
 				original = fmt.Errorf("%v, %v", original, err)
 			}
 		}
@@ -74,9 +74,12 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		infos[i] = uploadInfo{upload: upload}
 	}
 
-	filename2attribute2info, err := t.CheckAttribute("filter", names...)
-	if err != nil {
-		return err
+	var filename2attribute2info map[string]map[string]string
+	if setting.LFS.StartServer {
+		filename2attribute2info, err = t.CheckAttribute("filter", names...)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Copy uploaded files into repository.
@@ -88,7 +91,7 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		defer file.Close()
 
 		var objectHash string
-		if filename2attribute2info[uploadInfo.upload.Name] != nil && filename2attribute2info[uploadInfo.upload.Name]["filter"] == "lfs" {
+		if setting.LFS.StartServer && filename2attribute2info[uploadInfo.upload.Name] != nil && filename2attribute2info[uploadInfo.upload.Name]["filter"] == "lfs" {
 			// Handle LFS
 			// FIXME: Inefficient! this should probably happen in models.Upload
 			oid, err := models.GenerateLFSOid(file)

@@ -263,6 +263,7 @@ func HTTP(ctx *context.Context) {
 			models.EnvPusherName + "=" + authUser.Name,
 			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
 			models.ProtectedBranchRepoID + fmt.Sprintf("=%d", repo.ID),
+			models.EnvIsDeployKey + "=false",
 		}
 
 		if !authUser.KeepEmailPrivate {

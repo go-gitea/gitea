@@ -231,3 +231,38 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 		ctx.Session.MakeRequest(t, req, 200)
 	}
 }
+
+func doAPIGetBranch(ctx APITestContext, branch string, callback ...func(*testing.T, api.Branch)) func(*testing.T) {
+	return func(t *testing.T) {
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/branches/%s?token=%s", ctx.Username, ctx.Reponame, branch, ctx.Token)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+
+		var branch api.Branch
+		DecodeJSON(t, resp, &branch)
+		if len(callback) > 0 {
+			callback[0](t, branch)
+		}
+	}
+}
+
+func doAPICreateFile(ctx APITestContext, treepath string, options *api.CreateFileOptions, callback ...func(*testing.T, api.FileResponse)) func(*testing.T) {
+	return func(t *testing.T) {
+		url := fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", ctx.Username, ctx.Reponame, treepath, ctx.Token)
+		req := NewRequestWithJSON(t, "POST", url, &options)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
+
+		var contents api.FileResponse
+		DecodeJSON(t, resp, &contents)
+		if len(callback) > 0 {
+			callback[0](t, contents)
+		}
+	}
+}

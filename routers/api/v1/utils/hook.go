@@ -112,6 +112,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 				Repository:   com.IsSliceContainsStr(form.Events, string(models.HookEventRepository)),
 				Release:      com.IsSliceContainsStr(form.Events, string(models.HookEventRelease)),
 			},
+			BranchFilter: form.BranchFilter,
 		},
 		IsActive:     form.Active,
 		HookTaskType: models.ToHookTaskType(form.Type),
@@ -236,6 +237,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 	w.PullRequest = com.IsSliceContainsStr(form.Events, string(models.HookEventPullRequest))
 	w.Repository = com.IsSliceContainsStr(form.Events, string(models.HookEventRepository))
 	w.Release = com.IsSliceContainsStr(form.Events, string(models.HookEventRelease))
+	w.BranchFilter = form.BranchFilter
 
 	if err := w.UpdateEvent(); err != nil {
 		ctx.Error(500, "UpdateEvent", err)

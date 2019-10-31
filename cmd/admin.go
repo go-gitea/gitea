@@ -13,9 +13,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/oauth2"
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	pwd "code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
@@ -66,7 +66,7 @@ var (
 			},
 			cli.BoolFlag{
 				Name:  "must-change-password",
-				Usage: "Force the user to change his/her password after initial login",
+				Usage: "Set this option to false to prevent forcing the user to change their password after initial login, (Default: true)",
 			},
 			cli.IntFlag{
 				Name:  "random-password-length",
@@ -233,7 +233,9 @@ func runChangePassword(c *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
-
+	if !pwd.IsComplexEnough(c.String("password")) {
+		return errors.New("Password does not meet complexity requirements")
+	}
 	uname := c.String("username")
 	user, err := models.GetUserByName(uname)
 	if err != nil {
@@ -243,6 +245,7 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 	user.HashPassword(c.String("password"))
+
 	if err := models.UpdateUserCols(user, "passwd", "salt"); err != nil {
 		return err
 	}
@@ -275,24 +278,22 @@ func runCreateUser(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "--name flag is deprecated. Use --username instead.\n")
 	}
 
-	var password string
+	if err := initDB(); err != nil {
+		return err
+	}
 
+	var password string
 	if c.IsSet("password") {
 		password = c.String("password")
 	} else if c.IsSet("random-password") {
 		var err error
-		password, err = generate.GetRandomString(c.Int("random-password-length"))
+		password, err = pwd.Generate(c.Int("random-password-length"))
 		if err != nil {
 			return err
 		}
-
 		fmt.Printf("generated random password is '%s'\n", password)
 	} else {
 		return errors.New("must set either password or random-password flag")
-	}
-
-	if err := initDB(); err != nil {
-		return err
 	}
 
 	// always default to true

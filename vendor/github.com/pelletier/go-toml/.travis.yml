@@ -1,0 +1,22 @@
+sudo: false
+language: go
+go:
+  - 1.11.x
+  - 1.12.x
+  - tip
+matrix:
+  allow_failures:
+    - go: tip
+  fast_finish: true
+env:
+  - GO111MODULE=on
+script:
+  - if [ -n "$(go fmt ./...)" ]; then exit 1; fi
+  - go test github.com/pelletier/go-toml -race -coverprofile=coverage.txt -covermode=atomic
+  - go test github.com/pelletier/go-toml/cmd/tomljson
+  - go test github.com/pelletier/go-toml/cmd/tomll
+  - go test github.com/pelletier/go-toml/query
+  - ./benchmark.sh $TRAVIS_BRANCH https://github.com/$TRAVIS_REPO_SLUG.git
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

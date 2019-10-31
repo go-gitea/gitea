@@ -4,18 +4,21 @@
 
 package migrations
 
-import (
-	"github.com/go-xorm/xorm"
-)
+import "xorm.io/xorm"
 
-// RepoWatchMode specifies what kind of watch the user has on a repository
-type RepoWatchMode int8
+func addStatusCheckColumnsForProtectedBranches(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		EnableStatusCheck   bool     `xorm:"NOT NULL DEFAULT false"`
+		StatusCheckContexts []string `xorm:"JSON TEXT"`
+	}
 
-// Watch is connection request for receiving repository notification.
-type Watch struct {
-	Mode RepoWatchMode `xorm:"SMALLINT NOT NULL DEFAULT 1"`
-}
+	if err := x.Sync2(new(ProtectedBranch)); err != nil {
+		return err
+	}
 
-func addModeColumnToWatch(x *xorm.Engine) error {
-	return x.Sync2(new(Watch))
+	_, err := x.Cols("enable_status_check", "status_check_contexts").Update(&ProtectedBranch{
+		EnableStatusCheck:   false,
+		StatusCheckContexts: []string{},
+	})
+	return err
 }

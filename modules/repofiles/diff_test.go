@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/services/gitdiff"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -25,10 +26,10 @@ func TestGetDiffPreview(t *testing.T) {
 	treePath := "README.md"
 	content := "# repo1\n\nDescription for repo1\nthis is a new line"
 
-	expectedDiff := &models.Diff{
+	expectedDiff := &gitdiff.Diff{
 		TotalAddition: 2,
 		TotalDeletion: 1,
-		Files: []*models.DiffFile{
+		Files: []*gitdiff.DiffFile{
 			{
 				Name:        "README.md",
 				OldName:     "README.md",
@@ -42,10 +43,10 @@ func TestGetDiffPreview(t *testing.T) {
 				IsLFSFile:   false,
 				IsRenamed:   false,
 				IsSubmodule: false,
-				Sections: []*models.DiffSection{
+				Sections: []*gitdiff.DiffSection{
 					{
 						Name: "",
-						Lines: []*models.DiffLine{
+						Lines: []*gitdiff.DiffLine{
 							{
 								LeftIdx:  0,
 								RightIdx: 0,

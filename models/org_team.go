@@ -14,7 +14,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 const ownerTeamName = "Owners"
@@ -32,6 +33,67 @@ type Team struct {
 	NumRepos    int
 	NumMembers  int
 	Units       []*TeamUnit `xorm:"-"`
+}
+
+// SearchTeamOptions holds the search options
+type SearchTeamOptions struct {
+	UserID      int64
+	Keyword     string
+	OrgID       int64
+	IncludeDesc bool
+	PageSize    int
+	Page        int
+}
+
+// SearchTeam search for teams. Caller is responsible to check permissions.
+func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
+	if opts.Page <= 0 {
+		opts.Page = 1
+	}
+	if opts.PageSize == 0 {
+		// Default limit
+		opts.PageSize = 10
+	}
+
+	var cond = builder.NewCond()
+
+	if len(opts.Keyword) > 0 {
+		lowerKeyword := strings.ToLower(opts.Keyword)
+		var keywordCond builder.Cond = builder.Like{"lower_name", lowerKeyword}
+		if opts.IncludeDesc {
+			keywordCond = keywordCond.Or(builder.Like{"LOWER(description)", lowerKeyword})
+		}
+		cond = cond.And(keywordCond)
+	}
+
+	cond = cond.And(builder.Eq{"org_id": opts.OrgID})
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	count, err := sess.
+		Where(cond).
+		Count(new(Team))
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	sess = sess.Where(cond)
+	if opts.PageSize == -1 {
+		opts.PageSize = int(count)
+	} else {
+		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	}
+
+	teams := make([]*Team, 0, opts.PageSize)
+	if err = sess.
+		OrderBy("lower_name").
+		Find(&teams); err != nil {
+		return nil, 0, err
+	}
+
+	return teams, count, nil
 }
 
 // ColorFormat provides a basic color format for a Team
@@ -252,7 +314,7 @@ func (t *Team) UnitEnabled(tp UnitType) bool {
 
 func (t *Team) unitEnabled(e Engine, tp UnitType) bool {
 	if err := t.getUnits(e); err != nil {
-		log.Warn("Error loading repository (ID: %d) units: %s", t.ID, err.Error())
+		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
 
 	for _, unit := range t.Units {
@@ -352,7 +414,7 @@ func getTeam(e Engine, orgID int64, name string) (*Team, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrTeamNotExist
+		return nil, ErrTeamNotExist{orgID, 0, name}
 	}
 	return t, nil
 }
@@ -373,7 +435,7 @@ func getTeamByID(e Engine, teamID int64) (*Team, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrTeamNotExist
+		return nil, ErrTeamNotExist{0, teamID, ""}
 	}
 	return t, nil
 }
@@ -661,7 +723,7 @@ func AddTeamMember(team *Team, userID int64) error {
 
 	// Give access to team repositories.
 	for _, repo := range team.Repos {
-		if err := repo.recalculateTeamAccesses(sess, 0); err != nil {
+		if err := repo.recalculateUserAccess(sess, userID); err != nil {
 			return err
 		}
 		if setting.Service.AutoWatchNewRepos {
@@ -706,7 +768,7 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 
 	// Delete access to team repositories.
 	for _, repo := range team.Repos {
-		if err := repo.recalculateTeamAccesses(e, 0); err != nil {
+		if err := repo.recalculateUserAccess(e, userID); err != nil {
 			return err
 		}
 

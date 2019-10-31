@@ -7,7 +7,7 @@
 				{{else}}
 					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
 				{{end}}
-				<a class="ui tiny basic toggle button" data-target="#diff-files">{{.i18n.Tr "repo.diff.show_diff_stats"}}</a>
+				{{template "repo/diff/options_dropdown" .}}
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					{{template "repo/diff/new_review" .}}
 				{{end}}
@@ -16,8 +16,8 @@
 	</div>
 	<h4>{{.i18n.Tr "repo.diff.data_not_available"}}</h4>
 {{else}}
-	<div class="diff-detail-box diff-box ui sticky">
-		<div>
+	<div>
+		<div class="diff-detail-box diff-box ui sticky">
 			<i class="fa fa-retweet"></i>
 			{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 			<div class="ui right">
@@ -26,23 +26,23 @@
 				{{else}}
 					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
 				{{end}}
-				<a class="ui tiny basic toggle button" data-target="#diff-files">{{.i18n.Tr "repo.diff.show_diff_stats"}}</a>
+				{{template "repo/diff/options_dropdown" .}}
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					{{template "repo/diff/new_review" .}}
 				{{end}}
 			</div>
 		</div>
-		<ol class="detail-files hide" id="diff-files">
+		<ol class="diff-detail-box diff-stats detail-files hide" id="diff-files">
 			{{range .Diff.Files}}
 				<li>
 					<div class="diff-counter count pull-right">
 						{{if not .IsBin}}
-							<span class="add" data-line="{{.Addition}}">{{.Addition}}</span>
+							<span class="add" data-line="{{.Addition}}">+{{.Addition}}</span>
 							<span class="bar">
 								<div class="pull-left add"></div>
 								<div class="pull-left del"></div>
 							</span>
-							<span class="del" data-line="{{.Deletion}}">{{.Deletion}}</span>
+							<span class="del" data-line="{{.Deletion}}">-{{.Deletion}}</span>
 						{{else}}
 							<span>{{$.i18n.Tr "repo.diff.bin"}}</span>
 						{{end}}
@@ -53,185 +53,187 @@
 				</li>
 			{{end}}
 		</ol>
-	</div>
-
-	{{range $i, $file := .Diff.Files}}
-		{{if $file.IsIncomplete}}
-			<div class="diff-file-box diff-box file-content">
-				<h4 class="ui top attached normal header rounded">
-					<div class="diff-counter count ui left">
-						{{if not $file.IsRenamed}}
-							<span class="add" data-line="{{.Addition}}">+ {{.Addition}}</span>
-							<span class="bar">
-								<div class="pull-left add"></div>
-								<div class="pull-left del"></div>
-							</span>
-							<span class="del" data-line="{{.Deletion}}">- {{.Deletion}}</span>
+		{{range $i, $file := .Diff.Files}}
+			{{if $file.IsIncomplete}}
+				<div class="diff-file-box diff-box file-content">
+					<h4 class="ui top attached normal header rounded">
+						<div class="diff-counter count ui left">
+							{{if not $file.IsRenamed}}
+								<span class="add" data-line="{{.Addition}}">+ {{.Addition}}</span>
+								<span class="bar">
+									<div class="pull-left add"></div>
+									<div class="pull-left del"></div>
+								</span>
+								<span class="del" data-line="{{.Deletion}}">- {{.Deletion}}</span>
+							{{end}}
+						</div>
+						<span class="file">{{$file.Name}}</span>
+						<div>{{$.i18n.Tr "repo.diff.file_suppressed"}}</div>
+						{{if not $file.IsSubmodule}}
+							{{if $file.IsDeleted}}
+								<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+							{{else}}
+								<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+							{{end}}
 						{{end}}
-					</div>
-					<span class="file">{{$file.Name}}</span>
-					<div>{{$.i18n.Tr "repo.diff.file_suppressed"}}</div>
-					{{if not $file.IsSubmodule}}
-						{{if $file.IsDeleted}}
-							<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
-						{{else}}
-							<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+					</h4>
+				</div>
+			{{else}}
+				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}" id="diff-{{.Index}}">
+					<h4 class="ui top attached normal header">
+						<div class="diff-counter count">
+							{{if $file.IsBin}}
+								{{$.i18n.Tr "repo.diff.bin"}}
+							{{else if not $file.IsRenamed}}
+								<span class="add" data-line="{{.Addition}}">+ {{.Addition}}</span>
+								<span class="bar">
+									<div class="pull-left add"></div>
+									<div class="pull-left del"></div>
+								</span>
+								<span class="del" data-line="{{.Deletion}}">- {{.Deletion}}</span>
+							{{end}}
+						</div>
+						<span class="file">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
+						{{if not $file.IsSubmodule}}
+							{{if $file.IsDeleted}}
+								<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+							{{else}}
+								<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+							{{end}}
 						{{end}}
-					{{end}}
-				</h4>
-			</div>
-		{{else}}
-			<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}" id="diff-{{.Index}}">
-				<h4 class="ui top attached normal header">
-					<div class="diff-counter count">
-						{{if $file.IsBin}}
-							{{$.i18n.Tr "repo.diff.bin"}}
-						{{else if not $file.IsRenamed}}
-							<span class="add" data-line="{{.Addition}}">+ {{.Addition}}</span>
-							<span class="bar">
-								<div class="pull-left add"></div>
-								<div class="pull-left del"></div>
-							</span>
-							<span class="del" data-line="{{.Deletion}}">- {{.Deletion}}</span>
-						{{end}}
-					</div>
-					<span class="file">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
-					{{if not $file.IsSubmodule}}
-						{{if $file.IsDeleted}}
-							<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
-						{{else}}
-							<a class="ui basic grey tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
-						{{end}}
-					{{end}}
-				</h4>
-				<div class="ui attached unstackable table segment">
-					{{if ne $file.Type 4}}
-						{{$isImage := (call $.IsImageFile $file.Name)}}
-						{{if and $isImage}}
-							<div class="center">
-								<img src="{{$.RawPath}}/{{EscapePound .Name}}">
-							</div>
-						{{else}}
+					</h4>
+					<div class="ui attached unstackable table segment">
+						{{if ne $file.Type 4}}
+							{{$isImage := false}}
+							{{if $file.IsDeleted}}
+								{{$isImage = (call $.IsImageFileInBase $file.Name)}}
+							{{else}}
+								{{$isImage = (call $.IsImageFileInHead $file.Name)}}
+							{{end}}
 							<div class="file-body file-code code-view code-diff {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}}">
 								<table>
 									<tbody>
-										{{if $.IsSplitStyle}}
-											{{$highlightClass := $file.GetHighlightClass}}
-											{{range $j, $section := $file.Sections}}
-												{{range $k, $line := $section.Lines}}
-													<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
-														<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}"></span></td>
-														<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
-														<td class="lines-code lines-code-old halfwidth">{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 2))}}<a class="ui green button add-code-comment add-code-comment-left" data-path="{{$file.Name}}" data-side="left" data-idx="{{$line.LeftIdx}}">+</a>{{end}}<span class="mono wrap{{if $highlightClass}} language-{{$highlightClass}}{{else}} nohighlight{{end}}">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</span></td>
-														<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span></td>
-														<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
-														<td class="lines-code lines-code-new halfwidth">{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 3))}}<a class="ui green button add-code-comment add-code-comment-right" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}">+</a>{{end}}<span class="mono wrap{{if $highlightClass}} language-{{$highlightClass}}{{else}} nohighlight{{end}}">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</span></td>
-													</tr>
-													{{if gt (len $line.Comments) 0}}
-														<tr class="add-code-comment">
-															<td class="lines-num"></td>
-															<td class="lines-type-marker"></td>
-															<td class="add-comment-left">
-																{{if eq $line.GetCommentSide "previous"}}
-																	<div class="field comment-code-cloud">
-																		<div class="comment-list">
-																			<ui class="ui comments">
-																			{{ template "repo/diff/comments" dict "root" $ "comments" $line.Comments}}
-																			</ui>
-																		</div>
-																	{{template "repo/diff/comment_form_datahandler" dict "reply" (index $line.Comments 0).ReviewID "hidden" true "root" $ "comment" (index $line.Comments 0)}}
-																	</div>
-																{{end}}
-															</td>
-															<td class="lines-num"></td>
-															<td class="lines-type-marker"></td>
-															<td class="add-comment-right">
-																{{if eq $line.GetCommentSide "proposed"}}
-																	<div class="field comment-code-cloud">
-																		<div class="comment-list">
-																			<ui class="ui comments">
-																			{{ template "repo/diff/comments" dict "root" $ "comments" $line.Comments}}
-																			</ui>
-																		</div>
-																		{{template "repo/diff/comment_form_datahandler" dict "reply" (index $line.Comments 0).ReviewID "hidden" true "root" $ "comment" (index $line.Comments 0)}}
-																	</div>
-																{{end}}
-															</td>
+										{{if $isImage}}
+											{{template "repo/diff/image_diff" dict "file" . "root" $}}
+										{{else}}
+											{{if $.IsSplitStyle}}
+												{{$highlightClass := $file.GetHighlightClass}}
+												{{range $j, $section := $file.Sections}}
+													{{range $k, $line := $section.Lines}}
+														<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
+															<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}"></span></td>
+															<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
+															<td class="lines-code lines-code-old halfwidth">{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 2))}}<a class="ui green button add-code-comment add-code-comment-left" data-path="{{$file.Name}}" data-side="left" data-idx="{{$line.LeftIdx}}">+</a>{{end}}<span class="mono wrap{{if $highlightClass}} language-{{$highlightClass}}{{else}} nohighlight{{end}}">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</span></td>
+															<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span></td>
+															<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
+															<td class="lines-code lines-code-new halfwidth">{{if and $.SignedUserID $line.CanComment $.PageIsPullFiles (not (eq .GetType 3))}}<a class="ui green button add-code-comment add-code-comment-right" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}">+</a>{{end}}<span class="mono wrap{{if $highlightClass}} language-{{$highlightClass}}{{else}} nohighlight{{end}}">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</span></td>
 														</tr>
+														{{if gt (len $line.Comments) 0}}
+															<tr class="add-code-comment">
+																<td class="lines-num"></td>
+																<td class="lines-type-marker"></td>
+																<td class="add-comment-left">
+																	{{if eq $line.GetCommentSide "previous"}}
+																		<div class="field comment-code-cloud">
+																			<div class="comment-list">
+																				<ui class="ui comments">
+																				{{ template "repo/diff/comments" dict "root" $ "comments" $line.Comments}}
+																				</ui>
+																			</div>
+																		{{template "repo/diff/comment_form_datahandler" dict "reply" (index $line.Comments 0).ReviewID "hidden" true "root" $ "comment" (index $line.Comments 0)}}
+																		</div>
+																	{{end}}
+																</td>
+																<td class="lines-num"></td>
+																<td class="lines-type-marker"></td>
+																<td class="add-comment-right">
+																	{{if eq $line.GetCommentSide "proposed"}}
+																		<div class="field comment-code-cloud">
+																			<div class="comment-list">
+																				<ui class="ui comments">
+																				{{ template "repo/diff/comments" dict "root" $ "comments" $line.Comments}}
+																				</ui>
+																			</div>
+																			{{template "repo/diff/comment_form_datahandler" dict "reply" (index $line.Comments 0).ReviewID "hidden" true "root" $ "comment" (index $line.Comments 0)}}
+																		</div>
+																	{{end}}
+																</td>
+															</tr>
+														{{end}}
 													{{end}}
 												{{end}}
+											{{else}}
+												{{template "repo/diff/section_unified" dict "file" . "root" $}}
 											{{end}}
-										{{else}}
-											{{template "repo/diff/section_unified" dict "file" . "root" $}}
 										{{end}}
 									</tbody>
 								</table>
 							</div>
 						{{end}}
-					{{end}}
+					</div>
 				</div>
+			{{end}}
+		<br>
+		{{end}}
+
+		{{if .Diff.IsIncomplete}}
+			<div class="diff-file-box diff-box file-content">
+				<h4 class="ui top attached normal header">
+					{{$.i18n.Tr "repo.diff.too_many_files"}}
+				</h4>
 			</div>
 		{{end}}
-	<br>
-	{{end}}
 
-	{{if .Diff.IsIncomplete}}
-		<div class="diff-file-box diff-box file-content">
-			<h4 class="ui top attached normal header">
-				{{$.i18n.Tr "repo.diff.too_many_files"}}
-			</h4>
-		</div>
-	{{end}}
+		{{if not $.Repository.IsArchived}}
+			<div id="pull_review_add_comment" class="hide">
+					{{template "repo/diff/new_comment" dict "root" .}}
+					</div>
+					<div class="hide" id="edit-content-form">
+							<div class="ui comment form">
+									<div class="ui top attached tabular menu">
+											<a class="active write item">{{$.i18n.Tr "write"}}</a>
+											<a class="preview item" data-url="{{$.Repository.APIURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
+									</div>
+									<div class="ui bottom attached active write tab segment">
+											<textarea tabindex="1" name="content"></textarea>
+									</div>
+									<div class="ui bottom attached tab preview segment markdown">
+									{{$.i18n.Tr "loading"}}
+									</div>
+									<div class="text right edit buttons">
+											<div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
+											<div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
+									</div>
+							</div>
+					</div>
+		 {{end}}
 
-	{{if not $.Repository.IsArchived}}
-		<div id="pull_review_add_comment" class="hide">
-		    {{template "repo/diff/new_comment" dict "root" .}}
-        </div>
-        <div class="hide" id="edit-content-form">
-            <div class="ui comment form">
-                <div class="ui top attached tabular menu">
-                    <a class="active write item">{{$.i18n.Tr "write"}}</a>
-                    <a class="preview item" data-url="{{$.Repository.APIURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
-                </div>
-                <div class="ui bottom attached active write tab segment">
-                    <textarea tabindex="1" name="content"></textarea>
-                </div>
-                <div class="ui bottom attached tab preview segment markdown">
-                {{$.i18n.Tr "loading"}}
-                </div>
-                <div class="text right edit buttons">
-                    <div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
-                    <div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
-                </div>
-            </div>
-        </div>
-	 {{end}}
+		{{if .IsSplitStyle}}
+			<script>
+				document.addEventListener('DOMContentLoaded', function() {
+					$('tr.add-code').each(function() {
+						var prev = $(this).prev();
+						if(prev.is('.del-code') && prev.children().eq(5).text().trim() === '') {
+							while(prev.prev().is('.del-code') && prev.prev().children().eq(5).text().trim() === '') {
+								prev = prev.prev();
+							}
+							prev.children().eq(3).attr("data-line-num", $(this).children().eq(3).attr("data-line-num"));
+							prev.children().eq(3).html($(this).children().eq(3).html());
+							prev.children().eq(4).html($(this).children().eq(4).html());
+							prev.children().eq(5).html($(this).children().eq(5).html());
 
-	{{if .IsSplitStyle}}
-		<script>
-			document.addEventListener('DOMContentLoaded', function() {
-				$('tr.add-code').each(function() {
-					var prev = $(this).prev();
-					if(prev.is('.del-code') && prev.children().eq(5).text().trim() === '') {
-						while(prev.prev().is('.del-code') && prev.prev().children().eq(5).text().trim() === '') {
-							prev = prev.prev();
+							prev.children().eq(0).addClass('del-code');
+							prev.children().eq(1).addClass('del-code');
+							prev.children().eq(2).addClass('del-code');
+							prev.children().eq(3).addClass('add-code');
+							prev.children().eq(4).addClass('add-code');
+							prev.children().eq(5).addClass('add-code');
+
+							$(this).remove();
 						}
-						prev.children().eq(3).attr("data-line-num", $(this).children().eq(3).attr("data-line-num"));
-						prev.children().eq(3).html($(this).children().eq(3).html());
-						prev.children().eq(4).html($(this).children().eq(4).html());
-						prev.children().eq(5).html($(this).children().eq(5).html());
-
-						prev.children().eq(0).addClass('del-code');
-						prev.children().eq(1).addClass('del-code');
-						prev.children().eq(2).addClass('del-code');
-						prev.children().eq(3).addClass('add-code');
-						prev.children().eq(4).addClass('add-code');
-						prev.children().eq(5).addClass('add-code');
-
-						$(this).remove();
-					}
+					});
 				});
-			});
-		</script>
-	{{end}}
+			</script>
+		{{end}}
+	</div>
 {{end}}

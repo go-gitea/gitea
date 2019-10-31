@@ -14,8 +14,8 @@ import (
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/go-xorm/xorm"
 	"xorm.io/core"
+	"xorm.io/xorm"
 
 	// Needed for the Postgresql driver
 	_ "github.com/lib/pq"
@@ -112,6 +112,7 @@ func init() {
 		new(OAuth2Application),
 		new(OAuth2AuthorizationCode),
 		new(OAuth2Grant),
+		new(Task),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -156,11 +157,9 @@ func SetEngine() (err error) {
 	// so use log file to instead print to stdout.
 	x.SetLogger(NewXORMLogger(setting.Database.LogSQL))
 	x.ShowSQL(setting.Database.LogSQL)
-	if setting.Database.UseMySQL {
-		x.SetMaxIdleConns(setting.Database.MaxIdleConns)
-		x.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
-	}
-
+	x.SetMaxOpenConns(setting.Database.MaxOpenConns)
+	x.SetMaxIdleConns(setting.Database.MaxIdleConns)
+	x.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
 	return nil
 }
 
@@ -249,4 +248,9 @@ func DumpDatabase(filePath string, dbType string) error {
 func MaxBatchInsertSize(bean interface{}) int {
 	t := x.TableInfo(bean)
 	return 999 / len(t.ColumnsSeq())
+}
+
+// Count returns records number according struct's fields as database query conditions
+func Count(bean interface{}) (int64, error) {
+	return x.Count(bean)
 }

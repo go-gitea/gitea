@@ -197,6 +197,10 @@ var (
 	procSetEvent                           = modkernel32.NewProc("SetEvent")
 	procResetEvent                         = modkernel32.NewProc("ResetEvent")
 	procPulseEvent                         = modkernel32.NewProc("PulseEvent")
+	procCreateMutexW                       = modkernel32.NewProc("CreateMutexW")
+	procCreateMutexExW                     = modkernel32.NewProc("CreateMutexExW")
+	procOpenMutexW                         = modkernel32.NewProc("OpenMutexW")
+	procReleaseMutex                       = modkernel32.NewProc("ReleaseMutex")
 	procSleepEx                            = modkernel32.NewProc("SleepEx")
 	procCreateJobObjectW                   = modkernel32.NewProc("CreateJobObjectW")
 	procAssignProcessToJobObject           = modkernel32.NewProc("AssignProcessToJobObject")
@@ -2099,6 +2103,69 @@ func ResetEvent(event Handle) (err error) {
 
 func PulseEvent(event Handle) (err error) {
 	r1, _, e1 := syscall.Syscall(procPulseEvent.Addr(), 1, uintptr(event), 0, 0)
+	if r1 == 0 {
+		if e1 != 0 {
+			err = errnoErr(e1)
+		} else {
+			err = syscall.EINVAL
+		}
+	}
+	return
+}
+
+func CreateMutex(mutexAttrs *SecurityAttributes, initialOwner bool, name *uint16) (handle Handle, err error) {
+	var _p0 uint32
+	if initialOwner {
+		_p0 = 1
+	} else {
+		_p0 = 0
+	}
+	r0, _, e1 := syscall.Syscall(procCreateMutexW.Addr(), 3, uintptr(unsafe.Pointer(mutexAttrs)), uintptr(_p0), uintptr(unsafe.Pointer(name)))
+	handle = Handle(r0)
+	if handle == 0 {
+		if e1 != 0 {
+			err = errnoErr(e1)
+		} else {
+			err = syscall.EINVAL
+		}
+	}
+	return
+}
+
+func CreateMutexEx(mutexAttrs *SecurityAttributes, name *uint16, flags uint32, desiredAccess uint32) (handle Handle, err error) {
+	r0, _, e1 := syscall.Syscall6(procCreateMutexExW.Addr(), 4, uintptr(unsafe.Pointer(mutexAttrs)), uintptr(unsafe.Pointer(name)), uintptr(flags), uintptr(desiredAccess), 0, 0)
+	handle = Handle(r0)
+	if handle == 0 {
+		if e1 != 0 {
+			err = errnoErr(e1)
+		} else {
+			err = syscall.EINVAL
+		}
+	}
+	return
+}
+
+func OpenMutex(desiredAccess uint32, inheritHandle bool, name *uint16) (handle Handle, err error) {
+	var _p0 uint32
+	if inheritHandle {
+		_p0 = 1
+	} else {
+		_p0 = 0
+	}
+	r0, _, e1 := syscall.Syscall(procOpenMutexW.Addr(), 3, uintptr(desiredAccess), uintptr(_p0), uintptr(unsafe.Pointer(name)))
+	handle = Handle(r0)
+	if handle == 0 {
+		if e1 != 0 {
+			err = errnoErr(e1)
+		} else {
+			err = syscall.EINVAL
+		}
+	}
+	return
+}
+
+func ReleaseMutex(mutex Handle) (err error) {
+	r1, _, e1 := syscall.Syscall(procReleaseMutex.Addr(), 1, uintptr(mutex), 0, 0)
 	if r1 == 0 {
 		if e1 != 0 {
 			err = errnoErr(e1)

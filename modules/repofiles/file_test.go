@@ -73,7 +73,7 @@ func getExpectedFileResponse() *api.FileResponse {
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
-			Reason:    "",
+			Reason:    "gpg.error.not_signed_commit",
 			Signature: "",
 			Payload:   "",
 		},

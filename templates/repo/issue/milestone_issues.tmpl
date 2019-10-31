@@ -50,17 +50,18 @@
 				</div>
 			</div>
 			<div class="ten wide right aligned column">
-				<div class="ui secondary filter stackable menu">
+				<div class="ui secondary filter stackable menu labels">
 					<!-- Label -->
-					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item" style="margin-left: auto">
+					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter" style="margin-left: auto">
 						<span class="text">
 							{{.i18n.Tr "repo.issues.filter_label"}}
 							<i class="dropdown icon"></i>
 						</span>
 						<div class="menu">
+							<span class="info">{{.i18n.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{range .Labels}}
-								<a class="item has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}"><span class="octicon {{if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+								<a class="item has-emoji label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}"><span class="octicon {{if .IsExcluded}}octicon-circle-slash{{else if eq $.SelectLabels .ID}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -187,9 +188,6 @@
 					<div class="ui {{if .IsRead}}black{{else}}green{{end}} label">#{{.Index}}</div>
 					<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
 
-					{{if .Ref}}
-						<a class="ui label" href="{{$.RepoLink}}/src/branch/{{.Ref}}">{{.Ref}}</a>
-					{{end}}
 					{{range .Labels}}
 						<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 					{{end}}
@@ -207,6 +205,11 @@
 							{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName|Escape) | Safe}}
 						{{else}}
 							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
+						{{end}}
+						{{if .Ref}}
+							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">
+								<span class="octicon octicon-git-branch"></span> {{.Ref}}
+							</a>
 						{{end}}
 						{{$tasks := .GetTasks}}
 						{{if gt $tasks 0}}
