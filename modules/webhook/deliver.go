@@ -184,6 +184,21 @@ func DeliverHooks() {
 
 var webhookHTTPClient *http.Client
 
+func webhookProxy() func(req *http.Request) (*url.URL, error) {
+	if setting.Webhook.ProxyURL == "" {
+		return http.ProxyFromEnvironment
+	}
+
+	return func(req *http.Request) (*url.URL, error) {
+		for _, v := range setting.Webhook.ProxyHosts {
+			if strings.EqualFold(v, req.URL.Host) {
+				return http.ProxyURL(setting.Webhook.ProxyURLFixed)(req)
+			}
+		}
+		return http.ProxyFromEnvironment(req)
+	}
+}
+
 // InitDeliverHooks starts the hooks delivery thread
 func InitDeliverHooks() {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
@@ -191,7 +206,7 @@ func InitDeliverHooks() {
 	webhookHTTPClient = &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
-			Proxy:           http.ProxyFromEnvironment,
+			Proxy:           webhookProxy(),
 			Dial: func(netw, addr string) (net.Conn, error) {
 				conn, err := net.DialTimeout(netw, addr, timeout)
 				if err != nil {
@@ -199,7 +214,6 @@ func InitDeliverHooks() {
 				}
 
 				return conn, conn.SetDeadline(time.Now().Add(timeout))
-
 			},
 		},
 	}
