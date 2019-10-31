@@ -232,8 +232,15 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 				ctx.ServerError("LoadPullRequest", err)
 				return
 			}
+			pull := issues[i].PullRequest
 
-			commitStatus[issues[i].PullRequest.ID], _ = issues[i].PullRequest.GetLastCommitStatus()
+			if err := pull.LoadProtectedBranch(); err == nil {
+				if pull.ProtectedBranch != nil && pull.ProtectedBranch.RequiredApprovals != 0 {
+					pull.ProtectedBranch.GrantedApprovalsCount = pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
+				}
+			}
+
+			commitStatus[pull.ID], _ = pull.GetLastCommitStatus()
 		}
 	}
 

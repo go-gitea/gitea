@@ -222,6 +222,14 @@
 						<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 					{{end}}
 
+					{{if .IsPull}}
+						{{if .PullRequest.ProtectedBranch}}
+							{{if .PullRequest.ProtectedBranch.RequiredApprovals}}
+								<span class="comment ui right"><i class="octicon octicon-eye"></i> {{.PullRequest.ProtectedBranch.GrantedApprovalsCount}} / {{.PullRequest.ProtectedBranch.RequiredApprovals}}</span>
+							{{end}}
+						{{end}}
+					{{end}}
+
 					{{if .NumComments}}
 						<span class="comment ui right"><i class="octicon octicon-comment"></i> {{.NumComments}}</span>
 					{{end}}
