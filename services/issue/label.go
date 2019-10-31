@@ -26,7 +26,7 @@ func AddLabel(issue *models.Issue, doer *models.User, label *models.Label) error
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(doer, issue, nil, nil)
+	notification.NotifyIssueChangeLabels(doer, issue, []*models.Label{label}, nil)
 	return nil
 }
 
@@ -36,7 +36,7 @@ func AddLabels(issue *models.Issue, doer *models.User, labels []*models.Label) e
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(doer, issue, nil, nil)
+	notification.NotifyIssueChangeLabels(doer, issue, labels, nil)
 	return nil
 }
 
@@ -58,6 +58,6 @@ func RemoveLabel(issue *models.Issue, doer *models.User, label *models.Label) er
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(doer, issue, nil, nil)
+	notification.NotifyIssueChangeLabels(doer, issue, nil, []*models.Label{label})
 	return nil
 }
