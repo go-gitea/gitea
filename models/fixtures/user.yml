@@ -30,7 +30,7 @@
   is_admin: false
   avatar: avatar2
   avatar_email: user2@example.com
-  num_repos: 11
+  num_repos: 9
   num_stars: 2
   num_followers: 2
   num_following: 1
@@ -101,7 +101,7 @@
   is_admin: false
   avatar: avatar6
   avatar_email: user6@example.com
-  num_repos: 0
+  num_repos: 2
   num_members: 1
   num_teams: 1
 

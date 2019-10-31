@@ -565,7 +565,7 @@
 
 -
   id: 44
-  owner_id: 2
+  owner_id: 6
   lower_name: template1
   name: template1
   is_private: false
@@ -578,7 +578,7 @@
 
 -
   id: 45
-  owner_id: 2
+  owner_id: 6
   lower_name: template2
   name: template2
   is_private: false
