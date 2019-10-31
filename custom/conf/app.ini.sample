@@ -479,6 +479,8 @@ DEFAULT_ORG_MEMBER_VISIBLE = false
 ; Default value for EnableDependencies
 ; Repositories will use dependencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
+; Dependencies can be added from any repository where the user is granted access or only from the current repository depending on this setting.
+ALLOW_CROSS_REPOSITORY_DEPENDENCIES = true
 ; Enable heatmap on users profiles.
 ENABLE_USER_HEATMAP = true
 ; Enable Timetracking
