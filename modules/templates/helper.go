@@ -19,6 +19,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+	"unicode"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -338,16 +339,19 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 // RenderCommitMessageLinkSubject renders commit message as a XXS-safe link to
 // the provided default url, handling for special links without email to links.
 func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
-	cleanMsg := template.HTMLEscapeString(msg)
-
-	msgLines := strings.Split(strings.TrimSpace(string(cleanMsg)), "\n")
-	if len(msgLines[0]) == 0 {
+	msgLine := strings.TrimLeftFunc(msg, unicode.IsSpace)
+	lineEnd := strings.IndexByte(msgLine, '\n')
+	if lineEnd > 0 {
+		msgLine = msgLine[:lineEnd]
+	}
+	msgLine = strings.TrimRightFunc(msgLine, unicode.IsSpace)
+	if len(msgLine) == 0 {
 		return template.HTML("")
 	}
 
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	renderedMessage, err := markup.RenderCommitMessageSubject([]byte(msgLines[0]), urlPrefix, urlDefault, metas)
+	renderedMessage, err := markup.RenderCommitMessageSubject([]byte(template.HTMLEscapeString(msgLine)), urlPrefix, urlDefault, metas)
 	if err != nil {
 		log.Error("RenderCommitMessageSubject: %v", err)
 		return template.HTML("")
@@ -357,14 +361,19 @@ func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map
 
 // RenderCommitBody extracts the body of a commit message without its title.
 func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.HTML {
-	cleanMsg := template.HTMLEscapeString(msg)
-
-	msgLines := strings.Split(strings.TrimSpace(string(cleanMsg)), "\n")
-	if len(msgLines) <= 1 {
+	msgLine := strings.TrimRightFunc(msg, unicode.IsSpace)
+	lineEnd := strings.IndexByte(msgLine, '\n')
+	if lineEnd > 0 {
+		msgLine = msgLine[lineEnd+1:]
+	} else {
+		return template.HTML("")
+	}
+	msgLine = strings.TrimLeftFunc(msgLine, unicode.IsSpace)
+	if len(msgLine) == 0 {
 		return template.HTML("")
 	}
 
-	renderedMessage, err := markup.RenderCommitMessage([]byte(strings.Join(msgLines[1:], "\n")), urlPrefix, "", metas)
+	renderedMessage, err := markup.RenderCommitMessage([]byte(template.HTMLEscapeString(msgLine)), urlPrefix, "", metas)
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
