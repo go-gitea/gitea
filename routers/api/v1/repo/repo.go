@@ -123,11 +123,15 @@ func Search(ctx *context.APIContext) {
 		TopicOnly:          ctx.QueryBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
-		Template:           ctx.Query("template") == "" || ctx.QueryBool("template"),
+		Template:           util.OptionalBoolNone,
 		UserIsAdmin:        ctx.IsUserSiteAdmin(),
 		UserID:             ctx.Data["SignedUserID"].(int64),
 		StarredByID:        ctx.QueryInt64("starredBy"),
 		IncludeDescription: ctx.QueryBool("includeDesc"),
+	}
+
+	if ctx.Query("template") != "" {
+		opts.Template = util.OptionalBoolOf(ctx.QueryBool("template"))
 	}
 
 	if ctx.QueryBool("exclusive") {
