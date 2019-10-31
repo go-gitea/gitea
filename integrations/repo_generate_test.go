@@ -56,11 +56,11 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateOwnerName, tem
 func TestRepoGenerate(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user1")
-	testRepoGenerate(t, session, "user2", "template1", "user1", "generated1")
+	testRepoGenerate(t, session, "user2", "repo1", "user1", "generated1")
 }
 
 func TestRepoGenerateToOrg(t *testing.T) {
 	prepareTestEnv(t)
 	session := loginUser(t, "user2")
-	testRepoGenerate(t, session, "user2", "template2", "user3", "generated2")
+	testRepoGenerate(t, session, "user2", "repo1", "user3", "generated2")
 }

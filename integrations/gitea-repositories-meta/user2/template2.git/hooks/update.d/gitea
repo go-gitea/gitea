@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-"C:/Users/jolheiser/go/src/code.gitea.io/gitea/gitea.exe" hook --config='C:/Users/jolheiser/go/src/code.gitea.io/gitea/custom/conf/app.ini' update $1 $2 $3
