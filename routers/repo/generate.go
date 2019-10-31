@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	tplGenerate    base.TplName = "repo/pulls/generate"
+	tplGenerate base.TplName = "repo/pulls/generate"
 )
 
 func getTemplateRepository(ctx *context.Context) *models.Repository {
