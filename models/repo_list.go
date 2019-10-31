@@ -117,6 +117,7 @@ type SearchRepoOptions struct {
 	OwnerID     int64
 	OrderBy     SearchOrderBy
 	Private     bool // Include private repositories in results
+	Template    bool // Include template repositories in results
 	StarredByID int64
 	Page        int
 	IsProfile   bool
@@ -188,6 +189,12 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 			//   B. Isn't a private or limited organisation.
 			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}))))
 		cond = cond.And(accessCond)
+	}
+
+	if opts.Template {
+		cond = cond.And(builder.Eq{"is_template": true})
+	} else {
+		cond = cond.And(builder.Eq{"is_template": false})
 	}
 
 	// Restrict to starred repositories

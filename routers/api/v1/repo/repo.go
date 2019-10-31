@@ -78,6 +78,10 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: include private repositories this user has access to (defaults to true)
 	//   type: boolean
+	// - name: template
+	//   in: query
+	//   description: include template repositories this user has access to (defaults to true)
+	//   type: boolean
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -119,6 +123,7 @@ func Search(ctx *context.APIContext) {
 		TopicOnly:          ctx.QueryBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
+		Template:           ctx.Query("template") == "" || ctx.QueryBool("template"),
 		UserIsAdmin:        ctx.IsUserSiteAdmin(),
 		UserID:             ctx.Data["SignedUserID"].(int64),
 		StarredByID:        ctx.QueryInt64("starredBy"),
@@ -639,6 +644,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		}
 
 		repo.IsPrivate = *opts.Private
+	}
+
+	if opts.Template != nil {
+		repo.IsTemplate = *opts.Template
 	}
 
 	if err := models.UpdateRepository(repo, visibilityChanged); err != nil {

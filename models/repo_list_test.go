@@ -188,6 +188,12 @@ func TestSearchRepository(t *testing.T) {
 		{name: "AllPublic/PublicRepositoriesOfOrganization",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, AllPublic: true, Collaborate: util.OptionalBoolFalse},
 			count: 22},
+		{name: "Template/Private",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 26, Private: true, Template: true},
+			count: 2},
+		{name: "Template/Public",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 26, Template: true},
+			count: 1},
 	}
 
 	for _, testCase := range testCases {
