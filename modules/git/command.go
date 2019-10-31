@@ -86,7 +86,8 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 	if env == nil {
 		cmd.Env = append(os.Environ(), fmt.Sprintf("LC_ALL=%s", DefaultLCALL))
 	} else {
-		cmd.Env = append(env, fmt.Sprintf("LC_ALL=%s", DefaultLCALL))
+		env = append(env, fmt.Sprintf("LC_ALL=%s", DefaultLCALL))
+		cmd.Env = env
 	}
 	cmd.Dir = dir
 	cmd.Stdout = stdout
