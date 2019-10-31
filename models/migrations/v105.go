@@ -5,6 +5,8 @@
 package migrations
 
 import (
+	"code.gitea.io/gitea/modules/setting"
+
 	"xorm.io/xorm"
 )
 
