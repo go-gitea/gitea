@@ -72,6 +72,15 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	for i, upload := range uploads {
 		names[i] = upload.Name
 		infos[i] = uploadInfo{upload: upload}
+
+		filepath := path.Join(opts.TreePath, upload.Name)
+		lfsLock, err := repo.GetTreePathLock(filepath)
+		if err != nil {
+			return err
+		}
+		if lfsLock != nil && lfsLock.OwnerID != doer.ID {
+			return models.ErrLFSFileLocked{RepoID: repo.ID, Path: filepath, UserName: doer.Name}
+		}
 	}
 
 	var filename2attribute2info map[string]map[string]string
