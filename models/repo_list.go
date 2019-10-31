@@ -133,7 +133,7 @@ type SearchRepoOptions struct {
 	// None -> include templates AND non-templates
 	// True -> include just templates
 	// False -> include just non-templates
-	Template    util.OptionalBool
+	Template util.OptionalBool
 	// None -> include mirrors AND non-mirrors
 	// True -> include just mirrors
 	// False -> include just non-mirrors
