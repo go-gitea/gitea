@@ -1991,6 +1991,19 @@ function initCodeView() {
             }
         }).trigger('hashchange');
     }
+
+    $('.ui.fold-code').on('click', function(e){
+        const $foldButton = $(e.target);
+        if ($foldButton.hasClass("fa-chevron-down")) {
+            $(e.target).parent().next().slideUp("fast", function(){
+                $foldButton.removeClass("fa-chevron-down").addClass("fa-chevron-right");
+            });
+        } else {
+            $(e.target).parent().next().slideDown("fast", function(){
+                $foldButton.removeClass("fa-chevron-right").addClass("fa-chevron-down");
+            });
+        }
+    })
 }
 
 function initU2FAuth() {

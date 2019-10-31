@@ -81,6 +81,7 @@
 			{{else}}
 				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}" id="diff-{{.Index}}">
 					<h4 class="ui top attached normal header">
+						<i class="ui fold-code grey fa fa-chevron-down"></i>
 						<div class="diff-counter count">
 							{{if $file.IsBin}}
 								{{$.i18n.Tr "repo.diff.bin"}}
