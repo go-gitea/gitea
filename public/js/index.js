@@ -3254,10 +3254,16 @@ function deleteDependencyModal(id, type) {
 
 function initIssueList() {
     const repolink = $('#repolink').val();
+    const repoId = $('#repoId').val();
+    const crossRepoSearch = $('#crossRepoSearch').val();
+    let issueSearchUrl = suburl + '/api/v1/repos/' + repolink + '/issues?q={query}';
+    if (crossRepoSearch === 'true') {
+        issueSearchUrl = suburl + '/api/v1/repos/issues/search?q={query}&priority_repo_id=' + repoId;
+    }
     $('#new-dependency-drop-list')
         .dropdown({
             apiSettings: {
-                url: suburl + '/api/v1/repos/' + repolink + '/issues?q={query}',
+                url: issueSearchUrl,                
                 onResponse: function(response) {
                     const filteredResponse = {'success': true, 'results': []};
                     const currIssueId = $('#new-dependency-drop-list').data('issue-id');
@@ -3268,7 +3274,8 @@ function initIssueList() {
                             return;
                         }
                         filteredResponse.results.push({
-                            'name'  : '#' + issue.number + '&nbsp;' + htmlEncode(issue.title),
+                            'name'  : '#' + issue.number + ' ' + htmlEncode(issue.title) + 
+                                '<div class="text small dont-break-out">' + htmlEncode(issue.repository.full_name) + '</div>',
                             'value' : issue.id
                         });
                     });
