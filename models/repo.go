@@ -670,9 +670,9 @@ func (repo *Repository) IsGenerated() bool {
 	return repo.TemplateID != 0
 }
 
-// GetTemplateRepo populates repo.TemplateRepo for a template repository and
+// GetTemplateRepo populates repo.TemplateRepo for a generated repository and
 // returns an error on failure (NOTE: no error is returned for
-// non-template repositories, and TemplateRepo will be left untouched)
+// non-generated repositories, and TemplateRepo will be left untouched)
 func (repo *Repository) GetTemplateRepo() (err error) {
 	return repo.getTemplateRepo(x)
 }

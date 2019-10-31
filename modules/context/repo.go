@@ -189,9 +189,9 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 	}
 }
 
-// RetrieveTemplateRepo retrieves used template repository
+// RetrieveTemplateRepo retrieves template repository used to generate this repository
 func RetrieveTemplateRepo(ctx *Context, repo *models.Repository) {
-	// Non-template repository will not return error in this method.
+	// Non-generated repository will not return error in this method.
 	if err := repo.GetTemplateRepo(); err != nil {
 		if models.IsErrRepoNotExist(err) {
 			repo.TemplateID = 0
