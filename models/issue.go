@@ -674,45 +674,6 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 	if err = sess.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
-	sess.Close()
-
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if issue.IsPull {
-		if err = issue.loadPullRequest(sess); err != nil {
-			return err
-		}
-		// Merge pull request calls issue.changeStatus so we need to handle separately.
-		apiPullRequest := &api.PullRequestPayload{
-			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
-			Sender:      doer.APIFormat(),
-		}
-		if isClosed {
-			apiPullRequest.Action = api.HookIssueClosed
-		} else {
-			apiPullRequest.Action = api.HookIssueReOpened
-		}
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, apiPullRequest)
-	} else {
-		apiIssue := &api.IssuePayload{
-			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     doer.APIFormat(),
-		}
-		if isClosed {
-			apiIssue.Action = api.HookIssueClosed
-		} else {
-			apiIssue.Action = api.HookIssueReOpened
-		}
-		err = PrepareWebhooks(issue.Repo, HookEventIssues, apiIssue)
-	}
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
-	} else {
-		go HookQueue.Add(issue.Repo.ID)
-	}
 
 	return nil
 }
@@ -789,7 +750,6 @@ func (issue *Issue) UpdateAttachments(uuids []string) (err error) {
 
 // ChangeContent changes issue content, as the given user.
 func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
-	oldContent := issue.Content
 	issue.Content = content
 
 	sess := x.NewSession()
@@ -808,47 +768,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-	sess.Close()
-
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if issue.IsPull {
-		issue.PullRequest.Issue = issue
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-			Action: api.HookIssueEdited,
-			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
-				Body: &api.ChangesFromPayload{
-					From: oldContent,
-				},
-			},
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
-			Sender:      doer.APIFormat(),
-		})
-	} else {
-		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
-			Action: api.HookIssueEdited,
-			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
-				Body: &api.ChangesFromPayload{
-					From: oldContent,
-				},
-			},
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     doer.APIFormat(),
-		})
-	}
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 // GetTasks returns the amount of tasks in the issues content

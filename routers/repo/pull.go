@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
-	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 
@@ -772,7 +771,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
 
-	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, patch); err != nil {
+	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, patch, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
@@ -782,11 +781,6 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	} else if err := pullRequest.PushToBaseRepo(); err != nil {
 		ctx.ServerError("PushToBaseRepo", err)
 		return
-	}
-
-	if err := issue_service.AddAssignees(pullIssue, ctx.User, assigneeIDs); err != nil {
-		log.Error("AddAssignees: %v", err)
-		ctx.Flash.Error(ctx.Tr("issues.assignee.error"))
 	}
 
 	notification.NotifyNewPullRequest(pullRequest)

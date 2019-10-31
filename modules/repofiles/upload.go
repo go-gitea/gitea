@@ -36,7 +36,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 			continue
 		}
 		if !info.lfsMetaObject.Existing {
-			if err := t.repo.RemoveLFSMetaObjectByOid(info.lfsMetaObject.Oid); err != nil {
+			if _, err := t.repo.RemoveLFSMetaObjectByOid(info.lfsMetaObject.Oid); err != nil {
 				original = fmt.Errorf("%v, %v", original, err)
 			}
 		}
