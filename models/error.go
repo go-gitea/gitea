@@ -661,7 +661,7 @@ func IsErrLFSFileLocked(err error) bool {
 }
 
 func (err ErrLFSFileLocked) Error() string {
-	return fmt.Sprintf("File is lfs locked [repo: %d, locked by: %s, path: %s", err.RepoID, err.UserName, err.Path)
+	return fmt.Sprintf("File is lfs locked [repo: %d, locked by: %s, path: %s]", err.RepoID, err.UserName, err.Path)
 }
 
 // __________                           .__  __
