@@ -78,6 +78,7 @@ a{cursor:pointer}
 .ui.form .ui.button{font-weight:400}
 .ui.floating.label{z-index:10}
 .ui.transparent.label{background-color:transparent}
+.ui.nopadding{padding:0}
 .ui.menu,.ui.segment,.ui.vertical.menu{box-shadow:none}
 .ui .menu:not(.vertical) .item>.button.compact{padding:.58928571em 1.125em}
 .ui .menu:not(.vertical) .item>.button.small{font-size:.92857143rem}
@@ -109,6 +110,8 @@ a{cursor:pointer}
 .ui .text.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
 .ui .text.thin{font-weight:400}
 .ui .text.middle{vertical-align:middle}
+.ui .text.nopadding{padding:0}
+.ui .text.nomargin{margin:0}
 .ui .message{text-align:center}
 .ui.bottom.attached.message{font-weight:700;text-align:left;color:#000}
 .ui.bottom.attached.message .pull-right{color:#000}
@@ -126,6 +129,7 @@ a{cursor:pointer}
 .ui .form .fake{display:none!important}
 .ui .form .sub.field{margin-left:25px}
 .ui .sha.label{font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;font-size:13px;padding:6px 10px 4px 10px;font-weight:400;margin:0 6px}
+.ui .button.truncate{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:top;white-space:nowrap;margin-right:6px}
 .ui.status.buttons .octicon{margin-right:4px}
 .ui.inline.delete-button{padding:8px 15px;font-weight:400}
 .ui .background.red{background-color:#d95c5c!important}
@@ -212,11 +216,11 @@ footer .ui.left,footer .ui.right{line-height:40px}
 }
 #user-heatmap .total-contributions{text-align:left;font-weight:500;margin-top:0}
 .heatmap-color-0{background-color:#f4f4f4}
-.heatmap-color-1{background-color:#d7e5db}
-.heatmap-color-2{background-color:#adc7ab}
-.heatmap-color-3{background-color:#83a87b}
-.heatmap-color-4{background-color:#598a4b}
-.heatmap-color-5{background-color:#2f6b1b}
+.heatmap-color-1{background-color:#d8efbf}
+.heatmap-color-2{background-color:#9fdb81}
+.heatmap-color-3{background-color:#66c74b}
+.heatmap-color-4{background-color:#609926}
+.heatmap-color-5{background-color:#025900}
 .archived-icon{color:#b3b3b3!important}
 .oauth2-authorize-application-box{margin-top:3em!important}
 .ui.tabular.menu .item{color:rgba(0,0,0,.5)}
@@ -792,6 +796,7 @@ i.icon.centerlock{top:1.5em}
 .repository .segment.reactions .select-reaction{float:none}
 .repository .segment.reactions .select-reaction:not(.active) a{display:none}
 .repository .segment.reactions:hover .select-reaction a{display:block}
+.repository .ui.fluid.action.input .ui.search.action.input{flex:auto}
 .user-cards .list{padding:0;display:flex;flex-wrap:wrap}
 .user-cards .list .item{list-style:none;width:32%;margin:10px 10px 10px 0;padding-bottom:14px;float:left}
 .user-cards .list .item .avatar{width:48px;height:48px;float:left;display:block;margin-right:10px}
@@ -896,6 +901,7 @@ tbody.commit-list{vertical-align:baseline}
 .file-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px!important}
 .file-info{display:flex;align-items:center}
 .file-info-entry+.file-info-entry{border-left:1px solid currentColor;margin-left:8px;padding-left:8px}
+.title_wip_desc{margin-top:1em}
 .CodeMirror{font:14px 'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace}
 .CodeMirror.cm-s-default{border-radius:3px;padding:0!important}
 .CodeMirror .cm-comment{background:inherit!important}

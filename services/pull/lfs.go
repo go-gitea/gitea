@@ -7,15 +7,12 @@ package pull
 
 import (
 	"bufio"
-	"bytes"
-	"fmt"
 	"io"
 	"strconv"
-	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/pipeline"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -41,22 +38,22 @@ func LFSPush(tmpBasePath, mergeHeadSHA, mergeBaseSHA string, pr *models.PullRequ
 	// 6. Take the output of cat-file --batch and check if each file in turn
 	// to see if they're pointers to files in the LFS store associated with
 	// the head repo and add them to the base repo if so
-	go readCatFileBatch(catFileBatchReader, &wg, pr)
+	go createLFSMetaObjectsFromCatFileBatch(catFileBatchReader, &wg, pr)
 
 	// 5. Take the shas of the blobs and batch read them
-	go doCatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, tmpBasePath)
+	go pipeline.CatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, tmpBasePath)
 
 	// 4. From the provided objects restrict to blobs <=1k
-	go readCatFileBatchCheck(catFileCheckReader, shasToBatchWriter, &wg)
+	go pipeline.BlobsLessThan1024FromCatFileBatchCheck(catFileCheckReader, shasToBatchWriter, &wg)
 
 	// 3. Run batch-check on the objects retrieved from rev-list
-	go doCatFileBatchCheck(shasToCheckReader, catFileCheckWriter, &wg, tmpBasePath)
+	go pipeline.CatFileBatchCheck(shasToCheckReader, catFileCheckWriter, &wg, tmpBasePath)
 
 	// 2. Check each object retrieved rejecting those without names as they will be commits or trees
-	go readRevListObjects(revListReader, shasToCheckWriter, &wg)
+	go pipeline.BlobsFromRevListObjects(revListReader, shasToCheckWriter, &wg)
 
 	// 1. Run rev-list objects from mergeHead to mergeBase
-	go doRevListObjects(revListWriter, &wg, tmpBasePath, mergeHeadSHA, mergeBaseSHA, errChan)
+	go pipeline.RevListObjects(revListWriter, &wg, tmpBasePath, mergeHeadSHA, mergeBaseSHA, errChan)
 
 	wg.Wait()
 	select {
@@ -69,104 +66,7 @@ func LFSPush(tmpBasePath, mergeHeadSHA, mergeBaseSHA string, pr *models.PullRequ
 	return nil
 }
 
-func doRevListObjects(revListWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath, headSHA, baseSHA string, errChan chan<- error) {
-	defer wg.Done()
-	defer revListWriter.Close()
-	stderr := new(bytes.Buffer)
-	var errbuf strings.Builder
-	cmd := git.NewCommand("rev-list", "--objects", headSHA, "--not", baseSHA)
-	if err := cmd.RunInDirPipeline(tmpBasePath, revListWriter, stderr); err != nil {
-		log.Error("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String())
-		errChan <- fmt.Errorf("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String())
-	}
-}
-
-func readRevListObjects(revListReader *io.PipeReader, shasToCheckWriter *io.PipeWriter, wg *sync.WaitGroup) {
-	defer wg.Done()
-	defer revListReader.Close()
-	defer shasToCheckWriter.Close()
-	scanner := bufio.NewScanner(revListReader)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if len(line) == 0 {
-			continue
-		}
-		fields := strings.Split(line, " ")
-		if len(fields) < 2 || len(fields[1]) == 0 {
-			continue
-		}
-		toWrite := []byte(fields[0] + "\n")
-		for len(toWrite) > 0 {
-			n, err := shasToCheckWriter.Write(toWrite)
-			if err != nil {
-				_ = revListReader.CloseWithError(err)
-				break
-			}
-			toWrite = toWrite[n:]
-		}
-	}
-	_ = shasToCheckWriter.CloseWithError(scanner.Err())
-}
-
-func doCatFileBatchCheck(shasToCheckReader *io.PipeReader, catFileCheckWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
-	defer wg.Done()
-	defer shasToCheckReader.Close()
-	defer catFileCheckWriter.Close()
-
-	stderr := new(bytes.Buffer)
-	var errbuf strings.Builder
-	cmd := git.NewCommand("cat-file", "--batch-check")
-	if err := cmd.RunInDirFullPipeline(tmpBasePath, catFileCheckWriter, stderr, shasToCheckReader); err != nil {
-		_ = catFileCheckWriter.CloseWithError(fmt.Errorf("git cat-file --batch-check [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
-	}
-}
-
-func readCatFileBatchCheck(catFileCheckReader *io.PipeReader, shasToBatchWriter *io.PipeWriter, wg *sync.WaitGroup) {
-	defer wg.Done()
-	defer catFileCheckReader.Close()
-
-	scanner := bufio.NewScanner(catFileCheckReader)
-	defer func() {
-		_ = shasToBatchWriter.CloseWithError(scanner.Err())
-	}()
-	for scanner.Scan() {
-		line := scanner.Text()
-		if len(line) == 0 {
-			continue
-		}
-		fields := strings.Split(line, " ")
-		if len(fields) < 3 || fields[1] != "blob" {
-			continue
-		}
-		size, _ := strconv.Atoi(fields[2])
-		if size > 1024 {
-			continue
-		}
-		toWrite := []byte(fields[0] + "\n")
-		for len(toWrite) > 0 {
-			n, err := shasToBatchWriter.Write(toWrite)
-			if err != nil {
-				_ = catFileCheckReader.CloseWithError(err)
-				break
-			}
-			toWrite = toWrite[n:]
-		}
-	}
-}
-
-func doCatFileBatch(shasToBatchReader *io.PipeReader, catFileBatchWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
-	defer wg.Done()
-	defer shasToBatchReader.Close()
-	defer catFileBatchWriter.Close()
-
-	stderr := new(bytes.Buffer)
-	var errbuf strings.Builder
-	if err := git.NewCommand("cat-file", "--batch").RunInDirFullPipeline(tmpBasePath, catFileBatchWriter, stderr, shasToBatchReader); err != nil {
-		_ = shasToBatchReader.CloseWithError(fmt.Errorf("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String()))
-	}
-}
-
-func readCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pr *models.PullRequest) {
+func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pr *models.PullRequest) {
 	defer wg.Done()
 	defer catFileBatchReader.Close()
 
