@@ -274,14 +274,15 @@
 					</span>
 					<div class="ui relaxed divided list">
 						{{range .BlockingDependencies}}
-							<div class="item{{if .IsClosed}} is-closed{{end}}">
-								<div class="ui black label">#{{.Index}}</div>
-								<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
-								<div class="ui transparent label right floated">
+							<div class="item{{if .Issue.IsClosed}} is-closed{{end}}">
+								<span class="text grey right floated">#{{.Issue.Index}}</span>
+								<a class="title has-emoji" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">{{.Issue.Title}}</a>
+								<div class="text small">{{.Repository.OwnerName}}/{{.Repository.Name}}</div>
+								<div class="ui transparent label right floated nopadding">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blocking');"
-										   data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
-											<i class="delete icon text red"></i>
+										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blocking');"
+											data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
+											<i class="delete icon text red nopadding nomargin"></i>
 										</a>
 									{{end}}
 								</div>
@@ -300,14 +301,15 @@
 					</span>
 					<div class="ui relaxed divided list">
 						{{range .BlockedByDependencies}}
-							<div class="item{{if .IsClosed}} is-closed{{end}}">
-								<div class="ui black label">#{{.Index}}</div>
-								<a class="title has-emoji" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title}}</a>
-								<div class="ui transparent label right floated">
-									{{if and $.CanCreateIssueDependencies (not $.IsArchived)}}
-										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.ID}}, 'blockedBy');"
-										   data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
-											<i class="delete icon text red"></i>
+							<div class="item{{if .Issue.IsClosed}} is-closed{{end}}">
+								<span class="text grey right floated">#{{.Issue.Index}}</span>
+								<a class="title has-emoji" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">{{.Issue.Title}}</a>
+								<div class="text small">{{.Repository.OwnerName}}/{{.Repository.Name}}</div>
+								<div class="ui transparent label right floated nopadding">
+									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
+										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blockedBy');"
+											data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
+											<i class="delete icon text red nopadding nomargin"></i>
 										</a>
 									{{end}}
 								</div>
@@ -424,6 +426,8 @@
 </div>
 {{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
 	<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
+	<input type="hidden" id="repoId" value="{{.Repository.ID}}">
+	<input type="hidden" id="crossRepoSearch" value="{{.AllowCrossRepositoryDependencies}}">
 	<!-- I know, there is probably a better way to do this -->
 	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>
 
