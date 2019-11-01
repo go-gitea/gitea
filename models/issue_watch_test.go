@@ -48,6 +48,12 @@ func TestGetIssueWatchers(t *testing.T) {
 
 	iws, err = GetIssueWatchers(2)
 	assert.NoError(t, err)
+	// Watcher is not watching
+	assert.Equal(t, 0, len(iws))
+
+	iws, err = GetIssueWatchers(3)
+	assert.NoError(t, err)
+	// Watcher is not watching
 	assert.Equal(t, 1, len(iws))
 
 	iws, err = GetIssueWatchers(5)
