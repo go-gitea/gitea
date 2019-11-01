@@ -39,6 +39,9 @@ ACCESS_CONTROL_ALLOW_ORIGIN =
 USE_COMPAT_SSH_URI = false
 ; Close issues as long as a commit on any branch marks it as fixed
 DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH = false
+; Comma-separated list of globally disabled repo units. Allowed values: repo.issues, repo.ext_issues, repo.pulls, repo.wiki, repo.ext_wiki
+; Note: Setting this will not disable units on existing repositories, use some script if you want to do that.
+DISABLED_REPO_UNITS = 
 
 [repository.editor]
 ; List of file extensions for which lines should be wrapped in the CodeMirror editor

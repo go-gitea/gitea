@@ -673,7 +673,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			units = append(units, *unit)
 		}
 	} else if *opts.HasIssues {
-		if opts.ExternalTracker != nil {
+		if opts.ExternalTracker != nil && repo.AllowEnableExternalTracker(ctx.User.IsAdmin) {
 
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
@@ -696,7 +696,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					ExternalTrackerStyle:  opts.ExternalTracker.ExternalTrackerStyle,
 				},
 			})
-		} else {
+		} else if repo.AllowEnableInternalIssues(ctx.User.IsAdmin) {
 			// Default to built-in tracker
 			var config *models.IssuesConfig
 
@@ -733,7 +733,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			units = append(units, *unit)
 		}
 	} else if *opts.HasWiki {
-		if opts.ExternalWiki != nil {
+		if opts.ExternalWiki != nil && repo.AllowEnableExternalWiki(ctx.User.IsAdmin) {
 
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
@@ -749,7 +749,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					ExternalWikiURL: opts.ExternalWiki.ExternalWikiURL,
 				},
 			})
-		} else {
+		} else if repo.AllowEnableInternalWiki(ctx.User.IsAdmin) {
 			config := &models.UnitConfig{}
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
@@ -764,7 +764,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
 			units = append(units, *unit)
 		}
-	} else if *opts.HasPullRequests {
+	} else if *opts.HasPullRequests && repo.AllowEnablePulls(ctx.User.IsAdmin) {
 		// We do allow setting individual PR settings through the API, so
 		// we get the config settings and then set them
 		// if those settings were provided in the opts.

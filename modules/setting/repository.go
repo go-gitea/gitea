@@ -35,6 +35,7 @@ var (
 		AccessControlAllowOrigin                string
 		UseCompatSSHURI                         bool
 		DefaultCloseIssuesViaCommitsInAnyBranch bool
+		DisabledRepoUnits                       []string
 
 		// Repository editor settings
 		Editor struct {
@@ -89,6 +90,7 @@ var (
 		AccessControlAllowOrigin:                "",
 		UseCompatSSHURI:                         false,
 		DefaultCloseIssuesViaCommitsInAnyBranch: false,
+		DisabledRepoUnits:                       []string{},
 
 		// Repository editor settings
 		Editor: struct {

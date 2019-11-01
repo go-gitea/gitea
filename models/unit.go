@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // UnitType is Unit's Type
@@ -83,7 +84,54 @@ var (
 		UnitTypeCode,
 		UnitTypeReleases,
 	}
+
+	// DisabledRepoUnits contains the units that have been globally disabled
+	DisabledRepoUnits = []UnitType{}
 )
+
+func loadUnitConfig() {
+	DisabledRepoUnits = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
+	// Check that must units are not disabled
+	for i, disabledU := range DisabledRepoUnits {
+		if !disabledU.CanDisable() {
+			log.Warn("Not allowed to global disable unit %s", disabledU.String())
+			DisabledRepoUnits = append(DisabledRepoUnits[:i], DisabledRepoUnits[i+1:]...)
+		}
+	}
+	// Remove disabled units from default units
+	for _, disabledU := range DisabledRepoUnits {
+		for i, defaultU := range DefaultRepoUnits {
+			if defaultU == disabledU {
+				DefaultRepoUnits = append(DefaultRepoUnits[:i], DefaultRepoUnits[i+1:]...)
+			}
+		}
+	}
+}
+
+// IsUnitGlobalDisabled checks if unit type is global disabled
+func IsUnitGlobalDisabled(u UnitType) bool {
+	for _, ud := range DisabledRepoUnits {
+		if u == ud {
+			return true
+		}
+	}
+	return false
+}
+
+// UnitGlobalDisabled checks if unit type is global disabled
+func (u *UnitType) UnitGlobalDisabled() bool {
+	return IsUnitGlobalDisabled(*u)
+}
+
+// CanDisable returns if this unit type could be disabled.
+func (u *UnitType) CanDisable() bool {
+	for _, mu := range MustRepoUnits {
+		if *u == mu {
+			return false
+		}
+	}
+	return true
+}
 
 // Unit is a section of one repository
 type Unit struct {
@@ -96,7 +144,7 @@ type Unit struct {
 
 // CanDisable returns if this unit could be disabled.
 func (u *Unit) CanDisable() bool {
-	return true
+	return u.Type.CanDisable()
 }
 
 // IsLessThan compares order of two units

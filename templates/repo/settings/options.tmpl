@@ -133,20 +133,32 @@
 				{{$isWikiEnabled := or (.Repository.UnitEnabled $.UnitTypeWiki) (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}
 				<div class="inline field">
 					<label>{{.i18n.Tr "repo.wiki"}}</label>
+					{{if or (.Repository.AllowEnableInternalWiki .IsAdmin) (.Repository.AllowEnableExternalWiki .IsAdmin)}}
 					<div class="ui checkbox">
+					{{else}}
+					<div class="ui checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">				
+					{{end}}
 						<input class="enable-system" name="enable_wiki" type="checkbox" data-target="#wiki_box" {{if $isWikiEnabled}}checked{{end}}>
 						<label>{{.i18n.Tr "repo.settings.wiki_desc"}}</label>
 					</div>
 				</div>
 				<div class="field {{if not $isWikiEnabled}}disabled{{end}}" id="wiki_box">
 					<div class="field">
+						{{if .Repository.AllowEnableInternalWiki .IsAdmin}}
 						<div class="ui radio checkbox">
+						{{else}}
+						<div class="ui radio checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+						{{end}}
 							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="false" data-target="#external_wiki_box" {{if not (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_internal_wiki"}}</label>
 						</div>
 					</div>
 					<div class="field">
+						{{if .Repository.AllowEnableExternalWiki .IsAdmin}}
 						<div class="ui radio checkbox">
+						{{else}}
+						<div class="ui radio checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+						{{end}}
 							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_wiki" type="radio" value="true" data-target="#external_wiki_box" {{if .Repository.UnitEnabled $.UnitTypeExternalWiki}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_external_wiki"}}</label>
 						</div>
@@ -163,14 +175,22 @@
 				{{$isIssuesEnabled := or (.Repository.UnitEnabled $.UnitTypeIssues) (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}
 				<div class="inline field">
 					<label>{{.i18n.Tr "repo.issues"}}</label>
+					{{if or (.Repository.AllowEnableInternalIssues .IsAdmin) (.Repository.AllowEnableExternalTracker .IsAdmin)}}
 					<div class="ui checkbox">
+					{{else}}
+					<div class="ui checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+					{{end}}
 						<input class="enable-system" name="enable_issues" type="checkbox" data-target="#issue_box" {{if $isIssuesEnabled}}checked{{end}}>
 						<label>{{.i18n.Tr "repo.settings.issues_desc"}}</label>
 					</div>
 				</div>
 				<div class="field {{if not $isIssuesEnabled}}disabled{{end}}" id="issue_box">
 					<div class="field">
+						{{if .Repository.AllowEnableInternalIssues .IsAdmin}}
 						<div class="ui radio checkbox">
+						{{else}}
+						<div class="ui radio checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+						{{end}}
 							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="false" data-context="#internal_issue_box" data-target="#external_issue_box" {{if not (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_internal_issue_tracker"}}</label>
 						</div>
@@ -198,7 +218,11 @@
 							</div>
 					</div>
 					<div class="field">
+						{{if .Repository.AllowEnableExternalTracker .IsAdmin}}
 						<div class="ui radio checkbox">
+						{{else}}
+						<div class="ui radio checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+						{{end}}
 							<input class="hidden enable-system-radio" tabindex="0" name="enable_external_tracker" type="radio" value="true" data-context="#internal_issue_box" data-target="#external_issue_box" {{if .Repository.UnitEnabled $.UnitTypeExternalTracker}}checked{{end}}/>
 							<label>{{.i18n.Tr "repo.settings.use_external_issue_tracker"}}</label>
 						</div>
@@ -240,7 +264,11 @@
 					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.pulls"}}</label>
+						{{if .Repository.AllowEnablePulls .IsAdmin}}
 						<div class="ui checkbox">
+						{{else}}
+						<div class="ui checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+						{{end}}
 							<input class="enable-system" name="enable_pulls" type="checkbox" data-target="#pull_box" {{if $pullRequestEnabled}}checked{{end}}>
 							<label>{{.i18n.Tr "repo.settings.pulls_desc"}}</label>
 						</div>

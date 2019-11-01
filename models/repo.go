@@ -124,6 +124,7 @@ func loadRepoConfig() {
 // NewRepoContext creates a new repository context
 func NewRepoContext() {
 	loadRepoConfig()
+	loadUnitConfig()
 
 	RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
 }
@@ -762,6 +763,47 @@ func (repo *Repository) CanUserDelete(user *User) (bool, error) {
 	}
 
 	return false, nil
+}
+
+// allowEnableUnit check if unit can't be enabled due to being global disabled
+func (repo *Repository) allowEnableUnit(ut UnitType, isAdmin bool) bool {
+	if isAdmin {
+		// Site admin can activate even if global disabled
+		return true
+	}
+	if repo.UnitEnabled(ut) {
+		// If unit already active, it can be kept active
+		return true
+	}
+	if ut.UnitGlobalDisabled() {
+		return false
+	}
+	return true
+}
+
+// AllowEnableInternalWiki returns true if the enabling internal wiki can be allowed (not global disabled)
+func (repo *Repository) AllowEnableInternalWiki(isAdmin bool) bool {
+	return repo.allowEnableUnit(UnitTypeWiki, isAdmin)
+}
+
+// AllowEnableExternalWiki returns true if the enabling external wiki can be allowed (not global disabled)
+func (repo *Repository) AllowEnableExternalWiki(isAdmin bool) bool {
+	return repo.allowEnableUnit(UnitTypeExternalWiki, isAdmin)
+}
+
+// AllowEnableInternalIssues returns true if the enabling internal issues can be allowed (not global disabled)
+func (repo *Repository) AllowEnableInternalIssues(isAdmin bool) bool {
+	return repo.allowEnableUnit(UnitTypeIssues, isAdmin)
+}
+
+// AllowEnableExternalTracker returns true if the enabling internal wiki can be allowed (not global disabled)
+func (repo *Repository) AllowEnableExternalTracker(isAdmin bool) bool {
+	return repo.allowEnableUnit(UnitTypeExternalTracker, isAdmin)
+}
+
+// AllowEnablePulls returns true if the enabling internal wiki can be allowed (not global disabled and possible for repo)
+func (repo *Repository) AllowEnablePulls(isAdmin bool) bool {
+	return repo.CanEnablePulls() && repo.allowEnableUnit(UnitTypePullRequests, isAdmin)
 }
 
 // CanEnablePulls returns true if repository meets the requirements of accepting pulls.

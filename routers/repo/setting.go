@@ -227,7 +227,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		if form.EnableWiki {
-			if form.EnableExternalWiki {
+			if form.EnableExternalWiki && repo.AllowEnableExternalWiki(ctx.User.IsAdmin) {
 				if !validation.IsValidExternalURL(form.ExternalWikiURL) {
 					ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))
 					ctx.Redirect(repo.Link() + "/settings")
@@ -241,7 +241,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 						ExternalWikiURL: form.ExternalWikiURL,
 					},
 				})
-			} else {
+			} else if repo.AllowEnableInternalWiki(ctx.User.IsAdmin) {
 				units = append(units, models.RepoUnit{
 					RepoID: repo.ID,
 					Type:   models.UnitTypeWiki,
@@ -251,7 +251,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		if form.EnableIssues {
-			if form.EnableExternalTracker {
+			if form.EnableExternalTracker && repo.AllowEnableExternalTracker(ctx.User.IsAdmin) {
 				if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
 					ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))
 					ctx.Redirect(repo.Link() + "/settings")
@@ -271,7 +271,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 						ExternalTrackerStyle:  form.TrackerIssueStyle,
 					},
 				})
-			} else {
+			} else if repo.AllowEnableInternalIssues(ctx.User.IsAdmin) {
 				units = append(units, models.RepoUnit{
 					RepoID: repo.ID,
 					Type:   models.UnitTypeIssues,
@@ -284,7 +284,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 		}
 
-		if form.EnablePulls {
+		if form.EnablePulls && repo.AllowEnablePulls(ctx.User.IsAdmin) {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
 				Type:   models.UnitTypePullRequests,

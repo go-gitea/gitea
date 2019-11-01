@@ -153,9 +153,21 @@ func Dashboard(ctx *context.Context) {
 func Issues(ctx *context.Context) {
 	isPullList := ctx.Params(":type") == "pulls"
 	if isPullList {
+		if models.IsUnitGlobalDisabled(models.UnitTypePullRequests) {
+			log.Debug("Pull request overview page not available due to unit global disabled.")
+			ctx.Status(404)
+			return
+		}
+
 		ctx.Data["Title"] = ctx.Tr("pull_requests")
 		ctx.Data["PageIsPulls"] = true
 	} else {
+		if models.IsUnitGlobalDisabled(models.UnitTypeIssues) {
+			log.Debug("Issues overview page not available due go unit global disabled.")
+			ctx.Status(404)
+			return
+		}
+
 		ctx.Data["Title"] = ctx.Tr("issues")
 		ctx.Data["PageIsIssues"] = true
 	}
