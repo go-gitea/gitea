@@ -8,6 +8,7 @@ package pull
 import (
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/webhook"
 )
 
 // CreateReview creates a new review based on opts
@@ -55,7 +56,7 @@ func reviewHook(review *models.Review) error {
 	if err != nil {
 		return err
 	}
-	if err := models.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
+	if err := webhook.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
 		Index:       review.Issue.Index,
 		PullRequest: pr.APIFormat(),
@@ -68,7 +69,7 @@ func reviewHook(review *models.Review) error {
 	}); err != nil {
 		return err
 	}
-	go models.HookQueue.Add(review.Issue.Repo.ID)
+	go webhook.HookQueue.Add(review.Issue.Repo.ID)
 
 	return nil
 }

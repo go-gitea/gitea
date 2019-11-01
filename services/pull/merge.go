@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/webhook"
 
 	"github.com/mcuadros/go-version"
 )
@@ -360,7 +361,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	}
 
 	mode, _ := models.AccessLevel(doer, pr.Issue.Repo)
-	if err = models.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+	if err = webhook.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueClosed,
 		Index:       pr.Index,
 		PullRequest: pr.APIFormat(),
@@ -369,7 +370,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	} else {
-		go models.HookQueue.Add(pr.Issue.Repo.ID)
+		go webhook.HookQueue.Add(pr.Issue.Repo.ID)
 	}
 
 	return nil
