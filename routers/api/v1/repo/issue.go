@@ -879,8 +879,8 @@ func DelIssueSubscription(ctx *context.APIContext) {
 	ctx.Status(201)
 }
 
-// GetIssueWatchers return subscribers of an issue
-func GetIssueWatchers(ctx *context.APIContext, form api.User) {
+// GetIssueSubscribers return subscribers of an issue
+func GetIssueSubscribers(ctx *context.APIContext, form api.User) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/subscriptions issue issueSubscriptions
 	// ---
 	// summary: Get users who subscribed on an issue.
