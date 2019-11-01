@@ -1,6 +1,5 @@
----- Part 1: CMU/UCD copyright notice: (BSD like) -----
-
-Copyright 1989, 1991, 1992 by Carnegie Mellon University
+---- Part 1: CMU/UCD copyright notice: (BSD like) ----- Copyright 1989, 1991,
+1992 by Carnegie Mellon University
 
 Derivative Work - 1996, 1998-2000 Copyright 1996, 1998-2000 The Regents of
 the University of California
@@ -79,10 +78,9 @@ IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
----- Part 4: Sun Microsystems, Inc. copyright notice (BSD) -----
-
-Copyright © 2003 Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
-California 95054, U.S.A. All rights reserved.
+---- Part 4: Sun Microsystems, Inc. copyright notice (BSD) ----- Copyright
+© 2003 Sun Microsystems, Inc., 4150 Network Circle, Santa Clara, California
+95054, U.S.A. All rights reserved.
 
 Use is subject to license terms below.
 
@@ -174,7 +172,6 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ---- Part 7: Fabasoft R&D Software GmbH & Co KG copyright notice (BSD) -----
-
 Copyright (c) Fabasoft R&D Software GmbH & Co KG, 2003 oss@fabasoft.com Author:
 Bernhard Penz
 
@@ -203,9 +200,8 @@ IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
----- Part 8: Apple Inc. copyright notice (BSD) -----
-
-Copyright (c) 2007 Apple Inc. All rights reserved.
+---- Part 8: Apple Inc. copyright notice (BSD) ----- Copyright (c) 2007 Apple
+Inc. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:

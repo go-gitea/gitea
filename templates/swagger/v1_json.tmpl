@@ -1111,6 +1111,56 @@
         }
       }
     },
+    "/repos/issues/search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Search for issues across the repositories that the user has access to",
+        "operationId": "issueSearchIssues",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "whether issue is open or closed",
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded",
+            "name": "labels",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of requested issues",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "search string",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "repository to prioritize in the results",
+            "name": "priority_repo_id",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/IssueList"
+          }
+        }
+      }
+    },
     "/repos/migrate": {
       "post": {
         "consumes": [
@@ -9199,6 +9249,9 @@
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
         },
+        "repository": {
+          "$ref": "#/definitions/RepositoryMeta"
+        },
         "state": {
           "$ref": "#/definitions/StateType"
         },
@@ -10091,6 +10144,26 @@
         "website": {
           "type": "string",
           "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "RepositoryMeta": {
+      "description": "RepositoryMeta basic repository information",
+      "type": "object",
+      "properties": {
+        "full_name": {
+          "type": "string",
+          "x-go-name": "FullName"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
