@@ -833,7 +833,7 @@ func DelIssueSubscription(ctx *context.APIContext) {
 	//   required: true
 	// - name: user
 	//   in: path
-	//   description: user witch unsubscribe to issue
+	//   description: user witch unsubscribe
 	//   type: string
 	//   required: true
 	// responses:
