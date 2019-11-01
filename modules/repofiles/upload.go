@@ -58,9 +58,6 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	names := make([]string, len(uploads))
 	infos := make([]uploadInfo, len(uploads))
 	for i, upload := range uploads {
-		names[i] = upload.Name
-		infos[i] = uploadInfo{upload: upload}
-
 		// Check file is not lfs locked
 		filepath := path.Join(opts.TreePath, upload.Name)
 		lfsLock, err := repo.GetTreePathLock(filepath)
@@ -70,6 +67,9 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		if lfsLock != nil && lfsLock.OwnerID != doer.ID {
 			return models.ErrLFSFileLocked{RepoID: repo.ID, Path: filepath, UserName: lfsLock.Owner.Name}
 		}
+
+		names[i] = upload.Name
+		infos[i] = uploadInfo{upload: upload}
 	}
 
 	t, err := NewTemporaryUploadRepository(repo)
