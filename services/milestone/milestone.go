@@ -8,6 +8,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/webhook"
 )
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.
@@ -34,7 +35,7 @@ func ChangeMilestoneAssign(issue *models.Issue, doer *models.User, oldMilestoneI
 			log.Error("LoadIssue: %v", err)
 			return
 		}
-		err = models.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+		err = webhook.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 			Action:      hookAction,
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
@@ -42,7 +43,7 @@ func ChangeMilestoneAssign(issue *models.Issue, doer *models.User, oldMilestoneI
 			Sender:      doer.APIFormat(),
 		})
 	} else {
-		err = models.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+		err = webhook.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
 			Action:     hookAction,
 			Index:      issue.Index,
 			Issue:      issue.APIFormat(),
@@ -53,7 +54,7 @@ func ChangeMilestoneAssign(issue *models.Issue, doer *models.User, oldMilestoneI
 	if err != nil {
 		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	} else {
-		go models.HookQueue.Add(issue.RepoID)
+		go webhook.HookQueue.Add(issue.RepoID)
 	}
 	return nil
 }
