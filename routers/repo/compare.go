@@ -339,10 +339,38 @@ func PrepareCompareDiff(
 	return false
 }
 
+// parseBaseRepoInfo parse base repository if current repo is forked.
+// The "base" here means the repository where current repo forks from,
+// not the repository fetch from current URL.
+func parseBaseRepoInfo(ctx *context.Context, repo *models.Repository) error {
+	if !repo.IsFork {
+		return nil
+	}
+	if err := repo.GetBaseRepo(); err != nil {
+		return err
+	}
+	if err := repo.BaseRepo.GetOwnerName(); err != nil {
+		return err
+	}
+	baseGitRepo, err := git.OpenRepository(models.RepoPath(repo.BaseRepo.OwnerName, repo.BaseRepo.Name))
+	if err != nil {
+		return err
+	}
+	ctx.Data["BaseRepoBranches"], err = baseGitRepo.GetBranches()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
 	headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
 	if ctx.Written() {
+		return
+	}
+	if err := parseBaseRepoInfo(ctx, headRepo); err != nil {
+		ctx.ServerError("parseBaseRepoInfo", err)
 		return
 	}
 
