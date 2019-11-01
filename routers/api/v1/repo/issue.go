@@ -759,7 +759,7 @@ func AddIssueSubscription(ctx *context.APIContext) {
 	//   required: true
 	// - name: user
 	//   in: path
-	//   description: user witch subscribe to issue
+	//   description: user to subscribe
 	//   type: string
 	//   required: true
 	// responses:
