@@ -414,8 +414,8 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 		if len(source.LDAP().AdminFilter) > 0 {
 			user.IsAdmin = sr.IsAdmin
 		}
+	UpdateUserCols(user, "full_name", "email", "is_admin")
 	}
-	updateUserCols(user, "full_name", "email", "is_admin")
 
 	if !autoRegister {
 		if isAttributeSSHPublicKeySet && synchronizeLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
