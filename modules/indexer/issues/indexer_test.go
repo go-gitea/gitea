@@ -30,19 +30,19 @@ func TestBleveSearchIssues(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	ids, err := SearchIssuesByKeyword(1, "issue2")
+	ids, err := SearchIssuesByKeyword([]int64{1}, "issue2")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{2}, ids)
 
-	ids, err = SearchIssuesByKeyword(1, "first")
+	ids, err = SearchIssuesByKeyword([]int64{1}, "first")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1}, ids)
 
-	ids, err = SearchIssuesByKeyword(1, "for")
+	ids, err = SearchIssuesByKeyword([]int64{1}, "for")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1, 2, 3, 5}, ids)
 
-	ids, err = SearchIssuesByKeyword(1, "good")
+	ids, err = SearchIssuesByKeyword([]int64{1}, "good")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1}, ids)
 }
@@ -53,19 +53,19 @@ func TestDBSearchIssues(t *testing.T) {
 	setting.Indexer.IssueType = "db"
 	InitIssueIndexer(true)
 
-	ids, err := SearchIssuesByKeyword(1, "issue2")
+	ids, err := SearchIssuesByKeyword([]int64{1}, "issue2")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{2}, ids)
 
-	ids, err = SearchIssuesByKeyword(1, "first")
+	ids, err = SearchIssuesByKeyword([]int64{1}, "first")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1}, ids)
 
-	ids, err = SearchIssuesByKeyword(1, "for")
+	ids, err = SearchIssuesByKeyword([]int64{1}, "for")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1, 2, 3, 5}, ids)
 
-	ids, err = SearchIssuesByKeyword(1, "good")
+	ids, err = SearchIssuesByKeyword([]int64{1}, "good")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1}, ids)
 }
