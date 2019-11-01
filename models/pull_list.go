@@ -87,7 +87,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 
 	prs := make([]*PullRequest, 0, ItemsPerPage)
 	findSession, err := listPullRequestStatement(baseRepoID, opts)
-	sortIssuesSession(findSession, opts.SortType)
+	sortIssuesSession(findSession, opts.SortType, 0)
 	if err != nil {
 		log.Error("listPullRequestStatement: %v", err)
 		return nil, maxResults, err

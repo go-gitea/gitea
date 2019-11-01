@@ -444,6 +444,10 @@ func (c *Comment) LoadReview() error {
 func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
 	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
+	if err != nil && strings.Contains(err.Error(), "fatal: no such path") {
+		c.Invalidated = true
+		return UpdateComment(c, doer)
+	}
 	if err != nil {
 		return err
 	}

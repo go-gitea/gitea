@@ -149,7 +149,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 
 	var issueIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(repo.ID, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword([]int64{repo.ID}, keyword)
 		if err != nil {
 			ctx.ServerError("issueIndexer.Search", err)
 			return
@@ -777,6 +777,9 @@ func ViewIssue(ctx *context.Context) {
 
 	// Check if the user can use the dependencies
 	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.User)
+
+	// check if dependencies can be created across repositories
+	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
 
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
