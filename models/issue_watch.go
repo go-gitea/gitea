@@ -53,6 +53,7 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 	exists, err = e.
 		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
+		And("is_watching = ?", true).
 		Get(iw)
 	return
 }
@@ -66,7 +67,7 @@ func getIssueWatchers(e Engine, issueID int64) (watches []*IssueWatch, err error
 	// handle manual watchers
 	err = e.
 		Where("`issue_watch`.issue_id = ?", issueID).
-		And("`issue_watch`.is_watching > ?", 0).
+		And("`issue_watch`.is_watching = ?", true).
 		And("`user`.is_active = ?", true).
 		And("`user`.prohibit_login = ?", false).
 		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id").

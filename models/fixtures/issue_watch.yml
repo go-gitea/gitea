@@ -17,7 +17,7 @@
 -
   id: 3
   user_id: 2
-  issue_id: 3
+  issue_id: 7
   is_watching: true
   created_unix: 946684800
   updated_unix: 946684800
@@ -25,7 +25,7 @@
 -
   id: 3
   user_id: 1
-  issue_id: 3
+  issue_id: 7
   is_watching: false
   created_unix: 946684800
   updated_unix: 946684800
