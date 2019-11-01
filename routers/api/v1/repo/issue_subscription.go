@@ -207,13 +207,13 @@ func GetIssueSubscribers(ctx *context.APIContext, form api.User) {
 		return
 	}
 
-	subscribers := make([]*api.User, len(iw))
-	for i, s := range iw {
+	var subscribers []*api.User
+	for _, s := range iw {
 		user, err := models.GetUserByID(s.UserID)
 		if err != nil {
 			continue
 		}
-		subscribers[i] = user.APIFormat()
+		subscribers = append(subscribers, user.APIFormat())
 	}
 
 	ctx.JSON(200, subscribers)
