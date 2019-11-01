@@ -634,7 +634,7 @@ func UpdateHookTask(t *HookTask) error {
 	return err
 }
 
-// FindUndeliveredHookTasks represents hook tasks
+// FindUndeliveredHookTasks represents find the undelivered hook tasks
 func FindUndeliveredHookTasks() ([]*HookTask, error) {
 	tasks := make([]*HookTask, 0, 10)
 	if err := x.Where("is_delivered=?", false).Find(&tasks); err != nil {
@@ -643,7 +643,7 @@ func FindUndeliveredHookTasks() ([]*HookTask, error) {
 	return tasks, nil
 }
 
-// FindRepoUndeliveredHookTasks represents hook tasks
+// FindRepoUndeliveredHookTasks represents find the undelivered hook tasks of one repository
 func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 	tasks := make([]*HookTask, 0, 5)
 	if err := x.Where("repo_id=? AND is_delivered=?", repoID, false).Find(&tasks); err != nil {
