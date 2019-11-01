@@ -10,11 +10,11 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// AddIssueSubscription add user to subscription list
+// AddIssueSubscription Subscribe user to issue
 func AddIssueSubscription(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/issues/{index}/subscriptions/{user} issue issueAddSubscription
 	// ---
-	// summary: Add user to subscription list
+	// summary: Subscribe user to issue
 	// consumes:
 	// - application/json
 	// produces:
@@ -84,11 +84,11 @@ func AddIssueSubscription(ctx *context.APIContext) {
 	ctx.Status(201)
 }
 
-// DelIssueSubscription remove user to subscription list
+// DelIssueSubscription Unsubscribe user from issue
 func DelIssueSubscription(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/subscriptions/{user} issue issueDeleteSubscription
 	// ---
-	// summary: Delete user from subscription list
+	// summary: Unsubscribe user from issue
 	// consumes:
 	// - application/json
 	// produces:
