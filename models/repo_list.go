@@ -195,7 +195,7 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	}
 
 	if opts.Template != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"is_template": opts.Fork == util.OptionalBoolTrue})
+		cond = cond.And(builder.Eq{"is_template": opts.Template == util.OptionalBoolTrue})
 	}
 
 	// Restrict to starred repositories
