@@ -246,6 +246,18 @@ func NewFuncMap() []template.FuncMap {
 		"MirrorFullAddress": mirror_service.AddressNoCredentials,
 		"MirrorUserName":    mirror_service.Username,
 		"MirrorPassword":    mirror_service.Password,
+		"CommitType": func(commit interface{}) string {
+			switch commit.(type) {
+			case models.SignCommitWithStatuses:
+				return "SignCommitWithStatuses"
+			case models.SignCommit:
+				return "SignCommit"
+			case models.UserCommit:
+				return "UserCommit"
+			default:
+				return ""
+			}
+		},
 	}}
 }
 
