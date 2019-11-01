@@ -223,10 +223,8 @@
 					{{end}}
 
 					{{if .IsPull}}
-						{{if .PullRequest.ProtectedBranch}}
-							{{if .PullRequest.ProtectedBranch.RequiredApprovals}}
-								<span class="comment ui right"><i class="octicon octicon-eye"></i> {{.PullRequest.ProtectedBranch.GrantedApprovalsCount}} / {{.PullRequest.ProtectedBranch.RequiredApprovals}}</span>
-							{{end}}
+						{{if ne (index $.RequiredApprovals .PullRequest.ID) 0}}
+								<span class="comment ui right"><i class="octicon octicon-eye"></i> {{(index $.Approvals .PullRequest.ID)}} / {{(index $.RequiredApprovals .PullRequest.ID)}}</span>
 						{{end}}
 					{{end}}
 
