@@ -47,6 +47,6 @@ func TestMilestones(t *testing.T) {
 	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
 	assert.EqualValues(t, "furthestduedate", ctx.Data["SortType"])
 	assert.EqualValues(t, 1, ctx.Data["Total"])
-	assert.Len(t, ctx.Data["Milestones"], 10)
+	assert.Len(t, ctx.Data["Milestones"], 1)
 	assert.Len(t, ctx.Data["Repos"], 1)
 }
