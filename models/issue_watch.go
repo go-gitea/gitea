@@ -94,7 +94,7 @@ func (iwl IssueWatchList) LoadWatchUsers() (users UserList, err error) {
 
 func (iwl IssueWatchList) loadWatchUsers(e Engine) (users UserList, err error) {
 	if len(iwl) == 0 {
-		return nil, nil
+		return []*User{}, nil
 	}
 
 	var userIDs = make([]int64, 0, len(iwl))
@@ -102,6 +102,10 @@ func (iwl IssueWatchList) loadWatchUsers(e Engine) (users UserList, err error) {
 		if iw.IsWatching {
 			userIDs = append(userIDs, iw.UserID)
 		}
+	}
+
+	if len(userIDs) == 0 {
+		return []*User{}, nil
 	}
 
 	err = e.In("id", userIDs).Find(&users)
