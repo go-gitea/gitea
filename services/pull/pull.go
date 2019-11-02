@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/webhook"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -27,30 +28,10 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 		}
 	}
 
-	if err := models.NotifyWatchers(&models.Action{
-		ActUserID: pull.Poster.ID,
-		ActUser:   pull.Poster,
-		OpType:    models.ActionCreatePullRequest,
-		Content:   fmt.Sprintf("%d|%s", pull.Index, pull.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
-	}
-
 	pr.Issue = pull
 	pull.PullRequest = pr
-	mode, _ := models.AccessLevel(pull.Poster, repo)
-	if err := webhook.PrepareWebhooks(repo, models.HookEventPullRequest, &api.PullRequestPayload{
-		Action:      api.HookIssueOpened,
-		Index:       pull.Index,
-		PullRequest: pr.APIFormat(),
-		Repository:  repo.APIFormat(mode),
-		Sender:      pull.Poster.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	}
+
+	notification.NotifyNewPullRequest(pr)
 
 	return nil
 }
