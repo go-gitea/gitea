@@ -264,11 +264,9 @@ func (t *Team) AddRepository(repo *Repository) (err error) {
 	return sess.Commit()
 }
 
+// removeRepository removes a repository from a team and recalculates access
+// Note: Repository shall not be removed from team if it includes all repositories (unless the repository is deleted)
 func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (err error) {
-	if t.IncludesAllRepositories {
-		return nil
-	}
-
 	if err = removeTeamRepo(e, t.ID, repo.ID); err != nil {
 		return err
 	}
@@ -311,8 +309,13 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 }
 
 // RemoveRepository removes repository from team of organization.
+// If the team shall include all repositories the request is ignored.
 func (t *Team) RemoveRepository(repoID int64) error {
 	if !t.HasRepository(repoID) {
+		return nil
+	}
+
+	if t.IncludesAllRepositories {
 		return nil
 	}
 
