@@ -92,7 +92,7 @@ func (iwl IssueWatchList) LoadWatchUsers() UserList {
 	return iwl.loadWatchUsers(x)
 }
 
-func (iwl IssueWatchList) loadWatchUsers(e Engine) UserList {
+func (iwl IssueWatchList) loadWatchUsers(e Engine) (users UserList) {
 	if len(iwl) == 0 {
 		return nil
 	}
@@ -104,9 +104,7 @@ func (iwl IssueWatchList) loadWatchUsers(e Engine) UserList {
 		}
 	}
 
-	var users UserList
+	e.In("id", userIDs).Find(&users)
 
-	x.In("id", userIDs).Find(&users)
-
-	return users
+	return
 }
