@@ -419,3 +419,45 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *mode
 		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	}
 }
+
+func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64) {
+	var hookAction api.HookIssueAction
+	var err error
+	if issue.MilestoneID > 0 {
+		hookAction = api.HookIssueMilestoned
+	} else {
+		hookAction = api.HookIssueDemilestoned
+	}
+
+	if err = issue.LoadAttributes(); err != nil {
+		log.Error("issue.LoadAttributes failed: %v", err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(doer, issue.Repo)
+	if issue.IsPull {
+		err = issue.PullRequest.LoadIssue()
+		if err != nil {
+			log.Error("LoadIssue: %v", err)
+			return
+		}
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+			Action:      hookAction,
+			Index:       issue.Index,
+			PullRequest: issue.PullRequest.APIFormat(),
+			Repository:  issue.Repo.APIFormat(mode),
+			Sender:      doer.APIFormat(),
+		})
+	} else {
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+			Action:     hookAction,
+			Index:      issue.Index,
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		})
+	}
+	if err != nil {
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+	}
+}
