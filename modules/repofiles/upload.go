@@ -55,6 +55,23 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		return fmt.Errorf("GetUploadsByUUIDs [uuids: %v]: %v", opts.Files, err)
 	}
 
+	names := make([]string, len(uploads))
+	infos := make([]uploadInfo, len(uploads))
+	for i, upload := range uploads {
+		// Check file is not lfs locked, will return nil if lock setting not enabled
+		filepath := path.Join(opts.TreePath, upload.Name)
+		lfsLock, err := repo.GetTreePathLock(filepath)
+		if err != nil {
+			return err
+		}
+		if lfsLock != nil && lfsLock.OwnerID != doer.ID {
+			return models.ErrLFSFileLocked{RepoID: repo.ID, Path: filepath, UserName: lfsLock.Owner.Name}
+		}
+
+		names[i] = upload.Name
+		infos[i] = uploadInfo{upload: upload}
+	}
+
 	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
 		return err
@@ -65,13 +82,6 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	}
 	if err := t.SetDefaultIndex(); err != nil {
 		return err
-	}
-
-	names := make([]string, len(uploads))
-	infos := make([]uploadInfo, len(uploads))
-	for i, upload := range uploads {
-		names[i] = upload.Name
-		infos[i] = uploadInfo{upload: upload}
 	}
 
 	var filename2attribute2info map[string]map[string]string
