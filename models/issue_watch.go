@@ -61,11 +61,11 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 }
 
 // GetIssueWatchers returns watchers/unwatchers of a given issue
-func GetIssueWatchers(issueID int64) ([]*IssueWatch, error) {
+func GetIssueWatchers(issueID int64) (IssueWatchList, error) {
 	return getIssueWatchers(x, issueID)
 }
 
-func getIssueWatchers(e Engine, issueID int64) (watches []*IssueWatch, err error) {
+func getIssueWatchers(e Engine, issueID int64) (watches IssueWatchList, err error) {
 	err = e.
 		Where("`issue_watch`.issue_id = ?", issueID).
 		And("`user`.is_active = ?", true).
@@ -88,13 +88,13 @@ func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
 }
 
 // LoadWatchUsers return watching users
-func (iwl IssueWatchList) LoadWatchUsers() UserList {
+func (iwl IssueWatchList) LoadWatchUsers() (err error, users UserList) {
 	return iwl.loadWatchUsers(x)
 }
 
-func (iwl IssueWatchList) loadWatchUsers(e Engine) (users UserList) {
+func (iwl IssueWatchList) loadWatchUsers(e Engine) (err error, users UserList) {
 	if len(iwl) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	var userIDs = make([]int64, 0, len(iwl))
@@ -104,7 +104,7 @@ func (iwl IssueWatchList) loadWatchUsers(e Engine) (users UserList) {
 		}
 	}
 
-	e.In("id", userIDs).Find(&users)
+	err = e.In("id", userIDs).Find(&users)
 
 	return
 }

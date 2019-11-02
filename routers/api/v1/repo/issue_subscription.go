@@ -206,7 +206,11 @@ func GetIssueSubscribers(ctx *context.APIContext, form api.User) {
 		return
 	}
 
-	users := models.UserList.APIFormat(models.IssueWatchList.LoadWatchUsers(iwl))
+	err, users := models.IssueWatchList.LoadWatchUsers(iwl)
+	if err != nil {
+		ctx.Error(500, "LoadWatchUsers", err)
+		return
+	}
 
-	ctx.JSON(200, users)
+	ctx.JSON(200, models.UserList.APIFormat(users))
 }
