@@ -58,7 +58,7 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	names := make([]string, len(uploads))
 	infos := make([]uploadInfo, len(uploads))
 	for i, upload := range uploads {
-		// Check file is not lfs locked
+		// Check file is not lfs locked, will return nil if lock setting not enabled
 		filepath := path.Join(opts.TreePath, upload.Name)
 		lfsLock, err := repo.GetTreePathLock(filepath)
 		if err != nil {
