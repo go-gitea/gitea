@@ -92,8 +92,6 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 				Sender:     rel.Publisher.APIFormat(),
 			}); err != nil {
 				log.Error("PrepareWebhooks: %v", err)
-			} else {
-				go webhook.HookQueue.Add(rel.Repo.ID)
 			}
 		}
 	}
@@ -129,8 +127,6 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 		Sender:     doer.APIFormat(),
 	}); err1 != nil {
 		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go webhook.HookQueue.Add(rel.Repo.ID)
 	}
 
 	return err
@@ -195,8 +191,6 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 		Sender:     doer.APIFormat(),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go webhook.HookQueue.Add(rel.Repo.ID)
 	}
 
 	return nil

@@ -53,8 +53,6 @@ func ChangeMilestoneAssign(issue *models.Issue, doer *models.User, oldMilestoneI
 	}
 	if err != nil {
 		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go webhook.HookQueue.Add(issue.RepoID)
 	}
 	return nil
 }

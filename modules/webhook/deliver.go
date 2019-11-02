@@ -159,9 +159,9 @@ func DeliverHooks() {
 	}
 
 	// Start listening on new hook requests.
-	for repoIDStr := range HookQueue.Queue() {
+	for repoIDStr := range hookQueue.Queue() {
 		log.Trace("DeliverHooks [repo_id: %v]", repoIDStr)
-		HookQueue.Remove(repoIDStr)
+		hookQueue.Remove(repoIDStr)
 
 		repoID, err := com.StrTo(repoIDStr).Int64()
 		if err != nil {
