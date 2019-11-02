@@ -13,9 +13,14 @@ type RepoWatchMode int8
 
 // Watch is connection request for receiving repository notification.
 type Watch struct {
+	ID   int64         `xorm:"pk autoincr"`
 	Mode RepoWatchMode `xorm:"SMALLINT NOT NULL DEFAULT 1"`
 }
 
-func addModeColumnToWatch(x *xorm.Engine) error {
-	return x.Sync2(new(Watch))
+func addModeColumnToWatch(x *xorm.Engine) (err error) {
+	if err = x.Sync2(new(Watch)); err != nil {
+		return
+	}
+	_, err = x.Exec("UPDATE `watch` SET `mode` = 1")
+	return err
 }
