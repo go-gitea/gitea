@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/webhook"
 )
 
 func syncAction(opType models.ActionType, repo *models.Repository, refName string, data []byte) error {
@@ -26,10 +27,6 @@ func syncAction(opType models.ActionType, repo *models.Repository, refName strin
 	}); err != nil {
 		return fmt.Errorf("notifyWatchers: %v", err)
 	}
-
-	defer func() {
-		go models.HookQueue.Add(repo.ID)
-	}()
 
 	return nil
 }
@@ -55,7 +52,7 @@ func SyncPushAction(repo *models.Repository, opts SyncPushActionOptions) error {
 
 	opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 	apiPusher := repo.MustOwner().APIFormat()
-	if err := models.PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{
+	if err := webhook.PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{
 		Ref:        opts.RefName,
 		Before:     opts.OldCommitID,
 		After:      opts.NewCommitID,
