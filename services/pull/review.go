@@ -69,7 +69,6 @@ func reviewHook(review *models.Review) error {
 	}); err != nil {
 		return err
 	}
-	go webhook.HookQueue.Add(review.Issue.Repo.ID)
 
 	return nil
 }

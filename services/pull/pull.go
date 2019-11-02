@@ -50,8 +50,6 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 		Sender:      pull.Poster.APIFormat(),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go webhook.HookQueue.Add(repo.ID)
 	}
 
 	return nil
@@ -125,7 +123,6 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 					log.Error("PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
 					continue
 				}
-				go webhook.HookQueue.Add(pr.Issue.Repo.ID)
 			}
 		}
 
