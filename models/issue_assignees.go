@@ -7,9 +7,6 @@ package models
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
-
 	"xorm.io/xorm"
 )
 
@@ -65,31 +62,6 @@ func isUserAssignedToIssue(e Engine, issue *Issue, user *User) (isAssigned bool,
 	return e.Get(&IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
 }
 
-// DeleteNotPassedAssignee deletes all assignees who aren't passed via the "assignees" array
-func DeleteNotPassedAssignee(issue *Issue, doer *User, assignees []*User) (err error) {
-	var found bool
-
-	for _, assignee := range issue.Assignees {
-
-		found = false
-		for _, alreadyAssignee := range assignees {
-			if assignee.ID == alreadyAssignee.ID {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			// This function also does comments and hooks, which is why we call it seperatly instead of directly removing the assignees here
-			if _, _, err := issue.ToggleAssignee(doer, assignee.ID); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
 // MakeAssigneeList concats a string with all names of the assignees. Useful for logs.
 func MakeAssigneeList(issue *Issue) (assigneeList string, err error) {
 	err = issue.loadAssignees(x)
@@ -131,8 +103,6 @@ func (issue *Issue) ToggleAssignee(doer *User, assigneeID int64) (removed bool, 
 		return false, nil, err
 	}
 
-	go HookQueue.Add(issue.RepoID)
-
 	return removed, comment, nil
 }
 
@@ -158,49 +128,6 @@ func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID in
 		return removed, comment, err
 	}
 
-	if issue.IsPull {
-		mode, _ := accessLevelUnit(sess, doer, issue.Repo, UnitTypePullRequests)
-
-		if err = issue.loadPullRequest(sess); err != nil {
-			return false, nil, fmt.Errorf("loadPullRequest: %v", err)
-		}
-		issue.PullRequest.Issue = issue
-		apiPullRequest := &api.PullRequestPayload{
-			Index:       issue.Index,
-			PullRequest: issue.PullRequest.apiFormat(sess),
-			Repository:  issue.Repo.innerAPIFormat(sess, mode, false),
-			Sender:      doer.APIFormat(),
-		}
-		if removed {
-			apiPullRequest.Action = api.HookIssueUnassigned
-		} else {
-			apiPullRequest.Action = api.HookIssueAssigned
-		}
-		// Assignee comment triggers a webhook
-		if err := prepareWebhooks(sess, issue.Repo, HookEventPullRequest, apiPullRequest); err != nil {
-			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
-			return false, nil, err
-		}
-	} else {
-		mode, _ := accessLevelUnit(sess, doer, issue.Repo, UnitTypeIssues)
-
-		apiIssue := &api.IssuePayload{
-			Index:      issue.Index,
-			Issue:      issue.apiFormat(sess),
-			Repository: issue.Repo.innerAPIFormat(sess, mode, false),
-			Sender:     doer.APIFormat(),
-		}
-		if removed {
-			apiIssue.Action = api.HookIssueUnassigned
-		} else {
-			apiIssue.Action = api.HookIssueAssigned
-		}
-		// Assignee comment triggers a webhook
-		if err := prepareWebhooks(sess, issue.Repo, HookEventIssues, apiIssue); err != nil {
-			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
-			return false, nil, err
-		}
-	}
 	return removed, comment, nil
 }
 
