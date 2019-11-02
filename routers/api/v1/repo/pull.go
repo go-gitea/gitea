@@ -19,7 +19,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	issue_service "code.gitea.io/gitea/services/issue"
-	milestone_service "code.gitea.io/gitea/services/milestone"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -427,7 +426,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone
-		if err = milestone_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+		if err = issue_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
 			ctx.Error(500, "ChangeMilestoneAssign", err)
 			return
 		}

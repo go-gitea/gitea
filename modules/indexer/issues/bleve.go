@@ -218,9 +218,18 @@ func (b *BleveIndexer) Delete(ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *BleveIndexer) Search(keyword string, repoID int64, limit, start int) (*SearchResult, error) {
+func (b *BleveIndexer) Search(keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
+	var repoQueriesP []*query.NumericRangeQuery
+	for _, repoID := range repoIDs {
+		repoQueriesP = append(repoQueriesP, numericEqualityQuery(repoID, "RepoID"))
+	}
+	repoQueries := make([]query.Query, len(repoQueriesP))
+	for i, v := range repoQueriesP {
+		repoQueries[i] = query.Query(v)
+	}
+
 	indexerQuery := bleve.NewConjunctionQuery(
-		numericEqualityQuery(repoID, "RepoID"),
+		bleve.NewDisjunctionQuery(repoQueries...),
 		bleve.NewDisjunctionQuery(
 			newMatchPhraseQuery(keyword, "Title", issueIndexerAnalyzer),
 			newMatchPhraseQuery(keyword, "Content", issueIndexerAnalyzer),
@@ -242,8 +251,7 @@ func (b *BleveIndexer) Search(keyword string, repoID int64, limit, start int) (*
 			return nil, err
 		}
 		ret.Hits = append(ret.Hits, Match{
-			ID:     id,
-			RepoID: repoID,
+			ID: id,
 		})
 	}
 	return &ret, nil

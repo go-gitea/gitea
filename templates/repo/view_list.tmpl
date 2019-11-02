@@ -1,4 +1,4 @@
-<table id="repo-files-table" class="ui single line table fixed">
+<table id="repo-files-table" class="ui single line table">
 	<thead>
 		<tr class="commit-list">
 			<th colspan="2">
@@ -62,7 +62,7 @@
 						</span>
 					</td>
 				{{else}}
-					<td class="name">
+					<td class="name four wide">
 						<span class="truncate">
 							{{if $entry.IsDir}}
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
@@ -82,12 +82,12 @@
 						</span>
 					</td>
 				{{end}}
-				<td class="message">
+				<td class="message nine wide">
 					<span class="truncate has-emoji">
 						<a href="{{$.RepoLink}}/commit/{{$commit.ID}}" title="{{$commit.Summary}}">{{$commit.Summary}}</a>
 					</span>
 				</td>
-				<td class="text grey right age">{{TimeSince $commit.Committer.When $.Lang}}</td>
+				<td class="text grey right age three wide">{{TimeSince $commit.Committer.When $.Lang}}</td>
 			</tr>
 		{{end}}
 	</tbody>

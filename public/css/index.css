@@ -78,6 +78,7 @@ a{cursor:pointer}
 .ui.form .ui.button{font-weight:400}
 .ui.floating.label{z-index:10}
 .ui.transparent.label{background-color:transparent}
+.ui.nopadding{padding:0}
 .ui.menu,.ui.segment,.ui.vertical.menu{box-shadow:none}
 .ui .menu:not(.vertical) .item>.button.compact{padding:.58928571em 1.125em}
 .ui .menu:not(.vertical) .item>.button.small{font-size:.92857143rem}
@@ -109,6 +110,8 @@ a{cursor:pointer}
 .ui .text.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
 .ui .text.thin{font-weight:400}
 .ui .text.middle{vertical-align:middle}
+.ui .text.nopadding{padding:0}
+.ui .text.nomargin{margin:0}
 .ui .message{text-align:center}
 .ui.bottom.attached.message{font-weight:700;text-align:left;color:#000}
 .ui.bottom.attached.message .pull-right{color:#000}
@@ -898,6 +901,7 @@ tbody.commit-list{vertical-align:baseline}
 .file-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px!important}
 .file-info{display:flex;align-items:center}
 .file-info-entry+.file-info-entry{border-left:1px solid currentColor;margin-left:8px;padding-left:8px}
+.title_wip_desc{margin-top:1em}
 .CodeMirror{font:14px 'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace}
 .CodeMirror.cm-s-default{border-radius:3px;padding:0!important}
 .CodeMirror .cm-comment{background:inherit!important}
