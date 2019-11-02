@@ -5,15 +5,28 @@
 package repository
 
 import (
+	"sync"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/notification/action"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
 )
 
+var notifySync sync.Once
+
+func registerNotifier() {
+	notifySync.Do(func() {
+		notification.RegisterNotifier(action.NewNotifier())
+	})
+}
+
 func TestTransferOwnership(t *testing.T) {
+	registerNotifier()
+
 	assert.NoError(t, models.PrepareTestDatabase())
 
 	doer := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
