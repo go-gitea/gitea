@@ -40,7 +40,7 @@ func TestRenameRepoAction(t *testing.T) {
 	}
 	models.AssertNotExistsBean(t, actionBean)
 
-	NewNotifier().NotifyRenameRepository(user, oldRepoName, repo)
+	NewNotifier().NotifyRenameRepository(user, repo, oldRepoName)
 
 	models.AssertExistsAndLoadBean(t, actionBean)
 	models.CheckConsistencyFor(t, &models.Action{})
