@@ -28,11 +28,14 @@ func IsBranchExist(repoPath, name string) bool {
 
 // IsBranchExist returns true if given branch exists in current repository.
 func (repo *Repository) IsBranchExist(name string) bool {
-	_, err := repo.gogitRepo.Reference(plumbing.ReferenceName(BranchPrefix+name), true)
+	if name == "" {
+		return false
+	}
+	reference, err := repo.gogitRepo.Reference(plumbing.ReferenceName(BranchPrefix+name), true)
 	if err != nil {
 		return false
 	}
-	return true
+	return reference.Type() != plumbing.InvalidReference
 }
 
 // Branch represents a Git branch.
@@ -77,7 +80,7 @@ func (repo *Repository) GetBranches() ([]string, error) {
 		return nil, err
 	}
 
-	branches.ForEach(func(branch *plumbing.Reference) error {
+	_ = branches.ForEach(func(branch *plumbing.Reference) error {
 		branchNames = append(branchNames, strings.TrimPrefix(branch.Name().String(), BranchPrefix))
 		return nil
 	})
@@ -138,7 +141,7 @@ func (repo *Repository) DeleteBranch(name string, opts DeleteBranchOptions) erro
 		cmd.AddArguments("-d")
 	}
 
-	cmd.AddArguments(name)
+	cmd.AddArguments("--", name)
 	_, err := cmd.RunInDir(repo.Path)
 
 	return err
@@ -168,7 +171,7 @@ func (repo *Repository) AddRemote(name, url string, fetch bool) error {
 
 // RemoveRemote removes a remote from repository.
 func (repo *Repository) RemoveRemote(name string) error {
-	_, err := NewCommand("remote", "remove", name).RunInDir(repo.Path)
+	_, err := NewCommand("remote", "rm", name).RunInDir(repo.Path)
 	return err
 }
 

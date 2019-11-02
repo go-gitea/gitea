@@ -5,10 +5,9 @@
 package org
 
 import (
+	"net/http"
 	"path"
 	"strings"
-
-	"github.com/Unknwon/com"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -16,6 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/routers/utils"
+
+	"github.com/unknwon/com"
 )
 
 const (
@@ -287,7 +288,11 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 				Type:   tp,
 			})
 		}
-		models.UpdateTeamUnits(t, units)
+		err := models.UpdateTeamUnits(t, units)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "LoadIssue", err.Error())
+			return
+		}
 	}
 
 	if ctx.HasError() {

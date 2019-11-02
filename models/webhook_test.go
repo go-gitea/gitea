@@ -253,23 +253,3 @@ func TestUpdateHookTask(t *testing.T) {
 	assert.NoError(t, UpdateHookTask(hook))
 	AssertExistsAndLoadBean(t, hook)
 }
-
-func TestPrepareWebhooks(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	hookTasks := []*HookTask{
-		{RepoID: repo.ID, HookID: 1, EventType: HookEventPush},
-	}
-	for _, hookTask := range hookTasks {
-		AssertNotExistsBean(t, hookTask)
-	}
-	assert.NoError(t, PrepareWebhooks(repo, HookEventPush, &api.PushPayload{}))
-	for _, hookTask := range hookTasks {
-		AssertExistsAndLoadBean(t, hookTask)
-	}
-}
-
-// TODO TestHookTask_deliver
-
-// TODO TestDeliverHooks

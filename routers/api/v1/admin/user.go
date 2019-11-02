@@ -6,13 +6,16 @@
 package admin
 
 import (
+	"errors"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/password"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/services/mailer"
 )
 
 func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, loginName string) {
@@ -73,7 +76,11 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	if ctx.Written() {
 		return
 	}
-
+	if !password.IsComplexEnough(form.Password) {
+		err := errors.New("PasswordComplexity")
+		ctx.Error(400, "PasswordComplexity", err)
+		return
+	}
 	if err := models.CreateUser(u); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrEmailAlreadyUsed(err) ||
@@ -88,11 +95,10 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	log.Trace("Account created by admin (%s): %s", ctx.User.Name, u.Name)
 
 	// Send email notification.
-	if form.SendNotify && setting.MailService != nil {
-		models.SendRegisterNotifyMail(ctx.Context.Context, u)
+	if form.SendNotify {
+		mailer.SendRegisterNotifyMail(ctx.Locale, u)
 	}
-
-	ctx.JSON(201, u.APIFormat())
+	ctx.JSON(201, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
 // EditUser api for modifying a user's information
@@ -132,6 +138,11 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	}
 
 	if len(form.Password) > 0 {
+		if !password.IsComplexEnough(form.Password) {
+			err := errors.New("PasswordComplexity")
+			ctx.Error(400, "PasswordComplexity", err)
+			return
+		}
 		var err error
 		if u.Salt, err = models.GetUserSalt(); err != nil {
 			ctx.Error(500, "UpdateUser", err)
@@ -181,7 +192,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	}
 	log.Trace("Account profile updated by admin (%s): %s", ctx.User.Name, u.Name)
 
-	ctx.JSON(200, u.APIFormat())
+	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
 // DeleteUser api for deleting a user
@@ -326,7 +337,7 @@ func GetAllUsers(ctx *context.APIContext) {
 
 	results := make([]*api.User, len(users))
 	for i := range users {
-		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User.IsAdmin)
 	}
 
 	ctx.JSON(200, &results)

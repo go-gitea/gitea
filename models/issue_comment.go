@@ -7,22 +7,20 @@
 package models
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
-
-	api "code.gitea.io/gitea/modules/structs"
-
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/structs"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
+
+	"github.com/unknwon/com"
+	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
@@ -99,10 +97,12 @@ const (
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID               int64 `xorm:"pk autoincr"`
-	Type             CommentType
-	PosterID         int64  `xorm:"INDEX"`
-	Poster           *User  `xorm:"-"`
+	ID               int64       `xorm:"pk autoincr"`
+	Type             CommentType `xorm:"index"`
+	PosterID         int64       `xorm:"INDEX"`
+	Poster           *User       `xorm:"-"`
+	OriginalAuthor   string
+	OriginalAuthorID int64
 	IssueID          int64  `xorm:"INDEX"`
 	Issue            *Issue `xorm:"-"`
 	LabelID          int64
@@ -128,8 +128,8 @@ type Comment struct {
 	// Path represents the 4 lines of code cemented by this comment
 	Patch string `xorm:"TEXT"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
 	CommitSHA string `xorm:"VARCHAR(40)"`
@@ -141,21 +141,37 @@ type Comment struct {
 	ShowTag CommentTag `xorm:"-"`
 
 	Review      *Review `xorm:"-"`
-	ReviewID    int64
+	ReviewID    int64   `xorm:"index"`
 	Invalidated bool
+
+	// Reference an issue or pull from another comment, issue or PR
+	// All information is about the origin of the reference
+	RefRepoID    int64                 `xorm:"index"` // Repo where the referencing
+	RefIssueID   int64                 `xorm:"index"`
+	RefCommentID int64                 `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
+	RefAction    references.XRefAction `xorm:"SMALLINT"` // What hapens if RefIssueID resolves
+	RefIsPull    bool
+
+	RefRepo    *Repository `xorm:"-"`
+	RefIssue   *Issue      `xorm:"-"`
+	RefComment *Comment    `xorm:"-"`
 }
 
 // LoadIssue loads issue from database
 func (c *Comment) LoadIssue() (err error) {
+	return c.loadIssue(x)
+}
+
+func (c *Comment) loadIssue(e Engine) (err error) {
 	if c.Issue != nil {
 		return nil
 	}
-	c.Issue, err = GetIssueByID(c.IssueID)
+	c.Issue, err = getIssueByID(e, c.IssueID)
 	return
 }
 
 func (c *Comment) loadPoster(e Engine) (err error) {
-	if c.Poster != nil {
+	if c.PosterID <= 0 || c.Poster != nil {
 		return nil
 	}
 
@@ -167,17 +183,6 @@ func (c *Comment) loadPoster(e Engine) (err error) {
 		} else {
 			log.Error("getUserByID[%d]: %v", c.ID, err)
 		}
-	}
-	return err
-}
-
-func (c *Comment) loadAttachments(e Engine) (err error) {
-	if len(c.Attachments) > 0 {
-		return
-	}
-	c.Attachments, err = getAttachmentsByCommentID(e, c.ID)
-	if err != nil {
-		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
 	}
 	return err
 }
@@ -335,21 +340,7 @@ func (c *Comment) LoadMilestone() error {
 
 // LoadPoster loads comment poster
 func (c *Comment) LoadPoster() error {
-	if c.PosterID <= 0 || c.Poster != nil {
-		return nil
-	}
-
-	var err error
-	c.Poster, err = getUserByID(x, c.PosterID)
-	if err != nil {
-		if IsErrUserNotExist(err) {
-			c.PosterID = -1
-			c.Poster = NewGhostUser()
-		} else {
-			log.Error("getUserByID[%d]: %v", c.ID, err)
-		}
-	}
-	return nil
+	return c.loadPoster(x)
 }
 
 // LoadAttachments loads attachments
@@ -364,6 +355,27 @@ func (c *Comment) LoadAttachments() error {
 		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
 	}
 	return nil
+}
+
+// UpdateAttachments update attachments by UUIDs for the comment
+func (c *Comment) UpdateAttachments(uuids []string) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	attachments, err := getAttachmentsByUUIDs(sess, uuids)
+	if err != nil {
+		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", uuids, err)
+	}
+	for i := 0; i < len(attachments); i++ {
+		attachments[i].IssueID = c.IssueID
+		attachments[i].CommentID = c.ID
+		if err := updateAttachment(sess, attachments[i]); err != nil {
+			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
+		}
+	}
+	return sess.Commit()
 }
 
 // LoadAssigneeUser if comment.Type is CommentTypeAssignees, then load assignees
@@ -389,33 +401,6 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	}
 	c.DependentIssue, err = getIssueByID(x, c.DependentIssueID)
 	return err
-}
-
-// MailParticipants sends new comment emails to repository watchers
-// and mentioned people.
-func (c *Comment) MailParticipants(opType ActionType, issue *Issue) (err error) {
-	return c.mailParticipants(x, opType, issue)
-}
-
-func (c *Comment) mailParticipants(e Engine, opType ActionType, issue *Issue) (err error) {
-	mentions := markup.FindAllMentions(c.Content)
-	if err = UpdateIssueMentions(e, c.IssueID, mentions); err != nil {
-		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
-	}
-
-	content := c.Content
-
-	switch opType {
-	case ActionCloseIssue:
-		content = fmt.Sprintf("Closed #%d", issue.Index)
-	case ActionReopenIssue:
-		content = fmt.Sprintf("Reopened #%d", issue.Index)
-	}
-	if err = mailIssueCommentToParticipants(e, issue, c.Poster, content, c, mentions); err != nil {
-		log.Error("mailIssueCommentToParticipants: %v", err)
-	}
-
-	return nil
 }
 
 func (c *Comment) loadReactions(e Engine) (err error) {
@@ -456,15 +441,19 @@ func (c *Comment) LoadReview() error {
 	return c.loadReview(x)
 }
 
-func (c *Comment) checkInvalidation(e Engine, doer *User, repo *git.Repository, branch string) error {
+func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
 	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
+	if err != nil && strings.Contains(err.Error(), "fatal: no such path") {
+		c.Invalidated = true
+		return UpdateComment(c, doer)
+	}
 	if err != nil {
 		return err
 	}
 	if c.CommitSHA != "" && c.CommitSHA != commit.ID.String() {
 		c.Invalidated = true
-		return UpdateComment(doer, c, "")
+		return UpdateComment(c, doer)
 	}
 	return nil
 }
@@ -472,7 +461,7 @@ func (c *Comment) checkInvalidation(e Engine, doer *User, repo *git.Repository, 
 // CheckInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
 func (c *Comment) CheckInvalidation(repo *git.Repository, doer *User, branch string) error {
-	return c.checkInvalidation(x, doer, repo, branch)
+	return c.checkInvalidation(doer, repo, branch)
 }
 
 // DiffSide returns "previous" if Comment.Line is a LOC of the previous changes and "proposed" if it is a LOC of the proposed changes.
@@ -489,32 +478,6 @@ func (c *Comment) UnsignedLine() uint64 {
 		return uint64(c.Line * -1)
 	}
 	return uint64(c.Line)
-}
-
-// AsDiff returns c.Patch as *Diff
-func (c *Comment) AsDiff() (*Diff, error) {
-	diff, err := ParsePatch(setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch))
-	if err != nil {
-		return nil, err
-	}
-	if len(diff.Files) == 0 {
-		return nil, fmt.Errorf("no file found for comment ID: %d", c.ID)
-	}
-	secs := diff.Files[0].Sections
-	if len(secs) == 0 {
-		return nil, fmt.Errorf("no sections found for comment ID: %d", c.ID)
-	}
-	return diff, nil
-}
-
-// MustAsDiff executes AsDiff and logs the error instead of returning
-func (c *Comment) MustAsDiff() *Diff {
-	diff, err := c.AsDiff()
-	if err != nil {
-		log.Warn("MustAsDiff: %v", err)
-	}
-	return diff
 }
 
 // CodeCommentURL returns the url to a comment in code
@@ -558,6 +521,11 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		TreePath:         opts.TreePath,
 		ReviewID:         opts.ReviewID,
 		Patch:            opts.Patch,
+		RefRepoID:        opts.RefRepoID,
+		RefIssueID:       opts.RefIssueID,
+		RefCommentID:     opts.RefCommentID,
+		RefAction:        opts.RefAction,
+		RefIsPull:        opts.RefIsPull,
 	}
 	if _, err = e.Insert(comment); err != nil {
 		return nil, err
@@ -568,6 +536,10 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	}
 
 	if err = sendCreateCommentAction(e, opts, comment); err != nil {
+		return nil, err
+	}
+
+	if err = comment.addCrossReferences(e, opts.Doer); err != nil {
 		return nil, err
 	}
 
@@ -636,12 +608,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 			act.OpType = ActionReopenPullRequest
 		}
 
-		if opts.Issue.IsPull {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=num_closed_pulls-1 WHERE id=?", opts.Repo.ID)
-		} else {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_issues=num_closed_issues-1 WHERE id=?", opts.Repo.ID)
-		}
-		if err != nil {
+		if err = opts.Issue.updateClosedNum(e); err != nil {
 			return err
 		}
 
@@ -651,12 +618,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 			act.OpType = ActionClosePullRequest
 		}
 
-		if opts.Issue.IsPull {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_pulls=num_closed_pulls+1 WHERE id=?", opts.Repo.ID)
-		} else {
-			_, err = e.Exec("UPDATE `repository` SET num_closed_issues=num_closed_issues+1 WHERE id=?", opts.Repo.ID)
-		}
-		if err != nil {
+		if err = opts.Issue.updateClosedNum(e); err != nil {
 			return err
 		}
 	}
@@ -723,7 +685,7 @@ func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue 
 	})
 }
 
-func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix util.TimeStamp) (*Comment, error) {
+func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
 
 	var content string
 	var commentType CommentType
@@ -835,6 +797,11 @@ type CreateCommentOptions struct {
 	ReviewID         int64
 	Content          string
 	Attachments      []string // UUIDs of attachments
+	RefRepoID        int64
+	RefIssueID       int64
+	RefCommentID     int64
+	RefAction        references.XRefAction
+	RefIsPull        bool
 }
 
 // CreateComment creates comment of issue or commit.
@@ -855,88 +822,6 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 	}
 
 	return comment, nil
-}
-
-// CreateIssueComment creates a plain issue comment.
-func CreateIssueComment(doer *User, repo *Repository, issue *Issue, content string, attachments []string) (*Comment, error) {
-	comment, err := CreateComment(&CreateCommentOptions{
-		Type:        CommentTypeComment,
-		Doer:        doer,
-		Repo:        repo,
-		Issue:       issue,
-		Content:     content,
-		Attachments: attachments,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("CreateComment: %v", err)
-	}
-
-	mode, _ := AccessLevel(doer, repo)
-	if err = PrepareWebhooks(repo, HookEventIssueComment, &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentCreated,
-		Issue:      issue.APIFormat(),
-		Comment:    comment.APIFormat(),
-		Repository: repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
-	} else {
-		go HookQueue.Add(repo.ID)
-	}
-	return comment, nil
-}
-
-// CreateCodeComment creates a plain code comment at the specified line / path
-func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, treePath string, line, reviewID int64) (*Comment, error) {
-	var commitID, patch string
-	pr, err := GetPullRequestByIssueID(issue.ID)
-	if err != nil {
-		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
-	}
-	if err := pr.GetBaseRepo(); err != nil {
-		return nil, fmt.Errorf("GetHeadRepo: %v", err)
-	}
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %v", err)
-	}
-
-	// FIXME validate treePath
-	// Get latest commit referencing the commented line
-	// No need for get commit for base branch changes
-	if line > 0 {
-		commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(line))
-		if err == nil {
-			commitID = commit.ID.String()
-		} else if err != nil && !strings.Contains(err.Error(), "exit status 128 - fatal: no such path") {
-			return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
-		}
-	}
-
-	// Only fetch diff if comment is review comment
-	if reviewID != 0 {
-		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
-		if err != nil {
-			return nil, fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
-		}
-		patchBuf := new(bytes.Buffer)
-		if err := GetRawDiffForFile(gitRepo.Path, pr.MergeBase, headCommitID, RawDiffNormal, treePath, patchBuf); err != nil {
-			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", err, gitRepo.Path, pr.MergeBase, headCommitID, treePath)
-		}
-		patch = CutDiffAroundLine(strings.NewReader(patchBuf.String()), int64((&Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
-	}
-	return CreateComment(&CreateCommentOptions{
-		Type:      CommentTypeCode,
-		Doer:      doer,
-		Repo:      repo,
-		Issue:     issue,
-		Content:   content,
-		LineNum:   line,
-		TreePath:  treePath,
-		CommitSHA: commitID,
-		ReviewID:  reviewID,
-		Patch:     patch,
-	})
 }
 
 // CreateRefComment creates a commit reference comment to issue.
@@ -1027,48 +912,34 @@ func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(doer *User, c *Comment, oldContent string) error {
-	if _, err := x.ID(c.ID).AllCols().Update(c); err != nil {
+func UpdateComment(c *Comment, doer *User) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err := c.LoadPoster(); err != nil {
+	if _, err := sess.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
 	}
-	if err := c.LoadIssue(); err != nil {
+	if err := c.loadIssue(sess); err != nil {
 		return err
 	}
-
-	if err := c.Issue.LoadAttributes(); err != nil {
+	if err := c.neuterCrossReferences(sess); err != nil {
 		return err
 	}
-	if err := c.loadPoster(x); err != nil {
+	if err := c.addCrossReferences(sess, doer); err != nil {
 		return err
 	}
-
-	mode, _ := AccessLevel(doer, c.Issue.Repo)
-	if err := PrepareWebhooks(c.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
-		Action:  api.HookIssueCommentEdited,
-		Issue:   c.Issue.APIFormat(),
-		Comment: c.APIFormat(),
-		Changes: &api.ChangesPayload{
-			Body: &api.ChangesFromPayload{
-				From: oldContent,
-			},
-		},
-		Repository: c.Issue.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
-	} else {
-		go HookQueue.Add(c.Issue.Repo.ID)
+	if err := sess.Commit(); err != nil {
+		return fmt.Errorf("Commit: %v", err)
 	}
 
 	return nil
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(doer *User, comment *Comment) error {
+func DeleteComment(comment *Comment, doer *User) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -1090,40 +961,11 @@ func DeleteComment(doer *User, comment *Comment) error {
 		return err
 	}
 
-	if err := sess.Commit(); err != nil {
-		return err
-	}
-	sess.Close()
-
-	if err := comment.LoadPoster(); err != nil {
-		return err
-	}
-	if err := comment.LoadIssue(); err != nil {
+	if err := comment.neuterCrossReferences(sess); err != nil {
 		return err
 	}
 
-	if err := comment.Issue.LoadAttributes(); err != nil {
-		return err
-	}
-	if err := comment.loadPoster(x); err != nil {
-		return err
-	}
-
-	mode, _ := AccessLevel(doer, comment.Issue.Repo)
-
-	if err := PrepareWebhooks(comment.Issue.Repo, HookEventIssueComment, &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentDeleted,
-		Issue:      comment.Issue.APIFormat(),
-		Comment:    comment.APIFormat(),
-		Repository: comment.Issue.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
-	} else {
-		go HookQueue.Add(comment.Issue.Repo.ID)
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
@@ -1205,4 +1047,24 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
 func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 	return fetchCodeComments(x, issue, currentUser)
+}
+
+// UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
+func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
+	_, err := x.Table("comment").
+		Where(builder.In("issue_id",
+			builder.Select("issue.id").
+				From("issue").
+				InnerJoin("repository", "issue.repo_id = repository.id").
+				Where(builder.Eq{
+					"repository.original_service_type": tp,
+				}),
+		)).
+		And("comment.original_author_id = ?", originalAuthorID).
+		Update(map[string]interface{}{
+			"poster_id":          posterID,
+			"original_author":    "",
+			"original_author_id": 0,
+		})
+	return err
 }

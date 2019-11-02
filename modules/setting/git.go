@@ -16,12 +16,14 @@ import (
 var (
 	// Git settings
 	Git = struct {
-		DisableDiffHighlight     bool
-		MaxGitDiffLines          int
-		MaxGitDiffLineCharacters int
-		MaxGitDiffFiles          int
-		GCArgs                   []string `delim:" "`
-		Timeout                  struct {
+		Path                      string
+		DisableDiffHighlight      bool
+		MaxGitDiffLines           int
+		MaxGitDiffLineCharacters  int
+		MaxGitDiffFiles           int
+		GCArgs                    []string `ini:"GC_ARGS" delim:" "`
+		EnableAutoGitWireProtocol bool
+		Timeout                   struct {
 			Default int
 			Migrate int
 			Mirror  int
@@ -30,11 +32,12 @@ var (
 			GC      int `ini:"GC"`
 		} `ini:"git.timeout"`
 	}{
-		DisableDiffHighlight:     false,
-		MaxGitDiffLines:          1000,
-		MaxGitDiffLineCharacters: 5000,
-		MaxGitDiffFiles:          100,
-		GCArgs:                   []string{},
+		DisableDiffHighlight:      false,
+		MaxGitDiffLines:           1000,
+		MaxGitDiffLineCharacters:  5000,
+		MaxGitDiffFiles:           100,
+		GCArgs:                    []string{},
+		EnableAutoGitWireProtocol: true,
 		Timeout: struct {
 			Default int
 			Migrate int
@@ -57,6 +60,9 @@ func newGit() {
 	if err := Cfg.Section("git").MapTo(&Git); err != nil {
 		log.Fatal("Failed to map Git settings: %v", err)
 	}
+	if err := git.SetExecutablePath(Git.Path); err != nil {
+		log.Fatal("Failed to initialize Git settings", err)
+	}
 	git.DefaultCommandExecutionTimeout = time.Duration(Git.Timeout.Default) * time.Second
 
 	binVersion, err := git.BinVersion()
@@ -64,10 +70,19 @@ func newGit() {
 		log.Fatal("Error retrieving git version: %v", err)
 	}
 
-	log.Info("Git Version: %s", binVersion)
-
 	if version.Compare(binVersion, "2.9", ">=") {
 		// Explicitly disable credential helper, otherwise Git credentials might leak
 		git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "credential.helper=")
 	}
+
+	var format = "Git Version: %s"
+	var args = []interface{}{binVersion}
+	// Since git wire protocol has been released from git v2.18
+	if Git.EnableAutoGitWireProtocol && version.Compare(binVersion, "2.18", ">=") {
+		git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "protocol.version=2")
+		format += ", Wire Protocol %s Enabled"
+		args = append(args, "Version 2") // for focus color
+	}
+
+	log.Info(format, args...)
 }

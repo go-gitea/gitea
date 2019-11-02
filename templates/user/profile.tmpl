@@ -13,11 +13,11 @@
 							<img src="{{.Owner.SizedRelAvatarLink 290}}" title="{{.Owner.Name}}"/>
 						</span>
 					{{end}}
-					<div class="content">
+					<div class="content wrap">
 						{{if .Owner.FullName}}<span class="header text center">{{.Owner.FullName}}</span>{{end}}
 						<span class="username text center">{{.Owner.Name}}</span>
 					</div>
-					<div class="extra content">
+					<div class="extra content wrap">
 						<ul class="text black">
 							{{if .Owner.Location}}
 								<li><i class="octicon octicon-location"></i> {{.Owner.Location}}</li>

@@ -27,7 +27,6 @@ log groups:
 * The Router logger
 * The Access logger
 * The XORM logger
-* A logger called the `GitLogger` which is used during hooks.
 
 There is also the go log logger.
 
@@ -179,21 +178,6 @@ which will not be inherited from the `[log]` or relevant
 * `FLAGS` defaults to `date,time`
 * `EXPRESSION` will default to `""`
 * `PREFIX` will default to `""`
-
-### The Hook and Serv "GitLoggers"
-
-These are less well defined loggers. Essentially these should only be
-used within Gitea's subsystems and cannot be configured at present.
-
-They will write log files in:
-
-* `%(ROOT_PATH)/hooks/pre-receive.log`
-* `%(ROOT_PATH)/hooks/update.log`
-* `%(ROOT_PATH)/hooks/post-receive.log`
-* `%(ROOT_PATH)/serv.log`
-* `%(ROOT_PATH)/http.log`
-
-In the future these logs may be rationalised.
 
 ## Log outputs
 

@@ -9,12 +9,11 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/util"
-
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
-// ListMilestones list all the opened milestones for a repository
+// ListMilestones list milestones for a repository
 func ListMilestones(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/milestones issue issueGetMilestonesList
 	// ---
@@ -32,10 +31,14 @@ func ListMilestones(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: state
+	//   in: query
+	//   description: Milestone state, Recognised values are open, closed and all. Defaults to "open"
+	//   type: string
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/MilestoneList"
-	milestones, err := models.GetMilestonesByRepoID(ctx.Repo.Repository.ID)
+	milestones, err := models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")))
 	if err != nil {
 		ctx.Error(500, "GetMilestonesByRepoID", err)
 		return
@@ -123,7 +126,7 @@ func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
 		RepoID:       ctx.Repo.Repository.ID,
 		Name:         form.Title,
 		Content:      form.Description,
-		DeadlineUnix: util.TimeStamp(form.Deadline.Unix()),
+		DeadlineUnix: timeutil.TimeStamp(form.Deadline.Unix()),
 	}
 
 	if err := models.NewMilestone(milestone); err != nil {
@@ -183,7 +186,7 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 		milestone.Content = *form.Description
 	}
 	if form.Deadline != nil && !form.Deadline.IsZero() {
-		milestone.DeadlineUnix = util.TimeStamp(form.Deadline.Unix())
+		milestone.DeadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
 	if err := models.UpdateMilestone(milestone); err != nil {

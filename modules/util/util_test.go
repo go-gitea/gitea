@@ -46,7 +46,7 @@ func TestURLJoin(t *testing.T) {
 }
 
 func TestIsExternalURL(t *testing.T) {
-	setting.Domain = "try.gitea.io"
+	setting.AppURL = "https://try.gitea.io"
 	type test struct {
 		Expected bool
 		RawURL   string

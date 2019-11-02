@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -29,21 +30,20 @@ func TestGiteaUploadRepo(t *testing.T) {
 		uploader   = NewGiteaLocalUploader(user, user.Name, repoName)
 	)
 
-	err := migrateRepository(downloader, uploader, MigrateOptions{
-		RemoteURL:    "https://github.com/go-xorm/builder",
-		Name:         repoName,
+	err := migrateRepository(downloader, uploader, structs.MigrateRepoOption{
+		CloneAddr:    "https://github.com/go-xorm/builder",
+		RepoName:     repoName,
 		AuthUsername: "",
 
-		Wiki:              true,
-		Issues:            true,
-		Milestones:        true,
-		Labels:            true,
-		Releases:          true,
-		Comments:          true,
-		PullRequests:      true,
-		Private:           true,
-		Mirror:            false,
-		IgnoreIssueAuthor: false,
+		Wiki:         true,
+		Issues:       true,
+		Milestones:   true,
+		Labels:       true,
+		Releases:     true,
+		Comments:     true,
+		PullRequests: true,
+		Private:      true,
+		Mirror:       false,
 	})
 	assert.NoError(t, err)
 

@@ -75,7 +75,7 @@ func (*NullNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release)
 }
 
 // NotifyIssueChangeMilestone places a place holder function
-func (*NullNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue) {
+func (*NullNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64) {
 }
 
 // NotifyIssueChangeContent places a place holder function
@@ -83,7 +83,7 @@ func (*NullNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.I
 }
 
 // NotifyIssueChangeAssignee places a place holder function
-func (*NullNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, removed bool) {
+func (*NullNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
 }
 
 // NotifyIssueClearLabels places a place holder function
