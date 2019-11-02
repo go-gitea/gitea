@@ -265,6 +265,10 @@ func (t *Team) AddRepository(repo *Repository) (err error) {
 }
 
 func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (err error) {
+	if t.IncludesAllRepositories {
+		return nil
+	}
+
 	if err = removeTeamRepo(e, t.ID, repo.ID); err != nil {
 		return err
 	}
@@ -309,10 +313,6 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 // RemoveRepository removes repository from team of organization.
 func (t *Team) RemoveRepository(repoID int64) error {
 	if !t.HasRepository(repoID) {
-		return nil
-	}
-
-	if t.IncludesAllRepositories {
 		return nil
 	}
 
