@@ -88,11 +88,11 @@ func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
 }
 
 // LoadWatchUsers return watching users
-func (iwl IssueWatchList) LoadWatchUsers() (err error, users UserList) {
+func (iwl IssueWatchList) LoadWatchUsers() (users UserList, err error) {
 	return iwl.loadWatchUsers(x)
 }
 
-func (iwl IssueWatchList) loadWatchUsers(e Engine) (err error, users UserList) {
+func (iwl IssueWatchList) loadWatchUsers(e Engine) (users UserList, err error) {
 	if len(iwl) == 0 {
 		return nil, nil
 	}

@@ -206,7 +206,7 @@ func GetIssueSubscribers(ctx *context.APIContext, form api.User) {
 		return
 	}
 
-	err, users := models.IssueWatchList.LoadWatchUsers(iwl)
+	users, err := models.IssueWatchList.LoadWatchUsers(iwl)
 	if err != nil {
 		ctx.Error(500, "LoadWatchUsers", err)
 		return
