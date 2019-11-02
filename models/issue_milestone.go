@@ -538,7 +538,6 @@ func GetMilestonesByRepoIDs(repoIDs []int64, page int, isClosed bool, sortType s
 // UserMilestoneStats represents milestone statistic information.
 type UserMilestoneStats struct {
 	OpenCount, ClosedCount int64
-	YourRepositoriesCount  int64
 }
 
 // GetUserMilestoneStats returns milestone statistic information for dashboard by given conditions.
@@ -558,13 +557,6 @@ func GetUserMilestoneStats(userID int64, repoID int64, userRepoIDs []int64) (*Us
 		return nil, err
 	}
 	stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
-		And(builder.In("repo_id", userRepoIDs)).
-		Count(new(Milestone))
-	if err != nil {
-		return nil, err
-	}
-
-	stats.YourRepositoriesCount, err = x.Where(cond).
 		And(builder.In("repo_id", userRepoIDs)).
 		Count(new(Milestone))
 	if err != nil {

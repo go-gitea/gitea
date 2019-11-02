@@ -353,5 +353,26 @@ func TestGetMilestonesByRepoIDs(t *testing.T) {
 	test("soonestduedate", func(milestone *Milestone) int {
 		return int(milestone.DeadlineUnix)
 	})
-
 }
+
+func TestLoadTotalTrackedTime(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	milestone := AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
+
+	assert.NoError(t, milestone.LoadTotalTrackedTime())
+
+	assert.Equal(t, milestone.TotalTrackedTime, int64(3662))
+}
+
+func TestGetUserMilestoneStats(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+
+	milestoneStats, err := models.GetUserMilestoneStats(user.ID, repo1.ID, []int64{repo1.ID, repo2.ID})
+	assert.NoError(t, err)
+	assert.EqualValues(t, repo1.NumOpenMilestones, milestoneStats.OpenCount)
+	assert.EqualValues(t, repo1.NumClosedMilestones, milestoneStats.ClosedCount)
+}
+	
