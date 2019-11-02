@@ -399,3 +399,50 @@ func (m *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models
 		go webhook_module.HookQueue.Add(comment.Issue.Repo.ID)
 	}
 }
+
+func (m *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
+	addedLabels []*models.Label, removedLabels []*models.Label) {
+	var err error
+
+	if err = issue.LoadRepo(); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+
+	if err = issue.LoadPoster(); err != nil {
+		log.Error("LoadPoster: %v", err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
+	if issue.IsPull {
+		if err = issue.LoadPullRequest(); err != nil {
+			log.Error("loadPullRequest: %v", err)
+			return
+		}
+		if err = issue.PullRequest.LoadIssue(); err != nil {
+			log.Error("LoadIssue: %v", err)
+			return
+		}
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+			Action:      api.HookIssueLabelUpdated,
+			Index:       issue.Index,
+			PullRequest: issue.PullRequest.APIFormat(),
+			Repository:  issue.Repo.APIFormat(models.AccessModeNone),
+			Sender:      doer.APIFormat(),
+		})
+	} else {
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+			Action:     api.HookIssueLabelUpdated,
+			Index:      issue.Index,
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		})
+	}
+	if err != nil {
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+	} else {
+		go webhook_module.HookQueue.Add(issue.RepoID)
+	}
+}
