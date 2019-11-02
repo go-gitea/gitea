@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-"C:/Users/jolheiser/go/src/code.gitea.io/gitea/gitea.exe" hook --config='C:/Users/jolheiser/go/src/code.gitea.io/gitea/custom/conf/app.ini' pre-receive
+"$GITEA_ROOT/gitea" hook --config="$GITEA_ROOT/$GITEA_CONF" pre-receive
