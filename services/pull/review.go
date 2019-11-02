@@ -56,7 +56,7 @@ func reviewHook(review *models.Review) error {
 	if err != nil {
 		return err
 	}
-	if err := webhook.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
+	return webhook.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
 		Index:       review.Issue.Index,
 		PullRequest: pr.APIFormat(),
@@ -66,9 +66,5 @@ func reviewHook(review *models.Review) error {
 			Type:    string(reviewHookType),
 			Content: review.Content,
 		},
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
