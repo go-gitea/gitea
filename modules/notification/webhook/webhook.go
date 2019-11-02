@@ -8,6 +8,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
@@ -459,5 +460,27 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *m
 	}
 	if err != nil {
 		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+	}
+}
+
+func (m *webhookNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+	apiPusher := pusher.APIFormat()
+	apiCommits, err := commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
+	if err != nil {
+		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
+		return
+	}
+
+	if err := webhook_module.PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{
+		Ref:        refName,
+		Before:     oldCommitID,
+		After:      newCommitID,
+		CompareURL: setting.AppURL + commits.CompareURL,
+		Commits:    apiCommits,
+		Repo:       repo.APIFormat(models.AccessModeOwner),
+		Pusher:     apiPusher,
+		Sender:     apiPusher,
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
 	}
 }
