@@ -28,10 +28,6 @@ func syncAction(opType models.ActionType, repo *models.Repository, refName strin
 		return fmt.Errorf("notifyWatchers: %v", err)
 	}
 
-	defer func() {
-		go webhook.HookQueue.Add(repo.ID)
-	}()
-
 	return nil
 }
 

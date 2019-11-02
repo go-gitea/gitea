@@ -20,8 +20,8 @@ import (
 	"github.com/gobwas/glob"
 )
 
-// HookQueue is a global queue of web hooks
-var HookQueue = sync.NewUniqueQueue(setting.Webhook.QueueLength)
+// hookQueue is a global queue of web hooks
+var hookQueue = sync.NewUniqueQueue(setting.Webhook.QueueLength)
 
 // getPayloadBranch returns branch for hook event, if applicable.
 func getPayloadBranch(p api.Payloader) string {
@@ -44,7 +44,12 @@ func getPayloadBranch(p api.Payloader) string {
 
 // PrepareWebhook adds special webhook to task queue for given payload.
 func PrepareWebhook(w *models.Webhook, repo *models.Repository, event models.HookEventType, p api.Payloader) error {
-	return prepareWebhook(w, repo, event, p)
+	if err := prepareWebhook(w, repo, event, p); err != nil {
+		return err
+	}
+
+	go hookQueue.Add(repo.ID)
+	return nil
 }
 
 func checkBranch(w *models.Webhook, branch string) bool {
@@ -147,7 +152,12 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 
 // PrepareWebhooks adds new webhooks to task queue for given payload.
 func PrepareWebhooks(repo *models.Repository, event models.HookEventType, p api.Payloader) error {
-	return prepareWebhooks(repo, event, p)
+	if err := prepareWebhooks(repo, event, p); err != nil {
+		return err
+	}
+
+	go hookQueue.Add(repo.ID)
+	return nil
 }
 
 func prepareWebhooks(repo *models.Repository, event models.HookEventType, p api.Payloader) error {
