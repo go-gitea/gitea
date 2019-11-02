@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/webhook"
 
 	"github.com/unknwon/com"
 )
@@ -864,11 +865,10 @@ func TestWebhook(ctx *context.Context) {
 		Pusher: apiUser,
 		Sender: apiUser,
 	}
-	if err := models.PrepareWebhook(w, ctx.Repo.Repository, models.HookEventPush, p); err != nil {
+	if err := webhook.PrepareWebhook(w, ctx.Repo.Repository, models.HookEventPush, p); err != nil {
 		ctx.Flash.Error("PrepareWebhook: " + err.Error())
 		ctx.Status(500)
 	} else {
-		go models.HookQueue.Add(ctx.Repo.Repository.ID)
 		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.test_delivery_success"))
 		ctx.Status(200)
 	}
