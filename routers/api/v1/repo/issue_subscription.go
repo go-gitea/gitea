@@ -200,22 +200,13 @@ func GetIssueSubscribers(ctx *context.APIContext, form api.User) {
 		return
 	}
 
-	iw, err := models.GetIssueWatchers(issue.ID)
+	iwl, err := models.GetIssueWatchers(issue.ID)
 	if err != nil {
 		ctx.Error(500, "GetIssueWatchers", err)
 		return
 	}
 
-	var subscribers []*api.User
-	for _, s := range iw {
-		if s.IsWatching {
-			user, err := models.GetUserByID(s.UserID)
-			if err != nil {
-				continue
-			}
-			subscribers = append(subscribers, user.APIFormat())
-		}
-	}
+	users := models.UserList.APIFormat(models.IssueWatchList.LoadWatchUsers(iwl))
 
-	ctx.JSON(200, subscribers)
+	ctx.JSON(200, users)
 }
