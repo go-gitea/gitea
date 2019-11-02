@@ -16,6 +16,9 @@ type IssueWatch struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
 }
 
+// IssueWatchList contains IssueWatch
+type IssueWatchList []*IssueWatch
+
 // CreateOrUpdateIssueWatch set watching for a user and issue
 func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
 	iw, exists, err := getIssueWatch(x, userID, issueID)
