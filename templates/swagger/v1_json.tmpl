@@ -3149,7 +3149,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Edit an issue. If using deadline only the date will be taken into account, and time of day ignored. Deadline can be removed by setting it to \"0001-01-01T00:00:00Z\".",
+        "summary": "Edit an issue. If using deadline only the date will be taken into account, and time of day ignored.",
         "operationId": "issueEditIssue",
         "parameters": [
           {
@@ -8373,6 +8373,10 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "unset_due_date": {
+          "type": "boolean",
+          "x-go-name": "RemoveDeadline"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -8501,6 +8505,10 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "unset_due_date": {
+          "type": "boolean",
+          "x-go-name": "RemoveDeadline"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

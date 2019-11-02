@@ -400,7 +400,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index} issue issueEditIssue
 	// ---
-	// summary: Edit an issue. If using deadline only the date will be taken into account, and time of day ignored. Deadline can be removed by setting it to "0001-01-01T00:00:00Z".
+	// summary: Edit an issue. If using deadline only the date will be taken into account, and time of day ignored.
 	// consumes:
 	// - application/json
 	// produces:
@@ -459,9 +459,10 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	}
 
 	// Update or remove the deadline, only if set and allowed
-	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if (form.Deadline != nil || form.RemoveDeadline != nil) && ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		var deadlineUnix timeutil.TimeStamp
-		if !form.Deadline.IsZero() {
+
+		if (form.RemoveDeadline == nil || !*form.RemoveDeadline) && !form.Deadline.IsZero() {
 			deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
 				23, 59, 59, 0, form.Deadline.Location())
 			deadlineUnix = timeutil.TimeStamp(deadline.Unix())

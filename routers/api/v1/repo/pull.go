@@ -387,9 +387,9 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	}
 
 	// Update or remove deadline if set
-	if form.Deadline != nil {
+	if form.Deadline != nil || form.RemoveDeadline != nil {
 		var deadlineUnix timeutil.TimeStamp
-		if !form.Deadline.IsZero() {
+		if (form.RemoveDeadline == nil || !*form.RemoveDeadline) && !form.Deadline.IsZero() {
 			deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
 				23, 59, 59, 0, form.Deadline.Location())
 			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
