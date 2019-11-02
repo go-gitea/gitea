@@ -19,6 +19,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+	"unicode"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -245,6 +246,18 @@ func NewFuncMap() []template.FuncMap {
 		"MirrorFullAddress": mirror_service.AddressNoCredentials,
 		"MirrorUserName":    mirror_service.Username,
 		"MirrorPassword":    mirror_service.Password,
+		"CommitType": func(commit interface{}) string {
+			switch commit.(type) {
+			case models.SignCommitWithStatuses:
+				return "SignCommitWithStatuses"
+			case models.SignCommit:
+				return "SignCommit"
+			case models.UserCommit:
+				return "UserCommit"
+			default:
+				return ""
+			}
+		},
 	}}
 }
 
@@ -338,34 +351,46 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 // RenderCommitMessageLinkSubject renders commit message as a XXS-safe link to
 // the provided default url, handling for special links without email to links.
 func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
-	cleanMsg := template.HTMLEscapeString(msg)
-	// we can safely assume that it will not return any error, since there
-	// shouldn't be any special HTML.
-	fullMessage, err := markup.RenderCommitMessageSubject([]byte(cleanMsg), urlPrefix, urlDefault, metas)
-	if err != nil {
-		log.Error("RenderCommitMessageSubject: %v", err)
-		return ""
+	msgLine := strings.TrimLeftFunc(msg, unicode.IsSpace)
+	lineEnd := strings.IndexByte(msgLine, '\n')
+	if lineEnd > 0 {
+		msgLine = msgLine[:lineEnd]
 	}
-	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
-	if len(msgLines) == 0 {
+	msgLine = strings.TrimRightFunc(msgLine, unicode.IsSpace)
+	if len(msgLine) == 0 {
 		return template.HTML("")
 	}
-	return template.HTML(msgLines[0])
+
+	// we can safely assume that it will not return any error, since there
+	// shouldn't be any special HTML.
+	renderedMessage, err := markup.RenderCommitMessageSubject([]byte(template.HTMLEscapeString(msgLine)), urlPrefix, urlDefault, metas)
+	if err != nil {
+		log.Error("RenderCommitMessageSubject: %v", err)
+		return template.HTML("")
+	}
+	return template.HTML(renderedMessage)
 }
 
 // RenderCommitBody extracts the body of a commit message without its title.
 func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.HTML {
-	cleanMsg := template.HTMLEscapeString(msg)
-	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, "", metas)
+	msgLine := strings.TrimRightFunc(msg, unicode.IsSpace)
+	lineEnd := strings.IndexByte(msgLine, '\n')
+	if lineEnd > 0 {
+		msgLine = msgLine[lineEnd+1:]
+	} else {
+		return template.HTML("")
+	}
+	msgLine = strings.TrimLeftFunc(msgLine, unicode.IsSpace)
+	if len(msgLine) == 0 {
+		return template.HTML("")
+	}
+
+	renderedMessage, err := markup.RenderCommitMessage([]byte(template.HTMLEscapeString(msgLine)), urlPrefix, "", metas)
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
 	}
-	body := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
-	if len(body) == 0 {
-		return template.HTML("")
-	}
-	return template.HTML(strings.Join(body[1:], "\n"))
+	return template.HTML(renderedMessage)
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.

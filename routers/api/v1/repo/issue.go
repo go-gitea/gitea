@@ -14,13 +14,144 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	issue_service "code.gitea.io/gitea/services/issue"
-	milestone_service "code.gitea.io/gitea/services/milestone"
 )
+
+// SearchIssues searches for issues across the repositories that the user has access to
+func SearchIssues(ctx *context.APIContext) {
+	// swagger:operation GET /repos/issues/search issue issueSearchIssues
+	// ---
+	// summary: Search for issues across the repositories that the user has access to
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: state
+	//   in: query
+	//   description: whether issue is open or closed
+	//   type: string
+	// - name: labels
+	//   in: query
+	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
+	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of requested issues
+	//   type: integer
+	// - name: q
+	//   in: query
+	//   description: search string
+	//   type: string
+	// - name: priority_repo_id
+	//   in: query
+	//   description: repository to prioritize in the results
+	//   type: integer
+	//   format: int64
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/IssueList"
+	var isClosed util.OptionalBool
+	switch ctx.Query("state") {
+	case "closed":
+		isClosed = util.OptionalBoolTrue
+	case "all":
+		isClosed = util.OptionalBoolNone
+	default:
+		isClosed = util.OptionalBoolFalse
+	}
+
+	// find repos user can access (for issue search)
+	repoIDs := make([]int64, 0)
+	issueCount := 0
+	for page := 1; ; page++ {
+		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
+			Page:        page,
+			PageSize:    15,
+			Private:     true,
+			Keyword:     "",
+			OwnerID:     ctx.User.ID,
+			TopicOnly:   false,
+			Collaborate: util.OptionalBoolNone,
+			UserIsAdmin: ctx.IsUserSiteAdmin(),
+			UserID:      ctx.User.ID,
+			OrderBy:     models.SearchOrderByRecentUpdated,
+		})
+		if err != nil {
+			ctx.Error(500, "SearchRepositoryByName", err)
+			return
+		}
+
+		if len(repos) == 0 {
+			break
+		}
+		log.Trace("Processing next %d repos of %d", len(repos), count)
+		for _, repo := range repos {
+			switch isClosed {
+			case util.OptionalBoolTrue:
+				issueCount += repo.NumClosedIssues
+			case util.OptionalBoolFalse:
+				issueCount += repo.NumOpenIssues
+			case util.OptionalBoolNone:
+				issueCount += repo.NumIssues
+			}
+			repoIDs = append(repoIDs, repo.ID)
+		}
+	}
+
+	var issues []*models.Issue
+
+	keyword := strings.Trim(ctx.Query("q"), " ")
+	if strings.IndexByte(keyword, 0) >= 0 {
+		keyword = ""
+	}
+	var issueIDs []int64
+	var labelIDs []int64
+	var err error
+	if len(keyword) > 0 && len(repoIDs) > 0 {
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword)
+	}
+
+	labels := ctx.Query("labels")
+	if splitted := strings.Split(labels, ","); labels != "" && len(splitted) > 0 {
+		labelIDs, err = models.GetLabelIDsInReposByNames(repoIDs, splitted)
+		if err != nil {
+			ctx.Error(500, "GetLabelIDsInRepoByNames", err)
+			return
+		}
+	}
+
+	// Only fetch the issues if we either don't have a keyword or the search returned issues
+	// This would otherwise return all issues if no issues were found by the search.
+	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
+		issues, err = models.Issues(&models.IssuesOptions{
+			RepoIDs:        repoIDs,
+			Page:           ctx.QueryInt("page"),
+			PageSize:       setting.UI.IssuePagingNum,
+			IsClosed:       isClosed,
+			IssueIDs:       issueIDs,
+			LabelIDs:       labelIDs,
+			SortType:       "priorityrepo",
+			PriorityRepoID: ctx.QueryInt64("priority_repo_id"),
+		})
+	}
+
+	if err != nil {
+		ctx.Error(500, "Issues", err)
+		return
+	}
+
+	apiIssues := make([]*api.Issue, len(issues))
+	for i := range issues {
+		apiIssues[i] = issues[i].APIFormat()
+	}
+
+	ctx.SetLinkHeader(issueCount, setting.UI.IssuePagingNum)
+	ctx.JSON(200, &apiIssues)
+}
 
 // ListIssues list the issues of a repository
 func ListIssues(ctx *context.APIContext) {
@@ -79,7 +210,7 @@ func ListIssues(ctx *context.APIContext) {
 	var labelIDs []int64
 	var err error
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(ctx.Repo.Repository.ID, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword([]int64{ctx.Repo.Repository.ID}, keyword)
 	}
 
 	if splitted := strings.Split(ctx.Query("labels"), ","); len(splitted) > 0 {
@@ -362,7 +493,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
-		if err = milestone_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+		if err = issue_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
 			ctx.Error(500, "ChangeMilestoneAssign", err)
 			return
 		}

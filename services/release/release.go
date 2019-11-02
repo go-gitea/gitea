@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/webhook"
 )
 
 func createTag(gitRepo *git.Repository, rel *models.Release) error {
@@ -84,15 +85,13 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 			log.Error("LoadAttributes: %v", err)
 		} else {
 			mode, _ := models.AccessLevel(rel.Publisher, rel.Repo)
-			if err := models.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
+			if err := webhook.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
 				Action:     api.HookReleasePublished,
 				Release:    rel.APIFormat(),
 				Repository: rel.Repo.APIFormat(mode),
 				Sender:     rel.Publisher.APIFormat(),
 			}); err != nil {
 				log.Error("PrepareWebhooks: %v", err)
-			} else {
-				go models.HookQueue.Add(rel.Repo.ID)
 			}
 		}
 	}
@@ -121,15 +120,13 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 
 	// even if attachments added failed, hooks will be still triggered
 	mode, _ := models.AccessLevel(doer, rel.Repo)
-	if err1 := models.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
+	if err1 := webhook.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
 		Action:     api.HookReleaseUpdated,
 		Release:    rel.APIFormat(),
 		Repository: rel.Repo.APIFormat(mode),
 		Sender:     doer.APIFormat(),
 	}); err1 != nil {
 		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go models.HookQueue.Add(rel.Repo.ID)
 	}
 
 	return err
@@ -187,15 +184,13 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 	}
 
 	mode, _ := models.AccessLevel(doer, rel.Repo)
-	if err := models.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
+	if err := webhook.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
 		Action:     api.HookReleaseDeleted,
 		Release:    rel.APIFormat(),
 		Repository: rel.Repo.APIFormat(mode),
 		Sender:     doer.APIFormat(),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go models.HookQueue.Add(rel.Repo.ID)
 	}
 
 	return nil

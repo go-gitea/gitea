@@ -6,56 +6,8 @@ package issue
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	api "code.gitea.io/gitea/modules/structs"
 )
-
-func sendLabelUpdatedWebhook(issue *models.Issue, doer *models.User) {
-	var err error
-
-	if err = issue.LoadRepo(); err != nil {
-		log.Error("LoadRepo: %v", err)
-		return
-	}
-
-	if err = issue.LoadPoster(); err != nil {
-		log.Error("LoadPoster: %v", err)
-		return
-	}
-
-	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
-	if issue.IsPull {
-		if err = issue.LoadPullRequest(); err != nil {
-			log.Error("loadPullRequest: %v", err)
-			return
-		}
-		if err = issue.PullRequest.LoadIssue(); err != nil {
-			log.Error("LoadIssue: %v", err)
-			return
-		}
-		err = models.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
-			Action:      api.HookIssueLabelUpdated,
-			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(models.AccessModeNone),
-			Sender:      doer.APIFormat(),
-		})
-	} else {
-		err = models.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
-			Action:     api.HookIssueLabelUpdated,
-			Index:      issue.Index,
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     doer.APIFormat(),
-		})
-	}
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go models.HookQueue.Add(issue.RepoID)
-	}
-}
 
 // ClearLabels clears all of an issue's labels
 func ClearLabels(issue *models.Issue, doer *models.User) (err error) {
@@ -74,7 +26,7 @@ func AddLabel(issue *models.Issue, doer *models.User, label *models.Label) error
 		return err
 	}
 
-	sendLabelUpdatedWebhook(issue, doer)
+	notification.NotifyIssueChangeLabels(doer, issue, []*models.Label{label}, nil)
 	return nil
 }
 
@@ -84,7 +36,7 @@ func AddLabels(issue *models.Issue, doer *models.User, labels []*models.Label) e
 		return err
 	}
 
-	sendLabelUpdatedWebhook(issue, doer)
+	notification.NotifyIssueChangeLabels(doer, issue, labels, nil)
 	return nil
 }
 
@@ -106,6 +58,6 @@ func RemoveLabel(issue *models.Issue, doer *models.User, label *models.Label) er
 		return err
 	}
 
-	sendLabelUpdatedWebhook(issue, doer)
+	notification.NotifyIssueChangeLabels(doer, issue, nil, []*models.Label{label})
 	return nil
 }
