@@ -75,7 +75,7 @@ func (*NullNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release)
 }
 
 // NotifyIssueChangeMilestone places a place holder function
-func (*NullNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue) {
+func (*NullNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64) {
 }
 
 // NotifyIssueChangeContent places a place holder function

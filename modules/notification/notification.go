@@ -128,9 +128,9 @@ func NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 }
 
 // NotifyIssueChangeMilestone notifies change milestone to notifiers
-func NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue) {
+func NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64) {
 	for _, notifier := range notifiers {
-		notifier.NotifyIssueChangeMilestone(doer, issue)
+		notifier.NotifyIssueChangeMilestone(doer, issue, oldMilestoneID)
 	}
 }
 
