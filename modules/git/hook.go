@@ -90,6 +90,11 @@ func (h *Hook) Update() error {
 		h.IsActive = false
 		return nil
 	}
+	d := filepath.Dir(h.path)
+	if err := os.MkdirAll(d, os.ModePerm); err != nil {
+		return err
+	}
+
 	err := ioutil.WriteFile(h.path, []byte(strings.Replace(h.Content, "\r", "", -1)), os.ModePerm)
 	if err != nil {
 		return err
