@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	milestone_service "code.gitea.io/gitea/services/milestone"
+	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -285,6 +285,24 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		}
 		return
 	}
+	// Check if the passed assignees is assignable
+	for _, aID := range assigneeIDs {
+		assignee, err := models.GetUserByID(aID)
+		if err != nil {
+			ctx.Error(500, "GetUserByID", err)
+			return
+		}
+
+		valid, err := models.CanBeAssigned(assignee, repo, true)
+		if err != nil {
+			ctx.Error(500, "canBeAssigned", err)
+			return
+		}
+		if !valid {
+			ctx.Error(422, "canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
+			return
+		}
+	}
 
 	if err := pull_service.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
@@ -368,14 +386,13 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	}
 
 	// Update Deadline
-	var deadlineUnix timeutil.TimeStamp
-	if form.Deadline != nil && !form.Deadline.IsZero() {
-		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
-	}
-
-	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
-		ctx.Error(500, "UpdateIssueDeadline", err)
-		return
+	if form.Deadline != nil {
+		deadlineUnix := timeutil.TimeStamp(form.Deadline.Unix())
+		if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
+			ctx.Error(500, "UpdateIssueDeadline", err)
+			return
+		}
+		issue.DeadlineUnix = deadlineUnix
 	}
 
 	// Add/delete assignees
@@ -387,12 +404,12 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
 	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
-		err = models.UpdateAPIAssignee(issue, form.Assignee, form.Assignees, ctx.User)
+		err = issue_service.UpdateAssignees(issue, form.Assignee, form.Assignees, ctx.User)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
 			} else {
-				ctx.Error(500, "UpdateAPIAssignee", err)
+				ctx.Error(500, "UpdateAssignees", err)
 			}
 			return
 		}
@@ -402,7 +419,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone
-		if err = milestone_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+		if err = issue_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
 			ctx.Error(500, "ChangeMilestoneAssign", err)
 			return
 		}
@@ -425,7 +442,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		return
 	}
 	if form.State != nil {
-		if err = issue.ChangeStatus(ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
+		if err = issue_service.ChangeStatus(issue, ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
 			if models.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
 				return
@@ -433,8 +450,6 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 			ctx.Error(500, "ChangeStatus", err)
 			return
 		}
-
-		notification.NotifyIssueChangeStatus(ctx.User, issue, api.StateClosed == api.StateType(*form.State))
 	}
 
 	// Refetch from database

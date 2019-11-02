@@ -95,8 +95,6 @@ github.com/boombuler/barcode/qr
 github.com/boombuler/barcode/utils
 # github.com/bradfitz/gomemcache v0.0.0-20190329173943-551aad21a668
 github.com/bradfitz/gomemcache/memcache
-# github.com/chaseadamsio/goorgeous v0.0.0-20170901132237-098da33fde5f
-github.com/chaseadamsio/goorgeous
 # github.com/couchbase/gomemcached v0.0.0-20190515232915-c4b4ca0eb21d
 github.com/couchbase/gomemcached
 github.com/couchbase/gomemcached/client
@@ -332,6 +330,8 @@ github.com/mschoch/smat
 github.com/msteinert/pam
 # github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
 github.com/nfnt/resize
+# github.com/niklasfasching/go-org v0.1.7
+github.com/niklasfasching/go-org/org
 # github.com/oliamb/cutter v0.2.2
 github.com/oliamb/cutter
 # github.com/pelletier/go-toml v1.4.0
@@ -360,15 +360,15 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/russross/blackfriday v0.0.0-20180428102519-11635eb403ff
-github.com/russross/blackfriday
+# github.com/russross/blackfriday/v2 v2.0.1
+github.com/russross/blackfriday/v2
 # github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
 # github.com/sergi/go-diff v1.0.0
 github.com/sergi/go-diff/diffmatchpatch
 # github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b
 github.com/shurcooL/httpfs/vfsutil
-# github.com/shurcooL/sanitized_anchor_name v0.0.0-20160918041101-1dba4b3954bc
+# github.com/shurcooL/sanitized_anchor_name v1.0.0
 github.com/shurcooL/sanitized_anchor_name
 # github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
 github.com/shurcooL/vfsgen
@@ -464,7 +464,7 @@ golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/knownhosts
-# golang.org/x/net v0.0.0-20190909003024-a7b16738d86b
+# golang.org/x/net v0.0.0-20191028085509-fe3aa8a45271
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html

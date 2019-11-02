@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/unknwon/com"
 )
@@ -208,7 +209,7 @@ func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 	}
 
-	repo, err := models.ForkRepository(ctx.User, ctxUser, forkRepo, form.RepoName, form.Description)
+	repo, err := repo_service.ForkRepository(ctx.User, ctxUser, forkRepo, form.RepoName, form.Description)
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
 		switch {
@@ -240,6 +241,10 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 	}
 	if err = issue.LoadPoster(); err != nil {
 		ctx.ServerError("LoadPoster", err)
+		return nil
+	}
+	if err := issue.LoadRepo(); err != nil {
+		ctx.ServerError("LoadRepo", err)
 		return nil
 	}
 	ctx.Data["Title"] = fmt.Sprintf("#%d - %s", issue.Index, issue.Title)
@@ -818,7 +823,6 @@ func TriggerTask(ctx *context.Context) {
 
 	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
-	go models.HookQueue.Add(repo.ID)
 	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true)
 	ctx.Status(202)
 }

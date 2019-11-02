@@ -74,6 +74,11 @@ func (r *indexerNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 
 func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models.Comment) {
 	if comment.Type == models.CommentTypeComment {
+		if err := comment.LoadIssue(); err != nil {
+			log.Error("LoadIssue: %v", err)
+			return
+		}
+
 		var found bool
 		if comment.Issue.Comments != nil {
 			for i := 0; i < len(comment.Issue.Comments); i++ {
@@ -98,6 +103,7 @@ func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models
 
 func (r *indexerNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
 	issue_indexer.DeleteRepoIssueIndexer(repo)
+	models.DeleteRepoFromIndexer(repo)
 }
 
 func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
