@@ -32,5 +32,21 @@ func TestIssues(t *testing.T) {
 	assert.Len(t, ctx.Data["Repos"], 1)
 }
 
-//TODO write test for
-//func Milestones(ctx *context.Context) {
+func TestMilestones(t *testing.T) {
+	setting.UI.IssuePagingNum = 1
+	assert.NoError(t, models.LoadFixtures())
+
+	ctx := test.MockContext(t, "milestones")
+	test.LoadUser(t, ctx, 2)
+	ctx.SetParams("sort", "issues")
+	ctx.Req.Form.Set("state", "closed")
+	ctx.Req.Form.Set("sort", "furthestduedate")
+	Milestones(ctx)
+	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, map[int64]int64{1: 1}, ctx.Data["Counts"])
+	assert.EqualValues(t, true, ctx.Data["IsShowClosed"])
+	assert.EqualValues(t, "furthestduedate", ctx.Data["SortType"])
+	assert.EqualValues(t, 1, ctx.Data["Total"])
+	assert.Len(t, ctx.Data["Milestones"], 10)
+	assert.Len(t, ctx.Data["Repos"], 1)
+}
