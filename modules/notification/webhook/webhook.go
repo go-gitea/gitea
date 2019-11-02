@@ -62,8 +62,6 @@ func (m *webhookNotifier) NotifyIssueClearLabels(doer *models.User, issue *model
 	}
 	if err != nil {
 		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go webhook_module.HookQueue.Add(issue.RepoID)
 	}
 }
 
@@ -78,8 +76,6 @@ func (m *webhookNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo 
 		Sender: doer.APIFormat(),
 	}); err != nil {
 		log.Error("PrepareWebhooks [repo_id: %d]: %v", oldRepo.ID, err)
-	} else {
-		go webhook_module.HookQueue.Add(oldRepo.ID)
 	}
 
 	u := repo.MustOwner()
@@ -93,8 +89,6 @@ func (m *webhookNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo 
 			Sender:       doer.APIFormat(),
 		}); err != nil {
 			log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
-		} else {
-			go webhook_module.HookQueue.Add(repo.ID)
 		}
 	}
 }
@@ -109,8 +103,6 @@ func (m *webhookNotifier) NotifyCreateRepository(doer *models.User, u *models.Us
 			Sender:       doer.APIFormat(),
 		}); err != nil {
 			log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
-		} else {
-			go webhook_module.HookQueue.Add(repo.ID)
 		}
 	}
 }
@@ -127,7 +119,6 @@ func (m *webhookNotifier) NotifyDeleteRepository(doer *models.User, repo *models
 		}); err != nil {
 			log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
 		}
-		go webhook_module.HookQueue.Add(repo.ID)
 	}
 }
 
@@ -175,8 +166,6 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *mo
 			return
 		}
 	}
-
-	go webhook_module.HookQueue.Add(issue.RepoID)
 }
 
 func (m *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
@@ -217,8 +206,6 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *model
 
 	if err != nil {
 		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go webhook_module.HookQueue.Add(issue.RepoID)
 	}
 }
 
@@ -259,8 +246,6 @@ func (m *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *mode
 	}
 	if err != nil {
 		log.Error("PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
-	} else {
-		go webhook_module.HookQueue.Add(issue.Repo.ID)
 	}
 }
 
@@ -274,8 +259,6 @@ func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue) {
 		Sender:     issue.Poster.APIFormat(),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go webhook_module.HookQueue.Add(issue.RepoID)
 	}
 }
 
@@ -312,8 +295,6 @@ func (m *webhookNotifier) NotifyIssueChangeContent(doer *models.User, issue *mod
 	}
 	if err != nil {
 		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go webhook_module.HookQueue.Add(issue.RepoID)
 	}
 }
 
@@ -347,8 +328,6 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 		IsPull:     c.Issue.IsPull,
 	}); err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
-	} else {
-		go webhook_module.HookQueue.Add(c.Issue.Repo.ID)
 	}
 }
 
@@ -364,8 +343,6 @@ func (m *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *mode
 		IsPull:     issue.IsPull,
 	}); err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
-	} else {
-		go webhook_module.HookQueue.Add(repo.ID)
 	}
 }
 
@@ -395,7 +372,92 @@ func (m *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models
 		IsPull:     comment.Issue.IsPull,
 	}); err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
+	}
+}
+
+func (m *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
+	addedLabels []*models.Label, removedLabels []*models.Label) {
+	var err error
+
+	if err = issue.LoadRepo(); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+
+	if err = issue.LoadPoster(); err != nil {
+		log.Error("LoadPoster: %v", err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
+	if issue.IsPull {
+		if err = issue.LoadPullRequest(); err != nil {
+			log.Error("loadPullRequest: %v", err)
+			return
+		}
+		if err = issue.PullRequest.LoadIssue(); err != nil {
+			log.Error("LoadIssue: %v", err)
+			return
+		}
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+			Action:      api.HookIssueLabelUpdated,
+			Index:       issue.Index,
+			PullRequest: issue.PullRequest.APIFormat(),
+			Repository:  issue.Repo.APIFormat(models.AccessModeNone),
+			Sender:      doer.APIFormat(),
+		})
 	} else {
-		go webhook_module.HookQueue.Add(comment.Issue.Repo.ID)
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+			Action:     api.HookIssueLabelUpdated,
+			Index:      issue.Index,
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		})
+	}
+	if err != nil {
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+	}
+}
+
+func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64) {
+	var hookAction api.HookIssueAction
+	var err error
+	if issue.MilestoneID > 0 {
+		hookAction = api.HookIssueMilestoned
+	} else {
+		hookAction = api.HookIssueDemilestoned
+	}
+
+	if err = issue.LoadAttributes(); err != nil {
+		log.Error("issue.LoadAttributes failed: %v", err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(doer, issue.Repo)
+	if issue.IsPull {
+		err = issue.PullRequest.LoadIssue()
+		if err != nil {
+			log.Error("LoadIssue: %v", err)
+			return
+		}
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+			Action:      hookAction,
+			Index:       issue.Index,
+			PullRequest: issue.PullRequest.APIFormat(),
+			Repository:  issue.Repo.APIFormat(mode),
+			Sender:      doer.APIFormat(),
+		})
+	} else {
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+			Action:     hookAction,
+			Index:      issue.Index,
+			Issue:      issue.APIFormat(),
+			Repository: issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		})
+	}
+	if err != nil {
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	}
 }

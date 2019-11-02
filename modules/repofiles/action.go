@@ -112,10 +112,6 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		return fmt.Errorf("NotifyWatchers: %v", err)
 	}
 
-	defer func() {
-		go webhook.HookQueue.Add(repo.ID)
-	}()
-
 	apiPusher := pusher.APIFormat()
 	apiRepo := repo.APIFormat(models.AccessModeNone)
 

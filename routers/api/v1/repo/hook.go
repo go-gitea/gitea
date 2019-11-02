@@ -137,7 +137,7 @@ func TestHook(ctx *context.APIContext) {
 		ctx.Error(500, "PrepareWebhook: ", err)
 		return
 	}
-	go webhook.HookQueue.Add(ctx.Repo.Repository.ID)
+
 	ctx.Status(204)
 }
 

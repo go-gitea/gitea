@@ -369,8 +369,6 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		Sender:      doer.APIFormat(),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go webhook.HookQueue.Add(pr.Issue.Repo.ID)
 	}
 
 	return nil
