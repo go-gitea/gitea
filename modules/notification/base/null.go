@@ -107,5 +107,6 @@ func (*NullNotifier) NotifyCreateRepository(doer *models.User, u *models.User, r
 func (*NullNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
 }
 
+// NotifyPushCommits notifies commits pushed to notifiers
 func (*NullNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
 }
