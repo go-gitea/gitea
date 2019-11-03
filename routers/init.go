@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/task"
+	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 
@@ -101,7 +102,7 @@ func GlobalInit() {
 		issue_indexer.InitIssueIndexer(false)
 		models.InitRepoIndexer()
 		mirror_service.InitSyncMirrors()
-		models.InitDeliverHooks()
+		webhook.InitDeliverHooks()
 		models.InitTestPullRequests()
 		if err := task.Init(); err != nil {
 			log.Fatal("Failed to initialize task scheduler: %v", err)

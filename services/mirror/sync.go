@@ -9,8 +9,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 )
 
 func syncAction(opType models.ActionType, repo *models.Repository, refName string, data []byte) error {
@@ -26,10 +26,6 @@ func syncAction(opType models.ActionType, repo *models.Repository, refName strin
 	}); err != nil {
 		return fmt.Errorf("notifyWatchers: %v", err)
 	}
-
-	defer func() {
-		go models.HookQueue.Add(repo.ID)
-	}()
 
 	return nil
 }
@@ -48,25 +44,9 @@ func SyncPushAction(repo *models.Repository, opts SyncPushActionOptions) error {
 		opts.Commits.Commits = opts.Commits.Commits[:setting.UI.FeedMaxCommitNum]
 	}
 
-	apiCommits, err := opts.Commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
-	if err != nil {
-		return err
-	}
-
 	opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
-	apiPusher := repo.MustOwner().APIFormat()
-	if err := models.PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{
-		Ref:        opts.RefName,
-		Before:     opts.OldCommitID,
-		After:      opts.NewCommitID,
-		CompareURL: setting.AppURL + opts.Commits.CompareURL,
-		Commits:    apiCommits,
-		Repo:       repo.APIFormat(models.AccessModeOwner),
-		Pusher:     apiPusher,
-		Sender:     apiPusher,
-	}); err != nil {
-		return fmt.Errorf("PrepareWebhooks: %v", err)
-	}
+
+	notification.NotifyPushCommits(repo.MustOwner(), repo, opts.RefName, opts.OldCommitID, opts.NewCommitID, opts.Commits)
 
 	data, err := json.Marshal(opts.Commits)
 	if err != nil {
