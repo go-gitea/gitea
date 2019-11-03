@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -1765,14 +1764,4 @@ func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, origina
 			"original_author_id": 0,
 		})
 	return err
-}
-
-// RefEndName returns the end name of an issue's ref.
-func (issue *Issue) RefEndName() string {
-	return git.RefEndName(issue.Ref)
-}
-
-// RefURL returns the absolute URL for an issue's ref.
-func (issue *Issue) RefURL(repoURL string) string {
-	return git.RefURL(repoURL, issue.Ref)
 }

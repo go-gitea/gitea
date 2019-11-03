@@ -262,6 +262,9 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
 	}
 
+	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] =
+		issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
+
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["SelectLabels"] = com.StrTo(selectLabels).MustInt64()
 	ctx.Data["ViewType"] = viewType
@@ -964,6 +967,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["IsRepoIssuesWriter"] = ctx.IsSigned && (ctx.Repo.CanWrite(models.UnitTypeIssues) || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
+	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
 	ctx.HTML(200, tplIssueView)
 }
 
