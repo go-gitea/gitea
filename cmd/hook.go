@@ -132,9 +132,11 @@ Gitea or set your environment appropriately.`, "")
 				hookOptions.RefFullNames = refFullNames
 				statusCode, msg := private.HookPreReceive(username, reponame, hookOptions)
 				switch statusCode {
+				case http.StatusOK:
+					// no-op
 				case http.StatusInternalServerError:
 					fail("Internal Server Error", msg)
-				case http.StatusForbidden:
+				default:
 					fail(msg, "")
 				}
 				count = 0
