@@ -183,3 +183,10 @@ func NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Rep
 		notifier.NotifyMigrateRepository(doer, u, repo)
 	}
 }
+
+// NotifyPushCommits notifies commits pushed to notifiers
+func NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
+	}
+}
