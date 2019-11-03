@@ -20,7 +20,7 @@ type Notifier interface {
 
 	NotifyNewIssue(*models.Issue)
 	NotifyIssueChangeStatus(*models.User, *models.Issue, bool)
-	NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue)
+	NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64)
 	NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment)
 	NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string)
 	NotifyIssueClearLabels(doer *models.User, issue *models.Issue)
@@ -40,4 +40,6 @@ type Notifier interface {
 	NotifyNewRelease(rel *models.Release)
 	NotifyUpdateRelease(doer *models.User, rel *models.Release)
 	NotifyDeleteRelease(doer *models.User, rel *models.Release)
+
+	NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits)
 }

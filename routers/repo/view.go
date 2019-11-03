@@ -265,6 +265,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 		}
 	}
+	// Check LFS Lock
+	lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
+	ctx.Data["LFSLock"] = lfsLock
+	if err != nil {
+		ctx.ServerError("GetTreePathLock", err)
+		return
+	}
+	if lfsLock != nil {
+		ctx.Data["LFSLockOwner"] = lfsLock.Owner.DisplayName()
+		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")
+	}
 
 	// Assume file is not editable first.
 	if isLFSFile {
@@ -334,8 +345,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 		if !isLFSFile {
 			if ctx.Repo.CanEnableEditor() {
-				ctx.Data["CanEditFile"] = true
-				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
+				if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
+					ctx.Data["CanEditFile"] = false
+					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
+				} else {
+					ctx.Data["CanEditFile"] = true
+					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
+				}
 			} else if !ctx.Repo.IsViewBranch {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
 			} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
@@ -368,8 +384,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 
 	if ctx.Repo.CanEnableEditor() {
-		ctx.Data["CanDeleteFile"] = true
-		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
+		if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
+			ctx.Data["CanDeleteFile"] = false
+			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
+		} else {
+			ctx.Data["CanDeleteFile"] = true
+			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
+		}
 	} else if !ctx.Repo.IsViewBranch {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
 	} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {

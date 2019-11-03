@@ -12,8 +12,10 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/webhook"
 )
 
 // CommitRepoActionOptions represent options of a new commit action.
@@ -111,10 +113,6 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		return fmt.Errorf("NotifyWatchers: %v", err)
 	}
 
-	defer func() {
-		go models.HookQueue.Add(repo.ID)
-	}()
-
 	apiPusher := pusher.APIFormat()
 	apiRepo := repo.APIFormat(models.AccessModeNone)
 
@@ -134,7 +132,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			if err != nil {
 				log.Error("GetBranchCommitID[%s]: %v", opts.RefFullName, err)
 			}
-			if err = models.PrepareWebhooks(repo, models.HookEventCreate, &api.CreatePayload{
+			if err = webhook.PrepareWebhooks(repo, models.HookEventCreate, &api.CreatePayload{
 				Ref:     refName,
 				Sha:     shaSum,
 				RefType: "branch",
@@ -148,7 +146,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	case models.ActionDeleteBranch: // Delete Branch
 		isHookEventPush = true
 
-		if err = models.PrepareWebhooks(repo, models.HookEventDelete, &api.DeletePayload{
+		if err = webhook.PrepareWebhooks(repo, models.HookEventDelete, &api.DeletePayload{
 			Ref:        refName,
 			RefType:    "branch",
 			PusherType: api.PusherTypeUser,
@@ -169,7 +167,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		if err != nil {
 			log.Error("GetTagCommitID[%s]: %v", opts.RefFullName, err)
 		}
-		if err = models.PrepareWebhooks(repo, models.HookEventCreate, &api.CreatePayload{
+		if err = webhook.PrepareWebhooks(repo, models.HookEventCreate, &api.CreatePayload{
 			Ref:     refName,
 			Sha:     shaSum,
 			RefType: "tag",
@@ -181,7 +179,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	case models.ActionDeleteTag: // Delete Tag
 		isHookEventPush = true
 
-		if err = models.PrepareWebhooks(repo, models.HookEventDelete, &api.DeletePayload{
+		if err = webhook.PrepareWebhooks(repo, models.HookEventDelete, &api.DeletePayload{
 			Ref:        refName,
 			RefType:    "tag",
 			PusherType: api.PusherTypeUser,
@@ -193,22 +191,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	}
 
 	if isHookEventPush {
-		commits, err := opts.Commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
-		if err != nil {
-			return err
-		}
-		if err = models.PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{
-			Ref:        opts.RefFullName,
-			Before:     opts.OldCommitID,
-			After:      opts.NewCommitID,
-			CompareURL: setting.AppURL + opts.Commits.CompareURL,
-			Commits:    commits,
-			Repo:       apiRepo,
-			Pusher:     apiPusher,
-			Sender:     apiPusher,
-		}); err != nil {
-			return fmt.Errorf("PrepareWebhooks: %v", err)
-		}
+		notification.NotifyPushCommits(pusher, repo, opts.RefFullName, opts.OldCommitID, opts.NewCommitID, opts.Commits)
 	}
 
 	return nil
