@@ -12,11 +12,13 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/gobwas/glob"
 	"github.com/unknwon/com"
 )
 
@@ -182,16 +184,34 @@ func DeliverHooks() {
 	}
 }
 
-var webhookHTTPClient *http.Client
+var (
+	webhookHTTPClient *http.Client
+	once              sync.Once
+	hostMatchers      []glob.Glob
+)
 
 func webhookProxy() func(req *http.Request) (*url.URL, error) {
 	if setting.Webhook.ProxyURL == "" {
 		return http.ProxyFromEnvironment
 	}
 
+	once.Do(func() {
+		for _, h := range setting.Webhook.ProxyHosts {
+			if g, err := glob.Compile(h); err == nil {
+				hostMatchers = append(hostMatchers, g)
+			} else {
+				log.Error("glob.Compile %s failed: %v", h, err)
+			}
+		}
+	})
+
 	return func(req *http.Request) (*url.URL, error) {
-		for _, v := range setting.Webhook.ProxyHosts {
-			if strings.EqualFold(v, req.URL.Host) {
+		if len(setting.Webhook.ProxyHosts) == 1 && setting.Webhook.ProxyHosts[0] == "*" {
+			return http.ProxyURL(setting.Webhook.ProxyURLFixed)(req)
+		}
+
+		for _, v := range hostMatchers {
+			if v.Match(req.URL.Host) {
 				return http.ProxyURL(setting.Webhook.ProxyURLFixed)(req)
 			}
 		}
