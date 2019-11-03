@@ -414,7 +414,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 		if len(source.LDAP().AdminFilter) > 0 {
 			user.IsAdmin = sr.IsAdmin
 		}
-	UpdateUserCols(user, "full_name", "email", "is_admin")
+		UpdateUserCols(user, "full_name", "email", "is_admin")
 	}
 
 	if !autoRegister {
