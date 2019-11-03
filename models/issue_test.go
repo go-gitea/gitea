@@ -350,31 +350,3 @@ func TestIssue_ResolveMentions(t *testing.T) {
 	// Private repo, whole team
 	testSuccess("user17", "big_test_private_4", "user15", []string{"owners"}, []int64{18})
 }
-
-func TestIssue_RefEndName(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	testSuccess := func(issueID int64, ref, refEndName string) {
-		issue := AssertExistsAndLoadBean(t, &Issue{ID: issueID}).(*Issue)
-		issue.Ref = ref
-		assert.Equal(t, issue.RefEndName(), refEndName)
-	}
-
-	testSuccess(1, "refs/heads/branch1", "branch1")
-	testSuccess(1, "refs/tags/tag1", "tag1")
-	testSuccess(1, "c0ffee", "c0ffee")
-}
-
-func TestIssue_RefURL(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	testSuccess := func(issueID int64, ref, refURL string) {
-		issue := AssertExistsAndLoadBean(t, &Issue{ID: issueID}).(*Issue)
-		issue.Ref = ref
-		assert.Equal(t, issue.RefEndName(), refURL)
-	}
-
-	testSuccess(1, "refs/heads/branch1", "branch1")
-	testSuccess(1, "refs/tags/tag1", "tag1")
-	testSuccess(1, "c0ffee", "c0ffee")
-}
