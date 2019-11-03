@@ -11,9 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/webhook"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
