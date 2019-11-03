@@ -99,7 +99,8 @@ type EditIssueOption struct {
 	Milestone *int64   `json:"milestone"`
 	State     *string  `json:"state"`
 	// swagger:strfmt date-time
-	Deadline *time.Time `json:"due_date"`
+	Deadline       *time.Time `json:"due_date"`
+	RemoveDeadline *bool      `json:"unset_due_date"`
 }
 
 // EditDeadlineOption options for creating a deadline
