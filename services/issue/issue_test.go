@@ -16,10 +16,15 @@ func TestGetRefEndNamesAndURLs(t *testing.T) {
 	issues := []*models.Issue{
 		{ID: 1, Ref: "refs/heads/branch1"},
 		{ID: 2, Ref: "refs/tags/tag1"},
+		{ID: 3, Ref: "c0ffee"},
 	}
 	repoLink := "/foo/bar"
 
 	endNames, urls := GetRefEndNamesAndURLs(issues, repoLink)
-	assert.EqualValues(t, map[int64]string{1: "branch1", 2: "tag1"}, endNames)
-	assert.EqualValues(t, map[int64]string{1: repoLink + "/src/branch/branch1", 2: repoLink + "/src/tag/tag1"}, urls)
+	assert.EqualValues(t, map[int64]string{1: "branch1", 2: "tag1", 3: "c0ffee"}, endNames)
+	assert.EqualValues(t, map[int64]string{
+		1: repoLink + "/src/branch/branch1",
+		2: repoLink + "/src/tag/tag1",
+		3: repoLink + "/src/commit/c0ffee",
+	}, urls)
 }
