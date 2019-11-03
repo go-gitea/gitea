@@ -268,7 +268,7 @@ func DiscordHooksNewPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 		return
 	}
 
-	meta, err := json.Marshal(&models.DiscordMeta{
+	meta, err := json.Marshal(&webhook.DiscordMeta{
 		Username: form.Username,
 		IconURL:  form.IconURL,
 	})
@@ -357,7 +357,7 @@ func TelegramHooksNewPost(ctx *context.Context, form auth.NewTelegramHookForm) {
 		return
 	}
 
-	meta, err := json.Marshal(&models.TelegramMeta{
+	meta, err := json.Marshal(&webhook.TelegramMeta{
 		BotToken: form.BotToken,
 		ChatID:   form.ChatID,
 	})
@@ -452,7 +452,7 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 		return
 	}
 
-	meta, err := json.Marshal(&models.SlackMeta{
+	meta, err := json.Marshal(&webhook.SlackMeta{
 		Channel:  strings.TrimSpace(form.Channel),
 		Username: form.Username,
 		IconURL:  form.IconURL,
@@ -515,11 +515,11 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 	ctx.Data["HookType"] = w.HookTaskType.Name()
 	switch w.HookTaskType {
 	case models.SLACK:
-		ctx.Data["SlackHook"] = w.GetSlackHook()
+		ctx.Data["SlackHook"] = webhook.GetSlackHook(w)
 	case models.DISCORD:
-		ctx.Data["DiscordHook"] = w.GetDiscordHook()
+		ctx.Data["DiscordHook"] = webhook.GetDiscordHook(w)
 	case models.TELEGRAM:
-		ctx.Data["TelegramHook"] = w.GetTelegramHook()
+		ctx.Data["TelegramHook"] = webhook.GetTelegramHook(w)
 	}
 
 	ctx.Data["History"], err = w.History(1)
@@ -646,7 +646,7 @@ func SlackHooksEditPost(ctx *context.Context, form auth.NewSlackHookForm) {
 		return
 	}
 
-	meta, err := json.Marshal(&models.SlackMeta{
+	meta, err := json.Marshal(&webhook.SlackMeta{
 		Channel:  strings.TrimSpace(form.Channel),
 		Username: form.Username,
 		IconURL:  form.IconURL,
@@ -690,7 +690,7 @@ func DiscordHooksEditPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 		return
 	}
 
-	meta, err := json.Marshal(&models.DiscordMeta{
+	meta, err := json.Marshal(&webhook.DiscordMeta{
 		Username: form.Username,
 		IconURL:  form.IconURL,
 	})
@@ -763,7 +763,7 @@ func TelegramHooksEditPost(ctx *context.Context, form auth.NewTelegramHookForm) 
 		ctx.HTML(200, orCtx.NewTemplate)
 		return
 	}
-	meta, err := json.Marshal(&models.TelegramMeta{
+	meta, err := json.Marshal(&webhook.TelegramMeta{
 		BotToken: form.BotToken,
 		ChatID:   form.ChatID,
 	})
