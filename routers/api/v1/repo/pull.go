@@ -603,7 +603,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 
 	message := strings.TrimSpace(form.MergeTitleField)
 	if len(message) == 0 {
-		if models.MergeStyle(form.Do) == models.MergeStyleMerge || models.MergeStyle(form.Do) == models.MergeStyleMergeUnrelated {
+		if models.MergeStyle(form.Do) == models.MergeStyleMerge {
 			message = pr.GetDefaultMergeMessage()
 		}
 		if models.MergeStyle(form.Do) == models.MergeStyleSquash {

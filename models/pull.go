@@ -410,8 +410,6 @@ const (
 	MergeStyleRebaseMerge MergeStyle = "rebase-merge"
 	// MergeStyleSquash squash commits into single commit before merging
 	MergeStyleSquash MergeStyle = "squash"
-	// MergeStyleMergeUnrelated create merge commit allow unrelated
-	MergeStyleMergeUnrelated MergeStyle = "merge-unrelated"
 )
 
 // CheckUserAllowedToMerge checks whether the user is allowed to merge

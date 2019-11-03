@@ -256,13 +256,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	// Merge commits.
 	switch mergeStyle {
 	case models.MergeStyleMerge:
-		fallthrough
-	case models.MergeStyleMergeUnrelated:
-		cmd := git.NewCommand("merge", "--no-ff", "--no-commit")
-		if mergeStyle == models.MergeStyleMergeUnrelated && version.Compare(binVersion, "2.9.0", ">=") {
-			cmd.AddArguments("--allow-unrelated-histories")
-		}
-		cmd.AddArguments(trackingBranch)
+		cmd := git.NewCommand("merge", "--no-ff", "--no-commit", trackingBranch)
 		if err := runMergeCommand(pr, mergeStyle, cmd, tmpBasePath); err != nil {
 			log.Error("Unable to merge tracking into base: %v", err)
 			return err

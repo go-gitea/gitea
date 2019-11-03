@@ -93,7 +93,6 @@ type PullRequestsConfig struct {
 	AllowRebase               bool
 	AllowRebaseMerge          bool
 	AllowSquash               bool
-	AllowMergeUnrelated       bool
 }
 
 // FromDB fills up a PullRequestsConfig from serialized format.
@@ -111,9 +110,7 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 	return mergeStyle == MergeStyleMerge && cfg.AllowMerge ||
 		mergeStyle == MergeStyleRebase && cfg.AllowRebase ||
 		mergeStyle == MergeStyleRebaseMerge && cfg.AllowRebaseMerge ||
-		mergeStyle == MergeStyleSquash && cfg.AllowSquash ||
-		mergeStyle == MergeStyleMergeUnrelated && cfg.AllowMergeUnrelated
-
+		mergeStyle == MergeStyleSquash && cfg.AllowSquash
 }
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
