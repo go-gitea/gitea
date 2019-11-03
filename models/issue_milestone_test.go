@@ -370,9 +370,8 @@ func TestGetUserMilestoneStats(t *testing.T) {
 	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
-	milestoneStats, err := models.GetUserMilestoneStats(user.ID, repo1.ID, []int64{repo1.ID, repo2.ID})
+	milestoneStats, err := GetUserMilestoneStats(user.ID, repo1.ID, []int64{repo1.ID, repo2.ID})
 	assert.NoError(t, err)
 	assert.EqualValues(t, repo1.NumOpenMilestones, milestoneStats.OpenCount)
 	assert.EqualValues(t, repo1.NumClosedMilestones, milestoneStats.ClosedCount)
 }
-	
