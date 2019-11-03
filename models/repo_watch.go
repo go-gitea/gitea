@@ -210,39 +210,6 @@ func notifyWatchers(e Engine, actions ...*Action) error {
 			}
 		}
 
-		if len(actions) == 1 {
-			// More efficient to just check the code and not cache
-			for _, watcher := range watchers {
-				if act.ActUserID == watcher.UserID {
-					continue
-				}
-
-				act.ID = 0
-				act.UserID = watcher.UserID
-				act.Repo.Units = nil
-
-				switch act.OpType {
-				case ActionCommitRepo, ActionPushTag, ActionDeleteTag, ActionDeleteBranch:
-					if !act.Repo.checkUnitUser(e, act.UserID, false, UnitTypeCode) {
-						continue
-					}
-				case ActionCreateIssue, ActionCommentIssue, ActionCloseIssue, ActionReopenIssue:
-					if !act.Repo.checkUnitUser(e, act.UserID, false, UnitTypeIssues) {
-						continue
-					}
-				case ActionCreatePullRequest, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest:
-					if !act.Repo.checkUnitUser(e, act.UserID, false, UnitTypePullRequests) {
-						continue
-					}
-				}
-
-				if _, err = e.InsertOne(act); err != nil {
-					return fmt.Errorf("insert new action: %v", err)
-				}
-			}
-			return nil
-		}
-
 		if repoChanged {
 			permCode = make([]bool, len(watchers))
 			permIssue = make([]bool, len(watchers))
