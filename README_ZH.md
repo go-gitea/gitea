@@ -51,15 +51,3 @@ Fork -> Patch -> Push -> Pull Request
 |![Branches](https://dl.gitea.io/screenshots/branches.png)|![Web Editor](https://dl.gitea.io/screenshots/web_editor.png)|![Activity](https://dl.gitea.io/screenshots/activity.png)|
 |![New Migration](https://dl.gitea.io/screenshots/migration.png)|![Migrating](https://dl.gitea.io/screenshots/migration.gif)|![Pull Request View](https://image.ibb.co/e02dSb/6.png)
 ![Pull Request Dark](https://dl.gitea.io/screenshots/pull_requests_dark.png)|![Diff Review Dark](https://dl.gitea.io/screenshots/review_dark.png)|![Diff Dark](https://dl.gitea.io/screenshots/diff_dark.png)|
-
-<style>
-table th:first-of-type {
-    width: 33%;
-}
-table th:nth-of-type(2) {
-    width: 33%;
-}
-table th:nth-of-type(3) {
-    width: 33%;
-}
-</style>
