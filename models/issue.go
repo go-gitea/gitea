@@ -1323,8 +1323,12 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 				log.Warn("Malformed Labels argument: %s", opts.Labels)
 			} else {
 				for i, labelID := range labelIDs {
-					sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
-						fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+					if labelID > 0 {
+						sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
+							fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+					} else {
+						sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
+					}
 				}
 			}
 		}
