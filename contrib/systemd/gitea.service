@@ -16,13 +16,13 @@ After=network.target
 # If using socket activation for main http/s
 ###
 #
-#After=gitea.socket
-#Requires=gitea.socket
+#After=gitea.main.socket
+#Requires=gitea.main.socket
 #
 ###
 # (You can also provide gitea an http fallback and/or ssh socket too)
 #
-# An example of /etc/systemd/system/gitea.socket
+# An example of /etc/systemd/system/gitea.main.socket
 ###
 ##
 ## [Unit]
@@ -30,6 +30,7 @@ After=network.target
 ## PartOf=gitea.service
 ##
 ## [Socket]
+## Service=gitea.service
 ## ListenStream=<some_port>
 ## NoDelay=true
 ##
