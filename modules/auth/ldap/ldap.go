@@ -201,6 +201,67 @@ func (ls *Source) CheckGroupFilter(l *ldap.Conn, groupSR *ldap.SearchResult, fil
 	return false
 }
 
+// ProcessUserEntry :
+func (ls *Source) ProcessUserEntry(entry *ldap.Entry, l *ldap.Conn) *SearchResult {
+	username := entry.GetAttributeValue(ls.AttributeUsername)
+	firstname := entry.GetAttributeValue(ls.AttributeName)
+	surname := entry.GetAttributeValue(ls.AttributeSurname)
+	mail := entry.GetAttributeValue(ls.AttributeMail)
+
+	var sshPublicKey []string
+	if len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0 {
+		sshPublicKey = entry.GetAttributeValues(ls.AttributeSSHPublicKey)
+	}
+
+	var hasAdminGroup = false
+	if len(strings.TrimSpace(ls.GroupSearchBase)) > 0 && len(strings.TrimSpace(ls.GroupSearchFilter)) > 0 {
+		var groupUID string
+		if len(strings.TrimSpace(ls.UserAttributeInGroup)) > 0 {
+			groupUID = entry.GetAttributeValue(ls.UserAttributeInGroup)
+		} else {
+			groupUID = entry.DN
+		}
+		log.Trace("User attribute used in LDAP group: %v", groupUID)
+
+		groupFilter, ok := ls.sanitizedGroupQuery(groupUID)
+		if !ok {
+			return nil
+		}
+
+		groupSearch := ldap.NewSearchRequest(
+			ls.GroupSearchBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, groupFilter, []string{}, nil)
+
+		sr, err := l.Search(groupSearch)
+		if err != nil {
+			log.Error("LDAP group search failed unexpectedly! (%v)", err)
+			return nil
+		}
+
+		if len(strings.TrimSpace(ls.MemberGroupFilter)) > 0 {
+			if !ls.CheckGroupFilter(l, sr, ls.MemberGroupFilter) {
+				log.Error("No group matched the required member group filter!")
+				return nil
+			}
+		}
+
+		if len(strings.TrimSpace(ls.AdminGroupFilter)) > 0 {
+			hasAdminGroup = ls.CheckGroupFilter(l, sr, ls.AdminGroupFilter)
+			log.Info("LDAP user is in admin group!")
+		}
+	}
+
+	isAdmin := hasAdminGroup || checkAdmin(l, ls, entry.DN)
+
+	return &SearchResult{
+		Username:     username,
+		Name:         firstname,
+		Surname:      surname,
+		Mail:         mail,
+		SSHPublicKey: sshPublicKey,
+		IsAdmin:      isAdmin,
+	}
+}
+
 // SearchEntry : search an LDAP source if an entry (name, passwd) is valid and in the specific filter
 func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResult {
 	// See https://tools.ietf.org/search/rfc4513#section-5.1.2
@@ -302,54 +363,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		return nil
 	}
 
-	var sshPublicKey []string
-
-	username := sr.Entries[0].GetAttributeValue(ls.AttributeUsername)
-	firstname := sr.Entries[0].GetAttributeValue(ls.AttributeName)
-	surname := sr.Entries[0].GetAttributeValue(ls.AttributeSurname)
-	mail := sr.Entries[0].GetAttributeValue(ls.AttributeMail)
-	if isAttributeSSHPublicKeySet {
-		sshPublicKey = sr.Entries[0].GetAttributeValues(ls.AttributeSSHPublicKey)
-	}
-
-	var hasAdminGroup = false
-	if len(strings.TrimSpace(ls.GroupSearchBase)) > 0 && len(strings.TrimSpace(ls.GroupSearchFilter)) > 0 {
-		var groupUID string
-		if len(strings.TrimSpace(ls.UserAttributeInGroup)) > 0 {
-			groupUID = sr.Entries[0].GetAttributeValue(ls.UserAttributeInGroup)
-		} else {
-			groupUID = sr.Entries[0].DN
-		}
-		log.Trace("User attribute used in LDAP group: %v", groupUID)
-
-		groupFilter, ok := ls.sanitizedGroupQuery(groupUID)
-		if !ok {
-			return nil
-		}
-
-		groupSearch := ldap.NewSearchRequest(
-			ls.GroupSearchBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, groupFilter, []string{}, nil)
-
-		sr, err := l.Search(groupSearch)
-		if err != nil {
-			log.Error("LDAP group search failed unexpectedly! (%v)", err)
-			return nil
-		}
-
-		if len(strings.TrimSpace(ls.MemberGroupFilter)) > 0 {
-			if !ls.CheckGroupFilter(l, sr, ls.MemberGroupFilter) {
-				log.Error("No group matched the required member group filter!")
-				return nil
-			}
-		}
-
-		if len(strings.TrimSpace(ls.AdminGroupFilter)) > 0 {
-			hasAdminGroup = ls.CheckGroupFilter(l, sr, ls.AdminGroupFilter)
-			log.Info("LDAP user is in admin group!")
-		}
-	}
-
-	isAdmin := hasAdminGroup || checkAdmin(l, ls, userDN)
+	result := ls.ProcessUserEntry(sr.Entries[0], l)
 
 	if !directBind && ls.AttributesInBind {
 		// binds user (checking password) after looking-up attributes in BindDN context
@@ -359,14 +373,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		}
 	}
 
-	return &SearchResult{
-		Username:     username,
-		Name:         firstname,
-		Surname:      surname,
-		Mail:         mail,
-		SSHPublicKey: sshPublicKey,
-		IsAdmin:      isAdmin,
-	}
+	return result
 }
 
 // UsePagedSearch returns if need to use paged search
@@ -423,56 +430,10 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 	results := []*SearchResult{}
 
 	for _, v := range sr.Entries {
-
-		// TODO: Remove code duplication
-		var hasAdminGroup = false
-		if len(strings.TrimSpace(ls.GroupSearchBase)) > 0 && len(strings.TrimSpace(ls.GroupSearchFilter)) > 0 {
-			var groupUID string
-			if len(strings.TrimSpace(ls.UserAttributeInGroup)) > 0 {
-				groupUID = v.GetAttributeValue(ls.UserAttributeInGroup)
-			} else {
-				groupUID = v.DN
-			}
-			log.Trace("User attribute used in LDAP group: %v", groupUID)
-
-			groupFilter, ok := ls.sanitizedGroupQuery(groupUID)
-			if !ok {
-				continue
-			}
-
-			groupSearch := ldap.NewSearchRequest(
-				ls.GroupSearchBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, groupFilter, []string{}, nil)
-
-			sr, err := l.Search(groupSearch)
-			if err != nil {
-				log.Error("LDAP group search failed unexpectedly! (%v)", err)
-				continue
-			}
-
-			if len(strings.TrimSpace(ls.MemberGroupFilter)) > 0 {
-				if !ls.CheckGroupFilter(l, sr, ls.MemberGroupFilter) {
-					log.Error("No group matched the required member group filter!")
-					continue
-				}
-			}
-
-			if len(strings.TrimSpace(ls.AdminGroupFilter)) > 0 {
-				hasAdminGroup = ls.CheckGroupFilter(l, sr, ls.AdminGroupFilter)
-				log.Info("LDAP user is in admin group!")
-			}
+		result := ls.ProcessUserEntry(v, l)
+		if result != nil {
+			results = append(results, result)
 		}
-
-		result := &SearchResult{
-			Username: v.GetAttributeValue(ls.AttributeUsername),
-			Name:     v.GetAttributeValue(ls.AttributeName),
-			Surname:  v.GetAttributeValue(ls.AttributeSurname),
-			Mail:     v.GetAttributeValue(ls.AttributeMail),
-			IsAdmin:  hasAdminGroup || checkAdmin(l, ls, v.DN),
-		}
-		if isAttributeSSHPublicKeySet {
-			result.SSHPublicKey = v.GetAttributeValues(ls.AttributeSSHPublicKey)
-		}
-		results = append(results, result)
 	}
 
 	return results, nil
