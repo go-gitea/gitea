@@ -131,6 +131,19 @@ AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf
 		_, err := CheckPublicKeyString(test.content)
 		assert.NoError(t, err)
 	}
+
+	for _, invalidKeys := range []struct {
+		content string
+	}{
+		{"test"},
+		{"---- NOT A REAL KEY ----"},
+		{"bad\nkey"},
+		{"\t\t:)\t\r\n"},
+		{"\r\ntest \r\ngitea\r\n\r\n"},
+	} {
+		_, err := CheckPublicKeyString(invalidKeys.content)
+		assert.Error(t, err)
+	}
 }
 
 func Test_calcFingerprint(t *testing.T) {
