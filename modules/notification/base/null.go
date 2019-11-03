@@ -46,6 +46,10 @@ func (*NullNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models.R
 func (*NullNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
 }
 
+// NotifyPullRequestSynchronized places a place holder function
+func (*NullNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
+}
+
 // NotifyUpdateComment places a place holder function
 func (*NullNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
 }
