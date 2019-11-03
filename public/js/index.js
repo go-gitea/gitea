@@ -3007,7 +3007,8 @@ function initFilterBranchTagDropdown(selector) {
     });
 }
 
-$(".commit-button").click(function() {
+$(".commit-button").click(function(e) {
+    e.preventDefault();
     $(this).parent().find('.commit-body').toggle();
 });
 
