@@ -513,7 +513,7 @@ SKIP_TLS_VERIFY = false
 PAGING_NUM = 10
 ; Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy
 PROXY_URL = 
-; All request hosts needed to proxy, you could use * to match the hosts.
+; Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
 PROXY_HOSTS = 
 
 [mailer]

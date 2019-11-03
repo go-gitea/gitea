@@ -206,10 +206,6 @@ func webhookProxy() func(req *http.Request) (*url.URL, error) {
 	})
 
 	return func(req *http.Request) (*url.URL, error) {
-		if len(setting.Webhook.ProxyHosts) == 1 && setting.Webhook.ProxyHosts[0] == "*" {
-			return http.ProxyURL(setting.Webhook.ProxyURLFixed)(req)
-		}
-
 		for _, v := range hostMatchers {
 			if v.Match(req.URL.Host) {
 				return http.ProxyURL(setting.Webhook.ProxyURLFixed)(req)
