@@ -6,33 +6,17 @@
 package models
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"crypto/tls"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net"
-	"net/http"
-	"net/url"
-	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/gobwas/glob"
 	gouuid "github.com/satori/go.uuid"
-	"github.com/unknwon/com"
 )
-
-// HookQueue is a global queue of web hooks
-var HookQueue = sync.NewUniqueQueue(setting.Webhook.QueueLength)
 
 // HookContentType is the content type of a web hook
 type HookContentType int
@@ -227,13 +211,14 @@ func (w *Webhook) HasRepositoryEvent() bool {
 		(w.ChooseEvents && w.HookEvents.Repository)
 }
 
-func (w *Webhook) eventCheckers() []struct {
-	has func() bool
-	typ HookEventType
+// EventCheckers returns event checkers
+func (w *Webhook) EventCheckers() []struct {
+	Has  func() bool
+	Type HookEventType
 } {
 	return []struct {
-		has func() bool
-		typ HookEventType
+		Has  func() bool
+		Type HookEventType
 	}{
 		{w.HasCreateEvent, HookEventCreate},
 		{w.HasDeleteEvent, HookEventDelete},
@@ -251,27 +236,12 @@ func (w *Webhook) eventCheckers() []struct {
 func (w *Webhook) EventsArray() []string {
 	events := make([]string, 0, 7)
 
-	for _, c := range w.eventCheckers() {
-		if c.has() {
-			events = append(events, string(c.typ))
+	for _, c := range w.EventCheckers() {
+		if c.Has() {
+			events = append(events, string(c.Type))
 		}
 	}
 	return events
-}
-
-func (w *Webhook) checkBranch(branch string) bool {
-	if w.BranchFilter == "" || w.BranchFilter == "*" {
-		return true
-	}
-
-	g, err := glob.Compile(w.BranchFilter)
-	if err != nil {
-		// should not really happen as BranchFilter is validated
-		log.Error("CheckBranch failed: %s", err)
-		return false
-	}
-
-	return g.Match(branch)
 }
 
 // CreateWebhook creates a new web hook.
@@ -664,329 +634,20 @@ func UpdateHookTask(t *HookTask) error {
 	return err
 }
 
-// PrepareWebhook adds special webhook to task queue for given payload.
-func PrepareWebhook(w *Webhook, repo *Repository, event HookEventType, p api.Payloader) error {
-	return prepareWebhook(x, w, repo, event, p)
-}
-
-// getPayloadBranch returns branch for hook event, if applicable.
-func getPayloadBranch(p api.Payloader) string {
-	switch pp := p.(type) {
-	case *api.CreatePayload:
-		if pp.RefType == "branch" {
-			return pp.Ref
-		}
-	case *api.DeletePayload:
-		if pp.RefType == "branch" {
-			return pp.Ref
-		}
-	case *api.PushPayload:
-		if strings.HasPrefix(pp.Ref, git.BranchPrefix) {
-			return pp.Ref[len(git.BranchPrefix):]
-		}
-	}
-	return ""
-}
-
-func prepareWebhook(e Engine, w *Webhook, repo *Repository, event HookEventType, p api.Payloader) error {
-	for _, e := range w.eventCheckers() {
-		if event == e.typ {
-			if !e.has() {
-				return nil
-			}
-		}
-	}
-
-	// If payload has no associated branch (e.g. it's a new tag, issue, etc.),
-	// branch filter has no effect.
-	if branch := getPayloadBranch(p); branch != "" {
-		if !w.checkBranch(branch) {
-			log.Info("Branch %q doesn't match branch filter %q, skipping", branch, w.BranchFilter)
-			return nil
-		}
-	}
-
-	var payloader api.Payloader
-	var err error
-	// Use separate objects so modifications won't be made on payload on non-Gogs/Gitea type hooks.
-	switch w.HookTaskType {
-	case SLACK:
-		payloader, err = GetSlackPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetSlackPayload: %v", err)
-		}
-	case DISCORD:
-		payloader, err = GetDiscordPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetDiscordPayload: %v", err)
-		}
-	case DINGTALK:
-		payloader, err = GetDingtalkPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetDingtalkPayload: %v", err)
-		}
-	case TELEGRAM:
-		payloader, err = GetTelegramPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetTelegramPayload: %v", err)
-		}
-	case MSTEAMS:
-		payloader, err = GetMSTeamsPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetMSTeamsPayload: %v", err)
-		}
-	default:
-		p.SetSecret(w.Secret)
-		payloader = p
-	}
-
-	var signature string
-	if len(w.Secret) > 0 {
-		data, err := payloader.JSONPayload()
-		if err != nil {
-			log.Error("prepareWebhooks.JSONPayload: %v", err)
-		}
-		sig := hmac.New(sha256.New, []byte(w.Secret))
-		_, err = sig.Write(data)
-		if err != nil {
-			log.Error("prepareWebhooks.sigWrite: %v", err)
-		}
-		signature = hex.EncodeToString(sig.Sum(nil))
-	}
-
-	if err = createHookTask(e, &HookTask{
-		RepoID:      repo.ID,
-		HookID:      w.ID,
-		Type:        w.HookTaskType,
-		URL:         w.URL,
-		Signature:   signature,
-		Payloader:   payloader,
-		HTTPMethod:  w.HTTPMethod,
-		ContentType: w.ContentType,
-		EventType:   event,
-		IsSSL:       w.IsSSL,
-	}); err != nil {
-		return fmt.Errorf("CreateHookTask: %v", err)
-	}
-	return nil
-}
-
-// PrepareWebhooks adds new webhooks to task queue for given payload.
-func PrepareWebhooks(repo *Repository, event HookEventType, p api.Payloader) error {
-	return prepareWebhooks(x, repo, event, p)
-}
-
-func prepareWebhooks(e Engine, repo *Repository, event HookEventType, p api.Payloader) error {
-	ws, err := getActiveWebhooksByRepoID(e, repo.ID)
-	if err != nil {
-		return fmt.Errorf("GetActiveWebhooksByRepoID: %v", err)
-	}
-
-	// check if repo belongs to org and append additional webhooks
-	if repo.mustOwner(e).IsOrganization() {
-		// get hooks for org
-		orgHooks, err := getActiveWebhooksByOrgID(e, repo.OwnerID)
-		if err != nil {
-			return fmt.Errorf("GetActiveWebhooksByOrgID: %v", err)
-		}
-		ws = append(ws, orgHooks...)
-	}
-
-	if len(ws) == 0 {
-		return nil
-	}
-
-	for _, w := range ws {
-		if err = prepareWebhook(e, w, repo, event, p); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (t *HookTask) deliver() error {
-	t.IsDelivered = true
-
-	var req *http.Request
-	var err error
-
-	switch t.HTTPMethod {
-	case "":
-		log.Info("HTTP Method for webhook %d empty, setting to POST as default", t.ID)
-		fallthrough
-	case http.MethodPost:
-		switch t.ContentType {
-		case ContentTypeJSON:
-			req, err = http.NewRequest("POST", t.URL, strings.NewReader(t.PayloadContent))
-			if err != nil {
-				return err
-			}
-
-			req.Header.Set("Content-Type", "application/json")
-		case ContentTypeForm:
-			var forms = url.Values{
-				"payload": []string{t.PayloadContent},
-			}
-
-			req, err = http.NewRequest("POST", t.URL, strings.NewReader(forms.Encode()))
-			if err != nil {
-
-				return err
-			}
-
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		}
-	case http.MethodGet:
-		u, err := url.Parse(t.URL)
-		if err != nil {
-			return err
-		}
-		vals := u.Query()
-		vals["payload"] = []string{t.PayloadContent}
-		u.RawQuery = vals.Encode()
-		req, err = http.NewRequest("GET", u.String(), nil)
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("Invalid http method for webhook: [%d] %v", t.ID, t.HTTPMethod)
-	}
-
-	req.Header.Add("X-Gitea-Delivery", t.UUID)
-	req.Header.Add("X-Gitea-Event", string(t.EventType))
-	req.Header.Add("X-Gitea-Signature", t.Signature)
-	req.Header.Add("X-Gogs-Delivery", t.UUID)
-	req.Header.Add("X-Gogs-Event", string(t.EventType))
-	req.Header.Add("X-Gogs-Signature", t.Signature)
-	req.Header["X-GitHub-Delivery"] = []string{t.UUID}
-	req.Header["X-GitHub-Event"] = []string{string(t.EventType)}
-
-	// Record delivery information.
-	t.RequestInfo = &HookRequest{
-		Headers: map[string]string{},
-	}
-	for k, vals := range req.Header {
-		t.RequestInfo.Headers[k] = strings.Join(vals, ",")
-	}
-
-	t.ResponseInfo = &HookResponse{
-		Headers: map[string]string{},
-	}
-
-	defer func() {
-		t.Delivered = time.Now().UnixNano()
-		if t.IsSucceed {
-			log.Trace("Hook delivered: %s", t.UUID)
-		} else {
-			log.Trace("Hook delivery failed: %s", t.UUID)
-		}
-
-		if err := UpdateHookTask(t); err != nil {
-			log.Error("UpdateHookTask [%d]: %v", t.ID, err)
-		}
-
-		// Update webhook last delivery status.
-		w, err := GetWebhookByID(t.HookID)
-		if err != nil {
-			log.Error("GetWebhookByID: %v", err)
-			return
-		}
-		if t.IsSucceed {
-			w.LastStatus = HookStatusSucceed
-		} else {
-			w.LastStatus = HookStatusFail
-		}
-		if err = UpdateWebhookLastStatus(w); err != nil {
-			log.Error("UpdateWebhookLastStatus: %v", err)
-			return
-		}
-	}()
-
-	resp, err := webhookHTTPClient.Do(req)
-	if err != nil {
-		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Status code is 20x can be seen as succeed.
-	t.IsSucceed = resp.StatusCode/100 == 2
-	t.ResponseInfo.Status = resp.StatusCode
-	for k, vals := range resp.Header {
-		t.ResponseInfo.Headers[k] = strings.Join(vals, ",")
-	}
-
-	p, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.ResponseInfo.Body = fmt.Sprintf("read body: %s", err)
-		return err
-	}
-	t.ResponseInfo.Body = string(p)
-	return nil
-}
-
-// DeliverHooks checks and delivers undelivered hooks.
-// TODO: shoot more hooks at same time.
-func DeliverHooks() {
+// FindUndeliveredHookTasks represents find the undelivered hook tasks
+func FindUndeliveredHookTasks() ([]*HookTask, error) {
 	tasks := make([]*HookTask, 0, 10)
-	err := x.Where("is_delivered=?", false).Find(&tasks)
-	if err != nil {
-		log.Error("DeliverHooks: %v", err)
-		return
+	if err := x.Where("is_delivered=?", false).Find(&tasks); err != nil {
+		return nil, err
 	}
-
-	// Update hook task status.
-	for _, t := range tasks {
-		if err = t.deliver(); err != nil {
-			log.Error("deliver: %v", err)
-		}
-	}
-
-	// Start listening on new hook requests.
-	for repoIDStr := range HookQueue.Queue() {
-		log.Trace("DeliverHooks [repo_id: %v]", repoIDStr)
-		HookQueue.Remove(repoIDStr)
-
-		repoID, err := com.StrTo(repoIDStr).Int64()
-		if err != nil {
-			log.Error("Invalid repo ID: %s", repoIDStr)
-			continue
-		}
-
-		tasks = make([]*HookTask, 0, 5)
-		if err := x.Where("repo_id=? AND is_delivered=?", repoID, false).Find(&tasks); err != nil {
-			log.Error("Get repository [%d] hook tasks: %v", repoID, err)
-			continue
-		}
-		for _, t := range tasks {
-			if err = t.deliver(); err != nil {
-				log.Error("deliver: %v", err)
-			}
-		}
-	}
+	return tasks, nil
 }
 
-var webhookHTTPClient *http.Client
-
-// InitDeliverHooks starts the hooks delivery thread
-func InitDeliverHooks() {
-	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
-
-	webhookHTTPClient = &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
-			Proxy:           http.ProxyFromEnvironment,
-			Dial: func(netw, addr string) (net.Conn, error) {
-				conn, err := net.DialTimeout(netw, addr, timeout)
-				if err != nil {
-					return nil, err
-				}
-
-				return conn, conn.SetDeadline(time.Now().Add(timeout))
-
-			},
-		},
+// FindRepoUndeliveredHookTasks represents find the undelivered hook tasks of one repository
+func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
+	tasks := make([]*HookTask, 0, 5)
+	if err := x.Where("repo_id=? AND is_delivered=?", repoID, false).Find(&tasks); err != nil {
+		return nil, err
 	}
-
-	go DeliverHooks()
+	return tasks, nil
 }
