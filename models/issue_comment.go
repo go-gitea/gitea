@@ -597,10 +597,7 @@ func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Co
 		}
 	}
 	// update the issue's updated_unix column
-	if err = updateIssueCols(e, opts.Issue, "updated_unix"); err != nil {
-		return err
-	}
-	return nil
+	return updateIssueCols(e, opts.Issue, "updated_unix")
 }
 
 func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, comment *Comment) (err error) {
