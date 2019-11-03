@@ -185,6 +185,10 @@ func CommitRepoAction(optsList ...CommitRepoActionOptions) error {
 					return fmt.Errorf("GetRepositoryByName [owner_id: %d, name: %s]: %v", opts.RepoOwnerID, opts.RepoName, err)
 				}
 			}
+			repo, err = models.GetRepositoryByName(opts.RepoOwnerID, opts.RepoName)
+			if err != nil {
+				return fmt.Errorf("GetRepositoryByName [owner_id: %d, name: %s]: %v", opts.RepoOwnerID, opts.RepoName, err)
+			}
 		}
 		refName := git.RefEndName(opts.RefFullName)
 
