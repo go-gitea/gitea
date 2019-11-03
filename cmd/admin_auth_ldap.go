@@ -54,6 +54,26 @@ var (
 			Usage: "The LDAP base at which user accounts will be searched for.",
 		},
 		cli.StringFlag{
+			Name:  "group-search-base",
+			Usage: "The LDAP base at which groups will be searched for.",
+		},
+		cli.StringFlag{
+			Name:  "group-search-filter",
+			Usage: "An LDAP filter declaring how to find the groups a user is member of.",
+		},
+		cli.StringFlag{
+			Name:  "user-attribute-in-group",
+			Usage: "The LDAP attribute of a user referenced by groups.",
+		},
+		cli.StringFlag{
+			Name:  "member-group-filter",
+			Usage: "An LDAP filter specifying if a group should be given administrator privileges.",
+		},
+		cli.StringFlag{
+			Name:  "admin-group-filter",
+			Usage: "An LDAP filter specifying if a group is allowed to log in.",
+		},
+		cli.StringFlag{
 			Name:  "user-filter",
 			Usage: "An LDAP filter declaring how to find the user record that is attempting to authenticate.",
 		},
@@ -203,6 +223,21 @@ func parseLdapConfig(c *cli.Context, config *models.LDAPConfig) error {
 	}
 	if c.IsSet("user-search-base") {
 		config.Source.UserBase = c.String("user-search-base")
+	}
+	if c.IsSet("group-search-base") {
+		config.Source.GroupSearchBase = c.String("group-search-base")
+	}
+	if c.IsSet("group-search-filter") {
+		config.Source.GroupSearchFilter = c.String("group-search-filter")
+	}
+	if c.IsSet("user-attribute-in-group") {
+		config.Source.UserAttributeInGroup = c.String("user-attribute-in-group")
+	}
+	if c.IsSet("member-group-filter") {
+		config.Source.MemberGroupFilter = c.String("member-group-filter")
+	}
+	if c.IsSet("admin-group-filter") {
+		config.Source.AdminGroupFilter = c.String("admin-group-filter")
 	}
 	if c.IsSet("username-attribute") {
 		config.Source.AttributeUsername = c.String("username-attribute")

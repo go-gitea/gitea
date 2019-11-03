@@ -49,6 +49,11 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--attributes-in-bind",
 				"--synchronize-users",
 				"--page-size", "99",
+				"--group-search-base", "ou=Groups,dc=full-domain-bind,dc=org",
+				"--group-search-filter", "(&(objectClass=groupOfNames)(member=%s))",
+				"--user-attribute-in-group", "uid",
+				"--member-group-filter", "(cn=user-group)",
+				"--admin-group-filter", "(cn=admin-group)",
 			},
 			loginSource: &models.LoginSource{
 				Type:          models.LoginLDAP,
@@ -65,6 +70,11 @@ func TestAddLdapBindDn(t *testing.T) {
 						BindDN:                "cn=readonly,dc=full-domain-bind,dc=org",
 						BindPassword:          "secret-bind-full",
 						UserBase:              "ou=Users,dc=full-domain-bind,dc=org",
+						GroupSearchBase:       "ou=Groups,dc=full-domain-bind,dc=org",
+						GroupSearchFilter:     "(&(objectClass=groupOfNames)(member=%s))",
+						UserAttributeInGroup:  "uid",
+						MemberGroupFilter:     "(cn=user-group)",
+						AdminGroupFilter:      "(cn=admin-group)",
 						AttributeUsername:     "uid-bind full",
 						AttributeName:         "givenName-bind full",
 						AttributeSurname:      "sn-bind full",
@@ -271,6 +281,11 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--email-attribute", "mail-simple full",
 				"--public-ssh-key-attribute", "publickey-simple full",
 				"--user-dn", "cn=%s,ou=Users,dc=full-domain-simple,dc=org",
+				"--group-search-base", "ou=Groups,dc=full-domain-bind,dc=org",
+				"--group-search-filter", "(&(objectClass=groupOfNames)(member=%s))",
+				"--user-attribute-in-group", "uid",
+				"--member-group-filter", "(cn=user-group)",
+				"--admin-group-filter", "(cn=admin-group)",
 			},
 			loginSource: &models.LoginSource{
 				Type:      models.LoginDLDAP,
@@ -285,6 +300,11 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 						SkipVerify:            true,
 						UserDN:                "cn=%s,ou=Users,dc=full-domain-simple,dc=org",
 						UserBase:              "ou=Users,dc=full-domain-simple,dc=org",
+						GroupSearchBase:       "ou=Groups,dc=full-domain-bind,dc=org",
+						GroupSearchFilter:     "(&(objectClass=groupOfNames)(member=%s))",
+						UserAttributeInGroup:  "uid",
+						MemberGroupFilter:     "(cn=user-group)",
+						AdminGroupFilter:      "(cn=admin-group)",
 						AttributeUsername:     "uid-simple full",
 						AttributeName:         "givenName-simple full",
 						AttributeSurname:      "sn-simple full",
@@ -508,6 +528,11 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--bind-password", "secret-bind-full",
 				"--synchronize-users",
 				"--page-size", "99",
+				"--group-search-base", "ou=Groups,dc=full-domain-bind,dc=org",
+				"--group-search-filter", "(&(objectClass=groupOfNames)(member=%s))",
+				"--user-attribute-in-group", "uid",
+				"--member-group-filter", "(cn=user-group)",
+				"--admin-group-filter", "(cn=admin-group)",
 			},
 			id: 23,
 			existingLoginSource: &models.LoginSource{
@@ -534,6 +559,11 @@ func TestUpdateLdapBindDn(t *testing.T) {
 						BindDN:                "cn=readonly,dc=full-domain-bind,dc=org",
 						BindPassword:          "secret-bind-full",
 						UserBase:              "ou=Users,dc=full-domain-bind,dc=org",
+						GroupSearchBase:       "ou=Groups,dc=full-domain-bind,dc=org",
+						GroupSearchFilter:     "(&(objectClass=groupOfNames)(member=%s))",
+						UserAttributeInGroup:  "uid",
+						MemberGroupFilter:     "(cn=user-group)",
+						AdminGroupFilter:      "(cn=admin-group)",
 						AttributeUsername:     "uid-bind full",
 						AttributeName:         "givenName-bind full",
 						AttributeSurname:      "sn-bind full",
@@ -901,6 +931,86 @@ func TestUpdateLdapBindDn(t *testing.T) {
 			},
 			errMsg: "Invalid authentication type. expected: LDAP (via BindDN), actual: OAuth2",
 		},
+		// case 24
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "1",
+				"--group-search-base", "ou=Groups,dc=full-domain-bind,dc=org",
+			},
+			loginSource: &models.LoginSource{
+				Type: models.LoginLDAP,
+				Cfg: &models.LDAPConfig{
+					Source: &ldap.Source{
+						GroupSearchBase: "ou=Groups,dc=full-domain-bind,dc=org",
+					},
+				},
+			},
+		},
+		// case 25
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "1",
+				"--group-search-filter", "(&(objectClass=groupOfNames)(member=%s))",
+			},
+			loginSource: &models.LoginSource{
+				Type: models.LoginLDAP,
+				Cfg: &models.LDAPConfig{
+					Source: &ldap.Source{
+						GroupSearchFilter: "(&(objectClass=groupOfNames)(member=%s))",
+					},
+				},
+			},
+		},
+		// case 26
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "1",
+				"--user-attribute-in-group", "uid",
+			},
+			loginSource: &models.LoginSource{
+				Type: models.LoginLDAP,
+				Cfg: &models.LDAPConfig{
+					Source: &ldap.Source{
+						UserAttributeInGroup: "uid",
+					},
+				},
+			},
+		},
+		// case 27
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "1",
+				"--member-group-filter", "(cn=user-group)",
+			},
+			loginSource: &models.LoginSource{
+				Type: models.LoginLDAP,
+				Cfg: &models.LDAPConfig{
+					Source: &ldap.Source{
+						MemberGroupFilter: "(cn=user-group)",
+					},
+				},
+			},
+		},
+		// case 28
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "1",
+				"--admin-group-filter", "(cn=admin-group)",
+			},
+			loginSource: &models.LoginSource{
+				Type: models.LoginLDAP,
+				Cfg: &models.LDAPConfig{
+					Source: &ldap.Source{
+						AdminGroupFilter: "(cn=admin-group)",
+					},
+				},
+			},
+		},
 	}
 
 	for n, c := range cases {
@@ -984,6 +1094,11 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--email-attribute", "mail-simple full",
 				"--public-ssh-key-attribute", "publickey-simple full",
 				"--user-dn", "cn=%s,ou=Users,dc=full-domain-simple,dc=org",
+				"--group-search-base", "ou=Groups,dc=full-domain-bind,dc=org",
+				"--group-search-filter", "(&(objectClass=groupOfNames)(member=%s))",
+				"--user-attribute-in-group", "uid",
+				"--member-group-filter", "(cn=user-group)",
+				"--admin-group-filter", "(cn=admin-group)",
 			},
 			id: 7,
 			loginSource: &models.LoginSource{
@@ -999,6 +1114,11 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 						SkipVerify:            true,
 						UserDN:                "cn=%s,ou=Users,dc=full-domain-simple,dc=org",
 						UserBase:              "ou=Users,dc=full-domain-simple,dc=org",
+						GroupSearchBase:       "ou=Groups,dc=full-domain-bind,dc=org",
+						GroupSearchFilter:     "(&(objectClass=groupOfNames)(member=%s))",
+						UserAttributeInGroup:  "uid",
+						MemberGroupFilter:     "(cn=user-group)",
+						AdminGroupFilter:      "(cn=admin-group)",
 						AttributeUsername:     "uid-simple full",
 						AttributeName:         "givenName-simple full",
 						AttributeSurname:      "sn-simple full",
@@ -1299,6 +1419,86 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				},
 			},
 			errMsg: "Invalid authentication type. expected: LDAP (simple auth), actual: PAM",
+		},
+		// case 20
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "1",
+				"--group-search-base", "ou=Groups,dc=full-domain-bind,dc=org",
+			},
+			loginSource: &models.LoginSource{
+				Type: models.LoginDLDAP,
+				Cfg: &models.LDAPConfig{
+					Source: &ldap.Source{
+						GroupSearchBase: "ou=Groups,dc=full-domain-bind,dc=org",
+					},
+				},
+			},
+		},
+		// case 21
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "1",
+				"--group-search-filter", "(&(objectClass=groupOfNames)(member=%s))",
+			},
+			loginSource: &models.LoginSource{
+				Type: models.LoginDLDAP,
+				Cfg: &models.LDAPConfig{
+					Source: &ldap.Source{
+						GroupSearchFilter: "(&(objectClass=groupOfNames)(member=%s))",
+					},
+				},
+			},
+		},
+		// case 22
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "1",
+				"--user-attribute-in-group", "uid",
+			},
+			loginSource: &models.LoginSource{
+				Type: models.LoginDLDAP,
+				Cfg: &models.LDAPConfig{
+					Source: &ldap.Source{
+						UserAttributeInGroup: "uid",
+					},
+				},
+			},
+		},
+		// case 23
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "1",
+				"--member-group-filter", "(cn=user-group)",
+			},
+			loginSource: &models.LoginSource{
+				Type: models.LoginDLDAP,
+				Cfg: &models.LDAPConfig{
+					Source: &ldap.Source{
+						MemberGroupFilter: "(cn=user-group)",
+					},
+				},
+			},
+		},
+		// case 24
+		{
+			args: []string{
+				"ldap-test",
+				"--id", "1",
+				"--admin-group-filter", "(cn=admin-group)",
+			},
+			loginSource: &models.LoginSource{
+				Type: models.LoginDLDAP,
+				Cfg: &models.LDAPConfig{
+					Source: &ldap.Source{
+						AdminGroupFilter: "(cn=admin-group)",
+					},
+				},
+			},
 		},
 	}
 
