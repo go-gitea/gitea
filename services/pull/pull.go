@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/webhook"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
@@ -41,7 +42,7 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	pr.Issue = pull
 	pull.PullRequest = pr
 	mode, _ := models.AccessLevel(pull.Poster, repo)
-	if err := models.PrepareWebhooks(repo, models.HookEventPullRequest, &api.PullRequestPayload{
+	if err := webhook.PrepareWebhooks(repo, models.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Index,
 		PullRequest: pr.APIFormat(),
@@ -49,8 +50,6 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 		Sender:      pull.Poster.APIFormat(),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go models.HookQueue.Add(repo.ID)
 	}
 
 	return nil
@@ -114,7 +113,7 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 					log.Error("LoadAttributes: %v", err)
 					continue
 				}
-				if err = models.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+				if err = webhook.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 					Action:      api.HookIssueSynchronized,
 					Index:       pr.Issue.Index,
 					PullRequest: pr.Issue.PullRequest.APIFormat(),
@@ -124,7 +123,6 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 					log.Error("PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
 					continue
 				}
-				go models.HookQueue.Add(pr.Issue.Repo.ID)
 			}
 		}
 
