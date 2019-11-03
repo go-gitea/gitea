@@ -267,10 +267,10 @@ Gitea or set your environment appropriately.`, "")
 	}
 
 	if count == 0 {
-
 		fmt.Fprintf(os.Stdout, "Processed %d references in total\n", total)
 		os.Stdout.Sync()
 
+		hookPrintResults(results)
 		return nil
 	}
 
