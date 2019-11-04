@@ -1227,6 +1227,11 @@
             "in": "query"
           },
           {
+            "format": "int64",
+            "description": "repo owner to prioritize in the results",
+            "name": "priority_owner_id"
+          },
+          {
             "type": "integer",
             "format": "int64",
             "description": "search only for repos that the user with the given id has starred",
@@ -10308,6 +10313,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Stars"
+        },
+        "template": {
+          "type": "boolean",
+          "x-go-name": "Template"
         },
         "updated_at": {
           "type": "string",

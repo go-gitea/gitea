@@ -111,17 +111,18 @@ func (repos MirrorRepositoryList) LoadAttributes() error {
 
 // SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
-	UserID      int64
-	UserIsAdmin bool
-	Keyword     string
-	OwnerID     int64
-	OrderBy     SearchOrderBy
-	Private     bool // Include private repositories in results
-	StarredByID int64
-	Page        int
-	IsProfile   bool
-	AllPublic   bool // Include also all public repositories
-	PageSize    int  // Can be smaller than or equal to setting.ExplorePagingNum
+	UserID          int64
+	UserIsAdmin     bool
+	Keyword         string
+	OwnerID         int64
+	PriorityOwnerID int64
+	OrderBy         SearchOrderBy
+	Private         bool // Include private repositories in results
+	StarredByID     int64
+	Page            int
+	IsProfile       bool
+	AllPublic       bool // Include also all public repositories
+	PageSize        int  // Can be smaller than or equal to setting.ExplorePagingNum
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
 	// False -> incude just non-collaborative
@@ -272,6 +273,10 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = SearchOrderByAlphabetically
+	}
+
+	if opts.PriorityOwnerID > 0 {
+		opts.OrderBy = SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = %d THEN 0 ELSE owner_id END, %s", opts.PriorityOwnerID, opts.OrderBy))
 	}
 
 	sess := x.NewSession()

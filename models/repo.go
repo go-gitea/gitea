@@ -353,6 +353,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		FullName:                  repo.FullName(),
 		Description:               repo.Description,
 		Private:                   repo.IsPrivate,
+		Template:                  repo.IsTemplate,
 		Empty:                     repo.IsEmpty,
 		Archived:                  repo.IsArchived,
 		Size:                      int(repo.Size / 1024),
@@ -1241,6 +1242,18 @@ type CreateRepoOptions struct {
 	IsMirror    bool
 	AutoInit    bool
 	Status      RepositoryStatus
+}
+
+// GenerateRepoOptions contains the template units to generate
+type GenerateRepoOptions struct {
+	Name        string
+	Description string
+	Private     bool
+	GitContent  bool
+}
+
+func (gro GenerateRepoOptions) IsValid() bool {
+	return gro.GitContent // or other items as they are added
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
@@ -2729,14 +2742,14 @@ func ForkRepository(doer, owner *User, oldRepo *Repository, name, desc string) (
 }
 
 // GenerateRepository generates a repository from a template
-func GenerateRepository(doer, owner *User, templateRepo *Repository, name, desc string, private bool) (_ *Repository, err error) {
+func GenerateRepository(doer, owner *User, templateRepo *Repository, opts GenerateRepoOptions) (_ *Repository, err error) {
 	repo := &Repository{
 		OwnerID:     owner.ID,
 		Owner:       owner,
-		Name:        name,
-		LowerName:   strings.ToLower(name),
-		Description: desc,
-		IsPrivate:   private,
+		Name:        opts.Name,
+		LowerName:   strings.ToLower(opts.Name),
+		Description: opts.Description,
+		IsPrivate:   opts.Private,
 		IsEmpty:     templateRepo.IsEmpty,
 		TemplateID:  templateRepo.ID,
 	}
@@ -2751,22 +2764,28 @@ func GenerateRepository(doer, owner *User, templateRepo *Repository, name, desc 
 		return nil, err
 	}
 
-	repoPath := RepoPath(owner.Name, repo.Name)
-	if err := generateRepository(sess, repoPath, repo, templateRepo); err != nil {
-		return nil, err
+	if opts.GitContent {
+		repoPath := RepoPath(owner.Name, repo.Name)
+		if err := generateRepository(sess, repoPath, repo, templateRepo); err != nil {
+			return nil, err
+		}
+
+		//Commit repo to get generated repo ID
+		err = sess.Commit()
+		if err != nil {
+			return nil, err
+		}
+
+		if err = repo.UpdateSize(); err != nil {
+			log.Error("Failed to update size for repository: %v", err)
+		}
+
+		if err = copyLFS(repo, templateRepo); err != nil {
+			log.Error("Failed to copy LFS: %v", err)
+		}
 	}
 
-	//Commit repo to get generated repo ID
-	err = sess.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	if err = repo.UpdateSize(); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
-	}
-
-	return repo, copyLFS(repo, templateRepo)
+	return repo, err
 }
 
 // GetForks returns all the forks of the repository

@@ -69,6 +69,9 @@ func Search(ctx *context.APIContext) {
 	//   description: search only for repos that the user with the given id owns or contributes to
 	//   type: integer
 	//   format: int64
+	// - name: priority_owner_id
+	//   description: repo owner to prioritize in the results
+	//   format: int64
 	// - name: starredBy
 	//   in: query
 	//   description: search only for repos that the user with the given id has starred
@@ -118,6 +121,7 @@ func Search(ctx *context.APIContext) {
 	opts := &models.SearchRepoOptions{
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
+		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
 		Page:               ctx.QueryInt("page"),
 		PageSize:           convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		TopicOnly:          ctx.QueryBool("topic"),

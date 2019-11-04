@@ -2135,6 +2135,52 @@ function initWipTitle() {
     });
 }
 
+function initTemplateSearch() {
+    let $repoTemplate = $("#repo_template");
+    let checkTemplate = function() {
+        let $templateUnits = $("#template_units");
+        let $nonTemplate = $("#non_template");
+        if ($repoTemplate.val() !== "") {
+            $templateUnits.show();
+            $nonTemplate.hide();
+        } else {
+            $templateUnits.hide();
+            $nonTemplate.show();
+        }
+    };
+    $repoTemplate.change(checkTemplate);
+    checkTemplate();
+
+    let changeOwner = function() {
+        $("#repo_template_search")
+            .dropdown({
+                apiSettings: {
+                    url: suburl + '/api/v1/repos/search?q={query}&template=true&priority_owner_id=' + $("#uid").val(),
+                    onResponse: function(response) {
+                        const filteredResponse = {'success': true, 'results': []};
+                        filteredResponse.results.push({
+                            'name': '',
+                            'value': ''
+                        });
+                        // Parse the response from the api to work with our dropdown
+                        $.each(response.data, function(_r, repo) {
+                            filteredResponse.results.push({
+                                'name'  : htmlEncode(repo.name) ,
+                                'value' : repo.id
+                            });
+                        });
+                        return filteredResponse;
+                    },
+                    cache: false,
+                },
+
+                fullTextSearch: true
+            });
+    };
+    $("#uid").change(changeOwner);
+    changeOwner();
+}
+
 $(document).ready(function () {
     csrf = $('meta[name=_csrf]').attr("content");
     suburl = $('meta[name=_suburl]').attr("content");
@@ -2376,6 +2422,7 @@ $(document).ready(function () {
     initWipTitle();
     initPullRequestReview();
     initRepoStatusChecker();
+    initTemplateSearch();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -3264,7 +3311,7 @@ function initIssueList() {
     $('#new-dependency-drop-list')
         .dropdown({
             apiSettings: {
-                url: issueSearchUrl,                
+                url: issueSearchUrl,
                 onResponse: function(response) {
                     const filteredResponse = {'success': true, 'results': []};
                     const currIssueId = $('#new-dependency-drop-list').data('issue-id');
@@ -3275,7 +3322,7 @@ function initIssueList() {
                             return;
                         }
                         filteredResponse.results.push({
-                            'name'  : '#' + issue.number + ' ' + htmlEncode(issue.title) + 
+                            'name'  : '#' + issue.number + ' ' + htmlEncode(issue.title) +
                                 '<div class="text small dont-break-out">' + htmlEncode(issue.repository.full_name) + '</div>',
                             'value' : issue.id
                         });
