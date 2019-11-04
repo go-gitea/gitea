@@ -79,12 +79,11 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	}
 
 	u := &models.User{
-		Name:               form.UserName,
-		Email:              form.Email,
-		Passwd:             form.Password,
-		IsActive:           true,
-		LoginType:          models.LoginPlain,
-		MustChangePassword: form.MustChangePassword,
+		Name:      form.UserName,
+		Email:     form.Email,
+		Passwd:    form.Password,
+		IsActive:  true,
+		LoginType: models.LoginPlain,
 	}
 
 	if len(form.LoginType) > 0 {
@@ -95,9 +94,12 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 			u.LoginName = form.LoginName
 		}
 	}
-	if !password.IsComplexEnough(form.Password) {
-		ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserNew, &form)
-		return
+	if u.LoginType == models.LoginPlain {
+		if !password.IsComplexEnough(form.Password) {
+			ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserNew, &form)
+			return
+		}
+		u.MustChangePassword = form.MustChangePassword
 	}
 	if err := models.CreateUser(u); err != nil {
 		switch {
