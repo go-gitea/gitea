@@ -50,7 +50,7 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 //FindReactions returns Reactions based
 func FindReactions(comment *Comment) (ReactionList, error) {
 	return findReactions(x, FindReactionsOptions{
-		IssueID: comment.IssueID,
+		IssueID:   comment.IssueID,
 		CommentID: comment.ID})
 }
 
