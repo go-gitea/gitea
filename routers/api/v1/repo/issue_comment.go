@@ -394,7 +394,63 @@ func deleteIssueComment(ctx *context.APIContext) {
 	ctx.Status(204)
 }
 
+//GetCommentReactions return all reactions of a specific comment
 func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) {
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/comments/{id}/reactions issue issueGetCommentReactions
+	// ---
+	// summary: Return all reactions of a specific comment
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: this parameter is ignored
+	//   type: integer
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the comment
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/CommentReactions"
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		ctx.Error(500, "GetIssueByIndex", err)
+		return
+	}
+	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		if models.IsErrCommentNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(500, "GetCommentByID", err)
+		}
+		return
+	}
+
+	rl, err := models.FindReactions(models.FindReactionsOptions{IssueID: issue.ID, CommentID: comment.ID})
+	if err != nil {
+		ctx.Error(500, "FindReactionsOptions", err)
+		return
+	} else if rl == nil {
+		ctx.NotFound("")
+		return
+	}
+
+	ctx.JSON(200, rl.APIFormat())
 
 }
 

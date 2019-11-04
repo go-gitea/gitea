@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -25,6 +26,9 @@ type Reaction struct {
 	User        *User              `xorm:"-"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
+
+// ReactionList represents list of reactions
+type ReactionList []*Reaction
 
 // FindReactionsOptions describes the conditions to Find reactions
 type FindReactionsOptions struct {
@@ -43,8 +47,13 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 	return cond
 }
 
-func findReactions(e Engine, opts FindReactionsOptions) ([]*Reaction, error) {
-	reactions := make([]*Reaction, 0, 10)
+//FindReactions returns Reactions based
+func FindReactions(opts FindReactionsOptions) (ReactionList, error) {
+	return findReactions(x, opts)
+}
+
+func findReactions(e Engine, opts FindReactionsOptions) (ReactionList, error) {
+	reactions := make(ReactionList, 0, 10)
 	sess := e.Where(opts.toConds())
 	return reactions, sess.
 		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id").
@@ -160,9 +169,6 @@ func DeleteCommentReaction(doer *User, issue *Issue, comment *Comment, content s
 	})
 }
 
-// ReactionList represents list of reactions
-type ReactionList []*Reaction
-
 // HasUser check if user has reacted
 func (list ReactionList) HasUser(userID int64) bool {
 	if userID == 0 {
@@ -246,4 +252,25 @@ func (list ReactionList) GetMoreUserCount() int {
 		return 0
 	}
 	return len(list) - setting.UI.ReactionMaxUserNum
+}
+
+// APIFormat returns Raction in api Format
+func (list ReactionList) APIFormat() api.CommentReactionList {
+	result := []*api.CommentReaction{}
+	users := map[string][]*string{}
+	counts := map[string]int64{}
+
+	for _, r := range list {
+		users[r.Type] = append(users[r.Type], &r.User.LoginName)
+		counts[r.Type]++
+	}
+
+	for k, v := range users {
+		result = append(result, &api.CommentReaction{
+			Reaction: k,
+			Users:    v,
+			Count:    counts[k],
+		})
+	}
+	return result
 }
