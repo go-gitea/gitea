@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package webhook
 
 import (
 	"encoding/json"
@@ -10,7 +10,9 @@ import (
 	"html"
 	"strings"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -29,6 +31,15 @@ type (
 		ChatID   string `json:"chat_id"`
 	}
 )
+
+// GetTelegramHook returns telegram metadata
+func GetTelegramHook(w *models.Webhook) *TelegramMeta {
+	s := &TelegramMeta{}
+	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
+		log.Error("webhook.GetTelegramHook(%d): %v", w.ID, err)
+	}
+	return s
+}
 
 // SetSecret sets the telegram secret
 func (p *TelegramPayload) SetSecret(_ string) {}
@@ -169,7 +180,7 @@ func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
 }
 
 func getTelegramIssueCommentPayload(p *api.IssueCommentPayload) (*TelegramPayload, error) {
-	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, CommentHashTag(p.Comment.ID))
+	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID))
 	title := fmt.Sprintf(`<a href="%s">#%d %s</a>`, url, p.Issue.Index, html.EscapeString(p.Issue.Title))
 	var text string
 	switch p.Action {
@@ -214,7 +225,7 @@ func getTelegramPullRequestPayload(p *api.PullRequestPayload) (*TelegramPayload,
 			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
 	case api.HookIssueAssigned:
-		list, err := MakeAssigneeList(&Issue{ID: p.PullRequest.ID})
+		list, err := models.MakeAssigneeList(&models.Issue{ID: p.PullRequest.ID})
 		if err != nil {
 			return &TelegramPayload{}, err
 		}
@@ -297,27 +308,27 @@ func getTelegramReleasePayload(p *api.ReleasePayload) (*TelegramPayload, error) 
 }
 
 // GetTelegramPayload converts a telegram webhook into a TelegramPayload
-func GetTelegramPayload(p api.Payloader, event HookEventType, meta string) (*TelegramPayload, error) {
+func GetTelegramPayload(p api.Payloader, event models.HookEventType, meta string) (*TelegramPayload, error) {
 	s := new(TelegramPayload)
 
 	switch event {
-	case HookEventCreate:
+	case models.HookEventCreate:
 		return getTelegramCreatePayload(p.(*api.CreatePayload))
-	case HookEventDelete:
+	case models.HookEventDelete:
 		return getTelegramDeletePayload(p.(*api.DeletePayload))
-	case HookEventFork:
+	case models.HookEventFork:
 		return getTelegramForkPayload(p.(*api.ForkPayload))
-	case HookEventIssues:
+	case models.HookEventIssues:
 		return getTelegramIssuesPayload(p.(*api.IssuePayload))
-	case HookEventIssueComment:
+	case models.HookEventIssueComment:
 		return getTelegramIssueCommentPayload(p.(*api.IssueCommentPayload))
-	case HookEventPush:
+	case models.HookEventPush:
 		return getTelegramPushPayload(p.(*api.PushPayload))
-	case HookEventPullRequest:
+	case models.HookEventPullRequest:
 		return getTelegramPullRequestPayload(p.(*api.PullRequestPayload))
-	case HookEventRepository:
+	case models.HookEventRepository:
 		return getTelegramRepositoryPayload(p.(*api.RepositoryPayload))
-	case HookEventRelease:
+	case models.HookEventRelease:
 		return getTelegramReleasePayload(p.(*api.ReleasePayload))
 	}
 
