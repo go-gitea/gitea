@@ -70,7 +70,9 @@ func Search(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	// - name: priority_owner_id
+	//   in: query
 	//   description: repo owner to prioritize in the results
+	//   type: integer
 	//   format: int64
 	// - name: starredBy
 	//   in: query

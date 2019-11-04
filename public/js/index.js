@@ -2136,10 +2136,10 @@ function initWipTitle() {
 }
 
 function initTemplateSearch() {
-    let $repoTemplate = $("#repo_template");
-    let checkTemplate = function() {
-        let $templateUnits = $("#template_units");
-        let $nonTemplate = $("#non_template");
+    const $repoTemplate = $("#repo_template");
+    const checkTemplate = function() {
+        const $templateUnits = $("#template_units");
+        const $nonTemplate = $("#non_template");
         if ($repoTemplate.val() !== "") {
             $templateUnits.show();
             $nonTemplate.hide();
@@ -2151,7 +2151,7 @@ function initTemplateSearch() {
     $repoTemplate.change(checkTemplate);
     checkTemplate();
 
-    let changeOwner = function() {
+    const changeOwner = function() {
         $("#repo_template_search")
             .dropdown({
                 apiSettings: {
