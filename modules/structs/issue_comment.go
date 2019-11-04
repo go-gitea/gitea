@@ -35,3 +35,11 @@ type EditIssueCommentOption struct {
 	// required: true
 	Body string `json:"body" binding:"Required"`
 }
+
+type CommentReaction struct {
+	Reaction	string		`json:"reaction""`
+	Users		[]*string	`json:"users"`
+	Count		int64		`json:"count"`
+}
+
+type CommentReactionList []*CommentReaction
