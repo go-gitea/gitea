@@ -4721,7 +4721,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Update a pull request",
+        "summary": "Update a pull request. If using deadline only the date will be taken into account, and time of day ignored.",
         "operationId": "repoEditPullRequest",
         "parameters": [
           {
@@ -8538,6 +8538,10 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "unset_due_date": {
+          "type": "boolean",
+          "x-go-name": "RemoveDeadline"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -8666,6 +8670,10 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "unset_due_date": {
+          "type": "boolean",
+          "x-go-name": "RemoveDeadline"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
