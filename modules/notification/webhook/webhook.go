@@ -8,7 +8,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/webhook"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
@@ -250,6 +252,15 @@ func (m *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *mode
 }
 
 func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue) {
+	if err := issue.LoadRepo(); err != nil {
+		log.Error("issue.LoadRepo: %v", err)
+		return
+	}
+	if err := issue.LoadPoster(); err != nil {
+		log.Error("issue.LoadPoster: %v", err)
+		return
+	}
+
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
 	if err := webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
 		Action:     api.HookIssueOpened,
@@ -257,6 +268,32 @@ func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue) {
 		Issue:      issue.APIFormat(),
 		Repository: issue.Repo.APIFormat(mode),
 		Sender:     issue.Poster.APIFormat(),
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func (m *webhookNotifier) NotifyNewPullRequest(pull *models.PullRequest) {
+	if err := pull.LoadIssue(); err != nil {
+		log.Error("pull.LoadIssue: %v", err)
+		return
+	}
+	if err := pull.Issue.LoadRepo(); err != nil {
+		log.Error("pull.Issue.LoadRepo: %v", err)
+		return
+	}
+	if err := pull.Issue.LoadPoster(); err != nil {
+		log.Error("pull.Issue.LoadPoster: %v", err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(pull.Issue.Poster, pull.Issue.Repo)
+	if err := webhook.PrepareWebhooks(pull.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+		Action:      api.HookIssueOpened,
+		Index:       pull.Issue.Index,
+		PullRequest: pull.APIFormat(),
+		Repository:  pull.Issue.Repo.APIFormat(mode),
+		Sender:      pull.Issue.Poster.APIFormat(),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
@@ -459,5 +496,27 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *m
 	}
 	if err != nil {
 		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
+	}
+}
+
+func (m *webhookNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+	apiPusher := pusher.APIFormat()
+	apiCommits, err := commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
+	if err != nil {
+		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
+		return
+	}
+
+	if err := webhook_module.PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{
+		Ref:        refName,
+		Before:     oldCommitID,
+		After:      newCommitID,
+		CompareURL: setting.AppURL + commits.CompareURL,
+		Commits:    apiCommits,
+		Repo:       repo.APIFormat(models.AccessModeOwner),
+		Pusher:     apiPusher,
+		Sender:     apiPusher,
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
 	}
 }
