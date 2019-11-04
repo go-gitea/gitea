@@ -578,13 +578,13 @@ func setCommentReaction(ctx *context.APIContext, form api.CommentReaction, creat
 
 		if create {
 			// Create Reaction
-			_, err = models.CreateCommentReaction(user,issue,comment,form.Reaction)
+			_, err = models.CreateCommentReaction(user, issue, comment, form.Reaction)
 			if err != nil {
 				ctx.Error(500, "CreateCommentReaction", err)
 			}
 		} else {
 			// Delete Reaction
-			err = models.DeleteCommentReaction(user,issue,comment,form.Reaction)
+			err = models.DeleteCommentReaction(user, issue, comment, form.Reaction)
 			if err != nil {
 				ctx.Error(500, "DeleteCommentReaction", err)
 			}
