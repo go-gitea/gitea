@@ -80,5 +80,5 @@ func trimIndentUpTo(max int) func(string) string {
 	}
 }
 
-func (n Example) String() string { return orgWriter.nodesAsString(n) }
-func (n Block) String() string   { return orgWriter.nodesAsString(n) }
+func (n Example) String() string { return orgWriter.WriteNodesAsString(n) }
+func (n Block) String() string   { return orgWriter.WriteNodesAsString(n) }
