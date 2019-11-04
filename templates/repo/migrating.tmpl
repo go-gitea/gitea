@@ -23,6 +23,13 @@
 							</div>
 						</div>
 					</div>
+					{{if .Permission.IsOwner}}
+					<div class="ui stackable middle very relaxed page grid">
+						<div class="sixteen wide center aligned centered column">
+							<a href="#" class="ui red button delete-post" data-request-url="{{.Repo.Repository.RepoPath}}/cancel_migration" data-done-url="/">{{.i18n.Tr "repo.migrate.cancel_migration"}}</a>
+						</div>
+					</div>
+					{{end}}
 				</div>
 			</div>
 		</div>

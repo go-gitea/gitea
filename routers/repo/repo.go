@@ -473,3 +473,24 @@ func Status(ctx *context.Context) {
 		"err":    task.Errors,
 	})
 }
+
+// CancelMigration cancel the repository's migration
+func CancelMigration(ctx *context.Context) {
+	task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err,
+		})
+		return
+	}
+	if err = task.CancelTask(task); err != nil {
+		ctx.JSON(500, map[string]interface{}{
+			"err": err,
+		})
+		return
+	}
+	ctx.JSON(200, map[string]interface{}{
+		"status": ctx.Repo.Repository.Status,
+		"err":    task.Errors,
+	})
+}

@@ -64,3 +64,13 @@ func MigrateRepository(doer, u *models.User, opts base.MigrateOptions) error {
 
 	return taskQueue.Push(task)
 }
+
+// CancelTask cancel a task
+func CancelTask(t *models.Task) error {
+	switch t.Type {
+	case structs.TaskTypeMigrateRepo:
+
+	default:
+		return fmt.Errorf("Unknow task type: %d", t.Type)
+	}
+}

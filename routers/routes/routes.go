@@ -859,6 +859,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/archive/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.Download)
 
 		m.Get("/status", reqRepoCodeReader, repo.Status)
+		m.Get("/cancel_migration", reqRepoAdmin, repo.CancelMigration)
 
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)
