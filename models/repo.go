@@ -1252,6 +1252,7 @@ type GenerateRepoOptions struct {
 	GitContent  bool
 }
 
+// IsValid checks whether at least one option is chosen for generation
 func (gro GenerateRepoOptions) IsValid() bool {
 	return gro.GitContent // or other items as they are added
 }

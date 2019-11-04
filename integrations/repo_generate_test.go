@@ -16,7 +16,7 @@ import (
 )
 
 func testRepoGenerate(t *testing.T, session *TestSession, templateOwnerName, templateRepoName, generateOwnerName, generateRepoName string) *httptest.ResponseRecorder {
-	forkOwner := models.AssertExistsAndLoadBean(t, &models.User{Name: generateOwnerName}).(*models.User)
+	generateOwner := models.AssertExistsAndLoadBean(t, &models.User{Name: generateOwnerName}).(*models.User)
 
 	// Step0: check the existence of the generated repo
 	req := NewRequestf(t, "GET", "/%s/%s", generateOwnerName, generateRepoName)
@@ -28,21 +28,22 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateOwnerName, tem
 
 	// Step2: click the "Use this template" button
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find("a.ui.button[href^=\"/repo/generate/\"]").Attr("href")
+	link, exists := htmlDoc.doc.Find("a.ui.button[href^=\"/repo/create\"]").Attr("href")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequest(t, "GET", link)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
-	// Step3: fill the form of the generate
+	// Step3: fill the form of the create
 	htmlDoc = NewHTMLParser(t, resp.Body)
-	link, exists = htmlDoc.doc.Find("form.ui.form[action^=\"/repo/generate/\"]").Attr("action")
+	link, exists = htmlDoc.doc.Find("form.ui.form[action^=\"/repo/create\"]").Attr("action")
 	assert.True(t, exists, "The template has changed")
-	_, exists = htmlDoc.doc.Find(fmt.Sprintf(".owner.dropdown .item[data-value=\"%d\"]", forkOwner.ID)).Attr("data-value")
+	_, exists = htmlDoc.doc.Find(fmt.Sprintf(".owner.dropdown .item[data-value=\"%d\"]", generateOwner.ID)).Attr("data-value")
 	assert.True(t, exists, fmt.Sprintf("Generate owner '%s' is not present in select box", generateOwnerName))
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf":     htmlDoc.GetCSRF(),
-		"uid":       fmt.Sprintf("%d", forkOwner.ID),
-		"repo_name": generateRepoName,
+		"_csrf":       htmlDoc.GetCSRF(),
+		"uid":         fmt.Sprintf("%d", generateOwner.ID),
+		"repo_name":   generateRepoName,
+		"git_content": "true",
 	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
