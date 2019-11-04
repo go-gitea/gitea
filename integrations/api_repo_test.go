@@ -92,7 +92,7 @@ func TestAPISearchRepo(t *testing.T) {
 		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
 			nil:   {count: 5},
 			user:  {count: 9, includesPrivate: true},
-			user2: {count: 5, includesPrivate: true}},
+			user2: {count: 6, includesPrivate: true}},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
 			nil:   {count: 1},
