@@ -456,6 +456,7 @@ func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) 
 
 }
 
+// AddCommentReaction create a reaction to a comment
 func AddCommentReaction(ctx *context.APIContext, form api.CommentReaction) {
 	// swagger:operation PUT /repos/{owner}/{repo}/issues/{index}/comments/{id}/reactions issue issueAddCommentReaction
 	// ---
@@ -500,6 +501,7 @@ func AddCommentReaction(ctx *context.APIContext, form api.CommentReaction) {
 	setCommentReaction(ctx, form, true)
 }
 
+// DelCommentReaction delete a reaction to a comment
 func DelCommentReaction(ctx *context.APIContext, form api.CommentReaction) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/comments/{id}/reactions issue issueDelCommentReaction
 	// ---

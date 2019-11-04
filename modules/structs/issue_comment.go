@@ -36,10 +36,12 @@ type EditIssueCommentOption struct {
 	Body string `json:"body" binding:"Required"`
 }
 
+// CommentReaction represent comment reactions
 type CommentReaction struct {
 	Reaction string    `json:"reaction"`
 	Users    []*string `json:"users"`
 	Count    int64     `json:"count"`
 }
 
+// CommentReactionList is a list of comment reactions
 type CommentReactionList []*CommentReaction
