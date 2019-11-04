@@ -62,6 +62,11 @@
 								</div>
 							</div>
 						</div>
+						<div class="inline field {{if .Err_DbSetting}}error{{end}}">
+							<label for="db_schema">{{.i18n.Tr "install.db_schema"}}</label>
+							<input id="db_schema" name="db_schema" value="{{.db_schema}}">
+							<span class="help">{{.i18n.Tr "install.db_schema_helper"}}</span>
+						</div>
 					</div>
 
 					<div id="mysql_settings" class="{{if not (eq .CurDbOption "MySQL")}}hide{{end}}">
