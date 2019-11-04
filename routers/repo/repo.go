@@ -182,7 +182,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 
 		if !opts.IsValid() {
-			ctx.RenderWithErr("Must select at least one generation unit", tplCreate, form)
+			ctx.RenderWithErr("Must select at least one template item", tplCreate, form)
 			return
 		}
 
