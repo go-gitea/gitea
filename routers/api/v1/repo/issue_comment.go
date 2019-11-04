@@ -545,5 +545,51 @@ func DelCommentReaction(ctx *context.APIContext, form api.CommentReaction) {
 }
 
 func setCommentReaction(ctx *context.APIContext, form api.CommentReaction, create bool) {
+	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		if models.IsErrCommentNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(500, "GetCommentByID", err)
+		}
+		return
+	}
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, comment.IssueID)
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(500, "GetIssueByIndex", err)
+		}
 
+		return
+	}
+
+	for _, u := range form.Users {
+		user, err := models.GetUserByName(*u)
+		if err != nil {
+			ctx.Error(500, "GetUserByName", err)
+		}
+
+		if ctx.User.ID != user.ID && !ctx.Repo.IsAdmin() {
+			ctx.Status(403)
+			return
+		}
+
+		if create {
+			// Create Reaction
+			_, err = models.CreateCommentReaction(user,issue,comment,form.Reaction)
+			if err != nil {
+				ctx.Error(500, "CreateCommentReaction", err)
+			}
+		} else {
+			// Delete Reaction
+			err = models.DeleteCommentReaction(user,issue,comment,form.Reaction)
+			if err != nil {
+				ctx.Error(500, "DeleteCommentReaction", err)
+			}
+		}
+	}
+
+	ctx.Status(201)
 }
