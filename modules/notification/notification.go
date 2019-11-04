@@ -7,6 +7,7 @@ package notification
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/notification/indexer"
 	"code.gitea.io/gitea/modules/notification/mail"
@@ -33,6 +34,7 @@ func NewContext() {
 	}
 	RegisterNotifier(indexer.NewNotifier())
 	RegisterNotifier(webhook.NewNotifier())
+	RegisterNotifier(action.NewNotifier())
 }
 
 // NotifyCreateIssueComment notifies issue comment related message to notifiers
@@ -128,9 +130,9 @@ func NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 }
 
 // NotifyIssueChangeMilestone notifies change milestone to notifiers
-func NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue) {
+func NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64) {
 	for _, notifier := range notifiers {
-		notifier.NotifyIssueChangeMilestone(doer, issue)
+		notifier.NotifyIssueChangeMilestone(doer, issue, oldMilestoneID)
 	}
 }
 
@@ -181,5 +183,12 @@ func NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repo
 func NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
 	for _, notifier := range notifiers {
 		notifier.NotifyMigrateRepository(doer, u, repo)
+	}
+}
+
+// NotifyPushCommits notifies commits pushed to notifiers
+func NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
 	}
 }

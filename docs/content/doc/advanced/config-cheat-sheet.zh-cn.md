@@ -173,6 +173,20 @@ menu:
 - `MAX_SIZE`: 附件最大限制，单位 MB，比如： `4`。
 - `MAX_FILES`: 一次最多上传的附件数量，比如： `5`。
 
+关于 `ALLOWED_TYPES`， 在 (*)unix 系统中可以使用`file -I <filename>` 来快速获得对应的 `MIME type`。
+
+```shell
+$ file -I test00.tar.xz
+test00.tar.xz: application/x-xz; charset=binary
+
+$ file --mime test00.xlsx
+test00.xlsx: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; charset=binary
+
+file -I test01.xls
+test01.xls: application/vnd.ms-excel; charset=binary
+```
+
+
 ## Log (`log`)
 
 - `ROOT_PATH`: 日志文件根目录。

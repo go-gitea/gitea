@@ -24,18 +24,6 @@ func TestIsValidHookContentType(t *testing.T) {
 	assert.False(t, IsValidHookContentType("invalid"))
 }
 
-func TestWebhook_GetSlackHook(t *testing.T) {
-	w := &Webhook{
-		Meta: `{"channel": "foo", "username": "username", "color": "blue"}`,
-	}
-	slackHook := w.GetSlackHook()
-	assert.Equal(t, *slackHook, SlackMeta{
-		Channel:  "foo",
-		Username: "username",
-		Color:    "blue",
-	})
-}
-
 func TestWebhook_History(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	webhook := AssertExistsAndLoadBean(t, &Webhook{ID: 1}).(*Webhook)
@@ -253,57 +241,3 @@ func TestUpdateHookTask(t *testing.T) {
 	assert.NoError(t, UpdateHookTask(hook))
 	AssertExistsAndLoadBean(t, hook)
 }
-
-func TestPrepareWebhooks(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	hookTasks := []*HookTask{
-		{RepoID: repo.ID, HookID: 1, EventType: HookEventPush},
-	}
-	for _, hookTask := range hookTasks {
-		AssertNotExistsBean(t, hookTask)
-	}
-	assert.NoError(t, PrepareWebhooks(repo, HookEventPush, &api.PushPayload{}))
-	for _, hookTask := range hookTasks {
-		AssertExistsAndLoadBean(t, hookTask)
-	}
-}
-
-func TestPrepareWebhooksBranchFilterMatch(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
-	hookTasks := []*HookTask{
-		{RepoID: repo.ID, HookID: 4, EventType: HookEventPush},
-	}
-	for _, hookTask := range hookTasks {
-		AssertNotExistsBean(t, hookTask)
-	}
-	// this test also ensures that * doesn't handle / in any special way (like shell would)
-	assert.NoError(t, PrepareWebhooks(repo, HookEventPush, &api.PushPayload{Ref: "refs/heads/feature/7791"}))
-	for _, hookTask := range hookTasks {
-		AssertExistsAndLoadBean(t, hookTask)
-	}
-}
-
-func TestPrepareWebhooksBranchFilterNoMatch(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
-	hookTasks := []*HookTask{
-		{RepoID: repo.ID, HookID: 4, EventType: HookEventPush},
-	}
-	for _, hookTask := range hookTasks {
-		AssertNotExistsBean(t, hookTask)
-	}
-	assert.NoError(t, PrepareWebhooks(repo, HookEventPush, &api.PushPayload{Ref: "refs/heads/fix_weird_bug"}))
-
-	for _, hookTask := range hookTasks {
-		AssertNotExistsBean(t, hookTask)
-	}
-}
-
-// TODO TestHookTask_deliver
-
-// TODO TestDeliverHooks
