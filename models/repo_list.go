@@ -321,11 +321,15 @@ func accessibleRepositoryCondition(userID int64) builder.Cond {
 				builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePrivate}))),
 		),
 		// 2. Be able to see all repositories that we have access to
-		builder.In("`repository`.id", builder.Select("repo_id").
-			From("`access`").
-			Where(builder.And(
-				builder.Eq{"user_id": userID},
-				builder.Gt{"mode": int(AccessModeNone)}))),
+		builder.Or(
+			builder.In("`repository`.id", builder.Select("repo_id").
+				From("`access`").
+				Where(builder.And(
+					builder.Eq{"user_id": userID},
+					builder.Gt{"mode": int(AccessModeNone)}))),
+			builder.In("`repository`.id", builder.Select("id").
+				From("`repository`").
+				Where(builder.Eq{"owner_id": userID}))),
 		// 3. Be able to see all repositories that we are in a team
 		builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").
 			From("team_repo").
