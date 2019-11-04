@@ -1297,7 +1297,7 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 						sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
 							fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
 					} else {
-						sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
+						sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label WHERE label_id = ?)", -labelID)
 					}
 				}
 			}
