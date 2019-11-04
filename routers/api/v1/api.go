@@ -657,9 +657,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
 					m.Group("/comments", func() {
 						m.Get("", repo.ListRepoIssueComments)
-						m.Combo("/:id", reqToken()).
-							Patch(mustNotBeArchived, bind(api.EditIssueCommentOption{}), repo.EditIssueComment).
-							Delete(repo.DeleteIssueComment)
+						m.Group("/:id", func() {
+							m.Combo("", reqToken()).
+								Patch(mustNotBeArchived, bind(api.EditIssueCommentOption{}), repo.EditIssueComment).
+								Delete(repo.DeleteIssueComment)
+							m.Combo("/reactions").
+								Get(bind(api.CommentReactionList{}), repo.GetCommentReactions).
+								Put(reqToken(), bind(api.CommentReaction{}), repo.AddCommentReaction).
+								Delete(reqToken(), bind(api.CommentReaction{}), repo.DelCommentReaction)
+						})
 					})
 					m.Group("/:index", func() {
 						m.Combo("").Get(repo.GetIssue).
@@ -668,15 +674,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Group("/comments", func() {
 							m.Combo("").Get(repo.ListIssueComments).
 								Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueCommentOption{}), repo.CreateIssueComment)
-							m.Group("/:id", func() {
-								m.Combo("", reqToken()).
-									Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueCommentDeprecated).
-									Delete(repo.DeleteIssueCommentDeprecated)
-								m.Combo("/reactions").
-									Get(bind(api.CommentReactionList{}), repo.GetCommentReactions).
-									Put(reqToken(), bind(api.CommentReaction{}), repo.AddCommentReaction).
-									Delete(reqToken(), bind(api.CommentReaction{}), repo.DelCommentReaction)
-							})
+							m.Combo("/:id", reqToken()).Patch(bind(api.EditIssueCommentOption{}), repo.EditIssueCommentDeprecated).
+								Delete(repo.DeleteIssueCommentDeprecated)
 						})
 
 						m.Group("/labels", func() {

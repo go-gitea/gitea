@@ -396,7 +396,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 
 //GetCommentReactions return all reactions of a specific comment
 func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) {
-	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/comments/{id}/reactions issue issueGetCommentReactions
+	// swagger:operation GET /repos/{owner}/{repo}/issues/comments/{id}/reactions issue issueGetCommentReactions
 	// ---
 	// summary: Return all reactions of a specific comment
 	// consumes:
@@ -413,11 +413,6 @@ func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) 
 	//   in: path
 	//   description: name of the repo
 	//   type: string
-	//   required: true
-	// - name: index
-	//   in: path
-	//   description: index of the issue
-	//   type: integer
 	//   required: true
 	// - name: id
 	//   in: path
@@ -453,7 +448,7 @@ func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) 
 
 // AddCommentReaction create a reaction to a comment
 func AddCommentReaction(ctx *context.APIContext, form api.CommentReaction) {
-	// swagger:operation PUT /repos/{owner}/{repo}/issues/{index}/comments/{id}/reactions issue issueAddCommentReaction
+	// swagger:operation PUT /repos/{owner}/{repo}/issues/comments/{id}/reactions issue issueAddCommentReaction
 	// ---
 	// summary: Create reaction to a comment
 	// consumes:
@@ -470,11 +465,6 @@ func AddCommentReaction(ctx *context.APIContext, form api.CommentReaction) {
 	//   in: path
 	//   description: name of the repo
 	//   type: string
-	//   required: true
-	// - name: index
-	//   in: path
-	//   description: index of the issue
-	//   type: integer
 	//   required: true
 	// - name: id
 	//   in: path
@@ -498,7 +488,7 @@ func AddCommentReaction(ctx *context.APIContext, form api.CommentReaction) {
 
 // DelCommentReaction delete a reaction to a comment
 func DelCommentReaction(ctx *context.APIContext, form api.CommentReaction) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/comments/{id}/reactions issue issueDelCommentReaction
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/comments/{id}/reactions issue issueDelCommentReaction
 	// ---
 	// summary: Delete reaction to a comment
 	// consumes:
@@ -515,11 +505,6 @@ func DelCommentReaction(ctx *context.APIContext, form api.CommentReaction) {
 	//   in: path
 	//   description: name of the repo
 	//   type: string
-	//   required: true
-	// - name: index
-	//   in: path
-	//   description: index of the issue
-	//   type: integer
 	//   required: true
 	// - name: id
 	//   in: path
