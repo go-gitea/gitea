@@ -428,11 +428,6 @@ func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) 
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommentReactions"
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
-	if err != nil {
-		ctx.Error(500, "GetIssueByIndex", err)
-		return
-	}
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
@@ -443,7 +438,7 @@ func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) 
 		return
 	}
 
-	rl, err := models.FindReactions(models.FindReactionsOptions{IssueID: issue.ID, CommentID: comment.ID})
+	rl, err := models.FindReactions(comment)
 	if err != nil {
 		ctx.Error(500, "FindReactionsOptions", err)
 		return

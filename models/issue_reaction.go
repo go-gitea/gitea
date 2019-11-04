@@ -48,8 +48,10 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 }
 
 //FindReactions returns Reactions based
-func FindReactions(opts FindReactionsOptions) (ReactionList, error) {
-	return findReactions(x, opts)
+func FindReactions(comment *Comment) (ReactionList, error) {
+	return findReactions(x, FindReactionsOptions{
+		IssueID: comment.IssueID,
+		CommentID: comment.ID})
 }
 
 func findReactions(e Engine, opts FindReactionsOptions) (ReactionList, error) {
