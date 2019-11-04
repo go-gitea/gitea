@@ -399,6 +399,8 @@ func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) 
 	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/comments/{id}/reactions issue issueGetCommentReactions
 	// ---
 	// summary: Return all reactions of a specific comment
+	// consumes:
+	// - application/json
 	// produces:
 	// - application/json
 	// parameters:
@@ -414,7 +416,7 @@ func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) 
 	//   required: true
 	// - name: index
 	//   in: path
-	//   description: this parameter is ignored
+	//   description: index of the issue
 	//   type: integer
 	//   required: true
 	// - name: id
@@ -446,7 +448,7 @@ func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) 
 		ctx.Error(500, "FindReactionsOptions", err)
 		return
 	} else if rl == nil {
-		ctx.NotFound("")
+		ctx.NotFound("No Reactions Found")
 		return
 	}
 
