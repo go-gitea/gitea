@@ -674,8 +674,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 									Delete(repo.DeleteIssueCommentDeprecated)
 								m.Combo("/reactions").
 									Get(bind(api.CommentReactionList{}), repo.GetCommentReactions).
-									Put(reqToken(), repo.AddCommentReaction).
-									Delete(reqToken(), repo.DelCommentReaction)
+									Put(reqToken(), api.CommentReaction{}, repo.AddCommentReaction).
+									Delete(reqToken(), api.CommentReaction{}, repo.DelCommentReaction)
 							})
 						})
 

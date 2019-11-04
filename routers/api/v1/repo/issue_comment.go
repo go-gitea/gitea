@@ -393,3 +393,21 @@ func deleteIssueComment(ctx *context.APIContext) {
 
 	ctx.Status(204)
 }
+
+func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) {
+
+}
+
+func AddCommentReaction(ctx *context.APIContext, form api.CommentReaction) {
+
+	setCommentReaction(ctx, form, true)
+}
+
+func DelCommentReaction(ctx *context.APIContext, form api.CommentReaction) {
+
+	setCommentReaction(ctx, form, false)
+}
+
+func setCommentReaction(ctx *context.APIContext, form api.CommentReaction, create bool) {
+
+}
