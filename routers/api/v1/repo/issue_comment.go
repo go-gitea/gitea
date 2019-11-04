@@ -457,12 +457,90 @@ func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) 
 }
 
 func AddCommentReaction(ctx *context.APIContext, form api.CommentReaction) {
-
+	// swagger:operation PUT /repos/{owner}/{repo}/issues/{index}/comments/{id}/reactions issue issueAddCommentReaction
+	// ---
+	// summary: Create reaction to a comment
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the comment
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CommentReaction"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/empty"
+	//   "304":
+	//     description: User can only create reactions for itself if he is no admin
+	//   "404":
+	//     description: Comment not found
 	setCommentReaction(ctx, form, true)
 }
 
 func DelCommentReaction(ctx *context.APIContext, form api.CommentReaction) {
-
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/comments/{id}/reactions issue issueDelCommentReaction
+	// ---
+	// summary: Delete reaction to a comment
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the comment
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CommentReaction"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/empty"
+	//   "304":
+	//     description: User can only delete reactions for itself if he is no admin
+	//   "404":
+	//     description: Comment not found
 	setCommentReaction(ctx, form, false)
 }
 
