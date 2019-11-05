@@ -283,4 +283,5 @@ writable by group or others. The program must be specified by an absolute
 path.
 
 #### migrate
-Migrates the database. This command can be used to run other commands before starting the server for the first time.
+Migrates the database. This command can be used to run other commands before starting the server for the first time.  
+This command is idempotent.
