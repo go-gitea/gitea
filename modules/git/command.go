@@ -25,14 +25,14 @@ var (
 	DefaultCommandExecutionTimeout = 60 * time.Second
 )
 
-// DefaultLCALL is the default LC_ALL to run git commands in.
-const DefaultLCALL = "C"
+// DefaultLocale is the default LC_ALL to run git commands in.
+const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
 	name  string
 	args  []string
-	LCALL string
+	Locale string
 }
 
 func (c *Command) String() string {
@@ -50,7 +50,7 @@ func NewCommand(args ...string) *Command {
 	return &Command{
 		name:  GitExecutable,
 		args:  append(cargs, args...),
-		LCALL: DefaultLCALL,
+		Locale: DefaultLocale,
 	}
 }
 
@@ -84,10 +84,10 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
 	if env == nil {
-		cmd.Env = append(os.Environ(), fmt.Sprintf("LC_ALL=%s", c.LCALL))
+		cmd.Env = append(os.Environ(), fmt.Sprintf("LC_ALL=%s", c.Locale))
 	} else {
 		cmd.Env = env
-		cmd.Env = append(cmd.Env, fmt.Sprintf("LC_ALL=%s", c.LCALL))
+		cmd.Env = append(cmd.Env, fmt.Sprintf("LC_ALL=%s", c.Locale))
 	}
 	cmd.Dir = dir
 	cmd.Stdout = stdout
