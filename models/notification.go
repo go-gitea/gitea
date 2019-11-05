@@ -190,12 +190,16 @@ func updateIssueNotification(e Engine, userID, issueID, commentID, updatedByID i
 		return err
 	}
 
-	notification.Status = NotificationStatusUnread
-	notification.UpdatedBy = updatedByID
-	notification.CommentID = commentID
+	// NOTICE: Only update when the before notification on this issue is read, otherwise you may miss some notifications
+	if notification.Status == NotificationStatusRead {
+		notification.Status = NotificationStatusUnread
+		notification.UpdatedBy = updatedByID
+		notification.CommentID = commentID
+		_, err = e.ID(notification.ID).Cols("status, update_by, comment_id").Update(notification)
+		return err
+	}
 
-	_, err = e.ID(notification.ID).Cols("status, update_by, comment_id").Update(notification)
-	return err
+	return nil
 }
 
 func getIssueNotification(e Engine, userID, issueID int64) (*Notification, error) {
