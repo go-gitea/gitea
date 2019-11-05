@@ -249,9 +249,7 @@ func CommitChanges(repoPath string, opts CommitChangesOptions) error {
 }
 
 func allCommitsCount(repoPath string) (int64, error) {
-	cmd := NewCommand("rev-list", "--all", "--count")
-
-	stdout, err := cmd.RunInDir(repoPath)
+	stdout, err := NewCommand("rev-list", "--all", "--count").RunInDir(repoPath)
 	if err != nil {
 		return 0, err
 	}
