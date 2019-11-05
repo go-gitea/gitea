@@ -105,9 +105,10 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesContext, plaincontent, mdcontent string) ([]*crossReference, error) {
 	xreflist := make([]*crossReference, 0, 5)
 	var (
-		refRepo  *Repository
-		refIssue *Issue
-		err      error
+		refRepo   *Repository
+		refIssue  *Issue
+		refAction references.XRefAction
+		err       error
 	)
 
 	allrefs := append(references.FindAllIssueReferences(plaincontent), references.FindAllIssueReferencesMarkdown(mdcontent)...)
@@ -129,18 +130,13 @@ func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesCont
 				return nil, err
 			}
 		}
-		if refIssue, err = ctx.OrigIssue.findReferencedIssue(e, ctx, refRepo, ref.Index); err != nil {
+		if refIssue, refAction, err = ctx.OrigIssue.verifyReferencedIssue(e, ctx, refRepo, ref); err != nil {
 			return nil, err
 		}
 		if refIssue != nil {
-			action := ref.Action
-			if !issue.IsPull || refIssue.IsPull {
-				// Close/reopen actions can only be set from pull requests to issues
-				action = references.XRefActionNone
-			}
 			xreflist = ctx.OrigIssue.updateCrossReferenceList(xreflist, &crossReference{
 				Issue:  refIssue,
-				Action: action,
+				Action: refAction,
 			})
 		}
 	}
@@ -163,25 +159,42 @@ func (issue *Issue) updateCrossReferenceList(list []*crossReference, xref *cross
 	return append(list, xref)
 }
 
-func (issue *Issue) findReferencedIssue(e Engine, ctx *crossReferencesContext, repo *Repository, index int64) (*Issue, error) {
-	refIssue := &Issue{RepoID: repo.ID, Index: index}
+// verifyReferencedIssue will check if the referenced issue exists, and whether the doer has permission to do what
+func (issue *Issue) verifyReferencedIssue(e Engine, ctx *crossReferencesContext, repo *Repository,
+	ref references.IssueReference) (*Issue, references.XRefAction, error) {
+
+	refIssue := &Issue{RepoID: repo.ID, Index: ref.Index}
+	refAction := ref.Action
+
 	if has, _ := e.Get(refIssue); !has {
-		return nil, nil
+		return nil, references.XRefActionNone, nil
 	}
 	if err := refIssue.loadRepo(e); err != nil {
-		return nil, err
+		return nil, references.XRefActionNone, err
 	}
-	// Check user permissions
-	if refIssue.RepoID != ctx.OrigIssue.RepoID {
+
+	// Close/reopen actions can only be set from pull requests to issues
+	if refIssue.IsPull || !issue.IsPull {
+		refAction = references.XRefActionNone
+	}
+
+	// Check doer permissions; set action to None if the doer can't change the destination
+	if refIssue.RepoID != ctx.OrigIssue.RepoID || ref.Action != references.XRefActionNone {
 		perm, err := getUserRepoPermission(e, refIssue.Repo, ctx.Doer)
 		if err != nil {
-			return nil, err
+			return nil, references.XRefActionNone, err
 		}
 		if !perm.CanReadIssuesOrPulls(refIssue.IsPull) {
-			return nil, nil
+			return nil, references.XRefActionNone, nil
+		}
+		if ref.Action != references.XRefActionNone &&
+			ctx.Doer.ID != refIssue.PosterID &&
+			!perm.CanWriteIssuesOrPulls(refIssue.IsPull) {
+			refAction = references.XRefActionNone
 		}
 	}
-	return refIssue, nil
+
+	return refIssue, refAction, nil
 }
 
 func (issue *Issue) neuterCrossReferences(e Engine) error {
@@ -286,15 +299,15 @@ func (comment *Comment) RefIssueIdent() string {
 //  |____|   |____/|____/____/____|_  /\___  >__   |____/  \___  >____  > |__|
 //                                  \/     \/   |__|           \/     \/
 
-func (pr *PullRequest) ResolveCrossReferences(sess *xorm.Session) (err error) {
-	// Find issues that need to be closed/reopened as this PR resolved
+// ResolveCrossReferences will return the list of references to close/reopen by this PR
+func (pr *PullRequest) ResolveCrossReferences() ([]*Comment, error) {
 	unfiltered := make([]*Comment, 0, 5)
-	if err = sess.
+	if err := x.
 		Where("ref_repo_id = ? AND ref_issue_id = ?", pr.Issue.RepoID, pr.Issue.ID).
 		In("ref_action", []references.XRefAction{references.XRefActionCloses, references.XRefActionReopens}).
 		OrderBy("id").
 		Find(&unfiltered); err != nil {
-		return fmt.Errorf("get reference: %v", err)
+		return nil, fmt.Errorf("get reference: %v", err)
 	}
 
 	refs := make([]*Comment, 0, len(unfiltered))
@@ -313,16 +326,5 @@ func (pr *PullRequest) ResolveCrossReferences(sess *xorm.Session) (err error) {
 		}
 	}
 
-	for _, ref := range refs {
-		ref.loadIssue(sess)
-		ref.Issue.loadRepo(sess)
-		closedOrOpen := (ref.RefAction == references.XRefActionCloses)
-		if ref.Issue.IsClosed != closedOrOpen {
-			if err = ref.Issue.changeStatus(sess, pr.Merger, closedOrOpen); err != nil {
-				return fmt.Errorf("Issue.changeStatus: %v", err)
-			}
-		}
-	}
-
-	return nil
+	return refs, nil
 }
