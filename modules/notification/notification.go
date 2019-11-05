@@ -73,6 +73,13 @@ func NotifyNewPullRequest(pr *models.PullRequest) {
 	}
 }
 
+// NotifyPullRequestSynchronized notifies Synchronized pull request
+func NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRequestSynchronized(doer, pr)
+	}
+}
+
 // NotifyPullRequestReview notifies new pull request review
 func NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment) {
 	for _, notifier := range notifiers {
