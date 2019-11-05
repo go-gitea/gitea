@@ -285,3 +285,6 @@ path.
 #### migrate
 Migrates the database. This command can be used to run other commands before starting the server for the first time.  
 This command is idempotent.
+
+#### convert
+Converts an existing MySQL database from utf8 to utf8mb4.
