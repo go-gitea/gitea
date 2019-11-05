@@ -5,44 +5,23 @@
 package issue
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	api "code.gitea.io/gitea/modules/structs"
 )
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uuids []string) error {
+func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
 	if err := models.NewIssue(repo, issue, labelIDs, uuids); err != nil {
 		return err
 	}
 
-	if err := models.NotifyWatchers(&models.Action{
-		ActUserID: issue.Poster.ID,
-		ActUser:   issue.Poster,
-		OpType:    models.ActionCreateIssue,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+	for _, assigneeID := range assigneeIDs {
+		if err := AddAssigneeIfNotAssigned(issue, issue.Poster, assigneeID); err != nil {
+			return err
+		}
 	}
 
-	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
-	if err := models.PrepareWebhooks(repo, models.HookEventIssues, &api.IssuePayload{
-		Action:     api.HookIssueOpened,
-		Index:      issue.Index,
-		Issue:      issue.APIFormat(),
-		Repository: repo.APIFormat(mode),
-		Sender:     issue.Poster.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go models.HookQueue.Add(issue.RepoID)
-	}
+	notification.NotifyNewIssue(issue)
 
 	return nil
 }
@@ -56,44 +35,7 @@ func ChangeTitle(issue *models.Issue, doer *models.User, title string) (err erro
 		return
 	}
 
-	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
-	if issue.IsPull {
-		if err = issue.LoadPullRequest(); err != nil {
-			return fmt.Errorf("loadPullRequest: %v", err)
-		}
-		issue.PullRequest.Issue = issue
-		err = models.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
-			Action: api.HookIssueEdited,
-			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
-				Title: &api.ChangesFromPayload{
-					From: oldTitle,
-				},
-			},
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
-			Sender:      doer.APIFormat(),
-		})
-	} else {
-		err = models.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
-			Action: api.HookIssueEdited,
-			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
-				Title: &api.ChangesFromPayload{
-					From: oldTitle,
-				},
-			},
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     issue.Poster.APIFormat(),
-		})
-	}
-
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go models.HookQueue.Add(issue.RepoID)
-	}
+	notification.NotifyIssueChangeTitle(doer, issue, oldTitle)
 
 	return nil
 }
@@ -134,7 +76,7 @@ func UpdateAssignees(issue *models.Issue, oneAssignee string, multipleAssignees 
 	}
 
 	// Delete all old assignees not passed
-	if err = models.DeleteNotPassedAssignee(issue, doer, allNewAssignees); err != nil {
+	if err = DeleteNotPassedAssignee(issue, doer, allNewAssignees); err != nil {
 		return err
 	}
 
@@ -179,22 +121,10 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *models.User, assigneeID
 		return models.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name}
 	}
 
-	removed, comment, err := issue.ToggleAssignee(doer, assigneeID)
+	_, _, err = ToggleAssignee(issue, doer, assigneeID)
 	if err != nil {
 		return err
 	}
 
-	notification.NotifyIssueChangeAssignee(doer, issue, assignee, removed, comment)
-
-	return nil
-}
-
-// AddAssignees adds a list of assignes (from IDs) to an issue
-func AddAssignees(issue *models.Issue, doer *models.User, assigneeIDs []int64) (err error) {
-	for _, assigneeID := range assigneeIDs {
-		if err = AddAssigneeIfNotAssigned(issue, doer, assigneeID); err != nil {
-			return err
-		}
-	}
 	return nil
 }

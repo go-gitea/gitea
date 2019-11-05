@@ -10,41 +10,26 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/notification"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, patch []byte) error {
+func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, patch []byte, assigneeIDs []int64) error {
 	if err := models.NewPullRequest(repo, pull, labelIDs, uuids, pr, patch); err != nil {
 		return err
 	}
 
-	if err := models.NotifyWatchers(&models.Action{
-		ActUserID: pull.Poster.ID,
-		ActUser:   pull.Poster,
-		OpType:    models.ActionCreatePullRequest,
-		Content:   fmt.Sprintf("%d|%s", pull.Index, pull.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+	for _, assigneeID := range assigneeIDs {
+		if err := issue_service.AddAssigneeIfNotAssigned(pull, pull.Poster, assigneeID); err != nil {
+			return err
+		}
 	}
 
 	pr.Issue = pull
 	pull.PullRequest = pr
-	mode, _ := models.AccessLevel(pull.Poster, repo)
-	if err := models.PrepareWebhooks(repo, models.HookEventPullRequest, &api.PullRequestPayload{
-		Action:      api.HookIssueOpened,
-		Index:       pull.Index,
-		PullRequest: pr.APIFormat(),
-		Repository:  repo.APIFormat(mode),
-		Sender:      pull.Poster.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	} else {
-		go models.HookQueue.Add(repo.ID)
-	}
+
+	notification.NotifyNewPullRequest(pr)
 
 	return nil
 }
@@ -103,24 +88,9 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 		if err == nil {
 			for _, pr := range prs {
 				pr.Issue.PullRequest = pr
-				if err = pr.Issue.LoadAttributes(); err != nil {
-					log.Error("LoadAttributes: %v", err)
-					continue
-				}
-				if err = models.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
-					Action:      api.HookIssueSynchronized,
-					Index:       pr.Issue.Index,
-					PullRequest: pr.Issue.PullRequest.APIFormat(),
-					Repository:  pr.Issue.Repo.APIFormat(models.AccessModeNone),
-					Sender:      doer.APIFormat(),
-				}); err != nil {
-					log.Error("PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
-					continue
-				}
-				go models.HookQueue.Add(pr.Issue.Repo.ID)
+				notification.NotifyPullRequestSynchronized(doer, pr)
 			}
 		}
-
 	}
 
 	addHeadRepoTasks(prs)
