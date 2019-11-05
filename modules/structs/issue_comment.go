@@ -46,4 +46,6 @@ type CommentReaction struct {
 }
 
 // CommentReactionList is a list of comment reactions
-type CommentReactionList []*CommentReaction
+type CommentReactionList struct {
+	CommentReactions []*CommentReaction `json:"comment_reactions" binding:"Required"`
+}

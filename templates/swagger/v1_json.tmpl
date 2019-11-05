@@ -7807,9 +7807,15 @@
     },
     "CommentReactionList": {
       "description": "CommentReactionList is a list of comment reactions",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/CommentReaction"
+      "type": "object",
+      "properties": {
+        "comment_reactions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CommentReaction"
+          },
+          "x-go-name": "CommentReactions"
+        }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },

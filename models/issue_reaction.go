@@ -274,5 +274,5 @@ func (list ReactionList) APIFormat() api.CommentReactionList {
 			Count:    counts[k],
 		})
 	}
-	return result
+	return api.CommentReactionList{CommentReactions: result}
 }
