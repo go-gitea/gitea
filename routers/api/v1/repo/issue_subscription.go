@@ -7,7 +7,6 @@ package repo
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	api "code.gitea.io/gitea/modules/structs"
 )
 
 // AddIssueSubscription Subscribe user to issue
@@ -130,7 +129,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 }
 
 // GetIssueSubscribers return subscribers of an issue
-func GetIssueSubscribers(ctx *context.APIContext, form api.User) {
+func GetIssueSubscribers(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/subscriptions issue issueSubscriptions
 	// ---
 	// summary: Get users who subscribed on an issue.
