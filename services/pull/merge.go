@@ -83,7 +83,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 
 	if err := git.InitRepository(tmpBasePath, false); err != nil {
 		log.Error("git init tmpBasePath: %v", err)
-		return fmt.Errorf("git init tmpBasePath: %v", err)
+		return err
 	}
 
 	remoteRepoName := "head_repo"
@@ -399,7 +399,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 
 	// Push back to upstream.
 	if err := git.NewCommand("push", "origin", baseBranch+":"+pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
-		if strings.Contains(err.Error(), "non-fast-forward") {
+		if strings.Contains(errbuf.String(), "non-fast-forward") {
 			return models.ErrMergePushOutOfDate{
 				Style:  mergeStyle,
 				StdOut: outbuf.String(),
@@ -481,7 +481,7 @@ func runMergeCommand(pr *models.PullRequest, mergeStyle models.MergeStyle, cmd *
 				StdErr: errbuf.String(),
 				Err:    err,
 			}
-		} else if strings.Contains(err.Error(), "refusing to merge unrelated histories") {
+		} else if strings.Contains(errbuf.String(), "refusing to merge unrelated histories") {
 			log.Debug("MergeUnrelatedHistories [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 			return models.ErrMergeUnrelatedHistories{
 				Style:  mergeStyle,
