@@ -68,6 +68,19 @@ func Notifications(c *context.Context) {
 		return
 	}
 
+	if err := notifications.LoadRepos(); err != nil {
+		c.ServerError("LoadRepos", err)
+		return
+	}
+	if err := notifications.LoadIssues(); err != nil {
+		c.ServerError("LoadIssues", err)
+		return
+	}
+	if err := notifications.LoadComments(); err != nil {
+		c.ServerError("LoadComments", err)
+		return
+	}
+
 	total, err := models.GetNotificationCount(c.User, status)
 	if err != nil {
 		c.ServerError("ErrGetNotificationCount", err)
