@@ -68,10 +68,16 @@ func Notifications(c *context.Context) {
 		return
 	}
 
-	if err := notifications.LoadRepos(); err != nil {
+	repos, err := notifications.LoadRepos()
+	if err != nil {
 		c.ServerError("LoadRepos", err)
 		return
 	}
+	if err := repos.LoadAttributes(); err != nil {
+		c.ServerError("LoadAttributes", err)
+		return
+	}
+
 	if err := notifications.LoadIssues(); err != nil {
 		c.ServerError("LoadIssues", err)
 		return

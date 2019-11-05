@@ -272,13 +272,14 @@ func (nl NotificationList) getRepoIDs() []int64 {
 }
 
 // LoadRepos loads repositories from database
-func (nl NotificationList) LoadRepos() error {
+func (nl NotificationList) LoadRepos() (RepositoryList, error) {
 	if len(nl) == 0 {
-		return nil
+		return RepositoryList{}, nil
 	}
 
 	var repoIDs = nl.getRepoIDs()
 	var repos = make(map[int64]*Repository, len(repoIDs))
+	var reposList = make(RepositoryList, 0, len(repoIDs))
 	var left = len(repoIDs)
 	for left > 0 {
 		var limit = defaultMaxInSize
@@ -289,7 +290,7 @@ func (nl NotificationList) LoadRepos() error {
 			In("id", repoIDs[:limit]).
 			Rows(new(Repository))
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		for rows.Next() {
@@ -297,10 +298,11 @@ func (nl NotificationList) LoadRepos() error {
 			err = rows.Scan(&repo)
 			if err != nil {
 				rows.Close()
-				return err
+				return nil, err
 			}
 
 			repos[repo.ID] = &repo
+			reposList = append(reposList, &repo)
 		}
 		_ = rows.Close()
 
@@ -313,7 +315,7 @@ func (nl NotificationList) LoadRepos() error {
 			notification.Repository = repos[notification.RepoID]
 		}
 	}
-	return nil
+	return reposList, nil
 }
 
 func (nl NotificationList) getIssueIDs() []int64 {
