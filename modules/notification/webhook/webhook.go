@@ -288,7 +288,7 @@ func (m *webhookNotifier) NotifyNewPullRequest(pull *models.PullRequest) {
 	}
 
 	mode, _ := models.AccessLevel(pull.Issue.Poster, pull.Issue.Repo)
-	if err := webhook.PrepareWebhooks(pull.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+	if err := webhook_module.PrepareWebhooks(pull.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Issue.Index,
 		PullRequest: pull.APIFormat(),
