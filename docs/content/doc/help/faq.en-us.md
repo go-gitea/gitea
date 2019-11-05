@@ -275,4 +275,4 @@ By default, your LFS token will expire after 20 minutes. If you have a slow conn
 You may want to set this value to `60m` or `120m`.
 
 ## How can I create users before starting Gitea
-Gitea provides a sub-command `gitea migrate` to initialize the database, after which you can use the admin CLI commands to add users like normal.
+Gitea provides a sub-command `gitea migrate` to initialize the database, after which you can use the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md" >}}) to add users like normal.
