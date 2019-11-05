@@ -719,7 +719,7 @@ func (repo *Repository) updateSize(e Engine) error {
 	return err
 }
 
-// UpdateSize updates the repository size, calculating it using git.CountObjects
+// UpdateSize updates the repository size, calculating it using util.GetDirectorySize
 func (repo *Repository) UpdateSize() error {
 	return repo.updateSize(x)
 }
