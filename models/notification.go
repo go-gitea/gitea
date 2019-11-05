@@ -190,14 +190,20 @@ func updateIssueNotification(e Engine, userID, issueID, commentID, updatedByID i
 		return err
 	}
 
-	// NOTICE: Only update when the before notification on this issue is read, otherwise you may miss some notifications
+	// NOTICE: Only update comment id when the before notification on this issue is read, otherwise you may miss some old comments.
+	// But we need update update_by so that the notification will be reorder
+	var cols []string
 	if notification.Status == NotificationStatusRead {
 		notification.Status = NotificationStatusUnread
-		notification.UpdatedBy = updatedByID
 		notification.CommentID = commentID
-		_, err = e.ID(notification.ID).Cols("status, update_by, comment_id").Update(notification)
-		return err
+		cols = []string{"status", "update_by", "comment_id"}
+	} else {
+		notification.UpdatedBy = updatedByID
+		cols = []string{"update_by"}
 	}
+
+	_, err = e.ID(notification.ID).Cols(cols...).Update(notification)
+	return err
 
 	return nil
 }
