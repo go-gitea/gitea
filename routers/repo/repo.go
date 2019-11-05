@@ -123,13 +123,21 @@ func Create(ctx *context.Context) {
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 
-	ctx.Data["repo_template"] = ctx.Query("template_id")
-
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
 	if ctx.Written() {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
+
+	ctx.Data["repo_template_name"] = ctx.Tr("repo.template_select")
+	templateID := ctx.QueryInt64("template_id")
+	if templateID > 0 {
+		templateRepo, err := models.GetRepositoryByID(templateID)
+		if err == nil && templateRepo.CheckUnitUser(ctxUser.ID, ctxUser.IsAdmin, models.UnitTypeCode) {
+			ctx.Data["repo_template"] = templateID
+			ctx.Data["repo_template_name"] = templateRepo.Name
+		}
+	}
 
 	ctx.HTML(200, tplCreate)
 }

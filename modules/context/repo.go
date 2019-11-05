@@ -203,6 +203,10 @@ func RetrieveTemplateRepo(ctx *Context, repo *models.Repository) {
 		ctx.ServerError("TemplateRepo.GetOwner", err)
 		return
 	}
+
+	if !repo.TemplateRepo.CheckUnitUser(ctx.User.ID, ctx.User.IsAdmin, models.UnitTypeCode) {
+		repo.TemplateID = 0
+	}
 }
 
 // ComposeGoGetImport returns go-get-import meta content.

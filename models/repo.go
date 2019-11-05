@@ -2745,14 +2745,15 @@ func ForkRepository(doer, owner *User, oldRepo *Repository, name, desc string) (
 // GenerateRepository generates a repository from a template
 func GenerateRepository(doer, owner *User, templateRepo *Repository, opts GenerateRepoOptions) (_ *Repository, err error) {
 	repo := &Repository{
-		OwnerID:     owner.ID,
-		Owner:       owner,
-		Name:        opts.Name,
-		LowerName:   strings.ToLower(opts.Name),
-		Description: opts.Description,
-		IsPrivate:   opts.Private,
-		IsEmpty:     templateRepo.IsEmpty,
-		TemplateID:  templateRepo.ID,
+		OwnerID:       owner.ID,
+		Owner:         owner,
+		Name:          opts.Name,
+		LowerName:     strings.ToLower(opts.Name),
+		Description:   opts.Description,
+		IsPrivate:     opts.Private,
+		IsEmpty:       templateRepo.IsEmpty,
+		IsFsckEnabled: true,
+		TemplateID:    templateRepo.ID,
 	}
 
 	sess := x.NewSession()
