@@ -266,6 +266,7 @@ func (n *Notification) HTMLURL() string {
 	return n.Issue.HTMLURL()
 }
 
+// NotificationList contains a list of notifications
 type NotificationList []*Notification
 
 func (nl NotificationList) getRepoIDs() []int64 {
