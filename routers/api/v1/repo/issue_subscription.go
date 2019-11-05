@@ -156,8 +156,8 @@ func GetIssueSubscribers(ctx *context.APIContext, form api.User) {
 	//   format: int64
 	//   required: true
 	// responses:
-	//   "201":
-	//     "$ref": "#/responses/empty"
+	//   "200":
+	//     "$ref": "#/responses/UserList"
 	//   "404":
 	//     description: Issue not found
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
