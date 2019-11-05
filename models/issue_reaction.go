@@ -259,8 +259,8 @@ func (list ReactionList) GetMoreUserCount() int {
 // APIFormat returns Raction in api Format
 func (list ReactionList) APIFormat() api.CommentReactionList {
 	result := []*api.CommentReaction{}
-	users := map[string][]*string{}
-	counts := map[string]int64{}
+	users := make(map[string][]*string)
+	counts := make(map[string]int64)
 
 	for _, r := range list {
 		users[r.Type] = append(users[r.Type], &r.User.LoginName)
