@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package webhook
 
 import (
 	"encoding/json"
@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -21,6 +23,15 @@ type SlackMeta struct {
 	Username string `json:"username"`
 	IconURL  string `json:"icon_url"`
 	Color    string `json:"color"`
+}
+
+// GetSlackHook returns slack metadata
+func GetSlackHook(w *models.Webhook) *SlackMeta {
+	s := &SlackMeta{}
+	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
+		log.Error("webhook.GetSlackHook(%d): %v", w.ID, err)
+	}
+	return s
 }
 
 // SlackPayload contains the information about the slack channel
@@ -181,7 +192,7 @@ func getSlackIssuesPayload(p *api.IssuePayload, slack *SlackMeta) (*SlackPayload
 
 func getSlackIssueCommentPayload(p *api.IssueCommentPayload, slack *SlackMeta) (*SlackPayload, error) {
 	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
-	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, CommentHashTag(p.Comment.ID)),
+	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID)),
 		fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title))
 	var text, title, attachmentText string
 	switch p.Action {
@@ -335,7 +346,7 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 	}, nil
 }
 
-func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackMeta, event HookEventType) (*SlackPayload, error) {
+func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackMeta, event models.HookEventType) (*SlackPayload, error) {
 	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index),
 		fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
@@ -388,7 +399,7 @@ func getSlackRepositoryPayload(p *api.RepositoryPayload, slack *SlackMeta) (*Sla
 }
 
 // GetSlackPayload converts a slack webhook into a SlackPayload
-func GetSlackPayload(p api.Payloader, event HookEventType, meta string) (*SlackPayload, error) {
+func GetSlackPayload(p api.Payloader, event models.HookEventType, meta string) (*SlackPayload, error) {
 	s := new(SlackPayload)
 
 	slack := &SlackMeta{}
@@ -397,25 +408,25 @@ func GetSlackPayload(p api.Payloader, event HookEventType, meta string) (*SlackP
 	}
 
 	switch event {
-	case HookEventCreate:
+	case models.HookEventCreate:
 		return getSlackCreatePayload(p.(*api.CreatePayload), slack)
-	case HookEventDelete:
+	case models.HookEventDelete:
 		return getSlackDeletePayload(p.(*api.DeletePayload), slack)
-	case HookEventFork:
+	case models.HookEventFork:
 		return getSlackForkPayload(p.(*api.ForkPayload), slack)
-	case HookEventIssues:
+	case models.HookEventIssues:
 		return getSlackIssuesPayload(p.(*api.IssuePayload), slack)
-	case HookEventIssueComment:
+	case models.HookEventIssueComment:
 		return getSlackIssueCommentPayload(p.(*api.IssueCommentPayload), slack)
-	case HookEventPush:
+	case models.HookEventPush:
 		return getSlackPushPayload(p.(*api.PushPayload), slack)
-	case HookEventPullRequest:
+	case models.HookEventPullRequest:
 		return getSlackPullRequestPayload(p.(*api.PullRequestPayload), slack)
-	case HookEventPullRequestRejected, HookEventPullRequestApproved, HookEventPullRequestComment:
+	case models.HookEventPullRequestRejected, models.HookEventPullRequestApproved, models.HookEventPullRequestComment:
 		return getSlackPullRequestApprovalPayload(p.(*api.PullRequestPayload), slack, event)
-	case HookEventRepository:
+	case models.HookEventRepository:
 		return getSlackRepositoryPayload(p.(*api.RepositoryPayload), slack)
-	case HookEventRelease:
+	case models.HookEventRelease:
 		return getSlackReleasePayload(p.(*api.ReleasePayload), slack)
 	}
 
