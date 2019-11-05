@@ -89,12 +89,12 @@ type swaggerIssueDeadline struct {
 // swagger:response CommentReaction
 type swaggerCommentReaction struct {
 	// in:body
-	Body api.CommentReactionList `json:"body"`
+	Body api.CommentReaction `json:"body"`
 }
 
 // CommentReactionList
 // swagger:response CommentReactionList
-type swaggerCommentReactionList struct {
+type swaggerResponseCommentReactionList struct {
 	// in:body
-	Body api.CommentReactionList `json:"body"`
+	Body []api.CommentReaction `json:"body"`
 }

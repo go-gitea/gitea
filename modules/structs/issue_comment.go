@@ -44,8 +44,3 @@ type CommentReaction struct {
 	Users []*string `json:"users"`
 	Count int64     `json:"count"`
 }
-
-// CommentReactionList is a list of comment reactions
-type CommentReactionList struct {
-	CommentReactions []*CommentReaction `json:"comment_reactions"`
-}

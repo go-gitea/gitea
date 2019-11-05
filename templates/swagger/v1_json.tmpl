@@ -11006,7 +11006,10 @@
     "CommentReactionList": {
       "description": "CommentReactionList",
       "schema": {
-        "$ref": "#/definitions/CommentReactionList"
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/CommentReaction"
+        }
       }
     },
     "Commit": {

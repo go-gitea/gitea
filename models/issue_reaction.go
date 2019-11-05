@@ -257,14 +257,24 @@ func (list ReactionList) GetMoreUserCount() int {
 }
 
 // APIFormat returns Raction in api Format
-func (list ReactionList) APIFormat() api.CommentReactionList {
-	result := []*api.CommentReaction{}
+func (list ReactionList) APIFormat() []*api.CommentReaction {
+	var result []*api.CommentReaction
 	users := make(map[string][]*string)
 	counts := make(map[string]int64)
 
 	for _, r := range list {
-		users[r.Type] = append(users[r.Type], &r.User.LoginName)
-		counts[r.Type]++
+		u := r.User
+		t := r.Type
+		if t == "" {
+			_ = fmt.Errorf("Key is empty!")
+			continue
+		}
+		if u == nil {
+			_ = fmt.Errorf("Key: '" + t + "', User is Nil!")
+			continue
+		}
+		users[t] = append(users[t], &u.LoginName)
+		counts[t]++
 	}
 
 	for k, v := range users {
@@ -274,5 +284,5 @@ func (list ReactionList) APIFormat() api.CommentReactionList {
 			Count:    counts[k],
 		})
 	}
-	return api.CommentReactionList{CommentReactions: result}
+	return result
 }

@@ -395,7 +395,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 }
 
 //GetCommentReactions return all reactions of a specific comment
-func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) {
+func GetCommentReactions(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/comments/{id}/reactions issue issueGetCommentReactions
 	// ---
 	// summary: Return all reactions of a specific comment
@@ -534,12 +534,12 @@ func setCommentReaction(ctx *context.APIContext, form api.CommentReaction, creat
 		}
 		return
 	}
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, comment.IssueID)
+	issue, err := models.GetIssueByID(comment.IssueID)
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(500, "GetIssueByID", err)
 		}
 
 		return
