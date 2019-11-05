@@ -270,10 +270,8 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 				}
 				defer fw.Close()
 
-				if _, err := io.Copy(fw, resp.Body); err != nil {
-					return err
-				}
-				return nil
+				_, err = io.Copy(fw, resp.Body)
+				return err
 			}()
 			if err != nil {
 				return err
@@ -489,10 +487,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		}
 		defer f.Close()
 		_, err = io.Copy(f, resp.Body)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	}()
 	if err != nil {
 		return nil, err
