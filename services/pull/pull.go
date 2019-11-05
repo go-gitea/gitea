@@ -11,8 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/webhook"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
@@ -90,23 +88,9 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 		if err == nil {
 			for _, pr := range prs {
 				pr.Issue.PullRequest = pr
-				if err = pr.Issue.LoadAttributes(); err != nil {
-					log.Error("LoadAttributes: %v", err)
-					continue
-				}
-				if err = webhook.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
-					Action:      api.HookIssueSynchronized,
-					Index:       pr.Issue.Index,
-					PullRequest: pr.Issue.PullRequest.APIFormat(),
-					Repository:  pr.Issue.Repo.APIFormat(models.AccessModeNone),
-					Sender:      doer.APIFormat(),
-				}); err != nil {
-					log.Error("PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
-					continue
-				}
+				notification.NotifyPullRequestSynchronized(doer, pr)
 			}
 		}
-
 	}
 
 	addHeadRepoTasks(prs)
