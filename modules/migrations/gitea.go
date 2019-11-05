@@ -252,27 +252,30 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			}
 
 			// download attachment
-			resp, err := http.Get(asset.URL)
+			err = func() error {
+				resp, err := http.Get(asset.URL)
+				if err != nil {
+					return err
+				}
+				defer resp.Body.Close()
+
+				localPath := attach.LocalPath()
+				if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
+					return fmt.Errorf("MkdirAll: %v", err)
+				}
+
+				fw, err := os.Create(localPath)
+				if err != nil {
+					return fmt.Errorf("Create: %v", err)
+				}
+				defer fw.Close()
+
+				_, err = io.Copy(fw, resp.Body)
+				return err
+			}()
 			if err != nil {
 				return err
 			}
-			defer resp.Body.Close()
-
-			localPath := attach.LocalPath()
-			if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
-				return fmt.Errorf("MkdirAll: %v", err)
-			}
-
-			fw, err := os.Create(localPath)
-			if err != nil {
-				return fmt.Errorf("Create: %v", err)
-			}
-			defer fw.Close()
-
-			if _, err := io.Copy(fw, resp.Body); err != nil {
-				return err
-			}
-
 			rel.Attachments = append(rel.Attachments, &attach)
 		}
 
@@ -468,21 +471,24 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	}
 
 	// download patch file
-	resp, err := http.Get(pr.PatchURL)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	pullDir := filepath.Join(g.repo.RepoPath(), "pulls")
-	if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
-		return nil, err
-	}
-	f, err := os.Create(filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number)))
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	_, err = io.Copy(f, resp.Body)
+	err := func() error {
+		resp, err := http.Get(pr.PatchURL)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		pullDir := filepath.Join(g.repo.RepoPath(), "pulls")
+		if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
+			return err
+		}
+		f, err := os.Create(filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number)))
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		_, err = io.Copy(f, resp.Body)
+		return err
+	}()
 	if err != nil {
 		return nil, err
 	}
@@ -496,8 +502,8 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	if err != nil {
 		return nil, err
 	}
-	defer p.Close()
 	_, err = p.WriteString(pr.Head.SHA)
+	p.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -531,8 +537,8 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 					if err != nil {
 						return nil, err
 					}
-					defer b.Close()
 					_, err = b.WriteString(pr.Head.SHA)
+					b.Close()
 					if err != nil {
 						return nil, err
 					}
