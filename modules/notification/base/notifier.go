@@ -30,6 +30,7 @@ type Notifier interface {
 
 	NotifyNewPullRequest(*models.PullRequest)
 	NotifyMergePullRequest(*models.PullRequest, *models.User, *git.Repository)
+	NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest)
 	NotifyPullRequestReview(*models.PullRequest, *models.Review, *models.Comment)
 
 	NotifyCreateIssueComment(*models.User, *models.Repository,
