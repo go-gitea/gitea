@@ -38,7 +38,9 @@ type EditIssueCommentOption struct {
 
 // CommentReaction represent comment reactions
 type CommentReaction struct {
+	// required: true
 	Reaction string    `json:"reaction"`
+	// required: true
 	Users    []*string `json:"users"`
 	Count    int64     `json:"count"`
 }
