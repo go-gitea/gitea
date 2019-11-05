@@ -399,8 +399,6 @@ func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) 
 	// swagger:operation GET /repos/{owner}/{repo}/issues/comments/{id}/reactions issue issueGetCommentReactions
 	// ---
 	// summary: Return all reactions of a specific comment
-	// consumes:
-	// - application/json
 	// produces:
 	// - application/json
 	// parameters:
