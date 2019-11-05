@@ -78,7 +78,7 @@ func (a *actionNotifier) NotifyNewPullRequest(pull *models.PullRequest) {
 	}
 }
 
-func (n *actionNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldRepoName string) {
+func (a *actionNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldRepoName string) {
 	log.Trace("action.ChangeRepositoryName: %s/%s", doer.Name, repo.Name)
 
 	if err := models.NotifyWatchers(&models.Action{
@@ -94,7 +94,7 @@ func (n *actionNotifier) NotifyRenameRepository(doer *models.User, repo *models.
 	}
 }
 
-func (n *actionNotifier) NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string) {
+func (a *actionNotifier) NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string) {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
