@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/webhook"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
@@ -628,7 +627,7 @@ func (m *webhookNotifier) NotifyDeleteRef(pusher *models.User, repo *models.Repo
 	}
 }
 
-func (m *webhookNotifier) NotifyNewRelease(rel *models.Release) {
+func sendReleaseHook(doer *models.User, rel *models.Release, action api.HookReleaseAction) {
 	if err := rel.LoadAttributes(); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return
@@ -636,7 +635,7 @@ func (m *webhookNotifier) NotifyNewRelease(rel *models.Release) {
 
 	mode, _ := models.AccessLevel(rel.Publisher, rel.Repo)
 	if err := webhook_module.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
-		Action:     api.HookReleasePublished,
+		Action:     action,
 		Release:    rel.APIFormat(),
 		Repository: rel.Repo.APIFormat(mode),
 		Sender:     rel.Publisher.APIFormat(),
@@ -645,32 +644,14 @@ func (m *webhookNotifier) NotifyNewRelease(rel *models.Release) {
 	}
 }
 
-func (m *webhookNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Release) {
-	if err := rel.LoadAttributes(); err != nil {
-		log.Error("LoadAttributes: %v", err)
-		return
-	}
+func (m *webhookNotifier) NotifyNewRelease(rel *models.Release) {
+	sendReleaseHook(rel.Publisher, rel, api.HookReleasePublished)
+}
 
-	// even if attachments added failed, hooks will be still triggered
-	mode, _ := models.AccessLevel(doer, rel.Repo)
-	if err := webhook.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
-		Action:     api.HookReleaseUpdated,
-		Release:    rel.APIFormat(),
-		Repository: rel.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	}
+func (m *webhookNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Release) {
+	sendReleaseHook(doer, rel, api.HookReleaseUpdated)
 }
 
 func (m *webhookNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
-	mode, _ := models.AccessLevel(doer, rel.Repo)
-	if err := webhook.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
-		Action:     api.HookReleaseDeleted,
-		Release:    rel.APIFormat(),
-		Repository: rel.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	}
+	sendReleaseHook(doer, rel, api.HookReleaseDeleted)
 }
