@@ -17,6 +17,9 @@
 						<a class="{{if eq .Period "halfweekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/halfweekly">{{.i18n.Tr "repo.activity.period.halfweekly"}}</a>
 						<a class="{{if eq .Period "weekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/weekly">{{.i18n.Tr "repo.activity.period.weekly"}}</a>
 						<a class="{{if eq .Period "monthly"}}active {{end}}item" href="{{$.RepoLink}}/activity/monthly">{{.i18n.Tr "repo.activity.period.monthly"}}</a>
+						<a class="{{if eq .Period "quarterly"}}active {{end}}item" href="{{$.RepoLink}}/activity/quarterly">{{.i18n.Tr "repo.activity.period.quarterly"}}</a>
+						<a class="{{if eq .Period "semiyearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/semiyearly">{{.i18n.Tr "repo.activity.period.semiyearly"}}</a>
+						<a class="{{if eq .Period "yearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/yearly">{{.i18n.Tr "repo.activity.period.yearly"}}</a>
 					</div>
 				</div>
 			</div>

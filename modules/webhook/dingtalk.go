@@ -2,13 +2,14 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package webhook
 
 import (
 	"encoding/json"
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -184,7 +185,7 @@ func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
 
 func getDingtalkIssueCommentPayload(p *api.IssueCommentPayload) (*DingtalkPayload, error) {
 	title := fmt.Sprintf("#%d: %s", p.Issue.Index, p.Issue.Title)
-	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, CommentHashTag(p.Comment.ID))
+	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID))
 	var content string
 	switch p.Action {
 	case api.HookIssueCommentCreated:
@@ -286,7 +287,7 @@ func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload,
 	}, nil
 }
 
-func getDingtalkPullRequestApprovalPayload(p *api.PullRequestPayload, event HookEventType) (*DingtalkPayload, error) {
+func getDingtalkPullRequestApprovalPayload(p *api.PullRequestPayload, event models.HookEventType) (*DingtalkPayload, error) {
 	var text, title string
 	switch p.Action {
 	case api.HookIssueSynchronized:
@@ -392,29 +393,29 @@ func getDingtalkReleasePayload(p *api.ReleasePayload) (*DingtalkPayload, error) 
 }
 
 // GetDingtalkPayload converts a ding talk webhook into a DingtalkPayload
-func GetDingtalkPayload(p api.Payloader, event HookEventType, meta string) (*DingtalkPayload, error) {
+func GetDingtalkPayload(p api.Payloader, event models.HookEventType, meta string) (*DingtalkPayload, error) {
 	s := new(DingtalkPayload)
 
 	switch event {
-	case HookEventCreate:
+	case models.HookEventCreate:
 		return getDingtalkCreatePayload(p.(*api.CreatePayload))
-	case HookEventDelete:
+	case models.HookEventDelete:
 		return getDingtalkDeletePayload(p.(*api.DeletePayload))
-	case HookEventFork:
+	case models.HookEventFork:
 		return getDingtalkForkPayload(p.(*api.ForkPayload))
-	case HookEventIssues:
+	case models.HookEventIssues:
 		return getDingtalkIssuesPayload(p.(*api.IssuePayload))
-	case HookEventIssueComment:
+	case models.HookEventIssueComment:
 		return getDingtalkIssueCommentPayload(p.(*api.IssueCommentPayload))
-	case HookEventPush:
+	case models.HookEventPush:
 		return getDingtalkPushPayload(p.(*api.PushPayload))
-	case HookEventPullRequest:
+	case models.HookEventPullRequest:
 		return getDingtalkPullRequestPayload(p.(*api.PullRequestPayload))
-	case HookEventPullRequestApproved, HookEventPullRequestRejected, HookEventPullRequestComment:
+	case models.HookEventPullRequestApproved, models.HookEventPullRequestRejected, models.HookEventPullRequestComment:
 		return getDingtalkPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
-	case HookEventRepository:
+	case models.HookEventRepository:
 		return getDingtalkRepositoryPayload(p.(*api.RepositoryPayload))
-	case HookEventRelease:
+	case models.HookEventRelease:
 		return getDingtalkReleasePayload(p.(*api.ReleasePayload))
 	}
 

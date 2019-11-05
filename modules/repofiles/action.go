@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/webhook"
@@ -190,22 +191,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 	}
 
 	if isHookEventPush {
-		commits, err := opts.Commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
-		if err != nil {
-			return err
-		}
-		if err = webhook.PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{
-			Ref:        opts.RefFullName,
-			Before:     opts.OldCommitID,
-			After:      opts.NewCommitID,
-			CompareURL: setting.AppURL + opts.Commits.CompareURL,
-			Commits:    commits,
-			Repo:       apiRepo,
-			Pusher:     apiPusher,
-			Sender:     apiPusher,
-		}); err != nil {
-			return fmt.Errorf("PrepareWebhooks: %v", err)
-		}
+		notification.NotifyPushCommits(pusher, repo, opts.RefFullName, opts.OldCommitID, opts.NewCommitID, opts.Commits)
 	}
 
 	return nil

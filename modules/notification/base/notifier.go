@@ -30,6 +30,7 @@ type Notifier interface {
 
 	NotifyNewPullRequest(*models.PullRequest)
 	NotifyMergePullRequest(*models.PullRequest, *models.User, *git.Repository)
+	NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest)
 	NotifyPullRequestReview(*models.PullRequest, *models.Review, *models.Comment)
 
 	NotifyCreateIssueComment(*models.User, *models.Repository,
@@ -40,4 +41,6 @@ type Notifier interface {
 	NotifyNewRelease(rel *models.Release)
 	NotifyUpdateRelease(doer *models.User, rel *models.Release)
 	NotifyDeleteRelease(doer *models.User, rel *models.Release)
+
+	NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits)
 }
