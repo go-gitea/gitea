@@ -436,7 +436,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		Status:      models.RepositoryBeingMigrated,
 	})
 	if err != nil {
-		handleMigrateError(ctx, remoteAddr, err)
+		handleMigrateError(ctx, ctxUser, remoteAddr, err)
 		return
 	}
 
@@ -466,7 +466,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	}()
 
 	if _, err = migrations.MigrateRepository(ctx.User, ctxUser.Name, opts); err != nil {
-		handleMigrateError(ctx, remoteAddr, err)
+		handleMigrateError(ctx, ctxUser, remoteAddr, err)
 		return
 	}
 
@@ -474,7 +474,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
 }
 
-func handleMigrateError(ctx *context.APIContext, remoteAddr string, err error) {
+func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteAddr string, err error) {
 	switch {
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Error(409, "", "The repository with the same name already exists.")
@@ -483,7 +483,7 @@ func handleMigrateError(ctx *context.APIContext, remoteAddr string, err error) {
 	case migrations.IsTwoFactorAuthError(err):
 		ctx.Error(422, "", "Remote visit required two factors authentication.")
 	case models.IsErrReachLimitOfRepo(err):
-		ctx.Error(422, "", fmt.Sprintf("You have already reached your limit of %d repositories.", ctx.User.MaxCreationLimit()))
+		ctx.Error(422, "", fmt.Sprintf("You have already reached your limit of %d repositories.", repoOwner.MaxCreationLimit()))
 	case models.IsErrNameReserved(err):
 		ctx.Error(422, "", fmt.Sprintf("The username '%s' is reserved.", err.(models.ErrNameReserved).Name))
 	case models.IsErrNamePatternNotAllowed(err):
