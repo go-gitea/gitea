@@ -204,8 +204,6 @@ func updateIssueNotification(e Engine, userID, issueID, commentID, updatedByID i
 
 	_, err = e.ID(notification.ID).Cols(cols...).Update(notification)
 	return err
-
-	return nil
 }
 
 func getIssueNotification(e Engine, userID, issueID int64) (*Notification, error) {
