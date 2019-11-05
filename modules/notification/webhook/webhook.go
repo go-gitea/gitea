@@ -547,7 +547,7 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review
 		log.Error("models.AccessLevel: %v", err)
 		return
 	}
-	if err := webhook.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
+	if err := webhook_module.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
 		Index:       review.Issue.Index,
 		PullRequest: pr.APIFormat(),
