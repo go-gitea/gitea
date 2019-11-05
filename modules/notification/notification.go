@@ -7,6 +7,7 @@ package notification
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/notification/indexer"
 	"code.gitea.io/gitea/modules/notification/mail"
@@ -33,6 +34,7 @@ func NewContext() {
 	}
 	RegisterNotifier(indexer.NewNotifier())
 	RegisterNotifier(webhook.NewNotifier())
+	RegisterNotifier(action.NewNotifier())
 }
 
 // NotifyCreateIssueComment notifies issue comment related message to notifiers
@@ -68,6 +70,13 @@ func NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseGitRe
 func NotifyNewPullRequest(pr *models.PullRequest) {
 	for _, notifier := range notifiers {
 		notifier.NotifyNewPullRequest(pr)
+	}
+}
+
+// NotifyPullRequestSynchronized notifies Synchronized pull request
+func NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRequestSynchronized(doer, pr)
 	}
 }
 
