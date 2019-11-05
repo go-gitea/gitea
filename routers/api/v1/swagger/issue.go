@@ -84,3 +84,17 @@ type swaggerIssueDeadline struct {
 	// in:body
 	Body api.IssueDeadline `json:"body"`
 }
+
+// CommentReaction
+// swagger:response CommentReaction
+type swaggerCommentReaction struct {
+	// in:body
+	Body api.CommentReactionList `json:"body"`
+}
+
+// CommentReactionList
+// swagger:response CommentReactionList
+type swaggerCommentReactionList struct {
+	// in:body
+	Body api.CommentReactionList `json:"body"`
+}

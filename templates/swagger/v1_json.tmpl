@@ -3042,7 +3042,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/CommentReactions"
+            "$ref": "#/responses/CommentReactionList"
           }
         }
       },
@@ -7781,6 +7781,41 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CommentReaction": {
+      "description": "CommentReaction represent comment reactions",
+      "type": "object",
+      "required": [
+        "reaction",
+        "users"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Count"
+        },
+        "reaction": {
+          "type": "string",
+          "x-go-name": "Reaction"
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Users"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CommentReactionList": {
+      "description": "CommentReactionList is a list of comment reactions",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/CommentReaction"
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Commit": {
       "type": "object",
       "title": "Commit contains information generated from a Git commit.",
@@ -10957,6 +10992,18 @@
         "items": {
           "$ref": "#/definitions/Comment"
         }
+      }
+    },
+    "CommentReaction": {
+      "description": "CommentReaction",
+      "schema": {
+        "$ref": "#/definitions/CommentReactionList"
+      }
+    },
+    "CommentReactionList": {
+      "description": "CommentReactionList",
+      "schema": {
+        "$ref": "#/definitions/CommentReactionList"
       }
     },
     "Commit": {

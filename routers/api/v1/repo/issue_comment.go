@@ -422,7 +422,7 @@ func GetCommentReactions(ctx *context.APIContext, form api.CommentReactionList) 
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/CommentReactions"
+	//     "$ref": "#/responses/CommentReactionList"
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
