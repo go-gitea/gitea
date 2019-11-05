@@ -465,14 +465,13 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		}
 	}()
 
-	_, err = migrations.MigrateRepository(ctx.User, ctxUser.Name, opts)
-	if err == nil {
-		log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
-		ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
+	if _, err = migrations.MigrateRepository(ctx.User, ctxUser.Name, opts); err != nil {
+		handleMigrateError(ctx, remoteAddr, err)
 		return
 	}
 
-	handleMigrateError(ctx, remoteAddr, err)
+	log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
+	ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
 }
 
 func handleMigrateError(ctx *context.APIContext, remoteAddr string, err error) {
