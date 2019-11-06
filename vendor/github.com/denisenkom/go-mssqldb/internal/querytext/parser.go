@@ -1,4 +1,8 @@
-package mssql
+// Package querytext is the old query parser and parameter substitute process.
+// Do not use on new code.
+//
+// This package is not subject to any API compatibility guarantee.
+package querytext
 
 import (
 	"bytes"
@@ -40,7 +44,11 @@ func (p *parser) write(ch rune) {
 
 type stateFunc func(*parser) stateFunc
 
-func parseParams(query string) (string, int) {
+// ParseParams rewrites the query from using "?" placeholders
+// to using "@pN" parameter names that SQL Server will accept.
+//
+// This function and package is not subject to any API compatibility guarantee.
+func ParseParams(query string) (string, int) {
 	p := &parser{
 		r:           bytes.NewReader([]byte(query)),
 		namedParams: map[string]bool{},
