@@ -30,8 +30,8 @@ const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
-	name  string
-	args  []string
+	name   string
+	args   []string
 	Locale string
 }
 
