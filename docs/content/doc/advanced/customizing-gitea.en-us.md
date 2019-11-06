@@ -165,3 +165,19 @@ To add a custom Readme, add a markdown formatted file (without an `.md` extensio
 
 As of version 1.6.0 Gitea has built-in themes. The two built-in themes are, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` to another one of the available options.  
 As of version 1.8.0 Gitea also has per-user themes. The list of themes a user can choose from can be configured with the `THEMES` value in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` (defaults to `gitea` and `arc-green`, light and dark respectively)
+
+## Customizing the Heatmap colors
+As of version 1.11.0 heatmap colors can be configured per-theme.  
+As an example we will use the default light theme, called `gitea`.  
+In your `app.ini` you will need to add a `heatmap` section and override colors with format `%(theme)-%(0-5) = %(hex color without #)`  
+```ini
+[heatmap]
+# Light theme with a blue heatmap!
+gitea-0 = 0a0a0a
+gitea-1 = 06264f
+gitea-2 = 0f3684
+gitea-3 = 1956ba
+gitea-4 = 2176df
+gitea-5 = 3d9bdf
+```
+**Note:** Not all colors need to be overridden. Any colors not defined will be left as whatever they would otherwise default to per-theme.

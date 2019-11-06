@@ -208,6 +208,7 @@ func NewFuncMap() []template.FuncMap {
 		"DefaultTheme": func() string {
 			return setting.UI.DefaultTheme
 		},
+		"HeatmapColors": HeatmapColors,
 		"dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values) == 0 {
 				return nil, errors.New("invalid dict call")
@@ -550,4 +551,27 @@ func MigrationIcon(hostname string) string {
 	default:
 		return "fa-git-alt"
 	}
+}
+
+func HeatmapColors(user *models.User) template.HTML {
+	theme := setting.UI.DefaultTheme
+	if user != nil && user.Theme != "" {
+		theme = user.Theme
+	}
+	sec := setting.Cfg.Section("heatmap")
+
+	var colors string
+	var color string
+	for idx := 0; idx < 6; idx++ {
+		color = sec.Key(fmt.Sprintf("%s-%d", theme, idx)).MustString("")
+		if len(color) > 0 {
+			colors += fmt.Sprintf(".heatmap-color-%d {background-color: #%s;}\n", idx, color)
+		}
+	}
+
+	if len(colors) > 0 {
+		colors = fmt.Sprintf("<style>\n%s\n</style>", colors)
+	}
+
+	return template.HTML(colors)
 }

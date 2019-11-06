@@ -165,6 +165,9 @@
 {{else if ne DefaultTheme "gitea"}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/theme-{{DefaultTheme}}.css">
 {{end}}
+{{if .EnableHeatmap}}
+	{{HeatmapColors .SignedUser}}
+{{end}}
 {{template "custom/header" .}}
 </head>
 <body>
