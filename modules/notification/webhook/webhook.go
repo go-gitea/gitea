@@ -6,6 +6,7 @@ package webhook
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/setting"
@@ -562,6 +563,34 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review
 	}
 }
 
+func (m *webhookNotifier) NotifyCreateRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	apiPusher := pusher.APIFormat()
+	apiRepo := repo.APIFormat(models.AccessModeNone)
+	refName := git.RefEndName(refFullName)
+
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		log.Error("OpenRepository[%s]: %v", repo.RepoPath(), err)
+		return
+	}
+
+	shaSum, err := gitRepo.GetBranchCommitID(refName)
+	if err != nil {
+		log.Error("GetBranchCommitID[%s]: %v", refFullName, err)
+		return
+	}
+
+	if err = webhook_module.PrepareWebhooks(repo, models.HookEventCreate, &api.CreatePayload{
+		Ref:     refName,
+		Sha:     shaSum,
+		RefType: refType,
+		Repo:    apiRepo,
+		Sender:  apiPusher,
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
 func (m *webhookNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
 	if err := pr.LoadIssue(); err != nil {
 		log.Error("pr.LoadIssue: %v", err)
@@ -572,7 +601,7 @@ func (m *webhookNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *m
 		return
 	}
 
-	if err := webhook.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+	if err := webhook_module.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
 		Index:       pr.Issue.Index,
 		PullRequest: pr.Issue.PullRequest.APIFormat(),
@@ -580,5 +609,21 @@ func (m *webhookNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *m
 		Sender:      doer.APIFormat(),
 	}); err != nil {
 		log.Error("PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
+	}
+}
+
+func (m *webhookNotifier) NotifyDeleteRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	apiPusher := pusher.APIFormat()
+	apiRepo := repo.APIFormat(models.AccessModeNone)
+	refName := git.RefEndName(refFullName)
+
+	if err := webhook_module.PrepareWebhooks(repo, models.HookEventDelete, &api.DeletePayload{
+		Ref:        refName,
+		RefType:    "branch",
+		PusherType: api.PusherTypeUser,
+		Repo:       apiRepo,
+		Sender:     apiPusher,
+	}); err != nil {
+		log.Error("PrepareWebhooks.(delete branch): %v", err)
 	}
 }
