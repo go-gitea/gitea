@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/webhook"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
@@ -289,7 +288,7 @@ func (m *webhookNotifier) NotifyNewPullRequest(pull *models.PullRequest) {
 	}
 
 	mode, _ := models.AccessLevel(pull.Issue.Poster, pull.Issue.Repo)
-	if err := webhook.PrepareWebhooks(pull.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+	if err := webhook_module.PrepareWebhooks(pull.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Issue.Index,
 		PullRequest: pull.APIFormat(),
@@ -548,7 +547,7 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review
 		log.Error("models.AccessLevel: %v", err)
 		return
 	}
-	if err := webhook.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
+	if err := webhook_module.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
 		Index:       review.Issue.Index,
 		PullRequest: pr.APIFormat(),
@@ -626,4 +625,33 @@ func (m *webhookNotifier) NotifyDeleteRef(pusher *models.User, repo *models.Repo
 	}); err != nil {
 		log.Error("PrepareWebhooks.(delete branch): %v", err)
 	}
+}
+
+func sendReleaseHook(doer *models.User, rel *models.Release, action api.HookReleaseAction) {
+	if err := rel.LoadAttributes(); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(rel.Publisher, rel.Repo)
+	if err := webhook_module.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
+		Action:     action,
+		Release:    rel.APIFormat(),
+		Repository: rel.Repo.APIFormat(mode),
+		Sender:     rel.Publisher.APIFormat(),
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func (m *webhookNotifier) NotifyNewRelease(rel *models.Release) {
+	sendReleaseHook(rel.Publisher, rel, api.HookReleasePublished)
+}
+
+func (m *webhookNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Release) {
+	sendReleaseHook(doer, rel, api.HookReleaseUpdated)
+}
+
+func (m *webhookNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
+	sendReleaseHook(doer, rel, api.HookReleaseDeleted)
 }
