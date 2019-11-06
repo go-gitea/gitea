@@ -93,7 +93,7 @@ func Graph(ctx *context.Context) {
 
 	allCommitsCount, err := ctx.Repo.GitRepo.GetAllCommitsCount()
 	if err != nil {
-		ctx.ServerError("AllCommitsCount", err)
+		ctx.ServerError("GetAllCommitsCount", err)
 		return
 	}
 
