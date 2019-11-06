@@ -10,8 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/modules/notification"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
@@ -27,30 +26,10 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 		}
 	}
 
-	if err := models.NotifyWatchers(&models.Action{
-		ActUserID: pull.Poster.ID,
-		ActUser:   pull.Poster,
-		OpType:    models.ActionCreatePullRequest,
-		Content:   fmt.Sprintf("%d|%s", pull.Index, pull.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
-	}
-
 	pr.Issue = pull
 	pull.PullRequest = pr
-	mode, _ := models.AccessLevel(pull.Poster, repo)
-	if err := webhook.PrepareWebhooks(repo, models.HookEventPullRequest, &api.PullRequestPayload{
-		Action:      api.HookIssueOpened,
-		Index:       pull.Index,
-		PullRequest: pr.APIFormat(),
-		Repository:  repo.APIFormat(mode),
-		Sender:      pull.Poster.APIFormat(),
-	}); err != nil {
-		log.Error("PrepareWebhooks: %v", err)
-	}
+
+	notification.NotifyNewPullRequest(pr)
 
 	return nil
 }
@@ -109,23 +88,9 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 		if err == nil {
 			for _, pr := range prs {
 				pr.Issue.PullRequest = pr
-				if err = pr.Issue.LoadAttributes(); err != nil {
-					log.Error("LoadAttributes: %v", err)
-					continue
-				}
-				if err = webhook.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
-					Action:      api.HookIssueSynchronized,
-					Index:       pr.Issue.Index,
-					PullRequest: pr.Issue.PullRequest.APIFormat(),
-					Repository:  pr.Issue.Repo.APIFormat(models.AccessModeNone),
-					Sender:      doer.APIFormat(),
-				}); err != nil {
-					log.Error("PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
-					continue
-				}
+				notification.NotifyPullRequestSynchronized(doer, pr)
 			}
 		}
-
 	}
 
 	addHeadRepoTasks(prs)
