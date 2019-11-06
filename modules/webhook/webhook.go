@@ -90,27 +90,27 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 	// Use separate objects so modifications won't be made on payload on non-Gogs/Gitea type hooks.
 	switch w.HookTaskType {
 	case models.SLACK:
-		payloader, err = models.GetSlackPayload(p, event, w.Meta)
+		payloader, err = GetSlackPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetSlackPayload: %v", err)
 		}
 	case models.DISCORD:
-		payloader, err = models.GetDiscordPayload(p, event, w.Meta)
+		payloader, err = GetDiscordPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetDiscordPayload: %v", err)
 		}
 	case models.DINGTALK:
-		payloader, err = models.GetDingtalkPayload(p, event, w.Meta)
+		payloader, err = GetDingtalkPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetDingtalkPayload: %v", err)
 		}
 	case models.TELEGRAM:
-		payloader, err = models.GetTelegramPayload(p, event, w.Meta)
+		payloader, err = GetTelegramPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetTelegramPayload: %v", err)
 		}
 	case models.MSTEAMS:
-		payloader, err = models.GetMSTeamsPayload(p, event, w.Meta)
+		payloader, err = GetMSTeamsPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetMSTeamsPayload: %v", err)
 		}
