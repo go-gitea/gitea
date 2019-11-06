@@ -69,16 +69,13 @@ func NewHTMLWriter() *HTMLWriter {
 	}
 }
 
-func (w *HTMLWriter) emptyClone() *HTMLWriter {
-	wcopy := *w
-	wcopy.Builder = strings.Builder{}
-	return &wcopy
-}
-
-func (w *HTMLWriter) nodesAsString(nodes ...Node) string {
-	tmp := w.emptyClone()
-	WriteNodes(tmp, nodes...)
-	return tmp.String()
+func (w *HTMLWriter) WriteNodesAsString(nodes ...Node) string {
+	original := w.Builder
+	w.Builder = strings.Builder{}
+	WriteNodes(w, nodes...)
+	out := w.String()
+	w.Builder = original
+	return out
 }
 
 func (w *HTMLWriter) WriterWithExtensions() Writer {
@@ -104,12 +101,14 @@ func (w *HTMLWriter) WritePropertyDrawer(PropertyDrawer) {}
 func (w *HTMLWriter) WriteBlock(b Block) {
 	content := ""
 	if isRawTextBlock(b.Name) {
-		exportWriter := w.emptyClone()
-		exportWriter.htmlEscape = false
-		WriteNodes(exportWriter, b.Children...)
-		content = strings.TrimRightFunc(exportWriter.String(), unicode.IsSpace)
+		builder, htmlEscape := w.Builder, w.htmlEscape
+		w.Builder, w.htmlEscape = strings.Builder{}, false
+		WriteNodes(w, b.Children...)
+		out := w.String()
+		w.Builder, w.htmlEscape = builder, htmlEscape
+		content = strings.TrimRightFunc(out, unicode.IsSpace)
 	} else {
-		content = w.nodesAsString(b.Children...)
+		content = w.WriteNodesAsString(b.Children...)
 	}
 	switch name := b.Name; {
 	case name == "SRC":
@@ -194,7 +193,7 @@ func (w *HTMLWriter) writeSection(section *Section) {
 	// NOTE: To satisfy hugo ExtractTOC() check we cannot use `<li>\n` here. Doesn't really matter, just a note.
 	w.WriteString("<li>")
 	h := section.Headline
-	title := cleanHeadlineTitleForHTMLAnchorRegexp.ReplaceAllString(w.nodesAsString(h.Title...), "")
+	title := cleanHeadlineTitleForHTMLAnchorRegexp.ReplaceAllString(w.WriteNodesAsString(h.Title...), "")
 	w.WriteString(fmt.Sprintf("<a href=\"#%s\">%s</a>\n", h.ID(), title))
 	if len(section.Children) != 0 {
 		w.WriteString("<ul>\n")
@@ -306,7 +305,7 @@ func (w *HTMLWriter) WriteRegularLink(l RegularLink) {
 	}
 	description := url
 	if l.Description != nil {
-		description = w.nodesAsString(l.Description...)
+		description = w.WriteNodesAsString(l.Description...)
 	}
 	switch l.Kind() {
 	case "image":
@@ -384,10 +383,10 @@ func (w *HTMLWriter) WriteHorizontalRule(h HorizontalRule) {
 }
 
 func (w *HTMLWriter) WriteNodeWithMeta(n NodeWithMeta) {
-	out := w.nodesAsString(n.Node)
+	out := w.WriteNodesAsString(n.Node)
 	if p, ok := n.Node.(Paragraph); ok {
 		if len(p.Children) == 1 && isImageOrVideoLink(p.Children[0]) {
-			out = w.nodesAsString(p.Children[0])
+			out = w.WriteNodesAsString(p.Children[0])
 		}
 	}
 	for _, attributes := range n.Meta.HTMLAttributes {
@@ -399,7 +398,7 @@ func (w *HTMLWriter) WriteNodeWithMeta(n NodeWithMeta) {
 			if i != 0 {
 				caption += " "
 			}
-			caption += w.nodesAsString(ns...)
+			caption += w.WriteNodesAsString(ns...)
 		}
 		out = fmt.Sprintf("<figure>\n%s<figcaption>\n%s\n</figcaption>\n</figure>\n", out, caption)
 	}

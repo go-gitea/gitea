@@ -5,10 +5,7 @@
 package issue
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 )
 
@@ -22,18 +19,6 @@ func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uu
 		if err := AddAssigneeIfNotAssigned(issue, issue.Poster, assigneeID); err != nil {
 			return err
 		}
-	}
-
-	if err := models.NotifyWatchers(&models.Action{
-		ActUserID: issue.Poster.ID,
-		ActUser:   issue.Poster,
-		OpType:    models.ActionCreateIssue,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
 	}
 
 	notification.NotifyNewIssue(issue)
