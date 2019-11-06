@@ -520,3 +520,65 @@ func (m *webhookNotifier) NotifyPushCommits(pusher *models.User, repo *models.Re
 		log.Error("PrepareWebhooks: %v", err)
 	}
 }
+
+func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment) {
+	var reviewHookType models.HookEventType
+
+	switch review.Type {
+	case models.ReviewTypeApprove:
+		reviewHookType = models.HookEventPullRequestApproved
+	case models.ReviewTypeComment:
+		reviewHookType = models.HookEventPullRequestComment
+	case models.ReviewTypeReject:
+		reviewHookType = models.HookEventPullRequestRejected
+	default:
+		// unsupported review webhook type here
+		log.Error("Unsupported review webhook type")
+		return
+	}
+
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("pr.LoadIssue: %v", err)
+		return
+	}
+
+	mode, err := models.AccessLevel(review.Issue.Poster, review.Issue.Repo)
+	if err != nil {
+		log.Error("models.AccessLevel: %v", err)
+		return
+	}
+	if err := webhook.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
+		Action:      api.HookIssueSynchronized,
+		Index:       review.Issue.Index,
+		PullRequest: pr.APIFormat(),
+		Repository:  review.Issue.Repo.APIFormat(mode),
+		Sender:      review.Reviewer.APIFormat(),
+		Review: &api.ReviewPayload{
+			Type:    string(reviewHookType),
+			Content: review.Content,
+		},
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func (m *webhookNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("pr.LoadIssue: %v", err)
+		return
+	}
+	if err := pr.Issue.LoadAttributes(); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	if err := webhook.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+		Action:      api.HookIssueSynchronized,
+		Index:       pr.Issue.Index,
+		PullRequest: pr.Issue.PullRequest.APIFormat(),
+		Repository:  pr.Issue.Repo.APIFormat(models.AccessModeNone),
+		Sender:      doer.APIFormat(),
+	}); err != nil {
+		log.Error("PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
+	}
+}

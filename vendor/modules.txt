@@ -330,7 +330,7 @@ github.com/mschoch/smat
 github.com/msteinert/pam
 # github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
 github.com/nfnt/resize
-# github.com/niklasfasching/go-org v0.1.7
+# github.com/niklasfasching/go-org v0.1.8
 github.com/niklasfasching/go-org/org
 # github.com/oliamb/cutter v0.2.2
 github.com/oliamb/cutter
@@ -464,7 +464,7 @@ golang.org/x/crypto/scrypt
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/knownhosts
-# golang.org/x/net v0.0.0-20191028085509-fe3aa8a45271
+# golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
