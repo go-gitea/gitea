@@ -8,12 +8,18 @@ import (
 	"xorm.io/xorm"
 )
 
-func addTemplateToRepo(x *xorm.Engine) error {
+func addTeamIncludesAllRepositories(x *xorm.Engine) error {
 
-	type Repository struct {
-		IsTemplate bool  `xorm:"INDEX NOT NULL DEFAULT false"`
-		TemplateID int64 `xorm:"INDEX"`
+	type Team struct {
+		ID                      int64 `xorm:"pk autoincr"`
+		IncludesAllRepositories bool  `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync2(new(Repository))
+	if err := x.Sync2(new(Team)); err != nil {
+		return err
+	}
+
+	_, err := x.Exec("UPDATE `team` SET `includes_all_repositories` = ? WHERE `name`=?",
+		true, "Owners")
+	return err
 }

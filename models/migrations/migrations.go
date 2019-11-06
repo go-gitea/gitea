@@ -265,6 +265,8 @@ var migrations = []Migration{
 	// v104 -> v105
 	NewMigration("remove unnecessary columns from label", removeLabelUneededCols),
 	// v105 -> v106
+	NewMigration("add includes_all_repositories to teams", addTeamIncludesAllRepositories),
+	// v106 -> v107
 	NewMigration("Add template options to repository", addTemplateToRepo),
 }
 

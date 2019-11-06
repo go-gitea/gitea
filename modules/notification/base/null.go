@@ -114,3 +114,11 @@ func (*NullNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, 
 // NotifyPushCommits notifies commits pushed to notifiers
 func (*NullNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
 }
+
+// NotifyCreateRef notifies branch or tag creation to notifiers
+func (*NullNotifier) NotifyCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
+}
+
+// NotifyDeleteRef notifies branch or tag deleteion to notifiers
+func (*NullNotifier) NotifyDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
+}
