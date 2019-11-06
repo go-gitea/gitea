@@ -74,11 +74,6 @@ func getIssueWatchers(e Engine, issueID int64) (watches IssueWatchList, err erro
 		And("`user`.prohibit_login = ?", false).
 		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id").
 		Find(&watches)
-	// handle default watchers (repowatchers)
-	// SELECT x.user_id as repowatchers FROM (SELECT watch.user_id FROM issue,watch WHERE issue.repo_id = watch.repo_id AND issue.id = 71) as x LEFT JOIN (SELECT user_id FROM issue_watch WHERE is_watching = 0) as y ON x.user_id = y.user_id WHERE y.user_id IS NULL;
-	// returns list of userIDs
-
-	//watches = append(watches)
 	return
 }
 
