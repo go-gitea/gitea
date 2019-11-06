@@ -168,7 +168,7 @@ As of version 1.8.0 Gitea also has per-user themes. The list of themes a user ca
 
 ## Customizing the Heatmap colors
 As of version 1.11.0 heatmap colors can be configured per-theme.  
-As an example we will use the default light theme, called `gitea`.  
+As mentioned above, the two themes currently shipped with Gitea are `gitea` (light) and `arc-green` (dark).  
 In your `app.ini` you will need to add a `heatmap` section and override colors with format `%(theme)-%(0-5) = %(hex color without #)`  
 ```ini
 [heatmap]
@@ -179,5 +179,12 @@ gitea-2 = 0f3684
 gitea-3 = 1956ba
 gitea-4 = 2176df
 gitea-5 = 3d9bdf
+# Dark theme with a red heatmap!
+arc-green-0 = 2a0101
+arc-green-1 = 540202
+arc-green-2 = 7f0303
+arc-green-3 = a90404
+arc-green-4 = d30505
+arc-green-5 = ff0000
 ```
 **Note:** Not all colors need to be overridden. Any colors not defined will be left as whatever they would otherwise default to per-theme.
