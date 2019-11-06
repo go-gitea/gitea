@@ -48,8 +48,8 @@ func NewCommand(args ...string) *Command {
 	cargs := make([]string, len(GlobalCommandArgs))
 	copy(cargs, GlobalCommandArgs)
 	return &Command{
-		name:  GitExecutable,
-		args:  append(cargs, args...),
+		name:   GitExecutable,
+		args:   append(cargs, args...),
 		Locale: DefaultLocale,
 	}
 }
