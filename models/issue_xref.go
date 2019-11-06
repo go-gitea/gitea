@@ -41,7 +41,7 @@ func newCrossReference(e *xorm.Session, ctx *crossReferencesContext, xref *cross
 		RefIssueID:   ctx.OrigIssue.ID,
 		RefCommentID: refCommentID,
 		RefAction:    xref.Action,
-		RefIsPull:    xref.Issue.IsPull,
+		RefIsPull:    ctx.OrigIssue.IsPull,
 	})
 	return err
 }
