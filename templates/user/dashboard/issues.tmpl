@@ -109,10 +109,6 @@
 										<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
 									</a>
 								{{end}}
-								{{if ne .DeadlineUnix 0}}
-									<span class="octicon octicon-calendar"></span>
-									<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
-								{{end}}
 								{{if .Ref}}
 									<a class="ref" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/src/branch/{{.Ref}}">
 										<span class="octicon octicon-git-branch"></span> {{.Ref}}
@@ -129,6 +125,10 @@
 									<span class="checklist">
 										<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
 									</span>
+								{{end}}
+								{{if ne .DeadlineUnix 0}}
+									<span class="octicon octicon-calendar"></span>
+									<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
 								{{end}}
 							</p>
 						</li>
