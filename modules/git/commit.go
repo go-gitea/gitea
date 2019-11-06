@@ -257,11 +257,6 @@ func allCommitsCount(repoPath string) (int64, error) {
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 }
 
-// AllCommitsCount returns count of all commits in repository
-func AllCommitsCount(repoPath string) (int64, error) {
-	return allCommitsCount(repoPath)
-}
-
 func commitsCount(repoPath, revision, relpath string) (int64, error) {
 	cmd := NewCommand("rev-list", "--count")
 	cmd.AddArguments(revision)
