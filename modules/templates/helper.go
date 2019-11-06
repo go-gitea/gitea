@@ -553,6 +553,7 @@ func MigrationIcon(hostname string) string {
 	}
 }
 
+// HeatmapColors checks the app.ini for overridden heatmap colors
 func HeatmapColors(user *models.User) template.HTML {
 	theme := setting.UI.DefaultTheme
 	if user != nil && user.Theme != "" {
