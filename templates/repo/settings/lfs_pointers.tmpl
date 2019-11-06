@@ -1,0 +1,71 @@
+{{template "base/head" .}}
+<div class="repository settings lfs">
+	{{template "repo/header" .}}
+	{{template "repo/settings/navbar" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "repo.settings.lfs_pointers.found" .NumPointers .NumAssociated .NumNotAssociated .NumNoExist }}
+			{{if gt .NumAssociatable 0}}
+				<div class="ui right">
+					<form class="ui form" method="post" action="{{$.Link}}/associate">
+						{{.CsrfTokenHtml}}
+						{{range .Pointers}}
+							{{if and (not .InRepo) .Exists .Accessible}}
+								<input type="hidden" name="oid" value="{{.Oid}} {{.Size}}"/>
+							{{end}}
+						{{end}}
+						<button class="ui green button">{{$.i18n.Tr "repo.settings.lfs_pointers.associateAccessible" $.NumAssociatable}}</button>
+					</form>
+				</div>
+			{{end}}
+		</h4>
+		<div class="ui attached segment">
+			<table id="lfs-files-table" class="ui fixed single line table">
+				<thead>
+					<tr>
+						<th class="three wide">{{.i18n.Tr "repo.settings.lfs_pointers.sha"}}</th>
+						<th class="four wide">{{.i18n.Tr "repo.settings.lfs_pointers.oid"}}</th>
+						<th class="three wide"></th>
+						<th class="two wide">{{.i18n.Tr "repo.settings.lfs_pointers.inRepo"}}</th>
+						<th class="two wide">{{.i18n.Tr "repo.settings.lfs_pointers.exists"}}</th>
+						<th class="two wide">{{.i18n.Tr "repo.settings.lfs_pointers.accessible"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Pointers}}
+						<tr>
+							<td>
+								<span class="text sha label" title="{{.SHA}}">
+									<a href="{{$.RepoLink}}/raw/blob/{{.SHA}}" rel="nofollow" target="_blank" class="ui detail icon button truncate">
+										{{ShortSha .SHA}}
+									</a>
+								</span>
+							</td>
+							<td>
+								<span class="text sha label" title="{{.Oid}}">
+									{{if and .Exists .InRepo}}
+										<a href="{{$.LFSFilesLink}}/show/{{.Oid}}" rel="nofollow" target="_blank" class="ui text detail icon button brown truncate">
+											{{ShortSha .Oid}}
+										</a>
+									{{else}}
+										<span class="ui detail icon button brown disabled truncate">
+											{{ShortSha .Oid}}
+										</span>
+									{{end}}
+								</span>
+							</td>
+							<td>
+								<a class="ui blue show-panel button" href="{{$.LFSFilesLink}}/find?oid={{.Oid}}&size={{.Size}}&sha={{.SHA}}">{{$.i18n.Tr "repo.settings.lfs_findcommits"}}</a>
+							</td>
+							<td><i class="fa fa{{if .InRepo}}-check{{end}}-square-o"></i></td>
+							<td><i class="fa fa{{if .Exists}}-check{{end}}-square-o"></i></td>
+							<td><i class="fa fa{{if .Accessible}}-check{{end}}-square-o"></i></td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}
