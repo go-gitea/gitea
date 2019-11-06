@@ -227,11 +227,12 @@ func ToOrganization(org *models.User) *api.Organization {
 // ToTeam convert models.Team to api.Team
 func ToTeam(team *models.Team) *api.Team {
 	return &api.Team{
-		ID:          team.ID,
-		Name:        team.Name,
-		Description: team.Description,
-		Permission:  team.Authorize.String(),
-		Units:       team.GetUnitNames(),
+		ID:                      team.ID,
+		Name:                    team.Name,
+		Description:             team.Description,
+		IncludesAllRepositories: team.IncludesAllRepositories,
+		Permission:              team.Authorize.String(),
+		Units:                   team.GetUnitNames(),
 	}
 }
 
