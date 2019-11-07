@@ -171,25 +171,34 @@ func toggleUserAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (remove
 // MakeIDsFromAPIAssigneesToAdd returns an array with all assignee IDs
 func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string) (assigneeIDs []int64, err error) {
 
-	// Keeping the old assigning method for compatibility reasons
-	if oneAssignee != "" {
+	var requestAssignees []string
 
-		// Prevent double adding assignees
-		var isDouble bool
-		for _, assignee := range multipleAssignees {
-			if assignee == oneAssignee {
-				isDouble = true
-				break
-			}
+	// Prevent double adding assignees and empty assignees
+	var isDouble bool
+	for _, assignee := range multipleAssignees {
+		// Keeping the old assigning method for compatibility reasons
+		if assignee == oneAssignee {
+			isDouble = true
+			continue
 		}
 
-		if !isDouble {
-			multipleAssignees = append(multipleAssignees, oneAssignee)
+		//if assignee is empty skip
+		if len(assignee) == 0 {
+			continue
 		}
+		requestAssignees = append(requestAssignees, assignee)
 	}
 
-	// Get the IDs of all assignees
-	assigneeIDs, err = GetUserIDsByNames(multipleAssignees, false)
+	if !isDouble {
+		requestAssignees = append(requestAssignees, oneAssignee)
+	}
+
+	if len(requestAssignees) > 0 {
+		// Get the IDs of all assignees
+		assigneeIDs, err = GetUserIDsByNames(requestAssignees, false)
+	} else {
+		return nil, nil
+	}
 
 	return
 }
