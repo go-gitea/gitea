@@ -231,7 +231,7 @@ func ToTeam(team *models.Team) *api.Team {
 		Name:                    team.Name,
 		Description:             team.Description,
 		IncludesAllRepositories: team.IncludesAllRepositories,
-		CanCreateOrgRepo: team.CanCreateOrgRepo,
+		CanCreateOrgRepo:        team.CanCreateOrgRepo,
 		Permission:              team.Authorize.String(),
 		Units:                   team.GetUnitNames(),
 	}

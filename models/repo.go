@@ -1471,7 +1471,7 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			}
 			if err = repo.changeCollaborationAccessMode(e, doer.ID, AccessModeAdmin); err != nil {
 				return fmt.Errorf("ChangeCollaborationAccessMode: %v", err)
-			}			
+			}
 		}
 	} else if err = repo.recalculateAccesses(e); err != nil {
 		// Organization automatically called this in addRepository method.

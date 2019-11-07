@@ -34,7 +34,7 @@ func (repo *Repository) addCollaborator(e Engine, u *User) error {
 		return err
 	}
 
-	if err = repo.recalculateUserAccess(sess, u.ID); err != nil {
+	if err = repo.recalculateUserAccess(e, u.ID); err != nil {
 		return fmt.Errorf("recalculateAccesses 'team=%v': %v", repo.Owner.IsOrganization(), err)
 	}
 

@@ -132,7 +132,7 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 		Name:                    form.Name,
 		Description:             form.Description,
 		IncludesAllRepositories: form.IncludesAllRepositories,
-		CanCreateOrgRepo: form.CanCreateOrgRepo,
+		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 		Authorize:               models.ParseAccessMode(form.Permission),
 	}
 

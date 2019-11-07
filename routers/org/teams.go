@@ -189,7 +189,7 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		Description:             form.Description,
 		Authorize:               models.ParseAccessMode(form.Permission),
 		IncludesAllRepositories: includesAllRepositories,
-		CanCreateOrgRepo: form.CanCreateOrgRepo,
+		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 	}
 
 	if t.Authorize < models.AccessModeOwner {
