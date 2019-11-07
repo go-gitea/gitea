@@ -286,22 +286,25 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		}
 		return
 	}
-	// Check if the passed assignees is assignable
-	for _, aID := range assigneeIDs {
-		assignee, err := models.GetUserByID(aID)
-		if err != nil {
-			ctx.Error(500, "GetUserByID", err)
-			return
-		}
 
-		valid, err := models.CanBeAssigned(assignee, repo, true)
-		if err != nil {
-			ctx.Error(500, "canBeAssigned", err)
-			return
-		}
-		if !valid {
-			ctx.Error(422, "canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
-			return
+	if assigneeIDs != nil {
+		for _, aID := range assigneeIDs {
+			assignee, err := models.GetUserByID(aID)
+			if err != nil {
+				ctx.Error(500, "GetUserByID", err)
+				return
+			}
+
+			// Check if the passed assignees is assignable
+			valid, err := models.CanBeAssigned(assignee, repo, true)
+			if err != nil {
+				ctx.Error(500, "canBeAssigned", err)
+				return
+			}
+			if !valid {
+				ctx.Error(422, "canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
+				return
+			}
 		}
 	}
 
