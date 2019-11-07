@@ -43,4 +43,6 @@ type Notifier interface {
 	NotifyDeleteRelease(doer *models.User, rel *models.Release)
 
 	NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits)
+	NotifyCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string)
+	NotifyDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string)
 }
