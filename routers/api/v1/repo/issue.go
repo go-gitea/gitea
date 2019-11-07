@@ -344,24 +344,22 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 			return
 		}
 
-		if assigneeIDs != nil {
-			for _, aID := range assigneeIDs {
-				assignee, err := models.GetUserByID(aID)
-				if err != nil {
-					ctx.Error(500, "GetUserByID", err)
-					return
-				}
+		// Check if the passed assignees is assignable
+		for _, aID := range assigneeIDs {
+			assignee, err := models.GetUserByID(aID)
+			if err != nil {
+				ctx.Error(500, "GetUserByID", err)
+				return
+			}
 
-				// Check if the passed assignees is assignable
-				valid, err := models.CanBeAssigned(assignee, ctx.Repo.Repository, false)
-				if err != nil {
-					ctx.Error(500, "canBeAssigned", err)
-					return
-				}
-				if !valid {
-					ctx.Error(422, "canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: ctx.Repo.Repository.Name})
-					return
-				}
+			valid, err := models.CanBeAssigned(assignee, ctx.Repo.Repository, false)
+			if err != nil {
+				ctx.Error(500, "canBeAssigned", err)
+				return
+			}
+			if !valid {
+				ctx.Error(422, "canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: ctx.Repo.Repository.Name})
+				return
 			}
 		}
 	} else {
