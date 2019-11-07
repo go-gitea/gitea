@@ -9,24 +9,26 @@
 				{{template "org/team/navbar" .}}
 				{{$canAddRemove := and $.IsOrganizationOwner (not $.Team.IncludesAllRepositories)}}
 				{{if $canAddRemove}}
-					<div class="ui attached segment">
-						<form class="ui form" id="add-repo-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/add" method="post">
-							{{.CsrfTokenHtml}}
-							<div class="inline field ui left">
-								<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
-									<div class="ui input">
-										<input class="prompt" name="repo_name" placeholder="{{.i18n.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
+					<div class="ui attached segment" id="repo-top-segment">
+						<div class="inline ui field left">
+							<form class="ui form" id="add-repo-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/add" method="post">
+								{{.CsrfTokenHtml}}
+								<div class="inline field ui left">
+									<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
+										<div class="ui input">
+											<input class="prompt" name="repo_name" placeholder="{{.i18n.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
+										</div>
 									</div>
 								</div>
-							</div>
-							<button class="ui green button">{{.i18n.Tr "org.teams.add_team_repository"}}</button>
-						</form>
-						<div class="ui divider"></div>
-						<form class="ui form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/repositories" method="post">
-							{{.CsrfTokenHtml}}
-							<button class="ui green small button add-all-button" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/addall">Add all organization repositories</button>
-							<button class="ui red small button delete-button" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/removeall">Remove all team repositories</button>
-						</form>						
+								<button class="ui green button">{{.i18n.Tr "org.teams.add_team_repository"}}</button>
+							</form>
+						</div>
+						<div class="inline ui field right">
+							<form class="ui form" id="repo-multiple-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/repositories" method="post">
+								<button class="ui red button delete-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/removeall">{{.i18n.Tr "org.teams.remove_all_repos"}}</button>
+								<button class="ui green button add-all-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/addall">{{.i18n.Tr "org.teams.add_all_repos"}}</button>
+							</form>
+						</div>
 					</div>
 				{{end}}
 				<div class="ui bottom attached table segment repositories">
