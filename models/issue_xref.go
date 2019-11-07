@@ -48,13 +48,9 @@ func newCrossReference(e *xorm.Session, ctx *crossReferencesContext, xref *cross
 
 func neuterCrossReferences(e Engine, issueID int64, commentID int64) error {
 	active := make([]*Comment, 0, 10)
-	sess := e.Where("`ref_action` IN (?, ?, ?)", references.XRefActionNone, references.XRefActionCloses, references.XRefActionReopens)
-	if issueID != 0 {
-		sess = sess.And("`ref_issue_id` = ?", issueID)
-	}
-	if commentID != 0 {
-		sess = sess.And("`ref_comment_id` = ?", commentID)
-	}
+	sess := e.Where("`ref_action` IN (?, ?, ?)", references.XRefActionNone, references.XRefActionCloses, references.XRefActionReopens).
+		And("`ref_issue_id` = ?", issueID).
+		And("`ref_comment_id` = ?", commentID)
 	if err := sess.Find(&active); err != nil || len(active) == 0 {
 		return err
 	}
@@ -226,7 +222,7 @@ func (comment *Comment) addCrossReferences(e *xorm.Session, doer *User) error {
 }
 
 func (comment *Comment) neuterCrossReferences(e Engine) error {
-	return neuterCrossReferences(e, 0, comment.ID)
+	return neuterCrossReferences(e, comment.IssueID, comment.ID)
 }
 
 // LoadRefComment loads comment that created this reference from database
