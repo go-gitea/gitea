@@ -180,7 +180,7 @@ func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string
 	}
 
 	//Prevent empty assignerees
-	if util.ExistsInSlice("", multipleAssignees) {
+	if util.IsStringInSlice("", multipleAssignees) {
 		for _, assignee := range multipleAssignees {
 			if assignee == "" {
 				continue
