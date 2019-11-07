@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/modules/util"
 	"fmt"
 
 	"xorm.io/xorm"
@@ -173,24 +174,21 @@ func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string
 
 	var requestAssignees []string
 
-	// Prevent double adding assignees and empty assignees
-	var isDouble bool
-	for _, assignee := range multipleAssignees {
-		// Keeping the old assigning method for compatibility reasons
-		if assignee == oneAssignee {
-			isDouble = true
-			continue
-		}
-
-		//if assignee is empty skip
-		if assignee == "" {
-			continue
-		}
-		requestAssignees = append(requestAssignees, assignee)
+	// Keeping the old assigning method for compatibility reasons
+	if !util.ExistsInSlice(oneAssignee, multipleAssignees) {
+		requestAssignees = append(requestAssignees, oneAssignee)
 	}
 
-	if !isDouble {
-		requestAssignees = append(requestAssignees, oneAssignee)
+	//Prevent empty assignerees
+	if util.ExistsInSlice("", multipleAssignees) {
+		for _, assignee := range multipleAssignees {
+			if assignee == "" {
+				continue
+			}
+			requestAssignees = append(requestAssignees, assignee)
+		}
+	} else {
+		requestAssignees = append(requestAssignees, multipleAssignees...)
 	}
 
 	if len(requestAssignees) > 0 {
