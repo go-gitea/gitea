@@ -187,6 +187,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 			Description: form.Description,
 			Private:     form.Private,
 			GitContent:  form.GitContent,
+			Topics:      form.Topics,
 		}
 
 		if !opts.IsValid() {
@@ -194,14 +195,21 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 			return
 		}
 
-		templateRepo, err := models.GetRepositoryByID(form.RepoTemplate)
+		templateRepo := getRepository(ctx, form.RepoTemplate)
+		if ctx.Written() {
+			return
+		}
+
+		if !templateRepo.IsTemplate {
+			ctx.RenderWithErr("Must select a template repository", tplCreate, form)
+			return
+		}
+
+		repo, err := repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
 		if err == nil {
-			repo, err := repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
-			if err == nil {
-				log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-				ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
-				return
-			}
+			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
+			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+			return
 		}
 	} else {
 		repo, err := repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{

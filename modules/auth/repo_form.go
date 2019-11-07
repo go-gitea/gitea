@@ -39,6 +39,7 @@ type CreateRepoForm struct {
 
 	RepoTemplate int64
 	GitContent   bool
+	Topics       bool
 }
 
 // Validate validates the fields

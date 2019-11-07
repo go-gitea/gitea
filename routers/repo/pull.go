@@ -50,8 +50,8 @@ var (
 	}
 )
 
-func getForkRepository(ctx *context.Context) *models.Repository {
-	forkRepo, err := models.GetRepositoryByID(ctx.ParamsInt64(":repoid"))
+func getRepository(ctx *context.Context, repoID int64) *models.Repository {
+	repo, err := models.GetRepositoryByID(repoID)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			ctx.NotFound("GetRepositoryByID", nil)
@@ -61,26 +61,34 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 		return nil
 	}
 
-	perm, err := models.GetUserRepoPermission(forkRepo, ctx.User)
+	perm, err := models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
 	}
 
-	if forkRepo.IsEmpty || !perm.CanRead(models.UnitTypeCode) {
+	if repo.IsEmpty || !perm.CanRead(models.UnitTypeCode) {
 		if log.IsTrace() {
-			if forkRepo.IsEmpty {
-				log.Trace("Empty fork repository %-v", forkRepo)
+			if repo.IsEmpty {
+				log.Trace("Empty repository %-v", repo)
 			} else {
-				log.Trace("Permission Denied: User %-v cannot read %-v of forkRepo %-v\n"+
-					"User in forkRepo has Permissions: %-+v",
+				log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
+					"User in repo has Permissions: %-+v",
 					ctx.User,
 					models.UnitTypeCode,
 					ctx.Repo,
 					perm)
 			}
 		}
-		ctx.NotFound("getForkRepository", nil)
+		ctx.NotFound("getRepository", nil)
+		return nil
+	}
+	return repo
+}
+
+func getForkRepository(ctx *context.Context) *models.Repository {
+	forkRepo := getRepository(ctx, ctx.ParamsInt64(":repoid"))
+	if ctx.Written() {
 		return nil
 	}
 
@@ -89,7 +97,7 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate
 	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !ctx.User.HasForkedRepo(forkRepo.ID)
 
-	if err = forkRepo.GetOwner(); err != nil {
+	if err := forkRepo.GetOwner(); err != nil {
 		ctx.ServerError("GetOwner", err)
 		return nil
 	}
@@ -108,6 +116,7 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	}
 
 	var traverseParentRepo = forkRepo
+	var err error
 	for {
 		if ctx.User.ID == traverseParentRepo.OwnerID {
 			canForkToUser = false

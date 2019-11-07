@@ -1250,11 +1250,12 @@ type GenerateRepoOptions struct {
 	Description string
 	Private     bool
 	GitContent  bool
+	Topics      bool
 }
 
 // IsValid checks whether at least one option is chosen for generation
 func (gro GenerateRepoOptions) IsValid() bool {
-	return gro.GitContent // or other items as they are added
+	return gro.GitContent || gro.Topics // or other items as they are added
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
@@ -2758,18 +2759,30 @@ func GenerateRepository(doer, owner *User, templateRepo *Repository, opts Genera
 		LowerName:     strings.ToLower(opts.Name),
 		Description:   opts.Description,
 		IsPrivate:     opts.Private,
-		IsEmpty:       templateRepo.IsEmpty,
-		IsFsckEnabled: true,
+		IsEmpty:       !opts.GitContent,
+		IsFsckEnabled: templateRepo.IsFsckEnabled,
 		TemplateID:    templateRepo.ID,
+	}
+
+	createSess := x.NewSession()
+	defer createSess.Close()
+	if err = createSess.Begin(); err != nil {
+		return nil, err
+	}
+
+	if err = createRepository(createSess, doer, owner, repo); err != nil {
+		return nil, err
+	}
+
+	//Commit repo to get created repo ID
+	err = createSess.Commit()
+	if err != nil {
+		return nil, err
 	}
 
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
-		return nil, err
-	}
-
-	if err = createRepository(sess, doer, owner, repo); err != nil {
 		return nil, err
 	}
 
@@ -2779,18 +2792,20 @@ func GenerateRepository(doer, owner *User, templateRepo *Repository, opts Genera
 			return nil, err
 		}
 
-		//Commit repo to get generated repo ID
-		err = sess.Commit()
-		if err != nil {
-			return nil, err
-		}
-
 		if err = repo.UpdateSize(); err != nil {
 			log.Error("Failed to update size for repository: %v", err)
 		}
 
 		if err = copyLFS(repo, templateRepo); err != nil {
 			log.Error("Failed to copy LFS: %v", err)
+		}
+	}
+
+	if opts.Topics {
+		for _, topic := range templateRepo.Topics {
+			if _, err := addTopicByNameToRepo(sess, repo.ID, topic); err != nil {
+				return nil, err
+			}
 		}
 	}
 
