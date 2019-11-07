@@ -371,10 +371,16 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	}
 
 	for _, ref := range refs {
-		ref.LoadIssue()
-		ref.Issue.LoadRepo()
+		if err = ref.LoadIssue(); err != nil {
+			return err
+		}
+		if err = ref.Issue.LoadRepo(); err != nil {
+			return err
+		}
 		close := (ref.RefAction == references.XRefActionCloses)
-		issue_service.ChangeStatus(ref.Issue, doer, close)
+		if err = issue_service.ChangeStatus(ref.Issue, doer, close); err != nil {
+			return err
+		}
 	}
 
 	return nil
