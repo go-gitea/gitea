@@ -5,8 +5,6 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
