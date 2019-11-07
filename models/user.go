@@ -1827,3 +1827,10 @@ func SyncExternalUsers() {
 		}
 	}
 }
+
+func UpdateLdapUserAtLogin(user *User) (err error) {
+	if err := UpdateUserCols(user, "full_name", "email", "is_admin"); err != nil {
+		return err
+	}
+	return nil
+}
