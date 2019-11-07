@@ -350,3 +350,8 @@ func findActionKeywords(content []byte, start int) (XRefAction, *RefSpan) {
 	}
 	return XRefActionNone, nil
 }
+
+// IsXrefActionable returns true if the xref action is actionable (i.e. produces a result when resolved)
+func IsXrefActionable(a XRefAction) bool {
+	return a == XRefActionCloses || a == XRefActionReopens
+}
