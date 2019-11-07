@@ -408,6 +408,9 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 	if err != nil {
 		return nil, err
 	} else if isExist {
+		if user.ProhibitLogin {
+			return nil, ErrUserProhibitLogin{user.ID, user.Name}
+		}
 		user.FullName = composeFullName(sr.Name, sr.Surname, sr.Username)
 		user.Email = sr.Mail
 		// Change existing admin flag only if AdminFilter option is set
