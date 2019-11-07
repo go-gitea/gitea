@@ -316,7 +316,7 @@ func (pr *PullRequest) ResolveCrossReferences() ([]*Comment, error) {
 		for i, r := range refs {
 			if r.IssueID == ref.IssueID {
 				// Keep only the latest
-				refs[i] = r
+				refs[i] = ref
 				found = true
 				break
 			}
