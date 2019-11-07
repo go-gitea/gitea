@@ -6,11 +6,11 @@
 </head>
 
 <body>
-	<p>@{{.Doer.Name}} assigned you to the {{if eq .Issue.IsPull true}}pull request{{else}}issue{{end}} <a href="{{.Link}}">#{{.Issue.Index}}</a> in repository {{.Issue.Repo.FullName}}.</p>
+	<p>@{{.Doer.Name}} assigned you to the {{if .IsPull}}pull request{{else}}issue{{end}} <a href="{{.Link}}">#{{.Issue.Index}}</a> in repository {{.Repo}}.</p>
     <p>
         ---
         <br>
-        <a href="{{.Link}}">View it on Gitea</a>.
+        <a href="{{.Link}}">View it on {{AppName}}</a>.
     </p>
 
 </body>
