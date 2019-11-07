@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // AddDependency adds new dependencies
@@ -39,14 +40,14 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 
-	// Check if both issues are in the same repo
-	if issue.RepoID != dep.RepoID {
+	// Check if both issues are in the same repo if cross repository dependencies is not enabled
+	if issue.RepoID != dep.RepoID && !setting.Service.AllowCrossRepositoryDependencies {
 		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_same_repo"))
 		return
 	}
 
 	// Check if issue and dependency is the same
-	if dep.Index == issueIndex {
+	if dep.ID == issue.ID {
 		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_same_issue"))
 		return
 	}

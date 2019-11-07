@@ -62,6 +62,7 @@ type CreateTeamForm struct {
 	Description string `binding:"MaxSize(255)"`
 	Permission  string
 	Units       []models.UnitType
+	RepoAccess  string
 }
 
 // Validate validates the fields

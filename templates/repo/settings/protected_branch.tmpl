@@ -132,7 +132,7 @@
 								{{range $.branch_status_check_contexts}}
 									<tr><td>
 										<span class="ui checkbox">
-											<input class="enable-whitelist" name="status_check_contexts" value="{{.}}" type="checkbox" {{if $.is_context_require}}{{if call $.is_context_required .}}checked{{end}}{{end}}>
+											<input class="enable-whitelist" name="status_check_contexts" value="{{.}}" type="checkbox" {{if $.is_context_required}}{{if call $.is_context_required .}}checked{{end}}{{end}}>
 										</span>
 										{{.}}
 										{{if $.is_context_required}}{{if call $.is_context_required .}}<div class="ui label right">Required</div>{{end}}{{end}}
