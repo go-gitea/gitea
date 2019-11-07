@@ -507,6 +507,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/swagger", misc.Swagger)
 		}
 		m.Get("/version", misc.Version)
+		m.Get("/signing-key.gpg", misc.SigningKey)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
 
@@ -594,6 +595,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/repos", func() {
 			m.Get("/search", repo.Search)
 		})
+
+		m.Get("/repos/issues/search", repo.SearchIssues)
 
 		m.Combo("/repositories/:id", reqToken()).Get(repo.GetByID)
 
@@ -687,6 +690,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 							m.Post("/start", reqToken(), repo.StartIssueStopwatch)
 							m.Post("/stop", reqToken(), repo.StopIssueStopwatch)
 						})
+						m.Group("/subscriptions", func() {
+							m.Get("", bind(api.User{}), repo.GetIssueSubscribers)
+							m.Put("/:user", repo.AddIssueSubscription)
+							m.Delete("/:user", repo.DelIssueSubscription)
+						})
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
@@ -771,6 +779,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Delete("", bind(api.DeleteFileOptions{}), repo.DeleteFile)
 					}, reqRepoWriter(models.UnitTypeCode), reqToken())
 				}, reqRepoReader(models.UnitTypeCode))
+				m.Get("/signing-key.gpg", misc.SigningKey)
 				m.Group("/topics", func() {
 					m.Combo("").Get(repo.ListTopics).
 						Put(reqToken(), reqAdmin(), bind(api.RepoTopicOptions{}), repo.UpdateTopics)
@@ -802,8 +811,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 					Put(reqToken(), reqOrgMembership(), org.PublicizeMember).
 					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
 			})
-			m.Combo("/teams", reqToken(), reqOrgMembership()).Get(org.ListTeams).
-				Post(reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+			m.Group("/teams", func() {
+				m.Combo("", reqToken()).Get(org.ListTeams).
+					Post(reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
+				m.Get("/search", org.SearchTeam)
+			}, reqOrgMembership())
 			m.Group("/hooks", func() {
 				m.Combo("").Get(org.ListHooks).
 					Post(bind(api.CreateHookOption{}), org.CreateHook)

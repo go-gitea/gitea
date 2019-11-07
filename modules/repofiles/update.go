@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	pull_service "code.gitea.io/gitea/services/pull"
 
 	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
@@ -313,12 +314,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		}
 	}
 
-	// Check there is no way this can return multiple infos
-	filename2attribute2info, err := t.CheckAttribute("filter", treePath)
-	if err != nil {
-		return nil, err
-	}
-
 	content := opts.Content
 	if bom {
 		content = string(charset.UTF8BOM) + content
@@ -341,16 +336,23 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	opts.Content = content
 	var lfsMetaObject *models.LFSMetaObject
 
-	if setting.LFS.StartServer && filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
-		// OK so we are supposed to LFS this data!
-		oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
+	if setting.LFS.StartServer {
+		// Check there is no way this can return multiple infos
+		filename2attribute2info, err := t.CheckAttribute("filter", treePath)
 		if err != nil {
 			return nil, err
 		}
-		lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(opts.Content)), RepositoryID: repo.ID}
-		content = lfsMetaObject.Pointer()
-	}
 
+		if filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
+			// OK so we are supposed to LFS this data!
+			oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
+			if err != nil {
+				return nil, err
+			}
+			lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(opts.Content)), RepositoryID: repo.ID}
+			content = lfsMetaObject.Pointer()
+		}
+	}
 	// Add the object to the database
 	objectHash, err := t.HashObject(strings.NewReader(content))
 	if err != nil {
@@ -383,7 +385,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
 		if !contentStore.Exists(lfsMetaObject) {
 			if err := contentStore.Put(lfsMetaObject, strings.NewReader(opts.Content)); err != nil {
-				if err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
+				if _, err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
 					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
 				}
 				return nil, err
@@ -497,7 +499,7 @@ func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOp
 
 	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
-	go models.AddTestPullRequestTask(pusher, repo.ID, branch, true)
+	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true)
 
 	if opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
 		models.UpdateRepoIndexer(repo)

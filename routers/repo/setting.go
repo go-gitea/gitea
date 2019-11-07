@@ -25,6 +25,8 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/mailer"
+	mirror_service "code.gitea.io/gitea/services/mirror"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/unknwon/com"
 	"mvdan.cc/xurls/v2"
@@ -190,7 +192,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		address = u.String()
 
-		if err := ctx.Repo.Mirror.SaveAddress(address); err != nil {
+		if err := mirror_service.SaveAddress(ctx.Repo.Mirror, address); err != nil {
 			ctx.ServerError("SaveAddress", err)
 			return
 		}
@@ -204,7 +206,8 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		go models.MirrorQueue.Add(repo.ID)
+		mirror_service.StartToMirror(repo.ID)
+
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
 		ctx.Redirect(repo.Link() + "/settings")
 
@@ -405,7 +408,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		if err := models.DeleteRepository(ctx.User, ctx.Repo.Owner.ID, repo.ID); err != nil {
+		if err := repo_service.DeleteRepository(ctx.User, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("DeleteRepository", err)
 			return
 		}

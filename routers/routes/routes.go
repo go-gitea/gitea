@@ -139,14 +139,14 @@ func NewMacaron() *macaron.Macaron {
 	m.Use(public.Custom(
 		&public.Options{
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 	m.Use(public.Static(
 		&public.Options{
 			Directory:    path.Join(setting.StaticRootPath, "public"),
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 	m.Use(public.StaticHandler(
@@ -154,7 +154,7 @@ func NewMacaron() *macaron.Macaron {
 		&public.Options{
 			Prefix:       "avatars",
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 	m.Use(public.StaticHandler(
@@ -162,7 +162,7 @@ func NewMacaron() *macaron.Macaron {
 		&public.Options{
 			Prefix:       "repo-avatars",
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 
@@ -444,7 +444,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/delete", admin.DeleteDefaultWebhook)
 			m.Get("/:type/new", repo.WebhooksNew)
 			m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksNewPost)
-			m.Post("/gogs/new", bindIgnErr(auth.NewWebhookForm{}), repo.GogsHooksNewPost)
+			m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
 			m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 			m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
 			m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
@@ -452,7 +452,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/msteams/new", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 			m.Get("/:id", repo.WebHooksEdit)
 			m.Post("/gitea/:id", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksEditPost)
-			m.Post("/gogs/:id", bindIgnErr(auth.NewWebhookForm{}), repo.GogsHooksEditPost)
+			m.Post("/gogs/:id", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksEditPost)
 			m.Post("/slack/:id", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksEditPost)
 			m.Post("/discord/:id", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
 			m.Post("/dingtalk/:id", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
@@ -513,8 +513,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 	}, ignSignIn)
 
-	m.Group("", func() {
-		m.Post("/attachments", repo.UploadAttachment)
+	m.Group("/attachments", func() {
+		m.Post("", repo.UploadAttachment)
+		m.Post("/delete", repo.DeleteAttachment)
 	}, reqSignIn)
 
 	m.Group("/:username", func() {
@@ -585,7 +586,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Post("/delete", org.DeleteWebhook)
 					m.Get("/:type/new", repo.WebhooksNew)
 					m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksNewPost)
-					m.Post("/gogs/new", bindIgnErr(auth.NewWebhookForm{}), repo.GogsHooksNewPost)
+					m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
 					m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 					m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
 					m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
@@ -647,7 +648,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/delete", repo.DeleteWebhook)
 				m.Get("/:type/new", repo.WebhooksNew)
 				m.Post("/gitea/new", bindIgnErr(auth.NewWebhookForm{}), repo.WebHooksNewPost)
-				m.Post("/gogs/new", bindIgnErr(auth.NewWebhookForm{}), repo.GogsHooksNewPost)
+				m.Post("/gogs/new", bindIgnErr(auth.NewGogshookForm{}), repo.GogsHooksNewPost)
 				m.Post("/slack/new", bindIgnErr(auth.NewSlackHookForm{}), repo.SlackHooksNewPost)
 				m.Post("/discord/new", bindIgnErr(auth.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
 				m.Post("/dingtalk/new", bindIgnErr(auth.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
@@ -676,8 +677,18 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/delete", repo.DeleteDeployKey)
 			})
 
+			m.Group("/lfs", func() {
+				m.Get("", repo.LFSFiles)
+				m.Get("/show/:oid", repo.LFSFileGet)
+				m.Post("/delete/:oid", repo.LFSDelete)
+				m.Get("/pointers", repo.LFSPointerFiles)
+				m.Post("/pointers/associate", repo.LFSAutoAssociate)
+				m.Get("/find", repo.LFSFileFind)
+			})
+
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
+			ctx.Data["LFSStartServer"] = setting.LFS.StartServer
 		})
 	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
@@ -710,6 +721,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
 				m.Post("/lock", reqRepoIssueWriter, bindIgnErr(auth.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoIssueWriter, repo.UnlockIssue)
+				m.Get("/attachments", repo.GetIssueAttachments)
 			}, context.RepoMustNotBeArchived())
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
@@ -721,6 +733,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeCommentReaction)
+			m.Get("/attachments", repo.GetCommentAttachments)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/labels", func() {
 			m.Post("/new", bindIgnErr(auth.CreateLabelForm{}), repo.NewLabel)
@@ -844,6 +857,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypeCode))
 
 		m.Get("/archive/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.Download)
+
+		m.Get("/status", reqRepoCodeReader, repo.Status)
 
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)

@@ -16,7 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -25,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 )
 
@@ -66,7 +64,6 @@ type PullRequest struct {
 	HeadRepo        *Repository `xorm:"-"`
 	BaseRepoID      int64       `xorm:"INDEX"`
 	BaseRepo        *Repository `xorm:"-"`
-	HeadUserName    string
 	HeadBranch      string
 	BaseBranch      string
 	ProtectedBranch *ProtectedBranch `xorm:"-"`
@@ -77,6 +74,15 @@ type PullRequest struct {
 	MergerID       int64              `xorm:"INDEX"`
 	Merger         *User              `xorm:"-"`
 	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
+}
+
+// MustHeadUserName returns the HeadRepo's username if failed return blank
+func (pr *PullRequest) MustHeadUserName() string {
+	if err := pr.LoadHeadRepo(); err != nil {
+		log.Error("LoadHeadRepo: %v", err)
+		return ""
+	}
+	return pr.HeadRepo.MustOwnerName()
 }
 
 // Note: don't try to get Issue because will end up recursive querying.
@@ -102,6 +108,10 @@ func (pr *PullRequest) LoadAttributes() error {
 // LoadBaseRepo loads pull request base repository from database
 func (pr *PullRequest) LoadBaseRepo() error {
 	if pr.BaseRepo == nil {
+		if pr.HeadRepoID == pr.BaseRepoID && pr.HeadRepo != nil {
+			pr.BaseRepo = pr.HeadRepo
+			return nil
+		}
 		var repo Repository
 		if has, err := x.ID(pr.BaseRepoID).Get(&repo); err != nil {
 			return err
@@ -109,6 +119,24 @@ func (pr *PullRequest) LoadBaseRepo() error {
 			return ErrRepoNotExist{ID: pr.BaseRepoID}
 		}
 		pr.BaseRepo = &repo
+	}
+	return nil
+}
+
+// LoadHeadRepo loads pull request head repository from database
+func (pr *PullRequest) LoadHeadRepo() error {
+	if pr.HeadRepo == nil {
+		if pr.HeadRepoID == pr.BaseRepoID && pr.BaseRepo != nil {
+			pr.HeadRepo = pr.BaseRepo
+			return nil
+		}
+		var repo Repository
+		if has, err := x.ID(pr.HeadRepoID).Get(&repo); err != nil {
+			return err
+		} else if !has {
+			return ErrRepoNotExist{ID: pr.BaseRepoID}
+		}
+		pr.HeadRepo = &repo
 	}
 	return nil
 }
@@ -152,7 +180,7 @@ func (pr *PullRequest) GetDefaultMergeMessage() string {
 			return ""
 		}
 	}
-	return fmt.Sprintf("Merge branch '%s' of %s/%s into %s", pr.HeadBranch, pr.HeadUserName, pr.HeadRepo.Name, pr.BaseBranch)
+	return fmt.Sprintf("Merge branch '%s' of %s/%s into %s", pr.HeadBranch, pr.MustHeadUserName(), pr.HeadRepo.Name, pr.BaseBranch)
 }
 
 // GetDefaultSquashMessage returns default message used when squash and merging pull request
@@ -353,14 +381,17 @@ func (pr *PullRequest) GetLastCommitStatus() (status *CommitStatus, err error) {
 		return nil, err
 	}
 
-	repo := pr.HeadRepo
 	lastCommitID, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
 	if err != nil {
 		return nil, err
 	}
 
-	var statusList []*CommitStatus
-	statusList, err = GetLatestCommitStatus(repo, lastCommitID, 0)
+	err = pr.LoadBaseRepo()
+	if err != nil {
+		return nil, err
+	}
+
+	statusList, err := GetLatestCommitStatus(pr.BaseRepo, lastCommitID, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -653,7 +684,25 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 }
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte, assigneeIDs []int64) (err error) {
+func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte) (err error) {
+	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
+	i := 0
+	for {
+		if err = newPullRequestAttempt(repo, pull, labelIDs, uuids, pr, patch); err == nil {
+			return nil
+		}
+		if !IsErrNewIssueInsert(err) {
+			return err
+		}
+		if i++; i == issueMaxDupIndexAttempts {
+			break
+		}
+		log.Error("NewPullRequest: error attempting to insert the new issue; will retry. Original error: %v", err)
+	}
+	return fmt.Errorf("NewPullRequest: too many errors attempting to insert the new issue. Last error was: %v", err)
+}
+
+func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -666,9 +715,8 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 		LabelIDs:    labelIDs,
 		Attachments: uuids,
 		IsPull:      true,
-		AssigneeIDs: assigneeIDs,
 	}); err != nil {
-		if IsErrUserDoesNotHaveAccessToRepo(err) {
+		if IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 			return err
 		}
 		return fmt.Errorf("newIssue: %v", err)
@@ -703,66 +751,6 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	return nil
 }
 
-// PullRequestsOptions holds the options for PRs
-type PullRequestsOptions struct {
-	Page        int
-	State       string
-	SortType    string
-	Labels      []string
-	MilestoneID int64
-}
-
-func listPullRequestStatement(baseRepoID int64, opts *PullRequestsOptions) (*xorm.Session, error) {
-	sess := x.Where("pull_request.base_repo_id=?", baseRepoID)
-
-	sess.Join("INNER", "issue", "pull_request.issue_id = issue.id")
-	switch opts.State {
-	case "closed", "open":
-		sess.And("issue.is_closed=?", opts.State == "closed")
-	}
-
-	if labelIDs, err := base.StringsToInt64s(opts.Labels); err != nil {
-		return nil, err
-	} else if len(labelIDs) > 0 {
-		sess.Join("INNER", "issue_label", "issue.id = issue_label.issue_id").
-			In("issue_label.label_id", labelIDs)
-	}
-
-	if opts.MilestoneID > 0 {
-		sess.And("issue.milestone_id=?", opts.MilestoneID)
-	}
-
-	return sess, nil
-}
-
-// PullRequests returns all pull requests for a base Repo by the given conditions
-func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, int64, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
-
-	countSession, err := listPullRequestStatement(baseRepoID, opts)
-	if err != nil {
-		log.Error("listPullRequestStatement: %v", err)
-		return nil, 0, err
-	}
-	maxResults, err := countSession.Count(new(PullRequest))
-	if err != nil {
-		log.Error("Count PRs: %v", err)
-		return nil, maxResults, err
-	}
-
-	prs := make([]*PullRequest, 0, ItemsPerPage)
-	findSession, err := listPullRequestStatement(baseRepoID, opts)
-	sortIssuesSession(findSession, opts.SortType)
-	if err != nil {
-		log.Error("listPullRequestStatement: %v", err)
-		return nil, maxResults, err
-	}
-	findSession.Limit(ItemsPerPage, (opts.Page-1)*ItemsPerPage)
-	return prs, maxResults, findSession.Find(&prs)
-}
-
 // GetUnmergedPullRequest returns a pull request that is open and has not been merged
 // by given head/base and repo/branch.
 func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch string) (*PullRequest, error) {
@@ -781,17 +769,6 @@ func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch
 	return pr, nil
 }
 
-// GetUnmergedPullRequestsByHeadInfo returns all pull requests that are open and has not been merged
-// by given head information (repo and branch).
-func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequest, error) {
-	prs := make([]*PullRequest, 0, 2)
-	return prs, x.
-		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ?",
-			repoID, branch, false, false).
-		Join("INNER", "issue", "issue.id = pull_request.issue_id").
-		Find(&prs)
-}
-
 // GetLatestPullRequestByHeadInfo returns the latest pull request (regardless of its status)
 // by given head information (repo and branch).
 func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, error) {
@@ -804,17 +781,6 @@ func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, 
 		return nil, err
 	}
 	return pr, err
-}
-
-// GetUnmergedPullRequestsByBaseInfo returns all pull requests that are open and has not been merged
-// by given base information (repo and branch).
-func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequest, error) {
-	prs := make([]*PullRequest, 0, 2)
-	return prs, x.
-		Where("base_repo_id=? AND base_branch=? AND has_merged=? AND issue.is_closed=?",
-			repoID, branch, false, false).
-		Join("INNER", "issue", "issue.id=pull_request.issue_id").
-		Find(&prs)
 }
 
 // GetPullRequestByIndex returns a pull request by the given index
@@ -985,171 +951,6 @@ func (pr *PullRequest) AddToTaskQueue() {
 	})
 }
 
-// PullRequestList defines a list of pull requests
-type PullRequestList []*PullRequest
-
-func (prs PullRequestList) loadAttributes(e Engine) error {
-	if len(prs) == 0 {
-		return nil
-	}
-
-	// Load issues.
-	issueIDs := prs.getIssueIDs()
-	issues := make([]*Issue, 0, len(issueIDs))
-	if err := e.
-		Where("id > 0").
-		In("id", issueIDs).
-		Find(&issues); err != nil {
-		return fmt.Errorf("find issues: %v", err)
-	}
-
-	set := make(map[int64]*Issue)
-	for i := range issues {
-		set[issues[i].ID] = issues[i]
-	}
-	for i := range prs {
-		prs[i].Issue = set[prs[i].IssueID]
-	}
-	return nil
-}
-
-func (prs PullRequestList) getIssueIDs() []int64 {
-	issueIDs := make([]int64, 0, len(prs))
-	for i := range prs {
-		issueIDs = append(issueIDs, prs[i].IssueID)
-	}
-	return issueIDs
-}
-
-// LoadAttributes load all the prs attributes
-func (prs PullRequestList) LoadAttributes() error {
-	return prs.loadAttributes(x)
-}
-
-func (prs PullRequestList) invalidateCodeComments(e Engine, doer *User, repo *git.Repository, branch string) error {
-	if len(prs) == 0 {
-		return nil
-	}
-	issueIDs := prs.getIssueIDs()
-	var codeComments []*Comment
-	if err := e.
-		Where("type = ? and invalidated = ?", CommentTypeCode, false).
-		In("issue_id", issueIDs).
-		Find(&codeComments); err != nil {
-		return fmt.Errorf("find code comments: %v", err)
-	}
-	for _, comment := range codeComments {
-		if err := comment.CheckInvalidation(repo, doer, branch); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
-func (prs PullRequestList) InvalidateCodeComments(doer *User, repo *git.Repository, branch string) error {
-	return prs.invalidateCodeComments(x, doer, repo, branch)
-}
-
-func addHeadRepoTasks(prs []*PullRequest) {
-	for _, pr := range prs {
-		log.Trace("addHeadRepoTasks[%d]: composing new test task", pr.ID)
-		if err := pr.UpdatePatch(); err != nil {
-			log.Error("UpdatePatch: %v", err)
-			continue
-		} else if err := pr.PushToBaseRepo(); err != nil {
-			log.Error("PushToBaseRepo: %v", err)
-			continue
-		}
-
-		pr.AddToTaskQueue()
-	}
-}
-
-// AddTestPullRequestTask adds new test tasks by given head/base repository and head/base branch,
-// and generate new patch for testing as needed.
-func AddTestPullRequestTask(doer *User, repoID int64, branch string, isSync bool) {
-	log.Trace("AddTestPullRequestTask [head_repo_id: %d, head_branch: %s]: finding pull requests", repoID, branch)
-	prs, err := GetUnmergedPullRequestsByHeadInfo(repoID, branch)
-	if err != nil {
-		log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repoID, branch, err)
-		return
-	}
-
-	if isSync {
-		requests := PullRequestList(prs)
-		if err = requests.LoadAttributes(); err != nil {
-			log.Error("PullRequestList.LoadAttributes: %v", err)
-		}
-		if invalidationErr := checkForInvalidation(requests, repoID, doer, branch); invalidationErr != nil {
-			log.Error("checkForInvalidation: %v", invalidationErr)
-		}
-		if err == nil {
-			for _, pr := range prs {
-				pr.Issue.PullRequest = pr
-				if err = pr.Issue.LoadAttributes(); err != nil {
-					log.Error("LoadAttributes: %v", err)
-					continue
-				}
-				if err = PrepareWebhooks(pr.Issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-					Action:      api.HookIssueSynchronized,
-					Index:       pr.Issue.Index,
-					PullRequest: pr.Issue.PullRequest.APIFormat(),
-					Repository:  pr.Issue.Repo.APIFormat(AccessModeNone),
-					Sender:      doer.APIFormat(),
-				}); err != nil {
-					log.Error("PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
-					continue
-				}
-				go HookQueue.Add(pr.Issue.Repo.ID)
-			}
-		}
-
-	}
-
-	addHeadRepoTasks(prs)
-
-	log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", repoID, branch)
-	prs, err = GetUnmergedPullRequestsByBaseInfo(repoID, branch)
-	if err != nil {
-		log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", repoID, branch, err)
-		return
-	}
-	for _, pr := range prs {
-		pr.AddToTaskQueue()
-	}
-}
-
-func checkForInvalidation(requests PullRequestList, repoID int64, doer *User, branch string) error {
-	repo, err := GetRepositoryByID(repoID)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryByID: %v", err)
-	}
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
-	if err != nil {
-		return fmt.Errorf("git.OpenRepository: %v", err)
-	}
-	go func() {
-		err := requests.InvalidateCodeComments(doer, gitRepo, branch)
-		if err != nil {
-			log.Error("PullRequestList.InvalidateCodeComments: %v", err)
-		}
-	}()
-	return nil
-}
-
-// ChangeUsernameInPullRequests changes the name of head_user_name
-func ChangeUsernameInPullRequests(oldUserName, newUserName string) error {
-	pr := PullRequest{
-		HeadUserName: strings.ToLower(newUserName),
-	}
-	_, err := x.
-		Cols("head_user_name").
-		Where("head_user_name = ?", strings.ToLower(oldUserName)).
-		Update(pr)
-	return err
-}
-
 // checkAndUpdateStatus checks if pull request is possible to leaving checking status,
 // and set to be either conflict or mergeable.
 func (pr *PullRequest) checkAndUpdateStatus() {
@@ -1200,65 +1001,4 @@ func (pr *PullRequest) GetWorkInProgressPrefix() string {
 		}
 	}
 	return ""
-}
-
-// TestPullRequests checks and tests untested patches of pull requests.
-// TODO: test more pull requests at same time.
-func TestPullRequests() {
-	prs := make([]*PullRequest, 0, 10)
-
-	err := x.Where("status = ?", PullRequestStatusChecking).Find(&prs)
-	if err != nil {
-		log.Error("Find Checking PRs: %v", err)
-		return
-	}
-
-	var checkedPRs = make(map[int64]struct{})
-
-	// Update pull request status.
-	for _, pr := range prs {
-		checkedPRs[pr.ID] = struct{}{}
-		if err := pr.GetBaseRepo(); err != nil {
-			log.Error("GetBaseRepo: %v", err)
-			continue
-		}
-		if pr.manuallyMerged() {
-			continue
-		}
-		if err := pr.testPatch(x); err != nil {
-			log.Error("testPatch: %v", err)
-			continue
-		}
-
-		pr.checkAndUpdateStatus()
-	}
-
-	// Start listening on new test requests.
-	for prID := range pullRequestQueue.Queue() {
-		log.Trace("TestPullRequests[%v]: processing test task", prID)
-		pullRequestQueue.Remove(prID)
-
-		id := com.StrTo(prID).MustInt64()
-		if _, ok := checkedPRs[id]; ok {
-			continue
-		}
-
-		pr, err := GetPullRequestByID(id)
-		if err != nil {
-			log.Error("GetPullRequestByID[%s]: %v", prID, err)
-			continue
-		} else if pr.manuallyMerged() {
-			continue
-		} else if err = pr.testPatch(x); err != nil {
-			log.Error("testPatch[%d]: %v", pr.ID, err)
-			continue
-		}
-
-		pr.checkAndUpdateStatus()
-	}
-}
-
-// InitTestPullRequests runs the task to test all the checking status pull requests
-func InitTestPullRequests() {
-	go TestPullRequests()
 }

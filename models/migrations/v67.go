@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func removeStaleWatches(x *xorm.Engine) error {

@@ -311,6 +311,12 @@ func AccessLevel(user *User, repo *Repository) (AccessMode, error) {
 	return accessLevelUnit(x, user, repo, UnitTypeCode)
 }
 
+// AccessLevelUnit returns the Access a user has to a repository's. Will return NoneAccess if the
+// user does not have access.
+func AccessLevelUnit(user *User, repo *Repository, unitType UnitType) (AccessMode, error) {
+	return accessLevelUnit(x, user, repo, unitType)
+}
+
 func accessLevelUnit(e Engine, user *User, repo *Repository, unitType UnitType) (AccessMode, error) {
 	perm, err := getUserRepoPermission(e, repo, user)
 	if err != nil {
@@ -329,10 +335,18 @@ func HasAccessUnit(user *User, repo *Repository, unitType UnitType, testMode Acc
 	return hasAccessUnit(x, user, repo, unitType, testMode)
 }
 
-// canBeAssigned return true if user could be assigned to a repo
+// CanBeAssigned return true if user can be assigned to issue or pull requests in repo
+// Currently any write access (code, issues or pr's) is assignable, to match assignee list in user interface.
 // FIXME: user could send PullRequest also could be assigned???
-func canBeAssigned(e Engine, user *User, repo *Repository) (bool, error) {
-	return hasAccessUnit(e, user, repo, UnitTypeCode, AccessModeWrite)
+func CanBeAssigned(user *User, repo *Repository, isPull bool) (bool, error) {
+	if user.IsOrganization() {
+		return false, fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
+	}
+	perm, err := GetUserRepoPermission(repo, user)
+	if err != nil {
+		return false, err
+	}
+	return perm.CanAccessAny(AccessModeWrite, UnitTypeCode, UnitTypeIssues, UnitTypePullRequests), nil
 }
 
 func hasAccess(e Engine, userID int64, repo *Repository) (bool, error) {

@@ -38,6 +38,9 @@ func (ct *ContentType) String() string {
 // GetContentsOrList gets the meta data of a file's contents (*ContentsResponse) if treePath not a tree
 // directory, otherwise a listing of file contents ([]*ContentsResponse). Ref can be a branch, commit or tag
 func GetContentsOrList(repo *models.Repository, treePath, ref string) (interface{}, error) {
+	if repo.IsEmpty {
+		return make([]interface{}, 0), nil
+	}
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}

@@ -54,8 +54,15 @@
 							</h3>
 							<p class="text grey">
 								<span class="author">
+								{{if .OriginalAuthor}}
+									<i class="fa fa-github" aria-hidden="true"></i>
+									{{.OriginalAuthor}}
+								{{else if .Publisher}}
 									<img class="img-10" src="{{.Publisher.RelAvatarLink}}">
 									<a href="{{AppSubUrl}}/{{.Publisher.Name}}">{{.Publisher.Name}}</a>
+								{{else}}
+									Ghost
+								{{end}}
 								</span>
 								{{if .CreatedUnix}}<span class="time">{{TimeSinceUnix .CreatedUnix $.Lang}}</span>{{end}}
 								<span class="ahead">{{$.i18n.Tr "repo.release.ahead" .NumCommitsBehind .Target | Str2html}}</span>

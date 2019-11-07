@@ -7,7 +7,7 @@ package pull
 
 import (
 	"code.gitea.io/gitea/models"
-	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/notification"
 )
 
 // CreateReview creates a new review based on opts
@@ -17,41 +17,19 @@ func CreateReview(opts models.CreateReviewOptions) (*models.Review, error) {
 		return nil, err
 	}
 
-	var reviewHookType models.HookEventType
-
-	switch opts.Type {
-	case models.ReviewTypeApprove:
-		reviewHookType = models.HookEventPullRequestApproved
-	case models.ReviewTypeComment:
-		reviewHookType = models.HookEventPullRequestComment
-	case models.ReviewTypeReject:
-		reviewHookType = models.HookEventPullRequestRejected
-	default:
-		// unsupported review webhook type here
-		return review, nil
-	}
-
-	pr := opts.Issue.PullRequest
-
-	if err := pr.LoadIssue(); err != nil {
-		return nil, err
-	}
-
-	mode, err := models.AccessLevel(opts.Issue.Poster, opts.Issue.Repo)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := models.PrepareWebhooks(opts.Issue.Repo, reviewHookType, &api.PullRequestPayload{
-		Action:      api.HookIssueSynchronized,
-		Index:       opts.Issue.Index,
-		PullRequest: pr.APIFormat(),
-		Repository:  opts.Issue.Repo.APIFormat(mode),
-		Sender:      opts.Reviewer.APIFormat(),
-	}); err != nil {
-		return nil, err
-	}
-	go models.HookQueue.Add(opts.Issue.Repo.ID)
+	notification.NotifyPullRequestReview(review.Issue.PullRequest, review, nil)
 
 	return review, nil
+}
+
+// UpdateReview updates a review
+func UpdateReview(review *models.Review) error {
+	err := models.UpdateReview(review)
+	if err != nil {
+		return err
+	}
+
+	notification.NotifyPullRequestReview(review.Issue.PullRequest, review, nil)
+
+	return nil
 }

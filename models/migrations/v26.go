@@ -16,8 +16,8 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
+	"xorm.io/xorm"
 )
 
 func generateAndMigrateGitHookChains(x *xorm.Engine) (err error) {

@@ -22,8 +22,9 @@ import (
 
 // CreateOrgForm form for creating organization
 type CreateOrgForm struct {
-	OrgName    string `binding:"Required;AlphaDashDot;MaxSize(40)" locale:"org.org_name_holder"`
-	Visibility structs.VisibleType
+	OrgName                   string `binding:"Required;AlphaDashDot;MaxSize(40)" locale:"org.org_name_holder"`
+	Visibility                structs.VisibleType
+	RepoAdminChangeTeamAccess bool
 }
 
 // Validate validates the fields
@@ -61,6 +62,7 @@ type CreateTeamForm struct {
 	Description      string `binding:"MaxSize(255)"`
 	Permission       string
 	Units            []models.UnitType
+	RepoAccess       string
 	CanCreateOrgRepo bool
 }
 

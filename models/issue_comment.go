@@ -13,12 +13,14 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
@@ -144,10 +146,10 @@ type Comment struct {
 
 	// Reference an issue or pull from another comment, issue or PR
 	// All information is about the origin of the reference
-	RefRepoID    int64      `xorm:"index"` // Repo where the referencing
-	RefIssueID   int64      `xorm:"index"`
-	RefCommentID int64      `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
-	RefAction    XRefAction `xorm:"SMALLINT"` // What hapens if RefIssueID resolves
+	RefRepoID    int64                 `xorm:"index"` // Repo where the referencing
+	RefIssueID   int64                 `xorm:"index"`
+	RefCommentID int64                 `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
+	RefAction    references.XRefAction `xorm:"SMALLINT"` // What hapens if RefIssueID resolves
 	RefIsPull    bool
 
 	RefRepo    *Repository `xorm:"-"`
@@ -355,6 +357,27 @@ func (c *Comment) LoadAttachments() error {
 	return nil
 }
 
+// UpdateAttachments update attachments by UUIDs for the comment
+func (c *Comment) UpdateAttachments(uuids []string) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	attachments, err := getAttachmentsByUUIDs(sess, uuids)
+	if err != nil {
+		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", uuids, err)
+	}
+	for i := 0; i < len(attachments); i++ {
+		attachments[i].IssueID = c.IssueID
+		attachments[i].CommentID = c.ID
+		if err := updateAttachment(sess, attachments[i]); err != nil {
+			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
+		}
+	}
+	return sess.Commit()
+}
+
 // LoadAssigneeUser if comment.Type is CommentTypeAssignees, then load assignees
 func (c *Comment) LoadAssigneeUser() error {
 	var err error
@@ -421,6 +444,10 @@ func (c *Comment) LoadReview() error {
 func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
 	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
+	if err != nil && strings.Contains(err.Error(), "fatal: no such path") {
+		c.Invalidated = true
+		return UpdateComment(c, doer)
+	}
 	if err != nil {
 		return err
 	}
@@ -508,6 +535,10 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		return nil, err
 	}
 
+	if err = updateCommentInfos(e, opts, comment); err != nil {
+		return nil, err
+	}
+
 	if err = sendCreateCommentAction(e, opts, comment); err != nil {
 		return nil, err
 	}
@@ -517,6 +548,56 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	}
 
 	return comment, nil
+}
+
+func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Comment) (err error) {
+	// Check comment type.
+	switch opts.Type {
+	case CommentTypeCode:
+		if comment.ReviewID != 0 {
+			if comment.Review == nil {
+				if err := comment.loadReview(e); err != nil {
+					return err
+				}
+			}
+			if comment.Review.Type <= ReviewTypePending {
+				return nil
+			}
+		}
+		fallthrough
+	case CommentTypeComment:
+		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
+			return err
+		}
+
+		// Check attachments
+		attachments := make([]*Attachment, 0, len(opts.Attachments))
+		for _, uuid := range opts.Attachments {
+			attach, err := getAttachmentByUUID(e, uuid)
+			if err != nil {
+				if IsErrAttachmentNotExist(err) {
+					continue
+				}
+				return fmt.Errorf("getAttachmentByUUID [%s]: %v", uuid, err)
+			}
+			attachments = append(attachments, attach)
+		}
+
+		for i := range attachments {
+			attachments[i].IssueID = opts.Issue.ID
+			attachments[i].CommentID = comment.ID
+			// No assign value could be 0, so ignore AllCols().
+			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
+				return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
+			}
+		}
+	case CommentTypeReopen, CommentTypeClose:
+		if err = opts.Issue.updateClosedNum(e); err != nil {
+			return err
+		}
+	}
+	// update the issue's updated_unix column
+	return updateIssueCols(e, opts.Issue, "updated_unix")
 }
 
 func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, comment *Comment) (err error) {
@@ -548,56 +629,16 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 		fallthrough
 	case CommentTypeComment:
 		act.OpType = ActionCommentIssue
-
-		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
-			return err
-		}
-
-		// Check attachments
-		attachments := make([]*Attachment, 0, len(opts.Attachments))
-		for _, uuid := range opts.Attachments {
-			attach, err := getAttachmentByUUID(e, uuid)
-			if err != nil {
-				if IsErrAttachmentNotExist(err) {
-					continue
-				}
-				return fmt.Errorf("getAttachmentByUUID [%s]: %v", uuid, err)
-			}
-			attachments = append(attachments, attach)
-		}
-
-		for i := range attachments {
-			attachments[i].IssueID = opts.Issue.ID
-			attachments[i].CommentID = comment.ID
-			// No assign value could be 0, so ignore AllCols().
-			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
-				return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
-			}
-		}
-
 	case CommentTypeReopen:
 		act.OpType = ActionReopenIssue
 		if opts.Issue.IsPull {
 			act.OpType = ActionReopenPullRequest
 		}
-
-		if err = opts.Issue.updateClosedNum(e); err != nil {
-			return err
-		}
-
 	case CommentTypeClose:
 		act.OpType = ActionCloseIssue
 		if opts.Issue.IsPull {
 			act.OpType = ActionClosePullRequest
 		}
-
-		if err = opts.Issue.updateClosedNum(e); err != nil {
-			return err
-		}
-	}
-	// update the issue's updated_unix column
-	if err = updateIssueCols(e, opts.Issue, "updated_unix"); err != nil {
-		return err
 	}
 	// Notify watchers for whatever action comes in, ignore if no action type.
 	if act.OpType > 0 {
@@ -773,7 +814,7 @@ type CreateCommentOptions struct {
 	RefRepoID        int64
 	RefIssueID       int64
 	RefCommentID     int64
-	RefAction        XRefAction
+	RefAction        references.XRefAction
 	RefIsPull        bool
 }
 
@@ -1020,4 +1061,24 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
 func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
 	return fetchCodeComments(x, issue, currentUser)
+}
+
+// UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
+func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
+	_, err := x.Table("comment").
+		Where(builder.In("issue_id",
+			builder.Select("issue.id").
+				From("issue").
+				InnerJoin("repository", "issue.repo_id = repository.id").
+				Where(builder.Eq{
+					"repository.original_service_type": tp,
+				}),
+		)).
+		And("comment.original_author_id = ?", originalAuthorID).
+		Update(map[string]interface{}{
+			"poster_id":          posterID,
+			"original_author":    "",
+			"original_author_id": 0,
+		})
+	return err
 }

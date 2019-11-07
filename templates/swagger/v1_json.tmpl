@@ -1047,6 +1047,120 @@
         }
       }
     },
+    "/orgs/{org}/teams/search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Search for teams within an organization",
+        "operationId": "teamSearch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "keywords to search",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include search within team description (defaults to true)",
+            "name": "include_desc",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "limit size of results",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SearchResults of a successful search",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/Team"
+                  }
+                },
+                "ok": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repos/issues/search": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Search for issues across the repositories that the user has access to",
+        "operationId": "issueSearchIssues",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "whether issue is open or closed",
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded",
+            "name": "labels",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of requested issues",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "search string",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "repository to prioritize in the results",
+            "name": "priority_repo_id",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/IssueList"
+          }
+        }
+      }
+    },
     "/repos/migrate": {
       "post": {
         "consumes": [
@@ -3667,6 +3781,165 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/{index}/subscriptions": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Get users who subscribed on an issue.",
+        "operationId": "issueSubscriptions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "description": "Issue not found"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/subscriptions/{user}": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Subscribe user to issue",
+        "operationId": "issueAddSubscription",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "user to subscribe",
+            "name": "user",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "304": {
+            "description": "User can only subscribe itself if he is no admin"
+          },
+          "404": {
+            "description": "Issue not found"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Unsubscribe user from issue",
+        "operationId": "issueDeleteSubscription",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "user witch unsubscribe",
+            "name": "user",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "304": {
+            "description": "User can only subscribe itself if he is no admin"
+          },
+          "404": {
+            "description": "Issue not found"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/keys": {
       "get": {
         "produces": [
@@ -4442,7 +4715,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Update a pull request",
+        "summary": "Update a pull request. If using deadline only the date will be taken into account, and time of day ignored.",
         "operationId": "repoEditPullRequest",
         "parameters": [
           {
@@ -5076,6 +5349,42 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/signing-key.gpg": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get signing-key.gpg for given repository",
+        "operationId": "repoSigningKey",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GPG armored public key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/stargazers": {
       "get": {
         "produces": [
@@ -5623,6 +5932,26 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Repository"
+          }
+        }
+      }
+    },
+    "/signing-key.gpg": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Get default signing-key.gpg",
+        "operationId": "getSigningKey",
+        "responses": {
+          "200": {
+            "description": "GPG armored public key",
+            "schema": {
+              "type": "string"
+            }
           }
         }
       }
@@ -7917,6 +8246,10 @@
           "type": "string",
           "x-go-name": "Description"
         },
+        "includes_all_repositories": {
+          "type": "boolean",
+          "x-go-name": "IncludesAllRepositories"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
@@ -8207,6 +8540,10 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "unset_due_date": {
+          "type": "boolean",
+          "x-go-name": "RemoveDeadline"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -8335,6 +8672,10 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "unset_due_date": {
+          "type": "boolean",
+          "x-go-name": "RemoveDeadline"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -8409,6 +8750,12 @@
           "type": "string",
           "x-go-name": "Description"
         },
+        "external_tracker": {
+          "$ref": "#/definitions/ExternalTracker"
+        },
+        "external_wiki": {
+          "$ref": "#/definitions/ExternalWiki"
+        },
         "has_issues": {
           "description": "either `true` to enable issues for this repository or `false` to disable them.",
           "type": "boolean",
@@ -8428,6 +8775,9 @@
           "description": "either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `has_pull_requests` must be `true`.",
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
+        },
+        "internal_tracker": {
+          "$ref": "#/definitions/InternalTracker"
         },
         "name": {
           "description": "name of the repository",
@@ -8462,6 +8812,10 @@
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "includes_all_repositories": {
+          "type": "boolean",
+          "x-go-name": "IncludesAllRepositories"
         },
         "name": {
           "type": "string",
@@ -8584,6 +8938,40 @@
         "verified": {
           "type": "boolean",
           "x-go-name": "Verified"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ExternalTracker": {
+      "description": "ExternalTracker represents settings for external tracker",
+      "type": "object",
+      "properties": {
+        "external_tracker_format": {
+          "description": "External Issue Tracker URL Format. Use the placeholders {user}, {repo} and {index} for the username, repository name and issue index.",
+          "type": "string",
+          "x-go-name": "ExternalTrackerFormat"
+        },
+        "external_tracker_style": {
+          "description": "External Issue Tracker Number Format, either `numeric` or `alphanumeric`",
+          "type": "string",
+          "x-go-name": "ExternalTrackerStyle"
+        },
+        "external_tracker_url": {
+          "description": "URL of external issue tracker.",
+          "type": "string",
+          "x-go-name": "ExternalTrackerURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ExternalWiki": {
+      "description": "ExternalWiki represents setting for external wiki",
+      "type": "object",
+      "properties": {
+        "external_wiki_url": {
+          "description": "URL of external wiki.",
+          "type": "string",
+          "x-go-name": "ExternalWikiURL"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -8952,6 +9340,28 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "InternalTracker": {
+      "description": "InternalTracker represents settings for internal tracker",
+      "type": "object",
+      "properties": {
+        "allow_only_contributors_to_track_time": {
+          "description": "Let only contributors track time (Built-in issue tracker)",
+          "type": "boolean",
+          "x-go-name": "AllowOnlyContributorsToTrackTime"
+        },
+        "enable_issue_dependencies": {
+          "description": "Enable dependencies for issues and pull requests (Built-in issue tracker)",
+          "type": "boolean",
+          "x-go-name": "EnableIssueDependencies"
+        },
+        "enable_time_tracker": {
+          "description": "Enable time tracking (Built-in issue tracker)",
+          "type": "boolean",
+          "x-go-name": "EnableTimeTracker"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Issue": {
       "description": "Issue represents an issue in a repository",
       "type": "object",
@@ -9021,6 +9431,9 @@
         },
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
+        },
+        "repository": {
+          "$ref": "#/definitions/RepositoryMeta"
         },
         "state": {
           "$ref": "#/definitions/StateType"
@@ -9403,6 +9816,9 @@
         "signature": {
           "type": "string",
           "x-go-name": "Signature"
+        },
+        "signer": {
+          "$ref": "#/definitions/PayloadUser"
         },
         "verified": {
           "type": "boolean",
@@ -9807,6 +10223,12 @@
           "type": "boolean",
           "x-go-name": "Empty"
         },
+        "external_tracker": {
+          "$ref": "#/definitions/ExternalTracker"
+        },
+        "external_wiki": {
+          "$ref": "#/definitions/ExternalWiki"
+        },
         "fork": {
           "type": "boolean",
           "x-go-name": "Fork"
@@ -9844,6 +10266,9 @@
         "ignore_whitespace_conflicts": {
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
+        },
+        "internal_tracker": {
+          "$ref": "#/definitions/InternalTracker"
         },
         "mirror": {
           "type": "boolean",
@@ -9902,6 +10327,26 @@
         "website": {
           "type": "string",
           "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "RepositoryMeta": {
+      "description": "RepositoryMeta basic repository information",
+      "type": "object",
+      "properties": {
+        "full_name": {
+          "type": "string",
+          "x-go-name": "FullName"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -10031,6 +10476,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "includes_all_repositories": {
+          "type": "boolean",
+          "x-go-name": "IncludesAllRepositories"
         },
         "name": {
           "type": "string",

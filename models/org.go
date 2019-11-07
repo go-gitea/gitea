@@ -14,9 +14,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // IsOwnedBy returns true if given user is in the owner team.
@@ -53,6 +53,9 @@ func (org *User) GetOwnerTeam() (*Team, error) {
 }
 
 func (org *User) getTeams(e Engine) error {
+	if org.Teams != nil {
+		return nil
+	}
 	return e.
 		Where("org_id=?", org.ID).
 		OrderBy("CASE WHEN name LIKE '" + ownerTeamName + "' THEN '' ELSE name END").
@@ -154,12 +157,13 @@ func CreateOrganization(org, owner *User) (err error) {
 
 	// Create default owner team.
 	t := &Team{
-		OrgID:            org.ID,
-		LowerName:        strings.ToLower(ownerTeamName),
-		Name:             ownerTeamName,
-		Authorize:        AccessModeOwner,
-		NumMembers:       1,
-		CanCreateOrgRepo: true,
+		OrgID:                   org.ID,
+		LowerName:               strings.ToLower(ownerTeamName),
+		Name:                    ownerTeamName,
+		Authorize:               AccessModeOwner,
+		NumMembers:              1,
+		IncludesAllRepositories: true,
+		CanCreateOrgRepo:        true,
 	}
 	if _, err = sess.Insert(t); err != nil {
 		return fmt.Errorf("insert owner team: %v", err)

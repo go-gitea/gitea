@@ -10,9 +10,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	"xorm.io/builder"
 	"xorm.io/core"
+	"xorm.io/xorm"
 )
 
 // ReviewType defines the sort of feedback a review gives
@@ -129,13 +129,17 @@ func (r *Review) publish(e *xorm.Engine) error {
 				go func(en *xorm.Engine, review *Review, comm *Comment) {
 					sess := en.NewSession()
 					defer sess.Close()
-					if err := sendCreateCommentAction(sess, &CreateCommentOptions{
+					opts := &CreateCommentOptions{
 						Doer:    comm.Poster,
 						Issue:   review.Issue,
 						Repo:    review.Issue.Repo,
 						Type:    comm.Type,
 						Content: comm.Content,
-					}, comm); err != nil {
+					}
+					if err := updateCommentInfos(sess, opts, comm); err != nil {
+						log.Warn("updateCommentInfos: %v", err)
+					}
+					if err := sendCreateCommentAction(sess, opts, comm); err != nil {
 						log.Warn("sendCreateCommentAction: %v", err)
 					}
 				}(e, r, comment)

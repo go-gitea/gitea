@@ -248,6 +248,16 @@ func CommitChanges(repoPath string, opts CommitChangesOptions) error {
 	return err
 }
 
+// AllCommitsCount returns count of all commits in repository
+func AllCommitsCount(repoPath string) (int64, error) {
+	stdout, err := NewCommand("rev-list", "--all", "--count").RunInDir(repoPath)
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
+}
+
 func commitsCount(repoPath, revision, relpath string) (int64, error) {
 	cmd := NewCommand("rev-list", "--count")
 	cmd.AddArguments(revision)
@@ -355,8 +365,11 @@ func (c *Commit) FileChangedSinceCommit(filename, pastCommit string) (bool, erro
 // HasFile returns true if the file given exists on this commit
 // This does only mean it's there - it does not mean the file was changed during the commit.
 func (c *Commit) HasFile(filename string) (bool, error) {
-	result, err := c.repo.LsFiles(filename)
-	return result[0] == filename, err
+	_, err := c.GetBlobByPath(filename)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // GetSubModules get all the sub modules of current revision git tree
@@ -494,4 +507,12 @@ func GetFullCommitID(repoPath, shortID string) (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(commitID), nil
+}
+
+// GetRepositoryDefaultPublicGPGKey returns the default public key for this commit
+func (c *Commit) GetRepositoryDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, error) {
+	if c.repo == nil {
+		return nil, nil
+	}
+	return c.repo.GetDefaultPublicGPGKey(forceUpdate)
 }

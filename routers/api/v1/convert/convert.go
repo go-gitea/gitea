@@ -12,8 +12,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/webhook"
 
 	"github.com/unknwon/com"
 )
@@ -84,17 +86,21 @@ func ToCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
 func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
 	verif := models.ParseCommitWithSignature(c)
-	var signature, payload string
+	commitVerification := &api.PayloadCommitVerification{
+		Verified: verif.Verified,
+		Reason:   verif.Reason,
+	}
 	if c.Signature != nil {
-		signature = c.Signature.Signature
-		payload = c.Signature.Payload
+		commitVerification.Signature = c.Signature.Signature
+		commitVerification.Payload = c.Signature.Payload
 	}
-	return &api.PayloadCommitVerification{
-		Verified:  verif.Verified,
-		Reason:    verif.Reason,
-		Signature: signature,
-		Payload:   payload,
+	if verif.SigningUser != nil {
+		commitVerification.Signer = &structs.PayloadUser{
+			Name:  verif.SigningUser.Name,
+			Email: verif.SigningUser.Email,
+		}
 	}
+	return commitVerification
 }
 
 // ToPublicKey convert models.PublicKey to api.PublicKey
@@ -161,7 +167,7 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 		"content_type": w.ContentType.Name(),
 	}
 	if w.HookTaskType == models.SLACK {
-		s := w.GetSlackHook()
+		s := webhook.GetSlackHook(w)
 		config["channel"] = s.Channel
 		config["username"] = s.Username
 		config["icon_url"] = s.IconURL
@@ -221,24 +227,22 @@ func ToOrganization(org *models.User) *api.Organization {
 // ToTeam convert models.Team to api.Team
 func ToTeam(team *models.Team) *api.Team {
 	return &api.Team{
-		ID:               team.ID,
-		Name:             team.Name,
-		Description:      team.Description,
-		Permission:       team.Authorize.String(),
-		Units:            team.GetUnitNames(),
+		ID:                      team.ID,
+		Name:                    team.Name,
+		Description:             team.Description,
+		IncludesAllRepositories: team.IncludesAllRepositories,
 		CanCreateOrgRepo: team.CanCreateOrgRepo,
+		Permission:              team.Authorize.String(),
+		Units:                   team.GetUnitNames(),
 	}
 }
 
 // ToUser convert models.User to api.User
 func ToUser(user *models.User, signed, authed bool) *api.User {
 	result := &api.User{
-		ID:        user.ID,
 		UserName:  user.Name,
 		AvatarURL: user.AvatarLink(),
 		FullName:  markup.Sanitize(user.FullName),
-		IsAdmin:   user.IsAdmin,
-		LastLogin: user.LastLoginUnix.AsTime(),
 		Created:   user.CreatedUnix.AsTime(),
 	}
 	// hide primary email if API caller isn't user itself or an admin
@@ -246,8 +250,11 @@ func ToUser(user *models.User, signed, authed bool) *api.User {
 		result.Email = ""
 	} else if user.KeepEmailPrivate && !authed {
 		result.Email = user.GetEmail()
-	} else {
+	} else { // only user himself and admin could visit these information
+		result.ID = user.ID
 		result.Email = user.Email
+		result.IsAdmin = user.IsAdmin
+		result.LastLogin = user.LastLoginUnix.AsTime()
 	}
 	return result
 }

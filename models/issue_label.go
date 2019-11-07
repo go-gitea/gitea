@@ -13,8 +13,8 @@ import (
 
 	api "code.gitea.io/gitea/modules/structs"
 
-	"github.com/go-xorm/xorm"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
@@ -68,10 +68,11 @@ type Label struct {
 	Color           string `xorm:"VARCHAR(7)"`
 	NumIssues       int
 	NumClosedIssues int
-	NumOpenIssues   int  `xorm:"-"`
-	IsChecked       bool `xorm:"-"`
-	QueryString     string
-	IsSelected      bool
+	NumOpenIssues   int    `xorm:"-"`
+	IsChecked       bool   `xorm:"-"`
+	QueryString     string `xorm:"-"`
+	IsSelected      bool   `xorm:"-"`
+	IsExcluded      bool   `xorm:"-"`
 }
 
 // APIFormat converts a Label to the api.Label format
@@ -97,7 +98,10 @@ func (label *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64) 
 	for _, s := range currentSelectedLabels {
 		if s == label.ID {
 			labelSelected = true
-		} else if s > 0 {
+		} else if -s == label.ID {
+			labelSelected = true
+			label.IsExcluded = true
+		} else if s != 0 {
 			labelQuerySlice = append(labelQuerySlice, strconv.FormatInt(s, 10))
 		}
 	}
@@ -240,6 +244,19 @@ func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error
 	labelIDs := make([]int64, 0, len(labelNames))
 	return labelIDs, x.Table("label").
 		Where("repo_id = ?", repoID).
+		In("name", labelNames).
+		Asc("name").
+		Cols("id").
+		Find(&labelIDs)
+}
+
+// GetLabelIDsInReposByNames returns a list of labelIDs by names in one of the given
+// repositories.
+// it silently ignores label names that do not belong to the repository.
+func GetLabelIDsInReposByNames(repoIDs []int64, labelNames []string) ([]int64, error) {
+	labelIDs := make([]int64, 0, len(labelNames))
+	return labelIDs, x.Table("label").
+		In("repo_id", repoIDs).
 		In("name", labelNames).
 		Asc("name").
 		Cols("id").

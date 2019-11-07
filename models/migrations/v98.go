@@ -4,12 +4,14 @@
 
 package migrations
 
-import "github.com/go-xorm/xorm"
+import "xorm.io/xorm"
 
-func addCanCreateOrgRepoColumnForTeam(x *xorm.Engine) error {
-	type Team struct {
-		CanCreateOrgRepo bool `xorm:"NOT NULL DEFAULT false"`
+func addOriginalAuthorOnMigratedReleases(x *xorm.Engine) error {
+	type Release struct {
+		ID               int64
+		OriginalAuthor   string
+		OriginalAuthorID int64 `xorm:"index"`
 	}
 
-	return x.Sync2(new(Team))
+	return x.Sync2(new(Release))
 }

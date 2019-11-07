@@ -7,10 +7,13 @@ package notification
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/notification/indexer"
 	"code.gitea.io/gitea/modules/notification/mail"
 	"code.gitea.io/gitea/modules/notification/ui"
+	"code.gitea.io/gitea/modules/notification/webhook"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 var (
@@ -23,10 +26,15 @@ func RegisterNotifier(notifier base.Notifier) {
 	notifiers = append(notifiers, notifier)
 }
 
-func init() {
+// NewContext registers notification handlers
+func NewContext() {
 	RegisterNotifier(ui.NewNotifier())
-	RegisterNotifier(mail.NewNotifier())
+	if setting.Service.EnableNotifyMail {
+		RegisterNotifier(mail.NewNotifier())
+	}
 	RegisterNotifier(indexer.NewNotifier())
+	RegisterNotifier(webhook.NewNotifier())
+	RegisterNotifier(action.NewNotifier())
 }
 
 // NotifyCreateIssueComment notifies issue comment related message to notifiers
@@ -62,6 +70,13 @@ func NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseGitRe
 func NotifyNewPullRequest(pr *models.PullRequest) {
 	for _, notifier := range notifiers {
 		notifier.NotifyNewPullRequest(pr)
+	}
+}
+
+// NotifyPullRequestSynchronized notifies Synchronized pull request
+func NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRequestSynchronized(doer, pr)
 	}
 }
 
@@ -122,9 +137,9 @@ func NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 }
 
 // NotifyIssueChangeMilestone notifies change milestone to notifiers
-func NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue) {
+func NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64) {
 	for _, notifier := range notifiers {
-		notifier.NotifyIssueChangeMilestone(doer, issue)
+		notifier.NotifyIssueChangeMilestone(doer, issue, oldMilestoneID)
 	}
 }
 
@@ -136,9 +151,9 @@ func NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent
 }
 
 // NotifyIssueChangeAssignee notifies change content to notifiers
-func NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, removed bool) {
+func NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
 	for _, notifier := range notifiers {
-		notifier.NotifyIssueChangeAssignee(doer, issue, removed)
+		notifier.NotifyIssueChangeAssignee(doer, issue, assignee, removed, comment)
 	}
 }
 
@@ -175,5 +190,26 @@ func NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repo
 func NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
 	for _, notifier := range notifiers {
 		notifier.NotifyMigrateRepository(doer, u, repo)
+	}
+}
+
+// NotifyPushCommits notifies commits pushed to notifiers
+func NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
+	}
+}
+
+// NotifyCreateRef notifies branch or tag creation to notifiers
+func NotifyCreateRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyCreateRef(pusher, repo, refType, refFullName)
+	}
+}
+
+// NotifyDeleteRef notifies branch or tag deletion to notifiers
+func NotifyDeleteRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyDeleteRef(pusher, repo, refType, refFullName)
 	}
 }

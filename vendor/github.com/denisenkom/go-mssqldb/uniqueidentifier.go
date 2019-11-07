@@ -72,3 +72,9 @@ func (u UniqueIdentifier) Value() (driver.Value, error) {
 func (u UniqueIdentifier) String() string {
 	return fmt.Sprintf("%X-%X-%X-%X-%X", u[0:4], u[4:6], u[6:8], u[8:10], u[10:])
 }
+
+// MarshalText converts Uniqueidentifier to bytes corresponding to the stringified hexadecimal representation of the Uniqueidentifier
+// e.g., "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA" -> [65 65 65 65 65 65 65 65 45 65 65 65 65 45 65 65 65 65 45 65 65 65 65 65 65 65 65 65 65 65 65]
+func (u UniqueIdentifier) MarshalText() []byte {
+	return []byte(u.String())
+}

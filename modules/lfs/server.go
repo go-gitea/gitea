@@ -327,10 +327,12 @@ func PutHandler(ctx *context.Context) {
 	}
 
 	contentStore := &ContentStore{BasePath: setting.LFS.ContentPath}
-	if err := contentStore.Put(meta, ctx.Req.Body().ReadCloser()); err != nil {
+	bodyReader := ctx.Req.Body().ReadCloser()
+	defer bodyReader.Close()
+	if err := contentStore.Put(meta, bodyReader); err != nil {
 		ctx.Resp.WriteHeader(500)
 		fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
-		if err = repository.RemoveLFSMetaObjectByOid(rv.Oid); err != nil {
+		if _, err = repository.RemoveLFSMetaObjectByOid(rv.Oid); err != nil {
 			log.Error("RemoveLFSMetaObjectByOid: %v", err)
 		}
 		return
@@ -434,7 +436,9 @@ func unpack(ctx *context.Context) *RequestVars {
 
 	if r.Method == "POST" { // Maybe also check if +json
 		var p RequestVars
-		dec := json.NewDecoder(r.Body().ReadCloser())
+		bodyReader := r.Body().ReadCloser()
+		defer bodyReader.Close()
+		dec := json.NewDecoder(bodyReader)
 		err := dec.Decode(&p)
 		if err != nil {
 			return rv
@@ -453,7 +457,9 @@ func unpackbatch(ctx *context.Context) *BatchVars {
 	r := ctx.Req
 	var bv BatchVars
 
-	dec := json.NewDecoder(r.Body().ReadCloser())
+	bodyReader := r.Body().ReadCloser()
+	defer bodyReader.Close()
+	dec := json.NewDecoder(bodyReader)
 	err := dec.Decode(&bv)
 	if err != nil {
 		return &bv
