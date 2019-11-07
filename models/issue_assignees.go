@@ -183,7 +183,7 @@ func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string
 		}
 
 		//if assignee is empty skip
-		if len(assignee) == 0 {
+		if assignee == "" {
 			continue
 		}
 		requestAssignees = append(requestAssignees, assignee)
