@@ -42,6 +42,7 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
   * [SSH Common Errors](#ssh-common-errors)
 * [Missing releases after migration repository with tags](#missing-releases-after-migrating-repository-with-tags)
 * [LFS Issues](#lfs-issues)
+* [How can I create users before starting Gitea](#how-can-i-create-users-before-starting-gitea)
 
 
 ## Difference between 1.x and 1.x.x downloads
@@ -272,3 +273,6 @@ Check the value of `LFS_HTTP_AUTH_EXPIRY` in your `app.ini` file.
 By default, your LFS token will expire after 20 minutes. If you have a slow connection or a large file (or both), it may not finish uploading within the time limit. 
 
 You may want to set this value to `60m` or `120m`.
+
+## How can I create users before starting Gitea
+Gitea provides a sub-command `gitea migrate` to initialize the database, after which you can use the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md" >}}) to add users like normal.

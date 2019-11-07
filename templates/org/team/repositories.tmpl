@@ -7,7 +7,7 @@
 			{{template "org/team/sidebar" .}}
 			<div class="ui ten wide column">
 				{{template "org/team/navbar" .}}
-				{{$canAddRemove := and $.IsOrganizationOwner (not (eq $.Team.LowerName "owners"))}}
+				{{$canAddRemove := and $.IsOrganizationOwner (not $.Team.IncludesAllRepositories)}}
 				{{if $canAddRemove}}
 					<div class="ui attached segment">
 						<form class="ui form" id="add-repo-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/add" method="post">
