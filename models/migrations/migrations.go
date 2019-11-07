@@ -265,11 +265,9 @@ var migrations = []Migration{
 	// v104 -> v105
 	NewMigration("remove unnecessary columns from label", removeLabelUneededCols),
 	// v105 -> v106
-<<<<<<< HEAD
-	NewMigration("add projects info to repository table", addProjectsInfo),
-=======
 	NewMigration("add includes_all_repositories to teams", addTeamIncludesAllRepositories),
->>>>>>> origin
+	// v106 -> v107
+	NewMigration("add projects info to repository table", addProjectsInfo),
 }
 
 // Migrate database to current version
