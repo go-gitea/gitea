@@ -7,6 +7,7 @@ package notification
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/notification/indexer"
 	"code.gitea.io/gitea/modules/notification/mail"
@@ -33,6 +34,7 @@ func NewContext() {
 	}
 	RegisterNotifier(indexer.NewNotifier())
 	RegisterNotifier(webhook.NewNotifier())
+	RegisterNotifier(action.NewNotifier())
 }
 
 // NotifyCreateIssueComment notifies issue comment related message to notifiers
@@ -68,6 +70,13 @@ func NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseGitRe
 func NotifyNewPullRequest(pr *models.PullRequest) {
 	for _, notifier := range notifiers {
 		notifier.NotifyNewPullRequest(pr)
+	}
+}
+
+// NotifyPullRequestSynchronized notifies Synchronized pull request
+func NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRequestSynchronized(doer, pr)
 	}
 }
 
@@ -188,5 +197,19 @@ func NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Rep
 func NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
 	for _, notifier := range notifiers {
 		notifier.NotifyPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
+	}
+}
+
+// NotifyCreateRef notifies branch or tag creation to notifiers
+func NotifyCreateRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyCreateRef(pusher, repo, refType, refFullName)
+	}
+}
+
+// NotifyDeleteRef notifies branch or tag deletion to notifiers
+func NotifyDeleteRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyDeleteRef(pusher, repo, refType, refFullName)
 	}
 }

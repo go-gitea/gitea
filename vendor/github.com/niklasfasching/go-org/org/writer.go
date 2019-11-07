@@ -9,6 +9,7 @@ type Writer interface {
 	String() string   // String is called at the very end to retrieve the final output.
 
 	WriterWithExtensions() Writer
+	WriteNodesAsString(...Node) string
 
 	WriteKeyword(Keyword)
 	WriteInclude(Include)

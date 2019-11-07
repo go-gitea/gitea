@@ -177,8 +177,8 @@ func (d *Document) loadSetupFile(k Keyword) (int, Node) {
 	return 1, k
 }
 
-func (n Comment) String() string      { return orgWriter.nodesAsString(n) }
-func (n Keyword) String() string      { return orgWriter.nodesAsString(n) }
-func (n NodeWithMeta) String() string { return orgWriter.nodesAsString(n) }
-func (n NodeWithName) String() string { return orgWriter.nodesAsString(n) }
-func (n Include) String() string      { return orgWriter.nodesAsString(n) }
+func (n Comment) String() string      { return orgWriter.WriteNodesAsString(n) }
+func (n Keyword) String() string      { return orgWriter.WriteNodesAsString(n) }
+func (n NodeWithMeta) String() string { return orgWriter.WriteNodesAsString(n) }
+func (n NodeWithName) String() string { return orgWriter.WriteNodesAsString(n) }
+func (n Include) String() string      { return orgWriter.WriteNodesAsString(n) }

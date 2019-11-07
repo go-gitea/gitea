@@ -25,6 +25,24 @@
 					</div>
 					{{if not (eq .Team.LowerName "owners")}}
 						<div class="grouped field">
+							<label>{{.i18n.Tr "org.team_access_desc"}}</label>
+							<br>
+							<div class="field">
+								<div class="ui radio checkbox">
+									<input type="radio" name="repo_access" value="specific" {{if not .Team.IncludesAllRepositories}}checked{{end}}>
+									<label>{{.i18n.Tr "org.teams.specific_repositories"}}</label>
+									<span class="help">{{.i18n.Tr "org.teams.specific_repositories_helper"}}</span>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui radio checkbox">
+									<input type="radio" name="repo_access" value="all" {{if .Team.IncludesAllRepositories}}checked{{end}}>
+									<label>{{.i18n.Tr "org.teams.all_repositories"}}</label>
+									<span class="help">{{.i18n.Tr "org.teams.all_repositories_helper"}}</span>
+								</div>
+							</div>
+						</div>
+						<div class="grouped field">
 							<label>{{.i18n.Tr "org.team_permission_desc"}}</label>
 							<br>
 							<div class="field">

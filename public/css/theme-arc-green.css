@@ -249,6 +249,11 @@ a.ui.label:hover,a.ui.labels .label:hover{background-color:#505667!important;col
 .xdsoft_datetimepicker .xdsoft_datepicker .xdsoft_calendar td,.xdsoft_datetimepicker .xdsoft_datepicker .xdsoft_calendar th{border-color:#4c505c;background-color:#2a2e39}
 .xdsoft_datetimepicker .xdsoft_datepicker .xdsoft_calendar td.xdsoft_disabled,.xdsoft_datetimepicker .xdsoft_datepicker .xdsoft_calendar td.xdsoft_other_month{opacity:.8;background:#a0cc75;color:#000}
 .heatmap-color-0{background-color:#2d303b}
+.heatmap-color-1{background-color:#444f47}
+.heatmap-color-2{background-color:#5b6e52}
+.heatmap-color-3{background-color:#728e5e}
+.heatmap-color-4{background-color:#89ad69}
+.heatmap-color-5{background-color:#a0cc75}
 .CodeMirror{color:#9daccc;background-color:#2b2b2b;border-top:0}
 .CodeMirror div.CodeMirror-cursor{border-left:1px solid #9e9e9e}
 .CodeMirror .CodeMirror-gutters{background-color:#2b2b2b}

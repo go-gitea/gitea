@@ -16,8 +16,10 @@ import (
 	"mime"
 	"net/url"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
+	texttmpl "text/template"
 	"time"
 	"unicode"
 
@@ -33,6 +35,9 @@ import (
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
+
+// Used from static.go && dynamic.go
+var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
@@ -257,6 +262,112 @@ func NewFuncMap() []template.FuncMap {
 			default:
 				return ""
 			}
+		},
+	}}
+}
+
+// NewTextFuncMap returns functions for injecting to text templates
+// It's a subset of those used for HTML and other templates
+func NewTextFuncMap() []texttmpl.FuncMap {
+	return []texttmpl.FuncMap{map[string]interface{}{
+		"GoVer": func() string {
+			return strings.Title(runtime.Version())
+		},
+		"AppName": func() string {
+			return setting.AppName
+		},
+		"AppSubUrl": func() string {
+			return setting.AppSubURL
+		},
+		"AppUrl": func() string {
+			return setting.AppURL
+		},
+		"AppVer": func() string {
+			return setting.AppVer
+		},
+		"AppBuiltWith": func() string {
+			return setting.AppBuiltWith
+		},
+		"AppDomain": func() string {
+			return setting.Domain
+		},
+		"TimeSince":     timeutil.TimeSince,
+		"TimeSinceUnix": timeutil.TimeSinceUnix,
+		"RawTimeSince":  timeutil.RawTimeSince,
+		"DateFmtLong": func(t time.Time) string {
+			return t.Format(time.RFC1123Z)
+		},
+		"DateFmtShort": func(t time.Time) string {
+			return t.Format("Jan 02, 2006")
+		},
+		"List": List,
+		"SubStr": func(str string, start, length int) string {
+			if len(str) == 0 {
+				return ""
+			}
+			end := start + length
+			if length == -1 {
+				end = len(str)
+			}
+			if len(str) < end {
+				return str
+			}
+			return str[start:end]
+		},
+		"EllipsisString": base.EllipsisString,
+		"URLJoin":        util.URLJoin,
+		"Dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values)%2 != 0 {
+				return nil, errors.New("invalid dict call")
+			}
+			dict := make(map[string]interface{}, len(values)/2)
+			for i := 0; i < len(values); i += 2 {
+				key, ok := values[i].(string)
+				if !ok {
+					return nil, errors.New("dict keys must be strings")
+				}
+				dict[key] = values[i+1]
+			}
+			return dict, nil
+		},
+		"Printf":   fmt.Sprintf,
+		"Escape":   Escape,
+		"Sec2Time": models.SecToTime,
+		"ParseDeadline": func(deadline string) []string {
+			return strings.Split(deadline, "|")
+		},
+		"dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values) == 0 {
+				return nil, errors.New("invalid dict call")
+			}
+
+			dict := make(map[string]interface{})
+
+			for i := 0; i < len(values); i++ {
+				switch key := values[i].(type) {
+				case string:
+					i++
+					if i == len(values) {
+						return nil, errors.New("specify the key for non array values")
+					}
+					dict[key] = values[i]
+				case map[string]interface{}:
+					m := values[i].(map[string]interface{})
+					for i, v := range m {
+						dict[i] = v
+					}
+				default:
+					return nil, errors.New("dict values must be maps")
+				}
+			}
+			return dict, nil
+		},
+		"percentage": func(n int, values ...int) float32 {
+			var sum = 0
+			for i := 0; i < len(values); i++ {
+				sum += values[i]
+			}
+			return float32(n) * 100 / float32(sum)
 		},
 	}}
 }
@@ -549,5 +660,24 @@ func MigrationIcon(hostname string) string {
 		return "fa-github"
 	default:
 		return "fa-git-alt"
+	}
+}
+
+func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, name string, content []byte) {
+	// Split template into subject and body
+	var subjectContent []byte
+	bodyContent := content
+	loc := mailSubjectSplit.FindIndex(content)
+	if loc != nil {
+		subjectContent = content[0:loc[0]]
+		bodyContent = content[loc[1]:]
+	}
+	if _, err := stpl.New(name).
+		Parse(string(subjectContent)); err != nil {
+		log.Warn("Failed to parse template [%s/subject]: %v", name, err)
+	}
+	if _, err := btpl.New(name).
+		Parse(string(bodyContent)); err != nil {
+		log.Warn("Failed to parse template [%s/body]: %v", name, err)
 	}
 }
