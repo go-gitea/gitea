@@ -179,24 +179,13 @@ func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string
 		requestAssignees = append(requestAssignees, oneAssignee)
 	}
 
-	//Prevent empty assignerees
-	if util.IsStringInSlice("", multipleAssignees) {
-		for _, assignee := range multipleAssignees {
-			if assignee == "" {
-				continue
-			}
-			requestAssignees = append(requestAssignees, assignee)
-		}
-	} else {
+	//Prevent empty assignees
+	if multipleAssignees[0] != "" {
 		requestAssignees = append(requestAssignees, multipleAssignees...)
 	}
 
-	if len(requestAssignees) > 0 {
-		// Get the IDs of all assignees
-		assigneeIDs, err = GetUserIDsByNames(requestAssignees, false)
-	} else {
-		return nil, nil
-	}
+	// Get the IDs of all assignees
+	assigneeIDs, err = GetUserIDsByNames(requestAssignees, false)
 
 	return
 }
