@@ -5,8 +5,9 @@
 package models
 
 import (
-	"code.gitea.io/gitea/modules/util"
 	"fmt"
+
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 )
