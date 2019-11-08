@@ -295,11 +295,6 @@ func (t *Team) RemoveAllRepositories() (err error) {
 		return err
 	}
 
-	t.NumRepos = 0
-	if _, err = sess.ID(t.ID).Cols("num_repos").Update(t); err != nil {
-		return err
-	}
-
 	return sess.Commit()
 }
 
@@ -336,6 +331,11 @@ func (t *Team) removeAllRepositories(e Engine) (err error) {
 	if _, err := e.
 		Where("team_id=?", t.ID).
 		Delete(new(TeamRepo)); err != nil {
+		return err
+	}
+
+	t.NumRepos = 0
+	if _, err = e.ID(t.ID).Cols("num_repos").Update(t); err != nil {
 		return err
 	}
 
