@@ -20,13 +20,13 @@
 										</div>
 									</div>
 								</div>
-								<button class="ui green button">{{.i18n.Tr "org.teams.add_team_repository"}}</button>
+								<button class="ui green button">{{.i18n.Tr "add"}}</button>
 							</form>
 						</div>
 						<div class="inline ui field right">
 							<form class="ui form" id="repo-multiple-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/repositories" method="post">
-								<button class="ui red button delete-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/removeall">{{.i18n.Tr "org.teams.remove_all_repos"}}</button>
-								<button class="ui green button add-all-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/addall">{{.i18n.Tr "org.teams.add_all_repos"}}</button>
+								<button class="ui red button delete-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/removeall">{{.i18n.Tr "remove_all"}}</button>
+								<button class="ui green button add-all-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/addall">{{.i18n.Tr "add_all"}}</button>
 							</form>
 						</div>
 					</div>
@@ -35,7 +35,7 @@
 					{{range .Team.Repos}}
 						<div class="item">
 							{{if $canAddRemove}}
-								<a class="ui red small button right" href="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/remove?repoid={{.ID}}">{{$.i18n.Tr "org.teams.remove_repo"}}</a>
+								<a class="ui red small button right" href="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/remove?repoid={{.ID}}">{{$.i18n.Tr "remove"}}</a>
 							{{end}}
 							<a class="member" href="{{AppSubUrl}}/{{$.Org.Name}}/{{.Name}}">
 								<i class="octicon octicon-{{if .IsPrivate}}lock{{else if .IsFork}}repo-forked{{else if .IsMirror}}repo-clone{{else}}repo{{end}}"></i>
