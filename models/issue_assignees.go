@@ -175,7 +175,7 @@ func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string
 	var requestAssignees []string
 
 	// Keeping the old assigning method for compatibility reasons
-	if !util.IsStringInSlice(oneAssignee, multipleAssignees) {
+	if oneAssignee != "" && !util.IsStringInSlice(oneAssignee, multipleAssignees) {
 		requestAssignees = append(requestAssignees, oneAssignee)
 	}
 
