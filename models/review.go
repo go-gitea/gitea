@@ -129,13 +129,17 @@ func (r *Review) publish(e *xorm.Engine) error {
 				go func(en *xorm.Engine, review *Review, comm *Comment) {
 					sess := en.NewSession()
 					defer sess.Close()
-					if err := sendCreateCommentAction(sess, &CreateCommentOptions{
+					opts := &CreateCommentOptions{
 						Doer:    comm.Poster,
 						Issue:   review.Issue,
 						Repo:    review.Issue.Repo,
 						Type:    comm.Type,
 						Content: comm.Content,
-					}, comm); err != nil {
+					}
+					if err := updateCommentInfos(sess, opts, comm); err != nil {
+						log.Warn("updateCommentInfos: %v", err)
+					}
+					if err := sendCreateCommentAction(sess, opts, comm); err != nil {
 						log.Warn("sendCreateCommentAction: %v", err)
 					}
 				}(e, r, comment)

@@ -31,24 +31,8 @@ func mailParticipantsComment(ctx models.DBContext, c *models.Comment, opType mod
 	for i, u := range userMentions {
 		mentions[i] = u.LowerName
 	}
-	if len(c.Content) > 0 {
-		if err = mailIssueCommentToParticipants(issue, c.Poster, c.Content, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
+	if err = mailIssueCommentToParticipants(issue, c.Poster, opType, c.Content, c, mentions); err != nil {
+		log.Error("mailIssueCommentToParticipants: %v", err)
 	}
-
-	switch opType {
-	case models.ActionCloseIssue:
-		ct := fmt.Sprintf("Closed #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(issue, c.Poster, ct, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
-	case models.ActionReopenIssue:
-		ct := fmt.Sprintf("Reopened #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(issue, c.Poster, ct, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
-	}
-
 	return nil
 }
