@@ -603,11 +603,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 			return err
 		}
 
-		if err := models.RenameRepoAction(ctx.User, oldRepoName, repo); err != nil {
-			log.Error("RenameRepoAction: %v", err)
-			ctx.Error(http.StatusInternalServerError, "RenameRepoActions", err)
-			return err
-		}
+		notification.NotifyRenameRepository(ctx.User, repo, oldRepoName)
 
 		log.Trace("Repository name changed: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newRepoName)
 	}
