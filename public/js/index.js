@@ -2165,7 +2165,7 @@ function initTemplateSearch() {
                         // Parse the response from the api to work with our dropdown
                         $.each(response.data, function(_r, repo) {
                             filteredResponse.results.push({
-                                'name'  : htmlEncode(repo.name) ,
+                                'name'  : htmlEncode(repo.full_name) ,
                                 'value' : repo.id
                             });
                         });
