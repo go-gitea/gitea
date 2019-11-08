@@ -280,7 +280,7 @@ You may want to set this value to `60m` or `120m`.
 Gitea provides a sub-command `gitea migrate` to initialize the database, after which you can use the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}) to add users like normal.
 
 ## How can I enable password reset
-There is no setting for password resets. It is considered "enabled" when a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}) is configured, and "disabled" otherwise.
+There is no setting for password resets. It is enabled when a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}) is configured, and disabled otherwise.
 
 ## How can a user's password be changed
 - As an **admin**, you can change any user's password (and optionally force them to change it on next login)...
@@ -289,4 +289,5 @@ There is no setting for password resets. It is considered "enabled" when a [mail
   Keep in mind most commands will also need a [global flag]({{< relref "doc/usage/command-line.en-us.md#global-options" >}}) to point the CLI at the correct configuration.
 - As a **user** you can change it... 
   - In your account `Settings -> Account` page (this method **requires** you to know your current password).
-  - By using the `Forgot Password` link if there is a configured [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}).
+  - By using the `Forgot Password` link.  
+   If the `Forgot Password/Account Recovery` page is disabled, please contact your administrator to configure a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}).
