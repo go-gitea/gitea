@@ -1070,6 +1070,11 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplSignUp, &form)
 		return
 	}
+	if !password.IsComplexEnough(form.Password) {
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplSignUp, &form)
+		return
+	}
 
 	u := &models.User{
 		Name:     form.UserName,
