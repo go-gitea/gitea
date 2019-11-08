@@ -73,6 +73,13 @@ func NotifyNewPullRequest(pr *models.PullRequest) {
 	}
 }
 
+// NotifyPullRequestSynchronized notifies Synchronized pull request
+func NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRequestSynchronized(doer, pr)
+	}
+}
+
 // NotifyPullRequestReview notifies new pull request review
 func NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment) {
 	for _, notifier := range notifiers {
@@ -190,5 +197,19 @@ func NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Rep
 func NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
 	for _, notifier := range notifiers {
 		notifier.NotifyPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
+	}
+}
+
+// NotifyCreateRef notifies branch or tag creation to notifiers
+func NotifyCreateRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyCreateRef(pusher, repo, refType, refFullName)
+	}
+}
+
+// NotifyDeleteRef notifies branch or tag deletion to notifiers
+func NotifyDeleteRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyDeleteRef(pusher, repo, refType, refFullName)
 	}
 }

@@ -46,6 +46,10 @@ func (*NullNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models.R
 func (*NullNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
 }
 
+// NotifyPullRequestSynchronized places a place holder function
+func (*NullNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
+}
+
 // NotifyUpdateComment places a place holder function
 func (*NullNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
 }
@@ -109,4 +113,12 @@ func (*NullNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, 
 
 // NotifyPushCommits notifies commits pushed to notifiers
 func (*NullNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+}
+
+// NotifyCreateRef notifies branch or tag creation to notifiers
+func (*NullNotifier) NotifyCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
+}
+
+// NotifyDeleteRef notifies branch or tag deleteion to notifiers
+func (*NullNotifier) NotifyDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
 }
