@@ -321,6 +321,10 @@ code,
         background-color: transparent;
     }
 
+    &.nopadding {
+        padding: 0;
+    }
+
     &.menu,
     &.vertical.menu,
     &.segment {
@@ -453,6 +457,14 @@ code,
         &.middle {
             vertical-align: middle;
         }
+
+        &.nopadding {
+            padding: 0;
+        }
+
+        &.nomargin {
+            margin: 0;
+        }
     }
 
     .message {
@@ -537,6 +549,16 @@ code,
         padding: 6px 10px 4px 10px;
         font-weight: normal;
         margin: 0 6px;
+    }
+
+    .button.truncate {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: top;
+        white-space: nowrap;
+        margin-right: 6px;
     }
 
     &.status.buttons {

@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/utils"
 
@@ -129,7 +130,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 			return nil, false
 		}
 
-		meta, err := json.Marshal(&models.SlackMeta{
+		meta, err := json.Marshal(&webhook.SlackMeta{
 			Channel:  strings.TrimSpace(channel),
 			Username: form.Config["username"],
 			IconURL:  form.Config["icon_url"],
@@ -203,7 +204,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 
 		if w.HookTaskType == models.SLACK {
 			if channel, ok := form.Config["channel"]; ok {
-				meta, err := json.Marshal(&models.SlackMeta{
+				meta, err := json.Marshal(&webhook.SlackMeta{
 					Channel:  channel,
 					Username: form.Config["username"],
 					IconURL:  form.Config["icon_url"],

@@ -16,6 +16,9 @@ type IssueWatch struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
 }
 
+// IssueWatchList contains IssueWatch
+type IssueWatchList []*IssueWatch
+
 // CreateOrUpdateIssueWatch set watching for a user and issue
 func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
 	iw, exists, err := getIssueWatch(x, userID, issueID)
@@ -58,11 +61,11 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 }
 
 // GetIssueWatchers returns watchers/unwatchers of a given issue
-func GetIssueWatchers(issueID int64) ([]*IssueWatch, error) {
+func GetIssueWatchers(issueID int64) (IssueWatchList, error) {
 	return getIssueWatchers(x, issueID)
 }
 
-func getIssueWatchers(e Engine, issueID int64) (watches []*IssueWatch, err error) {
+func getIssueWatchers(e Engine, issueID int64) (watches IssueWatchList, err error) {
 	err = e.
 		Where("`issue_watch`.issue_id = ?", issueID).
 		And("`user`.is_active = ?", true).
@@ -82,4 +85,30 @@ func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
 		Where("`issue_watch`.user_id = ?", userID).
 		Update(iw)
 	return err
+}
+
+// LoadWatchUsers return watching users
+func (iwl IssueWatchList) LoadWatchUsers() (users UserList, err error) {
+	return iwl.loadWatchUsers(x)
+}
+
+func (iwl IssueWatchList) loadWatchUsers(e Engine) (users UserList, err error) {
+	if len(iwl) == 0 {
+		return []*User{}, nil
+	}
+
+	var userIDs = make([]int64, 0, len(iwl))
+	for _, iw := range iwl {
+		if iw.IsWatching {
+			userIDs = append(userIDs, iw.UserID)
+		}
+	}
+
+	if len(userIDs) == 0 {
+		return []*User{}, nil
+	}
+
+	err = e.In("id", userIDs).Find(&users)
+
+	return
 }

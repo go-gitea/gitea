@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/mdstripper"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -35,12 +36,8 @@ var (
 	// e.g. gogits/gogs#12345
 	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
 
-	// Same as GitHub. See
-	// https://help.github.com/articles/closing-issues-via-commit-messages
-	issueCloseKeywords  = []string{"close", "closes", "closed", "fix", "fixes", "fixed", "resolve", "resolves", "resolved"}
-	issueReopenKeywords = []string{"reopen", "reopens", "reopened"}
-
 	issueCloseKeywordsPat, issueReopenKeywordsPat *regexp.Regexp
+	issueKeywordsOnce                             sync.Once
 
 	giteaHostInit sync.Once
 	giteaHost     string
@@ -107,13 +104,40 @@ type RefSpan struct {
 	End   int
 }
 
-func makeKeywordsPat(keywords []string) *regexp.Regexp {
-	return regexp.MustCompile(`(?i)(?:\s|^|\(|\[)(` + strings.Join(keywords, `|`) + `):? $`)
+func makeKeywordsPat(words []string) *regexp.Regexp {
+	acceptedWords := parseKeywords(words)
+	if len(acceptedWords) == 0 {
+		// Never match
+		return nil
+	}
+	return regexp.MustCompile(`(?i)(?:\s|^|\(|\[)(` + strings.Join(acceptedWords, `|`) + `):? $`)
 }
 
-func init() {
-	issueCloseKeywordsPat = makeKeywordsPat(issueCloseKeywords)
-	issueReopenKeywordsPat = makeKeywordsPat(issueReopenKeywords)
+func parseKeywords(words []string) []string {
+	acceptedWords := make([]string, 0, 5)
+	wordPat := regexp.MustCompile(`^[\pL]+$`)
+	for _, word := range words {
+		word = strings.ToLower(strings.TrimSpace(word))
+		// Accept Unicode letter class runes (a-z, á, à, ä, )
+		if wordPat.MatchString(word) {
+			acceptedWords = append(acceptedWords, word)
+		} else {
+			log.Info("Invalid keyword: %s", word)
+		}
+	}
+	return acceptedWords
+}
+
+func newKeywords() {
+	issueKeywordsOnce.Do(func() {
+		// Delay initialization until after the settings module is initialized
+		doNewKeywords(setting.Repository.PullRequest.CloseKeywords, setting.Repository.PullRequest.ReopenKeywords)
+	})
+}
+
+func doNewKeywords(close []string, reopen []string) {
+	issueCloseKeywordsPat = makeKeywordsPat(close)
+	issueReopenKeywordsPat = makeKeywordsPat(reopen)
 }
 
 // getGiteaHostName returns a normalized string with the local host name, with no scheme or port information
@@ -310,13 +334,19 @@ func getCrossReference(content []byte, start, end int, fromLink bool) *rawRefere
 }
 
 func findActionKeywords(content []byte, start int) (XRefAction, *RefSpan) {
-	m := issueCloseKeywordsPat.FindSubmatchIndex(content[:start])
-	if m != nil {
-		return XRefActionCloses, &RefSpan{Start: m[2], End: m[3]}
+	newKeywords()
+	var m []int
+	if issueCloseKeywordsPat != nil {
+		m = issueCloseKeywordsPat.FindSubmatchIndex(content[:start])
+		if m != nil {
+			return XRefActionCloses, &RefSpan{Start: m[2], End: m[3]}
+		}
 	}
-	m = issueReopenKeywordsPat.FindSubmatchIndex(content[:start])
-	if m != nil {
-		return XRefActionReopens, &RefSpan{Start: m[2], End: m[3]}
+	if issueReopenKeywordsPat != nil {
+		m = issueReopenKeywordsPat.FindSubmatchIndex(content[:start])
+		if m != nil {
+			return XRefActionReopens, &RefSpan{Start: m[2], End: m[3]}
+		}
 	}
 	return XRefActionNone, nil
 }

@@ -69,6 +69,10 @@ MAX_FILES = 5
 [repository.pull-request]
 ; List of prefixes used in Pull Request title to mark them as Work In Progress
 WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
+; List of keywords used in Pull Request comments to automatically close a related issue
+CLOSE_KEYWORDS=close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved
+; List of keywords used in Pull Request comments to automatically reopen a related issue
+REOPEN_KEYWORDS=reopen,reopens,reopened
 
 [repository.issue]
 ; List of reasons why a Pull Request or Issue can be locked
@@ -475,6 +479,8 @@ DEFAULT_ORG_MEMBER_VISIBLE = false
 ; Default value for EnableDependencies
 ; Repositories will use dependencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
+; Dependencies can be added from any repository where the user is granted access or only from the current repository depending on this setting.
+ALLOW_CROSS_REPOSITORY_DEPENDENCIES = true
 ; Enable heatmap on users profiles.
 ENABLE_USER_HEATMAP = true
 ; Enable Timetracking

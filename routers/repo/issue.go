@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	comment_service "code.gitea.io/gitea/services/comments"
 	issue_service "code.gitea.io/gitea/services/issue"
-	milestone_service "code.gitea.io/gitea/services/milestone"
 
 	"github.com/unknwon/com"
 )
@@ -149,7 +148,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 
 	var issueIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(repo.ID, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword([]int64{repo.ID}, keyword)
 		if err != nil {
 			ctx.ServerError("issueIndexer.Search", err)
 			return
@@ -778,6 +777,9 @@ func ViewIssue(ctx *context.Context) {
 	// Check if the user can use the dependencies
 	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.User)
 
+	// check if dependencies can be created across repositories
+	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
+
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
@@ -1066,7 +1068,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	content := ctx.Query("content")
-	if err := issue.ChangeContent(ctx.User, content); err != nil {
+	if err := issue_service.ChangeContent(issue, ctx.User, content); err != nil {
 		ctx.ServerError("ChangeContent", err)
 		return
 	}
@@ -1096,7 +1098,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 			continue
 		}
 		issue.MilestoneID = milestoneID
-		if err := milestone_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+		if err := issue_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
 			ctx.ServerError("ChangeMilestoneAssign", err)
 			return
 		}
@@ -1324,8 +1326,6 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
-	notification.NotifyCreateIssueComment(ctx.User, ctx.Repo.Repository, issue, comment)
-
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
 }
 
@@ -1375,8 +1375,6 @@ func UpdateCommentContent(ctx *context.Context) {
 		ctx.ServerError("UpdateAttachments", err)
 	}
 
-	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
-
 	ctx.JSON(200, map[string]interface{}{
 		"content":     string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
 		"attachments": attachmentsHTML(ctx, comment.Attachments),
@@ -1404,12 +1402,10 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if err = models.DeleteComment(comment, ctx.User); err != nil {
+	if err = comment_service.DeleteComment(comment, ctx.User); err != nil {
 		ctx.ServerError("DeleteCommentByID", err)
 		return
 	}
-
-	notification.NotifyDeleteComment(ctx.User, comment)
 
 	ctx.Status(200)
 }
