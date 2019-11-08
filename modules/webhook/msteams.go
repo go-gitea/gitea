@@ -2,13 +2,14 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package webhook
 
 import (
 	"encoding/json"
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -357,7 +358,7 @@ func getMSTeamsIssuesPayload(p *api.IssuePayload) (*MSTeamsPayload, error) {
 
 func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload, error) {
 	title := fmt.Sprintf("#%d: %s", p.Issue.Index, p.Issue.Title)
-	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, CommentHashTag(p.Comment.ID))
+	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID))
 	content := ""
 	var color int
 	switch p.Action {
@@ -530,7 +531,7 @@ func getMSTeamsPullRequestPayload(p *api.PullRequestPayload) (*MSTeamsPayload, e
 	}, nil
 }
 
-func getMSTeamsPullRequestApprovalPayload(p *api.PullRequestPayload, event HookEventType) (*MSTeamsPayload, error) {
+func getMSTeamsPullRequestApprovalPayload(p *api.PullRequestPayload, event models.HookEventType) (*MSTeamsPayload, error) {
 	var text, title string
 	var color int
 	switch p.Action {
@@ -544,11 +545,11 @@ func getMSTeamsPullRequestApprovalPayload(p *api.PullRequestPayload, event HookE
 		text = p.Review.Content
 
 		switch event {
-		case HookEventPullRequestApproved:
+		case models.HookEventPullRequestApproved:
 			color = greenColor
-		case HookEventPullRequestRejected:
+		case models.HookEventPullRequestRejected:
 			color = redColor
-		case HookEventPullRequestComment:
+		case models.HookEventPullRequestComment:
 			color = greyColor
 		default:
 			color = yellowColor
@@ -699,29 +700,29 @@ func getMSTeamsReleasePayload(p *api.ReleasePayload) (*MSTeamsPayload, error) {
 }
 
 // GetMSTeamsPayload converts a MSTeams webhook into a MSTeamsPayload
-func GetMSTeamsPayload(p api.Payloader, event HookEventType, meta string) (*MSTeamsPayload, error) {
+func GetMSTeamsPayload(p api.Payloader, event models.HookEventType, meta string) (*MSTeamsPayload, error) {
 	s := new(MSTeamsPayload)
 
 	switch event {
-	case HookEventCreate:
+	case models.HookEventCreate:
 		return getMSTeamsCreatePayload(p.(*api.CreatePayload))
-	case HookEventDelete:
+	case models.HookEventDelete:
 		return getMSTeamsDeletePayload(p.(*api.DeletePayload))
-	case HookEventFork:
+	case models.HookEventFork:
 		return getMSTeamsForkPayload(p.(*api.ForkPayload))
-	case HookEventIssues:
+	case models.HookEventIssues:
 		return getMSTeamsIssuesPayload(p.(*api.IssuePayload))
-	case HookEventIssueComment:
+	case models.HookEventIssueComment:
 		return getMSTeamsIssueCommentPayload(p.(*api.IssueCommentPayload))
-	case HookEventPush:
+	case models.HookEventPush:
 		return getMSTeamsPushPayload(p.(*api.PushPayload))
-	case HookEventPullRequest:
+	case models.HookEventPullRequest:
 		return getMSTeamsPullRequestPayload(p.(*api.PullRequestPayload))
-	case HookEventPullRequestRejected, HookEventPullRequestApproved, HookEventPullRequestComment:
+	case models.HookEventPullRequestRejected, models.HookEventPullRequestApproved, models.HookEventPullRequestComment:
 		return getMSTeamsPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
-	case HookEventRepository:
+	case models.HookEventRepository:
 		return getMSTeamsRepositoryPayload(p.(*api.RepositoryPayload))
-	case HookEventRelease:
+	case models.HookEventRelease:
 		return getMSTeamsReleasePayload(p.(*api.ReleasePayload))
 	}
 
