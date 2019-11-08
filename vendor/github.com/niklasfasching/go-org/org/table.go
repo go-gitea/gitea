@@ -127,4 +127,4 @@ func isSpecialRow(rawColumns []string) bool {
 	return isAlignRow
 }
 
-func (n Table) String() string { return orgWriter.nodesAsString(n) }
+func (n Table) String() string { return orgWriter.WriteNodesAsString(n) }

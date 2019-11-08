@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package webhook
 
 import (
 	"encoding/json"
@@ -11,7 +11,9 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -62,6 +64,15 @@ type (
 		IconURL  string `json:"icon_url"`
 	}
 )
+
+// GetDiscordHook returns discord metadata
+func GetDiscordHook(w *models.Webhook) *DiscordMeta {
+	s := &DiscordMeta{}
+	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
+		log.Error("webhook.GetDiscordHook(%d): %v", w.ID, err)
+	}
+	return s
+}
 
 func color(clr string) int {
 	if clr != "" {
@@ -288,7 +299,7 @@ func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPa
 
 func getDiscordIssueCommentPayload(p *api.IssueCommentPayload, discord *DiscordMeta) (*DiscordPayload, error) {
 	title := fmt.Sprintf("#%d: %s", p.Issue.Index, p.Issue.Title)
-	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, CommentHashTag(p.Comment.ID))
+	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID))
 	content := ""
 	var color int
 	switch p.Action {
@@ -421,7 +432,7 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 	}, nil
 }
 
-func getDiscordPullRequestApprovalPayload(p *api.PullRequestPayload, meta *DiscordMeta, event HookEventType) (*DiscordPayload, error) {
+func getDiscordPullRequestApprovalPayload(p *api.PullRequestPayload, meta *DiscordMeta, event models.HookEventType) (*DiscordPayload, error) {
 	var text, title string
 	var color int
 	switch p.Action {
@@ -435,11 +446,11 @@ func getDiscordPullRequestApprovalPayload(p *api.PullRequestPayload, meta *Disco
 		text = p.Review.Content
 
 		switch event {
-		case HookEventPullRequestApproved:
+		case models.HookEventPullRequestApproved:
 			color = greenColor
-		case HookEventPullRequestRejected:
+		case models.HookEventPullRequestRejected:
 			color = redColor
-		case HookEventPullRequestComment:
+		case models.HookEventPullRequestComment:
 			color = greyColor
 		default:
 			color = yellowColor
@@ -534,7 +545,7 @@ func getDiscordReleasePayload(p *api.ReleasePayload, meta *DiscordMeta) (*Discor
 }
 
 // GetDiscordPayload converts a discord webhook into a DiscordPayload
-func GetDiscordPayload(p api.Payloader, event HookEventType, meta string) (*DiscordPayload, error) {
+func GetDiscordPayload(p api.Payloader, event models.HookEventType, meta string) (*DiscordPayload, error) {
 	s := new(DiscordPayload)
 
 	discord := &DiscordMeta{}
@@ -543,40 +554,40 @@ func GetDiscordPayload(p api.Payloader, event HookEventType, meta string) (*Disc
 	}
 
 	switch event {
-	case HookEventCreate:
+	case models.HookEventCreate:
 		return getDiscordCreatePayload(p.(*api.CreatePayload), discord)
-	case HookEventDelete:
+	case models.HookEventDelete:
 		return getDiscordDeletePayload(p.(*api.DeletePayload), discord)
-	case HookEventFork:
+	case models.HookEventFork:
 		return getDiscordForkPayload(p.(*api.ForkPayload), discord)
-	case HookEventIssues:
+	case models.HookEventIssues:
 		return getDiscordIssuesPayload(p.(*api.IssuePayload), discord)
-	case HookEventIssueComment:
+	case models.HookEventIssueComment:
 		return getDiscordIssueCommentPayload(p.(*api.IssueCommentPayload), discord)
-	case HookEventPush:
+	case models.HookEventPush:
 		return getDiscordPushPayload(p.(*api.PushPayload), discord)
-	case HookEventPullRequest:
+	case models.HookEventPullRequest:
 		return getDiscordPullRequestPayload(p.(*api.PullRequestPayload), discord)
-	case HookEventPullRequestRejected, HookEventPullRequestApproved, HookEventPullRequestComment:
+	case models.HookEventPullRequestRejected, models.HookEventPullRequestApproved, models.HookEventPullRequestComment:
 		return getDiscordPullRequestApprovalPayload(p.(*api.PullRequestPayload), discord, event)
-	case HookEventRepository:
+	case models.HookEventRepository:
 		return getDiscordRepositoryPayload(p.(*api.RepositoryPayload), discord)
-	case HookEventRelease:
+	case models.HookEventRelease:
 		return getDiscordReleasePayload(p.(*api.ReleasePayload), discord)
 	}
 
 	return s, nil
 }
 
-func parseHookPullRequestEventType(event HookEventType) (string, error) {
+func parseHookPullRequestEventType(event models.HookEventType) (string, error) {
 
 	switch event {
 
-	case HookEventPullRequestApproved:
+	case models.HookEventPullRequestApproved:
 		return "approved", nil
-	case HookEventPullRequestRejected:
+	case models.HookEventPullRequestRejected:
 		return "rejected", nil
-	case HookEventPullRequestComment:
+	case models.HookEventPullRequestComment:
 		return "comment", nil
 
 	default:

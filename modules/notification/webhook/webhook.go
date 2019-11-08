@@ -6,8 +6,10 @@ package webhook
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
@@ -250,6 +252,15 @@ func (m *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *mode
 }
 
 func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue) {
+	if err := issue.LoadRepo(); err != nil {
+		log.Error("issue.LoadRepo: %v", err)
+		return
+	}
+	if err := issue.LoadPoster(); err != nil {
+		log.Error("issue.LoadPoster: %v", err)
+		return
+	}
+
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
 	if err := webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
 		Action:     api.HookIssueOpened,
@@ -257,6 +268,32 @@ func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue) {
 		Issue:      issue.APIFormat(),
 		Repository: issue.Repo.APIFormat(mode),
 		Sender:     issue.Poster.APIFormat(),
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func (m *webhookNotifier) NotifyNewPullRequest(pull *models.PullRequest) {
+	if err := pull.LoadIssue(); err != nil {
+		log.Error("pull.LoadIssue: %v", err)
+		return
+	}
+	if err := pull.Issue.LoadRepo(); err != nil {
+		log.Error("pull.Issue.LoadRepo: %v", err)
+		return
+	}
+	if err := pull.Issue.LoadPoster(); err != nil {
+		log.Error("pull.Issue.LoadPoster: %v", err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(pull.Issue.Poster, pull.Issue.Repo)
+	if err := webhook_module.PrepareWebhooks(pull.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+		Action:      api.HookIssueOpened,
+		Index:       pull.Issue.Index,
+		PullRequest: pull.APIFormat(),
+		Repository:  pull.Issue.Repo.APIFormat(mode),
+		Sender:      pull.Issue.Poster.APIFormat(),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
@@ -460,4 +497,161 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *m
 	if err != nil {
 		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	}
+}
+
+func (m *webhookNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+	apiPusher := pusher.APIFormat()
+	apiCommits, err := commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
+	if err != nil {
+		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
+		return
+	}
+
+	if err := webhook_module.PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{
+		Ref:        refName,
+		Before:     oldCommitID,
+		After:      newCommitID,
+		CompareURL: setting.AppURL + commits.CompareURL,
+		Commits:    apiCommits,
+		Repo:       repo.APIFormat(models.AccessModeOwner),
+		Pusher:     apiPusher,
+		Sender:     apiPusher,
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment) {
+	var reviewHookType models.HookEventType
+
+	switch review.Type {
+	case models.ReviewTypeApprove:
+		reviewHookType = models.HookEventPullRequestApproved
+	case models.ReviewTypeComment:
+		reviewHookType = models.HookEventPullRequestComment
+	case models.ReviewTypeReject:
+		reviewHookType = models.HookEventPullRequestRejected
+	default:
+		// unsupported review webhook type here
+		log.Error("Unsupported review webhook type")
+		return
+	}
+
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("pr.LoadIssue: %v", err)
+		return
+	}
+
+	mode, err := models.AccessLevel(review.Issue.Poster, review.Issue.Repo)
+	if err != nil {
+		log.Error("models.AccessLevel: %v", err)
+		return
+	}
+	if err := webhook_module.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
+		Action:      api.HookIssueSynchronized,
+		Index:       review.Issue.Index,
+		PullRequest: pr.APIFormat(),
+		Repository:  review.Issue.Repo.APIFormat(mode),
+		Sender:      review.Reviewer.APIFormat(),
+		Review: &api.ReviewPayload{
+			Type:    string(reviewHookType),
+			Content: review.Content,
+		},
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func (m *webhookNotifier) NotifyCreateRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	apiPusher := pusher.APIFormat()
+	apiRepo := repo.APIFormat(models.AccessModeNone)
+	refName := git.RefEndName(refFullName)
+
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		log.Error("OpenRepository[%s]: %v", repo.RepoPath(), err)
+		return
+	}
+
+	shaSum, err := gitRepo.GetBranchCommitID(refName)
+	if err != nil {
+		log.Error("GetBranchCommitID[%s]: %v", refFullName, err)
+		return
+	}
+
+	if err = webhook_module.PrepareWebhooks(repo, models.HookEventCreate, &api.CreatePayload{
+		Ref:     refName,
+		Sha:     shaSum,
+		RefType: refType,
+		Repo:    apiRepo,
+		Sender:  apiPusher,
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func (m *webhookNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("pr.LoadIssue: %v", err)
+		return
+	}
+	if err := pr.Issue.LoadAttributes(); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	if err := webhook_module.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+		Action:      api.HookIssueSynchronized,
+		Index:       pr.Issue.Index,
+		PullRequest: pr.Issue.PullRequest.APIFormat(),
+		Repository:  pr.Issue.Repo.APIFormat(models.AccessModeNone),
+		Sender:      doer.APIFormat(),
+	}); err != nil {
+		log.Error("PrepareWebhooks [pull_id: %v]: %v", pr.ID, err)
+	}
+}
+
+func (m *webhookNotifier) NotifyDeleteRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	apiPusher := pusher.APIFormat()
+	apiRepo := repo.APIFormat(models.AccessModeNone)
+	refName := git.RefEndName(refFullName)
+
+	if err := webhook_module.PrepareWebhooks(repo, models.HookEventDelete, &api.DeletePayload{
+		Ref:        refName,
+		RefType:    "branch",
+		PusherType: api.PusherTypeUser,
+		Repo:       apiRepo,
+		Sender:     apiPusher,
+	}); err != nil {
+		log.Error("PrepareWebhooks.(delete branch): %v", err)
+	}
+}
+
+func sendReleaseHook(doer *models.User, rel *models.Release, action api.HookReleaseAction) {
+	if err := rel.LoadAttributes(); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	mode, _ := models.AccessLevel(rel.Publisher, rel.Repo)
+	if err := webhook_module.PrepareWebhooks(rel.Repo, models.HookEventRelease, &api.ReleasePayload{
+		Action:     action,
+		Release:    rel.APIFormat(),
+		Repository: rel.Repo.APIFormat(mode),
+		Sender:     rel.Publisher.APIFormat(),
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func (m *webhookNotifier) NotifyNewRelease(rel *models.Release) {
+	sendReleaseHook(rel.Publisher, rel, api.HookReleasePublished)
+}
+
+func (m *webhookNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Release) {
+	sendReleaseHook(doer, rel, api.HookReleaseUpdated)
+}
+
+func (m *webhookNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
+	sendReleaseHook(doer, rel, api.HookReleaseDeleted)
 }
