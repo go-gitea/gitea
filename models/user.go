@@ -1033,14 +1033,6 @@ func UpdateUserCols(u *User, cols ...string) error {
 	return updateUserCols(x, u, cols...)
 }
 
-// AsyncUpdateUserCols is UpdateUserCols with no return value
-func AsyncUpdateUserCols(u *User, cols ...string) {
-	err := updateUserCols(x, u, cols...)
-	if err != nil {
-		log.Error("AsyncUpdateUserCols has an error", err)
-	}
-}
-
 func updateUserCols(e Engine, u *User, cols ...string) error {
 	_, err := e.ID(u.ID).Cols(cols...).Update(u)
 	return err
