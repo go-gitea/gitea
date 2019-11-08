@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -403,7 +404,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 
 	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(source.LDAP().AttributeSSHPublicKey)) > 0
 
-	// Update User if exist
+	// Update User admin flag if exist
 	isExist, err := IsUserExist(0, sr.Username)
 	if err != nil {
 		return nil, err
