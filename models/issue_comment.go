@@ -535,6 +535,10 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		return nil, err
 	}
 
+	if err = updateCommentInfos(e, opts, comment); err != nil {
+		return nil, err
+	}
+
 	if err = sendCreateCommentAction(e, opts, comment); err != nil {
 		return nil, err
 	}
@@ -544,6 +548,56 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 	}
 
 	return comment, nil
+}
+
+func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Comment) (err error) {
+	// Check comment type.
+	switch opts.Type {
+	case CommentTypeCode:
+		if comment.ReviewID != 0 {
+			if comment.Review == nil {
+				if err := comment.loadReview(e); err != nil {
+					return err
+				}
+			}
+			if comment.Review.Type <= ReviewTypePending {
+				return nil
+			}
+		}
+		fallthrough
+	case CommentTypeComment:
+		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
+			return err
+		}
+
+		// Check attachments
+		attachments := make([]*Attachment, 0, len(opts.Attachments))
+		for _, uuid := range opts.Attachments {
+			attach, err := getAttachmentByUUID(e, uuid)
+			if err != nil {
+				if IsErrAttachmentNotExist(err) {
+					continue
+				}
+				return fmt.Errorf("getAttachmentByUUID [%s]: %v", uuid, err)
+			}
+			attachments = append(attachments, attach)
+		}
+
+		for i := range attachments {
+			attachments[i].IssueID = opts.Issue.ID
+			attachments[i].CommentID = comment.ID
+			// No assign value could be 0, so ignore AllCols().
+			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
+				return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
+			}
+		}
+	case CommentTypeReopen, CommentTypeClose:
+		if err = opts.Issue.updateClosedNum(e); err != nil {
+			return err
+		}
+	}
+	// update the issue's updated_unix column
+	return updateIssueCols(e, opts.Issue, "updated_unix")
 }
 
 func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, comment *Comment) (err error) {
@@ -575,56 +629,16 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 		fallthrough
 	case CommentTypeComment:
 		act.OpType = ActionCommentIssue
-
-		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
-			return err
-		}
-
-		// Check attachments
-		attachments := make([]*Attachment, 0, len(opts.Attachments))
-		for _, uuid := range opts.Attachments {
-			attach, err := getAttachmentByUUID(e, uuid)
-			if err != nil {
-				if IsErrAttachmentNotExist(err) {
-					continue
-				}
-				return fmt.Errorf("getAttachmentByUUID [%s]: %v", uuid, err)
-			}
-			attachments = append(attachments, attach)
-		}
-
-		for i := range attachments {
-			attachments[i].IssueID = opts.Issue.ID
-			attachments[i].CommentID = comment.ID
-			// No assign value could be 0, so ignore AllCols().
-			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
-				return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
-			}
-		}
-
 	case CommentTypeReopen:
 		act.OpType = ActionReopenIssue
 		if opts.Issue.IsPull {
 			act.OpType = ActionReopenPullRequest
 		}
-
-		if err = opts.Issue.updateClosedNum(e); err != nil {
-			return err
-		}
-
 	case CommentTypeClose:
 		act.OpType = ActionCloseIssue
 		if opts.Issue.IsPull {
 			act.OpType = ActionClosePullRequest
 		}
-
-		if err = opts.Issue.updateClosedNum(e); err != nil {
-			return err
-		}
-	}
-	// update the issue's updated_unix column
-	if err = updateIssueCols(e, opts.Issue, "updated_unix"); err != nil {
-		return err
 	}
 	// Notify watchers for whatever action comes in, ignore if no action type.
 	if act.OpType > 0 {

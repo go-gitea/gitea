@@ -9,7 +9,11 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"mime"
 	"path"
+	"regexp"
+	"strings"
+	texttmpl "text/template"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -28,18 +32,22 @@ const (
 	mailAuthResetPassword  base.TplName = "auth/reset_passwd"
 	mailAuthRegisterNotify base.TplName = "auth/register_notify"
 
-	mailIssueComment  base.TplName = "issue/comment"
-	mailIssueMention  base.TplName = "issue/mention"
-	mailIssueAssigned base.TplName = "issue/assigned"
-
 	mailNotifyCollaborator base.TplName = "notify/collaborator"
+
+	// There's no actual limit for subject in RFC 5322
+	mailMaxSubjectRunes = 256
 )
 
-var templates *template.Template
+var (
+	bodyTemplates       *template.Template
+	subjectTemplates    *texttmpl.Template
+	subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
+)
 
 // InitMailRender initializes the mail renderer
-func InitMailRender(tmpls *template.Template) {
-	templates = tmpls
+func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
+	subjectTemplates = subjectTpl
+	bodyTemplates = bodyTpl
 }
 
 // SendTestMail sends a test mail
@@ -58,7 +66,7 @@ func SendUserMail(language string, u *models.User, tpl base.TplName, code, subje
 
 	var content bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&content, string(tpl), data); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&content, string(tpl), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -96,7 +104,7 @@ func SendActivateEmailMail(locale Locale, u *models.User, email *models.EmailAdd
 
 	var content bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -121,7 +129,7 @@ func SendRegisterNotifyMail(locale Locale, u *models.User) {
 
 	var content bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -145,7 +153,7 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 
 	var content bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
 		log.Error("Template: %v", err)
 		return
 	}
@@ -156,40 +164,70 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 	SendAsync(msg)
 }
 
-func composeTplData(subject, body, link string) map[string]interface{} {
-	data := make(map[string]interface{}, 10)
-	data["Subject"] = subject
-	data["Body"] = body
-	data["Link"] = link
-	return data
-}
+func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionType models.ActionType, fromMention bool,
+	content string, comment *models.Comment, tos []string, info string) *Message {
 
-func composeIssueCommentMessage(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tplName base.TplName, tos []string, info string) *Message {
-	var subject string
+	if err := issue.LoadPullRequest(); err != nil {
+		log.Error("LoadPullRequest: %v", err)
+		return nil
+	}
+
+	var (
+		subject string
+		link    string
+		prefix  string
+		// Fall back subject for bad templates, make sure subject is never empty
+		fallback string
+	)
+
+	commentType := models.CommentTypeComment
 	if comment != nil {
-		subject = "Re: " + mailSubject(issue)
+		prefix = "Re: "
+		commentType = comment.Type
+		link = issue.HTMLURL() + "#" + comment.HashTag()
 	} else {
-		subject = mailSubject(issue)
+		link = issue.HTMLURL()
 	}
-	err := issue.LoadRepo()
-	if err != nil {
-		log.Error("LoadRepo: %v", err)
-	}
+
+	fallback = prefix + fallbackMailSubject(issue)
+
+	// This is the body of the new issue or comment, not the mail body
 	body := string(markup.RenderByType(markdown.MarkupName, []byte(content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
 
-	var data = make(map[string]interface{}, 10)
-	if comment != nil {
-		data = composeTplData(subject, body, issue.HTMLURL()+"#"+comment.HashTag())
-	} else {
-		data = composeTplData(subject, body, issue.HTMLURL())
+	actType, actName, tplName := actionToTemplate(issue, actionType, commentType)
+
+	mailMeta := map[string]interface{}{
+		"FallbackSubject": fallback,
+		"Body":            body,
+		"Link":            link,
+		"Issue":           issue,
+		"Comment":         comment,
+		"IsPull":          issue.IsPull,
+		"User":            issue.Repo.MustOwner(),
+		"Repo":            issue.Repo.FullName(),
+		"Doer":            doer,
+		"IsMention":       fromMention,
+		"SubjectPrefix":   prefix,
+		"ActionType":      actType,
+		"ActionName":      actName,
 	}
-	data["Doer"] = doer
-	data["Issue"] = issue
+
+	var mailSubject bytes.Buffer
+	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplName), mailMeta); err == nil {
+		subject = sanitizeSubject(mailSubject.String())
+	} else {
+		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/subject", err)
+	}
+
+	if subject == "" {
+		subject = fallback
+	}
+	mailMeta["Subject"] = subject
 
 	var mailBody bytes.Buffer
 
-	if err := templates.ExecuteTemplate(&mailBody, string(tplName), data); err != nil {
-		log.Error("Template: %v", err)
+	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplName), mailMeta); err != nil {
+		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/body", err)
 	}
 
 	msg := NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
@@ -206,24 +244,81 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, content 
 	return msg
 }
 
+func sanitizeSubject(subject string) string {
+	runes := []rune(strings.TrimSpace(subjectRemoveSpaces.ReplaceAllLiteralString(subject, " ")))
+	if len(runes) > mailMaxSubjectRunes {
+		runes = runes[:mailMaxSubjectRunes]
+	}
+	// Encode non-ASCII characters
+	return mime.QEncoding.Encode("utf-8", string(runes))
+}
+
 // SendIssueCommentMail composes and sends issue comment emails to target receivers.
-func SendIssueCommentMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
+func SendIssueCommentMail(issue *models.Issue, doer *models.User, actionType models.ActionType, content string, comment *models.Comment, tos []string) {
 	if len(tos) == 0 {
 		return
 	}
 
-	SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueComment, tos, "issue comment"))
+	SendAsync(composeIssueCommentMessage(issue, doer, actionType, false, content, comment, tos, "issue comment"))
 }
 
 // SendIssueMentionMail composes and sends issue mention emails to target receivers.
-func SendIssueMentionMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
+func SendIssueMentionMail(issue *models.Issue, doer *models.User, actionType models.ActionType, content string, comment *models.Comment, tos []string) {
 	if len(tos) == 0 {
 		return
 	}
-	SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueMention, tos, "issue mention"))
+	SendAsync(composeIssueCommentMessage(issue, doer, actionType, true, content, comment, tos, "issue mention"))
+}
+
+// actionToTemplate returns the type and name of the action facing the user
+// (slightly different from models.ActionType) and the name of the template to use (based on availability)
+func actionToTemplate(issue *models.Issue, actionType models.ActionType, commentType models.CommentType) (typeName, name, template string) {
+	if issue.IsPull {
+		typeName = "pull"
+	} else {
+		typeName = "issue"
+	}
+	switch actionType {
+	case models.ActionCreateIssue, models.ActionCreatePullRequest:
+		name = "new"
+	case models.ActionCommentIssue:
+		name = "comment"
+	case models.ActionCloseIssue, models.ActionClosePullRequest:
+		name = "close"
+	case models.ActionReopenIssue, models.ActionReopenPullRequest:
+		name = "reopen"
+	case models.ActionMergePullRequest:
+		name = "merge"
+	default:
+		switch commentType {
+		case models.CommentTypeReview:
+			name = "review"
+		case models.CommentTypeCode:
+			name = "code"
+		case models.CommentTypeAssignees:
+			name = "assigned"
+		default:
+			name = "default"
+		}
+	}
+
+	template = typeName + "/" + name
+	ok := bodyTemplates.Lookup(template) != nil
+	if !ok && typeName != "issue" {
+		template = "issue/" + name
+		ok = bodyTemplates.Lookup(template) != nil
+	}
+	if !ok {
+		template = typeName + "/default"
+		ok = bodyTemplates.Lookup(template) != nil
+	}
+	if !ok {
+		template = "issue/default"
+	}
+	return
 }
 
 // SendIssueAssignedMail composes and sends issue assigned email
 func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
-	SendAsync(composeIssueCommentMessage(issue, doer, content, comment, mailIssueAssigned, tos, "issue assigned"))
+	SendAsync(composeIssueCommentMessage(issue, doer, models.ActionType(0), false, content, comment, tos, "issue assigned"))
 }

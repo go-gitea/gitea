@@ -128,10 +128,11 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 	//   "201":
 	//     "$ref": "#/responses/Team"
 	team := &models.Team{
-		OrgID:       ctx.Org.Organization.ID,
-		Name:        form.Name,
-		Description: form.Description,
-		Authorize:   models.ParseAccessMode(form.Permission),
+		OrgID:                   ctx.Org.Organization.ID,
+		Name:                    form.Name,
+		Description:             form.Description,
+		IncludesAllRepositories: form.IncludesAllRepositories,
+		Authorize:               models.ParseAccessMode(form.Permission),
 	}
 
 	unitTypes := models.FindUnitTypes(form.Units...)
@@ -182,10 +183,26 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	//   "200":
 	//     "$ref": "#/responses/Team"
 	team := ctx.Org.Team
-	team.Name = form.Name
 	team.Description = form.Description
-	team.Authorize = models.ParseAccessMode(form.Permission)
 	unitTypes := models.FindUnitTypes(form.Units...)
+
+	isAuthChanged := false
+	isIncludeAllChanged := false
+	if !team.IsOwnerTeam() {
+		// Validate permission level.
+		auth := models.ParseAccessMode(form.Permission)
+
+		team.Name = form.Name
+		if team.Authorize != auth {
+			isAuthChanged = true
+			team.Authorize = auth
+		}
+
+		if team.IncludesAllRepositories != form.IncludesAllRepositories {
+			isIncludeAllChanged = true
+			team.IncludesAllRepositories = form.IncludesAllRepositories
+		}
+	}
 
 	if team.Authorize < models.AccessModeOwner {
 		var units = make([]*models.TeamUnit, 0, len(form.Units))
@@ -198,7 +215,7 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 		team.Units = units
 	}
 
-	if err := models.UpdateTeam(team, true); err != nil {
+	if err := models.UpdateTeam(team, isAuthChanged, isIncludeAllChanged); err != nil {
 		ctx.Error(500, "EditTeam", err)
 		return
 	}

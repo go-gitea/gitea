@@ -22,11 +22,23 @@
 			{{if eq .Team.LowerName "owners"}}
 				{{.i18n.Tr "org.teams.owners_permission_desc" | Str2html}}
 			{{else if (eq .Team.Authorize 1)}}
-				{{.i18n.Tr "org.teams.read_permission_desc" | Str2html}}
+				{{if .Team.IncludesAllRepositories}}
+					{{.i18n.Tr "org.teams.all_repositories_read_permission_desc" | Str2html}}
+				{{else}}
+					{{.i18n.Tr "org.teams.read_permission_desc" | Str2html}}
+				{{end}}
 			{{else if (eq .Team.Authorize 2)}}
-				{{.i18n.Tr "org.teams.write_permission_desc" | Str2html}}
+				{{if .Team.IncludesAllRepositories}}
+					{{.i18n.Tr "org.teams.all_repositories_write_permission_desc" | Str2html}}
+				{{else}}
+					{{.i18n.Tr "org.teams.write_permission_desc" | Str2html}}
+				{{end}}
 			{{else if (eq .Team.Authorize 3)}}
-				{{.i18n.Tr "org.teams.admin_permission_desc" | Str2html}}
+				{{if .Team.IncludesAllRepositories}}
+					{{.i18n.Tr "org.teams.all_repositories_admin_permission_desc" | Str2html}}
+				{{else}}
+					{{.i18n.Tr "org.teams.admin_permission_desc" | Str2html}}
+				{{end}}
 			{{end}}
 		</div>
 	</div>
