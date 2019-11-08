@@ -66,6 +66,10 @@ func (*NullNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repo
 func (*NullNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
 }
 
+// NotifyRenameRepository places a place holder function
+func (*NullNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldName string) {
+}
+
 // NotifyNewRelease places a place holder function
 func (*NullNotifier) NotifyNewRelease(rel *models.Release) {
 }

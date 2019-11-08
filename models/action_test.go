@@ -2,7 +2,6 @@ package models
 
 import (
 	"path"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -26,58 +25,6 @@ func TestAction_GetRepoLink(t *testing.T) {
 	setting.AppSubURL = "/suburl/"
 	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
 	assert.Equal(t, expected, action.GetRepoLink())
-}
-
-func TestNewRepoAction(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{OwnerID: user.ID}).(*Repository)
-	repo.Owner = user
-
-	actionBean := &Action{
-		OpType:    ActionCreateRepo,
-		ActUserID: user.ID,
-		RepoID:    repo.ID,
-		ActUser:   user,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}
-
-	AssertNotExistsBean(t, actionBean)
-	assert.NoError(t, NewRepoAction(user, repo))
-	AssertExistsAndLoadBean(t, actionBean)
-	CheckConsistencyFor(t, &Action{})
-}
-
-func TestRenameRepoAction(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{OwnerID: user.ID}).(*Repository)
-	repo.Owner = user
-
-	oldRepoName := repo.Name
-	const newRepoName = "newRepoName"
-	repo.Name = newRepoName
-	repo.LowerName = strings.ToLower(newRepoName)
-
-	actionBean := &Action{
-		OpType:    ActionRenameRepo,
-		ActUserID: user.ID,
-		ActUser:   user,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-		Content:   oldRepoName,
-	}
-	AssertNotExistsBean(t, actionBean)
-	assert.NoError(t, RenameRepoAction(user, oldRepoName, repo))
-	AssertExistsAndLoadBean(t, actionBean)
-
-	_, err := x.ID(repo.ID).Cols("name", "lower_name").Update(repo)
-	assert.NoError(t, err)
-	CheckConsistencyFor(t, &Action{})
 }
 
 func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
