@@ -1447,14 +1447,17 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 	}
 	u.NumRepos++
 
-	// Give access to all members in owner team.
+	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
-		t, err := u.getOwnerTeam(e)
-		if err != nil {
-			return fmt.Errorf("getOwnerTeam: %v", err)
+		if err := u.GetTeams(); err != nil {
+			return fmt.Errorf("GetTeams: %v", err)
 		}
-		if err = t.addRepository(e, repo); err != nil {
-			return fmt.Errorf("addRepository: %v", err)
+		for _, t := range u.Teams {
+			if t.IncludesAllRepositories {
+				if err := t.addRepository(e, repo); err != nil {
+					return fmt.Errorf("addRepository: %v", err)
+				}
+			}
 		}
 	} else if err = repo.recalculateAccesses(e); err != nil {
 		// Organization automatically called this in addRepository method.
@@ -1641,11 +1644,15 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	if newOwner.IsOrganization() {
-		t, err := newOwner.getOwnerTeam(sess)
-		if err != nil {
-			return fmt.Errorf("getOwnerTeam: %v", err)
-		} else if err = t.addRepository(sess, repo); err != nil {
-			return fmt.Errorf("add to owner team: %v", err)
+		if err := newOwner.GetTeams(); err != nil {
+			return fmt.Errorf("GetTeams: %v", err)
+		}
+		for _, t := range newOwner.Teams {
+			if t.IncludesAllRepositories {
+				if err := t.addRepository(sess, repo); err != nil {
+					return fmt.Errorf("addRepository: %v", err)
+				}
+			}
 		}
 	} else if err = repo.recalculateAccesses(sess); err != nil {
 		// Organization called this in addRepository method.
@@ -2809,4 +2816,20 @@ func (repo *Repository) GetOriginalURLHostname() string {
 	}
 
 	return u.Host
+}
+
+// GetTreePathLock returns LSF lock for the treePath
+func (repo *Repository) GetTreePathLock(treePath string) (*LFSLock, error) {
+	if setting.LFS.StartServer {
+		locks, err := GetLFSLockByRepoID(repo.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, lock := range locks {
+			if lock.Path == treePath {
+				return lock, nil
+			}
+		}
+	}
+	return nil, nil
 }

@@ -166,13 +166,13 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <h3 id="footnotes">Footnotes</h3>
 
 <p>Here is a simple footnote,<sup id="fnref:1"><a href="#fn:1" rel="nofollow">1</a></sup> and here is a longer one.<sup id="fnref:bignote"><a href="#fn:bignote" rel="nofollow">2</a></sup></p>
+
 <div>
 
 <hr/>
 
 <ol>
-<li id="fn:1">This is the first footnote.
-</li>
+<li id="fn:1">This is the first footnote.</li>
 
 <li id="fn:bignote"><p>Here is one with multiple paragraphs and code.</p>
 
@@ -180,9 +180,9 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 
 <p><code>{ my code }</code></p>
 
-<p>Add as many paragraphs as you like.</p>
-</li>
+<p>Add as many paragraphs as you like.</p></li>
 </ol>
+
 </div>
 `,
 	}

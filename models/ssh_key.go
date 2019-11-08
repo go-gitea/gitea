@@ -107,7 +107,7 @@ func parseKeyString(content string) (string, error) {
 
 	var keyType, keyContent, keyComment string
 
-	if content[:len(ssh2keyStart)] == ssh2keyStart {
+	if strings.HasPrefix(content, ssh2keyStart) {
 		// Parse SSH2 file format.
 
 		// Transform all legal line endings to a single "\n".

@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -180,12 +181,14 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Units"] = models.Units
+	var includesAllRepositories = (form.RepoAccess == "all")
 
 	t := &models.Team{
-		OrgID:       ctx.Org.Organization.ID,
-		Name:        form.TeamName,
-		Description: form.Description,
-		Authorize:   models.ParseAccessMode(form.Permission),
+		OrgID:                   ctx.Org.Organization.ID,
+		Name:                    form.TeamName,
+		Description:             form.Description,
+		Authorize:               models.ParseAccessMode(form.Permission),
+		IncludesAllRepositories: includesAllRepositories,
 	}
 
 	if t.Authorize < models.AccessModeOwner {
@@ -268,6 +271,8 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 	ctx.Data["Units"] = models.Units
 
 	isAuthChanged := false
+	isIncludeAllChanged := false
+	var includesAllRepositories = (form.RepoAccess == "all")
 	if !t.IsOwnerTeam() {
 		// Validate permission level.
 		auth := models.ParseAccessMode(form.Permission)
@@ -276,6 +281,11 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		if t.Authorize != auth {
 			isAuthChanged = true
 			t.Authorize = auth
+		}
+
+		if t.IncludesAllRepositories != includesAllRepositories {
+			isIncludeAllChanged = true
+			t.IncludesAllRepositories = includesAllRepositories
 		}
 	}
 	t.Description = form.Description
@@ -305,7 +315,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		return
 	}
 
-	if err := models.UpdateTeam(t, isAuthChanged); err != nil {
+	if err := models.UpdateTeam(t, isAuthChanged, isIncludeAllChanged); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {
 		case models.IsErrTeamAlreadyExist(err):
