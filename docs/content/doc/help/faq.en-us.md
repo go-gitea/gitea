@@ -288,5 +288,5 @@ There is no setting for password resets. It is considered "enabled" when a [mail
   - By using the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}).  
   Keep in mind most commands will also need a [global flag]({{< relref "doc/usage/command-line.en-us.md#global-options" >}}) to point the CLI at the correct configuration.
 - As a **user** you can change it... 
-  - In your account `Settings -> Account` page (this method **requires** you to know your password).
+  - In your account `Settings -> Account` page (this method **requires** you to know your current password).
   - By using the `Forgot Password` link if there is a configured [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}).
