@@ -166,11 +166,11 @@ fmt-check:
 
 .PHONY: test
 test:
-	LANG="en_US.utf8" LC_ALL="en_US" GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
+	LC_ALL=C GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
 
 .PHONY: test\#%
 test\#%:
-	LANG="en_US.utf8" LC_ALL="en_US" GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' -run $* $(PACKAGES)
+	LC_ALL=C GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' -run $* $(PACKAGES)
 
 .PHONY: coverage
 coverage:
