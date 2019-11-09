@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/v1/convert"
+	"code.gitea.io/gitea/modules/convert"
 )
 
 // ListTags list all the tags of a repository
