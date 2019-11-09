@@ -757,7 +757,7 @@ func LinkAccount(ctx *context.Context) {
 
 // LinkAccountPostSignIn handle the coupling of external account with another account using signIn
 func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
-	ctx.Data["DisablePassword"] = setting.Service.AllowOnlyExternalRegistration
+	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationPassword || setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["LinkAccountModeSignIn"] = true
