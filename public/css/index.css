@@ -945,8 +945,9 @@ tbody.commit-list{vertical-align:baseline}
 .organization.teams .members .item,.organization.teams .repositories .item{padding:10px 20px;line-height:32px}
 .organization.teams .members .item:not(:last-child),.organization.teams .repositories .item:not(:last-child){border-bottom:1px solid #ddd}
 .organization.teams .members .item .button,.organization.teams .repositories .item .button{padding:9px 10px}
-.organization.teams #add-member-form input,.organization.teams #add-repo-form input{margin-left:0}
-.organization.teams #add-member-form .ui.button,.organization.teams #add-repo-form .ui.button{margin-left:5px;margin-top:-3px}
+.organization.teams #add-member-form input,.organization.teams #add-repo-form input,.organization.teams #repo-multiple-form input{margin-left:0}
+.organization.teams #add-member-form .ui.button,.organization.teams #add-repo-form .ui.button,.organization.teams #repo-multiple-form .ui.button{margin-left:5px;margin-top:-3px}
+.organization.teams #repo-top-segment{height:60px}
 .user:not(.icon){padding-top:15px}
 .user.profile .ui.card .username{display:block}
 .user.profile .ui.card .extra.content{padding:0}
