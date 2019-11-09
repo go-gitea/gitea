@@ -2840,3 +2840,9 @@ func (repo *Repository) GetTreePathLock(treePath string) (*LFSLock, error) {
 	}
 	return nil, nil
 }
+
+// UpdateRepositoryCols updates repository's columns
+func UpdateRepositoryCols(repo *Repository, cols ...string) error {
+	_, err := x.ID(repo.ID).Cols(cols...).Update(repo)
+	return err
+}
