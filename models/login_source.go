@@ -405,7 +405,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(source.LDAP().AttributeSSHPublicKey)) > 0
 
 	// Update User admin flag if exist
-	isExist, err := IsUserExist(0, sr.Username)
+	if isExist, err := IsUserExist(0, sr.Username); err != nil {
 	if err != nil {
 		return nil, err
 	} else if isExist {
