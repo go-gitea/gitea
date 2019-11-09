@@ -115,6 +115,13 @@ func NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
 	}
 }
 
+// NotifyRenameRepository notifies repository renamed
+func NotifyRenameRepository(doer *models.User, repo *models.Repository, oldName string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyRenameRepository(doer, repo, oldName)
+	}
+}
+
 // NotifyNewRelease notifies new release to notifiers
 func NotifyNewRelease(rel *models.Release) {
 	for _, notifier := range notifiers {

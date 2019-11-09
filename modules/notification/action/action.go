@@ -20,7 +20,7 @@ var (
 	_ base.Notifier = &actionNotifier{}
 )
 
-// NewNotifier create a new webhookNotifier notifier
+// NewNotifier create a new actionNotifier notifier
 func NewNotifier() base.Notifier {
 	return &actionNotifier{}
 }
@@ -73,5 +73,21 @@ func (a *actionNotifier) NotifyNewPullRequest(pull *models.PullRequest) {
 		IsPrivate: pull.Issue.Repo.IsPrivate,
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldName string) {
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    models.ActionRenameRepo,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		Content:   oldName,
+	}); err != nil {
+		log.Error("notify watchers: %v", err)
+	} else {
+		log.Trace("action.renameRepoAction: %s/%s", doer.Name, repo.Name)
 	}
 }
