@@ -9,25 +9,33 @@
 				{{template "org/team/navbar" .}}
 				{{$canAddRemove := and $.IsOrganizationOwner (not $.Team.IncludesAllRepositories)}}
 				{{if $canAddRemove}}
-					<div class="ui attached segment">
-						<form class="ui form" id="add-repo-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/add" method="post">
-							{{.CsrfTokenHtml}}
-							<div class="inline field ui left">
-								<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
-									<div class="ui input">
-										<input class="prompt" name="repo_name" placeholder="{{.i18n.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
+					<div class="ui attached segment" id="repo-top-segment">
+						<div class="inline ui field left">
+							<form class="ui form" id="add-repo-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/add" method="post">
+								{{.CsrfTokenHtml}}
+								<div class="inline field ui left">
+									<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
+										<div class="ui input">
+											<input class="prompt" name="repo_name" placeholder="{{.i18n.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
+										</div>
 									</div>
 								</div>
-							</div>
-							<button class="ui green button">{{.i18n.Tr "org.teams.add_team_repository"}}</button>
-						</form>
+								<button class="ui green button">{{.i18n.Tr "add"}}</button>
+							</form>
+						</div>
+						<div class="inline ui field right">
+							<form class="ui form" id="repo-multiple-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/repositories" method="post">
+								<button class="ui red button delete-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/removeall">{{.i18n.Tr "remove_all"}}</button>
+								<button class="ui green button add-all-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/addall">{{.i18n.Tr "add_all"}}</button>
+							</form>
+						</div>
 					</div>
 				{{end}}
 				<div class="ui bottom attached table segment repositories">
 					{{range .Team.Repos}}
 						<div class="item">
 							{{if $canAddRemove}}
-								<a class="ui red small button right" href="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/remove?repoid={{.ID}}">{{$.i18n.Tr "org.teams.remove_repo"}}</a>
+								<a class="ui red small button right" href="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/repo/remove?repoid={{.ID}}">{{$.i18n.Tr "remove"}}</a>
 							{{end}}
 							<a class="member" href="{{AppSubUrl}}/{{$.Org.Name}}/{{.Name}}">
 								<i class="octicon octicon-{{if .IsPrivate}}lock{{else if .IsFork}}repo-forked{{else if .IsMirror}}repo-clone{{else}}repo{{end}}"></i>
@@ -44,4 +52,27 @@
 		</div>
 	</div>
 </div>
+
+<div class="ui small basic delete modal">
+	<div class="ui icon header">
+		<i class="trash icon"></i>
+		{{.i18n.Tr "org.teams.remove_all_repos_title"}}
+	</div>
+	<div class="content">
+		<p>{{.i18n.Tr "org.teams.remove_all_repos_desc"}}</p>
+	</div>
+	{{template "base/delete_modal_actions" .}}
+</div>
+
+<div class="ui small basic addall modal">
+	<div class="ui icon header">
+		<i class="globe icon"></i>
+		{{.i18n.Tr "org.teams.add_all_repos_title"}}
+	</div>
+	<div class="content">
+		<p>{{.i18n.Tr "org.teams.add_all_repos_desc"}}</p>
+	</div>
+	{{template "base/delete_modal_actions" .}}
+</div>
+
 {{template "base/footer" .}}

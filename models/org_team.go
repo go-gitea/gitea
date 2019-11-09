@@ -243,6 +243,21 @@ func (t *Team) addAllRepositories(e Engine) error {
 	return nil
 }
 
+// AddAllRepositories adds all repositories to the team
+func (t *Team) AddAllRepositories() (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err = t.addAllRepositories(sess); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
 // AddRepository adds new repository to team of organization.
 func (t *Team) AddRepository(repo *Repository) (err error) {
 	if repo.OwnerID != t.OrgID {
@@ -262,6 +277,69 @@ func (t *Team) AddRepository(repo *Repository) (err error) {
 	}
 
 	return sess.Commit()
+}
+
+// RemoveAllRepositories removes all repositories from team and recalculates access
+func (t *Team) RemoveAllRepositories() (err error) {
+	if t.IncludesAllRepositories {
+		return nil
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err = t.removeAllRepositories(sess); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+// removeAllRepositories removes all repositories from team and recalculates access
+// Note: Shall not be called if team includes all repositories
+func (t *Team) removeAllRepositories(e Engine) (err error) {
+	// Delete all accesses.
+	for _, repo := range t.Repos {
+		if err := repo.recalculateTeamAccesses(e, t.ID); err != nil {
+			return err
+		}
+
+		// Remove watches from all users and now unaccessible repos
+		for _, user := range t.Members {
+			has, err := hasAccess(e, user.ID, repo)
+			if err != nil {
+				return err
+			} else if has {
+				continue
+			}
+
+			if err = watchRepo(e, user.ID, repo.ID, false); err != nil {
+				return err
+			}
+
+			// Remove all IssueWatches a user has subscribed to in the repositories
+			if err = removeIssueWatchersByRepoID(e, user.ID, repo.ID); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Delete team-repo
+	if _, err := e.
+		Where("team_id=?", t.ID).
+		Delete(new(TeamRepo)); err != nil {
+		return err
+	}
+
+	t.NumRepos = 0
+	if _, err = e.ID(t.ID).Cols("num_repos").Update(t); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // removeRepository removes a repository from a team and recalculates access
@@ -577,36 +655,7 @@ func DeleteTeam(t *Team) error {
 		return err
 	}
 
-	// Delete all accesses.
-	for _, repo := range t.Repos {
-		if err := repo.recalculateTeamAccesses(sess, t.ID); err != nil {
-			return err
-		}
-
-		// Remove watches from all users and now unaccessible repos
-		for _, user := range t.Members {
-			has, err := hasAccess(sess, user.ID, repo)
-			if err != nil {
-				return err
-			} else if has {
-				continue
-			}
-
-			if err = watchRepo(sess, user.ID, repo.ID, false); err != nil {
-				return err
-			}
-
-			// Remove all IssueWatches a user has subscribed to in the repositories
-			if err = removeIssueWatchersByRepoID(sess, user.ID, repo.ID); err != nil {
-				return err
-			}
-		}
-	}
-
-	// Delete team-repo
-	if _, err := sess.
-		Where("team_id=?", t.ID).
-		Delete(new(TeamRepo)); err != nil {
+	if err := t.removeAllRepositories(sess); err != nil {
 		return err
 	}
 
