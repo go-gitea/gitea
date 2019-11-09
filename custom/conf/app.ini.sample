@@ -511,6 +511,10 @@ DELIVER_TIMEOUT = 5
 SKIP_TLS_VERIFY = false
 ; Number of history information in each page
 PAGING_NUM = 10
+; Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy
+PROXY_URL = 
+; Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
+PROXY_HOSTS = 
 
 [mailer]
 ENABLED = false
