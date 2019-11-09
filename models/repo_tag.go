@@ -14,6 +14,7 @@ func GetTagsByPath(path string) ([]*git.Tag, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer gitRepo.Close()
 
 	return gitRepo.GetTagInfos()
 }

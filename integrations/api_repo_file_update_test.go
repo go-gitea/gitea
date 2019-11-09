@@ -143,6 +143,7 @@ func TestAPIUpdateFile(t *testing.T) {
 			assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
 			assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
 			assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
+			gitRepo.Close()
 		}
 
 		// Test updating a file in a new branch

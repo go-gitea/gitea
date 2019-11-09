@@ -56,6 +56,7 @@ func TestEntriesCustomSort(t *testing.T) {
 func TestFollowLink(t *testing.T) {
 	r, err := OpenRepository("tests/repos/repo1_bare")
 	assert.NoError(t, err)
+	defer r.Close()
 
 	commit, err := r.GetCommit("37991dec2c8e592043f47155ce4808d4580f9123")
 	assert.NoError(t, err)

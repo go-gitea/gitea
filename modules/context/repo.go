@@ -593,6 +593,13 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				ctx.ServerError("RepoRef Invalid repo "+repoPath, err)
 				return
 			}
+			// We opened it, we should close it
+			defer func() {
+				// If it's been set to nil then assume someone else has closed it.
+				if ctx.Repo.GitRepo != nil {
+					ctx.Repo.GitRepo.Close()
+				}
+			}()
 		}
 
 		// Get default branch.
@@ -681,6 +688,8 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 			return
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+
+		ctx.Next()
 	}
 }
 
