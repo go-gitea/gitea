@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func addLFSLock(x *xorm.Engine) error {

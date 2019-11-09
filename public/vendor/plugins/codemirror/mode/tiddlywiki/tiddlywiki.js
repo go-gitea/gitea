@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 /***
     |''Name''|tiddlywiki.js|
@@ -8,7 +8,7 @@
     |''Version''|0.1.7|
     |''Status''|''stable''|
     |''Source''|[[GitHub|https://github.com/pmario/CodeMirror2/blob/tw-syntax/mode/tiddlywiki]]|
-    |''Documentation''|http://codemirror.tiddlyspace.com/|
+    |''Documentation''|https://codemirror.tiddlyspace.com/|
     |''License''|[[MIT License|http://www.opensource.org/licenses/mit-license.php]]|
     |''CoreVersion''|2.5.0|
     |''Requires''|codemirror.js|

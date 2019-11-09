@@ -53,7 +53,7 @@ To work with tagged releases, the following commands can be used:
 
 ```bash
 git branch -a
-git checkout v1.0
+git checkout v{{< version >}}
 ```
 
 To validate a Pull Request, first enable the new branch (`xyz` is the PR id;
@@ -63,14 +63,14 @@ for example `2663` for [#2663](https://github.com/go-gitea/gitea/pull/2663)):
 git fetch origin pull/xyz/head:pr-xyz
 ```
 
-To build Gitea from source at a specific tagged release (like v1.0.0), list the
+To build Gitea from source at a specific tagged release (like v{{< version >}}), list the
 available tags and check out the specific tag.
 
 List available tags with the following.
 
 ```bash
 git tag -l
-git checkout v1.0.0  # or git checkout pr-xyz
+git checkout v{{< version >}}  # or git checkout pr-xyz
 ```
 
 ## Build
@@ -118,12 +118,12 @@ launched manually from command line, it can be killed by pressing `Ctrl + C`.
 ./gitea web
 ```
 
-## Changing the default CustomPath, CustomConf and AppWorkDir
+## Changing the default CustomPath, CustomConf and AppWorkPath
 
 Gitea will search for a number of things from the `CustomPath`. By default this is
 the `custom/` directory in the current working directory when running Gitea. It will also
 look for its configuration file `CustomConf` in `$CustomPath/conf/app.ini`, and will use the
-current working directory as the relative base path `AppWorkDir` for a number configurable
+current working directory as the relative base path `AppWorkPath` for a number configurable
 values.
 
 These values, although useful when developing, may conflict with downstream users preferences.
@@ -134,7 +134,7 @@ using the `LDFLAGS` environment variable for `make`. The appropriate settings ar
 
 * To set the `CustomPath` use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
 * For `CustomConf` you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
-* For `AppWorkDir` you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkDir=working-directory\"`
+* For `AppWorkPath` you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
 
 Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
 with the appropriate `TAGS` as above.

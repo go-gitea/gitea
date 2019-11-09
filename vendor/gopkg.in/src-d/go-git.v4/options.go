@@ -186,6 +186,9 @@ type PushOptions struct {
 	// Progress is where the human readable information sent by the server is
 	// stored, if nil nothing is stored.
 	Progress sideband.Progress
+	// Prune specify that remote refs that match given RefSpecs and that do
+	// not exist locally will be removed.
+	Prune bool
 }
 
 // Validate validates the fields and sets the default values.

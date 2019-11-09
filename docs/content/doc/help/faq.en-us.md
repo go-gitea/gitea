@@ -28,7 +28,8 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
 * [What is Swagger?](#what-is-swagger)
 * [Adjusting your server for public/private use](#adjusting-your-server-for-public-private-use)
   * [Preventing spammers](#preventing-spammers)
-  * [Only allow/block certain email domains](#only-allow-block-certain-email-domains)
+  * [Only allow certain email domains](#only-allow-certain-email-domains)
+  * [Only allow/block certain OpenID providers](#only-allow-block-certain-openid-providers)
   * [Issue only users](#issue-only-users)
   * [Enable Fail2ban](#enable-fail2ban)
 * [Adding custom themes](#how-to-add-use-custom-themes)
@@ -41,6 +42,9 @@ Also see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}})
   * [SSH Common Errors](#ssh-common-errors)
 * [Missing releases after migration repository with tags](#missing-releases-after-migrating-repository-with-tags)
 * [LFS Issues](#lfs-issues)
+* [How can I create users before starting Gitea](#how-can-i-create-users-before-starting-gitea)
+* [How can I enable password reset](#how-can-i-enable-password-reset)
+* [How can a user's password be changed](#how-can-a-user-s-password-be-changed)
 
 
 ## Difference between 1.x and 1.x.x downloads
@@ -133,8 +137,11 @@ There are multiple things you can combine to prevent spammers.
 2. Setting `ENABLE_CAPTCHA` to `true` in your `app.ini` and properly configuring `RECAPTCHA_SECRET` and `RECAPTCHA_SITEKEY`
 3. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/advanced/api-usage.en-us.md" >}}), or Gitea's Admin UI  
 
-### Only allow/block certain email domains
-If using OpenID, you can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` in your `app.ini`  
+### Only allow certain email domains
+You can configure `EMAIL_DOMAIN_WHITELIST` in your app.ini under `[service]`
+
+### Only allow/block certain OpenID providers
+You can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` under `[openid]` in your `app.ini`  
 **NOTE:** whitelisted takes precedence, so if it is non-blank then blacklisted is ignored
 
 ### Issue only users
@@ -268,3 +275,19 @@ Check the value of `LFS_HTTP_AUTH_EXPIRY` in your `app.ini` file.
 By default, your LFS token will expire after 20 minutes. If you have a slow connection or a large file (or both), it may not finish uploading within the time limit. 
 
 You may want to set this value to `60m` or `120m`.
+
+## How can I create users before starting Gitea
+Gitea provides a sub-command `gitea migrate` to initialize the database, after which you can use the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}) to add users like normal.
+
+## How can I enable password reset
+There is no setting for password resets. It is enabled when a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}) is configured, and disabled otherwise.
+
+## How can a user's password be changed
+- As an **admin**, you can change any user's password (and optionally force them to change it on next login)...
+  - By navigating to your `Site Administration -> User Accounts` page and editing a user.  
+  - By using the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}).  
+  Keep in mind most commands will also need a [global flag]({{< relref "doc/usage/command-line.en-us.md#global-options" >}}) to point the CLI at the correct configuration.
+- As a **user** you can change it... 
+  - In your account `Settings -> Account` page (this method **requires** you to know your current password).
+  - By using the `Forgot Password` link.  
+   If the `Forgot Password/Account Recovery` page is disabled, please contact your administrator to configure a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}).

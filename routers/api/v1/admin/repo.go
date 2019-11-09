@@ -5,9 +5,8 @@
 package admin
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
-
 	"code.gitea.io/gitea/modules/context"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/user"
 )

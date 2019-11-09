@@ -10,14 +10,14 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func removeActionColumns(x *xorm.Engine) error {
 	switch {
-	case setting.UseSQLite3:
+	case setting.Database.UseSQLite3:
 		log.Warn("Unable to drop columns in SQLite")
-	case setting.UseMySQL, setting.UsePostgreSQL, setting.UseMSSQL, setting.UseTiDB:
+	case setting.Database.UseMySQL, setting.Database.UsePostgreSQL, setting.Database.UseMSSQL:
 		if _, err := x.Exec("ALTER TABLE action DROP COLUMN act_user_name"); err != nil {
 			return fmt.Errorf("DROP COLUMN act_user_name: %v", err)
 		} else if _, err = x.Exec("ALTER TABLE action DROP COLUMN repo_user_name"); err != nil {

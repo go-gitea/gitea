@@ -21,8 +21,9 @@ const AppSubURL = AppURL + Repo + "/"
 
 // these values should match the Repo const above
 var localMetas = map[string]string{
-	"user": "gogits",
-	"repo": "gogs",
+	"user":     "gogits",
+	"repo":     "gogs",
+	"repoPath": "../../../integrations/gitea-repositories-meta/user13/repo11.git/",
 }
 
 func TestRender_StandardLinks(t *testing.T) {
@@ -31,7 +32,7 @@ func TestRender_StandardLinks(t *testing.T) {
 
 	test := func(input, expected, expectedWiki string) {
 		buffer := RenderString(input, setting.AppSubURL, nil)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 		bufferWiki := RenderWiki([]byte(input), setting.AppSubURL, nil)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(bufferWiki))
 	}
@@ -74,7 +75,7 @@ func TestRender_Images(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer := RenderString(input, setting.AppSubURL, nil)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	url := "../../.images/src/02/train.jpg"
@@ -103,7 +104,7 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <li><a href="` + baseURLContent + `/Tips" rel="nofollow">Tips</a></li>
 </ul>
 
-<p>See commit <a href="http://localhost:3000/gogits/gogs/commit/fc7f44dadf" rel="nofollow"><code>fc7f44dadf</code></a></p>
+<p>See commit <a href="http://localhost:3000/gogits/gogs/commit/65f1bf27bc" rel="nofollow"><code>65f1bf27bc</code></a></p>
 
 <p>Ideas and codes</p>
 
@@ -165,13 +166,13 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <h3 id="footnotes">Footnotes</h3>
 
 <p>Here is a simple footnote,<sup id="fnref:1"><a href="#fn:1" rel="nofollow">1</a></sup> and here is a longer one.<sup id="fnref:bignote"><a href="#fn:bignote" rel="nofollow">2</a></sup></p>
+
 <div>
 
 <hr/>
 
 <ol>
-<li id="fn:1">This is the first footnote.
-</li>
+<li id="fn:1">This is the first footnote.</li>
 
 <li id="fn:bignote"><p>Here is one with multiple paragraphs and code.</p>
 
@@ -179,9 +180,9 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 
 <p><code>{ my code }</code></p>
 
-<p>Add as many paragraphs as you like.</p>
-</li>
+<p>Add as many paragraphs as you like.</p></li>
 </ol>
+
 </div>
 `,
 	}
@@ -194,7 +195,7 @@ var sameCases = []string{
 - [[Links, Language bindings, Engine bindings|Links]]
 - [[Tips]]
 
-See commit fc7f44dadf
+See commit 65f1bf27bc
 
 Ideas and codes
 

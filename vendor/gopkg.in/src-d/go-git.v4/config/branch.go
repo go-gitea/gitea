@@ -72,7 +72,7 @@ func (b *Branch) marshal() *format.Subsection {
 	if b.Rebase == "" {
 		b.raw.RemoveOption(rebaseKey)
 	} else {
-		b.raw.SetOption(rebaseKey, string(b.Rebase))
+		b.raw.SetOption(rebaseKey, b.Rebase)
 	}
 
 	return b.raw

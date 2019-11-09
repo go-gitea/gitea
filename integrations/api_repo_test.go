@@ -70,9 +70,9 @@ func TestAPISearchRepo(t *testing.T) {
 		expectedResults
 	}{
 		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-			nil:   {count: 21},
-			user:  {count: 21},
-			user2: {count: 21}},
+			nil:   {count: 22},
+			user:  {count: 22},
+			user2: {count: 22}},
 		},
 		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10&private=false", expectedResults: expectedResults{
 			nil:   {count: 10},
@@ -334,7 +334,7 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
 		respJSON := map[string]string{}
 		DecodeJSON(t, resp, &respJSON)
-		assert.Equal(t, respJSON["message"], "The repository with the same name already exists.")
+		assert.Equal(t, "The repository with the same name already exists.", respJSON["message"])
 	})
 }
 

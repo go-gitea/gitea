@@ -4,7 +4,7 @@
 
 package migrations
 
-import "github.com/go-xorm/xorm"
+import "xorm.io/xorm"
 
 func addUnitsToRepoTeam(x *xorm.Engine) error {
 	type Team struct {

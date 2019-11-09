@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
@@ -57,7 +56,7 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 			return nil, fmt.Errorf("Invalid ls-tree output: %v", err)
 		}
 		entry.ID = id
-		entry.gogitTreeEntry.Hash = plumbing.Hash(id)
+		entry.gogitTreeEntry.Hash = id
 		pos += 41 // skip over sha and trailing space
 
 		end := pos + bytes.IndexByte(data[pos:], '\n')

@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	gogit "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/cache"
@@ -32,9 +32,24 @@ type Repository struct {
 
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
+	gpgSettings  *GPGSettings
+}
+
+// GPGSettings represents the default GPG settings for this repository
+type GPGSettings struct {
+	Sign             bool
+	KeyID            string
+	Email            string
+	Name             string
+	PublicKeyContent string
 }
 
 const prettyLogFormat = `--pretty=format:%H`
+
+// GetAllCommitsCount returns count of all commits in repository
+func (repo *Repository) GetAllCommitsCount() (int64, error) {
+	return AllCommitsCount(repo.Path)
+}
 
 func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, error) {
 	l := list.New()
@@ -105,6 +120,11 @@ func OpenRepository(repoPath string) (*Repository, error) {
 		gogitStorage: storage,
 		tagCache:     newObjectCache(),
 	}, nil
+}
+
+// GoGitRepo gets the go-git repo representation
+func (repo *Repository) GoGitRepo() *gogit.Repository {
+	return repo.gogitRepo
 }
 
 // IsEmpty Check if repository is empty.
@@ -187,8 +207,7 @@ func Pull(repoPath string, opts PullRemoteOptions) error {
 	if opts.All {
 		cmd.AddArguments("--all")
 	} else {
-		cmd.AddArguments(opts.Remote)
-		cmd.AddArguments(opts.Branch)
+		cmd.AddArguments("--", opts.Remote, opts.Branch)
 	}
 
 	if opts.Timeout <= 0 {
@@ -213,7 +232,7 @@ func Push(repoPath string, opts PushOptions) error {
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}
-	cmd.AddArguments(opts.Remote, opts.Branch)
+	cmd.AddArguments("--", opts.Remote, opts.Branch)
 	_, err := cmd.RunInDirWithEnv(repoPath, opts.Env)
 	return err
 }

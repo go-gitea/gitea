@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -122,7 +123,7 @@ func TestHook(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.PrepareWebhook(hook, ctx.Repo.Repository, models.HookEventPush, &api.PushPayload{
+	if err := webhook.PrepareWebhook(hook, ctx.Repo.Repository, models.HookEventPush, &api.PushPayload{
 		Ref:    git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
 		Before: ctx.Repo.Commit.ID.String(),
 		After:  ctx.Repo.Commit.ID.String(),
@@ -130,13 +131,13 @@ func TestHook(ctx *context.APIContext) {
 			convert.ToCommit(ctx.Repo.Repository, ctx.Repo.Commit),
 		},
 		Repo:   ctx.Repo.Repository.APIFormat(models.AccessModeNone),
-		Pusher: ctx.User.APIFormat(),
-		Sender: ctx.User.APIFormat(),
+		Pusher: convert.ToUser(ctx.User, ctx.IsSigned, false),
+		Sender: convert.ToUser(ctx.User, ctx.IsSigned, false),
 	}); err != nil {
 		ctx.Error(500, "PrepareWebhook: ", err)
 		return
 	}
-	go models.HookQueue.Add(ctx.Repo.Repository.ID)
+
 	ctx.Status(204)
 }
 

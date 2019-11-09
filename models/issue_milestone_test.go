@@ -10,7 +10,7 @@ import (
 	"time"
 
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +29,7 @@ func TestMilestone_APIFormat(t *testing.T) {
 		IsClosed:        false,
 		NumOpenIssues:   5,
 		NumClosedIssues: 6,
-		DeadlineUnix:    util.TimeStamp(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()),
+		DeadlineUnix:    timeutil.TimeStamp(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()),
 	}
 	assert.Equal(t, api.Milestone{
 		ID:           milestone.ID,
@@ -231,23 +231,23 @@ func TestChangeMilestoneStatus(t *testing.T) {
 	CheckConsistencyFor(t, &Repository{ID: milestone.RepoID}, &Milestone{})
 }
 
-func TestChangeMilestoneIssueStats(t *testing.T) {
+func TestUpdateMilestoneClosedNum(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	issue := AssertExistsAndLoadBean(t, &Issue{MilestoneID: 1},
 		"is_closed=0").(*Issue)
 
 	issue.IsClosed = true
-	issue.ClosedUnix = util.TimeStampNow()
+	issue.ClosedUnix = timeutil.TimeStampNow()
 	_, err := x.Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
-	assert.NoError(t, changeMilestoneIssueStats(x.NewSession(), issue))
+	assert.NoError(t, updateMilestoneClosedNum(x, issue.MilestoneID))
 	CheckConsistencyFor(t, &Milestone{})
 
 	issue.IsClosed = false
 	issue.ClosedUnix = 0
 	_, err = x.Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
-	assert.NoError(t, changeMilestoneIssueStats(x.NewSession(), issue))
+	assert.NoError(t, updateMilestoneClosedNum(x, issue.MilestoneID))
 	CheckConsistencyFor(t, &Milestone{})
 }
 

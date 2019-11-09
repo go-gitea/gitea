@@ -1,0 +1,31 @@
+{{template "base/head" .}}
+<div class="repository quickstart">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="ui grid">
+			<div class="sixteen wide column content">
+				{{template "base/alert" .}}
+				<div class="home">
+					<div class="ui stackable middle very relaxed page grid">
+						<div id="repo_migrating" class="sixteen wide center aligned centered column" repo="{{.Repo.Repository.FullName}}">
+							<div>
+								<img src="{{StaticUrlPrefix}}/img/loading.png"/>
+							</div>
+						</div>
+					</div>
+					<div class="ui stackable middle very relaxed page grid">
+						<div class="sixteen wide center aligned centered column">
+							<div id="repo_migrating_progress">
+								<p>{{.i18n.Tr "repo.migrate.migrating" .CloneAddr | Safe}}</p>
+							</div>
+							<div id="repo_migrating_failed">
+								<p>{{.i18n.Tr "repo.migrate.migrating_failed" .CloneAddr | Safe}}</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

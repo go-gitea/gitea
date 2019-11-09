@@ -1,0 +1,14 @@
+<div class="ui dropdown tiny button">
+	{{.i18n.Tr "repo.diff.options_button"}}
+	<i class="dropdown icon"></i>
+	<div class="menu">
+		<a class="item tiny basic toggle button" data-target="#diff-files">{{.i18n.Tr "repo.diff.show_diff_stats"}}</a>
+		{{if .Issue.Index}}
+			<a class="item" href="{{$.RepoLink}}/pulls/{{.Issue.Index}}.patch" download="{{.Issue.Index}}.patch">{{.i18n.Tr "repo.diff.download_patch"}}</a>
+			<a class="item" href="{{$.RepoLink}}/pulls/{{.Issue.Index}}.diff" download="{{.Issue.Index}}.diff">{{.i18n.Tr "repo.diff.download_diff"}}</a>
+		{{else if .Commit.ID.String}}
+			<a class="item" href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}.patch" download="{{ShortSha .Commit.ID.String}}.patch">{{.i18n.Tr "repo.diff.download_patch"}}</a>
+			<a class="item" href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}.diff" download="{{ShortSha .Commit.ID.String}}.diff">{{.i18n.Tr "repo.diff.download_diff"}}</a>
+		{{end}}
+	</div>
+</div>

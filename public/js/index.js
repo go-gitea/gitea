@@ -7,35 +7,43 @@ function htmlEncode(text) {
    return jQuery('<div />').text(text).html()
 }
 
-var csrf;
-var suburl;
+let csrf;
+let suburl;
+let previewFileModes;
+let simpleMDEditor;
+let codeMirrorEditor;
+
+// Disable Dropzone auto-discover because it's manually initialized
+if (typeof(Dropzone) !== "undefined") {
+    Dropzone.autoDiscover = false;
+}
 
 // Polyfill for IE9+ support (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/from)
 if (!Array.from) {
     Array.from = (function () {
-        var toStr = Object.prototype.toString;
-        var isCallable = function (fn) {
+        const toStr = Object.prototype.toString;
+        const isCallable = function (fn) {
             return typeof fn === 'function' || toStr.call(fn) === '[object Function]';
         };
-        var toInteger = function (value) {
-            var number = Number(value);
+        const toInteger = function (value) {
+            const number = Number(value);
             if (isNaN(number)) { return 0; }
             if (number === 0 || !isFinite(number)) { return number; }
             return (number > 0 ? 1 : -1) * Math.floor(Math.abs(number));
         };
-        var maxSafeInteger = Math.pow(2, 53) - 1;
-        var toLength = function (value) {
-            var len = toInteger(value);
+        const maxSafeInteger = Math.pow(2, 53) - 1;
+        const toLength = function (value) {
+            const len = toInteger(value);
             return Math.min(Math.max(len, 0), maxSafeInteger);
         };
 
         // The length property of the from method is 1.
         return function from(arrayLike/*, mapFn, thisArg */) {
             // 1. Let C be the this value.
-            var C = this;
+            const C = this;
 
             // 2. Let items be ToObject(arrayLike).
-            var items = Object(arrayLike);
+            const items = Object(arrayLike);
 
             // 3. ReturnIfAbrupt(items).
             if (arrayLike == null) {
@@ -43,8 +51,8 @@ if (!Array.from) {
             }
 
             // 4. If mapfn is undefined, then let mapping be false.
-            var mapFn = arguments.length > 1 ? arguments[1] : void undefined;
-            var T;
+            const mapFn = arguments.length > 1 ? arguments[1] : void undefined;
+            let T;
             if (typeof mapFn !== 'undefined') {
                 // 5. else
                 // 5. a If IsCallable(mapfn) is false, throw a TypeError exception.
@@ -60,17 +68,17 @@ if (!Array.from) {
 
             // 10. Let lenValue be Get(items, "length").
             // 11. Let len be ToLength(lenValue).
-            var len = toLength(items.length);
+            const len = toLength(items.length);
 
             // 13. If IsConstructor(C) is true, then
             // 13. a. Let A be the result of calling the [[Construct]] internal method of C with an argument list containing the single item len.
             // 14. a. Else, Let A be ArrayCreate(len).
-            var A = isCallable(C) ? Object(new C(len)) : new Array(len);
+            const A = isCallable(C) ? Object(new C(len)) : new Array(len);
 
             // 16. Let k be 0.
-            var k = 0;
+            let k = 0;
             // 17. Repeat, while k < len… (also steps a - h)
-            var kValue;
+            let kValue;
             while (k < len) {
                 kValue = items[k];
                 if (mapFn) {
@@ -98,13 +106,13 @@ if (typeof Object.assign != 'function') {
                 throw new TypeError('Cannot convert undefined or null to object');
             }
 
-            var to = Object(target);
+            const to = Object(target);
 
-            for (var index = 1; index < arguments.length; index++) {
-                var nextSource = arguments[index];
+            for (let index = 1; index < arguments.length; index++) {
+                const nextSource = arguments[index];
 
                 if (nextSource != null) { // Skip over if undefined or null
-                    for (var nextKey in nextSource) {
+                    for (const nextKey in nextSource) {
                         // Avoid bugs when hasOwnProperty is shadowed
                         if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
                             to[nextKey] = nextSource[nextKey];
@@ -120,10 +128,10 @@ if (typeof Object.assign != 'function') {
 }
 
 function initCommentPreviewTab($form) {
-    var $tabMenu = $form.find('.tabular.menu');
+    const $tabMenu = $form.find('.tabular.menu');
     $tabMenu.find('.item').tab();
     $tabMenu.find('.item[data-tab="' + $tabMenu.data('preview') + '"]').click(function () {
-        var $this = $(this);
+        const $this = $(this);
         $.post($this.data('url'), {
                 "_csrf": csrf,
                 "mode": "gfm",
@@ -131,7 +139,7 @@ function initCommentPreviewTab($form) {
                 "text": $form.find('.tab.segment[data-tab="' + $tabMenu.data('write') + '"] textarea').val()
             },
             function (data) {
-                var $previewPanel = $form.find('.tab.segment[data-tab="' + $tabMenu.data('preview') + '"]');
+                const $previewPanel = $form.find('.tab.segment[data-tab="' + $tabMenu.data('preview') + '"]');
                 $previewPanel.html(data);
                 emojify.run($previewPanel[0]);
                 $('pre code', $previewPanel[0]).each(function () {
@@ -144,16 +152,14 @@ function initCommentPreviewTab($form) {
     buttonsClickOnEnter();
 }
 
-var previewFileModes;
-
 function initEditPreviewTab($form) {
-    var $tabMenu = $form.find('.tabular.menu');
+    const $tabMenu = $form.find('.tabular.menu');
     $tabMenu.find('.item').tab();
-    var $previewTab = $tabMenu.find('.item[data-tab="' + $tabMenu.data('preview') + '"]');
+    const $previewTab = $tabMenu.find('.item[data-tab="' + $tabMenu.data('preview') + '"]');
     if ($previewTab.length) {
         previewFileModes = $previewTab.data('preview-file-modes').split(',');
         $previewTab.click(function () {
-            var $this = $(this);
+            const $this = $(this);
             $.post($this.data('url'), {
                     "_csrf": csrf,
                     "mode": "gfm",
@@ -161,7 +167,7 @@ function initEditPreviewTab($form) {
                     "text": $form.find('.tab.segment[data-tab="' + $tabMenu.data('write') + '"] textarea').val()
                 },
                 function (data) {
-                    var $previewPanel = $form.find('.tab.segment[data-tab="' + $tabMenu.data('preview') + '"]');
+                    const $previewPanel = $form.find('.tab.segment[data-tab="' + $tabMenu.data('preview') + '"]');
                     $previewPanel.html(data);
                     emojify.run($previewPanel[0]);
                     $('pre code', $previewPanel[0]).each(function () {
@@ -174,17 +180,17 @@ function initEditPreviewTab($form) {
 }
 
 function initEditDiffTab($form) {
-    var $tabMenu = $form.find('.tabular.menu');
+    const $tabMenu = $form.find('.tabular.menu');
     $tabMenu.find('.item').tab();
     $tabMenu.find('.item[data-tab="' + $tabMenu.data('diff') + '"]').click(function () {
-        var $this = $(this);
+        const $this = $(this);
         $.post($this.data('url'), {
                 "_csrf": csrf,
                 "context": $this.data('context'),
                 "content": $form.find('.tab.segment[data-tab="' + $tabMenu.data('write') + '"] textarea').val()
             },
             function (data) {
-                var $diffPreviewPanel = $form.find('.tab.segment[data-tab="' + $tabMenu.data('diff') + '"]');
+                const $diffPreviewPanel = $form.find('.tab.segment[data-tab="' + $tabMenu.data('diff') + '"]');
                 $diffPreviewPanel.html(data);
                 emojify.run($diffPreviewPanel[0]);
             }
@@ -203,10 +209,10 @@ function initEditForm() {
 }
 
 function initBranchSelector() {
-    var $selectBranch = $('.ui.select-branch')
-    var $branchMenu = $selectBranch.find('.reference-list-menu');
+    const $selectBranch = $('.ui.select-branch')
+    const $branchMenu = $selectBranch.find('.reference-list-menu');
     $branchMenu.find('.item:not(.no-select)').click(function () {
-        var selectedValue = $(this).data('id');
+        const selectedValue = $(this).data('id');
         $($(this).data('id-selector')).val(selectedValue);
         $selectBranch.find('.ui .branch-name').text(selectedValue);
     });
@@ -235,8 +241,43 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
     })
 }
 
+function initRepoStatusChecker() {
+    const migrating = $("#repo_migrating");
+    $('#repo_migrating_failed').hide();
+    if (migrating) {
+        const repo_name = migrating.attr('repo');
+        if (typeof repo_name === 'undefined') {
+            return
+        }
+        $.ajax({
+            type: "GET",
+            url: suburl +"/"+repo_name+"/status",
+            data: {
+                "_csrf": csrf,
+            },
+            complete: function(xhr) {
+                if (xhr.status == 200) {
+                    if (xhr.responseJSON) {
+                        if (xhr.responseJSON["status"] == 0) {
+                            location.reload();
+                            return
+                        }
+
+                        setTimeout(function () {
+                            initRepoStatusChecker()
+                        }, 2000);
+                        return
+                    }
+                }
+                $('#repo_migrating_progress').hide();
+                $('#repo_migrating_failed').show();
+            }
+        })
+    }
+}
+
 function initReactionSelector(parent) {
-    var reactions = '';
+    let reactions = '';
     if (!parent) {
         parent = $(document);
         reactions = '.reactions > ';
@@ -245,15 +286,15 @@ function initReactionSelector(parent) {
     parent.find(reactions + 'a.label').popup({'position': 'bottom left', 'metadata': {'content': 'title', 'title': 'none'}});
 
     parent.find('.select-reaction > .menu > .item, ' + reactions + 'a.label').on('click', function(e){
-        var vm = this;
+        const vm = this;
         e.preventDefault();
 
         if ($(this).hasClass('disabled')) return;
 
-        var actionURL = $(this).hasClass('item') ?
+        const actionURL = $(this).hasClass('item') ?
                 $(this).closest('.select-reaction').data('action-url') :
                 $(this).data('action-url');
-        var url = actionURL + '/' + ($(this).hasClass('blue') ? 'unreact' : 'react');
+        const url = actionURL + '/' + ($(this).hasClass('blue') ? 'unreact' : 'react');
         $.ajax({
             type: 'POST',
             url: url,
@@ -263,22 +304,22 @@ function initReactionSelector(parent) {
             }
         }).done(function(resp) {
             if (resp && (resp.html || resp.empty)) {
-                var content = $(vm).closest('.content');
-                var react = content.find('.segment.reactions');
-                if (react.length > 0) {
+                const content = $(vm).closest('.content');
+                let react = content.find('.segment.reactions');
+                if (!resp.empty && react.length > 0) {
                     react.remove();
                 }
                 if (!resp.empty) {
                     react = $('<div class="ui attached segment reactions"></div>');
-                    var attachments = content.find('.segment.bottom:first');
+                    const attachments = content.find('.segment.bottom:first');
                     if (attachments.length > 0) {
                         react.insertBefore(attachments);
                     } else {
                         react.appendTo(content);
                     }
                     react.html(resp.html);
-                    var hasEmoji = react.find('.has-emoji');
-                    for (var i = 0; i < hasEmoji.length; i++) {
+                    const hasEmoji = react.find('.has-emoji');
+                    for (let i = 0; i < hasEmoji.length; i++) {
                         emojify.run(hasEmoji.get(i));
                     }
                     react.find('.dropdown').dropdown();
@@ -291,8 +332,8 @@ function initReactionSelector(parent) {
 
 function insertAtCursor(field, value) {
     if (field.selectionStart || field.selectionStart === 0) {
-        var startPos = field.selectionStart;
-        var endPos = field.selectionEnd;
+        const startPos = field.selectionStart;
+        const endPos = field.selectionEnd;
         field.value = field.value.substring(0, startPos)
             + value
             + field.value.substring(endPos, field.value.length);
@@ -305,8 +346,8 @@ function insertAtCursor(field, value) {
 
 function replaceAndKeepCursor(field, oldval, newval) {
     if (field.selectionStart || field.selectionStart === 0) {
-        var startPos = field.selectionStart;
-        var endPos = field.selectionEnd;
+        const startPos = field.selectionStart;
+        const endPos = field.selectionEnd;
         field.value = field.value.replace(oldval, newval);
         field.selectionStart = startPos + newval.length - oldval.length;
         field.selectionEnd = endPos + newval.length - oldval.length;
@@ -320,14 +361,14 @@ function retrieveImageFromClipboardAsBlob(pasteEvent, callback){
         return;
     }
 
-    var items = pasteEvent.clipboardData.items;
+    const items = pasteEvent.clipboardData.items;
     if (typeof(items) === "undefined") {
         return;
     }
 
-    for (var i = 0; i < items.length; i++) {
+    for (let i = 0; i < items.length; i++) {
         if (items[i].type.indexOf("image") === -1) continue;
-        var blob = items[i].getAsFile();
+        const blob = items[i].getAsFile();
 
         if (typeof(callback) === "function") {
             pasteEvent.preventDefault();
@@ -338,7 +379,7 @@ function retrieveImageFromClipboardAsBlob(pasteEvent, callback){
 }
 
 function uploadFile(file, callback) {
-    var xhr = new XMLHttpRequest();
+    const xhr = new XMLHttpRequest();
 
     xhr.onload = function() {
         if (xhr.status == 200) {
@@ -348,7 +389,7 @@ function uploadFile(file, callback) {
 
     xhr.open("post", suburl + "/attachments", true);
     xhr.setRequestHeader("X-Csrf-Token", csrf);
-    var formData = new FormData();
+    const formData = new FormData();
     formData.append('file', file, file.name);
     xhr.send(formData);
 }
@@ -359,15 +400,15 @@ function reload() {
 
 function initImagePaste(target) {
     target.each(function() {
-        var field = this;
+        const field = this;
         field.addEventListener('paste', function(event){
             retrieveImageFromClipboardAsBlob(event, function(img) {
-                var name = img.name.substr(0, img.name.lastIndexOf('.'));
+                const name = img.name.substr(0, img.name.lastIndexOf('.'));
                 insertAtCursor(field, '![' + name + ']()');
                 uploadFile(img, function(res) {
-                    var data = JSON.parse(res);
+                    const data = JSON.parse(res);
                     replaceAndKeepCursor(field, '![' + name + ']()', '![' + name + '](' + suburl + '/attachments/' + data.uuid + ')');
-                    var input = $('<input id="' + data.uuid + '" name="files" type="hidden">').val(data.uuid);
+                    const input = $('<input id="' + data.uuid + '" name="files" type="hidden">').val(data.uuid);
                     $('.files').append(input);
                 });
             });
@@ -386,19 +427,19 @@ function initCommentForm() {
 
     // Listsubmit
     function initListSubmits(selector, outerSelector) {
-        var $list = $('.ui.' + outerSelector + '.list');
-        var $noSelect = $list.find('.no-select');
-        var $listMenu = $('.' + selector + ' .menu');
-        var hasLabelUpdateAction = $listMenu.data('action') == 'update';
-        var labels = {};
+        const $list = $('.ui.' + outerSelector + '.list');
+        const $noSelect = $list.find('.no-select');
+        const $listMenu = $('.' + selector + ' .menu');
+        let hasLabelUpdateAction = $listMenu.data('action') == 'update';
+        const labels = {};
 
         $('.' + selector).dropdown('setting', 'onHide', function(){
             hasLabelUpdateAction = $listMenu.data('action') == 'update'; // Update the var
             if (hasLabelUpdateAction) {
-                var promises = [];
+                const promises = [];
                 Object.keys(labels).forEach(function(elementId) {
-                    var label = labels[elementId];
-                    var promise = updateIssuesMeta(
+                    const label = labels[elementId];
+                    const promise = updateIssuesMeta(
                         label["update-url"],
                         label["action"],
                         label["issue-id"],
@@ -465,7 +506,7 @@ function initCommentForm() {
                 }
             }
 
-            var listIds = [];
+            const listIds = [];
             $(this).parent().find('.item').each(function () {
                 if ($(this).hasClass('checked')) {
                     listIds.push($(this).data('id'));
@@ -512,9 +553,9 @@ function initCommentForm() {
     initListSubmits('select-assignees-modify', 'assignees');
 
     function selectItem(select_id, input_id) {
-        var $menu = $(select_id + ' .menu');
-        var $list = $('.ui' + select_id + '.list');
-        var hasUpdateAction = $menu.data('action') == 'update';
+        const $menu = $(select_id + ' .menu');
+        const $list = $('.ui' + select_id + '.list');
+        const hasUpdateAction = $menu.data('action') == 'update';
 
         $menu.find('.item:not(.no-select)').click(function () {
             $(this).parent().find('.item').each(function () {
@@ -581,10 +622,10 @@ function initInstall() {
 
     // Database type change detection.
     $("#db_type").change(function () {
-        var sqliteDefault = 'data/gitea.db';
-        var tidbDefault = 'data/gitea_tidb';
+        const sqliteDefault = 'data/gitea.db';
+        const tidbDefault = 'data/gitea_tidb';
 
-        var dbType = $(this).val();
+        const dbType = $(this).val();
         if (dbType === "SQLite3") {
             $('#sql_settings').hide();
             $('#pgsql_settings').hide();
@@ -597,7 +638,7 @@ function initInstall() {
             return;
         }
 
-        var dbDefaults = {
+        const dbDefaults = {
             "MySQL": "127.0.0.1:3306",
             "PostgreSQL": "127.0.0.1:5432",
             "MSSQL": "127.0.0.1:1433"
@@ -666,7 +707,7 @@ function initRepository() {
     }
 
     function initFilterSearchDropdown(selector) {
-        var $dropdown = $(selector);
+        const $dropdown = $(selector);
         $dropdown.dropdown({
             fullTextSearch: true,
             selectOnKeydown: false,
@@ -693,7 +734,7 @@ function initRepository() {
     // Options
     if ($('.repository.settings.options').length > 0) {
         $('#repo_name').keyup(function () {
-            var $prompt = $('#repo-name-change-prompt');
+            const $prompt = $('#repo-name-change-prompt');
             if ($(this).val().toString().toLowerCase() != $(this).data('name').toString().toLowerCase()) {
                 $prompt.show();
             } else {
@@ -725,7 +766,7 @@ function initRepository() {
     // Labels
     if ($('.repository.labels').length > 0) {
         // Create label
-        var $newLabelPanel = $('.new-label.segment');
+        const $newLabelPanel = $('.new-label.segment');
         $('.new-label.button').click(function () {
             $newLabelPanel.show();
         });
@@ -737,7 +778,7 @@ function initRepository() {
             $(this).minicolors();
         });
         $('.precolors .color').click(function () {
-            var color_hex = $(this).data('color-hex');
+            const color_hex = $(this).data('color-hex');
             $('.color-picker').val(color_hex);
             $('.minicolors-swatch-color').css("background-color", color_hex);
         });
@@ -758,7 +799,7 @@ function initRepository() {
 
     // Milestones
     if ($('.repository.new.milestone').length > 0) {
-        var $datepicker = $('.milestone.datepicker');
+        const $datepicker = $('.milestone.datepicker');
         $datepicker.datetimepicker({
             lang: $datepicker.data('lang'),
             inline: true,
@@ -778,9 +819,9 @@ function initRepository() {
     // Issues
     if ($('.repository.view.issue').length > 0) {
         // Edit issue title
-        var $issueTitle = $('#issue-title');
-        var $editInput = $('#edit-title-input input');
-        var editTitleToggle = function () {
+        const $issueTitle = $('#issue-title');
+        const $editInput = $('#edit-title-input input');
+        const editTitleToggle = function () {
             $issueTitle.toggle();
             $('.not-in-edit').toggle();
             $('#edit-title-input').toggle();
@@ -811,11 +852,11 @@ function initRepository() {
 
         // Edit issue or comment content
         $('.edit-content').click(function () {
-            var $segment = $(this).parent().parent().parent().next();
-            var $editContentZone = $segment.find('.edit-content-zone');
-            var $renderContent = $segment.find('.render-content');
-            var $rawContent = $segment.find('.raw-content');
-            var $textarea;
+            const $segment = $(this).parent().parent().parent().next();
+            const $editContentZone = $segment.find('.edit-content-zone');
+            const $renderContent = $segment.find('.render-content');
+            const $rawContent = $segment.find('.raw-content');
+            let $textarea;
 
             // Setup new form
             if ($editContentZone.html().length == 0) {
@@ -824,9 +865,76 @@ function initRepository() {
                 issuesTribute.attach($textarea.get());
                 emojiTribute.attach($textarea.get());
 
+                const $dropzone = $editContentZone.find('.dropzone');
+                $dropzone.data("saved", false);
+                const $files = $editContentZone.find('.comment-files');
+                if ($dropzone.length > 0) {
+                    const filenameDict = {};
+                    $dropzone.dropzone({
+                        url: $dropzone.data('upload-url'),
+                        headers: {"X-Csrf-Token": csrf},
+                        maxFiles: $dropzone.data('max-file'),
+                        maxFilesize: $dropzone.data('max-size'),
+                        acceptedFiles: ($dropzone.data('accepts') === '*/*') ? null : $dropzone.data('accepts'),
+                        addRemoveLinks: true,
+                        dictDefaultMessage: $dropzone.data('default-message'),
+                        dictInvalidFileType: $dropzone.data('invalid-input-type'),
+                        dictFileTooBig: $dropzone.data('file-too-big'),
+                        dictRemoveFile: $dropzone.data('remove-file'),
+                        init: function () {
+                            this.on("success", function (file, data) {
+                                filenameDict[file.name] = {
+                                    "uuid": data.uuid,
+                                    "submitted": false
+                                }
+                                const input = $('<input id="' + data.uuid + '" name="files" type="hidden">').val(data.uuid);
+                                $files.append(input);
+                            });
+                            this.on("removedfile", function (file) {
+                                if (!(file.name in filenameDict)) {
+                                    return;
+                                }
+                                $('#' + filenameDict[file.name].uuid).remove();
+                                if ($dropzone.data('remove-url') && $dropzone.data('csrf') && !filenameDict[file.name].submitted) {
+                                    $.post($dropzone.data('remove-url'), {
+                                        file: filenameDict[file.name].uuid,
+                                        _csrf: $dropzone.data('csrf')
+                                    });
+                                }
+                            });
+                            this.on("submit", function () {
+                                $.each(filenameDict, function(name){
+                                    filenameDict[name].submitted = true;
+                                });
+                            });
+                            this.on("reload", function (){
+                                $.getJSON($editContentZone.data('attachment-url'), function(data){
+                                    const drop = $dropzone.get(0).dropzone;
+                                    drop.removeAllFiles(true);
+                                    $files.empty();
+                                    $.each(data, function(){
+                                        const imgSrc =  $dropzone.data('upload-url') + "/" + this.uuid;
+                                        drop.emit("addedfile", this);
+                                        drop.emit("thumbnail", this, imgSrc);
+                                        drop.emit("complete", this);
+                                        drop.files.push(this);
+                                        filenameDict[this.name] = {
+                                            "submitted": true,
+                                            "uuid": this.uuid
+                                        }
+                                        $dropzone.find("img[src='" + imgSrc + "']").css("max-width", "100%");
+                                        const input = $('<input id="' + this.uuid + '" name="files" type="hidden">').val(this.uuid);
+                                        $files.append(input);
+                                    });
+                                });
+                            });
+                        }
+                    });
+                    $dropzone.get(0).dropzone.emit("reload");
+                }
                 // Give new write/preview data-tab name to distinguish from others
-                var $editContentForm = $editContentZone.find('.ui.comment.form');
-                var $tabMenu = $editContentForm.find('.tabular.menu');
+                const $editContentForm = $editContentZone.find('.ui.comment.form');
+                const $tabMenu = $editContentForm.find('.tabular.menu');
                 $tabMenu.attr('data-write', $editContentZone.data('write'));
                 $tabMenu.attr('data-preview', $editContentZone.data('preview'));
                 $tabMenu.find('.write.item').attr('data-tab', $editContentZone.data('write'));
@@ -839,27 +947,49 @@ function initRepository() {
                 $editContentZone.find('.cancel.button').click(function () {
                     $renderContent.show();
                     $editContentZone.hide();
+                    $dropzone.get(0).dropzone.emit("reload");
                 });
                 $editContentZone.find('.save.button').click(function () {
                     $renderContent.show();
                     $editContentZone.hide();
-
+                    const $attachments = $files.find("[name=files]").map(function(){
+                        return $(this).val();
+                    }).get();
                     $.post($editContentZone.data('update-url'), {
-                            "_csrf": csrf,
-                            "content": $textarea.val(),
-                            "context": $editContentZone.data('context')
-                        },
-                        function (data) {
-                            if (data.length == 0) {
-                                $renderContent.html($('#no-content').html());
-                            } else {
-                                $renderContent.html(data.content);
-                                emojify.run($renderContent[0]);
-                                $('pre code', $renderContent[0]).each(function () {
-                                    hljs.highlightBlock(this);
-                                });
+                        "_csrf": csrf,
+                        "content": $textarea.val(),
+                        "context": $editContentZone.data('context'),
+                        "files": $attachments
+                    },
+                    function (data) {
+                        if (data.length == 0) {
+                            $renderContent.html($('#no-content').html());
+                        } else {
+                            $renderContent.html(data.content);
+                            emojify.run($renderContent[0]);
+                            $('pre code', $renderContent[0]).each(function () {
+                                hljs.highlightBlock(this);
+                            });
+                        }
+                        const $content = $segment.parent();
+                        if(!$content.find(".ui.small.images").length){
+                            if(data.attachments != ""){
+                                $content.append(
+                                '<div class="ui bottom attached segment">' +
+                                '    <div class="ui small images">' +
+                                '    </div>' +
+                                '</div>'
+                                );
+                                $content.find(".ui.small.images").html(data.attachments);
                             }
-                        });
+                        } else if (data.attachments == "") {
+                            $content.find(".ui.small.images").parent().remove();
+                        } else {
+                            $content.find(".ui.small.images").html(data.attachments);
+                        }
+                        $dropzone.get(0).dropzone.emit("submit");
+                        $dropzone.get(0).dropzone.emit("reload");
+                    });
                 });
             } else {
                 $textarea = $segment.find('textarea');
@@ -877,7 +1007,7 @@ function initRepository() {
 
         // Delete comment
         $('.delete-comment').click(function () {
-            var $this = $(this);
+            const $this = $(this);
             if (confirm($this.data('locale'))) {
                 $.post($this.data('url'), {
                     "_csrf": csrf
@@ -889,7 +1019,7 @@ function initRepository() {
         });
 
         // Change status
-        var $statusButton = $('#status-button');
+        const $statusButton = $('#status-button');
         $('#comment-form .edit_area').keyup(function () {
             if ($(this).val().length == 0) {
                 $statusButton.text($statusButton.data('status'))
@@ -903,7 +1033,7 @@ function initRepository() {
         });
 
         // Pull Request merge button
-        var $mergeButton = $('.merge-button > button');
+        const $mergeButton = $('.merge-button > button');
         $mergeButton.on('click', function(e) {
             e.preventDefault();
             $('.' + $(this).data('do') + '-fields').show();
@@ -929,10 +1059,10 @@ function initRepository() {
     // Diff
     if ($('.repository.diff').length > 0) {
         $('.diff-counter').each(function () {
-            var $item = $(this);
-            var addLine = $item.find('span[data-line].add').data("line");
-            var delLine = $item.find('span[data-line].del').data("line");
-            var addPercent = parseFloat(addLine) / (parseFloat(addLine) + parseFloat(delLine)) * 100;
+            const $item = $(this);
+            const addLine = $item.find('span[data-line].add').data("line");
+            const delLine = $item.find('span[data-line].del').data("line");
+            const addPercent = parseFloat(addLine) / (parseFloat(addLine) + parseFloat(delLine)) * 100;
             $item.find(".bar .add").css("width", addPercent + "%");
         });
     }
@@ -957,7 +1087,7 @@ function initRepository() {
     });
 
     // Pull request
-    var $repoComparePull = $('.repository.compare.pull');
+    const $repoComparePull = $('.repository.compare.pull');
     if ($repoComparePull.length > 0) {
         initFilterSearchDropdown('.choose.branch .dropdown');
         // show pull request form
@@ -981,18 +1111,18 @@ function initRepository() {
     }
 }
 
-var toggleMigrations = function(){
-    var authUserName = $('#auth_username').val();
-    var cloneAddr = $('#clone_addr').val();
-    if (!$('#mirror').is(":checked") && (authUserName!=undefined && authUserName.length > 0)
-    && (cloneAddr!=undefined && (cloneAddr.startsWith("https://github.com") || cloneAddr.startsWith("http://github.com")))) {
-        $('#migrate_items').show();
-    } else {
-        $('#migrate_items').hide();
-    }
-}
-
 function initMigration() {
+    const toggleMigrations = function() {
+        const authUserName = $('#auth_username').val();
+        const cloneAddr = $('#clone_addr').val();
+        if (!$('#mirror').is(":checked") && (authUserName!=undefined && authUserName.length > 0)
+        && (cloneAddr!=undefined && (cloneAddr.startsWith("https://github.com") || cloneAddr.startsWith("http://github.com")))) {
+            $('#migrate_items').show();
+        } else {
+            $('#migrate_items').hide();
+        }
+    }
+
     toggleMigrations();
 
     $('#clone_addr').on('input', toggleMigrations)
@@ -1003,7 +1133,7 @@ function initMigration() {
 function initPullRequestReview() {
     $('.show-outdated').on('click', function (e) {
         e.preventDefault();
-        var id = $(this).data('comment');
+        const id = $(this).data('comment');
         $(this).addClass("hide");
         $("#code-comments-" + id).removeClass('hide');
         $("#code-preview-" + id).removeClass('hide');
@@ -1012,7 +1142,7 @@ function initPullRequestReview() {
 
     $('.hide-outdated').on('click', function (e) {
         e.preventDefault();
-        var id = $(this).data('comment');
+        const id = $(this).data('comment');
         $(this).addClass("hide");
         $("#code-comments-" + id).addClass('hide');
         $("#code-preview-" + id).addClass('hide');
@@ -1022,7 +1152,7 @@ function initPullRequestReview() {
     $('button.comment-form-reply').on('click', function (e) {
         e.preventDefault();
         $(this).hide();
-        var form = $(this).parent().find('.comment-form')
+        const form = $(this).parent().find('.comment-form')
         form.removeClass('hide');
         assingMenuAttributes(form.find('.menu'));
     });
@@ -1043,7 +1173,7 @@ function initPullRequestReview() {
 
     $('.code-view .lines-code,.code-view .lines-num')
         .on('mouseenter', function() {
-            var parent = $(this).closest('td');
+            const parent = $(this).closest('td');
             $(this).closest('tr').addClass(
                 parent.hasClass('lines-num-old') || parent.hasClass('lines-code-old')
                     ? 'focus-lines-old' : 'focus-lines-new'
@@ -1058,13 +1188,13 @@ function initPullRequestReview() {
           return;
         }
         e.preventDefault();
-        var isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
-        var side = $(this).data('side');
-        var idx = $(this).data('idx');
-        var path = $(this).data('path');
-        var form = $('#pull_review_add_comment').html();
-        var tr = $(this).closest('tr');
-        var ntr = tr.next();
+        const isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
+        const side = $(this).data('side');
+        const idx = $(this).data('idx');
+        const path = $(this).data('path');
+        const form = $('#pull_review_add_comment').html();
+        const tr = $(this).closest('tr');
+        let ntr = tr.next();
         if (!ntr.hasClass('add-comment')) {
             ntr = $('<tr class="add-comment">'
                     + (isSplit ? '<td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-left"></td><td class="lines-num"></td><td class="lines-type-marker"></td><td class="add-comment-right"></td>'
@@ -1072,8 +1202,8 @@ function initPullRequestReview() {
                     + '</tr>');
             tr.after(ntr);
         }
-        var td = ntr.find('.add-comment-' + side);
-        var commentCloud = td.find('.comment-code-cloud');
+        const td = ntr.find('.add-comment-' + side);
+        let commentCloud = td.find('.comment-code-cloud');
         if (commentCloud.length === 0) {
             td.html(form);
             commentCloud = td.find('.comment-code-cloud');
@@ -1088,11 +1218,11 @@ function initPullRequestReview() {
 }
 
 function assingMenuAttributes(menu) {
-    var id = Math.floor(Math.random() * Math.floor(1000000));
+    const id = Math.floor(Math.random() * Math.floor(1000000));
     menu.attr('data-write', menu.attr('data-write') + id);
     menu.attr('data-preview', menu.attr('data-preview') + id);
     menu.find('.item').each(function() {
-        var tab = $(this).attr('data-tab') + id;
+        const tab = $(this).attr('data-tab') + id;
         $(this).attr('data-tab', tab);
     });
     menu.parent().find("*[data-tab='write']").attr('data-tab', 'write' + id);
@@ -1104,7 +1234,7 @@ function assingMenuAttributes(menu) {
 function initRepositoryCollaboration() {
     // Change collaborator access mode
     $('.access-mode.menu .item').click(function () {
-        var $menu = $(this).parent();
+        const $menu = $(this).parent();
         $.post($menu.data('url'), {
             "_csrf": csrf,
             "uid": $menu.data('uid'),
@@ -1116,7 +1246,7 @@ function initRepositoryCollaboration() {
 function initTeamSettings() {
     // Change team access mode
     $('.organization.new.team input[name=permission]').change(function () {
-        var val = $('input[name=permission]:checked', '.organization.new.team').val()
+        const val = $('input[name=permission]:checked', '.organization.new.team').val()
         if (val === 'admin') {
             $('.organization.new.team .team-units').hide();
         } else {
@@ -1126,9 +1256,9 @@ function initTeamSettings() {
 }
 
 function initWikiForm() {
-    let $editArea = $('.repository.wiki textarea#edit_area');
+    const $editArea = $('.repository.wiki textarea#edit_area');
     if ($editArea.length > 0) {
-        let simplemde = new SimpleMDE({
+        const simplemde = new SimpleMDE({
             autoDownloadFontAwesome: false,
             element: $editArea[0],
             forceSync: true,
@@ -1170,11 +1300,11 @@ function initWikiForm() {
                 {
                     name: "code-inline",
                     action: function(e){
-                        let cm = e.codemirror;
-                        let selection = cm.getSelection();
+                        const cm = e.codemirror;
+                        const selection = cm.getSelection();
                         cm.replaceSelection("`" + selection + "`");
                         if (!selection) {
-                            let cursorPos = cm.getCursor();
+                            const cursorPos = cm.getCursor();
                             cm.setCursor(cursorPos.line, cursorPos.ch - 1);
                         }
                         cm.focus();
@@ -1184,7 +1314,7 @@ function initWikiForm() {
                 },"code", "quote", "|", {
                     name: "checkbox-empty",
                     action: function(e){
-                        let cm = e.codemirror;
+                        const cm = e.codemirror;
                         cm.replaceSelection("\n- [ ] " + cm.getSelection());
                         cm.focus();
                     },
@@ -1194,7 +1324,7 @@ function initWikiForm() {
                 {
                     name: "checkbox-checked",
                     action: function(e){
-                        let cm = e.codemirror;
+                        const cm = e.codemirror;
                         cm.replaceSelection("\n- [x] " + cm.getSelection());
                         cm.focus();
                     },
@@ -1209,25 +1339,22 @@ function initWikiForm() {
     }
 }
 
-var simpleMDEditor;
-var codeMirrorEditor;
-
 // For IE
 String.prototype.endsWith = function (pattern) {
-    var d = this.length - pattern.length;
+    const d = this.length - pattern.length;
     return d >= 0 && this.lastIndexOf(pattern) === d;
 };
 
 // Adding function to get the cursor position in a text field to jQuery object.
 $.fn.getCursorPosition = function () {
-    var el = $(this).get(0);
-    var pos = 0;
+    const el = $(this).get(0);
+    let pos = 0;
     if ('selectionStart' in el) {
         pos = el.selectionStart;
     } else if ('selection' in document) {
         el.focus();
-        var Sel = document.selection.createRange();
-        var SelLength = document.selection.createRange().text.length;
+        const Sel = document.selection.createRange();
+        const SelLength = document.selection.createRange().text.length;
         Sel.moveStart('character', -el.value.length);
         pos = Sel.text.length - SelLength;
     }
@@ -1312,14 +1439,15 @@ function initEditor() {
             $('.quick-pull-branch-name').hide();
             $('.quick-pull-branch-name input').prop('required',false);
         }
+        $('#commit-button').text($(this).attr('button_text'));
     });
 
-    var $editFilename = $("#file-name");
+    const $editFilename = $("#file-name");
     $editFilename.keyup(function (e) {
-        var $section = $('.breadcrumb span.section');
-        var $divider = $('.breadcrumb div.divider');
-        var value;
-        var parts;
+        const $section = $('.breadcrumb span.section');
+        const $divider = $('.breadcrumb div.divider');
+        let value;
+        let parts;
 
         if (e.keyCode == 8) {
             if ($(this).getCursorPosition() == 0) {
@@ -1334,7 +1462,7 @@ function initEditor() {
         }
         if (e.keyCode == 191) {
             parts = $(this).val().split('/');
-            for (var i = 0; i < parts.length; ++i) {
+            for (let i = 0; i < parts.length; ++i) {
                 value = parts[i];
                 if (i < parts.length - 1) {
                     if (value.length) {
@@ -1350,7 +1478,7 @@ function initEditor() {
         }
         parts = [];
         $('.breadcrumb span.section').each(function () {
-            var element = $(this);
+            const element = $(this);
             if (element.find('a').length) {
                 parts.push(element.find('a').text());
             } else {
@@ -1362,24 +1490,26 @@ function initEditor() {
         $('#tree_path').val(parts.join('/'));
     }).trigger('keyup');
 
-    var $editArea = $('.repository.editor textarea#edit_area');
+    const $editArea = $('.repository.editor textarea#edit_area');
     if (!$editArea.length)
         return;
 
-    var markdownFileExts = $editArea.data("markdown-file-exts").split(",");
-    var lineWrapExtensions = $editArea.data("line-wrap-extensions").split(",");
+    const markdownFileExts = $editArea.data("markdown-file-exts").split(",");
+    const lineWrapExtensions = $editArea.data("line-wrap-extensions").split(",");
 
     $editFilename.on("keyup", function () {
-        var val = $editFilename.val(), m, mode, spec, extension, extWithDot, previewLink, dataUrl, apiCall;
+        const val = $editFilename.val();
+        let mode, spec, extension, extWithDot, dataUrl, apiCall;
+
         extension = extWithDot = "";
-        m = /.+\.([^.]+)$/.exec(val);
+        const m = /.+\.([^.]+)$/.exec(val);
         if (m) {
             extension = m[1];
             extWithDot = "." + extension;
         }
 
-        var info = CodeMirror.findModeByExtension(extension);
-        previewLink = $('a[data-tab=preview]');
+        const info = CodeMirror.findModeByExtension(extension);
+        const previewLink = $('a[data-tab=preview]');
         if (info) {
             mode = info.mode;
             spec = info.mime;
@@ -1423,7 +1553,7 @@ function initEditor() {
         }
 
         // get the filename without any folder
-        var value = $editFilename.val();
+        let value = $editFilename.val();
         if (value.length === 0) {
             return;
         }
@@ -1441,7 +1571,7 @@ function initEditor() {
                 // - https://codemirror.net/doc/manual.html#keymaps
                 codeMirrorEditor.setOption('extraKeys', {
                     Tab: function(cm) {
-                        var spaces = Array(parseInt(cm.getOption("indentUnit")) + 1).join(" ");
+                        const spaces = Array(parseInt(cm.getOption("indentUnit")) + 1).join(" ");
                         cm.replaceSelection(spaces);
                     }
                 });
@@ -1450,6 +1580,38 @@ function initEditor() {
             codeMirrorEditor.setOption("tabSize", editorconfig.tab_width || 4);
         });
     }).trigger('keyup');
+
+    // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
+    // to enable or disable the commit button
+    const $commitButton = $('#commit-button');
+    const $editForm = $('.ui.edit.form');
+    const dirtyFileClass = 'dirty-file';
+
+    // Disabling the button at the start
+    $commitButton.prop('disabled', true);
+
+    // Registering a custom listener for the file path and the file content
+    $editForm.areYouSure({
+        silent: true,
+        dirtyClass: dirtyFileClass,
+        fieldSelector: ':input:not(.commit-form-wrapper :input)',
+        change: function () {
+            const dirty = $(this).hasClass(dirtyFileClass);
+            $commitButton.prop('disabled', !dirty);
+        }
+    });
+
+    $commitButton.click(function (event) {
+        // A modal which asks if an empty file should be committed
+        if ($editArea.val().length === 0) {
+            $('#edit-empty-content-modal').modal({
+                onApprove: function () {
+                    $('.edit.form').submit();
+                }
+            }).modal('show');
+            event.preventDefault();
+        }
+    });
 }
 
 function initOrganization() {
@@ -1460,7 +1622,7 @@ function initOrganization() {
     // Options
     if ($('.organization.settings.options').length > 0) {
         $('#org_name').keyup(function () {
-            var $prompt = $('#org-name-change-prompt');
+            const $prompt = $('#org-name-change-prompt');
             if ($(this).val().toString().toLowerCase() != $(this).data('org-name').toString().toLowerCase()) {
                 $prompt.show();
             } else {
@@ -1474,7 +1636,7 @@ function initUserSettings() {
     // Options
     if ($('.user.settings.profile').length > 0) {
         $('#username').keyup(function () {
-            var $prompt = $('#name-change-prompt');
+            const $prompt = $('#name-change-prompt');
             if ($(this).val().toString().toLowerCase() != $(this).data('name').toString().toLowerCase()) {
                 $prompt.show();
             } else {
@@ -1500,8 +1662,8 @@ function initWebhook() {
         }
     });
 
-    var updateContentType = function () {
-        var visible = $('#http_method').val() === 'POST';
+    const updateContentType = function () {
+        const visible = $('#http_method').val() === 'POST';
         $('#content_type').parent().parent()[visible ? 'show' : 'hide']();
     };
     updateContentType();
@@ -1511,7 +1673,7 @@ function initWebhook() {
 
     // Test delivery
     $('#test-delivery').click(function () {
-        var $this = $(this);
+        const $this = $(this);
         $this.addClass('loading disabled');
         $.post($this.data('link'), {
             "_csrf": csrf
@@ -1575,10 +1737,11 @@ function initAdmin() {
         $('.open_id_connect_auto_discovery_url, .oauth2_use_custom_url').hide();
         $('.open_id_connect_auto_discovery_url input[required]').removeAttr('required');
 
-        var provider = $('#oauth2_provider').val();
+        const provider = $('#oauth2_provider').val();
         switch (provider) {
             case 'github':
             case 'gitlab':
+            case 'gitea':
                 $('.oauth2_use_custom_url').show();
                 break;
             case 'openidConnect':
@@ -1590,7 +1753,7 @@ function initAdmin() {
     }
 
     function onOAuth2UseCustomURLChange() {
-        var provider = $('#oauth2_provider').val();
+        const provider = $('#oauth2_provider').val();
         $('.oauth2_use_custom_url_field').hide();
         $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
@@ -1612,6 +1775,7 @@ function initAdmin() {
                     $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
                     $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url, .oauth2_email_url').show();
                     break;
+                case 'gitea':
                 case 'gitlab':
                     $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
                     $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url').show();
@@ -1629,7 +1793,7 @@ function initAdmin() {
             $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
             $('.binddnrequired').removeClass("required");
 
-            var authType = $(this).val();
+            const authType = $(this).val();
             switch (authType) {
                 case '2':     // LDAP
                     $('.ldap').show();
@@ -1670,7 +1834,7 @@ function initAdmin() {
     }
     // Edit authentication
     if ($('.admin.edit.authentication').length > 0) {
-        var authType = $('#auth_type').val();
+        const authType = $('#auth_type').val();
         if (authType == '2' || authType == '5') {
             $('#security_protocol').change(onSecurityProtocolChange);
             if (authType == '2') {
@@ -1685,7 +1849,7 @@ function initAdmin() {
 
     // Notice
     if ($('.admin.notice')) {
-        var $detailModal = $('#detail-modal');
+        const $detailModal = $('#detail-modal');
 
         // Attach view detail modals
         $('.view-detail').click(function () {
@@ -1695,7 +1859,7 @@ function initAdmin() {
         });
 
         // Select actions
-        var $checkboxes = $('.select.table .ui.checkbox');
+        const $checkboxes = $('.select.table .ui.checkbox');
         $('.select.action').click(function () {
             switch ($(this).data('action')) {
                 case 'select-all':
@@ -1710,9 +1874,9 @@ function initAdmin() {
             }
         });
         $('#delete-selection').click(function () {
-            var $this = $(this);
+            const $this = $(this);
             $this.addClass("loading disabled");
-            var ids = [];
+            const ids = [];
             $checkboxes.each(function () {
                 if ($(this).checkbox('is checked')) {
                     ids.push($(this).data('id'));
@@ -1736,15 +1900,15 @@ function buttonsClickOnEnter() {
 }
 
 function searchUsers() {
-    var $searchUserBox = $('#search-user-box');
+    const $searchUserBox = $('#search-user-box');
     $searchUserBox.search({
         minCharacters: 2,
         apiSettings: {
             url: suburl + '/api/v1/users/search?q={query}',
             onResponse: function(response) {
-                var items = [];
+                const items = [];
                 $.each(response.data, function (_i, item) {
-                    var title = item.login;
+                    let title = item.login;
                     if (item.full_name && item.full_name.length > 0) {
                         title += ' (' + htmlEncode(item.full_name) + ')';
                     }
@@ -1762,14 +1926,38 @@ function searchUsers() {
     });
 }
 
+function searchTeams() {
+    const $searchTeamBox = $('#search-team-box');
+    $searchTeamBox.search({
+        minCharacters: 2,
+        apiSettings: {
+            url: suburl + '/api/v1/orgs/' + $searchTeamBox.data('org') + '/teams/search?q={query}',
+            headers: {"X-Csrf-Token": csrf},
+            onResponse: function(response) {
+                const items = [];
+                $.each(response.data, function (_i, item) {
+                    const title = item.name + ' (' + item.permission + ' access)';
+                    items.push({
+                        title: title,
+                    })
+                });
+
+                return { results: items }
+            }
+        },
+        searchFields: ['name', 'description'],
+        showNoResults: false
+    });
+}
+
 function searchRepositories() {
-    var $searchRepoBox = $('#search-repo-box');
+    const $searchRepoBox = $('#search-repo-box');
     $searchRepoBox.search({
         minCharacters: 2,
         apiSettings: {
             url: suburl + '/api/v1/repos/search?q={query}&uid=' + $searchRepoBox.data('uid'),
             onResponse: function(response) {
-                var items = [];
+                const items = [];
                 $.each(response.data, function (_i, item) {
                     items.push({
                         title: item.full_name.split("/")[1],
@@ -1788,16 +1976,16 @@ function searchRepositories() {
 function initCodeView() {
     if ($('.code-view .linenums').length > 0) {
         $(document).on('click', '.lines-num span', function (e) {
-            var $select = $(this);
-            var $list = $select.parent().siblings('.lines-code').find('ol.linenums > li');
+            const $select = $(this);
+            const $list = $select.parent().siblings('.lines-code').find('ol.linenums > li');
             selectRange($list, $list.filter('[rel=' + $select.attr('id') + ']'), (e.shiftKey ? $list.filter('.active').eq(0) : null));
             deSelect();
         });
 
         $(window).on('hashchange', function () {
-            var m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
-            var $list = $('.code-view ol.linenums > li');
-            var $first;
+            let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
+            const $list = $('.code-view ol.linenums > li');
+            let $first;
             if (m) {
                 $first = $list.filter('.' + m[1]);
                 selectRange($list, $first, $list.filter('.' + m[2]));
@@ -1882,7 +2070,7 @@ function checkError(resp) {
 
 
 function u2fError(errorType) {
-    var u2fErrors = {
+    const u2fErrors = {
         'browser': $('#unsupported-browser'),
         1: $('#u2f-error-1'),
         2: $('#u2f-error-2'),
@@ -1891,7 +2079,7 @@ function u2fError(errorType) {
         5: $('.u2f-error-5')
     };
     u2fErrors[errorType].removeClass('hide');
-    for(var type in u2fErrors){
+    for(const type in u2fErrors){
         if(type != errorType){
             u2fErrors[type].addClass('hide');
         }
@@ -1942,11 +2130,11 @@ function initWipTitle() {
     $(".title_wip_desc > a").click(function (e) {
         e.preventDefault();
 
-        var $issueTitle = $("#issue_title");
+        const $issueTitle = $("#issue_title");
         $issueTitle.focus();
-        var value = $issueTitle.val().trim().toUpperCase();
+        const value = $issueTitle.val().trim().toUpperCase();
 
-        for (var i in wipPrefixes) {
+        for (const i in wipPrefixes) {
             if (value.startsWith(wipPrefixes[i].toUpperCase())) {
                 return;
             }
@@ -1962,10 +2150,6 @@ $(document).ready(function () {
 
     // Show exact time
     $('.time-since').each(function () {
-        var time = new Date($(this).attr('title'))
-        if (!isNaN(time)){
-            $(this).attr('title', time.toLocaleString())
-        }
         $(this).addClass('poping up').attr('data-content', $(this).attr('title')).attr('data-variation', 'inverted tiny').attr('title', '');
     });
 
@@ -2010,17 +2194,18 @@ $(document).ready(function () {
 
     // Highlight JS
     if (typeof hljs != 'undefined') {
-        hljs.initHighlightingOnLoad();
+        const nodes = [].slice.call(document.querySelectorAll('pre code') || []);
+        for (let i = 0; i < nodes.length; i++) {
+            hljs.highlightBlock(nodes[i]);
+        }
     }
 
     // Dropzone
-    var $dropzone = $('#dropzone');
+    const $dropzone = $('#dropzone');
     if ($dropzone.length > 0) {
-        // Disable auto discover for all elements:
-        Dropzone.autoDiscover = false;
+        const filenameDict = {};
 
-        var filenameDict = {};
-        $dropzone.dropzone({
+        new Dropzone("#dropzone", {
             url: $dropzone.data('upload-url'),
             headers: {"X-Csrf-Token": csrf},
             maxFiles: $dropzone.data('max-file'),
@@ -2034,7 +2219,7 @@ $(document).ready(function () {
             init: function () {
                 this.on("success", function (file, data) {
                     filenameDict[file.name] = data.uuid;
-                    var input = $('<input id="' + data.uuid + '" name="files" type="hidden">').val(data.uuid);
+                    const input = $('<input id="' + data.uuid + '" name="files" type="hidden">').val(data.uuid);
                     $('.files').append(input);
                 });
                 this.on("removedfile", function (file) {
@@ -2048,7 +2233,7 @@ $(document).ready(function () {
                         });
                     }
                 })
-            }
+            },
         });
     }
 
@@ -2057,10 +2242,10 @@ $(document).ready(function () {
         img_dir: suburl + '/vendor/plugins/emojify/images',
         ignore_emoticons: true
     });
-    var hasEmoji = document.getElementsByClassName('has-emoji');
-    for (var i = 0; i < hasEmoji.length; i++) {
+    const hasEmoji = document.getElementsByClassName('has-emoji');
+    for (let i = 0; i < hasEmoji.length; i++) {
         emojify.run(hasEmoji[i]);
-        for (var j = 0; j < hasEmoji[i].childNodes.length; j++) {
+        for (let j = 0; j < hasEmoji[i].childNodes.length; j++) {
             if (hasEmoji[i].childNodes[j].nodeName === "A") {
                 emojify.run(hasEmoji[i].childNodes[j])
             }
@@ -2068,7 +2253,7 @@ $(document).ready(function () {
     }
 
     // Clipboard JS
-    var clipboard = new Clipboard('.clipboard');
+    const clipboard = new Clipboard('.clipboard');
     clipboard.on('success', function (e) {
         e.clearSelection();
 
@@ -2087,11 +2272,12 @@ $(document).ready(function () {
 
     // Helpers.
     $('.delete-button').click(showDeletePopup);
+    $('.add-all-button').click(showAddAllPopup);
 
     $('.delete-branch-button').click(showDeletePopup);
 
     $('.undo-button').click(function() {
-        var $this = $(this);
+        const $this = $(this);
         $.post($this.data('url'), {
             "_csrf": csrf,
             "id": $this.data("id")
@@ -2106,7 +2292,7 @@ $(document).ready(function () {
         $($(this).data('modal')).modal('show');
     });
     $('.delete-post.button').click(function () {
-        var $this = $(this);
+        const $this = $(this);
         $.post($this.data('request-url'), {
             "_csrf": csrf
         }).done(function () {
@@ -2116,11 +2302,11 @@ $(document).ready(function () {
 
     // Set anchor.
     $('.markdown').each(function () {
-        var headers = {};
+        const headers = {};
         $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
-            var node = $(this);
-            var val = encodeURIComponent(node.text().toLowerCase().replace(/[^\u00C0-\u1FFF\u2C00-\uD7FF\w\- ]/g, '').replace(/[ ]/g, '-'));
-            var name = val;
+            let node = $(this);
+            const val = encodeURIComponent(node.text().toLowerCase().replace(/[^\u00C0-\u1FFF\u2C00-\uD7FF\w\- ]/g, '').replace(/[ ]/g, '-'));
+            let name = val;
             if (headers[val] > 0) {
                 name = val + '-' + headers[val];
             }
@@ -2135,7 +2321,7 @@ $(document).ready(function () {
     });
 
     $('.issue-checkbox').click(function() {
-        var numChecked = $('.issue-checkbox').children('input:checked').length;
+        const numChecked = $('.issue-checkbox').children('input:checked').length;
         if (numChecked > 0) {
             $('#issue-filters').addClass("hide");
             $('#issue-actions').removeClass("hide");
@@ -2148,19 +2334,34 @@ $(document).ready(function () {
     $('.issue-action').click(function () {
         let action = this.dataset.action;
         let elementId = this.dataset.elementId;
-        let issueIDs = $('.issue-checkbox').children('input:checked').map(function() {
+        const issueIDs = $('.issue-checkbox').children('input:checked').map(function() {
             return this.dataset.issueId;
         }).get().join();
-        let url = this.dataset.url;
+        const url = this.dataset.url;
         if (elementId === '0' && url.substr(-9) === '/assignee'){
             elementId = '';
             action = 'clear';
         }
-        updateIssuesMeta(url, action, issueIDs, elementId).then(reload);
+        updateIssuesMeta(url, action, issueIDs, elementId).then(function() {
+            // NOTICE: This reset of checkbox state targets Firefox caching behaviour, as the checkboxes stay checked after reload
+            if (action === "close" || action === "open" ){
+                //uncheck all checkboxes
+                $('.issue-checkbox input[type="checkbox"]').each(function(_,e){ e.checked = false; });
+            }
+            reload();
+        });
+    });
+
+    // NOTICE: This event trigger targets Firefox caching behaviour, as the checkboxes stay checked after reload
+    // trigger ckecked event, if checkboxes are checked on load
+    $('.issue-checkbox input[type="checkbox"]:checked').first().each(function(_,e) {
+        e.checked = false;
+        $(e).click();
     });
 
     buttonsClickOnEnter();
     searchUsers();
+    searchTeams();
     searchRepositories();
 
     initCommentForm();
@@ -2184,6 +2385,7 @@ $(document).ready(function () {
     initIssueList();
     initWipTitle();
     initPullRequestReview();
+    initRepoStatusChecker();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -2199,12 +2401,12 @@ $(document).ready(function () {
         }
     }
 
-    var routes = {
+    const routes = {
         'div.user.settings': initUserSettings,
         'div.repository.settings.collaboration': initRepositoryCollaboration
     };
 
-    var selector;
+    let selector;
     for (selector in routes) {
         if ($(selector).length > 0) {
             routes[selector]();
@@ -2212,9 +2414,9 @@ $(document).ready(function () {
         }
     }
 
-    var $cloneAddr = $('#clone_addr');
+    const $cloneAddr = $('#clone_addr');
     $cloneAddr.change(function() {
-        var $repoName = $('#repo_name');
+        const $repoName = $('#repo_name');
         if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
             $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
         }
@@ -2241,17 +2443,17 @@ function deSelect() {
 function selectRange($list, $select, $from) {
     $list.removeClass('active');
     if ($from) {
-        var a = parseInt($select.attr('rel').substr(1));
-        var b = parseInt($from.attr('rel').substr(1));
-        var c;
+        let a = parseInt($select.attr('rel').substr(1));
+        let b = parseInt($from.attr('rel').substr(1));
+        let c;
         if (a != b) {
             if (a > b) {
                 c = a;
                 a = b;
                 b = c;
             }
-            var classes = [];
-            for (var i = a; i <= b; i++) {
+            const classes = [];
+            for (let i = a; i <= b; i++) {
                 classes.push('.L' + i);
             }
             $list.filter(classes.join(',')).addClass('active');
@@ -2272,8 +2474,8 @@ $(function () {
 
     // Parse SSH Key
     $("#ssh-key-content").on('change paste keyup',function(){
-        var arrays = $(this).val().split(" ");
-        var $title = $("#ssh-key-title")
+        const arrays = $(this).val().split(" ");
+        const $title = $("#ssh-key-title")
         if ($title.val() === "" && arrays.length === 3 && arrays[2] !== "") {
             $title.val(arrays[2]);
         }
@@ -2281,13 +2483,42 @@ $(function () {
 });
 
 function showDeletePopup() {
-    var $this = $(this);
-    var filter = "";
+    const $this = $(this);
+    let filter = "";
     if ($this.attr("id")) {
         filter += "#" + $this.attr("id")
     }
 
-    var dialog = $('.delete.modal' + filter);
+    const dialog = $('.delete.modal' + filter);
+    dialog.find('.name').text($this.data('name'));
+
+    dialog.modal({
+        closable: false,
+        onApprove: function() {
+            if ($this.data('type') == "form") {
+                $($this.data('form')).submit();
+                return;
+            }
+
+            $.post($this.data('url'), {
+                "_csrf": csrf,
+                "id": $this.data("id")
+            }).done(function(data) {
+                window.location.href = data.redirect;
+            });
+        }
+    }).modal('show');
+    return false;
+}
+
+function showAddAllPopup() {
+    const $this = $(this);
+    let filter = "";
+    if ($this.attr("id")) {
+        filter += "#" + $this.attr("id")
+    }
+
+    const dialog = $('.addall.modal' + filter);
     dialog.find('.name').text($this.data('name'));
 
     dialog.modal({
@@ -2310,7 +2541,7 @@ function showDeletePopup() {
 }
 
 function initVueComponents(){
-    var vueDelimeters = ['${', '}'];
+    const vueDelimeters = ['${', '}'];
 
     Vue.component('repo-search', {
         delimiters: vueDelimeters,
@@ -2400,7 +2631,7 @@ function initVueComponents(){
         mounted: function() {
             this.searchRepos(this.reposFilter);
 
-            var self = this;
+            const self = this;
             Vue.nextTick(function() {
                 self.$refs.search.focus();
             });
@@ -2434,18 +2665,18 @@ function initVueComponents(){
             },
 
             searchRepos: function(reposFilter) {
-                var self = this;
+                const self = this;
 
                 this.isLoading = true;
 
-                var searchedMode = this.repoTypes[reposFilter].searchMode;
-                var searchedURL = this.searchURL;
-                var searchedQuery = this.searchQuery;
+                const searchedMode = this.repoTypes[reposFilter].searchMode;
+                const searchedURL = this.searchURL;
+                const searchedQuery = this.searchQuery;
 
                 $.getJSON(searchedURL, function(result, _textStatus, request) {
                     if (searchedURL == self.searchURL) {
                         self.repos = result.data;
-                        var count = request.getResponseHeader('X-Total-Count');
+                        const count = request.getResponseHeader('X-Total-Count');
                         if (searchedQuery === '' && searchedMode === '') {
                             self.reposTotalCount = count;
                         }
@@ -2482,7 +2713,7 @@ function initCtrlEnterSubmit() {
 }
 
 function initVueApp() {
-    var el = document.getElementById('app');
+    const el = document.getElementById('app');
     if (!el) {
         return;
     }
@@ -2520,7 +2751,7 @@ function cancelStopwatch() {
 }
 
 function initHeatmap(appElementId, heatmapUser, locale) {
-    var el = document.getElementById(appElementId);
+    const el = document.getElementById(appElementId);
     if (!el) {
         return;
     }
@@ -2530,7 +2761,7 @@ function initHeatmap(appElementId, heatmapUser, locale) {
     locale.contributions = locale.contributions || 'contributions';
     locale.no_contributions = locale.no_contributions || 'No contributions';
 
-    var vueDelimeters = ['${', '}'];
+    const vueDelimeters = ['${', '}'];
 
     Vue.component('activity-heatmap', {
         delimiters: vueDelimeters,
@@ -2555,7 +2786,8 @@ function initHeatmap(appElementId, heatmapUser, locale) {
                 isLoading: true,
                 colorRange: [],
                 endDate: null,
-                values: []
+                values: [],
+                totalContributions: 0,
             };
         },
 
@@ -2574,10 +2806,11 @@ function initHeatmap(appElementId, heatmapUser, locale) {
 
         methods: {
             loadHeatmap: function(userName) {
-                var self = this;
+                const self = this;
                 $.get(this.suburl + '/api/v1/users/' + userName + '/heatmap', function(chartRawData) {
-                    var chartData = [];
-                    for (var i = 0; i < chartRawData.length; i++) {
+                    const chartData = [];
+                    for (let i = 0; i < chartRawData.length; i++) {
+                        self.totalContributions += chartRawData[i].contributions;
                         chartData[i] = { date: new Date(chartRawData[i].timestamp * 1000), count: chartRawData[i].contributions };
                     }
                     self.values = chartData;
@@ -2586,11 +2819,11 @@ function initHeatmap(appElementId, heatmapUser, locale) {
             },
 
             getColor: function(idx) {
-                var el = document.createElement('div');
+                const el = document.createElement('div');
                 el.className = 'heatmap-color-' + idx;
                 document.body.appendChild(el);
 
-                var color = getComputedStyle(el).backgroundColor;
+                const color = getComputedStyle(el).backgroundColor;
 
                 document.body.removeChild(el);
 
@@ -2598,7 +2831,7 @@ function initHeatmap(appElementId, heatmapUser, locale) {
             }
         },
 
-        template: '<div><div v-show="isLoading"><slot name="loading"></slot></div><calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange" />'
+        template: '<div><div v-show="isLoading"><slot name="loading"></slot></div><h4 class="total-contributions" v-if="!isLoading"><span v-html="totalContributions"></span> total contributions in the last 12 months</h4><calendar-heatmap v-show="!isLoading" :locale="locale" :no-data-text="locale.no_contributions" :tooltip-unit="locale.contributions" :end-date="endDate" :values="values" :range-color="colorRange" />'
     });
 
     new Vue({
@@ -2615,9 +2848,9 @@ function initHeatmap(appElementId, heatmapUser, locale) {
 
 function initFilterBranchTagDropdown(selector) {
     $(selector).each(function() {
-        var $dropdown = $(this);
-        var $data = $dropdown.find('.data');
-        var data = {
+        const $dropdown = $(this);
+        const $data = $dropdown.find('.data');
+        const data = {
             items: [],
             mode: $data.data('mode'),
             searchTerm: '',
@@ -2642,7 +2875,7 @@ function initFilterBranchTagDropdown(selector) {
             data: data,
 
             beforeMount: function () {
-                var vm = this;
+                const vm = this;
 
                 this.noResults = vm.$el.getAttribute('data-no-results');
                 this.canCreateBranch = vm.$el.getAttribute('data-can-create-branch') === 'true';
@@ -2667,9 +2900,9 @@ function initFilterBranchTagDropdown(selector) {
 
             computed: {
                 filteredItems: function() {
-                    var vm = this;
+                    const vm = this;
 
-                    var items = vm.items.filter(function (item) {
+                    const items = vm.items.filter(function (item) {
                         return ((vm.mode === 'branches' && item.branch)
                                 || (vm.mode === 'tags' && item.tag))
                             && (!vm.searchTerm
@@ -2685,7 +2918,7 @@ function initFilterBranchTagDropdown(selector) {
                             && !this.showCreateNewBranch;
                 },
                 showCreateNewBranch: function() {
-                    var vm = this;
+                    const vm = this;
                     if (!this.canCreateBranch || !vm.searchTerm || vm.mode === 'tags') {
                         return false;
                     }
@@ -2698,7 +2931,7 @@ function initFilterBranchTagDropdown(selector) {
 
             methods: {
                 selectItem: function(item) {
-                    var prev = this.getSelected();
+                    const prev = this.getSelected();
                     if (prev !== null) {
                         prev.selected = false;
                     }
@@ -2712,27 +2945,27 @@ function initFilterBranchTagDropdown(selector) {
                     this.$refs.newBranchForm.submit();
                 },
                 focusSearchField: function() {
-                    var vm = this;
+                    const vm = this;
                     Vue.nextTick(function() {
                         vm.$refs.searchField.focus();
                     });
                 },
                 getSelected: function() {
-                    for (var i = 0, j = this.items.length; i < j; ++i) {
+                    for (let i = 0, j = this.items.length; i < j; ++i) {
                         if (this.items[i].selected)
                             return this.items[i];
                     }
                     return null;
                 },
                 getSelectedIndexInFiltered: function() {
-                    for (var i = 0, j = this.filteredItems.length; i < j; ++i) {
+                    for (let i = 0, j = this.filteredItems.length; i < j; ++i) {
                         if (this.filteredItems[i].selected)
                             return i;
                     }
                     return -1;
                 },
                 scrollToActive: function() {
-                    var el = this.$refs['listItem' + this.active];
+                    let el = this.$refs['listItem' + this.active];
                     if (!el || el.length === 0) {
                         return;
                     }
@@ -2740,7 +2973,7 @@ function initFilterBranchTagDropdown(selector) {
                         el = el[0];
                     }
 
-                    var cont = this.$refs.scrollContainer;
+                    const cont = this.$refs.scrollContainer;
 
                      if (el.offsetTop < cont.scrollTop) {
                          cont.scrollTop = el.offsetTop;
@@ -2750,7 +2983,7 @@ function initFilterBranchTagDropdown(selector) {
                     }
                 },
                 keydown: function(event) {
-                    var vm = this;
+                    const vm = this;
                     if (event.keyCode === 40) {
                         // arrow down
                         event.preventDefault();
@@ -2800,14 +3033,15 @@ function initFilterBranchTagDropdown(selector) {
     });
 }
 
-$(".commit-button").click(function() {
+$(".commit-button").click(function(e) {
+    e.preventDefault();
     $(this).parent().find('.commit-body').toggle();
 });
 
 function initNavbarContentToggle() {
-    var content = $('#navbar');
-    var toggle = $('#navbar-expand-toggle');
-    var isExpanded = false;
+    const content = $('#navbar');
+    const toggle = $('#navbar-expand-toggle');
+    let isExpanded = false;
     toggle.click(function() {
         isExpanded = !isExpanded;
         if (isExpanded) {
@@ -2822,13 +3056,13 @@ function initNavbarContentToggle() {
 }
 
 function initTopicbar() {
-    var mgrBtn = $("#manage_topic"),
-        editDiv = $("#topic_edit"),
-        viewDiv = $("#repo-topics"),
-        saveBtn = $("#save_topic"),
-        topicDropdown = $('#topic_edit .dropdown'),
-        topicForm = $('#topic_edit.ui.form'),
-        topicPrompts;
+    const mgrBtn = $("#manage_topic");
+    const editDiv = $("#topic_edit");
+    const viewDiv = $("#repo-topics");
+    const saveBtn = $("#save_topic");
+    const topicDropdown = $('#topic_edit .dropdown');
+    const topicForm = $('#topic_edit.ui.form');
+    const topicPrompts = getPrompts();
 
     mgrBtn.click(function() {
         viewDiv.hide();
@@ -2836,7 +3070,7 @@ function initTopicbar() {
     });
 
     function getPrompts() {
-        var hidePrompt = $("div.hide#validate_prompt"),
+        const hidePrompt = $("div.hide#validate_prompt"),
             prompts = {
                 countPrompt: hidePrompt.children('#count_prompt').text(),
                 formatPrompt: hidePrompt.children('#format_prompt').text()
@@ -2846,7 +3080,7 @@ function initTopicbar() {
     }
 
     saveBtn.click(function() {
-        var topics = $("input[name=topics]").val();
+        const topics = $("input[name=topics]").val();
 
         $.post(saveBtn.data('link'), {
             "_csrf": csrf,
@@ -2855,10 +3089,10 @@ function initTopicbar() {
             if (xhr.responseJSON.status === 'ok') {
                 viewDiv.children(".topic").remove();
                 if (topics.length) {
-                    var topicArray = topics.split(",");
+                    const topicArray = topics.split(",");
 
-                    var last = viewDiv.children("a").last();
-                    for (var i=0; i < topicArray.length; i++) {
+                    const last = viewDiv.children("a").last();
+                    for (let i=0; i < topicArray.length; i++) {
                         $('<div class="ui small label topic" style="cursor:pointer;">'+topicArray[i]+'</div>').insertBefore(last)
                     }
                 }
@@ -2870,11 +3104,11 @@ function initTopicbar() {
                 if (xhr.responseJSON.invalidTopics.length > 0) {
                     topicPrompts.formatPrompt = xhr.responseJSON.message;
 
-                    var invalidTopics = xhr.responseJSON.invalidTopics,
+                    const invalidTopics = xhr.responseJSON.invalidTopics,
                         topicLables = topicDropdown.children('a.ui.label');
 
                     topics.split(',').forEach(function(value, index) {
-                        for (var i=0; i < invalidTopics.length; i++) {
+                        for (let i=0; i < invalidTopics.length; i++) {
                             if (invalidTopics[i] === value) {
                                 topicLables.eq(index).removeClass("green").addClass("red");
                             }
@@ -2909,7 +3143,7 @@ function initTopicbar() {
             throttle: 500,
             cache: false,
             onResponse: function(res) {
-                let formattedResponse = {
+                const formattedResponse = {
                     success: false,
                     results: [],
                 };
@@ -2917,23 +3151,23 @@ function initTopicbar() {
                     return text.replace(/<[^>]*>?/gm, "");
                 };
 
-                let query = stripTags(this.urlData.query.trim());
+                const query = stripTags(this.urlData.query.trim());
                 let found_query = false;
-                let current_topics = [];
+                const current_topics = [];
                 topicDropdown.find('div.label.visible.topic,a.label.visible').each(function(_,e){ current_topics.push(e.dataset.value); });
 
                 if (res.topics) {
                     let found = false;
                     for (let i=0;i < res.topics.length;i++) {
                         // skip currently added tags
-                        if (current_topics.indexOf(res.topics[i].Name) != -1){
+                        if (current_topics.indexOf(res.topics[i].topic_name) != -1){
                             continue;
                         }
 
-                        if (res.topics[i].Name.toLowerCase() === query.toLowerCase()){
+                        if (res.topics[i].topic_name.toLowerCase() === query.toLowerCase()){
                             found_query = true;
                         }
-                        formattedResponse.results.push({"description": res.topics[i].Name, "data-value": res.topics[i].Name});
+                        formattedResponse.results.push({"description": res.topics[i].topic_name, "data-value": res.topics[i].topic_name});
                         found = true;
                     }
                     formattedResponse.success = found;
@@ -2969,7 +3203,7 @@ function initTopicbar() {
     });
 
     $.fn.form.settings.rules.validateTopic = function(_values, regExp) {
-        var topics = topicDropdown.children('a.ui.label'),
+        const topics = topicDropdown.children('a.ui.label'),
             status = topics.length === 0 || topics.last().attr("data-value").match(regExp);
         if (!status) {
             topics.last().removeClass("green").addClass("red");
@@ -2977,7 +3211,6 @@ function initTopicbar() {
         return status && topicDropdown.children('a.ui.label.red').length === 0;
     };
 
-    topicPrompts = getPrompts();
     topicForm.form({
             on: 'change',
             inline : true,
@@ -3004,7 +3237,7 @@ function toggleDeadlineForm() {
 }
 
 function setDeadline() {
-    var deadline = $('#deadlineDate').val();
+    const deadline = $('#deadlineDate').val();
     updateDeadline(deadline);
 }
 
@@ -3012,10 +3245,10 @@ function updateDeadline(deadlineString) {
     $('#deadline-err-invalid-date').hide();
     $('#deadline-loader').addClass('loading');
 
-    var realDeadline = null;
+    let realDeadline = null;
     if (deadlineString !== '') {
 
-        var newDate = Date.parse(deadlineString)
+        const newDate = Date.parse(deadlineString)
 
         if (isNaN(newDate)) {
             $('#deadline-loader').removeClass('loading');
@@ -3060,14 +3293,20 @@ function deleteDependencyModal(id, type) {
 }
 
 function initIssueList() {
-    var repolink = $('#repolink').val();
+    const repolink = $('#repolink').val();
+    const repoId = $('#repoId').val();
+    const crossRepoSearch = $('#crossRepoSearch').val();
+    let issueSearchUrl = suburl + '/api/v1/repos/' + repolink + '/issues?q={query}';
+    if (crossRepoSearch === 'true') {
+        issueSearchUrl = suburl + '/api/v1/repos/issues/search?q={query}&priority_repo_id=' + repoId;
+    }
     $('#new-dependency-drop-list')
         .dropdown({
             apiSettings: {
-                url: suburl + '/api/v1/repos/' + repolink + '/issues?q={query}',
+                url: issueSearchUrl,                
                 onResponse: function(response) {
-                    var filteredResponse = {'success': true, 'results': []};
-                    var currIssueId = $('#new-dependency-drop-list').data('issue-id');
+                    const filteredResponse = {'success': true, 'results': []};
+                    const currIssueId = $('#new-dependency-drop-list').data('issue-id');
                     // Parse the response from the api to work with our dropdown
                     $.each(response, function(_i, issue) {
                         // Don't list current issue in the dependency list.
@@ -3075,7 +3314,8 @@ function initIssueList() {
                             return;
                         }
                         filteredResponse.results.push({
-                            'name'  : '#' + issue.number + '&nbsp;' + htmlEncode(issue.title),
+                            'name'  : '#' + issue.number + ' ' + htmlEncode(issue.title) + 
+                                '<div class="text small dont-break-out">' + htmlEncode(issue.repository.full_name) + '</div>',
                             'value' : issue.id
                         });
                     });
@@ -3085,11 +3325,44 @@ function initIssueList() {
             },
 
             fullTextSearch: true
-        })
-    ;
+        });
+
+    $(".menu a.label-filter-item").each(function() {
+        $(this).click(function(e) {
+            if (e.altKey) {
+                e.preventDefault();
+
+                const href = $(this).attr("href");
+                const id = $(this).data("label-id");
+
+                const regStr = "labels=(-?[0-9]+%2c)*(" + id + ")(%2c-?[0-9]+)*&";
+                const newStr = "labels=$1-$2$3&";
+
+                window.location = href.replace(new RegExp(regStr), newStr);
+            }
+        });
+    });
+
+    $(".menu .ui.dropdown.label-filter").keydown(function(e) {
+        if (e.altKey && e.keyCode == 13) {
+            const selectedItems = $(".menu .ui.dropdown.label-filter .menu .item.selected");
+
+            if (selectedItems.length > 0) {
+                const item = $(selectedItems[0]);
+
+                const href = item.attr("href");
+                const id = item.data("label-id");
+
+                const regStr = "labels=(-?[0-9]+%2c)*(" + id + ")(%2c-?[0-9]+)*&";
+                const newStr = "labels=$1-$2$3&";
+
+                window.location = href.replace(new RegExp(regStr), newStr);
+            }
+        }
+    });
 }
 function cancelCodeComment(btn) {
-    var form = $(btn).closest("form");
+    const form = $(btn).closest("form");
     if(form.length > 0 && form.hasClass('comment-form')) {
         form.addClass('hide');
         form.parent().find('button.comment-form-reply').show();
@@ -3098,8 +3371,8 @@ function cancelCodeComment(btn) {
     }
 }
 function onOAuthLoginClick() {
-    var oauthLoader = $('#oauth2-login-loader');
-    var oauthNav = $('#oauth2-login-navigator');
+    const oauthLoader = $('#oauth2-login-loader');
+    const oauthNav = $('#oauth2-login-navigator');
 
     oauthNav.hide();
     oauthLoader.removeClass('disabled');

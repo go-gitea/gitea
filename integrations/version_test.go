@@ -23,5 +23,5 @@ func TestVersion(t *testing.T) {
 
 	var version structs.ServerVersion
 	DecodeJSON(t, resp, &version)
-	assert.Equal(t, setting.AppVer, string(version.Version))
+	assert.Equal(t, setting.AppVer, version.Version)
 }
