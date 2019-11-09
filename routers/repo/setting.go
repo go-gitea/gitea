@@ -378,6 +378,11 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		oldOwnerID := ctx.Repo.Owner.ID
+		// Close the GitRepo if ope
+		if ctx.Repo.GitRepo != nil {
+			ctx.Repo.GitRepo.Close()
+			ctx.Repo.GitRepo = nil
+		}
 		if err = models.TransferOwnership(ctx.User, newOwner, repo); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
