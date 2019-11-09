@@ -218,7 +218,7 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		{"   @lol   ", "@lol"},
 		{" @Te-st", "@Te-st"},
 		{"(@gitea)", "@gitea"},
-		{"(@gitea)", "@gitea"},
+		{"[@gitea]", "@gitea"},
 		{"@gitea! this", "@gitea"},
 		{"@gitea? this", "@gitea"},
 		{"@gitea. this", "@gitea"},
@@ -244,6 +244,7 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		"@.ABC",
 		"/home/gitea/@gitea",
 		"\"@gitea\"",
+		"@@gitea",
 		"@gitea!this",
 		"@gitea?this",
 		"@gitea,this",
@@ -253,7 +254,7 @@ func TestRegExp_mentionPattern(t *testing.T) {
 	for _, testCase := range trueTestCases {
 		found := mentionPattern.FindStringSubmatch(testCase.pat)
 		assert.Len(t, found, 2)
-		assert.Equal(t, testCase.exp, found[1], "[%s] should be [%s]", found[1], testCase.exp)
+		assert.Equal(t, testCase.exp, found[1])
 	}
 	for _, testCase := range falseTestCases {
 		res := mentionPattern.MatchString(testCase)
