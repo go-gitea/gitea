@@ -2263,6 +2263,7 @@ $(document).ready(function () {
 
     // Helpers.
     $('.delete-button').click(showDeletePopup);
+    $('.add-all-button').click(showAddAllPopup);
 
     $('.delete-branch-button').click(showDeletePopup);
 
@@ -2480,6 +2481,35 @@ function showDeletePopup() {
     }
 
     const dialog = $('.delete.modal' + filter);
+    dialog.find('.name').text($this.data('name'));
+
+    dialog.modal({
+        closable: false,
+        onApprove: function() {
+            if ($this.data('type') == "form") {
+                $($this.data('form')).submit();
+                return;
+            }
+
+            $.post($this.data('url'), {
+                "_csrf": csrf,
+                "id": $this.data("id")
+            }).done(function(data) {
+                window.location.href = data.redirect;
+            });
+        }
+    }).modal('show');
+    return false;
+}
+
+function showAddAllPopup() {
+    const $this = $(this);
+    let filter = "";
+    if ($this.attr("id")) {
+        filter += "#" + $this.attr("id")
+    }
+
+    const dialog = $('.addall.modal' + filter);
     dialog.find('.name').text($this.data('name'));
 
     dialog.modal({
