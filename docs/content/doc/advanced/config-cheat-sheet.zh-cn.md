@@ -129,6 +129,8 @@ menu:
 - `DELIVER_TIMEOUT`: 请求webhooks的超时时间，单位秒。
 - `SKIP_TLS_VERIFY`: 是否允许不安全的证书。
 - `PAGING_NUM`: 每页显示的Webhook 历史数量。
+- `PROXY_URL`: ****: 代理服务器网址，支持 http://, https//, socks://, 为空将使用环境变量中的 http_proxy/https_proxy 设置。
+- `PROXY_HOSTS`: ****: 逗号分隔的需要代理的域名或IP地址。支持 * 号匹配符，使用 ** 匹配所有域名和IP地址。
 
 ## Mailer (`mailer`)
 

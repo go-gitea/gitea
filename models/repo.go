@@ -1469,8 +1469,15 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("watchRepo: %v", err)
 		}
 	}
-	if err = newRepoAction(e, doer, repo); err != nil {
-		return fmt.Errorf("newRepoAction: %v", err)
+	if err = notifyWatchers(e, &Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    ActionCreateRepo,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+	}); err != nil {
+		return fmt.Errorf("notify watchers '%d/%d': %v", doer.ID, repo.ID, err)
 	}
 
 	if err = copyDefaultWebhooksToRepo(e, repo.ID); err != nil {
@@ -2832,4 +2839,10 @@ func (repo *Repository) GetTreePathLock(treePath string) (*LFSLock, error) {
 		}
 	}
 	return nil, nil
+}
+
+// UpdateRepositoryCols updates repository's columns
+func UpdateRepositoryCols(repo *Repository, cols ...string) error {
+	_, err := x.ID(repo.ID).Cols(cols...).Update(repo)
+	return err
 }
