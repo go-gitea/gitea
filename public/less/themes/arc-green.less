@@ -1294,8 +1294,34 @@ a.ui.labels .label:hover {
     }
 }
 
+.heatmap(@heat) {
+    @heatmap-cold: #2d303b;
+    @heatmap-hot: #a0cc75;
+    background-color: mix(@heatmap-hot, @heatmap-cold, @heat);
+}
+
 .heatmap-color-0 {
-    background-color: #2d303b;
+    .heatmap(0%);
+}
+
+.heatmap-color-1 {
+    .heatmap(20%);
+}
+
+.heatmap-color-2 {
+    .heatmap(40%);
+}
+
+.heatmap-color-3 {
+    .heatmap(60%);
+}
+
+.heatmap-color-4 {
+    .heatmap(80%);
+}
+
+.heatmap-color-5 {
+    .heatmap(100%);
 }
 
 /* code mirror dark theme */

@@ -24,18 +24,6 @@ func TestIsValidHookContentType(t *testing.T) {
 	assert.False(t, IsValidHookContentType("invalid"))
 }
 
-func TestWebhook_GetSlackHook(t *testing.T) {
-	w := &Webhook{
-		Meta: `{"channel": "foo", "username": "username", "color": "blue"}`,
-	}
-	slackHook := w.GetSlackHook()
-	assert.Equal(t, *slackHook, SlackMeta{
-		Channel:  "foo",
-		Username: "username",
-		Color:    "blue",
-	})
-}
-
 func TestWebhook_History(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	webhook := AssertExistsAndLoadBean(t, &Webhook{ID: 1}).(*Webhook)
