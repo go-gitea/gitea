@@ -283,49 +283,6 @@ func (a *Action) GetIssueContent() string {
 	return issue.Content
 }
 
-func newRepoAction(e Engine, u *User, repo *Repository) (err error) {
-	if err = notifyWatchers(e, &Action{
-		ActUserID: u.ID,
-		ActUser:   u,
-		OpType:    ActionCreateRepo,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		return fmt.Errorf("notify watchers '%d/%d': %v", u.ID, repo.ID, err)
-	}
-
-	log.Trace("action.newRepoAction: %s/%s", u.Name, repo.Name)
-	return err
-}
-
-// NewRepoAction adds new action for creating repository.
-func NewRepoAction(u *User, repo *Repository) (err error) {
-	return newRepoAction(x, u, repo)
-}
-
-func renameRepoAction(e Engine, actUser *User, oldRepoName string, repo *Repository) (err error) {
-	if err = notifyWatchers(e, &Action{
-		ActUserID: actUser.ID,
-		ActUser:   actUser,
-		OpType:    ActionRenameRepo,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-		Content:   oldRepoName,
-	}); err != nil {
-		return fmt.Errorf("notify watchers: %v", err)
-	}
-
-	log.Trace("action.renameRepoAction: %s/%s", actUser.Name, repo.Name)
-	return nil
-}
-
-// RenameRepoAction adds new action for renaming a repository.
-func RenameRepoAction(actUser *User, oldRepoName string, repo *Repository) error {
-	return renameRepoAction(x, actUser, oldRepoName, repo)
-}
-
 // PushCommit represents a commit in a push operation.
 type PushCommit struct {
 	Sha1           string
