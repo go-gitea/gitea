@@ -7,12 +7,15 @@
 	<div class="menu has-emoji">
 		<div class="header">{{ .ctx.i18n.Tr "repo.pick_reaction"}}</div>
 		<div class="divider"></div>
-		<div class="item" data-content="+1">:+1:</div>
-		<div class="item" data-content="-1">:-1:</div>
-		<div class="item" data-content="laugh">:laughing:</div>
-		<div class="item" data-content="confused">:confused:</div>
-		<div class="item" data-content="heart">:heart:</div>
-		<div class="item" data-content="hooray">:tada:</div>
+		{{range $value := .AllowedReactions}}
+			{{if eq $value "hooray"}}
+				<div class="item" data-content="hooray">:tada:</div>
+			{{else if eq $value "laugh"}}
+				<div class="item" data-content="laugh">:laughing:</div>
+			{{else}}
+				<div class="item" data-content="{{$value}}">:{{$value}}:</div>
+			{{end}}
+		{{end}}
 	</div>
 </div>
 {{end}}
