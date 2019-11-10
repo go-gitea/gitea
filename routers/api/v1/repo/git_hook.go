@@ -6,9 +6,9 @@ package repo
 
 import (
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
 // ListGitHooks list all Git hooks of a repository

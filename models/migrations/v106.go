@@ -8,12 +8,19 @@ import (
 	"xorm.io/xorm"
 )
 
-func addTemplateToRepo(x *xorm.Engine) error {
+// RepoWatchMode specifies what kind of watch the user has on a repository
+type RepoWatchMode int8
 
-	type Repository struct {
-		IsTemplate bool  `xorm:"INDEX NOT NULL DEFAULT false"`
-		TemplateID int64 `xorm:"INDEX"`
+// Watch is connection request for receiving repository notification.
+type Watch struct {
+	ID   int64         `xorm:"pk autoincr"`
+	Mode RepoWatchMode `xorm:"SMALLINT NOT NULL DEFAULT 1"`
+}
+
+func addModeColumnToWatch(x *xorm.Engine) (err error) {
+	if err = x.Sync2(new(Watch)); err != nil {
+		return
 	}
-
-	return x.Sync2(new(Repository))
+	_, err = x.Exec("UPDATE `watch` SET `mode` = 1")
+	return err
 }

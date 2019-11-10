@@ -10,6 +10,7 @@ import (
 	"container/list"
 	"crypto/subtle"
 	"fmt"
+	"html"
 	"io"
 	"path"
 	"strings"
@@ -67,19 +68,13 @@ func getRepository(ctx *context.Context, repoID int64) *models.Repository {
 		return nil
 	}
 
-	if repo.IsEmpty || !perm.CanRead(models.UnitTypeCode) {
-		if log.IsTrace() {
-			if repo.IsEmpty {
-				log.Trace("Empty repository %-v", repo)
-			} else {
-				log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
-					"User in repo has Permissions: %-+v",
-					ctx.User,
-					models.UnitTypeCode,
-					ctx.Repo,
-					perm)
-			}
-		}
+	if !perm.CanRead(models.UnitTypeCode) {
+		log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
+			"User in repo has Permissions: %-+v",
+			ctx.User,
+			models.UnitTypeCode,
+			ctx.Repo,
+			perm)
 		ctx.NotFound("getRepository", nil)
 		return nil
 	}
@@ -89,6 +84,12 @@ func getRepository(ctx *context.Context, repoID int64) *models.Repository {
 func getForkRepository(ctx *context.Context) *models.Repository {
 	forkRepo := getRepository(ctx, ctx.ParamsInt64(":repoid"))
 	if ctx.Written() {
+		return nil
+	}
+
+	if forkRepo.IsEmpty {
+		log.Trace("Empty repository %-v", forkRepo)
+		ctx.NotFound("getForkRepository", nil)
 		return nil
 	}
 
@@ -669,8 +670,37 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 	}
 
 	if err = pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+		sanitize := func(x string) string {
+			runes := []rune(x)
+
+			if len(runes) > 512 {
+				x = "..." + string(runes[len(runes)-512:])
+			}
+
+			return strings.Replace(html.EscapeString(x), "\n", "<br>", -1)
+		}
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if models.IsErrMergeConflicts(err) {
+			conflictError := err.(models.ErrMergeConflicts)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_conflict", sanitize(conflictError.StdErr), sanitize(conflictError.StdOut)))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if models.IsErrRebaseConflicts(err) {
+			conflictError := err.(models.ErrRebaseConflicts)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.rebase_conflict", sanitize(conflictError.CommitSHA), sanitize(conflictError.StdErr), sanitize(conflictError.StdOut)))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if models.IsErrMergeUnrelatedHistories(err) {
+			log.Debug("MergeUnrelatedHistories error: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.unrelated_histories"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if models.IsErrMergePushOutOfDate(err) {
+			log.Debug("MergePushOutOfDate error: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 			return
 		}

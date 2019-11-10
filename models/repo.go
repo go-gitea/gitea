@@ -36,6 +36,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
@@ -733,17 +734,17 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 }
 
 func (repo *Repository) updateSize(e Engine) error {
-	repoInfoSize, err := git.GetRepoSize(repo.repoPath(e))
+	size, err := util.GetDirectorySize(repo.repoPath(e))
 	if err != nil {
 		return fmt.Errorf("UpdateSize: %v", err)
 	}
 
-	repo.Size = repoInfoSize.Size + repoInfoSize.SizePack
+	repo.Size = size
 	_, err = e.ID(repo.ID).Cols("size").Update(repo)
 	return err
 }
 
-// UpdateSize updates the repository size, calculating it using git.GetRepoSize
+// UpdateSize updates the repository size, calculating it using util.GetDirectorySize
 func (repo *Repository) UpdateSize() error {
 	return repo.updateSize(x)
 }
@@ -1594,8 +1595,15 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("watchRepo: %v", err)
 		}
 	}
-	if err = newRepoAction(e, doer, repo); err != nil {
-		return fmt.Errorf("newRepoAction: %v", err)
+	if err = notifyWatchers(e, &Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    ActionCreateRepo,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+	}); err != nil {
+		return fmt.Errorf("notify watchers '%d/%d': %v", doer.ID, repo.ID, err)
 	}
 
 	if err = copyDefaultWebhooksToRepo(e, repo.ID); err != nil {
@@ -2528,8 +2536,8 @@ func CheckRepoStats() {
 	checkers := []*repoChecker{
 		// Repository.NumWatches
 		{
-			"SELECT repo.id FROM `repository` repo WHERE repo.num_watches!=(SELECT COUNT(*) FROM `watch` WHERE repo_id=repo.id)",
-			"UPDATE `repository` SET num_watches=(SELECT COUNT(*) FROM `watch` WHERE repo_id=?) WHERE id=?",
+			"SELECT repo.id FROM `repository` repo WHERE repo.num_watches!=(SELECT COUNT(*) FROM `watch` WHERE repo_id=repo.id AND mode<>2)",
+			"UPDATE `repository` SET num_watches=(SELECT COUNT(*) FROM `watch` WHERE repo_id=? AND mode<>2) WHERE id=?",
 			"repository count 'num_watches'",
 		},
 		// Repository.NumStars
@@ -2754,7 +2762,7 @@ func GenerateRepository(doer, owner *User, templateRepo *Repository, opts Genera
 		LowerName:     strings.ToLower(opts.Name),
 		Description:   opts.Description,
 		IsPrivate:     opts.Private,
-		IsEmpty:       !opts.GitContent,
+		IsEmpty:       !opts.GitContent || templateRepo.IsEmpty,
 		IsFsckEnabled: templateRepo.IsFsckEnabled,
 		TemplateID:    templateRepo.ID,
 	}
@@ -2786,7 +2794,7 @@ func GenerateRepository(doer, owner *User, templateRepo *Repository, opts Genera
 		return repo, err
 	}
 
-	if opts.GitContent {
+	if opts.GitContent && !templateRepo.IsEmpty {
 		if err = generateRepository(sess, repo, templateRepo); err != nil {
 			return repo, err
 		}
@@ -3025,4 +3033,10 @@ func (repo *Repository) GetTreePathLock(treePath string) (*LFSLock, error) {
 		}
 	}
 	return nil, nil
+}
+
+// UpdateRepositoryCols updates repository's columns
+func UpdateRepositoryCols(repo *Repository, cols ...string) error {
+	_, err := x.ID(repo.ID).Cols(cols...).Update(repo)
+	return err
 }

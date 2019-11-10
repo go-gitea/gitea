@@ -191,7 +191,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 
 		if !opts.IsValid() {
-			ctx.RenderWithErr("Must select at least one template item", tplCreate, form)
+			ctx.RenderWithErr(ctx.Tr("repo.template.one_item"), tplCreate, form)
 			return
 		}
 
@@ -201,7 +201,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		}
 
 		if !templateRepo.IsTemplate {
-			ctx.RenderWithErr("Must select a template repository", tplCreate, form)
+			ctx.RenderWithErr(ctx.Tr("repo.template.invalid"), tplCreate, form)
 			return
 		}
 

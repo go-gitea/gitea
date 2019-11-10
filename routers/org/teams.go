@@ -155,6 +155,10 @@ func TeamsRepoAction(ctx *context.Context) {
 		err = ctx.Org.Team.AddRepository(repo)
 	case "remove":
 		err = ctx.Org.Team.RemoveRepository(com.StrTo(ctx.Query("repoid")).MustInt64())
+	case "addall":
+		err = ctx.Org.Team.AddAllRepositories()
+	case "removeall":
+		err = ctx.Org.Team.RemoveAllRepositories()
 	}
 
 	if err != nil {
@@ -162,6 +166,10 @@ func TeamsRepoAction(ctx *context.Context) {
 		ctx.ServerError("TeamsRepoAction", err)
 		return
 	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories",
+	})
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories")
 }
 

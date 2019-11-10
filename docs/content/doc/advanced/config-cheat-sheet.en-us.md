@@ -303,6 +303,7 @@ relation to port exhaustion.
   on this instance.
 - `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
 - `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
+- `AUTO_WATCH_ON_CHANGES`: **false**: Enable this to make users watch a repository after their first commit to it
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
 - `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
 
@@ -312,6 +313,8 @@ relation to port exhaustion.
 - `DELIVER_TIMEOUT`: **5**: Delivery timeout (sec) for shooting webhooks.
 - `SKIP_TLS_VERIFY`: **false**: Allow insecure certification.
 - `PAGING_NUM`: **10**: Number of webhook history events that are shown in one page.
+- `PROXY_URL`: ****: Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy
+- `PROXY_HOSTS`: ****: Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
 
 ## Mailer (`mailer`)
 
