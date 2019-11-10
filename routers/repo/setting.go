@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
@@ -121,9 +122,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		if isNameChanged {
-			if err := models.RenameRepoAction(ctx.User, oldRepoName, repo); err != nil {
-				log.Error("RenameRepoAction: %v", err)
-			}
+			notification.NotifyRenameRepository(ctx.User, repo, oldRepoName)
 		}
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
