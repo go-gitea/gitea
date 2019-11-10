@@ -1550,8 +1550,7 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 	switch ctx.Params(":action") {
 	case "react":
 		if !util.IsStringInSlice(form.Content, setting.UI.Reactions) {
-			log.Error("ChangeIssueReaction: " + form.Content + " is no allowed reaction")
-			ctx.Error(403)
+			ctx.Flash.Error(ctx.Tr("settings.forbidden_reaction", form.Content))
 			return
 		}
 
