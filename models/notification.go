@@ -267,7 +267,7 @@ func (n *Notification) HTMLURL() string {
 // NotificationList contains a list of notifications
 type NotificationList []*Notification
 
-func (nl NotificationList) getRepoIDs() []int64 {
+func (nl NotificationList) getPendingRepoIDs() []int64 {
 	var ids = make(map[int64]struct{}, len(nl))
 	for _, notification := range nl {
 		if notification.Repository != nil {
@@ -286,9 +286,8 @@ func (nl NotificationList) LoadRepos() (RepositoryList, error) {
 		return RepositoryList{}, nil
 	}
 
-	var repoIDs = nl.getRepoIDs()
+	var repoIDs = nl.getPendingRepoIDs()
 	var repos = make(map[int64]*Repository, len(repoIDs))
-	var reposList = make(RepositoryList, 0, len(repoIDs))
 	var left = len(repoIDs)
 	for left > 0 {
 		var limit = defaultMaxInSize
@@ -311,7 +310,6 @@ func (nl NotificationList) LoadRepos() (RepositoryList, error) {
 			}
 
 			repos[repo.ID] = &repo
-			reposList = append(reposList, &repo)
 		}
 		_ = rows.Close()
 
@@ -319,15 +317,26 @@ func (nl NotificationList) LoadRepos() (RepositoryList, error) {
 		repoIDs = repoIDs[limit:]
 	}
 
+	var reposList = make(RepositoryList, 0, len(repoIDs))
 	for _, notification := range nl {
 		if notification.Repository == nil {
 			notification.Repository = repos[notification.RepoID]
+		}
+		var found bool
+		for _, r := range reposList {
+			if r.ID == notification.Repository.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			reposList = append(reposList, notification.Repository)
 		}
 	}
 	return reposList, nil
 }
 
-func (nl NotificationList) getIssueIDs() []int64 {
+func (nl NotificationList) getPendingIssueIDs() []int64 {
 	var ids = make(map[int64]struct{}, len(nl))
 	for _, notification := range nl {
 		if notification.Issue != nil {
@@ -346,7 +355,7 @@ func (nl NotificationList) LoadIssues() error {
 		return nil
 	}
 
-	var issueIDs = nl.getIssueIDs()
+	var issueIDs = nl.getPendingIssueIDs()
 	var issues = make(map[int64]*Issue, len(issueIDs))
 	var left = len(issueIDs)
 	for left > 0 {
@@ -380,15 +389,13 @@ func (nl NotificationList) LoadIssues() error {
 	for _, notification := range nl {
 		if notification.Issue == nil {
 			notification.Issue = issues[notification.IssueID]
-			if notification.Issue != nil {
-				notification.Issue.Repo = notification.Repository
-			}
+			notification.Issue.Repo = notification.Repository
 		}
 	}
 	return nil
 }
 
-func (nl NotificationList) getCommentIDs() []int64 {
+func (nl NotificationList) getPendingCommentIDs() []int64 {
 	var ids = make(map[int64]struct{}, len(nl))
 	for _, notification := range nl {
 		if notification.CommentID == 0 || notification.Comment != nil {
@@ -407,7 +414,7 @@ func (nl NotificationList) LoadComments() error {
 		return nil
 	}
 
-	var commentIDs = nl.getCommentIDs()
+	var commentIDs = nl.getPendingCommentIDs()
 	var comments = make(map[int64]*Comment, len(commentIDs))
 	var left = len(commentIDs)
 	for left > 0 {
@@ -441,9 +448,7 @@ func (nl NotificationList) LoadComments() error {
 	for _, notification := range nl {
 		if notification.CommentID > 0 && notification.Comment == nil {
 			notification.Comment = comments[notification.CommentID]
-			if notification.Comment != nil {
-				notification.Comment.Issue = notification.Issue
-			}
+			notification.Comment.Issue = notification.Issue
 		}
 	}
 	return nil
