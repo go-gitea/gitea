@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/convert"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ListTags list all the tags of a repository
