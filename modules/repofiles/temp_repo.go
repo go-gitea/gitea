@@ -51,9 +51,8 @@ func (t *TemporaryUploadRepository) Close() {
 
 // Clone the base repository to our path and set branch as the HEAD
 func (t *TemporaryUploadRepository) Clone(branch string) error {
-	if _, stderr, err := process.GetManager().ExecTimeout(5*time.Minute,
-		fmt.Sprintf("Clone (git clone -s --bare): %s", t.basePath),
-		git.GitExecutable, "clone", "-s", "--bare", "-b", branch, t.repo.RepoPath(), t.basePath); err != nil {
+	if _, err := git.NewCommand("clone", "-s", "--bare", "-b", branch, t.repo.RepoPath(), t.basePath).Run(); err != nil {
+		stderr := err.Error()
 		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
 			return git.ErrBranchNotExist{
 				Name: branch,
@@ -79,11 +78,8 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 
 // SetDefaultIndex sets the git index to our HEAD
 func (t *TemporaryUploadRepository) SetDefaultIndex() error {
-	if _, stderr, err := process.GetManager().ExecDir(5*time.Minute,
-		t.basePath,
-		fmt.Sprintf("SetDefaultIndex (git read-tree HEAD): %s", t.basePath),
-		git.GitExecutable, "read-tree", "HEAD"); err != nil {
-		return fmt.Errorf("SetDefaultIndex: %v %s", err, stderr)
+	if _, err := git.NewCommand("read-tree", "HEAD").RunInDir(t.basePath); err != nil {
+		return fmt.Errorf("SetDefaultIndex: %v", err)
 	}
 	return nil
 }
@@ -93,10 +89,6 @@ func (t *TemporaryUploadRepository) LsFiles(filenames ...string) ([]string, erro
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	timeout := 5 * time.Minute
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
 	cmdArgs := []string{"ls-files", "-z", "--"}
 	for _, arg := range filenames {
 		if arg != "" {
@@ -104,22 +96,9 @@ func (t *TemporaryUploadRepository) LsFiles(filenames ...string) ([]string, erro
 		}
 	}
 
-	cmd := exec.CommandContext(ctx, git.GitExecutable, cmdArgs...)
-	desc := fmt.Sprintf("lsFiles: (git ls-files) %v", cmdArgs)
-	cmd.Dir = t.basePath
-	cmd.Stdout = stdOut
-	cmd.Stderr = stdErr
-
-	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("exec(%s) failed: %v(%v)", desc, err, ctx.Err())
-	}
-
-	pid := process.GetManager().Add(desc, cmd)
-	err := cmd.Wait()
-	process.GetManager().Remove(pid)
-
-	if err != nil {
-		err = fmt.Errorf("exec(%d:%s) failed: %v(%v) stdout: %v stderr: %v", pid, desc, err, ctx.Err(), stdOut, stdErr)
+	if err := git.NewCommand(cmdArgs...).RunInDirPipeline(t.basePath, stdOut, stdErr); err != nil {
+		log.Error("Unable to run git ls-files for temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
+		err = fmt.Errorf("Unable to run git ls-files for temporary repo of: %s Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
 		return nil, err
 	}
 
@@ -128,7 +107,7 @@ func (t *TemporaryUploadRepository) LsFiles(filenames ...string) ([]string, erro
 		filelist = append(filelist, string(line))
 	}
 
-	return filelist, err
+	return filelist, nil
 }
 
 // RemoveFilesFromIndex removes the given files from the index
@@ -144,90 +123,50 @@ func (t *TemporaryUploadRepository) RemoveFilesFromIndex(filenames ...string) er
 		}
 	}
 
-	timeout := 5 * time.Minute
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	cmdArgs := []string{"update-index", "--remove", "-z", "--index-info"}
-	cmd := exec.CommandContext(ctx, git.GitExecutable, cmdArgs...)
-	desc := fmt.Sprintf("removeFilesFromIndex: (git update-index) %v", filenames)
-	cmd.Dir = t.basePath
-	cmd.Stdout = stdOut
-	cmd.Stderr = stdErr
-	cmd.Stdin = bytes.NewReader(stdIn.Bytes())
-
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("exec(%s) failed: %v(%v)", desc, err, ctx.Err())
+	if err := git.NewCommand("update-index", "--remove", "-z", "--index-info").RunInDirFullPipeline(t.basePath, stdOut, stdErr, stdIn); err != nil {
+		log.Error("Unable to update-index for temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
+		return fmt.Errorf("Unable to update-index for temporary repo: %s Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
 	}
-
-	pid := process.GetManager().Add(desc, cmd)
-	err := cmd.Wait()
-	process.GetManager().Remove(pid)
-
-	if err != nil {
-		err = fmt.Errorf("exec(%d:%s) failed: %v(%v) stdout: %v stderr: %v", pid, desc, err, ctx.Err(), stdOut, stdErr)
-	}
-
-	return err
+	return nil
 }
 
 // HashObject writes the provided content to the object db and returns its hash
 func (t *TemporaryUploadRepository) HashObject(content io.Reader) (string, error) {
-	timeout := 5 * time.Minute
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+	stdOut := new(bytes.Buffer)
+	stdErr := new(bytes.Buffer)
 
-	hashCmd := exec.CommandContext(ctx, git.GitExecutable, "hash-object", "-w", "--stdin")
-	hashCmd.Dir = t.basePath
-	hashCmd.Stdin = content
-	stdOutBuffer := new(bytes.Buffer)
-	stdErrBuffer := new(bytes.Buffer)
-	hashCmd.Stdout = stdOutBuffer
-	hashCmd.Stderr = stdErrBuffer
-	desc := fmt.Sprintf("hashObject: (git hash-object)")
-	if err := hashCmd.Start(); err != nil {
-		return "", fmt.Errorf("git hash-object: %s", err)
+	if err := git.NewCommand("hash-object", "-w", "--stdin").RunInDirFullPipeline(t.basePath, stdOut, stdErr, content); err != nil {
+		log.Error("Unable to hash-object to temporary repo: %s (%s) Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), t.basePath, err, stdOut.String(), stdErr.String())
+		return "", fmt.Errorf("Unable to hash-object to temporary repo: %s Error: %v\nstdout: %s\nstderr: %s", t.repo.FullName(), err, stdOut.String(), stdErr.String())
 	}
 
-	pid := process.GetManager().Add(desc, hashCmd)
-	err := hashCmd.Wait()
-	process.GetManager().Remove(pid)
-
-	if err != nil {
-		err = fmt.Errorf("exec(%d:%s) failed: %v(%v) stdout: %v stderr: %v", pid, desc, err, ctx.Err(), stdOutBuffer, stdErrBuffer)
-		return "", err
-	}
-
-	return strings.TrimSpace(stdOutBuffer.String()), nil
+	return strings.TrimSpace(stdOut.String()), nil
 }
 
 // AddObjectToIndex adds the provided object hash to the index with the provided mode and path
 func (t *TemporaryUploadRepository) AddObjectToIndex(mode, objectHash, objectPath string) error {
-	if _, stderr, err := process.GetManager().ExecDir(5*time.Minute,
-		t.basePath,
-		fmt.Sprintf("addObjectToIndex (git update-index): %s", t.basePath),
-		git.GitExecutable, "update-index", "--add", "--replace", "--cacheinfo", mode, objectHash, objectPath); err != nil {
+	if _, err := git.NewCommand("update-index", "--add", "--replace", "--cacheinfo", mode, objectHash, objectPath).RunInDir(t.basePath); err != nil {
+		stderr := err.Error()
 		if matched, _ := regexp.MatchString(".*Invalid path '.*", stderr); matched {
 			return models.ErrFilePathInvalid{
 				Message: objectPath,
 				Path:    objectPath,
 			}
 		}
-		return fmt.Errorf("git update-index: %s", stderr)
+		log.Error("Unable to add object to index: %s %s %s in temporary repo %s(%s) Error: %v", mode, objectHash, objectPath, t.repo.FullName(), t.basePath, err)
+		return fmt.Errorf("Unable to add object to index at %s in temporary repo %s Error: %v", objectPath, t.repo.FullName(), err)
 	}
 	return nil
 }
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
 func (t *TemporaryUploadRepository) WriteTree() (string, error) {
-	treeHash, stderr, err := process.GetManager().ExecDir(5*time.Minute,
-		t.basePath,
-		fmt.Sprintf("WriteTree (git write-tree): %s", t.basePath),
-		git.GitExecutable, "write-tree")
+	stdout, err := git.NewCommand("write-tree").RunInDir(t.basePath)
 	if err != nil {
-		return "", fmt.Errorf("git write-tree: %s", stderr)
+		log.Error("Unable to write tree in temporary repo: %s(%s): Error: %v", t.repo.FullName(), t.basePath, err)
+		return "", fmt.Errorf("Unable to write-tree in temporary repo for: %s Error: %v", t.repo.FullName(), err)
 	}
-	return strings.TrimSpace(treeHash), nil
+	return strings.TrimSpace(stdout), nil
 }
 
 // GetLastCommit gets the last commit ID SHA of the repo
@@ -240,14 +179,12 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 	if ref == "" {
 		ref = "HEAD"
 	}
-	treeHash, stderr, err := process.GetManager().ExecDir(5*time.Minute,
-		t.basePath,
-		fmt.Sprintf("GetLastCommit (git rev-parse %s): %s", ref, t.basePath),
-		git.GitExecutable, "rev-parse", ref)
+	stdout, err := git.NewCommand("rev-parse", ref).RunInDir(t.basePath)
 	if err != nil {
-		return "", fmt.Errorf("git rev-parse %s: %s", ref, stderr)
+		log.Error("Unable to get last ref for %s in temporary repo: %s(%s): Error: %v", ref, t.repo.FullName(), t.basePath, err)
+		return "", fmt.Errorf("Unable to rev-parse %s in temporary repo for: %s Error: %v", ref, t.repo.FullName(), err)
 	}
-	return strings.TrimSpace(treeHash), nil
+	return strings.TrimSpace(stdout), nil
 }
 
 // CommitTree creates a commit from a given tree for the user with provided message
@@ -287,16 +224,15 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 		}
 	}
 
-	commitHash, stderr, err := process.GetManager().ExecDirEnvStdIn(5*time.Minute,
-		t.basePath,
-		fmt.Sprintf("commitTree (git commit-tree): %s", t.basePath),
-		env,
-		messageBytes,
-		git.GitExecutable, args...)
-	if err != nil {
-		return "", fmt.Errorf("git commit-tree: %s", stderr)
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	if err := git.NewCommand(args...).RunInDirTimeoutEnvFullPipeline(env, -1, t.basePath, stdout, stderr, messageBytes); err != nil {
+		log.Error("Unable to commit-tree in temporary repo: %s (%s) Error: %v\nStdout: %s\nStderr: %s",
+			t.repo.FullName(), t.basePath, err, stdout, stderr)
+		return "", fmt.Errorf("Unable to commit-tree in temporary repo: %s Error: %v\nStdout: %s\nStderr: %s",
+			t.repo.FullName(), err, stdout, stderr)
 	}
-	return strings.TrimSpace(commitHash), nil
+	return strings.TrimSpace(stdout.String()), nil
 }
 
 // Push the provided commitHash to the repository branch by the provided user
@@ -304,12 +240,11 @@ func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, b
 	// Because calls hooks we need to pass in the environment
 	env := models.PushingEnvironment(doer, t.repo)
 
-	if _, stderr, err := process.GetManager().ExecDirEnv(5*time.Minute,
-		t.basePath,
-		fmt.Sprintf("actuallyPush (git push): %s", t.basePath),
-		env,
-		git.GitExecutable, "push", t.repo.RepoPath(), strings.TrimSpace(commitHash)+":refs/heads/"+strings.TrimSpace(branch)); err != nil {
-		return fmt.Errorf("git push: %s", stderr)
+	if _, err := git.NewCommand("push", t.repo.RepoPath(), strings.TrimSpace(commitHash)+":refs/heads/"+strings.TrimSpace(branch)).RunInDirWithEnv(t.basePath, env); err != nil {
+		log.Error("Unable to push back to repo from temporary repo: %s (%s) Error: %v",
+			t.repo.FullName(), t.basePath, err)
+		return fmt.Errorf("Unable to push back to repo from temporary repo: %s (%s) Error: %v",
+			t.repo.FullName(), t.basePath, err)
 	}
 	return nil
 }
