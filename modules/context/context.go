@@ -46,6 +46,15 @@ type Context struct {
 	Org  *Organization
 }
 
+// Close Releases resources used by this context, like file descriptors
+func (ctx *Context) Close() {
+	if ctx.Repo != nil && ctx.Repo.GitRepo != nil {
+		if err := ctx.Repo.GitRepo.Close(); err != nil {
+			log.Warn("Unable to clean up repository resources %s", err.Error())
+		}
+	}
+}
+
 // IsUserSiteAdmin returns true if current user is a site admin
 func (ctx *Context) IsUserSiteAdmin() bool {
 	return ctx.IsSigned && ctx.User.IsAdmin
@@ -340,5 +349,14 @@ func Contexter() macaron.Handler {
 		ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 
 		c.Map(ctx)
+	}
+}
+
+// Cleanup Cleans up used resources like open file descriptors at the end of the request
+func Cleanup() macaron.Handler {
+	return func(ctx *Context) {
+		defer ctx.Close()
+
+		ctx.Next()
 	}
 }

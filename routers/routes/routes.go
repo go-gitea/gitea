@@ -220,6 +220,8 @@ func NewMacaron() *macaron.Macaron {
 	// OK we are now set-up enough to allow us to create a nicer recovery than
 	// the default macaron recovery
 	m.Use(context.Recovery())
+
+	m.Use(context.Cleanup())
 	m.SetAutoHead(true)
 	return m
 }

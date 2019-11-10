@@ -107,6 +107,11 @@ func OpenRepository(repoPath string) (*Repository, error) {
 	}, nil
 }
 
+// Close Release file descriptors that are left open for performance reasons
+func (repo *Repository) Close() error {
+	return repo.gogitStorage.Close()
+}
+
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf strings.Builder
