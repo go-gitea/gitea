@@ -217,12 +217,7 @@ func NotifyWatchers(act *Action) error {
 }
 
 func watchIfAuto(e Engine, userID, repoID int64, isWrite bool) error {
-	if isWrite {
-		if !setting.Service.AutoWatchOnChanges {
-			return nil
-		}
-	} else {
-		// No other kind of auto-watch for the moment
+	if !isWrite || !setting.Service.AutoWatchOnChanges {
 		return nil
 	}
 	watch, err := getWatch(e, userID, repoID)
