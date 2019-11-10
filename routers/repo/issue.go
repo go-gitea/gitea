@@ -1450,6 +1450,7 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 	case "react":
 		if !util.IsStringInSlice(form.Content, setting.UI.Reactions) {
 			ctx.Flash.Error(ctx.Tr("settings.forbidden_reaction", form.Content))
+			ctx.Redirect(ctx.Link)
 			return
 		}
 
@@ -1550,6 +1551,7 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 	case "react":
 		if !util.IsStringInSlice(form.Content, setting.UI.Reactions) {
 			ctx.Flash.Error(ctx.Tr("settings.forbidden_reaction", form.Content))
+			ctx.Redirect(ctx.Link)
 			return
 		}
 
