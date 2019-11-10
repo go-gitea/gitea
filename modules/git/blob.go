@@ -51,8 +51,8 @@ func (b *Blob) GetBlobContent() (string, error) {
 	return string(buf), nil
 }
 
-// GetGlobLineCount gets line count of lob as raw text
-func (b *Blob) GetGlobLineCount() (int, error) {
+// GetBlobLineCount gets line count of lob as raw text
+func (b *Blob) GetBlobLineCount() (int, error) {
 	reader, err := b.DataAsync()
 	if err != nil {
 		return 0, err

@@ -116,7 +116,7 @@ func (d *DiffLine) GetLineTypeMarker() string {
 	return ""
 }
 
-// GetBlobExcerptQuery builds query string to get blob exceprt
+// GetBlobExcerptQuery builds query string to get blob excerpt
 func (d *DiffLine) GetBlobExcerptQuery() string {
 	query := fmt.Sprintf(
 		"last_left=%d&last_right=%d&"+
@@ -375,7 +375,7 @@ func getCommitFileLineCount(commit *git.Commit, filePath string) int {
 	if err != nil {
 		return 0
 	}
-	lineCount, err := blob.GetGlobLineCount()
+	lineCount, err := blob.GetBlobLineCount()
 	if err != nil {
 		return 0
 	}
