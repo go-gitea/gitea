@@ -17,6 +17,7 @@ type Notifier interface {
 	NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository)
 	NotifyDeleteRepository(doer *models.User, repo *models.Repository)
 	NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository)
+	NotifyRenameRepository(doer *models.User, repo *models.Repository, oldName string)
 
 	NotifyNewIssue(*models.Issue)
 	NotifyIssueChangeStatus(*models.User, *models.Issue, bool)
@@ -43,4 +44,6 @@ type Notifier interface {
 	NotifyDeleteRelease(doer *models.User, rel *models.Release)
 
 	NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits)
+	NotifyCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string)
+	NotifyDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string)
 }

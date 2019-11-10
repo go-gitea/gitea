@@ -51,8 +51,8 @@ Type=simple
 User=git
 Group=git
 WorkingDirectory=/var/lib/gitea/
-# If using unix socket: Tells Systemd to create /run/gitea folder to home gitea.sock
-# Manual cration would vanish after reboot.
+# If using Unix socket: tells systemd to create the /run/gitea folder, which will contain the gitea.sock file
+# (manually creating /run/gitea doesn't work, because it would not persist across reboots)
 #RuntimeDirectory=gitea
 ExecStart=/usr/local/bin/gitea web --config /etc/gitea/app.ini
 Restart=always

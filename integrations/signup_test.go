@@ -19,8 +19,8 @@ func TestSignup(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
 		"user_name": "exampleUser",
 		"email":     "exampleUser@example.com",
-		"password":  "examplePassword",
-		"retype":    "examplePassword",
+		"password":  "examplePassword!1",
+		"retype":    "examplePassword!1",
 	})
 	MakeRequest(t, req, http.StatusFound)
 
