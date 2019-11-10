@@ -73,7 +73,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		// Check if repository name has been changed.
 		if repo.LowerName != strings.ToLower(newRepoName) {
 			isNameChanged = true
-			// Close the GitRepo if ope
+			// Close the GitRepo if open
 			if ctx.Repo.GitRepo != nil {
 				ctx.Repo.GitRepo.Close()
 				ctx.Repo.GitRepo = nil
@@ -383,7 +383,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		oldOwnerID := ctx.Repo.Owner.ID
-		// Close the GitRepo if ope
+		// Close the GitRepo if open
 		if ctx.Repo.GitRepo != nil {
 			ctx.Repo.GitRepo.Close()
 			ctx.Repo.GitRepo = nil
