@@ -267,7 +267,6 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 				cancel()
 			}
 			_ = stdoutReader.Close()
-			return
 		}); err != nil {
 		if finalErr != nil {
 			log.Error("Unable to ParsePatch in temporary repo %s (%s). Error: %v", t.repo.FullName(), t.basePath, finalErr)
