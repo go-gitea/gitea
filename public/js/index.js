@@ -2004,6 +2004,16 @@ function initCodeView() {
             });
         }
     })
+
+    function insertBlobExcerpt(e){
+        const $blob = $(e.target);
+        const $row = $blob.parent().parent();
+        $.get($blob.data("url") + "?" + $blob.data("query") + "&anchor=" + $blob.data("anchor"), function(blob){
+            $row.replaceWith(blob);
+            $('[data-anchor="'+ $blob.data("anchor") +'"]').on('click', function(e){insertBlobExcerpt(e)});
+        })
+    }
+    $('.ui.blob-excerpt').on('click', function(e){insertBlobExcerpt(e)});
 }
 
 function initU2FAuth() {

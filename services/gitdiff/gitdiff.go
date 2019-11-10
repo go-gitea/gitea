@@ -13,6 +13,7 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"regexp"
@@ -56,13 +57,37 @@ const (
 	DiffFileRename
 )
 
+// DiffLineExpandDirection represents the DiffLineSection expand direction
+type DiffLineExpandDirection uint8
+
+// DiffLineExpandDirection possible values.
+const (
+	DiffLineExpandNone DiffLineExpandDirection = iota + 1
+	DiffLineExpandSingle
+	DiffLineExpandUpDown
+	DiffLineExpandUp
+	DiffLineExpandDown
+)
+
 // DiffLine represents a line difference in a DiffSection.
 type DiffLine struct {
-	LeftIdx  int
-	RightIdx int
-	Type     DiffLineType
-	Content  string
-	Comments []*models.Comment
+	LeftIdx     int
+	RightIdx    int
+	Type        DiffLineType
+	Content     string
+	Comments    []*models.Comment
+	SectionInfo *DiffLineSectionInfo
+}
+
+// DiffLineSectionInfo represents diff line section meta data
+type DiffLineSectionInfo struct {
+	Path          string
+	LastLeftIdx   int
+	LastRightIdx  int
+	LeftIdx       int
+	RightIdx      int
+	LeftHunkSize  int
+	RightHunkSize int
 }
 
 // GetType returns the type of a DiffLine.
@@ -89,6 +114,68 @@ func (d *DiffLine) GetLineTypeMarker() string {
 		return d.Content[0:1]
 	}
 	return ""
+}
+
+// GetBlobExcerptQuery builds query string to get blob exceprt
+func (d *DiffLine) GetBlobExcerptQuery() string {
+	query := fmt.Sprintf(
+		"last_left=%d&last_right=%d&"+
+			"left=%d&right=%d&"+
+			"left_hunk_size=%d&right_hunk_size=%d&"+
+			"path=%s",
+		d.SectionInfo.LastLeftIdx, d.SectionInfo.LastRightIdx,
+		d.SectionInfo.LeftIdx, d.SectionInfo.RightIdx,
+		d.SectionInfo.LeftHunkSize, d.SectionInfo.RightHunkSize,
+		url.QueryEscape(d.SectionInfo.Path))
+	return query
+}
+
+// GetExpandDirection gets DiffLineExpandDirection
+func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
+	chunkSize := 20
+	if d.Type != DiffLineSection || d.SectionInfo == nil {
+		return DiffLineExpandNone
+	}
+	if d.SectionInfo.LastRightIdx <= 0 && d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > chunkSize {
+		return DiffLineExpandUp
+	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > chunkSize && d.SectionInfo.RightHunkSize > 0 {
+		return DiffLineExpandUpDown
+	} else if d.SectionInfo.RightHunkSize <= 0 {
+		return DiffLineExpandDown
+	}
+	return DiffLineExpandSingle
+}
+
+func getDiffLineSectionInfo(curFile *DiffFile, line string, lastLeftIdx, lastRightIdx int) *DiffLineSectionInfo {
+	var (
+		leftLine  int
+		leftHunk  int
+		rightLine int
+		righHunk  int
+	)
+	ss := strings.Split(line, "@@")
+	ranges := strings.Split(ss[1][1:], " ")
+	leftRange := strings.Split(ranges[0], ",")
+	leftLine, _ = com.StrTo(leftRange[0][1:]).Int()
+	leftHunk, _ = com.StrTo(leftRange[1]).Int()
+	if len(ranges) > 1 {
+		rightRange := strings.Split(ranges[1], ",")
+		rightLine, _ = com.StrTo(rightRange[0]).Int()
+		righHunk, _ = com.StrTo(rightRange[1]).Int()
+	} else {
+		log.Warn("Parse line number failed: %v", line)
+		rightLine = leftLine
+		righHunk = leftHunk
+	}
+	return &DiffLineSectionInfo{
+		Path:          curFile.Name,
+		LastLeftIdx:   lastLeftIdx,
+		LastRightIdx:  lastRightIdx,
+		LeftIdx:       leftLine,
+		RightIdx:      rightLine,
+		LeftHunkSize:  leftHunk,
+		RightHunkSize: righHunk,
+	}
 }
 
 // escape a line's content or return <br> needed for copy/paste purposes
@@ -246,6 +333,53 @@ func (diffFile *DiffFile) GetType() int {
 // GetHighlightClass returns highlight class for a filename.
 func (diffFile *DiffFile) GetHighlightClass() string {
 	return highlight.FileNameToHighlightClass(diffFile.Name)
+}
+
+// GetTailSection creates a fake DiffLineSection if the last section is not the end of the file
+func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommitID, rightCommitID string) *DiffSection {
+	if diffFile.Type != DiffFileChange {
+		return nil
+	}
+	leftCommit, err := gitRepo.GetCommit(leftCommitID)
+	if err != nil {
+		return nil
+	}
+	rightCommit, err := gitRepo.GetCommit(rightCommitID)
+	if err != nil {
+		return nil
+	}
+	lastSection := diffFile.Sections[len(diffFile.Sections)-1]
+	lastLine := lastSection.Lines[len(lastSection.Lines)-1]
+	leftLineCount := getCommitFileLineCount(leftCommit, diffFile.Name)
+	rightLineCount := getCommitFileLineCount(rightCommit, diffFile.Name)
+	if rightLineCount <= lastLine.RightIdx {
+		return nil
+	}
+	tailDiffLine := &DiffLine{
+		Type:    DiffLineSection,
+		Content: " ",
+		SectionInfo: &DiffLineSectionInfo{
+			Path:         diffFile.Name,
+			LastLeftIdx:  lastLine.LeftIdx,
+			LastRightIdx: lastLine.RightIdx,
+			LeftIdx:      leftLineCount,
+			RightIdx:     rightLineCount,
+		}}
+	tailSection := &DiffSection{Lines: []*DiffLine{tailDiffLine}}
+	return tailSection
+
+}
+
+func getCommitFileLineCount(commit *git.Commit, filePath string) int {
+	blob, err := commit.GetBlobByPath(filePath)
+	if err != nil {
+		return 0
+	}
+	lineCount, err := blob.GetGlobLineCount()
+	if err != nil {
+		return 0
+	}
+	return lineCount
 }
 
 // Diff represents a difference between two git trees.
@@ -510,19 +644,16 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 		case line[0] == '@':
 			curSection = &DiffSection{}
 			curFile.Sections = append(curFile.Sections, curSection)
-			ss := strings.Split(line, "@@")
-			diffLine := &DiffLine{Type: DiffLineSection, Content: line}
-			curSection.Lines = append(curSection.Lines, diffLine)
-
-			// Parse line number.
-			ranges := strings.Split(ss[1][1:], " ")
-			leftLine, _ = com.StrTo(strings.Split(ranges[0], ",")[0][1:]).Int()
-			if len(ranges) > 1 {
-				rightLine, _ = com.StrTo(strings.Split(ranges[1], ",")[0]).Int()
-			} else {
-				log.Warn("Parse line number failed: %v", line)
-				rightLine = leftLine
+			lineSectionInfo := getDiffLineSectionInfo(curFile, line, leftLine-1, rightLine-1)
+			diffLine := &DiffLine{
+				Type:        DiffLineSection,
+				Content:     line,
+				SectionInfo: lineSectionInfo,
 			}
+			curSection.Lines = append(curSection.Lines, diffLine)
+			// update line number.
+			leftLine = lineSectionInfo.LeftIdx
+			rightLine = lineSectionInfo.RightIdx
 			continue
 		case line[0] == '+':
 			curFile.Addition++
@@ -599,6 +730,8 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				break
 			}
 			curFileLinesCount = 0
+			leftLine = 1
+			rightLine = 1
 			curFileLFSPrefix = false
 
 			// Check file diff type and is submodule.
@@ -700,6 +833,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		diffArgs = append(diffArgs, actualBeforeCommitID)
 		diffArgs = append(diffArgs, afterCommitID)
 		cmd = exec.Command(git.GitExecutable, diffArgs...)
+		beforeCommitID = actualBeforeCommitID
 	}
 	cmd.Dir = repoPath
 	cmd.Stderr = os.Stderr
@@ -719,6 +853,12 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	diff, err := ParsePatch(maxLines, maxLineCharacters, maxFiles, stdout)
 	if err != nil {
 		return nil, fmt.Errorf("ParsePatch: %v", err)
+	}
+	for _, diffFile := range diff.Files {
+		tailSection := diffFile.GetTailSection(gitRepo, beforeCommitID, afterCommitID)
+		if tailSection != nil {
+			diffFile.Sections = append(diffFile.Sections, tailSection)
+		}
 	}
 
 	if err = cmd.Wait(); err != nil {
