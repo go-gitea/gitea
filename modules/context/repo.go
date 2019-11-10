@@ -426,10 +426,16 @@ func RepoAssignment() macaron.Handler {
 			return
 		}
 		ctx.Repo.GitRepo = gitRepo
+		defer func() {
+			if ctx.Repo.GitRepo == nil {
+				ctx.Repo.GitRepo.Close()
+			}
+		}
 
 		// Stop at this point when the repo is empty.
 		if ctx.Repo.Repository.IsEmpty {
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
+			ctx.Next()
 			return
 		}
 
@@ -488,6 +494,7 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
 			ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
 		}
+		ctx.Next()
 	}
 }
 
