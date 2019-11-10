@@ -2788,7 +2788,7 @@ function cancelStopwatch() {
     $("#cancel_stopwatch_form").submit();
 }
 
-function initHeatmap(appElementId, heatmapUser, locale) {
+window.initHeatmap = function(appElementId, heatmapUser, locale) {
     const el = document.getElementById(appElementId);
     if (!el) {
         return;
