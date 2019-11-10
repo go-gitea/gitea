@@ -4,42 +4,118 @@
 
 package models
 
-import "fmt"
+import (
+	"fmt"
+
+	"code.gitea.io/gitea/modules/setting"
+)
+
+// RepoWatchMode specifies what kind of watch the user has on a repository
+type RepoWatchMode int8
+
+const (
+	// RepoWatchModeNone don't watch
+	RepoWatchModeNone RepoWatchMode = iota // 0
+	// RepoWatchModeNormal watch repository (from other sources)
+	RepoWatchModeNormal // 1
+	// RepoWatchModeDont explicit don't auto-watch
+	RepoWatchModeDont // 2
+	// RepoWatchModeAuto watch repository (from AutoWatchOnChanges)
+	RepoWatchModeAuto // 3
+)
 
 // Watch is connection request for receiving repository notification.
 type Watch struct {
-	ID     int64 `xorm:"pk autoincr"`
-	UserID int64 `xorm:"UNIQUE(watch)"`
-	RepoID int64 `xorm:"UNIQUE(watch)"`
+	ID     int64         `xorm:"pk autoincr"`
+	UserID int64         `xorm:"UNIQUE(watch)"`
+	RepoID int64         `xorm:"UNIQUE(watch)"`
+	Mode   RepoWatchMode `xorm:"SMALLINT NOT NULL DEFAULT 1"`
 }
 
-func isWatching(e Engine, userID, repoID int64) bool {
-	has, _ := e.Get(&Watch{UserID: userID, RepoID: repoID})
-	return has
+// getWatch gets what kind of subscription a user has on a given repository; returns dummy record if none found
+func getWatch(e Engine, userID, repoID int64) (Watch, error) {
+	watch := Watch{UserID: userID, RepoID: repoID}
+	has, err := e.Get(&watch)
+	if err != nil {
+		return watch, err
+	}
+	if !has {
+		watch.Mode = RepoWatchModeNone
+	}
+	return watch, nil
+}
+
+// Decodes watchability of RepoWatchMode
+func isWatchMode(mode RepoWatchMode) bool {
+	return mode != RepoWatchModeNone && mode != RepoWatchModeDont
 }
 
 // IsWatching checks if user has watched given repository.
 func IsWatching(userID, repoID int64) bool {
-	return isWatching(x, userID, repoID)
+	watch, err := getWatch(x, userID, repoID)
+	return err == nil && isWatchMode(watch.Mode)
 }
 
-func watchRepo(e Engine, userID, repoID int64, watch bool) (err error) {
-	if watch {
-		if isWatching(e, userID, repoID) {
-			return nil
-		}
-		if _, err = e.Insert(&Watch{RepoID: repoID, UserID: userID}); err != nil {
+func watchRepoMode(e Engine, watch Watch, mode RepoWatchMode) (err error) {
+	if watch.Mode == mode {
+		return nil
+	}
+	if mode == RepoWatchModeAuto && (watch.Mode == RepoWatchModeDont || isWatchMode(watch.Mode)) {
+		// Don't auto watch if already watching or deliberately not watching
+		return nil
+	}
+
+	hadrec := watch.Mode != RepoWatchModeNone
+	needsrec := mode != RepoWatchModeNone
+	repodiff := 0
+
+	if isWatchMode(mode) && !isWatchMode(watch.Mode) {
+		repodiff = 1
+	} else if !isWatchMode(mode) && isWatchMode(watch.Mode) {
+		repodiff = -1
+	}
+
+	watch.Mode = mode
+
+	if !hadrec && needsrec {
+		watch.Mode = mode
+		if _, err = e.Insert(watch); err != nil {
 			return err
 		}
-		_, err = e.Exec("UPDATE `repository` SET num_watches = num_watches + 1 WHERE id = ?", repoID)
+	} else if needsrec {
+		watch.Mode = mode
+		if _, err := e.ID(watch.ID).AllCols().Update(watch); err != nil {
+			return err
+		}
+	} else if _, err = e.Delete(Watch{ID: watch.ID}); err != nil {
+		return err
+	}
+	if repodiff != 0 {
+		_, err = e.Exec("UPDATE `repository` SET num_watches = num_watches + ? WHERE id = ?", repodiff, watch.RepoID)
+	}
+	return err
+}
+
+// WatchRepoMode watch repository in specific mode.
+func WatchRepoMode(userID, repoID int64, mode RepoWatchMode) (err error) {
+	var watch Watch
+	if watch, err = getWatch(x, userID, repoID); err != nil {
+		return err
+	}
+	return watchRepoMode(x, watch, mode)
+}
+
+func watchRepo(e Engine, userID, repoID int64, doWatch bool) (err error) {
+	var watch Watch
+	if watch, err = getWatch(e, userID, repoID); err != nil {
+		return err
+	}
+	if !doWatch && watch.Mode == RepoWatchModeAuto {
+		err = watchRepoMode(e, watch, RepoWatchModeDont)
+	} else if !doWatch {
+		err = watchRepoMode(e, watch, RepoWatchModeNone)
 	} else {
-		if !isWatching(e, userID, repoID) {
-			return nil
-		}
-		if _, err = e.Delete(&Watch{0, userID, repoID}); err != nil {
-			return err
-		}
-		_, err = e.Exec("UPDATE `repository` SET num_watches = num_watches - 1 WHERE id = ?", repoID)
+		err = watchRepoMode(e, watch, RepoWatchModeNormal)
 	}
 	return err
 }
@@ -52,6 +128,7 @@ func WatchRepo(userID, repoID int64, watch bool) (err error) {
 func getWatchers(e Engine, repoID int64) ([]*Watch, error) {
 	watches := make([]*Watch, 0, 10)
 	return watches, e.Where("`watch`.repo_id=?", repoID).
+		And("`watch`.mode<>?", RepoWatchModeDont).
 		And("`user`.is_active=?", true).
 		And("`user`.prohibit_login=?", false).
 		Join("INNER", "`user`", "`user`.id = `watch`.user_id").
@@ -67,7 +144,8 @@ func GetWatchers(repoID int64) ([]*Watch, error) {
 func (repo *Repository) GetWatchers(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
 	sess := x.Where("watch.repo_id=?", repo.ID).
-		Join("LEFT", "watch", "`user`.id=`watch`.user_id")
+		Join("LEFT", "watch", "`user`.id=`watch`.user_id").
+		And("`watch`.mode<>?", RepoWatchModeDont)
 	if page > 0 {
 		sess = sess.Limit(ItemsPerPage, (page-1)*ItemsPerPage)
 	}
@@ -136,4 +214,23 @@ func notifyWatchers(e Engine, act *Action) error {
 // NotifyWatchers creates batch of actions for every watcher.
 func NotifyWatchers(act *Action) error {
 	return notifyWatchers(x, act)
+}
+
+func watchIfAuto(e Engine, userID, repoID int64, isWrite bool) error {
+	if !isWrite || !setting.Service.AutoWatchOnChanges {
+		return nil
+	}
+	watch, err := getWatch(e, userID, repoID)
+	if err != nil {
+		return err
+	}
+	if watch.Mode != RepoWatchModeNone {
+		return nil
+	}
+	return watchRepoMode(e, watch, RepoWatchModeAuto)
+}
+
+// WatchIfAuto subscribes to repo if AutoWatchOnChanges is set
+func WatchIfAuto(userID int64, repoID int64, isWrite bool) error {
+	return watchIfAuto(x, userID, repoID, isWrite)
 }
