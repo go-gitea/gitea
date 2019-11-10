@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -18,7 +17,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
 
@@ -250,37 +248,37 @@ func (t *TemporaryUploadRepository) Push(doer *models.User, commitHash string, b
 }
 
 // DiffIndex returns a Diff of the current index to the head
-func (t *TemporaryUploadRepository) DiffIndex() (diff *gitdiff.Diff, err error) {
-	timeout := 5 * time.Minute
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	stdErr := new(bytes.Buffer)
-
-	cmd := exec.CommandContext(ctx, git.GitExecutable, "diff-index", "--cached", "-p", "HEAD")
-	cmd.Dir = t.basePath
-	cmd.Stderr = stdErr
-
-	stdout, err := cmd.StdoutPipe()
+func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
+	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		return nil, fmt.Errorf("StdoutPipe: %v stderr %s", err, stdErr.String())
+		log.Error("Unable to open stdout pipe: %v", err)
+		return nil, fmt.Errorf("Unable to open stdout pipe: %v", err)
 	}
+	stderr := new(bytes.Buffer)
+	var diff *gitdiff.Diff
+	var finalErr error
 
-	if err = cmd.Start(); err != nil {
-		return nil, fmt.Errorf("Start: %v stderr %s", err, stdErr.String())
+	if err := git.NewCommand("diff-index", "--cached", "-p", "HEAD").
+		RunInDirTimeoutEnvFullPipelineFunc(nil, 30*time.Second, t.basePath, stdoutWriter, stderr, nil, func(ctx context.Context, cancel context.CancelFunc) {
+			_ = stdoutWriter.Close()
+			diff, finalErr = gitdiff.ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader)
+			if finalErr != nil {
+				log.Error("ParsePatch: %v", finalErr)
+				cancel()
+			}
+			_ = stdoutReader.Close()
+			return
+		}); err != nil {
+		if finalErr != nil {
+			log.Error("Unable to ParsePatch in temporary repo %s (%s). Error: %v", t.repo.FullName(), t.basePath, finalErr)
+			return nil, finalErr
+		}
+		log.Error("Unable to run diff-index pipeline in temporary repo %s (%s). Error: %v\nStderr: %s",
+			t.repo.FullName(), t.basePath, err, stderr)
+		return nil, fmt.Errorf("Unable to run diff-index pipeline in temporary repo %s. Error: %v\nStderr: %s",
+			t.repo.FullName(), err, stderr)
 	}
-
-	pid := process.GetManager().Add(fmt.Sprintf("diffIndex [repo_path: %s]", t.repo.RepoPath()), cmd)
-	defer process.GetManager().Remove(pid)
-
-	diff, err = gitdiff.ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdout)
-	if err != nil {
-		return nil, fmt.Errorf("ParsePatch: %v", err)
-	}
-
-	if err = cmd.Wait(); err != nil {
-		return nil, fmt.Errorf("Wait: %v", err)
-	}
+	_ = stdoutWriter.Close()
 
 	return diff, nil
 }
@@ -293,12 +291,8 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 		return nil, err
 	}
 
-	stdOut := new(bytes.Buffer)
-	stdErr := new(bytes.Buffer)
-
-	timeout := 5 * time.Minute
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
 
 	cmdArgs := []string{"check-attr", "-z", attribute}
 
@@ -314,26 +308,14 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 		}
 	}
 
-	cmd := exec.CommandContext(ctx, git.GitExecutable, cmdArgs...)
-	desc := fmt.Sprintf("checkAttr: (git check-attr) %s %v", attribute, cmdArgs)
-	cmd.Dir = t.basePath
-	cmd.Stdout = stdOut
-	cmd.Stderr = stdErr
-
-	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("exec(%s) failed: %v(%v)", desc, err, ctx.Err())
+	if err := git.NewCommand(cmdArgs...).RunInDirPipeline(t.basePath, stdout, stderr); err != nil {
+		log.Error("Unable to check-attr in temporary repo: %s (%s) Error: %v\nStdout: %s\nStderr: %s",
+			t.repo.FullName(), t.basePath, err, stdout, stderr)
+		return nil, fmt.Errorf("Unable to check-attr in temporary repo: %s Error: %v\nStdout: %s\nStderr: %s",
+			t.repo.FullName(), err, stdout, stderr)
 	}
 
-	pid := process.GetManager().Add(desc, cmd)
-	err = cmd.Wait()
-	process.GetManager().Remove(pid)
-
-	if err != nil {
-		err = fmt.Errorf("exec(%d:%s) failed: %v(%v) stdout: %v stderr: %v", pid, desc, err, ctx.Err(), stdOut, stdErr)
-		return nil, err
-	}
-
-	fields := bytes.Split(stdOut.Bytes(), []byte{'\000'})
+	fields := bytes.Split(stdout.Bytes(), []byte{'\000'})
 
 	if len(fields)%3 != 1 {
 		return nil, fmt.Errorf("Wrong number of fields in return from check-attr")
