@@ -125,7 +125,7 @@ func OpenRepository(repoPath string) (*Repository, error) {
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
 func (repo *Repository) Close() {
-	if repo.gogitStorage == nil {
+	if repo == nil || repo.gogitStorage == nil {
 		return
 	}
 	if err := repo.gogitStorage.Close(); err != nil {
