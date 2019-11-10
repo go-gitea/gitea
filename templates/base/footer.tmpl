@@ -63,11 +63,13 @@
 			noMatchTemplate: function () { return null },
 			menuItemTemplate: function (item) {
 				var user = item.original;
-				var itemStr = '<img src="' + user.avatar + '"/><span class="name">' + user.name + '</span>';
+				var item = $('<div/>')
+				item.append($('<img/>', {'src': user.avatar}))
+				item.append($('<span/>', {'class': 'name'}).text(user.name))
 				if (user.fullname && user.fullname != '') {
-					itemStr += '<span class="fullname">' + user.fullname + '</span>';
+					item.append($('<span/>', {'class': 'fullname'}).text(user.fullname))
 				}
-				return itemStr;
+				return item.html();
 			}
 		});
 		var content = document.getElementById('content');
