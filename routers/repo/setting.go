@@ -73,6 +73,13 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		// Check if repository name has been changed.
 		if repo.LowerName != strings.ToLower(newRepoName) {
 			isNameChanged = true
+
+			// Close any file descriptors, primarily for Windows which refuses to move directories with open descriptors
+			if err := ctx.Repo.GitRepo.Close(); err != nil {
+				ctx.ServerError("ChangeRepositoryName", err)
+				return
+			}
+
 			if err := models.ChangeRepositoryName(ctx.Repo.Owner, repo.Name, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
@@ -374,6 +381,12 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		} else if !isExist {
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+			return
+		}
+
+		// Close any file descriptors, primarily for Windows which refuses to move directories with open descriptors
+		if err := ctx.Repo.GitRepo.Close(); err != nil {
+			ctx.ServerError("ChangeRepositoryName", err)
 			return
 		}
 

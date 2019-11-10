@@ -122,6 +122,11 @@ func OpenRepository(repoPath string) (*Repository, error) {
 	}, nil
 }
 
+// Close Release file descriptors that are left open for performance reasons
+func (repo *Repository) Close() error {
+	return repo.gogitStorage.Close()
+}
+
 // GoGitRepo gets the go-git repo representation
 func (repo *Repository) GoGitRepo() *gogit.Repository {
 	return repo.gogitRepo
