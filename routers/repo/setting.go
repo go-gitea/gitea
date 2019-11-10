@@ -73,6 +73,11 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		// Check if repository name has been changed.
 		if repo.LowerName != strings.ToLower(newRepoName) {
 			isNameChanged = true
+			// Close the GitRepo if ope
+			if ctx.Repo.GitRepo != nil {
+				ctx.Repo.GitRepo.Close()
+				ctx.Repo.GitRepo = nil
+			}
 			if err := models.ChangeRepositoryName(ctx.Repo.Owner, repo.Name, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
