@@ -426,11 +426,14 @@ func RepoAssignment() macaron.Handler {
 			return
 		}
 		ctx.Repo.GitRepo = gitRepo
+
+		// We opened it, we should close it
 		defer func() {
-			if ctx.Repo.GitRepo == nil {
+			// If it's been set to nil then assume someone else has closed it.
+			if ctx.Repo.GitRepo != nil {
 				ctx.Repo.GitRepo.Close()
 			}
-		}
+		}()
 
 		// Stop at this point when the repo is empty.
 		if ctx.Repo.Repository.IsEmpty {
