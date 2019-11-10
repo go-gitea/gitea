@@ -18,6 +18,8 @@ func EnsureAbsolutePath(path string, absoluteBase string) string {
 	return filepath.Join(absoluteBase, path)
 }
 
+const notRegularFileMode os.FileMode = os.ModeDir | os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
+
 // GetDirectorySize returns the dumb disk consumption for a given path
 func GetDirectorySize(path string) (int64, error) {
 	var size int64
@@ -25,7 +27,7 @@ func GetDirectorySize(path string) (int64, error) {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() {
+		if info != nil && (info.Mode()&notRegularFileMode) == 0 {
 			size += info.Size()
 		}
 		return err
