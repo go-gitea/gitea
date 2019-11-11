@@ -85,7 +85,7 @@ func NormalizeEOL(input []byte) []byte {
 		if input[left] == '\n' {
 			left++
 		}
-		right := bytes.Index(input[left:], []byte{'\r'})
+		right := bytes.IndexByte(input[left:], '\r')
 		if right == -1 {
 			copy(tmp[pos:], input[left:])
 			pos = pos + len(input) - left
