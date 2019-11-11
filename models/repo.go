@@ -1470,16 +1470,6 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			return fmt.Errorf("watchRepo: %v", err)
 		}
 	}
-	if err = notifyWatchers(e, &Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		OpType:    ActionCreateRepo,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		return fmt.Errorf("notify watchers '%d/%d': %v", doer.ID, repo.ID, err)
-	}
 
 	if err = copyDefaultWebhooksToRepo(e, repo.ID); err != nil {
 		return fmt.Errorf("copyDefaultWebhooksToRepo: %v", err)

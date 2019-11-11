@@ -518,6 +518,22 @@ func RepoRef() macaron.Handler {
 	return RepoRefByType(RepoRefBranch)
 }
 
+// RefTypeIncludesBranches returns true if ref type can be a branch
+func (rt RepoRefType) RefTypeIncludesBranches() bool {
+	if rt == RepoRefLegacy || rt == RepoRefAny || rt == RepoRefBranch {
+		return true
+	}
+	return false
+}
+
+// RefTypeIncludesTags returns true if ref type can be a tag
+func (rt RepoRefType) RefTypeIncludesTags() bool {
+	if rt == RepoRefLegacy || rt == RepoRefAny || rt == RepoRefTag {
+		return true
+	}
+	return false
+}
+
 func getRefNameFromPath(ctx *Context, path string, isExist func(string) bool) string {
 	refName := ""
 	parts := strings.Split(path, "/")
@@ -623,7 +639,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 		} else {
 			refName = getRefName(ctx, refType)
 			ctx.Repo.BranchName = refName
-			if ctx.Repo.GitRepo.IsBranchExist(refName) {
+			if refType.RefTypeIncludesBranches() && ctx.Repo.GitRepo.IsBranchExist(refName) {
 				ctx.Repo.IsViewBranch = true
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
@@ -633,7 +649,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 
-			} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+			} else if refType.RefTypeIncludesTags() && ctx.Repo.GitRepo.IsTagExist(refName) {
 				ctx.Repo.IsViewTag = true
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
 				if err != nil {
