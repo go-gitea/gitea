@@ -180,10 +180,6 @@ func CommitRepoAction(optsList ...CommitRepoActionOptions) error {
 				if err := models.UpdateRepository(repo, false); err != nil {
 					return fmt.Errorf("UpdateRepository: %v", err)
 				}
-				repo, err = models.GetRepositoryByName(opts.RepoOwnerID, opts.RepoName)
-				if err != nil {
-					return fmt.Errorf("GetRepositoryByName [owner_id: %d, name: %s]: %v", opts.RepoOwnerID, opts.RepoName, err)
-				}
 			}
 			repo, err = models.GetRepositoryByName(opts.RepoOwnerID, opts.RepoName)
 			if err != nil {
