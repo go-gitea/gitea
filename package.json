@@ -13,6 +13,7 @@
     "stylelint": "10.1.0",
     "stylelint-config-standard": "18.3.0",
     "updates": "8.5.3",
+    "webpack": "4.41.2",
     "webpack-cli": "3.3.10"
   },
   "browserslist": [
@@ -20,8 +21,5 @@
     "last 2 firefox versions",
     "last 2 safari versions",
     "ie 11"
-  ],
-  "dependencies": {
-    "webpack": "4.41.2"
-  }
+  ]
 }
