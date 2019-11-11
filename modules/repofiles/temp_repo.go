@@ -254,6 +254,10 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 		log.Error("Unable to open stdout pipe: %v", err)
 		return nil, fmt.Errorf("Unable to open stdout pipe: %v", err)
 	}
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	} ()
 	stderr := new(bytes.Buffer)
 	var diff *gitdiff.Diff
 	var finalErr error
@@ -277,7 +281,6 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 		return nil, fmt.Errorf("Unable to run diff-index pipeline in temporary repo %s. Error: %v\nStderr: %s",
 			t.repo.FullName(), err, stderr)
 	}
-	_ = stdoutWriter.Close()
 
 	return diff, nil
 }
