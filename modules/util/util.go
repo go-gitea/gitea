@@ -89,9 +89,9 @@ func NormalizeEOL(input []byte) []byte {
 			break
 		}
 		copy(tmp[pos:pos+right], input[left:left+right])
-		pos = pos + right
+		pos += right
 		tmp[pos] = '\n'
-		left = left + right + 1
+		left += right + 1
 		pos++
 	}
 	return tmp[:pos]
