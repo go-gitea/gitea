@@ -463,6 +463,10 @@ func ExcerptBlob(ctx *context.Context) {
 		lastRight += chunkSize
 	} else {
 		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, idxRight-lastRight-1)
+		leftHunkSize = 0
+		rightHunkSize = 0
+		idxLeft = lastLeft
+		idxRight = lastRight
 	}
 	if err != nil {
 		ctx.Error(500, "getExcerptLines")

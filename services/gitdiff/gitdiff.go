@@ -13,6 +13,7 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
+	dlog "log"
 	"net/url"
 	"os"
 	"os/exec"
@@ -133,14 +134,14 @@ func (d *DiffLine) GetBlobExcerptQuery() string {
 // GetExpandDirection gets DiffLineExpandDirection
 func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
 	chunkSize := 20
-	if d.Type != DiffLineSection || d.SectionInfo == nil {
+	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
 		return DiffLineExpandNone
 	}
-	if d.SectionInfo.LastRightIdx <= 0 && d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > chunkSize {
+	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
 		return DiffLineExpandUp
 	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > chunkSize && d.SectionInfo.RightHunkSize > 0 {
 		return DiffLineExpandUpDown
-	} else if d.SectionInfo.RightHunkSize <= 0 {
+	} else if d.SectionInfo.LeftHunkSize <= 0 && d.SectionInfo.RightHunkSize <= 0 {
 		return DiffLineExpandDown
 	}
 	return DiffLineExpandSingle
@@ -160,6 +161,9 @@ func getDiffLineSectionInfo(curFile *DiffFile, line string, lastLeftIdx, lastRig
 	leftHunk, _ = com.StrTo(leftRange[1]).Int()
 	if len(ranges) > 1 {
 		rightRange := strings.Split(ranges[1], ",")
+		if len(rightRange) < 2 {
+			dlog.Panicln(line)
+		}
 		rightLine, _ = com.StrTo(rightRange[0]).Int()
 		righHunk, _ = com.StrTo(rightRange[1]).Int()
 	} else {
@@ -352,7 +356,7 @@ func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommitID, 
 	lastLine := lastSection.Lines[len(lastSection.Lines)-1]
 	leftLineCount := getCommitFileLineCount(leftCommit, diffFile.Name)
 	rightLineCount := getCommitFileLineCount(rightCommit, diffFile.Name)
-	if rightLineCount <= lastLine.RightIdx {
+	if leftLineCount <= lastLine.LeftIdx || rightLineCount <= lastLine.RightIdx {
 		return nil
 	}
 	tailDiffLine := &DiffLine{
