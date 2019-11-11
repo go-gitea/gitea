@@ -1252,11 +1252,13 @@ type GenerateRepoOptions struct {
 	Private     bool
 	GitContent  bool
 	Topics      bool
+	GitHooks    bool
+	Webhooks    bool
 }
 
 // IsValid checks whether at least one option is chosen for generation
 func (gro GenerateRepoOptions) IsValid() bool {
-	return gro.GitContent || gro.Topics // or other items as they are added
+	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks // or other items as they are added
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
@@ -2784,6 +2786,7 @@ func GenerateRepository(doer, owner *User, templateRepo *Repository, opts Genera
 		return repo, err
 	}
 
+	// Git Content
 	if opts.GitContent && !templateRepo.IsEmpty {
 		if err = generateRepository(sess, repo, templateRepo); err != nil {
 			return repo, err
@@ -2798,9 +2801,68 @@ func GenerateRepository(doer, owner *User, templateRepo *Repository, opts Genera
 		}
 	}
 
+	// Topics
 	if opts.Topics {
 		for _, topic := range templateRepo.Topics {
 			if _, err = addTopicByNameToRepo(sess, repo.ID, topic); err != nil {
+				return repo, err
+			}
+		}
+	}
+
+	// Git Hooks
+	if opts.GitHooks {
+		generateRepo, err := git.OpenRepository(repo.repoPath(sess))
+		if err != nil {
+			return repo, err
+		}
+
+		templateRepo, err := git.OpenRepository(templateRepo.repoPath(sess))
+		if err != nil {
+			return repo, err
+		}
+
+		templateHooks, err := templateRepo.Hooks()
+		if err != nil {
+			return repo, err
+		}
+
+		for _, templateHook := range templateHooks {
+			generateHook, err := generateRepo.GetHook(templateHook.Name())
+			if err != nil {
+				return repo, err
+			}
+
+			generateHook.Content = templateHook.Content
+			generateHook.IsActive = templateHook.IsActive
+			if err := generateHook.Update(); err != nil {
+				return repo, err
+			}
+		}
+	}
+
+	// Webhooks
+	if opts.Webhooks {
+		templateWebhooks, err := GetWebhooksByRepoID(templateRepo.ID)
+		if err != nil {
+			return repo, err
+		}
+
+		for _, templateWebhook := range templateWebhooks {
+			generateWebhook := &Webhook{
+				RepoID:       repo.ID,
+				URL:          templateWebhook.URL,
+				HTTPMethod:   templateWebhook.HTTPMethod,
+				ContentType:  templateWebhook.ContentType,
+				Secret:       templateWebhook.Secret,
+				HookEvent:    templateWebhook.HookEvent,
+				IsActive:     templateWebhook.IsActive,
+				HookTaskType: templateWebhook.HookTaskType,
+				OrgID:        templateWebhook.OrgID,
+				Events:       templateWebhook.Events,
+				Meta:         templateWebhook.Meta,
+			}
+			if err := createWebhook(sess, generateWebhook); err != nil {
 				return repo, err
 			}
 		}
