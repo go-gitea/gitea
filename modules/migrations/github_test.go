@@ -118,12 +118,6 @@ func TestGitHubDownloadRepo(t *testing.T) {
 				"2018-09-05 16:34:22 +0000 UTC",
 				"2018-08-11 08:45:01 +0000 UTC",
 				"closed", milestone)
-		case "1.6.0":
-			assertMilestoneEqual(t, "1.6.0", "2018-09-25 07:00:00 +0000 UTC",
-				"2018-05-11 05:37:01 +0000 UTC",
-				"2019-01-27 19:21:22 +0000 UTC",
-				"2018-11-23 13:23:16 +0000 UTC",
-				"closed", milestone)
 		case "1.7.0":
 			assertMilestoneEqual(t, "1.7.0", "2018-12-25 08:00:00 +0000 UTC",
 				"2018-08-28 14:20:14 +0000 UTC",
