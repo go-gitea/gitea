@@ -153,7 +153,7 @@ func TestSearchUsers(t *testing.T) {
 	}
 
 	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1},
-		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24})
+		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27})
 
 	testUserSuccess(&SearchUserOptions{Page: 1, IsActive: util.OptionalBoolFalse},
 		[]int64{9})

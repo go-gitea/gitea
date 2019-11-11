@@ -1229,6 +1229,13 @@
           {
             "type": "integer",
             "format": "int64",
+            "description": "repo owner to prioritize in the results",
+            "name": "priority_owner_id",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
             "description": "search only for repos that the user with the given id has starred",
             "name": "starredBy",
             "in": "query"
@@ -1237,6 +1244,12 @@
             "type": "boolean",
             "description": "include private repositories this user has access to (defaults to true)",
             "name": "private",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include template repositories this user has access to (defaults to true)",
+            "name": "template",
             "in": "query"
           },
           {
@@ -8786,6 +8799,11 @@
           "type": "boolean",
           "x-go-name": "Private"
         },
+        "template": {
+          "description": "either `true` to make this repository a template or `false` to make it a normal repository",
+          "type": "boolean",
+          "x-go-name": "Template"
+        },
         "website": {
           "description": "a URL with more information about the repository.",
           "type": "string",
@@ -10305,6 +10323,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Stars"
+        },
+        "template": {
+          "type": "boolean",
+          "x-go-name": "Template"
         },
         "updated_at": {
           "type": "string",
