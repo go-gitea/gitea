@@ -519,16 +519,16 @@ func RepoRef() macaron.Handler {
 }
 
 // RefTypeIncludesBranches returns true if ref type can be a branch
-func (rt *RepoRefType) RefTypeIncludesBranches() bool {
-	if *rt == RepoRefLegacy || *rt == RepoRefAny || *rt == RepoRefBranch {
+func (rt RepoRefType) RefTypeIncludesBranches() bool {
+	if rt == RepoRefLegacy || rt == RepoRefAny || rt == RepoRefBranch {
 		return true
 	}
 	return false
 }
 
 // RefTypeIncludesTags returns true if ref type can be a tag
-func (rt *RepoRefType) RefTypeIncludesTags() bool {
-	if *rt == RepoRefLegacy || *rt == RepoRefAny || *rt == RepoRefTag {
+func (rt RepoRefType) RefTypeIncludesTags() bool {
+	if rt == RepoRefLegacy || rt == RepoRefAny || rt == RepoRefTag {
 		return true
 	}
 	return false
