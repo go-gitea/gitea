@@ -13,7 +13,6 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
-	dlog "log"
 	"net/url"
 	"os"
 	"os/exec"
@@ -158,14 +157,15 @@ func getDiffLineSectionInfo(curFile *DiffFile, line string, lastLeftIdx, lastRig
 	ranges := strings.Split(ss[1][1:], " ")
 	leftRange := strings.Split(ranges[0], ",")
 	leftLine, _ = com.StrTo(leftRange[0][1:]).Int()
-	leftHunk, _ = com.StrTo(leftRange[1]).Int()
+	if len(leftRange) > 1 {
+		leftHunk, _ = com.StrTo(leftRange[1]).Int()
+	}
 	if len(ranges) > 1 {
 		rightRange := strings.Split(ranges[1], ",")
-		if len(rightRange) < 2 {
-			dlog.Panicln(line)
-		}
 		rightLine, _ = com.StrTo(rightRange[0]).Int()
-		righHunk, _ = com.StrTo(rightRange[1]).Int()
+		if len(rightRange) > 1 {
+			righHunk, _ = com.StrTo(rightRange[1]).Int()
+		}
 	} else {
 		log.Warn("Parse line number failed: %v", line)
 		rightLine = leftLine
