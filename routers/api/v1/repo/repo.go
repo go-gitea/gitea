@@ -71,6 +71,11 @@ func Search(ctx *context.APIContext) {
 	//   description: search only for repos that the user with the given id owns or contributes to
 	//   type: integer
 	//   format: int64
+	// - name: priority_owner_id
+	//   in: query
+	//   description: repo owner to prioritize in the results
+	//   type: integer
+	//   format: int64
 	// - name: starredBy
 	//   in: query
 	//   description: search only for repos that the user with the given id has starred
@@ -79,6 +84,10 @@ func Search(ctx *context.APIContext) {
 	// - name: private
 	//   in: query
 	//   description: include private repositories this user has access to (defaults to true)
+	//   type: boolean
+	// - name: template
+	//   in: query
+	//   description: include template repositories this user has access to (defaults to true)
 	//   type: boolean
 	// - name: page
 	//   in: query
@@ -116,15 +125,21 @@ func Search(ctx *context.APIContext) {
 	opts := &models.SearchRepoOptions{
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
+		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
 		Page:               ctx.QueryInt("page"),
 		PageSize:           convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		TopicOnly:          ctx.QueryBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
+		Template:           util.OptionalBoolNone,
 		UserIsAdmin:        ctx.IsUserSiteAdmin(),
 		UserID:             ctx.Data["SignedUserID"].(int64),
 		StarredByID:        ctx.QueryInt64("starredBy"),
 		IncludeDescription: ctx.QueryBool("includeDesc"),
+	}
+
+	if ctx.Query("template") != "" {
+		opts.Template = util.OptionalBoolOf(ctx.QueryBool("template"))
 	}
 
 	if ctx.QueryBool("exclusive") {
@@ -676,6 +691,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		}
 
 		repo.IsPrivate = *opts.Private
+	}
+
+	if opts.Template != nil {
+		repo.IsTemplate = *opts.Template
 	}
 
 	if err := models.UpdateRepository(repo, visibilityChanged); err != nil {

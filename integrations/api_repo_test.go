@@ -70,9 +70,9 @@ func TestAPISearchRepo(t *testing.T) {
 		expectedResults
 	}{
 		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-			nil:   {count: 22},
-			user:  {count: 22},
-			user2: {count: 22}},
+			nil:   {count: 24},
+			user:  {count: 24},
+			user2: {count: 24}},
 		},
 		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10&private=false", expectedResults: expectedResults{
 			nil:   {count: 10},
@@ -92,7 +92,7 @@ func TestAPISearchRepo(t *testing.T) {
 		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
 			nil:   {count: 5},
 			user:  {count: 9, includesPrivate: true},
-			user2: {count: 5, includesPrivate: true}},
+			user2: {count: 6, includesPrivate: true}},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
 			nil:   {count: 1},
@@ -103,7 +103,7 @@ func TestAPISearchRepo(t *testing.T) {
 		{name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user3.ID), expectedResults: expectedResults{
 			nil:   {count: 1},
 			user:  {count: 4, includesPrivate: true},
-			user2: {count: 2, includesPrivate: true},
+			user2: {count: 3, includesPrivate: true},
 			user3: {count: 4, includesPrivate: true}},
 		},
 		{name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
