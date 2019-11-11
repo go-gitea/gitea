@@ -257,7 +257,7 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 	defer func() {
 		_ = stdoutReader.Close()
 		_ = stdoutWriter.Close()
-	} ()
+	}()
 	stderr := new(bytes.Buffer)
 	var diff *gitdiff.Diff
 	var finalErr error
