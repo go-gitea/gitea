@@ -150,4 +150,6 @@ func Test_NormalizeEOL(t *testing.T) {
 	assert.Equal(t, []byte("\ntwo liner"), NormalizeEOL([]byte("\ntwo liner")))
 	assert.Equal(t, []byte("two liner\n"), NormalizeEOL([]byte("two liner\n")))
 	assert.Equal(t, []byte{}, NormalizeEOL([]byte{}))
+
+	assert.Equal(t, []byte("mix\nand\nmatch\n."), NormalizeEOL([]byte("mix\r\nand\rmatch\n.")))
 }

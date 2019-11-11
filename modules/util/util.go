@@ -67,25 +67,42 @@ func IsEmptyString(s string) bool {
 
 // NormalizeEOL will convert Windows (CRLF) and Mac (CR) EOLs to UNIX (LF)
 func NormalizeEOL(input []byte) []byte {
+	var right, left, pos int
+	if right = bytes.IndexByte(input, '\r'); right == -1 {
+		return input
+	}
 	tmp := make([]byte, len(input))
-	left := 0
-	pos := 0
-	for left < len(input) && input[left] == '\n' {
+	length := len(input)
+	for left < length && input[left] == '\n' {
 		left++
 	}
 	if left != 0 {
 		copy(tmp[pos:pos+left], input[0:left])
 		pos = left
+		right -= left
 	}
 
-	for left < len(input) {
+	if left < length {
+		if input[left] == '\n' {
+			left++
+			right--
+		}
+		copy(tmp[pos:pos+right], input[left:left+right])
+		pos += right
+		tmp[pos] = '\n'
+		left += right + 1
+		pos++
+	}
+
+	for left < length {
 		if input[left] == '\n' {
 			left++
 		}
-		right := bytes.IndexByte(input[left:], '\r')
+
+		right = bytes.IndexByte(input[left:], '\r')
 		if right == -1 {
 			copy(tmp[pos:], input[left:])
-			pos = pos + len(input) - left
+			pos += length - left
 			break
 		}
 		copy(tmp[pos:pos+right], input[left:left+right])
