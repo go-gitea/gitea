@@ -269,6 +269,8 @@ var migrations = []Migration{
 	// v106 -> v107
 	NewMigration("add column `mode` to table watch", addModeColumnToWatch),
 	// v107 -> v108
+	NewMigration("Add template options to repository", addTemplateToRepo),
+	// v108 -> v109
 	NewMigration("add can_create_org_repo to team", addCanCreateOrgRepoColumnForTeam),
 }
 

@@ -8,10 +8,12 @@ import (
 	"xorm.io/xorm"
 )
 
-func addCanCreateOrgRepoColumnForTeam(x *xorm.Engine) error {
-	type Team struct {
-		CanCreateOrgRepo bool `xorm:"NOT NULL DEFAULT false"`
+func addTemplateToRepo(x *xorm.Engine) error {
+
+	type Repository struct {
+		IsTemplate bool  `xorm:"INDEX NOT NULL DEFAULT false"`
+		TemplateID int64 `xorm:"INDEX"`
 	}
 
-	return x.Sync2(new(Team))
+	return x.Sync2(new(Repository))
 }
