@@ -67,6 +67,9 @@ func IsEmptyString(s string) bool {
 
 // NormalizeEOL will convert Windows (CRLF) and Mac (CR) EOLs to UNIX (LF)
 func NormalizeEOL(input []byte) []byte {
+	if len(input) == 0 {
+		return input
+	}
 	tmp := make([]byte, len(input))
 	left := 0
 	pos := 0

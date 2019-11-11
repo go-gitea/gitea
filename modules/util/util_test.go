@@ -144,4 +144,6 @@ func Test_NormalizeEOL(t *testing.T) {
 	assert.Equal(t, unix, NormalizeEOL(dos))
 	assert.Equal(t, unix, NormalizeEOL(mac))
 	assert.Equal(t, unix, NormalizeEOL(unix))
+
+	assert.Equal(t, []byte{}, NormalizeEOL([]byte{}))
 }
