@@ -268,6 +268,8 @@ var migrations = []Migration{
 	NewMigration("add includes_all_repositories to teams", addTeamIncludesAllRepositories),
 	// v106 -> v107
 	NewMigration("add column `mode` to table watch", addModeColumnToWatch),
+	// v107 -> v108
+	NewMigration("Add template options to repository", addTemplateToRepo),
 }
 
 // Migrate database to current version
