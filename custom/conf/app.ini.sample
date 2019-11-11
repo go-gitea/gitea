@@ -501,6 +501,9 @@ SHOW_REGISTRATION_BUTTON = true
 ; When adding a repo to a team or creating a new repo all team members will watch the
 ; repo automatically if enabled
 AUTO_WATCH_NEW_REPOS = true
+; Default value for AutoWatchOnChanges
+; Make the user watch a repository When they commit for the first time
+AUTO_WATCH_ON_CHANGES = false
 
 [webhook]
 ; Hook task queue length, increase if webhook shooting starts hanging
@@ -511,6 +514,10 @@ DELIVER_TIMEOUT = 5
 SKIP_TLS_VERIFY = false
 ; Number of history information in each page
 PAGING_NUM = 10
+; Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy
+PROXY_URL = 
+; Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
+PROXY_HOSTS = 
 
 [mailer]
 ENABLED = false

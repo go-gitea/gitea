@@ -2158,6 +2158,52 @@ function initWipTitle() {
     });
 }
 
+function initTemplateSearch() {
+    const $repoTemplate = $("#repo_template");
+    const checkTemplate = function() {
+        const $templateUnits = $("#template_units");
+        const $nonTemplate = $("#non_template");
+        if ($repoTemplate.val() !== "") {
+            $templateUnits.show();
+            $nonTemplate.hide();
+        } else {
+            $templateUnits.hide();
+            $nonTemplate.show();
+        }
+    };
+    $repoTemplate.change(checkTemplate);
+    checkTemplate();
+
+    const changeOwner = function() {
+        $("#repo_template_search")
+            .dropdown({
+                apiSettings: {
+                    url: suburl + '/api/v1/repos/search?q={query}&template=true&priority_owner_id=' + $("#uid").val(),
+                    onResponse: function(response) {
+                        const filteredResponse = {'success': true, 'results': []};
+                        filteredResponse.results.push({
+                            'name': '',
+                            'value': ''
+                        });
+                        // Parse the response from the api to work with our dropdown
+                        $.each(response.data, function(_r, repo) {
+                            filteredResponse.results.push({
+                                'name'  : htmlEncode(repo.full_name) ,
+                                'value' : repo.id
+                            });
+                        });
+                        return filteredResponse;
+                    },
+                    cache: false,
+                },
+
+                fullTextSearch: true
+            });
+    };
+    $("#uid").change(changeOwner);
+    changeOwner();
+}
+
 $(document).ready(function () {
     csrf = $('meta[name=_csrf]').attr("content");
     suburl = $('meta[name=_suburl]').attr("content");
@@ -2286,6 +2332,7 @@ $(document).ready(function () {
 
     // Helpers.
     $('.delete-button').click(showDeletePopup);
+    $('.add-all-button').click(showAddAllPopup);
 
     $('.delete-branch-button').click(showDeletePopup);
 
@@ -2399,6 +2446,7 @@ $(document).ready(function () {
     initWipTitle();
     initPullRequestReview();
     initRepoStatusChecker();
+    initTemplateSearch();
 
     // Repo clone url.
     if ($('#repo-clone-url').length > 0) {
@@ -2503,6 +2551,35 @@ function showDeletePopup() {
     }
 
     const dialog = $('.delete.modal' + filter);
+    dialog.find('.name').text($this.data('name'));
+
+    dialog.modal({
+        closable: false,
+        onApprove: function() {
+            if ($this.data('type') == "form") {
+                $($this.data('form')).submit();
+                return;
+            }
+
+            $.post($this.data('url'), {
+                "_csrf": csrf,
+                "id": $this.data("id")
+            }).done(function(data) {
+                window.location.href = data.redirect;
+            });
+        }
+    }).modal('show');
+    return false;
+}
+
+function showAddAllPopup() {
+    const $this = $(this);
+    let filter = "";
+    if ($this.attr("id")) {
+        filter += "#" + $this.attr("id")
+    }
+
+    const dialog = $('.addall.modal' + filter);
     dialog.find('.name').text($this.data('name'));
 
     dialog.modal({
@@ -3287,7 +3364,7 @@ function initIssueList() {
     $('#new-dependency-drop-list')
         .dropdown({
             apiSettings: {
-                url: issueSearchUrl,                
+                url: issueSearchUrl,
                 onResponse: function(response) {
                     const filteredResponse = {'success': true, 'results': []};
                     const currIssueId = $('#new-dependency-drop-list').data('issue-id');
@@ -3298,7 +3375,7 @@ function initIssueList() {
                             return;
                         }
                         filteredResponse.results.push({
-                            'name'  : '#' + issue.number + ' ' + htmlEncode(issue.title) + 
+                            'name'  : '#' + issue.number + ' ' + htmlEncode(issue.title) +
                                 '<div class="text small dont-break-out">' + htmlEncode(issue.repository.full_name) + '</div>',
                             'value' : issue.id
                         });

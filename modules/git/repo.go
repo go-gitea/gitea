@@ -46,6 +46,11 @@ type GPGSettings struct {
 
 const prettyLogFormat = `--pretty=format:%H`
 
+// GetAllCommitsCount returns count of all commits in repository
+func (repo *Repository) GetAllCommitsCount() (int64, error) {
+	return AllCommitsCount(repo.Path)
+}
+
 func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, error) {
 	l := list.New()
 	if len(logs) == 0 {
@@ -299,8 +304,8 @@ const (
 	statSizeGarbage  = "size-garbage: "
 )
 
-// GetRepoSize returns disk consumption for repo in path
-func GetRepoSize(repoPath string) (*CountObject, error) {
+// CountObjects returns the results of git count-objects on the repoPath
+func CountObjects(repoPath string) (*CountObject, error) {
 	cmd := NewCommand("count-objects", "-v")
 	stdout, err := cmd.RunInDir(repoPath)
 	if err != nil {

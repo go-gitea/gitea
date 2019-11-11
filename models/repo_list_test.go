@@ -174,10 +174,10 @@ func TestSearchRepository(t *testing.T) {
 			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 1, PageSize: 10, Private: true, AllPublic: true, Collaborate: util.OptionalBoolFalse},
 			count: 14},
 		{name: "AllPublic/PublicRepositoriesOfUserIncludingCollaborative",
-			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, AllPublic: true},
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, AllPublic: true, Template: util.OptionalBoolFalse},
 			count: 22},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
-			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true},
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true, Template: util.OptionalBoolFalse},
 			count: 28},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborativeByName",
 			opts:  &SearchRepoOptions{Keyword: "test", Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true},
@@ -186,8 +186,11 @@ func TestSearchRepository(t *testing.T) {
 			opts:  &SearchRepoOptions{Keyword: "test", Page: 1, PageSize: 10, OwnerID: 18, Private: true, AllPublic: true},
 			count: 13},
 		{name: "AllPublic/PublicRepositoriesOfOrganization",
-			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, AllPublic: true, Collaborate: util.OptionalBoolFalse},
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, AllPublic: true, Collaborate: util.OptionalBoolFalse, Template: util.OptionalBoolFalse},
 			count: 22},
+		{name: "AllTemplates",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, Template: util.OptionalBoolTrue},
+			count: 2},
 	}
 
 	for _, testCase := range testCases {
