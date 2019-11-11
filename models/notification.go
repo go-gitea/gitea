@@ -408,7 +408,7 @@ func (nl NotificationList) getPendingCommentIDs() []int64 {
 	return keysInt64(ids)
 }
 
-// LoadComments loads issues from database
+// LoadComments loads comments from database
 func (nl NotificationList) LoadComments() error {
 	if len(nl) == 0 {
 		return nil
