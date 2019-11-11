@@ -158,7 +158,6 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 	}
 
 	// Need to normalize EOL to UNIX LF to have consistent results in rendering
-	// @zeripath please remove this line to co-author this PR ;)
 	body = blackfriday.Run(util.NormalizeEOL(body), blackfriday.WithRenderer(renderer), blackfriday.WithExtensions(exts))
 	return markup.SanitizeBytes(body)
 }
