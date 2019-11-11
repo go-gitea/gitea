@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -23,6 +24,9 @@ var (
 	// DefaultCommandExecutionTimeout default command execution timeout duration
 	DefaultCommandExecutionTimeout = 60 * time.Second
 )
+
+// DefaultLocale is the default LC_ALL to run git commands in.
+const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
@@ -77,7 +81,12 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
-	cmd.Env = env
+	if env == nil {
+		cmd.Env = append(os.Environ(), fmt.Sprintf("LC_ALL=%s", DefaultLocale))
+	} else {
+		cmd.Env = env
+		cmd.Env = append(cmd.Env, fmt.Sprintf("LC_ALL=%s", DefaultLocale))
+	}
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
