@@ -90,7 +90,7 @@ type DiffLineSectionInfo struct {
 	RightHunkSize int
 }
 
-// BlobExceprtChunkSize represent max lines of exceprt
+// BlobExceprtChunkSize represent max lines of excerpt
 const BlobExceprtChunkSize = 20
 
 // GetType returns the type of a DiffLine.
