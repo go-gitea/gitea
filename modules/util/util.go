@@ -5,6 +5,7 @@
 package util
 
 import (
+	"bytes"
 	"strings"
 )
 
@@ -62,4 +63,36 @@ func Min(a, b int) int {
 // IsEmptyString checks if the provided string is empty
 func IsEmptyString(s string) bool {
 	return len(strings.TrimSpace(s)) == 0
+}
+
+// NormalizeEOL will convert Windows (CRLF) and Mac (CR) EOLs to UNIX (LF)
+func NormalizeEOL(input []byte) []byte {
+	tmp := make([]byte, len(input))
+	left := 0
+	pos := 0
+	for input[left] == '\n' {
+		left++
+	}
+	if left != 0 {
+		copy(tmp[pos:pos+left], input[0:left])
+		pos = left
+	}
+
+	for left < len(input) {
+		if input[left] == '\n' {
+			left++
+		}
+		right := bytes.Index(input[left:], []byte{'\r'})
+		if right == -1 {
+			copy(tmp[pos:], input[left:])
+			pos = pos + len(input) - left
+			break
+		}
+		copy(tmp[pos:pos+right], input[left:left+right])
+		pos = pos + right
+		tmp[pos] = '\n'
+		left = left + right + 1
+		pos++
+	}
+	return tmp[:pos]
 }
