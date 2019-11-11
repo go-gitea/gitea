@@ -145,5 +145,9 @@ func Test_NormalizeEOL(t *testing.T) {
 	assert.Equal(t, unix, NormalizeEOL(mac))
 	assert.Equal(t, unix, NormalizeEOL(unix))
 
+	assert.Equal(t, []byte("one liner"), NormalizeEOL([]byte("one liner")))
+	assert.Equal(t, []byte("\n"), NormalizeEOL([]byte("\n")))
+	assert.Equal(t, []byte("\ntwo liner"), NormalizeEOL([]byte("\ntwo liner")))
+	assert.Equal(t, []byte("two liner\n"), NormalizeEOL([]byte("two liner\n")))
 	assert.Equal(t, []byte{}, NormalizeEOL([]byte{}))
 }
