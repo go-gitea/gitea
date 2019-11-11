@@ -189,6 +189,26 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 	}
 }
 
+// RetrieveTemplateRepo retrieves template repository used to generate this repository
+func RetrieveTemplateRepo(ctx *Context, repo *models.Repository) {
+	// Non-generated repository will not return error in this method.
+	if err := repo.GetTemplateRepo(); err != nil {
+		if models.IsErrRepoNotExist(err) {
+			repo.TemplateID = 0
+			return
+		}
+		ctx.ServerError("GetTemplateRepo", err)
+		return
+	} else if err = repo.TemplateRepo.GetOwner(); err != nil {
+		ctx.ServerError("TemplateRepo.GetOwner", err)
+		return
+	}
+
+	if !repo.TemplateRepo.CheckUnitUser(ctx.User.ID, ctx.User.IsAdmin, models.UnitTypeCode) {
+		repo.TemplateID = 0
+	}
+}
+
 // ComposeGoGetImport returns go-get-import meta content.
 func ComposeGoGetImport(owner, repo string) string {
 	/// setting.AppUrl is guaranteed to be parse as url
@@ -414,6 +434,13 @@ func RepoAssignment() macaron.Handler {
 			}
 		}
 
+		if repo.IsGenerated() {
+			RetrieveTemplateRepo(ctx, repo)
+			if ctx.Written() {
+				return
+			}
+		}
+
 		// Disable everything when the repo is being created
 		if ctx.Repo.Repository.IsBeingCreated() {
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
@@ -516,6 +543,22 @@ const (
 func RepoRef() macaron.Handler {
 	// since no ref name is explicitly specified, ok to just use branch
 	return RepoRefByType(RepoRefBranch)
+}
+
+// RefTypeIncludesBranches returns true if ref type can be a branch
+func (rt RepoRefType) RefTypeIncludesBranches() bool {
+	if rt == RepoRefLegacy || rt == RepoRefAny || rt == RepoRefBranch {
+		return true
+	}
+	return false
+}
+
+// RefTypeIncludesTags returns true if ref type can be a tag
+func (rt RepoRefType) RefTypeIncludesTags() bool {
+	if rt == RepoRefLegacy || rt == RepoRefAny || rt == RepoRefTag {
+		return true
+	}
+	return false
 }
 
 func getRefNameFromPath(ctx *Context, path string, isExist func(string) bool) string {
@@ -623,7 +666,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 		} else {
 			refName = getRefName(ctx, refType)
 			ctx.Repo.BranchName = refName
-			if ctx.Repo.GitRepo.IsBranchExist(refName) {
+			if refType.RefTypeIncludesBranches() && ctx.Repo.GitRepo.IsBranchExist(refName) {
 				ctx.Repo.IsViewBranch = true
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
@@ -633,7 +676,7 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
 
-			} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+			} else if refType.RefTypeIncludesTags() && ctx.Repo.GitRepo.IsTagExist(refName) {
 				ctx.Repo.IsViewTag = true
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
 				if err != nil {
