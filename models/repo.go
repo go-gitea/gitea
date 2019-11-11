@@ -36,6 +36,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
@@ -708,17 +709,17 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 }
 
 func (repo *Repository) updateSize(e Engine) error {
-	repoInfoSize, err := git.GetRepoSize(repo.repoPath(e))
+	size, err := util.GetDirectorySize(repo.repoPath(e))
 	if err != nil {
 		return fmt.Errorf("UpdateSize: %v", err)
 	}
 
-	repo.Size = repoInfoSize.Size + repoInfoSize.SizePack
+	repo.Size = size
 	_, err = e.ID(repo.ID).Cols("size").Update(repo)
 	return err
 }
 
-// UpdateSize updates the repository size, calculating it using git.GetRepoSize
+// UpdateSize updates the repository size, calculating it using util.GetDirectorySize
 func (repo *Repository) UpdateSize() error {
 	return repo.updateSize(x)
 }
@@ -1468,16 +1469,6 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 		if err = watchRepo(e, doer.ID, repo.ID, true); err != nil {
 			return fmt.Errorf("watchRepo: %v", err)
 		}
-	}
-	if err = notifyWatchers(e, &Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		OpType:    ActionCreateRepo,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		return fmt.Errorf("notify watchers '%d/%d': %v", doer.ID, repo.ID, err)
 	}
 
 	if err = copyDefaultWebhooksToRepo(e, repo.ID); err != nil {

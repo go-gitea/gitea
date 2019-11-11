@@ -91,3 +91,29 @@ func (a *actionNotifier) NotifyRenameRepository(doer *models.User, repo *models.
 		log.Trace("action.renameRepoAction: %s/%s", doer.Name, repo.Name)
 	}
 }
+
+func (a *actionNotifier) NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    models.ActionCreateRepo,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+	}); err != nil {
+		log.Error("notify watchers '%d/%d': %v", doer.ID, repo.ID, err)
+	}
+}
+
+func (a *actionNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    models.ActionCreateRepo,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+	}); err != nil {
+		log.Error("notify watchers '%d/%d': %v", doer.ID, repo.ID, err)
+	}
+}
