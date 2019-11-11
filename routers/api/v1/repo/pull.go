@@ -626,6 +626,18 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Status(405)
 			return
+		} else if models.IsErrMergeConflicts(err) {
+			conflictError := err.(models.ErrMergeConflicts)
+			ctx.JSON(http.StatusConflict, conflictError)
+		} else if models.IsErrRebaseConflicts(err) {
+			conflictError := err.(models.ErrRebaseConflicts)
+			ctx.JSON(http.StatusConflict, conflictError)
+		} else if models.IsErrMergeUnrelatedHistories(err) {
+			conflictError := err.(models.ErrMergeUnrelatedHistories)
+			ctx.JSON(http.StatusConflict, conflictError)
+		} else if models.IsErrMergePushOutOfDate(err) {
+			ctx.Status(http.StatusConflict)
+			return
 		}
 		ctx.Error(500, "Merge", err)
 		return

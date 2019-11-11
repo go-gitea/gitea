@@ -304,8 +304,8 @@ const (
 	statSizeGarbage  = "size-garbage: "
 )
 
-// GetRepoSize returns disk consumption for repo in path
-func GetRepoSize(repoPath string) (*CountObject, error) {
+// CountObjects returns the results of git count-objects on the repoPath
+func CountObjects(repoPath string) (*CountObject, error) {
 	cmd := NewCommand("count-objects", "-v")
 	stdout, err := cmd.RunInDir(repoPath)
 	if err != nil {
