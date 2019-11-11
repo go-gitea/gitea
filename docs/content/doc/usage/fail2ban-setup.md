@@ -13,7 +13,7 @@ menu:
     identifier: "fail2ban-setup"
 ---
 
-# Fail2ban setup to block users after failed login attemts
+# Fail2ban setup to block users after failed login attempts
 
 **Remember that fail2ban is powerful and can cause lots of issues if you do it incorrectly, so make 
 sure to test this before relying on it so you don't lock yourself out.**
