@@ -34,7 +34,7 @@ func (repo *Repository) addCollaborator(e Engine, u *User) error {
 		return err
 	}
 
-	return  repo.recalculateUserAccess(e, u.ID)
+	return repo.recalculateUserAccess(e, u.ID)
 }
 
 // AddCollaborator adds new collaboration to a repository with default access mode.

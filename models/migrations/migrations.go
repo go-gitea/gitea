@@ -271,6 +271,8 @@ var migrations = []Migration{
 	// v107 -> v108
 	NewMigration("Add template options to repository", addTemplateToRepo),
 	// v108 -> v109
+	NewMigration("Add comment_id on table notification", addCommentIDOnNotification),
+	// v109 -> v110
 	NewMigration("add can_create_org_repo to team", addCanCreateOrgRepoColumnForTeam),
 }
 

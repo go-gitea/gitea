@@ -8,11 +8,10 @@ import (
 	"xorm.io/xorm"
 )
 
-func addCommentIDOnNotification(x *xorm.Engine) error {
-	type Notification struct {
-		ID        int64 `xorm:"pk autoincr"`
-		CommentID int64
+func addCanCreateOrgRepoColumnForTeam(x *xorm.Engine) error {
+	type Team struct {
+		CanCreateOrgRepo bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync2(new(Notification))
+	return x.Sync2(new(Team))
 }

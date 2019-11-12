@@ -18,7 +18,8 @@ type (
 	}
 
 	issueNotificationOpts struct {
-		issue                *models.Issue
+		issueID              int64
+		commentID            int64
 		notificationAuthorID int64
 	}
 )
@@ -36,7 +37,7 @@ func NewNotifier() base.Notifier {
 
 func (ns *notificationService) Run() {
 	for opts := range ns.issueQueue {
-		if err := models.CreateOrUpdateIssueNotifications(opts.issue, opts.notificationAuthorID); err != nil {
+		if err := models.CreateOrUpdateIssueNotifications(opts.issueID, opts.commentID, opts.notificationAuthorID); err != nil {
 			log.Error("Was unable to create issue notification: %v", err)
 		}
 	}
@@ -44,43 +45,51 @@ func (ns *notificationService) Run() {
 
 func (ns *notificationService) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
-	ns.issueQueue <- issueNotificationOpts{
-		issue,
-		doer.ID,
+	var opts = issueNotificationOpts{
+		issueID:              issue.ID,
+		notificationAuthorID: doer.ID,
 	}
+	if comment != nil {
+		opts.commentID = comment.ID
+	}
+	ns.issueQueue <- opts
 }
 
 func (ns *notificationService) NotifyNewIssue(issue *models.Issue) {
 	ns.issueQueue <- issueNotificationOpts{
-		issue,
-		issue.Poster.ID,
+		issueID:              issue.ID,
+		notificationAuthorID: issue.Poster.ID,
 	}
 }
 
 func (ns *notificationService) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
 	ns.issueQueue <- issueNotificationOpts{
-		issue,
-		doer.ID,
+		issueID:              issue.ID,
+		notificationAuthorID: doer.ID,
 	}
 }
 
 func (ns *notificationService) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, gitRepo *git.Repository) {
 	ns.issueQueue <- issueNotificationOpts{
-		pr.Issue,
-		doer.ID,
+		issueID:              pr.Issue.ID,
+		notificationAuthorID: doer.ID,
 	}
 }
 
 func (ns *notificationService) NotifyNewPullRequest(pr *models.PullRequest) {
 	ns.issueQueue <- issueNotificationOpts{
-		pr.Issue,
-		pr.Issue.PosterID,
+		issueID:              pr.Issue.ID,
+		notificationAuthorID: pr.Issue.PosterID,
 	}
 }
 
 func (ns *notificationService) NotifyPullRequestReview(pr *models.PullRequest, r *models.Review, c *models.Comment) {
-	ns.issueQueue <- issueNotificationOpts{
-		pr.Issue,
-		r.Reviewer.ID,
+	var opts = issueNotificationOpts{
+		issueID:              pr.Issue.ID,
+		notificationAuthorID: r.Reviewer.ID,
 	}
+	if c != nil {
+		opts.commentID = c.ID
+	}
+	ns.issueQueue <- opts
 }
