@@ -20,6 +20,12 @@ params:
   website: https://docs.gitea.io
   version: 1.9.5
 
+outputs:
+  home:
+    - HTML
+    - RSS
+    - JSON
+
 menu:
   page:
     - name: Website
