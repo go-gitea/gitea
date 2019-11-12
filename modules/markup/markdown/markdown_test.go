@@ -305,7 +305,7 @@ func TestRender_RenderParagraphs(t *testing.T) {
 		res = string(RenderRaw(mac, "", false))
 		assert.Equal(t, strings.Count(res, "<p"), cnt)
 
-		dos := []byte(strings.ReplaceAll(str, "\n", "\r"))
+		dos := []byte(strings.ReplaceAll(str, "\n", "\r\n"))
 		res = string(RenderRaw(dos, "", false))
 		assert.Equal(t, strings.Count(res, "<p"), cnt)
 	}
