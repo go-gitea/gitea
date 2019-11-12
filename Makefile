@@ -438,9 +438,9 @@ js: npm
 
 .PHONY: css
 css: npm
-	npx stylelint public/less
-	npx lessc --clean-css="--s0 -b" public/less/index.less public/css/index.css
-	$(foreach file, $(filter-out public/less/themes/_base.less, $(wildcard public/less/themes/*)),npx lessc --clean-css="--s0 -b" public/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
+	npx stylelint web_src/less
+	npx lessc --clean-css="--s0 -b" web_src/less/index.less public/css/index.css
+	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc --clean-css="--s0 -b" web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
 	npx postcss --use autoprefixer --no-map --replace public/css/*
 
 	@diff=$$(git diff public/css/*); \
