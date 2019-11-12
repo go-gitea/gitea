@@ -429,7 +429,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.HTML(200, tplCompare)
 }
 
-// ExcerptBlob render blob excerpt conten
+// ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.Params("sha")
 	lastLeft := ctx.QueryInt("last_left")
