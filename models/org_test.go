@@ -101,7 +101,7 @@ func TestUser_GetMembers(t *testing.T) {
 	assert.NoError(t, org.GetMembers())
 	if assert.Len(t, org.Members, 3) {
 		assert.Equal(t, int64(2), org.Members[0].ID)
-		assert.Equal(t, int64(27), org.Members[1].ID)
+		assert.Equal(t, int64(28), org.Members[1].ID)
 		assert.Equal(t, int64(4), org.Members[2].ID)
 	}
 }

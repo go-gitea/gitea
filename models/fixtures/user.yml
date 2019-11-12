@@ -50,8 +50,8 @@
   avatar: avatar3
   avatar_email: user3@example.com
   num_repos: 3
-  num_members: 2
-  num_teams: 3
+  num_members: 3
+  num_teams: 4
 
 -
   id: 4
@@ -102,8 +102,8 @@
   avatar: avatar6
   avatar_email: user6@example.com
   num_repos: 0
-  num_members: 1
-  num_teams: 1
+  num_members: 2
+  num_teams: 2
 
 -
   id: 7
