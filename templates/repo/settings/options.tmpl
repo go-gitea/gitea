@@ -22,6 +22,10 @@
 						<label>{{.i18n.Tr "repo.template_helper"}}</label>
 					</div>
 				</div>
+				<div class="inline field">
+					<label>{{.i18n.Tr "repo.repo_size"}}</label>
+					<span>{{SizeFmt .Repository.Size}}</span>
+				</div>
 				{{if not .Repository.IsFork}}
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.visibility"}}</label>
