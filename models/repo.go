@@ -2834,7 +2834,6 @@ func GenerateRepository(doer, owner *User, templateRepo *Repository, opts Genera
 			}
 
 			generateHook.Content = templateHook.Content
-			generateHook.IsActive = templateHook.IsActive
 			if err := generateHook.Update(); err != nil {
 				return repo, err
 			}
