@@ -101,6 +101,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		repo.LowerName = strings.ToLower(newRepoName)
 		repo.Description = form.Description
 		repo.Website = form.Website
+		repo.IsTemplate = form.Template
 
 		// Visibility of forked repository is forced sync with base repository.
 		if repo.IsFork {

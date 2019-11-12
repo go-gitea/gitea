@@ -15,6 +15,13 @@
 					<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}</label>
 					<input id="repo_name" name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" autofocus required>
 				</div>
+				<div class="inline field">
+					<label>{{.i18n.Tr "repo.template"}}</label>
+					<div class="ui checkbox">
+						<input name="template" type="checkbox" {{if .Repository.IsTemplate}}checked{{end}}>
+						<label>{{.i18n.Tr "repo.template_helper"}}</label>
+					</div>
+				</div>
 				{{if not .Repository.IsFork}}
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.visibility"}}</label>
