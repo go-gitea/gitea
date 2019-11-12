@@ -1642,10 +1642,10 @@ function initGithook() {
         return;
     }
 
-	CodeMirror.autoLoadMode(CodeMirror.fromTextArea($('#content')[0], {
-		lineNumbers: true,
-		mode: 'shell'
-	}), 'shell');
+    CodeMirror.autoLoadMode(CodeMirror.fromTextArea($('#content')[0], {
+        lineNumbers: true,
+        mode: 'shell'
+    }), 'shell');
 }
 
 function initWebhook() {
