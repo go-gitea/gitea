@@ -189,6 +189,26 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 	}
 }
 
+// RetrieveTemplateRepo retrieves template repository used to generate this repository
+func RetrieveTemplateRepo(ctx *Context, repo *models.Repository) {
+	// Non-generated repository will not return error in this method.
+	if err := repo.GetTemplateRepo(); err != nil {
+		if models.IsErrRepoNotExist(err) {
+			repo.TemplateID = 0
+			return
+		}
+		ctx.ServerError("GetTemplateRepo", err)
+		return
+	} else if err = repo.TemplateRepo.GetOwner(); err != nil {
+		ctx.ServerError("TemplateRepo.GetOwner", err)
+		return
+	}
+
+	if !repo.TemplateRepo.CheckUnitUser(ctx.User.ID, ctx.User.IsAdmin, models.UnitTypeCode) {
+		repo.TemplateID = 0
+	}
+}
+
 // ComposeGoGetImport returns go-get-import meta content.
 func ComposeGoGetImport(owner, repo string) string {
 	/// setting.AppUrl is guaranteed to be parse as url
@@ -409,6 +429,13 @@ func RepoAssignment() macaron.Handler {
 
 		if repo.IsFork {
 			RetrieveBaseRepo(ctx, repo)
+			if ctx.Written() {
+				return
+			}
+		}
+
+		if repo.IsGenerated() {
+			RetrieveTemplateRepo(ctx, repo)
 			if ctx.Written() {
 				return
 			}

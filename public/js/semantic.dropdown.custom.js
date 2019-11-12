@@ -997,7 +997,7 @@ $.fn.dropdown = function(parameters) {
           ;
           if(hasSelected && !module.is.multiple()) {
             module.debug('Forcing partial selection to selected item', $selectedItem);
-            $selectedItem[0].click();
+            module.event.item.click.call($selectedItem, {}, true);
             return;
           }
           else {
