@@ -73,26 +73,13 @@ func NormalizeEOL(input []byte) []byte {
 	}
 	length := len(input)
 	tmp := make([]byte, length)
-	for left < length && input[left] == '\n' {
-		left++
-	}
-	if left != 0 {
-		copy(tmp[pos:pos+left], input[0:left])
-		pos = left
-		right -= left
-	}
 
-	if left < length {
-		if input[left] == '\n' {
-			left++
-			right--
-		}
-		copy(tmp[pos:pos+right], input[left:left+right])
-		pos += right
-		tmp[pos] = '\n'
-		left += right + 1
-		pos++
-	}
+	// We know that left < length because otherwise right would be -1 from IndexByte.
+	copy(tmp[pos:pos+right], input[left:left+right])
+	pos += right
+	tmp[pos] = '\n'
+	left += right + 1
+	pos++
 
 	for left < length {
 		if input[left] == '\n' {
