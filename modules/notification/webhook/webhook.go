@@ -573,22 +573,9 @@ func (m *webhookNotifier) NotifyCreateRef(pusher *models.User, repo *models.Repo
 		return
 	}
 
-	var shaSum string
-	switch refType {
-	case "branch":
-		shaSum, err = gitRepo.GetBranchCommitID(refName)
-		if err != nil {
-			log.Error("GetBranchCommitID[%s]: %v", refFullName, err)
-			return
-		}
-	case "tag":
-		shaSum, err = gitRepo.GetTagCommitID(refName)
-		if err != nil {
-			log.Error("GetBranchCommitID[%s]: %v", refFullName, err)
-			return
-		}
-	default:
-		log.Error("Unknown refType: %s for refName: %s", refType, refName)
+	shaSum, err := gitRepo.GetRefCommitID(refFullName)
+	if err != nil {
+		log.Error("GetRefCommitID[%s]: %v", refFullName, err)
 		return
 	}
 
