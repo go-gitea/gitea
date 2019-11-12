@@ -71,8 +71,8 @@ func NormalizeEOL(input []byte) []byte {
 	if right = bytes.IndexByte(input, '\r'); right == -1 {
 		return input
 	}
-	tmp := make([]byte, len(input))
 	length := len(input)
+	tmp := make([]byte, length)
 	for left < length && input[left] == '\n' {
 		left++
 	}
