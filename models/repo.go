@@ -1586,11 +1586,9 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 			}
 		}
 
-		isAdmin, err := isUserRepoAdmin(e, repo, doer)
-		if err != nil {
+		if isAdmin, err := isUserRepoAdmin(e, repo, doer); err != nil {
 			return fmt.Errorf("isUserRepoAdmin: %v", err)
-		}
-		if !isAdmin {
+		} else if !isAdmin {
 			// Make creator repo admin if it wan't assigned automatically
 			if err = repo.addCollaborator(e, doer); err != nil {
 				return fmt.Errorf("AddCollaborator: %v", err)

@@ -389,17 +389,6 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 		Find(&orgs)
 }
 
-func getOrgsCanCreateRepoByUserIDDesc(sess *xorm.Session, userID int64) ([]*User, error) {
-	orgs := make([]*User, 0, 10)
-	return orgs, sess.
-		Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
-		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
-		Where("`team_user`.uid=?", userID).
-		And(builder.Eq{"`team`.authorize": AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})).
-		Asc("`user`.name").
-		Find(&orgs)
-}
-
 // HasOrgVisible tells if the given user can see the given org
 func HasOrgVisible(org *User, user *User) bool {
 	return hasOrgVisible(x, org, user)
@@ -448,10 +437,17 @@ func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
 	return getOwnedOrgsByUserID(x.Desc(desc), userID)
 }
 
-// GetOrgsCanCreateRepoByUserIDDesc returns a list of organizations where given user ID
-// are allowed to create repos, ordered descending by the given condition.
-func GetOrgsCanCreateRepoByUserIDDesc(userID int64, desc string) ([]*User, error) {
-	return getOrgsCanCreateRepoByUserIDDesc(x.Desc(desc), userID)
+// GetOrgsCanCreateRepoByUserID returns a list of organizations where given user ID
+// are allowed to create repos.
+func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
+	orgs := make([]*User, 0, 10)
+
+	return orgs, x.Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
+		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
+		Where("`team_user`.uid=?", userID).
+		And(builder.Eq{"`team`.authorize": AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})).
+		Desc("`user`.updated_unix").
+		Find(&orgs)
 }
 
 // GetOrgUsersByUserID returns all organization-user relations by user ID.

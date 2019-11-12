@@ -53,9 +53,9 @@ func MustBeAbleToUpload(ctx *context.Context) {
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *models.User {
-	orgs, err := models.GetOrgsCanCreateRepoByUserIDDesc(ctx.User.ID, "updated_unix")
+	orgs, err := models.GetOrgsCanCreateRepoByUserID(ctx.User.ID)
 	if err != nil {
-		ctx.ServerError("GetOrgsCanCreateRepoByUserIDDesc", err)
+		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
 	}
 	ctx.Data["Orgs"] = orgs

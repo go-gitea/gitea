@@ -34,11 +34,7 @@ func (repo *Repository) addCollaborator(e Engine, u *User) error {
 		return err
 	}
 
-	if err = repo.recalculateUserAccess(e, u.ID); err != nil {
-		return fmt.Errorf("recalculateAccesses 'team=%v': %v", repo.Owner.IsOrganization(), err)
-	}
-
-	return nil
+	return  repo.recalculateUserAccess(e, u.ID)
 }
 
 // AddCollaborator adds new collaboration to a repository with default access mode.
