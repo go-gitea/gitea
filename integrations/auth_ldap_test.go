@@ -119,7 +119,7 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string) {
 	session.MakeRequest(t, req, http.StatusFound)
 }
 
-func addAuthSourceLDAPWithGroups(t *testing.T) {
+func addAuthSourceLDAPWithGroupsUsingDN(t *testing.T) {
 	session := loginUser(t, "user1")
 	csrf := GetCSRF(t, session, "/admin/auths/new")
 	req := NewRequestWithValues(t, "POST", "/admin/auths/new", map[string]string{
@@ -146,16 +146,34 @@ func addAuthSourceLDAPWithGroups(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusFound)
 }
 
-func TestLDAPUserSignin(t *testing.T) {
-	if skipLDAPTests() {
-		t.Skip()
-		return
-	}
-	prepareTestEnv(t)
-	addAuthSourceLDAP(t, "")
+func addAuthSourceLDAPWithGroupsUsingCN(t *testing.T) {
+	session := loginUser(t, "user1")
+	csrf := GetCSRF(t, session, "/admin/auths/new")
+	req := NewRequestWithValues(t, "POST", "/admin/auths/new", map[string]string{
+		"_csrf":                   csrf,
+		"type":                    "2",
+		"name":                    "ldap",
+		"host":                    getLDAPServerHost(),
+		"port":                    "389",
+		"bind_dn":                 "uid=gitea,ou=service,dc=planetexpress,dc=com",
+		"bind_password":           "password",
+		"user_base":               "ou=people,dc=planetexpress,dc=com",
+		"filter":                  "(&(objectClass=inetOrgPerson)(uid=%s))",
+		"group_search_base":       "ou=people,dc=planetexpress,dc=com",
+		"group_search_filter":     "(&(objectClass=groupOfNames)(member=cn=%s,ou=people,dc=planetexpress,dc=com))",
+		"user_attribute_in_group": "cn",
+		"member_group_filter":     "(cn=git)",
+		"admin_group_filter":      "(cn=admin_staff)",
+		"attribute_username":      "uid",
+		"attribute_name":          "givenName",
+		"attribute_surname":       "sn",
+		"attribute_mail":          "mail",
+		"is_active":               "on",
+	})
+	session.MakeRequest(t, req, http.StatusFound)
+}
 
-	u := gitLDAPUsers[0]
-
+func testSingleLDAPSignin(t *testing.T, u *ldapUser) {
 	session := loginUserWithPassword(t, u.UserName, u.Password)
 	req := NewRequest(t, "GET", "/user/settings")
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -165,35 +183,51 @@ func TestLDAPUserSignin(t *testing.T) {
 	assert.Equal(t, u.UserName, htmlDoc.GetInputValueByName("name"))
 	assert.Equal(t, u.FullName, htmlDoc.GetInputValueByName("full_name"))
 	assert.Equal(t, u.Email, htmlDoc.GetInputValueByName("email"))
+
+	reqAdmin := NewRequest(t, "GET", "/admin")
+	if u.IsAdmin {
+		adminResp := session.MakeRequest(t, reqAdmin, http.StatusOK)
+		assert.Equal(t, http.StatusOK, adminResp.Code)
+	} else {
+		adminResp := session.MakeRequest(t, reqAdmin, http.StatusForbidden)
+		assert.Equal(t, http.StatusForbidden, adminResp.Code)
+	}
 }
 
-func TestLDAPUserSigninWithGroups(t *testing.T) {
+func TestLDAPUserSignin(t *testing.T) {
 	if skipLDAPTests() {
 		t.Skip()
 		return
 	}
 	prepareTestEnv(t)
-	addAuthSourceLDAPWithGroups(t)
+	addAuthSourceLDAP(t, "")
+
+	testSingleLDAPSignin(t, &gitLDAPUsers[0])
+}
+
+func TestLDAPUserSigninWithGroupsUsingDN(t *testing.T) {
+	if skipLDAPTests() {
+		t.Skip()
+		return
+	}
+	prepareTestEnv(t)
+	addAuthSourceLDAPWithGroupsUsingDN(t)
 
 	for _, u := range gitLDAPUsers {
-		session := loginUserWithPassword(t, u.UserName, u.Password)
-		req := NewRequest(t, "GET", "/user/settings")
-		resp := session.MakeRequest(t, req, http.StatusOK)
+		testSingleLDAPSignin(t, &u)
+	}
+}
 
-		htmlDoc := NewHTMLParser(t, resp.Body)
+func TestLDAPUserSigninWithGroupsUsingCN(t *testing.T) {
+	if skipLDAPTests() {
+		t.Skip()
+		return
+	}
+	prepareTestEnv(t)
+	addAuthSourceLDAPWithGroupsUsingCN(t)
 
-		assert.Equal(t, u.UserName, htmlDoc.GetInputValueByName("name"))
-		assert.Equal(t, u.FullName, htmlDoc.GetInputValueByName("full_name"))
-		assert.Equal(t, u.Email, htmlDoc.GetInputValueByName("email"))
-
-		reqAdmin := NewRequest(t, "GET", "/admin")
-		if u.IsAdmin {
-			adminResp := session.MakeRequest(t, reqAdmin, http.StatusOK)
-			assert.Equal(t, http.StatusOK, adminResp.Code)
-		} else {
-			adminResp := session.MakeRequest(t, reqAdmin, http.StatusForbidden)
-			assert.Equal(t, http.StatusForbidden, adminResp.Code)
-		}
+	for _, u := range gitLDAPUsers {
+		testSingleLDAPSignin(t, &u)
 	}
 }
 
@@ -256,13 +290,26 @@ func TestLDAPUserSigninFailed(t *testing.T) {
 	testLoginFailed(t, u.UserName, u.Password, i18n.Tr("en", "form.username_password_incorrect"))
 }
 
-func TestLDAPUserSigninFailedWithGroups(t *testing.T) {
+func TestLDAPUserSigninFailedWithGroupsUsignDN(t *testing.T) {
 	if skipLDAPTests() {
 		t.Skip()
 		return
 	}
 	prepareTestEnv(t)
-	addAuthSourceLDAPWithGroups(t)
+	addAuthSourceLDAPWithGroupsUsingDN(t)
+
+	for _, u := range otherLDAPUsers {
+		testLoginFailed(t, u.UserName, u.Password, i18n.Tr("en", "form.username_password_incorrect"))
+	}
+}
+
+func TestLDAPUserSigninFailedWithGroupsUsignCN(t *testing.T) {
+	if skipLDAPTests() {
+		t.Skip()
+		return
+	}
+	prepareTestEnv(t)
+	addAuthSourceLDAPWithGroupsUsingCN(t)
 
 	for _, u := range otherLDAPUsers {
 		testLoginFailed(t, u.UserName, u.Password, i18n.Tr("en", "form.username_password_incorrect"))
