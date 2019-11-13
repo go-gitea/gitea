@@ -8,9 +8,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUGFIXES
   * Allow to merge if file path contains " or \ (#8629) (#8772)
   * Fix 500 when edit hook (#8782) (#8790)
-  * Update Github migration test (#8897)
   * Fix issue with user.fullname (#8904)
-  * Update Github Migration Test (#8946)
+  * Update Github Migration Test (#8897) (#8946)
   * Add Close() method to gogitRepository (#8901) (#8958)
 
 ## [1.9.5](https://github.com/go-gitea/gitea/releases/tag/v1.9.5) - 2019-10-30
