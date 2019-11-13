@@ -1,6 +1,6 @@
 ---
 date: "2017-01-20T15:00:00+08:00"
-title: "l'aider"
+title: "Aide"
 slug: "help"
 weight: 5
 toc: false
