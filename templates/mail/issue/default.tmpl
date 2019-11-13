@@ -21,6 +21,14 @@
 		{{else}}
 			{{.Body | Str2html}}
 		{{end -}}
+		{{if .ReviewComments}}
+			<div style="padding-left: 4em;">
+			{{range .ReviewComments}}
+				{{.Content | Safe}}
+				<pre style="border: 1px solid gray; padding: 1em;">{{.Patch}}</pre>
+			{{end}}
+			</div>
+		{{end}}
 	</p>
 	<p>
 		---

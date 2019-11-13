@@ -86,8 +86,14 @@ func (m *mailNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models
 	} else if comment.Type == models.CommentTypeComment {
 		act = models.ActionCommentIssue
 	}
+	if r != nil {
+		comment.Review = r
+		if err := r.LoadCodeComments(); err != nil {
+			log.Error("LoadCodeComments: %v", err)
+		}
+	}
 	if err := mailer.MailParticipantsComment(comment, act, pr.Issue); err != nil {
-		log.Error("MailParticipants: %v", err)
+		log.Error("MailParticipantsComment: %v", err)
 	}
 }
 

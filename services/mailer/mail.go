@@ -44,6 +44,15 @@ var (
 	subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
 )
 
+// CodeComment contains a single comment within a review
+type CodeComment struct {
+	Path    string
+	Line    int64
+	Content string
+	Patch   string
+	Author  *models.User
+}
+
 // InitMailRender initializes the mail renderer
 func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
 	subjectTemplates = subjectTpl
@@ -177,7 +186,8 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 		link    string
 		prefix  string
 		// Fall back subject for bad templates, make sure subject is never empty
-		fallback string
+		fallback       string
+		reviewComments []CodeComment
 	)
 
 	commentType := models.CommentTypeComment
@@ -190,11 +200,17 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 	}
 
 	fallback = prefix + fallbackMailSubject(issue)
+	url := issue.Repo.HTMLURL()
+	metas := issue.Repo.ComposeMetas()
 
 	// This is the body of the new issue or comment, not the mail body
-	body := string(markup.RenderByType(markdown.MarkupName, []byte(content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
+	body := string(markup.RenderByType(markdown.MarkupName, []byte(content), url, metas))
 
 	actType, actName, tplName := actionToTemplate(issue, actionType, commentType)
+
+	if actName == "review" && comment.Review != nil {
+		reviewComments = getReviewComments(comment.Review)
+	}
 
 	mailMeta := map[string]interface{}{
 		"FallbackSubject": fallback,
@@ -210,6 +226,7 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 		"SubjectPrefix":   prefix,
 		"ActionType":      actType,
 		"ActionName":      actName,
+		"ReviewComments":  reviewComments,
 	}
 
 	var mailSubject bytes.Buffer
@@ -242,6 +259,24 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 	}
 
 	return msg
+}
+
+func getReviewComments(r *models.Review) []CodeComment {
+	reviewComments := make([]CodeComment, 0, 10)
+	for _, lines := range r.CodeComments {
+		for _, comments := range lines {
+			for _, comment := range comments {
+				reviewComments = append(reviewComments, CodeComment{
+					Path:    comment.TreePath,
+					Line:    comment.Line,
+					Content: comment.RenderedContent,
+					Patch:   comment.Patch,
+					Author:  comment.Poster,
+				})
+			}
+		}
+	}
+	return reviewComments
 }
 
 func sanitizeSubject(subject string) string {
