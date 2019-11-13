@@ -94,6 +94,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	if err := uploader.CreateRepo(repo, opts); err != nil {
 		return err
 	}
+	defer uploader.Close()
 
 	log.Trace("migrating topics")
 	topics, err := downloader.GetTopics()
