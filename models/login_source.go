@@ -410,6 +410,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 	} else if isExist {
 		if !user.ProhibitLogin && len(source.LDAP().AdminFilter) > 0 && user.IsAdmin != sr.IsAdmin {
 			// Change existing admin flag only if AdminFilter option is set
+			user.IsAdmin = sr.IsAdmin
 			err = UpdateUserCols(user, "is_admin")
 			if err != nil {
 				return nil, err
