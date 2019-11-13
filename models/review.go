@@ -269,6 +269,13 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 			return nil, nil, err
 		}
 	} else {
+		if err := review.loadCodeComments(sess); err != nil {
+			return nil, nil, err
+		}
+		if len(review.CodeComments) == 0 && len(strings.TrimSpace(content)) == 0 {
+			return nil, nil, ContentEmptyErr{}
+		}
+
 		review.Issue = issue
 		review.Content = content
 		review.Type = reviewType
@@ -284,16 +291,13 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 		Issue:    issue,
 		Repo:     issue.Repo,
 		ReviewID: review.ID,
+		NoAction: true,
 	})
 	if err != nil || comm == nil {
 		return nil, nil, err
 	}
 
 	comm.Review = review
-
-	if err := updateIssueCols(sess, review.Issue, "updated_unix"); err != nil {
-		return nil, nil, err
-	}
 	return review, comm, sess.Commit()
 }
 

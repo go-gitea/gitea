@@ -149,17 +149,19 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 		}
 	}
 
-	actions = append(actions, &models.Action{
-		ActUserID: review.Reviewer.ID,
-		ActUser:   review.Reviewer,
-		Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(content, "\n")[0]),
-		OpType:    models.ActionCommentIssue,
-		RepoID:    review.Issue.RepoID,
-		Repo:      review.Issue.Repo,
-		IsPrivate: review.Issue.Repo.IsPrivate,
-		Comment:   comment,
-		CommentID: comment.ID,
-	})
+	if strings.TrimSpace(comment.Content) != "" {
+		actions = append(actions, &models.Action{
+			ActUserID: review.Reviewer.ID,
+			ActUser:   review.Reviewer,
+			Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(content, "\n")[0]),
+			OpType:    models.ActionCommentIssue,
+			RepoID:    review.Issue.RepoID,
+			Repo:      review.Issue.Repo,
+			IsPrivate: review.Issue.Repo.IsPrivate,
+			Comment:   comment,
+			CommentID: comment.ID,
+		})
+	}
 
 	if err := models.NotifyWatchersActions(actions); err != nil {
 		log.Error("notify watchers '%d/%d': %v", review.Reviewer.ID, review.Issue.RepoID, err)
