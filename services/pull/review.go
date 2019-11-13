@@ -128,6 +128,7 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 		CommitSHA: commitID,
 		ReviewID:  reviewID,
 		Patch:     patch,
+		NoAction:  true,
 	})
 }
 
