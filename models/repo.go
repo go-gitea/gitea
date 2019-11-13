@@ -2817,11 +2817,13 @@ func GenerateRepository(doer, owner *User, templateRepo *Repository, opts Genera
 		if err != nil {
 			return repo, err
 		}
+		defer generateRepo.Close()
 
 		templateRepo, err := git.OpenRepository(templateRepo.repoPath(sess))
 		if err != nil {
 			return repo, err
 		}
+		defer templateRepo.Close()
 
 		templateHooks, err := templateRepo.Hooks()
 		if err != nil {
