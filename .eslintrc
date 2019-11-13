@@ -10,6 +10,7 @@ env:
   browser: true
   jquery: true
   es6: true
+  node: true
 
 globals:
   Clipboard: false
