@@ -135,6 +135,7 @@ func (r *Review) publish(e *xorm.Engine) error {
 						Repo:    review.Issue.Repo,
 						Type:    comm.Type,
 						Content: comm.Content,
+						Review:  r,
 					}, comm); err != nil {
 						log.Warn("sendCreateCommentAction: %v", err)
 					}

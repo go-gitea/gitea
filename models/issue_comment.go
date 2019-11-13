@@ -538,6 +538,10 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 	switch opts.Type {
 	case CommentTypeCode:
 		if comment.ReviewID != 0 {
+			// Hotfix for 1.10.0 as the Review object has not yet been committed in the other session
+			if opts.Review != nil {
+				comment.Review = opts.Review
+			}
 			if comment.Review == nil {
 				if err := comment.loadReview(e); err != nil {
 					return err
@@ -596,6 +600,12 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 		if err = opts.Issue.updateClosedNum(e); err != nil {
 			return err
 		}
+	case CommentTypeReview:
+		// Hotfix for 1.10.0; make sure a dashboard entry is created
+		if opts.Content == "" {
+			return nil
+		}
+		act.OpType = ActionCommentIssue
 	}
 	// update the issue's updated_unix column
 	if err = updateIssueCols(e, opts.Issue, "updated_unix"); err != nil {
@@ -751,11 +761,12 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 
 // CreateCommentOptions defines options for creating comment
 type CreateCommentOptions struct {
-	Type  CommentType
-	Doer  *User
-	Repo  *Repository
-	Issue *Issue
-	Label *Label
+	Type   CommentType
+	Doer   *User
+	Repo   *Repository
+	Issue  *Issue
+	Label  *Label
+	Review *Review
 
 	DependentIssueID int64
 	OldMilestoneID   int64
