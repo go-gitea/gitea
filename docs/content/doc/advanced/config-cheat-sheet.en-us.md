@@ -234,6 +234,14 @@ relation to port exhaustion.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
 - `STARTUP_TIMEOUT`: **30s**: If the indexer takes longer than this timeout to start - fail. (This timeout will be added to the hammer time above for child processes - as bleve will not start until the previous parent is shutdown.) Set to zero to never timeout.
 
+## Queue (`queue`)
+
+- `TYPE`: **persistable-channel**: General queue type, currently support: `persistable-channel`, `batched-channel`, `channel`, `level`, `redis`, `dummy`
+- `DATADIR`: **queues/**: Base DataDir for storing persistent and level queues.
+- `LENGTH`: **20**: Maximal queue size before channel queues block
+- `BATCH_LENGTH`: **20**: Batch data before passing to the handler
+- `CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Connection string for the redis queue type.
+
 ## Admin (`admin`)
 - `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**: Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
 
