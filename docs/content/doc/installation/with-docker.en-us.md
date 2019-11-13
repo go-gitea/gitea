@@ -51,6 +51,8 @@ services:
       - gitea
     volumes:
       - ./gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     ports:
       - "3000:3000"
       - "222:22"
@@ -80,6 +82,8 @@ services:
       - gitea
     volumes:
       - ./gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     ports:
 -      - "3000:3000"
 -      - "222:22"
@@ -115,6 +119,8 @@ services:
       - gitea
     volumes:
       - ./gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
      ports:
        - "3000:3000"
        - "222:22"
@@ -163,6 +169,8 @@ services:
       - gitea
     volumes:
       - ./gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     ports:
       - "3000:3000"
       - "222:22"
@@ -209,6 +217,8 @@ services:
     volumes:
 -      - ./gitea:/data
 +      - gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     ports:
       - "3000:3000"
       - "222:22"
@@ -306,6 +316,8 @@ UID/GID as the container values `USER_UID`/`USER_GID`. You should also create th
         - gitea
       volumes:
         - /var/lib/gitea:/data
+        - /etc/timezone:/etc/timezone:ro
+        - /etc/localtime:/etc/localtime:ro
       ports:
         - "3000:3000"
         - "127.0.0.1:2222:22"
