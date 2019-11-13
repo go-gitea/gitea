@@ -382,6 +382,7 @@ func (pr *PullRequest) GetLastCommitStatus() (status *CommitStatus, err error) {
 	if err != nil {
 		return nil, err
 	}
+	defer headGitRepo.Close()
 
 	lastCommitID, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
 	if err != nil {
@@ -571,6 +572,7 @@ func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer gitRepo.Close()
 
 	commit, err := gitRepo.GetCommit(mergeCommit[:40])
 	if err != nil {
@@ -955,6 +957,7 @@ func (pr *PullRequest) UpdatePatch() (err error) {
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer headGitRepo.Close()
 
 	// Add a temporary remote.
 	tmpRemote := com.ToStr(time.Now().UnixNano())
@@ -996,6 +999,7 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer headGitRepo.Close()
 
 	tmpRemoteName := fmt.Sprintf("tmp-pull-%d", pr.ID)
 	if err = headGitRepo.AddRemote(tmpRemoteName, pr.BaseRepo.RepoPath(), false); err != nil {
@@ -1185,6 +1189,7 @@ func checkForInvalidation(requests PullRequestList, repoID int64, doer *User, br
 		if err != nil {
 			log.Error("PullRequestList.InvalidateCodeComments: %v", err)
 		}
+		gitRepo.Close()
 	}()
 	return nil
 }

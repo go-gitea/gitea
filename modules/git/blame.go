@@ -87,10 +87,11 @@ func (r *BlameReader) Close() error {
 
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(repoPath, commitID, file string) (*BlameReader, error) {
-	_, err := OpenRepository(repoPath)
+	gitRepo, err := OpenRepository(repoPath)
 	if err != nil {
 		return nil, err
 	}
+	gitRepo.Close()
 
 	return createBlameReader(repoPath, GitExecutable, "blame", commitID, "--porcelain", "--", file)
 }

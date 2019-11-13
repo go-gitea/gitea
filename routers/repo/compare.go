@@ -157,6 +157,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
 	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
 	if err != nil {
+		headGitRepo.Close()
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
@@ -167,6 +168,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 				baseRepo,
 				permBase)
 		}
+		headGitRepo.Close()
 		ctx.NotFound("ParseCompareInfo", nil)
 		return nil, nil, nil, nil, "", ""
 	}
@@ -174,6 +176,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	// user should have permission to read headrepo's codes
 	permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
 	if err != nil {
+		headGitRepo.Close()
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
@@ -184,6 +187,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 				headRepo,
 				permHead)
 		}
+		headGitRepo.Close()
 		ctx.NotFound("ParseCompareInfo", nil)
 		return nil, nil, nil, nil, "", ""
 	}
@@ -199,6 +203,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 			ctx.Data["HeadBranch"] = headBranch
 			headIsCommit = true
 		} else {
+			headGitRepo.Close()
 			ctx.NotFound("IsRefExist", nil)
 			return nil, nil, nil, nil, "", ""
 		}
@@ -219,12 +224,14 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 				baseRepo,
 				permBase)
 		}
+		headGitRepo.Close()
 		ctx.NotFound("ParseCompareInfo", nil)
 		return nil, nil, nil, nil, "", ""
 	}
 
 	compareInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
 	if err != nil {
+		headGitRepo.Close()
 		ctx.ServerError("GetCompareInfo", err)
 		return nil, nil, nil, nil, "", ""
 	}
@@ -345,6 +352,7 @@ func CompareDiff(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+	defer headGitRepo.Close()
 
 	nothingToCompare := PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch)
 	if ctx.Written() {
