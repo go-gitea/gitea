@@ -157,7 +157,8 @@ func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 		exts |= blackfriday.HardLineBreak
 	}
 
-	body = blackfriday.Run(body, blackfriday.WithRenderer(renderer), blackfriday.WithExtensions(exts))
+	// Need to normalize EOL to UNIX LF to have consistent results in rendering
+	body = blackfriday.Run(util.NormalizeEOL(body), blackfriday.WithRenderer(renderer), blackfriday.WithExtensions(exts))
 	return markup.SanitizeBytes(body)
 }
 
