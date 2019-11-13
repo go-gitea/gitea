@@ -371,6 +371,19 @@ REPO_INDEXER_INCLUDE =
 ; A comma separated list of glob patterns to exclude from the index; ; default is empty
 REPO_INDEXER_EXCLUDE =
 
+[queue]
+; General queue queue type, currently support: persistable-channel, channel, level, redis, dummy
+; default to persistable-channel
+TYPE = persistable-channel
+; data-dir for storing persistable queues and level queues, individual queues will be named by their type
+DATADIR = queues/
+; Default queue length before a channel queue will block
+LENGTH = 20
+; Batch size to send for batched queues
+BATCH_LENGTH = 20
+; Connection string for redis queues this will store the redis connection string.
+CONN_STR = "addrs=127.0.0.1:6379 db=0"
+
 [admin]
 ; Disallow regular (non-admin) users from creating organizations.
 DISABLE_REGULAR_ORG_CREATION = false
