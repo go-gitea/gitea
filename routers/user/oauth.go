@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -368,6 +369,42 @@ func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
 			ErrorDescription: "Only refresh_token or authorization_code grant type is supported",
 		})
 	}
+}
+
+type OauthUserInfo struct {
+	Sub               string `json:"sub"`
+	Name              string `json:"name"`
+	PreferredUsername string `json:"preferred_username"`
+	Profile           string `json:"profile"`
+	Picture           string `json:"picture"`
+	Email             string `json:"email"`
+	Language          string `json:"language"`
+	Locale            string `json:"locale"`
+}
+
+// GetUserinfoOauth return json userinfo as in spec:
+func GetUserinfoOauth(ctx *context.Context) {
+	user := convert.ToUser(ctx.User, ctx.IsSigned, ctx.User != nil)
+	app_url := setting.AppURL
+	if setting.AppSubURL != "" {
+		app_url = app_url + setting.AppSubURL + "/"
+	}
+	user_info := &OauthUserInfo{
+		Sub:               "",
+		Name:              user.FullName,
+		PreferredUsername: user.UserName,
+		Profile:           app_url + user.UserName,
+		Picture:           user.AvatarURL,
+		Email:             user.Email,
+		Language:          ctx.User.Language,
+		Locale:            ctx.User.Language,
+	}
+
+	if user_info.Name == "" {
+		user_info.Name = user_info.PreferredUsername
+	}
+
+	ctx.JSON(200, user_info)
 }
 
 func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {

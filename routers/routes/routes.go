@@ -321,6 +321,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 	m.Group("/login/oauth", func() {
 		m.Get("/authorize", bindIgnErr(auth.AuthorizationForm{}), user.AuthorizeOAuth)
+		m.Get("/userinfo", reqSignIn, user.GetUserinfoOauth)
 		m.Post("/grant", bindIgnErr(auth.GrantApplicationForm{}), user.GrantApplicationOAuth)
 		// TODO manage redirection
 		m.Post("/authorize", bindIgnErr(auth.AuthorizationForm{}), user.AuthorizeOAuth)
