@@ -102,7 +102,9 @@ func GlobalInit() {
 		issue_indexer.InitIssueIndexer(false)
 		models.InitRepoIndexer()
 		mirror_service.InitSyncMirrors()
-		webhook.InitDeliverHooks()
+		if err := webhook.Init(); err != nil {
+			log.Fatal("Failed to initialize webhook: %v", err)
+		}
 		models.InitTestPullRequests()
 		if err := task.Init(); err != nil {
 			log.Fatal("Failed to initialize task scheduler: %v", err)

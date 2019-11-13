@@ -215,8 +215,8 @@ func webhookProxy() func(req *http.Request) (*url.URL, error) {
 	}
 }
 
-// InitDeliverHooks starts the hooks delivery thread
-func InitDeliverHooks() {
+// initDeliverHooks starts the hooks delivery thread
+func initDeliverHooks() {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
 
 	webhookHTTPClient = &http.Client{

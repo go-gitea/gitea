@@ -392,8 +392,17 @@ func getDingtalkReleasePayload(p *api.ReleasePayload) (*DingtalkPayload, error) 
 	return nil, nil
 }
 
-// GetDingtalkPayload converts a ding talk webhook into a DingtalkPayload
-func GetDingtalkPayload(p api.Payloader, event models.HookEventType, meta string) (*DingtalkPayload, error) {
+type DingtalkWebhookType struct {
+}
+
+var _ WebhookType = &DingtalkWebhookType{}
+
+func (dingtalkType *DingtalkWebhookType) Name() string {
+	return "dingtalk"
+}
+
+// GetPayload converts a ding talk webhook into a DingtalkPayload
+func (dingtalkType *DingtalkWebhookType) GetPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
 	s := new(DingtalkPayload)
 
 	switch event {

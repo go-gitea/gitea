@@ -88,33 +88,13 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 	var payloader api.Payloader
 	var err error
 	// Use separate objects so modifications won't be made on payload on non-Gogs/Gitea type hooks.
-	switch w.HookTaskType {
-	case models.SLACK:
-		payloader, err = GetSlackPayload(p, event, w.Meta)
+	webhookType, ok := webhookTypes[w.HookTaskType.Name()]
+	if ok {
+		payloader, err = webhookType.GetPayload(p, event, w.Meta)
 		if err != nil {
-			return fmt.Errorf("GetSlackPayload: %v", err)
+			return fmt.Errorf("GetPayload: %v", err)
 		}
-	case models.DISCORD:
-		payloader, err = GetDiscordPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetDiscordPayload: %v", err)
-		}
-	case models.DINGTALK:
-		payloader, err = GetDingtalkPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetDingtalkPayload: %v", err)
-		}
-	case models.TELEGRAM:
-		payloader, err = GetTelegramPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetTelegramPayload: %v", err)
-		}
-	case models.MSTEAMS:
-		payloader, err = GetMSTeamsPayload(p, event, w.Meta)
-		if err != nil {
-			return fmt.Errorf("GetMSTeamsPayload: %v", err)
-		}
-	default:
+	} else {
 		p.SetSecret(w.Secret)
 		payloader = p
 	}
@@ -185,5 +165,20 @@ func prepareWebhooks(repo *models.Repository, event models.HookEventType, p api.
 			return err
 		}
 	}
+	return nil
+}
+
+// Init initlize
+func Init() error {
+	for _, tp := range setting.Webhook.Types {
+		for _, wt := range defaultWebhookTypes {
+			if strings.EqualFold(wt.Name(), tp) {
+				RegisterWebhookType(wt)
+				break
+			}
+		}
+	}
+
+	initDeliverHooks()
 	return nil
 }

@@ -544,8 +544,17 @@ func getDiscordReleasePayload(p *api.ReleasePayload, meta *DiscordMeta) (*Discor
 	}, nil
 }
 
-// GetDiscordPayload converts a discord webhook into a DiscordPayload
-func GetDiscordPayload(p api.Payloader, event models.HookEventType, meta string) (*DiscordPayload, error) {
+type DiscordWebhookType struct {
+}
+
+var _ WebhookType = &DiscordWebhookType{}
+
+func (discordType *DiscordWebhookType) Name() string {
+	return "discord"
+}
+
+// GetPayload converts a discord webhook into a DiscordPayload
+func (discordType *DiscordWebhookType) GetPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
 	s := new(DiscordPayload)
 
 	discord := &DiscordMeta{}

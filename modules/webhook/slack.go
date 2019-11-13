@@ -398,8 +398,17 @@ func getSlackRepositoryPayload(p *api.RepositoryPayload, slack *SlackMeta) (*Sla
 	}, nil
 }
 
-// GetSlackPayload converts a slack webhook into a SlackPayload
-func GetSlackPayload(p api.Payloader, event models.HookEventType, meta string) (*SlackPayload, error) {
+type SlackWebhookType struct {
+}
+
+var _ WebhookType = &SlackWebhookType{}
+
+func (slackType *SlackWebhookType) Name() string {
+	return "slack"
+}
+
+// GetPayload converts a slack webhook into a SlackPayload
+func (slackType *SlackWebhookType) GetPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
 	s := new(SlackPayload)
 
 	slack := &SlackMeta{}
