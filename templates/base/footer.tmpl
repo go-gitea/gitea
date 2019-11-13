@@ -129,7 +129,7 @@
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/moment/moment.min.js" charset="utf-8"></script>
 	<script src="{{StaticUrlPrefix}}/vendor/plugins/vue-calendar-heatmap/vue-calendar-heatmap.browser.js" charset="utf-8"></script>
 	<script type="text/javascript">
-		initHeatmap('user-heatmap', '{{.HeatmapUser}}');
+		window.initHeatmap('user-heatmap', '{{.HeatmapUser}}');
 	</script>
 {{end}}
 {{template "custom/footer" .}}
