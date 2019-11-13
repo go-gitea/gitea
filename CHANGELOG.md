@@ -4,6 +4,14 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.9.6](https://github.com/go-gitea/gitea/releases/tag/v1.9.6) - 2019-11-13
+* BUGFIXES
+  * Allow to merge if file path contains " or \ (#8629) (#8772)
+  * Fix 500 when edit hook (#8782) (#8790)
+  * Fix issue with user.fullname (#8904)
+  * Update Github Migration Test (#8897) (#8946)
+  * Add Close() method to gogitRepository (#8901) (#8958)
+
 ## [1.9.5](https://github.com/go-gitea/gitea/releases/tag/v1.9.5) - 2019-10-30
 * BREAKING
   * Hide some user information via API if user doesn't have enough permission (#8655) (#8658)
