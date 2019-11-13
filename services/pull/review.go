@@ -17,7 +17,9 @@ func CreateReview(opts models.CreateReviewOptions) (*models.Review, error) {
 		return nil, err
 	}
 
-	notification.NotifyPullRequestReview(review.Issue.PullRequest, review, nil)
+	if opts.Type != models.ReviewTypePending {
+		notification.NotifyPullRequestReview(review.Issue.PullRequest, review, nil)
+	}
 
 	return review, nil
 }
