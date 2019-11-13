@@ -138,7 +138,6 @@ func SubmitReview(doer *models.User, issue *models.Issue, reviewType models.Revi
 		return nil, nil, err
 	}
 
-	// publish review
 	pr, err := issue.GetPullRequest()
 	if err != nil {
 		return nil, nil, err
