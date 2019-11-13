@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
 
 	shellquote "github.com/kballard/go-shellquote"

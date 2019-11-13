@@ -21,7 +21,7 @@ var killParent sync.Once
 // KillParent sends the kill signal to the parent process if we are a child
 func KillParent() {
 	killParent.Do(func() {
-		if IsChild {
+		if Manager.IsChild() {
 			ppid := syscall.Getppid()
 			if ppid > 1 {
 				_ = syscall.Kill(ppid, syscall.SIGTERM)
@@ -78,8 +78,4 @@ func RestartProcess() (int, error) {
 		return 0, err
 	}
 	return process.Pid, nil
-}
-
-type filer interface {
-	File() (*os.File, error)
 }
