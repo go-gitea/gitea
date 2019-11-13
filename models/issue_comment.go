@@ -893,6 +893,7 @@ func CreateCodeComment(doer *User, repo *Repository, issue *Issue, content, tree
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer gitRepo.Close()
 
 	// FIXME validate treePath
 	// Get latest commit referencing the commented line

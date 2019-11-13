@@ -20,6 +20,7 @@ func TestGetFormatPatch(t *testing.T) {
 	defer os.RemoveAll(clonedPath)
 	repo, err := OpenRepository(clonedPath)
 	assert.NoError(t, err)
+	defer repo.Close()
 	rd, err := repo.GetFormatPatch("8d92fc95^", "8d92fc95")
 	assert.NoError(t, err)
 	patchb, err := ioutil.ReadAll(rd)

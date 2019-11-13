@@ -67,6 +67,7 @@ type Uploader interface {
 	CreateComment(issueNumber int64, comment *Comment) error
 	CreatePullRequest(pr *PullRequest) error
 	Rollback() error
+	Close()
 }
 
 ```

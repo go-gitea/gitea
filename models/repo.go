@@ -950,6 +950,7 @@ func MigrateRepository(doer, u *User, opts MigrateRepoOptions) (*Repository, err
 	if err != nil {
 		return repo, fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer gitRepo.Close()
 
 	repo.IsEmpty, err = gitRepo.IsEmpty()
 	if err != nil {

@@ -107,6 +107,13 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	return err
 }
 
+// Close closes this uploader
+func (g *GiteaLocalUploader) Close() {
+	if g.gitRepo != nil {
+		g.gitRepo.Close()
+	}
+}
+
 // CreateMilestones creates milestones
 func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
 	var mss = make([]*models.Milestone, 0, len(milestones))
