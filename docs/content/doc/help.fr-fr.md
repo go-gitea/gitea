@@ -7,7 +7,7 @@ toc: false
 draft: false
 menu:
   sidebar:
-    name: "l'aider"
+    name: "Aide"
     weight: 5
     identifier: "help"
 ---
