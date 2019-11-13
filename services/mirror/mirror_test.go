@@ -51,6 +51,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)
+	defer gitRepo.Close()
 
 	findOptions := models.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
 	initCount, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)

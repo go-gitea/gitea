@@ -29,6 +29,8 @@ func TestAPIGitTags(t *testing.T) {
 	git.NewCommand("config", "user.email", user.Email).RunInDir(repo.RepoPath())
 
 	gitRepo, _ := git.OpenRepository(repo.RepoPath())
+	defer gitRepo.Close()
+
 	commit, _ := gitRepo.GetBranchCommit("master")
 	lTagName := "lightweightTag"
 	gitRepo.CreateTag(lTagName, commit.ID.String())
