@@ -131,6 +131,13 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	return err
 }
 
+// Close closes this uploader
+func (g *GiteaLocalUploader) Close() {
+	if g.gitRepo != nil {
+		g.gitRepo.Close()
+	}
+}
+
 // CreateTopics creates topics
 func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
 	return models.SaveTopics(g.repo.ID, topics...)

@@ -56,6 +56,8 @@ func TestGetContents(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	treePath := "README.md"
 	ref := ctx.Repo.Repository.DefaultBranch
 
@@ -82,6 +84,8 @@ func TestGetContentsOrListForDir(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	treePath := "" // root dir
 	ref := ctx.Repo.Repository.DefaultBranch
 
@@ -115,6 +119,8 @@ func TestGetContentsOrListForFile(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	treePath := "README.md"
 	ref := ctx.Repo.Repository.DefaultBranch
 
@@ -141,6 +147,8 @@ func TestGetContentsErrors(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	repo := ctx.Repo.Repository
 	treePath := "README.md"
 	ref := repo.DefaultBranch
@@ -170,6 +178,8 @@ func TestGetContentsOrListErrors(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	repo := ctx.Repo.Repository
 	treePath := "README.md"
 	ref := repo.DefaultBranch
@@ -198,6 +208,8 @@ func TestGetContentsOrListOfEmptyRepos(t *testing.T) {
 	test.LoadRepo(t, ctx, 15)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	repo := ctx.Repo.Repository
 
 	t.Run("empty repo", func(t *testing.T) {

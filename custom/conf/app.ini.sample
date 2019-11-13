@@ -501,6 +501,9 @@ SHOW_REGISTRATION_BUTTON = true
 ; When adding a repo to a team or creating a new repo all team members will watch the
 ; repo automatically if enabled
 AUTO_WATCH_NEW_REPOS = true
+; Default value for AutoWatchOnChanges
+; Make the user watch a repository When they commit for the first time
+AUTO_WATCH_ON_CHANGES = false
 
 [webhook]
 ; Hook task queue length, increase if webhook shooting starts hanging
