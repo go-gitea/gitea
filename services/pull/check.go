@@ -6,6 +6,7 @@
 package pull
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
@@ -151,7 +153,7 @@ func manuallyMerged(pr *models.PullRequest) bool {
 
 // TestPullRequests checks and tests untested patches of pull requests.
 // TODO: test more pull requests at same time.
-func TestPullRequests() {
+func TestPullRequests(ctx context.Context) {
 	prs, err := models.GetPullRequestsByCheckStatus(models.PullRequestStatusChecking)
 	if err != nil {
 		log.Error("Find Checking PRs: %v", err)
@@ -176,34 +178,46 @@ func TestPullRequests() {
 		}
 
 		checkAndUpdateStatus(pr)
+		select {
+		case <-ctx.Done():
+			log.Info("PID: %d Pull Request testing shutdown", os.Getpid())
+			return
+		default:
+		}
 	}
 
 	// Start listening on new test requests.
-	for prID := range pullRequestQueue.Queue() {
-		log.Trace("TestPullRequests[%v]: processing test task", prID)
-		pullRequestQueue.Remove(prID)
+	for {
+		select {
+		case prID := <-pullRequestQueue.Queue():
+			log.Trace("TestPullRequests[%v]: processing test task", prID)
+			pullRequestQueue.Remove(prID)
 
-		id := com.StrTo(prID).MustInt64()
-		if _, ok := checkedPRs[id]; ok {
-			continue
+			id := com.StrTo(prID).MustInt64()
+			if _, ok := checkedPRs[id]; ok {
+				continue
+			}
+
+			pr, err := models.GetPullRequestByID(id)
+			if err != nil {
+				log.Error("GetPullRequestByID[%s]: %v", prID, err)
+				continue
+			} else if manuallyMerged(pr) {
+				continue
+			} else if err = pr.TestPatch(); err != nil {
+				log.Error("testPatch[%d]: %v", pr.ID, err)
+				continue
+			}
+
+			checkAndUpdateStatus(pr)
+		case <-ctx.Done():
+			log.Info("PID: %d Pull Request testing shutdown", os.Getpid())
+			return
 		}
-
-		pr, err := models.GetPullRequestByID(id)
-		if err != nil {
-			log.Error("GetPullRequestByID[%s]: %v", prID, err)
-			continue
-		} else if manuallyMerged(pr) {
-			continue
-		} else if err = pr.TestPatch(); err != nil {
-			log.Error("testPatch[%d]: %v", pr.ID, err)
-			continue
-		}
-
-		checkAndUpdateStatus(pr)
 	}
 }
 
 // Init runs the task queue to test all the checking status pull requests
 func Init() {
-	go TestPullRequests()
+	go graceful.GetManager().RunWithShutdownContext(TestPullRequests)
 }
