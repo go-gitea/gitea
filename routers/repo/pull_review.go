@@ -76,7 +76,7 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 	reviewType := form.ReviewType()
 	switch reviewType {
 	case models.ReviewTypeUnknown:
-		ctx.ServerError("GetCurrentReview", fmt.Errorf("unknown ReviewType: %s", form.Type))
+		ctx.ServerError("ReviewType", fmt.Errorf("unknown ReviewType: %s", form.Type))
 		return
 
 	// can not approve/reject your own PR
@@ -97,13 +97,12 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 
 	_, comm, err := pull_service.SubmitReview(ctx.User, issue, reviewType, form.Content)
 	if err != nil {
-		if pull_service.IsContentEmptyErr(err) {
+		if models.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
 			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		} else {
 			ctx.ServerError("SubmitReview", err)
 		}
-
 		return
 	}
 

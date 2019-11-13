@@ -6,6 +6,7 @@ package action
 
 import (
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
@@ -115,5 +116,43 @@ func (a *actionNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo *
 		IsPrivate: repo.IsPrivate,
 	}); err != nil {
 		log.Error("notify watchers '%d/%d': %v", doer.ID, repo.ID, err)
+	}
+}
+
+func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment) {
+	if err := review.LoadReviewer(); err != nil {
+		log.Error("LoadReviewer '%d/%d': %v", review.ID, review.ReviewerID, err)
+		return
+	}
+	var content = comment.Content
+	if err := review.LoadCodeComments(); err != nil {
+		log.Error("LoadCodeComments '%d/%d': %v", review.Reviewer.ID, review.ID, err)
+		return
+	}
+
+	for _, lines := range review.CodeComments {
+		for _, comments := range lines {
+			for _, comment := range comments {
+				// TODO: how to handle???
+				/*if err := sendCreateCommentAction(sess, opts, comm); err != nil {
+					log.Warn("sendCreateCommentAction: %v", err)
+				}*/
+				content += "\n" + comment.Content
+			}
+		}
+	}
+
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: review.Reviewer.ID,
+		ActUser:   review.Reviewer,
+		Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(content, "\n")[0]),
+		OpType:    models.ActionCommentIssue,
+		RepoID:    review.Issue.RepoID,
+		Repo:      review.Issue.Repo,
+		IsPrivate: review.Issue.Repo.IsPrivate,
+		Comment:   comment,
+		CommentID: comment.ID,
+	}); err != nil {
+		log.Error("notify watchers '%d/%d': %v", review.Reviewer.ID, review.Issue.RepoID, err)
 	}
 }

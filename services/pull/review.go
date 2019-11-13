@@ -131,68 +131,14 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 	})
 }
 
-type ContentEmptyErr struct {
-}
-
-func (ContentEmptyErr) Error() string {
-	return "Review content is empty"
-}
-
-func IsContentEmptyErr(err error) bool {
-	_, ok := err.(ContentEmptyErr)
-	return ok
-}
-
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(doer *models.User, issue *models.Issue, reviewType models.ReviewType, content string) (*models.Review, *models.Comment, error) {
-	review, err := models.GetCurrentReview(doer, issue)
+	review, comm, err := models.SubmitReview(doer, issue, reviewType, content)
 	if err != nil {
-		if !models.IsErrReviewNotExist(err) {
-			return nil, nil, err
-		}
-
-		if len(strings.TrimSpace(content)) == 0 {
-			return nil, nil, ContentEmptyErr{}
-		}
-
-		// No current review. Create a new one!
-		review, err = models.CreateReview(models.CreateReviewOptions{
-			Type:     reviewType,
-			Issue:    issue,
-			Reviewer: doer,
-			Content:  content,
-		})
-		if err != nil {
-			return nil, nil, err
-		}
-	} else {
-		review.Issue = issue
-		review.Content = content
-		review.Type = reviewType
-		if err = models.UpdateReview(review); err != nil {
-			return nil, nil, err
-		}
-
-		if err := review.LoadCodeComments(); err != nil {
-			return nil, nil, err
-		}
-	}
-
-	comm, err := models.CreateComment(&models.CreateCommentOptions{
-		Type:     models.CommentTypeReview,
-		Doer:     doer,
-		Content:  review.Content,
-		Issue:    issue,
-		Repo:     issue.Repo,
-		ReviewID: review.ID,
-	})
-	if err != nil || comm == nil {
-		return nil, nil, err
-	}
-	if err = review.Publish(); err != nil {
 		return nil, nil, err
 	}
 
+	// publish review
 	pr, err := issue.GetPullRequest()
 	if err != nil {
 		return nil, nil, err
