@@ -226,6 +226,7 @@ func GetCurrentReview(reviewer *User, issue *Issue) (*Review, error) {
 	return getCurrentReview(x, reviewer, issue)
 }
 
+// ContentEmptyErr represents an content empty error
 type ContentEmptyErr struct {
 }
 
@@ -233,6 +234,7 @@ func (ContentEmptyErr) Error() string {
 	return "Review content is empty"
 }
 
+// IsContentEmptyErr returns true if err is a ContentEmptyErr
 func IsContentEmptyErr(err error) bool {
 	_, ok := err.(ContentEmptyErr)
 	return ok

@@ -130,19 +130,26 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 		return
 	}
 
+	var actions = make([]*models.Action, 0, 10)
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
-			for _, comment := range comments {
-				// TODO: how to handle???
-				/*if err := sendCreateCommentAction(sess, opts, comm); err != nil {
-					log.Warn("sendCreateCommentAction: %v", err)
-				}*/
-				content += "\n" + comment.Content
+			for _, comm := range comments {
+				actions = append(actions, &models.Action{
+					ActUserID: review.Reviewer.ID,
+					ActUser:   review.Reviewer,
+					Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(content, "\n")[0]),
+					OpType:    models.ActionCommentIssue,
+					RepoID:    review.Issue.RepoID,
+					Repo:      review.Issue.Repo,
+					IsPrivate: review.Issue.Repo.IsPrivate,
+					Comment:   comm,
+					CommentID: comm.ID,
+				})
 			}
 		}
 	}
 
-	if err := models.NotifyWatchers(&models.Action{
+	actions = append(actions, &models.Action{
 		ActUserID: review.Reviewer.ID,
 		ActUser:   review.Reviewer,
 		Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(content, "\n")[0]),
@@ -152,7 +159,9 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 		IsPrivate: review.Issue.Repo.IsPrivate,
 		Comment:   comment,
 		CommentID: comment.ID,
-	}); err != nil {
+	})
+
+	if err := models.NotifyWatchersActions(actions); err != nil {
 		log.Error("notify watchers '%d/%d': %v", review.Reviewer.ID, review.Issue.RepoID, err)
 	}
 }
