@@ -19,6 +19,7 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 	if err != nil {
 		return nil, err
 	}
+	defer gitRepo.Close()
 	gitTree, err := gitRepo.GetTree(sha)
 	if err != nil || gitTree == nil {
 		return nil, models.ErrSHANotFound{

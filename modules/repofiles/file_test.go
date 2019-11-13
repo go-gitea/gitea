@@ -88,10 +88,13 @@ func TestGetFileResponseFromCommit(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	repo := ctx.Repo.Repository
 	branch := repo.DefaultBranch
 	treePath := "README.md"
 	gitRepo, _ := git.OpenRepository(repo.RepoPath())
+	defer gitRepo.Close()
 	commit, _ := gitRepo.GetBranchCommit(branch)
 	expectedFileResponse := getExpectedFileResponse()
 

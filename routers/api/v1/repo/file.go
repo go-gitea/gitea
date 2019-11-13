@@ -95,6 +95,7 @@ func GetArchive(ctx *context.APIContext) {
 		return
 	}
 	ctx.Repo.GitRepo = gitRepo
+	defer gitRepo.Close()
 
 	repo.Download(ctx.Context)
 }

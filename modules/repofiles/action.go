@@ -53,9 +53,11 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			}
 			if err := gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
 				if !git.IsErrUnsupportedVersion(err) {
+					gitRepo.Close()
 					return err
 				}
 			}
+			gitRepo.Close()
 		}
 	}
 
@@ -132,8 +134,10 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 
 			shaSum, err = gitRepo.GetBranchCommitID(refName)
 			if err != nil {
+				gitRepo.Close()
 				log.Error("GetBranchCommitID[%s]: %v", opts.RefFullName, err)
 			}
+			gitRepo.Close()
 			if err = models.PrepareWebhooks(repo, models.HookEventCreate, &api.CreatePayload{
 				Ref:     refName,
 				Sha:     shaSum,
@@ -167,8 +171,10 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		}
 		shaSum, err = gitRepo.GetTagCommitID(refName)
 		if err != nil {
+			gitRepo.Close()
 			log.Error("GetTagCommitID[%s]: %v", opts.RefFullName, err)
 		}
+		gitRepo.Close()
 		if err = models.PrepareWebhooks(repo, models.HookEventCreate, &api.CreatePayload{
 			Ref:     refName,
 			Sha:     shaSum,
