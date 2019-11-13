@@ -144,6 +144,7 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 				if models.IsErrWikiInvalidFileName(err) {
 					continue
 				}
+				wikiRepo.Close()
 				ctx.ServerError("WikiFilenameToName", err)
 				return nil, nil
 			} else if wikiName == "_Sidebar" || wikiName == "_Footer" {
@@ -171,14 +172,19 @@ func renderWikiPage(ctx *context.Context, isViewPage bool) (*git.Repository, *gi
 	pageFilename := models.WikiNameToFilename(pageName)
 	var entry *git.TreeEntry
 	if entry, err = findEntryForFile(commit, pageFilename); err != nil {
+		wikiRepo.Close()
 		ctx.ServerError("findEntryForFile", err)
 		return nil, nil
 	} else if entry == nil {
+		wikiRepo.Close()
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/_pages")
 		return nil, nil
 	}
 	data := wikiContentsByEntry(ctx, entry)
 	if ctx.Written() {
+		if wikiRepo != nil {
+			wikiRepo.Close()
+		}
 		return nil, nil
 	}
 
@@ -223,8 +229,16 @@ func Wiki(ctx *context.Context) {
 
 	wikiRepo, entry := renderWikiPage(ctx, true)
 	if ctx.Written() {
+		if wikiRepo != nil {
+			wikiRepo.Close()
+		}
 		return
 	}
+	defer func() {
+		if wikiRepo != nil {
+			wikiRepo.Close()
+		}
+	}()
 	if entry == nil {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
 		ctx.HTML(200, tplWikiStart)
@@ -260,11 +274,18 @@ func WikiPages(ctx *context.Context) {
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
+		if wikiRepo != nil {
+			wikiRepo.Close()
+		}
 		return
 	}
 
 	entries, err := commit.ListEntries()
 	if err != nil {
+		if wikiRepo != nil {
+			wikiRepo.Close()
+		}
+
 		ctx.ServerError("ListEntries", err)
 		return
 	}
@@ -275,6 +296,10 @@ func WikiPages(ctx *context.Context) {
 		}
 		c, err := wikiRepo.GetCommitByPath(entry.Name())
 		if err != nil {
+			if wikiRepo != nil {
+				wikiRepo.Close()
+			}
+
 			ctx.ServerError("GetCommit", err)
 			return
 		}
@@ -283,6 +308,10 @@ func WikiPages(ctx *context.Context) {
 			if models.IsErrWikiInvalidFileName(err) {
 				continue
 			}
+			if wikiRepo != nil {
+				wikiRepo.Close()
+			}
+
 			ctx.ServerError("WikiFilenameToName", err)
 			return
 		}
@@ -294,6 +323,11 @@ func WikiPages(ctx *context.Context) {
 	}
 	ctx.Data["Pages"] = pages
 
+	defer func() {
+		if wikiRepo != nil {
+			wikiRepo.Close()
+		}
+	}()
 	ctx.HTML(200, tplWikiPages)
 }
 
@@ -305,6 +339,9 @@ func WikiRaw(ctx *context.Context) {
 			return
 		}
 	}
+	defer func() {
+		wikiRepo.Close()
+	}()
 
 	providedPath := ctx.Params("*")
 

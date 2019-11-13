@@ -21,6 +21,7 @@ func TestRelease_Create(t *testing.T) {
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)
+	defer gitRepo.Close()
 
 	assert.NoError(t, CreateRelease(gitRepo, &Release{
 		RepoID:       repo.ID,
@@ -115,6 +116,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)
+	defer gitRepo.Close()
 
 	findOptions := FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
 	initCount, err := GetReleaseCountByRepoID(mirror.ID, findOptions)

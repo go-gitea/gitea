@@ -15,6 +15,7 @@ func TestRepository_GetCommitBranches(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
+	defer bareRepo1.Close()
 
 	// these test case are specific to the repo1_bare test repo
 	testCases := []struct {
@@ -40,6 +41,9 @@ func TestRepository_GetCommitBranches(t *testing.T) {
 func TestGetTagCommitWithSignature(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(bareRepo1Path)
+	assert.NoError(t, err)
+	defer bareRepo1.Close()
+
 	commit, err := bareRepo1.GetCommit("3ad28a9149a2864384548f3d17ed7f38014c9e8a")
 
 	assert.NoError(t, err)
@@ -52,6 +56,9 @@ func TestGetTagCommitWithSignature(t *testing.T) {
 func TestGetCommitWithBadCommitID(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(bareRepo1Path)
+	assert.NoError(t, err)
+	defer bareRepo1.Close()
+
 	commit, err := bareRepo1.GetCommit("bad_branch")
 	assert.Nil(t, commit)
 	assert.Error(t, err)

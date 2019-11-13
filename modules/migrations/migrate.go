@@ -83,6 +83,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	if err := uploader.CreateRepo(repo, opts); err != nil {
 		return err
 	}
+	defer uploader.Close()
 
 	if opts.Milestones {
 		log.Trace("migrating milestones")

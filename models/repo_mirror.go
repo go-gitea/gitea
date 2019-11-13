@@ -242,6 +242,7 @@ func (m *Mirror) runSync() ([]*mirrorSyncResult, bool) {
 	if err = SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
+	gitRepo.Close()
 
 	if err := m.Repo.UpdateSize(); err != nil {
 		log.Error("Failed to update size for mirror repository: %v", err)
@@ -425,6 +426,8 @@ func SyncMirrors() {
 				continue
 			}
 		}
+
+		gitRepo.Close()
 
 		// Get latest commit date and update to current repository updated time
 		commitDate, err := git.GetLatestCommitTime(m.Repo.RepoPath())

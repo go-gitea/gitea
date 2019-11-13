@@ -48,6 +48,8 @@ func TestGetUniquePatchBranchName(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	expectedBranchName := "user2-patch-1"
 	branchName := GetUniquePatchBranchName(ctx)
 	assert.Equal(t, expectedBranchName, branchName)
@@ -61,9 +63,12 @@ func TestGetClosestParentWithFiles(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	repo := ctx.Repo.Repository
 	branch := repo.DefaultBranch
 	gitRepo, _ := git.OpenRepository(repo.RepoPath())
+	defer gitRepo.Close()
 	commit, _ := gitRepo.GetBranchCommit(branch)
 	expectedTreePath := ""
 

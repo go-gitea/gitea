@@ -762,6 +762,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			if err != nil {
 				log.Error("GetBranchCommitID[%s]: %v", opts.RefFullName, err)
 			}
+			gitRepo.Close()
 			if err = PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
 				Ref:     refName,
 				Sha:     shaSum,
@@ -797,6 +798,8 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 		if err != nil {
 			log.Error("GetTagCommitID[%s]: %v", opts.RefFullName, err)
 		}
+		gitRepo.Close()
+
 		if err = PrepareWebhooks(repo, HookEventCreate, &api.CreatePayload{
 			Ref:     refName,
 			Sha:     shaSum,
