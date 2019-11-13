@@ -53,9 +53,11 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			}
 			if err := gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
 				if !git.IsErrUnsupportedVersion(err) {
+					gitRepo.Close()
 					return err
 				}
 			}
+			gitRepo.Close()
 		}
 	}
 

@@ -55,6 +55,7 @@ func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 func LoadRepoCommit(t *testing.T, ctx *context.Context) {
 	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
+	defer gitRepo.Close()
 	branch, err := gitRepo.GetHEADBranch()
 	assert.NoError(t, err)
 	ctx.Repo.Commit, err = gitRepo.GetBranchCommit(branch.Name)

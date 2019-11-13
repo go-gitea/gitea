@@ -678,6 +678,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	if err != nil {
 		return nil, err
 	}
+	defer gitRepo.Close()
 
 	commit, err := gitRepo.GetCommit(afterCommitID)
 	if err != nil {
@@ -750,6 +751,7 @@ func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiff
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer repo.Close()
 
 	commit, err := repo.GetCommit(endCommit)
 	if err != nil {

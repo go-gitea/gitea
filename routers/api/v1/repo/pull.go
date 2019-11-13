@@ -195,6 +195,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	if ctx.Written() {
 		return
 	}
+	defer headGitRepo.Close()
 
 	// Check if another PR exists with the same targets
 	existingPr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
@@ -722,6 +723,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
 	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
 	if err != nil {
+		headGitRepo.Close()
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
@@ -732,6 +734,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 				baseRepo,
 				permBase)
 		}
+		headGitRepo.Close()
 		ctx.NotFound("Can't read pulls or can't read UnitTypeCode")
 		return nil, nil, nil, nil, "", ""
 	}
@@ -739,6 +742,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	// user should have permission to read headrepo's codes
 	permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
 	if err != nil {
+		headGitRepo.Close()
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
@@ -749,18 +753,21 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 				headRepo,
 				permHead)
 		}
+		headGitRepo.Close()
 		ctx.NotFound("Can't read headRepo UnitTypeCode")
 		return nil, nil, nil, nil, "", ""
 	}
 
 	// Check if head branch is valid.
 	if !headGitRepo.IsBranchExist(headBranch) {
+		headGitRepo.Close()
 		ctx.NotFound()
 		return nil, nil, nil, nil, "", ""
 	}
 
 	compareInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
 	if err != nil {
+		headGitRepo.Close()
 		ctx.Error(500, "GetCompareInfo", err)
 		return nil, nil, nil, nil, "", ""
 	}
