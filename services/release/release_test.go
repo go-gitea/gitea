@@ -27,6 +27,7 @@ func TestRelease_Create(t *testing.T) {
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)
+	defer gitRepo.Close()
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,

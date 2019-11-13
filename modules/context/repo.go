@@ -454,9 +454,18 @@ func RepoAssignment() macaron.Handler {
 		}
 		ctx.Repo.GitRepo = gitRepo
 
+		// We opened it, we should close it
+		defer func() {
+			// If it's been set to nil then assume someone else has closed it.
+			if ctx.Repo.GitRepo != nil {
+				ctx.Repo.GitRepo.Close()
+			}
+		}()
+
 		// Stop at this point when the repo is empty.
 		if ctx.Repo.Repository.IsEmpty {
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
+			ctx.Next()
 			return
 		}
 
@@ -515,6 +524,7 @@ func RepoAssignment() macaron.Handler {
 			ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
 			ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
 		}
+		ctx.Next()
 	}
 }
 
@@ -636,6 +646,13 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 				ctx.ServerError("RepoRef Invalid repo "+repoPath, err)
 				return
 			}
+			// We opened it, we should close it
+			defer func() {
+				// If it's been set to nil then assume someone else has closed it.
+				if ctx.Repo.GitRepo != nil {
+					ctx.Repo.GitRepo.Close()
+				}
+			}()
 		}
 
 		// Get default branch.
@@ -724,6 +741,8 @@ func RepoRefByType(refType RepoRefType) macaron.Handler {
 			return
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+
+		ctx.Next()
 	}
 }
 
