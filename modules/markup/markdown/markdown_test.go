@@ -294,3 +294,25 @@ func TestTotal_RenderString(t *testing.T) {
 		assert.Equal(t, testCases[i+1], line)
 	}
 }
+
+func TestRender_RenderParagraphs(t *testing.T) {
+	test := func(t *testing.T, str string, cnt int) {
+		unix := []byte(str)
+		res := string(RenderRaw(unix, "", false))
+		assert.Equal(t, strings.Count(res, "<p"), cnt)
+
+		mac := []byte(strings.ReplaceAll(str, "\n", "\r"))
+		res = string(RenderRaw(mac, "", false))
+		assert.Equal(t, strings.Count(res, "<p"), cnt)
+
+		dos := []byte(strings.ReplaceAll(str, "\n", "\r\n"))
+		res = string(RenderRaw(dos, "", false))
+		assert.Equal(t, strings.Count(res, "<p"), cnt)
+	}
+
+	test(t, "\nOne\nTwo\nThree", 1)
+	test(t, "\n\nOne\nTwo\nThree", 1)
+	test(t, "\n\nOne\nTwo\nThree\n\n\n", 1)
+	test(t, "A\n\nB\nC\n", 2)
+	test(t, "A\n\n\nB\nC\n", 2)
+}
