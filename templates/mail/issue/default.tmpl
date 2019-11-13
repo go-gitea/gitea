@@ -3,6 +3,12 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<title>{{.Subject}}</title>
+	{{if .ReviewComments}}
+	<style>
+	.review { padding-left: 1em; margin: 1em 0; }
+	.review > pre { padding: 1em; border-left: 1px solid grey; }
+	</style>
+	{{end}}
 </head>
 
 <body>
@@ -21,12 +27,10 @@
 		{{else}}
 			{{.Body | Str2html}}
 		{{end -}}
-		{{if .ReviewComments}}
-			<div style="padding-left: 4em;">
-			{{range .ReviewComments}}
-				{{.Content | Safe}}
-				<pre style="border: 1px solid gray; padding: 1em;">{{.Patch}}</pre>
-			{{end}}
+		{{range .ReviewComments}}
+			<div class="review">
+				<pre>{{.Patch}}</pre>
+				<div>{{.Content | Safe}}</div>
 			</div>
 		{{end}}
 	</p>
