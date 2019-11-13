@@ -155,8 +155,8 @@
 						</form>
 						{{if  $.IsStopwatchRunning}}
 							<div class="ui buttons fluid stop-cancel">
-								<button onclick="this.disabled=true;toggleStopwatch()" class="ui button stop">{{.i18n.Tr "repo.issues.stop_tracking"}}</button>
-								<button onclick="this.disabled=true;cancelStopwatch()" class="ui negative button cancel">{{.i18n.Tr "repo.issues.cancel_tracking"}}</button>
+								<button onclick="this.disabled=true;window.toggleStopwatch()" class="ui button stop">{{.i18n.Tr "repo.issues.stop_tracking"}}</button>
+								<button onclick="this.disabled=true;window.cancelStopwatch()" class="ui negative button cancel">{{.i18n.Tr "repo.issues.cancel_tracking"}}</button>
 							</div>
 						{{else}}
 							{{if .HasUserStopwatch}}
@@ -165,8 +165,8 @@
 								</div>
 							{{end}}
 							<div class="ui buttons two fluid start-add">
-								<button onclick="this.disabled=true;toggleStopwatch()" class="ui button poping up start" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
-								<button onclick="timeAddManual()" class="ui button green poping up add-time" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.add_time_short"}}</button>
+								<button onclick="this.disabled=true;window.toggleStopwatch()" class="ui button poping up start" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
+								<button onclick="window.timeAddManual()" class="ui button green poping up add-time" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.add_time_short"}}</button>
 								<div class="ui mini modal">
 									<div class="header">{{.i18n.Tr "repo.issues.add_time"}}</div>
 									<div class="content">
@@ -225,7 +225,7 @@
 					{{end}}
 					{{if and .IsIssueWriter (not .Repository.IsArchived)}}
 						<br/>
-						<a style="cursor:pointer;" onclick="toggleDeadlineForm();"><i class="edit icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_edit"}}</a> -
+						<a style="cursor:pointer;" onclick="window.toggleDeadlineForm();"><i class="edit icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_edit"}}</a> -
 						<a style="cursor:pointer;" onclick="updateDeadline('');"><i class="remove icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_remove"}}</a>
 					{{end}}
 				</p>
@@ -235,7 +235,7 @@
 
 			{{if and .IsIssueWriter (not .Repository.IsArchived)}}
 				<div {{if ne .Issue.DeadlineUnix 0}} style="display: none;"{{end}} id="deadlineForm">
-					<form class="ui fluid action input" action="{{AppSubUrl}}/api/v1/repos/{{.Repository.Owner.Name}}/{{.Repository.Name}}/issues/{{.Issue.Index}}" method="post" id="update-issue-deadline-form" onsubmit="setDeadline();return false;">
+					<form class="ui fluid action input" action="{{AppSubUrl}}/api/v1/repos/{{.Repository.Owner.Name}}/{{.Repository.Name}}/issues/{{.Issue.Index}}" method="post" id="update-issue-deadline-form" onsubmit="window.setDeadline();return false;">
 						{{$.CsrfTokenHtml}}
 						<input required placeholder="{{.i18n.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
 						<button class="ui green icon button">
@@ -280,7 +280,7 @@
 								<div class="text small">{{.Repository.OwnerName}}/{{.Repository.Name}}</div>
 								<div class="ui transparent label right floated nopadding">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blocking');"
+										<a class="delete-dependency-button" onclick="window.deleteDependencyModal({{.Issue.ID}}, 'blocking');"
 											data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
 											<i class="delete icon text red nopadding nomargin"></i>
 										</a>
@@ -307,7 +307,7 @@
 								<div class="text small">{{.Repository.OwnerName}}/{{.Repository.Name}}</div>
 								<div class="ui transparent label right floated nopadding">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-										<a class="delete-dependency-button" onclick="deleteDependencyModal({{.Issue.ID}}, 'blockedBy');"
+										<a class="delete-dependency-button" onclick="window.deleteDependencyModal({{.Issue.ID}}, 'blockedBy');"
 											data-tooltip="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
 											<i class="delete icon text red nopadding nomargin"></i>
 										</a>
