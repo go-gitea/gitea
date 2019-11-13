@@ -270,6 +270,8 @@ var migrations = []Migration{
 	NewMigration("add column `mode` to table watch", addModeColumnToWatch),
 	// v107 -> v108
 	NewMigration("Add template options to repository", addTemplateToRepo),
+	// v108 -> v109
+	NewMigration("Add comment_id on table notification", addCommentIDOnNotification),
 }
 
 // Migrate database to current version

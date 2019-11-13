@@ -16,6 +16,10 @@
 					<input id="repo_name" name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" autofocus required>
 				</div>
 				<div class="inline field">
+					<label>{{.i18n.Tr "repo.repo_size"}}</label>
+					<span>{{SizeFmt .Repository.Size}}</span>
+				</div>
+				<div class="inline field">
 					<label>{{.i18n.Tr "repo.template"}}</label>
 					<div class="ui checkbox">
 						<input name="template" type="checkbox" {{if .Repository.IsTemplate}}checked{{end}}>
