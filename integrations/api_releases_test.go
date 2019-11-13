@@ -51,6 +51,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	assert.NoError(t, err)
+	defer gitRepo.Close()
 
 	err = gitRepo.CreateTag("v0.0.1", "master")
 	assert.NoError(t, err)
@@ -112,6 +113,7 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	assert.NoError(t, err)
+	defer gitRepo.Close()
 
 	err = gitRepo.CreateTag("v0.0.1", "master")
 	assert.NoError(t, err)
