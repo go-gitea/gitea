@@ -2770,7 +2770,7 @@ function initVueApp() {
     });
 }
 
-function timeAddManual() {
+window.timeAddManual = function() {
     $('.mini.modal')
         .modal({
             duration: 200,
@@ -2781,10 +2781,10 @@ function timeAddManual() {
     ;
 }
 
-function toggleStopwatch() {
+window.toggleStopwatch = function() {
     $("#toggle_stopwatch_form").submit();
 }
-function cancelStopwatch() {
+window.cancelStopwatch = function() {
     $("#cancel_stopwatch_form").submit();
 }
 
@@ -3270,11 +3270,11 @@ function initTopicbar() {
             }
         });
 }
-function toggleDeadlineForm() {
+window.toggleDeadlineForm = function() {
     $('#deadlineForm').fadeToggle(150);
 }
 
-function setDeadline() {
+window.setDeadline = function() {
     const deadline = $('#deadlineDate').val();
     updateDeadline(deadline);
 }
@@ -3316,7 +3316,7 @@ function updateDeadline(deadlineString) {
     });
 }
 
-function deleteDependencyModal(id, type) {
+window.deleteDependencyModal = function(id, type) {
     $('.remove-dependency')
         .modal({
             closable: false,
@@ -3399,7 +3399,7 @@ function initIssueList() {
         }
     });
 }
-function cancelCodeComment(btn) {
+window.cancelCodeComment = function(btn) {
     const form = $(btn).closest("form");
     if(form.length > 0 && form.hasClass('comment-form')) {
         form.addClass('hide');
@@ -3408,7 +3408,7 @@ function cancelCodeComment(btn) {
         form.closest('.comment-code-cloud').remove()
     }
 }
-function onOAuthLoginClick() {
+window.onOAuthLoginClick = function() {
     const oauthLoader = $('#oauth2-login-loader');
     const oauthNav = $('#oauth2-login-navigator');
 
