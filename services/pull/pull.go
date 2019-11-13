@@ -48,6 +48,7 @@ func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *m
 		if err != nil {
 			log.Error("PullRequestList.InvalidateCodeComments: %v", err)
 		}
+		gitRepo.Close()
 	}()
 	return nil
 }
