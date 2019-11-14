@@ -23,7 +23,7 @@ Version: 745f604212e2abfe2f0a59169ea530857b46625c
 File(s): /vendor/plugins/vue/vue.min.js
 Version: 2.1.10
 
-File(s): /vendor/plugins/emojify/emojify.min.js
+File(s): /vendor/plugins/emojify/emojify.custom.js
 Version: 1.1.0
 
 File(s): /vendor/plugins/cssrelpreload/
