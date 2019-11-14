@@ -279,7 +279,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 		review.Issue = issue
 		review.Content = content
 		review.Type = reviewType
-		if _, err := sess.ID(review.ID).Cols("content, typpe").Update(review); err != nil {
+		if _, err := sess.ID(review.ID).Cols("content, type").Update(review); err != nil {
 			return nil, nil, err
 		}
 	}
