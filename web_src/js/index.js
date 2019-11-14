@@ -1991,7 +1991,7 @@ function initCodeView() {
             }
         }).trigger('hashchange');
     }
-
+    
     $('.ui.fold-code').on('click', function(e){
         const $foldButton = $(e.target);
         if ($foldButton.hasClass("fa-chevron-down")) {
