@@ -5,14 +5,12 @@
 package models
 
 import (
-	"fmt"
+	"strings"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
 	"xorm.io/core"
-	"xorm.io/xorm"
 )
 
 // ReviewType defines the sort of feedback a review gives
@@ -86,6 +84,11 @@ func (r *Review) loadReviewer(e Engine) (err error) {
 	return
 }
 
+// LoadReviewer loads reviewer
+func (r *Review) LoadReviewer() error {
+	return r.loadReviewer(x)
+}
+
 func (r *Review) loadAttributes(e Engine) (err error) {
 	if err = r.loadReviewer(e); err != nil {
 		return
@@ -99,54 +102,6 @@ func (r *Review) loadAttributes(e Engine) (err error) {
 // LoadAttributes loads all attributes except CodeComments
 func (r *Review) LoadAttributes() error {
 	return r.loadAttributes(x)
-}
-
-// Publish will send notifications / actions to participants for all code comments; parts are concurrent
-func (r *Review) Publish() error {
-	return r.publish(x)
-}
-
-func (r *Review) publish(e *xorm.Engine) error {
-	if r.Type == ReviewTypePending || r.Type == ReviewTypeUnknown {
-		return fmt.Errorf("review cannot be published if type is pending or unknown")
-	}
-	if r.Issue == nil {
-		if err := r.loadIssue(e); err != nil {
-			return err
-		}
-	}
-	if err := r.Issue.loadRepo(e); err != nil {
-		return err
-	}
-	if len(r.CodeComments) == 0 {
-		if err := r.loadCodeComments(e); err != nil {
-			return err
-		}
-	}
-	for _, lines := range r.CodeComments {
-		for _, comments := range lines {
-			for _, comment := range comments {
-				go func(en *xorm.Engine, review *Review, comm *Comment) {
-					sess := en.NewSession()
-					defer sess.Close()
-					opts := &CreateCommentOptions{
-						Doer:    comm.Poster,
-						Issue:   review.Issue,
-						Repo:    review.Issue.Repo,
-						Type:    comm.Type,
-						Content: comm.Content,
-					}
-					if err := updateCommentInfos(sess, opts, comm); err != nil {
-						log.Warn("updateCommentInfos: %v", err)
-					}
-					if err := sendCreateCommentAction(sess, opts, comm); err != nil {
-						log.Warn("sendCreateCommentAction: %v", err)
-					}
-				}(e, r, comment)
-			}
-		}
-	}
-	return nil
 }
 
 func getReviewByID(e Engine, id int64) (*Review, error) {
@@ -271,12 +226,79 @@ func GetCurrentReview(reviewer *User, issue *Issue) (*Review, error) {
 	return getCurrentReview(x, reviewer, issue)
 }
 
-// UpdateReview will update all cols of the given review in db
-func UpdateReview(r *Review) error {
-	if _, err := x.ID(r.ID).AllCols().Update(r); err != nil {
-		return err
+// ContentEmptyErr represents an content empty error
+type ContentEmptyErr struct {
+}
+
+func (ContentEmptyErr) Error() string {
+	return "Review content is empty"
+}
+
+// IsContentEmptyErr returns true if err is a ContentEmptyErr
+func IsContentEmptyErr(err error) bool {
+	_, ok := err.(ContentEmptyErr)
+	return ok
+}
+
+// SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
+func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content string) (*Review, *Comment, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, nil, err
 	}
-	return nil
+
+	review, err := getCurrentReview(sess, doer, issue)
+	if err != nil {
+		if !IsErrReviewNotExist(err) {
+			return nil, nil, err
+		}
+
+		if len(strings.TrimSpace(content)) == 0 {
+			return nil, nil, ContentEmptyErr{}
+		}
+
+		// No current review. Create a new one!
+		review, err = createReview(sess, CreateReviewOptions{
+			Type:     reviewType,
+			Issue:    issue,
+			Reviewer: doer,
+			Content:  content,
+		})
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		if err := review.loadCodeComments(sess); err != nil {
+			return nil, nil, err
+		}
+		if len(review.CodeComments) == 0 && len(strings.TrimSpace(content)) == 0 {
+			return nil, nil, ContentEmptyErr{}
+		}
+
+		review.Issue = issue
+		review.Content = content
+		review.Type = reviewType
+		if _, err := sess.ID(review.ID).Cols("content, type").Update(review); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	comm, err := createComment(sess, &CreateCommentOptions{
+		Type:     CommentTypeReview,
+		Doer:     doer,
+		Content:  review.Content,
+		Issue:    issue,
+		Repo:     issue.Repo,
+		ReviewID: review.ID,
+		NoAction: true,
+	})
+	if err != nil || comm == nil {
+		return nil, nil, err
+	}
+
+	comm.Review = review
+	return review, comm, sess.Commit()
 }
 
 // PullReviewersWithType represents the type used to display a review overview

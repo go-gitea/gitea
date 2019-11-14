@@ -42,6 +42,7 @@ func NewTemporaryUploadRepository(repo *models.Repository) (*TemporaryUploadRepo
 
 // Close the repository cleaning up all files
 func (t *TemporaryUploadRepository) Close() {
+	defer t.gitRepo.Close()
 	if err := models.RemoveTemporaryPath(t.basePath); err != nil {
 		log.Error("Failed to remove temporary path %s: %v", t.basePath, err)
 	}
