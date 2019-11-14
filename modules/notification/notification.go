@@ -129,6 +129,13 @@ func NotifyNewRelease(rel *models.Release) {
 	}
 }
 
+// NotifyNewReleaseTag notifies new tag for release to notifiers
+func NotifyNewReleaseTag(gitRepo *git.Repository, rel *models.Release) {
+	for _, notifier := range notifiers {
+		notifier.NotifyNewReleaseTag(gitRepo, rel)
+	}
+}
+
 // NotifyUpdateRelease notifies update release to notifiers
 func NotifyUpdateRelease(doer *models.User, rel *models.Release) {
 	for _, notifier := range notifiers {

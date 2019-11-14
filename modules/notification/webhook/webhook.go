@@ -646,6 +646,45 @@ func sendReleaseHook(doer *models.User, rel *models.Release, action api.HookRele
 	}
 }
 
+func (m *webhookNotifier) NotifyNewReleaseTag(gitRepo *git.Repository, rel *models.Release) {
+	if err := rel.LoadAttributes(); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+	// Prepare Webhook
+	var shaSum string
+	mode, _ := models.AccessLevel(rel.Publisher, rel.Repo)
+	apiRepo := rel.Repo.APIFormat(mode)
+	apiPusher := rel.Publisher.APIFormat()
+	shaSum, err := gitRepo.GetTagCommitID(rel.TagName)
+	if err != nil {
+		log.Error("GetTagCommitID[%s]: %v", rel.TagName, err)
+	}
+	// Tag Create
+	if err = webhook_module.PrepareWebhooks(rel.Repo, models.HookEventCreate, &api.CreatePayload{
+		Ref:     git.TagPrefix + rel.TagName,
+		Sha:     shaSum,
+		RefType: "tag",
+		Repo:    apiRepo,
+		Sender:  apiPusher,
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+	// Tag Push
+	if err = webhook_module.PrepareWebhooks(rel.Repo, models.HookEventPush, &api.PushPayload{
+		Ref:        git.TagPrefix + rel.TagName,
+		Before:     git.EmptySHA,
+		After:      shaSum,
+		CompareURL: setting.AppURL,
+		Commits:    make([]*api.PayloadCommit, 0),
+		Repo:       apiRepo,
+		Pusher:     apiPusher,
+		Sender:     apiPusher,
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
 func (m *webhookNotifier) NotifyNewRelease(rel *models.Release) {
 	sendReleaseHook(rel.Publisher, rel, api.HookReleasePublished)
 }

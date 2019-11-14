@@ -40,6 +40,7 @@ type Notifier interface {
 	NotifyDeleteComment(*models.User, *models.Comment)
 
 	NotifyNewRelease(rel *models.Release)
+	NotifyNewReleaseTag(gitRepo *git.Repository, rel *models.Release)
 	NotifyUpdateRelease(doer *models.User, rel *models.Release)
 	NotifyDeleteRelease(doer *models.User, rel *models.Release)
 
