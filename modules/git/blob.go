@@ -57,6 +57,7 @@ func (b *Blob) GetBlobLineCount() (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	defer reader.Close()
 	buf := make([]byte, 32*1024)
 	count := 0
 	lineSep := []byte{'\n'}

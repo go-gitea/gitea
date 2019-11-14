@@ -513,6 +513,7 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft int, idxRight 
 	if err != nil {
 		return nil, err
 	}
+	defer reader.Close()
 	scanner := bufio.NewScanner(reader)
 	var diffLines []*gitdiff.DiffLine
 	for line := 0; line < idxRight+chunkSize; line++ {
