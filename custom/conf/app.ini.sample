@@ -107,6 +107,7 @@ WIKI = never
 ; Determines when to sign on merges
 ; - basesigned: require that the parent of commit on the base repo is signed.
 ; - commitssigned: require that all the commits in the head branch are signed.
+; - approved: only sign when merging an approved pr to a protected branch
 MERGES = pubkey, twofa, basesigned, commitssigned
 
 [cors]
@@ -190,7 +191,7 @@ PROTOCOL = http
 DOMAIN = localhost
 ROOT_URL = %(PROTOCOL)s://%(DOMAIN)s:%(HTTP_PORT)s/
 ; when STATIC_URL_PREFIX is empty it will follow APP_URL
-STATIC_URL_PREFIX = 
+STATIC_URL_PREFIX =
 ; The address to listen on. Either a IPv4/IPv6 address or the path to a unix socket.
 HTTP_ADDR = 0.0.0.0
 HTTP_PORT = 3000
@@ -515,9 +516,9 @@ SKIP_TLS_VERIFY = false
 ; Number of history information in each page
 PAGING_NUM = 10
 ; Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy
-PROXY_URL = 
+PROXY_URL =
 ; Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
-PROXY_HOSTS = 
+PROXY_HOSTS =
 
 [mailer]
 ENABLED = false

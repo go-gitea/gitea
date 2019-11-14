@@ -42,6 +42,14 @@ func (pr *PullRequest) SignMerge(u *User, tmpBasePath, baseCommit, headCommit st
 			if err != nil || twofa == nil {
 				return false, ""
 			}
+		case approved:
+			protectedBranch, err := GetProtectedBranchBy(repo.ID, pr.BaseBranch)
+			if err != nil || protectedBranch == nil {
+				return false, ""
+			}
+			if protectedBranch.GetGrantedApprovalsCount(pr) < 1 {
+				return false, ""
+			}
 		case baseSigned:
 			if gitRepo == nil {
 				gitRepo, err = git.OpenRepository(tmpBasePath)

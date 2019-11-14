@@ -24,6 +24,7 @@ const (
 	baseSigned    signingMode = "basesigned"
 	headSigned    signingMode = "headsigned"
 	commitsSigned signingMode = "commitssigned"
+	approved      signingMode = "approved"
 )
 
 func signingModeFromStrings(modeStrings []string) []signingMode {
@@ -44,6 +45,8 @@ func signingModeFromStrings(modeStrings []string) []signingMode {
 		case baseSigned:
 			fallthrough
 		case headSigned:
+			fallthrough
+		case approved:
 			fallthrough
 		case commitsSigned:
 			returnable = append(returnable, signMode)
