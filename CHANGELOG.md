@@ -289,6 +289,14 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * wiki - editor - add buttons 'inline code', 'empty checkbox', 'checked checkbox' (#7243)
   * Fix Statuses API only shows first 10 statuses: Add paging and extend API GetCommitStatuses (#7141)
 
+## [1.9.6](https://github.com/go-gitea/gitea/releases/tag/v1.9.6) - 2019-11-13
+* BUGFIXES
+  * Allow to merge if file path contains " or \ (#8629) (#8772)
+  * Fix 500 when edit hook (#8782) (#8790)
+  * Fix issue with user.fullname (#8904)
+  * Update Github Migration Test (#8897) (#8946)
+  * Add Close() method to gogitRepository (#8901) (#8958)
+
 ## [1.9.5](https://github.com/go-gitea/gitea/releases/tag/v1.9.5) - 2019-10-30
 * BREAKING
   * Hide some user information via API if user doesn't have enough permission (#8655) (#8658)
