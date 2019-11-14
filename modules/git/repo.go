@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	gitealog "code.gitea.io/gitea/modules/log"
 	"github.com/unknwon/com"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	gogit "gopkg.in/src-d/go-git.v4"
@@ -120,6 +121,16 @@ func OpenRepository(repoPath string) (*Repository, error) {
 		gogitStorage: storage,
 		tagCache:     newObjectCache(),
 	}, nil
+}
+
+// Close this repository, in particular close the underlying gogitStorage if this is not nil
+func (repo *Repository) Close() {
+	if repo == nil || repo.gogitStorage == nil {
+		return
+	}
+	if err := repo.gogitStorage.Close(); err != nil {
+		gitealog.Error("Error closing storage: %v", err)
+	}
 }
 
 // GoGitRepo gets the go-git repo representation

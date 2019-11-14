@@ -23,6 +23,7 @@ func (repo *Repository) GetBranch(branch string) (*git.Branch, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer gitRepo.Close()
 
 	return gitRepo.GetBranch(branch)
 }
@@ -38,6 +39,7 @@ func (repo *Repository) CheckBranchName(name string) error {
 	if err != nil {
 		return err
 	}
+	defer gitRepo.Close()
 
 	branches, err := repo.GetBranches()
 	if err != nil {
@@ -94,6 +96,7 @@ func (repo *Repository) CreateNewBranch(doer *User, oldBranchName, branchName st
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
 	}
+	defer gitRepo.Close()
 
 	if err = gitRepo.CreateBranch(branchName, oldBranchName); err != nil {
 		log.Error("Unable to create branch: %s from %s. (%v)", branchName, oldBranchName, err)
@@ -140,6 +143,7 @@ func (repo *Repository) CreateNewBranchFromCommit(doer *User, commit, branchName
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
 	}
+	defer gitRepo.Close()
 
 	if err = gitRepo.CreateBranch(branchName, commit); err != nil {
 		log.Error("Unable to create branch: %s from %s. (%v)", branchName, commit, err)
