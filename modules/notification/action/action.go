@@ -124,7 +124,6 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 		log.Error("LoadReviewer '%d/%d': %v", review.ID, review.ReviewerID, err)
 		return
 	}
-	var content = comment.Content
 	if err := review.LoadCodeComments(); err != nil {
 		log.Error("LoadCodeComments '%d/%d': %v", review.Reviewer.ID, review.ID, err)
 		return
@@ -137,7 +136,7 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 				actions = append(actions, &models.Action{
 					ActUserID: review.Reviewer.ID,
 					ActUser:   review.Reviewer,
-					Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(content, "\n")[0]),
+					Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comm.Content, "\n")[0]),
 					OpType:    models.ActionCommentIssue,
 					RepoID:    review.Issue.RepoID,
 					Repo:      review.Issue.Repo,
@@ -153,7 +152,7 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 		actions = append(actions, &models.Action{
 			ActUserID: review.Reviewer.ID,
 			ActUser:   review.Reviewer,
-			Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(content, "\n")[0]),
+			Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comment.Content, "\n")[0]),
 			OpType:    models.ActionCommentIssue,
 			RepoID:    review.Issue.RepoID,
 			Repo:      review.Issue.Repo,
