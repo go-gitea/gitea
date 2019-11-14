@@ -1,6 +1,6 @@
 /* globals wipPrefixes, issuesTribute, emojiTribute */
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
-/* exported toggleDeadlineForm, setDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
+/* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 'use strict';
 
 function htmlEncode(text) {
@@ -3276,10 +3276,10 @@ window.toggleDeadlineForm = function() {
 
 window.setDeadline = function() {
     const deadline = $('#deadlineDate').val();
-    updateDeadline(deadline);
+    window.updateDeadline(deadline);
 }
 
-function updateDeadline(deadlineString) {
+window.updateDeadline = function(deadlineString) {
     $('#deadline-err-invalid-date').hide();
     $('#deadline-loader').addClass('loading');
 

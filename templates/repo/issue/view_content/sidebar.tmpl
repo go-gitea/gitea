@@ -226,7 +226,7 @@
 					{{if and .IsIssueWriter (not .Repository.IsArchived)}}
 						<br/>
 						<a style="cursor:pointer;" onclick="window.toggleDeadlineForm();"><i class="edit icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_edit"}}</a> -
-						<a style="cursor:pointer;" onclick="updateDeadline('');"><i class="remove icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_remove"}}</a>
+						<a style="cursor:pointer;" onclick="window.updateDeadline('');"><i class="remove icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_remove"}}</a>
 					{{end}}
 				</p>
 			{{else}}
