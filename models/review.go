@@ -254,7 +254,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 			return nil, nil, err
 		}
 
-		if len(strings.TrimSpace(content)) == 0 {
+		if reviewType != ReviewTypeApprove && len(strings.TrimSpace(content)) == 0 {
 			return nil, nil, ContentEmptyErr{}
 		}
 
