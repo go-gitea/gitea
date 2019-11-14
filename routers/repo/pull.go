@@ -10,6 +10,7 @@ import (
 	"container/list"
 	"crypto/subtle"
 	"fmt"
+	"html"
 	"io"
 	"path"
 	"strings"
@@ -50,8 +51,8 @@ var (
 	}
 )
 
-func getForkRepository(ctx *context.Context) *models.Repository {
-	forkRepo, err := models.GetRepositoryByID(ctx.ParamsInt64(":repoid"))
+func getRepository(ctx *context.Context, repoID int64) *models.Repository {
+	repo, err := models.GetRepositoryByID(repoID)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			ctx.NotFound("GetRepositoryByID", nil)
@@ -61,25 +62,33 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 		return nil
 	}
 
-	perm, err := models.GetUserRepoPermission(forkRepo, ctx.User)
+	perm, err := models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
 	}
 
-	if forkRepo.IsEmpty || !perm.CanRead(models.UnitTypeCode) {
-		if log.IsTrace() {
-			if forkRepo.IsEmpty {
-				log.Trace("Empty fork repository %-v", forkRepo)
-			} else {
-				log.Trace("Permission Denied: User %-v cannot read %-v of forkRepo %-v\n"+
-					"User in forkRepo has Permissions: %-+v",
-					ctx.User,
-					models.UnitTypeCode,
-					ctx.Repo,
-					perm)
-			}
-		}
+	if !perm.CanRead(models.UnitTypeCode) {
+		log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
+			"User in repo has Permissions: %-+v",
+			ctx.User,
+			models.UnitTypeCode,
+			ctx.Repo,
+			perm)
+		ctx.NotFound("getRepository", nil)
+		return nil
+	}
+	return repo
+}
+
+func getForkRepository(ctx *context.Context) *models.Repository {
+	forkRepo := getRepository(ctx, ctx.ParamsInt64(":repoid"))
+	if ctx.Written() {
+		return nil
+	}
+
+	if forkRepo.IsEmpty {
+		log.Trace("Empty repository %-v", forkRepo)
 		ctx.NotFound("getForkRepository", nil)
 		return nil
 	}
@@ -89,7 +98,7 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate
 	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !ctx.User.HasForkedRepo(forkRepo.ID)
 
-	if err = forkRepo.GetOwner(); err != nil {
+	if err := forkRepo.GetOwner(); err != nil {
 		ctx.ServerError("GetOwner", err)
 		return nil
 	}
@@ -108,6 +117,7 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	}
 
 	var traverseParentRepo = forkRepo
+	var err error
 	for {
 		if ctx.User.ID == traverseParentRepo.OwnerID {
 			canForkToUser = false
@@ -342,6 +352,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			ctx.ServerError("OpenRepository", err)
 			return nil
 		}
+		defer headGitRepo.Close()
 
 		headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
 
@@ -524,6 +535,7 @@ func ViewPullFiles(ctx *context.Context) {
 			ctx.ServerError("OpenRepository", err)
 			return
 		}
+		defer headGitRepo.Close()
 
 		headCommitID, err := headGitRepo.GetBranchCommitID(pull.HeadBranch)
 		if err != nil {
@@ -660,8 +672,37 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 	}
 
 	if err = pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+		sanitize := func(x string) string {
+			runes := []rune(x)
+
+			if len(runes) > 512 {
+				x = "..." + string(runes[len(runes)-512:])
+			}
+
+			return strings.Replace(html.EscapeString(x), "\n", "<br>", -1)
+		}
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if models.IsErrMergeConflicts(err) {
+			conflictError := err.(models.ErrMergeConflicts)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_conflict", sanitize(conflictError.StdErr), sanitize(conflictError.StdOut)))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if models.IsErrRebaseConflicts(err) {
+			conflictError := err.(models.ErrRebaseConflicts)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.rebase_conflict", sanitize(conflictError.CommitSHA), sanitize(conflictError.StdErr), sanitize(conflictError.StdOut)))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if models.IsErrMergeUnrelatedHistories(err) {
+			log.Debug("MergeUnrelatedHistories error: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.unrelated_histories"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		} else if models.IsErrMergePushOutOfDate(err) {
+			log.Debug("MergePushOutOfDate error: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
 			return
 		}
@@ -709,6 +750,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	if ctx.Written() {
 		return
 	}
+	defer headGitRepo.Close()
 
 	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form, true)
 	if ctx.Written() {
@@ -874,12 +916,14 @@ func CleanUpPullRequest(ctx *context.Context) {
 		ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
 		return
 	}
+	defer gitRepo.Close()
 
 	gitBaseRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.BaseRepo.RepoPath()), err)
 		return
 	}
+	defer gitBaseRepo.Close()
 
 	defer func() {
 		ctx.JSON(200, map[string]interface{}{
@@ -1008,6 +1052,7 @@ func DownloadPullPatch(ctx *context.Context) {
 		ctx.ServerError("OpenRepository", err)
 		return
 	}
+	defer headGitRepo.Close()
 
 	patch, err := headGitRepo.GetFormatPatch(pr.MergeBase, pr.HeadBranch)
 	if err != nil {

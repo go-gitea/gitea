@@ -1075,7 +1075,8 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 	case "priority":
 		sess.Desc("issue.priority")
 	case "nearduedate":
-		sess.Asc("issue.deadline_unix")
+		// 253370764800 is 01/01/9999 @ 12:00am (UTC)
+		sess.OrderBy("CASE WHEN issue.deadline_unix = 0 THEN 253370764800 ELSE issue.deadline_unix END ASC")
 	case "farduedate":
 		sess.Desc("issue.deadline_unix")
 	case "priorityrepo":
