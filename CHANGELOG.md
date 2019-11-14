@@ -13,8 +13,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add pagination for admin api get orgs and fix only list public orgs bug (#7742)
   * Implement the ability to change the ssh port to match what is in the gitea config (#7286)
 * SECURITY
+  * Fix issue with user.fullname (#8903)
   * Ignore mentions for users with no access (#8395)
   * Be more strict with git arguments (#7715)
+  * Extract the username and password from the mirror url (#7651)
   * reserve .well-known username (#7637)
 * FEATURE
   * Org/Members: display 2FA members states + optimize sql requests (#7621)
@@ -37,7 +39,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix require external registration password (#8885) (#8890)
   * Fix password complexity check on registration (#8887) (#8888)
   * Update Github Migration Tests (#8896) (#8938) (#8945)
-  * Fix issue with user.fullname (#8903)
   * Enable punctuations ending mentions (#8889) (#8894) 
   * Add Close() method to gogitRepository (#8901) (#8956)
   * Hotfix for review actions and notifications (#8965)
@@ -288,7 +289,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix global search result CSS, misc CSS tweaks (#7789)
   * Tweak label border CSS (#7739)
   * Fix create menu item widths (#7708)
-  * Extract the username and password from the mirror url (#7651)
   * [Branch View] Delete duplicate protection symbol (#7624)
   * [Branch View] Delete Table Header (#7622)
   * [Branch View] icons to buttons (#7602)
