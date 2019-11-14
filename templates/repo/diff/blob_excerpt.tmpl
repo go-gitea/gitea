@@ -3,11 +3,11 @@
   <tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
     {{if eq .GetType 4}}
     <td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}">
-      {{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
-      <i class="ui blob-excerpt fa fa-caret-up" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up" data-anchor="{{$.Anchor}}"></i>
-      {{end}}
       {{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
       <i class="ui blob-excerpt fa fa-caret-down" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down" data-anchor="{{$.Anchor}}"></i>
+      {{end}}
+      {{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
+      <i class="ui blob-excerpt fa fa-caret-up" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up" data-anchor="{{$.Anchor}}"></i>
       {{end}}
       {{if or (eq $line.GetExpandDirection 2)}}
       <i class="ui blob-excerpt octicon octicon-fold" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=" data-anchor="{{$.Anchor}}"></i>

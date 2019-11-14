@@ -5,11 +5,11 @@
 		<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
 			{{if eq .GetType 4}}
 				<td colspan="2" class="lines-num">
-				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
-					<i class="ui blob-excerpt fa fa-caret-up" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}"></i>
-				{{end}}
 				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
 					<i class="ui blob-excerpt fa fa-caret-down" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}"></i>
+				{{end}}
+				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
+					<i class="ui blob-excerpt fa fa-caret-up" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}"></i>
 				{{end}}
 				{{if or (eq $line.GetExpandDirection 2)}}
 					<i class="ui blob-excerpt octicon octicon-fold" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}"></i>
