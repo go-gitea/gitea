@@ -332,7 +332,7 @@ func PutHandler(ctx *context.Context) {
 	if err := contentStore.Put(meta, bodyReader); err != nil {
 		ctx.Resp.WriteHeader(500)
 		fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
-		if err = repository.RemoveLFSMetaObjectByOid(rv.Oid); err != nil {
+		if _, err = repository.RemoveLFSMetaObjectByOid(rv.Oid); err != nil {
 			log.Error("RemoveLFSMetaObjectByOid: %v", err)
 		}
 		return

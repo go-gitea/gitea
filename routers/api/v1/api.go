@@ -596,6 +596,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/search", repo.Search)
 		})
 
+		m.Get("/repos/issues/search", repo.SearchIssues)
+
 		m.Combo("/repositories/:id", reqToken()).Get(repo.GetByID)
 
 		m.Group("/repos", func() {
@@ -639,7 +641,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)
-				}, reqRepoReader(models.UnitTypeCode))
+				}, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
@@ -687,6 +689,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Group("/stopwatch", func() {
 							m.Post("/start", reqToken(), repo.StartIssueStopwatch)
 							m.Post("/stop", reqToken(), repo.StopIssueStopwatch)
+						})
+						m.Group("/subscriptions", func() {
+							m.Get("", bind(api.User{}), repo.GetIssueSubscribers)
+							m.Put("/:user", repo.AddIssueSubscription)
+							m.Delete("/:user", repo.DelIssueSubscription)
 						})
 					})
 				}, mustEnableIssuesOrPulls)
@@ -862,7 +869,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/topics", func() {
 			m.Get("/search", repo.TopicSearch)
 		})
-	}, securityHeaders(), reqTokenBySetting(), context.APIContexter(), sudo())
+	}, securityHeaders(), context.APIContexter(), sudo())
 }
 
 func securityHeaders() macaron.Handler {
@@ -873,11 +880,4 @@ func securityHeaders() macaron.Handler {
 			w.Header().Set("x-content-type-options", "nosniff")
 		})
 	}
-}
-
-func reqTokenBySetting() macaron.Handler {
-	if setting.Service.RequireSignInView {
-		return reqToken()
-	}
-	return func(ctx *macaron.Context) {}
 }

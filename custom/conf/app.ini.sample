@@ -69,6 +69,10 @@ MAX_FILES = 5
 [repository.pull-request]
 ; List of prefixes used in Pull Request title to mark them as Work In Progress
 WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
+; List of keywords used in Pull Request comments to automatically close a related issue
+CLOSE_KEYWORDS=close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved
+; List of keywords used in Pull Request comments to automatically reopen a related issue
+REOPEN_KEYWORDS=reopen,reopens,reopened
 
 [repository.issue]
 ; List of reasons why a Pull Request or Issue can be locked
@@ -475,6 +479,8 @@ DEFAULT_ORG_MEMBER_VISIBLE = false
 ; Default value for EnableDependencies
 ; Repositories will use dependencies by default depending on this setting
 DEFAULT_ENABLE_DEPENDENCIES = true
+; Dependencies can be added from any repository where the user is granted access or only from the current repository depending on this setting.
+ALLOW_CROSS_REPOSITORY_DEPENDENCIES = true
 ; Enable heatmap on users profiles.
 ENABLE_USER_HEATMAP = true
 ; Enable Timetracking
@@ -495,6 +501,9 @@ SHOW_REGISTRATION_BUTTON = true
 ; When adding a repo to a team or creating a new repo all team members will watch the
 ; repo automatically if enabled
 AUTO_WATCH_NEW_REPOS = true
+; Default value for AutoWatchOnChanges
+; Make the user watch a repository When they commit for the first time
+AUTO_WATCH_ON_CHANGES = false
 
 [webhook]
 ; Hook task queue length, increase if webhook shooting starts hanging
@@ -505,6 +514,10 @@ DELIVER_TIMEOUT = 5
 SKIP_TLS_VERIFY = false
 ; Number of history information in each page
 PAGING_NUM = 10
+; Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy
+PROXY_URL = 
+; Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
+PROXY_HOSTS = 
 
 [mailer]
 ENABLED = false
