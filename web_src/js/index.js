@@ -3167,7 +3167,7 @@ window.updateDeadline = function (deadlineString) {
       $('#deadline-err-invalid-date').show();
     }
   });
-}
+};
 
 window.deleteDependencyModal = function (id, type) {
   $('.remove-dependency')
