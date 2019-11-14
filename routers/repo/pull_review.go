@@ -174,6 +174,12 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 			return
 		}
 	}
+
+	// Hotfix 1.10.0: make sure the review exists before creating the head comment
+	if err = review.Publish(); err != nil {
+		ctx.ServerError("Publish", err)
+		return
+	}
 	comm, err := models.CreateComment(&models.CreateCommentOptions{
 		Type:     models.CommentTypeReview,
 		Doer:     ctx.User,
@@ -184,10 +190,6 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 	})
 	if err != nil || comm == nil {
 		ctx.ServerError("CreateComment", err)
-		return
-	}
-	if err = review.Publish(); err != nil {
-		ctx.ServerError("Publish", err)
 		return
 	}
 
