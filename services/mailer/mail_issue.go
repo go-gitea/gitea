@@ -10,8 +10,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
-
-	"github.com/unknwon/com"
 )
 
 func fallbackMailSubject(issue *models.Issue) string {
@@ -24,64 +22,70 @@ func fallbackMailSubject(issue *models.Issue) string {
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
 func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, actionType models.ActionType, content string, comment *models.Comment, mentions []string) error {
 
-	watchers, err := models.GetWatchers(issue.RepoID)
+	// =========== Repo watchers ===========
+	// *Watch
+	rwatchers, err := models.GetWatchers(issue.RepoID)
 	if err != nil {
-		return fmt.Errorf("getWatchers [repo_id: %d]: %v", issue.RepoID, err)
+		return fmt.Errorf("GetWatchers(%d): %v", issue.RepoID, err)
 	}
+	watcherids := make([]int64, len(rwatchers))
+	for i := range rwatchers {
+		watcherids[i] = rwatchers[i].UserID
+	}
+	watchers, err := models.GetUsersByIDs(watcherids)
+	if err != nil {
+		return fmt.Errorf("GetUsersByIDs(%d): %v", issue.RepoID, err)
+	}
+
+	// =========== Issue watchers ===========
+	// IssueWatchList
+	iwl, err := models.GetIssueWatchers(issue.ID)
+	if err != nil {
+		return fmt.Errorf("GetIssueWatchers(%d): %v", issue.ID, err)
+	}
+	// UserList ([]*User)
+	iwatchers, err := iwl.LoadWatchUsers()
+	if err != nil {
+		return fmt.Errorf("GetIssueWatchers(%d): %v", issue.ID, err)
+	}
+
+	// =========== Participants (i.e. commenters, reviewers) ===========
+	// []*User
 	participants, err := models.GetParticipantsByIssueID(issue.ID)
 	if err != nil {
-		return fmt.Errorf("getParticipantsByIssueID [issue_id: %d]: %v", issue.ID, err)
+		return fmt.Errorf("GetParticipantsByIssueID(%d): %v", issue.ID, err)
 	}
 
-	// In case the issue poster is not watching the repository and is active,
-	// even if we have duplicated in watchers, can be safely filtered out.
-	err = issue.LoadPoster()
-	if err != nil {
-		return fmt.Errorf("GetUserByID [%d]: %v", issue.PosterID, err)
-	}
-	if issue.PosterID != doer.ID && issue.Poster.IsActive && !issue.Poster.ProhibitLogin {
-		participants = append(participants, issue.Poster)
-	}
-
-	// Assignees must receive any communications
+	// =========== Assignees ===========
+	// []*User
 	assignees, err := models.GetAssigneesByIssue(issue)
 	if err != nil {
 		return err
 	}
 
-	for _, assignee := range assignees {
-		if assignee.ID != doer.ID {
-			participants = append(participants, assignee)
-		}
+	// =========== Original poster ===========
+	// *User
+	err = issue.LoadPoster()
+	if err != nil {
+		return fmt.Errorf("LoadPoster(%d): %v", issue.PosterID, err)
 	}
 
-	tos := make([]string, 0, len(watchers)) // List of email addresses.
-	names := make([]string, 0, len(watchers))
-	for i := range watchers {
-		if watchers[i].UserID == doer.ID {
-			continue
-		}
+	recipients := make([]*models.User, 0, 10)
+	visited := make(map[string]bool, 10)
 
-		to, err := models.GetUserByID(watchers[i].UserID)
-		if err != nil {
-			return fmt.Errorf("GetUserByID [%d]: %v", watchers[i].UserID, err)
-		}
-		if to.IsOrganization() || to.EmailNotifications() != models.EmailNotificationsEnabled {
-			continue
-		}
+	// Avoid mailing the doer
+	visited[doer.LowerName] = true
 
+	// Normalize all aditions to make all the relevant checks
+	recipients = addUniqueUsers(visited, recipients, []*models.User{issue.Poster})
+	recipients = addUniqueUsers(visited, recipients, watchers)
+	recipients = addUniqueUsers(visited, recipients, iwatchers)
+	recipients = addUniqueUsers(visited, recipients, participants)
+	recipients = addUniqueUsers(visited, recipients, assignees)
+
+	tos := make([]string, 0, len(recipients)) // List of email addresses.
+	for _, to := range recipients {
 		tos = append(tos, to.Email)
-		names = append(names, to.Name)
-	}
-	for i := range participants {
-		if participants[i].ID == doer.ID ||
-			com.IsSliceContainsStr(names, participants[i].Name) ||
-			participants[i].EmailNotifications() != models.EmailNotificationsEnabled {
-			continue
-		}
-
-		tos = append(tos, participants[i].Email)
-		names = append(names, participants[i].Name)
 	}
 
 	if err := issue.LoadRepo(); err != nil {
@@ -92,15 +96,13 @@ func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, acti
 		SendIssueCommentMail(issue, doer, actionType, content, comment, []string{to})
 	}
 
-	// Mail mentioned people and exclude watchers.
-	names = append(names, doer.Name)
-	tos = make([]string, 0, len(mentions)) // list of user names.
-	for i := range mentions {
-		if com.IsSliceContainsStr(names, mentions[i]) {
-			continue
+	// Mail mentioned people and exclude previous recipients
+	tos = make([]string, 0, len(mentions)) // mentions come as a list of user names
+	for _, mention := range mentions {
+		if _, ok := visited[mention]; !ok {
+			visited[mention] = true
+			tos = append(tos, mention)
 		}
-
-		tos = append(tos, mentions[i])
 	}
 
 	emails := models.GetUserEmailsByNames(tos)
@@ -110,6 +112,20 @@ func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, acti
 	}
 
 	return nil
+}
+
+func addUniqueUsers(visited map[string]bool, current []*models.User, list []*models.User) []*models.User {
+	for _, u := range list {
+		if _, ok := visited[u.LowerName]; !ok &&
+			!u.IsOrganization() &&
+			u.EmailNotifications() == models.EmailNotificationsEnabled &&
+			!u.ProhibitLogin &&
+			u.IsActive {
+			visited[u.LowerName] = true
+			current = append(current, u)
+		}
+	}
+	return current
 }
 
 // MailParticipants sends new issue thread created emails to repository watchers
