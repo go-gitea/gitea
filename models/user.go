@@ -1307,6 +1307,21 @@ func getUserEmailsByNames(e Engine, names []string) []string {
 	return mails
 }
 
+// GetMaileableUsersByIDs gets users from ids, but only if they can receive mails
+func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
+	ous := make([]*User, 0, len(ids))
+	if len(ids) == 0 {
+		return ous, nil
+	}
+	err := x.In("id", ids).
+		Where("`type` = ?", UserTypeIndividual).
+		And("`prohibit_login` = ?", false).
+		And("`is_active` = ?", true).
+		And("`email_notifications_preference` = ?", EmailNotificationsEnabled).
+		Find(&ous)
+	return ous, err
+}
+
 // GetUsersByIDs returns all resolved users from a list of Ids.
 func GetUsersByIDs(ids []int64) ([]*User, error) {
 	ous := make([]*User, 0, len(ids))

@@ -16,111 +16,114 @@ func fallbackMailSubject(issue *models.Issue) string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.FullName(), issue.Title, issue.Index)
 }
 
+type mailCommentContext struct {
+	Issue      *models.Issue
+	Doer       *models.User
+	ActionType models.ActionType
+	Content    string
+	Comment    *models.Comment
+}
+
 // mailIssueCommentToParticipants can be used for both new issue creation and comment.
 // This function sends two list of emails:
 // 1. Repository watchers and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
-func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, actionType models.ActionType, content string, comment *models.Comment, mentions []string) error {
+func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) error {
 
-	// =========== Repo watchers ===========
-	// *Watch
-	rwatchers, err := models.GetWatchers(issue.RepoID)
-	if err != nil {
-		return fmt.Errorf("GetWatchers(%d): %v", issue.RepoID, err)
-	}
-	watcherids := make([]int64, len(rwatchers))
-	for i := range rwatchers {
-		watcherids[i] = rwatchers[i].UserID
-	}
-	watchers, err := models.GetUsersByIDs(watcherids)
-	if err != nil {
-		return fmt.Errorf("GetUsersByIDs(%d): %v", issue.RepoID, err)
-	}
-
-	// =========== Issue watchers ===========
-	// IssueWatchList
-	iwl, err := models.GetIssueWatchers(issue.ID)
-	if err != nil {
-		return fmt.Errorf("GetIssueWatchers(%d): %v", issue.ID, err)
-	}
-	// UserList ([]*User)
-	iwatchers, err := iwl.LoadWatchUsers()
-	if err != nil {
-		return fmt.Errorf("GetIssueWatchers(%d): %v", issue.ID, err)
-	}
-
-	// =========== Participants (i.e. commenters, reviewers) ===========
-	// []*User
-	participants, err := models.GetParticipantsByIssueID(issue.ID)
-	if err != nil {
-		return fmt.Errorf("GetParticipantsByIssueID(%d): %v", issue.ID, err)
-	}
-
-	// =========== Assignees ===========
-	// []*User
-	assignees, err := models.GetAssigneesByIssue(issue)
-	if err != nil {
+	// Required by the mail composer; make sure to load these before calling the async function
+	if err := ctx.Issue.LoadRepo(); err != nil {
 		return err
 	}
+	if err := ctx.Issue.LoadPoster(); err != nil {
+		return fmt.Errorf("LoadPoster(): %v", err)
+	}
+	if err := ctx.Issue.LoadPullRequest(); err != nil {
+		log.Error("LoadPullRequest: %v", err)
+		return nil
+	}
+
+	// Enough room to avoid reallocations
+	unfiltered := make([]int64, 1, 64)
 
 	// =========== Original poster ===========
-	// *User
-	err = issue.LoadPoster()
-	if err != nil {
-		return fmt.Errorf("LoadPoster(%d): %v", issue.PosterID, err)
-	}
+	unfiltered[0] = ctx.Issue.PosterID
 
-	recipients := make([]*models.User, 0, 10)
-	visited := make(map[string]bool, 10)
+	// =========== Assignees ===========
+	ids, err := models.GetAssigneeIDsByIssue(ctx.Issue.ID)
+	if err != nil {
+		return fmt.Errorf("GetAssigneeIDsByIssue(%d): %v", ctx.Issue.ID, err)
+	}
+	unfiltered = append(unfiltered, ids...)
+
+	// =========== Participants (i.e. commenters, reviewers) ===========
+	ids, err = models.GetParticipantsIDsByIssueID(ctx.Issue.ID)
+	if err != nil {
+		return fmt.Errorf("GetParticipantsIDsByIssueID(%d): %v", ctx.Issue.ID, err)
+	}
+	unfiltered = append(unfiltered, ids...)
+
+	// =========== Issue watchers ===========
+	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID)
+	if err != nil {
+		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
+	}
+	unfiltered = append(unfiltered, ids...)
+
+	// =========== Repo watchers ===========
+	// Make repo watchers last, since it's likely the list with the most users
+	ids, err = models.GetRepoWatchersIDs(ctx.Issue.RepoID)
+	if err != nil {
+		return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
+	}
+	unfiltered = append(ids, unfiltered...)
+
+	visited := make(map[int64]bool, len(unfiltered)+len(mentions)+1)
 
 	// Avoid mailing the doer
-	visited[doer.LowerName] = true
+	visited[ctx.Doer.ID] = true
 
-	// Normalize all aditions to make all the relevant checks
-	recipients = addUniqueUsers(visited, recipients, []*models.User{issue.Poster})
-	recipients = addUniqueUsers(visited, recipients, watchers)
-	recipients = addUniqueUsers(visited, recipients, iwatchers)
-	recipients = addUniqueUsers(visited, recipients, participants)
-	recipients = addUniqueUsers(visited, recipients, assignees)
-
-	if err := issue.LoadRepo(); err != nil {
-		return err
+	if err = mailIssueCommentBatch(ctx, unfiltered, visited, false); err != nil {
+		return fmt.Errorf("mailIssueCommentBatch(): %v", err)
 	}
 
-	for _, to := range recipients {
-		SendIssueCommentMail(issue, doer, actionType, content, comment, []string{to.Email})
-	}
-
-	// Mail mentioned people and exclude previous recipients
-	tos := make([]string, 0, len(mentions)) // mentions come as a list of user names
-	for _, mention := range mentions {
-		if _, ok := visited[mention]; !ok {
-			visited[mention] = true
-			tos = append(tos, mention)
-		}
-	}
-
-	emails := models.GetUserEmailsByNames(tos)
-
-	for _, to := range emails {
-		SendIssueMentionMail(issue, doer, actionType, content, comment, []string{to})
+	// =========== Mentions ===========
+	if err = mailIssueCommentBatch(ctx, mentions, visited, true); err != nil {
+		return fmt.Errorf("mailIssueCommentBatch() mentions: %v", err)
 	}
 
 	return nil
 }
 
-func addUniqueUsers(visited map[string]bool, current []*models.User, list []*models.User) []*models.User {
-	for _, u := range list {
-		if _, ok := visited[u.LowerName]; !ok &&
-			!u.IsOrganization() &&
-			u.EmailNotifications() == models.EmailNotificationsEnabled &&
-			!u.ProhibitLogin &&
-			u.IsActive {
-			visited[u.LowerName] = true
-			current = append(current, u)
+func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, visited map[int64]bool, fromMention bool) error {
+	const batchSize = 100
+	for i := 0; i < len(ids); i += batchSize {
+		var last int
+		if i+batchSize < len(ids) {
+			last = i + batchSize
+		} else {
+			last = len(ids)
 		}
+		unique := make([]int64, 0, last-i)
+		for j := i; j < last; j++ {
+			id := ids[j]
+			if _, ok := visited[id]; !ok {
+				unique = append(unique, id)
+				visited[id] = true
+			}
+		}
+		recipients, err := models.GetMaileableUsersByIDs(unique)
+		if err != nil {
+			return err
+		}
+		// TODO: Check issue visibility for each user
+		// TODO: Separate recipients by language for i18n mail templates
+		tos := make([]string, len(recipients))
+		for i := range recipients {
+			tos[i] = recipients[i].Email
+		}
+		SendAsyncs(composeIssueCommentMessages(ctx, tos, fromMention, "issue comments"))
 	}
-	return current
+	return nil
 }
 
 // MailParticipants sends new issue thread created emails to repository watchers
@@ -138,11 +141,18 @@ func mailParticipants(ctx models.DBContext, issue *models.Issue, doer *models.Us
 	if err = models.UpdateIssueMentions(ctx, issue.ID, userMentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
 	}
-	mentions := make([]string, len(userMentions))
+	mentions := make([]int64, len(userMentions))
 	for i, u := range userMentions {
-		mentions[i] = u.LowerName
+		mentions[i] = u.ID
 	}
-	if err = mailIssueCommentToParticipants(issue, doer, opType, issue.Content, nil, mentions); err != nil {
+	if err = mailIssueCommentToParticipants(
+		&mailCommentContext{
+			Issue:      issue,
+			Doer:       doer,
+			ActionType: opType,
+			Content:    issue.Content,
+			Comment:    nil,
+		}, mentions); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)
 	}
 	return nil
