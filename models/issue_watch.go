@@ -21,7 +21,21 @@ type IssueWatchList []*IssueWatch
 
 // CreateOrUpdateIssueWatch set watching for a user and issue
 func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
-	iw, exists, err := getIssueWatch(x, userID, issueID)
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := createOrUpdateIssueWatch(sess, userID, issueID, isWatching); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+func createOrUpdateIssueWatch(e Engine, userID, issueID int64, isWatching bool) error {
+	iw, exists, err := getIssueWatch(e, userID, issueID)
 	if err != nil {
 		return err
 	}
@@ -33,13 +47,13 @@ func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
 			IsWatching: isWatching,
 		}
 
-		if _, err := x.Insert(iw); err != nil {
+		if _, err := e.Insert(iw); err != nil {
 			return err
 		}
 	} else {
 		iw.IsWatching = isWatching
 
-		if _, err := x.ID(iw.ID).Cols("is_watching", "updated_unix").Update(iw); err != nil {
+		if _, err := e.ID(iw.ID).Cols("is_watching", "updated_unix").Update(iw); err != nil {
 			return err
 		}
 	}
