@@ -111,7 +111,6 @@ func Graph(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Branch"] = ctx.Repo.BranchName
-	ctx.Data["RequireGitGraph"] = true
 	ctx.Data["Page"] = context.NewPagination(int(allCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
 	ctx.HTML(200, tplGraph)
 }
