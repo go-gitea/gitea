@@ -131,14 +131,14 @@ func (*NullNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repo
 func (*NullNotifier) NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string) {
 }
 
-// NotifyTransferRepository places a place holder function
+// NotifySyncPushCommits places a place holder function
 func (*NullNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
 }
 
-// NotifyTransferRepository places a place holder function
+// NotifySyncCreateRef places a place holder function
 func (*NullNotifier) NotifySyncCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
 }
 
-// NotifyTransferRepository places a place holder function
+// NotifySyncDeleteRef places a place holder function
 func (*NullNotifier) NotifySyncDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
 }
