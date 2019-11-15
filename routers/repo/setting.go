@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
@@ -67,18 +66,15 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		isNameChanged := false
-		oldRepoName := repo.Name
 		newRepoName := form.RepoName
 		// Check if repository name has been changed.
 		if repo.LowerName != strings.ToLower(newRepoName) {
-			isNameChanged = true
 			// Close the GitRepo if open
 			if ctx.Repo.GitRepo != nil {
 				ctx.Repo.GitRepo.Close()
 				ctx.Repo.GitRepo = nil
 			}
-			if err := models.ChangeRepositoryName(ctx.Repo.Owner, repo.Name, newRepoName); err != nil {
+			if err := repo_service.ChangeRepositoryName(ctx.Repo.Owner, repo, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case models.IsErrRepoAlreadyExist(err):
@@ -90,12 +86,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				default:
 					ctx.ServerError("ChangeRepositoryName", err)
 				}
-				return
-			}
-
-			err := models.NewRepoRedirect(ctx.Repo.Owner.ID, repo.ID, repo.Name, newRepoName)
-			if err != nil {
-				ctx.ServerError("NewRepoRedirect", err)
 				return
 			}
 
@@ -126,10 +116,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
-
-		if isNameChanged {
-			notification.NotifyRenameRepository(ctx.User, repo, oldRepoName)
-		}
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -383,24 +369,17 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		oldOwnerID := ctx.Repo.Owner.ID
 		// Close the GitRepo if open
 		if ctx.Repo.GitRepo != nil {
 			ctx.Repo.GitRepo.Close()
 			ctx.Repo.GitRepo = nil
 		}
-		if err = models.TransferOwnership(ctx.User, newOwner, repo); err != nil {
+		if err = repo_service.TransferOwnership(ctx.User, newOwner, repo); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else {
 				ctx.ServerError("TransferOwnership", err)
 			}
-			return
-		}
-
-		err = models.NewRepoRedirect(oldOwnerID, repo.ID, repo.Name, repo.Name)
-		if err != nil {
-			ctx.ServerError("NewRepoRedirect", err)
 			return
 		}
 

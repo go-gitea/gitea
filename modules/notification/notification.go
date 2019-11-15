@@ -101,27 +101,6 @@ func NotifyDeleteComment(doer *models.User, c *models.Comment) {
 	}
 }
 
-// NotifyDeleteRepository notifies delete repository to notifiers
-func NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
-	for _, notifier := range notifiers {
-		notifier.NotifyDeleteRepository(doer, repo)
-	}
-}
-
-// NotifyForkRepository notifies fork repository to notifiers
-func NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
-	for _, notifier := range notifiers {
-		notifier.NotifyForkRepository(doer, oldRepo, repo)
-	}
-}
-
-// NotifyRenameRepository notifies repository renamed
-func NotifyRenameRepository(doer *models.User, repo *models.Repository, oldName string) {
-	for _, notifier := range notifiers {
-		notifier.NotifyRenameRepository(doer, repo, oldName)
-	}
-}
-
 // NotifyNewRelease notifies new release to notifiers
 func NotifyNewRelease(rel *models.Release) {
 	for _, notifier := range notifiers {
@@ -197,6 +176,34 @@ func NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repo
 func NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
 	for _, notifier := range notifiers {
 		notifier.NotifyMigrateRepository(doer, u, repo)
+	}
+}
+
+// NotifyTransferRepository notifies create repository to notifiers
+func NotifyTransferRepository(doer *models.User, repo *models.Repository, newOwnerName string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyTransferRepository(doer, repo, newOwnerName)
+	}
+}
+
+// NotifyDeleteRepository notifies delete repository to notifiers
+func NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
+	for _, notifier := range notifiers {
+		notifier.NotifyDeleteRepository(doer, repo)
+	}
+}
+
+// NotifyForkRepository notifies fork repository to notifiers
+func NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
+	for _, notifier := range notifiers {
+		notifier.NotifyForkRepository(doer, oldRepo, repo)
+	}
+}
+
+// NotifyRenameRepository notifies repository renamed
+func NotifyRenameRepository(doer *models.User, repo *models.Repository, oldName string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyRenameRepository(doer, repo, oldName)
 	}
 }
 
