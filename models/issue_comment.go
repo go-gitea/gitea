@@ -1016,10 +1016,6 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 		return nil, err
 	}
 
-	if err := CommentList(comments).loadPosters(e); err != nil {
-		return nil, err
-	}
-
 	if err := issue.loadRepo(e); err != nil {
 		return nil, err
 	}
