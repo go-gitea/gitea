@@ -332,54 +332,6 @@ func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
 	CheckConsistencyFor(t, &Action{})
 }
 
-func TestTransferRepoAction(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1, OwnerID: user2.ID}).(*Repository)
-
-	repo.OwnerID = user4.ID
-	repo.Owner = user4
-
-	actionBean := &Action{
-		OpType:    ActionTransferRepo,
-		ActUserID: user2.ID,
-		ActUser:   user2,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}
-	AssertNotExistsBean(t, actionBean)
-	assert.NoError(t, TransferRepoAction(user2, user2, repo))
-	AssertExistsAndLoadBean(t, actionBean)
-
-	_, err := x.ID(repo.ID).Cols("owner_id").Update(repo)
-	assert.NoError(t, err)
-	CheckConsistencyFor(t, &Action{})
-}
-
-func TestMergePullRequestAction(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1, OwnerID: user.ID}).(*Repository)
-	repo.Owner = user
-	issue := AssertExistsAndLoadBean(t, &Issue{ID: 3, RepoID: repo.ID}).(*Issue)
-
-	actionBean := &Action{
-		OpType:    ActionMergePullRequest,
-		ActUserID: user.ID,
-		ActUser:   user,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}
-	AssertNotExistsBean(t, actionBean)
-	assert.NoError(t, MergePullRequestAction(user, repo, issue))
-	AssertExistsAndLoadBean(t, actionBean)
-	CheckConsistencyFor(t, &Action{})
-}
-
 func TestGetFeeds(t *testing.T) {
 	// test with an individual user
 	assert.NoError(t, PrepareTestDatabase())

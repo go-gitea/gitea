@@ -1499,6 +1499,17 @@ function initUserSettings() {
   }
 }
 
+function initGithook() {
+  if ($('.edit.githook').length === 0) {
+    return;
+  }
+
+  CodeMirror.autoLoadMode(CodeMirror.fromTextArea($('#content')[0], {
+    lineNumbers: true,
+    mode: 'shell'
+  }), 'shell');
+}
+
 function initWebhook() {
   if ($('.new.webhook').length === 0) {
     return;
@@ -2296,6 +2307,7 @@ $(document).ready(() => {
   initEditForm();
   initEditor();
   initOrganization();
+  initGithook();
   initWebhook();
   initAdmin();
   initCodeView();
