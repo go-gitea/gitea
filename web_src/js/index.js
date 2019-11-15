@@ -1500,7 +1500,7 @@ function initUserSettings() {
 }
 
 function initGithook() {
-  if ($('.edit.githook').length == 0) {
+  if ($('.edit.githook').length === 0) {
     return;
   }
 
