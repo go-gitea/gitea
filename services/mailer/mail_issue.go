@@ -87,13 +87,12 @@ func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, acti
 		return err
 	}
 
-	tos := make([]string, 0, len(recipients)) // List of email addresses.
 	for _, to := range recipients {
 		SendIssueCommentMail(issue, doer, actionType, content, comment, []string{to.Email})
 	}
 
 	// Mail mentioned people and exclude previous recipients
-	tos = make([]string, 0, len(mentions)) // mentions come as a list of user names
+	tos := make([]string, 0, len(mentions)) // mentions come as a list of user names
 	for _, mention := range mentions {
 		if _, ok := visited[mention]; !ok {
 			visited[mention] = true
