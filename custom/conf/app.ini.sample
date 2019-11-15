@@ -892,3 +892,9 @@ QUEUE_LENGTH = 1000
 ; Task queue connection string, available only when `QUEUE_TYPE` is `redis`.
 ; If there is a password of redis, use `addrs=127.0.0.1:6379 password=123 db=0`.
 QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
+
+[migrations]
+; Retry times on migrations for every http/https request.
+RETRY_MAX_TIMES = 3
+; Time as seconds to delay before next retry.
+RETRY_DELAY = 3
