@@ -6,6 +6,7 @@ package action
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -77,7 +78,9 @@ func (a *actionNotifier) NotifyNewPullRequest(pull *models.PullRequest) {
 	}
 }
 
-func (a *actionNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldName string) {
+func (a *actionNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldRepoName string) {
+	log.Trace("action.ChangeRepositoryName: %s/%s", doer.Name, repo.Name)
+
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -85,11 +88,23 @@ func (a *actionNotifier) NotifyRenameRepository(doer *models.User, repo *models.
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
-		Content:   oldName,
+		Content:   oldRepoName,
 	}); err != nil {
-		log.Error("notify watchers: %v", err)
-	} else {
-		log.Trace("action.renameRepoAction: %s/%s", doer.Name, repo.Name)
+		log.Error("NotifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string) {
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    models.ActionTransferRepo,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		Content:   path.Join(oldOwnerName, repo.Name),
+	}); err != nil {
+		log.Error("NotifyWatchers: %v", err)
 	}
 }
 
