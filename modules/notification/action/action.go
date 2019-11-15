@@ -148,18 +148,28 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 		}
 	}
 
-	if strings.TrimSpace(comment.Content) != "" {
-		actions = append(actions, &models.Action{
+	if review.Type != models.ReviewTypeComment || strings.TrimSpace(comment.Content) != "" {
+		action := &models.Action{
 			ActUserID: review.Reviewer.ID,
 			ActUser:   review.Reviewer,
 			Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comment.Content, "\n")[0]),
-			OpType:    models.ActionCommentIssue,
 			RepoID:    review.Issue.RepoID,
 			Repo:      review.Issue.Repo,
 			IsPrivate: review.Issue.Repo.IsPrivate,
 			Comment:   comment,
 			CommentID: comment.ID,
-		})
+		}
+
+		switch review.Type {
+		case models.ReviewTypeApprove:
+			action.OpType = models.ActionApprovePullRequest
+		case models.ReviewTypeReject:
+			action.OpType = models.ActionRejectPullRequest
+		default:
+			action.OpType = models.ActionCommentIssue
+		}
+
+		actions = append(actions, action)
 	}
 
 	if err := models.NotifyWatchersActions(actions); err != nil {

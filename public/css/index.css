@@ -73,7 +73,7 @@ a{cursor:pointer}
 .right.stackable.menu{margin-left:auto;display:flex;align-items:inherit;flex-direction:inherit}
 .ui.left{float:left}
 .ui.right{float:right}
-.ui.button,.ui.menu .item{-webkit-user-select:auto;-moz-user-select:auto;-ms-user-select:auto;user-select:auto}
+.ui.button,.ui.menu .item{-webkit-user-select:auto;-ms-user-select:auto;user-select:auto}
 .ui.container.fluid.padded{padding:0 10px 0 10px}
 .ui.form .ui.button{font-weight:400}
 .ui.floating.label{z-index:10}
@@ -233,14 +233,14 @@ i.icons .icon:first-child{margin-right:0}
 i.icon.centerlock{top:1.5em}
 .ui.label>.detail .icons{margin-right:.25em}
 .ui.label>.detail .icons .icon{margin-right:0}
-.lines-num{vertical-align:top;text-align:right!important;color:#999;background:#f5f5f5;width:1%;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
+.lines-num{vertical-align:top;text-align:right!important;color:#999;background:#f5f5f5;width:1%;-webkit-user-select:none;-ms-user-select:none;user-select:none}
 .lines-num span:before{content:attr(data-line-number);line-height:20px!important;padding:0 10px;cursor:pointer;display:block}
 .lines-code,.lines-num{padding:0!important}
 .lines-code .hljs,.lines-code ol,.lines-code pre,.lines-num .hljs,.lines-num ol,.lines-num pre{background-color:#fff;margin:0;padding:0!important}
 .lines-code .hljs li,.lines-code ol li,.lines-code pre li,.lines-num .hljs li,.lines-num ol li,.lines-num pre li{display:block;width:100%}
 .lines-code .hljs li:before,.lines-code ol li:before,.lines-code pre li:before,.lines-num .hljs li:before,.lines-num ol li:before,.lines-num pre li:before{content:' '}
-.lines-commit{vertical-align:top;color:#999;padding:0!important;background:#f5f5f5;width:1%;-moz-user-select:none;-ms-user-select:none;-webkit-user-select:none;user-select:none}
-.lines-commit .blame-info{width:350px;max-width:350px;display:block;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;padding:0 0 0 10px}
+.lines-commit{vertical-align:top;color:#999;padding:0!important;background:#f5f5f5;width:1%;-ms-user-select:none;-webkit-user-select:none;user-select:none}
+.lines-commit .blame-info{width:350px;max-width:350px;display:block;-webkit-user-select:none;-ms-user-select:none;user-select:none;padding:0 0 0 10px}
 .lines-commit .blame-info .blame-data{display:flex;font-family:-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',Roboto,Helvetica,Arial}
 .lines-commit .blame-info .blame-data .blame-message{flex-grow:2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:20px}
 .lines-commit .blame-info .blame-data .blame-avatar,.lines-commit .blame-info .blame-data .blame-time{flex-shrink:0}
@@ -333,7 +333,7 @@ i.icon.centerlock{top:1.5em}
 .repository.wiki.revisions .ui.container>.ui.stackable.grid>.header{margin-top:0}
 .repository.wiki.revisions .ui.container>.ui.stackable.grid>.header .sub.header{padding-left:52px;word-break:break-word}
 .file-revisions-btn{display:block;float:left;margin-bottom:2px!important;padding:11px!important;margin-right:10px!important}
-.file-revisions-btn i{-webkit-touch-callout:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
+.file-revisions-btn i{-webkit-touch-callout:none;-webkit-user-select:none;-ms-user-select:none;user-select:none}
 .home .logo{max-width:220px}
 @media only screen and (max-width:767px){.home .hero h1{font-size:3.5em}
 .home .hero h2{font-size:2em}
@@ -687,7 +687,7 @@ i.icon.centerlock{top:1.5em}
 .repository .diff-box .header .file{flex:1;color:#888;word-break:break-all}
 .repository .diff-box .header .button{margin:-5px 0 -5px 12px;padding:8px 10px;flex:0 0 auto}
 .repository .diff-file-box .header{background-color:#f7f7f7}
-.repository .diff-file-box .file-body.file-code .lines-num{text-align:right;color:#a6a6a6;background:#fafafa;width:1%;min-width:50px;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;vertical-align:top}
+.repository .diff-file-box .file-body.file-code .lines-num{text-align:right;color:#a6a6a6;background:#fafafa;width:1%;min-width:50px;-webkit-user-select:none;-ms-user-select:none;user-select:none;vertical-align:top}
 .repository .diff-file-box .file-body.file-code .lines-num span.fold{display:block;text-align:center}
 .repository .diff-file-box .file-body.file-code .lines-num-old{border-right:1px solid #ddd}
 .repository .diff-file-box .code-diff{font-size:12px}
@@ -698,7 +698,7 @@ i.icon.centerlock{top:1.5em}
 .repository .diff-file-box .code-diff tbody tr .removed-code{background-color:#f99}
 .repository .diff-file-box .code-diff tbody tr .added-code{background-color:#9f9}
 .repository .diff-file-box .code-diff tbody tr [data-line-num]::before{content:attr(data-line-num);text-align:right}
-.repository .diff-file-box .code-diff tbody tr .lines-type-marker{width:10px;min-width:10px;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
+.repository .diff-file-box .code-diff tbody tr .lines-type-marker{width:10px;min-width:10px;-webkit-user-select:none;-ms-user-select:none;user-select:none}
 .repository .diff-file-box .code-diff tbody tr [data-type-marker]::before{content:attr(data-type-marker);text-align:right;display:inline-block}
 .repository .diff-file-box .code-diff-unified tbody tr.del-code td{background-color:#ffe0e0!important;border-color:#f1c0c0!important}
 .repository .diff-file-box .code-diff-unified tbody tr.add-code td{background-color:#d6fcd6!important;border-color:#c1e9c1!important}
