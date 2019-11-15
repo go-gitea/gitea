@@ -864,6 +864,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("", repo.Branches)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
+		m.Group("/blob_excerpt", func() {
+			m.Get("/:sha", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
+		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
+
 		m.Group("/pulls/:index", func() {
 			m.Get(".diff", repo.DownloadPullDiff)
 			m.Get(".patch", repo.DownloadPullPatch)
