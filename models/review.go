@@ -62,7 +62,9 @@ type Review struct {
 }
 
 func (r *Review) loadCodeComments(e Engine) (err error) {
-	r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
+	if r.CodeComments == nil {
+		r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
+	}
 	return
 }
 

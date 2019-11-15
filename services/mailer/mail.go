@@ -177,7 +177,8 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 		link    string
 		prefix  string
 		// Fall back subject for bad templates, make sure subject is never empty
-		fallback string
+		fallback       string
+		reviewComments []*models.Comment
 	)
 
 	commentType := models.CommentTypeComment
@@ -189,12 +190,26 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 		link = issue.HTMLURL()
 	}
 
+	reviewType := models.ReviewTypeComment
+	if comment != nil && comment.Review != nil {
+		reviewType = comment.Review.Type
+	}
+
 	fallback = prefix + fallbackMailSubject(issue)
 
 	// This is the body of the new issue or comment, not the mail body
 	body := string(markup.RenderByType(markdown.MarkupName, []byte(content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
 
-	actType, actName, tplName := actionToTemplate(issue, actionType, commentType)
+	actType, actName, tplName := actionToTemplate(issue, actionType, commentType, reviewType)
+
+	if comment != nil && comment.Review != nil {
+		reviewComments = make([]*models.Comment, 0, 10)
+		for _, lines := range comment.Review.CodeComments {
+			for _, comments := range lines {
+				reviewComments = append(reviewComments, comments...)
+			}
+		}
+	}
 
 	mailMeta := map[string]interface{}{
 		"FallbackSubject": fallback,
@@ -210,6 +225,7 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 		"SubjectPrefix":   prefix,
 		"ActionType":      actType,
 		"ActionName":      actName,
+		"ReviewComments":  reviewComments,
 	}
 
 	var mailSubject bytes.Buffer
@@ -272,7 +288,8 @@ func SendIssueMentionMail(issue *models.Issue, doer *models.User, actionType mod
 
 // actionToTemplate returns the type and name of the action facing the user
 // (slightly different from models.ActionType) and the name of the template to use (based on availability)
-func actionToTemplate(issue *models.Issue, actionType models.ActionType, commentType models.CommentType) (typeName, name, template string) {
+func actionToTemplate(issue *models.Issue, actionType models.ActionType,
+	commentType models.CommentType, reviewType models.ReviewType) (typeName, name, template string) {
 	if issue.IsPull {
 		typeName = "pull"
 	} else {
@@ -292,7 +309,14 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType, comment
 	default:
 		switch commentType {
 		case models.CommentTypeReview:
-			name = "review"
+			switch reviewType {
+			case models.ReviewTypeApprove:
+				name = "approve"
+			case models.ReviewTypeReject:
+				name = "reject"
+			default:
+				name = "review"
+			}
 		case models.CommentTypeCode:
 			name = "code"
 		case models.CommentTypeAssignees:
