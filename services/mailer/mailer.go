@@ -304,7 +304,9 @@ func SendAsync(msg *Message) {
 
 // SendAsyncs send mails asynchronously
 func SendAsyncs(msgs []*Message) {
-	for _, msg := range msgs {
-		SendAsync(msg)
-	}
+	go func() {
+		for _, msg := range msgs {
+			mailQueue <- msg
+		}
+	}()
 }
