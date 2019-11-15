@@ -166,7 +166,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 		PosterID:  user.ID,
 		IssueID:   1,
 	}
-	issueBean := &Issue{RepoID: repo.ID, Index: 2}
+	issueBean := &Issue{RepoID: repo.ID, Index: 4}
 
 	AssertNotExistsBean(t, commentBean)
 	AssertNotExistsBean(t, &Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
@@ -220,7 +220,7 @@ func TestUpdateIssuesCommit_Colon(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	repo.Owner = user
 
-	issueBean := &Issue{RepoID: repo.ID, Index: 2}
+	issueBean := &Issue{RepoID: repo.ID, Index: 4}
 
 	AssertNotExistsBean(t, &Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
