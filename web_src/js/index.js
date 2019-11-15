@@ -730,8 +730,9 @@ function initRepository() {
     });
 
     // Edit issue or comment content
-    $('.edit-content').click(function () {
-      const $segment = $(this).parent().parent().parent()
+    $('.edit-content').click(function (event) {
+      $(this).closest('.dropdown').find('.menu').toggle('visible');
+      const $segment = $(this).parent().parent().parent().parent()
         .next();
       const $editContentZone = $segment.find('.edit-content-zone');
       const $renderContent = $segment.find('.render-content');
@@ -878,7 +879,7 @@ function initRepository() {
         $textarea.val($rawContent.text());
       }
       $textarea.focus();
-      return false;
+      event.preventDefault();
     });
 
     // Delete comment
@@ -928,7 +929,6 @@ function initRepository() {
       $(this).closest('.form').hide();
       $mergeButton.parent().show();
     });
-
     initReactionSelector();
   }
 
