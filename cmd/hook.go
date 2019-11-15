@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
 )
@@ -55,7 +56,13 @@ var (
 
 func runHookPreReceive(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
-		return nil
+		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
+			fail(`Rejecting changes as Gitea environment not set.
+If you are pushing over SSH you must push with a key managed by
+Gitea or set your environment appropriately.`, "")
+		} else {
+			return nil
+		}
 	}
 
 	setup("hooks/pre-receive.log")
@@ -115,7 +122,13 @@ func runHookPreReceive(c *cli.Context) error {
 
 func runHookUpdate(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
-		return nil
+		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
+			fail(`Rejecting changes as Gitea environment not set.
+If you are pushing over SSH you must push with a key managed by
+Gitea or set your environment appropriately.`, "")
+		} else {
+			return nil
+		}
 	}
 
 	setup("hooks/update.log")
@@ -125,7 +138,13 @@ func runHookUpdate(c *cli.Context) error {
 
 func runHookPostReceive(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
-		return nil
+		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
+			fail(`Rejecting changes as Gitea environment not set.
+If you are pushing over SSH you must push with a key managed by
+Gitea or set your environment appropriately.`, "")
+		} else {
+			return nil
+		}
 	}
 
 	setup("hooks/post-receive.log")
