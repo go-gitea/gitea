@@ -33,21 +33,25 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User) *api.Branch {
 	if bp == nil {
 		return &api.Branch{
-			Name:              b.Name,
-			Commit:            ToCommit(repo, c),
-			Protected:         false,
-			RequiredApprovals: 0,
-			UserCanPush:       true,
-			UserCanMerge:      true,
+			Name:                b.Name,
+			Commit:              ToCommit(repo, c),
+			Protected:           false,
+			RequiredApprovals:   0,
+			EnableStatusCheck:   false,
+			StatusCheckContexts: []string{},
+			UserCanPush:         true,
+			UserCanMerge:        true,
 		}
 	}
 	return &api.Branch{
-		Name:              b.Name,
-		Commit:            ToCommit(repo, c),
-		Protected:         true,
-		RequiredApprovals: bp.RequiredApprovals,
-		UserCanPush:       bp.CanUserPush(user.ID),
-		UserCanMerge:      bp.CanUserMerge(user.ID),
+		Name:                b.Name,
+		Commit:              ToCommit(repo, c),
+		Protected:           true,
+		RequiredApprovals:   bp.RequiredApprovals,
+		EnableStatusCheck:   bp.EnableStatusCheck,
+		StatusCheckContexts: bp.StatusCheckContexts,
+		UserCanPush:         bp.CanUserPush(user.ID),
+		UserCanMerge:        bp.CanUserMerge(user.ID),
 	}
 }
 
