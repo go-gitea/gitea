@@ -6,6 +6,8 @@ package action
 
 import (
 	"fmt"
+	"path"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
@@ -76,7 +78,9 @@ func (a *actionNotifier) NotifyNewPullRequest(pull *models.PullRequest) {
 	}
 }
 
-func (a *actionNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldName string) {
+func (a *actionNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldRepoName string) {
+	log.Trace("action.ChangeRepositoryName: %s/%s", doer.Name, repo.Name)
+
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -84,10 +88,106 @@ func (a *actionNotifier) NotifyRenameRepository(doer *models.User, repo *models.
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
-		Content:   oldName,
+		Content:   oldRepoName,
 	}); err != nil {
-		log.Error("notify watchers: %v", err)
-	} else {
-		log.Trace("action.renameRepoAction: %s/%s", doer.Name, repo.Name)
+		log.Error("NotifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string) {
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    models.ActionTransferRepo,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		Content:   path.Join(oldOwnerName, repo.Name),
+	}); err != nil {
+		log.Error("NotifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    models.ActionCreateRepo,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+	}); err != nil {
+		log.Error("notify watchers '%d/%d': %v", doer.ID, repo.ID, err)
+	}
+}
+
+func (a *actionNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    models.ActionCreateRepo,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+	}); err != nil {
+		log.Error("notify watchers '%d/%d': %v", doer.ID, repo.ID, err)
+	}
+}
+
+func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment) {
+	if err := review.LoadReviewer(); err != nil {
+		log.Error("LoadReviewer '%d/%d': %v", review.ID, review.ReviewerID, err)
+		return
+	}
+	if err := review.LoadCodeComments(); err != nil {
+		log.Error("LoadCodeComments '%d/%d': %v", review.Reviewer.ID, review.ID, err)
+		return
+	}
+
+	var actions = make([]*models.Action, 0, 10)
+	for _, lines := range review.CodeComments {
+		for _, comments := range lines {
+			for _, comm := range comments {
+				actions = append(actions, &models.Action{
+					ActUserID: review.Reviewer.ID,
+					ActUser:   review.Reviewer,
+					Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comm.Content, "\n")[0]),
+					OpType:    models.ActionCommentIssue,
+					RepoID:    review.Issue.RepoID,
+					Repo:      review.Issue.Repo,
+					IsPrivate: review.Issue.Repo.IsPrivate,
+					Comment:   comm,
+					CommentID: comm.ID,
+				})
+			}
+		}
+	}
+
+	if review.Type != models.ReviewTypeComment || strings.TrimSpace(comment.Content) != "" {
+		action := &models.Action{
+			ActUserID: review.Reviewer.ID,
+			ActUser:   review.Reviewer,
+			Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comment.Content, "\n")[0]),
+			RepoID:    review.Issue.RepoID,
+			Repo:      review.Issue.Repo,
+			IsPrivate: review.Issue.Repo.IsPrivate,
+			Comment:   comment,
+			CommentID: comment.ID,
+		}
+
+		switch review.Type {
+		case models.ReviewTypeApprove:
+			action.OpType = models.ActionApprovePullRequest
+		case models.ReviewTypeReject:
+			action.OpType = models.ActionRejectPullRequest
+		default:
+			action.OpType = models.ActionCommentIssue
+		}
+
+		actions = append(actions, action)
+	}
+
+	if err := models.NotifyWatchersActions(actions); err != nil {
+		log.Error("notify watchers '%d/%d': %v", review.Reviewer.ID, review.Issue.RepoID, err)
 	}
 }

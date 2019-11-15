@@ -44,8 +44,10 @@ type Notification struct {
 	Status NotificationStatus `xorm:"SMALLINT INDEX NOT NULL"`
 	Source NotificationSource `xorm:"SMALLINT INDEX NOT NULL"`
 
-	IssueID  int64  `xorm:"INDEX NOT NULL"`
-	CommitID string `xorm:"INDEX"`
+	IssueID   int64  `xorm:"INDEX NOT NULL"`
+	CommitID  string `xorm:"INDEX"`
+	CommentID int64
+	Comment   *Comment `xorm:"-"`
 
 	UpdatedBy int64 `xorm:"INDEX NOT NULL"`
 
@@ -58,22 +60,27 @@ type Notification struct {
 
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
-func CreateOrUpdateIssueNotifications(issue *Issue, notificationAuthorID int64) error {
+func CreateOrUpdateIssueNotifications(issueID, commentID int64, notificationAuthorID int64) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err := createOrUpdateIssueNotifications(sess, issue, notificationAuthorID); err != nil {
+	if err := createOrUpdateIssueNotifications(sess, issueID, commentID, notificationAuthorID); err != nil {
 		return err
 	}
 
 	return sess.Commit()
 }
 
-func createOrUpdateIssueNotifications(e Engine, issue *Issue, notificationAuthorID int64) error {
-	issueWatches, err := getIssueWatchers(e, issue.ID)
+func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notificationAuthorID int64) error {
+	issueWatches, err := getIssueWatchers(e, issueID)
+	if err != nil {
+		return err
+	}
+
+	issue, err := getIssueByID(e, issueID)
 	if err != nil {
 		return err
 	}
@@ -83,7 +90,7 @@ func createOrUpdateIssueNotifications(e Engine, issue *Issue, notificationAuthor
 		return err
 	}
 
-	notifications, err := getNotificationsByIssueID(e, issue.ID)
+	notifications, err := getNotificationsByIssueID(e, issueID)
 	if err != nil {
 		return err
 	}
@@ -102,9 +109,9 @@ func createOrUpdateIssueNotifications(e Engine, issue *Issue, notificationAuthor
 		alreadyNotified[userID] = struct{}{}
 
 		if notificationExists(notifications, issue.ID, userID) {
-			return updateIssueNotification(e, userID, issue.ID, notificationAuthorID)
+			return updateIssueNotification(e, userID, issue.ID, commentID, notificationAuthorID)
 		}
-		return createIssueNotification(e, userID, issue, notificationAuthorID)
+		return createIssueNotification(e, userID, issue, commentID, notificationAuthorID)
 	}
 
 	for _, issueWatch := range issueWatches {
@@ -157,12 +164,13 @@ func notificationExists(notifications []*Notification, issueID, userID int64) bo
 	return false
 }
 
-func createIssueNotification(e Engine, userID int64, issue *Issue, updatedByID int64) error {
+func createIssueNotification(e Engine, userID int64, issue *Issue, commentID, updatedByID int64) error {
 	notification := &Notification{
 		UserID:    userID,
 		RepoID:    issue.RepoID,
 		Status:    NotificationStatusUnread,
 		IssueID:   issue.ID,
+		CommentID: commentID,
 		UpdatedBy: updatedByID,
 	}
 
@@ -176,16 +184,25 @@ func createIssueNotification(e Engine, userID int64, issue *Issue, updatedByID i
 	return err
 }
 
-func updateIssueNotification(e Engine, userID, issueID, updatedByID int64) error {
+func updateIssueNotification(e Engine, userID, issueID, commentID, updatedByID int64) error {
 	notification, err := getIssueNotification(e, userID, issueID)
 	if err != nil {
 		return err
 	}
 
-	notification.Status = NotificationStatusUnread
-	notification.UpdatedBy = updatedByID
+	// NOTICE: Only update comment id when the before notification on this issue is read, otherwise you may miss some old comments.
+	// But we need update update_by so that the notification will be reorder
+	var cols []string
+	if notification.Status == NotificationStatusRead {
+		notification.Status = NotificationStatusUnread
+		notification.CommentID = commentID
+		cols = []string{"status", "update_by", "comment_id"}
+	} else {
+		notification.UpdatedBy = updatedByID
+		cols = []string{"update_by"}
+	}
 
-	_, err = e.ID(notification.ID).Update(notification)
+	_, err = e.ID(notification.ID).Cols(cols...).Update(notification)
 	return err
 }
 
@@ -199,7 +216,7 @@ func getIssueNotification(e Engine, userID, issueID int64) (*Notification, error
 }
 
 // NotificationsForUser returns notifications for a given user and status
-func NotificationsForUser(user *User, statuses []NotificationStatus, page, perPage int) ([]*Notification, error) {
+func NotificationsForUser(user *User, statuses []NotificationStatus, page, perPage int) (NotificationList, error) {
 	return notificationsForUser(x, user, statuses, page, perPage)
 }
 
@@ -237,6 +254,204 @@ func (n *Notification) GetIssue() (*Issue, error) {
 		Where("id = ?", n.IssueID).
 		Get(n.Issue)
 	return n.Issue, err
+}
+
+// HTMLURL formats a URL-string to the notification
+func (n *Notification) HTMLURL() string {
+	if n.Comment != nil {
+		return n.Comment.HTMLURL()
+	}
+	return n.Issue.HTMLURL()
+}
+
+// NotificationList contains a list of notifications
+type NotificationList []*Notification
+
+func (nl NotificationList) getPendingRepoIDs() []int64 {
+	var ids = make(map[int64]struct{}, len(nl))
+	for _, notification := range nl {
+		if notification.Repository != nil {
+			continue
+		}
+		if _, ok := ids[notification.RepoID]; !ok {
+			ids[notification.RepoID] = struct{}{}
+		}
+	}
+	return keysInt64(ids)
+}
+
+// LoadRepos loads repositories from database
+func (nl NotificationList) LoadRepos() (RepositoryList, error) {
+	if len(nl) == 0 {
+		return RepositoryList{}, nil
+	}
+
+	var repoIDs = nl.getPendingRepoIDs()
+	var repos = make(map[int64]*Repository, len(repoIDs))
+	var left = len(repoIDs)
+	for left > 0 {
+		var limit = defaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		rows, err := x.
+			In("id", repoIDs[:limit]).
+			Rows(new(Repository))
+		if err != nil {
+			return nil, err
+		}
+
+		for rows.Next() {
+			var repo Repository
+			err = rows.Scan(&repo)
+			if err != nil {
+				rows.Close()
+				return nil, err
+			}
+
+			repos[repo.ID] = &repo
+		}
+		_ = rows.Close()
+
+		left -= limit
+		repoIDs = repoIDs[limit:]
+	}
+
+	var reposList = make(RepositoryList, 0, len(repoIDs))
+	for _, notification := range nl {
+		if notification.Repository == nil {
+			notification.Repository = repos[notification.RepoID]
+		}
+		var found bool
+		for _, r := range reposList {
+			if r.ID == notification.Repository.ID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			reposList = append(reposList, notification.Repository)
+		}
+	}
+	return reposList, nil
+}
+
+func (nl NotificationList) getPendingIssueIDs() []int64 {
+	var ids = make(map[int64]struct{}, len(nl))
+	for _, notification := range nl {
+		if notification.Issue != nil {
+			continue
+		}
+		if _, ok := ids[notification.IssueID]; !ok {
+			ids[notification.IssueID] = struct{}{}
+		}
+	}
+	return keysInt64(ids)
+}
+
+// LoadIssues loads issues from database
+func (nl NotificationList) LoadIssues() error {
+	if len(nl) == 0 {
+		return nil
+	}
+
+	var issueIDs = nl.getPendingIssueIDs()
+	var issues = make(map[int64]*Issue, len(issueIDs))
+	var left = len(issueIDs)
+	for left > 0 {
+		var limit = defaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		rows, err := x.
+			In("id", issueIDs[:limit]).
+			Rows(new(Issue))
+		if err != nil {
+			return err
+		}
+
+		for rows.Next() {
+			var issue Issue
+			err = rows.Scan(&issue)
+			if err != nil {
+				rows.Close()
+				return err
+			}
+
+			issues[issue.ID] = &issue
+		}
+		_ = rows.Close()
+
+		left -= limit
+		issueIDs = issueIDs[limit:]
+	}
+
+	for _, notification := range nl {
+		if notification.Issue == nil {
+			notification.Issue = issues[notification.IssueID]
+			notification.Issue.Repo = notification.Repository
+		}
+	}
+	return nil
+}
+
+func (nl NotificationList) getPendingCommentIDs() []int64 {
+	var ids = make(map[int64]struct{}, len(nl))
+	for _, notification := range nl {
+		if notification.CommentID == 0 || notification.Comment != nil {
+			continue
+		}
+		if _, ok := ids[notification.CommentID]; !ok {
+			ids[notification.CommentID] = struct{}{}
+		}
+	}
+	return keysInt64(ids)
+}
+
+// LoadComments loads comments from database
+func (nl NotificationList) LoadComments() error {
+	if len(nl) == 0 {
+		return nil
+	}
+
+	var commentIDs = nl.getPendingCommentIDs()
+	var comments = make(map[int64]*Comment, len(commentIDs))
+	var left = len(commentIDs)
+	for left > 0 {
+		var limit = defaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		rows, err := x.
+			In("id", commentIDs[:limit]).
+			Rows(new(Comment))
+		if err != nil {
+			return err
+		}
+
+		for rows.Next() {
+			var comment Comment
+			err = rows.Scan(&comment)
+			if err != nil {
+				rows.Close()
+				return err
+			}
+
+			comments[comment.ID] = &comment
+		}
+		_ = rows.Close()
+
+		left -= limit
+		commentIDs = commentIDs[limit:]
+	}
+
+	for _, notification := range nl {
+		if notification.CommentID > 0 && notification.Comment == nil {
+			notification.Comment = comments[notification.CommentID]
+			notification.Comment.Issue = notification.Issue
+		}
+	}
+	return nil
 }
 
 // GetNotificationCount returns the notification count for user

@@ -74,6 +74,8 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	repo1.CreateNewBranch(user2, repo1.DefaultBranch, newBranch)
 	// Get the commit ID of the default branch
 	gitRepo, _ := git.OpenRepository(repo1.RepoPath())
+	defer gitRepo.Close()
+
 	commitID, _ := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
 	// Make a new tag in repo1
 	newTag := "test_tag"

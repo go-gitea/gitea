@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
@@ -24,7 +25,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
-	"code.gitea.io/gitea/routers/api/v1/convert"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -71,6 +71,11 @@ func Search(ctx *context.APIContext) {
 	//   description: search only for repos that the user with the given id owns or contributes to
 	//   type: integer
 	//   format: int64
+	// - name: priority_owner_id
+	//   in: query
+	//   description: repo owner to prioritize in the results
+	//   type: integer
+	//   format: int64
 	// - name: starredBy
 	//   in: query
 	//   description: search only for repos that the user with the given id has starred
@@ -79,6 +84,10 @@ func Search(ctx *context.APIContext) {
 	// - name: private
 	//   in: query
 	//   description: include private repositories this user has access to (defaults to true)
+	//   type: boolean
+	// - name: template
+	//   in: query
+	//   description: include template repositories this user has access to (defaults to true)
 	//   type: boolean
 	// - name: page
 	//   in: query
@@ -116,15 +125,21 @@ func Search(ctx *context.APIContext) {
 	opts := &models.SearchRepoOptions{
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
+		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
 		Page:               ctx.QueryInt("page"),
 		PageSize:           convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		TopicOnly:          ctx.QueryBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
+		Template:           util.OptionalBoolNone,
 		UserIsAdmin:        ctx.IsUserSiteAdmin(),
 		UserID:             ctx.Data["SignedUserID"].(int64),
 		StarredByID:        ctx.QueryInt64("starredBy"),
 		IncludeDescription: ctx.QueryBool("includeDesc"),
+	}
+
+	if ctx.Query("template") != "" {
+		opts.Template = util.OptionalBoolOf(ctx.QueryBool("template"))
 	}
 
 	if ctx.QueryBool("exclusive") {
@@ -616,15 +631,13 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) error {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
-
-	oldRepoName := repo.Name
 	newRepoName := repo.Name
 	if opts.Name != nil {
 		newRepoName = *opts.Name
 	}
 	// Check if repository name has been changed and not just a case change
 	if repo.LowerName != strings.ToLower(newRepoName) {
-		if err := models.ChangeRepositoryName(ctx.Repo.Owner, repo.Name, newRepoName); err != nil {
+		if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
 			switch {
 			case models.IsErrRepoAlreadyExist(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
@@ -637,14 +650,6 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 			}
 			return err
 		}
-
-		err := models.NewRepoRedirect(ctx.Repo.Owner.ID, repo.ID, repo.Name, newRepoName)
-		if err != nil {
-			ctx.Error(http.StatusUnprocessableEntity, "NewRepoRedirect", err)
-			return err
-		}
-
-		notification.NotifyRenameRepository(ctx.User, repo, oldRepoName)
 
 		log.Trace("Repository name changed: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newRepoName)
 	}
@@ -676,6 +681,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		}
 
 		repo.IsPrivate = *opts.Private
+	}
+
+	if opts.Template != nil {
+		repo.IsTemplate = *opts.Template
 	}
 
 	if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
