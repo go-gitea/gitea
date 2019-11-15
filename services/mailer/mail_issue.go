@@ -83,17 +83,13 @@ func mailIssueCommentToParticipants(issue *models.Issue, doer *models.User, acti
 	recipients = addUniqueUsers(visited, recipients, participants)
 	recipients = addUniqueUsers(visited, recipients, assignees)
 
-	tos := make([]string, 0, len(recipients)) // List of email addresses.
-	for _, to := range recipients {
-		tos = append(tos, to.Email)
-	}
-
 	if err := issue.LoadRepo(); err != nil {
 		return err
 	}
 
-	for _, to := range tos {
-		SendIssueCommentMail(issue, doer, actionType, content, comment, []string{to})
+	tos := make([]string, 0, len(recipients)) // List of email addresses.
+	for _, to := range recipients {
+		SendIssueCommentMail(issue, doer, actionType, content, comment, []string{to.Email})
 	}
 
 	// Mail mentioned people and exclude previous recipients
