@@ -5,21 +5,26 @@
 package repo
 
 import (
+	"bufio"
 	"fmt"
+	"html"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
 const (
-	tplCompare base.TplName = "repo/diff/compare"
+	tplCompare     base.TplName = "repo/diff/compare"
+	tplBlobExcerpt base.TplName = "repo/diff/blob_excerpt"
 )
 
 // setPathsCompareContext sets context data for source and raw paths
@@ -433,4 +438,110 @@ func CompareDiff(ctx *context.Context) {
 	renderAttachmentSettings(ctx)
 
 	ctx.HTML(200, tplCompare)
+}
+
+// ExcerptBlob render blob excerpt contents
+func ExcerptBlob(ctx *context.Context) {
+	commitID := ctx.Params("sha")
+	lastLeft := ctx.QueryInt("last_left")
+	lastRight := ctx.QueryInt("last_right")
+	idxLeft := ctx.QueryInt("left")
+	idxRight := ctx.QueryInt("right")
+	leftHunkSize := ctx.QueryInt("left_hunk_size")
+	rightHunkSize := ctx.QueryInt("right_hunk_size")
+	anchor := ctx.Query("anchor")
+	direction := ctx.Query("direction")
+	filePath := ctx.Query("path")
+	gitRepo := ctx.Repo.GitRepo
+	chunkSize := gitdiff.BlobExceprtChunkSize
+	commit, err := gitRepo.GetCommit(commitID)
+	if err != nil {
+		ctx.Error(500, "GetCommit")
+		return
+	}
+	section := &gitdiff.DiffSection{
+		Name: filePath,
+	}
+	if direction == "up" && (idxLeft-lastLeft) > chunkSize {
+		idxLeft -= chunkSize
+		idxRight -= chunkSize
+		leftHunkSize += chunkSize
+		rightHunkSize += chunkSize
+		section.Lines, err = getExcerptLines(commit, filePath, idxLeft-1, idxRight-1, chunkSize)
+	} else if direction == "down" && (idxLeft-lastLeft) > chunkSize {
+		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, chunkSize)
+		lastLeft += chunkSize
+		lastRight += chunkSize
+	} else {
+		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, idxRight-lastRight-1)
+		leftHunkSize = 0
+		rightHunkSize = 0
+		idxLeft = lastLeft
+		idxRight = lastRight
+	}
+	if err != nil {
+		ctx.Error(500, "getExcerptLines")
+		return
+	}
+	if idxRight > lastRight {
+		lineText := " "
+		if rightHunkSize > 0 || leftHunkSize > 0 {
+			lineText = fmt.Sprintf("@@ -%d,%d +%d,%d @@\n", idxLeft, leftHunkSize, idxRight, rightHunkSize)
+		}
+		lineText = html.EscapeString(lineText)
+		lineSection := &gitdiff.DiffLine{
+			Type:    gitdiff.DiffLineSection,
+			Content: lineText,
+			SectionInfo: &gitdiff.DiffLineSectionInfo{
+				Path:          filePath,
+				LastLeftIdx:   lastLeft,
+				LastRightIdx:  lastRight,
+				LeftIdx:       idxLeft,
+				RightIdx:      idxRight,
+				LeftHunkSize:  leftHunkSize,
+				RightHunkSize: rightHunkSize,
+			}}
+		if direction == "up" {
+			section.Lines = append([]*gitdiff.DiffLine{lineSection}, section.Lines...)
+		} else if direction == "down" {
+			section.Lines = append(section.Lines, lineSection)
+		}
+	}
+	ctx.Data["section"] = section
+	ctx.Data["fileName"] = filePath
+	ctx.Data["highlightClass"] = highlight.FileNameToHighlightClass(filepath.Base(filePath))
+	ctx.Data["AfterCommitID"] = commitID
+	ctx.Data["Anchor"] = anchor
+	ctx.HTML(200, tplBlobExcerpt)
+}
+
+func getExcerptLines(commit *git.Commit, filePath string, idxLeft int, idxRight int, chunkSize int) ([]*gitdiff.DiffLine, error) {
+	blob, err := commit.Tree.GetBlobByPath(filePath)
+	if err != nil {
+		return nil, err
+	}
+	reader, err := blob.DataAsync()
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+	scanner := bufio.NewScanner(reader)
+	var diffLines []*gitdiff.DiffLine
+	for line := 0; line < idxRight+chunkSize; line++ {
+		if ok := scanner.Scan(); !ok {
+			break
+		}
+		if line < idxRight {
+			continue
+		}
+		lineText := scanner.Text()
+		diffLine := &gitdiff.DiffLine{
+			LeftIdx:  idxLeft + (line - idxRight) + 1,
+			RightIdx: line + 1,
+			Type:     gitdiff.DiffLinePlain,
+			Content:  " " + lineText,
+		}
+		diffLines = append(diffLines, diffLine)
+	}
+	return diffLines, nil
 }
