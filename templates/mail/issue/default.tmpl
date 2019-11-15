@@ -3,6 +3,12 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<title>{{.Subject}}</title>
+	{{if .ReviewComments}}
+	<style>
+		.review { padding-left: 1em; margin: 1em 0; }
+		.review > pre { padding: 1em; border-left: 1px solid grey; }
+	</style>
+	{{end}}
 </head>
 
 <body>
@@ -15,12 +21,18 @@
 				Closed #{{.Issue.Index}}.
 			{{else if eq .ActionName "reopen"}}
 				Reopened #{{.Issue.Index}}.
-			{{else}}
+			{{else if ne .ReviewComments}}
 				Empty comment on #{{.Issue.Index}}.
 			{{end}}
 		{{else}}
 			{{.Body | Str2html}}
 		{{end -}}
+		{{- range .ReviewComments}}
+			<div class="review">
+				<pre>{{.Patch}}</pre>
+				<div>{{.RenderedContent | Safe}}</div>
+			</div>
+		{{end -}}		
 	</p>
 	<p>
 		---
