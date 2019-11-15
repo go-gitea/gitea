@@ -1219,9 +1219,9 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	return issues, nil
 }
 
-// GetParticipantsIDsByIssueID returns all users who are participated in comments of an issue,
+// GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,
 // but skips joining with `user` for performance reasons.
-// User permissions must be verified elsewhere as required.
+// User permissions must be verified elsewhere if required.
 func GetParticipantsIDsByIssueID(issueID int64) ([]int64, error) {
 	userIDs := make([]int64, 0, 5)
 	return userIDs, x.Table("comment").

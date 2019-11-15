@@ -41,9 +41,9 @@ func (issue *Issue) loadAssignees(e Engine) (err error) {
 	return
 }
 
-// GetAssigneeIDsByIssue returns everyone assigned to that issue
+// GetAssigneeIDsByIssue returns the IDs of users assigned to an issue
 // but skips joining with `user` for performance reasons.
-// User permissions must be verified elsewhere as required.
+// User permissions must be verified elsewhere if required.
 func GetAssigneeIDsByIssue(issueID int64) ([]int64, error) {
 	userIDs := make([]int64, 0, 5)
 	return userIDs, x.Table("issue_assignees").
