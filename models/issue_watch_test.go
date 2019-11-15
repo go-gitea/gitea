@@ -15,11 +15,11 @@ func TestCreateOrUpdateIssueWatch(t *testing.T) {
 
 	assert.NoError(t, CreateOrUpdateIssueWatch(3, 1, true))
 	iw := AssertExistsAndLoadBean(t, &IssueWatch{UserID: 3, IssueID: 1}).(*IssueWatch)
-	assert.Equal(t, true, iw.IsWatching)
+	assert.True(t, iw.IsWatching)
 
 	assert.NoError(t, CreateOrUpdateIssueWatch(1, 1, false))
 	iw = AssertExistsAndLoadBean(t, &IssueWatch{UserID: 1, IssueID: 1}).(*IssueWatch)
-	assert.Equal(t, false, iw.IsWatching)
+	assert.False(t, iw.IsWatching)
 }
 
 func TestGetIssueWatch(t *testing.T) {
@@ -44,20 +44,20 @@ func TestGetIssueWatchers(t *testing.T) {
 	iws, err := GetIssueWatchers(1)
 	assert.NoError(t, err)
 	// Watcher is inactive, thus 0
-	assert.Equal(t, 0, len(iws))
+	assert.Len(t, iws, 0)
 
 	iws, err = GetIssueWatchers(2)
 	assert.NoError(t, err)
 	// Watcher is explicit not watching
-	assert.Equal(t, 0, len(iws))
+	assert.Len(t, iws, 0)
 
 	iws, err = GetIssueWatchers(5)
 	assert.NoError(t, err)
 	// Issue has no Watchers
-	assert.Equal(t, 0, len(iws))
+	assert.Len(t, iws, 0)
 
 	iws, err = GetIssueWatchers(7)
 	assert.NoError(t, err)
 	// Issue has one watcher
-	assert.Equal(t, 1, len(iws))
+	assert.Len(t, iws, 1)
 }
