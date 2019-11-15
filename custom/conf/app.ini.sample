@@ -894,7 +894,7 @@ QUEUE_LENGTH = 1000
 QUEUE_CONN_STR = "addrs=127.0.0.1:6379 db=0"
 
 [migrations]
-; Retry times on migrations for every http/https request.
-RETRY_MAX_TIMES = 3
-; Time as seconds to delay before next retry.
-RETRY_DELAY = 3
+; Max attempts per http/https request on migrations.
+MAX_ATTEMPTS = 3
+; Backoff time per http/https request retry (seconds)
+RETRY_BACKOFF = 3

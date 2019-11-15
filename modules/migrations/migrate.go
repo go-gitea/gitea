@@ -65,8 +65,8 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 
 	uploader.gitServiceType = opts.GitServiceType
 
-	if setting.Migrations.RetryMaxTimes > 0 {
-		downloader = base.NewRetryDownloader(downloader, setting.Migrations.RetryMaxTimes+1, setting.Migrations.RetryDelay)
+	if setting.Migrations.MaxAttempts > 0 {
+		downloader = base.NewRetryDownloader(downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
 	}
 
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
