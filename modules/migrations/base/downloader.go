@@ -46,6 +46,7 @@ func NewRetryDownloader(downloader Downloader, retryTimes, retryDelay int) *Retr
 	}
 }
 
+// GetRepoInfo returns a repository information with retry
 func (d *RetryDownloader) GetRepoInfo() (*Repository, error) {
 	var (
 		times = d.RetryTimes
@@ -61,6 +62,7 @@ func (d *RetryDownloader) GetRepoInfo() (*Repository, error) {
 	return nil, err
 }
 
+// GetTopics returns a repository's topics with retry
 func (d *RetryDownloader) GetTopics() ([]string, error) {
 	var (
 		times  = d.RetryTimes
@@ -76,6 +78,7 @@ func (d *RetryDownloader) GetTopics() ([]string, error) {
 	return nil, err
 }
 
+// GetMilestones returns a repository's milestones with retry
 func (d *RetryDownloader) GetMilestones() ([]*Milestone, error) {
 	var (
 		times      = d.RetryTimes
@@ -91,6 +94,7 @@ func (d *RetryDownloader) GetMilestones() ([]*Milestone, error) {
 	return nil, err
 }
 
+// GetReleases returns a repository's releases with retry
 func (d *RetryDownloader) GetReleases() ([]*Release, error) {
 	var (
 		times    = d.RetryTimes
@@ -106,6 +110,7 @@ func (d *RetryDownloader) GetReleases() ([]*Release, error) {
 	return nil, err
 }
 
+// GetLabels returns a repository's labels with retry
 func (d *RetryDownloader) GetLabels() ([]*Label, error) {
 	var (
 		times  = d.RetryTimes
@@ -121,6 +126,7 @@ func (d *RetryDownloader) GetLabels() ([]*Label, error) {
 	return nil, err
 }
 
+// GetIssues returns a repository's issues with retry
 func (d *RetryDownloader) GetIssues(page, perPage int) ([]*Issue, bool, error) {
 	var (
 		times  = d.RetryTimes
@@ -137,6 +143,7 @@ func (d *RetryDownloader) GetIssues(page, perPage int) ([]*Issue, bool, error) {
 	return nil, false, err
 }
 
+// GetComments returns a repository's comments with retry
 func (d *RetryDownloader) GetComments(issueNumber int64) ([]*Comment, error) {
 	var (
 		times    = d.RetryTimes
@@ -152,6 +159,7 @@ func (d *RetryDownloader) GetComments(issueNumber int64) ([]*Comment, error) {
 	return nil, err
 }
 
+// GetPullRequests returns a repository's pull requests with retry
 func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, error) {
 	var (
 		times = d.RetryTimes

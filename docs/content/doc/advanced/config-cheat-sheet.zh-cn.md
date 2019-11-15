@@ -274,8 +274,8 @@ IS_INPUT_FILE = false
 
 ## Migrations (`migrations`)
 
-- `RETRY_MAX_TIMES`: **3**: 在迁移过程中的 http/https 请求重试次数。
-- `RETRY_DELAY`: **3**: 等待下一次重试的时间，单位秒。
+- `MAX_ATTEMPTS`: **3**: 在迁移过程中的 http/https 请求重试次数。
+- `RETRY_BACKOFF`: **3**: 等待下一次重试的时间，单位秒。
 
 ## Other (`other`)
 

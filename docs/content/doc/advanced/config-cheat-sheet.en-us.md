@@ -587,8 +587,8 @@ Two special environment variables are passed to the render command:
 
 ## Migrations (`migrations`)
 
-- `RETRY_MAX_TIMES`: **3**: Retry times on migrations for every http/https request.
-- `RETRY_DELAY`: **3**: Time as seconds to delay before next retry.
+- `MAX_ATTEMPTS`: **3**: Max attempts per http/https request on migrations.
+- `RETRY_BACKOFF`: **3**: Backoff time per http/https request retry (seconds)
 
 ## Other (`other`)
 
