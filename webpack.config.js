@@ -4,7 +4,7 @@ const TerserPlugin = require('terser-webpack-plugin');
 module.exports = {
   mode: 'production',
   entry: {
-    index: ['./web_src/js/index', './web_src/js/draw']
+    index: ['./web_src/js/index']
   },
   devtool: 'source-map',
   output: {

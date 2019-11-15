@@ -3307,3 +3307,16 @@ window.onOAuthLoginClick = function () {
     oauthNav.show();
   }, 5000);
 };
+
+$(() => {
+  const graphList = [];
+  if (!document.getElementById('graph-canvas')) {
+    return;
+  }
+
+  $('#graph-raw-list li span.node-relation').each(function () {
+    graphList.push($(this).text());
+  });
+
+  window.gitGraph(document.getElementById('graph-canvas'), graphList);
+});
