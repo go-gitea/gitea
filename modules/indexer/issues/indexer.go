@@ -5,12 +5,16 @@
 package issues
 
 import (
+	"context"
+	"encoding/json"
+	"os"
 	"sync"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -44,6 +48,7 @@ type Indexer interface {
 	Index(issue []*IndexerData) error
 	Delete(ids ...int64) error
 	Search(kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
+	Close() error
 }
 
 type indexerHolder struct {
@@ -75,9 +80,8 @@ func (h *indexerHolder) get() Indexer {
 }
 
 var (
-	issueIndexerChannel = make(chan *IndexerData, setting.Indexer.UpdateQueueLength)
 	// issueIndexerQueue queue of issue ids to be updated
-	issueIndexerQueue Queue
+	issueIndexerQueue queue.Queue
 	holder            = newIndexerHolder()
 )
 
@@ -85,88 +89,142 @@ var (
 // all issue index done.
 func InitIssueIndexer(syncReindex bool) {
 	waitChannel := make(chan time.Duration)
+
+	// Create the Queue
+	switch setting.Indexer.IssueType {
+	case "bleve":
+		handler := func(data ...queue.Data) {
+			iData := make([]*IndexerData, 0, setting.Indexer.IssueQueueBatchNumber)
+			for _, datum := range data {
+				indexerData, ok := datum.(*IndexerData)
+				if !ok {
+					log.Error("Unable to process provided datum: %v - not possible to cast to IndexerData", datum)
+					continue
+				}
+				log.Trace("IndexerData Process: %d %v %t", indexerData.ID, indexerData.IDs, indexerData.IsDelete)
+				if indexerData.IsDelete {
+					_ = holder.get().Delete(indexerData.IDs...)
+					continue
+				}
+				iData = append(iData, indexerData)
+			}
+			if err := holder.get().Index(iData); err != nil {
+				log.Error("Error whilst indexing: %v Error: %v", iData, err)
+			}
+		}
+
+		queueType := queue.PersistableChannelQueueType
+		switch setting.Indexer.IssueQueueType {
+		case setting.LevelQueueType:
+			queueType = queue.LevelQueueType
+		case setting.ChannelQueueType:
+			queueType = queue.PersistableChannelQueueType
+		case setting.RedisQueueType:
+			queueType = queue.RedisQueueType
+		default:
+			log.Fatal("Unsupported indexer queue type: %v",
+				setting.Indexer.IssueQueueType)
+		}
+
+		name := "issue_indexer_queue"
+		opts := make(map[string]interface{})
+		opts["QueueLength"] = setting.Indexer.UpdateQueueLength
+		opts["BatchLength"] = setting.Indexer.IssueQueueBatchNumber
+		opts["DataDir"] = setting.Indexer.IssueQueueDir
+
+		addrs, password, dbIdx, err := setting.ParseQueueConnStr(setting.Indexer.IssueQueueConnStr)
+		if queueType == queue.RedisQueueType && err != nil {
+			log.Fatal("Unable to parse connection string for RedisQueueType: %s : %v",
+				setting.Indexer.IssueQueueConnStr,
+				err)
+		}
+		opts["Addresses"] = addrs
+		opts["Password"] = password
+		opts["DBIndex"] = dbIdx
+		opts["QueueName"] = name
+		opts["Name"] = name
+		opts["Workers"] = 1
+		opts["BlockTimeout"] = 1 * time.Second
+		opts["BoostTimeout"] = 5 * time.Minute
+		opts["BoostWorkers"] = 5
+		cfg, err := json.Marshal(opts)
+		if err != nil {
+			log.Error("Unable to marshall generic options: %v Error: %v", opts, err)
+			log.Fatal("Unable to create issue indexer queue with type %s: %v",
+				queueType,
+				err)
+		}
+		log.Debug("Creating issue indexer queue with type %s: configuration: %s", queueType, string(cfg))
+		issueIndexerQueue, err = queue.CreateQueue(queueType, handler, cfg, &IndexerData{})
+		if err != nil {
+			issueIndexerQueue, err = queue.CreateQueue(queue.WrappedQueueType, handler, queue.WrappedQueueConfiguration{
+				Underlying:  queueType,
+				Timeout:     setting.GracefulHammerTime + 30*time.Second,
+				MaxAttempts: 10,
+				Config:      cfg,
+				QueueLength: setting.Indexer.UpdateQueueLength,
+				Name:        name,
+			}, &IndexerData{})
+		}
+		if err != nil {
+			log.Fatal("Unable to create issue indexer queue with type %s: %v : %v",
+				queueType,
+				string(cfg),
+				err)
+		}
+	default:
+		issueIndexerQueue = &queue.DummyQueue{}
+	}
+
+	// Create the Indexer
 	go func() {
 		start := time.Now()
-		log.Info("Initializing Issue Indexer")
+		log.Info("PID %d: Initializing Issue Indexer: %s", os.Getpid(), setting.Indexer.IssueType)
 		var populate bool
-		var dummyQueue bool
 		switch setting.Indexer.IssueType {
 		case "bleve":
-			issueIndexer := NewBleveIndexer(setting.Indexer.IssuePath)
-			exist, err := issueIndexer.Init()
-			if err != nil {
-				log.Fatal("Unable to initialize Bleve Issue Indexer: %v", err)
-			}
-			populate = !exist
-			holder.set(issueIndexer)
+			graceful.GetManager().RunWithShutdownFns(func(_, atTerminate func(context.Context, func())) {
+				issueIndexer := NewBleveIndexer(setting.Indexer.IssuePath)
+				exist, err := issueIndexer.Init()
+				if err != nil {
+					log.Fatal("Unable to initialize Bleve Issue Indexer: %v", err)
+				}
+				populate = !exist
+				holder.set(issueIndexer)
+				atTerminate(context.Background(), func() {
+					log.Debug("Closing issue indexer")
+					issueIndexer := holder.get()
+					if issueIndexer != nil {
+						err := issueIndexer.Close()
+						if err != nil {
+							log.Error("Error whilst closing the issue indexer: %v", err)
+						}
+					}
+					log.Info("PID: %d Issue Indexer closed", os.Getpid())
+				})
+				log.Debug("Created Bleve Indexer")
+			})
 		case "db":
 			issueIndexer := &DBIndexer{}
 			holder.set(issueIndexer)
-			dummyQueue = true
 		default:
 			log.Fatal("Unknown issue indexer type: %s", setting.Indexer.IssueType)
 		}
 
-		if dummyQueue {
-			issueIndexerQueue = &DummyQueue{}
-		} else {
-			var err error
-			switch setting.Indexer.IssueQueueType {
-			case setting.LevelQueueType:
-				issueIndexerQueue, err = NewLevelQueue(
-					holder.get(),
-					setting.Indexer.IssueQueueDir,
-					setting.Indexer.IssueQueueBatchNumber)
-				if err != nil {
-					log.Fatal(
-						"Unable create level queue for issue queue dir: %s batch number: %d : %v",
-						setting.Indexer.IssueQueueDir,
-						setting.Indexer.IssueQueueBatchNumber,
-						err)
-				}
-			case setting.ChannelQueueType:
-				issueIndexerQueue = NewChannelQueue(holder.get(), setting.Indexer.IssueQueueBatchNumber)
-			case setting.RedisQueueType:
-				addrs, pass, idx, err := parseConnStr(setting.Indexer.IssueQueueConnStr)
-				if err != nil {
-					log.Fatal("Unable to parse connection string for RedisQueueType: %s : %v",
-						setting.Indexer.IssueQueueConnStr,
-						err)
-				}
-				issueIndexerQueue, err = NewRedisQueue(addrs, pass, idx, holder.get(), setting.Indexer.IssueQueueBatchNumber)
-				if err != nil {
-					log.Fatal("Unable to create RedisQueue: %s : %v",
-						setting.Indexer.IssueQueueConnStr,
-						err)
-				}
-			default:
-				log.Fatal("Unsupported indexer queue type: %v",
-					setting.Indexer.IssueQueueType)
-			}
+		// Start processing the queue
+		go graceful.GetManager().RunWithShutdownFns(issueIndexerQueue.Run)
 
-			go func() {
-				err = issueIndexerQueue.Run()
-				if err != nil {
-					log.Error("issueIndexerQueue.Run: %v", err)
-				}
-			}()
-		}
-
-		go func() {
-			for data := range issueIndexerChannel {
-				_ = issueIndexerQueue.Push(data)
-			}
-		}()
-
+		// Populate the index
 		if populate {
 			if syncReindex {
-				populateIssueIndexer()
+				graceful.GetManager().RunWithShutdownContext(populateIssueIndexer)
 			} else {
-				go populateIssueIndexer()
+				go graceful.GetManager().RunWithShutdownContext(populateIssueIndexer)
 			}
 		}
 		waitChannel <- time.Since(start)
 	}()
+
 	if syncReindex {
 		<-waitChannel
 	} else if setting.Indexer.StartupTimeout > 0 {
@@ -179,6 +237,9 @@ func InitIssueIndexer(syncReindex bool) {
 			case duration := <-waitChannel:
 				log.Info("Issue Indexer Initialization took %v", duration)
 			case <-time.After(timeout):
+				if shutdownable, ok := issueIndexerQueue.(queue.Shutdownable); ok {
+					shutdownable.Terminate()
+				}
 				log.Fatal("Issue Indexer Initialization timed-out after: %v", timeout)
 			}
 		}()
@@ -186,8 +247,14 @@ func InitIssueIndexer(syncReindex bool) {
 }
 
 // populateIssueIndexer populate the issue indexer with issue data
-func populateIssueIndexer() {
+func populateIssueIndexer(ctx context.Context) {
 	for page := 1; ; page++ {
+		select {
+		case <-ctx.Done():
+			log.Warn("Issue Indexer population shutdown before completion")
+			return
+		default:
+		}
 		repos, _, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
 			Page:        page,
 			PageSize:    models.RepositoryListDefaultPageSize,
@@ -200,10 +267,17 @@ func populateIssueIndexer() {
 			continue
 		}
 		if len(repos) == 0 {
+			log.Debug("Issue Indexer population complete")
 			return
 		}
 
 		for _, repo := range repos {
+			select {
+			case <-ctx.Done():
+				log.Info("Issue Indexer population shutdown before completion")
+				return
+			default:
+			}
 			UpdateRepoIndexer(repo)
 		}
 	}
@@ -237,12 +311,16 @@ func UpdateIssueIndexer(issue *models.Issue) {
 			comments = append(comments, comment.Content)
 		}
 	}
-	issueIndexerChannel <- &IndexerData{
+	indexerData := &IndexerData{
 		ID:       issue.ID,
 		RepoID:   issue.RepoID,
 		Title:    issue.Title,
 		Content:  issue.Content,
 		Comments: comments,
+	}
+	log.Debug("Adding to channel: %v", indexerData)
+	if err := issueIndexerQueue.Push(indexerData); err != nil {
+		log.Error("Unable to push to issue indexer: %v: Error: %v", indexerData, err)
 	}
 }
 
@@ -258,10 +336,12 @@ func DeleteRepoIssueIndexer(repo *models.Repository) {
 	if len(ids) == 0 {
 		return
 	}
-
-	issueIndexerChannel <- &IndexerData{
+	indexerData := &IndexerData{
 		IDs:      ids,
 		IsDelete: true,
+	}
+	if err := issueIndexerQueue.Push(indexerData); err != nil {
+		log.Error("Unable to push to issue indexer: %v: Error: %v", indexerData, err)
 	}
 }
 
