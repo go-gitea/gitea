@@ -1,15 +1,15 @@
 /* globals gitGraph */
 
-$(document).ready(function () {
-	const graphList = [];
+$(() => {
+  const graphList = [];
 
-	if (!document.getElementById('graph-canvas')) {
-		return;
-	}
+  if (!document.getElementById('graph-canvas')) {
+    return;
+  }
 
-	$("#graph-raw-list li span.node-relation").each(function () {
-		graphList.push($(this).text());
-	})
+  $('#graph-raw-list li span.node-relation').each(function () {
+    graphList.push($(this).text());
+  });
 
-	gitGraph(document.getElementById('graph-canvas'), graphList);
-})
+  gitGraph(document.getElementById('graph-canvas'), graphList);
+});

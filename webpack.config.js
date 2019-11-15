@@ -9,7 +9,7 @@ module.exports = {
   devtool: 'source-map',
   output: {
     path: path.resolve(__dirname, 'public/js'),
-    filename: "index.js"
+    filename: 'index.js'
   },
   optimization: {
     minimize: true,
