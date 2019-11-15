@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -525,7 +526,8 @@ func (deletedBranch *DeletedBranch) LoadUser() {
 }
 
 // RemoveOldDeletedBranches removes old deleted branches
-func RemoveOldDeletedBranches() {
+func RemoveOldDeletedBranches(ctx context.Context) {
+	// Nothing to do for shutdown or terminate
 	log.Trace("Doing: DeletedBranchesCleanup")
 
 	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)

@@ -5,6 +5,7 @@
 package mirror
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -293,18 +294,21 @@ func Password(m *models.Mirror) string {
 }
 
 // Update checks and updates mirror repositories.
-func Update() {
+func Update(ctx context.Context) {
 	log.Trace("Doing: Update")
-
 	if err := models.MirrorsIterate(func(idx int, bean interface{}) error {
 		m := bean.(*models.Mirror)
 		if m.Repo == nil {
 			log.Error("Disconnected mirror repository found: %d", m.ID)
 			return nil
 		}
-
-		mirrorQueue.Add(m.RepoID)
-		return nil
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("Aborted due to shutdown")
+		default:
+			mirrorQueue.Add(m.RepoID)
+			return nil
+		}
 	}); err != nil {
 		log.Error("Update: %v", err)
 	}
