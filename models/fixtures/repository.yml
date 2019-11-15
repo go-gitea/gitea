@@ -10,7 +10,7 @@
   num_closed_pulls: 0
   num_milestones: 3
   num_closed_milestones: 1
-  num_watches: 3
+  num_watches: 4
   status: 0
 
 -
@@ -556,6 +556,32 @@
   lower_name: repo26
   name: repo26
   is_private: true
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+-
+  id: 44
+  owner_id: 27
+  lower_name: template1
+  name: template1
+  is_private: false
+  is_template: true
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+-
+  id: 45
+  owner_id: 27
+  lower_name: template2
+  name: template2
+  is_private: false
+  is_template: true
   num_stars: 0
   num_forks: 0
   num_issues: 0

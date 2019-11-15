@@ -585,7 +585,11 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		Files:        form.Files,
 	}); err != nil {
 		ctx.Data["Err_TreePath"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.editor.unable_to_upload_files", form.TreePath, err), tplUploadFile, &form)
+		if models.IsErrLFSFileLocked(err) {
+			ctx.RenderWithErr(ctx.Tr("repo.editor.upload_file_is_locked", err.(models.ErrLFSFileLocked).Path, err.(models.ErrLFSFileLocked).UserName), tplUploadFile, &form)
+		} else {
+			ctx.RenderWithErr(ctx.Tr("repo.editor.unable_to_upload_files", form.TreePath, err), tplUploadFile, &form)
+		}
 		return
 	}
 

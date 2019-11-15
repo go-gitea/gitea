@@ -36,6 +36,10 @@ type CreateRepoForm struct {
 	IssueLabels string
 	License     string
 	Readme      string
+
+	RepoTemplate int64
+	GitContent   bool
+	Topics       bool
 }
 
 // Validate validates the fields
@@ -107,6 +111,7 @@ type RepoSettingForm struct {
 	MirrorUsername string
 	MirrorPassword string
 	Private        bool
+	Template       bool
 	EnablePrune    bool
 
 	// Advanced settings

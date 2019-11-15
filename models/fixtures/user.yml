@@ -428,3 +428,18 @@
   num_members: 0
   num_teams: 1
   repo_admin_change_team_access: true
+
+-
+  id: 27
+  lower_name: user27
+  name: user27
+  full_name: User Twenty-Seven
+  email: user27@example.com
+  email_notifications_preference: enabled
+  passwd: 7d93daa0d1e6f2305cc8fa496847d61dc7320bb16262f9c55dd753480207234cdd96a93194e408341971742f4701772a025a # password
+  type: 0 # individual
+  salt: ZogKvWdyEx
+  is_admin: false
+  avatar: avatar27
+  avatar_email: user27@example.com
+  num_repos: 2

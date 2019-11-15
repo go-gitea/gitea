@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 //UserList is a list of user.
@@ -92,4 +93,13 @@ func (users UserList) loadTwoFactorStatus(e Engine) (map[int64]*TwoFactor, error
 		return nil, fmt.Errorf("find two factor: %v", err)
 	}
 	return tokenMaps, nil
+}
+
+//APIFormat return list of users in api format
+func (users UserList) APIFormat() []*api.User {
+	var result []*api.User
+	for _, u := range users {
+		result = append(result, u.APIFormat())
+	}
+	return result
 }

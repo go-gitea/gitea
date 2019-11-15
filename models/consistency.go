@@ -84,14 +84,17 @@ func (user *User) checkForConsistency(t *testing.T) {
 func (repo *Repository) checkForConsistency(t *testing.T) {
 	assert.Equal(t, repo.LowerName, strings.ToLower(repo.Name), "repo: %+v", repo)
 	assertCount(t, &Star{RepoID: repo.ID}, repo.NumStars)
-	assertCount(t, &Watch{RepoID: repo.ID}, repo.NumWatches)
 	assertCount(t, &Milestone{RepoID: repo.ID}, repo.NumMilestones)
 	assertCount(t, &Repository{ForkID: repo.ID}, repo.NumForks)
 	if repo.IsFork {
 		AssertExistsAndLoadBean(t, &Repository{ID: repo.ForkID})
 	}
 
-	actual := getCount(t, x.Where("is_pull=?", false), &Issue{RepoID: repo.ID})
+	actual := getCount(t, x.Where("Mode<>?", RepoWatchModeDont), &Watch{RepoID: repo.ID})
+	assert.EqualValues(t, repo.NumWatches, actual,
+		"Unexpected number of watches for repo %+v", repo)
+
+	actual = getCount(t, x.Where("is_pull=?", false), &Issue{RepoID: repo.ID})
 	assert.EqualValues(t, repo.NumIssues, actual,
 		"Unexpected number of issues for repo %+v", repo)
 

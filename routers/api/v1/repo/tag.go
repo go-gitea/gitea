@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
 // ListTags list all the tags of a repository
@@ -33,7 +33,7 @@ func ListTags(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TagList"
-	tags, err := ctx.Repo.Repository.GetTags()
+	tags, err := ctx.Repo.GitRepo.GetTagInfos()
 	if err != nil {
 		ctx.Error(500, "GetTags", err)
 		return

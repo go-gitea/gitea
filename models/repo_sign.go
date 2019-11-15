@@ -149,6 +149,7 @@ func (repo *Repository) SignWikiCommit(u *User) (bool, string) {
 			if err != nil {
 				return false, ""
 			}
+			defer gitRepo.Close()
 			commit, err := gitRepo.GetCommit("HEAD")
 			if err != nil {
 				return false, ""
@@ -194,6 +195,7 @@ func (repo *Repository) SignCRUDAction(u *User, tmpBasePath, parentCommit string
 			if err != nil {
 				return false, ""
 			}
+			defer gitRepo.Close()
 			commit, err := gitRepo.GetCommit(parentCommit)
 			if err != nil {
 				return false, ""
@@ -242,6 +244,7 @@ func (repo *Repository) SignMerge(u *User, tmpBasePath, baseCommit, headCommit s
 				if err != nil {
 					return false, ""
 				}
+				defer gitRepo.Close()
 			}
 			commit, err := gitRepo.GetCommit(baseCommit)
 			if err != nil {
@@ -257,6 +260,7 @@ func (repo *Repository) SignMerge(u *User, tmpBasePath, baseCommit, headCommit s
 				if err != nil {
 					return false, ""
 				}
+				defer gitRepo.Close()
 			}
 			commit, err := gitRepo.GetCommit(headCommit)
 			if err != nil {
@@ -272,6 +276,7 @@ func (repo *Repository) SignMerge(u *User, tmpBasePath, baseCommit, headCommit s
 				if err != nil {
 					return false, ""
 				}
+				defer gitRepo.Close()
 			}
 			commit, err := gitRepo.GetCommit(headCommit)
 			if err != nil {
