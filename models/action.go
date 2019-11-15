@@ -491,31 +491,44 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 			}
 			refMarked[key] = true
 
-			// only create comments for issues if user has permission for it
-			if perm.IsAdmin() || perm.IsOwner() || perm.CanWrite(UnitTypeIssues) {
-				message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
-				if err = CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
-					return err
-				}
+			// FIXME: this kind of condition is all over the code, it should be consolidated in a single place
+			canclose := perm.IsAdmin() || perm.IsOwner() || perm.CanWrite(UnitTypeIssues) || refIssue.PosterID == doer.ID
+			cancomment := canclose || perm.CanRead(UnitTypeIssues)
+
+			// Don't proceed if the user can't comment
+			if !cancomment {
+				continue
 			}
 
-			// Process closing/reopening keywords
+			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
+			if err = CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
+				return err
+			}
+
+			// Only issues can be closed/reopened this way, and user needs the correct permissions
+			if refIssue.IsPull || !canclose {
+				continue
+			}
+
+			// Only process closing/reopening keywords
 			if ref.Action != references.XRefActionCloses && ref.Action != references.XRefActionReopens {
 				continue
 			}
 
-			// Change issue status only if the commit has been pushed to the default branch.
-			// and if the repo is configured to allow only that
-			// FIXME: we should be using Issue.ref if set instead of repo.DefaultBranch
-			if repo.DefaultBranch != branchName && !repo.CloseIssuesViaCommitInAnyBranch {
-				continue
+			if !repo.CloseIssuesViaCommitInAnyBranch {
+				// If the issue was specified to be in a particular branch, don't allow commits in other branches to close it
+				if refIssue.Ref != "" {
+					if branchName != refIssue.Ref {
+						continue
+					}
+					// Otherwise, only process commits to the default branch
+				} else if branchName != repo.DefaultBranch {
+					continue
+				}
 			}
 
-			// only close issues in another repo if user has push access
-			if perm.IsAdmin() || perm.IsOwner() || perm.CanWrite(UnitTypeCode) {
-				if err := changeIssueStatus(refRepo, refIssue, doer, ref.Action == references.XRefActionCloses); err != nil {
-					return err
-				}
+			if err := changeIssueStatus(refRepo, refIssue, doer, ref.Action == references.XRefActionCloses); err != nil {
+				return err
 			}
 		}
 	}
