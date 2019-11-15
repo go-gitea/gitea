@@ -23,14 +23,7 @@ import (
 )
 
 func TestGPGGit(t *testing.T) {
-	onGiteaRun(t, testGPGGit)
-}
-
-func testGPGGit(t *testing.T, u *url.URL) {
 	username := "user2"
-	baseAPITestContext := NewAPITestContext(t, username, "repo1")
-
-	u.Path = baseAPITestContext.GitPath()
 
 	// OK Set a new GPG home
 	tmpDir, err := ioutil.TempDir("", "temp-gpg")
@@ -65,130 +58,218 @@ func testGPGGit(t *testing.T, u *url.URL) {
 	setting.Repository.Signing.SigningEmail = "gitea@fake.local"
 	user := models.AssertExistsAndLoadBean(t, &models.User{Name: username}).(*models.User)
 
-	t.Run("Unsigned-Initial", func(t *testing.T) {
-		PrintCurrentTest(t)
-		setting.Repository.Signing.InitialCommit = []string{"never"}
-		testCtx := NewAPITestContext(t, username, "initial-unsigned")
-		t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
-		t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
-			assert.NotNil(t, branch.Commit)
-			assert.NotNil(t, branch.Commit.Verification)
-			assert.False(t, branch.Commit.Verification.Verified)
-			assert.Empty(t, branch.Commit.Verification.Signature)
-		}))
-		setting.Repository.Signing.CRUDActions = []string{"never"}
-		t.Run("CreateCRUDFile-Never", crudActionCreateFile(
-			t, testCtx, user, "master", "never", "unsigned-never.txt", func(t *testing.T, response api.FileResponse) {
-				assert.False(t, response.Verification.Verified)
+	setting.Repository.Signing.InitialCommit = []string{"never"}
+	setting.Repository.Signing.CRUDActions = []string{"never"}
+
+	baseAPITestContext := NewAPITestContext(t, username, "repo1")
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		u.Path = baseAPITestContext.GitPath()
+
+		t.Run("Unsigned-Initial", func(t *testing.T) {
+			PrintCurrentTest(t)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
+			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
+				assert.NotNil(t, branch.Commit)
+				assert.NotNil(t, branch.Commit.Verification)
+				assert.False(t, branch.Commit.Verification.Verified)
+				assert.Empty(t, branch.Commit.Verification.Signature)
 			}))
-		t.Run("CreateCRUDFile-Never", crudActionCreateFile(
-			t, testCtx, user, "never", "never2", "unsigned-never2.txt", func(t *testing.T, response api.FileResponse) {
-				assert.False(t, response.Verification.Verified)
+			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
+				t, testCtx, user, "master", "never", "unsigned-never.txt", func(t *testing.T, response api.FileResponse) {
+					assert.False(t, response.Verification.Verified)
+				}))
+			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
+				t, testCtx, user, "never", "never2", "unsigned-never2.txt", func(t *testing.T, response api.FileResponse) {
+					assert.False(t, response.Verification.Verified)
+				}))
+		})
+	}, false)
+	setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		u.Path = baseAPITestContext.GitPath()
+
+		t.Run("Unsigned-Initial-CRUD-ParentSigned", func(t *testing.T) {
+			PrintCurrentTest(t)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
+				t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
+					assert.False(t, response.Verification.Verified)
+				}))
+			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
+				t, testCtx, user, "parentsigned", "parentsigned2", "signed-parent2.txt", func(t *testing.T, response api.FileResponse) {
+					assert.False(t, response.Verification.Verified)
+				}))
+		})
+	}, false)
+	setting.Repository.Signing.CRUDActions = []string{"never"}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		u.Path = baseAPITestContext.GitPath()
+
+		t.Run("Unsigned-Initial-CRUD-Never", func(t *testing.T) {
+			PrintCurrentTest(t)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
+				t, testCtx, user, "parentsigned", "parentsigned-never", "unsigned-never2.txt", func(t *testing.T, response api.FileResponse) {
+					assert.False(t, response.Verification.Verified)
+				}))
+		})
+	}, false)
+	setting.Repository.Signing.CRUDActions = []string{"always"}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		u.Path = baseAPITestContext.GitPath()
+
+		t.Run("Unsigned-Initial-CRUD-Always", func(t *testing.T) {
+			PrintCurrentTest(t)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
+				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
+					assert.True(t, response.Verification.Verified)
+					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
+				}))
+			t.Run("CreateCRUDFile-ParentSigned-always", crudActionCreateFile(
+				t, testCtx, user, "parentsigned", "parentsigned-always", "signed-parent2.txt", func(t *testing.T, response api.FileResponse) {
+					assert.True(t, response.Verification.Verified)
+					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
+				}))
+		})
+	}, false)
+	setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		u.Path = baseAPITestContext.GitPath()
+
+		t.Run("Unsigned-Initial-CRUD-ParentSigned", func(t *testing.T) {
+			PrintCurrentTest(t)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			t.Run("CreateCRUDFile-Always-ParentSigned", crudActionCreateFile(
+				t, testCtx, user, "always", "always-parentsigned", "signed-always-parentsigned.txt", func(t *testing.T, response api.FileResponse) {
+					assert.True(t, response.Verification.Verified)
+					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
+				}))
+		})
+	}, false)
+	setting.Repository.Signing.InitialCommit = []string{"always"}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		u.Path = baseAPITestContext.GitPath()
+
+		t.Run("AlwaysSign-Initial", func(t *testing.T) {
+			PrintCurrentTest(t)
+			testCtx := NewAPITestContext(t, username, "initial-always")
+			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
+			t.Run("CheckMasterBranchSigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
+				assert.NotNil(t, branch.Commit)
+				assert.NotNil(t, branch.Commit.Verification)
+				assert.True(t, branch.Commit.Verification.Verified)
+				assert.Equal(t, "gitea@fake.local", branch.Commit.Verification.Signer.Email)
 			}))
-		setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
-		t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
-			t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
-				assert.False(t, response.Verification.Verified)
+		})
+	}, false)
+	setting.Repository.Signing.CRUDActions = []string{"never"}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		u.Path = baseAPITestContext.GitPath()
+
+		t.Run("AlwaysSign-Initial-CRUD-Never", func(t *testing.T) {
+			PrintCurrentTest(t)
+			testCtx := NewAPITestContext(t, username, "initial-always")
+			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
+				t, testCtx, user, "master", "never", "unsigned-never.txt", func(t *testing.T, response api.FileResponse) {
+					assert.False(t, response.Verification.Verified)
+				}))
+		})
+	}, false)
+	setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		u.Path = baseAPITestContext.GitPath()
+
+		t.Run("AlwaysSign-Initial-CRUD-ParentSigned-On-Always", func(t *testing.T) {
+			PrintCurrentTest(t)
+			testCtx := NewAPITestContext(t, username, "initial-always")
+			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
+				t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
+					assert.True(t, response.Verification.Verified)
+					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
+				}))
+		})
+	}, false)
+	setting.Repository.Signing.CRUDActions = []string{"always"}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		u.Path = baseAPITestContext.GitPath()
+
+		t.Run("AlwaysSign-Initial-CRUD-Always", func(t *testing.T) {
+			PrintCurrentTest(t)
+			testCtx := NewAPITestContext(t, username, "initial-always")
+			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
+				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
+					assert.True(t, response.Verification.Verified)
+					assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
+				}))
+
+		})
+	}, false)
+	var pr api.PullRequest
+	setting.Repository.Signing.Merges = []string{"commitssigned"}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		u.Path = baseAPITestContext.GitPath()
+
+		t.Run("UnsignedMerging", func(t *testing.T) {
+			PrintCurrentTest(t)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			var err error
+			t.Run("CreatePullRequest", func(t *testing.T) {
+				pr, err = doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "never2")(t)
+				assert.NoError(t, err)
+			})
+			t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
+			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
+				assert.NotNil(t, branch.Commit)
+				assert.NotNil(t, branch.Commit.Verification)
+				assert.False(t, branch.Commit.Verification.Verified)
+				assert.Empty(t, branch.Commit.Verification.Signature)
 			}))
-		t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
-			t, testCtx, user, "parentsigned", "parentsigned2", "signed-parent2.txt", func(t *testing.T, response api.FileResponse) {
-				assert.False(t, response.Verification.Verified)
+		})
+	}, false)
+	setting.Repository.Signing.Merges = []string{"basesigned"}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		u.Path = baseAPITestContext.GitPath()
+
+		t.Run("BaseSignedMerging", func(t *testing.T) {
+			PrintCurrentTest(t)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			var err error
+			t.Run("CreatePullRequest", func(t *testing.T) {
+				pr, err = doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "parentsigned2")(t)
+				assert.NoError(t, err)
+			})
+			t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
+			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
+				assert.NotNil(t, branch.Commit)
+				assert.NotNil(t, branch.Commit.Verification)
+				assert.False(t, branch.Commit.Verification.Verified)
+				assert.Empty(t, branch.Commit.Verification.Signature)
 			}))
-		setting.Repository.Signing.CRUDActions = []string{"never"}
-		t.Run("CreateCRUDFile-Never", crudActionCreateFile(
-			t, testCtx, user, "parentsigned", "parentsigned-never", "unsigned-never2.txt", func(t *testing.T, response api.FileResponse) {
-				assert.False(t, response.Verification.Verified)
-			}))
-		setting.Repository.Signing.CRUDActions = []string{"always"}
-		t.Run("CreateCRUDFile-Always", crudActionCreateFile(
-			t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
-				assert.True(t, response.Verification.Verified)
-				assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
-			}))
-		t.Run("CreateCRUDFile-ParentSigned-always", crudActionCreateFile(
-			t, testCtx, user, "parentsigned", "parentsigned-always", "signed-parent2.txt", func(t *testing.T, response api.FileResponse) {
-				assert.True(t, response.Verification.Verified)
-				assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
-			}))
-		setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
-		t.Run("CreateCRUDFile-Always-ParentSigned", crudActionCreateFile(
-			t, testCtx, user, "always", "always-parentsigned", "signed-always-parentsigned.txt", func(t *testing.T, response api.FileResponse) {
-				assert.True(t, response.Verification.Verified)
-				assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
-			}))
-	})
-	t.Run("AlwaysSign-Initial", func(t *testing.T) {
-		PrintCurrentTest(t)
-		setting.Repository.Signing.InitialCommit = []string{"always"}
-		testCtx := NewAPITestContext(t, username, "initial-always")
-		t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
-		t.Run("CheckMasterBranchSigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
-			assert.NotNil(t, branch.Commit)
-			assert.NotNil(t, branch.Commit.Verification)
-			assert.True(t, branch.Commit.Verification.Verified)
-			assert.Equal(t, "gitea@fake.local", branch.Commit.Verification.Signer.Email)
-		}))
-		setting.Repository.Signing.CRUDActions = []string{"never"}
-		t.Run("CreateCRUDFile-Never", crudActionCreateFile(
-			t, testCtx, user, "master", "never", "unsigned-never.txt", func(t *testing.T, response api.FileResponse) {
-				assert.False(t, response.Verification.Verified)
-			}))
-		setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
-		t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
-			t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
-				assert.True(t, response.Verification.Verified)
-				assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
-			}))
-		setting.Repository.Signing.CRUDActions = []string{"always"}
-		t.Run("CreateCRUDFile-Always", crudActionCreateFile(
-			t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
-				assert.True(t, response.Verification.Verified)
-				assert.Equal(t, "gitea@fake.local", response.Verification.Signer.Email)
+		})
+	}, false)
+	setting.Repository.Signing.Merges = []string{"commitssigned"}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		u.Path = baseAPITestContext.GitPath()
+
+		t.Run("CommitsSignedMerging", func(t *testing.T) {
+			PrintCurrentTest(t)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned")
+			var err error
+			t.Run("CreatePullRequest", func(t *testing.T) {
+				pr, err = doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "always-parentsigned")(t)
+				assert.NoError(t, err)
+			})
+			t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
+			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
+				assert.NotNil(t, branch.Commit)
+				assert.NotNil(t, branch.Commit.Verification)
+				assert.True(t, branch.Commit.Verification.Verified)
 			}))
 
-	})
-	t.Run("UnsignedMerging", func(t *testing.T) {
-		PrintCurrentTest(t)
-		testCtx := NewAPITestContext(t, username, "initial-unsigned")
-		var pr api.PullRequest
-		var err error
-		t.Run("CreatePullRequest", func(t *testing.T) {
-			pr, err = doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "never2")(t)
-			assert.NoError(t, err)
 		})
-		setting.Repository.Signing.Merges = []string{"commitssigned"}
-		t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
-		t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
-			assert.NotNil(t, branch.Commit)
-			assert.NotNil(t, branch.Commit.Verification)
-			assert.False(t, branch.Commit.Verification.Verified)
-			assert.Empty(t, branch.Commit.Verification.Signature)
-		}))
-		setting.Repository.Signing.Merges = []string{"basesigned"}
-		t.Run("CreatePullRequest", func(t *testing.T) {
-			pr, err = doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "parentsigned2")(t)
-			assert.NoError(t, err)
-		})
-		t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
-		t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
-			assert.NotNil(t, branch.Commit)
-			assert.NotNil(t, branch.Commit.Verification)
-			assert.False(t, branch.Commit.Verification.Verified)
-			assert.Empty(t, branch.Commit.Verification.Signature)
-		}))
-		setting.Repository.Signing.Merges = []string{"commitssigned"}
-		t.Run("CreatePullRequest", func(t *testing.T) {
-			pr, err = doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "always-parentsigned")(t)
-			assert.NoError(t, err)
-		})
-		t.Run("MergePR", doAPIMergePullRequest(testCtx, testCtx.Username, testCtx.Reponame, pr.Index))
-		t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
-			assert.NotNil(t, branch.Commit)
-			assert.NotNil(t, branch.Commit.Verification)
-			assert.True(t, branch.Commit.Verification.Verified)
-		}))
-
-	})
+	}, false)
 }
 
 func crudActionCreateFile(t *testing.T, ctx APITestContext, user *models.User, from, to, path string, callback ...func(*testing.T, api.FileResponse)) func(*testing.T) {

@@ -352,6 +352,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			ctx.ServerError("OpenRepository", err)
 			return nil
 		}
+		defer headGitRepo.Close()
 
 		headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
 
@@ -534,6 +535,7 @@ func ViewPullFiles(ctx *context.Context) {
 			ctx.ServerError("OpenRepository", err)
 			return
 		}
+		defer headGitRepo.Close()
 
 		headCommitID, err := headGitRepo.GetBranchCommitID(pull.HeadBranch)
 		if err != nil {
@@ -550,6 +552,7 @@ func ViewPullFiles(ctx *context.Context) {
 		ctx.Data["Username"] = pull.MustHeadUserName()
 		ctx.Data["Reponame"] = pull.HeadRepo.Name
 	}
+	ctx.Data["AfterCommitID"] = endCommitID
 
 	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
 		startCommitID, endCommitID, setting.Git.MaxGitDiffLines,
@@ -748,6 +751,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	if ctx.Written() {
 		return
 	}
+	defer headGitRepo.Close()
 
 	labelIDs, assigneeIDs, milestoneID := ValidateRepoMetas(ctx, form, true)
 	if ctx.Written() {
@@ -913,12 +917,14 @@ func CleanUpPullRequest(ctx *context.Context) {
 		ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
 		return
 	}
+	defer gitRepo.Close()
 
 	gitBaseRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.BaseRepo.RepoPath()), err)
 		return
 	}
+	defer gitBaseRepo.Close()
 
 	defer func() {
 		ctx.JSON(200, map[string]interface{}{
@@ -1047,6 +1053,7 @@ func DownloadPullPatch(ctx *context.Context) {
 		ctx.ServerError("OpenRepository", err)
 		return
 	}
+	defer headGitRepo.Close()
 
 	patch, err := headGitRepo.GetFormatPatch(pr.MergeBase, pr.HeadBranch)
 	if err != nil {

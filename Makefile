@@ -434,7 +434,8 @@ npm-update: npm-check
 
 .PHONY: js
 js: npm
-	npx eslint public/js
+	npx eslint web_src/js webpack.config.js
+	npx webpack
 
 .PHONY: css
 css: npm

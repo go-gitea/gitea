@@ -30,26 +30,28 @@ type ActionType int
 
 // Possible action types.
 const (
-	ActionCreateRepo        ActionType = iota + 1 // 1
-	ActionRenameRepo                              // 2
-	ActionStarRepo                                // 3
-	ActionWatchRepo                               // 4
-	ActionCommitRepo                              // 5
-	ActionCreateIssue                             // 6
-	ActionCreatePullRequest                       // 7
-	ActionTransferRepo                            // 8
-	ActionPushTag                                 // 9
-	ActionCommentIssue                            // 10
-	ActionMergePullRequest                        // 11
-	ActionCloseIssue                              // 12
-	ActionReopenIssue                             // 13
-	ActionClosePullRequest                        // 14
-	ActionReopenPullRequest                       // 15
-	ActionDeleteTag                               // 16
-	ActionDeleteBranch                            // 17
-	ActionMirrorSyncPush                          // 18
-	ActionMirrorSyncCreate                        // 19
-	ActionMirrorSyncDelete                        // 20
+	ActionCreateRepo         ActionType = iota + 1 // 1
+	ActionRenameRepo                               // 2
+	ActionStarRepo                                 // 3
+	ActionWatchRepo                                // 4
+	ActionCommitRepo                               // 5
+	ActionCreateIssue                              // 6
+	ActionCreatePullRequest                        // 7
+	ActionTransferRepo                             // 8
+	ActionPushTag                                  // 9
+	ActionCommentIssue                             // 10
+	ActionMergePullRequest                         // 11
+	ActionCloseIssue                               // 12
+	ActionReopenIssue                              // 13
+	ActionClosePullRequest                         // 14
+	ActionReopenPullRequest                        // 15
+	ActionDeleteTag                                // 16
+	ActionDeleteBranch                             // 17
+	ActionMirrorSyncPush                           // 18
+	ActionMirrorSyncCreate                         // 19
+	ActionMirrorSyncDelete                         // 20
+	ActionApprovePullRequest                       // 21
+	ActionRejectPullRequest                        // 22
 )
 
 // Action represents user operation type and other information to
@@ -518,52 +520,6 @@ func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, bra
 		}
 	}
 	return nil
-}
-
-func transferRepoAction(e Engine, doer, oldOwner *User, repo *Repository) (err error) {
-	if err = notifyWatchers(e, &Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		OpType:    ActionTransferRepo,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-		Content:   path.Join(oldOwner.Name, repo.Name),
-	}); err != nil {
-		return fmt.Errorf("notifyWatchers: %v", err)
-	}
-
-	// Remove watch for organization.
-	if oldOwner.IsOrganization() {
-		if err = watchRepo(e, oldOwner.ID, repo.ID, false); err != nil {
-			return fmt.Errorf("watchRepo [false]: %v", err)
-		}
-	}
-
-	return nil
-}
-
-// TransferRepoAction adds new action for transferring repository,
-// the Owner field of repository is assumed to be new owner.
-func TransferRepoAction(doer, oldOwner *User, repo *Repository) error {
-	return transferRepoAction(x, doer, oldOwner, repo)
-}
-
-func mergePullRequestAction(e Engine, doer *User, repo *Repository, issue *Issue) error {
-	return notifyWatchers(e, &Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		OpType:    ActionMergePullRequest,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	})
-}
-
-// MergePullRequestAction adds new action for merging pull request.
-func MergePullRequestAction(actUser *User, repo *Repository, pull *Issue) error {
-	return mergePullRequestAction(x, actUser, repo, pull)
 }
 
 // GetFeedsOptions options for retrieving feeds

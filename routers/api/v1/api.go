@@ -641,7 +641,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)
-				}, reqRepoReader(models.UnitTypeCode))
+				}, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)

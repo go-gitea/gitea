@@ -631,15 +631,13 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) error {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
-
-	oldRepoName := repo.Name
 	newRepoName := repo.Name
 	if opts.Name != nil {
 		newRepoName = *opts.Name
 	}
 	// Check if repository name has been changed and not just a case change
 	if repo.LowerName != strings.ToLower(newRepoName) {
-		if err := models.ChangeRepositoryName(ctx.Repo.Owner, repo.Name, newRepoName); err != nil {
+		if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
 			switch {
 			case models.IsErrRepoAlreadyExist(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
@@ -652,14 +650,6 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 			}
 			return err
 		}
-
-		err := models.NewRepoRedirect(ctx.Repo.Owner.ID, repo.ID, repo.Name, newRepoName)
-		if err != nil {
-			ctx.Error(http.StatusUnprocessableEntity, "NewRepoRedirect", err)
-			return err
-		}
-
-		notification.NotifyRenameRepository(ctx.User, repo, oldRepoName)
 
 		log.Trace("Repository name changed: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newRepoName)
 	}
