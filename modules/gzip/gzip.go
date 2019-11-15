@@ -123,7 +123,7 @@ func Middleware(options ...Options) macaron.Handler {
 		// OK we should proxy the response writer
 		// We are still not necessarily going to compress...
 		proxyWriter := &ProxyResponseWriter{
-			ResponseWriter: ctx.Resp,
+			internal: ctx.Resp,
 		}
 		defer proxyWriter.Close()
 
@@ -137,17 +137,50 @@ func Middleware(options ...Options) macaron.Handler {
 		}
 
 		ctx.Next()
+		ctx.Resp = proxyWriter.internal
 	}
 }
 
 // ProxyResponseWriter is a wrapped macaron ResponseWriter that may compress its contents
 type ProxyResponseWriter struct {
-	writer io.WriteCloser
-	macaron.ResponseWriter
-	stopped bool
+	writer   io.WriteCloser
+	internal macaron.ResponseWriter
+	stopped  bool
 
 	code int
 	buf  []byte
+}
+
+// Header returns the header map
+func (proxy *ProxyResponseWriter) Header() http.Header {
+	return proxy.internal.Header()
+}
+
+// Status returns the status code of the response or 0 if the response has not been written.
+func (proxy *ProxyResponseWriter) Status() int {
+	if proxy.code != 0 {
+		return proxy.code
+	}
+	return proxy.internal.Status()
+}
+
+// Written returns whether or not the ResponseWriter has been written.
+func (proxy *ProxyResponseWriter) Written() bool {
+	if proxy.code != 0 {
+		return true
+	}
+	return proxy.internal.Written()
+}
+
+// Size returns the size of the response body.
+func (proxy *ProxyResponseWriter) Size() int {
+	return proxy.internal.Size()
+}
+
+// Before allows for a function to be called before the ResponseWriter has been written to. This is
+// useful for setting headers or any other operations that must happen before a response has been written.
+func (proxy *ProxyResponseWriter) Before(before macaron.BeforeFunc) {
+	proxy.internal.Before(before)
 }
 
 // Write appends data to the proxied gzip writer.
@@ -210,7 +243,7 @@ func (proxy *ProxyResponseWriter) startGzip() error {
 
 	// Write the header to gzip response.
 	if proxy.code != 0 {
-		proxy.ResponseWriter.WriteHeader(proxy.code)
+		proxy.internal.WriteHeader(proxy.code)
 		// Ensure that no other WriteHeader's happen
 		proxy.code = 0
 	}
@@ -220,7 +253,7 @@ func (proxy *ProxyResponseWriter) startGzip() error {
 	// write the gzip header even if nothing was ever written.
 	if len(proxy.buf) > 0 {
 		// Initialize the GZIP response.
-		proxy.writer = writerPool.Get(proxy.ResponseWriter)
+		proxy.writer = writerPool.Get(proxy.internal)
 
 		return proxy.writeBuf()
 	}
@@ -229,11 +262,11 @@ func (proxy *ProxyResponseWriter) startGzip() error {
 
 func (proxy *ProxyResponseWriter) startPlain() error {
 	if proxy.code != 0 {
-		proxy.ResponseWriter.WriteHeader(proxy.code)
+		proxy.internal.WriteHeader(proxy.code)
 		proxy.code = 0
 	}
 	proxy.stopped = true
-	proxy.writer = noopCloser{proxy.ResponseWriter}
+	proxy.writer = noopCloser{proxy.internal}
 	return proxy.writeBuf()
 }
 
@@ -295,13 +328,13 @@ func (proxy *ProxyResponseWriter) Flush() {
 		gw.Flush()
 	}
 
-	proxy.ResponseWriter.Flush()
+	proxy.internal.Flush()
 }
 
 // Hijack implements http.Hijacker. If the underlying ResponseWriter is a
 // Hijacker, its Hijack method is returned. Otherwise an error is returned.
 func (proxy *ProxyResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	hijacker, ok := proxy.ResponseWriter.(http.Hijacker)
+	hijacker, ok := proxy.internal.(http.Hijacker)
 	if !ok {
 		return nil, nil, fmt.Errorf("the ResponseWriter doesn't support the Hijacker interface")
 	}
