@@ -898,6 +898,7 @@ tbody.commit-list{vertical-align:baseline}
 .repo-buttons .disabled-repo-button a.button:hover{background:0 0!important;color:rgba(0,0,0,.6)!important;box-shadow:0 0 0 1px rgba(34,36,38,.15) inset!important}
 .repo-buttons .ui.labeled.button>.label{border-left:0!important;margin:0!important}
 .tag-code,.tag-code td{background-color:#f0f0f0!important;border-color:#d3cfcf!important;padding-top:8px;padding-bottom:8px}
+td.blob-excerpt{background-color:#fafafa}
 .issue-keyword{border-bottom:1px dotted #959da5;display:inline-block}
 .file-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px!important}
 .file-info{display:flex;align-items:center}
@@ -1069,3 +1070,7 @@ tbody.commit-list{vertical-align:baseline}
 .comment-code-cloud button.comment-form-reply{margin:.5em .5em .5em 4.5em}
 .comment-code-cloud form.comment-form-reply{margin:0 0 0 4em}
 .file-comment{font:12px 'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;color:rgba(0,0,0,.87)}
+.ui.fold-code{margin-right:1em;padding-left:5px;cursor:pointer;width:22px;font-size:12px}
+.ui.fold-code:hover{color:#428bca}
+.ui.blob-excerpt{display:block;line-height:20px;font-size:16px;cursor:pointer}
+.ui.blob-excerpt:hover{color:#428bca}
