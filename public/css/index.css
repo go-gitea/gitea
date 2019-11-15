@@ -789,11 +789,12 @@ i.icon.centerlock{top:1.5em}
 .repository .segment.reactions.dropdown .menu>.header,.repository .select-reaction.dropdown .menu>.header{margin:.75rem 0 .5rem}
 .repository .segment.reactions.dropdown .menu>.item,.repository .select-reaction.dropdown .menu>.item{float:left;padding:.5rem .5rem!important}
 .repository .segment.reactions.dropdown .menu>.item img.emoji,.repository .select-reaction.dropdown .menu>.item img.emoji{margin-right:0}
-.repository .segment.reactions{padding:.3em 1em}
-.repository .segment.reactions .ui.label{padding:.4em}
-.repository .segment.reactions .ui.label.disabled{cursor:default}
+.repository .segment.reactions{padding:0;display:flex}
+.repository .segment.reactions .ui.label{padding:.4em;padding-right:1em;padding-left:1em;border:0;border-right:1px solid;border-radius:0;margin:0;font-size:14px;border-color:inherit!important}
+.repository .segment.reactions .ui.label.disabled{cursor:default;opacity:.5}
 .repository .segment.reactions .ui.label>img{height:1.5em!important}
-.repository .segment.reactions .select-reaction{float:none}
+.repository .segment.reactions .ui.label.basic.blue{background-color:#f1f8ff!important;border-color:inherit!important}
+.repository .segment.reactions .select-reaction{float:left;padding:.5em;padding-left:1em}
 .repository .segment.reactions .select-reaction:not(.active) a{display:none}
 .repository .segment.reactions:hover .select-reaction a{display:block}
 .repository .ui.fluid.action.input .ui.search.action.input{flex:auto}
