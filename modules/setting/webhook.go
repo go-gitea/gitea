@@ -25,6 +25,7 @@ var (
 		QueueLength:    1000,
 		DeliverTimeout: 5,
 		SkipTLSVerify:  false,
+		Types:          []string{"gitea", "gogs", "slack", "discord", "dingtalk", "telegram", "msteams"},
 		PagingNum:      10,
 		ProxyURL:       "",
 		ProxyHosts:     []string{},
@@ -33,10 +34,15 @@ var (
 
 func newWebhookService() {
 	sec := Cfg.Section("webhook")
+
 	Webhook.QueueLength = sec.Key("QUEUE_LENGTH").MustInt(1000)
 	Webhook.DeliverTimeout = sec.Key("DELIVER_TIMEOUT").MustInt(5)
 	Webhook.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool()
-	Webhook.Types = []string{"gitea", "gogs", "slack", "discord", "dingtalk", "telegram", "msteams"}
+	defaults := Webhook.Types
+	Webhook.Types = sec.Key("SUPPORTED_TYPES").Strings(",")
+	if len(Webhook.Types) == 0 {
+		Webhook.Types = defaults
+	}
 	Webhook.PagingNum = sec.Key("PAGING_NUM").MustInt(10)
 	Webhook.ProxyURL = sec.Key("PROXY_URL").MustString("")
 	if Webhook.ProxyURL != "" {

@@ -508,6 +508,8 @@ AUTO_WATCH_NEW_REPOS = true
 AUTO_WATCH_ON_CHANGES = false
 
 [webhook]
+; Supported webhook types
+SUPPORTED_TYPES = gitea, gogs, slack, discord, dingtalk, telegram, msteams
 ; Hook task queue length, increase if webhook shooting starts hanging
 QUEUE_LENGTH = 1000
 ; Deliver timeout in seconds

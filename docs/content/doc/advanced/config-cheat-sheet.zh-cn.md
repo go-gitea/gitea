@@ -125,6 +125,7 @@ menu:
 
 ## Webhook (`webhook`)
 
+- `SUPPORTED_TYPES`: **gitea, gogs, slack, discord, dingtalk, telegram, msteams** 支持的 webhook 类型。
 - `QUEUE_LENGTH`: 说明: Hook 任务队列长度。
 - `DELIVER_TIMEOUT`: 请求webhooks的超时时间，单位秒。
 - `SKIP_TLS_VERIFY`: 是否允许不安全的证书。

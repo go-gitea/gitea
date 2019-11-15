@@ -311,6 +311,7 @@ relation to port exhaustion.
 
 ## Webhook (`webhook`)
 
+- `SUPPORTED_TYPES`: **gitea, gogs, slack, discord, dingtalk, telegram, msteams** Supported webhook types.
 - `QUEUE_LENGTH`: **1000**: Hook task queue length. Use caution when editing this value.
 - `DELIVER_TIMEOUT`: **5**: Delivery timeout (sec) for shooting webhooks.
 - `SKIP_TLS_VERIFY`: **false**: Allow insecure certification.
