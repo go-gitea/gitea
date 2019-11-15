@@ -256,3 +256,8 @@ func (b *BleveIndexer) Search(keyword string, repoIDs []int64, limit, start int)
 	}
 	return &ret, nil
 }
+
+// Close the Index
+func (b *BleveIndexer) Close() error {
+	return b.indexer.Close()
+}
