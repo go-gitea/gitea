@@ -12,11 +12,13 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/gobwas/glob"
 	"github.com/unknwon/com"
 )
 
@@ -182,7 +184,36 @@ func DeliverHooks() {
 	}
 }
 
-var webhookHTTPClient *http.Client
+var (
+	webhookHTTPClient *http.Client
+	once              sync.Once
+	hostMatchers      []glob.Glob
+)
+
+func webhookProxy() func(req *http.Request) (*url.URL, error) {
+	if setting.Webhook.ProxyURL == "" {
+		return http.ProxyFromEnvironment
+	}
+
+	once.Do(func() {
+		for _, h := range setting.Webhook.ProxyHosts {
+			if g, err := glob.Compile(h); err == nil {
+				hostMatchers = append(hostMatchers, g)
+			} else {
+				log.Error("glob.Compile %s failed: %v", h, err)
+			}
+		}
+	})
+
+	return func(req *http.Request) (*url.URL, error) {
+		for _, v := range hostMatchers {
+			if v.Match(req.URL.Host) {
+				return http.ProxyURL(setting.Webhook.ProxyURLFixed)(req)
+			}
+		}
+		return http.ProxyFromEnvironment(req)
+	}
+}
 
 // InitDeliverHooks starts the hooks delivery thread
 func InitDeliverHooks() {
@@ -191,7 +222,7 @@ func InitDeliverHooks() {
 	webhookHTTPClient = &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
-			Proxy:           http.ProxyFromEnvironment,
+			Proxy:           webhookProxy(),
 			Dial: func(netw, addr string) (net.Conn, error) {
 				conn, err := net.DialTimeout(netw, addr, timeout)
 				if err != nil {
@@ -199,7 +230,6 @@ func InitDeliverHooks() {
 				}
 
 				return conn, conn.SetDeadline(time.Now().Add(timeout))
-
 			},
 		},
 	}

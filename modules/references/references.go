@@ -27,7 +27,7 @@ var (
 	// TODO: fix invalid linking issue
 
 	// mentionPattern matches all mentions in the form of "@user"
-	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_\.]+)(?:\s|$|\)|\])`)
+	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_]+|@[0-9a-zA-Z-_][0-9a-zA-Z-_.]+[0-9a-zA-Z-_])(?:\s|[:,;.?!]\s|[:,;.?!]?$|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
 	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234

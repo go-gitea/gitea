@@ -707,7 +707,7 @@ func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Requ
 
 // LinkAccount shows the page where the user can decide to login or create a new account
 func LinkAccount(ctx *context.Context) {
-	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationCaptcha || setting.Service.AllowOnlyExternalRegistration
+	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationPassword || setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha && setting.Service.RequireExternalRegistrationCaptcha
@@ -757,7 +757,7 @@ func LinkAccount(ctx *context.Context) {
 
 // LinkAccountPostSignIn handle the coupling of external account with another account using signIn
 func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
-	ctx.Data["DisablePassword"] = setting.Service.AllowOnlyExternalRegistration
+	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationPassword || setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["LinkAccountModeSignIn"] = true
@@ -840,7 +840,7 @@ func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
 func LinkAccountPostRegister(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterForm) {
 	// TODO Make insecure passwords optional for local accounts also,
 	//      once email-based Second-Factor Auth is available
-	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationCaptcha || setting.Service.AllowOnlyExternalRegistration
+	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationPassword || setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
 	ctx.Data["LinkAccountModeRegister"] = true
@@ -1068,6 +1068,11 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 	if len(form.Password) < setting.MinPasswordLength {
 		ctx.Data["Err_Password"] = true
 		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplSignUp, &form)
+		return
+	}
+	if !password.IsComplexEnough(form.Password) {
+		ctx.Data["Err_Password"] = true
+		ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplSignUp, &form)
 		return
 	}
 

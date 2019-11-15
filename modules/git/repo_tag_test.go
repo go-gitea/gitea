@@ -16,6 +16,7 @@ func TestRepository_GetTags(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
+	defer bareRepo1.Close()
 
 	tags, err := bareRepo1.GetTagInfos()
 	assert.NoError(t, err)
@@ -34,6 +35,7 @@ func TestRepository_GetTag(t *testing.T) {
 
 	bareRepo1, err := OpenRepository(clonedPath)
 	assert.NoError(t, err)
+	defer bareRepo1.Close()
 
 	lTagCommitID := "6fbd69e9823458e6c4a2fc5c0f6bc022b2f2acd1"
 	lTagName := "lightweightTag"
@@ -83,6 +85,7 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 
 	bareRepo1, err := OpenRepository(clonedPath)
 	assert.NoError(t, err)
+	defer bareRepo1.Close()
 
 	lTagCommitID := "6fbd69e9823458e6c4a2fc5c0f6bc022b2f2acd1"
 	lTagName := "lightweightTag"

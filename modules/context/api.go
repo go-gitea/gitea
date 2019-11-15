@@ -186,7 +186,16 @@ func ReferencesGitRepo(allowEmpty bool) macaron.Handler {
 				return
 			}
 			ctx.Repo.GitRepo = gitRepo
+			// We opened it, we should close it
+			defer func() {
+				// If it's been set to nil then assume someone else has closed it.
+				if ctx.Repo.GitRepo != nil {
+					ctx.Repo.GitRepo.Close()
+				}
+			}()
 		}
+
+		ctx.Next()
 	}
 }
 
