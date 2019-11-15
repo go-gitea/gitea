@@ -1852,6 +1852,27 @@ function initCodeView() {
       }
     }).trigger('hashchange');
   }
+  $('.ui.fold-code').on('click', (e) => {
+    const $foldButton = $(e.target);
+    if ($foldButton.hasClass('fa-chevron-down')) {
+      $(e.target).parent().next().slideUp('fast', () => {
+        $foldButton.removeClass('fa-chevron-down').addClass('fa-chevron-right');
+      });
+    } else {
+      $(e.target).parent().next().slideDown('fast', () => {
+        $foldButton.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+      });
+    }
+  });
+  function insertBlobExcerpt(e) {
+    const $blob = $(e.target);
+    const $row = $blob.parent().parent();
+    $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
+      $row.replaceWith(blob);
+      $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e); });
+    });
+  }
+  $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e); });
 }
 
 function initU2FAuth() {

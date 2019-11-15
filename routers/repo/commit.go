@@ -245,6 +245,7 @@ func Diff(ctx *context.Context) {
 	}
 
 	ctx.Data["CommitID"] = commitID
+	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
 
