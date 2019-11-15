@@ -26,15 +26,15 @@ func TestGetIssueWatch(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	_, exists, err := GetIssueWatch(9, 1)
-	assert.Equal(t, true, exists)
+	assert.True(t, exists)
 	assert.NoError(t, err)
 
 	_, exists, err = GetIssueWatch(2, 2)
-	assert.Equal(t, false, exists)
+	assert.False(t, exists)
 	assert.NoError(t, err)
 
 	_, exists, err = GetIssueWatch(3, 1)
-	assert.Equal(t, false, exists)
+	assert.False(t, exists)
 	assert.NoError(t, err)
 }
 
@@ -48,15 +48,16 @@ func TestGetIssueWatchers(t *testing.T) {
 
 	iws, err = GetIssueWatchers(2)
 	assert.NoError(t, err)
-	// Watcher is not watching
+	// Watcher is explicit not watching
 	assert.Equal(t, 0, len(iws))
 
 	iws, err = GetIssueWatchers(5)
 	assert.NoError(t, err)
+	// Issue has no Watchers
 	assert.Equal(t, 0, len(iws))
 
 	iws, err = GetIssueWatchers(7)
 	assert.NoError(t, err)
-	// Watcher is not watching
+	// Issue has one watcher
 	assert.Equal(t, 1, len(iws))
 }
