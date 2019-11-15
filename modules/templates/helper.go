@@ -555,6 +555,10 @@ func ActionIcon(opType models.ActionType) string {
 		return "issue-reopened"
 	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
 		return "repo-clone"
+	case models.ActionApprovePullRequest:
+		return "eye"
+	case models.ActionRejectPullRequest:
+		return "x"
 	default:
 		return "invalid type"
 	}

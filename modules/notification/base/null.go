@@ -58,18 +58,6 @@ func (*NullNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, o
 func (*NullNotifier) NotifyDeleteComment(doer *models.User, c *models.Comment) {
 }
 
-// NotifyDeleteRepository places a place holder function
-func (*NullNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
-}
-
-// NotifyForkRepository places a place holder function
-func (*NullNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
-}
-
-// NotifyRenameRepository places a place holder function
-func (*NullNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldName string) {
-}
-
 // NotifyNewRelease places a place holder function
 func (*NullNotifier) NotifyNewRelease(rel *models.Release) {
 }
@@ -111,6 +99,14 @@ func (*NullNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Is
 func (*NullNotifier) NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repository) {
 }
 
+// NotifyDeleteRepository places a place holder function
+func (*NullNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
+}
+
+// NotifyForkRepository places a place holder function
+func (*NullNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository) {
+}
+
 // NotifyMigrateRepository places a place holder function
 func (*NullNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
 }
@@ -125,4 +121,12 @@ func (*NullNotifier) NotifyCreateRef(doer *models.User, repo *models.Repository,
 
 // NotifyDeleteRef notifies branch or tag deleteion to notifiers
 func (*NullNotifier) NotifyDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
+}
+
+// NotifyRenameRepository places a place holder function
+func (*NullNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldRepoName string) {
+}
+
+// NotifyTransferRepository places a place holder function
+func (*NullNotifier) NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string) {
 }

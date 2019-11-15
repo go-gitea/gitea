@@ -424,8 +424,16 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		log.Error("setMerged [%d]: %v", pr.ID, err)
 	}
 
-	if err = models.MergePullRequestAction(doer, pr.Issue.Repo, pr.Issue); err != nil {
-		log.Error("MergePullRequestAction [%d]: %v", pr.ID, err)
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    models.ActionMergePullRequest,
+		Content:   fmt.Sprintf("%d|%s", pr.Issue.Index, pr.Issue.Title),
+		RepoID:    pr.Issue.Repo.ID,
+		Repo:      pr.Issue.Repo,
+		IsPrivate: pr.Issue.Repo.IsPrivate,
+	}); err != nil {
+		log.Error("NotifyWatchers [%d]: %v", pr.ID, err)
 	}
 
 	// Reset cached commit count

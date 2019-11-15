@@ -539,8 +539,10 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		return nil, err
 	}
 
-	if err = sendCreateCommentAction(e, opts, comment); err != nil {
-		return nil, err
+	if !opts.NoAction {
+		if err = sendCreateCommentAction(e, opts, comment); err != nil {
+			return nil, err
+		}
 	}
 
 	if err = comment.addCrossReferences(e, opts.Doer); err != nil {
@@ -816,6 +818,7 @@ type CreateCommentOptions struct {
 	RefCommentID     int64
 	RefAction        references.XRefAction
 	RefIsPull        bool
+	NoAction         bool
 }
 
 // CreateComment creates comment of issue or commit.
@@ -1010,10 +1013,6 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 		Asc("comment.created_unix").
 		Asc("comment.id").
 		Find(&comments); err != nil {
-		return nil, err
-	}
-
-	if err := CommentList(comments).loadPosters(e); err != nil {
 		return nil, err
 	}
 
