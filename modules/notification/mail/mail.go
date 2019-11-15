@@ -40,7 +40,7 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.
 	}
 
 	if err := mailer.MailParticipantsComment(comment, act, issue); err != nil {
-		log.Error("MailParticipants: %v", err)
+		log.Error("MailParticipantsComment: %v", err)
 	}
 }
 
@@ -87,7 +87,7 @@ func (m *mailNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models
 		act = models.ActionCommentIssue
 	}
 	if err := mailer.MailParticipantsComment(comment, act, pr.Issue); err != nil {
-		log.Error("MailParticipants: %v", err)
+		log.Error("MailParticipantsComment: %v", err)
 	}
 }
 
