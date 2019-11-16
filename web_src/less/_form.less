@@ -1,0 +1,250 @@
+.form {
+    .help {
+        color: #999999;
+        padding-top: 0.6em;
+        padding-bottom: 0.6em;
+        display: inline-block;
+    }
+}
+
+.ui.attached.header {
+    background: #f0f0f0;
+
+    .right {
+        margin-top: -5px;
+
+        .button {
+            padding: 8px 10px;
+            font-weight: normal;
+        }
+    }
+}
+
+@create-page-form-input-padding: 250px !important;
+#create-page-form {
+    form {
+        margin: auto;
+
+        .ui.message {
+            text-align: center;
+        }
+
+        @media only screen and (min-width: 768px) {
+            width: 800px !important;
+
+            .header {
+                padding-left: @create-page-form-input-padding+30px;
+            }
+
+            .inline.field > label {
+                text-align: right;
+                width: @create-page-form-input-padding;
+                word-wrap: break-word;
+            }
+
+            .help {
+                margin-left: @create-page-form-input-padding+15px;
+            }
+
+            .optional .title {
+                margin-left: @create-page-form-input-padding;
+            }
+
+            input,
+            textarea {
+                width: 50% !important;
+            }
+        }
+
+        @media only screen and (max-width: 767px) {
+            .optional .title {
+                margin-left: 15px;
+            }
+
+            .inline.field > label {
+                display: block;
+            }
+        }
+    }
+}
+
+.signin {
+    .oauth2 {
+        div {
+            display: inline-block;
+
+            p {
+                margin: 10px 5px 0 0;
+                float: left;
+            }
+        }
+
+        a {
+            margin-right: 3px;
+
+            &:last-child {
+                margin-right: 0;
+            }
+        }
+
+        img {
+            width: 32px;
+            height: 32px;
+
+            &.openidConnect {
+                width: auto;
+            }
+        }
+    }
+}
+
+@media only screen and (min-width: 768px) {
+    .g-recaptcha {
+        margin: 0 auto !important;
+        width: 304px;
+        padding-left: 30px;
+    }
+}
+
+@media screen and (max-height: 575px) {
+    #rc-imageselect,
+    .g-recaptcha {
+        transform: scale(0.77);
+        transform-origin: 0 0;
+    }
+}
+
+.user.activate,
+.user.forgot.password,
+.user.reset.password,
+.user.signin,
+.user.signup {
+    @input-padding: 200px;
+    #create-page-form;
+
+    form {
+        width: 700px !important;
+
+        .header {
+            padding-left: 0 !important;
+            text-align: center;
+        }
+
+        .inline.field > label {
+            width: @input-padding;
+        }
+
+        .inline.field > label,
+        input {
+            @media only screen and (max-width: 768px) {
+                width: 100% !important;
+            }
+        }
+
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    }
+}
+
+.repository {
+    &.new.repo,
+    &.new.migrate,
+    &.new.fork {
+        #create-page-form;
+
+        form {
+            .dropdown {
+                .dropdown.icon {
+                    margin-top: -7px !important;
+                    padding-bottom: 5px;
+                }
+
+                .text {
+                    margin-right: 0 !important;
+
+                    i {
+                        margin-right: 0 !important;
+                    }
+                }
+            }
+
+            .header {
+                padding-left: 0 !important;
+                text-align: center;
+            }
+
+            @media only screen and (max-width: 768px) {
+                label,
+                input,
+                .selection.dropdown {
+                    width: 100% !important;
+                }
+
+                .field button,
+                .field a {
+                    margin-bottom: 1em;
+                    width: 100%;
+                }
+            }
+        }
+    }
+
+    &.new.repo {
+        .ui.form {
+            @media only screen and (min-width: 768px) {
+                #auto-init {
+                    margin-left: @create-page-form-input-padding+15px;
+                }
+            }
+
+            .selection.dropdown:not(.owner) {
+                width: 50% !important;
+
+                @media only screen and (max-width: 768px) {
+                    width: 100% !important;
+                }
+            }
+        }
+    }
+}
+
+.new.webhook {
+    form {
+        .help {
+            margin-left: 25px;
+        }
+    }
+
+    .events.fields {
+        .column {
+            padding-left: 40px;
+        }
+    }
+}
+
+.githook {
+    textarea {
+        font-family: @monospaced-fonts, monospace;
+    }
+}
+
+.new.org .ui.form {
+    @media only screen and (max-width: 768px) {
+        .field button,
+        .field a {
+            margin-bottom: 1em;
+            width: 100%;
+        }
+
+        .field input {
+            width: 100% !important;
+        }
+    }
+}

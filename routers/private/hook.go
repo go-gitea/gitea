@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/util"
 
-	macaron "gopkg.in/macaron.v1"
+	"gitea.com/macaron/macaron"
 )
 
 // HookPreReceive checks whether a individual commit is acceptable
@@ -31,7 +31,9 @@ func HookPreReceive(ctx *macaron.Context) {
 	userID := ctx.QueryInt64("userID")
 	gitObjectDirectory := ctx.QueryTrim("gitObjectDirectory")
 	gitAlternativeObjectDirectories := ctx.QueryTrim("gitAlternativeObjectDirectories")
+	gitQuarantinePath := ctx.QueryTrim("gitQuarantinePath")
 	prID := ctx.QueryInt64("prID")
+	isDeployKey := ctx.QueryBool("isDeployKey")
 
 	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
@@ -63,11 +65,19 @@ func HookPreReceive(ctx *macaron.Context) {
 
 		// detect force push
 		if git.EmptySHA != oldCommitID {
-			env := append(os.Environ(),
-				private.GitAlternativeObjectDirectories+"="+gitAlternativeObjectDirectories,
-				private.GitObjectDirectory+"="+gitObjectDirectory,
-				private.GitQuarantinePath+"="+gitObjectDirectory,
-			)
+			env := os.Environ()
+			if gitAlternativeObjectDirectories != "" {
+				env = append(env,
+					private.GitAlternativeObjectDirectories+"="+gitAlternativeObjectDirectories)
+			}
+			if gitObjectDirectory != "" {
+				env = append(env,
+					private.GitObjectDirectory+"="+gitObjectDirectory)
+			}
+			if gitQuarantinePath != "" {
+				env = append(env,
+					private.GitQuarantinePath+"="+gitQuarantinePath)
+			}
 
 			output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), env)
 			if err != nil {
@@ -86,7 +96,12 @@ func HookPreReceive(ctx *macaron.Context) {
 			}
 		}
 
-		canPush := protectBranch.CanUserPush(userID)
+		canPush := false
+		if isDeployKey {
+			canPush = protectBranch.WhitelistDeployKeys
+		} else {
+			canPush = protectBranch.CanUserPush(userID)
+		}
 		if !canPush && prID > 0 {
 			pr, err := models.GetPullRequestByID(prID)
 			if err != nil {

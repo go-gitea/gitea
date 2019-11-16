@@ -24,8 +24,6 @@ func NewEncoder(w io.Writer) *Encoder {
 
 // Encode writes an index into the commit-graph file
 func (e *Encoder) Encode(idx Index) error {
-	var err error
-
 	// Get all the hashes in the input index
 	hashes := idx.Hashes()
 
@@ -39,26 +37,26 @@ func (e *Encoder) Encode(idx Index) error {
 		chunkSizes = append(chunkSizes, uint64(extraEdgesCount)*4)
 	}
 
-	if err = e.encodeFileHeader(len(chunkSignatures)); err != nil {
+	if err := e.encodeFileHeader(len(chunkSignatures)); err != nil {
 		return err
 	}
-	if err = e.encodeChunkHeaders(chunkSignatures, chunkSizes); err != nil {
+	if err := e.encodeChunkHeaders(chunkSignatures, chunkSizes); err != nil {
 		return err
 	}
-	if err = e.encodeFanout(fanout); err != nil {
+	if err := e.encodeFanout(fanout); err != nil {
 		return err
 	}
-	if err = e.encodeOidLookup(hashes); err != nil {
+	if err := e.encodeOidLookup(hashes); err != nil {
 		return err
 	}
 	if extraEdges, err := e.encodeCommitData(hashes, hashToIndex, idx); err == nil {
 		if err = e.encodeExtraEdges(extraEdges); err != nil {
 			return err
 		}
-	}
-	if err != nil {
+	} else {
 		return err
 	}
+
 	return e.encodeChecksum()
 }
 

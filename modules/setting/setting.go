@@ -27,18 +27,10 @@ import (
 	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
 
-	"github.com/Unknwon/cae/zip"
-	"github.com/Unknwon/com"
-	_ "github.com/go-macaron/cache/memcache" // memcache plugin for cache
-	_ "github.com/go-macaron/cache/redis"
-	_ "github.com/go-macaron/session/couchbase" // couchbase plugin for session store
-	_ "github.com/go-macaron/session/memcache"  // memcache plugin for session store
-	_ "github.com/go-macaron/session/mysql"     // mysql plugin for session store
-	_ "github.com/go-macaron/session/nodb"      // nodb plugin for session store
-	_ "github.com/go-macaron/session/postgres"  // postgres plugin for session store
-	_ "github.com/go-macaron/session/redis"     // redis plugin for store session
 	shellquote "github.com/kballard/go-shellquote"
 	version "github.com/mcuadros/go-version"
+	"github.com/unknwon/cae/zip"
+	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"strk.kbt.io/projects/go/libravatar"
 )
@@ -95,6 +87,7 @@ var (
 	CertFile             string
 	KeyFile              string
 	StaticRootPath       string
+	StaticCacheTime      time.Duration
 	EnableGzip           bool
 	LandingPageURL       LandingPage
 	UnixSocketPermission uint32
@@ -104,6 +97,9 @@ var (
 	LetsEncryptTOS       bool
 	LetsEncryptDirectory string
 	LetsEncryptEmail     string
+	GracefulRestartable  bool
+	GracefulHammerTime   time.Duration
+	StaticURLPrefix      string
 
 	SSH = struct {
 		Disabled                 bool           `ini:"DISABLE_SSH"`
@@ -144,43 +140,36 @@ var (
 	}
 
 	// Security settings
-	InstallLock           bool
-	SecretKey             string
-	LogInRememberDays     int
-	CookieUserName        string
-	CookieRememberName    string
-	ReverseProxyAuthUser  string
-	ReverseProxyAuthEmail string
-	MinPasswordLength     int
-	ImportLocalPaths      bool
-	DisableGitHooks       bool
-	PasswordHashAlgo      string
-
-	// Database settings
-	UseSQLite3       bool
-	UseMySQL         bool
-	UseMSSQL         bool
-	UsePostgreSQL    bool
-	UseTiDB          bool
-	LogSQL           bool
-	DBConnectRetries int
-	DBConnectBackoff time.Duration
+	InstallLock                        bool
+	SecretKey                          string
+	LogInRememberDays                  int
+	CookieUserName                     string
+	CookieRememberName                 string
+	ReverseProxyAuthUser               string
+	ReverseProxyAuthEmail              string
+	MinPasswordLength                  int
+	ImportLocalPaths                   bool
+	DisableGitHooks                    bool
+	OnlyAllowPushIfGiteaEnvironmentSet bool
+	PasswordComplexity                 []string
+	PasswordHashAlgo                   string
 
 	// UI settings
 	UI = struct {
-		ExplorePagingNum    int
-		IssuePagingNum      int
-		RepoSearchPagingNum int
-		FeedMaxCommitNum    int
-		GraphMaxCommitNum   int
-		CodeCommentLines    int
-		ReactionMaxUserNum  int
-		ThemeColorMetaTag   string
-		MaxDisplayFileSize  int64
-		ShowUserEmail       bool
-		DefaultShowFullName bool
-		DefaultTheme        string
-		Themes              []string
+		ExplorePagingNum      int
+		IssuePagingNum        int
+		RepoSearchPagingNum   int
+		FeedMaxCommitNum      int
+		GraphMaxCommitNum     int
+		CodeCommentLines      int
+		ReactionMaxUserNum    int
+		ThemeColorMetaTag     string
+		MaxDisplayFileSize    int64
+		ShowUserEmail         bool
+		DefaultShowFullName   bool
+		DefaultTheme          string
+		Themes                []string
+		SearchRepoDescription bool
 
 		Admin struct {
 			UserPagingNum   int
@@ -256,6 +245,7 @@ var (
 	// Admin settings
 	Admin struct {
 		DisableRegularOrgCreation bool
+		DefaultEmailNotification  string
 	}
 
 	// Picture settings
@@ -294,8 +284,11 @@ var (
 
 	// Time settings
 	TimeFormat string
+	// UILocation is the location on the UI, so that we can display the time on UI.
+	DefaultUILocation = time.Local
 
-	CSRFCookieName = "_csrf"
+	CSRFCookieName     = "_csrf"
+	CSRFCookieHTTPOnly = true
 
 	// Mirror settings
 	Mirror struct {
@@ -361,16 +354,15 @@ var (
 	ShowFooterTemplateLoadTime bool
 
 	// Global setting objects
-	Cfg               *ini.File
-	CustomPath        string // Custom directory path
-	CustomConf        string
-	CustomPID         string
-	ProdMode          bool
-	RunUser           string
-	IsWindows         bool
-	HasRobotsTxt      bool
-	InternalToken     string // internal access token
-	IterateBufferSize int
+	Cfg           *ini.File
+	CustomPath    string // Custom directory path
+	CustomConf    string
+	CustomPID     string
+	ProdMode      bool
+	RunUser       string
+	IsWindows     bool
+	HasRobotsTxt  bool
+	InternalToken string // internal access token
 
 	// UILocation is the location on the UI, so that we can display the time on UI.
 	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
@@ -537,7 +529,7 @@ func NewContext() {
 	} else {
 		log.Warn("Custom config '%s' not found, ignore this if you're running first time", CustomConf)
 	}
-	Cfg.NameMapper = ini.AllCapsUnderscore
+	Cfg.NameMapper = ini.SnackCase
 
 	homeDir, err := com.HomeDir()
 	if err != nil {
@@ -583,13 +575,15 @@ func NewContext() {
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
+	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
+	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
 
 	defaultAppURL := string(Protocol) + "://" + Domain
 	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
 		defaultAppURL += ":" + HTTPPort
 	}
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
-	AppURL = strings.TrimRight(AppURL, "/") + "/"
+	AppURL = strings.TrimSuffix(AppURL, "/") + "/"
 
 	// Check if has app suburl.
 	appURL, err := url.Parse(AppURL)
@@ -599,6 +593,7 @@ func NewContext() {
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
+	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
 	// TODO: Can be replaced with url.Hostname() when minimal GoLang version is 1.8
@@ -628,6 +623,7 @@ func NewContext() {
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
+	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
@@ -777,6 +773,9 @@ func NewContext() {
 		}
 	}
 
+	sec = Cfg.Section("admin")
+	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
+
 	sec = Cfg.Section("security")
 	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
 	SecretKey = sec.Key("SECRET_KEY").MustString("!#@FDEWREWR&*(")
@@ -788,12 +787,20 @@ func NewContext() {
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
+	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
+	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
+
 	InternalToken = loadInternalToken(sec)
-	IterateBufferSize = Cfg.Section("database").Key("ITERATE_BUFFER_SIZE").MustInt(50)
-	LogSQL = Cfg.Section("database").Key("LOG_SQL").MustBool(true)
-	DBConnectRetries = Cfg.Section("database").Key("DB_RETRIES").MustInt(10)
-	DBConnectBackoff = Cfg.Section("database").Key("DB_RETRY_BACKOFF").MustDuration(3 * time.Second)
+
+	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
+	PasswordComplexity = make([]string, 0, len(cfgdata))
+	for _, name := range cfgdata {
+		name := strings.ToLower(strings.Trim(name, `"`))
+		if name != "" {
+			PasswordComplexity = append(PasswordComplexity, name)
+		}
+	}
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -805,32 +812,47 @@ func NewContext() {
 	AttachmentMaxFiles = sec.Key("MAX_FILES").MustInt(5)
 	AttachmentEnabled = sec.Key("ENABLED").MustBool(true)
 
-	TimeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("RFC1123")
-	TimeFormat = map[string]string{
-		"ANSIC":       time.ANSIC,
-		"UnixDate":    time.UnixDate,
-		"RubyDate":    time.RubyDate,
-		"RFC822":      time.RFC822,
-		"RFC822Z":     time.RFC822Z,
-		"RFC850":      time.RFC850,
-		"RFC1123":     time.RFC1123,
-		"RFC1123Z":    time.RFC1123Z,
-		"RFC3339":     time.RFC3339,
-		"RFC3339Nano": time.RFC3339Nano,
-		"Kitchen":     time.Kitchen,
-		"Stamp":       time.Stamp,
-		"StampMilli":  time.StampMilli,
-		"StampMicro":  time.StampMicro,
-		"StampNano":   time.StampNano,
-	}[TimeFormatKey]
-	// When the TimeFormatKey does not exist in the previous map e.g.'2006-01-02 15:04:05'
-	if len(TimeFormat) == 0 {
-		TimeFormat = TimeFormatKey
-		TestTimeFormat, _ := time.Parse(TimeFormat, TimeFormat)
-		if TestTimeFormat.Format(time.RFC3339) != "2006-01-02T15:04:05Z" {
-			log.Fatal("Can't create time properly, please check your time format has 2006, 01, 02, 15, 04 and 05")
+	timeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("")
+	if timeFormatKey != "" {
+		TimeFormat = map[string]string{
+			"ANSIC":       time.ANSIC,
+			"UnixDate":    time.UnixDate,
+			"RubyDate":    time.RubyDate,
+			"RFC822":      time.RFC822,
+			"RFC822Z":     time.RFC822Z,
+			"RFC850":      time.RFC850,
+			"RFC1123":     time.RFC1123,
+			"RFC1123Z":    time.RFC1123Z,
+			"RFC3339":     time.RFC3339,
+			"RFC3339Nano": time.RFC3339Nano,
+			"Kitchen":     time.Kitchen,
+			"Stamp":       time.Stamp,
+			"StampMilli":  time.StampMilli,
+			"StampMicro":  time.StampMicro,
+			"StampNano":   time.StampNano,
+		}[timeFormatKey]
+		// When the TimeFormatKey does not exist in the previous map e.g.'2006-01-02 15:04:05'
+		if len(TimeFormat) == 0 {
+			TimeFormat = timeFormatKey
+			TestTimeFormat, _ := time.Parse(TimeFormat, TimeFormat)
+			if TestTimeFormat.Format(time.RFC3339) != "2006-01-02T15:04:05Z" {
+				log.Fatal("Can't create time properly, please check your time format has 2006, 01, 02, 15, 04 and 05")
+			}
+			log.Trace("Custom TimeFormat: %s", TimeFormat)
 		}
-		log.Trace("Custom TimeFormat: %s", TimeFormat)
+	}
+
+	zone := Cfg.Section("time").Key("DEFAULT_UI_LOCATION").String()
+	if zone != "" {
+		DefaultUILocation, err = time.LoadLocation(zone)
+		if err != nil {
+			log.Fatal("Load time zone failed: %v", err)
+		} else {
+			log.Info("Default UI Location is %v", zone)
+		}
+	}
+	if DefaultUILocation == nil {
+		DefaultUILocation = time.Local
 	}
 
 	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
@@ -953,6 +975,7 @@ func NewContext() {
 
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
+	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 
@@ -1037,6 +1060,7 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 
 // NewServices initializes the services
 func NewServices() {
+	InitDBConfig()
 	newService()
 	NewLogServices(false)
 	newCacheService()
@@ -1047,4 +1071,5 @@ func NewServices() {
 	newNotifyMailService()
 	newWebhookService()
 	newIndexerService()
+	newTaskService()
 }

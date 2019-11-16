@@ -94,7 +94,7 @@ func (e *UnifiedEncoder) printMessage(message string) {
 	isEmpty := message == ""
 	hasSuffix := strings.HasSuffix(message, "\n")
 	if !isEmpty && !hasSuffix {
-		message = message + "\n"
+		message += "\n"
 	}
 
 	e.buf.WriteString(message)

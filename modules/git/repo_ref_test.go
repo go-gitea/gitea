@@ -15,6 +15,7 @@ func TestRepository_GetRefs(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
+	defer bareRepo1.Close()
 
 	refs, err := bareRepo1.GetRefs()
 
@@ -38,6 +39,7 @@ func TestRepository_GetRefsFiltered(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
+	defer bareRepo1.Close()
 
 	refs, err := bareRepo1.GetRefsFiltered(TagPrefix)
 

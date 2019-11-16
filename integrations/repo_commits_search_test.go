@@ -28,10 +28,16 @@ func testRepoCommitsSearch(t *testing.T, query, commit string) {
 }
 
 func TestRepoCommitsSearch(t *testing.T) {
+	testRepoCommitsSearch(t, "e8eabd", "")
+	testRepoCommitsSearch(t, "38a9cb", "")
+	testRepoCommitsSearch(t, "6e8e", "6e8eabd9a7")
+	testRepoCommitsSearch(t, "58e97", "58e97d1a24")
 	testRepoCommitsSearch(t, "author:alice", "6e8eabd9a7")
+	testRepoCommitsSearch(t, "author:alice 6e8ea", "6e8eabd9a7")
 	testRepoCommitsSearch(t, "committer:Tom", "58e97d1a24")
 	testRepoCommitsSearch(t, "author:bob commit-4", "58e97d1a24")
 	testRepoCommitsSearch(t, "author:bob commit after:2019-03-03", "58e97d1a24")
+	testRepoCommitsSearch(t, "committer:alice 6e8e before:2019-03-02", "6e8eabd9a7")
 	testRepoCommitsSearch(t, "committer:alice commit before:2019-03-02", "6e8eabd9a7")
 	testRepoCommitsSearch(t, "committer:alice author:tom commit before:2019-03-04 after:2019-03-02", "0a8499a22a")
 }

@@ -54,6 +54,16 @@ func (k *Key) addShadow(val string) error {
 		return errors.New("cannot add shadow to auto-increment or boolean key")
 	}
 
+	// Deduplicate shadows based on their values.
+	if k.value == val {
+		return nil
+	}
+	for i := range k.shadows {
+		if k.shadows[i].value == val {
+			return nil
+		}
+	}
+
 	shadow := newKey(k.s, k.name, val)
 	shadow.isShadow = true
 	k.shadows = append(k.shadows, shadow)
@@ -77,6 +87,7 @@ func (k *Key) addNestedValue(val string) error {
 	return nil
 }
 
+// AddNestedValue adds a nested value to the key.
 func (k *Key) AddNestedValue(val string) error {
 	if !k.s.f.options.AllowNestedValues {
 		return errors.New("nested value is not allowed")
@@ -126,7 +137,7 @@ func (k *Key) transformValue(val string) string {
 	if !strings.Contains(val, "%") {
 		return val
 	}
-	for i := 0; i < _DEPTH_VALUES; i++ {
+	for i := 0; i < depthValues; i++ {
 		vr := varPattern.FindString(val)
 		if len(vr) == 0 {
 			break
@@ -186,8 +197,8 @@ func (k *Key) Float64() (float64, error) {
 
 // Int returns int type value.
 func (k *Key) Int() (int, error) {
-    v, err := strconv.ParseInt(k.String(), 0, 64)
-    return int(v), err
+	v, err := strconv.ParseInt(k.String(), 0, 64)
+	return int(v), err
 }
 
 // Int64 returns int64 type value.
@@ -491,7 +502,7 @@ func (k *Key) Strings(delim string) []string {
 				buf.WriteRune(runes[idx])
 			}
 		}
-		idx += 1
+		idx++
 		if idx == len(runes) {
 			break
 		}
@@ -553,6 +564,12 @@ func (k *Key) Uint64s(delim string) []uint64 {
 	return vals
 }
 
+// Bools returns list of bool divided by given delimiter. Any invalid input will be treated as zero value.
+func (k *Key) Bools(delim string) []bool {
+	vals, _ := k.parseBools(k.Strings(delim), true, false)
+	return vals
+}
+
 // TimesFormat parses with given format and returns list of time.Time divided by given delimiter.
 // Any invalid input will be treated as zero value (0001-01-01 00:00:00 +0000 UTC).
 func (k *Key) TimesFormat(format, delim string) []time.Time {
@@ -601,6 +618,13 @@ func (k *Key) ValidUint64s(delim string) []uint64 {
 	return vals
 }
 
+// ValidBools returns list of bool divided by given delimiter. If some value is not 64-bit unsigned
+// integer, then it will not be included to result list.
+func (k *Key) ValidBools(delim string) []bool {
+	vals, _ := k.parseBools(k.Strings(delim), false, false)
+	return vals
+}
+
 // ValidTimesFormat parses with given format and returns list of time.Time divided by given delimiter.
 func (k *Key) ValidTimesFormat(format, delim string) []time.Time {
 	vals, _ := k.parseTimesFormat(format, k.Strings(delim), false, false)
@@ -637,6 +661,11 @@ func (k *Key) StrictUint64s(delim string) ([]uint64, error) {
 	return k.parseUint64s(k.Strings(delim), false, true)
 }
 
+// StrictBools returns list of bool divided by given delimiter or error on first invalid input.
+func (k *Key) StrictBools(delim string) ([]bool, error) {
+	return k.parseBools(k.Strings(delim), false, true)
+}
+
 // StrictTimesFormat parses with given format and returns list of time.Time divided by given delimiter
 // or error on first invalid input.
 func (k *Key) StrictTimesFormat(format, delim string) ([]time.Time, error) {
@@ -647,6 +676,21 @@ func (k *Key) StrictTimesFormat(format, delim string) ([]time.Time, error) {
 // or error on first invalid input.
 func (k *Key) StrictTimes(delim string) ([]time.Time, error) {
 	return k.StrictTimesFormat(time.RFC3339, delim)
+}
+
+// parseBools transforms strings to bools.
+func (k *Key) parseBools(strs []string, addInvalid, returnOnInvalid bool) ([]bool, error) {
+	vals := make([]bool, 0, len(strs))
+	for _, str := range strs {
+		val, err := parseBool(str)
+		if err != nil && returnOnInvalid {
+			return nil, err
+		}
+		if err == nil || addInvalid {
+			vals = append(vals, val)
+		}
+	}
+	return vals, nil
 }
 
 // parseFloat64s transforms strings to float64s.
@@ -669,7 +713,7 @@ func (k *Key) parseInts(strs []string, addInvalid, returnOnInvalid bool) ([]int,
 	vals := make([]int, 0, len(strs))
 	for _, str := range strs {
 		valInt64, err := strconv.ParseInt(str, 0, 64)
-		val := int(valInt64)        
+		val := int(valInt64)
 		if err != nil && returnOnInvalid {
 			return nil, err
 		}

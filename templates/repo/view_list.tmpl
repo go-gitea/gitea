@@ -1,4 +1,4 @@
-<table id="repo-files-table" class="ui single line table fixed">
+<table id="repo-files-table" class="ui single line table">
 	<thead>
 		<tr class="commit-list">
 			<th colspan="2">
@@ -28,12 +28,13 @@
 						{{end}}
 				</a>
 				{{template "repo/commit_status" .LatestCommitStatus}}
-				<span class="grey has-emoji commit-summary" title="{{.LatestCommit.Summary}}">{{.LatestCommit.Summary}}
+				{{ $commitLink:= printf "%s/commit/%s" .RepoLink .LatestCommit.ID }}
+				<span class="grey has-emoji commit-summary" title="{{.LatestCommit.Summary}}">{{RenderCommitMessageLinkSubject .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}
 				{{if IsMultilineCommitMessage .LatestCommit.Message}}
 					<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
 					<pre class="commit-body" style="display: none;">{{RenderCommitBody .LatestCommit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 				{{end}}
-			    </span>
+				</span>
 			</th>
 			<th class="text grey right age">{{if .LatestCommit.Author}}{{TimeSince .LatestCommit.Author.When $.Lang}}{{end}}</th>
 		</tr>
@@ -61,7 +62,7 @@
 						</span>
 					</td>
 				{{else}}
-					<td class="name">
+					<td class="name four wide">
 						<span class="truncate">
 							{{if $entry.IsDir}}
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
@@ -81,12 +82,12 @@
 						</span>
 					</td>
 				{{end}}
-				<td class="message has-emoji">
-					<span class="truncate">
+				<td class="message nine wide">
+					<span class="truncate has-emoji">
 						<a href="{{$.RepoLink}}/commit/{{$commit.ID}}" title="{{$commit.Summary}}">{{$commit.Summary}}</a>
 					</span>
 				</td>
-				<td class="text grey right age">{{TimeSince $commit.Committer.When $.Lang}}</td>
+				<td class="text grey right age three wide">{{TimeSince $commit.Committer.When $.Lang}}</td>
 			</tr>
 		{{end}}
 	</tbody>

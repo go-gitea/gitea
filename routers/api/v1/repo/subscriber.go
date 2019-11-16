@@ -6,7 +6,7 @@ package repo
 
 import (
 	"code.gitea.io/gitea/modules/context"
-
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -38,7 +38,7 @@ func ListSubscribers(ctx *context.APIContext) {
 	}
 	users := make([]*api.User, len(subscribers))
 	for i, subscriber := range subscribers {
-		users[i] = subscriber.APIFormat()
+		users[i] = convert.ToUser(subscriber, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
 	ctx.JSON(200, users)
 }

@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func addRepoSize(x *xorm.Engine) (err error) {
@@ -60,9 +60,9 @@ func addRepoSize(x *xorm.Engine) (err error) {
 			}
 
 			repoPath := filepath.Join(setting.RepoRootPath, strings.ToLower(user.Name), strings.ToLower(repo.Name)) + ".git"
-			countObject, err := git.GetRepoSize(repoPath)
+			countObject, err := git.CountObjects(repoPath)
 			if err != nil {
-				log.Warn("GetRepoSize: %v", err)
+				log.Warn("CountObjects: %v", err)
 				continue
 			}
 

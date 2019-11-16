@@ -13,13 +13,14 @@ import (
 	"os"
 	"strings"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
-	"github.com/Unknwon/com"
 	context2 "github.com/gorilla/context"
+	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 	"golang.org/x/crypto/acme/autocert"
 	ini "gopkg.in/ini.v1"
@@ -75,17 +76,13 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 	}
 	go func() {
 		log.Info("Running Let's Encrypt handler on %s", setting.HTTPAddr+":"+setting.PortToRedirect)
-		var err = http.ListenAndServe(setting.HTTPAddr+":"+setting.PortToRedirect, certManager.HTTPHandler(http.HandlerFunc(runLetsEncryptFallbackHandler))) // all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
+		// all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
+		var err = runHTTP(setting.HTTPAddr+":"+setting.PortToRedirect, certManager.HTTPHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)))
 		if err != nil {
 			log.Fatal("Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
 		}
 	}()
-	server := &http.Server{
-		Addr:      listenAddr,
-		Handler:   m,
-		TLSConfig: certManager.TLSConfig(),
-	}
-	return server.ListenAndServeTLS("", "")
+	return runHTTPSWithTLSConfig(listenAddr, certManager.TLSConfig(), context2.ClearHandler(m))
 }
 
 func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
@@ -101,12 +98,21 @@ func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func runWeb(ctx *cli.Context) error {
+	if os.Getppid() > 1 && len(os.Getenv("LISTEN_FDS")) > 0 {
+		log.Info("Restarting Gitea on PID: %d from parent PID: %d", os.Getpid(), os.Getppid())
+	} else {
+		log.Info("Starting Gitea on PID: %d", os.Getpid())
+	}
+
+	// Set pid file setting
 	if ctx.IsSet("pid") {
 		setting.CustomPID = ctx.String("pid")
 	}
 
+	// Perform global initialization
 	routers.GlobalInit()
 
+	// Set up Macaron
 	m := routes.NewMacaron()
 	routes.RegisterRoutes(m)
 
@@ -164,6 +170,7 @@ func runWeb(ctx *cli.Context) error {
 	var err error
 	switch setting.Protocol {
 	case setting.HTTP:
+		NoHTTPRedirector()
 		err = runHTTP(listenAddr, context2.ClearHandler(m))
 	case setting.HTTPS:
 		if setting.EnableLetsEncrypt {
@@ -172,9 +179,15 @@ func runWeb(ctx *cli.Context) error {
 		}
 		if setting.RedirectOtherPort {
 			go runHTTPRedirector()
+		} else {
+			NoHTTPRedirector()
 		}
 		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.FCGI:
+		NoHTTPRedirector()
+		// FCGI listeners are provided as stdin - this is orthogonal to the LISTEN_FDS approach
+		// in graceful and systemD
+		NoMainListener()
 		var listener net.Listener
 		listener, err = net.Listen("tcp", listenAddr)
 		if err != nil {
@@ -187,6 +200,10 @@ func runWeb(ctx *cli.Context) error {
 		}()
 		err = fcgi.Serve(listener, context2.ClearHandler(m))
 	case setting.UnixSocket:
+		// This could potentially be inherited using LISTEN_FDS but currently
+		// these cannot be inherited
+		NoHTTPRedirector()
+		NoMainListener()
 		if err := os.Remove(listenAddr); err != nil && !os.IsNotExist(err) {
 			log.Fatal("Failed to remove unix socket directory %s: %v", listenAddr, err)
 		}
@@ -207,8 +224,10 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	if err != nil {
-		log.Fatal("Failed to start server: %v", err)
+		log.Critical("Failed to start server: %v", err)
 	}
-
+	log.Info("HTTP Listener: %s Closed", listenAddr)
+	graceful.WaitForServers()
+	log.Close()
 	return nil
 }

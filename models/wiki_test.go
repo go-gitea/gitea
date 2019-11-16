@@ -161,6 +161,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			// Now need to show that the page has been added:
 			gitRepo, err := git.OpenRepository(repo.WikiPath())
 			assert.NoError(t, err)
+			defer gitRepo.Close()
 			masterTree, err := gitRepo.GetTree("master")
 			assert.NoError(t, err)
 			wikiPath := WikiNameToFilename(wikiName)
@@ -214,6 +215,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 			_, err := masterTree.GetTreeEntryByPath("Home.md")
 			assert.Error(t, err)
 		}
+		gitRepo.Close()
 	}
 }
 
@@ -226,6 +228,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	// Now need to show that the page has been added:
 	gitRepo, err := git.OpenRepository(repo.WikiPath())
 	assert.NoError(t, err)
+	defer gitRepo.Close()
 	masterTree, err := gitRepo.GetTree("master")
 	assert.NoError(t, err)
 	wikiPath := WikiNameToFilename("Home")

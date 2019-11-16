@@ -6,15 +6,13 @@
 package admin
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
 	"runtime"
 	"strings"
 	"time"
-
-	"github.com/Unknwon/com"
-	"gopkg.in/macaron.v1"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -24,6 +22,12 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/mailer"
+
+	"gitea.com/macaron/macaron"
+	"gitea.com/macaron/session"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -78,7 +82,7 @@ var sysStatus struct {
 }
 
 func updateSystemStatus() {
-	sysStatus.Uptime = base.TimeSincePro(startTime, "en")
+	sysStatus.Uptime = timeutil.TimeSincePro(startTime, "en")
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
@@ -196,7 +200,7 @@ func Dashboard(ctx *context.Context) {
 func SendTestMail(ctx *context.Context) {
 	email := ctx.Query("email")
 	// Send a test email to the user's email address and redirect back to Config
-	if err := models.SendTestMail(email); err != nil {
+	if err := mailer.SendTestMail(email); err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.config.test_mail_failed", email, err))
 	} else {
 		ctx.Flash.Info(ctx.Tr("admin.config.test_mail_sent", email))
@@ -205,7 +209,7 @@ func SendTestMail(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/admin/config")
 }
 
-func shadownPasswordKV(cfgItem, splitter string) string {
+func shadowPasswordKV(cfgItem, splitter string) string {
 	fields := strings.Split(cfgItem, splitter)
 	for i := 0; i < len(fields); i++ {
 		if strings.HasPrefix(fields[i], "password=") {
@@ -216,10 +220,10 @@ func shadownPasswordKV(cfgItem, splitter string) string {
 	return strings.Join(fields, splitter)
 }
 
-func shadownURL(provider, cfgItem string) string {
+func shadowURL(provider, cfgItem string) string {
 	u, err := url.Parse(cfgItem)
 	if err != nil {
-		log.Error("shodowPassword %v failed: %v", provider, err)
+		log.Error("Shadowing Password for %v failed: %v", provider, err)
 		return cfgItem
 	}
 	if u.User != nil {
@@ -237,7 +241,7 @@ func shadownURL(provider, cfgItem string) string {
 func shadowPassword(provider, cfgItem string) string {
 	switch provider {
 	case "redis":
-		return shadownPasswordKV(cfgItem, ",")
+		return shadowPasswordKV(cfgItem, ",")
 	case "mysql":
 		//root:@tcp(localhost:3306)/macaron?charset=utf8
 		atIdx := strings.Index(cfgItem, "@")
@@ -251,15 +255,21 @@ func shadowPassword(provider, cfgItem string) string {
 	case "postgres":
 		// user=jiahuachen dbname=macaron port=5432 sslmode=disable
 		if !strings.HasPrefix(cfgItem, "postgres://") {
-			return shadownPasswordKV(cfgItem, " ")
+			return shadowPasswordKV(cfgItem, " ")
 		}
-
+		fallthrough
+	case "couchbase":
+		return shadowURL(provider, cfgItem)
 		// postgres://pqgotest:password@localhost/pqgotest?sslmode=verify-full
-		// Notice: use shadwonURL
+		// Notice: use shadowURL
+	case "VirtualSession":
+		var realSession session.Options
+		if err := json.Unmarshal([]byte(cfgItem), &realSession); err == nil {
+			return shadowPassword(realSession.Provider, realSession.ProviderConfig)
+		}
 	}
 
-	// "couchbase"
-	return shadownURL(provider, cfgItem)
+	return cfgItem
 }
 
 // Config show admin config page
@@ -288,7 +298,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["LFS"] = setting.LFS
 
 	ctx.Data["Service"] = setting.Service
-	ctx.Data["DbCfg"] = models.DbCfg
+	ctx.Data["DbCfg"] = setting.Database
 	ctx.Data["Webhook"] = setting.Webhook
 
 	ctx.Data["MailerEnabled"] = false
@@ -332,7 +342,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
-	ctx.Data["LogSQL"] = setting.LogSQL
+	ctx.Data["LogSQL"] = setting.Database.LogSQL
 
 	ctx.HTML(200, tplConfig)
 }

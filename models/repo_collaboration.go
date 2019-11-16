@@ -16,20 +16,6 @@ type Collaboration struct {
 	Mode   AccessMode `xorm:"DEFAULT 2 NOT NULL"`
 }
 
-// ModeI18nKey returns the collaboration mode I18n Key
-func (c *Collaboration) ModeI18nKey() string {
-	switch c.Mode {
-	case AccessModeRead:
-		return "repo.settings.collaboration.read"
-	case AccessModeWrite:
-		return "repo.settings.collaboration.write"
-	case AccessModeAdmin:
-		return "repo.settings.collaboration.admin"
-	default:
-		return "repo.settings.collaboration.undefined"
-	}
-}
-
 // AddCollaborator adds new collaboration to a repository with default access mode.
 func (repo *Repository) AddCollaborator(u *User) error {
 	collaboration := &Collaboration{
@@ -55,12 +41,7 @@ func (repo *Repository) AddCollaborator(u *User) error {
 		return err
 	}
 
-	if repo.Owner.IsOrganization() {
-		err = repo.recalculateTeamAccesses(sess, 0)
-	} else {
-		err = repo.recalculateAccesses(sess)
-	}
-	if err != nil {
+	if err = repo.recalculateUserAccess(sess, u.ID); err != nil {
 		return fmt.Errorf("recalculateAccesses 'team=%v': %v", repo.Owner.IsOrganization(), err)
 	}
 
@@ -101,6 +82,18 @@ func (repo *Repository) getCollaborators(e Engine) ([]*Collaborator, error) {
 // GetCollaborators returns the collaborators for a repository
 func (repo *Repository) GetCollaborators() ([]*Collaborator, error) {
 	return repo.getCollaborators(x)
+}
+
+func (repo *Repository) getCollaboration(e Engine, uid int64) (*Collaboration, error) {
+	collaboration := &Collaboration{
+		RepoID: repo.ID,
+		UserID: uid,
+	}
+	has, err := e.Get(collaboration)
+	if !has {
+		collaboration = nil
+	}
+	return collaboration, err
 }
 
 func (repo *Repository) isCollaborator(e Engine, userID int64) (bool, error) {
@@ -182,4 +175,18 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 	}
 
 	return sess.Commit()
+}
+
+func (repo *Repository) getRepoTeams(e Engine) (teams []*Team, err error) {
+	return teams, e.
+		Join("INNER", "team_repo", "team_repo.team_id = team.id").
+		Where("team.org_id = ?", repo.OwnerID).
+		And("team_repo.repo_id=?", repo.ID).
+		OrderBy("CASE WHEN name LIKE '" + ownerTeamName + "' THEN '' ELSE name END").
+		Find(&teams)
+}
+
+// GetRepoTeams gets the list of teams that has access to the repository
+func (repo *Repository) GetRepoTeams() ([]*Team, error) {
+	return repo.getRepoTeams(x)
 }

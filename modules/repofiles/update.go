@@ -6,20 +6,23 @@ package repofiles
 
 import (
 	"bytes"
+	"container/list"
 	"fmt"
 	"path"
 	"strings"
 
-	"golang.org/x/net/html/charset"
-	"golang.org/x/text/transform"
-
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	pull_service "code.gitea.io/gitea/services/pull"
+
+	stdcharset "golang.org/x/net/html/charset"
+	"golang.org/x/text/transform"
 )
 
 // IdentityOptions for a person's identity like an author or committer
@@ -85,15 +88,15 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 
 	}
 
-	encoding, err := base.DetectEncoding(buf)
+	encoding, err := charset.DetectEncoding(buf)
 	if err != nil {
 		// just default to utf-8 and no bom
 		return "UTF-8", false
 	}
 	if encoding == "UTF-8" {
-		return encoding, bytes.Equal(buf[0:3], base.UTF8BOM)
+		return encoding, bytes.Equal(buf[0:3], charset.UTF8BOM)
 	}
-	charsetEncoding, _ := charset.Lookup(encoding)
+	charsetEncoding, _ := stdcharset.Lookup(encoding)
 	if charsetEncoding == nil {
 		return "UTF-8", false
 	}
@@ -105,7 +108,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 	}
 
 	if n > 2 {
-		return encoding, bytes.Equal([]byte(result)[0:3], base.UTF8BOM)
+		return encoding, bytes.Equal([]byte(result)[0:3], charset.UTF8BOM)
 	}
 
 	return encoding, false
@@ -188,6 +191,13 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// Assigned LastCommitID in opts if it hasn't been set
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
+	} else {
+		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+		if err != nil {
+			return nil, fmt.Errorf("DeleteRepoFile: Invalid last commit ID: %v", err)
+		}
+		opts.LastCommitID = lastCommitID.String()
+
 	}
 
 	encoding := "UTF-8"
@@ -304,20 +314,14 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		}
 	}
 
-	// Check there is no way this can return multiple infos
-	filename2attribute2info, err := t.CheckAttribute("filter", treePath)
-	if err != nil {
-		return nil, err
-	}
-
 	content := opts.Content
 	if bom {
-		content = string(base.UTF8BOM) + content
+		content = string(charset.UTF8BOM) + content
 	}
 	if encoding != "UTF-8" {
-		charsetEncoding, _ := charset.Lookup(encoding)
+		charsetEncoding, _ := stdcharset.Lookup(encoding)
 		if charsetEncoding != nil {
-			result, _, err := transform.String(charsetEncoding.NewEncoder(), string(content))
+			result, _, err := transform.String(charsetEncoding.NewEncoder(), content)
 			if err != nil {
 				// Look if we can't encode back in to the original we should just stick with utf-8
 				log.Error("Error re-encoding %s (%s) as %s - will stay as UTF-8: %v", opts.TreePath, opts.FromTreePath, encoding, err)
@@ -332,16 +336,23 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	opts.Content = content
 	var lfsMetaObject *models.LFSMetaObject
 
-	if setting.LFS.StartServer && filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
-		// OK so we are supposed to LFS this data!
-		oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
+	if setting.LFS.StartServer {
+		// Check there is no way this can return multiple infos
+		filename2attribute2info, err := t.CheckAttribute("filter", treePath)
 		if err != nil {
 			return nil, err
 		}
-		lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(opts.Content)), RepositoryID: repo.ID}
-		content = lfsMetaObject.Pointer()
-	}
 
+		if filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
+			// OK so we are supposed to LFS this data!
+			oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
+			if err != nil {
+				return nil, err
+			}
+			lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(opts.Content)), RepositoryID: repo.ID}
+			content = lfsMetaObject.Pointer()
+		}
+	}
 	// Add the object to the database
 	objectHash, err := t.HashObject(strings.NewReader(content))
 	if err != nil {
@@ -374,7 +385,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
 		if !contentStore.Exists(lfsMetaObject) {
 			if err := contentStore.Put(lfsMetaObject, strings.NewReader(opts.Content)); err != nil {
-				if err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
+				if _, err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
 					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
 				}
 				return nil, err
@@ -385,32 +396,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// Then push this tree to NewBranch
 	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
 		return nil, err
-	}
-
-	// Simulate push event.
-	oldCommitID := opts.LastCommitID
-	if opts.NewBranch != opts.OldBranch || oldCommitID == "" {
-		oldCommitID = git.EmptySHA
-	}
-
-	if err = repo.GetOwner(); err != nil {
-		return nil, fmt.Errorf("GetOwner: %v", err)
-	}
-	err = PushUpdate(
-		repo,
-		opts.NewBranch,
-		models.PushUpdateOptions{
-			PusherID:     doer.ID,
-			PusherName:   doer.Name,
-			RepoUserName: repo.Owner.Name,
-			RepoName:     repo.Name,
-			RefFullName:  git.BranchPrefix + opts.NewBranch,
-			OldCommitID:  oldCommitID,
-			NewCommitID:  commitHash,
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("PushUpdate: %v", err)
 	}
 
 	commit, err = t.GetCommit(commitHash)
@@ -428,13 +413,102 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 // PushUpdate must be called for any push actions in order to
 // generates necessary push action history feeds and other operations
 func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOptions) error {
-	err := models.PushUpdate(branch, opts)
-	if err != nil {
-		return fmt.Errorf("PushUpdate: %v", err)
+	isNewRef := opts.OldCommitID == git.EmptySHA
+	isDelRef := opts.NewCommitID == git.EmptySHA
+	if isNewRef && isDelRef {
+		return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 	}
+
+	repoPath := models.RepoPath(opts.RepoUserName, opts.RepoName)
+
+	_, err := git.NewCommand("update-server-info").RunInDir(repoPath)
+	if err != nil {
+		return fmt.Errorf("Failed to call 'git update-server-info': %v", err)
+	}
+
+	gitRepo, err := git.OpenRepository(repoPath)
+	if err != nil {
+		return fmt.Errorf("OpenRepository: %v", err)
+	}
+	defer gitRepo.Close()
+
+	if err = repo.UpdateSize(); err != nil {
+		log.Error("Failed to update size for repository: %v", err)
+	}
+
+	var commits = &models.PushCommits{}
+	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
+		// If is tag reference
+		tagName := opts.RefFullName[len(git.TagPrefix):]
+		if isDelRef {
+			err = models.PushUpdateDeleteTag(repo, tagName)
+			if err != nil {
+				return fmt.Errorf("PushUpdateDeleteTag: %v", err)
+			}
+		} else {
+			// Clear cache for tag commit count
+			cache.Remove(repo.GetCommitsCountCacheKey(tagName, true))
+			err = models.PushUpdateAddTag(repo, gitRepo, tagName)
+			if err != nil {
+				return fmt.Errorf("PushUpdateAddTag: %v", err)
+			}
+		}
+	} else if !isDelRef {
+		// If is branch reference
+
+		// Clear cache for branch commit count
+		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefFullName[len(git.BranchPrefix):], true))
+
+		newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
+		if err != nil {
+			return fmt.Errorf("gitRepo.GetCommit: %v", err)
+		}
+
+		// Push new branch.
+		var l *list.List
+		if isNewRef {
+			l, err = newCommit.CommitsBeforeLimit(10)
+			if err != nil {
+				return fmt.Errorf("newCommit.CommitsBeforeLimit: %v", err)
+			}
+		} else {
+			l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
+			if err != nil {
+				return fmt.Errorf("newCommit.CommitsBeforeUntil: %v", err)
+			}
+		}
+
+		commits = models.ListToPushCommits(l)
+	}
+
+	if err := CommitRepoAction(CommitRepoActionOptions{
+		PusherName:  opts.PusherName,
+		RepoOwnerID: repo.OwnerID,
+		RepoName:    repo.Name,
+		RefFullName: opts.RefFullName,
+		OldCommitID: opts.OldCommitID,
+		NewCommitID: opts.NewCommitID,
+		Commits:     commits,
+	}); err != nil {
+		return fmt.Errorf("CommitRepoAction: %v", err)
+	}
+
+	pusher, err := models.GetUserByID(opts.PusherID)
+	if err != nil {
+		return err
+	}
+
+	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
+
+	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true)
 
 	if opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
 		models.UpdateRepoIndexer(repo)
 	}
+
+	if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
+		log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
+	}
+
 	return nil
 }
