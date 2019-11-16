@@ -17,8 +17,8 @@ import (
 
 // GetFileResponseFromCommit Constructs a FileResponse from a Commit object
 func GetFileResponseFromCommit(repo *models.Repository, commit *git.Commit, branch, treeName string) (*api.FileResponse, error) {
-	fileContents, _ := GetFileContents(repo, treeName, branch)   // ok if fails, then will be nil
-	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
+	fileContents, _ := GetContents(repo, treeName, branch, false) // ok if fails, then will be nil
+	fileCommitResponse, _ := GetFileCommitResponse(repo, commit)  // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(commit)
 	fileResponse := &api.FileResponse{
 		Content:      fileContents,

@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -14,15 +15,16 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
-	"xorm.io/core"
-
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+
+	"github.com/unknwon/com"
+	"xorm.io/core"
+	"xorm.io/xorm"
 )
 
 // LoginType represents an login type.
@@ -147,8 +149,8 @@ type LoginSource struct {
 	IsSyncEnabled bool            `xorm:"INDEX NOT NULL DEFAULT false"`
 	Cfg           core.Conversion `xorm:"TEXT"`
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 // Cell2Int64 converts a xorm.Cell type to int64,
@@ -401,6 +403,19 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 	}
 
 	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(source.LDAP().AttributeSSHPublicKey)) > 0
+
+	// Update User admin flag if exist
+	if isExist, err := IsUserExist(0, sr.Username); err != nil {
+		return nil, err
+	} else if isExist &&
+		!user.ProhibitLogin && len(source.LDAP().AdminFilter) > 0 && user.IsAdmin != sr.IsAdmin {
+		// Change existing admin flag only if AdminFilter option is set
+		user.IsAdmin = sr.IsAdmin
+		err = UpdateUserCols(user, "is_admin")
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	if !autoRegister {
 		if isAttributeSSHPublicKeySet && synchronizeLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
@@ -665,6 +680,15 @@ func UserSignIn(username, password string) (*User, error) {
 		switch user.LoginType {
 		case LoginNoType, LoginPlain, LoginOAuth2:
 			if user.IsPasswordSet() && user.ValidatePassword(password) {
+
+				// Update password hash if server password hash algorithm have changed
+				if user.PasswdHashAlgo != setting.PasswordHashAlgo {
+					user.HashPassword(password)
+					if err := UpdateUserCols(user, "passwd", "passwd_hash_algo"); err != nil {
+						return nil, err
+					}
+				}
+
 				// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
 				// user could be hint to resend confirm email.
 				if user.ProhibitLogin {

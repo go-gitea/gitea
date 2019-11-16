@@ -17,9 +17,10 @@ func BenchmarkGetCommitGraph(b *testing.B) {
 	if err != nil {
 		b.Error("Could not open repository")
 	}
+	defer currentRepo.Close()
 
 	for i := 0; i < b.N; i++ {
-		graph, err := GetCommitGraph(currentRepo)
+		graph, err := GetCommitGraph(currentRepo, 1)
 		if err != nil {
 			b.Error("Could get commit graph")
 		}

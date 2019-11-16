@@ -6,22 +6,17 @@
 package models
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
+	"github.com/unknwon/com"
 	"xorm.io/builder"
-)
-
-var (
-	// ErrTeamNotExist team does not exist
-	ErrTeamNotExist = errors.New("Team does not exist")
+	"xorm.io/xorm"
 )
 
 // IsOwnedBy returns true if given user is in the owner team.
@@ -53,6 +48,9 @@ func (org *User) GetOwnerTeam() (*Team, error) {
 }
 
 func (org *User) getTeams(e Engine) error {
+	if org.Teams != nil {
+		return nil
+	}
 	return e.
 		Where("org_id=?", org.ID).
 		OrderBy("CASE WHEN name LIKE '" + ownerTeamName + "' THEN '' ELSE name END").
@@ -72,9 +70,12 @@ func (org *User) GetMembers() error {
 	}
 
 	var ids = make([]int64, len(ous))
+	var idsIsPublic = make(map[int64]bool, len(ous))
 	for i, ou := range ous {
 		ids[i] = ou.UID
+		idsIsPublic[ou.UID] = ou.IsPublic
 	}
+	org.MembersIsPublic = idsIsPublic
 	org.Members, err = GetUsersByIDs(ids)
 	return err
 }
@@ -151,11 +152,12 @@ func CreateOrganization(org, owner *User) (err error) {
 
 	// Create default owner team.
 	t := &Team{
-		OrgID:      org.ID,
-		LowerName:  strings.ToLower(ownerTeamName),
-		Name:       ownerTeamName,
-		Authorize:  AccessModeOwner,
-		NumMembers: 1,
+		OrgID:                   org.ID,
+		LowerName:               strings.ToLower(ownerTeamName),
+		Name:                    ownerTeamName,
+		Authorize:               AccessModeOwner,
+		NumMembers:              1,
+		IncludesAllRepositories: true,
 	}
 	if _, err = sess.Insert(t); err != nil {
 		return fmt.Errorf("insert owner team: %v", err)
@@ -298,15 +300,13 @@ type OrgUser struct {
 }
 
 func isOrganizationOwner(e Engine, orgID, uid int64) (bool, error) {
-	ownerTeam := &Team{
-		OrgID: orgID,
-		Name:  ownerTeamName,
-	}
-	if has, err := e.Get(ownerTeam); err != nil {
+	ownerTeam, err := getOwnerTeam(e, orgID)
+	if err != nil {
+		if IsErrTeamNotExist(err) {
+			log.Error("Organization does not have owner team: %d", orgID)
+			return false, nil
+		}
 		return false, err
-	} else if !has {
-		log.Error("Organization does not have owner team: %d", orgID)
-		return false, nil
 	}
 	return isTeamMember(e, orgID, ownerTeam.ID, uid)
 }
@@ -479,8 +479,9 @@ func AddOrgUser(orgID, uid int64) error {
 	}
 
 	ou := &OrgUser{
-		UID:   uid,
-		OrgID: orgID,
+		UID:      uid,
+		OrgID:    orgID,
+		IsPublic: setting.Service.DefaultOrgMemberVisible,
 	}
 
 	if _, err := sess.Insert(ou); err != nil {

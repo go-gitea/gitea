@@ -5,4 +5,3 @@
 package templates
 
 //go:generate go run -mod=vendor main.go
-//go:generate go fmt bindata.go

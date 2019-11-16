@@ -8,6 +8,7 @@ package git
 import (
 	"fmt"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -77,20 +78,27 @@ func BinVersion() (string, error) {
 	return gitVersion, nil
 }
 
-func init() {
+// SetExecutablePath changes the path of git executable and checks the file permission and version.
+func SetExecutablePath(path string) error {
+	// If path is empty, we use the default value of GitExecutable "git" to search for the location of git.
+	if path != "" {
+		GitExecutable = path
+	}
 	absPath, err := exec.LookPath(GitExecutable)
 	if err != nil {
-		panic(fmt.Sprintf("Git not found: %v", err))
+		return fmt.Errorf("Git not found: %v", err)
 	}
 	GitExecutable = absPath
 
 	gitVersion, err := BinVersion()
 	if err != nil {
-		panic(fmt.Sprintf("Git version missing: %v", err))
+		return fmt.Errorf("Git version missing: %v", err)
 	}
 	if version.Compare(gitVersion, GitVersionRequired, "<") {
-		panic(fmt.Sprintf("Git version not supported. Requires version > %v", GitVersionRequired))
+		return fmt.Errorf("Git version not supported. Requires version > %v", GitVersionRequired)
 	}
+
+	return nil
 }
 
 // Init initializes git module
@@ -113,6 +121,25 @@ func Init() error {
 	if _, stderr, err := process.GetManager().Exec("git.Init(git config --global core.quotepath false)",
 		GitExecutable, "config", "--global", "core.quotepath", "false"); err != nil {
 		return fmt.Errorf("Failed to execute 'git config --global core.quotepath false': %s", stderr)
+	}
+
+	if version.Compare(gitVersion, "2.18", ">=") {
+		if _, stderr, err := process.GetManager().Exec("git.Init(git config --global core.commitGraph true)",
+			GitExecutable, "config", "--global", "core.commitGraph", "true"); err != nil {
+			return fmt.Errorf("Failed to execute 'git config --global core.commitGraph true': %s", stderr)
+		}
+
+		if _, stderr, err := process.GetManager().Exec("git.Init(git config --global gc.writeCommitGraph true)",
+			GitExecutable, "config", "--global", "gc.writeCommitGraph", "true"); err != nil {
+			return fmt.Errorf("Failed to execute 'git config --global gc.writeCommitGraph true': %s", stderr)
+		}
+	}
+
+	if runtime.GOOS == "windows" {
+		if _, stderr, err := process.GetManager().Exec("git.Init(git config --global core.longpaths true)",
+			GitExecutable, "config", "--global", "core.longpaths", "true"); err != nil {
+			return fmt.Errorf("Failed to execute 'git config --global core.longpaths true': %s", stderr)
+		}
 	}
 	return nil
 }

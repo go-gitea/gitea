@@ -25,7 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // HTTP implmentation git smart HTTP protocol
@@ -203,7 +203,7 @@ func HTTP(ctx *context.Context) {
 						return
 					}
 				}
-				token.UpdatedUnix = util.TimeStampNow()
+				token.UpdatedUnix = timeutil.TimeStampNow()
 				if err = models.UpdateAccessToken(token); err != nil {
 					ctx.ServerError("UpdateAccessToken", err)
 				}
@@ -215,7 +215,10 @@ func HTTP(ctx *context.Context) {
 				// Check username and password
 				authUser, err = models.UserSignIn(authUsername, authPasswd)
 				if err != nil {
-					if !models.IsErrUserNotExist(err) {
+					if models.IsErrUserProhibitLogin(err) {
+						ctx.HandleText(http.StatusForbidden, "User is not permitted to login")
+						return
+					} else if !models.IsErrUserNotExist(err) {
 						ctx.ServerError("UserSignIn error: %v", err)
 						return
 					}
@@ -260,6 +263,7 @@ func HTTP(ctx *context.Context) {
 			models.EnvPusherName + "=" + authUser.Name,
 			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
 			models.ProtectedBranchRepoID + fmt.Sprintf("=%d", repo.ID),
+			models.EnvIsDeployKey + "=false",
 		}
 
 		if !authUser.KeepEmailPrivate {
@@ -424,7 +428,7 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		log.Error("Fail to serve RPC(%s): %v - %v", service, err, stderr)
+		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
 		return
 	}
 }

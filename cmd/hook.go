@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
 )
@@ -55,7 +56,13 @@ var (
 
 func runHookPreReceive(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
-		return nil
+		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
+			fail(`Rejecting changes as Gitea environment not set.
+If you are pushing over SSH you must push with a key managed by
+Gitea or set your environment appropriately.`, "")
+		} else {
+			return nil
+		}
 	}
 
 	setup("hooks/pre-receive.log")
@@ -65,6 +72,8 @@ func runHookPreReceive(c *cli.Context) error {
 	username := os.Getenv(models.EnvRepoUsername)
 	reponame := os.Getenv(models.EnvRepoName)
 	userID, _ := strconv.ParseInt(os.Getenv(models.EnvPusherID), 10, 64)
+	prID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchPRID), 10, 64)
+	isDeployKey, _ := strconv.ParseBool(os.Getenv(models.EnvIsDeployKey))
 
 	buf := bytes.NewBuffer(nil)
 	scanner := bufio.NewScanner(os.Stdin)
@@ -95,6 +104,9 @@ func runHookPreReceive(c *cli.Context) error {
 				UserID:                          userID,
 				GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
 				GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
+				GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
+				ProtectedBranchID:               prID,
+				IsDeployKey:                     isDeployKey,
 			})
 			switch statusCode {
 			case http.StatusInternalServerError:
@@ -110,7 +122,13 @@ func runHookPreReceive(c *cli.Context) error {
 
 func runHookUpdate(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
-		return nil
+		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
+			fail(`Rejecting changes as Gitea environment not set.
+If you are pushing over SSH you must push with a key managed by
+Gitea or set your environment appropriately.`, "")
+		} else {
+			return nil
+		}
 	}
 
 	setup("hooks/update.log")
@@ -120,7 +138,13 @@ func runHookUpdate(c *cli.Context) error {
 
 func runHookPostReceive(c *cli.Context) error {
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
-		return nil
+		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
+			fail(`Rejecting changes as Gitea environment not set.
+If you are pushing over SSH you must push with a key managed by
+Gitea or set your environment appropriately.`, "")
+		} else {
+			return nil
+		}
 	}
 
 	setup("hooks/post-receive.log")

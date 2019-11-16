@@ -28,6 +28,7 @@ type Branch struct {
 	Commit            *git.Commit
 	IsProtected       bool
 	IsDeleted         bool
+	IsIncluded        bool
 	DeletedBranch     *models.DeletedBranch
 	CommitsAhead      int
 	CommitsBehind     int
@@ -39,6 +40,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["Title"] = "Branches"
 	ctx.Data["IsRepoToolbarBranches"] = true
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
+	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls()
 	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(models.UnitTypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
 	ctx.Data["PageIsViewCode"] = true
@@ -161,6 +163,12 @@ func loadBranches(ctx *context.Context) []*Branch {
 		return nil
 	}
 
+	protectedBranches, err := ctx.Repo.Repository.GetProtectedBranches()
+	if err != nil {
+		ctx.ServerError("GetProtectedBranches", err)
+		return nil
+	}
+
 	branches := make([]*Branch, len(rawBranches))
 	for i := range rawBranches {
 		commit, err := rawBranches[i].GetCommit()
@@ -169,11 +177,13 @@ func loadBranches(ctx *context.Context) []*Branch {
 			return nil
 		}
 
+		var isProtected bool
 		branchName := rawBranches[i].Name
-		isProtected, err := ctx.Repo.Repository.IsProtectedBranch(branchName, ctx.User)
-		if err != nil {
-			ctx.ServerError("IsProtectedBranch", err)
-			return nil
+		for _, b := range protectedBranches {
+			if b.BranchName == branchName {
+				isProtected = true
+				break
+			}
 		}
 
 		divergence, divergenceError := repofiles.CountDivergingCommits(ctx.Repo.Repository, branchName)
@@ -194,10 +204,13 @@ func loadBranches(ctx *context.Context) []*Branch {
 			}
 		}
 
+		isIncluded := divergence.Ahead == 0 && ctx.Repo.Repository.DefaultBranch != branchName
+
 		branches[i] = &Branch{
 			Name:              branchName,
 			Commit:            commit,
 			IsProtected:       isProtected,
+			IsIncluded:        isIncluded,
 			CommitsAhead:      divergence.Ahead,
 			CommitsBehind:     divergence.Behind,
 			LatestPullRequest: pr,

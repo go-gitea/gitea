@@ -17,8 +17,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/mailer"
 
-	"github.com/go-macaron/captcha"
+	"gitea.com/macaron/captcha"
 )
 
 const (
@@ -357,19 +359,23 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["OpenID"] = oid
 
-	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ImageCaptcha && !cpt.VerifyReq(ctx.Req) {
-		ctx.Data["Err_Captcha"] = true
-		ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUpOID, &form)
-		return
-	}
-
-	if setting.Service.EnableCaptcha && setting.Service.CaptchaType == setting.ReCaptcha {
-		err := ctx.Req.ParseForm()
-		if err != nil {
-			ctx.ServerError("", err)
+	if setting.Service.EnableCaptcha {
+		var valid bool
+		switch setting.Service.CaptchaType {
+		case setting.ImageCaptcha:
+			valid = cpt.VerifyReq(ctx.Req)
+		case setting.ReCaptcha:
+			err := ctx.Req.ParseForm()
+			if err != nil {
+				ctx.ServerError("", err)
+				return
+			}
+			valid, _ = recaptcha.Verify(form.GRecaptchaResponse)
+		default:
+			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
 		}
-		valid, _ := recaptcha.Verify(form.GRecaptchaResponse)
+
 		if !valid {
 			ctx.Data["Err_Captcha"] = true
 			ctx.RenderWithErr(ctx.Tr("form.captcha_incorrect"), tplSignUpOID, &form)
@@ -439,10 +445,11 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 
 	// Send confirmation email, no need for social account.
 	if setting.Service.RegisterEmailConfirm && u.ID > 1 {
-		models.SendActivateAccountMail(ctx.Context, u)
+		mailer.SendActivateAccountMail(ctx.Locale, u)
+
 		ctx.Data["IsSendRegisterMail"] = true
 		ctx.Data["Email"] = u.Email
-		ctx.Data["ActiveCodeLives"] = base.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
+		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
 		ctx.HTML(200, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {

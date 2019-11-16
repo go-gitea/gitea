@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/google/go-github/v24/github"
 	"golang.org/x/oauth2"
@@ -34,17 +35,17 @@ type GithubDownloaderV3Factory struct {
 
 // Match returns ture if the migration remote URL matched this downloader factory
 func (f *GithubDownloaderV3Factory) Match(opts base.MigrateOptions) (bool, error) {
-	u, err := url.Parse(opts.RemoteURL)
+	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return false, err
 	}
 
-	return u.Host == "github.com" && opts.AuthUsername != "", nil
+	return strings.EqualFold(u.Host, "github.com") && opts.AuthUsername != "", nil
 }
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GithubDownloaderV3Factory) New(opts base.MigrateOptions) (base.Downloader, error) {
-	u, err := url.Parse(opts.RemoteURL)
+	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +57,11 @@ func (f *GithubDownloaderV3Factory) New(opts base.MigrateOptions) (base.Download
 	log.Trace("Create github downloader: %s/%s", oldOwner, oldName)
 
 	return NewGithubDownloaderV3(opts.AuthUsername, opts.AuthPassword, oldOwner, oldName), nil
+}
+
+// GitServiceType returns the type of git service
+func (f *GithubDownloaderV3Factory) GitServiceType() structs.GitServiceType {
+	return structs.GithubService
 }
 
 // GithubDownloaderV3 implements a Downloader interface to get repository informations
@@ -107,15 +113,21 @@ func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	// convert github repo to stand Repo
 	return &base.Repository{
 		Owner:       g.repoOwner,
 		Name:        gr.GetName(),
 		IsPrivate:   *gr.Private,
 		Description: gr.GetDescription(),
+		OriginalURL: gr.GetHTMLURL(),
 		CloneURL:    gr.GetCloneURL(),
 	}, nil
+}
+
+// GetTopics return github topics
+func (g *GithubDownloaderV3) GetTopics() ([]string, error) {
+	r, _, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
+	return r.Topics, err
 }
 
 // GetMilestones returns milestones
@@ -208,6 +220,11 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 		name = *rel.Name
 	}
 
+	var email string
+	if rel.Author.Email != nil {
+		email = *rel.Author.Email
+	}
+
 	r := &base.Release{
 		TagName:         *rel.TagName,
 		TargetCommitish: *rel.TargetCommitish,
@@ -216,6 +233,9 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 		Draft:           *rel.Draft,
 		Prerelease:      *rel.Prerelease,
 		Created:         rel.CreatedAt.Time,
+		PublisherID:     *rel.Author.ID,
+		PublisherName:   *rel.Author.Login,
+		PublisherEmail:  email,
 		Published:       rel.PublishedAt.Time,
 	}
 
@@ -317,6 +337,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		allIssues = append(allIssues, &base.Issue{
 			Title:       *issue.Title,
 			Number:      int64(*issue.Number),
+			PosterID:    *issue.User.ID,
 			PosterName:  *issue.User.Login,
 			PosterEmail: email,
 			Content:     body,
@@ -358,6 +379,8 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 				reactions = convertGithubReactions(comment.Reactions)
 			}
 			allComments = append(allComments, &base.Comment{
+				IssueIndex:  issueNumber,
+				PosterID:    *comment.User.ID,
 				PosterName:  *comment.User.Login,
 				PosterEmail: email,
 				Content:     *comment.Body,
@@ -450,6 +473,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			Title:          *pr.Title,
 			Number:         int64(*pr.Number),
 			PosterName:     *pr.User.Login,
+			PosterID:       *pr.User.ID,
 			PosterEmail:    email,
 			Content:        body,
 			Milestone:      milestone,

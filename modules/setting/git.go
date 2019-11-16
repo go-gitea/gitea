@@ -16,6 +16,7 @@ import (
 var (
 	// Git settings
 	Git = struct {
+		Path                      string
 		DisableDiffHighlight      bool
 		MaxGitDiffLines           int
 		MaxGitDiffLineCharacters  int
@@ -58,6 +59,9 @@ var (
 func newGit() {
 	if err := Cfg.Section("git").MapTo(&Git); err != nil {
 		log.Fatal("Failed to map Git settings: %v", err)
+	}
+	if err := git.SetExecutablePath(Git.Path); err != nil {
+		log.Fatal("Failed to initialize Git settings", err)
 	}
 	git.DefaultCommandExecutionTimeout = time.Duration(Git.Timeout.Default) * time.Second
 

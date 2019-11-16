@@ -97,7 +97,7 @@ func GetListLockHandler(ctx *context.Context) {
 			})
 			return
 		}
-		lock, err := models.GetLFSLockByID(int64(v))
+		lock, err := models.GetLFSLockByID(v)
 		handleLockListOut(ctx, repository, lock, err)
 		return
 	}
@@ -155,7 +155,9 @@ func PostLockHandler(ctx *context.Context) {
 	}
 
 	var req api.LFSLockRequest
-	dec := json.NewDecoder(ctx.Req.Body().ReadCloser())
+	bodyReader := ctx.Req.Body().ReadCloser()
+	defer bodyReader.Close()
+	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		writeStatus(ctx, 400)
 		return
@@ -269,7 +271,9 @@ func UnLockHandler(ctx *context.Context) {
 	}
 
 	var req api.LFSLockDeleteRequest
-	dec := json.NewDecoder(ctx.Req.Body().ReadCloser())
+	bodyReader := ctx.Req.Body().ReadCloser()
+	defer bodyReader.Close()
+	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		writeStatus(ctx, 400)
 		return

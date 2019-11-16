@@ -32,7 +32,7 @@ necessary. To be able to use these you must have the `"$GOPATH"/bin` directory
 on the executable path. If you don't add the go bin directory to the
 executable path you will have to manage this yourself.
 
-**Note 2**: Go version 1.9 or higher is required; however, it is important
+**Note 2**: Go version 1.11 or higher is required; however, it is important
 to note that our continuous integration will check that the formatting of the
 source code is not changed by `gofmt` using `make fmt-check`. Unfortunately,
 the results of `gofmt` can differ by the version of `go`. It is therefore
@@ -108,10 +108,10 @@ and look at our
 [`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see
 how our continuous integration works.
 
-### Formatting, linting, vetting and spell-check
+### Formatting, code analysis and spell check
 
 Our continous integration will reject PRs that are not properly formatted, fail
-linting, vet or spell-check.
+code analysis or spell check.
 
 You should format your code with `go fmt` using:
 
@@ -130,10 +130,10 @@ You should run the same version of go that is on the continuous integration
 server as mentioned above. `make fmt-check` will only check if your `go` would
 format differently - this may be different from the CI server version.
 
-You should lint, vet and spell-check with:
+You should run revive, vet and spell-check on the code with:
 
 ```bash
-make vet lint misspell-check
+make revive vet misspell-check
 ```
 
 ### Updating CSS
@@ -178,7 +178,7 @@ make generate-swagger
 You should validate your generated Swagger file and spell-check it with:
 
 ```bash
-make swagger-validate mispell-check
+make swagger-validate misspell-check
 ```
 
 You should commit the changed swagger JSON file. The continous integration

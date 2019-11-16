@@ -5,8 +5,9 @@
 package models
 
 import (
-	"code.gitea.io/gitea/modules/log"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // RepoRedirect represents that a repo name should be redirected to another

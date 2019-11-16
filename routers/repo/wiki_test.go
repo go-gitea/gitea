@@ -23,6 +23,7 @@ const message = "Wiki commit message for unit tests"
 func wikiEntry(t *testing.T, repo *models.Repository, wikiName string) *git.TreeEntry {
 	wikiRepo, err := git.OpenRepository(repo.WikiPath())
 	assert.NoError(t, err)
+	defer wikiRepo.Close()
 	commit, err := wikiRepo.GetBranchCommit("master")
 	assert.NoError(t, err)
 	entries, err := commit.ListEntries()

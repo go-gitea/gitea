@@ -55,13 +55,13 @@ func TestHasAccess(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, has)
 
-	has, err = HasAccess(user1.ID, repo2)
+	_, err = HasAccess(user1.ID, repo2)
 	assert.NoError(t, err)
 
-	has, err = HasAccess(user2.ID, repo1)
+	_, err = HasAccess(user2.ID, repo1)
 	assert.NoError(t, err)
 
-	has, err = HasAccess(user2.ID, repo2)
+	_, err = HasAccess(user2.ID, repo2)
 	assert.NoError(t, err)
 }
 

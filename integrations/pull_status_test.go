@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -91,5 +92,30 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			assert.True(t, ok)
 			assert.EqualValues(t, "commit-status "+statesIcons[status], cls)
 		}
+	})
+}
+
+func TestPullCreate_EmptyChangesWithCommits(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "status1", "README.md", "status1")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "status1", "status1", "README.md", "# repo1\n\nDescription for repo1")
+
+		url := path.Join("user1", "repo1", "compare", "master...status1")
+		req := NewRequestWithValues(t, "POST", url,
+			map[string]string{
+				"_csrf": GetCSRF(t, session, url),
+				"title": "pull request from status1",
+			},
+		)
+		session.MakeRequest(t, req, http.StatusFound)
+
+		req = NewRequest(t, "GET", "/user1/repo1/pulls/1")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+
+		text := strings.TrimSpace(doc.doc.Find(".item.text.green").Text())
+		assert.EqualValues(t, "This pull request can be merged automatically.", text)
 	})
 }

@@ -10,9 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/notification"
-
 	api "code.gitea.io/gitea/modules/structs"
+	comment_service "code.gitea.io/gitea/services/comments"
 )
 
 // ListIssueComments list all the comments of an issue
@@ -190,13 +189,11 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		return
 	}
 
-	comment, err := models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Body, nil)
+	comment, err := comment_service.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Body, nil)
 	if err != nil {
 		ctx.Error(500, "CreateIssueComment", err)
 		return
 	}
-
-	notification.NotifyCreateIssueComment(ctx.User, ctx.Repo.Repository, issue, comment)
 
 	ctx.JSON(201, comment.APIFormat())
 }
@@ -300,12 +297,10 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 
 	oldContent := comment.Content
 	comment.Content = form.Body
-	if err := models.UpdateComment(ctx.User, comment, oldContent); err != nil {
+	if err := comment_service.UpdateComment(comment, ctx.User, oldContent); err != nil {
 		ctx.Error(500, "UpdateComment", err)
 		return
 	}
-
-	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
 
 	ctx.JSON(200, comment.APIFormat())
 }
@@ -391,12 +386,10 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = models.DeleteComment(ctx.User, comment); err != nil {
+	if err = comment_service.DeleteComment(comment, ctx.User); err != nil {
 		ctx.Error(500, "DeleteCommentByID", err)
 		return
 	}
-
-	notification.NotifyDeleteComment(ctx.User, comment)
 
 	ctx.Status(204)
 }

@@ -9,6 +9,8 @@ import "time"
 
 // Comment is a standard comment information
 type Comment struct {
+	IssueIndex  int64
+	PosterID    int64
 	PosterName  string
 	PosterEmail string
 	Created     time.Time

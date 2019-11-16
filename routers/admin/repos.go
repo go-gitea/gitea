@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -38,7 +39,7 @@ func DeleteRepo(ctx *context.Context) {
 		return
 	}
 
-	if err := models.DeleteRepository(ctx.User, repo.MustOwner().ID, repo.ID); err != nil {
+	if err := repo_service.DeleteRepository(ctx.User, repo); err != nil {
 		ctx.ServerError("DeleteRepository", err)
 		return
 	}

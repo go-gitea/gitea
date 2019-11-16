@@ -88,5 +88,6 @@ type EditPullRequestOption struct {
 	Labels    []int64  `json:"labels"`
 	State     *string  `json:"state"`
 	// swagger:strfmt date-time
-	Deadline *time.Time `json:"due_date"`
+	Deadline       *time.Time `json:"due_date"`
+	RemoveDeadline *bool      `json:"unset_due_date"`
 }

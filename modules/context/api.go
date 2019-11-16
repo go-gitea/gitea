@@ -10,14 +10,13 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/go-macaron/csrf"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/csrf"
+	"gitea.com/macaron/macaron"
 )
 
 // APIContext is a specific macaron context for API service
@@ -187,7 +186,16 @@ func ReferencesGitRepo(allowEmpty bool) macaron.Handler {
 				return
 			}
 			ctx.Repo.GitRepo = gitRepo
+			// We opened it, we should close it
+			defer func() {
+				// If it's been set to nil then assume someone else has closed it.
+				if ctx.Repo.GitRepo != nil {
+					ctx.Repo.GitRepo.Close()
+				}
+			}()
 		}
+
+		ctx.Next()
 	}
 }
 

@@ -62,7 +62,7 @@ _Symbols used in table:_
 | Granular user roles (Code, Issues, Wiki etc) | ✓ | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
 | Verified Committer | ✘ | ✘ | ? | ✓ | ✓ | ✓ | ✘ |
 | GPG Signed Commits | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Reject unsigned commits | ✘ | ✘ | ✓ | ✓ | ✓ | ✘ | ✓ |
+| Reject unsigned commits | [✘](https://github.com/go-gitea/gitea/issues/2770) | ✘ | ✓ | ✓ | ✓ | ✘ | ✓ |
 | Repository Activity page | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Branch manager | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Create new branches | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
@@ -105,6 +105,7 @@ _Symbols used in table:_
 | Revert specific commits or a merge request | [✘](https://github.com/go-gitea/gitea/issues/5158) | ✘ | ✓ | ✓ | ✓ | ✓ | ✘ |
 | Pull/Merge requests templates | ✓ | ✓ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Cherry-picking changes | [✘](https://github.com/go-gitea/gitea/issues/5158) | ✘ | ✘ | ✓ | ✓ | ✘ | ✘ |
+| Download Patch | ✓ | ✘ | ✓ | ✓ | ✓ | [/](https://jira.atlassian.com/plugins/servlet/mobile#issue/BCLOUD-8323) | ✘ |
 
 
 #### 3rd-party integrations
