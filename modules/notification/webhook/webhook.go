@@ -573,11 +573,13 @@ func (m *webhookNotifier) NotifyCreateRef(pusher *models.User, repo *models.Repo
 		return
 	}
 
-	shaSum, err := gitRepo.GetBranchCommitID(refName)
+	shaSum, err := gitRepo.GetRefCommitID(refFullName)
 	if err != nil {
-		log.Error("GetBranchCommitID[%s]: %v", refFullName, err)
+		gitRepo.Close()
+		log.Error("GetRefCommitID[%s]: %v", refFullName, err)
 		return
 	}
+	gitRepo.Close()
 
 	if err = webhook_module.PrepareWebhooks(repo, models.HookEventCreate, &api.CreatePayload{
 		Ref:     refName,

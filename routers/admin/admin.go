@@ -6,6 +6,7 @@
 package admin
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 
 	"gitea.com/macaron/macaron"
+	"gitea.com/macaron/session"
 	"github.com/unknwon/com"
 )
 
@@ -207,7 +209,7 @@ func SendTestMail(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/admin/config")
 }
 
-func shadownPasswordKV(cfgItem, splitter string) string {
+func shadowPasswordKV(cfgItem, splitter string) string {
 	fields := strings.Split(cfgItem, splitter)
 	for i := 0; i < len(fields); i++ {
 		if strings.HasPrefix(fields[i], "password=") {
@@ -218,10 +220,10 @@ func shadownPasswordKV(cfgItem, splitter string) string {
 	return strings.Join(fields, splitter)
 }
 
-func shadownURL(provider, cfgItem string) string {
+func shadowURL(provider, cfgItem string) string {
 	u, err := url.Parse(cfgItem)
 	if err != nil {
-		log.Error("shodowPassword %v failed: %v", provider, err)
+		log.Error("Shadowing Password for %v failed: %v", provider, err)
 		return cfgItem
 	}
 	if u.User != nil {
@@ -239,7 +241,7 @@ func shadownURL(provider, cfgItem string) string {
 func shadowPassword(provider, cfgItem string) string {
 	switch provider {
 	case "redis":
-		return shadownPasswordKV(cfgItem, ",")
+		return shadowPasswordKV(cfgItem, ",")
 	case "mysql":
 		//root:@tcp(localhost:3306)/macaron?charset=utf8
 		atIdx := strings.Index(cfgItem, "@")
@@ -253,15 +255,21 @@ func shadowPassword(provider, cfgItem string) string {
 	case "postgres":
 		// user=jiahuachen dbname=macaron port=5432 sslmode=disable
 		if !strings.HasPrefix(cfgItem, "postgres://") {
-			return shadownPasswordKV(cfgItem, " ")
+			return shadowPasswordKV(cfgItem, " ")
 		}
-
+		fallthrough
+	case "couchbase":
+		return shadowURL(provider, cfgItem)
 		// postgres://pqgotest:password@localhost/pqgotest?sslmode=verify-full
-		// Notice: use shadwonURL
+		// Notice: use shadowURL
+	case "VirtualSession":
+		var realSession session.Options
+		if err := json.Unmarshal([]byte(cfgItem), &realSession); err == nil {
+			return shadowPassword(realSession.Provider, realSession.ProviderConfig)
+		}
 	}
 
-	// "couchbase"
-	return shadownURL(provider, cfgItem)
+	return cfgItem
 }
 
 // Config show admin config page

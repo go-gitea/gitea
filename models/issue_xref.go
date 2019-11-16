@@ -25,25 +25,6 @@ type crossReferencesContext struct {
 	OrigComment *Comment
 }
 
-func newCrossReference(e *xorm.Session, ctx *crossReferencesContext, xref *crossReference) error {
-	var refCommentID int64
-	if ctx.OrigComment != nil {
-		refCommentID = ctx.OrigComment.ID
-	}
-	_, err := createComment(e, &CreateCommentOptions{
-		Type:         ctx.Type,
-		Doer:         ctx.Doer,
-		Repo:         xref.Issue.Repo,
-		Issue:        xref.Issue,
-		RefRepoID:    ctx.OrigIssue.RepoID,
-		RefIssueID:   ctx.OrigIssue.ID,
-		RefCommentID: refCommentID,
-		RefAction:    xref.Action,
-		RefIsPull:    xref.Issue.IsPull,
-	})
-	return err
-}
-
 func neuterCrossReferences(e Engine, issueID int64, commentID int64) error {
 	active := make([]*Comment, 0, 10)
 	sess := e.Where("`ref_action` IN (?, ?, ?)", references.XRefActionNone, references.XRefActionCloses, references.XRefActionReopens)
@@ -93,7 +74,21 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 		return err
 	}
 	for _, xref := range xreflist {
-		if err = newCrossReference(e, ctx, xref); err != nil {
+		var refCommentID int64
+		if ctx.OrigComment != nil {
+			refCommentID = ctx.OrigComment.ID
+		}
+		if _, err := createComment(e, &CreateCommentOptions{
+			Type:         ctx.Type,
+			Doer:         ctx.Doer,
+			Repo:         xref.Issue.Repo,
+			Issue:        xref.Issue,
+			RefRepoID:    ctx.OrigIssue.RepoID,
+			RefIssueID:   ctx.OrigIssue.ID,
+			RefCommentID: refCommentID,
+			RefAction:    xref.Action,
+			RefIsPull:    xref.Issue.IsPull,
+		}); err != nil {
 			return err
 		}
 	}

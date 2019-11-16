@@ -140,6 +140,7 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
 	}
+	defer gitRepo.Close()
 
 	if hasMasterBranch {
 		if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
@@ -283,6 +284,7 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiName string) (err error) 
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
 	}
+	defer gitRepo.Close()
 
 	if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
 		log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
