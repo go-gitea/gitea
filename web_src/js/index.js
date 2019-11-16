@@ -582,6 +582,18 @@ function initInstall() {
   });
 }
 
+function initIssueComments() {
+  if ($('.repository.view.issue .comments').length === 0) return;
+
+  $(document).click((event) => {
+    const $target = $(event.target);
+
+    if ($target.closest('.comment').length === 0) {
+      window.location.hash = '';
+    }
+  });
+}
+
 function initRepository() {
   if ($('.repository').length === 0) {
     return;
@@ -728,6 +740,9 @@ function initRepository() {
       });
       return false;
     });
+
+    // Issue Comments
+    initIssueComments();
 
     // Edit issue or comment content
     $('.edit-content').click(function () {
