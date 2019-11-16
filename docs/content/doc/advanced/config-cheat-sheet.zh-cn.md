@@ -272,6 +272,11 @@ IS_INPUT_FILE = false
 - `QUEUE_LENGTH`: **1000**: 任务队列长度，当 `QUEUE_TYPE` 为 `channel` 时有效。
 - `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: 任务队列连接字符串，当 `QUEUE_TYPE` 为 `redis` 时有效。如果redis有密码，则可以 `addrs=127.0.0.1:6379 password=123 db=0`。
 
+## Migrations (`migrations`)
+
+- `MAX_ATTEMPTS`: **3**: 在迁移过程中的 http/https 请求重试次数。
+- `RETRY_BACKOFF`: **3**: 等待下一次重试的时间，单位秒。
+
 ## Other (`other`)
 
 - `SHOW_FOOTER_BRANDING`: 为真则在页面底部显示Gitea的字样。

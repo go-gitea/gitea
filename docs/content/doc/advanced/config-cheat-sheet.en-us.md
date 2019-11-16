@@ -585,6 +585,11 @@ Two special environment variables are passed to the render command:
 - `QUEUE_LENGTH`: **1000**: Task queue length, available only when `QUEUE_TYPE` is `channel`.
 - `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If there redis needs a password, use `addrs=127.0.0.1:6379 password=123 db=0`.
 
+## Migrations (`migrations`)
+
+- `MAX_ATTEMPTS`: **3**: Max attempts per http/https request on migrations.
+- `RETRY_BACKOFF`: **3**: Backoff time per http/https request retry (seconds)
+
 ## Other (`other`)
 
 - `SHOW_FOOTER_BRANDING`: **false**: Show Gitea branding in the footer.
