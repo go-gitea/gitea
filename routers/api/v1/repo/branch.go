@@ -16,7 +16,7 @@ import (
 func GetBranch(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/branches/{branch} repository repoGetBranch
 	// ---
-	// summary: Retrieve a specific branch from a repository
+	// summary: Retrieve a specific branch from a repository, including its effective branch protection
 	// produces:
 	// - application/json
 	// parameters:
@@ -61,7 +61,13 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(200, convert.ToBranch(ctx.Repo.Repository, branch, c))
+	branchProtection, err := ctx.Repo.Repository.GetBranchProtection(ctx.Repo.BranchName)
+	if err != nil {
+		ctx.Error(500, "GetBranchProtection", err)
+		return
+	}
+
+	ctx.JSON(200, convert.ToBranch(ctx.Repo.Repository, branch, c, branchProtection, ctx.User))
 }
 
 // ListBranches list all the branches of a repository
@@ -98,7 +104,12 @@ func ListBranches(ctx *context.APIContext) {
 			ctx.Error(500, "GetCommit", err)
 			return
 		}
-		apiBranches[i] = convert.ToBranch(ctx.Repo.Repository, branches[i], c)
+		branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branches[i].Name)
+		if err != nil {
+			ctx.Error(500, "GetBranchProtection", err)
+			return
+		}
+		apiBranches[i] = convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.User)
 	}
 
 	ctx.JSON(200, &apiBranches)
