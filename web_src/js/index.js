@@ -1134,6 +1134,8 @@ function initTeamSettings() {
 
 function initWikiForm() {
   const $editArea = $('.repository.wiki textarea#edit_area');
+  let sideBySideChanges = 0;
+  let sideBySideTimeout = null;
   if ($editArea.length > 0) {
     const simplemde = new SimpleMDE({
       autoDownloadFontAwesome: false,
@@ -1142,18 +1144,46 @@ function initWikiForm() {
       previewRender(plainText, preview) { // Async method
         setTimeout(() => {
           // FIXME: still send render request when return back to edit mode
-          $.post($editArea.data('url'), {
-            _csrf: csrf,
-            mode: 'gfm',
-            context: $editArea.data('context'),
-            text: plainText
-          }, (data) => {
-            preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-            emojify.run($('.editor-preview')[0]);
-          });
+          const render = function () {
+            sideBySideChanges = 0;
+            if (sideBySideTimeout != null) {
+              clearTimeout(sideBySideTimeout);
+              sideBySideTimeout = null;
+            }
+            $.post($editArea.data('url'), {
+              _csrf: csrf,
+              mode: 'gfm',
+              context: $editArea.data('context'),
+              text: plainText
+            },
+            (data) => {
+              preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
+              emojify.run($('.editor-preview')[0]);
+              $(preview).find('pre code').each((_, e) => {
+                hljs.highlightBlock(e);
+              });
+            });
+          };
+          if (!simplemde.isSideBySideActive()) {
+            render();
+          } else {
+            // delay preview by keystroke counting
+            sideBySideChanges++;
+            if (sideBySideChanges > 10) {
+              render();
+            }
+            // or delay preview by timeout
+            if (sideBySideTimeout != null) {
+              clearTimeout(sideBySideTimeout);
+              sideBySideTimeout = null;
+            }
+            sideBySideTimeout = setTimeout(render, 600);
+          }
         }, 0);
-
-        return 'Loading...';
+        if (!simplemde.isSideBySideActive()) {
+          return 'Loading...';
+        }
+        return preview.innerHTML;
       },
       renderingConfig: {
         singleLineBreaks: false
@@ -1199,7 +1229,7 @@ function initWikiForm() {
         }, '|',
         'unordered-list', 'ordered-list', '|',
         'link', 'image', 'table', 'horizontal-rule', '|',
-        'clean-block', 'preview', 'fullscreen']
+        'clean-block', 'preview', 'fullscreen', 'side-by-side']
     });
     $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
   }
