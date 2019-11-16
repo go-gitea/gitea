@@ -1910,13 +1910,23 @@
     }
 
     .segment.reactions {
-        padding: 0.3em 1em;
+        padding: 0;
+        display: flex;
 
         .ui.label {
             padding: 0.4em;
+            padding-right: 1em;
+            padding-left: 1em;
+            border: 0;
+            border-right: 1px solid;
+            border-radius: 0;
+            margin: 0;
+            font-size: 14px;
+            border-color: inherit !important;
 
             &.disabled {
                 cursor: default;
+                opacity: 0.5;
             }
 
             > img {
@@ -1924,8 +1934,15 @@
             }
         }
 
+        .ui.label.basic.blue {
+            background-color: #f1f8ff !important;
+            border-color: inherit !important;
+        }
+
         .select-reaction {
-            float: none;
+            float: left;
+            padding: 0.5em;
+            padding-left: 1em;
 
             &:not(.active) a {
                 display: none;
