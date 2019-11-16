@@ -4,13 +4,13 @@
 		<i class="fa fa-ellipsis-h"></i>
 	</a>
 	<div class="menu">
-		<div class="item context clipboard" data-clipboard-text="{{AppUrl}}{{.ctx.Repository.FullName}}/issues/{{.ctx.Issue.Index}}#{{.item.HashTag}}">Copy Link</div>
-		<div class="item context quote-reply" data-target="{{.item.ID}}">Quote Reply</div>
+		<div class="item context clipboard" data-clipboard-text="{{AppUrl}}{{.ctx.Repository.FullName}}/issues/{{.ctx.Issue.Index}}#{{.item.HashTag}}">{{.ctx.i18n.Tr "repo.issues.context.copy_link"}}</div>
+		<div class="item context quote-reply" data-target="{{.item.ID}}">{{.ctx.i18n.Tr "repo.issues.context.quote_reply"}}</div>
 		{{if or .ctx.Permission.IsAdmin (eq .item.Poster.ID .ctx.SignedUserID)}}
 			<div class="divider"></div>
-			<div class="item context edit-content">Edit</div>
+			<div class="item context edit-content">{{.ctx.i18n.Tr "repo.issues.context.edit"}}</div>
 			{{if .delete}}
-				<div class="item context delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctx.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{.ctx.i18n.Tr "repo.issues.delete_comment_confirm"}}">Delete</div>
+				<div class="item context delete-comment" data-comment-id={{.item.HashTag}} data-url="{{.ctx.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{.ctx.i18n.Tr "repo.issues.delete_comment_confirm"}}">{{.ctx.i18n.Tr "repo.issues.context.delete"}}</div>
 			{{end}}
 		{{end}}
 	</div>
