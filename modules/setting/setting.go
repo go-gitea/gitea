@@ -1090,4 +1090,5 @@ func NewServices() {
 	newMigrationsService()
 	newIndexerService()
 	newTaskService()
+	newQueueService()
 }
