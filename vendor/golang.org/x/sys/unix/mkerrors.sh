@@ -183,6 +183,7 @@ struct ltchars {
 #include <sys/socket.h>
 #include <sys/xattr.h>
 #include <linux/bpf.h>
+#include <linux/capability.h>
 #include <linux/errqueue.h>
 #include <linux/if.h>
 #include <linux/if_alg.h>
@@ -198,12 +199,14 @@ struct ltchars {
 #include <linux/fs.h>
 #include <linux/kexec.h>
 #include <linux/keyctl.h>
+#include <linux/loop.h>
 #include <linux/magic.h>
 #include <linux/memfd.h>
 #include <linux/module.h>
 #include <linux/netfilter/nfnetlink.h>
 #include <linux/netlink.h>
 #include <linux/net_namespace.h>
+#include <linux/nsfs.h>
 #include <linux/perf_event.h>
 #include <linux/random.h>
 #include <linux/reboot.h>
@@ -224,6 +227,7 @@ struct ltchars {
 #include <linux/rtc.h>
 #include <linux/if_xdp.h>
 #include <linux/cryptouser.h>
+#include <linux/tipc.h>
 #include <mtd/ubi-user.h>
 #include <net/route.h>
 
@@ -434,6 +438,8 @@ ccflags="$@"
 		$2 ~ /^TC[IO](ON|OFF)$/ ||
 		$2 ~ /^IN_/ ||
 		$2 ~ /^LOCK_(SH|EX|NB|UN)$/ ||
+		$2 ~ /^LO_(KEY|NAME)_SIZE$/ ||
+		$2 ~ /^LOOP_(CLR|CTL|GET|SET)_/ ||
 		$2 ~ /^(AF|SOCK|SO|SOL|IPPROTO|IP|IPV6|ICMP6|TCP|MCAST|EVFILT|NOTE|EV|SHUT|PROT|MAP|MFD|T?PACKET|MSG|SCM|MCL|DT|MADV|PR)_/ ||
 		$2 ~ /^TP_STATUS_/ ||
 		$2 ~ /^FALLOC_/ ||
@@ -447,6 +453,7 @@ ccflags="$@"
 		$2 ~ /^SYSCTL_VERS/ ||
 		$2 !~ "MNT_BITS" &&
 		$2 ~ /^(MS|MNT|UMOUNT)_/ ||
+		$2 ~ /^NS_GET_/ ||
 		$2 ~ /^TUN(SET|GET|ATTACH|DETACH)/ ||
 		$2 ~ /^(O|F|[ES]?FD|NAME|S|PTRACE|PT)_/ ||
 		$2 ~ /^KEXEC_/ ||
@@ -502,6 +509,7 @@ ccflags="$@"
 		$2 ~ /^XDP_/ ||
 		$2 ~ /^(HDIO|WIN|SMART)_/ ||
 		$2 ~ /^CRYPTO_/ ||
+		$2 ~ /^TIPC_/ ||
 		$2 !~ "WMESGLEN" &&
 		$2 ~ /^W[A-Z0-9]+$/ ||
 		$2 ~/^PPPIOC/ ||

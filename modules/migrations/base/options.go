@@ -5,22 +5,7 @@
 
 package base
 
-// MigrateOptions defines the way a repository gets migrated
-type MigrateOptions struct {
-	RemoteURL    string
-	AuthUsername string
-	AuthPassword string
-	Name         string
-	Description  string
-	OriginalURL  string
+import "code.gitea.io/gitea/modules/structs"
 
-	Wiki         bool
-	Issues       bool
-	Milestones   bool
-	Labels       bool
-	Releases     bool
-	Comments     bool
-	PullRequests bool
-	Private      bool
-	Mirror       bool
-}
+// MigrateOptions defines the way a repository gets migrated
+type MigrateOptions = structs.MigrateRepoOption

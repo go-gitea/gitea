@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func convertIntervalToDuration(x *xorm.Engine) (err error) {
@@ -41,8 +41,6 @@ func convertIntervalToDuration(x *xorm.Engine) (err error) {
 		_, err = sess.Exec("ALTER TABLE mirror MODIFY `interval` BIGINT")
 	case "postgres":
 		_, err = sess.Exec("ALTER TABLE mirror ALTER COLUMN \"interval\" SET DATA TYPE bigint")
-	case "tidb":
-		_, err = sess.Exec("ALTER TABLE mirror MODIFY `interval` BIGINT")
 	case "mssql":
 		_, err = sess.Exec("ALTER TABLE mirror ALTER COLUMN \"interval\" BIGINT")
 	case "sqlite3":

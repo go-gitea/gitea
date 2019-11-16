@@ -10,6 +10,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 
 	"code.gitea.io/gitea/modules/log"
@@ -25,11 +26,21 @@ type TestLogger struct {
 var writerCloser = &testLoggerWriterCloser{}
 
 type testLoggerWriterCloser struct {
+	sync.RWMutex
 	t testing.TB
 }
 
+func (w *testLoggerWriterCloser) setT(t *testing.TB) {
+	w.Lock()
+	w.t = *t
+	w.Unlock()
+}
+
 func (w *testLoggerWriterCloser) Write(p []byte) (int, error) {
-	if w.t != nil {
+	w.RLock()
+	t := w.t
+	w.RUnlock()
+	if t != nil {
 		if len(p) > 0 && p[len(p)-1] == '\n' {
 			p = p[:len(p)-1]
 		}
@@ -54,7 +65,7 @@ func (w *testLoggerWriterCloser) Write(p []byte) (int, error) {
 			}
 		}()
 
-		w.t.Log(string(p))
+		t.Log(string(p))
 		return len(p), nil
 	}
 	return len(p), nil
@@ -77,7 +88,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) {
 	} else {
 		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", t.Name(), strings.TrimPrefix(filename, prefix), line)
 	}
-	writerCloser.t = t
+	writerCloser.setT(&t)
 }
 
 // Printf takes a format and args and prints the string to os.Stdout

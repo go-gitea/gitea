@@ -27,13 +27,13 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
 	context2 "github.com/gorilla/context"
+	"github.com/unknwon/com"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/testfixtures.v2"
+	"xorm.io/xorm"
 )
 
 var codeFilePath = "contrib/pr/checkout.go"
@@ -79,16 +79,16 @@ func runPR() {
 	setting.CheckLFSVersion()
 	//models.LoadConfigs()
 	/*
-		models.DbCfg.Type = "sqlite3"
-		models.DbCfg.Path = ":memory:"
-		models.DbCfg.Timeout = 500
+		setting.Database.Type = "sqlite3"
+		setting.Database.Path = ":memory:"
+		setting.Database.Timeout = 500
 	*/
 	db := setting.Cfg.Section("database")
 	db.NewKey("DB_TYPE", "sqlite3")
 	db.NewKey("PATH", ":memory:")
-	setting.LogSQL = true
-	models.LoadConfigs()
+
 	routers.NewServices()
+	setting.Database.LogSQL = true
 	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 
 	var helper testfixtures.Helper = &testfixtures.SQLite{}

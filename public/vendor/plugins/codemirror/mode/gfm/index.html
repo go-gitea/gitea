@@ -15,9 +15,12 @@
 <script src="../htmlmixed/htmlmixed.js"></script>
 <script src="../clike/clike.js"></script>
 <script src="../meta.js"></script>
-<style type="text/css">.CodeMirror {border-top: 1px solid black; border-bottom: 1px solid black;}</style>
+<style>
+  .CodeMirror {border-top: 1px solid black; border-bottom: 1px solid black;}
+  .cm-s-default .cm-emoji {color: #009688;}
+</style>
 <div id=nav>
-  <a href="http://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
+  <a href="https://codemirror.net"><h1>CodeMirror</h1><img id=logo src="../../doc/logo.png"></a>
 
   <ul>
     <li><a href="../../index.html">Home</a>
@@ -67,6 +70,10 @@ for (var i = 0; i &lt; items.length; i++) {
 
 ## A bit of GitHub spice
 
+See http://github.github.com/github-flavored-markdown/.
+
+(Set `gitHubSpice: false` in mode options to disable):
+
 * SHA: be6a8cc1c1ecfe9489fb51e4869af15a13fc2cd2
 * User@SHA ref: mojombo@be6a8cc1c1ecfe9489fb51e4869af15a13fc2cd2
 * User/Project@SHA: mojombo/god@be6a8cc1c1ecfe9489fb51e4869af15a13fc2cd2
@@ -74,19 +81,55 @@ for (var i = 0; i &lt; items.length; i++) {
 * User/#Num: mojombo#1
 * User/Project#Num: mojombo/god#1
 
-See http://github.github.com/github-flavored-markdown/.
+(Set `emoji: false` in mode options to disable):
+
+* emoji: :smile:
+
 
 </textarea></form>
 
     <script>
       var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
-        mode: 'gfm',
+        mode: {
+          name: "gfm",
+          tokenTypeOverrides: {
+            emoji: "emoji"
+          }
+        },
         lineNumbers: true,
         theme: "default"
       });
     </script>
 
     <p>Optionally depends on other modes for properly highlighted code blocks.</p>
+
+    <p>Gfm mode supports these options (apart those from base Markdown mode):</p>
+    <ul>
+      <li>
+        <d1>
+          <dt><code>gitHubSpice: boolean</code></dt>
+          <dd>Hashes, issues... (default: <code>true</code>).</dd>
+        </d1>
+      </li>
+      <li>
+        <d1>
+          <dt><code>taskLists: boolean</code></dt>
+          <dd><code>- [ ]</code> syntax (default: <code>true</code>).</dd>
+        </d1>
+      </li>
+      <li>
+        <d1>
+          <dt><code>strikethrough: boolean</code></dt>
+          <dd><code>~~foo~~</code> syntax (default: <code>true</code>).</dd>
+        </d1>
+      </li>
+      <li>
+        <d1>
+          <dt><code>emoji: boolean</code></dt>
+          <dd><code>:emoji:</code> syntax (default: <code>true</code>).</dd>
+        </d1>
+      </li>
+    </ul>
 
     <p><strong>Parsing/Highlighting Tests:</strong> <a href="../../test/index.html#gfm_*">normal</a>,  <a href="../../test/index.html#verbose,gfm_*">verbose</a>.</p>
 

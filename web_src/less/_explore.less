@@ -1,0 +1,111 @@
+.explore {
+    padding-top: 15px;
+
+    .navbar {
+        justify-content: center;
+        padding-top: 15px !important;
+        margin-top: -15px !important;
+        margin-bottom: 15px !important;
+        background-color: #fafafa !important;
+        border-width: 1px !important;
+
+        .octicon {
+            width: 16px;
+            text-align: center;
+            margin-right: 5px;
+        }
+    }
+}
+
+.ui.repository.list {
+    .item {
+        padding-bottom: 25px;
+
+        &:not(:first-child) {
+            border-top: 1px solid #eeeeee;
+            padding-top: 25px;
+        }
+
+        .ui.header {
+            font-size: 1.5rem;
+            padding-bottom: 10px;
+
+            .name {
+                word-break: break-all;
+            }
+
+            .metas {
+                color: #888888;
+                font-size: 14px;
+                font-weight: normal;
+
+                span:not(:last-child) {
+                    margin-right: 5px;
+                }
+            }
+        }
+
+        .time {
+            font-size: 12px;
+            color: #808080;
+        }
+
+        .ui.tags {
+            margin-bottom: 1em;
+        }
+
+        .ui.avatar.image {
+            width: 24px;
+            height: 24px;
+        }
+    }
+}
+
+.ui.repository.branches {
+    .info {
+        font-size: 12px;
+        color: #808080;
+        display: flex;
+        white-space: pre;
+        .commit-message {
+            max-width: 72em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+    .overflow-visible {
+        overflow: visible;
+    }
+}
+
+.ui.user.list {
+    .item {
+        padding-bottom: 25px;
+
+        &:not(:first-child) {
+            border-top: 1px solid #eeeeee;
+            padding-top: 25px;
+        }
+
+        .ui.avatar.image {
+            width: 40px;
+            height: 40px;
+        }
+
+        .description {
+            margin-top: 5px;
+
+            .octicon:not(:first-child) {
+                margin-left: 5px;
+            }
+
+            a {
+                color: #333333;
+
+                &:hover {
+                    text-decoration: underline;
+                }
+            }
+        }
+    }
+}

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -304,6 +305,7 @@ func (w *Worktree) resetIndex(t *object.Tree) error {
 	if err != nil {
 		return err
 	}
+	b := newIndexBuilder(idx)
 
 	changes, err := w.diffTreeWithStaging(t, true)
 	if err != nil {
@@ -330,12 +332,12 @@ func (w *Worktree) resetIndex(t *object.Tree) error {
 			name = ch.From.String()
 		}
 
-		_, _ = idx.Remove(name)
+		b.Remove(name)
 		if e == nil {
 			continue
 		}
 
-		idx.Entries = append(idx.Entries, &index.Entry{
+		b.Add(&index.Entry{
 			Name: name,
 			Hash: e.Hash,
 			Mode: e.Mode,
@@ -343,6 +345,7 @@ func (w *Worktree) resetIndex(t *object.Tree) error {
 
 	}
 
+	b.Write(idx)
 	return w.r.Storer.SetIndex(idx)
 }
 
@@ -356,17 +359,19 @@ func (w *Worktree) resetWorktree(t *object.Tree) error {
 	if err != nil {
 		return err
 	}
+	b := newIndexBuilder(idx)
 
 	for _, ch := range changes {
-		if err := w.checkoutChange(ch, t, idx); err != nil {
+		if err := w.checkoutChange(ch, t, b); err != nil {
 			return err
 		}
 	}
 
+	b.Write(idx)
 	return w.r.Storer.SetIndex(idx)
 }
 
-func (w *Worktree) checkoutChange(ch merkletrie.Change, t *object.Tree, idx *index.Index) error {
+func (w *Worktree) checkoutChange(ch merkletrie.Change, t *object.Tree, idx *indexBuilder) error {
 	a, err := ch.Action()
 	if err != nil {
 		return err
@@ -445,7 +450,7 @@ func (w *Worktree) setHEADCommit(commit plumbing.Hash) error {
 func (w *Worktree) checkoutChangeSubmodule(name string,
 	a merkletrie.Action,
 	e *object.TreeEntry,
-	idx *index.Index,
+	idx *indexBuilder,
 ) error {
 	switch a {
 	case merkletrie.Modify:
@@ -479,11 +484,11 @@ func (w *Worktree) checkoutChangeRegularFile(name string,
 	a merkletrie.Action,
 	t *object.Tree,
 	e *object.TreeEntry,
-	idx *index.Index,
+	idx *indexBuilder,
 ) error {
 	switch a {
 	case merkletrie.Modify:
-		_, _ = idx.Remove(name)
+		idx.Remove(name)
 
 		// to apply perm changes the file is deleted, billy doesn't implement
 		// chmod
@@ -506,6 +511,12 @@ func (w *Worktree) checkoutChangeRegularFile(name string,
 	}
 
 	return nil
+}
+
+var copyBufferPool = sync.Pool{
+	New: func() interface{} {
+		return make([]byte, 32*1024)
+	},
 }
 
 func (w *Worktree) checkoutFile(f *object.File) (err error) {
@@ -531,8 +542,9 @@ func (w *Worktree) checkoutFile(f *object.File) (err error) {
 	}
 
 	defer ioutil.CheckClose(to, &err)
-
-	_, err = io.Copy(to, from)
+	buf := copyBufferPool.Get().([]byte)
+	_, err = io.CopyBuffer(to, from, buf)
+	copyBufferPool.Put(buf)
 	return
 }
 
@@ -569,19 +581,18 @@ func (w *Worktree) checkoutFileSymlink(f *object.File) (err error) {
 	return
 }
 
-func (w *Worktree) addIndexFromTreeEntry(name string, f *object.TreeEntry, idx *index.Index) error {
-	_, _ = idx.Remove(name)
-	idx.Entries = append(idx.Entries, &index.Entry{
+func (w *Worktree) addIndexFromTreeEntry(name string, f *object.TreeEntry, idx *indexBuilder) error {
+	idx.Remove(name)
+	idx.Add(&index.Entry{
 		Hash: f.Hash,
 		Name: name,
 		Mode: filemode.Submodule,
 	})
-
 	return nil
 }
 
-func (w *Worktree) addIndexFromFile(name string, h plumbing.Hash, idx *index.Index) error {
-	_, _ = idx.Remove(name)
+func (w *Worktree) addIndexFromFile(name string, h plumbing.Hash, idx *indexBuilder) error {
+	idx.Remove(name)
 	fi, err := w.Filesystem.Lstat(name)
 	if err != nil {
 		return err
@@ -605,8 +616,7 @@ func (w *Worktree) addIndexFromFile(name string, h plumbing.Hash, idx *index.Ind
 	if fillSystemInfo != nil {
 		fillSystemInfo(e, fi.Sys())
 	}
-
-	idx.Entries = append(idx.Entries, e)
+	idx.Add(e)
 	return nil
 }
 
@@ -912,4 +922,33 @@ func doCleanDirectories(fs billy.Filesystem, dir string) error {
 		return fs.Remove(dir)
 	}
 	return nil
+}
+
+type indexBuilder struct {
+	entries map[string]*index.Entry
+}
+
+func newIndexBuilder(idx *index.Index) *indexBuilder {
+	entries := make(map[string]*index.Entry, len(idx.Entries))
+	for _, e := range idx.Entries {
+		entries[e.Name] = e
+	}
+	return &indexBuilder{
+		entries: entries,
+	}
+}
+
+func (b *indexBuilder) Write(idx *index.Index) {
+	idx.Entries = idx.Entries[:0]
+	for _, e := range b.entries {
+		idx.Entries = append(idx.Entries, e)
+	}
+}
+
+func (b *indexBuilder) Add(e *index.Entry) {
+	b.entries[e.Name] = e
+}
+
+func (b *indexBuilder) Remove(name string) {
+	delete(b.entries, filepath.ToSlash(name))
 }

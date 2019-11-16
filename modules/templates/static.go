@@ -14,15 +14,18 @@ import (
 	"io/ioutil"
 	"path"
 	"strings"
+	texttmpl "text/template"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"github.com/Unknwon/com"
-	"gopkg.in/macaron.v1"
+
+	"gitea.com/macaron/macaron"
+	"github.com/unknwon/com"
 )
 
 var (
-	templates = template.New("")
+	subjectTemplates = texttmpl.New("")
+	bodyTemplates    = template.New("")
 )
 
 type templateFileSystem struct {
@@ -139,9 +142,12 @@ func JSRenderer() macaron.Handler {
 }
 
 // Mailer provides the templates required for sending notification mails.
-func Mailer() *template.Template {
+func Mailer() (*texttmpl.Template, *template.Template) {
+	for _, funcs := range NewTextFuncMap() {
+		subjectTemplates.Funcs(funcs)
+	}
 	for _, funcs := range NewFuncMap() {
-		templates.Funcs(funcs)
+		bodyTemplates.Funcs(funcs)
 	}
 
 	for _, assetPath := range AssetNames() {
@@ -160,7 +166,8 @@ func Mailer() *template.Template {
 			continue
 		}
 
-		templates.New(
+		buildSubjectBodyTemplate(subjectTemplates,
+			bodyTemplates,
 			strings.TrimPrefix(
 				strings.TrimSuffix(
 					assetPath,
@@ -168,7 +175,7 @@ func Mailer() *template.Template {
 				),
 				"mail/",
 			),
-		).Parse(string(content))
+			content)
 	}
 
 	customDir := path.Join(setting.CustomPath, "templates", "mail")
@@ -191,17 +198,18 @@ func Mailer() *template.Template {
 					continue
 				}
 
-				templates.New(
+				buildSubjectBodyTemplate(subjectTemplates,
+					bodyTemplates,
 					strings.TrimSuffix(
 						filePath,
 						".tmpl",
 					),
-				).Parse(string(content))
+					content)
 			}
 		}
 	}
 
-	return templates
+	return subjectTemplates, bodyTemplates
 }
 
 func Asset(name string) ([]byte, error) {

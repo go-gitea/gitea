@@ -249,7 +249,7 @@ func (fi *fileIndex) getHashesFromIndexes(indexes []int) ([]plumbing.Hash, error
 // Hashes returns all the hashes that are available in the index
 func (fi *fileIndex) Hashes() []plumbing.Hash {
 	hashes := make([]plumbing.Hash, fi.fanout[0xff])
-	for i := 0; i < int(fi.fanout[0xff]); i++ {
+	for i := 0; i < fi.fanout[0xff]; i++ {
 		offset := fi.oidLookupOffset + int64(i)*20
 		if n, err := fi.reader.ReadAt(hashes[i][:], offset); err != nil || n < 20 {
 			return nil

@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: http://codemirror.net/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -29,26 +29,22 @@
     var types = /^[A-Z_\u009F-\uFFFF][a-zA-Z0-9_\u009F-\uFFFF]*/;
     var keywords = wordRegExp([
       "abstract", "alias", "as", "asm", "begin", "break", "case", "class", "def", "do",
-      "else", "elsif", "end", "ensure", "enum", "extend", "for", "fun", "if", "ifdef",
+      "else", "elsif", "end", "ensure", "enum", "extend", "for", "fun", "if",
       "include", "instance_sizeof", "lib", "macro", "module", "next", "of", "out", "pointerof",
-      "private", "protected", "rescue", "return", "require", "sizeof", "struct",
-      "super", "then", "type", "typeof", "union", "unless", "until", "when", "while", "with",
-      "yield", "__DIR__", "__FILE__", "__LINE__"
+      "private", "protected", "rescue", "return", "require", "select", "sizeof", "struct",
+      "super", "then", "type", "typeof", "uninitialized", "union", "unless", "until", "when", "while", "with",
+      "yield", "__DIR__", "__END_LINE__", "__FILE__", "__LINE__"
     ]);
     var atomWords = wordRegExp(["true", "false", "nil", "self"]);
     var indentKeywordsArray = [
       "def", "fun", "macro",
       "class", "module", "struct", "lib", "enum", "union",
-      "if", "unless", "case", "while", "until", "begin", "then",
-      "do",
-      "for", "ifdef"
+      "do", "for"
     ];
     var indentKeywords = wordRegExp(indentKeywordsArray);
-    var dedentKeywordsArray = [
-      "end",
-      "else", "elsif",
-      "rescue", "ensure"
-    ];
+    var indentExpressionKeywordsArray = ["if", "unless", "case", "while", "until", "begin", "then"];
+    var indentExpressionKeywords = wordRegExp(indentExpressionKeywordsArray);
+    var dedentKeywordsArray = ["end", "else", "elsif", "rescue", "ensure"];
     var dedentKeywords = wordRegExp(dedentKeywordsArray);
     var dedentPunctualsArray = ["\\)", "\\}", "\\]"];
     var dedentPunctuals = new RegExp("^(?:" + dedentPunctualsArray.join("|") + ")$");
@@ -90,12 +86,15 @@
         } else if (state.lastToken == ".") {
           return "property";
         } else if (keywords.test(matched)) {
-          if (state.lastToken != "abstract" && indentKeywords.test(matched)) {
-            if (!(matched == "fun" && state.blocks.indexOf("lib") >= 0)) {
+          if (indentKeywords.test(matched)) {
+            if (!(matched == "fun" && state.blocks.indexOf("lib") >= 0) && !(matched == "def" && state.lastToken == "abstract")) {
               state.blocks.push(matched);
               state.currentIndent += 1;
             }
-          } else if (dedentKeywords.test(matched)) {
+          } else if ((state.lastStyle == "operator" || !state.lastStyle) && indentExpressionKeywords.test(matched)) {
+            state.blocks.push(matched);
+            state.currentIndent += 1;
+          } else if (matched == "end") {
             state.blocks.pop();
             state.currentIndent -= 1;
           }
@@ -122,12 +121,6 @@
         stream.eat("@");
         stream.match(idents) || stream.match(types);
         return "variable-2";
-      }
-
-      // Global variables
-      if (stream.eat("$")) {
-        stream.eat(/[0-9]+|\?/) || stream.match(idents) || stream.match(types);
-        return "variable-3";
       }
 
       // Constants and types
@@ -165,6 +158,9 @@
         } else if (stream.match("%w")) {
           embed = false;
           delim = stream.next();
+        } else if (stream.match("%q")) {
+          embed = false;
+          delim = stream.next();
         } else {
           if(delim = stream.match(/^%([^\w\s=])/)) {
             delim = delim[1];
@@ -181,6 +177,11 @@
           delim = matching[delim];
         }
         return chain(tokenQuote(delim, style, embed), stream, state);
+      }
+
+      // Here Docs
+      if (matched = stream.match(/^<<-('?)([A-Z]\w*)\1/)) {
+        return chain(tokenHereDoc(matched[2], !matched[1]), stream, state)
       }
 
       // Characters
@@ -202,7 +203,7 @@
         return "number";
       }
 
-      if (stream.eat(/\d/)) {
+      if (stream.eat(/^\d/)) {
         stream.match(/^\d*(?:\.\d+)?(?:[eE][+-]?\d+)?/);
         return "number";
       }
@@ -339,7 +340,7 @@
               return style;
             }
 
-            escaped = ch == "\\";
+            escaped = embed && ch == "\\";
           } else {
             stream.next();
             escaped = false;
@@ -350,12 +351,52 @@
       };
     }
 
+    function tokenHereDoc(phrase, embed) {
+      return function (stream, state) {
+        if (stream.sol()) {
+          stream.eatSpace()
+          if (stream.match(phrase)) {
+            state.tokenize.pop();
+            return "string";
+          }
+        }
+
+        var escaped = false;
+        while (stream.peek()) {
+          if (!escaped) {
+            if (stream.match("{%", false)) {
+              state.tokenize.push(tokenMacro("%", "%"));
+              return "string";
+            }
+
+            if (stream.match("{{", false)) {
+              state.tokenize.push(tokenMacro("{", "}"));
+              return "string";
+            }
+
+            if (embed && stream.match("#{", false)) {
+              state.tokenize.push(tokenNest("#{", "}", "meta"));
+              return "string";
+            }
+
+            escaped = embed && stream.next() == "\\";
+          } else {
+            stream.next();
+            escaped = false;
+          }
+        }
+
+        return "string";
+      }
+    }
+
     return {
       startState: function () {
         return {
           tokenize: [tokenBase],
           currentIndent: 0,
           lastToken: null,
+          lastStyle: null,
           blocks: []
         };
       },
@@ -366,6 +407,7 @@
 
         if (style && style != "comment") {
           state.lastToken = token;
+          state.lastStyle = style;
         }
 
         return style;

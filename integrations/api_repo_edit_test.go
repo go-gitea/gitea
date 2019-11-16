@@ -23,12 +23,35 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 	website := repo.Website
 	private := repo.IsPrivate
 	hasIssues := false
-	if _, err := repo.GetUnit(models.UnitTypeIssues); err == nil {
+	var internalTracker *api.InternalTracker
+	var externalTracker *api.ExternalTracker
+	if unit, err := repo.GetUnit(models.UnitTypeIssues); err == nil {
+		config := unit.IssuesConfig()
 		hasIssues = true
+		internalTracker = &api.InternalTracker{
+			EnableTimeTracker:                config.EnableTimetracker,
+			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
+			EnableIssueDependencies:          config.EnableDependencies,
+		}
+	} else if unit, err := repo.GetUnit(models.UnitTypeExternalTracker); err == nil {
+		config := unit.ExternalTrackerConfig()
+		hasIssues = true
+		externalTracker = &api.ExternalTracker{
+			ExternalTrackerURL:    config.ExternalTrackerURL,
+			ExternalTrackerFormat: config.ExternalTrackerFormat,
+			ExternalTrackerStyle:  config.ExternalTrackerStyle,
+		}
 	}
 	hasWiki := false
+	var externalWiki *api.ExternalWiki
 	if _, err := repo.GetUnit(models.UnitTypeWiki); err == nil {
 		hasWiki = true
+	} else if unit, err := repo.GetUnit(models.UnitTypeExternalWiki); err == nil {
+		hasWiki = true
+		config := unit.ExternalWikiConfig()
+		externalWiki = &api.ExternalWiki{
+			ExternalWikiURL: config.ExternalWikiURL,
+		}
 	}
 	defaultBranch := repo.DefaultBranch
 	hasPullRequests := false
@@ -53,7 +76,10 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 		Website:                   &website,
 		Private:                   &private,
 		HasIssues:                 &hasIssues,
+		ExternalTracker:           externalTracker,
+		InternalTracker:           internalTracker,
 		HasWiki:                   &hasWiki,
+		ExternalWiki:              externalWiki,
 		DefaultBranch:             &defaultBranch,
 		HasPullRequests:           &hasPullRequests,
 		IgnoreWhitespaceConflicts: &ignoreWhitespaceConflicts,
@@ -143,16 +169,94 @@ func TestAPIRepoEdit(t *testing.T) {
 		assert.Equal(t, *repoEditOption.Archived, *repo1editedOption.Archived)
 		assert.Equal(t, *repoEditOption.Private, *repo1editedOption.Private)
 		assert.Equal(t, *repoEditOption.HasWiki, *repo1editedOption.HasWiki)
+
+		//Test editing repo1 to use internal issue and wiki (default)
+		*repoEditOption.HasIssues = true
+		repoEditOption.ExternalTracker = nil
+		repoEditOption.InternalTracker = &api.InternalTracker{
+			EnableTimeTracker:                false,
+			AllowOnlyContributorsToTrackTime: false,
+			EnableIssueDependencies:          false,
+		}
+		*repoEditOption.HasWiki = true
+		repoEditOption.ExternalWiki = nil
+		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, *repoEditOption.Name, token2)
+		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &repo)
+		assert.NotNil(t, repo)
+		// check repo1 was written to database
+		repo1edited = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
+		assert.Equal(t, *repo1editedOption.HasIssues, true)
+		assert.Nil(t, repo1editedOption.ExternalTracker)
+		assert.Equal(t, *repo1editedOption.InternalTracker, *repoEditOption.InternalTracker)
+		assert.Equal(t, *repo1editedOption.HasWiki, true)
+		assert.Nil(t, repo1editedOption.ExternalWiki)
+
+		//Test editing repo1 to use external issue and wiki
+		repoEditOption.ExternalTracker = &api.ExternalTracker{
+			ExternalTrackerURL:    "http://www.somewebsite.com",
+			ExternalTrackerFormat: "http://www.somewebsite.com/{user}/{repo}?issue={index}",
+			ExternalTrackerStyle:  "alphanumeric",
+		}
+		repoEditOption.ExternalWiki = &api.ExternalWiki{
+			ExternalWikiURL: "http://www.somewebsite.com",
+		}
+		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &repo)
+		assert.NotNil(t, repo)
+		// check repo1 was written to database
+		repo1edited = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
+		assert.Equal(t, *repo1editedOption.HasIssues, true)
+		assert.Equal(t, *repo1editedOption.ExternalTracker, *repoEditOption.ExternalTracker)
+		assert.Equal(t, *repo1editedOption.HasWiki, true)
+		assert.Equal(t, *repo1editedOption.ExternalWiki, *repoEditOption.ExternalWiki)
+
+		// Do some tests with invalid URL for external tracker and wiki
+		repoEditOption.ExternalTracker.ExternalTrackerURL = "htp://www.somewebsite.com"
+		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
+		resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		repoEditOption.ExternalTracker.ExternalTrackerURL = "http://www.somewebsite.com"
+		repoEditOption.ExternalTracker.ExternalTrackerFormat = "http://www.somewebsite.com/{user/{repo}?issue={index}"
+		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
+		resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		repoEditOption.ExternalTracker.ExternalTrackerFormat = "http://www.somewebsite.com/{user}/{repo}?issue={index}"
+		repoEditOption.ExternalWiki.ExternalWikiURL = "htp://www.somewebsite.com"
+		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
+		resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+		//Test small repo change through API with issue and wiki option not set; They shall not be touched.
+		*repoEditOption.Description = "small change"
+		repoEditOption.HasIssues = nil
+		repoEditOption.ExternalTracker = nil
+		repoEditOption.HasWiki = nil
+		repoEditOption.ExternalWiki = nil
+		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &repo)
+		assert.NotNil(t, repo)
+		// check repo1 was written to database
+		repo1edited = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
+		assert.Equal(t, *repo1editedOption.Description, *repoEditOption.Description)
+		assert.Equal(t, *repo1editedOption.HasIssues, true)
+		assert.NotNil(t, *repo1editedOption.ExternalTracker)
+		assert.Equal(t, *repo1editedOption.HasWiki, true)
+		assert.NotNil(t, *repo1editedOption.ExternalWiki)
+
 		// reset repo in db
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, *repoEditOption.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &origRepoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// Test editing a non-existing repo
 		name := "repodoesnotexist"
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{Name: &name})
-		resp = session.MakeRequest(t, req, http.StatusNotFound)
+		_ = session.MakeRequest(t, req, http.StatusNotFound)
 
 		// Test editing repo16 by user4 who does not have write access
 		origRepoEditOption = getRepoEditOptionFromRepo(repo16)
@@ -166,18 +270,18 @@ func TestAPIRepoEdit(t *testing.T) {
 		repoEditOption = getNewRepoEditOption(origRepoEditOption)
 		url = fmt.Sprintf("/api/v1/repos/%s/%s", user2.Name, repo16.Name)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusNotFound)
+		_ = session.MakeRequest(t, req, http.StatusNotFound)
 
 		// Test using access token for a private repo that the user of the token owns
 		origRepoEditOption = getRepoEditOptionFromRepo(repo16)
 		repoEditOption = getNewRepoEditOption(origRepoEditOption)
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, repo16.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		_ = session.MakeRequest(t, req, http.StatusOK)
 		// reset repo in db
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, *repoEditOption.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &origRepoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// Test making a repo public that is private
 		repo16 = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
@@ -188,14 +292,14 @@ func TestAPIRepoEdit(t *testing.T) {
 		}
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, repo16.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		_ = session.MakeRequest(t, req, http.StatusOK)
 		repo16 = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
 		assert.False(t, repo16.IsPrivate)
 		// Make it private again
 		private = true
 		repoEditOption.Private = &private
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// Test using org repo "user3/repo3" where user2 is a collaborator
 		origRepoEditOption = getRepoEditOptionFromRepo(repo3)
@@ -206,7 +310,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		// reset repo in db
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user3.Name, *repoEditOption.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &origRepoEditOption)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// Test using org repo "user3/repo3" with no user token
 		origRepoEditOption = getRepoEditOptionFromRepo(repo3)

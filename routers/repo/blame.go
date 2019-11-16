@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -22,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 const (
@@ -120,8 +119,19 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["IsBlame"] = true
 
 	if ctx.Repo.CanEnableEditor() {
-		ctx.Data["CanDeleteFile"] = true
-		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
+		// Check LFS Lock
+		lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
+		if err != nil {
+			ctx.ServerError("GetTreePathLock", err)
+			return
+		}
+		if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
+			ctx.Data["CanDeleteFile"] = false
+			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
+		} else {
+			ctx.Data["CanDeleteFile"] = true
+			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
+		}
 	} else if !ctx.Repo.IsViewBranch {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
 	} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
@@ -212,7 +222,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			if index == 0 {
 				// User avatar image
 				avatar := ""
-				commitSince := base.TimeSinceUnix(util.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
+				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
 				if commit.User != nil {
 					authorName := commit.Author.Name
 					if len(commit.User.FullName) > 0 {

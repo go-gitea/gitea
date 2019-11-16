@@ -5,8 +5,8 @@
 package auth
 
 import (
-	"github.com/go-macaron/binding"
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
 )
 
 // SignInOpenIDForm form for signing in with OpenID

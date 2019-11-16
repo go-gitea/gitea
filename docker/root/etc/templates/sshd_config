@@ -1,4 +1,4 @@
-Port ${SSH_PORT}
+Port ${SSH_LISTEN_PORT}
 Protocol 2
 
 AddressFamily any
@@ -25,7 +25,7 @@ ChallengeResponseAuthentication no
 PasswordAuthentication no
 PermitEmptyPasswords no
 
-AllowUsers git
+AllowUsers ${USER}
 
 Banner none
 Subsystem sftp /usr/lib/ssh/sftp-server

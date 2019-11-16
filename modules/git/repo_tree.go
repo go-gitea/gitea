@@ -6,16 +6,17 @@
 package git
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	"gopkg.in/src-d/go-git.v4/plumbing"
+	"github.com/mcuadros/go-version"
 )
 
 func (repo *Repository) getTree(id SHA1) (*Tree, error) {
-	gogitTree, err := repo.gogitRepo.TreeObject(plumbing.Hash(id))
+	gogitTree, err := repo.gogitRepo.TreeObject(id)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +29,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 // GetTree find the tree object in the repository.
 func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if len(idStr) != 40 {
-		res, err := NewCommand("rev-parse", idStr).RunInDir(repo.Path)
+		res, err := NewCommand("rev-parse", "--verify", idStr).RunInDir(repo.Path)
 		if err != nil {
 			return nil, err
 		}
@@ -41,7 +42,7 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 		return nil, err
 	}
 	resolvedID := id
-	commitObject, err := repo.gogitRepo.CommitObject(plumbing.Hash(id))
+	commitObject, err := repo.gogitRepo.CommitObject(id)
 	if err == nil {
 		id = SHA1(commitObject.TreeHash)
 	}
@@ -55,15 +56,21 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 
 // CommitTreeOpts represents the possible options to CommitTree
 type CommitTreeOpts struct {
-	Parents   []string
-	Message   string
-	KeyID     string
-	NoGPGSign bool
+	Parents    []string
+	Message    string
+	KeyID      string
+	NoGPGSign  bool
+	AlwaysSign bool
 }
 
 // CommitTree creates a commit from a given tree id for the user with provided message
 func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOpts) (SHA1, error) {
-	commitTimeStr := time.Now().Format(time.UnixDate)
+	binVersion, err := BinVersion()
+	if err != nil {
+		return SHA1{}, err
+	}
+
+	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),
@@ -80,20 +87,24 @@ func (repo *Repository) CommitTree(sig *Signature, tree *Tree, opts CommitTreeOp
 		cmd.AddArguments("-p", parent)
 	}
 
-	cmd.AddArguments("-m", opts.Message)
+	messageBytes := new(bytes.Buffer)
+	_, _ = messageBytes.WriteString(opts.Message)
+	_, _ = messageBytes.WriteString("\n")
 
-	if opts.KeyID != "" {
+	if version.Compare(binVersion, "1.7.9", ">=") && (opts.KeyID != "" || opts.AlwaysSign) {
 		cmd.AddArguments(fmt.Sprintf("-S%s", opts.KeyID))
 	}
 
-	if opts.NoGPGSign {
+	if version.Compare(binVersion, "2.0.0", ">=") && opts.NoGPGSign {
 		cmd.AddArguments("--no-gpg-sign")
 	}
 
-	res, err := cmd.RunInDirWithEnv(repo.Path, env)
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	err = cmd.RunInDirTimeoutEnvFullPipeline(env, -1, repo.Path, stdout, stderr, messageBytes)
 
 	if err != nil {
-		return SHA1{}, err
+		return SHA1{}, concatenateError(err, stderr.String())
 	}
-	return NewIDFromString(strings.TrimSpace(res))
+	return NewIDFromString(strings.TrimSpace(stdout.String()))
 }
