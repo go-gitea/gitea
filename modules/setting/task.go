@@ -4,22 +4,17 @@
 
 package setting
 
-var (
-	// Task settings
-	Task = struct {
-		QueueType    string
-		QueueLength  int
-		QueueConnStr string
-	}{
-		QueueType:    ChannelQueueType,
-		QueueLength:  1000,
-		QueueConnStr: "addrs=127.0.0.1:6379 db=0",
-	}
-)
+import "code.gitea.io/gitea/modules/queue"
 
 func newTaskService() {
-	sec := Cfg.Section("task")
-	Task.QueueType = sec.Key("QUEUE_TYPE").MustString(ChannelQueueType)
-	Task.QueueLength = sec.Key("QUEUE_LENGTH").MustInt(1000)
-	Task.QueueConnStr = sec.Key("QUEUE_CONN_STR").MustString("addrs=127.0.0.1:6379 db=0")
+	taskSec := Cfg.Section("task")
+	queueTaskSec := Cfg.Section("queue.task")
+	switch taskSec.Key("QUEUE_TYPE").MustString(ChannelQueueType) {
+	case ChannelQueueType:
+		queueTaskSec.Key("TYPE").MustString(string(queue.PersistableChannelQueueType))
+	case RedisQueueType:
+		queueTaskSec.Key("TYPE").MustString(string(queue.RedisQueueType))
+	}
+	queueTaskSec.Key("LENGTH").MustInt(taskSec.Key("QUEUE_LENGTH").MustInt(1000))
+	queueTaskSec.Key("CONN_STR").MustString(taskSec.Key("QUEUE_CONN_STR").MustString("addrs=127.0.0.1:6379 db=0"))
 }
