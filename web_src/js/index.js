@@ -589,7 +589,14 @@ function initIssueComments() {
     const $target = $(event.target);
 
     if ($target.closest('.comment').length === 0) {
-      window.location.hash = '';
+      if (window.location.hash.length > 0) {
+        const i = window.location.toString().indexOf('#');
+
+        if (i >= 0) {
+          window.history.pushState({}, '', window.location.toString().substr(0, i));
+          window.location.reload();
+        }
+      }
     }
   });
 }
