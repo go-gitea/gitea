@@ -4,11 +4,44 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.10.0-RC2](https://github.com/go-gitea/gitea/releases/tag/v1.10.0-rc2) - 2019-10-30
+## [1.10.0](https://github.com/go-gitea/gitea/releases/tag/v1.10.0) - 2019-11-13
 * BREAKING
   * Fix deadline on update issue or PR via API (#8698)
   * Hide some user information via API if user doesn't have enough permission (#8655) (#8657)
+  * Remove legacy handling of drone token (#8191)
+  * Change repo search to use exact match for topic search. (#7941)
+  * Add pagination for admin api get orgs and fix only list public orgs bug (#7742)
+  * Implement the ability to change the ssh port to match what is in the gitea config (#7286)
+* SECURITY
+  * Fix issue with user.fullname (#8903)
+  * Ignore mentions for users with no access (#8395)
+  * Be more strict with git arguments (#7715)
+  * Extract the username and password from the mirror url (#7651)
+  * reserve .well-known username (#7637)
+* FEATURE
+  * Org/Members: display 2FA members states + optimize sql requests (#7621)
+  * SetDefaultBranch on pushing to empty repository (#7610)
+  * Adds side-by-side diff for images (#6784)
+  * API method to list all commits of a repository (#6408)
+  * Password Complexity Checks  (#6230)
+  * Add option to initialize repository with labels (#6061)
+  * Add additional password hash algorithms (#6023)
 * BUGFIXES
+  * Allow to merge if file path contains " or \ (#8629) (#8771) 
+  * On windows set core.longpaths true (#8776) (#8786)
+  * Fix 500 when edit hook (#8782) (#8789)
+  * Fix Checkbox at RepoSettings Protected Branch (#8799) (#8801)
+  * Fix SSH2 conditional in key parsing code (#8806) (#8810)
+  * Fix commit expand button to not go to commit link (#8745) (#8825)
+  * Fix new user form for non-local users (#8826) (#8828)
+  * Fix to close opened io resources as soon as not needed (#8839) (#8846)
+  * Fix edit content button on migrated issue content (#8877) (#8884)
+  * Fix require external registration password (#8885) (#8890)
+  * Fix password complexity check on registration (#8887) (#8888)
+  * Update Github Migration Tests (#8896) (#8938) (#8945)
+  * Enable punctuations ending mentions (#8889) (#8894) 
+  * Add Close() method to gogitRepository (#8901) (#8956)
+  * Hotfix for review actions and notifications (#8965)
   * Expose db.SetMaxOpenConns and allow non MySQL dbs to set conn pool params (#8528) (#8618)
   * Fix milestone close timestamp (#8728) (#8730)
   * Fix 500 when getting user as unauthenticated user (#8653) (#8663)
@@ -29,22 +62,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix password complexity regex for special characters (#8524)
   * Prevent .code-view from overriding font on icon fonts (#8614) (#8627)
   * Allow more than 255 characters for tokens in external_login_user table (#8554)
-
-## [1.10.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.10.0-rc1) - 2019-10-14
-* BREAKING
-  * Remove legacy handling of drone token (#8191)
-  * Change repo search to use exact match for topic search. (#7941)
-  * Add pagination for admin api get orgs and fix only list public orgs bug (#7742)
-  * Implement the ability to change the ssh port to match what is in the gitea config (#7286)
-* FEATURE
-  * Org/Members: display 2FA members states + optimize sql requests (#7621)
-  * SetDefaultBranch on pushing to empty repository (#7610)
-  * Adds side-by-side diff for images (#6784)
-  * API method to list all commits of a repository (#6408)
-  * Password Complexity Checks  (#6230)
-  * Add option to initialize repository with labels (#6061)
-  * Add additional password hash algorithms (#6023)
-* BUGFIXES
   * Fix errors in create org UI regarding team access permission (#8506)
   * Fix bug on FindExternalUsersByProvider (#8504)
   * Create .ssh dir as necessary (#8486)
@@ -244,10 +261,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Support setting cookie domain (#6288)
   * Move migrating repository from frontend to backend (#6200)
   * Delete releases attachments if release is deleted (#6068)
-* SECURITY
-  * Ignore mentions for users with no access (#8395)
-  * Be more strict with git arguments (#7715)
-  * reserve .well-known username (#7637)
 * TRANSLATION
   * Latvian translation for home page (#8468)
   * Add home template italian translation (#8352)
@@ -276,7 +289,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix global search result CSS, misc CSS tweaks (#7789)
   * Tweak label border CSS (#7739)
   * Fix create menu item widths (#7708)
-  * Extract the username and password from the mirror url (#7651)
   * [Branch View] Delete duplicate protection symbol (#7624)
   * [Branch View] Delete Table Header (#7622)
   * [Branch View] icons to buttons (#7602)

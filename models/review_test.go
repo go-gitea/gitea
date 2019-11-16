@@ -98,14 +98,6 @@ func TestCreateReview(t *testing.T) {
 	AssertExistsAndLoadBean(t, &Review{Content: "New Review"})
 }
 
-func TestUpdateReview(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	review := AssertExistsAndLoadBean(t, &Review{ID: 1}).(*Review)
-	review.Content = "Updated Review"
-	assert.NoError(t, UpdateReview(review))
-	AssertExistsAndLoadBean(t, &Review{ID: 1, Content: "Updated Review"})
-}
-
 func TestGetReviewersByPullID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 

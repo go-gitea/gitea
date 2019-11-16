@@ -1792,8 +1792,13 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 
 	if err = watchRepo(sess, doer.ID, repo.ID, true); err != nil {
 		return fmt.Errorf("watchRepo: %v", err)
-	} else if err = transferRepoAction(sess, doer, owner, repo); err != nil {
-		return fmt.Errorf("transferRepoAction: %v", err)
+	}
+
+	// Remove watch for organization.
+	if owner.IsOrganization() {
+		if err = watchRepo(sess, owner.ID, repo.ID, false); err != nil {
+			return fmt.Errorf("watchRepo [false]: %v", err)
+		}
 	}
 
 	// Rename remote repository to new path and delete local copy.
@@ -1824,23 +1829,21 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 }
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
-func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) {
-	oldRepoName = strings.ToLower(oldRepoName)
+func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err error) {
 	newRepoName = strings.ToLower(newRepoName)
 	if err = IsUsableRepoName(newRepoName); err != nil {
 		return err
 	}
 
-	has, err := IsRepositoryExist(u, newRepoName)
+	if err := repo.GetOwner(); err != nil {
+		return err
+	}
+
+	has, err := IsRepositoryExist(repo.Owner, newRepoName)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
-		return ErrRepoAlreadyExist{u.Name, newRepoName}
-	}
-
-	repo, err := GetRepositoryByName(u.ID, oldRepoName)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryByName: %v", err)
+		return ErrRepoAlreadyExist{repo.Owner.Name, newRepoName}
 	}
 
 	// Change repository directory name. We must lock the local copy of the
@@ -1849,14 +1852,14 @@ func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) 
 	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
 	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 
-	newRepoPath := RepoPath(u.Name, newRepoName)
+	newRepoPath := RepoPath(repo.Owner.Name, newRepoName)
 	if err = os.Rename(repo.RepoPath(), newRepoPath); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
 
 	wikiPath := repo.WikiPath()
 	if com.IsExist(wikiPath) {
-		if err = os.Rename(wikiPath, WikiPath(u.Name, newRepoName)); err != nil {
+		if err = os.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
 	}
@@ -1868,7 +1871,7 @@ func ChangeRepositoryName(u *User, oldRepoName, newRepoName string) (err error) 
 	}
 
 	// If there was previously a redirect at this location, remove it.
-	if err = deleteRepoRedirect(sess, u.ID, newRepoName); err != nil {
+	if err = deleteRepoRedirect(sess, repo.OwnerID, newRepoName); err != nil {
 		return fmt.Errorf("delete repo redirect: %v", err)
 	}
 

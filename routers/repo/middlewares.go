@@ -10,6 +10,11 @@ import (
 
 // SetEditorconfigIfExists set editor config as render variable
 func SetEditorconfigIfExists(ctx *context.Context) {
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.Data["Editorconfig"] = nil
+		return
+	}
+
 	ec, err := ctx.Repo.GetEditorconfig()
 
 	if err != nil && !git.IsErrNotExist(err) {

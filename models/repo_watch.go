@@ -216,6 +216,21 @@ func NotifyWatchers(act *Action) error {
 	return notifyWatchers(x, act)
 }
 
+// NotifyWatchersActions creates batch of actions for every watcher.
+func NotifyWatchersActions(acts []*Action) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	for _, act := range acts {
+		if err := notifyWatchers(sess, act); err != nil {
+			return err
+		}
+	}
+	return sess.Commit()
+}
+
 func watchIfAuto(e Engine, userID, repoID int64, isWrite bool) error {
 	if !isWrite || !setting.Service.AutoWatchOnChanges {
 		return nil

@@ -40,7 +40,7 @@ To register Gitea as a Windows service, open a command prompt (cmd) as an Admini
 then run the following command:
 
 ```
-sc create gitea start= auto binPath= ""C:\gitea\gitea.exe" web --config "C:\gitea\custom\conf\app.ini""
+sc create gitea start= auto binPath= "\"C:\gitea\gitea.exe\" web --config \"C:\gitea\custom\conf\app.ini\""
 ```
 
 Do not forget to replace `C:\gitea` with the correct Gitea directory.
