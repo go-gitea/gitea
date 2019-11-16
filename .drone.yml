@@ -60,6 +60,7 @@ steps:
     commands:
       - make css
       - make js
+      - bash -c '[ -z "$(git status --porcelain public/js public/css)" ] || (echo "Generated js/css files do not match" && git status --porcelain public/js public/css && exit 1)'
 
   - name: build-without-gcc
     pull: always
