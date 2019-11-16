@@ -1,11 +1,11 @@
 {{if .ctx.IsSigned}}
-<div class="item action ui pointing top right dropdown">
+<div class="item action ui pointing top right custom dropdown context-dropdown">
 	<a class="context-menu">
 		<i class="fa fa-ellipsis-h"></i>
 	</a>
 	<div class="menu">
 		<div class="item context clipboard" data-clipboard-text="{{AppUrl}}{{.ctx.Repository.FullName}}/issues/{{.ctx.Issue.Index}}#{{.item.HashTag}}">Copy Link</div>
-		<div class="item context quote-reply">Quote Reply</div>
+		<div class="item context quote-reply" data-target="{{.item.ID}}">Quote Reply</div>
 		{{if or .ctx.Permission.IsAdmin (eq .item.Poster.ID .ctx.SignedUserID)}}
 			<div class="divider"></div>
 			<div class="item context edit-content">Edit</div>

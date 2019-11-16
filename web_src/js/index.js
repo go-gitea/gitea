@@ -729,6 +729,33 @@ function initRepository() {
       return false;
     });
 
+    // Issue/PR Context Menus
+    $('.context-dropdown').dropdown({
+      action: 'hide'
+    });
+
+    // Quote reply
+    $('.quote-reply').click(function (event) {
+      $(this).closest('.dropdown').find('.menu').toggle('visible');
+      const target = $(this).data('target');
+      const $content = $('#content');
+
+      let content = $(`#comment-${target}`).text();
+      const parts = content.split('\n');
+      for (let i = 0; i < parts.length; i++) {
+        parts[i] = `> ${parts[i]}`;
+      }
+      content = `${parts.join('\n')}\n\n`;
+
+      if ($content.val() !== '') {
+        $content.val(`${$content.val()}\n\n${content}`);
+      } else {
+        $content.val(`${content}`);
+      }
+      $content.focus();
+      event.preventDefault();
+    });
+
     // Edit issue or comment content
     $('.edit-content').click(function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');

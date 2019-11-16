@@ -23,7 +23,9 @@
 			{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) }}
 			{{if or $.root.Permission.IsAdmin (eq .Poster.ID $.root.SignedUserID)}}
 				<div class="item action">
-					<a class="edit-content" href="#"><i class="octicon octicon-pencil"></i></a>
+					<span{{/** This is here until context menus are implemented for reviews **/}}>
+						<a class="edit-content" href="#"><i class="octicon octicon-pencil"></i></a>
+					</span>
 					<a class="delete-comment" href="#" data-comment-id={{.HashTag}} data-url="{{$.root.RepoLink}}/comments/{{.ID}}/delete" data-locale="{{$.root.i18n.Tr "repo.issues.delete_comment_confirm"}}"><i class="octicon octicon-x"></i></a>
 				</div>
 			{{end}}
