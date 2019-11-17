@@ -98,7 +98,7 @@ func HookPreReceive(ctx *macaron.Context) {
 
 		canPush := false
 		if isDeployKey {
-			canPush = protectBranch.WhitelistDeployKeys
+			canPush = protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
 		} else {
 			canPush = protectBranch.CanUserPush(userID)
 		}

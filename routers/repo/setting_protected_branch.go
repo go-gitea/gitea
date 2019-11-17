@@ -196,7 +196,17 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 		}
 
 		var whitelistUsers, whitelistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams []int64
-		protectBranch.EnableWhitelist = f.EnableWhitelist
+		switch f.EnablePush {
+		case "all":
+			protectBranch.CanPush = true
+			protectBranch.EnableWhitelist = false
+		case "whitelist":
+			protectBranch.CanPush = true
+			protectBranch.EnableWhitelist = true
+		default:
+			protectBranch.CanPush = false
+			protectBranch.EnableWhitelist = false
+		}
 		if strings.TrimSpace(f.WhitelistUsers) != "" {
 			whitelistUsers, _ = base.StringsToInt64s(strings.Split(f.WhitelistUsers, ","))
 		}
@@ -216,6 +226,7 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 		protectBranch.WhitelistDeployKeys = f.WhitelistDeployKeys
 
 		protectBranch.RequiredApprovals = f.RequiredApprovals
+		protectBranch.EnableApprovalsWhitelist = f.EnableApprovalsWhitelist
 		if strings.TrimSpace(f.ApprovalsWhitelistUsers) != "" {
 			approvalsWhitelistUsers, _ = base.StringsToInt64s(strings.Split(f.ApprovalsWhitelistUsers, ","))
 		}

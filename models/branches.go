@@ -26,11 +26,11 @@ const (
 
 // ProtectedBranch struct
 type ProtectedBranch struct {
-	ID                        int64  `xorm:"pk autoincr"`
-	RepoID                    int64  `xorm:"UNIQUE(s)"`
-	BranchName                string `xorm:"UNIQUE(s)"`
-	CanPush                   bool   `xorm:"NOT NULL DEFAULT false"`
-	EnableWhitelist           bool
+	ID                        int64              `xorm:"pk autoincr"`
+	RepoID                    int64              `xorm:"UNIQUE(s)"`
+	BranchName                string             `xorm:"UNIQUE(s)"`
+	CanPush                   bool               `xorm:"NOT NULL DEFAULT false"`
+	EnableWhitelist           bool               `xorm:"NOT NULL DEFAULT false"`
 	WhitelistUserIDs          []int64            `xorm:"JSON TEXT"`
 	WhitelistTeamIDs          []int64            `xorm:"JSON TEXT"`
 	EnableMergeWhitelist      bool               `xorm:"NOT NULL DEFAULT false"`
@@ -39,6 +39,7 @@ type ProtectedBranch struct {
 	MergeWhitelistTeamIDs     []int64            `xorm:"JSON TEXT"`
 	EnableStatusCheck         bool               `xorm:"NOT NULL DEFAULT false"`
 	StatusCheckContexts       []string           `xorm:"JSON TEXT"`
+	EnableApprovalsWhitelist  bool               `xorm:"NOT NULL DEFAULT false"`
 	ApprovalsWhitelistUserIDs []int64            `xorm:"JSON TEXT"`
 	ApprovalsWhitelistTeamIDs []int64            `xorm:"JSON TEXT"`
 	RequiredApprovals         int64              `xorm:"NOT NULL DEFAULT 0"`
@@ -53,8 +54,23 @@ func (protectBranch *ProtectedBranch) IsProtected() bool {
 
 // CanUserPush returns if some user could push to this protected branch
 func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
-	if !protectBranch.EnableWhitelist {
+	if !protectBranch.CanPush {
 		return false
+	}
+
+	if !protectBranch.EnableWhitelist {
+		if user, err := GetUserByID(userID); err != nil {
+			log.Error("GetUserByID: %v", err)
+			return false
+		} else if repo, err := GetRepositoryByID(protectBranch.RepoID); err != nil {
+			log.Error("GetRepositoryByID: %v", err)
+			return false
+		} else if writeAccess, err := HasAccessUnit(user, repo, UnitTypeCode, AccessModeWrite); err != nil {
+			log.Error("HasAccessUnit: %v", err)
+			return false
+		} else {
+			return writeAccess
+		}
 	}
 
 	if base.Int64sContains(protectBranch.WhitelistUserIDs, userID) {
@@ -111,10 +127,26 @@ func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) 
 		return 0
 	}
 
+	repo, err := GetRepositoryByID(protectBranch.RepoID)
+	if err != nil {
+		log.Error("GetRepositoryByID: %v", err)
+		return 0
+	}
+
 	approvals := int64(0)
 	userIDs := make([]int64, 0)
 	for _, review := range reviews {
 		if review.Type != ReviewTypeApprove {
+			continue
+		}
+		if !protectBranch.EnableApprovalsWhitelist {
+			if user, err := GetUserByID(review.ID); err != nil {
+				log.Error("GetUserByID: %v", err)
+			} else if writeAccess, err := HasAccessUnit(user, repo, UnitTypeCode, AccessModeWrite); err != nil {
+				log.Error("HasAccessUnit: %v", err)
+			} else if writeAccess {
+				approvals++
+			}
 			continue
 		}
 		if base.Int64sContains(protectBranch.ApprovalsWhitelistUserIDs, review.ID) {
