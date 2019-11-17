@@ -8,7 +8,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func addBranchProtectionAddEnableWhitelist(x *xorm.Engine) error {
+func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 
 	type ProtectedBranch struct {
 		CanPush                  bool  `xorm:"NOT NULL DEFAULT false"`

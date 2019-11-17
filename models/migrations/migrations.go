@@ -273,7 +273,7 @@ var migrations = []Migration{
 	// v108 -> v109
 	NewMigration("Add comment_id on table notification", addCommentIDOnNotification),
 	// v109 -> v110
-	NewMigration("update branch protection whitelist enable", addBranchProtectionAddEnableWhitelist),
+	NewMigration("update branch protection for can push and whitelist enable", addBranchProtectionCanPushAndEnableWhitelist),
 }
 
 // Migrate database to current version
