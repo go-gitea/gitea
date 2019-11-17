@@ -32,14 +32,13 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 
 	// Required by the mail composer; make sure to load these before calling the async function
 	if err := ctx.Issue.LoadRepo(); err != nil {
-		return err
+		return fmt.Errorf("LoadRepo(): %v", err)
 	}
 	if err := ctx.Issue.LoadPoster(); err != nil {
 		return fmt.Errorf("LoadPoster(): %v", err)
 	}
 	if err := ctx.Issue.LoadPullRequest(); err != nil {
-		log.Error("LoadPullRequest: %v", err)
-		return nil
+		return fmt.Errorf("LoadPullRequest(): %v", err)
 	}
 
 	// Enough room to avoid reallocations
