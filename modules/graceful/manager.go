@@ -8,6 +8,8 @@ import (
 	"context"
 	"time"
 
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -36,6 +38,10 @@ var Manager *gracefulManager
 
 func init() {
 	Manager = newGracefulManager(context.Background())
+	// Set the git default context to the HammerContext
+	git.DefaultContext = Manager.HammerContext()
+	// Set the process default context to the HammerContext
+	process.DefaultContext = Manager.HammerContext()
 }
 
 // CallbackWithContext is combined runnable and context to watch to see if the caller has finished

@@ -24,6 +24,9 @@ var (
 	// ErrExecTimeout represent a timeout error
 	ErrExecTimeout = errors.New("Process execution timeout")
 	manager        *Manager
+
+	// DefaultContext is the default context to run processing commands in
+	DefaultContext = context.Background()
 )
 
 // Process represents a working process inherit from Gogs.
@@ -110,7 +113,7 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(DefaultContext, timeout)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, cmdName, args...)

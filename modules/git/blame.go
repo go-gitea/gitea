@@ -97,7 +97,9 @@ func CreateBlameReader(repoPath, commitID, file string) (*BlameReader, error) {
 }
 
 func createBlameReader(dir string, command ...string) (*BlameReader, error) {
-	cmd := exec.Command(command[0], command[1:]...)
+	// FIXME: graceful: This should have a timeout
+	// FIXME: graceful: This should create its own subcontext
+	cmd := exec.CommandContext(DefaultContext, command[0], command[1:]...)
 	cmd.Dir = dir
 	cmd.Stderr = os.Stderr
 

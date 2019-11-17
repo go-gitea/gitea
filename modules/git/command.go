@@ -30,8 +30,10 @@ const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
-	name string
-	args []string
+	name          string
+	args          []string
+	parentContext context.Context
+	desc          string
 }
 
 func (c *Command) String() string {
@@ -47,8 +49,9 @@ func NewCommand(args ...string) *Command {
 	cargs := make([]string, len(GlobalCommandArgs))
 	copy(cargs, GlobalCommandArgs)
 	return &Command{
-		name: GitExecutable,
-		args: append(cargs, args...),
+		name:          GitExecutable,
+		args:          append(cargs, args...),
+		parentContext: DefaultContext,
 	}
 }
 
@@ -58,6 +61,19 @@ func NewCommandNoGlobals(args ...string) *Command {
 		name: GitExecutable,
 		args: args,
 	}
+}
+
+// SetParentContext sets the parent context for this command
+func (c *Command) SetParentContext(ctx context.Context) *Command {
+	c.parentContext = ctx
+	return c
+}
+
+// SetDescription sets the description for this command which be returned on
+// c.String()
+func (c *Command) SetDescription(desc string) *Command {
+	c.desc = desc
+	return c
 }
 
 // AddArguments adds new argument(s) to the command.
@@ -92,7 +108,7 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 		log("%s: %v", dir, c)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(c.parentContext, timeout)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
@@ -110,7 +126,11 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 		return err
 	}
 
-	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), dir), cmd)
+	desc := c.desc
+	if desc == "" {
+		desc = fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), dir)
+	}
+	pid := process.GetManager().Add(desc, cmd)
 	defer process.GetManager().Remove(pid)
 
 	if fn != nil {

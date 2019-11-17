@@ -16,7 +16,6 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
@@ -168,14 +167,11 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 	}
 
 	repoPath := repo.repoPath(e)
-	_, stderr, err := process.GetManager().ExecDirEnv(
-		-1, tmpDir,
-		fmt.Sprintf("generateRepoCommit(git remote add): %s", repoPath),
-		env,
-		git.GitExecutable, "remote", "add", "origin", repoPath,
-	)
-	if err != nil {
-		return fmt.Errorf("git remote add: %v - %s", err, stderr)
+	if stdout, err := git.NewCommand("remote", "add", "origin", repoPath).
+		SetDescription(fmt.Sprintf("generateRepoCommit (git remote add): %s to %s", templateRepoPath, tmpDir)).
+		RunInDirWithEnv(tmpDir, env); err != nil {
+		log.Error("Unable to add %v as remote origin to temporary repo to %s: stdout %s\nError: %v", repo, tmpDir, stdout, err)
+		return fmt.Errorf("git remote add: %v", err)
 	}
 
 	return initRepoCommit(tmpDir, repo.Owner)
