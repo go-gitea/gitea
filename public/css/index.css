@@ -547,7 +547,7 @@ i.icon.centerlock{top:1.5em}
 .repository.new.issue .comment.form .content:after{border-right-color:#fff}
 .repository.new.issue .comment.form .content .markdown{font-size:14px}
 .repository.new.issue .comment.form .metas{min-width:220px}
-.repository.new.issue .comment.form .metas .filter.menu{overflow-x:auto}
+.repository.new.issue .comment.form .metas .filter.menu{max-height:300px;overflow-x:auto}
 .repository.view.issue .title{padding-bottom:0!important}
 .repository.view.issue .title h1{font-weight:300;font-size:2.3rem;margin-bottom:5px}
 .repository.view.issue .title h1 .ui.input{font-size:.5em;vertical-align:top;width:50%;min-width:600px}
