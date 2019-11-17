@@ -138,7 +138,8 @@ func TeamsRepoAction(ctx *context.Context) {
 	}
 
 	var err error
-	switch ctx.Params(":action") {
+	action := ctx.Params(":action")
+	switch action {
 	case "add":
 		repoName := path.Base(ctx.Query("repo_name"))
 		var repo *models.Repository
@@ -167,9 +168,12 @@ func TeamsRepoAction(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
-		"redirect": ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories",
-	})
+	if action == "addall" || action == "removeall" {
+		ctx.JSON(200, map[string]interface{}{
+			"redirect": ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories",
+		})
+		return
+	}
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories")
 }
 
