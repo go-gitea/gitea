@@ -8,8 +8,7 @@ import (
 	"xorm.io/xorm"
 )
 
-// BranchProtectionAddEnableWhitelist migrates can push vs whitelist push and enabling of approvals whitelist
-func BranchProtectionAddEnableWhitelist(x *xorm.Engine) error {
+func addBranchProtectionAddEnableWhitelist(x *xorm.Engine) error {
 
 	type ProtectedBranch struct {
 		CanPush                  bool  `xorm:"NOT NULL DEFAULT false"`
