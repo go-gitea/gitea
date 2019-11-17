@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
@@ -685,6 +686,17 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	if opts.Template != nil {
 		repo.IsTemplate = *opts.Template
+	}
+
+	// Default branch only updated if changed and exist
+	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch) {
+		if err := ctx.Repo.GitRepo.SetDefaultBranch(*opts.DefaultBranch); err != nil {
+			if !git.IsErrUnsupportedVersion(err) {
+				ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
+				return err
+			}
+		}
+		repo.DefaultBranch = *opts.DefaultBranch
 	}
 
 	if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
