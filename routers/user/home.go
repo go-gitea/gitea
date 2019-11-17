@@ -151,6 +151,9 @@ func Dashboard(ctx *context.Context) {
 	ctx.HTML(200, tplDashboard)
 }
 
+// Regexp: Match all square brackets, and plus signs in order to handle pagination
+var issueRepoIDsPattern = regexp.MustCompile(`[\[\]\+]+`)
+
 // Issues render the user issues page
 func Issues(ctx *context.Context) {
 	isPullList := ctx.Params(":type") == "pulls"
@@ -196,10 +199,8 @@ func Issues(ctx *context.Context) {
 		page = 1
 	}
 
-	// Regexp: Match all square brackets, and plus signs in order to handle pagination
-	re := regexp.MustCompile(`[\[\]\+]+`)
 	// Replace regexp return value with commas, and split
-	repoIDStrings := strings.Split(re.ReplaceAllString(ctx.Query("repos"), ","), ",")
+	repoIDStrings := strings.Split(issueRepoIDsPattern.ReplaceAllString(ctx.Query("repos"), ","), ",")
 	var repoIDs []int64
 	for _, IDString := range repoIDStrings {
 		// Ensure nonempty string entries
