@@ -30,10 +30,28 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit) *api.Branch {
+func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User) *api.Branch {
+	if bp == nil {
+		return &api.Branch{
+			Name:                b.Name,
+			Commit:              ToCommit(repo, c),
+			Protected:           false,
+			RequiredApprovals:   0,
+			EnableStatusCheck:   false,
+			StatusCheckContexts: []string{},
+			UserCanPush:         true,
+			UserCanMerge:        true,
+		}
+	}
 	return &api.Branch{
-		Name:   b.Name,
-		Commit: ToCommit(repo, c),
+		Name:                b.Name,
+		Commit:              ToCommit(repo, c),
+		Protected:           true,
+		RequiredApprovals:   bp.RequiredApprovals,
+		EnableStatusCheck:   bp.EnableStatusCheck,
+		StatusCheckContexts: bp.StatusCheckContexts,
+		UserCanPush:         bp.CanUserPush(user.ID),
+		UserCanMerge:        bp.CanUserMerge(user.ID),
 	}
 }
 
