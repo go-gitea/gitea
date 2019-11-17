@@ -1492,7 +1492,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Retrieve a specific branch from a repository",
+        "summary": "Retrieve a specific branch from a repository, including its effective branch protection",
         "operationId": "repoGetBranch",
         "parameters": [
           {
@@ -7583,9 +7583,37 @@
         "commit": {
           "$ref": "#/definitions/PayloadCommit"
         },
+        "enable_status_check": {
+          "type": "boolean",
+          "x-go-name": "EnableStatusCheck"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "protected": {
+          "type": "boolean",
+          "x-go-name": "Protected"
+        },
+        "required_approvals": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RequiredApprovals"
+        },
+        "status_check_contexts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "StatusCheckContexts"
+        },
+        "user_can_merge": {
+          "type": "boolean",
+          "x-go-name": "UserCanMerge"
+        },
+        "user_can_push": {
+          "type": "boolean",
+          "x-go-name": "UserCanPush"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

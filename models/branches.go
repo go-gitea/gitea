@@ -242,6 +242,11 @@ func (repo *Repository) GetProtectedBranches() ([]*ProtectedBranch, error) {
 	return protectedBranches, x.Find(&protectedBranches, &ProtectedBranch{RepoID: repo.ID})
 }
 
+// GetBranchProtection get the branch protection of a branch
+func (repo *Repository) GetBranchProtection(branchName string) (*ProtectedBranch, error) {
+	return GetProtectedBranchBy(repo.ID, branchName)
+}
+
 // IsProtectedBranch checks if branch is protected
 func (repo *Repository) IsProtectedBranch(branchName string, doer *User) (bool, error) {
 	if doer == nil {
