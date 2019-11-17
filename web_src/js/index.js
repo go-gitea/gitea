@@ -1232,6 +1232,46 @@ function initWikiForm() {
         'clean-block', 'preview', 'fullscreen', 'side-by-side']
     });
     $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
+
+    setTimeout(() => {
+      const $bEdit = $('.repository.wiki.new .previewtabs a[data-tab="write"]');
+      const $bPrev = $('.repository.wiki.new .previewtabs a[data-tab="preview"]');
+      const $toolbar = $('.editor-toolbar');
+      const $bPreview = $('.editor-toolbar a.fa-eye');
+      const $bSideBySide = $('.editor-toolbar a.fa-columns');
+      $bEdit.on('click', () => {
+        if ($toolbar.hasClass('disabled-for-preview')) {
+          $bPreview.click();
+        }
+      });
+      $bPrev.on('click', () => {
+        if (!$toolbar.hasClass('disabled-for-preview')) {
+          $bPreview.click();
+        }
+      });
+      $bPreview.on('click', () => {
+        setTimeout(() => {
+          if ($toolbar.hasClass('disabled-for-preview')) {
+            if ($bEdit.hasClass('active')) {
+              $bEdit.removeClass('active');
+            }
+            if (!$bPrev.hasClass('active')) {
+              $bPrev.addClass('active');
+            }
+          } else {
+            if (!$bEdit.hasClass('active')) {
+              $bEdit.addClass('active');
+            }
+            if ($bPrev.hasClass('active')) {
+              $bPrev.removeClass('active');
+            }
+          }
+        }, 0);
+      });
+      $bSideBySide.on('click', () => {
+        sideBySideChanges = 10;
+      });
+    }, 0);
   }
 }
 

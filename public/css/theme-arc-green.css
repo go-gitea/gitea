@@ -94,6 +94,9 @@ footer{background:#2e323e;border-top:1px solid #313131}
 .ui .text.grey{color:#808084!important}
 .ui.attached.table.segment{background:#353945;color:#dbdbdb!important}
 .markdown:not(code) h2{border-bottom:1px solid #304251}
+.repository.wiki.new .ui.container form .ui.tabular.menu{border-bottom:1px solid rgba(187,187,187,.6)}
+.repository.wiki.new .ui.container form .ui.tabular.menu .active.item{border-top:1px solid rgba(187,187,187,.6);border-left:1px solid rgba(187,187,187,.6);border-right:1px solid rgba(187,187,187,.6)}
+.repository.wiki.new .ui.container form .ui.tabular.menu .active.item:hover{background:#4b5162}
 .hljs,.hljs-keyword,.hljs-selector-tag,.hljs-subst{color:#9daccc}
 .markdown:not(code) .highlight pre,.markdown:not(code) pre{background-color:#2a2e3a;border:1px solid #404552}
 .markdown:not(code) table tr:nth-child(2n){background-color:#2a2e39}
