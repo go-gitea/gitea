@@ -448,7 +448,7 @@ i.icon.centerlock{top:1.5em}
 .repository .owner.dropdown{min-width:40%!important}
 .repository #file-buttons{margin-left:auto!important;font-weight:400}
 .repository #file-buttons .ui.button{padding:8px 10px;font-weight:400}
-.repository .metas .menu{max-height:300px;overflow-x:auto}
+.repository .metas .menu{overflow-x:auto}
 .repository .metas .ui.list .hide{display:none!important}
 .repository .metas .ui.list .item{padding:0}
 .repository .metas .ui.list .label.color{padding:0 8px;margin-right:5px}
