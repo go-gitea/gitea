@@ -754,6 +754,8 @@ i.icon.centerlock{top:1.5em}
 .repository.wiki.new .CodeMirror .CodeMirror-code{font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace}
 .repository.wiki.new .CodeMirror .CodeMirror-code .cm-comment{background:inherit}
 .repository.wiki.new .editor-preview{background-color:#fff}
+.repository.wiki.new .ui.attached.tabular.menu.previewtabs{margin-bottom:15px}
+.repository.wiki.new .ui.attached.tabular.menu.previewtabs+.field .editor-toolbar:not(.fullscreen) a.fa-eye{display:none}
 .repository.wiki.view .choose.page{margin-top:-5px}
 .repository.wiki.view .ui.sub.header{text-transform:none}
 .repository.wiki.view>.markdown{padding:15px 30px}
