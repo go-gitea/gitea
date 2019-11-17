@@ -1371,7 +1371,6 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 // UserIssueStatsOptions contains parameters accepted by GetUserIssueStats.
 type UserIssueStatsOptions struct {
 	UserID      int64
-	RepoID      int64
 	RepoIDs     []int64
 	UserRepoIDs []int64
 	FilterMode  int
@@ -1386,9 +1385,6 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 
 	cond := builder.NewCond()
 	cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull})
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
-	}
 	if len(opts.RepoIDs) > 0 {
 		cond = cond.And(builder.In("issue.repo_id", opts.RepoIDs))
 	}
