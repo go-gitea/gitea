@@ -1451,6 +1451,209 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/branch_protections": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List branch protections for a repository",
+        "operationId": "repoListBranchProtection",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/BranchProtectionList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a branch protections for a repository",
+        "operationId": "repoCreateBranchProtection",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateBranchProtectionOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/BranchProtection"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/branch_protections/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a specific branch protection for the repository",
+        "operationId": "repoGetBranchProtection",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the branch protection",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/BranchProtection"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a branch protections for a repository. Only fields that are set will be changed",
+        "operationId": "repoEditBranchProtection",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the branch protection",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditBranchProtectionOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/BranchProtection"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a specific branch protection for the repository",
+        "operationId": "repoDeleteBranchProtection",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID of the branch protection",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/branches": {
       "get": {
         "produces": [
@@ -7583,6 +7786,15 @@
         "commit": {
           "$ref": "#/definitions/PayloadCommit"
         },
+        "effective_branch_protection_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "EffectiveBRanchProtectionID"
+        },
+        "effective_branch_protection_name": {
+          "type": "string",
+          "x-go-name": "EffectiveBranchProtectionName"
+        },
         "enable_status_check": {
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
@@ -7614,6 +7826,113 @@
         "user_can_push": {
           "type": "boolean",
           "x-go-name": "UserCanPush"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "BranchProtection": {
+      "description": "BranchProtection represents a branch protection for a repository",
+      "type": "object",
+      "properties": {
+        "approvals_whitelist_team_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "ApprovalsWhitelistTeamIDs"
+        },
+        "approvals_whitelist_username": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ApprovalsWhitelistUsernames"
+        },
+        "branch_name": {
+          "type": "string",
+          "x-go-name": "BranchName"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "enable_approvals_whitelist": {
+          "type": "boolean",
+          "x-go-name": "EnableApprovalsWhitelist"
+        },
+        "enable_merge_whitelist": {
+          "type": "boolean",
+          "x-go-name": "EnableMergeWhitelist"
+        },
+        "enable_push": {
+          "type": "boolean",
+          "x-go-name": "EnablePush"
+        },
+        "enable_push_whitelist": {
+          "type": "boolean",
+          "x-go-name": "EnablePushWhitelist"
+        },
+        "enable_status_check": {
+          "type": "boolean",
+          "x-go-name": "EnableStatusCheck"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "merge_whitelist_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "MergeWhitelistTeamIDs"
+        },
+        "merge_whitelist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "MergeWhitelistUsernames"
+        },
+        "push_whitelist_deploy_keys": {
+          "type": "boolean",
+          "x-go-name": "PushWhitelistDeployKeys"
+        },
+        "push_whitelist_team_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "PushWhitelistTeamIDs"
+        },
+        "push_whitelist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "PushWhitelistUsernames"
+        },
+        "required_approvals": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RequiredApprovals"
+        },
+        "status_check_contexts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "StatusCheckContexts"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -7802,6 +8121,98 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateBranchProtectionOption": {
+      "description": "CreateBranchProtectionOption options for creating a branch protection",
+      "type": "object",
+      "properties": {
+        "approvals_whitelist_team_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "ApprovalsWhitelistTeamIDs"
+        },
+        "approvals_whitelist_username": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ApprovalsWhitelistUsernames"
+        },
+        "branch_name": {
+          "type": "string",
+          "x-go-name": "BranchName"
+        },
+        "enable_approvals_whitelist": {
+          "type": "boolean",
+          "x-go-name": "EnableApprovalsWhitelist"
+        },
+        "enable_merge_whitelist": {
+          "type": "boolean",
+          "x-go-name": "EnableMergeWhitelist"
+        },
+        "enable_push": {
+          "type": "boolean",
+          "x-go-name": "EnablePush"
+        },
+        "enable_push_whitelist": {
+          "type": "boolean",
+          "x-go-name": "EnablePushWhitelist"
+        },
+        "enable_status_check": {
+          "type": "boolean",
+          "x-go-name": "EnableStatusCheck"
+        },
+        "merge_whitelist_team_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "MergeWhitelistTeamIDs"
+        },
+        "merge_whitelist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "MergeWhitelistUsernames"
+        },
+        "push_whitelist_deploy_keys": {
+          "type": "boolean",
+          "x-go-name": "PushWhitelistDeployKeys"
+        },
+        "push_whitelist_team_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "PushWhitelistTeamIDs"
+        },
+        "push_whitelist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "PushWhitelistUsernames"
+        },
+        "required_approvals": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RequiredApprovals"
+        },
+        "status_check_contexts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "StatusCheckContexts"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -8472,6 +8883,94 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "EditBranchProtectionOption": {
+      "description": "EditBranchProtectionOption options for editing a branch protection",
+      "type": "object",
+      "properties": {
+        "approvals_whitelist_team_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "ApprovalsWhitelistTeamIDs"
+        },
+        "approvals_whitelist_username": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "ApprovalsWhitelistUsernames"
+        },
+        "enable_approvals_whitelist": {
+          "type": "boolean",
+          "x-go-name": "EnableApprovalsWhitelist"
+        },
+        "enable_merge_whitelist": {
+          "type": "boolean",
+          "x-go-name": "EnableMergeWhitelist"
+        },
+        "enable_push": {
+          "type": "boolean",
+          "x-go-name": "EnablePush"
+        },
+        "enable_push_whitelist": {
+          "type": "boolean",
+          "x-go-name": "EnablePushWhitelist"
+        },
+        "enable_status_check": {
+          "type": "boolean",
+          "x-go-name": "EnableStatusCheck"
+        },
+        "merge_whitelist_team_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "MergeWhitelistTeamIDs"
+        },
+        "merge_whitelist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "MergeWhitelistUsernames"
+        },
+        "push_whitelist_deploy_keys": {
+          "type": "boolean",
+          "x-go-name": "PushWhitelistDeployKeys"
+        },
+        "push_whitelist_team_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "x-go-name": "PushWhitelistTeamIDs"
+        },
+        "push_whitelist_usernames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "PushWhitelistUsernames"
+        },
+        "required_approvals": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RequiredApprovals"
+        },
+        "status_check_contexts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "StatusCheckContexts"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -10874,6 +11373,21 @@
         }
       }
     },
+    "BranchProtection": {
+      "description": "BranchProtection",
+      "schema": {
+        "$ref": "#/definitions/BranchProtection"
+      }
+    },
+    "BranchProtectionList": {
+      "description": "BranchProtectionList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/BranchProtection"
+        }
+      }
+    },
     "Comment": {
       "description": "Comment",
       "schema": {
@@ -11339,7 +11853,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/RepoTopicOptions"
+        "$ref": "#/definitions/EditBranchProtectionOption"
       }
     },
     "redirect": {

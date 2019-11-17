@@ -120,4 +120,10 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	RepoTopicOptions api.RepoTopicOptions
+
+	// in:body
+	CreateBranchProtectionOption api.CreateBranchProtectionOption
+
+	// in:body
+	EditBranchProtectinoOption api.EditBranchProtectionOption
 }

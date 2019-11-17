@@ -30,28 +30,76 @@ func ToEmail(email *models.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User) *api.Branch {
+func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User, isRepoAdmin bool) *api.Branch {
 	if bp == nil {
 		return &api.Branch{
-			Name:                b.Name,
-			Commit:              ToCommit(repo, c),
-			Protected:           false,
-			RequiredApprovals:   0,
-			EnableStatusCheck:   false,
-			StatusCheckContexts: []string{},
-			UserCanPush:         true,
-			UserCanMerge:        true,
+			Name:                          b.Name,
+			Commit:                        ToCommit(repo, c),
+			Protected:                     false,
+			RequiredApprovals:             0,
+			EnableStatusCheck:             false,
+			StatusCheckContexts:           []string{},
+			UserCanPush:                   true,
+			UserCanMerge:                  true,
+			EffectiveBranchProtectionName: "",
+			EffectiveBRanchProtectionID:   0,
 		}
 	}
+	branchProtectionName := ""
+	var branchProtectionID int64
+	if isRepoAdmin {
+		branchProtectionName = bp.BranchName
+		branchProtectionID = bp.ID
+	}
+
 	return &api.Branch{
-		Name:                b.Name,
-		Commit:              ToCommit(repo, c),
-		Protected:           true,
-		RequiredApprovals:   bp.RequiredApprovals,
-		EnableStatusCheck:   bp.EnableStatusCheck,
-		StatusCheckContexts: bp.StatusCheckContexts,
-		UserCanPush:         bp.CanUserPush(user.ID),
-		UserCanMerge:        bp.CanUserMerge(user.ID),
+		Name:                          b.Name,
+		Commit:                        ToCommit(repo, c),
+		Protected:                     true,
+		RequiredApprovals:             bp.RequiredApprovals,
+		EnableStatusCheck:             bp.EnableStatusCheck,
+		StatusCheckContexts:           bp.StatusCheckContexts,
+		UserCanPush:                   bp.CanUserPush(user.ID),
+		UserCanMerge:                  bp.CanUserMerge(user.ID),
+		EffectiveBranchProtectionName: branchProtectionName,
+		EffectiveBRanchProtectionID:   branchProtectionID,
+	}
+}
+
+// ToBranchProtection convert a ProtectedBranch to api.BranchProtection
+func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
+	pushWhitelistUsernames, err := models.GetUsernamesByIDs(bp.WhitelistUserIDs)
+	if err != nil {
+		log.Error("GetUsernamesByIDs (WhitelistUserIDs): %v", err)
+	}
+	mergeWhitelistUsernames, err := models.GetUsernamesByIDs(bp.MergeWhitelistUserIDs)
+	if err != nil {
+		log.Error("GetUsernamesByIDs (MergeWhitelistUserIDs): %v", err)
+	}
+	approvalsWhitelistUsernames, err := models.GetUsernamesByIDs(bp.ApprovalsWhitelistUserIDs)
+	if err != nil {
+		log.Error("GetUsernamesByIDs (ApprovalsWhitelistUserIDs): %v", err)
+	}
+
+	return &api.BranchProtection{
+		ID:                          bp.ID,
+		BranchName:                  bp.BranchName,
+		EnablePush:                  bp.CanPush,
+		EnablePushWhitelist:         bp.EnableWhitelist,
+		PushWhitelistUsernames:      pushWhitelistUsernames,
+		PushWhitelistTeamIDs:        bp.WhitelistTeamIDs,
+		PushWhitelistDeployKeys:     bp.WhitelistDeployKeys,
+		EnableMergeWhitelist:        bp.EnableMergeWhitelist,
+		MergeWhitelistUsernames:     mergeWhitelistUsernames,
+		MergeWhitelistTeamIDs:       bp.MergeWhitelistTeamIDs,
+		EnableStatusCheck:           bp.EnableStatusCheck,
+		StatusCheckContexts:         bp.StatusCheckContexts,
+		RequiredApprovals:           bp.RequiredApprovals,
+		EnableApprovalsWhitelist:    bp.EnableApprovalsWhitelist,
+		ApprovalsWhitelistUsernames: approvalsWhitelistUsernames,
+		ApprovalsWhitelistTeamIDs:   bp.ApprovalsWhitelistTeamIDs,
+		Created:                     bp.CreatedUnix.AsTime(),
+		Updated:                     bp.UpdatedUnix.AsTime(),
 	}
 }
 
