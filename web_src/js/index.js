@@ -2,6 +2,9 @@
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
+import './publicPath';
+import './gitGraph';
+
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
 }
