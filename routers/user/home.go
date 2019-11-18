@@ -151,8 +151,8 @@ func Dashboard(ctx *context.Context) {
 	ctx.HTML(200, tplDashboard)
 }
 
-// Regexp: Match all square brackets, and plus signs in order to handle pagination
-var issueRepoIDsPattern = regexp.MustCompile(`[\[\]\+]+`)
+// Regexp for repos query
+var issueReposQueryPattern = regexp.MustCompile(`^\[(\d+,)+\]$`)
 
 // Issues render the user issues page
 func Issues(ctx *context.Context) {
@@ -199,17 +199,23 @@ func Issues(ctx *context.Context) {
 		page = 1
 	}
 
-	// Replace regexp return value with commas, and split
-	repoIDStrings := strings.Split(issueRepoIDsPattern.ReplaceAllString(ctx.Query("repos"), ","), ",")
+	reposQuery := ctx.Query("repos")
 	var repoIDs []int64
-	for _, rID := range repoIDStrings {
-		// Ensure nonempty string entries
-		if rID != "" && rID != "0" {
-			rIDint64, err := strconv.ParseInt(rID, 10, 64)
-			if err == nil {
-				repoIDs = append(repoIDs, rIDint64)
+	if issueReposQueryPattern.MatchString(reposQuery) {
+		// remove "[" and "]" from string
+		reposQuery = strings.ReplaceAll(strings.ReplaceAll(reposQuery, "[", ""), "]", "")
+		//for each ID (delimiter ",") add to int to repoIDs
+		for _, rID := range strings.Split(reposQuery, ",") {
+			// Ensure nonempty string entries
+			if rID != "" && rID != "0" {
+				rIDint64, err := strconv.ParseInt(rID, 10, 64)
+				if err == nil {
+					repoIDs = append(repoIDs, rIDint64)
+				}
 			}
 		}
+	} else {
+		log.Error("issueReposQueryPattern not match with query")
 	}
 
 	isShowClosed := ctx.Query("state") == "closed"
