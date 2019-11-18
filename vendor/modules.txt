@@ -12,6 +12,8 @@ gitea.com/macaron/captcha
 gitea.com/macaron/cors
 # gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
 gitea.com/macaron/csrf
+# gitea.com/macaron/gzip v0.0.0-20191118033930-0c4c5566a0e5
+gitea.com/macaron/gzip
 # gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223
 gitea.com/macaron/i18n
 # gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
@@ -259,13 +261,9 @@ github.com/keybase/go-crypto/openpgp/errors
 github.com/keybase/go-crypto/openpgp/packet
 github.com/keybase/go-crypto/openpgp/s2k
 github.com/keybase/go-crypto/rsa
-# github.com/klauspost/compress v0.0.0-20161025140425-8df558b6cb6f
+# github.com/klauspost/compress v1.9.2
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
-# github.com/klauspost/cpuid v0.0.0-20160302075316-09cded8978dc
-github.com/klauspost/cpuid
-# github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6
-github.com/klauspost/crc32
 # github.com/kr/pretty v0.1.0
 github.com/kr/pretty
 # github.com/kr/text v0.1.0

@@ -88,7 +88,20 @@
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}</span>
 		</div>
-	{{else if or (eq .Type 3) (eq .Type 5) (eq .Type 6)}}
+	{{else if eq .Type 3 5 6}}
+		{{ $refFrom:= "" }}
+		{{if ne .RefRepoID .Issue.RepoID}}
+			{{ $refFrom = $.i18n.Tr "repo.issues.ref_from" .RefRepo.FullName }}
+		{{end}}
+		{{ $refTr := "repo.issues.ref_issue_from" }}
+		{{if .Issue.IsPull}}
+			{{ $refTr = "repo.issues.ref_pull_from" }}
+		{{else if eq .RefAction 1 }}
+			{{ $refTr = "repo.issues.ref_closing_from" }}
+		{{else if eq .RefAction 2 }}
+			{{ $refTr = "repo.issues.ref_reopening_from" }}
+		{{end}}
+		{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 		<div class="event" id="{{.HashTag}}">
 			<span class="octicon octicon-bookmark"></span>
 			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
@@ -96,19 +109,7 @@
 			</a>
 			{{if eq .RefAction 3}}<del>{{end}}
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-			{{if (eq .RefRepoID .Issue.RepoID)}}
-				{{if .Issue.IsPull}}
-					<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_pull_at" $createdStr | Safe}}</a>
-				{{else}}
-					<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_issue_at" $createdStr | Safe}}</a>
-				{{end}}
-			{{else}}
-				{{if .Issue.IsPull}}
-					<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_pull_ext_at" .RefRepo.FullName $createdStr | Safe}}</a>
-				{{else}}
-					<a href="{{.RefCommentHTMLURL}}">{{$.i18n.Tr "repo.issues.ref_issue_ext_at" .RefRepo.FullName $createdStr | Safe}}</a>
-				{{end}}
-			{{end}}
+				{{$.i18n.Tr $refTr .EventTag $createdStr .RefCommentHTMLURL $refFrom | Safe}}
 			</span>
 			{{if eq .RefAction 3}}</del>{{end}}
 
