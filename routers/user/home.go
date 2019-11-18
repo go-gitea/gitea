@@ -327,8 +327,6 @@ func Issues(ctx *context.Context) {
 						repo,
 						perm)
 				}
-				ctx.Status(404)
-				return
 			}
 		}
 	}
