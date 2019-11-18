@@ -11,7 +11,7 @@
 	{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}
 	<div class="twelve wide column comment-list prevent-before-timeline">
 		<ui class="ui comments timeline-line">
-			<div class="comment">
+			<div id="{{.Issue.HashTag}}" class="comment">
 			{{if .Issue.OriginalAuthor }}
 				<span class="avatar"><img src="/img/avatar_default.png"></span>
 			{{else}}

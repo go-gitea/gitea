@@ -1062,6 +1062,7 @@ func NewServices() {
 	newRegisterMailService()
 	newNotifyMailService()
 	newWebhookService()
+	newMigrationsService()
 	newIndexerService()
 	newTaskService()
 }
