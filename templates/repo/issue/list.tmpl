@@ -246,8 +246,8 @@
 							</a>
 						{{end}}
 						{{if .Ref}}
-							<a class="ref" href="{{.RefURL $.RepoLink | PathEscapeSegments}}">
-								<span class="octicon octicon-git-branch"></span> {{.RefEndName}}
+							<a class="ref" href="{{index $.IssueRefURLs .ID}}">
+								<span class="octicon octicon-git-branch"></span> {{index $.IssueRefEndNames .ID}}
 							</a>
 						{{end}}
 						{{$tasks := .GetTasks}}

@@ -207,8 +207,8 @@
 							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
 						{{end}}
 						{{if .Ref}}
-							<a class="ref" href="{{.RefURL $.RepoLink}}">
-								<span class="octicon octicon-git-branch"></span> {{.RefEndName}}
+							<a class="ref" href="{{index $.IssueRefURLs .ID}}">
+								<span class="octicon octicon-git-branch"></span> {{index $.IssueRefEndNames .ID}}
 							</a>
 						{{end}}
 						{{$tasks := .GetTasks}}
