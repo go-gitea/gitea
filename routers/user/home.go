@@ -202,12 +202,12 @@ func Issues(ctx *context.Context) {
 	// Replace regexp return value with commas, and split
 	repoIDStrings := strings.Split(issueRepoIDsPattern.ReplaceAllString(ctx.Query("repos"), ","), ",")
 	var repoIDs []int64
-	for _, IDString := range repoIDStrings {
+	for _, rID := range repoIDStrings {
 		// Ensure nonempty string entries
-		if IDString != "" && IDString != "0" {
-			IDint64, err := strconv.ParseInt(IDString, 10, 64)
+		if rID != "" && rID != "0" {
+			rIDint64, err := strconv.ParseInt(rID, 10, 64)
 			if err == nil {
-				repoIDs = append(repoIDs, IDint64)
+				repoIDs = append(repoIDs, rIDint64)
 			}
 		}
 	}
