@@ -444,13 +444,6 @@ css: npm
 	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc --clean-css="--s0 -b" web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
 	npx postcss --use autoprefixer --no-map --replace public/css/*
 
-	@diff=$$(git diff public/css/*); \
-	if ([ -n "$$CI" ] && [ -n "$$diff" ]); then \
-		echo "Generated files in public/css have changed, please commit the result:"; \
-		echo "$${diff}"; \
-		exit 1; \
-	fi;
-
 .PHONY: javascripts
 javascripts:
 	echo "'make javascripts' is deprecated, please use 'make js'"

@@ -659,8 +659,16 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 		return
 	}
 
-	// Decorate action keywords
-	keyword := createKeyword(node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
+	// Decorate action keywords if actionable
+	var keyword *html.Node
+	if references.IsXrefActionable(ref.Action) {
+		keyword = createKeyword(node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
+	} else {
+		keyword = &html.Node{
+			Type: html.TextNode,
+			Data: node.Data[ref.ActionLocation.Start:ref.ActionLocation.End],
+		}
+	}
 	spaces := &html.Node{
 		Type: html.TextNode,
 		Data: node.Data[ref.ActionLocation.End:ref.RefLocation.Start],
