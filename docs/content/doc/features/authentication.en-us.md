@@ -219,7 +219,7 @@ configure this, set the fields below:
 
 ## SPNEGO with SSPI (Kerberos/NTLM, for Windows only)
 
-Gitea supports SPNEGO single sign-on authentication (the scheme defined by RFC4559) for the web part of the server () via the Security Support Provider Interface (SSPI) built in Windows. SSPI works only in Windows environments - when both the server and the clients are running Windows.
+Gitea supports SPNEGO single sign-on authentication (the scheme defined by RFC4559) for the web part of the server via the Security Support Provider Interface (SSPI) built in Windows. SSPI works only in Windows environments - when both the server and the clients are running Windows.
 
 Before activating SSPI single sign-on authentication (SSO) you have to prepare your environment:
 
