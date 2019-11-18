@@ -593,8 +593,9 @@ function initIssueComments() {
         const i = window.location.toString().indexOf('#');
 
         if (i >= 0) {
-          window.history.pushState({}, '', window.location.toString().substr(0, i));
-          window.location.reload();
+          const scrollPosition = $(window).scrollTop();
+          window.location.hash = '';
+          $(window).scrollTop(scrollPosition);
         }
       }
     }
