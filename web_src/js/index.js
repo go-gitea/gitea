@@ -741,9 +741,7 @@ function initRepository() {
 
       let $content;
       if ($(this).hasClass('quote-reply-diff')) {
-        const $parent = $(this)
-          .parent().parent().parent().parent().parent()
-          .parent().parent().parent().parent();
+        const $parent = $(this).closest('.comment-code-cloud');
         $parent.find('button.comment-form-reply').click();
         $content = $parent.find('[name="content"]');
       } else {
