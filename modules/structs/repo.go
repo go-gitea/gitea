@@ -190,6 +190,7 @@ var (
 	// TODO: add to this list after new git service added
 	SupportedFullGitService = []GitServiceType{
 		GithubService,
+		GitlabService,
 	}
 )
 
