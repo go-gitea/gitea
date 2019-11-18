@@ -21,8 +21,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	issue_service "code.gitea.io/gitea/services/issue"
 
 	"github.com/mcuadros/go-version"
 )
@@ -446,6 +448,26 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	}
 
 	notification.NotifyIssueChangeStatus(doer, pr.Issue, true)
+
+	// Resolve cross references
+	refs, err := pr.ResolveCrossReferences()
+	if err != nil {
+		log.Error("ResolveCrossReferences: %v", err)
+		return nil
+	}
+
+	for _, ref := range refs {
+		if err = ref.LoadIssue(); err != nil {
+			return err
+		}
+		if err = ref.Issue.LoadRepo(); err != nil {
+			return err
+		}
+		close := (ref.RefAction == references.XRefActionCloses)
+		if err = issue_service.ChangeStatus(ref.Issue, doer, close); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
