@@ -17,9 +17,6 @@ Version: 2.3.1
 File(s): /vendor/plugins/clipboard/clipboard.min.js
 Version: 1.5.9
 
-File(s): /vendor/plugins/gitgraph/gitgraph.js
-Version: 745f604212e2abfe2f0a59169ea530857b46625c
-
 File(s): /vendor/plugins/vue/vue.min.js
 Version: 2.1.10
 
