@@ -37,6 +37,7 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 			return fmt.Errorf("select users from id [%d]: %v", start, err)
 		}
 		if len(users) == 0 {
+			_ = sess.Rollback()
 			break
 		}
 
@@ -55,17 +56,20 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 			}
 
 			if err := copyAvatar(oldAvatar, newAvatar); err != nil {
+				_ = sess.Rollback()
 				return fmt.Errorf("[user: %s] %v", user.LowerName, err)
 			}
 
 			user.Avatar = newAvatar
-			if _, err := sess.ID(user.ID).Update(user); err != nil {
+			if _, err := sess.ID(user.ID).Cols("avatar").Update(user); err != nil {
+				_ = sess.Rollback()
 				return fmt.Errorf("[user: %s] user table update: %v", user.LowerName, err)
 			}
 
 			deleteList[filepath.Join(setting.AvatarUploadPath, oldAvatar)] = struct{}{}
 		}
 		if err := sess.Commit(); err != nil {
+			_ = sess.Rollback()
 			return fmt.Errorf("commit session: %v", err)
 		}
 	}
