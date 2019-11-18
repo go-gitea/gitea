@@ -37,7 +37,7 @@
 								</div>
 							{{end}}
 							{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) }}
-							{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true }}
+							{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "diff" false }}
 						</div>
 					{{end}}
 				</div>

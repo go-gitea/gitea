@@ -738,7 +738,17 @@ function initRepository() {
     $('.quote-reply').click(function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const target = $(this).data('target');
-      const $content = $('#content');
+
+      let $content;
+      if ($(this).hasClass('quote-reply-diff')) {
+        const $parent = $(this)
+          .parent().parent().parent().parent().parent()
+          .parent().parent().parent().parent();
+        $parent.find('button.comment-form-reply').click();
+        $content = $parent.find('[name="content"]');
+      } else {
+        $content = $('#content');
+      }
 
       let content = $(`#comment-${target}`).text();
       const parts = content.split('\n');
