@@ -14,6 +14,7 @@ env:
   node: true
 
 globals:
+  __webpack_public_path__: true
   Clipboard: false
   CodeMirror: false
   Dropzone: false
