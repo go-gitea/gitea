@@ -748,12 +748,8 @@ function initRepository() {
         $content = $('#content');
       }
 
-      let content = $(`#comment-${target}`).text();
-      const parts = content.split('\n');
-      for (let i = 0; i < parts.length; i++) {
-        parts[i] = `> ${parts[i]}`;
-      }
-      content = `${parts.join('\n')}\n\n`;
+      const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
+      const content = `> ${quote}\n\n`;
 
       if ($content.val() !== '') {
         $content.val(`${$content.val()}\n\n${content}`);
@@ -767,8 +763,7 @@ function initRepository() {
     // Edit issue or comment content
     $('.edit-content').click(function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
-      const $segment = $(this).parent().parent().parent().parent()
-        .next();
+      const $segment = $(this).closest('.header').next();
       const $editContentZone = $segment.find('.edit-content-zone');
       const $renderContent = $segment.find('.render-content');
       const $rawContent = $segment.find('.raw-content');
