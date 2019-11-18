@@ -133,7 +133,7 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 	assert.NoError(t, err)
 	i, err = getIssueByID(sess, i.ID)
 	assert.NoError(t, err)
-	assert.NoError(t, i.addCrossReferences(sess, d))
+	assert.NoError(t, i.addCrossReferences(sess, d, false))
 	assert.NoError(t, sess.Commit())
 	return i
 }
@@ -158,7 +158,7 @@ func testCreateComment(t *testing.T, repo, doer, issue int64, content string) *C
 	assert.NoError(t, sess.Begin())
 	_, err := sess.Insert(c)
 	assert.NoError(t, err)
-	assert.NoError(t, c.addCrossReferences(sess, d))
+	assert.NoError(t, c.addCrossReferences(sess, d, false))
 	assert.NoError(t, sess.Commit())
 	return c
 }
