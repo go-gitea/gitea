@@ -5,21 +5,21 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/setting"
-
 	"xorm.io/xorm"
 )
 
-func prependRefsHeadsToIssueRefs(x *xorm.Engine) error {
-	var query string
+func addTeamIncludesAllRepositories(x *xorm.Engine) error {
 
-	switch {
-	case setting.Database.UseMSSQL:
-		query = "UPDATE `issue` SET `ref` = 'refs/heads/' + `ref` WHERE `ref` IS NOT NULL AND `ref` <> ''"
-	default:
-		query = "UPDATE `issue` SET `ref` = 'refs/heads/' || `ref` WHERE `ref` IS NOT NULL AND `ref` <> ''"
+	type Team struct {
+		ID                      int64 `xorm:"pk autoincr"`
+		IncludesAllRepositories bool  `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	_, err := x.Exec(query)
+	if err := x.Sync2(new(Team)); err != nil {
+		return err
+	}
+
+	_, err := x.Exec("UPDATE `team` SET `includes_all_repositories` = ? WHERE `name`=?",
+		true, "Owners")
 	return err
 }

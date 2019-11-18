@@ -51,6 +51,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 		ctx.ServerError("OpenRepository", err)
 		return
 	}
+	defer gitRepo.Close()
 	commit, err := gitRepo.GetCommit(ctx.Params(":sha"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommit", git.IsErrNotExist, err)
@@ -113,6 +114,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		ctx.ServerError("OpenRepository", err)
 		return
 	}
+	defer gitRepo.Close()
 
 	page := ctx.QueryInt("page")
 	if page <= 0 {

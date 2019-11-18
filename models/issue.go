@@ -653,7 +653,16 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 	}
 
 	// New action comment
-	if _, err = createStatusComment(e, doer, issue); err != nil {
+	cmtType := CommentTypeClose
+	if !issue.IsClosed {
+		cmtType = CommentTypeReopen
+	}
+	if _, err := createComment(e, &CreateCommentOptions{
+		Type:  cmtType,
+		Doer:  doer,
+		Repo:  issue.Repo,
+		Issue: issue,
+	}); err != nil {
 		return err
 	}
 
@@ -703,8 +712,15 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
 
-	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, issue.Title); err != nil {
-		return fmt.Errorf("createChangeTitleComment: %v", err)
+	if _, err = createComment(sess, &CreateCommentOptions{
+		Type:     CommentTypeChangeTitle,
+		Doer:     doer,
+		Repo:     issue.Repo,
+		Issue:    issue,
+		OldTitle: oldTitle,
+		NewTitle: issue.Title,
+	}); err != nil {
+		return fmt.Errorf("createComment: %v", err)
 	}
 
 	if err = issue.neuterCrossReferences(sess); err != nil {
@@ -729,7 +745,13 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if _, err := createDeleteBranchComment(sess, doer, repo, issue, branchName); err != nil {
+	if _, err := createComment(sess, &CreateCommentOptions{
+		Type:      CommentTypeDeleteBranch,
+		Doer:      doer,
+		Repo:      repo,
+		Issue:     issue,
+		CommitSHA: branchName,
+	}); err != nil {
 		return err
 	}
 
@@ -1076,7 +1098,8 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 	case "priority":
 		sess.Desc("issue.priority")
 	case "nearduedate":
-		sess.Asc("issue.deadline_unix")
+		// 253370764800 is 01/01/9999 @ 12:00am (UTC)
+		sess.OrderBy("CASE WHEN issue.deadline_unix = 0 THEN 253370764800 ELSE issue.deadline_unix END ASC")
 	case "farduedate":
 		sess.Desc("issue.deadline_unix")
 	case "priorityrepo":
@@ -1197,6 +1220,19 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	return issues, nil
 }
 
+// GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,
+// but skips joining with `user` for performance reasons.
+// User permissions must be verified elsewhere if required.
+func GetParticipantsIDsByIssueID(issueID int64) ([]int64, error) {
+	userIDs := make([]int64, 0, 5)
+	return userIDs, x.Table("comment").
+		Cols("poster_id").
+		Where("issue_id = ?", issueID).
+		And("type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
+		Distinct("poster_id").
+		Find(&userIDs)
+}
+
 // GetParticipantsByIssueID returns all users who are participated in comments of an issue.
 func GetParticipantsByIssueID(issueID int64) ([]*User, error) {
 	return getParticipantsByIssueID(x, issueID)
@@ -1294,8 +1330,12 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 				log.Warn("Malformed Labels argument: %s", opts.Labels)
 			} else {
 				for i, labelID := range labelIDs {
-					sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
-						fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+					if labelID > 0 {
+						sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
+							fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+					} else {
+						sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label WHERE label_id = ?)", -labelID)
+					}
 				}
 			}
 		}

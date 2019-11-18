@@ -375,17 +375,20 @@ func runRepoSyncReleases(c *cli.Context) error {
 
 			if err = models.SyncReleasesWithTags(repo, gitRepo); err != nil {
 				log.Warn(" SyncReleasesWithTags: %v", err)
+				gitRepo.Close()
 				continue
 			}
 
 			count, err = getReleaseCount(repo.ID)
 			if err != nil {
 				log.Warn(" GetReleaseCountByRepoID: %v", err)
+				gitRepo.Close()
 				continue
 			}
 
 			log.Trace(" repo %s releases synchronized to tags: from %d to %d",
 				repo.FullName(), oldnum, count)
+			gitRepo.Close()
 		}
 	}
 

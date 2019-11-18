@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	issue_service "code.gitea.io/gitea/services/issue"
-	milestone_service "code.gitea.io/gitea/services/milestone"
 )
 
 // SearchIssues searches for issues across the repositories that the user has access to
@@ -459,9 +458,16 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		issue.Content = *form.Body
 	}
 
-	// Update the deadline
-	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
-		deadlineUnix := timeutil.TimeStamp(form.Deadline.Unix())
+	// Update or remove the deadline, only if set and allowed
+	if (form.Deadline != nil || form.RemoveDeadline != nil) && ctx.Repo.CanWrite(models.UnitTypeIssues) {
+		var deadlineUnix timeutil.TimeStamp
+
+		if (form.RemoveDeadline == nil || !*form.RemoveDeadline) && !form.Deadline.IsZero() {
+			deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
+				23, 59, 59, 0, form.Deadline.Location())
+			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
+		}
+
 		if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
 			ctx.Error(500, "UpdateIssueDeadline", err)
 			return
@@ -494,7 +500,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		issue.MilestoneID != *form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = *form.Milestone
-		if err = milestone_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+		if err = issue_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
 			ctx.Error(500, "ChangeMilestoneAssign", err)
 			return
 		}

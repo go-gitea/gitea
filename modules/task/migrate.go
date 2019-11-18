@@ -97,8 +97,6 @@ func runMigrateTask(t *models.Task) (err error) {
 	opts.MigrateToRepoID = t.RepoID
 	repo, err := migrations.MigrateRepository(t.Doer, t.Owner.Name, *opts)
 	if err == nil {
-		notification.NotifyMigrateRepository(t.Doer, t.Owner, repo)
-
 		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, t.Owner.Name, repo.Name)
 		return nil
 	}

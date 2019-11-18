@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"html"
-	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -91,7 +90,7 @@ func (r *Renderer) WriteRegularLink(l org.RegularLink) {
 
 	description := string(link)
 	if l.Description != nil {
-		description = r.nodesAsString(l.Description...)
+		description = r.WriteNodesAsString(l.Description...)
 	}
 	switch l.Kind() {
 	case "image":
@@ -101,22 +100,4 @@ func (r *Renderer) WriteRegularLink(l org.RegularLink) {
 	default:
 		r.WriteString(fmt.Sprintf(`<a href="%s" title="%s">%s</a>`, link, description, description))
 	}
-}
-
-func (r *Renderer) emptyClone() *Renderer {
-	wcopy := *(r.HTMLWriter)
-	wcopy.Builder = strings.Builder{}
-
-	rcopy := *r
-	rcopy.HTMLWriter = &wcopy
-
-	wcopy.ExtendingWriter = &rcopy
-
-	return &rcopy
-}
-
-func (r *Renderer) nodesAsString(nodes ...org.Node) string {
-	tmp := r.emptyClone()
-	org.WriteNodes(tmp, nodes...)
-	return tmp.String()
 }

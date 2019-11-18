@@ -18,6 +18,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -102,7 +103,11 @@ func initIntegrationTest() {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
 	}
-	setting.AppPath = path.Join(giteaRoot, "gitea")
+	giteaBinary := "gitea"
+	if runtime.GOOS == "windows" {
+		giteaBinary += ".exe"
+	}
+	setting.AppPath = path.Join(giteaRoot, giteaBinary)
 	if _, err := os.Stat(setting.AppPath); err != nil {
 		fmt.Printf("Could not find gitea binary at %s\n", setting.AppPath)
 		os.Exit(1)

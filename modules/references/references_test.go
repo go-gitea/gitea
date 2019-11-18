@@ -208,14 +208,32 @@ func testFixtures(t *testing.T, fixtures []testFixture, context string) {
 }
 
 func TestRegExp_mentionPattern(t *testing.T) {
-	trueTestCases := []string{
-		"@Unknwon",
-		"@ANT_123",
-		"@xxx-DiN0-z-A..uru..s-xxx",
-		"   @lol   ",
-		" @Te-st",
-		"(@gitea)",
-		"[@gitea]",
+	trueTestCases := []struct {
+		pat string
+		exp string
+	}{
+		{"@Unknwon", "@Unknwon"},
+		{"@ANT_123", "@ANT_123"},
+		{"@xxx-DiN0-z-A..uru..s-xxx", "@xxx-DiN0-z-A..uru..s-xxx"},
+		{"   @lol   ", "@lol"},
+		{" @Te-st", "@Te-st"},
+		{"(@gitea)", "@gitea"},
+		{"[@gitea]", "@gitea"},
+		{"@gitea! this", "@gitea"},
+		{"@gitea? this", "@gitea"},
+		{"@gitea. this", "@gitea"},
+		{"@gitea, this", "@gitea"},
+		{"@gitea; this", "@gitea"},
+		{"@gitea!\nthis", "@gitea"},
+		{"\n@gitea?\nthis", "@gitea"},
+		{"\t@gitea.\nthis", "@gitea"},
+		{"@gitea,\nthis", "@gitea"},
+		{"@gitea;\nthis", "@gitea"},
+		{"@gitea!", "@gitea"},
+		{"@gitea?", "@gitea"},
+		{"@gitea.", "@gitea"},
+		{"@gitea,", "@gitea"},
+		{"@gitea;", "@gitea"},
 	}
 	falseTestCases := []string{
 		"@ 0",
@@ -223,17 +241,24 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		"@",
 		"",
 		"ABC",
+		"@.ABC",
 		"/home/gitea/@gitea",
 		"\"@gitea\"",
+		"@@gitea",
+		"@gitea!this",
+		"@gitea?this",
+		"@gitea,this",
+		"@gitea;this",
 	}
 
 	for _, testCase := range trueTestCases {
-		res := mentionPattern.MatchString(testCase)
-		assert.True(t, res)
+		found := mentionPattern.FindStringSubmatch(testCase.pat)
+		assert.Len(t, found, 2)
+		assert.Equal(t, testCase.exp, found[1])
 	}
 	for _, testCase := range falseTestCases {
 		res := mentionPattern.MatchString(testCase)
-		assert.False(t, res)
+		assert.False(t, res, "[%s] should be false", testCase)
 	}
 }
 

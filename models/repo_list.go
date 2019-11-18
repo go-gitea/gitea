@@ -111,17 +111,18 @@ func (repos MirrorRepositoryList) LoadAttributes() error {
 
 // SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
-	UserID      int64
-	UserIsAdmin bool
-	Keyword     string
-	OwnerID     int64
-	OrderBy     SearchOrderBy
-	Private     bool // Include private repositories in results
-	StarredByID int64
-	Page        int
-	IsProfile   bool
-	AllPublic   bool // Include also all public repositories
-	PageSize    int  // Can be smaller than or equal to setting.ExplorePagingNum
+	UserID          int64
+	UserIsAdmin     bool
+	Keyword         string
+	OwnerID         int64
+	PriorityOwnerID int64
+	OrderBy         SearchOrderBy
+	Private         bool // Include private repositories in results
+	StarredByID     int64
+	Page            int
+	IsProfile       bool
+	AllPublic       bool // Include also all public repositories
+	PageSize        int  // Can be smaller than or equal to setting.ExplorePagingNum
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
 	// False -> incude just non-collaborative
@@ -130,6 +131,10 @@ type SearchRepoOptions struct {
 	// True -> include just forks
 	// False -> include just non-forks
 	Fork util.OptionalBool
+	// None -> include templates AND non-templates
+	// True -> include just templates
+	// False -> include just non-templates
+	Template util.OptionalBool
 	// None -> include mirrors AND non-mirrors
 	// True -> include just mirrors
 	// False -> include just non-mirrors
@@ -188,6 +193,10 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 			//   B. Isn't a private or limited organisation.
 			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}))))
 		cond = cond.And(accessCond)
+	}
+
+	if opts.Template != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"is_template": opts.Template == util.OptionalBoolTrue})
 	}
 
 	// Restrict to starred repositories
@@ -266,6 +275,10 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
+	if opts.PriorityOwnerID > 0 {
+		opts.OrderBy = SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = %d THEN 0 ELSE owner_id END, %s", opts.PriorityOwnerID, opts.OrderBy))
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -308,11 +321,15 @@ func accessibleRepositoryCondition(userID int64) builder.Cond {
 				builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePrivate}))),
 		),
 		// 2. Be able to see all repositories that we have access to
-		builder.In("`repository`.id", builder.Select("repo_id").
-			From("`access`").
-			Where(builder.And(
-				builder.Eq{"user_id": userID},
-				builder.Gt{"mode": int(AccessModeNone)}))),
+		builder.Or(
+			builder.In("`repository`.id", builder.Select("repo_id").
+				From("`access`").
+				Where(builder.And(
+					builder.Eq{"user_id": userID},
+					builder.Gt{"mode": int(AccessModeNone)}))),
+			builder.In("`repository`.id", builder.Select("id").
+				From("`repository`").
+				Where(builder.Eq{"owner_id": userID}))),
 		// 3. Be able to see all repositories that we are in a team
 		builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").
 			From("team_repo").
