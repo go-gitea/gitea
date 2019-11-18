@@ -178,9 +178,14 @@ func (issue *Issue) verifyReferencedIssue(e Engine, ctx *crossReferencesContext,
 		if !perm.CanReadIssuesOrPulls(refIssue.IsPull) {
 			return nil, references.XRefActionNone, nil
 		}
+		// Accept close/reopening actions only if the poster is able to close the
+		// referenced issue manually at this moment. The only exception is
+		// the poster of a new PR referencing an issue on the same repo: then the merger
+		// should be responsible for checking whether the reference should resolve.
 		if ref.Action != references.XRefActionNone &&
 			ctx.Doer.ID != refIssue.PosterID &&
-			!perm.CanWriteIssuesOrPulls(refIssue.IsPull) {
+			!perm.CanWriteIssuesOrPulls(refIssue.IsPull) &&
+			(refIssue.RepoID != ctx.OrigIssue.RepoID || ctx.OrigComment != nil) {
 			refAction = references.XRefActionNone
 		}
 	}
