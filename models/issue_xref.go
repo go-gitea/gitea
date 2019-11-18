@@ -5,6 +5,8 @@
 package models
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 
@@ -27,13 +29,9 @@ type crossReferencesContext struct {
 
 func neuterCrossReferences(e Engine, issueID int64, commentID int64) error {
 	active := make([]*Comment, 0, 10)
-	sess := e.Where("`ref_action` IN (?, ?, ?)", references.XRefActionNone, references.XRefActionCloses, references.XRefActionReopens)
-	if issueID != 0 {
-		sess = sess.And("`ref_issue_id` = ?", issueID)
-	}
-	if commentID != 0 {
-		sess = sess.And("`ref_comment_id` = ?", commentID)
-	}
+	sess := e.Where("`ref_action` IN (?, ?, ?)", references.XRefActionNone, references.XRefActionCloses, references.XRefActionReopens).
+		And("`ref_issue_id` = ?", issueID).
+		And("`ref_comment_id` = ?", commentID)
 	if err := sess.Find(&active); err != nil || len(active) == 0 {
 		return err
 	}
@@ -87,7 +85,7 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 			RefIssueID:   ctx.OrigIssue.ID,
 			RefCommentID: refCommentID,
 			RefAction:    xref.Action,
-			RefIsPull:    xref.Issue.IsPull,
+			RefIsPull:    ctx.OrigIssue.IsPull,
 		}); err != nil {
 			return err
 		}
@@ -98,9 +96,10 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesContext, plaincontent, mdcontent string) ([]*crossReference, error) {
 	xreflist := make([]*crossReference, 0, 5)
 	var (
-		refRepo  *Repository
-		refIssue *Issue
-		err      error
+		refRepo   *Repository
+		refIssue  *Issue
+		refAction references.XRefAction
+		err       error
 	)
 
 	allrefs := append(references.FindAllIssueReferences(plaincontent), references.FindAllIssueReferencesMarkdown(mdcontent)...)
@@ -122,15 +121,13 @@ func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesCont
 				return nil, err
 			}
 		}
-		if refIssue, err = ctx.OrigIssue.findReferencedIssue(e, ctx, refRepo, ref.Index); err != nil {
+		if refIssue, refAction, err = ctx.OrigIssue.verifyReferencedIssue(e, ctx, refRepo, ref); err != nil {
 			return nil, err
 		}
 		if refIssue != nil {
 			xreflist = ctx.OrigIssue.updateCrossReferenceList(xreflist, &crossReference{
-				Issue: refIssue,
-				// FIXME: currently ignore keywords
-				// Action: ref.Action,
-				Action: references.XRefActionNone,
+				Issue:  refIssue,
+				Action: refAction,
 			})
 		}
 	}
@@ -153,25 +150,42 @@ func (issue *Issue) updateCrossReferenceList(list []*crossReference, xref *cross
 	return append(list, xref)
 }
 
-func (issue *Issue) findReferencedIssue(e Engine, ctx *crossReferencesContext, repo *Repository, index int64) (*Issue, error) {
-	refIssue := &Issue{RepoID: repo.ID, Index: index}
+// verifyReferencedIssue will check if the referenced issue exists, and whether the doer has permission to do what
+func (issue *Issue) verifyReferencedIssue(e Engine, ctx *crossReferencesContext, repo *Repository,
+	ref references.IssueReference) (*Issue, references.XRefAction, error) {
+
+	refIssue := &Issue{RepoID: repo.ID, Index: ref.Index}
+	refAction := ref.Action
+
 	if has, _ := e.Get(refIssue); !has {
-		return nil, nil
+		return nil, references.XRefActionNone, nil
 	}
 	if err := refIssue.loadRepo(e); err != nil {
-		return nil, err
+		return nil, references.XRefActionNone, err
 	}
-	// Check user permissions
-	if refIssue.RepoID != ctx.OrigIssue.RepoID {
+
+	// Close/reopen actions can only be set from pull requests to issues
+	if refIssue.IsPull || !issue.IsPull {
+		refAction = references.XRefActionNone
+	}
+
+	// Check doer permissions; set action to None if the doer can't change the destination
+	if refIssue.RepoID != ctx.OrigIssue.RepoID || ref.Action != references.XRefActionNone {
 		perm, err := getUserRepoPermission(e, refIssue.Repo, ctx.Doer)
 		if err != nil {
-			return nil, err
+			return nil, references.XRefActionNone, err
 		}
 		if !perm.CanReadIssuesOrPulls(refIssue.IsPull) {
-			return nil, nil
+			return nil, references.XRefActionNone, nil
+		}
+		if ref.Action != references.XRefActionNone &&
+			ctx.Doer.ID != refIssue.PosterID &&
+			!perm.CanWriteIssuesOrPulls(refIssue.IsPull) {
+			refAction = references.XRefActionNone
 		}
 	}
-	return refIssue, nil
+
+	return refIssue, refAction, nil
 }
 
 func (issue *Issue) neuterCrossReferences(e Engine) error {
@@ -203,7 +217,7 @@ func (comment *Comment) addCrossReferences(e *xorm.Session, doer *User) error {
 }
 
 func (comment *Comment) neuterCrossReferences(e Engine) error {
-	return neuterCrossReferences(e, 0, comment.ID)
+	return neuterCrossReferences(e, comment.IssueID, comment.ID)
 }
 
 // LoadRefComment loads comment that created this reference from database
@@ -267,4 +281,41 @@ func (comment *Comment) RefIssueIdent() string {
 	}
 	// FIXME: check this name for cross-repository references (#7901 if it gets merged)
 	return "#" + com.ToStr(comment.RefIssue.Index)
+}
+
+// __________      .__  .__ __________                                     __
+// \______   \__ __|  | |  |\______   \ ____  ________ __   ____   _______/  |_
+//  |     ___/  |  \  | |  | |       _// __ \/ ____/  |  \_/ __ \ /  ___/\   __\
+//  |    |   |  |  /  |_|  |_|    |   \  ___< <_|  |  |  /\  ___/ \___ \  |  |
+//  |____|   |____/|____/____/____|_  /\___  >__   |____/  \___  >____  > |__|
+//                                  \/     \/   |__|           \/     \/
+
+// ResolveCrossReferences will return the list of references to close/reopen by this PR
+func (pr *PullRequest) ResolveCrossReferences() ([]*Comment, error) {
+	unfiltered := make([]*Comment, 0, 5)
+	if err := x.
+		Where("ref_repo_id = ? AND ref_issue_id = ?", pr.Issue.RepoID, pr.Issue.ID).
+		In("ref_action", []references.XRefAction{references.XRefActionCloses, references.XRefActionReopens}).
+		OrderBy("id").
+		Find(&unfiltered); err != nil {
+		return nil, fmt.Errorf("get reference: %v", err)
+	}
+
+	refs := make([]*Comment, 0, len(unfiltered))
+	for _, ref := range unfiltered {
+		found := false
+		for i, r := range refs {
+			if r.IssueID == ref.IssueID {
+				// Keep only the latest
+				refs[i] = ref
+				found = true
+				break
+			}
+		}
+		if !found {
+			refs = append(refs, ref)
+		}
+	}
+
+	return refs, nil
 }
