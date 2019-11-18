@@ -2,8 +2,9 @@
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
-import './publicPath';
-import './gitGraph';
+import './publicPath.js';
+import './gitGraph.js';
+import '../vendor/semantic.dropdown/semantic.dropdown.custom.js';
 
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
