@@ -20,6 +20,8 @@ gitea.com/macaron/cors v0.0.0-20190821152825-7dcef4a17175 h1:ikzdAGB6SsUGByW5wKl
 gitea.com/macaron/cors v0.0.0-20190821152825-7dcef4a17175/go.mod h1:rtOK4J20kpMD9XcNsnO5YA843YSTe/MUMbDj/TJ/Q7A=
 gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439 h1:88c34YM29a1GlWLrLBaG/GTT2htDdJz1u3n9+lmPolg=
 gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439/go.mod h1:IsQPHx73HnnqFBYiVHjg87q4XBZyGXXu77xANukvZuk=
+gitea.com/macaron/gzip v0.0.0-20191118033930-0c4c5566a0e5 h1:G/a7r0r2jEelSynBlv1+PAEZQKfsdRHQUMb1PlNvemM=
+gitea.com/macaron/gzip v0.0.0-20191118033930-0c4c5566a0e5/go.mod h1:jGHtoovArcQj+sw7NJxyPgjuRxOSG9a/oFu3VkLRTKQ=
 gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223 h1:iZWwQif/LHMjBgfY/ua8CFVa4XMDfbbs7EZ0Q1dYguU=
 gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223/go.mod h1:+qsc10s4hBsHKU/9luGGumFh4m5FFVc7uih+8/mM1NY=
 gitea.com/macaron/inject v0.0.0-20190803172902-8375ba841591/go.mod h1:h6E4kLao1Yko6DOU6QDnQPcuoNzvbZqzj2mtPcEn1aM=
@@ -334,12 +336,8 @@ github.com/keybase/go-crypto v0.0.0-20170605145657-00ac4db533f6/go.mod h1:ghbZsc
 github.com/kisielk/errcheck v1.1.0/go.mod h1:EZBBE59ingxPouuu3KfxchcWSUPOHkagtvWXihfKN4Q=
 github.com/kisielk/errcheck v1.2.0/go.mod h1:/BMXB+zMLi60iA8Vv6Ksmxu/1UDYcXs4uQLJ+jE2L00=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
-github.com/klauspost/compress v0.0.0-20161025140425-8df558b6cb6f h1:tCnZKEmDovgV4jmsclh6CuKk9AMzTzyVWfejgkgccVg=
-github.com/klauspost/compress v0.0.0-20161025140425-8df558b6cb6f/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
-github.com/klauspost/cpuid v0.0.0-20160302075316-09cded8978dc h1:WW8B7p7QBnFlqRVv/k6ro/S8Z7tCnYjJHcQNScx9YVs=
-github.com/klauspost/cpuid v0.0.0-20160302075316-09cded8978dc/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
-github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6 h1:KAZ1BW2TCmT6PRihDPpocIy1QTtsAsrx6TneU/4+CMg=
-github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6/go.mod h1:+ZoRqAPRLkC4NPOvfYeR5KNOrY6TD+/sAC3HXPZgDYg=
+github.com/klauspost/compress v1.9.2 h1:LfVyl+ZlLlLDeQ/d2AqfGIIH4qEDu0Ed2S5GyhCWIWY=
+github.com/klauspost/compress v1.9.2/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/konsorten/go-windows-terminal-sequences v1.0.2/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515/go.mod h1:+0opPa2QZZtGFBFZlji/RkVcI2GknAs/DXo4wKdlNEc=

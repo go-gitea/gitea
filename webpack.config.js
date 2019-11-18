@@ -4,17 +4,24 @@ const TerserPlugin = require('terser-webpack-plugin');
 module.exports = {
   mode: 'production',
   entry: {
-    index: ['./web_src/js/index', './web_src/js/draw']
+    index: ['./web_src/js/index']
   },
   devtool: 'source-map',
   output: {
     path: path.resolve(__dirname, 'public/js'),
-    filename: 'index.js'
+    filename: 'index.js',
+    chunkFilename: '[name].js',
   },
   optimization: {
     minimize: true,
     minimizer: [new TerserPlugin({
       sourceMap: true,
+      extractComments: false,
+      terserOptions: {
+        output: {
+          comments: false,
+        },
+      },
     })],
   },
   module: {
@@ -33,10 +40,22 @@ module.exports = {
                   corejs: 3,
                 }
               ]
-            ]
+            ],
+            plugins: [
+              [
+                '@babel/plugin-transform-runtime',
+                {
+                  regenerator: true,
+                }
+              ]
+            ],
           }
         }
-      }
+      },
+      {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader'],
+      },
     ]
   }
 };

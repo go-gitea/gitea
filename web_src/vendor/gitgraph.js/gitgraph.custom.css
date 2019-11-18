@@ -1,6 +1,3 @@
-body {font:13.34px/1.4 helvetica,arial,freesans,clean,sans-serif;}
-em {font-style:normal;}
-
 #git-graph-container, #rel-container {float:left;}
 #rel-container {max-width:30%; overflow-x:auto;}
 #git-graph-container {overflow-x:auto; width:100%}
