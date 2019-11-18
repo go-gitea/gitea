@@ -822,6 +822,7 @@ var (
 		".",
 		"..",
 		".well-known",
+		"search",
 	}
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
