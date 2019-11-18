@@ -140,6 +140,18 @@ func GetWatchers(repoID int64) ([]*Watch, error) {
 	return getWatchers(x, repoID)
 }
 
+// GetRepoWatchersIDs returns IDs of watchers for a given repo ID
+// but avoids joining with `user` for performance reasons
+// User permissions must be verified elsewhere if required
+func GetRepoWatchersIDs(repoID int64) ([]int64, error) {
+	ids := make([]int64, 0, 64)
+	return ids, x.Table("watch").
+		Where("watch.repo_id=?", repoID).
+		And("watch.mode<>?", RepoWatchModeDont).
+		Select("user_id").
+		Find(&ids)
+}
+
 // GetWatchers returns range of users watching given repository.
 func (repo *Repository) GetWatchers(page int) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
