@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
@@ -72,7 +73,7 @@ func (f *GitlabDownloaderFactory) New(opts base.MigrateOptions) (base.Downloader
 
 // GitServiceType returns the type of git service
 func (f *GitlabDownloaderFactory) GitServiceType() structs.GitServiceType {
-	return structs.GithubService
+	return structs.GitlabService
 }
 
 // GitlabDownloader implements a Downloader interface to get repository informations
@@ -83,7 +84,7 @@ type GitlabDownloader struct {
 	repoID int
 }
 
-// NewGitlabDownloader creates a github Downloader via gitlab API
+// NewGitlabDownloader creates a gitlab Downloader via gitlab API
 func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDownloader {
 	var downloader = GitlabDownloader{
 		ctx: context.Background(),
@@ -119,18 +120,29 @@ func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
 	if err != nil {
 		return nil, err
 	}
-	// convert github repo to stand Repo
+	var private bool
+	switch gr.Visibility {
+	case gitlab.InternalVisibility:
+		private = true
+	case gitlab.PrivateVisibility:
+		private = true
+	case gitlab.PublicVisibility:
+		private = false
+	default:
+		private = true
+	}
+	// convert gitlab repo to stand Repo
 	return &base.Repository{
 		//Owner:       gr.Owner.Username,
 		Name:        gr.Name,
-		IsPrivate:   (!gr.Public),
+		IsPrivate:   private,
 		Description: gr.Description,
 		OriginalURL: gr.WebURL,
 		CloneURL:    gr.HTTPURLToRepo,
 	}, nil
 }
 
-// GetTopics return github topics
+// GetTopics return gitlab topics
 func (g *GitlabDownloader) GetTopics() ([]string, error) {
 	//r, _, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
 	gr, _, err := g.client.Projects.GetProject(g.repoID, nil, nil)
@@ -166,14 +178,18 @@ func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
 			if m.State != "" {
 				state = m.State
 			}
+			deadline, err := time.Parse("2006-01-02", m.DueDate.String())
+			if err != nil {
+				return nil, err
+			}
 			milestones = append(milestones, &base.Milestone{
 				Title:       m.Title,
 				Description: desc,
-				//Deadline:    m.DueDate,
-				State:   state,
-				Created: *m.CreatedAt,
-				Updated: m.UpdatedAt,
-				Closed:  m.UpdatedAt,
+				Deadline:    &deadline,
+				State:       state,
+				Created:     *m.CreatedAt,
+				Updated:     m.UpdatedAt,
+				Closed:      m.UpdatedAt,
 			})
 		}
 		if len(ms) < perPage {
@@ -221,7 +237,7 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 		//Prerelease:      *rel.Prerelease,
 		Created:       *rel.CreatedAt,
 		PublisherID:   int64(rel.Author.ID),
-		PublisherName: rel.Author.Name,
+		PublisherName: rel.Author.Username,
 		//PublisherEmail:  rel.Author.Email,
 		//Published: rel.PublishedAt.Time,
 	}
@@ -298,7 +314,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			Title:      issue.Title,
 			Number:     int64(issue.IID),
 			PosterID:   int64(issue.Author.ID),
-			PosterName: issue.Author.Name,
+			PosterName: issue.Author.Username,
 			Content:    issue.Description,
 			Milestone:  milestone,
 			State:      issue.State,
