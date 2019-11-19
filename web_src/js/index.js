@@ -599,17 +599,9 @@ function initIssueComments() {
     const $target = $(event.target);
 
     if ($target.closest(`#${urlTargetId}`).length === 0) {
-      if (!window.location.hash) return;
-
-      if (window.location.hash.length > 0 && window.location.hash !== '#') {
-        const i = window.location.toString().indexOf('#');
-
-        if (i >= 0) {
-          const scrollPosition = $(window).scrollTop();
-          window.location.hash = '';
-          $(window).scrollTop(scrollPosition);
-        }
-      }
+      const scrollPosition = $(window).scrollTop();
+      window.location.hash = '';
+      $(window).scrollTop(scrollPosition);
     }
   });
 }
