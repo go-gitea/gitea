@@ -1,0 +1,28 @@
+language: go
+
+go:
+  - 1.10.x
+  - 1.11.x
+  - 1.12.x
+  - 1.13.x
+  - master
+
+stages:
+  - lint
+  - test
+
+jobs:
+  include:
+    - stage: lint
+      script:
+        - go get golang.org/x/lint/golint
+        - golint -set_exit_status
+        - go vet -v
+    - stage: test
+      script:
+        - go test -v
+
+matrix:
+  allow_failures:
+    - go: master
+  fast_finish: true
