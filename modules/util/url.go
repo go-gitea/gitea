@@ -39,11 +39,12 @@ func URLJoin(base string, elems ...string) string {
 		log.Error("URLJoin: Invalid arg %s", joinedPath)
 		return ""
 	}
-	joinedURL := baseURL.ResolveReference(argURL).String()
+	joinedURL := *baseURL
+	joinedURL.Path = path.Join(joinedURL.Path, argURL.String())
 	if !baseURL.IsAbs() && !strings.HasPrefix(base, "/") {
-		return joinedURL[1:] // Removing leading '/' if needed
+		return joinedURL.String()[1:] // Removing leading '/' if needed
 	}
-	return joinedURL
+	return joinedURL.String()
 }
 
 // IsExternalURL checks if rawURL points to an external URL like http://example.com
