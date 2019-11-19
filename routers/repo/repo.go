@@ -326,6 +326,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	}
 
 	var opts = migrations.MigrateOptions{
+		OriginalURL:  form.CloneAddr,
 		CloneAddr:    remoteAddr,
 		RepoName:     form.RepoName,
 		Description:  form.Description,
