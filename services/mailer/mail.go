@@ -164,13 +164,7 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 	SendAsync(msg)
 }
 
-func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionType models.ActionType, fromMention bool,
-	content string, comment *models.Comment, tos []string, info string) *Message {
-
-	if err := issue.LoadPullRequest(); err != nil {
-		log.Error("LoadPullRequest: %v", err)
-		return nil
-	}
+func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMention bool, info string) []*Message {
 
 	var (
 		subject string
@@ -182,29 +176,29 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 	)
 
 	commentType := models.CommentTypeComment
-	if comment != nil {
+	if ctx.Comment != nil {
 		prefix = "Re: "
-		commentType = comment.Type
-		link = issue.HTMLURL() + "#" + comment.HashTag()
+		commentType = ctx.Comment.Type
+		link = ctx.Issue.HTMLURL() + "#" + ctx.Comment.HashTag()
 	} else {
-		link = issue.HTMLURL()
+		link = ctx.Issue.HTMLURL()
 	}
 
 	reviewType := models.ReviewTypeComment
-	if comment != nil && comment.Review != nil {
-		reviewType = comment.Review.Type
+	if ctx.Comment != nil && ctx.Comment.Review != nil {
+		reviewType = ctx.Comment.Review.Type
 	}
 
-	fallback = prefix + fallbackMailSubject(issue)
+	fallback = prefix + fallbackMailSubject(ctx.Issue)
 
 	// This is the body of the new issue or comment, not the mail body
-	body := string(markup.RenderByType(markdown.MarkupName, []byte(content), issue.Repo.HTMLURL(), issue.Repo.ComposeMetas()))
+	body := string(markup.RenderByType(markdown.MarkupName, []byte(ctx.Content), ctx.Issue.Repo.HTMLURL(), ctx.Issue.Repo.ComposeMetas()))
 
-	actType, actName, tplName := actionToTemplate(issue, actionType, commentType, reviewType)
+	actType, actName, tplName := actionToTemplate(ctx.Issue, ctx.ActionType, commentType, reviewType)
 
-	if comment != nil && comment.Review != nil {
+	if ctx.Comment != nil && ctx.Comment.Review != nil {
 		reviewComments = make([]*models.Comment, 0, 10)
-		for _, lines := range comment.Review.CodeComments {
+		for _, lines := range ctx.Comment.Review.CodeComments {
 			for _, comments := range lines {
 				reviewComments = append(reviewComments, comments...)
 			}
@@ -215,12 +209,12 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 		"FallbackSubject": fallback,
 		"Body":            body,
 		"Link":            link,
-		"Issue":           issue,
-		"Comment":         comment,
-		"IsPull":          issue.IsPull,
-		"User":            issue.Repo.MustOwner(),
-		"Repo":            issue.Repo.FullName(),
-		"Doer":            doer,
+		"Issue":           ctx.Issue,
+		"Comment":         ctx.Comment,
+		"IsPull":          ctx.Issue.IsPull,
+		"User":            ctx.Issue.Repo.MustOwner(),
+		"Repo":            ctx.Issue.Repo.FullName(),
+		"Doer":            ctx.Doer,
 		"IsMention":       fromMention,
 		"SubjectPrefix":   prefix,
 		"ActionType":      actType,
@@ -246,18 +240,23 @@ func composeIssueCommentMessage(issue *models.Issue, doer *models.User, actionTy
 		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/body", err)
 	}
 
-	msg := NewMessageFrom(tos, doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
-	msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
+	// Make sure to compose independent messages to avoid leaking user emails
+	msgs := make([]*Message, 0, len(tos))
+	for _, to := range tos {
+		msg := NewMessageFrom([]string{to}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
+		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
-	// Set Message-ID on first message so replies know what to reference
-	if comment == nil {
-		msg.SetHeader("Message-ID", "<"+issue.ReplyReference()+">")
-	} else {
-		msg.SetHeader("In-Reply-To", "<"+issue.ReplyReference()+">")
-		msg.SetHeader("References", "<"+issue.ReplyReference()+">")
+		// Set Message-ID on first message so replies know what to reference
+		if ctx.Comment == nil {
+			msg.SetHeader("Message-ID", "<"+ctx.Issue.ReplyReference()+">")
+		} else {
+			msg.SetHeader("In-Reply-To", "<"+ctx.Issue.ReplyReference()+">")
+			msg.SetHeader("References", "<"+ctx.Issue.ReplyReference()+">")
+		}
+		msgs = append(msgs, msg)
 	}
 
-	return msg
+	return msgs
 }
 
 func sanitizeSubject(subject string) string {
@@ -269,21 +268,15 @@ func sanitizeSubject(subject string) string {
 	return mime.QEncoding.Encode("utf-8", string(runes))
 }
 
-// SendIssueCommentMail composes and sends issue comment emails to target receivers.
-func SendIssueCommentMail(issue *models.Issue, doer *models.User, actionType models.ActionType, content string, comment *models.Comment, tos []string) {
-	if len(tos) == 0 {
-		return
-	}
-
-	SendAsync(composeIssueCommentMessage(issue, doer, actionType, false, content, comment, tos, "issue comment"))
-}
-
-// SendIssueMentionMail composes and sends issue mention emails to target receivers.
-func SendIssueMentionMail(issue *models.Issue, doer *models.User, actionType models.ActionType, content string, comment *models.Comment, tos []string) {
-	if len(tos) == 0 {
-		return
-	}
-	SendAsync(composeIssueCommentMessage(issue, doer, actionType, true, content, comment, tos, "issue mention"))
+// SendIssueAssignedMail composes and sends issue assigned email
+func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
+	SendAsyncs(composeIssueCommentMessages(&mailCommentContext{
+		Issue:      issue,
+		Doer:       doer,
+		ActionType: models.ActionType(0),
+		Content:    content,
+		Comment:    comment,
+	}, tos, false, "issue assigned"))
 }
 
 // actionToTemplate returns the type and name of the action facing the user
@@ -340,9 +333,4 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 		template = "issue/default"
 	}
 	return
-}
-
-// SendIssueAssignedMail composes and sends issue assigned email
-func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
-	SendAsync(composeIssueCommentMessage(issue, doer, models.ActionType(0), false, content, comment, tos, "issue assigned"))
 }
