@@ -130,6 +130,9 @@ func (s *SSPI) getConfig() (*models.SSPIConfig, error) {
 	if len(sources) == 0 {
 		return nil, errors.New("no active login sources of type SSPI found")
 	}
+	if len(sources) > 1 {
+		return nil, errors.New("more than one active login source of type SSPI found")
+	}
 	return sources[0].SSPI(), nil
 }
 
