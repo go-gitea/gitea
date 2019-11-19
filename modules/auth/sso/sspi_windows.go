@@ -95,10 +95,10 @@ func (s *SSPI) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models.
 	}
 
 	username := sanitizeUsername(userInfo.Username, cfg)
-	log.Info("Authenticated as %s\n", username)
 	if len(username) == 0 {
 		return nil
 	}
+	log.Info("Authenticated as %s\n", username)
 
 	user, err := models.GetUserByName(username)
 	if err != nil {
