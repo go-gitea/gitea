@@ -8,6 +8,7 @@ package migrations
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -24,7 +25,7 @@ var (
 )
 
 func init() {
-	RegisterDownloaderFactory(&GithubDownloaderV3Factory{})
+	RegisterDownloaderFactory(&GitlabDownloaderFactory{})
 }
 
 // GitlabDownloaderFactory defines a gitlab downloader factory
@@ -61,11 +62,13 @@ func (f *GitlabDownloaderFactory) New(opts base.MigrateOptions) (base.Downloader
 	//oldOwner := fields[1]
 	//oldName := strings.TrimSuffix(fields[2], ".git")
 
-	//baseURL := u.Host
+	baseURL := u.Scheme + "://" + u.Host
+	repoNameSpace := strings.TrimPrefix(u.Path, "/")
 
-	log.Trace("Create gitlab downloader: %s/%s", opts.AuthUsername, opts.RepoName)
+	log.Trace("Create gitlab downloader. baseURL: %s Token: %s RepoName: %s", baseURL, opts.AuthUsername, repoNameSpace)
+	log.Trace("opts.CloneAddr %v", opts.CloneAddr)
 
-	return NewGitlabDownloader(u.Host, u.Path, opts.AuthUsername, opts.AuthPassword), nil
+	return NewGitlabDownloader(baseURL, repoNameSpace, opts.AuthUsername, opts.AuthPassword), nil
 }
 
 // GitServiceType returns the type of git service
@@ -88,12 +91,21 @@ func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDo
 		repoPath: repoPath,
 	}
 
-	var err error
-	downloader.client, err = gitlab.NewBasicAuthClient(nil, baseURL, username, password)
-	if err != nil {
-		log.Warn("Error creating Gitlab Client:", err)
-		return nil
-	}
+	var client *http.Client
+
+	gitlabClient := gitlab.NewClient(client, username)
+	gitlabClient.SetBaseURL(baseURL)
+
+	/*
+		gitlabClient, err := gitlab.NewBasicAuthClient(nil, baseURL, username, password)
+		if err != nil {
+			log.Trace("Error logging into gitlab: %v", err)
+			return nil
+		}
+	*/
+
+	downloader.client = gitlabClient
+
 	return &downloader
 }
 
@@ -105,12 +117,12 @@ func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
 	}
 	// convert github repo to stand Repo
 	return &base.Repository{
-		Owner:       gr.Owner.Username,
+		//Owner:       gr.Owner.Username,
 		Name:        gr.Name,
 		IsPrivate:   (!gr.Public),
 		Description: gr.Description,
 		OriginalURL: gr.WebURL,
-		CloneURL:    gr.HTTPURLToRepo,
+		CloneURL:    gr.WebURL,
 	}, nil
 }
 
@@ -182,7 +194,7 @@ func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
 		for _, label := range ls {
 			baseLabel := &base.Label{
 				Name:        label.Name,
-				Color:       label.Color,
+				Color:       strings.TrimLeft(label.Color, "#)"),
 				Description: label.Description,
 			}
 			labels = append(labels, baseLabel)
@@ -246,19 +258,23 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 
 // GetIssues returns issues according start and limit
 func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
-	opt := &gitlab.ListProjectIssuesOptions{}
-	*opt.State = "all"
-	*opt.Sort = "created"
-	opt.ListOptions = gitlab.ListOptions{
-		PerPage: perPage,
-		Page:    page,
+	state := "all"
+	sort := "asc"
+
+	opt := &gitlab.ListProjectIssuesOptions{
+		State: &state,
+		Sort:  &sort,
+		ListOptions: gitlab.ListOptions{
+			PerPage: perPage,
+			Page:    page,
+		},
 	}
 
 	var allIssues = make([]*base.Issue, 0, perPage)
 
 	issues, _, err := g.client.Issues.ListProjectIssues(g.repoPath, opt, nil)
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing repos: %v", err)
+		return nil, false, fmt.Errorf("error while listing issues: %v", err)
 	}
 	for _, issue := range issues {
 
@@ -269,13 +285,18 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			})
 		}
 
+		var milestone string
+		if issue.Milestone != nil {
+			milestone = issue.Milestone.Title
+		}
+
 		allIssues = append(allIssues, &base.Issue{
 			Title:      issue.Title,
-			Number:     int64(issue.ID),
+			Number:     int64(issue.IID),
 			PosterID:   int64(issue.Author.ID),
 			PosterName: issue.Author.Name,
 			Content:    issue.Description,
-			Milestone:  issue.Milestone.Title,
+			Milestone:  milestone,
 			State:      issue.State,
 			Created:    *issue.CreatedAt,
 			Labels:     labels,
@@ -295,9 +316,9 @@ func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, erro
 		PerPage: 100,
 	}
 	for {
-		comments, resp, err := g.client.Discussions.ListIssueDiscussions(g.repoPath, int(issueNumber), opt, nil)
+		comments, resp, err := g.client.Discussions.ListIssueDiscussions(url.PathEscape(g.repoPath), int(issueNumber), opt, nil)
 		if err != nil {
-			return nil, fmt.Errorf("error while listing repos: %v", err)
+			return nil, fmt.Errorf("error while listing comments: %v %v", g.repoPath, err)
 		}
 		for _, comment := range comments {
 			// Flatten comment threads
@@ -335,19 +356,23 @@ func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, erro
 
 // GetPullRequests returns pull requests according page and perPage
 func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, error) {
-	opt := &gitlab.ListProjectMergeRequestsOptions{}
-	*opt.State = "all"
-	*opt.Sort = "created"
-	opt.ListOptions = gitlab.ListOptions{
-		PerPage: perPage,
-		Page:    page,
+	//state := "all"
+	//sort := "created"
+
+	opt := &gitlab.ListProjectMergeRequestsOptions{
+		//State: &state,
+		//Sort:  &sort,
+		ListOptions: gitlab.ListOptions{
+			PerPage: perPage,
+			Page:    page,
+		},
 	}
 
 	var allPRs = make([]*base.PullRequest, 0, perPage)
 
 	prs, _, err := g.client.MergeRequests.ListProjectMergeRequests(g.repoPath, opt, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error while listing repos: %v", err)
+		return nil, fmt.Errorf("error while listing merge requests: %v", err)
 	}
 	for _, pr := range prs {
 
@@ -396,13 +421,18 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 				}
 		*/
 
+		var milestone string
+		if pr.Milestone != nil {
+			milestone = pr.Milestone.Title
+		}
+
 		allPRs = append(allPRs, &base.PullRequest{
 			Title:          pr.Title,
-			Number:         int64(pr.ID),
+			Number:         int64(pr.IID),
 			PosterName:     pr.Author.Name,
 			PosterID:       int64(pr.Author.ID),
 			Content:        pr.Description,
-			Milestone:      pr.Milestone.Title,
+			Milestone:      milestone,
 			State:          pr.State,
 			Created:        *pr.CreatedAt,
 			Closed:         pr.ClosedAt,
