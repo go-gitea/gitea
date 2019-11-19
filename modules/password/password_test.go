@@ -36,7 +36,6 @@ func TestComplexity_IsComplexEnough(t *testing.T) {
 		}
 		for _, val := range test.falsevalues {
 			assert.False(t, IsComplexEnough(val))
-
 		}
 	}
 
