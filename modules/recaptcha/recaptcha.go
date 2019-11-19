@@ -24,10 +24,11 @@ type Response struct {
 	ErrorCodes  []string  `json:"error-codes"`
 }
 
-const apiURL = "/recaptcha/api/siteverify"
+const apiURL = "api/siteverify"
 
 // Verify calls Google Recaptcha API to verify token
 func Verify(response string) (bool, error) {
+	fmt.Printf("RECAPTCHA_URL: %s\n", util.URLJoin(setting.Service.RecaptchaURL, apiURL))
 	resp, err := http.PostForm(util.URLJoin(setting.Service.RecaptchaURL, apiURL),
 		url.Values{"secret": {setting.Service.RecaptchaSecret}, "response": {response}})
 	if err != nil {
