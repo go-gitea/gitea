@@ -750,25 +750,6 @@ func (issue *Issue) ChangeRef(doer *User, oldRef string) (err error) {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
 
-	if _, err = createComment(sess, &CreateCommentOptions{
-		Type:     CommentTypeChangeTitle,
-		Doer:     doer,
-		Repo:     issue.Repo,
-		Issue:    issue,
-		OldTitle: oldRef,
-		NewTitle: issue.Ref,
-	}); err != nil {
-		return fmt.Errorf("createComment: %v", err)
-	}
-
-	if err = issue.neuterCrossReferences(sess); err != nil {
-		return err
-	}
-
-	if err = issue.addCrossReferences(sess, doer); err != nil {
-		return err
-	}
-
 	return sess.Commit()
 }
 
