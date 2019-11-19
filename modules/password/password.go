@@ -111,7 +111,7 @@ func Generate(n int) (string, error) {
 func BuildComplexityError(ctx *context.Context) string {
 	var buffer bytes.Buffer
 	buffer.WriteString(ctx.Tr("form.password_complexity"))
-	buffer.WriteString(`<ul>`)
+	buffer.WriteString("<ul>")
 	for _, c := range requiredList {
 		buffer.WriteString("<li>")
 		buffer.WriteString(ctx.Tr(c.TrNameOne))
