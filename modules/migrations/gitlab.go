@@ -65,8 +65,7 @@ func (f *GitlabDownloaderFactory) New(opts base.MigrateOptions) (base.Downloader
 	baseURL := u.Scheme + "://" + u.Host
 	repoNameSpace := strings.TrimPrefix(u.Path, "/")
 
-	log.Trace("Create gitlab downloader. baseURL: %s Token: %s RepoName: %s", baseURL, opts.AuthUsername, repoNameSpace)
-	log.Trace("opts.CloneAddr %v", opts.CloneAddr)
+	log.Trace("Create gitlab downloader. BaseURL: %s RepoName: %s", baseURL, repoNameSpace)
 
 	return NewGitlabDownloader(baseURL, repoNameSpace, opts.AuthUsername, opts.AuthPassword), nil
 }
