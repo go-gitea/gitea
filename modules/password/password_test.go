@@ -73,6 +73,6 @@ func TestComplexity_Generate(t *testing.T) {
 func testComplextity(values []string) {
 	// Cleanup previous values
 	validChars = ""
-	requiredList = make([]Complexity, 0, len(values))
+	requiredList = make([]complexity, 0, len(values))
 	setupComplexity(values)
 }

@@ -15,8 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// Complexity contains information about a particular kind of password complexity
-type Complexity struct {
+// complexity contains information about a particular kind of password complexity
+type complexity struct {
 	ValidChars string
 	TrNameOne  string
 }
@@ -24,9 +24,9 @@ type Complexity struct {
 var (
 	matchComplexityOnce sync.Once
 	validChars          string
-	requiredList        []Complexity
+	requiredList        []complexity
 
-	charComplexities = map[string]Complexity{
+	charComplexities = map[string]complexity{
 		"lower": {
 			`abcdefghijklmnopqrstuvwxyz`,
 			"form.password_lowercase_one",
