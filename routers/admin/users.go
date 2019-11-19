@@ -95,7 +95,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 		}
 	}
 	if u.LoginType == models.LoginNoType || u.LoginType == models.LoginPlain {
-		if len(strings.TrimSpace(form.Password)) > 0 && len(form.Password) < setting.MinPasswordLength {
+		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
 			return
@@ -209,7 +209,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 
 	if len(form.Password) > 0 {
 		var err error
-		if len(strings.TrimSpace(form.Password)) > 0 && len(form.Password) < setting.MinPasswordLength {
+		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserEdit, &form)
 			return
