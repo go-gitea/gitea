@@ -92,17 +92,16 @@ func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDo
 	}
 
 	var client *http.Client
-
-	gitlabClient := gitlab.NewClient(client, username)
-	gitlabClient.SetBaseURL(baseURL)
-
 	/*
-		gitlabClient, err := gitlab.NewBasicAuthClient(nil, baseURL, username, password)
-		if err != nil {
-			log.Trace("Error logging into gitlab: %v", err)
-			return nil
-		}
+		gitlabClient := gitlab.NewClient(client, username)
+		gitlabClient.SetBaseURL(baseURL)
 	*/
+
+	gitlabClient, err := gitlab.NewBasicAuthClient(client, baseURL, username, password)
+	if err != nil {
+		log.Trace("Error logging into gitlab: %v", err)
+		return nil
+	}
 
 	downloader.client = gitlabClient
 
@@ -122,7 +121,7 @@ func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
 		IsPrivate:   (!gr.Public),
 		Description: gr.Description,
 		OriginalURL: gr.WebURL,
-		CloneURL:    gr.WebURL,
+		CloneURL:    gr.HTTPURLToRepo,
 	}, nil
 }
 
