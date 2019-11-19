@@ -9,6 +9,7 @@ require (
 	gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae
 	gitea.com/macaron/cors v0.0.0-20190821152825-7dcef4a17175
 	gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
+	gitea.com/macaron/gzip v0.0.0-20191118033930-0c4c5566a0e5
 	gitea.com/macaron/i18n v0.0.0-20190822004228-474e714e2223
 	gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
 	gitea.com/macaron/macaron v1.3.3-0.20190821202302-9646c0587edb
@@ -55,9 +56,7 @@ require (
 	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657
 	github.com/keybase/go-crypto v0.0.0-20170605145657-00ac4db533f6
-	github.com/klauspost/compress v0.0.0-20161025140425-8df558b6cb6f
-	github.com/klauspost/cpuid v0.0.0-20160302075316-09cded8978dc // indirect
-	github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6 // indirect
+	github.com/klauspost/compress v1.9.2
 	github.com/lafriks/xormstore v1.3.2
 	github.com/lib/pq v1.2.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96

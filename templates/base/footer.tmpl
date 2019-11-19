@@ -23,10 +23,6 @@
 		CodeMirror.modeURL =  "{{StaticUrlPrefix}}/vendor/plugins/codemirror/mode/%N/%N.js";
 	</script>
 {{end}}
-{{if .RequireGitGraph}}
-	<!-- graph -->
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/gitgraph/gitgraph.js"></script>
-{{end}}
 
 <!-- Third-party libraries -->
 {{if .RequireHighlightJS}}
