@@ -100,8 +100,21 @@ function initBranchSelector() {
   const $branchMenu = $selectBranch.find('.reference-list-menu');
   $branchMenu.find('.item:not(.no-select)').click(function () {
     const selectedValue = $(this).data('id');
+    const editMode = $('#editing_mode').val();
     $($(this).data('id-selector')).val(selectedValue);
     $selectBranch.find('.ui .branch-name').text(selectedValue);
+
+    if (editMode === 'true') {
+      const form = $('#update_issueref_form');
+
+      $.post(form.attr('action'), {
+        _csrf: csrf,
+        ref: selectedValue
+      },
+      () => {
+        reload();
+      });
+    }
   });
   $selectBranch.find('.reference.column').click(function () {
     $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
