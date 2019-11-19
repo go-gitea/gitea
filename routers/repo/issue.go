@@ -1055,6 +1055,34 @@ func UpdateIssueTitle(ctx *context.Context) {
 	})
 }
 
+// UpdateIssueRef change issue's ref (branch)
+func UpdateIssueRef(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+		ctx.Error(403)
+		return
+	}
+
+	ref := ctx.QueryTrim("ref")
+	if len(ref) == 0 {
+		ctx.Error(204)
+		return
+	}
+
+	if err := issue_service.ChangeIssueRef(issue, ctx.User, ref); err != nil {
+		ctx.ServerError("ChangeRef", err)
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ref": ref,
+	})
+}
+
 // UpdateIssueContent change issue's content
 func UpdateIssueContent(ctx *context.Context) {
 	issue := GetActionIssue(ctx)

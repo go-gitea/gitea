@@ -40,6 +40,20 @@ func ChangeTitle(issue *models.Issue, doer *models.User, title string) (err erro
 	return nil
 }
 
+// ChangeIssueRef changes the branch of this issue, as the given user.
+func ChangeIssueRef(issue *models.Issue, doer *models.User, ref string) (err error) {
+	oldRef := issue.Ref
+	issue.Ref = ref
+
+	if err = issue.ChangeRef(doer, oldRef); err != nil {
+		return
+	}
+	// TODO: implement notifications
+	//notification.NotifyIssueChangeTitle(doer, issue, oldRef)
+
+	return nil
+}
+
 // UpdateAssignees is a helper function to add or delete one or multiple issue assignee(s)
 // Deleting is done the GitHub way (quote from their api documentation):
 // https://developer.github.com/v3/issues/#edit-an-issue
