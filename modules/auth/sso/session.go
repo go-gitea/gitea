@@ -37,12 +37,6 @@ func (s *Session) IsEnabled() bool {
 	return true
 }
 
-// Priority determines the order in which authentication methods are executed.
-// The lower the priority, the sooner the plugin is executed.
-func (s *Session) Priority() int {
-	return 20000
-}
-
 // VerifyAuthData checks if there is a user uid stored in the session and returns the user
 // object for that uid.
 // Returns nil if there is no user uid stored in the session.
@@ -52,9 +46,4 @@ func (s *Session) VerifyAuthData(ctx *macaron.Context, sess session.Store) *mode
 		return user
 	}
 	return nil
-}
-
-// init registers the plugin to the list of available SSO methods
-func init() {
-	Register(&Session{})
 }

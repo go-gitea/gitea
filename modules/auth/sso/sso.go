@@ -7,7 +7,6 @@ package sso
 
 import (
 	"reflect"
-	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -24,15 +23,6 @@ var (
 // Methods returns the instances of all registered SSO methods
 func Methods() []SingleSignOn {
 	return ssoMethods
-}
-
-// MethodsByPriority returns the instances of all registered SSO methods, ordered by ascending priority
-func MethodsByPriority() []SingleSignOn {
-	methods := Methods()
-	sort.Slice(methods, func(i, j int) bool {
-		return methods[i].Priority() < methods[j].Priority()
-	})
-	return methods
 }
 
 // Register adds the specified instance to the list of available SSO methods
@@ -93,4 +83,25 @@ func isAPIPath(ctx *macaron.Context) bool {
 // isAttachmentDownload check if request is a file download (GET) with URL to an attachment
 func isAttachmentDownload(ctx *macaron.Context) bool {
 	return strings.HasPrefix(ctx.Req.URL.Path, "/attachments/") && ctx.Req.Method == "GET"
+}
+
+// init populates the list of SSO authentication plugins in the order they are expected to be
+// executed.
+//
+// The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
+// in the session (if there is a user id stored in session other plugins might return the user
+// object for that id).
+//
+// The Session plugin is expected to be executed second, in order to skip authentication
+// for users that have already signed in.
+// The SSPI plugin is expected to be executed last as it returns 401 status code if negotiation
+// fails or should continue, which would prevent other authentication methods to execute at all.
+func init() {
+	ssoMethods = []SingleSignOn{
+		&OAuth2{},
+		&Session{},
+		&ReverseProxy{},
+		&Basic{},
+		&SSPI{},
+	}
 }

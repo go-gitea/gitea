@@ -54,12 +54,6 @@ func (r *ReverseProxy) IsEnabled() bool {
 	return setting.Service.EnableReverseProxyAuth
 }
 
-// Priority determines the order in which authentication methods are executed.
-// The lower the priority, the sooner the plugin is executed.
-func (r *ReverseProxy) Priority() int {
-	return 30000
-}
-
 // VerifyAuthData extracts the username from the "setting.ReverseProxyAuthUser" header
 // of the request and returns the corresponding user object for that name.
 // Verification of header data is not performed as it should have already been done by
@@ -118,9 +112,4 @@ func (r *ReverseProxy) newUser(ctx *macaron.Context) *models.User {
 		return nil
 	}
 	return user
-}
-
-// init registers the plugin to the list of available SSO methods
-func init() {
-	Register(&ReverseProxy{})
 }

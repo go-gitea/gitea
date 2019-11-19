@@ -24,10 +24,6 @@ type SingleSignOn interface {
 	// IsEnabled checks if the current SSO method has been enabled in settings.
 	IsEnabled() bool
 
-	// Priority determines the order in which authentication methods are executed.
-	// The lower the priority, the sooner the plugin is executed.
-	Priority() int
-
 	// VerifyAuthData tries to verify the SSO authentication data contained in the request.
 	// If verification is successful returns either an existing user object (with id > 0)
 	// or a new user object (with id = 0) populated with the information that was found

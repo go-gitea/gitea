@@ -45,12 +45,6 @@ func (b *Basic) IsEnabled() bool {
 	return setting.Service.EnableBasicAuth
 }
 
-// Priority determines the order in which authentication methods are executed.
-// The lower the priority, the sooner the plugin is executed.
-func (b *Basic) Priority() int {
-	return 40000
-}
-
 // VerifyAuthData extracts and validates Basic data (username and password/token) from the
 // "Authorization" header of the request and returns the corresponding user object for that
 // name/token on successful validation.
@@ -128,9 +122,4 @@ func (b *Basic) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models
 	}
 
 	return u
-}
-
-// init registers the plugin to the list of available SSO methods
-func init() {
-	Register(&Basic{})
 }

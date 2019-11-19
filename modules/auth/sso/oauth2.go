@@ -112,15 +112,6 @@ func (o *OAuth2) IsEnabled() bool {
 	return true
 }
 
-// Priority determines the order in which authentication methods are executed.
-// The lower the priority, the sooner the plugin is executed.
-// The OAuth2 plugin should be executed first as it must ignore the user id stored
-// in the session (if there is a user id stored in session other plugins might
-// return the user object for that id).
-func (o *OAuth2) Priority() int {
-	return 10000
-}
-
 // VerifyAuthData extracts the user ID from the OAuth token in the query parameters
 // or the "Authorization" header and returns the corresponding user object for that ID.
 // If verification is successful returns an existing user object.
@@ -148,9 +139,4 @@ func (o *OAuth2) VerifyAuthData(ctx *macaron.Context, sess session.Store) *model
 	}
 
 	return user
-}
-
-// init registers the plugin to the list of available SSO methods
-func init() {
-	Register(&OAuth2{})
 }

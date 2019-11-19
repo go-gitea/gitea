@@ -32,7 +32,7 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 	}
 
 	// Try to sign in with each of the enabled plugins
-	for _, ssoMethod := range sso.MethodsByPriority() {
+	for _, ssoMethod := range sso.Methods() {
 		if !ssoMethod.IsEnabled() {
 			continue
 		}

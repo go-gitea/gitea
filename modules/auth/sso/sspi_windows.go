@@ -61,15 +61,6 @@ func (s *SSPI) IsEnabled() bool {
 	return models.IsSSPIEnabled()
 }
 
-// Priority determines the order in which authentication methods are executed.
-// The lower the priority, the sooner the plugin is executed.
-// The SSPI plugin should be executed last as it returns 401 status code
-// if negotiation fails or should continue, which would prevent other
-// authentication methods to execute at all.
-func (s *SSPI) Priority() int {
-	return 50000
-}
-
 // VerifyAuthData uses SSPI (Windows implementation of SPNEGO) to authenticate the request.
 // If authentication is successful, returs the corresponding user object.
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP
@@ -299,9 +290,4 @@ func addFlashErr(ctx *macaron.Context, err string) {
 	}
 	flash.Error(err)
 	ctx.Data["Flash"] = flash
-}
-
-// init registers the plugin to the list of available SSO methods
-func init() {
-	Register(&SSPI{})
 }
