@@ -49,6 +49,15 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %v", err)
 		}
+		// Prepare Notify
+		if err := rel.LoadAttributes(); err != nil {
+			log.Error("LoadAttributes: %v", err)
+			return err
+		}
+		notification.NotifyPushCommits(
+			rel.Publisher, rel.Repo, git.TagPrefix+rel.TagName,
+			git.EmptySHA, commit.ID.String(), models.NewPushCommits())
+		notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName)
 	} else {
 		rel.CreatedUnix = timeutil.TimeStampNow()
 	}
@@ -69,7 +78,7 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 	if err = createTag(gitRepo, rel); err != nil {
 		return err
 	}
-	notification.NotifyNewReleaseTag(gitRepo, rel)
+
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 	if err = models.InsertRelease(rel); err != nil {
 		return err

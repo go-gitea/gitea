@@ -62,10 +62,6 @@ func (*NullNotifier) NotifyDeleteComment(doer *models.User, c *models.Comment) {
 func (*NullNotifier) NotifyNewRelease(rel *models.Release) {
 }
 
-// NotifyNewReleaseTag places a place holder function
-func (m *NullNotifier) NotifyNewReleaseTag(gitRepo *git.Repository, rel *models.Release) {
-}
-
 // NotifyUpdateRelease places a place holder function
 func (*NullNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Release) {
 }
