@@ -425,6 +425,8 @@ github.com/unknwon/paginater
 github.com/urfave/cli
 # github.com/willf/bitset v0.0.0-20180426185212-8ce1146b8621
 github.com/willf/bitset
+# github.com/xanzy/go-gitlab v0.22.1
+github.com/xanzy/go-gitlab
 # github.com/xanzy/ssh-agent v0.2.1
 github.com/xanzy/ssh-agent
 # github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
