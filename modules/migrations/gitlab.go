@@ -79,16 +79,15 @@ func (f *GitlabDownloaderFactory) GitServiceType() structs.GitServiceType {
 // GitlabDownloader implements a Downloader interface to get repository informations
 // from gitlab via go-gitlab
 type GitlabDownloader struct {
-	ctx      context.Context
-	client   *gitlab.Client
-	repoPath string
+	ctx    context.Context
+	client *gitlab.Client
+	repoID int
 }
 
 // NewGitlabDownloader creates a github Downloader via gitlab API
 func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDownloader {
 	var downloader = GitlabDownloader{
-		ctx:      context.Background(),
-		repoPath: repoPath,
+		ctx: context.Background(),
 	}
 
 	var client *http.Client
@@ -103,6 +102,13 @@ func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDo
 		return nil
 	}
 
+	// Grab Project ID
+	gr, _, err := gitlabClient.Projects.GetProject(repoPath, nil, nil)
+	if err != nil {
+		return nil
+	}
+	downloader.repoID = gr.ID
+
 	downloader.client = gitlabClient
 
 	return &downloader
@@ -110,7 +116,7 @@ func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDo
 
 // GetRepoInfo returns a repository information
 func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
-	gr, _, err := g.client.Projects.GetProject(g.repoPath, nil, nil)
+	gr, _, err := g.client.Projects.GetProject(g.repoID, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +134,7 @@ func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
 // GetTopics return github topics
 func (g *GitlabDownloader) GetTopics() ([]string, error) {
 	//r, _, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
-	gr, _, err := g.client.Projects.GetProject(g.repoPath, nil, nil)
+	gr, _, err := g.client.Projects.GetProject(g.repoID, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +147,7 @@ func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
 	var state = "all"
 	var milestones = make([]*base.Milestone, 0, perPage)
 	for i := 1; ; i++ {
-		ms, _, err := g.client.Milestones.ListMilestones(g.repoPath, &gitlab.ListMilestonesOptions{
+		ms, _, err := g.client.Milestones.ListMilestones(g.repoID, &gitlab.ListMilestonesOptions{
 			State: &state,
 			ListOptions: gitlab.ListOptions{
 				Page:    i,
@@ -183,7 +189,7 @@ func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
 	var perPage = 100
 	var labels = make([]*base.Label, 0, perPage)
 	for i := 1; ; i++ {
-		ls, _, err := g.client.Labels.ListLabels(g.repoPath, &gitlab.ListLabelsOptions{
+		ls, _, err := g.client.Labels.ListLabels(g.repoID, &gitlab.ListLabelsOptions{
 			Page:    i,
 			PerPage: perPage,
 		}, nil)
@@ -237,7 +243,7 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 	var perPage = 100
 	var releases = make([]*base.Release, 0, perPage)
 	for i := 1; ; i++ {
-		ls, _, err := g.client.Releases.ListReleases(g.repoPath, &gitlab.ListReleasesOptions{
+		ls, _, err := g.client.Releases.ListReleases(g.repoID, &gitlab.ListReleasesOptions{
 			Page:    i,
 			PerPage: perPage,
 		}, nil)
@@ -271,7 +277,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 
 	var allIssues = make([]*base.Issue, 0, perPage)
 
-	issues, _, err := g.client.Issues.ListProjectIssues(g.repoPath, opt, nil)
+	issues, _, err := g.client.Issues.ListProjectIssues(g.repoID, opt, nil)
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing issues: %v", err)
 	}
@@ -315,9 +321,9 @@ func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, erro
 		PerPage: 100,
 	}
 	for {
-		comments, resp, err := g.client.Discussions.ListIssueDiscussions(url.PathEscape(g.repoPath), int(issueNumber), opt, nil)
+		comments, resp, err := g.client.Discussions.ListIssueDiscussions(g.repoID, int(issueNumber), opt, nil)
 		if err != nil {
-			return nil, fmt.Errorf("error while listing comments: %v %v", g.repoPath, err)
+			return nil, fmt.Errorf("error while listing comments: %v %v", g.repoID, err)
 		}
 		for _, comment := range comments {
 			// Flatten comment threads
@@ -369,7 +375,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 	var allPRs = make([]*base.PullRequest, 0, perPage)
 
-	prs, _, err := g.client.MergeRequests.ListProjectMergeRequests(g.repoPath, opt, nil)
+	prs, _, err := g.client.MergeRequests.ListProjectMergeRequests(g.repoID, opt, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error while listing merge requests: %v", err)
 	}
