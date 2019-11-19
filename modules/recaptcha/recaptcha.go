@@ -28,7 +28,6 @@ const apiURL = "/recaptcha/api/siteverify"
 
 // Verify calls Google Recaptcha API to verify token
 func Verify(response string) (bool, error) {
-	println(util.URLJoin(setting.Service.RecaptchaURL, apiURL))
 	resp, err := http.PostForm(util.URLJoin(setting.Service.RecaptchaURL, apiURL),
 		url.Values{"secret": {setting.Service.RecaptchaSecret}, "response": {response}})
 	if err != nil {
