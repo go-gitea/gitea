@@ -96,7 +96,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	}
 	if u.LoginType == models.LoginPlain {
 		if !password.IsComplexEnough(form.Password) {
-			ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserNew, &form)
+			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserNew, &form)
 			return
 		}
 		u.MustChangePassword = form.MustChangePassword
@@ -208,7 +208,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 			return
 		}
 		if !password.IsComplexEnough(form.Password) {
-			ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserEdit, &form)
+			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserEdit, &form)
 			return
 		}
 		u.HashPassword(form.Password)
