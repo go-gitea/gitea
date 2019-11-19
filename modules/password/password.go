@@ -13,16 +13,34 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
+// Complexity contains information about a particular kind of password complexity
+type Complexity struct {
+	ValidChars string
+	TrNameOne  string
+}
+
 var (
 	matchComplexityOnce sync.Once
 	validChars          string
-	requiredChars       []string
+	requiredList        []Complexity
 
-	charComplexities = map[string]string{
-		"lower": `abcdefghijklmnopqrstuvwxyz`,
-		"upper": `ABCDEFGHIJKLMNOPQRSTUVWXYZ`,
-		"digit": `0123456789`,
-		"spec":  ` !"#$%&'()*+,-./:;<=>?@[\]^_{|}~` + "`",
+	charComplexities = map[string]Complexity{
+		"lower": {
+			`abcdefghijklmnopqrstuvwxyz`,
+			"password_lowercase_one",
+		},
+		"upper": {
+			`ABCDEFGHIJKLMNOPQRSTUVWXYZ`,
+			"password_uppercase_one",
+		},
+		"digit": {
+			`0123456789`,
+			"password_digit_one",
+		},
+		"spec": {
+			` !"#$%&'()*+,-./:;<=>?@[\]^_{|}~` + "`",
+			"password_special_one",
+		},
 	}
 )
 
@@ -36,22 +54,22 @@ func NewComplexity() {
 func setupComplexity(values []string) {
 	if len(values) != 1 || values[0] != "off" {
 		for _, val := range values {
-			if chars, ok := charComplexities[val]; ok {
-				validChars += chars
-				requiredChars = append(requiredChars, chars)
+			if complex, ok := charComplexities[val]; ok {
+				validChars += complex.ValidChars
+				requiredList = append(requiredList, complex)
 			}
 		}
-		if len(requiredChars) == 0 {
+		if len(requiredList) == 0 {
 			// No valid character classes found; use all classes as default
-			for _, chars := range charComplexities {
-				validChars += chars
-				requiredChars = append(requiredChars, chars)
+			for _, complex := range charComplexities {
+				validChars += complex.ValidChars
+				requiredList = append(requiredList, complex)
 			}
 		}
 	}
 	if validChars == "" {
 		// No complexities to check; provide a sensible default for password generation
-		validChars = charComplexities["lower"] + charComplexities["upper"] + charComplexities["digit"]
+		validChars = charComplexities["lower"].ValidChars + charComplexities["upper"].ValidChars + charComplexities["digit"].ValidChars
 	}
 }
 
@@ -59,8 +77,8 @@ func setupComplexity(values []string) {
 func IsComplexEnough(pwd string) bool {
 	NewComplexity()
 	if len(validChars) > 0 {
-		for _, req := range requiredChars {
-			if !strings.ContainsAny(req, pwd) {
+		for _, req := range requiredList {
+			if !strings.ContainsAny(req.ValidChars, pwd) {
 				return false
 			}
 		}
@@ -85,4 +103,9 @@ func Generate(n int) (string, error) {
 			return string(buffer), nil
 		}
 	}
+}
+
+// GetActiveComplexities returns a list of the active complexities (may differ from the settings)
+func GetActiveComplexities() []Complexity {
+	return requiredList
 }

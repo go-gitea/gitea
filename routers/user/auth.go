@@ -6,6 +6,7 @@
 package user
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net/http"
@@ -1072,7 +1073,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 	}
 	if !password.IsComplexEnough(form.Password) {
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplSignUp, &form)
+		ctx.RenderWithErr(BuildPasswordComplexityError(ctx), tplSignUp, &form)
 		return
 	}
 
@@ -1343,7 +1344,7 @@ func ResetPasswdPost(ctx *context.Context) {
 	} else if !password.IsComplexEnough(passwd) {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplResetPassword, nil)
+		ctx.RenderWithErr(BuildPasswordComplexityError(ctx), tplResetPassword, nil)
 		return
 	}
 
@@ -1432,4 +1433,18 @@ func MustChangePasswordPost(ctx *context.Context, cpt *captcha.Captcha, form aut
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/")
+}
+
+// BuildPasswordComplexityError builds the error message when password complexity checks fail
+func BuildPasswordComplexityError(ctx *context.Context) string {
+	var buffer bytes.Buffer
+	buffer.WriteString(ctx.Tr("form.password_complexity"))
+	buffer.WriteString(`<ul>`)
+	for _, c := range password.GetActiveComplexities() {
+		buffer.WriteString("<li>")
+		buffer.WriteString(ctx.Tr("form." + c.TrNameOne))
+		buffer.WriteString("</li>")
+	}
+	buffer.WriteString("</ul>")
+	return buffer.String()
 }

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/routers/user"
 	"code.gitea.io/gitea/services/mailer"
 
 	"github.com/unknwon/com"
@@ -96,7 +97,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	}
 	if u.LoginType == models.LoginPlain {
 		if !password.IsComplexEnough(form.Password) {
-			ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserNew, &form)
+			ctx.RenderWithErr(user.BuildPasswordComplexityError(ctx), tplUserNew, &form)
 			return
 		}
 		u.MustChangePassword = form.MustChangePassword
@@ -208,7 +209,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 			return
 		}
 		if !password.IsComplexEnough(form.Password) {
-			ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserEdit, &form)
+			ctx.RenderWithErr(user.BuildPasswordComplexityError(ctx), tplUserEdit, &form)
 			return
 		}
 		u.HashPassword(form.Password)
