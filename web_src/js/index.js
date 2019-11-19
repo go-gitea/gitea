@@ -2428,7 +2428,7 @@ $(document).ready(() => {
   $cloneAddr.change(() => {
     const $repoName = $('#repo_name');
     if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
-      $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
+      $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?(#gitlab?))$/)[3]);
     }
   });
 });
