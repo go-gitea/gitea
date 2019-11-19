@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -154,6 +154,8 @@ func (g *gracefulManager) doShutdown() {
 	}
 	go func() {
 		g.WaitForServers()
+		// Mop up any remaining unclosed events.
+		g.doHammerTime(0)
 		<-time.After(1 * time.Second)
 		g.doTerminate()
 	}()
