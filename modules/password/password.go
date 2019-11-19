@@ -5,11 +5,13 @@
 package password
 
 import (
+	"bytes"
 	"crypto/rand"
 	"math/big"
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -27,19 +29,19 @@ var (
 	charComplexities = map[string]Complexity{
 		"lower": {
 			`abcdefghijklmnopqrstuvwxyz`,
-			"password_lowercase_one",
+			"form.password_lowercase_one",
 		},
 		"upper": {
 			`ABCDEFGHIJKLMNOPQRSTUVWXYZ`,
-			"password_uppercase_one",
+			"form.password_uppercase_one",
 		},
 		"digit": {
 			`0123456789`,
-			"password_digit_one",
+			"form.password_digit_one",
 		},
 		"spec": {
 			` !"#$%&'()*+,-./:;<=>?@[\]^_{|}~` + "`",
-			"password_special_one",
+			"form.password_special_one",
 		},
 	}
 )
@@ -105,7 +107,16 @@ func Generate(n int) (string, error) {
 	}
 }
 
-// GetActiveComplexities returns a list of the active complexities (may differ from the settings)
-func GetActiveComplexities() []Complexity {
-	return requiredList
+// BuildComplexityError builds the error message when password complexity checks fail
+func BuildComplexityError(ctx *context.Context) string {
+	var buffer bytes.Buffer
+	buffer.WriteString(ctx.Tr("form.password_complexity"))
+	buffer.WriteString(`<ul>`)
+	for _, c := range requiredList {
+		buffer.WriteString("<li>")
+		buffer.WriteString(ctx.Tr(c.TrNameOne))
+		buffer.WriteString("</li>")
+	}
+	buffer.WriteString("</ul>")
+	return buffer.String()
 }
