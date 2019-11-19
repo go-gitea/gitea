@@ -652,7 +652,16 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 	}
 
 	// New action comment
-	if _, err = createStatusComment(e, doer, issue); err != nil {
+	cmtType := CommentTypeClose
+	if !issue.IsClosed {
+		cmtType = CommentTypeReopen
+	}
+	if _, err := createComment(e, &CreateCommentOptions{
+		Type:  cmtType,
+		Doer:  doer,
+		Repo:  issue.Repo,
+		Issue: issue,
+	}); err != nil {
 		return err
 	}
 
@@ -702,15 +711,18 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
 
-	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, issue.Title); err != nil {
-		return fmt.Errorf("createChangeTitleComment: %v", err)
+	if _, err = createComment(sess, &CreateCommentOptions{
+		Type:     CommentTypeChangeTitle,
+		Doer:     doer,
+		Repo:     issue.Repo,
+		Issue:    issue,
+		OldTitle: oldTitle,
+		NewTitle: issue.Title,
+	}); err != nil {
+		return fmt.Errorf("createComment: %v", err)
 	}
 
-	if err = issue.neuterCrossReferences(sess); err != nil {
-		return err
-	}
-
-	if err = issue.addCrossReferences(sess, doer); err != nil {
+	if err = issue.addCrossReferences(sess, doer, true); err != nil {
 		return err
 	}
 
@@ -728,7 +740,13 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if _, err := createDeleteBranchComment(sess, doer, repo, issue, branchName); err != nil {
+	if _, err := createComment(sess, &CreateCommentOptions{
+		Type:      CommentTypeDeleteBranch,
+		Doer:      doer,
+		Repo:      repo,
+		Issue:     issue,
+		CommitSHA: branchName,
+	}); err != nil {
 		return err
 	}
 
@@ -768,10 +786,8 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	if err = updateIssueCols(sess, issue, "content"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
-	if err = issue.neuterCrossReferences(sess); err != nil {
-		return err
-	}
-	if err = issue.addCrossReferences(sess, doer); err != nil {
+
+	if err = issue.addCrossReferences(sess, doer, true); err != nil {
 		return err
 	}
 
@@ -922,7 +938,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	if err = opts.Issue.loadAttributes(e); err != nil {
 		return err
 	}
-	return opts.Issue.addCrossReferences(e, doer)
+	return opts.Issue.addCrossReferences(e, doer, false)
 }
 
 // NewIssue creates new issue with labels for repository.
@@ -1195,6 +1211,19 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	}
 
 	return issues, nil
+}
+
+// GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,
+// but skips joining with `user` for performance reasons.
+// User permissions must be verified elsewhere if required.
+func GetParticipantsIDsByIssueID(issueID int64) ([]int64, error) {
+	userIDs := make([]int64, 0, 5)
+	return userIDs, x.Table("comment").
+		Cols("poster_id").
+		Where("issue_id = ?", issueID).
+		And("type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
+		Distinct("poster_id").
+		Find(&userIDs)
 }
 
 // GetParticipantsByIssueID returns all users who are participated in comments of an issue.
@@ -1543,13 +1572,10 @@ func UpdateIssue(issue *Issue) error {
 	if err := updateIssue(sess, issue); err != nil {
 		return err
 	}
-	if err := issue.neuterCrossReferences(sess); err != nil {
-		return err
-	}
 	if err := issue.loadPoster(sess); err != nil {
 		return err
 	}
-	if err := issue.addCrossReferences(sess, issue.Poster); err != nil {
+	if err := issue.addCrossReferences(sess, issue.Poster, true); err != nil {
 		return err
 	}
 	return sess.Commit()

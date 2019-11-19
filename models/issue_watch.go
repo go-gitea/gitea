@@ -60,6 +60,18 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 	return
 }
 
+// GetIssueWatchersIDs returns IDs of subscribers to a given issue id
+// but avoids joining with `user` for performance reasons
+// User permissions must be verified elsewhere if required
+func GetIssueWatchersIDs(issueID int64) ([]int64, error) {
+	ids := make([]int64, 0, 64)
+	return ids, x.Table("issue_watch").
+		Where("issue_id=?", issueID).
+		And("is_watching = ?", true).
+		Select("user_id").
+		Find(&ids)
+}
+
 // GetIssueWatchers returns watchers/unwatchers of a given issue
 func GetIssueWatchers(issueID int64) (IssueWatchList, error) {
 	return getIssueWatchers(x, issueID)

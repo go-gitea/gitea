@@ -545,7 +545,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		}
 	}
 
-	if err = comment.addCrossReferences(e, opts.Doer); err != nil {
+	if err = comment.addCrossReferences(e, opts.Doer, false); err != nil {
 		return nil, err
 	}
 
@@ -651,34 +651,6 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 	return nil
 }
 
-func createStatusComment(e *xorm.Session, doer *User, issue *Issue) (*Comment, error) {
-	cmtType := CommentTypeClose
-	if !issue.IsClosed {
-		cmtType = CommentTypeReopen
-	}
-	return createComment(e, &CreateCommentOptions{
-		Type:  cmtType,
-		Doer:  doer,
-		Repo:  issue.Repo,
-		Issue: issue,
-	})
-}
-
-func createLabelComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, label *Label, add bool) (*Comment, error) {
-	var content string
-	if add {
-		content = "1"
-	}
-	return createComment(e, &CreateCommentOptions{
-		Type:    CommentTypeLabel,
-		Doer:    doer,
-		Repo:    repo,
-		Issue:   issue,
-		Label:   label,
-		Content: content,
-	})
-}
-
 func createMilestoneComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldMilestoneID, milestoneID int64) (*Comment, error) {
 	return createComment(e, &CreateCommentOptions{
 		Type:           CommentTypeMilestone,
@@ -687,17 +659,6 @@ func createMilestoneComment(e *xorm.Session, doer *User, repo *Repository, issue
 		Issue:          issue,
 		OldMilestoneID: oldMilestoneID,
 		MilestoneID:    milestoneID,
-	})
-}
-
-func createAssigneeComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, assigneeID int64, removedAssignee bool) (*Comment, error) {
-	return createComment(e, &CreateCommentOptions{
-		Type:            CommentTypeAssignees,
-		Doer:            doer,
-		Repo:            repo,
-		Issue:           issue,
-		RemovedAssignee: removedAssignee,
-		AssigneeID:      assigneeID,
 	})
 }
 
@@ -730,27 +691,6 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 		Repo:    issue.Repo,
 		Issue:   issue,
 		Content: content,
-	})
-}
-
-func createChangeTitleComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldTitle, newTitle string) (*Comment, error) {
-	return createComment(e, &CreateCommentOptions{
-		Type:     CommentTypeChangeTitle,
-		Doer:     doer,
-		Repo:     repo,
-		Issue:    issue,
-		OldTitle: oldTitle,
-		NewTitle: newTitle,
-	})
-}
-
-func createDeleteBranchComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, branchName string) (*Comment, error) {
-	return createComment(e, &CreateCommentOptions{
-		Type:      CommentTypeDeleteBranch,
-		Doer:      doer,
-		Repo:      repo,
-		Issue:     issue,
-		CommitSHA: branchName,
 	})
 }
 
@@ -942,10 +882,7 @@ func UpdateComment(c *Comment, doer *User) error {
 	if err := c.loadIssue(sess); err != nil {
 		return err
 	}
-	if err := c.neuterCrossReferences(sess); err != nil {
-		return err
-	}
-	if err := c.addCrossReferences(sess, doer); err != nil {
+	if err := c.addCrossReferences(sess, doer, true); err != nil {
 		return err
 	}
 	if err := sess.Commit(); err != nil {
@@ -1013,10 +950,6 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 		Asc("comment.created_unix").
 		Asc("comment.id").
 		Find(&comments); err != nil {
-		return nil, err
-	}
-
-	if err := CommentList(comments).loadPosters(e); err != nil {
 		return nil, err
 	}
 

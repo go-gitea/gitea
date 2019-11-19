@@ -41,6 +41,18 @@ func (issue *Issue) loadAssignees(e Engine) (err error) {
 	return
 }
 
+// GetAssigneeIDsByIssue returns the IDs of users assigned to an issue
+// but skips joining with `user` for performance reasons.
+// User permissions must be verified elsewhere if required.
+func GetAssigneeIDsByIssue(issueID int64) ([]int64, error) {
+	userIDs := make([]int64, 0, 5)
+	return userIDs, x.Table("issue_assignees").
+		Cols("assignee_id").
+		Where("issue_id = ?", issueID).
+		Distinct("assignee_id").
+		Find(&userIDs)
+}
+
 // GetAssigneesByIssue returns everyone assigned to that issue
 func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error) {
 	return getAssigneesByIssue(x, issue)
@@ -120,9 +132,16 @@ func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID in
 	}
 
 	// Comment
-	comment, err = createAssigneeComment(sess, doer, issue.Repo, issue, assigneeID, removed)
+	comment, err = createComment(sess, &CreateCommentOptions{
+		Type:            CommentTypeAssignees,
+		Doer:            doer,
+		Repo:            issue.Repo,
+		Issue:           issue,
+		RemovedAssignee: removed,
+		AssigneeID:      assigneeID,
+	})
 	if err != nil {
-		return false, nil, fmt.Errorf("createAssigneeComment: %v", err)
+		return false, nil, fmt.Errorf("createComment: %v", err)
 	}
 
 	// if pull request is in the middle of creation - don't call webhook

@@ -246,7 +246,7 @@
 							</a>
 						{{end}}
 						{{if .Ref}}
-							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">
+							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref | PathEscapeSegments}}">
 								<span class="octicon octicon-git-branch"></span> {{.Ref}}
 							</a>
 						{{end}}

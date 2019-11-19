@@ -62,7 +62,9 @@ type Review struct {
 }
 
 func (r *Review) loadCodeComments(e Engine) (err error) {
-	r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
+	if r.CodeComments == nil {
+		r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
+	}
 	return
 }
 
@@ -254,7 +256,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 			return nil, nil, err
 		}
 
-		if len(strings.TrimSpace(content)) == 0 {
+		if reviewType != ReviewTypeApprove && len(strings.TrimSpace(content)) == 0 {
 			return nil, nil, ContentEmptyErr{}
 		}
 
@@ -272,7 +274,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 		if err := review.loadCodeComments(sess); err != nil {
 			return nil, nil, err
 		}
-		if len(review.CodeComments) == 0 && len(strings.TrimSpace(content)) == 0 {
+		if reviewType != ReviewTypeApprove && len(review.CodeComments) == 0 && len(strings.TrimSpace(content)) == 0 {
 			return nil, nil, ContentEmptyErr{}
 		}
 
