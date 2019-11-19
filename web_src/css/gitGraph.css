@@ -1,3 +1,5 @@
+/* This is a customized version of https://github.com/bluef/gitgraph.js/blob/master/gitgraph.css
+   Changes include the removal of `body` and `em` styles */
 #git-graph-container, #rel-container {float:left;}
 #rel-container {max-width:30%; overflow-x:auto;}
 #git-graph-container {overflow-x:auto; width:100%}

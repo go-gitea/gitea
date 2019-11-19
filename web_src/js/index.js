@@ -3,8 +3,8 @@
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
 import './publicPath.js';
-import './gitGraph.js';
-import '../vendor/semantic.dropdown/semantic.dropdown.custom.js';
+import './gitGraphLoader.js';
+import './semanticDropdown.js';
 
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
