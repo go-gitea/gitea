@@ -15,7 +15,8 @@ type Team struct {
 	// enum: none,read,write,admin,owner
 	Permission string `json:"permission"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
-	Units []string `json:"units"`
+	Units            []string `json:"units"`
+	CanCreateOrgRepo bool     `json:"can_create_org_repo"`
 }
 
 // CreateTeamOption options for creating a team
@@ -27,7 +28,8 @@ type CreateTeamOption struct {
 	// enum: read,write,admin
 	Permission string `json:"permission"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
-	Units []string `json:"units"`
+	Units            []string `json:"units"`
+	CanCreateOrgRepo bool     `json:"can_create_org_repo"`
 }
 
 // EditTeamOption options for editing a team
@@ -39,5 +41,6 @@ type EditTeamOption struct {
 	// enum: read,write,admin
 	Permission string `json:"permission"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
-	Units []string `json:"units"`
+	Units            []string `json:"units"`
+	CanCreateOrgRepo bool     `json:"can_create_org_repo"`
 }
