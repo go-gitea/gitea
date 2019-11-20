@@ -72,8 +72,7 @@ func newMarkupSanitizer(name string, sec *ini.Section) {
 	regexps := sec.Key("REGEXP").ValueWithShadows()
 
 	if len(elements) != len(allowAttrs) ||
-		len(elements) != len(regexps) ||
-		len(allowAttrs) != len(regexps) {
+		len(elements) != len(regexps) {
 		log.Error("All three keys in markup.%s (ELEMENT, ALLOW_ATTR, REGEXP) must be defined the same number of times! Got %d, %d, and %d respectively.", name, len(elements), len(allowAttrs), len(regexps))
 		return
 	}
