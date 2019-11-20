@@ -129,6 +129,8 @@ menu:
 - `DELIVER_TIMEOUT`: 请求webhooks的超时时间，单位秒。
 - `SKIP_TLS_VERIFY`: 是否允许不安全的证书。
 - `PAGING_NUM`: 每页显示的Webhook 历史数量。
+- `PROXY_URL`: ****: 代理服务器网址，支持 http://, https//, socks://, 为空将使用环境变量中的 http_proxy/https_proxy 设置。
+- `PROXY_HOSTS`: ****: 逗号分隔的需要代理的域名或IP地址。支持 * 号匹配符，使用 ** 匹配所有域名和IP地址。
 
 ## Mailer (`mailer`)
 
@@ -269,6 +271,11 @@ IS_INPUT_FILE = false
 - `QUEUE_TYPE`: **channel**: 任务队列类型，可以为 `channel` 或 `redis`。
 - `QUEUE_LENGTH`: **1000**: 任务队列长度，当 `QUEUE_TYPE` 为 `channel` 时有效。
 - `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: 任务队列连接字符串，当 `QUEUE_TYPE` 为 `redis` 时有效。如果redis有密码，则可以 `addrs=127.0.0.1:6379 password=123 db=0`。
+
+## Migrations (`migrations`)
+
+- `MAX_ATTEMPTS`: **3**: 在迁移过程中的 http/https 请求重试次数。
+- `RETRY_BACKOFF`: **3**: 等待下一次重试的时间，单位秒。
 
 ## Other (`other`)
 

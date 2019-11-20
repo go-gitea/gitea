@@ -267,6 +267,14 @@ var migrations = []Migration{
 	// v105 -> v106
 	NewMigration("add includes_all_repositories to teams", addTeamIncludesAllRepositories),
 	// v106 -> v107
+	NewMigration("add column `mode` to table watch", addModeColumnToWatch),
+	// v107 -> v108
+	NewMigration("Add template options to repository", addTemplateToRepo),
+	// v108 -> v109
+	NewMigration("Add comment_id on table notification", addCommentIDOnNotification),
+	// v109 -> v110
+	NewMigration("add can_create_org_repo to team", addCanCreateOrgRepoColumnForTeam),
+	// v110 -> v111
 	NewMigration("add projects info to repository table", addProjectsInfo),
 }
 

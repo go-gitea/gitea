@@ -138,7 +138,8 @@ func TeamsRepoAction(ctx *context.Context) {
 	}
 
 	var err error
-	switch ctx.Params(":action") {
+	action := ctx.Params(":action")
+	switch action {
 	case "add":
 		repoName := path.Base(ctx.Query("repo_name"))
 		var repo *models.Repository
@@ -155,11 +156,22 @@ func TeamsRepoAction(ctx *context.Context) {
 		err = ctx.Org.Team.AddRepository(repo)
 	case "remove":
 		err = ctx.Org.Team.RemoveRepository(com.StrTo(ctx.Query("repoid")).MustInt64())
+	case "addall":
+		err = ctx.Org.Team.AddAllRepositories()
+	case "removeall":
+		err = ctx.Org.Team.RemoveAllRepositories()
 	}
 
 	if err != nil {
 		log.Error("Action(%s): '%s' %v", ctx.Params(":action"), ctx.Org.Team.Name, err)
 		ctx.ServerError("TeamsRepoAction", err)
+		return
+	}
+
+	if action == "addall" || action == "removeall" {
+		ctx.JSON(200, map[string]interface{}{
+			"redirect": ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories",
+		})
 		return
 	}
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories")
@@ -189,6 +201,7 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		Description:             form.Description,
 		Authorize:               models.ParseAccessMode(form.Permission),
 		IncludesAllRepositories: includesAllRepositories,
+		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 	}
 
 	if t.Authorize < models.AccessModeOwner {
@@ -304,6 +317,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 			return
 		}
 	}
+	t.CanCreateOrgRepo = form.CanCreateOrgRepo
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplTeamNew)

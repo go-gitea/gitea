@@ -7,6 +7,8 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/modules/util"
+
 	"xorm.io/xorm"
 )
 
@@ -37,6 +39,18 @@ func (issue *Issue) loadAssignees(e Engine) (err error) {
 	}
 
 	return
+}
+
+// GetAssigneeIDsByIssue returns the IDs of users assigned to an issue
+// but skips joining with `user` for performance reasons.
+// User permissions must be verified elsewhere if required.
+func GetAssigneeIDsByIssue(issueID int64) ([]int64, error) {
+	userIDs := make([]int64, 0, 5)
+	return userIDs, x.Table("issue_assignees").
+		Cols("assignee_id").
+		Where("issue_id = ?", issueID).
+		Distinct("assignee_id").
+		Find(&userIDs)
 }
 
 // GetAssigneesByIssue returns everyone assigned to that issue
@@ -118,9 +132,16 @@ func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID in
 	}
 
 	// Comment
-	comment, err = createAssigneeComment(sess, doer, issue.Repo, issue, assigneeID, removed)
+	comment, err = createComment(sess, &CreateCommentOptions{
+		Type:            CommentTypeAssignees,
+		Doer:            doer,
+		Repo:            issue.Repo,
+		Issue:           issue,
+		RemovedAssignee: removed,
+		AssigneeID:      assigneeID,
+	})
 	if err != nil {
-		return false, nil, fmt.Errorf("createAssigneeComment: %v", err)
+		return false, nil, fmt.Errorf("createComment: %v", err)
 	}
 
 	// if pull request is in the middle of creation - don't call webhook
@@ -171,25 +192,20 @@ func toggleUserAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (remove
 // MakeIDsFromAPIAssigneesToAdd returns an array with all assignee IDs
 func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string) (assigneeIDs []int64, err error) {
 
+	var requestAssignees []string
+
 	// Keeping the old assigning method for compatibility reasons
-	if oneAssignee != "" {
+	if oneAssignee != "" && !util.IsStringInSlice(oneAssignee, multipleAssignees) {
+		requestAssignees = append(requestAssignees, oneAssignee)
+	}
 
-		// Prevent double adding assignees
-		var isDouble bool
-		for _, assignee := range multipleAssignees {
-			if assignee == oneAssignee {
-				isDouble = true
-				break
-			}
-		}
-
-		if !isDouble {
-			multipleAssignees = append(multipleAssignees, oneAssignee)
-		}
+	//Prevent empty assignees
+	if len(multipleAssignees) > 0 && multipleAssignees[0] != "" {
+		requestAssignees = append(requestAssignees, multipleAssignees...)
 	}
 
 	// Get the IDs of all assignees
-	assigneeIDs, err = GetUserIDsByNames(multipleAssignees, false)
+	assigneeIDs, err = GetUserIDsByNames(requestAssignees, false)
 
 	return
 }

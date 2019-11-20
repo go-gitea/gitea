@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* globals wipPrefixes, issuesTribute, emojiTribute */
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap initKanbanBoard*/
 /* exported toggleDeadlineForm, setDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
@@ -3292,7 +3293,7 @@ function initIssueList() {
     $('#new-dependency-drop-list')
         .dropdown({
             apiSettings: {
-                url: issueSearchUrl,                
+                url: issueSearchUrl,
                 onResponse: function(response) {
                     const filteredResponse = {'success': true, 'results': []};
                     const currIssueId = $('#new-dependency-drop-list').data('issue-id');
@@ -3303,7 +3304,7 @@ function initIssueList() {
                             return;
                         }
                         filteredResponse.results.push({
-                            'name'  : '#' + issue.number + ' ' + htmlEncode(issue.title) + 
+                            'name'  : '#' + issue.number + ' ' + htmlEncode(issue.title) +
                                 '<div class="text small dont-break-out">' + htmlEncode(issue.repository.full_name) + '</div>',
                             'value' : issue.id
                         });
