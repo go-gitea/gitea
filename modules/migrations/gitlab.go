@@ -436,8 +436,19 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			merged = true
 		case "merged":
 			merged = true
+			pr.State = "closed"
 		default:
 			merged = false
+		}
+
+		var mergeTime = pr.MergedAt
+		if merged && pr.MergedAt == nil {
+			mergeTime = pr.UpdatedAt
+		}
+
+		var closeTime = pr.ClosedAt
+		if merged && pr.ClosedAt == nil {
+			closeTime = pr.UpdatedAt
 		}
 
 		var locked bool
@@ -462,11 +473,11 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			Milestone:      milestone,
 			State:          pr.State,
 			Created:        *pr.CreatedAt,
-			Closed:         pr.ClosedAt,
+			Closed:         closeTime,
 			Labels:         labels,
 			Merged:         merged,
 			MergeCommitSHA: pr.MergeCommitSHA,
-			MergedTime:     pr.MergedAt,
+			MergedTime:     mergeTime,
 			IsLocked:       locked,
 			Head: base.PullRequestBranch{
 				Ref:       pr.SourceBranch,
