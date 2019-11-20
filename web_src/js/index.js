@@ -1162,7 +1162,7 @@ function initMigration() {
     const authUserName = $('#auth_username').val();
     const cloneAddr = $('#clone_addr').val();
     if (!$('#mirror').is(':checked') && (authUserName && authUserName.length > 0) &&
-        (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com') || cloneAddr.startsWith('http://gitlab.com') || cloneAddr.startsWith('https://gitlab.com')))) {
+        (cloneAddr !== undefined && (cloneAddr.startsWith('https://github.com') || cloneAddr.startsWith('http://github.com') || cloneAddr.startsWith('http://gitlab.com') || cloneAddr.startsWith('https://gitlab.com') || cloneAddr.endsWith('#gitlab')))) {
       $('#migrate_items').show();
     } else {
       $('#migrate_items').hide();
@@ -2632,7 +2632,7 @@ $(document).ready(async () => {
   $cloneAddr.on('change', () => {
     const $repoName = $('#repo_name');
     if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
-      $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
+      $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?(#gitlab?))$/)[3]);
     }
   });
 
