@@ -691,9 +691,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 							m.Post("/stop", reqToken(), repo.StopIssueStopwatch)
 						})
 						m.Group("/subscriptions", func() {
-							m.Get("", bind(api.User{}), repo.GetIssueSubscribers)
-							m.Put("/:user", repo.AddIssueSubscription)
-							m.Delete("/:user", repo.DelIssueSubscription)
+							m.Get("", repo.GetIssueSubscribers)
+							m.Put("/:user", reqToken(), repo.AddIssueSubscription)
+							m.Delete("/:user", reqToken(), repo.DelIssueSubscription)
 						})
 					})
 				}, mustEnableIssuesOrPulls)
