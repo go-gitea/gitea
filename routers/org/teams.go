@@ -201,6 +201,7 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		Description:             form.Description,
 		Authorize:               models.ParseAccessMode(form.Permission),
 		IncludesAllRepositories: includesAllRepositories,
+		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 	}
 
 	if t.Authorize < models.AccessModeOwner {
@@ -316,6 +317,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 			return
 		}
 	}
+	t.CanCreateOrgRepo = form.CanCreateOrgRepo
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplTeamNew)
