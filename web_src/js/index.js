@@ -602,6 +602,7 @@ function initIssueComments() {
       const scrollPosition = $(window).scrollTop();
       window.location.hash = '';
       $(window).scrollTop(scrollPosition);
+      window.history.pushState(null, null, ' ');
     }
   });
 }
