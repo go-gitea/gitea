@@ -1,5 +1,4 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
-// Copyright 2018 Jonas Franz. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -132,7 +131,6 @@ func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
 	}
 	// convert gitlab repo to stand Repo
 	return &base.Repository{
-		//Owner:       gr.Owner.Username,
 		Name:        gr.Name,
 		IsPrivate:   private,
 		Description: gr.Description,
@@ -143,7 +141,6 @@ func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
 
 // GetTopics return gitlab topics
 func (g *GitlabDownloader) GetTopics() ([]string, error) {
-	//r, _, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
 	gr, _, err := g.client.Projects.GetProject(g.repoID, nil, nil)
 	if err != nil {
 		return nil, err
@@ -232,13 +229,9 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 		TargetCommitish: rel.Commit.ID,
 		Name:            rel.Name,
 		Body:            rel.Description,
-		//Draft:           *rel.Draft,
-		//Prerelease:      *rel.Prerelease,
-		Created:       *rel.CreatedAt,
-		PublisherID:   int64(rel.Author.ID),
-		PublisherName: rel.Author.Username,
-		//PublisherEmail:  rel.Author.Email,
-		//Published: rel.PublishedAt.Time,
+		Created:         *rel.CreatedAt,
+		PublisherID:     int64(rel.Author.ID),
+		PublisherName:   rel.Author.Username,
 	}
 
 	for k, asset := range rel.Assets.Links {
@@ -344,15 +337,13 @@ func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, erro
 		// fetchPRcomments decides whether to fetch Issue or PR comments
 		if !g.fetchPRcomments {
 			realIssueNumber = issueNumber
-			log.Trace("Fetching Issue comments...%v", g.fetchPRcomments)
 			comments, resp, err = g.client.Discussions.ListIssueDiscussions(g.repoID, int(realIssueNumber), &gitlab.ListIssueDiscussionsOptions{
 				Page:    page,
 				PerPage: 100,
 			}, nil)
 		} else {
-			log.Trace("Fetching Merge Request comments...%v", g.fetchPRcomments)
+			// If this is a PR, we need to figure out the Gitlab/original PR ID to be passed below
 			realIssueNumber = issueNumber - g.issueCount
-			log.Trace("Decreasing issueNumber %v by issueCount %v = %v", issueNumber, g.issueCount, realIssueNumber)
 			comments, resp, err = g.client.Discussions.ListMergeRequestDiscussions(g.repoID, int(realIssueNumber), &gitlab.ListMergeRequestDiscussionsOptions{
 				Page:    page,
 				PerPage: 100,
@@ -398,12 +389,8 @@ func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, erro
 
 // GetPullRequests returns pull requests according page and perPage
 func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, error) {
-	//state := "all"
-	//sort := "created"
 
 	opt := &gitlab.ListProjectMergeRequestsOptions{
-		//State: &state,
-		//Sort:  &sort,
 		ListOptions: gitlab.ListOptions{
 			PerPage: perPage,
 			Page:    page,
