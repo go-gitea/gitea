@@ -6,6 +6,7 @@ package queue
 
 import (
 	"context"
+	"sync"
 	"time"
 )
 
@@ -19,6 +20,7 @@ type PersistableChannelQueueConfiguration struct {
 	QueueLength int
 	Timeout     time.Duration
 	MaxAttempts int
+	Workers     int
 }
 
 // PersistableChannelQueue wraps a channel queue and level queue together
@@ -40,14 +42,17 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 	batchChannelQueue, err := NewBatchedChannelQueue(handle, BatchedChannelQueueConfiguration{
 		QueueLength: config.QueueLength,
 		BatchLength: config.BatchLength,
+		Workers:     config.Workers,
 	}, exemplar)
 	if err != nil {
 		return nil, err
 	}
 
+	// the level backend only needs one worker to catch up with the previously dropped work
 	levelCfg := LevelQueueConfiguration{
 		DataDir:     config.DataDir,
 		BatchLength: config.BatchLength,
+		Workers:     1,
 	}
 
 	levelQueue, err := NewLevelQueue(handle, levelCfg, exemplar)
@@ -100,6 +105,19 @@ func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 
 	// Just run the level queue - we shut it down later
 	go p.internal.Run(func(_ context.Context, _ func()) {}, func(_ context.Context, _ func()) {})
+
+	wg := sync.WaitGroup{}
+	for i := 0; i < p.workers; i++ {
+		wg.Add(1)
+		go func() {
+			p.worker()
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+func (p *PersistableChannelQueue) worker() {
 	delay := time.Millisecond * 300
 	var datas = make([]Data, 0, p.batchLength)
 loop:

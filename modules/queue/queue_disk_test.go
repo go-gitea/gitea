@@ -29,6 +29,7 @@ func TestLevelQueue(t *testing.T) {
 	queue, err := NewLevelQueue(handle, LevelQueueConfiguration{
 		DataDir:     "level-queue-test-data",
 		BatchLength: 2,
+		Workers:     1,
 	}, &testData{})
 	assert.NoError(t, err)
 
@@ -76,6 +77,7 @@ func TestLevelQueue(t *testing.T) {
 	queue, err = NewLevelQueue(handle, LevelQueueConfiguration{
 		DataDir:     "level-queue-test-data",
 		BatchLength: 2,
+		Workers:     1,
 	}, &testData{})
 	assert.NoError(t, err)
 

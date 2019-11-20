@@ -22,7 +22,7 @@ func TestBatchedChannelQueue(t *testing.T) {
 
 	nilFn := func(_ context.Context, _ func()) {}
 
-	queue, err := NewBatchedChannelQueue(handle, BatchedChannelQueueConfiguration{QueueLength: 20, BatchLength: 2}, &testData{})
+	queue, err := NewBatchedChannelQueue(handle, BatchedChannelQueueConfiguration{QueueLength: 20, BatchLength: 2, Workers: 1}, &testData{})
 	assert.NoError(t, err)
 
 	go queue.Run(nilFn, nilFn)

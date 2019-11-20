@@ -18,6 +18,7 @@ const ChannelQueueType Type = "channel"
 // ChannelQueueConfiguration is the configuration for a ChannelQueue
 type ChannelQueueConfiguration struct {
 	QueueLength int
+	Workers     int
 }
 
 // ChannelQueue implements
@@ -25,6 +26,7 @@ type ChannelQueue struct {
 	queue    chan Data
 	handle   HandlerFunc
 	exemplar interface{}
+	workers  int
 }
 
 // NewChannelQueue create a memory channel queue
@@ -38,6 +40,7 @@ func NewChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 		queue:    make(chan Data, config.QueueLength),
 		handle:   handle,
 		exemplar: exemplar,
+		workers:  config.Workers,
 	}, nil
 }
 
@@ -49,11 +52,13 @@ func (c *ChannelQueue) Run(atShutdown, atTerminate func(context.Context, func())
 	atTerminate(context.Background(), func() {
 		log.Warn("ChannelQueue is not terminatable!")
 	})
-	go func() {
-		for data := range c.queue {
-			c.handle(data)
-		}
-	}()
+	for i := 0; i < c.workers; i++ {
+		go func() {
+			for data := range c.queue {
+				c.handle(data)
+			}
+		}()
+	}
 }
 
 // Push will push the indexer data to queue

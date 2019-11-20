@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -36,6 +37,7 @@ type RedisQueue struct {
 	batchLength int
 	closed      chan struct{}
 	exemplar    interface{}
+	workers     int
 }
 
 // RedisQueueConfiguration is the configuration for the redis queue
@@ -45,6 +47,7 @@ type RedisQueueConfiguration struct {
 	DBIndex     int
 	BatchLength int
 	QueueName   string
+	Workers     int
 }
 
 // NewRedisQueue creates single redis or cluster redis queue
@@ -62,6 +65,7 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 		batchLength: config.BatchLength,
 		exemplar:    exemplar,
 		closed:      make(chan struct{}),
+		workers:     config.Workers,
 	}
 	if len(dbs) == 0 {
 		return nil, errors.New("no redis host found")
@@ -86,6 +90,18 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 func (r *RedisQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
 	atShutdown(context.Background(), r.Shutdown)
 	atTerminate(context.Background(), r.Terminate)
+	wg := sync.WaitGroup{}
+	for i := 0; i < r.workers; i++ {
+		wg.Add(1)
+		go func() {
+			r.worker()
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+func (r *RedisQueue) worker() {
 	var i int
 	var datas = make([]Data, 0, r.batchLength)
 	for {
