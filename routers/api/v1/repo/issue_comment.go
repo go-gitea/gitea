@@ -312,6 +312,8 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		ctx.Error(http.StatusInternalServerError, "UpdateComment", err)
 		return
 	}
+	_ = comment.LoadAssigneeUser()
+	_ = comment.LoadPoster()
 
 	ctx.JSON(http.StatusOK, comment.APIFormat())
 }

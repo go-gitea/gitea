@@ -172,6 +172,7 @@ func notifyWatchers(e Engine, act *Action) error {
 	}
 
 	// Add feed for actioner.
+	act.ID = 0
 	act.UserID = act.ActUserID
 	if _, err = e.InsertOne(act); err != nil {
 		return fmt.Errorf("insert new actioner: %v", err)

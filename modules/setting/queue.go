@@ -63,7 +63,6 @@ func CreateQueue(name string, handle queue.HandlerFunc, exemplar interface{}) qu
 		log.Error("Unable to create queue for %s", name, err)
 		return nil
 	}
-
 	returnable, err := queue.CreateQueue(queue.Type(q.Type), handle, cfg, exemplar)
 	if q.WrapIfNecessary && err != nil {
 		log.Warn("Unable to create queue for %s: %v", name, err)

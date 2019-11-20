@@ -79,7 +79,7 @@ func (ns *notificationService) NotifyIssueChangeStatus(doer *models.User, issue 
 
 func (ns *notificationService) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, gitRepo *git.Repository) {
 	_ = ns.issueQueue.Push(issueNotificationOpts{
-		issueID:              pr.Issue.ID,
+		issueID:              pr.IssueID,
 		notificationAuthorID: doer.ID,
 	})
 }
@@ -90,14 +90,14 @@ func (ns *notificationService) NotifyNewPullRequest(pr *models.PullRequest) {
 		return
 	}
 	_ = ns.issueQueue.Push(issueNotificationOpts{
-		issueID:              pr.Issue.ID,
+		issueID:              pr.IssueID,
 		notificationAuthorID: pr.Issue.PosterID,
 	})
 }
 
 func (ns *notificationService) NotifyPullRequestReview(pr *models.PullRequest, r *models.Review, c *models.Comment) {
 	var opts = issueNotificationOpts{
-		issueID:              pr.Issue.ID,
+		issueID:              pr.IssueID,
 		notificationAuthorID: r.Reviewer.ID,
 	}
 	if c != nil {

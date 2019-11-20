@@ -61,9 +61,12 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
+		mergePullNotified := make(chan interface{}, 10)
+		deferable := notifierListener.RegisterChannel("NotifyMergePullRequest", mergePullNotified, 0, &models.PullRequest{})
+		defer func() {
+			deferable()
+			close(mergePullNotified)
+		}()
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
@@ -73,19 +76,44 @@ func TestPullMerge(t *testing.T) {
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
+
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleMerge)
 
-		hookTasks, err = models.HookTasks(1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		var prInterface interface{}
+		select {
+		case prInterface = <-mergePullNotified:
+		case <-time.After(500 * time.Millisecond):
+			assert.Fail(t, "Took too long to notify!")
+		}
+
+		pr := prInterface.(*models.PullRequest)
+		pr.LoadBaseRepo()
+		pr.LoadHeadRepo()
+		pr.BaseRepo.MustOwner()
+		pr.HeadRepo.MustOwner()
+
+		assert.EqualValues(t, "user1", pr.HeadRepo.Owner.Name)
+		assert.EqualValues(t, "repo1", pr.HeadRepo.Name)
+		assert.EqualValues(t, "user2", pr.BaseRepo.Owner.Name)
+		assert.EqualValues(t, "repo1", pr.BaseRepo.Name)
+
+		time.Sleep(100 * time.Millisecond)
+		select {
+		case prInterface = <-mergePullNotified:
+			assert.Fail(t, "Should only have one pull create notification: %v", prInterface)
+		default:
+		}
 	})
 }
 
 func TestPullRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
+		mergePullNotified := make(chan interface{}, 10)
+		deferable := notifierListener.RegisterChannel("NotifyMergePullRequest", mergePullNotified, 0, &models.PullRequest{})
+		defer func() {
+			deferable()
+			close(mergePullNotified)
+		}()
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
@@ -96,21 +124,22 @@ func TestPullRebase(t *testing.T) {
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebase)
-
-		hookTasks, err = models.HookTasks(1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		select {
+		case <-mergePullNotified:
+		case <-time.After(500 * time.Millisecond):
+			assert.Fail(t, "Took too long to notify!")
+		}
 	})
 }
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		defer prepareTestEnv(t)()
-
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
-
+		mergePullNotified := make(chan interface{}, 10)
+		deferable := notifierListener.RegisterChannel("NotifyMergePullRequest", mergePullNotified, 0, &models.PullRequest{})
+		defer func() {
+			deferable()
+			close(mergePullNotified)
+		}()
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -121,19 +150,22 @@ func TestPullRebaseMerge(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebaseMerge)
 
-		hookTasks, err = models.HookTasks(1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		select {
+		case <-mergePullNotified:
+		case <-time.After(500 * time.Millisecond):
+			assert.Fail(t, "Took too long to notify!")
+		}
 	})
 }
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		defer prepareTestEnv(t)()
-
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
-		assert.NoError(t, err)
-		hookTasksLenBefore := len(hookTasks)
+		mergePullNotified := make(chan interface{}, 10)
+		deferable := notifierListener.RegisterChannel("NotifyMergePullRequest", mergePullNotified, 0, &models.PullRequest{})
+		defer func() {
+			deferable()
+			close(mergePullNotified)
+		}()
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
@@ -146,15 +178,16 @@ func TestPullSquash(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleSquash)
 
-		hookTasks, err = models.HookTasks(1, 1)
-		assert.NoError(t, err)
-		assert.Len(t, hookTasks, hookTasksLenBefore+1)
+		select {
+		case <-mergePullNotified:
+		case <-time.After(500 * time.Millisecond):
+			assert.Fail(t, "Took too long to notify!")
+		}
 	})
 }
 
 func TestPullCleanUpAfterMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		defer prepareTestEnv(t)()
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited)\n")
@@ -190,7 +223,6 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 
 func TestCantMergeWorkInProgress(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		defer prepareTestEnv(t)()
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -212,7 +244,6 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 
 func TestCantMergeConflict(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		defer prepareTestEnv(t)()
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
@@ -258,7 +289,6 @@ func TestCantMergeConflict(t *testing.T) {
 
 func TestCantMergeUnrelated(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		defer prepareTestEnv(t)()
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "base", "README.md", "Hello, World (Edited Twice)\n")

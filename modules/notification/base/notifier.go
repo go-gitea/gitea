@@ -9,6 +9,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 )
 
+//go:generate go run -mod=vendor main.go
+
 // Notifier defines an interface to notify receiver
 type Notifier interface {
 	Run()

@@ -210,6 +210,9 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 		log.Error("loadRepo[%d]: %v", pr.ID, err)
 		return nil
 	}
+	if pr.Issue.PullRequest == nil {
+		pr.Issue.PullRequest = pr
+	}
 	apiIssue := pr.Issue.apiFormat(e)
 	if pr.BaseRepo == nil {
 		pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)
