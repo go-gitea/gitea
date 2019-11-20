@@ -204,7 +204,13 @@ func RetrieveTemplateRepo(ctx *Context, repo *models.Repository) {
 		return
 	}
 
-	if !repo.TemplateRepo.CheckUnitUser(ctx.User.ID, ctx.User.IsAdmin, models.UnitTypeCode) {
+	perm, err := models.GetUserRepoPermission(repo.TemplateRepo, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+
+	if !perm.CanRead(models.UnitTypeCode) {
 		repo.TemplateID = 0
 	}
 }
