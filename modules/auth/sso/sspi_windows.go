@@ -110,7 +110,11 @@ func (s *SSPI) VerifyAuthData(ctx *macaron.Context, sess session.Store) *models.
 			log.Error("User '%s' not found", username)
 			return nil
 		}
-		user = s.newUser(ctx, username, cfg)
+		user, err = s.newUser(ctx, username, cfg)
+		if err != nil {
+			log.Error("CreateUser: %v", err)
+			return nil
+		}
 	}
 
 	// Make sure requests to API paths and PWA resources do not create a new session
@@ -148,7 +152,7 @@ func (s *SSPI) shouldAuthenticate(ctx *macaron.Context) bool {
 
 // newUser creates a new user object for the purpose of automatic registration
 // and populates its name and email with the information present in request headers.
-func (s *SSPI) newUser(ctx *macaron.Context, username string, cfg *models.SSPIConfig) *models.User {
+func (s *SSPI) newUser(ctx *macaron.Context, username string, cfg *models.SSPIConfig) (*models.User, error) {
 	email := gouuid.NewV4().String() + "@localhost.localdomain"
 	user := &models.User{
 		Name:                         username,
@@ -162,11 +166,9 @@ func (s *SSPI) newUser(ctx *macaron.Context, username string, cfg *models.SSPICo
 		EmailNotificationsPreference: models.EmailNotificationsDisabled,
 	}
 	if err := models.CreateUser(user); err != nil {
-		// FIXME: should I create a system notice?
-		log.Error("CreateUser: %v", err)
-		return nil
+		return nil, err
 	}
-	return user
+	return user, nil
 }
 
 // isPublicResource checks if the url is of a public resource file that should be served
