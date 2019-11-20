@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -23,6 +24,7 @@ const LevelQueueType Type = "level"
 type LevelQueueConfiguration struct {
 	DataDir     string
 	BatchLength int
+	Workers     int
 }
 
 // LevelQueue implements a disk library queue
@@ -32,6 +34,7 @@ type LevelQueue struct {
 	batchLength int
 	closed      chan struct{}
 	exemplar    interface{}
+	workers     int
 }
 
 // NewLevelQueue creates a ledis local queue
@@ -53,6 +56,7 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 		batchLength: config.BatchLength,
 		exemplar:    exemplar,
 		closed:      make(chan struct{}),
+		workers:     config.Workers,
 	}, nil
 }
 
@@ -60,6 +64,19 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 func (l *LevelQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
 	atShutdown(context.Background(), l.Shutdown)
 	atTerminate(context.Background(), l.Terminate)
+
+	wg := sync.WaitGroup{}
+	for i := 0; i < l.workers; i++ {
+		wg.Add(1)
+		go func() {
+			l.worker()
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+func (l *LevelQueue) worker() {
 	var i int
 	var datas = make([]Data, 0, l.batchLength)
 	for {

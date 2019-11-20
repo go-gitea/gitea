@@ -18,6 +18,7 @@ const BatchedChannelQueueType Type = "batched-channel"
 type BatchedChannelQueueConfiguration struct {
 	QueueLength int
 	BatchLength int
+	Workers     int
 }
 
 // BatchedChannelQueue implements
@@ -38,6 +39,7 @@ func NewBatchedChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queu
 			queue:    make(chan Data, config.QueueLength),
 			handle:   handle,
 			exemplar: exemplar,
+			workers:  config.Workers,
 		},
 		config.BatchLength,
 	}, nil
@@ -51,26 +53,28 @@ func (c *BatchedChannelQueue) Run(atShutdown, atTerminate func(context.Context, 
 	atTerminate(context.Background(), func() {
 		log.Warn("BatchedChannelQueue is not terminatable!")
 	})
-	go func() {
-		delay := time.Millisecond * 300
-		var datas = make([]Data, 0, c.batchLength)
-		for {
-			select {
-			case data := <-c.queue:
-				datas = append(datas, data)
-				if len(datas) >= c.batchLength {
-					c.handle(datas...)
-					datas = make([]Data, 0, c.batchLength)
-				}
-			case <-time.After(delay):
-				delay = time.Millisecond * 100
-				if len(datas) > 0 {
-					c.handle(datas...)
-					datas = make([]Data, 0, c.batchLength)
+	for i := 0; i < c.workers; i++ {
+		go func() {
+			delay := time.Millisecond * 300
+			var datas = make([]Data, 0, c.batchLength)
+			for {
+				select {
+				case data := <-c.queue:
+					datas = append(datas, data)
+					if len(datas) >= c.batchLength {
+						c.handle(datas...)
+						datas = make([]Data, 0, c.batchLength)
+					}
+				case <-time.After(delay):
+					delay = time.Millisecond * 100
+					if len(datas) > 0 {
+						c.handle(datas...)
+						datas = make([]Data, 0, c.batchLength)
+					}
 				}
 			}
-		}
-	}()
+		}()
+	}
 }
 
 func init() {

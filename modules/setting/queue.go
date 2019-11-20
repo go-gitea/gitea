@@ -44,6 +44,7 @@ func CreateQueue(name string, handle queue.HandlerFunc, exemplar interface{}) qu
 	opts["Password"] = q.Password
 	opts["DBIndex"] = q.DBIndex
 	opts["QueueName"] = name
+	opts["Workers"] = q.Workers
 
 	cfg, err := json.Marshal(opts)
 	if err != nil {
@@ -117,6 +118,8 @@ func newQueueService() {
 	Queue.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(10)
 	Queue.Timeout = sec.Key("TIMEOUT").MustDuration(GracefulHammerTime + 30*time.Second)
 	Queue.Workers = sec.Key("WORKER").MustInt(1)
+
+	Cfg.Section("queue.notification").Key("WORKER").MustInt(5)
 }
 
 // ParseQueueConnStr parses a queue connection string
