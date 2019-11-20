@@ -7,6 +7,7 @@ package repository
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/notification"
+
 	"github.com/unknwon/com"
 )
 
