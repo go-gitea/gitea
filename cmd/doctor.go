@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/urfave/cli"
 )
 
