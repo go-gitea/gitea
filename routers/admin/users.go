@@ -94,8 +94,14 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 			u.LoginName = form.LoginName
 		}
 	}
-	if u.LoginType == models.LoginPlain {
+	if u.LoginType == models.LoginNoType || u.LoginType == models.LoginPlain {
+		if len(form.Password) < setting.MinPasswordLength {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
+			return
+		}
 		if !password.IsComplexEnough(form.Password) {
+			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserNew, &form)
 			return
 		}
@@ -203,12 +209,17 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 
 	if len(form.Password) > 0 {
 		var err error
-		if u.Salt, err = models.GetUserSalt(); err != nil {
-			ctx.ServerError("UpdateUser", err)
+		if len(form.Password) < setting.MinPasswordLength {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserEdit, &form)
 			return
 		}
 		if !password.IsComplexEnough(form.Password) {
 			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserEdit, &form)
+			return
+		}
+		if u.Salt, err = models.GetUserSalt(); err != nil {
+			ctx.ServerError("UpdateUser", err)
 			return
 		}
 		u.HashPassword(form.Password)
