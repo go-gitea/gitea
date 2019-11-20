@@ -36,13 +36,20 @@
 			{{end}}
 		{{else}}
 			{{if .Issue.OriginalAuthor }}
-				{{.Issue.OriginalAuthor}}
-				<span id="pull-desc" class="pull-desc">{{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}</span>
+				<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}</span>
 			{{else}}
-				<a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
-				<span id="pull-desc" class="pull-desc">{{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}</span>
+				<span id="pull-desc" class="pull-desc">
+				 <a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
+				 {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits .HeadTarget .BaseTarget | Str2html}}
+			    </span>
 			{{end}}
 			<span id="pull-desc-edit" style="display: none">
+                <div class="ui floating filter dropdown">
+                	<div class="ui basic small button">
+                		<span class="text">{{.i18n.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
+                	</div>
+                </div>
+                <i class="octicon octicon-arrow-right"></i>
                  <div class="ui floating filter dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
                 	<div class="ui basic small button">
                 		<span class="text" id="pull-target-branch" data-basename="{{$.BaseName}}" data-branch="{{$.BaseBranch}}">{{.i18n.Tr "repo.pulls.compare_base"}}: {{$.BaseName}}:{{$.BaseBranch}}</span>
@@ -62,12 +69,6 @@
                 				{{ end }}
                 			{{end}}
                 		</div>
-                	</div>
-                </div>
-                ...
-                <div class="ui floating filter dropdown">
-                	<div class="ui basic small button">
-                		<span class="text">{{.i18n.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
                 	</div>
                 </div>
            </span>
