@@ -18,9 +18,21 @@ import (
 	"gitea.com/macaron/session"
 )
 
-var (
-	ssoMethods []SingleSignOn
-)
+// ssoMethods contains the list of SSO authentication plugins in the order they are expected to be
+// executed.
+//
+// The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
+// in the session (if there is a user id stored in session other plugins might return the user
+// object for that id).
+//
+// The Session plugin is expected to be executed second, in order to skip authentication
+// for users that have already signed in.
+var ssoMethods []SingleSignOn = []SingleSignOn{
+	&OAuth2{},
+	&Session{},
+	&ReverseProxy{},
+	&Basic{},
+}
 
 // The purpose of the following three function variables is to let the linter know that
 // those functions are not dead code and are actually being used
@@ -166,25 +178,4 @@ func handleSignIn(ctx *macaron.Context, sess session.Store, user *models.User) {
 
 	// Clear whatever CSRF has right now, force to generate a new one
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
-}
-
-// init populates the list of SSO authentication plugins in the order they are expected to be
-// executed.
-//
-// The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
-// in the session (if there is a user id stored in session other plugins might return the user
-// object for that id).
-//
-// The Session plugin is expected to be executed second, in order to skip authentication
-// for users that have already signed in.
-// The SSPI plugin is expected to be executed last as it returns 401 status code if negotiation
-// fails or should continue, which would prevent other authentication methods to execute at all.
-func init() {
-	ssoMethods = []SingleSignOn{
-		&OAuth2{},
-		&Session{},
-		&ReverseProxy{},
-		&Basic{},
-		&SSPI{},
-	}
 }
