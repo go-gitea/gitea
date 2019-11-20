@@ -59,10 +59,6 @@ func (f *GitlabDownloaderFactory) New(opts base.MigrateOptions) (base.Downloader
 		return nil, err
 	}
 
-	//fields := strings.Split(u.Path, "/")
-	//oldOwner := fields[1]
-	//oldName := strings.TrimSuffix(fields[2], ".git")
-
 	baseURL := u.Scheme + "://" + u.Host
 	repoNameSpace := strings.TrimPrefix(u.Path, "/")
 
@@ -78,10 +74,17 @@ func (f *GitlabDownloaderFactory) GitServiceType() structs.GitServiceType {
 
 // GitlabDownloader implements a Downloader interface to get repository informations
 // from gitlab via go-gitlab
+// - issueCount is incremented in GetIssues() to ensure PR and Issue numbers do not overlap,
+// because Gitlab has individual Issue and Pull Request numbers.
+// - issueSeen, working alongside issueCount, is checked in GetComments() to see whether we
+// need to fetch the Issue or PR comments, as Gitlab stores them separately.
 type GitlabDownloader struct {
-	ctx    context.Context
-	client *gitlab.Client
-	repoID int
+	ctx             context.Context
+	client          *gitlab.Client
+	repoID          int
+	repoName        string
+	issueCount      int64
+	fetchPRcomments bool
 }
 
 // NewGitlabDownloader creates a gitlab Downloader via gitlab API
@@ -91,23 +94,19 @@ func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDo
 	}
 
 	var client *http.Client
-	/*
-		gitlabClient := gitlab.NewClient(client, username)
-		gitlabClient.SetBaseURL(baseURL)
-	*/
-
 	gitlabClient, err := gitlab.NewBasicAuthClient(client, baseURL, username, password)
 	if err != nil {
 		log.Trace("Error logging into gitlab: %v", err)
 		return nil
 	}
 
-	// Grab Project ID
+	// Grab and store project/repo ID here, due to issues using the URL escaped path
 	gr, _, err := gitlabClient.Projects.GetProject(repoPath, nil, nil)
 	if err != nil {
 		return nil
 	}
 	downloader.repoID = gr.ID
+	downloader.repoName = gr.Name
 
 	downloader.client = gitlabClient
 
@@ -323,6 +322,9 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			Closed:     issue.ClosedAt,
 			IsLocked:   issue.DiscussionLocked,
 		})
+
+		// increment issueCount, to be used in GetPullRequests()
+		g.issueCount = g.issueCount + 1
 	}
 
 	return allIssues, len(issues) < perPage, nil
@@ -331,12 +333,32 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 // GetComments returns comments according issueNumber
 func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, error) {
 	var allComments = make([]*base.Comment, 0, 100)
-	opt := &gitlab.ListIssueDiscussionsOptions{
-		Page:    1,
-		PerPage: 100,
-	}
+
+	var page = 1
+	var realIssueNumber int64
+
 	for {
-		comments, resp, err := g.client.Discussions.ListIssueDiscussions(g.repoID, int(issueNumber), opt, nil)
+		var comments []*gitlab.Discussion
+		var resp *gitlab.Response
+		var err error
+		// fetchPRcomments decides whether to fetch Issue or PR comments
+		if !g.fetchPRcomments {
+			realIssueNumber = issueNumber
+			log.Trace("Fetching Issue comments...%v", g.fetchPRcomments)
+			comments, resp, err = g.client.Discussions.ListIssueDiscussions(g.repoID, int(realIssueNumber), &gitlab.ListIssueDiscussionsOptions{
+				Page:    page,
+				PerPage: 100,
+			}, nil)
+		} else {
+			log.Trace("Fetching Merge Request comments...%v", g.fetchPRcomments)
+			realIssueNumber = issueNumber - g.issueCount
+			log.Trace("Decreasing issueNumber %v by issueCount %v = %v", issueNumber, g.issueCount, realIssueNumber)
+			comments, resp, err = g.client.Discussions.ListMergeRequestDiscussions(g.repoID, int(realIssueNumber), &gitlab.ListMergeRequestDiscussionsOptions{
+				Page:    page,
+				PerPage: 100,
+			}, nil)
+		}
+
 		if err != nil {
 			return nil, fmt.Errorf("error while listing comments: %v %v", g.repoID, err)
 		}
@@ -345,7 +367,7 @@ func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, erro
 			if !comment.IndividualNote {
 				for _, note := range comment.Notes {
 					allComments = append(allComments, &base.Comment{
-						IssueIndex:  issueNumber,
+						IssueIndex:  realIssueNumber,
 						PosterID:    int64(note.Author.ID),
 						PosterName:  note.Author.Username,
 						PosterEmail: note.Author.Email,
@@ -356,7 +378,7 @@ func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, erro
 			} else {
 				c := comment.Notes[0]
 				allComments = append(allComments, &base.Comment{
-					IssueIndex:  issueNumber,
+					IssueIndex:  realIssueNumber,
 					PosterID:    int64(c.Author.ID),
 					PosterName:  c.Author.Username,
 					PosterEmail: c.Author.Email,
@@ -369,7 +391,7 @@ func (g *GitlabDownloader) GetComments(issueNumber int64) ([]*base.Comment, erro
 		if resp.NextPage == 0 {
 			break
 		}
-		opt.Page = resp.NextPage
+		page = resp.NextPage
 	}
 	return allComments, nil
 }
@@ -388,6 +410,9 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		},
 	}
 
+	// Set fetchPRcomments to true here, so PR comments are fetched instead of Issue comments
+	g.fetchPRcomments = true
+
 	var allPRs = make([]*base.PullRequest, 0, perPage)
 
 	prs, _, err := g.client.MergeRequests.ListProjectMergeRequests(g.repoID, opt, nil)
@@ -404,52 +429,34 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		}
 
 		var merged bool
-		// pr.Merged is not valid, so use MergedAt to test if it's merged
-		if pr.MergedAt != nil {
+		switch pr.State {
+		case "opened":
+			merged = false
+		case "closed":
 			merged = true
+		case "merged":
+			merged = true
+		default:
+			merged = false
 		}
 
-		/*
-			var (
-				headRepoName string
-				cloneURL     string
-				headRef      string
-				headSHA      string
-			)
-				if pr.Head.Repo != nil {
-					if pr.Head.Repo.Name != nil {
-						headRepoName = *pr.Head.Repo.Name
-					}
-					if pr.Head.Repo.CloneURL != nil {
-						cloneURL = *pr.Head.Repo.CloneURL
-					}
-				}
-				if pr.Head.Ref != nil {
-					headRef = *pr.Head.Ref
-				}
-				if pr.Head.SHA != nil {
-					headSHA = *pr.Head.SHA
-				}
-				var mergeCommitSHA string
-				if pr.MergeCommitSHA != nil {
-					mergeCommitSHA = *pr.MergeCommitSHA
-				}
-
-				var headUserName string
-				if pr.Head.User != nil && pr.Head.User.Login != nil {
-					headUserName = *pr.Head.User.Login
-				}
-		*/
+		var locked bool
+		if pr.State == "locked" {
+			locked = true
+		}
 
 		var milestone string
 		if pr.Milestone != nil {
 			milestone = pr.Milestone.Title
 		}
 
+		// Add the PR ID to the Issue Count because PR and Issues share ID space in Gitea
+		newPRnumber := g.issueCount + int64(pr.IID)
+
 		allPRs = append(allPRs, &base.PullRequest{
 			Title:          pr.Title,
-			Number:         int64(pr.IID),
-			PosterName:     pr.Author.Name,
+			Number:         int64(newPRnumber),
+			PosterName:     pr.Author.Username,
 			PosterID:       int64(pr.Author.ID),
 			Content:        pr.Description,
 			Milestone:      milestone,
@@ -460,21 +467,21 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			Merged:         merged,
 			MergeCommitSHA: pr.MergeCommitSHA,
 			MergedTime:     pr.MergedAt,
-			IsLocked:       pr.DiscussionLocked,
+			IsLocked:       locked,
 			Head: base.PullRequestBranch{
-				Ref:       pr.Reference,
-				SHA:       pr.DiffRefs.HeadSha,
-				RepoName:  pr.Reference,
+				Ref:       pr.SourceBranch,
+				SHA:       pr.SHA,
+				RepoName:  g.repoName,
 				OwnerName: pr.Author.Username,
 				CloneURL:  pr.WebURL,
 			},
 			Base: base.PullRequestBranch{
-				Ref:       pr.Reference,
+				Ref:       pr.TargetBranch,
 				SHA:       pr.DiffRefs.BaseSha,
-				RepoName:  pr.Reference,
+				RepoName:  g.repoName,
 				OwnerName: pr.Author.Username,
 			},
-			PatchURL: pr.WebURL,
+			PatchURL: pr.WebURL + ".patch",
 		})
 	}
 
