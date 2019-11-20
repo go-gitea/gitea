@@ -612,15 +612,16 @@ func getBranchData(ctx *context.Context, issue *models.Issue) {
 		pull := issue.PullRequest
 		ctx.Data["BaseBranch"] = pull.BaseBranch
 		ctx.Data["HeadBranch"] = pull.HeadBranch
-		ctx.Data["HeadUserName"] = pull.HeadUserName
+		headUserName := pull.MustHeadUserName()
+		ctx.Data["HeadUserName"] = headUserName
 
-		headUser, err := models.GetUserByName(pull.HeadUserName)
-		if headUser.ID == ctx.Repo.Owner.ID {
-			ctx.Data["BaseName"] = headUser.Name
-		}
+		headUser, err := models.GetUserByName(headUserName)
 		if err != nil {
 			ctx.ServerError("getBranchData", err)
 			return
+		}
+		if headUser.ID == ctx.Repo.Owner.ID {
+			ctx.Data["BaseName"] = headUser.Name
 		}
 	}
 }

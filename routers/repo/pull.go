@@ -1135,6 +1135,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 		}
 		return
 	}
+	notification.NotifyPullRequestChangeTargetBranch(ctx.User, pr, targetBranch)
 
 	ctx.JSON(200, map[string]interface{}{
 		"base_branch": pr.BaseBranch,

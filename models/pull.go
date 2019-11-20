@@ -1050,19 +1050,6 @@ func (pr *PullRequest) ChangeTargetBranch(doer *User, targetBranch string) (err 
 		return err
 	}
 
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-		Action:      api.HookIssueEdited,
-		Index:       issue.Index,
-		PullRequest: pr.APIFormat(),
-		Repository:  issue.Repo.APIFormat(mode),
-		Sender:      doer.APIFormat(),
-	})
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: true]: %v", err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
-	}
 	return nil
 }
 

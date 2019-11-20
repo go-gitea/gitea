@@ -182,7 +182,7 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *model
 		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 			Action: api.HookIssueEdited,
 			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
+			Changes: &api.PullRequestChangesPayload{
 				Title: &api.ChangesFromPayload{
 					From: oldTitle,
 				},
@@ -307,7 +307,7 @@ func (m *webhookNotifier) NotifyIssueChangeContent(doer *models.User, issue *mod
 		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 			Action: api.HookIssueEdited,
 			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
+			Changes: &api.PullRequestChangesPayload{
 				Body: &api.ChangesFromPayload{
 					From: oldContent,
 				},
@@ -518,6 +518,37 @@ func (m *webhookNotifier) NotifyPushCommits(pusher *models.User, repo *models.Re
 		Sender:     apiPusher,
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
+func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string) {
+	issue := pr.Issue
+	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
+	var err error
+	if !issue.IsPull {
+		return
+	}
+
+	if err = issue.LoadPullRequest(); err != nil {
+		log.Error("LoadPullRequest failed: %v", err)
+		return
+	}
+	issue.PullRequest.Issue = issue
+	err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+		Action: api.HookIssueEdited,
+		Index:  issue.Index,
+		Changes: &api.PullRequestChangesPayload{
+			TargetBranch: &api.ChangesFromPayload{
+				From: oldBranch,
+			},
+		},
+		PullRequest: issue.PullRequest.APIFormat(),
+		Repository:  issue.Repo.APIFormat(mode),
+		Sender:      doer.APIFormat(),
+	})
+
+	if err != nil {
+		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
 	}
 }
 
