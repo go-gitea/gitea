@@ -3,18 +3,16 @@ module github.com/lafriks/xormstore
 go 1.11
 
 require (
-	cloud.google.com/go v0.44.3 // indirect
-	github.com/denisenkom/go-mssqldb v0.0.0-20190820223206-44cdfe8d8ba9
+	github.com/denisenkom/go-mssqldb v0.0.0-20190924004331-208c0a498538
 	github.com/go-sql-driver/mysql v1.4.1
-	github.com/go-xorm/xorm v0.7.6
-	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/gorilla/context v1.1.1
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
-	github.com/jackc/pgx v3.5.0+incompatible // indirect
 	github.com/lib/pq v1.2.0
 	github.com/mattn/go-sqlite3 v1.11.0
-	github.com/stretchr/testify v1.4.0 // indirect
-	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586 // indirect
-	xorm.io/core v0.7.0
+	golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad // indirect
+	google.golang.org/appengine v1.6.4 // indirect
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	xorm.io/core v0.7.2
+	xorm.io/xorm v0.8.0
 )

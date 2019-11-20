@@ -25,7 +25,7 @@
 					{{end}}
 					<div class="ui divider"></div>
 					{{range .Repos}}
-						<a class="{{if eq $.RepoID .ID}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}{{if not (eq $.RepoID .ID)}}&repo={{.ID}}{{end}}&sort={{$.SortType}}&state={{$.State}}">
+						<a class="{{if eq $.RepoID .ID}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}{{if not (eq $.RepoID .ID)}}&repo={{.ID}}{{end}}&sort={{$.SortType}}&state={{$.State}}" title="{{.FullName}}">
 							<span class="text truncate">{{.FullName}}</span>
 							<div class="floating ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts .ID}}</div>
 						</a>
@@ -72,8 +72,8 @@
 							<a class="title has-emoji" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/issues/{{.Index}}">{{.Title}}</a>
 
                             {{if .IsPull }}
-                                {{if (index $.CommitStatus .ID)}}
-                                    {{template "repo/commit_status" (index $.CommitStatus .ID)}}
+                                {{if (index $.CommitStatus .PullRequest.ID)}}
+                                    {{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
                                 {{end}}
                             {{end}}
 
@@ -124,6 +124,11 @@
 									{{$tasksDone := .GetTasksDone}}
 									<span class="checklist">
 										<span class="octicon octicon-checklist"></span> {{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
+									</span>
+								{{end}}
+								{{if ne .DeadlineUnix 0}}
+									<span class="due-date poping up" data-content="{{$.i18n.Tr "repo.issues.due_date"}}" data-variation="tiny inverted" data-position="right center">
+										<span class="octicon octicon-calendar"></span><span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
 									</span>
 								{{end}}
 							</p>

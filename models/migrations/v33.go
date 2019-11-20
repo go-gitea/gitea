@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 func removeActionColumns(x *xorm.Engine) error {

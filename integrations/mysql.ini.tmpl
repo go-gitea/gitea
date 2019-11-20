@@ -21,6 +21,9 @@ ROOT = integrations/gitea-integration-mysql/gitea-repositories
 LOCAL_COPY_PATH = tmp/local-repo-mysql
 LOCAL_WIKI_PATH = tmp/local-wiki-mysql
 
+[repository.signing]
+SIGNING_KEY = none
+
 [server]
 SSH_DOMAIN       = localhost
 HTTP_PORT        = 3001
@@ -62,7 +65,7 @@ PROVIDER_CONFIG = data/sessions-mysql
 
 [log]
 MODE                 = test,file
-ROOT_PATH            = sqlite-log
+ROOT_PATH            = mysql-log
 REDIRECT_MACARON_LOG = true
 ROUTER               = ,
 MACARON              = ,

@@ -36,6 +36,10 @@ type CreateRepoForm struct {
 	IssueLabels string
 	License     string
 	Readme      string
+
+	RepoTemplate int64
+	GitContent   bool
+	Topics       bool
 }
 
 // Validate validates the fields
@@ -107,6 +111,7 @@ type RepoSettingForm struct {
 	MirrorUsername string
 	MirrorPassword string
 	Private        bool
+	Template       bool
 	EnablePrune    bool
 
 	// Advanced settings
@@ -152,6 +157,7 @@ type ProtectBranchForm struct {
 	EnableWhitelist         bool
 	WhitelistUsers          string
 	WhitelistTeams          string
+	WhitelistDeployKeys     bool
 	EnableMergeWhitelist    bool
 	MergeWhitelistUsers     string
 	MergeWhitelistTeams     string
@@ -557,7 +563,7 @@ func (f *NewWikiForm) Validate(ctx *macaron.Context, errs binding.Errors) bindin
 // EditRepoFileForm form for changing repository file
 type EditRepoFileForm struct {
 	TreePath      string `binding:"Required;MaxSize(500)"`
-	Content       string `binding:"Required"`
+	Content       string
 	CommitSummary string `binding:"MaxSize(100)"`
 	CommitMessage string
 	CommitChoice  string `binding:"Required;MaxSize(50)"`

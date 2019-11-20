@@ -17,6 +17,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -32,7 +33,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
@@ -40,6 +40,7 @@ import (
 	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // UserType defines the user type
@@ -147,12 +148,13 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	NumTeams        int
-	NumMembers      int
-	Teams           []*Team             `xorm:"-"`
-	Members         UserList            `xorm:"-"`
-	MembersIsPublic map[int64]bool      `xorm:"-"`
-	Visibility      structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+	NumTeams                  int
+	NumMembers                int
+	Teams                     []*Team             `xorm:"-"`
+	Members                   UserList            `xorm:"-"`
+	MembersIsPublic           map[int64]bool      `xorm:"-"`
+	Visibility                structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
@@ -373,9 +375,20 @@ func (u *User) generateRandomAvatar(e Engine) error {
 	return nil
 }
 
-// SizedRelAvatarLink returns a relative link to the user's avatar. When
-// applicable, the link is for an avatar of the indicated size (in pixels).
+// SizedRelAvatarLink returns a link to the user's avatar via
+// the local explore page. Function returns immediately.
+// When applicable, the link is for an avatar of the indicated size (in pixels).
 func (u *User) SizedRelAvatarLink(size int) string {
+	return strings.TrimRight(setting.AppSubURL, "/") + "/user/avatar/" + u.Name + "/" + strconv.Itoa(size)
+}
+
+// RealSizedAvatarLink returns a link to the user's avatar. When
+// applicable, the link is for an avatar of the indicated size (in pixels).
+//
+// This function make take time to return when federated avatars
+// are in use, due to a DNS lookup need
+//
+func (u *User) RealSizedAvatarLink(size int) string {
 	if u.ID == -1 {
 		return base.DefaultAvatarLink()
 	}
@@ -775,6 +788,7 @@ func NewGhostUser() *User {
 
 var (
 	reservedUsernames = []string{
+		"attachments",
 		"admin",
 		"api",
 		"assets",
@@ -808,6 +822,7 @@ var (
 		".",
 		"..",
 		".well-known",
+		"search",
 	}
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
@@ -980,10 +995,6 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return ErrUserAlreadyExist{newUserName}
 	}
 
-	if err = ChangeUsernameInPullRequests(u.Name, newUserName); err != nil {
-		return fmt.Errorf("ChangeUsernameInPullRequests: %v", err)
-	}
-
 	// Do not fail if directory does not exist
 	if err = os.Rename(UserPath(u.Name), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Rename user directory: %v", err)
@@ -1072,7 +1083,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	// ***** START: Watch *****
 	watchedRepoIDs := make([]int64, 0, 10)
 	if err = e.Table("watch").Cols("watch.repo_id").
-		Where("watch.user_id = ?", u.ID).Find(&watchedRepoIDs); err != nil {
+		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", RepoWatchModeDont).Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
 	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
@@ -1297,6 +1308,20 @@ func getUserEmailsByNames(e Engine, names []string) []string {
 	return mails
 }
 
+// GetMaileableUsersByIDs gets users from ids, but only if they can receive mails
+func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	ous := make([]*User, 0, len(ids))
+	return ous, x.In("id", ids).
+		Where("`type` = ?", UserTypeIndividual).
+		And("`prohibit_login` = ?", false).
+		And("`is_active` = ?", true).
+		And("`email_notifications_preference` = ?", EmailNotificationsEnabled).
+		Find(&ous)
+}
+
 // GetUsersByIDs returns all resolved users from a list of Ids.
 func GetUsersByIDs(ids []int64) ([]*User, error) {
 	ous := make([]*User, 0, len(ids))
@@ -1310,16 +1335,20 @@ func GetUsersByIDs(ids []int64) ([]*User, error) {
 }
 
 // GetUserIDsByNames returns a slice of ids corresponds to names.
-func GetUserIDsByNames(names []string) []int64 {
+func GetUserIDsByNames(names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))
 	for _, name := range names {
 		u, err := GetUserByName(name)
 		if err != nil {
-			continue
+			if ignoreNonExistent {
+				continue
+			} else {
+				return nil, err
+			}
 		}
 		ids = append(ids, u.ID)
 	}
-	return ids
+	return ids, nil
 }
 
 // UserCommit represents a commit with validation of user.
@@ -1529,6 +1558,7 @@ func GetStarredRepos(userID int64, private bool) ([]*Repository, error) {
 // GetWatchedRepos returns the repos watched by a particular user
 func GetWatchedRepos(userID int64, private bool) ([]*Repository, error) {
 	sess := x.Where("watch.user_id=?", userID).
+		And("`watch`.mode<>?", RepoWatchModeDont).
 		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)

@@ -22,8 +22,9 @@ import (
 
 // CreateOrgForm form for creating organization
 type CreateOrgForm struct {
-	OrgName    string `binding:"Required;AlphaDashDot;MaxSize(40)" locale:"org.org_name_holder"`
-	Visibility structs.VisibleType
+	OrgName                   string `binding:"Required;AlphaDashDot;MaxSize(40)" locale:"org.org_name_holder"`
+	Visibility                structs.VisibleType
+	RepoAdminChangeTeamAccess bool
 }
 
 // Validate validates the fields
@@ -33,13 +34,14 @@ func (f *CreateOrgForm) Validate(ctx *macaron.Context, errs binding.Errors) bind
 
 // UpdateOrgSettingForm form for updating organization settings
 type UpdateOrgSettingForm struct {
-	Name            string `binding:"Required;AlphaDashDot;MaxSize(40)" locale:"org.org_name_holder"`
-	FullName        string `binding:"MaxSize(100)"`
-	Description     string `binding:"MaxSize(255)"`
-	Website         string `binding:"ValidUrl;MaxSize(255)"`
-	Location        string `binding:"MaxSize(50)"`
-	Visibility      structs.VisibleType
-	MaxRepoCreation int
+	Name                      string `binding:"Required;AlphaDashDot;MaxSize(40)" locale:"org.org_name_holder"`
+	FullName                  string `binding:"MaxSize(100)"`
+	Description               string `binding:"MaxSize(255)"`
+	Website                   string `binding:"ValidUrl;MaxSize(255)"`
+	Location                  string `binding:"MaxSize(50)"`
+	Visibility                structs.VisibleType
+	MaxRepoCreation           int
+	RepoAdminChangeTeamAccess bool
 }
 
 // Validate validates the fields
@@ -56,10 +58,12 @@ func (f *UpdateOrgSettingForm) Validate(ctx *macaron.Context, errs binding.Error
 
 // CreateTeamForm form for creating team
 type CreateTeamForm struct {
-	TeamName    string `binding:"Required;AlphaDashDot;MaxSize(30)"`
-	Description string `binding:"MaxSize(255)"`
-	Permission  string
-	Units       []models.UnitType
+	TeamName         string `binding:"Required;AlphaDashDot;MaxSize(30)"`
+	Description      string `binding:"MaxSize(255)"`
+	Permission       string
+	Units            []models.UnitType
+	RepoAccess       string
+	CanCreateOrgRepo bool
 }
 
 // Validate validates the fields

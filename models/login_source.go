@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -21,9 +22,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"xorm.io/core"
+	"xorm.io/xorm"
 )
 
 // LoginType represents an login type.
@@ -402,6 +403,19 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource, autoR
 	}
 
 	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(source.LDAP().AttributeSSHPublicKey)) > 0
+
+	// Update User admin flag if exist
+	if isExist, err := IsUserExist(0, sr.Username); err != nil {
+		return nil, err
+	} else if isExist &&
+		!user.ProhibitLogin && len(source.LDAP().AdminFilter) > 0 && user.IsAdmin != sr.IsAdmin {
+		// Change existing admin flag only if AdminFilter option is set
+		user.IsAdmin = sr.IsAdmin
+		err = UpdateUserCols(user, "is_admin")
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	if !autoRegister {
 		if isAttributeSSHPublicKeySet && synchronizeLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {

@@ -1,9 +1,7 @@
 package models
 
 import (
-	"fmt"
 	"path"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -27,58 +25,6 @@ func TestAction_GetRepoLink(t *testing.T) {
 	setting.AppSubURL = "/suburl/"
 	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
 	assert.Equal(t, expected, action.GetRepoLink())
-}
-
-func TestNewRepoAction(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{OwnerID: user.ID}).(*Repository)
-	repo.Owner = user
-
-	actionBean := &Action{
-		OpType:    ActionCreateRepo,
-		ActUserID: user.ID,
-		RepoID:    repo.ID,
-		ActUser:   user,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}
-
-	AssertNotExistsBean(t, actionBean)
-	assert.NoError(t, NewRepoAction(user, repo))
-	AssertExistsAndLoadBean(t, actionBean)
-	CheckConsistencyFor(t, &Action{})
-}
-
-func TestRenameRepoAction(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{OwnerID: user.ID}).(*Repository)
-	repo.Owner = user
-
-	oldRepoName := repo.Name
-	const newRepoName = "newRepoName"
-	repo.Name = newRepoName
-	repo.LowerName = strings.ToLower(newRepoName)
-
-	actionBean := &Action{
-		OpType:    ActionRenameRepo,
-		ActUserID: user.ID,
-		ActUser:   user,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-		Content:   oldRepoName,
-	}
-	AssertNotExistsBean(t, actionBean)
-	assert.NoError(t, RenameRepoAction(user, oldRepoName, repo))
-	AssertExistsAndLoadBean(t, actionBean)
-
-	_, err := x.ID(repo.ID).Cols("name", "lower_name").Update(repo)
-	assert.NoError(t, err)
-	CheckConsistencyFor(t, &Action{})
 }
 
 func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
@@ -173,62 +119,12 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 	pushCommits.Len = len(pushCommits.Commits)
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon",
+		"/suburl/user/avatar/user2/-1",
 		pushCommits.AvatarLink("user2@example.com"))
 
 	assert.Equal(t,
 		"https://secure.gravatar.com/avatar/19ade630b94e1e0535b3df7387434154?d=identicon",
 		pushCommits.AvatarLink("nonexistent@example.com"))
-}
-
-func TestRegExp_issueReferenceKeywordsPat(t *testing.T) {
-	trueTestCases := []string{
-		"#2",
-		"[#2]",
-		"please see go-gitea/gitea#5",
-		"#2:",
-	}
-	falseTestCases := []string{
-		"kb#2",
-		"#2xy",
-	}
-
-	for _, testCase := range trueTestCases {
-		assert.True(t, issueReferenceKeywordsPat.MatchString(testCase))
-	}
-	for _, testCase := range falseTestCases {
-		assert.False(t, issueReferenceKeywordsPat.MatchString(testCase))
-	}
-}
-
-func Test_getIssueFromRef(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	for _, test := range []struct {
-		Ref             string
-		ExpectedIssueID int64
-	}{
-		{"#2", 2},
-		{"reopen #2", 2},
-		{"user2/repo2#1", 4},
-		{"fixes user2/repo2#1", 4},
-		{"fixes: user2/repo2#1", 4},
-	} {
-		issue, err := getIssueFromRef(repo, test.Ref)
-		assert.NoError(t, err)
-		if assert.NotNil(t, issue) {
-			assert.EqualValues(t, test.ExpectedIssueID, issue.ID)
-		}
-	}
-
-	for _, badRef := range []string{
-		"doesnotexist/doesnotexist#1",
-		fmt.Sprintf("#%d", NonexistentID),
-	} {
-		issue, err := getIssueFromRef(repo, badRef)
-		assert.NoError(t, err)
-		assert.Nil(t, issue)
-	}
 }
 
 func TestUpdateIssuesCommit(t *testing.T) {
@@ -270,7 +166,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 		PosterID:  user.ID,
 		IssueID:   1,
 	}
-	issueBean := &Issue{RepoID: repo.ID, Index: 2}
+	issueBean := &Issue{RepoID: repo.ID, Index: 4}
 
 	AssertNotExistsBean(t, commentBean)
 	AssertNotExistsBean(t, &Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
@@ -324,7 +220,7 @@ func TestUpdateIssuesCommit_Colon(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	repo.Owner = user
 
-	issueBean := &Issue{RepoID: repo.ID, Index: 2}
+	issueBean := &Issue{RepoID: repo.ID, Index: 4}
 
 	AssertNotExistsBean(t, &Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
@@ -431,56 +327,8 @@ func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
 	AssertNotExistsBean(t, commentBean)
 	AssertNotExistsBean(t, issueBean, "is_closed=1")
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
-	AssertExistsAndLoadBean(t, commentBean)
+	AssertNotExistsBean(t, commentBean)
 	AssertNotExistsBean(t, issueBean, "is_closed=1")
-	CheckConsistencyFor(t, &Action{})
-}
-
-func TestTransferRepoAction(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1, OwnerID: user2.ID}).(*Repository)
-
-	repo.OwnerID = user4.ID
-	repo.Owner = user4
-
-	actionBean := &Action{
-		OpType:    ActionTransferRepo,
-		ActUserID: user2.ID,
-		ActUser:   user2,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}
-	AssertNotExistsBean(t, actionBean)
-	assert.NoError(t, TransferRepoAction(user2, user2, repo))
-	AssertExistsAndLoadBean(t, actionBean)
-
-	_, err := x.ID(repo.ID).Cols("owner_id").Update(repo)
-	assert.NoError(t, err)
-	CheckConsistencyFor(t, &Action{})
-}
-
-func TestMergePullRequestAction(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1, OwnerID: user.ID}).(*Repository)
-	repo.Owner = user
-	issue := AssertExistsAndLoadBean(t, &Issue{ID: 3, RepoID: repo.ID}).(*Issue)
-
-	actionBean := &Action{
-		OpType:    ActionMergePullRequest,
-		ActUserID: user.ID,
-		ActUser:   user,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	}
-	AssertNotExistsBean(t, actionBean)
-	assert.NoError(t, MergePullRequestAction(user, repo, issue))
-	AssertExistsAndLoadBean(t, actionBean)
 	CheckConsistencyFor(t, &Action{})
 }
 

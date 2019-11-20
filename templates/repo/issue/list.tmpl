@@ -14,7 +14,7 @@
 					{{if .PageIsIssueList}}
 						<a class="ui green button" href="{{.RepoLink}}/issues/new">{{.i18n.Tr "repo.issues.new"}}</a>
 					{{else}}
-						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | EscapePound}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
+						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | EscapePound}}{{end}}">{{.i18n.Tr "repo.pulls.new"}}</a>
 					{{end}}
 				</div>
 			{{else}}
@@ -42,15 +42,16 @@
 			<div class="ten wide right aligned column">
 				<div class="ui secondary filter stackable menu labels">
 					<!-- Label -->
-					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item" style="margin-left: auto">
+					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item label-filter" style="margin-left: auto">
 						<span class="text">
 							{{.i18n.Tr "repo.issues.filter_label"}}
 							<i class="dropdown icon"></i>
 						</span>
 						<div class="menu">
+							<span class="info">{{.i18n.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_label_no_select"}}</a>
 							{{range .Labels}}
-								<a class="item has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}"><span class="octicon {{if .IsSelected}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
+								<a class="item has-emoji label-filter-item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.QueryString}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}" data-label-id="{{.ID}}"><span class="octicon {{if .IsExcluded}}octicon-circle-slash{{else if .IsSelected}}octicon-check{{end}}"></span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -212,8 +213,8 @@
 					<a class="title has-emoji" href="{{$.Link}}/{{.Index}}">{{.Title}}</a>
 
                     {{if .IsPull }}
-                        {{if (index $.CommitStatus .ID)}}
-                            {{template "repo/commit_status" (index $.CommitStatus .ID)}}
+                        {{if (index $.CommitStatus .PullRequest.ID)}}
+                            {{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
 						{{end}}
 					{{end}}
 
@@ -245,7 +246,7 @@
 							</a>
 						{{end}}
 						{{if .Ref}}
-							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">
+							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref | PathEscapeSegments}}">
 								<span class="octicon octicon-git-branch"></span> {{.Ref}}
 							</a>
 						{{end}}
@@ -257,8 +258,9 @@
 							</span>
 						{{end}}
 						{{if ne .DeadlineUnix 0}}
-							<span class="octicon octicon-calendar"></span>
-							<span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
+							<span class="due-date poping up" data-content="{{$.i18n.Tr "repo.issues.due_date"}}" data-variation="tiny inverted" data-position="right center">
+								<span class="octicon octicon-calendar"></span><span{{if .IsOverdue}} class="overdue"{{end}}>{{.DeadlineUnix.FormatShort}}</span>
+							</span>
 						{{end}}
 						{{range .Assignees}}
 							<a class="ui right assignee poping up" href="{{.HomeLink}}" data-content="{{.Name}}" data-variation="inverted" data-position="left center">

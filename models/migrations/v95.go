@@ -4,19 +4,17 @@
 
 package migrations
 
-import (
-	"fmt"
-	"github.com/go-xorm/xorm"
-)
+import "xorm.io/xorm"
 
-func featureChangeTargetBranch(x *xorm.Engine) error {
+func addCrossReferenceColumns(x *xorm.Engine) error {
+	// Comment see models/comment.go
 	type Comment struct {
-		OldBranch string
-		NewBranch string
+		RefRepoID    int64 `xorm:"index"`
+		RefIssueID   int64 `xorm:"index"`
+		RefCommentID int64 `xorm:"index"`
+		RefAction    int64 `xorm:"SMALLINT"`
+		RefIsPull    bool
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync2(new(Comment))
 }

@@ -6,7 +6,6 @@
 package models
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -15,14 +14,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"xorm.io/builder"
-)
-
-var (
-	// ErrTeamNotExist team does not exist
-	ErrTeamNotExist = errors.New("Team does not exist")
+	"xorm.io/xorm"
 )
 
 // IsOwnedBy returns true if given user is in the owner team.
@@ -33,6 +27,11 @@ func (org *User) IsOwnedBy(uid int64) (bool, error) {
 // IsOrgMember returns true if given user is member of organization.
 func (org *User) IsOrgMember(uid int64) (bool, error) {
 	return IsOrganizationMember(org.ID, uid)
+}
+
+// CanCreateOrgRepo returns true if given user can create repo in organization
+func (org *User) CanCreateOrgRepo(uid int64) (bool, error) {
+	return CanCreateOrgRepo(org.ID, uid)
 }
 
 func (org *User) getTeam(e Engine, name string) (*Team, error) {
@@ -54,6 +53,9 @@ func (org *User) GetOwnerTeam() (*Team, error) {
 }
 
 func (org *User) getTeams(e Engine) error {
+	if org.Teams != nil {
+		return nil
+	}
 	return e.
 		Where("org_id=?", org.ID).
 		OrderBy("CASE WHEN name LIKE '" + ownerTeamName + "' THEN '' ELSE name END").
@@ -155,11 +157,13 @@ func CreateOrganization(org, owner *User) (err error) {
 
 	// Create default owner team.
 	t := &Team{
-		OrgID:      org.ID,
-		LowerName:  strings.ToLower(ownerTeamName),
-		Name:       ownerTeamName,
-		Authorize:  AccessModeOwner,
-		NumMembers: 1,
+		OrgID:                   org.ID,
+		LowerName:               strings.ToLower(ownerTeamName),
+		Name:                    ownerTeamName,
+		Authorize:               AccessModeOwner,
+		NumMembers:              1,
+		IncludesAllRepositories: true,
+		CanCreateOrgRepo:        true,
 	}
 	if _, err = sess.Insert(t); err != nil {
 		return fmt.Errorf("insert owner team: %v", err)
@@ -304,7 +308,7 @@ type OrgUser struct {
 func isOrganizationOwner(e Engine, orgID, uid int64) (bool, error) {
 	ownerTeam, err := getOwnerTeam(e, orgID)
 	if err != nil {
-		if err == ErrTeamNotExist {
+		if IsErrTeamNotExist(err) {
 			log.Error("Organization does not have owner team: %d", orgID)
 			return false, nil
 		}
@@ -339,6 +343,19 @@ func IsPublicMembership(orgID, uid int64) (bool, error) {
 		And("is_public=?", true).
 		Table("org_user").
 		Exist()
+}
+
+// CanCreateOrgRepo returns true if user can create repo in organization
+func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
+	if owner, err := IsOrganizationOwner(orgID, uid); owner || err != nil {
+		return owner, err
+	}
+	return x.
+		Where(builder.Eq{"team.can_create_org_repo": true}).
+		Join("INNER", "team_user", "team_user.team_id = team.id").
+		And("team_user.uid = ?", uid).
+		And("team_user.org_id = ?", orgID).
+		Exist(new(Team))
 }
 
 func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, error) {
@@ -418,6 +435,19 @@ func GetOwnedOrgsByUserID(userID int64) ([]*User, error) {
 // given user ID, ordered descending by the given condition.
 func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
 	return getOwnedOrgsByUserID(x.Desc(desc), userID)
+}
+
+// GetOrgsCanCreateRepoByUserID returns a list of organizations where given user ID
+// are allowed to create repos.
+func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
+	orgs := make([]*User, 0, 10)
+
+	return orgs, x.Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
+		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
+		Where("`team_user`.uid=?", userID).
+		And(builder.Eq{"`team`.authorize": AccessModeOwner}.Or(builder.Eq{"`team`.can_create_org_repo": true})).
+		Desc("`user`.updated_unix").
+		Find(&orgs)
 }
 
 // GetOrgUsersByUserID returns all organization-user relations by user ID.

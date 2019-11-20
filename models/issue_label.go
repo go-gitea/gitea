@@ -13,7 +13,8 @@ import (
 
 	api "code.gitea.io/gitea/modules/structs"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
@@ -67,10 +68,11 @@ type Label struct {
 	Color           string `xorm:"VARCHAR(7)"`
 	NumIssues       int
 	NumClosedIssues int
-	NumOpenIssues   int  `xorm:"-"`
-	IsChecked       bool `xorm:"-"`
-	QueryString     string
-	IsSelected      bool
+	NumOpenIssues   int    `xorm:"-"`
+	IsChecked       bool   `xorm:"-"`
+	QueryString     string `xorm:"-"`
+	IsSelected      bool   `xorm:"-"`
+	IsExcluded      bool   `xorm:"-"`
 }
 
 // APIFormat converts a Label to the api.Label format
@@ -96,7 +98,10 @@ func (label *Label) LoadSelectedLabelsAfterClick(currentSelectedLabels []int64) 
 	for _, s := range currentSelectedLabels {
 		if s == label.ID {
 			labelSelected = true
-		} else if s > 0 {
+		} else if -s == label.ID {
+			labelSelected = true
+			label.IsExcluded = true
+		} else if s != 0 {
 			labelQuerySlice = append(labelQuerySlice, strconv.FormatInt(s, 10))
 		}
 	}
@@ -245,6 +250,19 @@ func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error
 		Find(&labelIDs)
 }
 
+// GetLabelIDsInReposByNames returns a list of labelIDs by names in one of the given
+// repositories.
+// it silently ignores label names that do not belong to the repository.
+func GetLabelIDsInReposByNames(repoIDs []int64, labelNames []string) ([]int64, error) {
+	labelIDs := make([]int64, 0, len(labelNames))
+	return labelIDs, x.Table("label").
+		In("repo_id", repoIDs).
+		In("name", labelNames).
+		Asc("name").
+		Cols("id").
+		Find(&labelIDs)
+}
+
 // GetLabelInRepoByID returns a label by ID in given repository.
 func GetLabelInRepoByID(repoID, labelID int64) (*Label, error) {
 	return getLabelInRepoByID(x, repoID, labelID)
@@ -294,7 +312,20 @@ func GetLabelsByIssueID(issueID int64) ([]*Label, error) {
 }
 
 func updateLabel(e Engine, l *Label) error {
-	_, err := e.ID(l.ID).AllCols().Update(l)
+	_, err := e.ID(l.ID).
+		SetExpr("num_issues",
+			builder.Select("count(*)").From("issue_label").
+				Where(builder.Eq{"label_id": l.ID}),
+		).
+		SetExpr("num_closed_issues",
+			builder.Select("count(*)").From("issue_label").
+				InnerJoin("issue", "issue_label.issue_id = issue.id").
+				Where(builder.Eq{
+					"issue_label.label_id": l.ID,
+					"issue.is_closed":      true,
+				}),
+		).
+		AllCols().Update(l)
 	return err
 }
 
@@ -371,14 +402,17 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err
 		return
 	}
 
-	if _, err = createLabelComment(e, doer, issue.Repo, issue, label, true); err != nil {
+	if _, err = createComment(e, &CreateCommentOptions{
+		Type:    CommentTypeLabel,
+		Doer:    doer,
+		Repo:    issue.Repo,
+		Issue:   issue,
+		Label:   label,
+		Content: "1",
+	}); err != nil {
 		return err
 	}
 
-	label.NumIssues++
-	if issue.IsClosed {
-		label.NumClosedIssues++
-	}
 	return updateLabel(e, label)
 }
 
@@ -444,14 +478,16 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 		return
 	}
 
-	if _, err = createLabelComment(e, doer, issue.Repo, issue, label, false); err != nil {
+	if _, err = createComment(e, &CreateCommentOptions{
+		Type:  CommentTypeLabel,
+		Doer:  doer,
+		Repo:  issue.Repo,
+		Issue: issue,
+		Label: label,
+	}); err != nil {
 		return err
 	}
 
-	label.NumIssues--
-	if issue.IsClosed {
-		label.NumClosedIssues--
-	}
 	return updateLabel(e, label)
 }
 

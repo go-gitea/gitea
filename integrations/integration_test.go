@@ -18,6 +18,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -102,7 +103,11 @@ func initIntegrationTest() {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
 	}
-	setting.AppPath = path.Join(giteaRoot, "gitea")
+	giteaBinary := "gitea"
+	if runtime.GOOS == "windows" {
+		giteaBinary += ".exe"
+	}
+	setting.AppPath = path.Join(giteaRoot, giteaBinary)
 	if _, err := os.Stat(setting.AppPath); err != nil {
 		fmt.Printf("Could not find gitea binary at %s\n", setting.AppPath)
 		os.Exit(1)
@@ -131,7 +136,7 @@ func initIntegrationTest() {
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
-		if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS testgitea"); err != nil {
+		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
 	case setting.Database.UsePostgreSQL:
@@ -150,7 +155,7 @@ func initIntegrationTest() {
 		if rows.Next() {
 			break
 		}
-		if _, err = db.Exec("CREATE DATABASE testgitea"); err != nil {
+		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
 	case setting.Database.UseMSSQL:
@@ -160,7 +165,7 @@ func initIntegrationTest() {
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
-		if _, err := db.Exec("If(db_id(N'gitea') IS NULL) BEGIN CREATE DATABASE gitea; END;"); err != nil {
+		if _, err := db.Exec(fmt.Sprintf("If(db_id(N'%s') IS NULL) BEGIN CREATE DATABASE %s; END;", setting.Database.Name, setting.Database.Name)); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
 		defer db.Close()

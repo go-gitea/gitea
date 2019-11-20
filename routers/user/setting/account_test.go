@@ -19,36 +19,65 @@ import (
 func TestChangePassword(t *testing.T) {
 	oldPassword := "password"
 	setting.MinPasswordLength = 6
+	var pcALL = []string{"lower", "upper", "digit", "spec"}
+	var pcLUN = []string{"lower", "upper", "digit"}
+	var pcLU = []string{"lower", "upper"}
 
 	for _, req := range []struct {
-		OldPassword string
-		NewPassword string
-		Retype      string
-		Message     string
+		OldPassword        string
+		NewPassword        string
+		Retype             string
+		Message            string
+		PasswordComplexity []string
 	}{
 		{
-			OldPassword: oldPassword,
-			NewPassword: "123456",
-			Retype:      "123456",
-			Message:     "",
+			OldPassword:        oldPassword,
+			NewPassword:        "Qwerty123456-",
+			Retype:             "Qwerty123456-",
+			Message:            "",
+			PasswordComplexity: pcALL,
 		},
 		{
-			OldPassword: oldPassword,
-			NewPassword: "12345",
-			Retype:      "12345",
-			Message:     "auth.password_too_short",
+			OldPassword:        oldPassword,
+			NewPassword:        "12345",
+			Retype:             "12345",
+			Message:            "auth.password_too_short",
+			PasswordComplexity: pcALL,
 		},
 		{
-			OldPassword: "12334",
-			NewPassword: "123456",
-			Retype:      "123456",
-			Message:     "settings.password_incorrect",
+			OldPassword:        "12334",
+			NewPassword:        "123456",
+			Retype:             "123456",
+			Message:            "settings.password_incorrect",
+			PasswordComplexity: pcALL,
 		},
 		{
-			OldPassword: oldPassword,
-			NewPassword: "123456",
-			Retype:      "12345",
-			Message:     "form.password_not_match",
+			OldPassword:        oldPassword,
+			NewPassword:        "123456",
+			Retype:             "12345",
+			Message:            "form.password_not_match",
+			PasswordComplexity: pcALL,
+		},
+		{
+			OldPassword:        oldPassword,
+			NewPassword:        "Qwerty",
+			Retype:             "Qwerty",
+			Message:            "form.password_complexity",
+			PasswordComplexity: pcALL,
+		},
+		{
+			OldPassword:        oldPassword,
+			NewPassword:        "Qwerty",
+			Retype:             "Qwerty",
+			Message:            "form.password_complexity",
+			PasswordComplexity: pcLUN,
+		},
+		{
+			OldPassword:        oldPassword,
+			NewPassword:        "QWERTY",
+			Retype:             "QWERTY",
+			Message:            "form.password_complexity",
+			PasswordComplexity: pcLU,
 		},
 	} {
 		models.PrepareTestEnv(t)
@@ -62,7 +91,7 @@ func TestChangePassword(t *testing.T) {
 			Retype:      req.Retype,
 		})
 
-		assert.EqualValues(t, req.Message, ctx.Flash.ErrorMsg)
+		assert.Contains(t, ctx.Flash.ErrorMsg, req.Message)
 		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 	}
 }

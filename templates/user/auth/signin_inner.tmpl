@@ -65,7 +65,7 @@
 										title="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}"
 										class="{{$provider.Name}}"
 										src="{{AppSubUrl}}{{$provider.Image}}"
-										onclick="onOAuthLoginClick()"
+										onclick="window.onOAuthLoginClick()"
 									></a>
 							{{end}}
 						</div>

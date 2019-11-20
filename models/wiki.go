@@ -140,6 +140,7 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
 	}
+	defer gitRepo.Close()
 
 	if hasMasterBranch {
 		if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
@@ -204,6 +205,13 @@ func (repo *Repository) updateWikiPage(doer *User, oldWikiName, newWikiName, con
 
 	commitTreeOpts := git.CommitTreeOpts{
 		Message: message,
+	}
+
+	sign, signingKey := repo.SignWikiCommit(doer)
+	if sign {
+		commitTreeOpts.KeyID = signingKey
+	} else {
+		commitTreeOpts.NoGPGSign = true
 	}
 	if hasMasterBranch {
 		commitTreeOpts.Parents = []string{"HEAD"}
@@ -276,6 +284,7 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiName string) (err error) 
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
 	}
+	defer gitRepo.Close()
 
 	if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
 		log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
@@ -307,11 +316,19 @@ func (repo *Repository) DeleteWikiPage(doer *User, wikiName string) (err error) 
 		return err
 	}
 	message := "Delete page '" + wikiName + "'"
-
-	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), tree, git.CommitTreeOpts{
+	commitTreeOpts := git.CommitTreeOpts{
 		Message: message,
 		Parents: []string{"HEAD"},
-	})
+	}
+
+	sign, signingKey := repo.SignWikiCommit(doer)
+	if sign {
+		commitTreeOpts.KeyID = signingKey
+	} else {
+		commitTreeOpts.NoGPGSign = true
+	}
+
+	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), tree, commitTreeOpts)
 	if err != nil {
 		return err
 	}

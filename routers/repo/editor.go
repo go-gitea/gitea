@@ -269,7 +269,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		}
 	}
 
-	if form.CommitChoice == frmCommitChoiceNewBranch {
+	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + ctx.Repo.BranchName + "..." + form.NewBranchName)
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
@@ -434,7 +434,7 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", ctx.Repo.TreePath))
-	if form.CommitChoice == frmCommitChoiceNewBranch {
+	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + ctx.Repo.BranchName + "..." + form.NewBranchName)
 	} else {
 		treePath := filepath.Dir(ctx.Repo.TreePath)
@@ -585,11 +585,15 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		Files:        form.Files,
 	}); err != nil {
 		ctx.Data["Err_TreePath"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.editor.unable_to_upload_files", form.TreePath, err), tplUploadFile, &form)
+		if models.IsErrLFSFileLocked(err) {
+			ctx.RenderWithErr(ctx.Tr("repo.editor.upload_file_is_locked", err.(models.ErrLFSFileLocked).Path, err.(models.ErrLFSFileLocked).UserName), tplUploadFile, &form)
+		} else {
+			ctx.RenderWithErr(ctx.Tr("repo.editor.unable_to_upload_files", form.TreePath, err), tplUploadFile, &form)
+		}
 		return
 	}
 
-	if form.CommitChoice == frmCommitChoiceNewBranch {
+	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + ctx.Repo.BranchName + "..." + form.NewBranchName)
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
