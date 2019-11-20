@@ -281,10 +281,11 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 }
 
 // CreateOrgRepo create one repository of the organization
-func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
-	// swagger:operation POST /org/{org}/repos organization createOrgRepo
+func CreateOrgRepoDeprecated(ctx *context.APIContext, opt api.CreateRepoOption) {
+	// swagger:operation POST /org/{org}/repos organization createOrgRepoDeprecated
 	// ---
 	// summary: Create a repository in an organization
+	// deprecated: true
 	// consumes:
 	// - application/json
 	// produces:
@@ -328,6 +329,53 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 			return
 		} else if !canCreate {
 			ctx.Error(403, "", "Given user is not allowed to create repository in organization.")
+			return
+		}
+	}
+	CreateUserRepo(ctx, org, opt)
+}
+
+// CreateOrgRepo create one repository of the organization
+func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
+	// swagger:operation POST /orgs/{org}/repos organization createOrgRepo
+	// ---
+	// summary: Create a repository in an organization
+	// deprecated: true
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of organization
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateRepoOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Repository"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	org := ctx.Org.Organization
+
+	if !models.HasOrgVisible(org, ctx.User) {
+		ctx.NotFound("HasOrgVisible", nil)
+		return
+	}
+
+	if !ctx.User.IsAdmin {
+		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("IsOwnedBy", err)
+			return
+		} else if !isOwner {
+			ctx.Error(403, "", "Given user is not owner of organization.")
 			return
 		}
 	}
