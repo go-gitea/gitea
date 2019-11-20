@@ -558,13 +558,13 @@ Gitea can support Markup using external tools. The example below will add a mark
 
 ```ini
 [markup.asciidoc]
-ENABLED = false
+ENABLED = true
 FILE_EXTENSIONS = .adoc,.asciidoc
 RENDER_COMMAND = "asciidoc --out-file=- -"
 IS_INPUT_FILE = false
 ```
 
-- ENABLED: **false** Enable markup support.
+- ENABLED: **false** Enable markup support; set to **true** to enable this renderer.
 - FILE\_EXTENSIONS: **\<empty\>** List of file extensions that should be rendered by an external
    command. Multiple extentions needs a comma as splitter.
 - RENDER\_COMMAND: External command to render all matching extensions.

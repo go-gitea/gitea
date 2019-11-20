@@ -113,6 +113,7 @@ a{cursor:pointer}
 .ui .text.nopadding{padding:0}
 .ui .text.nomargin{margin:0}
 .ui .message{text-align:center}
+.ui .message>ul{margin-left:auto;margin-right:auto;display:table;text-align:left}
 .ui.bottom.attached.message{font-weight:700;text-align:left;color:#000}
 .ui.bottom.attached.message .pull-right{color:#000}
 .ui.bottom.attached.message .pull-right>span,.ui.bottom.attached.message>span{color:#21ba45}

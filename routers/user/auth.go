@@ -1072,7 +1072,7 @@ func SignUpPost(ctx *context.Context, cpt *captcha.Captcha, form auth.RegisterFo
 	}
 	if !password.IsComplexEnough(form.Password) {
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplSignUp, &form)
+		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplSignUp, &form)
 		return
 	}
 
@@ -1343,7 +1343,7 @@ func ResetPasswdPost(ctx *context.Context) {
 	} else if !password.IsComplexEnough(passwd) {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplResetPassword, nil)
+		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplResetPassword, nil)
 		return
 	}
 
