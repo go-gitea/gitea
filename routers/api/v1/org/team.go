@@ -132,6 +132,7 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 		Name:                    form.Name,
 		Description:             form.Description,
 		IncludesAllRepositories: form.IncludesAllRepositories,
+		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 		Authorize:               models.ParseAccessMode(form.Permission),
 	}
 
@@ -185,6 +186,7 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	team := ctx.Org.Team
 	team.Description = form.Description
 	unitTypes := models.FindUnitTypes(form.Units...)
+	team.CanCreateOrgRepo = form.CanCreateOrgRepo
 
 	isAuthChanged := false
 	isIncludeAllChanged := false

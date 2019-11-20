@@ -25,20 +25,30 @@ type crossReferencesContext struct {
 	Doer        *User
 	OrigIssue   *Issue
 	OrigComment *Comment
+	RemoveOld   bool
+}
+
+func findOldCrossReferences(e Engine, issueID int64, commentID int64) ([]*Comment, error) {
+	active := make([]*Comment, 0, 10)
+	return active, e.Where("`ref_action` IN (?, ?, ?)", references.XRefActionNone, references.XRefActionCloses, references.XRefActionReopens).
+		And("`ref_issue_id` = ?", issueID).
+		And("`ref_comment_id` = ?", commentID).
+		Find(&active)
 }
 
 func neuterCrossReferences(e Engine, issueID int64, commentID int64) error {
-	active := make([]*Comment, 0, 10)
-	sess := e.Where("`ref_action` IN (?, ?, ?)", references.XRefActionNone, references.XRefActionCloses, references.XRefActionReopens).
-		And("`ref_issue_id` = ?", issueID).
-		And("`ref_comment_id` = ?", commentID)
-	if err := sess.Find(&active); err != nil || len(active) == 0 {
+	active, err := findOldCrossReferences(e, issueID, commentID)
+	if err != nil {
 		return err
 	}
 	ids := make([]int64, len(active))
 	for i, c := range active {
 		ids[i] = c.ID
 	}
+	return neuterCrossReferencesIds(e, ids)
+}
+
+func neuterCrossReferencesIds(e Engine, ids []int64) error {
 	_, err := e.In("id", ids).Cols("`ref_action`").Update(&Comment{RefAction: references.XRefActionNeutered})
 	return err
 }
@@ -51,7 +61,7 @@ func neuterCrossReferences(e Engine, issueID int64, commentID int64) error {
 //          \/     \/            \/
 //
 
-func (issue *Issue) addCrossReferences(e *xorm.Session, doer *User) error {
+func (issue *Issue) addCrossReferences(e *xorm.Session, doer *User, removeOld bool) error {
 	var commentType CommentType
 	if issue.IsPull {
 		commentType = CommentTypePullRef
@@ -62,6 +72,7 @@ func (issue *Issue) addCrossReferences(e *xorm.Session, doer *User) error {
 		Type:      commentType,
 		Doer:      doer,
 		OrigIssue: issue,
+		RemoveOld: removeOld,
 	}
 	return issue.createCrossReferences(e, ctx, issue.Title, issue.Content)
 }
@@ -70,6 +81,35 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 	xreflist, err := ctx.OrigIssue.getCrossReferences(e, ctx, plaincontent, mdcontent)
 	if err != nil {
 		return err
+	}
+	if ctx.RemoveOld {
+		var commentID int64
+		if ctx.OrigComment != nil {
+			commentID = ctx.OrigComment.ID
+		}
+		active, err := findOldCrossReferences(e, ctx.OrigIssue.ID, commentID)
+		if err != nil {
+			return err
+		}
+		ids := make([]int64, 0, len(active))
+		for _, c := range active {
+			found := false
+			for i, x := range xreflist {
+				if x.Issue.ID == c.IssueID && x.Action == c.RefAction {
+					found = true
+					xreflist = append(xreflist[:i], xreflist[i+1:]...)
+					break
+				}
+			}
+			if !found {
+				ids = append(ids, c.ID)
+			}
+		}
+		if len(ids) > 0 {
+			if err = neuterCrossReferencesIds(e, ids); err != nil {
+				return err
+			}
+		}
 	}
 	for _, xref := range xreflist {
 		var refCommentID int64
@@ -193,10 +233,6 @@ func (issue *Issue) verifyReferencedIssue(e Engine, ctx *crossReferencesContext,
 	return refIssue, refAction, nil
 }
 
-func (issue *Issue) neuterCrossReferences(e Engine) error {
-	return neuterCrossReferences(e, issue.ID, 0)
-}
-
 // _________                                       __
 // \_   ___ \  ____   _____   _____   ____   _____/  |_
 // /    \  \/ /  _ \ /     \ /     \_/ __ \ /    \   __\
@@ -205,7 +241,7 @@ func (issue *Issue) neuterCrossReferences(e Engine) error {
 //         \/             \/      \/     \/     \/
 //
 
-func (comment *Comment) addCrossReferences(e *xorm.Session, doer *User) error {
+func (comment *Comment) addCrossReferences(e *xorm.Session, doer *User, removeOld bool) error {
 	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
 		return nil
 	}
@@ -217,6 +253,7 @@ func (comment *Comment) addCrossReferences(e *xorm.Session, doer *User) error {
 		Doer:        doer,
 		OrigIssue:   comment.Issue,
 		OrigComment: comment,
+		RemoveOld:   removeOld,
 	}
 	return comment.Issue.createCrossReferences(e, ctx, "", comment.Content)
 }

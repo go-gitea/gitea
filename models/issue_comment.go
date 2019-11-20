@@ -545,7 +545,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		}
 	}
 
-	if err = comment.addCrossReferences(e, opts.Doer); err != nil {
+	if err = comment.addCrossReferences(e, opts.Doer, false); err != nil {
 		return nil, err
 	}
 
@@ -882,10 +882,7 @@ func UpdateComment(c *Comment, doer *User) error {
 	if err := c.loadIssue(sess); err != nil {
 		return err
 	}
-	if err := c.neuterCrossReferences(sess); err != nil {
-		return err
-	}
-	if err := c.addCrossReferences(sess, doer); err != nil {
+	if err := c.addCrossReferences(sess, doer, true); err != nil {
 		return err
 	}
 	if err := sess.Commit(); err != nil {
