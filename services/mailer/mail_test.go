@@ -58,12 +58,16 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	InitMailRender(stpl, btpl)
 
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
-	msg := composeIssueCommentMessage(issue, doer, models.ActionCommentIssue, false, "test body", comment, tos, "issue comment")
+	msgs := composeIssueCommentMessages(&mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCommentIssue,
+		Content: "test body", Comment: comment}, tos, false, "issue comment")
+	assert.Len(t, msgs, 2)
 
-	subject := msg.GetHeader("Subject")
-	inreplyTo := msg.GetHeader("In-Reply-To")
-	references := msg.GetHeader("References")
+	mailto := msgs[0].GetHeader("To")
+	subject := msgs[0].GetHeader("Subject")
+	inreplyTo := msgs[0].GetHeader("In-Reply-To")
+	references := msgs[0].GetHeader("References")
 
+	assert.Len(t, mailto, 1, "exactly one recipient is expected in the To field")
 	assert.Equal(t, "Re: ", subject[0][:4], "Comment reply subject should contain Re:")
 	assert.Equal(t, "Re: [user2/repo1] @user2 #1 - issue1", subject[0])
 	assert.Equal(t, inreplyTo[0], "<user2/repo1/issues/1@localhost>", "In-Reply-To header doesn't match")
@@ -88,14 +92,18 @@ func TestComposeIssueMessage(t *testing.T) {
 	InitMailRender(stpl, btpl)
 
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
-	msg := composeIssueCommentMessage(issue, doer, models.ActionCreateIssue, false, "test body", nil, tos, "issue create")
+	msgs := composeIssueCommentMessages(&mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCreateIssue,
+		Content: "test body"}, tos, false, "issue create")
+	assert.Len(t, msgs, 2)
 
-	subject := msg.GetHeader("Subject")
-	messageID := msg.GetHeader("Message-ID")
+	mailto := msgs[0].GetHeader("To")
+	subject := msgs[0].GetHeader("Subject")
+	messageID := msgs[0].GetHeader("Message-ID")
 
+	assert.Len(t, mailto, 1, "exactly one recipient is expected in the To field")
 	assert.Equal(t, "[user2/repo1] @user2 #1 - issue1", subject[0])
-	assert.Nil(t, msg.GetHeader("In-Reply-To"))
-	assert.Nil(t, msg.GetHeader("References"))
+	assert.Nil(t, msgs[0].GetHeader("In-Reply-To"))
+	assert.Nil(t, msgs[0].GetHeader("References"))
 	assert.Equal(t, messageID[0], "<user2/repo1/issues/1@localhost>", "Message-ID header doesn't match")
 }
 
@@ -134,20 +142,24 @@ func TestTemplateSelection(t *testing.T) {
 		assert.Contains(t, wholemsg, expBody)
 	}
 
-	msg := composeIssueCommentMessage(issue, doer, models.ActionCreateIssue, false, "test body", nil, tos, "TestTemplateSelection")
+	msg := testComposeIssueCommentMessage(t, &mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCreateIssue,
+		Content: "test body"}, tos, false, "TestTemplateSelection")
 	expect(t, msg, "issue/new/subject", "issue/new/body")
 
 	comment := models.AssertExistsAndLoadBean(t, &models.Comment{ID: 2, Issue: issue}).(*models.Comment)
-	msg = composeIssueCommentMessage(issue, doer, models.ActionCommentIssue, false, "test body", comment, tos, "TestTemplateSelection")
+	msg = testComposeIssueCommentMessage(t, &mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCommentIssue,
+		Content: "test body", Comment: comment}, tos, false, "TestTemplateSelection")
 	expect(t, msg, "issue/default/subject", "issue/default/body")
 
 	pull := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2, Repo: repo, Poster: doer}).(*models.Issue)
 	comment = models.AssertExistsAndLoadBean(t, &models.Comment{ID: 4, Issue: pull}).(*models.Comment)
-	msg = composeIssueCommentMessage(pull, doer, models.ActionCommentIssue, false, "test body", comment, tos, "TestTemplateSelection")
+	msg = testComposeIssueCommentMessage(t, &mailCommentContext{Issue: pull, Doer: doer, ActionType: models.ActionCommentIssue,
+		Content: "test body", Comment: comment}, tos, false, "TestTemplateSelection")
 	expect(t, msg, "pull/comment/subject", "pull/comment/body")
 
-	msg = composeIssueCommentMessage(issue, doer, models.ActionCloseIssue, false, "test body", nil, tos, "TestTemplateSelection")
-	expect(t, msg, "[user2/repo1] issue1 (#1)", "issue/close/body")
+	msg = testComposeIssueCommentMessage(t, &mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCloseIssue,
+		Content: "test body", Comment: comment}, tos, false, "TestTemplateSelection")
+	expect(t, msg, "Re: [user2/repo1] issue1 (#1)", "issue/close/body")
 }
 
 func TestTemplateServices(t *testing.T) {
@@ -173,7 +185,8 @@ func TestTemplateServices(t *testing.T) {
 		InitMailRender(stpl, btpl)
 
 		tos := []string{"test@gitea.com"}
-		msg := composeIssueCommentMessage(issue, doer, actionType, fromMention, "test body", comment, tos, "TestTemplateServices")
+		msg := testComposeIssueCommentMessage(t, &mailCommentContext{Issue: issue, Doer: doer, ActionType: actionType,
+			Content: "test body", Comment: comment}, tos, fromMention, "TestTemplateServices")
 
 		subject := msg.GetHeader("Subject")
 		msgbuf := new(bytes.Buffer)
@@ -201,4 +214,10 @@ func TestTemplateServices(t *testing.T) {
 		"//{{.SubjectPrefix}}//",
 		"Re: [user2/repo1] issue1 (#1)",
 		"//Re: //")
+}
+
+func testComposeIssueCommentMessage(t *testing.T, ctx *mailCommentContext, tos []string, fromMention bool, info string) *Message {
+	msgs := composeIssueCommentMessages(ctx, tos, fromMention, info)
+	assert.Len(t, msgs, 1)
+	return msgs[0]
 }
