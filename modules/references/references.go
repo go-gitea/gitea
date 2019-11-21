@@ -29,12 +29,12 @@ var (
 	// mentionPattern matches all mentions in the form of "@user"
 	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_]+|@[0-9a-zA-Z-_][0-9a-zA-Z-_.]+[0-9a-zA-Z-_])(?:\s|[:,;.?!]\s|[:,;.?!]?$|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(#[0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([#!][0-9]+)(?:\s|$|\)|\]|:|\.(\s|$))`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
 	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$))`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. gogits/gogs#12345
-	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+#[0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
+	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|\.(\s|$))`)
 
 	issueCloseKeywordsPat, issueReopenKeywordsPat *regexp.Regexp
 	issueKeywordsOnce                             sync.Once
@@ -70,6 +70,7 @@ type RenderizableReference struct {
 	Issue          string
 	Owner          string
 	Name           string
+	Local          bool
 	RefLocation    *RefSpan
 	Action         XRefAction
 	ActionLocation *RefSpan
@@ -79,6 +80,7 @@ type rawReference struct {
 	index          int64
 	owner          string
 	name           string
+	local          bool
 	action         XRefAction
 	issue          string
 	refLocation    *RefSpan
@@ -202,14 +204,14 @@ func FindAllIssueReferences(content string) []IssueReference {
 }
 
 // FindRenderizableReferenceNumeric returns the first unvalidated reference found in a string.
-func FindRenderizableReferenceNumeric(content string) (bool, *RenderizableReference) {
+func FindRenderizableReferenceNumeric(content string, localOnly bool) (bool, *RenderizableReference) {
 	match := issueNumericPattern.FindStringSubmatchIndex(content)
 	if match == nil {
 		if match = crossReferenceIssueNumericPattern.FindStringSubmatchIndex(content); match == nil {
 			return false, nil
 		}
 	}
-	r := getCrossReference([]byte(content), match[2], match[3], false)
+	r := getCrossReference([]byte(content), match[2], match[3], false, localOnly)
 	if r == nil {
 		return false, nil
 	}
@@ -218,6 +220,7 @@ func FindRenderizableReferenceNumeric(content string) (bool, *RenderizableRefere
 		Issue:          r.issue,
 		Owner:          r.owner,
 		Name:           r.name,
+		Local:          r.local,
 		RefLocation:    r.refLocation,
 		Action:         r.action,
 		ActionLocation: r.actionLocation,
@@ -238,6 +241,7 @@ func FindRenderizableReferenceAlphanumeric(content string) (bool, *RenderizableR
 		RefLocation:    &RefSpan{Start: match[2], End: match[3]},
 		Action:         action,
 		ActionLocation: location,
+		Local:          false,
 	}
 }
 
@@ -248,14 +252,14 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 
 	matches := issueNumericPattern.FindAllSubmatchIndex(content, -1)
 	for _, match := range matches {
-		if ref := getCrossReference(content, match[2], match[3], false); ref != nil {
+		if ref := getCrossReference(content, match[2], match[3], false, false); ref != nil {
 			ret = append(ret, ref)
 		}
 	}
 
 	matches = crossReferenceIssueNumericPattern.FindAllSubmatchIndex(content, -1)
 	for _, match := range matches {
-		if ref := getCrossReference(content, match[2], match[3], false); ref != nil {
+		if ref := getCrossReference(content, match[2], match[3], false, false); ref != nil {
 			ret = append(ret, ref)
 		}
 	}
@@ -273,12 +277,19 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 			if len(parts) != 5 || parts[0] != "" {
 				continue
 			}
-			if parts[3] != "issues" && parts[3] != "pulls" {
+			var sep string
+			if parts[3] == "issues" {
+				// Issues can be external
+				sep = "#"
+			} else if parts[3] == "pulls" {
+				// PRs are always local
+				sep = "!"
+			} else {
 				continue
 			}
 			// Note: closing/reopening keywords not supported with URLs
-			bytes := []byte(parts[1] + "/" + parts[2] + "#" + parts[4])
-			if ref := getCrossReference(bytes, 0, len(bytes), true); ref != nil {
+			bytes := []byte(parts[1] + "/" + parts[2] + sep + parts[4])
+			if ref := getCrossReference(bytes, 0, len(bytes), true, false); ref != nil {
 				ref.refLocation = nil
 				ret = append(ret, ref)
 			}
@@ -288,13 +299,18 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 	return ret
 }
 
-func getCrossReference(content []byte, start, end int, fromLink bool) *rawReference {
+func getCrossReference(content []byte, start, end int, fromLink bool, localOnly bool) *rawReference {
 	refid := string(content[start:end])
-	parts := strings.Split(refid, "#")
-	if len(parts) != 2 {
+	sep := strings.IndexAny(refid, "#!")
+	if sep < 0 {
 		return nil
 	}
-	repo, issue := parts[0], parts[1]
+	local := refid[sep] == '!'
+	if localOnly && !local {
+		return nil
+	}
+	repo := refid[:sep]
+	issue := refid[sep+1:]
 	index, err := strconv.ParseInt(issue, 10, 64)
 	if err != nil {
 		return nil
@@ -309,11 +325,12 @@ func getCrossReference(content []byte, start, end int, fromLink bool) *rawRefere
 			index:          index,
 			action:         action,
 			issue:          issue,
+			local:          local,
 			refLocation:    &RefSpan{Start: start, End: end},
 			actionLocation: location,
 		}
 	}
-	parts = strings.Split(strings.ToLower(repo), "/")
+	parts := strings.Split(strings.ToLower(repo), "/")
 	if len(parts) != 2 {
 		return nil
 	}
@@ -328,6 +345,7 @@ func getCrossReference(content []byte, start, end int, fromLink bool) *rawRefere
 		name:           name,
 		action:         action,
 		issue:          issue,
+		local:          local,
 		refLocation:    &RefSpan{Start: start, End: end},
 		actionLocation: location,
 	}
@@ -352,6 +370,10 @@ func findActionKeywords(content []byte, start int) (XRefAction, *RefSpan) {
 }
 
 // IsXrefActionable returns true if the xref action is actionable (i.e. produces a result when resolved)
-func IsXrefActionable(a XRefAction) bool {
-	return a == XRefActionCloses || a == XRefActionReopens
+func IsXrefActionable(ref *RenderizableReference, extTracker bool, alphaNum bool) bool {
+	// External references cannot be automatically closed
+	if extTracker && !ref.Local {
+		return false
+	}
+	return ref.Action == XRefActionCloses || ref.Action == XRefActionReopens
 }

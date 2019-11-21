@@ -634,10 +634,19 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 		ref   *references.RenderizableReference
 	)
 
-	if ctx.metas["style"] == IssueNameStyleAlphanumeric {
-		found, ref = references.FindRenderizableReferenceAlphanumeric(node.Data)
-	} else {
-		found, ref = references.FindRenderizableReferenceNumeric(node.Data)
+	_, exttrack := ctx.metas["format"]
+	alphanum := ctx.metas["style"] == IssueNameStyleAlphanumeric
+
+	// Repos with external issue trackers might still need to reference local PRs
+	// We need to concern with the first one that shows up in the text, whichever it is
+	found, ref = references.FindRenderizableReferenceNumeric(node.Data, exttrack && alphanum)
+	if exttrack && alphanum {
+		if found2, ref2 := references.FindRenderizableReferenceAlphanumeric(node.Data); found2 {
+			if !found || ref2.RefLocation.Start < ref.RefLocation.Start {
+				found = true
+				ref = ref2
+			}
+		}
 	}
 	if !found {
 		return
@@ -645,7 +654,7 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 
 	var link *html.Node
 	reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
-	if _, ok := ctx.metas["format"]; ok {
+	if exttrack && !ref.Local {
 		ctx.metas["index"] = ref.Issue
 		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), reftext, "issue")
 	} else if ref.Owner == "" {
@@ -661,7 +670,7 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 
 	// Decorate action keywords if actionable
 	var keyword *html.Node
-	if references.IsXrefActionable(ref.Action) {
+	if references.IsXrefActionable(ref, exttrack, alphanum) {
 		keyword = createKeyword(node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
 	} else {
 		keyword = &html.Node{
