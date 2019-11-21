@@ -152,7 +152,7 @@ func Dashboard(ctx *context.Context) {
 }
 
 // Regexp for repos query
-var issueReposQueryPattern = regexp.MustCompile(`^\[(\d+,{0,1})+\]$`)
+var issueReposQueryPattern = regexp.MustCompile(`^\[\d+(,\d+)*,?\]$`)
 
 // Issues render the user issues page
 func Issues(ctx *context.Context) {
