@@ -233,6 +233,12 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 			ctx.RenderWithErr(err.Error(), tplAuthNew, form)
 			return
 		}
+		existing, err := models.LoginSourcesByType(models.LoginSSPI)
+		if err != nil || len(existing) > 0 {
+			ctx.Data["Err_Type"] = true
+			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_of_type_exist"), tplAuthNew, form)
+			return
+		}
 	default:
 		ctx.Error(400)
 		return
