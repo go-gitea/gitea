@@ -287,6 +287,9 @@ ALLOW_GRACEFUL_RESTARTS = true
 ; shutting down. Force shutdown if this process takes longer than this delay.
 ; set to a negative value to disable
 GRACEFUL_HAMMER_TIME = 60s
+; Allows the setting of a startup timeout and waithint for Windows as SVC service
+; 0 disables this.
+STARTUP_TIMEOUT = 0
 ; Static resources, includes resources on custom/, public/ and all uploaded avatars web browser cache time, default is 6h
 STATIC_CACHE_TIME = 6h
 

@@ -1,5 +1,3 @@
-// +build !windows
-
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -26,5 +24,5 @@ func listen(server *ssh.Server) {
 
 // Unused informs our cleanup routine that we will not be using a ssh port
 func Unused() {
-	graceful.InformCleanup()
+	graceful.Manager.InformCleanup()
 }
