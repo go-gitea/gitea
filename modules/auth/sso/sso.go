@@ -37,8 +37,6 @@ var ssoMethods []SingleSignOn = []SingleSignOn{
 // The purpose of the following three function variables is to let the linter know that
 // those functions are not dead code and are actually being used
 var (
-	_ = isPublicResource
-	_ = isPublicPage
 	_ = handleSignIn
 )
 
@@ -105,44 +103,6 @@ func isAPIPath(ctx *macaron.Context) bool {
 // isAttachmentDownload check if request is a file download (GET) with URL to an attachment
 func isAttachmentDownload(ctx *macaron.Context) bool {
 	return strings.HasPrefix(ctx.Req.URL.Path, "/attachments/") && ctx.Req.Method == "GET"
-}
-
-// isPublicResource checks if the url is of a public resource file that should be served
-// without authentication (eg. the Web App Manifest, the Service Worker script or the favicon)
-func isPublicResource(ctx *macaron.Context) bool {
-	path := strings.TrimSuffix(ctx.Req.URL.Path, "/")
-	return path == "/robots.txt" ||
-		path == "/favicon.ico" ||
-		path == "/favicon.png" ||
-		path == "/manifest.json" ||
-		path == "/serviceworker.js"
-}
-
-// isPublicPage checks if the url is of a public page that should not require authentication
-func isPublicPage(ctx *macaron.Context) bool {
-	path := strings.TrimSuffix(ctx.Req.URL.Path, "/")
-	homePage := strings.TrimSuffix(setting.AppSubURL, "/")
-	currentURL := homePage + path
-	return currentURL == homePage ||
-		path == "/user/login" ||
-		path == "/user/login/openid" ||
-		path == "/user/sign_up" ||
-		path == "/user/forgot_password" ||
-		path == "/user/openid/connect" ||
-		path == "/user/openid/register" ||
-		strings.HasPrefix(path, "/user/oauth2") ||
-		path == "/user/link_account" ||
-		path == "/user/link_account_signin" ||
-		path == "/user/link_account_signup" ||
-		path == "/user/two_factor" ||
-		path == "/user/two_factor/scratch" ||
-		path == "/user/u2f" ||
-		path == "/user/u2f/challenge" ||
-		path == "/user/u2f/sign" ||
-		(!setting.Service.RequireSignInView && (path == "/explore/repos" ||
-			path == "/explore/users" ||
-			path == "/explore/organizations" ||
-			path == "/explore/code"))
 }
 
 // handleSignIn clears existing session variables and stores new ones for the specified user object

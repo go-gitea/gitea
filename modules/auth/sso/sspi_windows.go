@@ -139,14 +139,19 @@ func (s *SSPI) getConfig() (*models.SSPIConfig, error) {
 	return sources[0].SSPI(), nil
 }
 
-func (s *SSPI) shouldAuthenticate(ctx *macaron.Context) bool {
+func (s *SSPI) shouldAuthenticate(ctx *macaron.Context) (shouldAuth bool) {
+	shouldAuth = false
 	path := strings.TrimSuffix(ctx.Req.URL.Path, "/")
-	if path == "/user/login" && ctx.Req.FormValue("user_name") != "" && ctx.Req.FormValue("password") != "" {
-		return false
-	} else if ctx.Req.FormValue("auth_with_sspi") == "1" {
-		return true
+	if path == "/user/login" {
+		if ctx.Req.FormValue("user_name") != "" && ctx.Req.FormValue("password") != "" {
+			shouldAuth = false
+		} else if ctx.Req.FormValue("auth_with_sspi") == "1" {
+			shouldAuth = true
+		}
+	} else if isAPIPath(ctx) || isAttachmentDownload(ctx) {
+		shouldAuth = true
 	}
-	return !isPublicPage(ctx) && !isPublicResource(ctx)
+	return
 }
 
 // newUser creates a new user object for the purpose of automatic registration
