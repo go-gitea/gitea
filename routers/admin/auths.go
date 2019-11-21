@@ -94,7 +94,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SSPIAutoActivateUsers"] = true
 	ctx.Data["SSPIStripDomainNames"] = true
 	ctx.Data["SSPISeparatorReplacement"] = "_"
-	ctx.Data["SSPIDefaultLanguage"] = "en-US"
+	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	// only the first as default
 	for key := range models.OAuth2Providers {
@@ -177,7 +177,7 @@ func parseSSPIConfig(ctx *context.Context, form auth.AuthenticationForm) (*model
 		return nil, errors.New(ctx.Tr("form.SSPISeparatorReplacement") + ctx.Tr("form.alpha_dash_dot_error"))
 	}
 
-	if !langCodePattern.MatchString(form.SSPIDefaultLanguage) {
+	if !util.IsEmptyString(form.SSPIDefaultLanguage) && !langCodePattern.MatchString(form.SSPIDefaultLanguage) {
 		ctx.Data["Err_SSPIDefaultLanguage"] = true
 		return nil, errors.New(ctx.Tr("form.lang_select_error"))
 	}
@@ -209,7 +209,7 @@ func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	ctx.Data["SSPIAutoActivateUsers"] = true
 	ctx.Data["SSPIStripDomainNames"] = true
 	ctx.Data["SSPISeparatorReplacement"] = "_"
-	ctx.Data["SSPIDefaultLanguage"] = "en-US"
+	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	hasTLS := false
 	var config core.Conversion
