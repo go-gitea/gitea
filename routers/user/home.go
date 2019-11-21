@@ -203,7 +203,7 @@ func Issues(ctx *context.Context) {
 	var repoIDs []int64
 	if issueReposQueryPattern.MatchString(reposQuery) {
 		// remove "[" and "]" from string
-		reposQuery = strings.Replace(strings.Replace(reposQuery, "[", "", 1), "]", "", 1)
+		reposQuery = reposQuery[1 : len(reposQuery)-1]
 		//for each ID (delimiter ",") add to int to repoIDs
 		for _, rID := range strings.Split(reposQuery, ",") {
 			// Ensure nonempty string entries
