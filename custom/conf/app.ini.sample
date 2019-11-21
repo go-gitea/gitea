@@ -153,6 +153,8 @@ THEMES = gitea,arc-green
 DEFAULT_SHOW_FULL_NAME = false
 ; Whether to search within description at repository search on explore page.
 SEARCH_REPO_DESCRIPTION = true
+; Whether to enable a Service Worker to cache frontend assets
+USE_SERVICE_WORKER = true
 
 [ui.admin]
 ; Number of users that are displayed on one page

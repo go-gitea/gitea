@@ -138,9 +138,9 @@ make revive vet misspell-check
 
 ### Updating CSS
 
-To generate the CSS, you will need [Node.js](https://nodejs.org/) 8.0 or greater with npm. At present we use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our CSS. Do **not** edit the files in `public/css` directly, as they are generated from `lessc` from the files in `public/less`.
+To generate the CSS, you need [Node.js](https://nodejs.org/) 8.0 or greater with npm. We use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our CSS. Do **not** edit the files in `public/css` directly, as they are generated from `lessc` from the files in `public/less`.
 
-Edit files in `public/less`, run the linter, regenerate the CSS and commit all changed files:
+Edit files in `public/less`, and then run the linter and build the CSS files via:
 
 ```bash
 make css
@@ -148,11 +148,13 @@ make css
 
 ### Updating JS
 
-To run the JavaScript linter you will need [Node.js](https://nodejs.org/) 8.0 or greater with npm. Edit files in `public/js` and run the linter:
+To generate the JS files, you need [Node.js](https://nodejs.org/) 8.0 or greater with npm. Edit files in `public/js`, run the linter and build the JS files via:
 
 ```bash
 make js
 ```
+
+Note: When working on frontend code, it is advisable to set `USE_SERVICE_WORKER` to `false` in `app.ini` which will prevent undesirable caching of frontend assets.
 
 ### Updating the API
 
