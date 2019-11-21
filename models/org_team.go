@@ -34,6 +34,7 @@ type Team struct {
 	NumMembers              int
 	Units                   []*TeamUnit `xorm:"-"`
 	IncludesAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
+	CanCreateOrgRepo        bool        `xorm:"NOT NULL DEFAULT false"`
 }
 
 // SearchTeamOptions holds the search options

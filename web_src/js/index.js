@@ -732,10 +732,41 @@ function initRepository() {
       return false;
     });
 
+    // Issue/PR Context Menus
+    $('.context-dropdown').dropdown({
+      action: 'hide'
+    });
+
+    // Quote reply
+    $('.quote-reply').click(function (event) {
+      $(this).closest('.dropdown').find('.menu').toggle('visible');
+      const target = $(this).data('target');
+
+      let $content;
+      if ($(this).hasClass('quote-reply-diff')) {
+        const $parent = $(this).closest('.comment-code-cloud');
+        $parent.find('button.comment-form-reply').click();
+        $content = $parent.find('[name="content"]');
+      } else {
+        $content = $('#content');
+      }
+
+      const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
+      const content = `> ${quote}\n\n`;
+
+      if ($content.val() !== '') {
+        $content.val(`${$content.val()}\n\n${content}`);
+      } else {
+        $content.val(`${content}`);
+      }
+      $content.focus();
+      event.preventDefault();
+    });
+
     // Edit issue or comment content
-    $('.edit-content').click(function () {
-      const $segment = $(this).parent().parent().parent()
-        .next();
+    $('.edit-content').click(function (event) {
+      $(this).closest('.dropdown').find('.menu').toggle('visible');
+      const $segment = $(this).closest('.header').next();
       const $editContentZone = $segment.find('.edit-content-zone');
       const $renderContent = $segment.find('.render-content');
       const $rawContent = $segment.find('.raw-content');
@@ -881,7 +912,7 @@ function initRepository() {
         $textarea.val($rawContent.text());
       }
       $textarea.focus();
-      return false;
+      event.preventDefault();
     });
 
     // Delete comment
@@ -931,7 +962,6 @@ function initRepository() {
       $(this).closest('.form').hide();
       $mergeButton.parent().show();
     });
-
     initReactionSelector();
   }
 

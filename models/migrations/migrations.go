@@ -273,6 +273,8 @@ var migrations = []Migration{
 	// v108 -> v109
 	NewMigration("Add comment_id on table notification", addCommentIDOnNotification),
 	// v109 -> v110
+	NewMigration("add can_create_org_repo to team", addCanCreateOrgRepoColumnForTeam),
+	// v110 -> v111
 	NewMigration("update branch protection for can push and whitelist enable", addBranchProtectionCanPushAndEnableWhitelist),
 }
 

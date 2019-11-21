@@ -1586,6 +1586,18 @@ func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err err
 				}
 			}
 		}
+
+		if isAdmin, err := isUserRepoAdmin(e, repo, doer); err != nil {
+			return fmt.Errorf("isUserRepoAdmin: %v", err)
+		} else if !isAdmin {
+			// Make creator repo admin if it wan't assigned automatically
+			if err = repo.addCollaborator(e, doer); err != nil {
+				return fmt.Errorf("AddCollaborator: %v", err)
+			}
+			if err = repo.changeCollaborationAccessMode(e, doer.ID, AccessModeAdmin); err != nil {
+				return fmt.Errorf("ChangeCollaborationAccessMode: %v", err)
+			}
+		}
 	} else if err = repo.recalculateAccesses(e); err != nil {
 		// Organization automatically called this in addRepository method.
 		return fmt.Errorf("recalculateAccesses: %v", err)

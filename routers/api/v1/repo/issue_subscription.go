@@ -7,7 +7,6 @@ package repo
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	api "code.gitea.io/gitea/modules/structs"
 )
 
 // AddIssueSubscription Subscribe user to issue
@@ -48,40 +47,7 @@ func AddIssueSubscription(ctx *context.APIContext) {
 	//     description: User can only subscribe itself if he is no admin
 	//   "404":
 	//     description: Issue not found
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
-	if err != nil {
-		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
-		}
-
-		return
-	}
-
-	user, err := models.GetUserByName(ctx.Params(":user"))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(500, "GetUserByName", err)
-		}
-
-		return
-	}
-
-	//only admin and user for itself can change subscription
-	if user.ID != ctx.User.ID && !ctx.User.IsAdmin {
-		ctx.Error(403, "User", nil)
-		return
-	}
-
-	if err := models.CreateOrUpdateIssueWatch(user.ID, issue.ID, true); err != nil {
-		ctx.Error(500, "CreateOrUpdateIssueWatch", err)
-		return
-	}
-
-	ctx.Status(201)
+	setIssueSubscription(ctx, true)
 }
 
 // DelIssueSubscription Unsubscribe user from issue
@@ -122,6 +88,10 @@ func DelIssueSubscription(ctx *context.APIContext) {
 	//     description: User can only subscribe itself if he is no admin
 	//   "404":
 	//     description: Issue not found
+	setIssueSubscription(ctx, false)
+}
+
+func setIssueSubscription(ctx *context.APIContext, watch bool) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -150,7 +120,7 @@ func DelIssueSubscription(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.CreateOrUpdateIssueWatch(user.ID, issue.ID, false); err != nil {
+	if err := models.CreateOrUpdateIssueWatch(user.ID, issue.ID, watch); err != nil {
 		ctx.Error(500, "CreateOrUpdateIssueWatch", err)
 		return
 	}
@@ -159,7 +129,7 @@ func DelIssueSubscription(ctx *context.APIContext) {
 }
 
 // GetIssueSubscribers return subscribers of an issue
-func GetIssueSubscribers(ctx *context.APIContext, form api.User) {
+func GetIssueSubscribers(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/subscriptions issue issueSubscriptions
 	// ---
 	// summary: Get users who subscribed on an issue.
@@ -185,8 +155,8 @@ func GetIssueSubscribers(ctx *context.APIContext, form api.User) {
 	//   format: int64
 	//   required: true
 	// responses:
-	//   "201":
-	//     "$ref": "#/responses/empty"
+	//   "200":
+	//     "$ref": "#/responses/UserList"
 	//   "404":
 	//     description: Issue not found
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
