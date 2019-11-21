@@ -99,6 +99,7 @@ function initBranchSelector() {
   const $selectBranch = $('.ui.select-branch');
   const $branchMenu = $selectBranch.find('.reference-list-menu');
   $branchMenu.find('.item:not(.no-select)').click(function () {
+    let newValue = $selectBranch.find('.ui .branch-name').text();
     const selectedValue = $(this).data('id');
     const editMode = $('#editing_mode').val();
     $($(this).data('id-selector')).val(selectedValue);
@@ -111,10 +112,12 @@ function initBranchSelector() {
         _csrf: csrf,
         ref: selectedValue
       },
-      () => {
-        reload();
+      (data) => {
+        newValue = data.ref;
       });
     }
+
+    $selectBranch.find('.ui .branch-name').text(newValue);
   });
   $selectBranch.find('.reference.column').click(function () {
     $selectBranch.find('.scrolling.reference-list-menu').css('display', 'none');
