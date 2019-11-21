@@ -521,6 +521,44 @@ func (m *webhookNotifier) NotifyPushCommits(pusher *models.User, repo *models.Re
 	}
 }
 
+func (*webhookNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+	// Reload pull request information.
+	if err := pr.LoadAttributes(); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	if err := pr.Issue.LoadRepo(); err != nil {
+		log.Error("pr.Issue.LoadRepo: %v", err)
+		return
+	}
+
+	mode, err := models.AccessLevel(doer, pr.Issue.Repo)
+	if err != nil {
+		log.Error("models.AccessLevel: %v", err)
+		return
+	}
+
+	// Merge pull request calls issue.changeStatus so we need to handle separately.
+	apiPullRequest := &api.PullRequestPayload{
+		Index:       pr.Issue.Index,
+		PullRequest: pr.APIFormat(),
+		Repository:  pr.Issue.Repo.APIFormat(mode),
+		Sender:      doer.APIFormat(),
+		Action:      api.HookIssueClosed,
+	}
+
+	err = webhook_module.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, apiPullRequest)
+	if err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
 func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment) {
 	var reviewHookType models.HookEventType
 
