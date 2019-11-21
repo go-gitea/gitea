@@ -742,10 +742,6 @@ func (issue *Issue) ChangeRef(doer *User, oldRef string) (err error) {
 		return fmt.Errorf("updateIssueCols: %v", err)
 	}
 
-	if err = issue.loadRepo(sess); err != nil {
-		return fmt.Errorf("loadRepo: %v", err)
-	}
-
 	return sess.Commit()
 }
 
