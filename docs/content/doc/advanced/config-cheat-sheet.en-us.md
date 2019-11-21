@@ -594,7 +594,7 @@ REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
  - `ALLOW_ATTR`: The attribute this policy allows. Must be non-empty.
  - `REGEXP`: A regex to match the contents of the attribute against. Must be present but may be empty for unconditional whitelisting of this attribute.
 
-You may redefine `ELEMENTS`, `ALLOW_ATTRS`, and `REGEXP` multiple times; each time all three are defined is a single policy entry.
+You may redefine `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` multiple times; each time all three are defined is a single policy entry.
 
 ## Time (`time`)
 
