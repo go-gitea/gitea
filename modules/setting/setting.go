@@ -98,6 +98,7 @@ var (
 	LetsEncryptEmail     string
 	GracefulRestartable  bool
 	GracefulHammerTime   time.Duration
+	StartupTimeout       time.Duration
 	StaticURLPrefix      string
 
 	SSH = struct {
@@ -568,6 +569,7 @@ func NewContext() {
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
 	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
 	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
+	StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(0 * time.Second)
 
 	defaultAppURL := string(Protocol) + "://" + Domain
 	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {

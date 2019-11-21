@@ -44,7 +44,9 @@ func newGracefulManager() *gracefulManager {
 func (g *gracefulManager) Run() {
 	g.setState(stateRunning)
 	go g.handleSignals()
+	c := make(chan struct{})
 	go func() {
+		defer close(c)
 		// Wait till we're done getting all of the listeners and then close
 		// the unused ones
 		g.createServerWaitGroup.Wait()
@@ -52,6 +54,19 @@ func (g *gracefulManager) Run() {
 		// They're logged in the CloseProvidedListeners function
 		_ = CloseProvidedListeners()
 	}()
+	if setting.StartupTimeout > 0 {
+		go func() {
+			select {
+			case <-c:
+				return
+			case <-g.IsShutdown():
+				return
+			case <-time.After(setting.StartupTimeout):
+				log.Error("Startup took too long! Shutting down")
+				g.doShutdown()
+			}
+		}()
+	}
 }
 
 func (g *gracefulManager) handleSignals() {

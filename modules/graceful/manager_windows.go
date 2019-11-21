@@ -70,10 +70,14 @@ func (g *gracefulManager) Run() {
 
 // Execute makes gracefulManager implement svc.Handler
 func (g *gracefulManager) Execute(args []string, changes <-chan svc.ChangeRequest, status chan<- svc.Status) (svcSpecificEC bool, exitCode uint32) {
-	status <- svc.Status{State: svc.StartPending}
+	if setting.StartupTimeout > 0 {
+		status <- svc.Status{State: svc.StartPending}
+	} else {
+		status <- svc.Status{State: svc.StartPending, WaitHint: uint32(setting.StartupTimeout/time.Millisecond)}
+	}
 
 	// Now need to wait for everything to start...
-	if !g.awaitServer(10 * time.Second) {
+	if !g.awaitServer(setting.StartupTimeout) {
 		return false, 1
 	}
 
@@ -138,10 +142,21 @@ func (g *gracefulManager) awaitServer(limit time.Duration) bool {
 		defer close(c)
 		g.createServerWaitGroup.Wait()
 	}()
-	select {
-	case <-c:
-		return true // completed normally
-	case <-time.After(limit):
-		return false // timed out
+	if limit > 0 {
+		select {
+		case <-c:
+			return true // completed normally
+		case <-time.After(limit):
+			return false // timed out
+		case <-g.IsShutdown():
+			return false
+		}
+	} else {
+		select {
+		case <-c:
+			return true // completed normally
+		case <-g.IsShutdown():
+			return false
+		}
 	}
 }
