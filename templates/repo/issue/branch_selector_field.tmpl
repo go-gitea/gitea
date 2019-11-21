@@ -1,8 +1,7 @@
 {{if and (not .Issue.IsPull) (not .PageIsComparePull)}}
 <input id="ref_selector" name="ref" type="hidden" value="{{.Issue.Ref}}">
-<input id="editing_mode" name="edit_mode" type="hidden" value="{{.IsIssueWriter}}">
+<input id="editing_mode" name="edit_mode" type="hidden" value="{{(or .IsIssueWriter .IsIssuePoster)}}">
 <form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/ref" id="update_issueref_form">
-	<input id="api_endpoint" name="api_endpoint" type="hidden" value="{{$.RepoLink}}/issues/{{.Issue.Index}}/title">
 	{{$.CsrfTokenHtml}}
 </form>
 
