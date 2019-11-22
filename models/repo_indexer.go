@@ -84,7 +84,7 @@ func InitRepoIndexer() {
 	if setting.Indexer.StartupTimeout > 0 {
 		go func() {
 			timeout := setting.Indexer.StartupTimeout
-			if graceful.IsChild && setting.GracefulHammerTime > 0 {
+			if graceful.Manager.IsChild() && setting.GracefulHammerTime > 0 {
 				timeout += setting.GracefulHammerTime
 			}
 			select {
