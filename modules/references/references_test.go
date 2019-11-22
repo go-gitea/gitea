@@ -22,7 +22,7 @@ type testResult struct {
 	Owner          string
 	Name           string
 	Issue          string
-	Local          bool
+	IsPull         bool
 	Action         XRefAction
 	RefLocation    *RefSpan
 	ActionLocation *RefSpan
@@ -203,7 +203,7 @@ func testFixtures(t *testing.T, fixtures []testFixture, context string) {
 				index:          e.Index,
 				owner:          e.Owner,
 				name:           e.Name,
-				local:          e.Local,
+				isPull:         e.IsPull,
 				action:         e.Action,
 				issue:          e.Issue,
 				refLocation:    e.RefLocation,

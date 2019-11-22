@@ -66,11 +66,14 @@ type IssueReference struct {
 }
 
 // RenderizableReference contains an unverified cross-reference to with rendering information
+// The IsPull member means that a `!num` reference was used instead of `#num`.
+// This kind of reference is used to make pulls available when an external issue tracker
+// is used. Otherwise, `#` and `!` are completely interchangeable.
 type RenderizableReference struct {
 	Issue          string
 	Owner          string
 	Name           string
-	Local          bool
+	IsPull         bool
 	RefLocation    *RefSpan
 	Action         XRefAction
 	ActionLocation *RefSpan
@@ -80,7 +83,7 @@ type rawReference struct {
 	index          int64
 	owner          string
 	name           string
-	local          bool
+	isPull         bool
 	action         XRefAction
 	issue          string
 	refLocation    *RefSpan
@@ -204,14 +207,14 @@ func FindAllIssueReferences(content string) []IssueReference {
 }
 
 // FindRenderizableReferenceNumeric returns the first unvalidated reference found in a string.
-func FindRenderizableReferenceNumeric(content string, localOnly bool) (bool, *RenderizableReference) {
+func FindRenderizableReferenceNumeric(content string, prOnly bool) (bool, *RenderizableReference) {
 	match := issueNumericPattern.FindStringSubmatchIndex(content)
 	if match == nil {
 		if match = crossReferenceIssueNumericPattern.FindStringSubmatchIndex(content); match == nil {
 			return false, nil
 		}
 	}
-	r := getCrossReference([]byte(content), match[2], match[3], false, localOnly)
+	r := getCrossReference([]byte(content), match[2], match[3], false, prOnly)
 	if r == nil {
 		return false, nil
 	}
@@ -220,7 +223,7 @@ func FindRenderizableReferenceNumeric(content string, localOnly bool) (bool, *Re
 		Issue:          r.issue,
 		Owner:          r.owner,
 		Name:           r.name,
-		Local:          r.local,
+		IsPull:         r.isPull,
 		RefLocation:    r.refLocation,
 		Action:         r.action,
 		ActionLocation: r.actionLocation,
@@ -241,7 +244,7 @@ func FindRenderizableReferenceAlphanumeric(content string) (bool, *RenderizableR
 		RefLocation:    &RefSpan{Start: match[2], End: match[3]},
 		Action:         action,
 		ActionLocation: location,
-		Local:          false,
+		IsPull:         false,
 	}
 }
 
@@ -279,10 +282,8 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 			}
 			var sep string
 			if parts[3] == "issues" {
-				// Issues can be external
 				sep = "#"
 			} else if parts[3] == "pulls" {
-				// PRs are always local
 				sep = "!"
 			} else {
 				continue
@@ -299,14 +300,14 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 	return ret
 }
 
-func getCrossReference(content []byte, start, end int, fromLink bool, localOnly bool) *rawReference {
+func getCrossReference(content []byte, start, end int, fromLink bool, prOnly bool) *rawReference {
 	refid := string(content[start:end])
 	sep := strings.IndexAny(refid, "#!")
 	if sep < 0 {
 		return nil
 	}
-	local := refid[sep] == '!'
-	if localOnly && !local {
+	isPull := refid[sep] == '!'
+	if prOnly && !isPull {
 		return nil
 	}
 	repo := refid[:sep]
@@ -325,7 +326,7 @@ func getCrossReference(content []byte, start, end int, fromLink bool, localOnly 
 			index:          index,
 			action:         action,
 			issue:          issue,
-			local:          local,
+			isPull:         isPull,
 			refLocation:    &RefSpan{Start: start, End: end},
 			actionLocation: location,
 		}
@@ -345,7 +346,7 @@ func getCrossReference(content []byte, start, end int, fromLink bool, localOnly 
 		name:           name,
 		action:         action,
 		issue:          issue,
-		local:          local,
+		isPull:         isPull,
 		refLocation:    &RefSpan{Start: start, End: end},
 		actionLocation: location,
 	}
@@ -371,8 +372,8 @@ func findActionKeywords(content []byte, start int) (XRefAction, *RefSpan) {
 
 // IsXrefActionable returns true if the xref action is actionable (i.e. produces a result when resolved)
 func IsXrefActionable(ref *RenderizableReference, extTracker bool, alphaNum bool) bool {
-	// External references cannot be automatically closed
-	if extTracker && !ref.Local {
+	if extTracker {
+		// External issues cannot be automatically closed
 		return false
 	}
 	return ref.Action == XRefActionCloses || ref.Action == XRefActionReopens

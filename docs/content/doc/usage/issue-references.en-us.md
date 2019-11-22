@@ -79,6 +79,14 @@ using the form `owner/repository#1234`:
 
 > This seems related to [mike/compiler#1234](#)
 
+Alternatively, the `!1234` notation can be used as well. Even when in Gitea
+a pull request is a form of issue, the `#1234` form will always link to
+an issue; if the linked entry happens to be a pull request instead, Gitea
+will redirect as appropriate. With the `!1234` notation, a pull request
+link will be created, which will be redirected to an issue if required.
+However, this distinction could be important if an external tracker is
+used, where links to issues and pull requests are not interchangeable.
+
 ## Actionable References in Pull Requests and Commit Messages
 
 Sometimes a commit or pull request may fix or bring back a problem documented
@@ -145,13 +153,14 @@ for this case, where a distinction is required.
 | `UserZ/RepoZ#1234`        |    N/A                    |     no                    | A link to issue/pull 1234 in `UserZ/RepoZ` |
 | `UserZ/RepoZ!1234`        |    N/A                    |     no                    | A link to issue/pull 1234 in `UserZ/RepoZ` |
 | N/A                       |    N/A                    |    yes                    | A link to _external issue_ 1234 for `UserZ/RepoZ` |
-| N/A                       |    N/A                    |    yes                    | A link to _PR_ 1234 for `UserZ/RepoZ` |
+| `UserZ/RepoZ!1234`        |    N/A                    |    yes                    | A link to _PR_ 1234 for `UserZ/RepoZ` |
 | **Alphanumeric issue IDs:** | -                       | -                         | - |
 | `AAA-1234`                |    yes                    |    N/A                    | A link to _external issue_ `AAA-1234` for `User1/Repo1` |
 | `!1234`                   |    yes                    |    N/A                    | A link to _PR_ 1234 for `User1/Repo1` |
 | `User1/Repo1!1234`        |    yes                    |    N/A                    | A link to _PR_ 1234 for `User1/Repo1` |
 | N/A                       |    N/A                    |    yes                    | A link to _external issue_ `AAA-1234` for `UserZ/RepoZ` |
-| N/A                       |    N/A                    |    yes                    | A link to _PR_ 1234 in `UserZ/RepoZ` |
+| `UserZ/RepoZ!1234`        |    N/A                    |    yes                    | A link to _PR_ 1234 in `UserZ/RepoZ` |
 
 _The last section is for repositories with external issue trackers that use alphanumeric format._
 
+Note: automatic references between repositories with different types of issues (external vs. internal) are not fully supported and may render invalid links.

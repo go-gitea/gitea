@@ -654,13 +654,22 @@ func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
 
 	var link *html.Node
 	reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
-	if exttrack && !ref.Local {
+	if exttrack && !ref.IsPull {
 		ctx.metas["index"] = ref.Issue
 		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), reftext, "issue")
-	} else if ref.Owner == "" {
-		link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "issues", ref.Issue), reftext, "issue")
 	} else {
-		link = createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, "issues", ref.Issue), reftext, "issue")
+		// Path determines the type of link that will be rendered. It's unknown at this point whether
+		// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
+		// Gitea will redirect on click as appropriate.
+		path := "issues"
+		if ref.IsPull {
+			path = "pulls"
+		}
+		if ref.Owner == "" {
+			link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], path, ref.Issue), reftext, "issue")
+		} else {
+			link = createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, path, ref.Issue), reftext, "issue")
+		}
 	}
 
 	if ref.Action == references.XRefActionNone {
