@@ -227,7 +227,8 @@ func runWeb(ctx *cli.Context) error {
 		log.Critical("Failed to start server: %v", err)
 	}
 	log.Info("HTTP Listener: %s Closed", listenAddr)
-	graceful.WaitForServers()
+	graceful.Manager.WaitForServers()
+	graceful.Manager.WaitForTerminate()
 	log.Close()
 	return nil
 }
