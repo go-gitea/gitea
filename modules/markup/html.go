@@ -440,8 +440,8 @@ func mentionProcessor(ctx *postProcessCtx, node *html.Node) {
 	}
 	mention := node.Data[loc.Start:loc.End]
 	var teams string
-	teams, _ = ctx.metas["teams"]
-	if strings.Contains(teams, ","+strings.ToLower(mention[1:])+",") {
+	teams, ok := ctx.metas["teams"]
+	if ok && strings.Contains(teams, ","+strings.ToLower(mention[1:])+",") {
 		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, "org", ctx.metas["org"], "teams", mention[1:]), mention, "mention"))
 	} else {
 		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
