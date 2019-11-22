@@ -27,7 +27,7 @@ for them to be recognized. For example, they should not be included inside code
 text. They should also be reasonably cleared from their surrounding text
 (for example, using spaces).
 
-## User Mentions
+## User, Team and Organization Mentions
 
 When a text in the form `@username` is found and `username` matches the name
 of an existing user, a _mention_ reference is created. This will be shown
@@ -38,6 +38,14 @@ the necessary permission to access the contents.
 Example:
 
 > [@John](#), can you give this a look?
+
+This is also valid for teams and organizations:
+
+> [@Documenters](#), we need to plan for this.
+
+> [@CoolCompanyInc](#), this issue concerns us all!
+
+Teams will receive mail notifications when appropriate, but whole organizations won't.
 
 Commit messages do not produce user notifications.
 
