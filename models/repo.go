@@ -173,8 +173,8 @@ type Repository struct {
 	*Mirror    `xorm:"-"`
 	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
-	ExternalMetas map[string]string `xorm:"-"`
-	Units         []*RepoUnit       `xorm:"-"`
+	RenderingMetas map[string]string `xorm:"-"`
+	Units          []*RepoUnit       `xorm:"-"`
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
@@ -559,27 +559,39 @@ func (repo *Repository) mustOwnerName(e Engine) string {
 
 // ComposeMetas composes a map of metas for properly rendering issue links and external issue trackers.
 func (repo *Repository) ComposeMetas() map[string]string {
-	if repo.ExternalMetas == nil {
-		repo.ExternalMetas = map[string]string{
+	if repo.RenderingMetas == nil {
+		metas := map[string]string{
 			"user":     repo.MustOwner().Name,
 			"repo":     repo.Name,
 			"repoPath": repo.RepoPath(),
 		}
+
 		unit, err := repo.GetUnit(UnitTypeExternalTracker)
-		if err != nil {
-			return repo.ExternalMetas
+		if err == nil {
+			metas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
+			switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
+			case markup.IssueNameStyleAlphanumeric:
+				metas["style"] = markup.IssueNameStyleAlphanumeric
+			default:
+				metas["style"] = markup.IssueNameStyleNumeric
+			}
 		}
 
-		repo.ExternalMetas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
-		switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
-		case markup.IssueNameStyleAlphanumeric:
-			repo.ExternalMetas["style"] = markup.IssueNameStyleAlphanumeric
-		default:
-			repo.ExternalMetas["style"] = markup.IssueNameStyleNumeric
+		if repo.Owner.IsOrganization() {
+			teams := make([]string, 0, 5)
+			_ = x.Table("team_repo").
+				Join("INNER", "team", "team.id = team_repo.team_id").
+				Where("team_repo.repo_id = ?", repo.ID).
+				Select("team.lower_name").
+				OrderBy("team.lower_name").
+				Find(&teams)
+			metas["teams"] = "," + strings.Join(teams, ",") + ","
+			metas["org"] = repo.Owner.LowerName
 		}
 
+		repo.RenderingMetas = metas
 	}
-	return repo.ExternalMetas
+	return repo.RenderingMetas
 }
 
 // DeleteWiki removes the actual and local copy of repository wiki.
