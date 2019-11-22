@@ -42,7 +42,6 @@ import (
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 var repoWorkingPool = sync.NewExclusivePool()
@@ -1483,7 +1482,7 @@ func IsUsableRepoName(name string) error {
 	return isUsableName(reservedRepoNames, reservedRepoPatterns, name)
 }
 
-func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err error) {
+func createRepository(e Engine, doer, u *User, repo *Repository) (err error) {
 	if err = IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}

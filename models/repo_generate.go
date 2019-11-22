@@ -49,7 +49,7 @@ func generateRepository(e Engine, repo, templateRepo *Repository) (err error) {
 }
 
 // GenerateRepository generates a repository from a template
-func GenerateRepository(doer, owner *User, templateRepo *Repository, opts GenerateRepoOptions) (_ *Repository, err error) {
+func GenerateRepository(ctx DBContext, doer, owner *User, templateRepo *Repository, opts GenerateRepoOptions) (_ *Repository, err error) {
 	generateRepo := &Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,
@@ -62,13 +62,7 @@ func GenerateRepository(doer, owner *User, templateRepo *Repository, opts Genera
 		TemplateID:    templateRepo.ID,
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return nil, err
-	}
-
-	if err = createRepository(sess, doer, owner, generateRepo); err != nil {
+	if err = createRepository(ctx.e, doer, owner, generateRepo); err != nil {
 		return nil, err
 	}
 
@@ -77,7 +71,7 @@ func GenerateRepository(doer, owner *User, templateRepo *Repository, opts Genera
 		return generateRepo, err
 	}
 
-	return generateRepo, sess.Commit()
+	return generateRepo, nil
 }
 
 // GenerateGitContent generates git content from a template repository

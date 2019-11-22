@@ -12,7 +12,12 @@ import (
 
 // GenerateRepository generates a repository from a template
 func GenerateRepository(doer, owner *models.User, templateRepo *models.Repository, opts models.GenerateRepoOptions) (*models.Repository, error) {
-	generateRepo, err := models.GenerateRepository(doer, owner, templateRepo, opts)
+	ctx, sess, err := models.TxDBContext()
+	if err != nil {
+		return nil, err
+	}
+
+	generateRepo, err := models.GenerateRepository(ctx, doer, owner, templateRepo, opts)
 	if err != nil {
 		if generateRepo != nil {
 			if errDelete := models.DeleteRepository(doer, owner.ID, generateRepo.ID); errDelete != nil {
@@ -20,11 +25,6 @@ func GenerateRepository(doer, owner *models.User, templateRepo *models.Repositor
 			}
 		}
 		return nil, err
-	}
-
-	ctx, sess, err := models.TxDBContext()
-	if err != nil {
-		return generateRepo, err
 	}
 
 	// Git Content
@@ -55,7 +55,11 @@ func GenerateRepository(doer, owner *models.User, templateRepo *models.Repositor
 		}
 	}
 
+	if err := sess.Commit(); err != nil {
+		return generateRepo, err
+	}
+
 	notification.NotifyCreateRepository(doer, owner, generateRepo)
 
-	return generateRepo, sess.Commit()
+	return generateRepo, nil
 }
