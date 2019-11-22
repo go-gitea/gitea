@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 )
@@ -189,5 +190,19 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 
 	if err := models.NotifyWatchersActions(actions); err != nil {
 		log.Error("notify watchers '%d/%d': %v", review.Reviewer.ID, review.Issue.RepoID, err)
+	}
+}
+
+func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    models.ActionMergePullRequest,
+		Content:   fmt.Sprintf("%d|%s", pr.Issue.Index, pr.Issue.Title),
+		RepoID:    pr.Issue.Repo.ID,
+		Repo:      pr.Issue.Repo,
+		IsPrivate: pr.Issue.Repo.IsPrivate,
+	}); err != nil {
+		log.Error("NotifyWatchers [%d]: %v", pr.ID, err)
 	}
 }

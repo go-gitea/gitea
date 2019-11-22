@@ -25,14 +25,15 @@ globals:
   Vue: false
 
 rules:
+  arrow-body-style: [0]
   camelcase: [0]
   comma-dangle: [2, only-multiline]
   consistent-return: [0]
   default-case: [0]
   func-names: [0]
+  import/extensions: [0]
   max-len: [0]
   newline-per-chained-call: [0]
-  arrow-body-style: [0]
   no-alert: [0]
   no-continue: [0]
   no-mixed-operators: [0]

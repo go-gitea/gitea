@@ -277,11 +277,56 @@ func HTTP(ctx *context.Context) {
 		}
 	}
 
-	HTTPBackend(ctx, &serviceConfig{
+	w := ctx.Resp
+	r := ctx.Req.Request
+	cfg := &serviceConfig{
 		UploadPack:  true,
 		ReceivePack: true,
 		Env:         environ,
-	})(ctx.Resp, ctx.Req.Request)
+	}
+
+	for _, route := range routes {
+		r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
+		if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
+			if setting.Repository.DisableHTTPGit {
+				w.WriteHeader(http.StatusForbidden)
+				_, err := w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
+				if err != nil {
+					log.Error(err.Error())
+				}
+				return
+			}
+			if route.method != r.Method {
+				if r.Proto == "HTTP/1.1" {
+					w.WriteHeader(http.StatusMethodNotAllowed)
+					_, err := w.Write([]byte("Method Not Allowed"))
+					if err != nil {
+						log.Error(err.Error())
+					}
+				} else {
+					w.WriteHeader(http.StatusBadRequest)
+					_, err := w.Write([]byte("Bad Request"))
+					if err != nil {
+						log.Error(err.Error())
+					}
+				}
+				return
+			}
+
+			file := strings.Replace(r.URL.Path, m[1]+"/", "", 1)
+			dir, err := getGitRepoPath(m[1])
+			if err != nil {
+				log.Error(err.Error())
+				ctx.NotFound("Smart Git HTTP", err)
+				return
+			}
+
+			route.handler(serviceHandler{cfg, w, r, dir, file, cfg.Env})
+			return
+		}
+	}
+
+	ctx.NotFound("Smart Git HTTP", nil)
 }
 
 type serviceConfig struct {
@@ -521,52 +566,4 @@ func getGitRepoPath(subdir string) (string, error) {
 	}
 
 	return fpath, nil
-}
-
-// HTTPBackend middleware for git smart HTTP protocol
-func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		for _, route := range routes {
-			r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
-			if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
-				if setting.Repository.DisableHTTPGit {
-					w.WriteHeader(http.StatusForbidden)
-					_, err := w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
-					if err != nil {
-						log.Error(err.Error())
-					}
-					return
-				}
-				if route.method != r.Method {
-					if r.Proto == "HTTP/1.1" {
-						w.WriteHeader(http.StatusMethodNotAllowed)
-						_, err := w.Write([]byte("Method Not Allowed"))
-						if err != nil {
-							log.Error(err.Error())
-						}
-					} else {
-						w.WriteHeader(http.StatusBadRequest)
-						_, err := w.Write([]byte("Bad Request"))
-						if err != nil {
-							log.Error(err.Error())
-						}
-					}
-					return
-				}
-
-				file := strings.Replace(r.URL.Path, m[1]+"/", "", 1)
-				dir, err := getGitRepoPath(m[1])
-				if err != nil {
-					log.Error(err.Error())
-					ctx.NotFound("HTTPBackend", err)
-					return
-				}
-
-				route.handler(serviceHandler{cfg, w, r, dir, file, cfg.Env})
-				return
-			}
-		}
-
-		ctx.NotFound("HTTPBackend", nil)
-	}
 }
