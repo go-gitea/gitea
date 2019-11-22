@@ -78,6 +78,7 @@ require (
 	github.com/pquerna/otp v0.0.0-20160912161815-54653902c20e
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/procfs v0.0.4 // indirect
+	github.com/quasoft/websspi v1.0.0
 	github.com/remyoudompheng/bigfft v0.0.0-20190321074620-2f0d2b0e0001 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
@@ -101,7 +102,7 @@ require (
 	golang.org/x/crypto v0.0.0-20191117063200-497ca9f6d64f
 	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	golang.org/x/sys v0.0.0-20190910064555-bbd175535a8b
+	golang.org/x/sys v0.0.0-20191010194322-b09406accb47
 	golang.org/x/text v0.3.2
 	golang.org/x/tools v0.0.0-20190910221609-7f5965fd7709 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
