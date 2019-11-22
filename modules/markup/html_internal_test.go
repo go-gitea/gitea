@@ -95,21 +95,24 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 
 	// numeric: render inputs with valid mentions
 	test := func(s, expectedFmt, marker string, indices ...int) {
+		var path, prefix string
+		if marker == "!" {
+			path = "pulls"
+			prefix = "http://localhost:3000/someUser/someRepo/pulls/"
+		} else {
+			path = "issues"
+			prefix = "https://someurl.com/someUser/someRepo/"
+		}
+
 		links := make([]interface{}, len(indices))
 		for i, index := range indices {
-			links[i] = numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), "issue", index, marker)
+			links[i] = numericIssueLink(util.URLJoin(setting.AppSubURL, path), "issue", index, marker)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNil, &postProcessCtx{metas: localMetas})
 
-		if marker == "#" {
-			for i, index := range indices {
-				links[i] = numericIssueLink("https://someurl.com/someUser/someRepo/", "issue", index, marker)
-			}
-		} else {
-			for i, index := range indices {
-				links[i] = numericIssueLink("http://localhost:3000/someUser/someRepo/issues/", "issue", index, marker)
-			}
+		for i, index := range indices {
+			links[i] = numericIssueLink(prefix, "issue", index, marker)
 		}
 		expectedNum := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNum, &postProcessCtx{metas: numericMetas})
