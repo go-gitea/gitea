@@ -779,6 +779,7 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 	return comment, nil
 }
 
+// CreateCommentWithNoAction creates comment of issue or commit with no action created
 func CreateCommentWithNoAction(opts *CreateCommentOptions) (comment *Comment, err error) {
 	sess := x.NewSession()
 	defer sess.Close()
