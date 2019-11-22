@@ -177,7 +177,7 @@ func parseSSPIConfig(ctx *context.Context, form auth.AuthenticationForm) (*model
 		return nil, errors.New(ctx.Tr("form.SSPISeparatorReplacement") + ctx.Tr("form.alpha_dash_dot_error"))
 	}
 
-	if !util.IsEmptyString(form.SSPIDefaultLanguage) && !langCodePattern.MatchString(form.SSPIDefaultLanguage) {
+	if form.SSPIDefaultLanguage != "" && !langCodePattern.MatchString(form.SSPIDefaultLanguage) {
 		ctx.Data["Err_SSPIDefaultLanguage"] = true
 		return nil, errors.New(ctx.Tr("form.lang_select_error"))
 	}
