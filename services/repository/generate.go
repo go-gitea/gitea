@@ -24,34 +24,34 @@ func GenerateRepository(doer, owner *models.User, templateRepo *models.Repositor
 
 	ctx, sess, err := models.TxDBContext()
 	if err != nil {
-		return generateRepo, nil
+		return generateRepo, err
 	}
 
 	// Git Content
 	if opts.GitContent && !templateRepo.IsEmpty {
 		if err := models.GenerateGitContent(ctx, templateRepo, generateRepo); err != nil {
-			return generateRepo, nil
+			return generateRepo, err
 		}
 	}
 
 	// Topics
 	if opts.Topics {
 		if err := models.GenerateTopics(ctx, templateRepo, generateRepo); err != nil {
-			return generateRepo, nil
+			return generateRepo, err
 		}
 	}
 
 	// Git Hooks
 	if opts.GitHooks {
 		if err := models.GenerateGitHooks(ctx, templateRepo, generateRepo); err != nil {
-			return generateRepo, nil
+			return generateRepo, err
 		}
 	}
 
 	// Webhooks
 	if opts.Webhooks {
 		if err := models.GenerateWebhooks(ctx, templateRepo, generateRepo); err != nil {
-			return generateRepo, nil
+			return generateRepo, err
 		}
 	}
 
