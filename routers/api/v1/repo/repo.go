@@ -446,7 +446,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	repo, err := models.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
 		Name:        opts.RepoName,
 		Description: opts.Description,
-		OriginalURL: opts.CloneAddr,
+		OriginalURL: form.CloneAddr,
 		IsPrivate:   opts.Private,
 		IsMirror:    opts.Mirror,
 		Status:      models.RepositoryBeingMigrated,
