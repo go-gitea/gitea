@@ -143,7 +143,7 @@ for this case, where a distinction is required.
 | `!1234`                   |    yes                    |    N/A                    | A link to _PR_ 1234 for `User1/Repo1` |
 | `User1/Repo1!1234`        |    yes                    |    N/A                    | A link to _PR_ 1234 for `User1/Repo1` |
 | N/A                       |    N/A                    |    yes                    | A link to _external issue_ `AAA-1234` for `UserZ/RepoZ` |
-| `UserZ/RepoZ!1234`        |    N/A                    |    yes                    | A link to _PR_ 1234 in `UserZ/RepoZ` |
+| N/A                       |    N/A                    |    yes                    | A link to _PR_ 1234 in `UserZ/RepoZ` |
 
 _The last section is for repositories with external issue trackers that use alphanumeric format._
 
