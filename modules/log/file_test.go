@@ -24,7 +24,7 @@ func TestFileLoggerFails(t *testing.T) {
 
 	prefix := "TestPrefix "
 	level := INFO
-	flags := LstdFlags | LUTC | Lfuncname
+	flags := Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial | LUTC | Lfuncname
 	//filename := filepath.Join(tmpDir, "test.log")
 
 	fileLogger := NewFileLogger()
@@ -52,7 +52,7 @@ func TestFileLogger(t *testing.T) {
 
 	prefix := "TestPrefix "
 	level := INFO
-	flags := LstdFlags | LUTC | Lfuncname
+	flags := Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial | LUTC | Lfuncname
 	filename := filepath.Join(tmpDir, "test.log")
 
 	fileLogger := NewFileLogger()
@@ -155,7 +155,7 @@ func TestCompressFileLogger(t *testing.T) {
 
 	prefix := "TestPrefix "
 	level := INFO
-	flags := LstdFlags | LUTC | Lfuncname
+	flags := Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial | LUTC | Lfuncname
 	filename := filepath.Join(tmpDir, "test.log")
 
 	fileLogger := NewFileLogger()

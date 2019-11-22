@@ -17,7 +17,7 @@ import (
 func TestSMTPLogger(t *testing.T) {
 	prefix := "TestPrefix "
 	level := INFO
-	flags := LstdFlags | LUTC | Lfuncname
+	flags := Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial | LUTC | Lfuncname
 	username := "testuser"
 	password := "testpassword"
 	host := "testhost"

@@ -40,7 +40,7 @@ func TestConnLogger(t *testing.T) {
 
 	prefix := "TestPrefix "
 	level := INFO
-	flags := LstdFlags | LUTC | Lfuncname
+	flags := Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial | LUTC | Lfuncname
 
 	logger := NewConn()
 	connLogger := logger.(*ConnLogger)
@@ -112,7 +112,7 @@ func TestConnLoggerCloseBeforeSend(t *testing.T) {
 
 	prefix := "TestPrefix "
 	level := INFO
-	flags := LstdFlags | LUTC | Lfuncname
+	flags := Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial | LUTC | Lfuncname
 
 	logger := NewConn()
 
@@ -126,7 +126,7 @@ func TestConnLoggerFailConnect(t *testing.T) {
 
 	prefix := "TestPrefix "
 	level := INFO
-	flags := LstdFlags | LUTC | Lfuncname
+	flags := Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial | LUTC | Lfuncname
 
 	logger := NewConn()
 
@@ -169,7 +169,7 @@ func TestConnLoggerClose(t *testing.T) {
 
 	prefix := "TestPrefix "
 	level := INFO
-	flags := LstdFlags | LUTC | Lfuncname
+	flags := Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial | LUTC | Lfuncname
 
 	logger := NewConn()
 	connLogger := logger.(*ConnLogger)

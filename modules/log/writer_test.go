@@ -41,7 +41,7 @@ func TestBaseLogger(t *testing.T) {
 	b := WriterLogger{
 		out:    c,
 		Level:  INFO,
-		Flags:  LstdFlags | LUTC,
+		Flags:  Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial | LUTC,
 		Prefix: prefix,
 	}
 	location, _ := time.LoadLocation("EST")

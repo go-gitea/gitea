@@ -31,7 +31,7 @@ const (
 	Lmedfile = Lshortfile | Llongfile
 
 	// LstdFlags is the initial value for the standard logger
-	LstdFlags = Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial
+	LstdFlags = Ldate | Ltime | Llevelinitial
 )
 
 var flagFromString = map[string]int{
