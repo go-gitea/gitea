@@ -27,7 +27,7 @@ import (
 //
 // The Session plugin is expected to be executed second, in order to skip authentication
 // for users that have already signed in.
-var ssoMethods []SingleSignOn = []SingleSignOn{
+var ssoMethods = []SingleSignOn{
 	&OAuth2{},
 	&Session{},
 	&ReverseProxy{},
