@@ -42,14 +42,19 @@ type Release struct {
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
 }
 
-func (r *Release) loadAttributes(e Engine) error {
-	var err error
+func (r *Release) loadRepo(e Engine) (err error) {
 	if r.Repo == nil {
-		r.Repo, err = GetRepositoryByID(r.RepoID)
-		if err != nil {
-			return err
-		}
+		r.Repo, err = getRepositoryByID(e, r.RepoID)
 	}
+	return
+}
+
+func (r *Release) loadAttributes(e Engine) error {
+	if err := r.loadRepo(e); err != nil {
+		return err
+	}
+
+	var err error
 	if r.Publisher == nil {
 		r.Publisher, err = getUserByID(e, r.PublisherID)
 		if err != nil {
@@ -151,8 +156,12 @@ func GetRelease(repoID int64, tagName string) (*Release, error) {
 
 // GetReleaseByID returns release with given ID.
 func GetReleaseByID(id int64) (*Release, error) {
+	return getReleaseByID(x, id)
+}
+
+func getReleaseByID(e Engine, id int64) (*Release, error) {
 	rel := new(Release)
-	has, err := x.
+	has, err := e.
 		ID(id).
 		Get(rel)
 	if err != nil {

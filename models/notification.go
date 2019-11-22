@@ -5,6 +5,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"path"
 
@@ -16,12 +17,8 @@ import (
 	"xorm.io/xorm"
 )
 
-type (
-	// NotificationStatus is the status of the notification (read or unread)
-	NotificationStatus uint8
-	// NotificationSource is the source of the notification (issue, PR, commit, etc)
-	NotificationSource uint8
-)
+// NotificationStatus is the status of the notification (read or unread)
+type NotificationStatus uint8
 
 const (
 	// NotificationStatusUnread represents an unread notification
@@ -32,6 +29,9 @@ const (
 	NotificationStatusPinned
 )
 
+// NotificationSource is the source of the notification (issue, PR, commit, etc)
+type NotificationSource uint8
+
 const (
 	// NotificationSourceIssue is a notification of an issue
 	NotificationSourceIssue NotificationSource = iota + 1
@@ -39,6 +39,24 @@ const (
 	NotificationSourcePullRequest
 	// NotificationSourceCommit is a notification of a commit
 	NotificationSourceCommit
+	// NotificationSourceRelease is a notifiation of a release
+	NotificationSourceRelease
+)
+
+// NotificationBy is the reason why user is notified.
+type NotificationBy uint8
+
+const (
+	// NotificationByWatchRepo reprensents notification according to
+	NotificationByWatchRepo NotificationBy = iota + 1
+	// NotificationBySubcribeIssue represents notification because subscribe to issue
+	NotificationBySubcribeIssue
+	// NotificationByMentioned represents notification because being mentioned on issue or comment
+	NotificationByMentioned
+	// NotificationByParticipated represents notification because participated in an issue
+	NotificationByParticipated
+	// NotificationByAssigne represents notification because being assignee
+	NotificationByAssigne
 )
 
 // Notification represents a notification
@@ -49,10 +67,12 @@ type Notification struct {
 
 	Status NotificationStatus `xorm:"SMALLINT INDEX NOT NULL"`
 	Source NotificationSource `xorm:"SMALLINT INDEX NOT NULL"`
+	By     NotificationBy     `xorm:"SMALLINT INDEX NOT NULL"`
 
 	IssueID   int64  `xorm:"INDEX NOT NULL"`
 	CommitID  string `xorm:"INDEX"`
 	CommentID int64
+	ReleaseID int64
 
 	UpdatedBy int64 `xorm:"INDEX NOT NULL"`
 
@@ -71,6 +91,7 @@ type FindNotificationOptions struct {
 	UserID            int64
 	RepoID            int64
 	IssueID           int64
+	ReleaseID         int64
 	Status            []NotificationStatus
 	UpdatedAfterUnix  int64
 	UpdatedBeforeUnix int64
@@ -119,48 +140,65 @@ func GetNotifications(opts FindNotificationOptions) (NotificationList, error) {
 	return getNotifications(x, opts)
 }
 
-// CreateOrUpdateIssueNotifications creates an issue notification
+// NotificationOpts represents notification options
+type NotificationOpts struct {
+	IssueID              int64
+	CommentID            int64
+	ReleaseID            int64
+	NotificationAuthorID int64
+	ReceiverID           int64 // 0 -- ALL Watcher
+}
+
+// CreateOrUpdateNotifications creates an issue notification
 // for each watcher, or updates it if already exists
 // receiverID > 0 just send to reciver, else send to all watcher
-func CreateOrUpdateIssueNotifications(issueID, commentID, notificationAuthorID, receiverID int64) error {
+func CreateOrUpdateNotifications(opts *NotificationOpts) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err := createOrUpdateIssueNotifications(sess, issueID, commentID, notificationAuthorID, receiverID); err != nil {
+	if err := createOrUpdateNotifications(sess, opts); err != nil {
 		return err
 	}
 
 	return sess.Commit()
 }
 
-func createOrUpdateIssueNotifications(e Engine, issueID, commentID, notificationAuthorID, receiverID int64) error {
+func createOrUpdateNotifications(e Engine, opts *NotificationOpts) error {
+	if opts.IssueID > 0 {
+		return createOrUpdateIssueNotifications(e, opts)
+	} else if opts.ReleaseID > 0 {
+		return createOrUpdateReleaseNotifications(e, opts)
+	}
+	return errors.New("Unknow notification type")
+}
+
+func createOrUpdateIssueNotifications(e Engine, opts *NotificationOpts) error {
 	// init
-	var toNotify map[int64]struct{}
-	notifications, err := getNotificationsByIssueID(e, issueID)
-
+	var toNotify map[int64]NotificationBy
+	notifications, err := getNotificationsByIssueID(e, opts.IssueID)
 	if err != nil {
 		return err
 	}
 
-	issue, err := getIssueByID(e, issueID)
+	issue, err := getIssueByID(e, opts.IssueID)
 	if err != nil {
 		return err
 	}
 
-	if receiverID > 0 {
-		toNotify = make(map[int64]struct{}, 1)
-		toNotify[receiverID] = struct{}{}
+	if opts.ReceiverID > 0 {
+		toNotify = make(map[int64]NotificationBy, 1)
+		toNotify[opts.ReceiverID] = NotificationByAssigne
 	} else {
-		toNotify = make(map[int64]struct{}, 32)
-		issueWatches, err := getIssueWatchersIDs(e, issueID, true)
+		toNotify = make(map[int64]NotificationBy, 32)
+		issueWatches, err := getIssueWatchersIDs(e, opts.IssueID, true)
 		if err != nil {
 			return err
 		}
 		for _, id := range issueWatches {
-			toNotify[id] = struct{}{}
+			toNotify[id] = NotificationBySubcribeIssue
 		}
 
 		repoWatches, err := getRepoWatchersIDs(e, issue.RepoID)
@@ -168,20 +206,20 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID, notification
 			return err
 		}
 		for _, id := range repoWatches {
-			toNotify[id] = struct{}{}
+			toNotify[id] = NotificationByWatchRepo
 		}
 		issueParticipants, err := issue.getParticipantIDsByIssue(e)
 		if err != nil {
 			return err
 		}
 		for _, id := range issueParticipants {
-			toNotify[id] = struct{}{}
+			toNotify[id] = NotificationByParticipated
 		}
 
 		// dont notify user who cause notification
-		delete(toNotify, notificationAuthorID)
+		delete(toNotify, opts.NotificationAuthorID)
 		// explicit unwatch on issue
-		issueUnWatches, err := getIssueWatchersIDs(e, issueID, false)
+		issueUnWatches, err := getIssueWatchersIDs(e, opts.IssueID, false)
 		if err != nil {
 			return err
 		}
@@ -196,7 +234,7 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID, notification
 	}
 
 	// notify
-	for userID := range toNotify {
+	for userID, by := range toNotify {
 		issue.Repo.Units = nil
 		user, err := getUserByID(e, userID)
 		if err != nil {
@@ -213,16 +251,72 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID, notification
 			continue
 		}
 
-		if notificationExists(notifications, issue.ID, userID) {
-			if err = updateIssueNotification(e, userID, issue.ID, commentID, notificationAuthorID); err != nil {
+		if issueNotificationExists(notifications, issue.ID, userID) {
+			if err = updateIssueNotification(e, userID, opts, by); err != nil {
 				return err
 			}
 			continue
 		}
-		if err = createIssueNotification(e, userID, issue, commentID, notificationAuthorID); err != nil {
+		if err = createNotification(e, userID, issue.Repo.ID, opts, issue.IsPull, by); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+// TODO:
+func createOrUpdateReleaseNotifications(e Engine, opts *NotificationOpts) error {
+	// init
+	var toNotify map[int64]NotificationBy
+	notifications, err := getNotificationsByReleaseID(e, opts.ReleaseID)
+	if err != nil {
+		return err
+	}
+
+	release, err := getReleaseByID(e, opts.ReleaseID)
+	if err != nil {
+		return err
+	}
+
+	repoWatches, err := getRepoWatchersIDs(e, release.RepoID)
+	if err != nil {
+		return err
+	}
+	for _, id := range repoWatches {
+		toNotify[id] = NotificationByWatchRepo
+	}
+
+	err = release.loadRepo(e)
+	if err != nil {
+		return err
+	}
+
+	// notify
+	for userID, by := range toNotify {
+		release.Repo.Units = nil
+		user, err := getUserByID(e, userID)
+		if err != nil {
+			if IsErrUserNotExist(err) {
+				continue
+			}
+
+			return err
+		}
+		if !release.Repo.checkUnitUser(e, user, UnitTypeReleases) {
+			continue
+		}
+
+		if releaseNotificationExists(notifications, release.ID, userID) {
+			if err = updateReleaseNotification(e, userID, opts, by); err != nil {
+				return err
+			}
+			continue
+		}
+		if err = createNotification(e, userID, release.Repo.ID, opts, false, by); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -233,7 +327,14 @@ func getNotificationsByIssueID(e Engine, issueID int64) (notifications []*Notifi
 	return
 }
 
-func notificationExists(notifications []*Notification, issueID, userID int64) bool {
+func getNotificationsByReleaseID(e Engine, releaseID int64) (notifications []*Notification, err error) {
+	err = e.
+		Where("release_id = ?", releaseID).
+		Find(&notifications)
+	return
+}
+
+func issueNotificationExists(notifications []*Notification, issueID, userID int64) bool {
 	for _, notification := range notifications {
 		if notification.IssueID == issueID && notification.UserID == userID {
 			return true
@@ -243,28 +344,44 @@ func notificationExists(notifications []*Notification, issueID, userID int64) bo
 	return false
 }
 
-func createIssueNotification(e Engine, userID int64, issue *Issue, commentID, updatedByID int64) error {
-	notification := &Notification{
-		UserID:    userID,
-		RepoID:    issue.RepoID,
-		Status:    NotificationStatusUnread,
-		IssueID:   issue.ID,
-		CommentID: commentID,
-		UpdatedBy: updatedByID,
+func releaseNotificationExists(notifications []*Notification, releaseID, userID int64) bool {
+	for _, notification := range notifications {
+		if notification.ReleaseID == releaseID && notification.UserID == userID {
+			return true
+		}
 	}
 
-	if issue.IsPull {
-		notification.Source = NotificationSourcePullRequest
-	} else {
-		notification.Source = NotificationSourceIssue
+	return false
+}
+
+func createNotification(e Engine, userID, repoID int64, opts *NotificationOpts, isPull bool, by NotificationBy) error {
+	notification := &Notification{
+		UserID:    userID,
+		RepoID:    repoID,
+		Status:    NotificationStatusUnread,
+		IssueID:   opts.IssueID,
+		CommentID: opts.CommentID,
+		ReleaseID: opts.ReleaseID,
+		By:        by,
+		UpdatedBy: opts.NotificationAuthorID,
+	}
+
+	if opts.IssueID > 0 {
+		if isPull {
+			notification.Source = NotificationSourcePullRequest
+		} else {
+			notification.Source = NotificationSourceIssue
+		}
+	} else if opts.ReleaseID > 0 {
+		notification.Source = NotificationSourceRelease
 	}
 
 	_, err := e.Insert(notification)
 	return err
 }
 
-func updateIssueNotification(e Engine, userID, issueID, commentID, updatedByID int64) error {
-	notification, err := getIssueNotification(e, userID, issueID)
+func updateIssueNotification(e Engine, userID int64, opts *NotificationOpts, by NotificationBy) error {
+	notification, err := getNotificationByOpts(e, userID, opts)
 	if err != nil {
 		return err
 	}
@@ -274,23 +391,52 @@ func updateIssueNotification(e Engine, userID, issueID, commentID, updatedByID i
 	var cols []string
 	if notification.Status == NotificationStatusRead {
 		notification.Status = NotificationStatusUnread
-		notification.CommentID = commentID
+		notification.CommentID = opts.CommentID
 		cols = []string{"status", "update_by", "comment_id"}
 	} else {
-		notification.UpdatedBy = updatedByID
+		notification.UpdatedBy = opts.NotificationAuthorID
 		cols = []string{"update_by"}
 	}
+	notification.By = by
+	cols = append(cols, "by")
 
 	_, err = e.ID(notification.ID).Cols(cols...).Update(notification)
 	return err
 }
 
-func getIssueNotification(e Engine, userID, issueID int64) (*Notification, error) {
+func updateReleaseNotification(e Engine, userID int64, opts *NotificationOpts, by NotificationBy) error {
+	notification, err := getNotificationByOpts(e, userID, opts)
+	if err != nil {
+		return err
+	}
+
+	// NOTICE: Only update comment id when the before notification on this issue is read, otherwise you may miss some old comments.
+	// But we need update update_by so that the notification will be reorder
+	var cols []string
+	if notification.Status == NotificationStatusRead {
+		notification.Status = NotificationStatusUnread
+		notification.CommentID = opts.CommentID
+		cols = []string{"status", "update_by", "comment_id"}
+	} else {
+		notification.UpdatedBy = opts.NotificationAuthorID
+		cols = []string{"update_by"}
+	}
+	notification.By = by
+	cols = append(cols, "by")
+
+	_, err = e.ID(notification.ID).Cols(cols...).Update(notification)
+	return err
+}
+
+func getNotificationByOpts(e Engine, userID int64, opts *NotificationOpts) (*Notification, error) {
 	notification := new(Notification)
-	_, err := e.
-		Where("user_id = ?", userID).
-		And("issue_id = ?", issueID).
-		Get(notification)
+	sess := e.Where("user_id = ?", userID)
+	if opts.IssueID > 0 {
+		sess.And("issue_id = ?", opts.IssueID)
+	} else if opts.ReleaseID > 0 {
+		sess.And("release_id = ?", opts.ReleaseID)
+	}
+	_, err := sess.Get(notification)
 	return notification, err
 }
 
@@ -683,8 +829,8 @@ func GetUIDsAndNotificationCounts(since, until timeutil.TimeStamp) ([]UserIDCoun
 	return res, x.SQL(sql, since, until, NotificationStatusUnread).Find(&res)
 }
 
-func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
-	notification, err := getIssueNotification(e, userID, issueID)
+func setNotificationStatusReadIfUnread(e Engine, userID int64, opts *NotificationOpts) error {
+	notification, err := getNotificationByOpts(e, userID, opts)
 	// ignore if not exists
 	if err != nil {
 		return nil
