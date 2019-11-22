@@ -1068,10 +1068,6 @@ func UpdateIssueRef(ctx *context.Context) {
 	}
 
 	ref := ctx.QueryTrim("ref")
-	if len(ref) == 0 {
-		ctx.Error(204)
-		return
-	}
 
 	if err := issue_service.ChangeIssueRef(issue, ctx.User, ref); err != nil {
 		ctx.ServerError("ChangeRef", err)

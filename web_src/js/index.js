@@ -110,8 +110,8 @@ function initBranchSelector() {
         _csrf: csrf,
         ref: selectedValue
       },
-      (data) => {
-        $selectBranch.find('.ui .branch-name').text(data.ref);
+      () => {
+        window.location.reload();
       });
     }
   });
