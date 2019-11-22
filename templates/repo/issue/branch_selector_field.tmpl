@@ -34,7 +34,7 @@
 		</div>
 		<div id="branch-list" class="scrolling menu reference-list-menu">
 		{{if .Issue.Ref}}
-			<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">Clear current reference</a></strong></div>
+			<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{$.i18n.Tr "repo.clear_ref"}}</a></strong></div>
 		{{end}}	
 		{{range .Branches}}
 			<div class="item" data-id="{{.}}" data-id-selector="#ref_selector">{{.}}</div>
@@ -42,7 +42,7 @@
 		</div>
 		<div id="tag-list" class="scrolling menu reference-list-menu" style="display: none">
 				{{if .Issue.Ref}}
-			<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">Clear current reference</a></strong></div>
+			<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{.i18n.Tr "repo.clear_ref"}}</a></strong></div>
 		{{end}}	
 		{{range .Tags}}
 			<div class="item" data-id="{{.}}" data-id-selector="#ref_selector">{{.}}</div>
