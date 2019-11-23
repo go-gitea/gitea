@@ -24,6 +24,12 @@ type keyID string
 // See jwsEncodeJSON for details.
 const noKeyID = keyID("")
 
+// noPayload indicates jwsEncodeJSON will encode zero-length octet string
+// in a JWS request. This is called POST-as-GET in RFC 8555 and is used to make
+// authenticated GET requests via POSTing with an empty payload.
+// See https://tools.ietf.org/html/rfc8555#section-6.3 for more details.
+const noPayload = ""
+
 // jwsEncodeJSON signs claimset using provided key and a nonce.
 // The result is serialized in JSON format containing either kid or jwk
 // fields based on the provided keyID value.
@@ -50,11 +56,14 @@ func jwsEncodeJSON(claimset interface{}, key crypto.Signer, kid keyID, nonce, ur
 		phead = fmt.Sprintf(`{"alg":%q,"kid":%q,"nonce":%q,"url":%q}`, alg, kid, nonce, url)
 	}
 	phead = base64.RawURLEncoding.EncodeToString([]byte(phead))
-	cs, err := json.Marshal(claimset)
-	if err != nil {
-		return nil, err
+	var payload string
+	if claimset != noPayload {
+		cs, err := json.Marshal(claimset)
+		if err != nil {
+			return nil, err
+		}
+		payload = base64.RawURLEncoding.EncodeToString(cs)
 	}
-	payload := base64.RawURLEncoding.EncodeToString(cs)
 	hash := sha.New()
 	hash.Write([]byte(phead + "." + payload))
 	sig, err := jwsSign(key, sha, hash.Sum(nil))

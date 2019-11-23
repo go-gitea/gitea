@@ -21,8 +21,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	issue_service "code.gitea.io/gitea/services/issue"
 
 	"github.com/mcuadros/go-version"
 )
@@ -424,28 +426,30 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		log.Error("setMerged [%d]: %v", pr.ID, err)
 	}
 
-	if err := models.NotifyWatchers(&models.Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		OpType:    models.ActionMergePullRequest,
-		Content:   fmt.Sprintf("%d|%s", pr.Issue.Index, pr.Issue.Title),
-		RepoID:    pr.Issue.Repo.ID,
-		Repo:      pr.Issue.Repo,
-		IsPrivate: pr.Issue.Repo.IsPrivate,
-	}); err != nil {
-		log.Error("NotifyWatchers [%d]: %v", pr.ID, err)
-	}
+	notification.NotifyMergePullRequest(pr, doer, baseGitRepo)
 
 	// Reset cached commit count
 	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
 
-	// Reload pull request information.
-	if err = pr.LoadAttributes(); err != nil {
-		log.Error("LoadAttributes: %v", err)
+	// Resolve cross references
+	refs, err := pr.ResolveCrossReferences()
+	if err != nil {
+		log.Error("ResolveCrossReferences: %v", err)
 		return nil
 	}
 
-	notification.NotifyIssueChangeStatus(doer, pr.Issue, true)
+	for _, ref := range refs {
+		if err = ref.LoadIssue(); err != nil {
+			return err
+		}
+		if err = ref.Issue.LoadRepo(); err != nil {
+			return err
+		}
+		close := (ref.RefAction == references.XRefActionCloses)
+		if err = issue_service.ChangeStatus(ref.Issue, doer, close); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

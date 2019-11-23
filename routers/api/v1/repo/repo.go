@@ -322,12 +322,12 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	}
 
 	if !ctx.User.IsAdmin {
-		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("IsOwnedBy", err)
+			ctx.ServerError("CanCreateOrgRepo", err)
 			return
-		} else if !isOwner {
-			ctx.Error(403, "", "Given user is not owner of organization.")
+		} else if !canCreate {
+			ctx.Error(403, "", "Given user is not allowed to create repository in organization.")
 			return
 		}
 	}
@@ -446,7 +446,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	repo, err := models.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
 		Name:        opts.RepoName,
 		Description: opts.Description,
-		OriginalURL: opts.CloneAddr,
+		OriginalURL: form.CloneAddr,
 		IsPrivate:   opts.Private,
 		IsMirror:    opts.Mirror,
 		Status:      models.RepositoryBeingMigrated,
