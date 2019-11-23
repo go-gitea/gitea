@@ -667,11 +667,7 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 	if err != nil {
 		return err
 	}
-	if err = sendCreateCommentAction(e, opts, comment); err != nil {
-		return err
-	}
-
-	return nil
+	return sendCreateCommentAction(e, opts, comment)
 }
 
 // ChangeStatus changes issue status to open or closed.
