@@ -11,53 +11,52 @@ import (
 )
 
 // GenerateRepository generates a repository from a template
-func GenerateRepository(doer, owner *models.User, templateRepo *models.Repository, opts models.GenerateRepoOptions) (*models.Repository, error) {
-	ctx, sess, err := models.TxDBContext()
-	if err != nil {
-		return nil, err
-	}
+func GenerateRepository(doer, owner *models.User, templateRepo *models.Repository, opts models.GenerateRepoOptions) (_ *models.Repository, err error) {
+	var generateRepo *models.Repository
+	if err = models.WithTx(func(ctx models.DBContext) error {
+		generateRepo, err = models.GenerateRepository(ctx, doer, owner, templateRepo, opts)
+		if err != nil {
+			if generateRepo != nil {
+				if errDelete := models.DeleteRepository(doer, owner.ID, generateRepo.ID); errDelete != nil {
+					log.Error("Rollback deleteRepository: %v", errDelete)
+				}
+			}
+			return err
+		}
 
-	generateRepo, err := models.GenerateRepository(ctx, doer, owner, templateRepo, opts)
-	if err != nil {
-		if generateRepo != nil {
-			if errDelete := models.DeleteRepository(doer, owner.ID, generateRepo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
+		// Git Content
+		if opts.GitContent && !templateRepo.IsEmpty {
+			if err = models.GenerateGitContent(ctx, templateRepo, generateRepo); err != nil {
+				return err
 			}
 		}
-		return nil, err
-	}
 
-	// Git Content
-	if opts.GitContent && !templateRepo.IsEmpty {
-		if err := models.GenerateGitContent(ctx, templateRepo, generateRepo); err != nil {
-			return generateRepo, err
+		// Topics
+		if opts.Topics {
+			if err = models.GenerateTopics(ctx, templateRepo, generateRepo); err != nil {
+				return err
+			}
 		}
-	}
 
-	// Topics
-	if opts.Topics {
-		if err := models.GenerateTopics(ctx, templateRepo, generateRepo); err != nil {
-			return generateRepo, err
+		// Git Hooks
+		if opts.GitHooks {
+			if err = models.GenerateGitHooks(ctx, templateRepo, generateRepo); err != nil {
+				return err
+			}
 		}
-	}
 
-	// Git Hooks
-	if opts.GitHooks {
-		if err := models.GenerateGitHooks(ctx, templateRepo, generateRepo); err != nil {
-			return generateRepo, err
+		// Webhooks
+		if opts.Webhooks {
+			if err = models.GenerateWebhooks(ctx, templateRepo, generateRepo); err != nil {
+				return err
+			}
 		}
-	}
 
-	// Webhooks
-	if opts.Webhooks {
-		if err := models.GenerateWebhooks(ctx, templateRepo, generateRepo); err != nil {
-			return generateRepo, err
-		}
-	}
-
-	if err := sess.Commit(); err != nil {
+		return nil
+	}); err != nil {
 		return generateRepo, err
 	}
+	log.Error("%#v", generateRepo)
 
 	notification.NotifyCreateRepository(doer, owner, generateRepo)
 
