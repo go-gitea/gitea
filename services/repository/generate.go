@@ -54,7 +54,7 @@ func GenerateRepository(doer, owner *models.User, templateRepo *models.Repositor
 				log.Error("Rollback deleteRepository: %v", errDelete)
 			}
 		}
-		return generateRepo, err
+		return nil, err
 	}
 
 	notification.NotifyCreateRepository(doer, owner, generateRepo)
