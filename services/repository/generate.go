@@ -16,11 +16,6 @@ func GenerateRepository(doer, owner *models.User, templateRepo *models.Repositor
 	if err = models.WithTx(func(ctx models.DBContext) error {
 		generateRepo, err = models.GenerateRepository(ctx, doer, owner, templateRepo, opts)
 		if err != nil {
-			if generateRepo != nil {
-				if errDelete := models.DeleteRepository(doer, owner.ID, generateRepo.ID); errDelete != nil {
-					log.Error("Rollback deleteRepository: %v", errDelete)
-				}
-			}
 			return err
 		}
 
@@ -54,6 +49,11 @@ func GenerateRepository(doer, owner *models.User, templateRepo *models.Repositor
 
 		return nil
 	}); err != nil {
+		if generateRepo != nil {
+			if errDelete := models.DeleteRepository(doer, owner.ID, generateRepo.ID); errDelete != nil {
+				log.Error("Rollback deleteRepository: %v", errDelete)
+			}
+		}
 		return generateRepo, err
 	}
 
