@@ -12,6 +12,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestWebhook_GetSlackHook(t *testing.T) {
+	w := &models.Webhook{
+		Meta: `{"channel": "foo", "username": "username", "color": "blue"}`,
+	}
+	slackHook := GetSlackHook(w)
+	assert.Equal(t, *slackHook, SlackMeta{
+		Channel:  "foo",
+		Username: "username",
+		Color:    "blue",
+	})
+}
+
 func TestPrepareWebhooks(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
 

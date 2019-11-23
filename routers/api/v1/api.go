@@ -606,7 +606,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Group("/:username/:reponame", func() {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
-					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
+					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), context.RepoRef(), repo.Edit)
 				m.Group("/hooks", func() {
 					m.Combo("").Get(repo.ListHooks).
 						Post(bind(api.CreateHookOption{}), repo.CreateHook)
@@ -641,7 +641,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)
-				}, reqRepoReader(models.UnitTypeCode))
+				}, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
@@ -689,6 +689,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Group("/stopwatch", func() {
 							m.Post("/start", reqToken(), repo.StartIssueStopwatch)
 							m.Post("/stop", reqToken(), repo.StopIssueStopwatch)
+						})
+						m.Group("/subscriptions", func() {
+							m.Get("", repo.GetIssueSubscribers)
+							m.Put("/:user", reqToken(), repo.AddIssueSubscription)
+							m.Delete("/:user", reqToken(), repo.DelIssueSubscription)
 						})
 					})
 				}, mustEnableIssuesOrPulls)

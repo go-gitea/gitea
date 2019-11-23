@@ -1,5 +1,3 @@
-// +build !windows
-
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -27,11 +25,11 @@ func runHTTPSWithTLSConfig(listenAddr string, tlsConfig *tls.Config, m http.Hand
 
 // NoHTTPRedirector tells our cleanup routine that we will not be using a fallback http redirector
 func NoHTTPRedirector() {
-	graceful.InformCleanup()
+	graceful.Manager.InformCleanup()
 }
 
 // NoMainListener tells our cleanup routine that we will not be using a possibly provided listener
 // for our main HTTP/HTTPS service
 func NoMainListener() {
-	graceful.InformCleanup()
+	graceful.Manager.InformCleanup()
 }

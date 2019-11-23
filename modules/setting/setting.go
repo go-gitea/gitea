@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
 
 	shellquote "github.com/kballard/go-shellquote"
@@ -99,6 +98,7 @@ var (
 	LetsEncryptEmail     string
 	GracefulRestartable  bool
 	GracefulHammerTime   time.Duration
+	StartupTimeout       time.Duration
 	StaticURLPrefix      string
 
 	SSH = struct {
@@ -140,18 +140,19 @@ var (
 	}
 
 	// Security settings
-	InstallLock           bool
-	SecretKey             string
-	LogInRememberDays     int
-	CookieUserName        string
-	CookieRememberName    string
-	ReverseProxyAuthUser  string
-	ReverseProxyAuthEmail string
-	MinPasswordLength     int
-	ImportLocalPaths      bool
-	DisableGitHooks       bool
-	PasswordComplexity    []string
-	PasswordHashAlgo      string
+	InstallLock                        bool
+	SecretKey                          string
+	LogInRememberDays                  int
+	CookieUserName                     string
+	CookieRememberName                 string
+	ReverseProxyAuthUser               string
+	ReverseProxyAuthEmail              string
+	MinPasswordLength                  int
+	ImportLocalPaths                   bool
+	DisableGitHooks                    bool
+	OnlyAllowPushIfGiteaEnvironmentSet bool
+	PasswordComplexity                 []string
+	PasswordHashAlgo                   string
 
 	// UI settings
 	UI = struct {
@@ -169,6 +170,7 @@ var (
 		DefaultTheme          string
 		Themes                []string
 		SearchRepoDescription bool
+		UseServiceWorker      bool
 
 		Admin struct {
 			UserPagingNum   int
@@ -568,6 +570,7 @@ func NewContext() {
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
 	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
 	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
+	StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(0 * time.Second)
 
 	defaultAppURL := string(Protocol) + "://" + Domain
 	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
@@ -778,6 +781,7 @@ func NewContext() {
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
+	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 
@@ -966,6 +970,7 @@ func NewContext() {
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
+	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(true)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 
@@ -1060,6 +1065,7 @@ func NewServices() {
 	newRegisterMailService()
 	newNotifyMailService()
 	newWebhookService()
+	newMigrationsService()
 	newIndexerService()
 	newTaskService()
 }

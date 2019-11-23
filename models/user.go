@@ -822,6 +822,7 @@ var (
 		".",
 		"..",
 		".well-known",
+		"search",
 	}
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
@@ -1082,7 +1083,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	// ***** START: Watch *****
 	watchedRepoIDs := make([]int64, 0, 10)
 	if err = e.Table("watch").Cols("watch.repo_id").
-		Where("watch.user_id = ?", u.ID).Find(&watchedRepoIDs); err != nil {
+		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", RepoWatchModeDont).Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
 	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
@@ -1305,6 +1306,20 @@ func getUserEmailsByNames(e Engine, names []string) []string {
 		}
 	}
 	return mails
+}
+
+// GetMaileableUsersByIDs gets users from ids, but only if they can receive mails
+func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	ous := make([]*User, 0, len(ids))
+	return ous, x.In("id", ids).
+		Where("`type` = ?", UserTypeIndividual).
+		And("`prohibit_login` = ?", false).
+		And("`is_active` = ?", true).
+		And("`email_notifications_preference` = ?", EmailNotificationsEnabled).
+		Find(&ous)
 }
 
 // GetUsersByIDs returns all resolved users from a list of Ids.
@@ -1543,6 +1558,7 @@ func GetStarredRepos(userID int64, private bool) ([]*Repository, error) {
 // GetWatchedRepos returns the repos watched by a particular user
 func GetWatchedRepos(userID int64, private bool) ([]*Repository, error) {
 	sess := x.Where("watch.user_id=?", userID).
+		And("`watch`.mode<>?", RepoWatchModeDont).
 		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)

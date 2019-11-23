@@ -197,8 +197,10 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		return nil, false
 	}
 	if err = models.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
+		gitRepo.Close()
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
+	gitRepo.Close()
 
 	if err := m.Repo.UpdateSize(); err != nil {
 		log.Error("Failed to update size for mirror repository: %v", err)
@@ -290,97 +292,103 @@ func Update() {
 func SyncMirrors() {
 	// Start listening on new sync requests.
 	for repoID := range mirrorQueue.Queue() {
-		log.Trace("SyncMirrors [repo_id: %v]", repoID)
-		mirrorQueue.Remove(repoID)
+		syncMirror(repoID)
+	}
+}
 
-		m, err := models.GetMirrorByRepoID(com.StrTo(repoID).MustInt64())
+func syncMirror(repoID string) {
+	log.Trace("SyncMirrors [repo_id: %v]", repoID)
+	mirrorQueue.Remove(repoID)
+
+	m, err := models.GetMirrorByRepoID(com.StrTo(repoID).MustInt64())
+	if err != nil {
+		log.Error("GetMirrorByRepoID [%s]: %v", repoID, err)
+		return
+
+	}
+
+	results, ok := runSync(m)
+	if !ok {
+		return
+	}
+
+	m.ScheduleNextUpdate()
+	if err = models.UpdateMirror(m); err != nil {
+		log.Error("UpdateMirror [%s]: %v", repoID, err)
+		return
+	}
+
+	var gitRepo *git.Repository
+	if len(results) == 0 {
+		log.Trace("SyncMirrors [repo_id: %d]: no commits fetched", m.RepoID)
+	} else {
+		gitRepo, err = git.OpenRepository(m.Repo.RepoPath())
 		if err != nil {
-			log.Error("GetMirrorByRepoID [%s]: %v", repoID, err)
+			log.Error("OpenRepository [%d]: %v", m.RepoID, err)
+			return
+		}
+		defer gitRepo.Close()
+	}
+
+	for _, result := range results {
+		// Discard GitHub pull requests, i.e. refs/pull/*
+		if strings.HasPrefix(result.refName, "refs/pull/") {
 			continue
 		}
 
-		results, ok := runSync(m)
-		if !ok {
+		// Create reference
+		if result.oldCommitID == gitShortEmptySha {
+			if err = SyncCreateAction(m.Repo, result.refName); err != nil {
+				log.Error("SyncCreateAction [repo_id: %d]: %v", m.RepoID, err)
+			}
 			continue
 		}
 
-		m.ScheduleNextUpdate()
-		if err = models.UpdateMirror(m); err != nil {
-			log.Error("UpdateMirror [%s]: %v", repoID, err)
+		// Delete reference
+		if result.newCommitID == gitShortEmptySha {
+			if err = SyncDeleteAction(m.Repo, result.refName); err != nil {
+				log.Error("SyncDeleteAction [repo_id: %d]: %v", m.RepoID, err)
+			}
 			continue
 		}
 
-		var gitRepo *git.Repository
-		if len(results) == 0 {
-			log.Trace("SyncMirrors [repo_id: %d]: no commits fetched", m.RepoID)
-		} else {
-			gitRepo, err = git.OpenRepository(m.Repo.RepoPath())
-			if err != nil {
-				log.Error("OpenRepository [%d]: %v", m.RepoID, err)
-				continue
-			}
-		}
-
-		for _, result := range results {
-			// Discard GitHub pull requests, i.e. refs/pull/*
-			if strings.HasPrefix(result.refName, "refs/pull/") {
-				continue
-			}
-
-			// Create reference
-			if result.oldCommitID == gitShortEmptySha {
-				if err = SyncCreateAction(m.Repo, result.refName); err != nil {
-					log.Error("SyncCreateAction [repo_id: %d]: %v", m.RepoID, err)
-				}
-				continue
-			}
-
-			// Delete reference
-			if result.newCommitID == gitShortEmptySha {
-				if err = SyncDeleteAction(m.Repo, result.refName); err != nil {
-					log.Error("SyncDeleteAction [repo_id: %d]: %v", m.RepoID, err)
-				}
-				continue
-			}
-
-			// Push commits
-			oldCommitID, err := git.GetFullCommitID(gitRepo.Path, result.oldCommitID)
-			if err != nil {
-				log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
-				continue
-			}
-			newCommitID, err := git.GetFullCommitID(gitRepo.Path, result.newCommitID)
-			if err != nil {
-				log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
-				continue
-			}
-			commits, err := gitRepo.CommitsBetweenIDs(newCommitID, oldCommitID)
-			if err != nil {
-				log.Error("CommitsBetweenIDs [repo_id: %d, new_commit_id: %s, old_commit_id: %s]: %v", m.RepoID, newCommitID, oldCommitID, err)
-				continue
-			}
-			if err = SyncPushAction(m.Repo, SyncPushActionOptions{
-				RefName:     result.refName,
-				OldCommitID: oldCommitID,
-				NewCommitID: newCommitID,
-				Commits:     models.ListToPushCommits(commits),
-			}); err != nil {
-				log.Error("SyncPushAction [repo_id: %d]: %v", m.RepoID, err)
-				continue
-			}
-		}
-
-		// Get latest commit date and update to current repository updated time
-		commitDate, err := git.GetLatestCommitTime(m.Repo.RepoPath())
+		// Push commits
+		oldCommitID, err := git.GetFullCommitID(gitRepo.Path, result.oldCommitID)
 		if err != nil {
-			log.Error("GetLatestCommitDate [%d]: %v", m.RepoID, err)
+			log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
 			continue
 		}
+		newCommitID, err := git.GetFullCommitID(gitRepo.Path, result.newCommitID)
+		if err != nil {
+			log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
+			continue
+		}
+		commits, err := gitRepo.CommitsBetweenIDs(newCommitID, oldCommitID)
+		if err != nil {
+			log.Error("CommitsBetweenIDs [repo_id: %d, new_commit_id: %s, old_commit_id: %s]: %v", m.RepoID, newCommitID, oldCommitID, err)
+			continue
+		}
+		if err = SyncPushAction(m.Repo, SyncPushActionOptions{
+			RefName:     result.refName,
+			OldCommitID: oldCommitID,
+			NewCommitID: newCommitID,
+			Commits:     models.ListToPushCommits(commits),
+		}); err != nil {
+			log.Error("SyncPushAction [repo_id: %d]: %v", m.RepoID, err)
+			continue
+		}
+	}
 
-		if err = models.UpdateRepositoryUpdatedTime(m.RepoID, commitDate); err != nil {
-			log.Error("Update repository 'updated_unix' [%d]: %v", m.RepoID, err)
-			continue
-		}
+	// Get latest commit date and update to current repository updated time
+	commitDate, err := git.GetLatestCommitTime(m.Repo.RepoPath())
+	if err != nil {
+		log.Error("GetLatestCommitDate [%d]: %v", m.RepoID, err)
+		return
+	}
+
+	if err = models.UpdateRepositoryUpdatedTime(m.RepoID, commitDate); err != nil {
+		log.Error("Update repository 'updated_unix' [%d]: %v", m.RepoID, err)
+		return
 	}
 }
 

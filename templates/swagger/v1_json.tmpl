@@ -1229,6 +1229,13 @@
           {
             "type": "integer",
             "format": "int64",
+            "description": "repo owner to prioritize in the results",
+            "name": "priority_owner_id",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
             "description": "search only for repos that the user with the given id has starred",
             "name": "starredBy",
             "in": "query"
@@ -1237,6 +1244,12 @@
             "type": "boolean",
             "description": "include private repositories this user has access to (defaults to true)",
             "name": "private",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include template repositories this user has access to (defaults to true)",
+            "name": "template",
             "in": "query"
           },
           {
@@ -1479,7 +1492,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Retrieve a specific branch from a repository",
+        "summary": "Retrieve a specific branch from a repository, including its effective branch protection",
         "operationId": "repoGetBranch",
         "parameters": [
           {
@@ -3781,6 +3794,165 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/{index}/subscriptions": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Get users who subscribed on an issue.",
+        "operationId": "issueSubscriptions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserList"
+          },
+          "404": {
+            "description": "Issue not found"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/subscriptions/{user}": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Subscribe user to issue",
+        "operationId": "issueAddSubscription",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "user to subscribe",
+            "name": "user",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "304": {
+            "description": "User can only subscribe itself if he is no admin"
+          },
+          "404": {
+            "description": "Issue not found"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Unsubscribe user from issue",
+        "operationId": "issueDeleteSubscription",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "user witch unsubscribe",
+            "name": "user",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "304": {
+            "description": "User can only subscribe itself if he is no admin"
+          },
+          "404": {
+            "description": "Issue not found"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/keys": {
       "get": {
         "produces": [
@@ -4556,7 +4728,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Update a pull request",
+        "summary": "Update a pull request. If using deadline only the date will be taken into account, and time of day ignored.",
         "operationId": "repoEditPullRequest",
         "parameters": [
           {
@@ -7411,9 +7583,37 @@
         "commit": {
           "$ref": "#/definitions/PayloadCommit"
         },
+        "enable_status_check": {
+          "type": "boolean",
+          "x-go-name": "EnableStatusCheck"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "protected": {
+          "type": "boolean",
+          "x-go-name": "Protected"
+        },
+        "required_approvals": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RequiredApprovals"
+        },
+        "status_check_contexts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "StatusCheckContexts"
+        },
+        "user_can_merge": {
+          "type": "boolean",
+          "x-go-name": "UserCanMerge"
+        },
+        "user_can_push": {
+          "type": "boolean",
+          "x-go-name": "UserCanPush"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -8079,9 +8279,17 @@
         "name"
       ],
       "properties": {
+        "can_create_org_repo": {
+          "type": "boolean",
+          "x-go-name": "CanCreateOrgRepo"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "includes_all_repositories": {
+          "type": "boolean",
+          "x-go-name": "IncludesAllRepositories"
         },
         "name": {
           "type": "string",
@@ -8373,6 +8581,10 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "unset_due_date": {
+          "type": "boolean",
+          "x-go-name": "RemoveDeadline"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -8501,6 +8713,10 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "unset_due_date": {
+          "type": "boolean",
+          "x-go-name": "RemoveDeadline"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -8615,6 +8831,11 @@
           "type": "boolean",
           "x-go-name": "Private"
         },
+        "template": {
+          "description": "either `true` to make this repository a template or `false` to make it a normal repository",
+          "type": "boolean",
+          "x-go-name": "Template"
+        },
         "website": {
           "description": "a URL with more information about the repository.",
           "type": "string",
@@ -8630,9 +8851,17 @@
         "name"
       ],
       "properties": {
+        "can_create_org_repo": {
+          "type": "boolean",
+          "x-go-name": "CanCreateOrgRepo"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "includes_all_repositories": {
+          "type": "boolean",
+          "x-go-name": "IncludesAllRepositories"
         },
         "name": {
           "type": "string",
@@ -10131,6 +10360,10 @@
           "format": "int64",
           "x-go-name": "Stars"
         },
+        "template": {
+          "type": "boolean",
+          "x-go-name": "Template"
+        },
         "updated_at": {
           "type": "string",
           "format": "date-time",
@@ -10281,6 +10514,10 @@
       "description": "Team represents a team in an organization",
       "type": "object",
       "properties": {
+        "can_create_org_repo": {
+          "type": "boolean",
+          "x-go-name": "CanCreateOrgRepo"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
@@ -10289,6 +10526,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "includes_all_repositories": {
+          "type": "boolean",
+          "x-go-name": "IncludesAllRepositories"
         },
         "name": {
           "type": "string",

@@ -53,9 +53,9 @@ func MustBeAbleToUpload(ctx *context.Context) {
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *models.User {
-	orgs, err := models.GetOwnedOrgsByUserIDDesc(ctx.User.ID, "updated_unix")
+	orgs, err := models.GetOrgsCanCreateRepoByUserID(ctx.User.ID)
 	if err != nil {
-		ctx.ServerError("GetOwnedOrgsByUserIDDesc", err)
+		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
 	}
 	ctx.Data["Orgs"] = orgs
@@ -81,11 +81,11 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 		return nil
 	}
 	if !ctx.User.IsAdmin {
-		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("IsOwnedBy", err)
+			ctx.ServerError("CanCreateOrgRepo", err)
 			return nil
-		} else if !isOwner {
+		} else if !canCreate {
 			ctx.Error(403)
 			return nil
 		}
@@ -129,6 +129,16 @@ func Create(ctx *context.Context) {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
+	ctx.Data["repo_template_name"] = ctx.Tr("repo.template_select")
+	templateID := ctx.QueryInt64("template_id")
+	if templateID > 0 {
+		templateRepo, err := models.GetRepositoryByID(templateID)
+		if err == nil && templateRepo.CheckUnitUser(ctxUser.ID, ctxUser.IsAdmin, models.UnitTypeCode) {
+			ctx.Data["repo_template"] = templateID
+			ctx.Data["repo_template_name"] = templateRepo.Name
+		}
+	}
+
 	ctx.HTML(200, tplCreate)
 }
 
@@ -170,20 +180,53 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		return
 	}
 
-	repo, err := repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
-		Name:        form.RepoName,
-		Description: form.Description,
-		Gitignores:  form.Gitignores,
-		IssueLabels: form.IssueLabels,
-		License:     form.License,
-		Readme:      form.Readme,
-		IsPrivate:   form.Private || setting.Repository.ForcePrivate,
-		AutoInit:    form.AutoInit,
-	})
-	if err == nil {
-		log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
-		return
+	var err error
+	if form.RepoTemplate > 0 {
+		opts := models.GenerateRepoOptions{
+			Name:        form.RepoName,
+			Description: form.Description,
+			Private:     form.Private,
+			GitContent:  form.GitContent,
+			Topics:      form.Topics,
+		}
+
+		if !opts.IsValid() {
+			ctx.RenderWithErr(ctx.Tr("repo.template.one_item"), tplCreate, form)
+			return
+		}
+
+		templateRepo := getRepository(ctx, form.RepoTemplate)
+		if ctx.Written() {
+			return
+		}
+
+		if !templateRepo.IsTemplate {
+			ctx.RenderWithErr(ctx.Tr("repo.template.invalid"), tplCreate, form)
+			return
+		}
+
+		repo, err := repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
+		if err == nil {
+			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
+			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+			return
+		}
+	} else {
+		repo, err := repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+			Name:        form.RepoName,
+			Description: form.Description,
+			Gitignores:  form.Gitignores,
+			IssueLabels: form.IssueLabels,
+			License:     form.License,
+			Readme:      form.Readme,
+			IsPrivate:   form.Private || setting.Repository.ForcePrivate,
+			AutoInit:    form.AutoInit,
+		})
+		if err == nil {
+			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
+			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+			return
+		}
 	}
 
 	handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
@@ -283,6 +326,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	}
 
 	var opts = migrations.MigrateOptions{
+		OriginalURL:  form.CloneAddr,
 		CloneAddr:    remoteAddr,
 		RepoName:     form.RepoName,
 		Description:  form.Description,
