@@ -161,9 +161,7 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	viewType := "all"
 	sortType := ctx.Query("sort")
-
 	page := ctx.QueryInt("page")
 	if page <= 1 {
 		page = 1
@@ -303,7 +301,6 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["Counts"] = counts
 	ctx.Data["MilestoneStats"] = milestoneStats
 	ctx.Data["Total"] = total
-	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["RepoID"] = repoID
 	ctx.Data["IsShowClosed"] = isShowClosed
@@ -315,7 +312,6 @@ func Milestones(ctx *context.Context) {
 	}
 
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParam(ctx, "type", "ViewType")
 	pager.AddParam(ctx, "repo", "RepoID")
 	pager.AddParam(ctx, "sort", "SortType")
 	pager.AddParam(ctx, "state", "State")
