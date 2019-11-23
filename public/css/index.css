@@ -1057,7 +1057,7 @@ td.blob-excerpt{background-color:#fafafa}
 .ui.user.list .item .description .octicon:not(:first-child){margin-left:5px}
 .ui.user.list .item .description a{color:#333}
 .ui.user.list .item .description a:hover{text-decoration:underline}
-.ui.button.add-code-comment{font-size:14px;height:16px;padding:2px 0 0;position:relative;width:16px;z-index:5;float:left;margin:-2px -10px -2px -20px;opacity:0;transition:transform .1s ease-in-out;transform:scale(1,1)}
+.ui.button.add-code-comment{font-size:14px;height:16px;line-height:16px!important;padding:0;position:relative;width:16px;z-index:5;float:left;margin:2px -10px 2px -20px;opacity:0;transition:transform .1s ease-in-out;transform:scale(1,1)}
 .ui.button.add-code-comment:hover{transform:scale(1.2,1.2)}
 .focus-lines-new .ui.button.add-code-comment.add-code-comment-right,.focus-lines-old .ui.button.add-code-comment.add-code-comment-left{opacity:1}
 .comment-code-cloud{padding:4px;position:relative;border:1px solid #f1f1f1;margin:13px 10px 5px auto}
