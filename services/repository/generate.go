@@ -56,7 +56,6 @@ func GenerateRepository(doer, owner *models.User, templateRepo *models.Repositor
 	}); err != nil {
 		return generateRepo, err
 	}
-	log.Error("%#v", generateRepo)
 
 	notification.NotifyCreateRepository(doer, owner, generateRepo)
 
