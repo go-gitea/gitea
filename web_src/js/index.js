@@ -113,6 +113,8 @@ function initBranchSelector() {
       () => {
         window.location.reload();
       });
+    } else if (editMode === '') {
+      $selectBranch.find('.ui .branch-name').text(selectedValue);
     }
   });
   $selectBranch.find('.reference.column').click(function () {
