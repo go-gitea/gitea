@@ -58,7 +58,7 @@ func (repo *Repository) updateIndexerStatus(sha string) error {
 }
 
 type repoIndexerOperation struct {
-	repo     *Repository
+	repoID   int64
 	deleted  bool
 	watchers []chan<- error
 }
@@ -122,7 +122,7 @@ func populateRepoIndexer(maxRepoID int64) {
 		}
 		for _, repo := range repos {
 			repoIndexerOperationQueue <- repoIndexerOperation{
-				repo:    repo,
+				repoID:  repo.ID,
 				deleted: false,
 			}
 			maxRepoID = repo.ID - 1
@@ -131,7 +131,12 @@ func populateRepoIndexer(maxRepoID int64) {
 	log.Info("Done populating the repo indexer with existing repositories")
 }
 
-func updateRepoIndexer(repo *Repository) error {
+func updateRepoIndexer(repoID int64) error {
+	repo, err := getRepositoryByID(x, repoID)
+	if err != nil {
+		return err
+	}
+
 	sha, err := getDefaultBranchSha(repo)
 	if err != nil {
 		return err
@@ -339,11 +344,11 @@ func processRepoIndexerOperationQueue() {
 		op := <-repoIndexerOperationQueue
 		var err error
 		if op.deleted {
-			if err = indexer.DeleteRepoFromIndexer(op.repo.ID); err != nil {
+			if err = indexer.DeleteRepoFromIndexer(op.repoID); err != nil {
 				log.Error("DeleteRepoFromIndexer: %v", err)
 			}
 		} else {
-			if err = updateRepoIndexer(op.repo); err != nil {
+			if err = updateRepoIndexer(op.repoID); err != nil {
 				log.Error("updateRepoIndexer: %v", err)
 			}
 		}
@@ -355,12 +360,12 @@ func processRepoIndexerOperationQueue() {
 
 // DeleteRepoFromIndexer remove all of a repository's entries from the indexer
 func DeleteRepoFromIndexer(repo *Repository, watchers ...chan<- error) {
-	addOperationToQueue(repoIndexerOperation{repo: repo, deleted: true, watchers: watchers})
+	addOperationToQueue(repoIndexerOperation{repoID: repo.ID, deleted: true, watchers: watchers})
 }
 
 // UpdateRepoIndexer update a repository's entries in the indexer
 func UpdateRepoIndexer(repo *Repository, watchers ...chan<- error) {
-	addOperationToQueue(repoIndexerOperation{repo: repo, deleted: false, watchers: watchers})
+	addOperationToQueue(repoIndexerOperation{repoID: repo.ID, deleted: false, watchers: watchers})
 }
 
 func addOperationToQueue(op repoIndexerOperation) {
