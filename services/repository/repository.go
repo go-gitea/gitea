@@ -44,21 +44,6 @@ func ForkRepository(doer, u *models.User, oldRepo *models.Repository, name, desc
 	return repo, nil
 }
 
-// GenerateRepository generates a repository from a template
-func GenerateRepository(doer, u *models.User, oldRepo *models.Repository, opts models.GenerateRepoOptions) (*models.Repository, error) {
-	repo, err := models.GenerateRepository(doer, u, oldRepo, opts)
-	if err != nil {
-		if repo != nil {
-			if errDelete := models.DeleteRepository(doer, u.ID, repo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-			}
-		}
-		return nil, err
-	}
-
-	return repo, nil
-}
-
 // DeleteRepository deletes a repository for a user or organization.
 func DeleteRepository(doer *models.User, repo *models.Repository) error {
 	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {

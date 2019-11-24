@@ -42,7 +42,6 @@ import (
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 var repoWorkingPool = sync.NewExclusivePool()
@@ -1265,11 +1264,13 @@ type GenerateRepoOptions struct {
 	Private     bool
 	GitContent  bool
 	Topics      bool
+	GitHooks    bool
+	Webhooks    bool
 }
 
 // IsValid checks whether at least one option is chosen for generation
 func (gro GenerateRepoOptions) IsValid() bool {
-	return gro.GitContent || gro.Topics // or other items as they are added
+	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks // or other items as they are added
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
@@ -1483,37 +1484,6 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 	return nil
 }
 
-// generateRepository initializes repository from template
-func generateRepository(e Engine, repo, templateRepo *Repository) (err error) {
-	tmpDir := filepath.Join(os.TempDir(), "gitea-"+repo.Name+"-"+com.ToStr(time.Now().Nanosecond()))
-
-	if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", tmpDir, err)
-	}
-
-	defer func() {
-		if err := os.RemoveAll(tmpDir); err != nil {
-			log.Error("RemoveAll: %v", err)
-		}
-	}()
-
-	if err = generateRepoCommit(e, repo, templateRepo, tmpDir); err != nil {
-		return fmt.Errorf("generateRepoCommit: %v", err)
-	}
-
-	// re-fetch repo
-	if repo, err = getRepositoryByID(e, repo.ID); err != nil {
-		return fmt.Errorf("getRepositoryByID: %v", err)
-	}
-
-	repo.DefaultBranch = "master"
-	if err = updateRepository(e, repo, false); err != nil {
-		return fmt.Errorf("updateRepository: %v", err)
-	}
-
-	return nil
-}
-
 var (
 	reservedRepoNames    = []string{".", ".."}
 	reservedRepoPatterns = []string{"*.git", "*.wiki"}
@@ -1524,7 +1494,7 @@ func IsUsableRepoName(name string) error {
 	return isUsableName(reservedRepoNames, reservedRepoPatterns, name)
 }
 
-func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err error) {
+func createRepository(e Engine, doer, u *User, repo *Repository) (err error) {
 	if err = IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -2769,72 +2739,6 @@ func ForkRepository(doer, owner *User, oldRepo *Repository, name, desc string) (
 	}
 
 	return repo, CopyLFS(repo, oldRepo)
-}
-
-// GenerateRepository generates a repository from a template
-func GenerateRepository(doer, owner *User, templateRepo *Repository, opts GenerateRepoOptions) (_ *Repository, err error) {
-	repo := &Repository{
-		OwnerID:       owner.ID,
-		Owner:         owner,
-		Name:          opts.Name,
-		LowerName:     strings.ToLower(opts.Name),
-		Description:   opts.Description,
-		IsPrivate:     opts.Private,
-		IsEmpty:       !opts.GitContent || templateRepo.IsEmpty,
-		IsFsckEnabled: templateRepo.IsFsckEnabled,
-		TemplateID:    templateRepo.ID,
-	}
-
-	createSess := x.NewSession()
-	defer createSess.Close()
-	if err = createSess.Begin(); err != nil {
-		return nil, err
-	}
-
-	if err = createRepository(createSess, doer, owner, repo); err != nil {
-		return nil, err
-	}
-
-	//Commit repo to get created repo ID
-	err = createSess.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return repo, err
-	}
-
-	repoPath := RepoPath(owner.Name, repo.Name)
-	if err = checkInitRepository(repoPath); err != nil {
-		return repo, err
-	}
-
-	if opts.GitContent && !templateRepo.IsEmpty {
-		if err = generateRepository(sess, repo, templateRepo); err != nil {
-			return repo, err
-		}
-
-		if err = repo.updateSize(sess); err != nil {
-			return repo, fmt.Errorf("failed to update size for repository: %v", err)
-		}
-
-		if err = copyLFS(sess, repo, templateRepo); err != nil {
-			return repo, fmt.Errorf("failed to copy LFS: %v", err)
-		}
-	}
-
-	if opts.Topics {
-		for _, topic := range templateRepo.Topics {
-			if _, err = addTopicByNameToRepo(sess, repo.ID, topic); err != nil {
-				return repo, err
-			}
-		}
-	}
-
-	return repo, sess.Commit()
 }
 
 // GetForks returns all the forks of the repository
