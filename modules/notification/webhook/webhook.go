@@ -521,6 +521,44 @@ func (m *webhookNotifier) NotifyPushCommits(pusher *models.User, repo *models.Re
 	}
 }
 
+func (*webhookNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+	// Reload pull request information.
+	if err := pr.LoadAttributes(); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	if err := pr.Issue.LoadRepo(); err != nil {
+		log.Error("pr.Issue.LoadRepo: %v", err)
+		return
+	}
+
+	mode, err := models.AccessLevel(doer, pr.Issue.Repo)
+	if err != nil {
+		log.Error("models.AccessLevel: %v", err)
+		return
+	}
+
+	// Merge pull request calls issue.changeStatus so we need to handle separately.
+	apiPullRequest := &api.PullRequestPayload{
+		Index:       pr.Issue.Index,
+		PullRequest: pr.APIFormat(),
+		Repository:  pr.Issue.Repo.APIFormat(mode),
+		Sender:      doer.APIFormat(),
+		Action:      api.HookIssueClosed,
+	}
+
+	err = webhook_module.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, apiPullRequest)
+	if err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
+}
+
 func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string) {
 	issue := pr.Issue
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
@@ -687,4 +725,26 @@ func (m *webhookNotifier) NotifyUpdateRelease(doer *models.User, rel *models.Rel
 
 func (m *webhookNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Release) {
 	sendReleaseHook(doer, rel, api.HookReleaseDeleted)
+}
+
+func (m *webhookNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+	apiPusher := pusher.APIFormat()
+	apiCommits, err := commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
+	if err != nil {
+		log.Error("commits.ToAPIPayloadCommits failed: %v", err)
+		return
+	}
+
+	if err := webhook_module.PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{
+		Ref:        refName,
+		Before:     oldCommitID,
+		After:      newCommitID,
+		CompareURL: setting.AppURL + commits.CompareURL,
+		Commits:    apiCommits,
+		Repo:       repo.APIFormat(models.AccessModeOwner),
+		Pusher:     apiPusher,
+		Sender:     apiPusher,
+	}); err != nil {
+		log.Error("PrepareWebhooks: %v", err)
+	}
 }

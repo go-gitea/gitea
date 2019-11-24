@@ -37,6 +37,15 @@ func createTag(gitRepo *git.Repository, rel *models.Release) error {
 				return err
 			}
 			rel.LowerTagName = strings.ToLower(rel.TagName)
+			// Prepare Notify
+			if err := rel.LoadAttributes(); err != nil {
+				log.Error("LoadAttributes: %v", err)
+				return err
+			}
+			notification.NotifyPushCommits(
+				rel.Publisher, rel.Repo, git.TagPrefix+rel.TagName,
+				git.EmptySHA, commit.ID.String(), models.NewPushCommits())
+			notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName)
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
 		if err != nil {
