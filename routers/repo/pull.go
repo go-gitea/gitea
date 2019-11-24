@@ -30,7 +30,6 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/unknwon/com"
-	"github.com/unknwon/i18n"
 )
 
 const (
@@ -1099,7 +1098,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 			err := err.(models.ErrPullRequestAlreadyExists)
 
 			RepoRelPath := ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
-			errorMessage := i18n.Tr(ctx.User.Language, "pulls.has_pull_request", ctx.Repo.RepoLink, RepoRelPath, err.IssueID)
+			errorMessage := ctx.Tr("pulls.has_pull_request", ctx.Repo.RepoLink, RepoRelPath, err.IssueID)
 
 			ctx.Flash.Error(errorMessage)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -1107,7 +1106,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"user_error": errorMessage,
 			})
 		} else if models.IsErrIssueIsClosed(err) {
-			errorMessage := i18n.Tr(ctx.User.Language, "pulls.is_closed")
+			errorMessage := ctx.Tr("pulls.is_closed")
 
 			ctx.Flash.Error(errorMessage)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -1115,7 +1114,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"user_error": errorMessage,
 			})
 		} else if models.IsErrPullRequestHasMerged(err) {
-			errorMessage := i18n.Tr(ctx.User.Language, "pulls.has_merged")
+			errorMessage := ctx.Tr("pulls.has_merged")
 
 			ctx.Flash.Error(errorMessage)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -1123,7 +1122,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"user_error": errorMessage,
 			})
 		} else if models.IsErrBranchesEqual(err) {
-			errorMessage := i18n.Tr(ctx.User.Language, "pulls.nothing_to_compare")
+			errorMessage := ctx.Tr("pulls.nothing_to_compare")
 
 			ctx.Flash.Error(errorMessage)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
