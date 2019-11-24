@@ -734,25 +734,16 @@ function initRepository() {
     $('#edit-title').click(editTitleToggle);
     $('#cancel-edit-title').click(editTitleToggle);
     $('#save-edit-title').click(editTitleToggle).click(function () {
-      if ($editInput.val().length === 0 || $editInput.val() === $issueTitle.text()) {
-        $editInput.val($issueTitle.text());
-        return false;
-      }
-
       const pullrequest_targetbranch_change = function (update_url) {
         const targetBranch = $('#pull-target-branch').data('branch');
         const $branchTarget = $('#branch_target');
         if (targetBranch === $branchTarget.text()) {
-          $editInput.val($issueTitle.text());
           return false;
         }
-        $.post(
-          update_url,
-          {
-            _csrf: csrf,
-            target_branch: targetBranch
-          }
-        )
+        $.post(update_url, {
+          _csrf: csrf,
+          target_branch: targetBranch
+        })
           .success((data) => {
             $branchTarget.text(data.base_branch);
           })
@@ -762,8 +753,7 @@ function initRepository() {
       };
 
       const pullrequest_target_update_url = $(this).data('target-update-url');
-      if ($editInput.val().length === 0
-        || $editInput.val() === $issueTitle.text()) {
+      if ($editInput.val().length === 0 || $editInput.val() === $issueTitle.text()) {
         $editInput.val($issueTitle.text());
         pullrequest_targetbranch_change(pullrequest_target_update_url);
       } else {
