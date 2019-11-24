@@ -1,3 +1,6 @@
+/* This is a patched version of semantic.dropdown which includes a11y changes, see
+   https://github.com/go-gitea/gitea/pull/8638#issuecomment-549175290 */
+
 /*!
  * # Semantic UI 2.3.1 - Dropdown
  * http://github.com/semantic-org/semantic-ui/

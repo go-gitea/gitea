@@ -28,7 +28,6 @@ const (
 	acceptHammerCode = svc.Accepted(hammerCode)
 )
 
-
 type gracefulManager struct {
 	isChild                bool
 	lock                   *sync.RWMutex
@@ -73,7 +72,7 @@ func (g *gracefulManager) Execute(args []string, changes <-chan svc.ChangeReques
 	if setting.StartupTimeout > 0 {
 		status <- svc.Status{State: svc.StartPending}
 	} else {
-		status <- svc.Status{State: svc.StartPending, WaitHint: uint32(setting.StartupTimeout/time.Millisecond)}
+		status <- svc.Status{State: svc.StartPending, WaitHint: uint32(setting.StartupTimeout / time.Millisecond)}
 	}
 
 	// Now need to wait for everything to start...
@@ -100,7 +99,7 @@ loop:
 			break loop
 		case hammerCode:
 			g.doShutdown()
-			g.doHammerTime(0 *time.Second)
+			g.doHammerTime(0 * time.Second)
 			break loop
 		default:
 			log.Debug("Unexpected control request: %v", change.Cmd)
@@ -108,8 +107,8 @@ loop:
 	}
 
 	status <- svc.Status{
-		State: svc.StopPending,
-		WaitHint: uint32(waitTime/time.Millisecond),
+		State:    svc.StopPending,
+		WaitHint: uint32(waitTime / time.Millisecond),
 	}
 
 hammerLoop:
