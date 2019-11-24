@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 /* globals wipPrefixes, issuesTribute, emojiTribute */
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap initKanbanBoard*/
 /* exported toggleDeadlineForm, setDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
