@@ -88,6 +88,17 @@
 								<label>{{.i18n.Tr "repo.template.topics"}}</label>
 							</div>
 						</div>
+						<div class="inline field">
+							<label></label>
+							<div class="ui checkbox">
+								<input class="hidden" name="avatar" type="checkbox" tabindex="0" {{if .avatar}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.template.avatar"}}</label>
+							</div>
+							<div class="ui checkbox">
+								<input class="hidden" name="labels" type="checkbox" tabindex="0" {{if .labels}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.template.issue_labels"}}</label>
+							</div>
+						</div>
 					</div>
 
 					<div id="non_template">

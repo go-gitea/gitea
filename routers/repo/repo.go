@@ -190,6 +190,8 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 			Topics:      form.Topics,
 			GitHooks:    form.GitHooks,
 			Webhooks:    form.Webhooks,
+			Avatar:      form.Avatar,
+			IssueLabels: form.Labels,
 		}
 
 		if !opts.IsValid() {
