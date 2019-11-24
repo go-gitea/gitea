@@ -88,6 +88,19 @@ func RefEndName(refStr string) string {
 	return refStr
 }
 
+// SplitRefName splits a full refname to reftype and simple refname
+func SplitRefName(refStr string) (string, string) {
+	if strings.HasPrefix(refStr, BranchPrefix) {
+		return BranchPrefix, refStr[len(BranchPrefix):]
+	}
+
+	if strings.HasPrefix(refStr, TagPrefix) {
+		return TagPrefix, refStr[len(TagPrefix):]
+	}
+
+	return "", refStr
+}
+
 // ParseBool returns the boolean value represented by the string as per git's git_config_bool
 // true will be returned for the result if the string is empty, but valid will be false.
 // "true", "yes", "on" are all true, true
