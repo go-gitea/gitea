@@ -170,7 +170,8 @@ func TestGPGGit(t *testing.T) {
 
 		t.Run("AlwaysSign-Initial-CRUD-Never", func(t *testing.T) {
 			defer PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-always")
+			testCtx := NewAPITestContext(t, username, "initial-always-never")
+			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
 				t, testCtx, user, "master", "never", "unsigned-never.txt", func(t *testing.T, response api.FileResponse) {
 					assert.False(t, response.Verification.Verified)
@@ -180,10 +181,10 @@ func TestGPGGit(t *testing.T) {
 	setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		u.Path = baseAPITestContext.GitPath()
-
 		t.Run("AlwaysSign-Initial-CRUD-ParentSigned-On-Always", func(t *testing.T) {
 			defer PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-always")
+			testCtx := NewAPITestContext(t, username, "initial-always-parent")
+			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
 				t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
 					assert.True(t, response.Verification.Verified)
@@ -197,7 +198,8 @@ func TestGPGGit(t *testing.T) {
 
 		t.Run("AlwaysSign-Initial-CRUD-Always", func(t *testing.T) {
 			defer PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-always")
+			testCtx := NewAPITestContext(t, username, "initial-always-always")
+			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
 				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
 					assert.True(t, response.Verification.Verified)
