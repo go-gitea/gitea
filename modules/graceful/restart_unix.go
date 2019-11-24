@@ -9,6 +9,7 @@ package graceful
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -47,6 +48,10 @@ func RestartProcess() (int, error) {
 		files[i], err = l.(filer).File()
 		if err != nil {
 			return 0, err
+		}
+
+		if unixListener, ok := l.(*net.UnixListener); ok {
+			unixListener.SetUnlinkOnClose(false)
 		}
 		// Remember to close these at the end.
 		defer files[i].Close()
