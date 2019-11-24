@@ -6,9 +6,12 @@ package cmd
 
 import (
 	"crypto/tls"
+	"net"
 	"net/http"
+	"net/http/fcgi"
 
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
 )
 
 func runHTTP(network, listenAddr string, m http.Handler) error {
@@ -32,4 +35,18 @@ func NoHTTPRedirector() {
 // for our main HTTP/HTTPS service
 func NoMainListener() {
 	graceful.Manager.InformCleanup()
+}
+
+func runFCGI(listenAddr string, m http.Handler) error {
+	// This needs to handle stdin as fcgi point
+	fcgiServer := graceful.NewServer("tcp", listenAddr)
+
+	err := fcgiServer.ListenAndServe(func(listener net.Listener) error {
+		return fcgi.Serve(listener, m)
+	})
+	if err != nil {
+		log.Fatal("Failed to start FCGI main server: %v", err)
+	}
+	log.Info("FCGI Listener: %s Closed", listenAddr)
+	return err
 }

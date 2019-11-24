@@ -6,9 +6,7 @@ package cmd
 
 import (
 	"fmt"
-	"net"
 	"net/http"
-	"net/http/fcgi"
 	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 	"os"
 	"strings"
@@ -185,20 +183,7 @@ func runWeb(ctx *cli.Context) error {
 		err = runHTTPS("tcp", listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.FCGI:
 		NoHTTPRedirector()
-		// FCGI listeners are provided as stdin - this is orthogonal to the LISTEN_FDS approach
-		// in graceful and systemD
-		NoMainListener()
-		var listener net.Listener
-		listener, err = net.Listen("tcp", listenAddr)
-		if err != nil {
-			log.Fatal("Failed to bind %s: %v", listenAddr, err)
-		}
-		defer func() {
-			if err := listener.Close(); err != nil {
-				log.Fatal("Failed to stop server: %v", err)
-			}
-		}()
-		err = fcgi.Serve(listener, context2.ClearHandler(m))
+		err = runFCGI(listenAddr, context2.ClearHandler(m))
 	case setting.UnixSocket:
 		NoHTTPRedirector()
 		err = runHTTP("unix", listenAddr, context2.ClearHandler(m))
