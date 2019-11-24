@@ -6,7 +6,6 @@ package cmd
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 	"os"
