@@ -137,6 +137,7 @@ func SignIn(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
+	ctx.Data["EnableSSPI"] = models.IsSSPIEnabled()
 
 	ctx.HTML(200, tplSignIn)
 }
@@ -156,6 +157,7 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
+	ctx.Data["EnableSSPI"] = models.IsSSPIEnabled()
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplSignIn)
@@ -786,6 +788,7 @@ func LinkAccountPostSignIn(ctx *context.Context, signInForm auth.SignInForm) {
 	u, err := models.UserSignIn(signInForm.UserName, signInForm.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
+			ctx.Data["user_exists"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplLinkAccount, &signInForm)
 		} else {
 			ctx.ServerError("UserLinkAccount", err)
