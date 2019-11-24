@@ -227,3 +227,24 @@ func NotifyDeleteRef(pusher *models.User, repo *models.Repository, refType, refF
 		notifier.NotifyDeleteRef(pusher, repo, refType, refFullName)
 	}
 }
+
+// NotifySyncPushCommits notifies commits pushed to notifiers
+func NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+	for _, notifier := range notifiers {
+		notifier.NotifySyncPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
+	}
+}
+
+// NotifySyncCreateRef notifies branch or tag creation to notifiers
+func NotifySyncCreateRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	for _, notifier := range notifiers {
+		notifier.NotifySyncCreateRef(pusher, repo, refType, refFullName)
+	}
+}
+
+// NotifySyncDeleteRef notifies branch or tag deletion to notifiers
+func NotifySyncDeleteRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	for _, notifier := range notifiers {
+		notifier.NotifySyncDeleteRef(pusher, repo, refType, refFullName)
+	}
+}
