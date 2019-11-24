@@ -60,7 +60,7 @@ func runHTTPRedirector() {
 		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 	})
 
-	var err = runHTTP(source, context2.ClearHandler(handler))
+	var err = runHTTP("tcp", source, context2.ClearHandler(handler))
 
 	if err != nil {
 		log.Fatal("Failed to start port redirection: %v", err)
@@ -77,12 +77,12 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 	go func() {
 		log.Info("Running Let's Encrypt handler on %s", setting.HTTPAddr+":"+setting.PortToRedirect)
 		// all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
-		var err = runHTTP(setting.HTTPAddr+":"+setting.PortToRedirect, certManager.HTTPHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)))
+		var err = runHTTP("tcp", setting.HTTPAddr+":"+setting.PortToRedirect, certManager.HTTPHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)))
 		if err != nil {
 			log.Fatal("Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
 		}
 	}()
-	return runHTTPSWithTLSConfig(listenAddr, certManager.TLSConfig(), context2.ClearHandler(m))
+	return runHTTPSWithTLSConfig("tcp", listenAddr, certManager.TLSConfig(), context2.ClearHandler(m))
 }
 
 func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +171,7 @@ func runWeb(ctx *cli.Context) error {
 	switch setting.Protocol {
 	case setting.HTTP:
 		NoHTTPRedirector()
-		err = runHTTP(listenAddr, context2.ClearHandler(m))
+		err = runHTTP("tcp", listenAddr, context2.ClearHandler(m))
 	case setting.HTTPS:
 		if setting.EnableLetsEncrypt {
 			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, context2.ClearHandler(m))
@@ -182,7 +182,7 @@ func runWeb(ctx *cli.Context) error {
 		} else {
 			NoHTTPRedirector()
 		}
-		err = runHTTPS(listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
+		err = runHTTPS("tcp", listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.FCGI:
 		NoHTTPRedirector()
 		// FCGI listeners are provided as stdin - this is orthogonal to the LISTEN_FDS approach
@@ -200,25 +200,8 @@ func runWeb(ctx *cli.Context) error {
 		}()
 		err = fcgi.Serve(listener, context2.ClearHandler(m))
 	case setting.UnixSocket:
-		// This could potentially be inherited using LISTEN_FDS but currently
-		// these cannot be inherited
 		NoHTTPRedirector()
-		NoMainListener()
-		if err := os.Remove(listenAddr); err != nil && !os.IsNotExist(err) {
-			log.Fatal("Failed to remove unix socket directory %s: %v", listenAddr, err)
-		}
-		var listener *net.UnixListener
-		listener, err = net.ListenUnix("unix", &net.UnixAddr{Name: listenAddr, Net: "unix"})
-		if err != nil {
-			break // Handle error after switch
-		}
-
-		// FIXME: add proper implementation of signal capture on all protocols
-		// execute this on SIGTERM or SIGINT: listener.Close()
-		if err = os.Chmod(listenAddr, os.FileMode(setting.UnixSocketPermission)); err != nil {
-			log.Fatal("Failed to set permission of unix socket: %v", err)
-		}
-		err = http.Serve(listener, context2.ClearHandler(m))
+		err = runHTTP("unix", listenAddr, context2.ClearHandler(m))
 	default:
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}
