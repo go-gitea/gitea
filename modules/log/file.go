@@ -223,7 +223,7 @@ func compressOldLogFile(fname string, compressionLevel int) error {
 
 func (log *FileLogger) deleteOldLog() {
 	dir := filepath.Dir(log.Filename)
-	filepath.Walk(dir, func(path string, info os.FileInfo, err error) (returnErr error) {
+	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) (returnErr error) {
 		defer func() {
 			if r := recover(); r != nil {
 				returnErr = fmt.Errorf("Unable to delete old log '%s', error: %+v", path, r)
@@ -246,7 +246,7 @@ func (log *FileLogger) deleteOldLog() {
 // there are no buffering messages in file logger in memory.
 // flush file means sync file from disk.
 func (log *FileLogger) Flush() {
-	log.mw.fd.Sync()
+	_ = log.mw.fd.Sync()
 }
 
 // GetName returns the default name for this implementation

@@ -11,10 +11,6 @@ import (
 	"strings"
 )
 
-const (
-	subjectPhrase = "Diagnostic message from server"
-)
-
 type smtpWriter struct {
 	owner *SMTPLogger
 }

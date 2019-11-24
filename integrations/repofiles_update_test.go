@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"net/url"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -47,21 +48,30 @@ func getUpdateRepoFileOptions(repo *models.Repository) *repofiles.UpdateRepoFile
 }
 
 func getExpectedFileResponseForRepofilesCreate(commitID string) *api.FileResponse {
+	treePath := "new/file.txt"
+	encoding := "base64"
+	content := "VGhpcyBpcyBhIE5FVyBmaWxl"
+	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=master"
+	htmlURL := setting.AppURL + "user2/repo1/src/branch/master/" + treePath
+	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/103ff9234cefeee5ec5361d22b49fbb04d385885"
+	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + treePath
 	return &api.FileResponse{
-		Content: &api.FileContentResponse{
-			Name:        "file.txt",
-			Path:        "new/file.txt",
+		Content: &api.ContentsResponse{
+			Name:        filepath.Base(treePath),
+			Path:        treePath,
 			SHA:         "103ff9234cefeee5ec5361d22b49fbb04d385885",
+			Type:        "file",
 			Size:        18,
-			URL:         setting.AppURL + "api/v1/repos/user2/repo1/contents/new/file.txt",
-			HTMLURL:     setting.AppURL + "user2/repo1/blob/master/new/file.txt",
-			GitURL:      setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/103ff9234cefeee5ec5361d22b49fbb04d385885",
-			DownloadURL: setting.AppURL + "user2/repo1/raw/branch/master/new/file.txt",
-			Type:        "blob",
+			Encoding:    &encoding,
+			Content:     &content,
+			URL:         &selfURL,
+			HTMLURL:     &htmlURL,
+			GitURL:      &gitURL,
+			DownloadURL: &downloadURL,
 			Links: &api.FileLinksResponse{
-				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/new/file.txt",
-				GitURL:  setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/103ff9234cefeee5ec5361d22b49fbb04d385885",
-				HTMLURL: setting.AppURL + "user2/repo1/blob/master/new/file.txt",
+				Self:    &selfURL,
+				GitURL:  &gitURL,
+				HTMLURL: &htmlURL,
 			},
 		},
 		Commit: &api.FileCommitResponse{
@@ -98,29 +108,37 @@ func getExpectedFileResponseForRepofilesCreate(commitID string) *api.FileRespons
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
-			Reason:    "unsigned",
+			Reason:    "gpg.error.not_signed_commit",
 			Signature: "",
 			Payload:   "",
 		},
 	}
 }
 
-func getExpectedFileResponseForRepofilesUpdate(commitID string) *api.FileResponse {
+func getExpectedFileResponseForRepofilesUpdate(commitID, filename string) *api.FileResponse {
+	encoding := "base64"
+	content := "VGhpcyBpcyBVUERBVEVEIGNvbnRlbnQgZm9yIHRoZSBSRUFETUUgZmlsZQ=="
+	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + filename + "?ref=master"
+	htmlURL := setting.AppURL + "user2/repo1/src/branch/master/" + filename
+	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/dbf8d00e022e05b7e5cf7e535de857de57925647"
+	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + filename
 	return &api.FileResponse{
-		Content: &api.FileContentResponse{
-			Name:        "README.md",
-			Path:        "README.md",
+		Content: &api.ContentsResponse{
+			Name:        filename,
+			Path:        filename,
 			SHA:         "dbf8d00e022e05b7e5cf7e535de857de57925647",
+			Type:        "file",
 			Size:        43,
-			URL:         setting.AppURL + "api/v1/repos/user2/repo1/contents/README.md",
-			HTMLURL:     setting.AppURL + "user2/repo1/blob/master/README.md",
-			GitURL:      setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/dbf8d00e022e05b7e5cf7e535de857de57925647",
-			DownloadURL: setting.AppURL + "user2/repo1/raw/branch/master/README.md",
-			Type:        "blob",
+			Encoding:    &encoding,
+			Content:     &content,
+			URL:         &selfURL,
+			HTMLURL:     &htmlURL,
+			GitURL:      &gitURL,
+			DownloadURL: &downloadURL,
 			Links: &api.FileLinksResponse{
-				Self:    setting.AppURL + "api/v1/repos/user2/repo1/contents/README.md",
-				GitURL:  setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/dbf8d00e022e05b7e5cf7e535de857de57925647",
-				HTMLURL: setting.AppURL + "user2/repo1/blob/master/README.md",
+				Self:    &selfURL,
+				GitURL:  &gitURL,
+				HTMLURL: &htmlURL,
 			},
 		},
 		Commit: &api.FileCommitResponse{
@@ -157,7 +175,7 @@ func getExpectedFileResponseForRepofilesUpdate(commitID string) *api.FileRespons
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
-			Reason:    "unsigned",
+			Reason:    "gpg.error.not_signed_commit",
 			Signature: "",
 			Payload:   "",
 		},
@@ -173,6 +191,8 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 		test.LoadRepoCommit(t, ctx)
 		test.LoadUser(t, ctx, 2)
 		test.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+
 		repo := ctx.Repo.Repository
 		doer := ctx.User
 		opts := getCreateRepoFileOptions(repo)
@@ -183,6 +203,8 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 		// asserts
 		assert.Nil(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		defer gitRepo.Close()
+
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
 		expectedFileResponse := getExpectedFileResponseForRepofilesCreate(commitID)
 		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
@@ -202,6 +224,8 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 		test.LoadRepoCommit(t, ctx)
 		test.LoadUser(t, ctx, 2)
 		test.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+
 		repo := ctx.Repo.Repository
 		doer := ctx.User
 		opts := getUpdateRepoFileOptions(repo)
@@ -212,8 +236,10 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 		// asserts
 		assert.Nil(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		defer gitRepo.Close()
+
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
-		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commitID)
+		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commitID, opts.TreePath)
 		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
 		assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
 		assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
@@ -231,12 +257,13 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 		test.LoadRepoCommit(t, ctx)
 		test.LoadUser(t, ctx, 2)
 		test.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+
 		repo := ctx.Repo.Repository
 		doer := ctx.User
 		opts := getUpdateRepoFileOptions(repo)
-		suffix := "_new"
 		opts.FromTreePath = "README.md"
-		opts.TreePath = "README.md" + suffix // new file name, README.md_new
+		opts.TreePath = "README_new.md" // new file name, README_new.md
 
 		// test
 		fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
@@ -244,18 +271,27 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 		// asserts
 		assert.Nil(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		defer gitRepo.Close()
+
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
-		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String())
+		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.TreePath)
 		// assert that the old file no longer exists in the last commit of the branch
 		fromEntry, err := commit.GetTreeEntryByPath(opts.FromTreePath)
+		switch err.(type) {
+		case git.ErrNotExist:
+			// correct, continue
+		default:
+			t.Fatalf("expected git.ErrNotExist, got:%v", err)
+		}
 		toEntry, err := commit.GetTreeEntryByPath(opts.TreePath)
+		assert.Nil(t, err)
 		assert.Nil(t, fromEntry)  // Should no longer exist here
 		assert.NotNil(t, toEntry) // Should exist here
 		// assert SHA has remained the same but paths use the new file name
 		assert.EqualValues(t, expectedFileResponse.Content.SHA, fileResponse.Content.SHA)
-		assert.EqualValues(t, expectedFileResponse.Content.Name+suffix, fileResponse.Content.Name)
-		assert.EqualValues(t, expectedFileResponse.Content.Path+suffix, fileResponse.Content.Path)
-		assert.EqualValues(t, expectedFileResponse.Content.URL+suffix, fileResponse.Content.URL)
+		assert.EqualValues(t, expectedFileResponse.Content.Name, fileResponse.Content.Name)
+		assert.EqualValues(t, expectedFileResponse.Content.Path, fileResponse.Content.Path)
+		assert.EqualValues(t, expectedFileResponse.Content.URL, fileResponse.Content.URL)
 		assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
 		assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
 	})
@@ -271,6 +307,8 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 		test.LoadRepoCommit(t, ctx)
 		test.LoadUser(t, ctx, 2)
 		test.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+
 		repo := ctx.Repo.Repository
 		doer := ctx.User
 		opts := getUpdateRepoFileOptions(repo)
@@ -283,8 +321,10 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 		// asserts
 		assert.Nil(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		defer gitRepo.Close()
+
 		commitID, _ := gitRepo.GetBranchCommitID(repo.DefaultBranch)
-		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commitID)
+		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commitID, opts.TreePath)
 		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
 	})
 }
@@ -298,6 +338,8 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 		test.LoadRepoCommit(t, ctx)
 		test.LoadUser(t, ctx, 2)
 		test.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+
 		repo := ctx.Repo.Repository
 		doer := ctx.User
 

@@ -4,12 +4,6 @@
 
 package structs
 
-import (
-	"net/http"
-)
-
-var jsonHeader = http.Header{"content-type": []string{"application/json"}}
-
 // Bool return address of bool value
 func Bool(v bool) *bool {
 	return &v

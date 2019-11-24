@@ -1,0 +1,97 @@
+linters:
+  enable:
+    - gosimple
+    - deadcode
+    - typecheck
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - structcheck
+    - varcheck
+    - golint
+    - dupl
+    #- gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
+    - gofmt
+    - misspell
+    - gocritic
+  enable-all: false
+  disable-all: true
+  fast: false
+
+run:
+  timeout: 3m
+
+linters-settings:
+  gocritic:
+    disabled-checks:
+      - ifElseChain
+      - singleCaseSwitch # Every time this occured in the code, there  was no other way.
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - unparam
+        - staticcheck
+    - path: models/migrations/v
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+    - linters:
+        - dupl
+      text: "webhook"
+    - linters:
+        - gocritic
+      text: "`ID' should not be capitalized"
+    - path: modules/templates/helper.go
+      linters:
+        - gocritic
+    - linters:
+        - unused
+        - deadcode
+      text: "swagger"
+    - path: contrib/pr/checkout.go
+      linters:
+        - errcheck
+    - path: models/issue.go
+      linters:
+        - errcheck
+    - path: models/migrations/
+      linters:
+        - errcheck
+    - path: modules/log/
+      linters:
+        - errcheck
+    - path: routers/routes/routes.go
+      linters:
+        - dupl
+    - path: routers/api/v1/repo/issue_subscription.go
+      linters:
+        - dupl
+    - path: routers/repo/view.go
+      linters:
+        - dupl
+    - path: models/migrations/
+      linters:
+        - unused
+    - linters:
+        - staticcheck
+      text: "argument x is overwritten before first use"
+    - path: modules/httplib/httplib.go
+      linters:
+        - staticcheck
+    # Enabling this would require refactoring the methods and how they are called.
+    - path: models/issue_comment_list.go
+      linters:
+        - dupl
+    - linters:
+        - misspell
+      text: '`Unknwon` is a misspelling of `Unknown`'

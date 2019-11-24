@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +23,7 @@ func getDeleteFileOptions() *api.DeleteFileOptions {
 		FileOptions: api.FileOptions{
 			BranchName:    "master",
 			NewBranchName: "master",
-			Message:       "Updates new/file.txt",
+			Message:       "Removing the file new/file.txt",
 			Author: api.Identity{
 				Name:  "John Doe",
 				Email: "johndoe@example.com",
@@ -89,6 +89,20 @@ func TestAPIDeleteFile(t *testing.T) {
 		DecodeJSON(t, resp, &fileResponse)
 		assert.NotNil(t, fileResponse)
 		assert.Nil(t, fileResponse.Content)
+		assert.EqualValues(t, deleteFileOptions.Message+"\n", fileResponse.Commit.Message)
+
+		// Test deleting file without a message
+		fileID++
+		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
+		createFile(user2, repo1, treePath)
+		deleteFileOptions = getDeleteFileOptions()
+		deleteFileOptions.Message = ""
+		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
+		req = NewRequestWithJSON(t, "DELETE", url, &deleteFileOptions)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &fileResponse)
+		expectedMessage := "Delete '" + treePath + "'\n"
+		assert.EqualValues(t, expectedMessage, fileResponse.Commit.Message)
 
 		// Test deleting a file with the wrong SHA
 		fileID++
@@ -102,13 +116,13 @@ func TestAPIDeleteFile(t *testing.T) {
 		resp = session.MakeRequest(t, req, http.StatusInternalServerError)
 		expectedAPIError := context.APIError{
 			Message: "sha does not match [given: " + deleteFileOptions.SHA + ", expected: " + correctSHA + "]",
-			URL:     base.DocURL,
+			URL:     setting.API.SwaggerURL,
 		}
 		var apiError context.APIError
 		DecodeJSON(t, resp, &apiError)
 		assert.Equal(t, expectedAPIError, apiError)
 
-		// Test creating a file in repo1 by user4 who does not have write access
+		// Test creating a file in repo16 by user4 who does not have write access
 		fileID++
 		treePath = fmt.Sprintf("delete/file%d.txt", fileID)
 		createFile(user2, repo16, treePath)

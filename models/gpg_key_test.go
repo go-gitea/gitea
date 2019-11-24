@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -112,7 +112,7 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 	key := &GPGKey{
 		KeyID:             pubkey.KeyIdString(),
 		Content:           content,
-		CreatedUnix:       util.TimeStamp(pubkey.CreationTime.Unix()),
+		CreatedUnix:       timeutil.TimeStamp(pubkey.CreationTime.Unix()),
 		CanSign:           pubkey.CanSign(),
 		CanEncryptComms:   pubkey.PubKeyAlgo.CanEncrypt(),
 		CanEncryptStorage: pubkey.PubKeyAlgo.CanEncrypt(),
@@ -122,7 +122,7 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 	cannotsignkey := &GPGKey{
 		KeyID:             pubkey.KeyIdString(),
 		Content:           content,
-		CreatedUnix:       util.TimeStamp(pubkey.CreationTime.Unix()),
+		CreatedUnix:       timeutil.TimeStamp(pubkey.CreationTime.Unix()),
 		CanSign:           false,
 		CanEncryptComms:   false,
 		CanEncryptStorage: false,

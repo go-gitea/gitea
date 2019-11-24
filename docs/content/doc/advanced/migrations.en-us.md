@@ -34,6 +34,7 @@ create a Downloader.
 ```Go
 type Downloader interface {
 	GetRepoInfo() (*Repository, error)
+	GetTopics() ([]string, error)
 	GetMilestones() ([]*Milestone, error)
 	GetReleases() ([]*Release, error)
 	GetLabels() ([]*Label, error)
@@ -67,6 +68,7 @@ type Uploader interface {
 	CreateComment(issueNumber int64, comment *Comment) error
 	CreatePullRequest(pr *PullRequest) error
 	Rollback() error
+	Close()
 }
 
 ```

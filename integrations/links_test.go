@@ -110,7 +110,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 	reqAPI := NewRequestf(t, "GET", "/api/v1/users/%s/repos", userName)
 	respAPI := MakeRequest(t, reqAPI, http.StatusOK)
 
-	var apiRepos []api.Repository
+	var apiRepos []*api.Repository
 	DecodeJSON(t, respAPI, &apiRepos)
 
 	var repoLinks = []string{

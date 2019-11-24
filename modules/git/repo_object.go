@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -22,6 +23,8 @@ const (
 	ObjectBlob ObjectType = "blob"
 	// ObjectTag tag object type
 	ObjectTag ObjectType = "tag"
+	// ObjectBranch branch object type
+	ObjectBranch ObjectType = "branch"
 )
 
 // HashObject takes a reader and returns SHA1 hash for that reader
@@ -43,4 +46,18 @@ func (repo *Repository) hashObject(reader io.Reader) (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(stdout.String()), nil
+}
+
+// GetRefType gets the type of the ref based on the string
+func (repo *Repository) GetRefType(ref string) ObjectType {
+	if repo.IsTagExist(ref) {
+		return ObjectTag
+	} else if repo.IsBranchExist(ref) {
+		return ObjectBranch
+	} else if repo.IsCommitExist(ref) {
+		return ObjectCommit
+	} else if _, err := repo.GetBlob(ref); err == nil {
+		return ObjectBlob
+	}
+	return ObjectType("invalid")
 }

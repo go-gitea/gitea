@@ -5,15 +5,12 @@
 package models
 
 import (
-	"fmt"
+	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
-	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
+	"xorm.io/core"
 )
 
 // ReviewType defines the sort of feedback a review gives
@@ -57,15 +54,17 @@ type Review struct {
 	IssueID    int64  `xorm:"index"`
 	Content    string
 
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix util.TimeStamp `xorm:"INDEX updated"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// CodeComments are the initial code comments of the review
 	CodeComments CodeComments `xorm:"-"`
 }
 
 func (r *Review) loadCodeComments(e Engine) (err error) {
-	r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
+	if r.CodeComments == nil {
+		r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
+	}
 	return
 }
 
@@ -87,6 +86,11 @@ func (r *Review) loadReviewer(e Engine) (err error) {
 	return
 }
 
+// LoadReviewer loads reviewer
+func (r *Review) LoadReviewer() error {
+	return r.loadReviewer(x)
+}
+
 func (r *Review) loadAttributes(e Engine) (err error) {
 	if err = r.loadReviewer(e); err != nil {
 		return
@@ -100,50 +104,6 @@ func (r *Review) loadAttributes(e Engine) (err error) {
 // LoadAttributes loads all attributes except CodeComments
 func (r *Review) LoadAttributes() error {
 	return r.loadAttributes(x)
-}
-
-// Publish will send notifications / actions to participants for all code comments; parts are concurrent
-func (r *Review) Publish() error {
-	return r.publish(x)
-}
-
-func (r *Review) publish(e *xorm.Engine) error {
-	if r.Type == ReviewTypePending || r.Type == ReviewTypeUnknown {
-		return fmt.Errorf("review cannot be published if type is pending or unknown")
-	}
-	if r.Issue == nil {
-		if err := r.loadIssue(e); err != nil {
-			return err
-		}
-	}
-	if err := r.Issue.loadRepo(e); err != nil {
-		return err
-	}
-	if len(r.CodeComments) == 0 {
-		if err := r.loadCodeComments(e); err != nil {
-			return err
-		}
-	}
-	for _, lines := range r.CodeComments {
-		for _, comments := range lines {
-			for _, comment := range comments {
-				go func(en *xorm.Engine, review *Review, comm *Comment) {
-					sess := en.NewSession()
-					defer sess.Close()
-					if err := sendCreateCommentAction(sess, &CreateCommentOptions{
-						Doer:    comm.Poster,
-						Issue:   review.Issue,
-						Repo:    review.Issue.Repo,
-						Type:    comm.Type,
-						Content: comm.Content,
-					}, comm); err != nil {
-						log.Warn("sendCreateCommentAction: %v", err)
-					}
-				}(e, r, comment)
-			}
-		}
-	}
-	return nil
 }
 
 func getReviewByID(e Engine, id int64) (*Review, error) {
@@ -235,42 +195,6 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 		return nil, err
 	}
 
-	var reviewHookType HookEventType
-
-	switch opts.Type {
-	case ReviewTypeApprove:
-		reviewHookType = HookEventPullRequestApproved
-	case ReviewTypeComment:
-		reviewHookType = HookEventPullRequestComment
-	case ReviewTypeReject:
-		reviewHookType = HookEventPullRequestRejected
-	default:
-		// unsupported review webhook type here
-		return review, nil
-	}
-
-	pr := opts.Issue.PullRequest
-
-	if err := pr.LoadIssue(); err != nil {
-		return nil, err
-	}
-
-	mode, err := AccessLevel(opts.Issue.Poster, opts.Issue.Repo)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := PrepareWebhooks(opts.Issue.Repo, reviewHookType, &api.PullRequestPayload{
-		Action:      api.HookIssueSynchronized,
-		Index:       opts.Issue.Index,
-		PullRequest: pr.APIFormat(),
-		Repository:  opts.Issue.Repo.APIFormat(mode),
-		Sender:      opts.Reviewer.APIFormat(),
-	}); err != nil {
-		return nil, err
-	}
-	go HookQueue.Add(opts.Issue.Repo.ID)
-
 	return review, nil
 }
 
@@ -299,24 +223,96 @@ func getCurrentReview(e Engine, reviewer *User, issue *Issue) (*Review, error) {
 	return reviews[0], nil
 }
 
+// ReviewExists returns whether a review exists for a particular line of code in the PR
+func ReviewExists(issue *Issue, treePath string, line int64) (bool, error) {
+	return x.Cols("id").Exist(&Comment{IssueID: issue.ID, TreePath: treePath, Line: line, Type: CommentTypeCode})
+}
+
 // GetCurrentReview returns the current pending review of reviewer for given issue
 func GetCurrentReview(reviewer *User, issue *Issue) (*Review, error) {
 	return getCurrentReview(x, reviewer, issue)
 }
 
-// UpdateReview will update all cols of the given review in db
-func UpdateReview(r *Review) error {
-	if _, err := x.ID(r.ID).AllCols().Update(r); err != nil {
-		return err
+// ContentEmptyErr represents an content empty error
+type ContentEmptyErr struct {
+}
+
+func (ContentEmptyErr) Error() string {
+	return "Review content is empty"
+}
+
+// IsContentEmptyErr returns true if err is a ContentEmptyErr
+func IsContentEmptyErr(err error) bool {
+	_, ok := err.(ContentEmptyErr)
+	return ok
+}
+
+// SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
+func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content string) (*Review, *Comment, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, nil, err
 	}
-	return nil
+
+	review, err := getCurrentReview(sess, doer, issue)
+	if err != nil {
+		if !IsErrReviewNotExist(err) {
+			return nil, nil, err
+		}
+
+		if reviewType != ReviewTypeApprove && len(strings.TrimSpace(content)) == 0 {
+			return nil, nil, ContentEmptyErr{}
+		}
+
+		// No current review. Create a new one!
+		review, err = createReview(sess, CreateReviewOptions{
+			Type:     reviewType,
+			Issue:    issue,
+			Reviewer: doer,
+			Content:  content,
+		})
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		if err := review.loadCodeComments(sess); err != nil {
+			return nil, nil, err
+		}
+		if reviewType != ReviewTypeApprove && len(review.CodeComments) == 0 && len(strings.TrimSpace(content)) == 0 {
+			return nil, nil, ContentEmptyErr{}
+		}
+
+		review.Issue = issue
+		review.Content = content
+		review.Type = reviewType
+		if _, err := sess.ID(review.ID).Cols("content, type").Update(review); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	comm, err := createComment(sess, &CreateCommentOptions{
+		Type:     CommentTypeReview,
+		Doer:     doer,
+		Content:  review.Content,
+		Issue:    issue,
+		Repo:     issue.Repo,
+		ReviewID: review.ID,
+		NoAction: true,
+	})
+	if err != nil || comm == nil {
+		return nil, nil, err
+	}
+
+	comm.Review = review
+	return review, comm, sess.Commit()
 }
 
 // PullReviewersWithType represents the type used to display a review overview
 type PullReviewersWithType struct {
 	User              `xorm:"extends"`
 	Type              ReviewType
-	ReviewUpdatedUnix util.TimeStamp `xorm:"review_updated_unix"`
+	ReviewUpdatedUnix timeutil.TimeStamp `xorm:"review_updated_unix"`
 }
 
 // GetReviewersByPullID gets all reviewers for a pull request with the statuses

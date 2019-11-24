@@ -18,6 +18,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -27,10 +28,10 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
+	"gitea.com/macaron/macaron"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/Unknwon/com"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/macaron.v1"
+	"github.com/unknwon/com"
 	"gopkg.in/testfixtures.v2"
 )
 
@@ -42,7 +43,7 @@ type NilResponseRecorder struct {
 }
 
 func (n *NilResponseRecorder) Write(b []byte) (int, error) {
-	n.Length = n.Length + len(b)
+	n.Length += len(b)
 	return len(b), nil
 }
 
@@ -59,13 +60,13 @@ func TestMain(m *testing.M) {
 	routes.RegisterRoutes(mac)
 
 	var helper testfixtures.Helper
-	if setting.UseMySQL {
+	if setting.Database.UseMySQL {
 		helper = &testfixtures.MySQL{}
-	} else if setting.UsePostgreSQL {
+	} else if setting.Database.UsePostgreSQL {
 		helper = &testfixtures.PostgreSQL{}
-	} else if setting.UseSQLite3 {
+	} else if setting.Database.UseSQLite3 {
 		helper = &testfixtures.SQLite{}
-	} else if setting.UseMSSQL {
+	} else if setting.Database.UseMSSQL {
 		helper = &testfixtures.SQLServer{}
 	} else {
 		fmt.Println("Unsupported RDBMS for integration tests")
@@ -102,7 +103,11 @@ func initIntegrationTest() {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
 	}
-	setting.AppPath = path.Join(giteaRoot, "gitea")
+	giteaBinary := "gitea"
+	if runtime.GOOS == "windows" {
+		giteaBinary += ".exe"
+	}
+	setting.AppPath = path.Join(giteaRoot, giteaBinary)
 	if _, err := os.Stat(setting.AppPath); err != nil {
 		fmt.Printf("Could not find gitea binary at %s\n", setting.AppPath)
 		os.Exit(1)
@@ -121,28 +126,27 @@ func initIntegrationTest() {
 	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
 	setting.CheckLFSVersion()
-	models.LoadConfigs()
+	setting.InitDBConfig()
 
 	switch {
-	case setting.UseMySQL:
+	case setting.Database.UseMySQL:
 		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/",
-			models.DbCfg.User, models.DbCfg.Passwd, models.DbCfg.Host))
+			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
 		defer db.Close()
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
-		if _, err = db.Exec("CREATE DATABASE IF NOT EXISTS testgitea"); err != nil {
+		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
-	case setting.UsePostgreSQL:
+	case setting.Database.UsePostgreSQL:
 		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
-			models.DbCfg.User, models.DbCfg.Passwd, models.DbCfg.Host, models.DbCfg.SSLMode))
+			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
 		defer db.Close()
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
-		rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'",
-			models.DbCfg.Name))
+		rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", setting.Database.Name))
 		if err != nil {
 			log.Fatalf("db.Query: %v", err)
 		}
@@ -151,17 +155,17 @@ func initIntegrationTest() {
 		if rows.Next() {
 			break
 		}
-		if _, err = db.Exec("CREATE DATABASE testgitea"); err != nil {
+		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
-	case setting.UseMSSQL:
-		host, port := models.ParseMSSQLHostPort(models.DbCfg.Host)
+	case setting.Database.UseMSSQL:
+		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
-			host, port, "master", models.DbCfg.User, models.DbCfg.Passwd))
+			host, port, "master", setting.Database.User, setting.Database.Passwd))
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
-		if _, err := db.Exec("If(db_id(N'gitea') IS NULL) BEGIN CREATE DATABASE gitea; END;"); err != nil {
+		if _, err := db.Exec(fmt.Sprintf("If(db_id(N'%s') IS NULL) BEGIN CREATE DATABASE %s; END;", setting.Database.Name, setting.Database.Name)); err != nil {
 			log.Fatalf("db.Exec: %v", err)
 		}
 		defer db.Close()
@@ -170,6 +174,7 @@ func initIntegrationTest() {
 }
 
 func prepareTestEnv(t testing.TB, skip ...int) {
+	t.Helper()
 	ourSkip := 2
 	if len(skip) > 0 {
 		ourSkip += skip[0]
@@ -202,6 +207,7 @@ func (s *TestSession) GetCookie(name string) *http.Cookie {
 }
 
 func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
+	t.Helper()
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
@@ -210,7 +216,7 @@ func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatu
 	resp := MakeRequest(t, req, expectedStatus)
 
 	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 	s.jar.SetCookies(baseURL, cr.Cookies())
 
@@ -218,6 +224,7 @@ func (s *TestSession) MakeRequest(t testing.TB, req *http.Request, expectedStatu
 }
 
 func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
+	t.Helper()
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
 	for _, c := range s.jar.Cookies(baseURL) {
@@ -226,7 +233,7 @@ func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Req
 	resp := MakeRequestNilResponseRecorder(t, req, expectedStatus)
 
 	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 	s.jar.SetCookies(baseURL, cr.Cookies())
 
@@ -238,6 +245,7 @@ const userPassword = "password"
 var loginSessionCache = make(map[string]*TestSession, 10)
 
 func emptyTestSession(t testing.TB) *TestSession {
+	t.Helper()
 	jar, err := cookiejar.New(nil)
 	assert.NoError(t, err)
 
@@ -245,6 +253,7 @@ func emptyTestSession(t testing.TB) *TestSession {
 }
 
 func loginUser(t testing.TB, userName string) *TestSession {
+	t.Helper()
 	if session, ok := loginSessionCache[userName]; ok {
 		return session
 	}
@@ -254,6 +263,7 @@ func loginUser(t testing.TB, userName string) *TestSession {
 }
 
 func loginUserWithPassword(t testing.TB, userName, password string) *TestSession {
+	t.Helper()
 	req := NewRequest(t, "GET", "/user/login")
 	resp := MakeRequest(t, req, http.StatusOK)
 
@@ -266,7 +276,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	resp = MakeRequest(t, req, http.StatusFound)
 
 	ch := http.Header{}
-	ch.Add("Cookie", strings.Join(resp.HeaderMap["Set-Cookie"], ";"))
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
 	cr := http.Request{Header: ch}
 
 	session := emptyTestSession(t)
@@ -279,6 +289,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 }
 
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
+	t.Helper()
 	req := NewRequest(t, "GET", "/user/settings/applications")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
@@ -295,14 +306,17 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 }
 
 func NewRequest(t testing.TB, method, urlStr string) *http.Request {
+	t.Helper()
 	return NewRequestWithBody(t, method, urlStr, nil)
 }
 
 func NewRequestf(t testing.TB, method, urlFormat string, args ...interface{}) *http.Request {
+	t.Helper()
 	return NewRequest(t, method, fmt.Sprintf(urlFormat, args...))
 }
 
 func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string]string) *http.Request {
+	t.Helper()
 	urlValues := url.Values{}
 	for key, value := range values {
 		urlValues[key] = []string{value}
@@ -313,6 +327,7 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 }
 
 func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
+	t.Helper()
 	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
 	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
@@ -321,6 +336,7 @@ func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *htt
 }
 
 func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
+	t.Helper()
 	request, err := http.NewRequest(method, urlStr, body)
 	assert.NoError(t, err)
 	request.RequestURI = urlStr
@@ -335,6 +351,7 @@ func AddBasicAuthHeader(request *http.Request, username string) *http.Request {
 const NoExpectedStatus = -1
 
 func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
+	t.Helper()
 	recorder := httptest.NewRecorder()
 	mac.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
@@ -347,6 +364,7 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 }
 
 func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
+	t.Helper()
 	recorder := NewNilResponseRecorder()
 	mac.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
@@ -360,6 +378,7 @@ func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedSta
 
 // logUnexpectedResponse logs the contents of an unexpected response.
 func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
+	t.Helper()
 	respBytes := recorder.Body.Bytes()
 	if len(respBytes) == 0 {
 		return
@@ -382,11 +401,13 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 }
 
 func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
+	t.Helper()
 	decoder := json.NewDecoder(resp.Body)
 	assert.NoError(t, decoder.Decode(v))
 }
 
 func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
+	t.Helper()
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)

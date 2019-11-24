@@ -11,6 +11,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // MigrateOptions is equal to base.MigrateOptions
@@ -29,7 +31,8 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
 	var (
 		downloader base.Downloader
-		uploader   = NewGiteaLocalUploader(doer, ownerName, opts.Name)
+		uploader   = NewGiteaLocalUploader(doer, ownerName, opts.RepoName)
+		theFactory base.DownloaderFactory
 	)
 
 	for _, factory := range factories {
@@ -40,6 +43,7 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 			if err != nil {
 				return nil, err
 			}
+			theFactory = factory
 			break
 		}
 	}
@@ -52,13 +56,26 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 		opts.Comments = false
 		opts.Issues = false
 		opts.PullRequests = false
-		downloader = NewPlainGitDownloader(ownerName, opts.Name, opts.RemoteURL)
-		log.Trace("Will migrate from git: %s", opts.RemoteURL)
+		opts.GitServiceType = structs.PlainGitService
+		downloader = NewPlainGitDownloader(ownerName, opts.RepoName, opts.CloneAddr)
+		log.Trace("Will migrate from git: %s", opts.CloneAddr)
+	} else if opts.GitServiceType == structs.NotMigrated {
+		opts.GitServiceType = theFactory.GitServiceType()
+	}
+
+	uploader.gitServiceType = opts.GitServiceType
+
+	if setting.Migrations.MaxAttempts > 1 {
+		downloader = base.NewRetryDownloader(downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
 	}
 
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
+		}
+
+		if err2 := models.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.CloneAddr, err)); err2 != nil {
+			log.Error("create respotiry notice failed: ", err2)
 		}
 		return nil, err
 	}
@@ -80,8 +97,20 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		repo.Description = opts.Description
 	}
 	log.Trace("migrating git data")
-	if err := uploader.CreateRepo(repo, opts.Wiki); err != nil {
+	if err := uploader.CreateRepo(repo, opts); err != nil {
 		return err
+	}
+	defer uploader.Close()
+
+	log.Trace("migrating topics")
+	topics, err := downloader.GetTopics()
+	if err != nil {
+		return err
+	}
+	if len(topics) > 0 {
+		if err := uploader.CreateTopics(topics...); err != nil {
+			return err
+		}
 	}
 
 	if opts.Milestones {
@@ -91,10 +120,16 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			return err
 		}
 
-		for _, milestone := range milestones {
-			if err := uploader.CreateMilestone(milestone); err != nil {
+		msBatchSize := uploader.MaxBatchInsertSize("milestone")
+		for len(milestones) > 0 {
+			if len(milestones) < msBatchSize {
+				msBatchSize = len(milestones)
+			}
+
+			if err := uploader.CreateMilestones(milestones...); err != nil {
 				return err
 			}
+			milestones = milestones[msBatchSize:]
 		}
 	}
 
@@ -105,10 +140,16 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			return err
 		}
 
-		for _, label := range labels {
-			if err := uploader.CreateLabel(label); err != nil {
+		lbBatchSize := uploader.MaxBatchInsertSize("label")
+		for len(labels) > 0 {
+			if len(labels) < lbBatchSize {
+				lbBatchSize = len(labels)
+			}
+
+			if err := uploader.CreateLabels(labels...); err != nil {
 				return err
 			}
+			labels = labels[lbBatchSize:]
 		}
 	}
 
@@ -119,48 +160,64 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			return err
 		}
 
-		for _, release := range releases {
-			if err := uploader.CreateRelease(release); err != nil {
+		relBatchSize := uploader.MaxBatchInsertSize("release")
+		for len(releases) > 0 {
+			if len(releases) < relBatchSize {
+				relBatchSize = len(releases)
+			}
+
+			if err := uploader.CreateReleases(releases[:relBatchSize]...); err != nil {
 				return err
 			}
+			releases = releases[relBatchSize:]
 		}
 	}
 
+	var commentBatchSize = uploader.MaxBatchInsertSize("comment")
+
 	if opts.Issues {
 		log.Trace("migrating issues and comments")
-		for {
-			issues, err := downloader.GetIssues(0, 100)
+		var issueBatchSize = uploader.MaxBatchInsertSize("issue")
+
+		for i := 1; ; i++ {
+			issues, isEnd, err := downloader.GetIssues(i, issueBatchSize)
 			if err != nil {
 				return err
 			}
+
+			if err := uploader.CreateIssues(issues...); err != nil {
+				return err
+			}
+
+			if !opts.Comments {
+				continue
+			}
+
+			var allComments = make([]*base.Comment, 0, commentBatchSize)
 			for _, issue := range issues {
-				if !opts.IgnoreIssueAuthor {
-					issue.Content = fmt.Sprintf("Author: @%s \n\n%s", issue.PosterName, issue.Content)
-				}
-
-				if err := uploader.CreateIssue(issue); err != nil {
-					return err
-				}
-
-				if !opts.Comments {
-					continue
-				}
-
 				comments, err := downloader.GetComments(issue.Number)
 				if err != nil {
 					return err
 				}
-				for _, comment := range comments {
-					if !opts.IgnoreIssueAuthor {
-						comment.Content = fmt.Sprintf("Author: @%s \n\n%s", comment.PosterName, comment.Content)
-					}
-					if err := uploader.CreateComment(issue.Number, comment); err != nil {
+
+				allComments = append(allComments, comments...)
+
+				if len(allComments) >= commentBatchSize {
+					if err := uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
 						return err
 					}
+
+					allComments = allComments[commentBatchSize:]
 				}
 			}
 
-			if len(issues) < 100 {
+			if len(allComments) > 0 {
+				if err := uploader.CreateComments(allComments...); err != nil {
+					return err
+				}
+			}
+
+			if isEnd {
 				break
 			}
 		}
@@ -168,37 +225,44 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 
 	if opts.PullRequests {
 		log.Trace("migrating pull requests and comments")
-		for {
-			prs, err := downloader.GetPullRequests(0, 100)
+		var prBatchSize = uploader.MaxBatchInsertSize("pullrequest")
+		for i := 1; ; i++ {
+			prs, err := downloader.GetPullRequests(i, prBatchSize)
 			if err != nil {
 				return err
 			}
 
-			for _, pr := range prs {
-				if !opts.IgnoreIssueAuthor {
-					pr.Content = fmt.Sprintf("Author: @%s \n\n%s", pr.PosterName, pr.Content)
-				}
-				if err := uploader.CreatePullRequest(pr); err != nil {
-					return err
-				}
-				if !opts.Comments {
-					continue
-				}
+			if err := uploader.CreatePullRequests(prs...); err != nil {
+				return err
+			}
 
+			if !opts.Comments {
+				continue
+			}
+
+			var allComments = make([]*base.Comment, 0, commentBatchSize)
+			for _, pr := range prs {
 				comments, err := downloader.GetComments(pr.Number)
 				if err != nil {
 					return err
 				}
-				for _, comment := range comments {
-					if !opts.IgnoreIssueAuthor {
-						comment.Content = fmt.Sprintf("Author: @%s \n\n%s", comment.PosterName, comment.Content)
-					}
-					if err := uploader.CreateComment(pr.Number, comment); err != nil {
+
+				allComments = append(allComments, comments...)
+
+				if len(allComments) >= commentBatchSize {
+					if err := uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
 						return err
 					}
+					allComments = allComments[commentBatchSize:]
 				}
 			}
-			if len(prs) < 100 {
+			if len(allComments) > 0 {
+				if err := uploader.CreateComments(allComments...); err != nil {
+					return err
+				}
+			}
+
+			if len(prs) < prBatchSize {
 				break
 			}
 		}

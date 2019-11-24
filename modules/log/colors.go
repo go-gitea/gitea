@@ -208,7 +208,7 @@ normalLoop:
 
 		if i > lasti {
 			written, err := c.w.Write(bytes[lasti:i])
-			totalWritten = totalWritten + written
+			totalWritten += written
 			if err != nil {
 				return totalWritten, err
 			}
@@ -243,7 +243,7 @@ normalLoop:
 					if bytes[j] == 'm' {
 						if c.mode == allowColor {
 							written, err := c.w.Write(bytes[i : j+1])
-							totalWritten = totalWritten + written
+							totalWritten += written
 							if err != nil {
 								return totalWritten, err
 							}
@@ -278,7 +278,7 @@ func ColorSprintf(format string, args ...interface{}) string {
 		}
 		return fmt.Sprintf(format, v...)
 	}
-	return fmt.Sprintf(format)
+	return format
 }
 
 // ColorFprintf will write to the provided writer similar to ColorSprintf
@@ -290,7 +290,7 @@ func ColorFprintf(w io.Writer, format string, args ...interface{}) (int, error) 
 		}
 		return fmt.Fprintf(w, format, v...)
 	}
-	return fmt.Fprintf(w, format)
+	return fmt.Fprint(w, format)
 }
 
 // ColorFormatted structs provide their own colored string when formatted with ColorSprintf
@@ -378,9 +378,9 @@ func (cv *ColoredValue) Format(s fmt.State, c rune) {
 			return
 		}
 	}
-	s.Write([]byte(*cv.colorBytes))
+	s.Write(*cv.colorBytes)
 	fmt.Fprintf(&protectedANSIWriter{w: s}, fmtString(s, c), *(cv.Value))
-	s.Write([]byte(*cv.resetBytes))
+	s.Write(*cv.resetBytes)
 }
 
 // SetColorBytes will allow a user to set the colorBytes of a colored value

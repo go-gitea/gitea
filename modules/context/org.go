@@ -9,17 +9,19 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
-	macaron "gopkg.in/macaron.v1"
+
+	"gitea.com/macaron/macaron"
 )
 
 // Organization contains organization context
 type Organization struct {
-	IsOwner      bool
-	IsMember     bool
-	IsTeamMember bool // Is member of team.
-	IsTeamAdmin  bool // In owner team or team that has admin permission level.
-	Organization *models.User
-	OrgLink      string
+	IsOwner          bool
+	IsMember         bool
+	IsTeamMember     bool // Is member of team.
+	IsTeamAdmin      bool // In owner team or team that has admin permission level.
+	Organization     *models.User
+	OrgLink          string
+	CanCreateOrgRepo bool
 
 	Team *models.Team
 }
@@ -62,7 +64,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 
 	// Force redirection when username is actually a user.
 	if !org.IsOrganization() {
-		ctx.Redirect("/" + org.Name)
+		ctx.Redirect(setting.AppSubURL + "/" + org.Name)
 		return
 	}
 
@@ -72,6 +74,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		ctx.Org.IsMember = true
 		ctx.Org.IsTeamMember = true
 		ctx.Org.IsTeamAdmin = true
+		ctx.Org.CanCreateOrgRepo = true
 	} else if ctx.IsSigned {
 		ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.User.ID)
 		if err != nil {
@@ -83,10 +86,16 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			ctx.Org.IsMember = true
 			ctx.Org.IsTeamMember = true
 			ctx.Org.IsTeamAdmin = true
+			ctx.Org.CanCreateOrgRepo = true
 		} else {
 			ctx.Org.IsMember, err = org.IsOrgMember(ctx.User.ID)
 			if err != nil {
 				ctx.ServerError("IsOrgMember", err)
+				return
+			}
+			ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx.User.ID)
+			if err != nil {
+				ctx.ServerError("CanCreateOrgRepo", err)
 				return
 			}
 		}
@@ -101,6 +110,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
+	ctx.Data["CanCreateOrgRepo"] = ctx.Org.CanCreateOrgRepo
 
 	ctx.Org.OrgLink = setting.AppSubURL + "/org/" + org.Name
 	ctx.Data["OrgLink"] = ctx.Org.OrgLink

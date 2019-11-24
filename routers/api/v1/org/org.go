@@ -6,11 +6,10 @@
 package org
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/routers/api/v1/convert"
+	"code.gitea.io/gitea/modules/convert"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
 )
 
@@ -90,14 +89,21 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 		return
 	}
 
+	visibility := api.VisibleTypePublic
+	if form.Visibility != "" {
+		visibility = api.VisibilityModes[form.Visibility]
+	}
+
 	org := &models.User{
-		Name:        form.UserName,
-		FullName:    form.FullName,
-		Description: form.Description,
-		Website:     form.Website,
-		Location:    form.Location,
-		IsActive:    true,
-		Type:        models.UserTypeOrganization,
+		Name:                      form.UserName,
+		FullName:                  form.FullName,
+		Description:               form.Description,
+		Website:                   form.Website,
+		Location:                  form.Location,
+		IsActive:                  true,
+		Type:                      models.UserTypeOrganization,
+		Visibility:                visibility,
+		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
 	if err := models.CreateOrganization(org, ctx.User); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
@@ -153,6 +159,7 @@ func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	//   required: true
 	// - name: body
 	//   in: body
+	//   required: true
 	//   schema:
 	//     "$ref": "#/definitions/EditOrgOption"
 	// responses:
@@ -163,8 +170,11 @@ func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
-	if err := models.UpdateUserCols(org, "full_name", "description", "website", "location"); err != nil {
-		ctx.Error(500, "UpdateUser", err)
+	if form.Visibility != "" {
+		org.Visibility = api.VisibilityModes[form.Visibility]
+	}
+	if err := models.UpdateUserCols(org, "full_name", "description", "website", "location", "visibility"); err != nil {
+		ctx.Error(500, "EditOrganization", err)
 		return
 	}
 

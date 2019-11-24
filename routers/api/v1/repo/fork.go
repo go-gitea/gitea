@@ -7,8 +7,8 @@ package repo
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-
 	api "code.gitea.io/gitea/modules/structs"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // ListForks list a repository's forks
@@ -98,10 +98,12 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 		}
 		forker = org
 	}
-	fork, err := models.ForkRepository(ctx.User, forker, repo, repo.Name, repo.Description)
+
+	fork, err := repo_service.ForkRepository(ctx.User, forker, repo, repo.Name, repo.Description)
 	if err != nil {
 		ctx.Error(500, "ForkRepository", err)
 		return
 	}
+
 	ctx.JSON(202, fork.APIFormat(models.AccessModeOwner))
 }
