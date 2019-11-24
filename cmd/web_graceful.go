@@ -11,16 +11,16 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 )
 
-func runHTTP(listenAddr string, m http.Handler) error {
-	return graceful.HTTPListenAndServe("tcp", listenAddr, m)
+func runHTTP(network, listenAddr string, m http.Handler) error {
+	return graceful.HTTPListenAndServe(network, listenAddr, m)
 }
 
-func runHTTPS(listenAddr, certFile, keyFile string, m http.Handler) error {
-	return graceful.HTTPListenAndServeTLS("tcp", listenAddr, certFile, keyFile, m)
+func runHTTPS(network, listenAddr, certFile, keyFile string, m http.Handler) error {
+	return graceful.HTTPListenAndServeTLS(network, listenAddr, certFile, keyFile, m)
 }
 
-func runHTTPSWithTLSConfig(listenAddr string, tlsConfig *tls.Config, m http.Handler) error {
-	return graceful.HTTPListenAndServeTLSConfig("tcp", listenAddr, tlsConfig, m)
+func runHTTPSWithTLSConfig(network, listenAddr string, tlsConfig *tls.Config, m http.Handler) error {
+	return graceful.HTTPListenAndServeTLSConfig(network, listenAddr, tlsConfig, m)
 }
 
 // NoHTTPRedirector tells our cleanup routine that we will not be using a fallback http redirector
