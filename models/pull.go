@@ -1049,11 +1049,7 @@ func (pr *PullRequest) ChangeTargetBranch(doer *User, targetBranch string) (err 
 		return fmt.Errorf("createChangePullRequestTargetBranchComment: %v", err)
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 // checkAndUpdateStatus checks if pull request is possible to leaving checking status,
