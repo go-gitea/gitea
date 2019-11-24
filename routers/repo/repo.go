@@ -188,6 +188,8 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 			Private:     form.Private,
 			GitContent:  form.GitContent,
 			Topics:      form.Topics,
+			GitHooks:    form.GitHooks,
+			Webhooks:    form.Webhooks,
 		}
 
 		if !opts.IsValid() {
@@ -326,6 +328,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	}
 
 	var opts = migrations.MigrateOptions{
+		OriginalURL:  form.CloneAddr,
 		CloneAddr:    remoteAddr,
 		RepoName:     form.RepoName,
 		Description:  form.Description,

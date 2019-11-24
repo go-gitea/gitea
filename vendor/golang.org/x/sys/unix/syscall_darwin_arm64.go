@@ -72,7 +72,3 @@ const SYS___SYSCTL = SYS_SYSCTL
 //sys	Lstat(path string, stat *Stat_t) (err error)
 //sys	Stat(path string, stat *Stat_t) (err error)
 //sys	Statfs(path string, stat *Statfs_t) (err error)
-
-func Getdirentries(fd int, buf []byte, basep *uintptr) (n int, err error) {
-	return 0, ENOSYS
-}
