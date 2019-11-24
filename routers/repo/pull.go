@@ -1096,7 +1096,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 			err := err.(models.ErrPullRequestAlreadyExists)
 
 			RepoRelPath := ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
-			errorMessage := ctx.Tr("pulls.has_pull_request", ctx.Repo.RepoLink, RepoRelPath, err.IssueID)
+			errorMessage := ctx.Tr("repo.pulls.has_pull_request", ctx.Repo.RepoLink, RepoRelPath, err.IssueID)
 
 			ctx.Flash.Error(errorMessage)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -1104,7 +1104,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"user_error": errorMessage,
 			})
 		} else if models.IsErrIssueIsClosed(err) {
-			errorMessage := ctx.Tr("pulls.is_closed")
+			errorMessage := ctx.Tr("repo.pulls.is_closed")
 
 			ctx.Flash.Error(errorMessage)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -1112,7 +1112,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"user_error": errorMessage,
 			})
 		} else if models.IsErrPullRequestHasMerged(err) {
-			errorMessage := ctx.Tr("pulls.has_merged")
+			errorMessage := ctx.Tr("repo.pulls.has_merged")
 
 			ctx.Flash.Error(errorMessage)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -1120,7 +1120,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"user_error": errorMessage,
 			})
 		} else if models.IsErrBranchesEqual(err) {
-			errorMessage := ctx.Tr("pulls.nothing_to_compare")
+			errorMessage := ctx.Tr("repo.pulls.nothing_to_compare")
 
 			ctx.Flash.Error(errorMessage)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
