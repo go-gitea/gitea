@@ -1754,9 +1754,9 @@ function initAdmin() {
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
     $('#auth_type').change(function () {
-      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size').hide();
+      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size .sspi').hide();
 
-      $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+      $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
       $('.binddnrequired').removeClass('required');
 
       const authType = $(this).val();
@@ -1783,6 +1783,10 @@ function initAdmin() {
           $('.oauth2').show();
           $('.oauth2 div.required:not(.oauth2_use_custom_url,.oauth2_use_custom_url_field,.open_id_connect_auto_discovery_url) input').attr('required', 'required');
           onOAuth2Change();
+          break;
+        case '7': // SSPI
+          $('.sspi').show();
+          $('.sspi div.required input').attr('required', 'required');
           break;
       }
       if (authType === '2' || authType === '5') {

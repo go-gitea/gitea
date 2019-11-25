@@ -432,14 +432,20 @@ func replaceContentList(node *html.Node, i, j int, newNodes []*html.Node) {
 	}
 }
 
-func mentionProcessor(_ *postProcessCtx, node *html.Node) {
+func mentionProcessor(ctx *postProcessCtx, node *html.Node) {
 	// We replace only the first mention; other mentions will be addressed later
 	found, loc := references.FindFirstMentionBytes([]byte(node.Data))
 	if !found {
 		return
 	}
 	mention := node.Data[loc.Start:loc.End]
-	replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
+	var teams string
+	teams, ok := ctx.metas["teams"]
+	if ok && strings.Contains(teams, ","+strings.ToLower(mention[1:])+",") {
+		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, "org", ctx.metas["org"], "teams", mention[1:]), mention, "mention"))
+	} else {
+		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
+	}
 }
 
 func shortLinkProcessor(ctx *postProcessCtx, node *html.Node) {
