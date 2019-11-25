@@ -166,6 +166,7 @@ In the examples, `User1/Repo1` refers to the repository where the reference is u
 | `UserZ/RepoZ!1234`        |    N/A                    |    yes                    | A link to _PR_ 1234 in `UserZ/RepoZ` |
 
 _The last section is for repositories with external issue trackers that use alphanumeric format._
+
 _**N/A**: not applicable._
 
 Note: automatic references between repositories with different types of issues (external vs. internal) are not fully supported
