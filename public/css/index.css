@@ -593,6 +593,7 @@ i.icon.centerlock{top:1.5em}
 .repository.view.issue .comment-list .comment .content>.bottom.segment .ui.image{max-height:100%;width:auto;margin:0;vertical-align:middle}
 .repository.view.issue .comment-list .comment .content>.bottom.segment span.ui.image{font-size:128px;color:#000}
 .repository.view.issue .comment-list .comment .content>.bottom.segment span.ui.image:hover{color:#000}
+.repository.view.issue .comment-list .comment:target>.content{box-shadow:0 0 10px #8c8c8c}
 .repository.view.issue .comment-list .comment .ui.form .field:first-child{clear:none}
 .repository.view.issue .comment-list .comment .ui.form .tab.segment{border:0;padding:10px 0 0}
 .repository.view.issue .comment-list .comment .ui.form textarea{height:200px;font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace}
