@@ -1398,13 +1398,13 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 
 	switch opts.FilterMode {
 	case FilterModeAll:
-		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
 			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
+		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
 			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
@@ -1426,14 +1426,14 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 			return nil, err
 		}
 	case FilterModeCreate:
-		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
-			And("poster_id = ?", opts.UserID).
+		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+			And("issue.poster_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
-			And("poster_id = ?", opts.UserID).
+		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
+			And("issue.poster_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
