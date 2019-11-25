@@ -187,10 +187,7 @@ func GenerateAvatar(ctx DBContext, templateRepo, generateRepo *Repository) error
 		return err
 	}
 
-	if err := updateRepositoryCols(ctx.e, generateRepo, "avatar"); err != nil {
-		return err
-	}
-	return nil
+	return updateRepositoryCols(ctx.e, generateRepo, "avatar")
 }
 
 // GenerateIssueLabels generates issue labels from a template repository
