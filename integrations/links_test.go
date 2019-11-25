@@ -77,9 +77,8 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"/issues?type=your_repositories&repos=[0]&sort=&state=closed",
 		"/issues?type=assigned&repos=[]&sort=&state=closed",
 		"/issues?type=assigned&sort=&state=open",
-		// FIXME: below links should return 200 but 404 ??
-		//"/issues?type=created_by&repos=[1,2]&sort=&state=closed",
-		//"/issues?type=created_by&repos=[1,2]&sort=&state=open",
+		"/issues?type=created_by&repos=[1,2]&sort=&state=closed",
+		"/issues?type=created_by&repos=[1,2]&sort=&state=open",
 		"/pulls",
 		"/pulls?type=your_repositories&repos=[2]&sort=&state=open",
 		"/pulls?type=assigned&repos=[]&sort=&state=open",

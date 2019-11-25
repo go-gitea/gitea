@@ -319,16 +319,7 @@ func Issues(ctx *context.Context) {
 				return
 			}
 			if !perm.CanRead(models.UnitTypeIssues) {
-				if log.IsTrace() {
-					log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
-						"User in repo has Permissions: %-+v",
-						ctxUser,
-						models.UnitTypeIssues,
-						repo,
-						perm)
-				}
-				ctx.Status(404)
-				return
+				log.Error("User created Issues wich he has no longer access to Repo: [%d]", repoID)
 			}
 		}
 	}
