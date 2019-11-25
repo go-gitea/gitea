@@ -16,7 +16,7 @@ import (
 )
 
 func TestAPITeamUser(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
