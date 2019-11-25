@@ -319,7 +319,7 @@ func Issues(ctx *context.Context) {
 				return
 			}
 			if !perm.CanRead(models.UnitTypeIssues) {
-				log.Error("User created Issues wich he has no longer access to Repo: [%d]", repoID)
+				log.Error("User created Issues witch he has no longer access to Repo: [%d]", repoID)
 			}
 		}
 	}
