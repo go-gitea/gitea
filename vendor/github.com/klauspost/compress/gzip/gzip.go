@@ -7,10 +7,10 @@ package gzip
 import (
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"io"
 
 	"github.com/klauspost/compress/flate"
-	"github.com/klauspost/crc32"
 )
 
 // These constants are copied from the flate package, so that code that imports
@@ -22,6 +22,13 @@ const (
 	DefaultCompression  = flate.DefaultCompression
 	ConstantCompression = flate.ConstantCompression
 	HuffmanOnly         = flate.HuffmanOnly
+
+	// StatelessCompression will do compression but without maintaining any state
+	// between Write calls.
+	// There will be no memory kept between Write calls,
+	// but compression and speed will be suboptimal.
+	// Because of this, the size of actual Write calls will affect output size.
+	StatelessCompression = -3
 )
 
 // A Writer is an io.WriteCloser.
@@ -59,7 +66,7 @@ func NewWriter(w io.Writer) *Writer {
 // integer value between BestSpeed and BestCompression inclusive. The error
 // returned will be nil if the level is valid.
 func NewWriterLevel(w io.Writer, level int) (*Writer, error) {
-	if level < HuffmanOnly || level > BestCompression {
+	if level < StatelessCompression || level > BestCompression {
 		return nil, fmt.Errorf("gzip: invalid compression level: %d", level)
 	}
 	z := new(Writer)
@@ -69,9 +76,12 @@ func NewWriterLevel(w io.Writer, level int) (*Writer, error) {
 
 func (z *Writer) init(w io.Writer, level int) {
 	compressor := z.compressor
-	if compressor != nil {
-		compressor.Reset(w)
+	if level != StatelessCompression {
+		if compressor != nil {
+			compressor.Reset(w)
+		}
 	}
+
 	*z = Writer{
 		Header: Header{
 			OS: 255, // unknown
@@ -189,12 +199,16 @@ func (z *Writer) Write(p []byte) (int, error) {
 				return n, z.err
 			}
 		}
-		if z.compressor == nil {
+
+		if z.compressor == nil && z.level != StatelessCompression {
 			z.compressor, _ = flate.NewWriter(z.w, z.level)
 		}
 	}
 	z.size += uint32(len(p))
 	z.digest = crc32.Update(z.digest, crc32.IEEETable, p)
+	if z.level == StatelessCompression {
+		return len(p), flate.StatelessDeflate(z.w, p, false)
+	}
 	n, z.err = z.compressor.Write(p)
 	return n, z.err
 }
@@ -211,7 +225,7 @@ func (z *Writer) Flush() error {
 	if z.err != nil {
 		return z.err
 	}
-	if z.closed {
+	if z.closed || z.level == StatelessCompression {
 		return nil
 	}
 	if !z.wroteHeader {
@@ -240,7 +254,11 @@ func (z *Writer) Close() error {
 			return z.err
 		}
 	}
-	z.err = z.compressor.Close()
+	if z.level == StatelessCompression {
+		z.err = flate.StatelessDeflate(z.w, nil, true)
+	} else {
+		z.err = z.compressor.Close()
+	}
 	if z.err != nil {
 		return z.err
 	}

@@ -51,6 +51,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)
+	defer gitRepo.Close()
 
 	findOptions := models.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
 	initCount, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
@@ -75,6 +76,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	assert.True(t, ok)
 
 	count, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
+	assert.NoError(t, err)
 	assert.EqualValues(t, initCount+1, count)
 
 	release, err := models.GetRelease(repo.ID, "v0.2")
@@ -85,5 +87,6 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	assert.True(t, ok)
 
 	count, err = models.GetReleaseCountByRepoID(mirror.ID, findOptions)
+	assert.NoError(t, err)
 	assert.EqualValues(t, initCount, count)
 }

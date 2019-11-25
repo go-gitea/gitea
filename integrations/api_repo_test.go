@@ -70,9 +70,9 @@ func TestAPISearchRepo(t *testing.T) {
 		expectedResults
 	}{
 		{name: "RepositoriesMax50", requestURL: "/api/v1/repos/search?limit=50&private=false", expectedResults: expectedResults{
-			nil:   {count: 22},
-			user:  {count: 22},
-			user2: {count: 22}},
+			nil:   {count: 24},
+			user:  {count: 24},
+			user2: {count: 24}},
 		},
 		{name: "RepositoriesMax10", requestURL: "/api/v1/repos/search?limit=10&private=false", expectedResults: expectedResults{
 			nil:   {count: 10},
@@ -92,7 +92,7 @@ func TestAPISearchRepo(t *testing.T) {
 		{name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
 			nil:   {count: 5},
 			user:  {count: 9, includesPrivate: true},
-			user2: {count: 5, includesPrivate: true}},
+			user2: {count: 6, includesPrivate: true}},
 		},
 		{name: "RepositoriesAccessibleAndRelatedToUser2", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user2.ID), expectedResults: expectedResults{
 			nil:   {count: 1},
@@ -103,7 +103,7 @@ func TestAPISearchRepo(t *testing.T) {
 		{name: "RepositoriesAccessibleAndRelatedToUser3", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user3.ID), expectedResults: expectedResults{
 			nil:   {count: 1},
 			user:  {count: 4, includesPrivate: true},
-			user2: {count: 2, includesPrivate: true},
+			user2: {count: 3, includesPrivate: true},
 			user3: {count: 4, includesPrivate: true}},
 		},
 		{name: "RepositoriesOwnedByOrganization", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", orgUser.ID), expectedResults: expectedResults{
@@ -334,7 +334,7 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 		resp := httpContext.Session.MakeRequest(t, req, http.StatusConflict)
 		respJSON := map[string]string{}
 		DecodeJSON(t, resp, &respJSON)
-		assert.Equal(t, respJSON["message"], "The repository with the same name already exists.")
+		assert.Equal(t, "The repository with the same name already exists.", respJSON["message"])
 	})
 }
 
@@ -347,6 +347,8 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 		{ctxUserID: 1, orgName: "user3", repoName: "repo-admin", expectedStatus: http.StatusCreated},
 		{ctxUserID: 2, orgName: "user3", repoName: "repo-own", expectedStatus: http.StatusCreated},
 		{ctxUserID: 2, orgName: "user6", repoName: "repo-bad-org", expectedStatus: http.StatusForbidden},
+		{ctxUserID: 28, orgName: "user3", repoName: "repo-creator", expectedStatus: http.StatusCreated},
+		{ctxUserID: 28, orgName: "user6", repoName: "repo-not-creator", expectedStatus: http.StatusForbidden},
 	}
 
 	prepareTestEnv(t)

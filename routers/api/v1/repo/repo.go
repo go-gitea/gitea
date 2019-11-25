@@ -6,6 +6,8 @@
 package repo
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -14,6 +16,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
@@ -22,7 +26,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
-	"code.gitea.io/gitea/routers/api/v1/convert"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -69,6 +72,11 @@ func Search(ctx *context.APIContext) {
 	//   description: search only for repos that the user with the given id owns or contributes to
 	//   type: integer
 	//   format: int64
+	// - name: priority_owner_id
+	//   in: query
+	//   description: repo owner to prioritize in the results
+	//   type: integer
+	//   format: int64
 	// - name: starredBy
 	//   in: query
 	//   description: search only for repos that the user with the given id has starred
@@ -77,6 +85,10 @@ func Search(ctx *context.APIContext) {
 	// - name: private
 	//   in: query
 	//   description: include private repositories this user has access to (defaults to true)
+	//   type: boolean
+	// - name: template
+	//   in: query
+	//   description: include template repositories this user has access to (defaults to true)
 	//   type: boolean
 	// - name: page
 	//   in: query
@@ -114,15 +126,21 @@ func Search(ctx *context.APIContext) {
 	opts := &models.SearchRepoOptions{
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
+		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
 		Page:               ctx.QueryInt("page"),
 		PageSize:           convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		TopicOnly:          ctx.QueryBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
+		Template:           util.OptionalBoolNone,
 		UserIsAdmin:        ctx.IsUserSiteAdmin(),
 		UserID:             ctx.Data["SignedUserID"].(int64),
 		StarredByID:        ctx.QueryInt64("starredBy"),
 		IncludeDescription: ctx.QueryBool("includeDesc"),
+	}
+
+	if ctx.Query("template") != "" {
+		opts.Template = util.OptionalBoolOf(ctx.QueryBool("template"))
 	}
 
 	if ctx.QueryBool("exclusive") {
@@ -304,12 +322,12 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	}
 
 	if !ctx.User.IsAdmin {
-		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("IsOwnedBy", err)
+			ctx.ServerError("CanCreateOrgRepo", err)
 			return
-		} else if !isOwner {
-			ctx.Error(403, "", "Given user is not owner of organization.")
+		} else if !canCreate {
+			ctx.Error(403, "", "Given user is not allowed to create repository in organization.")
 			return
 		}
 	}
@@ -425,15 +443,54 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		opts.Releases = false
 	}
 
-	repo, err := migrations.MigrateRepository(ctx.User, ctxUser.Name, opts)
-	if err == nil {
-		notification.NotifyMigrateRepository(ctx.User, ctxUser, repo)
-
-		log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
-		ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
+	repo, err := models.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+		Name:        opts.RepoName,
+		Description: opts.Description,
+		OriginalURL: form.CloneAddr,
+		IsPrivate:   opts.Private,
+		IsMirror:    opts.Mirror,
+		Status:      models.RepositoryBeingMigrated,
+	})
+	if err != nil {
+		handleMigrateError(ctx, ctxUser, remoteAddr, err)
 		return
 	}
 
+	opts.MigrateToRepoID = repo.ID
+
+	defer func() {
+		if e := recover(); e != nil {
+			var buf bytes.Buffer
+			fmt.Fprintf(&buf, "Handler crashed with error: %v", log.Stack(2))
+
+			err = errors.New(buf.String())
+		}
+
+		if err == nil {
+			repo.Status = models.RepositoryReady
+			if err := models.UpdateRepositoryCols(repo, "status"); err == nil {
+				notification.NotifyMigrateRepository(ctx.User, ctxUser, repo)
+				return
+			}
+		}
+
+		if repo != nil {
+			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
+				log.Error("DeleteRepository: %v", errDelete)
+			}
+		}
+	}()
+
+	if _, err = migrations.MigrateRepository(ctx.User, ctxUser.Name, opts); err != nil {
+		handleMigrateError(ctx, ctxUser, remoteAddr, err)
+		return
+	}
+
+	log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
+	ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
+}
+
+func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteAddr string, err error) {
 	switch {
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Error(409, "", "The repository with the same name already exists.")
@@ -442,7 +499,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	case migrations.IsTwoFactorAuthError(err):
 		ctx.Error(422, "", "Remote visit required two factors authentication.")
 	case models.IsErrReachLimitOfRepo(err):
-		ctx.Error(422, "", fmt.Sprintf("You have already reached your limit of %d repositories.", ctxUser.MaxCreationLimit()))
+		ctx.Error(422, "", fmt.Sprintf("You have already reached your limit of %d repositories.", repoOwner.MaxCreationLimit()))
 	case models.IsErrNameReserved(err):
 		ctx.Error(422, "", fmt.Sprintf("The username '%s' is reserved.", err.(models.ErrNameReserved).Name))
 	case models.IsErrNamePatternNotAllowed(err):
@@ -575,15 +632,13 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) error {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
-
-	oldRepoName := repo.Name
 	newRepoName := repo.Name
 	if opts.Name != nil {
 		newRepoName = *opts.Name
 	}
 	// Check if repository name has been changed and not just a case change
 	if repo.LowerName != strings.ToLower(newRepoName) {
-		if err := models.ChangeRepositoryName(ctx.Repo.Owner, repo.Name, newRepoName); err != nil {
+		if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
 			switch {
 			case models.IsErrRepoAlreadyExist(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
@@ -594,18 +649,6 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 			default:
 				ctx.Error(http.StatusUnprocessableEntity, "ChangeRepositoryName", err)
 			}
-			return err
-		}
-
-		err := models.NewRepoRedirect(ctx.Repo.Owner.ID, repo.ID, repo.Name, newRepoName)
-		if err != nil {
-			ctx.Error(http.StatusUnprocessableEntity, "NewRepoRedirect", err)
-			return err
-		}
-
-		if err := models.RenameRepoAction(ctx.User, oldRepoName, repo); err != nil {
-			log.Error("RenameRepoAction: %v", err)
-			ctx.Error(http.StatusInternalServerError, "RenameRepoActions", err)
 			return err
 		}
 
@@ -639,6 +682,21 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		}
 
 		repo.IsPrivate = *opts.Private
+	}
+
+	if opts.Template != nil {
+		repo.IsTemplate = *opts.Template
+	}
+
+	// Default branch only updated if changed and exist
+	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch) {
+		if err := ctx.Repo.GitRepo.SetDefaultBranch(*opts.DefaultBranch); err != nil {
+			if !git.IsErrUnsupportedVersion(err) {
+				ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
+				return err
+			}
+		}
+		repo.DefaultBranch = *opts.DefaultBranch
 	}
 
 	if err := models.UpdateRepository(repo, visibilityChanged); err != nil {

@@ -1256,6 +1256,13 @@
           {
             "type": "integer",
             "format": "int64",
+            "description": "repo owner to prioritize in the results",
+            "name": "priority_owner_id",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "format": "int64",
             "description": "search only for repos that the user with the given id has starred",
             "name": "starredBy",
             "in": "query"
@@ -1264,6 +1271,12 @@
             "type": "boolean",
             "description": "include private repositories this user has access to (defaults to true)",
             "name": "private",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "include template repositories this user has access to (defaults to true)",
+            "name": "template",
             "in": "query"
           },
           {
@@ -1506,7 +1519,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Retrieve a specific branch from a repository",
+        "summary": "Retrieve a specific branch from a repository, including its effective branch protection",
         "operationId": "repoGetBranch",
         "parameters": [
           {
@@ -3846,8 +3859,8 @@
           }
         ],
         "responses": {
-          "201": {
-            "$ref": "#/responses/empty"
+          "200": {
+            "$ref": "#/responses/UserList"
           },
           "404": {
             "description": "Issue not found"
@@ -7597,9 +7610,37 @@
         "commit": {
           "$ref": "#/definitions/PayloadCommit"
         },
+        "enable_status_check": {
+          "type": "boolean",
+          "x-go-name": "EnableStatusCheck"
+        },
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "protected": {
+          "type": "boolean",
+          "x-go-name": "Protected"
+        },
+        "required_approvals": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RequiredApprovals"
+        },
+        "status_check_contexts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "StatusCheckContexts"
+        },
+        "user_can_merge": {
+          "type": "boolean",
+          "x-go-name": "UserCanMerge"
+        },
+        "user_can_push": {
+          "type": "boolean",
+          "x-go-name": "UserCanPush"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -8265,9 +8306,17 @@
         "name"
       ],
       "properties": {
+        "can_create_org_repo": {
+          "type": "boolean",
+          "x-go-name": "CanCreateOrgRepo"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "includes_all_repositories": {
+          "type": "boolean",
+          "x-go-name": "IncludesAllRepositories"
         },
         "name": {
           "type": "string",
@@ -8809,6 +8858,11 @@
           "type": "boolean",
           "x-go-name": "Private"
         },
+        "template": {
+          "description": "either `true` to make this repository a template or `false` to make it a normal repository",
+          "type": "boolean",
+          "x-go-name": "Template"
+        },
         "website": {
           "description": "a URL with more information about the repository.",
           "type": "string",
@@ -8824,9 +8878,17 @@
         "name"
       ],
       "properties": {
+        "can_create_org_repo": {
+          "type": "boolean",
+          "x-go-name": "CanCreateOrgRepo"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "includes_all_repositories": {
+          "type": "boolean",
+          "x-go-name": "IncludesAllRepositories"
         },
         "name": {
           "type": "string",
@@ -10450,6 +10512,10 @@
           "format": "int64",
           "x-go-name": "Stars"
         },
+        "template": {
+          "type": "boolean",
+          "x-go-name": "Template"
+        },
         "updated_at": {
           "type": "string",
           "format": "date-time",
@@ -10600,6 +10666,10 @@
       "description": "Team represents a team in an organization",
       "type": "object",
       "properties": {
+        "can_create_org_repo": {
+          "type": "boolean",
+          "x-go-name": "CanCreateOrgRepo"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
@@ -10612,6 +10682,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "includes_all_repositories": {
+          "type": "boolean",
+          "x-go-name": "IncludesAllRepositories"
         },
         "members_url": {
           "type": "string",

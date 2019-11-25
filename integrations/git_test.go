@@ -162,6 +162,7 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 			},
 			Message: fmt.Sprintf("Testing commit @ %v", time.Now()),
 		})
+		assert.NoError(t, err)
 		git.GlobalCommandArgs = oldGlobals
 
 		littleLFS, bigLFS = commitAndPushTest(t, dstPath, prefix)

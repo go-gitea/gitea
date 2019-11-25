@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -23,6 +24,9 @@ var (
 	// DefaultCommandExecutionTimeout default command execution timeout duration
 	DefaultCommandExecutionTimeout = 60 * time.Second
 )
+
+// DefaultLocale is the default LC_ALL to run git commands in.
+const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
@@ -63,6 +67,13 @@ func (c *Command) RunInDirTimeoutEnvPipeline(env []string, timeout time.Duration
 // RunInDirTimeoutEnvFullPipeline executes the command in given directory with given timeout,
 // it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin.
 func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader) error {
+	return c.RunInDirTimeoutEnvFullPipelineFunc(env, timeout, dir, stdout, stderr, stdin, nil)
+}
+
+// RunInDirTimeoutEnvFullPipelineFunc executes the command in given directory with given timeout,
+// it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin. Between cmd.Start and cmd.Wait the passed in function is run.
+func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader, fn func(context.Context, context.CancelFunc)) error {
+
 	if timeout == -1 {
 		timeout = DefaultCommandExecutionTimeout
 	}
@@ -77,7 +88,12 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
-	cmd.Env = env
+	if env == nil {
+		cmd.Env = append(os.Environ(), fmt.Sprintf("LC_ALL=%s", DefaultLocale))
+	} else {
+		cmd.Env = env
+		cmd.Env = append(cmd.Env, fmt.Sprintf("LC_ALL=%s", DefaultLocale))
+	}
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
@@ -88,6 +104,10 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 
 	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), dir), cmd)
 	defer process.GetManager().Remove(pid)
+
+	if fn != nil {
+		fn(ctx, cancel)
+	}
 
 	if err := cmd.Wait(); err != nil {
 		return err

@@ -18,27 +18,33 @@ type Team struct {
 	// enum: none,read,write,admin,owner
 	Permission string `json:"permission"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
-	Units []string `json:"units"`
+	Units                   []string `json:"units"`
+	IncludesAllRepositories bool     `json:"includes_all_repositories"`
+	CanCreateOrgRepo        bool     `json:"can_create_org_repo"`
 }
 
 // CreateTeamOption options for creating a team
 type CreateTeamOption struct {
 	// required: true
-	Name        string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
-	Description string `json:"description" binding:"MaxSize(255)"`
+	Name                    string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
+	Description             string `json:"description" binding:"MaxSize(255)"`
+	IncludesAllRepositories bool   `json:"includes_all_repositories"`
 	// enum: read,write,admin
 	Permission string `json:"permission"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
-	Units []string `json:"units"`
+	Units            []string `json:"units"`
+	CanCreateOrgRepo bool     `json:"can_create_org_repo"`
 }
 
 // EditTeamOption options for editing a team
 type EditTeamOption struct {
 	// required: true
-	Name        string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
-	Description string `json:"description" binding:"MaxSize(255)"`
+	Name                    string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
+	Description             string `json:"description" binding:"MaxSize(255)"`
+	IncludesAllRepositories bool   `json:"includes_all_repositories"`
 	// enum: read,write,admin
 	Permission string `json:"permission"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
-	Units []string `json:"units"`
+	Units            []string `json:"units"`
+	CanCreateOrgRepo bool     `json:"can_create_org_repo"`
 }

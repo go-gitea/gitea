@@ -79,8 +79,10 @@ func allowLFSFilters() []string {
 	return globalArgs
 }
 
-func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL)) {
-	prepareTestEnv(t, 1)
+func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bool) {
+	if len(prepare) == 0 || prepare[0] {
+		prepareTestEnv(t, 1)
+	}
 	s := http.Server{
 		Handler: mac,
 	}
