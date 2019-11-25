@@ -97,3 +97,15 @@
   is_pull: true
   created_unix: 946684820
   updated_unix: 978307180
+
+-
+  id: 9
+  repo_id: 4
+  index: 2
+  poster_id: 2
+  name: issue9
+  content: content for the issue 9
+  is_closed: false
+  is_pull: false
+  created_unix: 946684830
+  updated_unix: 978307200
