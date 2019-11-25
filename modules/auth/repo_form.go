@@ -42,6 +42,8 @@ type CreateRepoForm struct {
 	Topics       bool
 	GitHooks     bool
 	Webhooks     bool
+	Avatar       bool
+	Labels       bool
 }
 
 // Validate validates the fields
