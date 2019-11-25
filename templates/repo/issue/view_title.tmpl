@@ -3,7 +3,7 @@
 		<h1 class="twelve wide column">
 			<span class="index">#{{.Issue.Index}}</span> <span id="issue-title" class="has-emoji">{{.Issue.Title}}</span>
 			<div id="edit-title-input" class="ui input" style="display: none">
-				<input value="{{.Issue.Title}}">
+				<input value="{{.Issue.Title}}" maxlength="255">
 			</div>
 		</h1>
 		{{if and (or .IsIssueWriter .IsIssuePoster) (not .Repository.IsArchived)}}
