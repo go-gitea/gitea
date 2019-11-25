@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +17,24 @@ import (
 
 	"github.com/unknwon/com"
 )
+
+// GenerateRepoOptions contains the template units to generate
+type GenerateRepoOptions struct {
+	Name        string
+	Description string
+	Private     bool
+	GitContent  bool
+	Topics      bool
+	GitHooks    bool
+	Webhooks    bool
+	Avatar      bool
+	IssueLabels bool
+}
+
+// IsValid checks whether at least one option is chosen for generation
+func (gro GenerateRepoOptions) IsValid() bool {
+	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar || gro.IssueLabels // or other items as they are added
+}
 
 // generateRepository initializes repository from template
 func generateRepository(e Engine, repo, templateRepo *Repository) (err error) {
@@ -155,6 +174,37 @@ func GenerateWebhooks(ctx DBContext, templateRepo, generateRepo *Repository) err
 			Meta:         templateWebhook.Meta,
 		}
 		if err := createWebhook(ctx.e, generateWebhook); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// GenerateAvatar generates the avatar from a template repository
+func GenerateAvatar(ctx DBContext, templateRepo, generateRepo *Repository) error {
+	generateRepo.Avatar = strings.Replace(templateRepo.Avatar, strconv.FormatInt(templateRepo.ID, 10), strconv.FormatInt(generateRepo.ID, 10), 1)
+	if err := com.Copy(templateRepo.CustomAvatarPath(), generateRepo.CustomAvatarPath()); err != nil {
+		return err
+	}
+
+	return updateRepositoryCols(ctx.e, generateRepo, "avatar")
+}
+
+// GenerateIssueLabels generates issue labels from a template repository
+func GenerateIssueLabels(ctx DBContext, templateRepo, generateRepo *Repository) error {
+	templateLabels, err := getLabelsByRepoID(ctx.e, templateRepo.ID, "")
+	if err != nil {
+		return err
+	}
+
+	for _, templateLabel := range templateLabels {
+		generateLabel := &Label{
+			RepoID:      generateRepo.ID,
+			Name:        templateLabel.Name,
+			Description: templateLabel.Description,
+			Color:       templateLabel.Color,
+		}
+		if err := newLabel(ctx.e, generateLabel); err != nil {
 			return err
 		}
 	}
