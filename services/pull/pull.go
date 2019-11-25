@@ -34,6 +34,81 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	return nil
 }
 
+// ChangeTargetBranch changes the target branch of this pull request, as the given user.
+func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch string) (err error) {
+	if pr.BaseBranch == targetBranch {
+		return nil
+	}
+
+	if pr.Issue.IsClosed {
+		return models.ErrIssueIsClosed{
+			ID:     pr.Issue.ID,
+			RepoID: pr.Issue.RepoID,
+			Index:  pr.Issue.Index,
+		}
+	}
+
+	if pr.HasMerged {
+		return models.ErrPullRequestHasMerged{
+			ID:         pr.ID,
+			IssueID:    pr.Index,
+			HeadRepoID: pr.HeadRepoID,
+			BaseRepoID: pr.BaseRepoID,
+			HeadBranch: pr.HeadBranch,
+			BaseBranch: pr.BaseBranch,
+		}
+	}
+
+	// Check if branches are equal
+	if err = pr.GetBaseRepo(); err != nil {
+		return err
+	}
+	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		return err
+	}
+	baseCommit, err := baseGitRepo.GetBranchCommit(targetBranch)
+	if err != nil {
+		return err
+	}
+
+	if err = pr.GetHeadRepo(); err != nil {
+		return err
+	}
+	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		return err
+	}
+	headCommit, err := headGitRepo.GetBranchCommit(pr.HeadBranch)
+	if err != nil {
+		return err
+	}
+	if baseCommit.HasPreviousCommit(headCommit.ID) {
+		return models.ErrBranchesEqual{
+			HeadBranchName: pr.HeadBranch,
+			BaseBranchName: targetBranch,
+		}
+	}
+
+	// Check if pull request already exists
+	existingPr, err := models.GetUnmergedPullRequest(pr.HeadRepoID, pr.BaseRepoID, pr.HeadBranch, targetBranch)
+	if existingPr != nil {
+		return models.ErrPullRequestAlreadyExists{
+			ID:         existingPr.ID,
+			IssueID:    existingPr.Index,
+			HeadRepoID: existingPr.HeadRepoID,
+			BaseRepoID: existingPr.BaseRepoID,
+			HeadBranch: existingPr.HeadBranch,
+			BaseBranch: existingPr.BaseBranch,
+		}
+	}
+	if err != nil && !models.IsErrPullRequestNotExist(err) {
+		return err
+	}
+
+	return pr.SetTargetBranch(targetBranch, doer)
+}
+
 func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *models.User, branch string) error {
 	repo, err := models.GetRepositoryByID(repoID)
 	if err != nil {

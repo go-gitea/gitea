@@ -958,79 +958,9 @@ func (pr *PullRequest) AddToTaskQueue() {
 	})
 }
 
-// ChangeTargetBranch changes the target branch of this pull request, as the given user.
-func (pr *PullRequest) ChangeTargetBranch(doer *User, targetBranch string) (err error) {
+// SetTargetBranch sets the target branch of this pull request
+func (pr *PullRequest) SetTargetBranch(targetBranch string, doer *User) (err error) {
 	oldBranch := pr.BaseBranch
-	if oldBranch == targetBranch {
-		return nil
-	}
-
-	if pr.Issue.IsClosed {
-		return ErrIssueIsClosed{
-			ID:     pr.Issue.ID,
-			RepoID: pr.Issue.RepoID,
-			Index:  pr.Issue.Index,
-		}
-	}
-
-	if pr.HasMerged {
-		return ErrPullRequestHasMerged{
-			ID:         pr.ID,
-			IssueID:    pr.Index,
-			HeadRepoID: pr.HeadRepoID,
-			BaseRepoID: pr.BaseRepoID,
-			HeadBranch: pr.HeadBranch,
-			BaseBranch: pr.BaseBranch,
-		}
-	}
-
-	// Check if branches are equal
-	if err = pr.GetBaseRepo(); err != nil {
-		return err
-	}
-	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		return err
-	}
-	baseCommit, err := baseGitRepo.GetBranchCommit(targetBranch)
-	if err != nil {
-		return err
-	}
-
-	if err = pr.GetHeadRepo(); err != nil {
-		return err
-	}
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
-	if err != nil {
-		return err
-	}
-	headCommit, err := headGitRepo.GetBranchCommit(pr.HeadBranch)
-	if err != nil {
-		return err
-	}
-	if baseCommit.HasPreviousCommit(headCommit.ID) {
-		return ErrBranchesEqual{
-			HeadBranchName: pr.HeadBranch,
-			BaseBranchName: targetBranch,
-		}
-	}
-
-	// Check if pull request already exists
-	existingPr, err := GetUnmergedPullRequest(pr.HeadRepoID, pr.BaseRepoID, pr.HeadBranch, targetBranch)
-	if existingPr != nil {
-		return ErrPullRequestAlreadyExists{
-			ID:         existingPr.ID,
-			IssueID:    existingPr.Index,
-			HeadRepoID: existingPr.HeadRepoID,
-			BaseRepoID: existingPr.BaseRepoID,
-			HeadBranch: existingPr.HeadBranch,
-			BaseBranch: existingPr.BaseBranch,
-		}
-	}
-	if err != nil && !IsErrPullRequestNotExist(err) {
-		return err
-	}
-
 	pr.BaseBranch = targetBranch
 	sess := x.NewSession()
 	defer sess.Close()

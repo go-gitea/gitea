@@ -1091,7 +1091,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 		return
 	}
 
-	if err := pr.ChangeTargetBranch(ctx.User, targetBranch); err != nil {
+	if err := pull_service.ChangeTargetBranch(pr, ctx.User, targetBranch); err != nil {
 		if models.IsErrPullRequestAlreadyExists(err) {
 			err := err.(models.ErrPullRequestAlreadyExists)
 
