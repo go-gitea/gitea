@@ -418,7 +418,7 @@
 				<img src="{{.Poster.RelAvatarLink}}">
 			</a>
 			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
-			{{$.i18n.Tr "repo.pulls.change_target_branch_at" (.OldBranch|Escape) (.NewBranch|Escape) $createdStr | Safe}}
+			{{$.i18n.Tr "repo.pulls.change_target_branch_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
 			</span>
 		</div>
 	{{end}}

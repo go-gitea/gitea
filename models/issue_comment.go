@@ -118,8 +118,8 @@ type Comment struct {
 	Assignee         *User `xorm:"-"`
 	OldTitle         string
 	NewTitle         string
-	OldBranch        string
-	NewBranch        string
+	OldRef           string
+	NewRef           string
 	DependentIssueID int64
 	DependentIssue   *Issue `xorm:"-"`
 
@@ -521,8 +521,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:          opts.Content,
 		OldTitle:         opts.OldTitle,
 		NewTitle:         opts.NewTitle,
-		OldBranch:        opts.OldBranch,
-		NewBranch:        opts.NewBranch,
+		OldRef:           opts.OldRef,
+		NewRef:           opts.NewRef,
 		DependentIssueID: opts.DependentIssueID,
 		TreePath:         opts.TreePath,
 		ReviewID:         opts.ReviewID,
@@ -702,12 +702,12 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 
 func createChangePullRequestTargetBranchComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldBranch string, newBranch string) (*Comment, error) {
 	return createComment(e, &CreateCommentOptions{
-		Type:      CommentTypeChangeTargetBranch,
-		Doer:      doer,
-		Repo:      repo,
-		Issue:     issue,
-		OldBranch: oldBranch,
-		NewBranch: newBranch,
+		Type:   CommentTypeChangeTargetBranch,
+		Doer:   doer,
+		Repo:   repo,
+		Issue:  issue,
+		OldRef: oldBranch,
+		NewRef: newBranch,
 	})
 }
 
@@ -762,8 +762,8 @@ type CreateCommentOptions struct {
 	RemovedAssignee  bool
 	OldTitle         string
 	NewTitle         string
-	OldBranch        string
-	NewBranch        string
+	OldRef           string
+	NewRef           string
 	CommitID         int64
 	CommitSHA        string
 	Patch            string

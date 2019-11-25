@@ -11,8 +11,8 @@ import (
 
 func featureChangeTargetBranch(x *xorm.Engine) error {
 	type Comment struct {
-		OldBranch string
-		NewBranch string
+		OldRef string
+		NewRef string
 	}
 
 	if err := x.Sync2(new(Comment)); err != nil {

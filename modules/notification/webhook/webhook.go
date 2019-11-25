@@ -182,7 +182,7 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *model
 		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 			Action: api.HookIssueEdited,
 			Index:  issue.Index,
-			Changes: &api.PullRequestChangesPayload{
+			Changes: &api.ChangesPayload{
 				Title: &api.ChangesFromPayload{
 					From: oldTitle,
 				},
@@ -307,7 +307,7 @@ func (m *webhookNotifier) NotifyIssueChangeContent(doer *models.User, issue *mod
 		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 			Action: api.HookIssueEdited,
 			Index:  issue.Index,
-			Changes: &api.PullRequestChangesPayload{
+			Changes: &api.ChangesPayload{
 				Body: &api.ChangesFromPayload{
 					From: oldContent,
 				},
@@ -575,8 +575,8 @@ func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(doer *models.User,
 	err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 		Action: api.HookIssueEdited,
 		Index:  issue.Index,
-		Changes: &api.PullRequestChangesPayload{
-			TargetBranch: &api.ChangesFromPayload{
+		Changes: &api.ChangesPayload{
+			Ref: &api.ChangesFromPayload{
 				From: oldBranch,
 			},
 		},
