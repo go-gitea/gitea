@@ -53,6 +53,8 @@ type Review struct {
 	Issue      *Issue `xorm:"-"`
 	IssueID    int64  `xorm:"index"`
 	Content    string
+	// Official is a review made by an assigned approver (counts towards approval)
+	Official bool `xorm:"NOT NULL DEFAULT false"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -122,23 +124,6 @@ func GetReviewByID(id int64) (*Review, error) {
 	return getReviewByID(x, id)
 }
 
-func getUniqueApprovalsByPullRequestID(e Engine, prID int64) (reviews []*Review, err error) {
-	reviews = make([]*Review, 0)
-	if err := e.
-		Where("issue_id = ? AND type = ?", prID, ReviewTypeApprove).
-		OrderBy("updated_unix").
-		GroupBy("reviewer_id").
-		Find(&reviews); err != nil {
-		return nil, err
-	}
-	return
-}
-
-// GetUniqueApprovalsByPullRequestID returns all reviews submitted for a specific pull request
-func GetUniqueApprovalsByPullRequestID(prID int64) ([]*Review, error) {
-	return getUniqueApprovalsByPullRequestID(x, prID)
-}
-
 // FindReviewOptions represent possible filters to find reviews
 type FindReviewOptions struct {
 	Type       ReviewType
@@ -182,7 +167,32 @@ type CreateReviewOptions struct {
 	Reviewer *User
 }
 
+// IsOfficialReviewer check if reviewer can make official reviews in issue (counts towards required approvals)
+func IsOfficialReviewer(issue *Issue, reviewer *User) (bool, error) {
+	return isOfficialReviewer(x, issue, reviewer)
+}
+
+func isOfficialReviewer(e Engine, issue *Issue, reviewer *User) (bool, error) {
+	pr, err := getPullRequestByIssueID(e, issue.ID)
+	if err != nil {
+		return false, err
+	}
+	if err = pr.loadProtectedBranch(e); err != nil {
+		return false, err
+	}
+	if pr.ProtectedBranch == nil {
+		return false, nil
+	}
+
+	return pr.ProtectedBranch.isUserOfficialReviewer(e, reviewer)
+}
+
 func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
+	official, err := isOfficialReviewer(e, opts.Issue, opts.Reviewer)
+	if err != nil {
+		return nil, err
+	}
+
 	review := &Review{
 		Type:       opts.Type,
 		Issue:      opts.Issue,
@@ -190,6 +200,7 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 		Reviewer:   opts.Reviewer,
 		ReviewerID: opts.Reviewer.ID,
 		Content:    opts.Content,
+		Official:   official,
 	}
 	if _, err := e.Insert(review); err != nil {
 		return nil, err
@@ -250,6 +261,11 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 		return nil, nil, err
 	}
 
+	// Only reviewers latest review shall count as "official", so existing reviews needs to be cleared
+	if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
+		return nil, nil, err
+	}
+
 	review, err := getCurrentReview(sess, doer, issue)
 	if err != nil {
 		if !IsErrReviewNotExist(err) {
@@ -278,10 +294,18 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 			return nil, nil, ContentEmptyErr{}
 		}
 
+		// Official status of review updated at every submit in case settings changed
+		official, err := isOfficialReviewer(sess, issue, doer)
+		if err != nil {
+			return nil, nil, err
+		}
+		review.Official = official
+
 		review.Issue = issue
 		review.Content = content
 		review.Type = reviewType
-		if _, err := sess.ID(review.ID).Cols("content, type").Update(review); err != nil {
+
+		if _, err := sess.ID(review.ID).Cols("content, type, official").Update(review); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -307,6 +331,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 type PullReviewersWithType struct {
 	User              `xorm:"extends"`
 	Type              ReviewType
+	Official          bool
 	ReviewUpdatedUnix timeutil.TimeStamp `xorm:"review_updated_unix"`
 }
 
@@ -314,7 +339,7 @@ type PullReviewersWithType struct {
 func GetReviewersByPullID(pullID int64) (issueReviewers []*PullReviewersWithType, err error) {
 	irs := []*PullReviewersWithType{}
 	if x.Dialect().DBType() == core.MSSQL {
-		err = x.SQL(`SELECT [user].*, review.type, review.review_updated_unix FROM
+		err = x.SQL(`SELECT [user].*, review.type, review.official, review.review_updated_unix FROM
 (SELECT review.id, review.type, review.reviewer_id, max(review.updated_unix) as review_updated_unix
 FROM review WHERE review.issue_id=? AND (review.type = ? OR review.type = ?)
 GROUP BY review.id, review.type, review.reviewer_id) as review
@@ -322,7 +347,7 @@ INNER JOIN [user] ON review.reviewer_id = [user].id ORDER BY review_updated_unix
 			pullID, ReviewTypeApprove, ReviewTypeReject).
 			Find(&irs)
 	} else {
-		err = x.Select("`user`.*, review.type, max(review.updated_unix) as review_updated_unix").
+		err = x.Select("`user`.*, review.type, review.official, max(review.updated_unix) as review_updated_unix").
 			Table("review").
 			Join("INNER", "`user`", "review.reviewer_id = `user`.id").
 			Where("review.issue_id = ? AND (review.type = ? OR review.type = ?)",
