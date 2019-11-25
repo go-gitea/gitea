@@ -18,7 +18,7 @@ import (
 )
 
 func TestRepoCommits(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
@@ -33,7 +33,7 @@ func TestRepoCommits(t *testing.T) {
 }
 
 func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)

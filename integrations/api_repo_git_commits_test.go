@@ -15,7 +15,7 @@ import (
 )
 
 func TestAPIReposGitCommits(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	// Login as User2.
 	session := loginUser(t, user.Name)
@@ -35,7 +35,7 @@ func TestAPIReposGitCommits(t *testing.T) {
 }
 
 func TestAPIReposGitCommitList(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	// Login as User2.
 	session := loginUser(t, user.Name)
@@ -55,7 +55,7 @@ func TestAPIReposGitCommitList(t *testing.T) {
 }
 
 func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	// Login as User2.
 	session := loginUser(t, user.Name)
@@ -72,7 +72,7 @@ func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
 }
 
 func TestAPIReposGitCommitListDifferentBranch(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	// Login as User2.
 	session := loginUser(t, user.Name)
