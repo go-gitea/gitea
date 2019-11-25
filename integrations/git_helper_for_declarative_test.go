@@ -92,8 +92,6 @@ func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bo
 	listener, err := net.Listen("tcp", u.Host)
 	assert.NoError(t, err)
 
-	u.Host = listener.Addr().String()
-
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		s.Shutdown(ctx)
