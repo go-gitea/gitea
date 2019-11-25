@@ -7,7 +7,6 @@ package migrations
 import (
 	"code.gitea.io/gitea/models"
 
-	"xorm.io/core"
 	"xorm.io/xorm"
 )
 
@@ -43,36 +42,25 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 		return err
 	}
 
+	var pageSize int64 = 20
+	totallPRs, err := x.Count(new(models.PullRequest))
+	if err != nil {
+		return err
+	}
+	var totalPages int64
+	totalPages = totallPRs / pageSize
+
 	// Find latest review of each user in each pull request, and set official field if appropriate
 	reviews := []*models.Review{}
-	if x.Dialect().DBType() == core.MSSQL {
-		if err := x.SQL(`SELECT *, max(review.updated_unix) as review_updated_unix FROM review WHERE (review.type = ? OR review.type = ?)
-GROUP BY review.id, review.issue_id, review.reviewer_id, review.type, ) as review
-ORDER BY review_updated_unix DESC`,
-			models.ReviewTypeApprove, models.ReviewTypeReject).
+	var page int64
+	for page = 0; page <= totalPages; page++ {
+		if err := sess.Sql("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id > ? AND issue_id <= ? AND type in (?, ?) GROUP BY issue_id, reviewer_id)",
+			page*pageSize, (page+1)*pageSize, models.ReviewTypeApprove, models.ReviewTypeReject).
 			Find(&reviews); err != nil {
 			return err
 		}
-	} else {
-		if err := x.Select("review.*, max(review.updated_unix) as review_updated_unix").
-			Table("review").
-			Join("INNER", "`user`", "review.reviewer_id = `user`.id").
-			Where("(review.type = ? OR review.type = ?)",
-				models.ReviewTypeApprove, models.ReviewTypeReject).
-			GroupBy("review.issue_id, review.reviewer_id, review.type").
-			OrderBy("review_updated_unix DESC").
-			Find(&reviews); err != nil {
-			return err
-		}
-	}
 
-	// We need to group our results by user id _and_ review type, otherwise the query fails when using postgresql.
-	usersInArray := make(map[int64]map[int64]bool)
-	for _, review := range reviews {
-		if usersInArray[review.IssueID] == nil {
-			usersInArray[review.IssueID] = make(map[int64]bool)
-		}
-		if !usersInArray[review.IssueID][review.ReviewerID] {
+		for _, review := range reviews {
 			if err := review.LoadAttributes(); err != nil {
 				return err
 			}
@@ -85,8 +73,8 @@ ORDER BY review_updated_unix DESC`,
 			if _, err := sess.ID(review.ID).Cols("official").Update(review); err != nil {
 				return err
 			}
-			usersInArray[review.IssueID][review.ReviewerID] = true
 		}
+
 	}
 
 	return sess.Commit()
