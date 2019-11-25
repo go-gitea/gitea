@@ -586,6 +586,28 @@ function initInstall() {
   });
 }
 
+function initIssueComments() {
+  if ($('.repository.view.issue .comments').length === 0) return;
+
+  $(document).click((event) => {
+    const urlTarget = $(':target');
+    if (urlTarget.length === 0) return;
+
+    const urlTargetId = urlTarget.attr('id');
+    if (!urlTargetId) return;
+    if (!/^(issue|pull)(comment)?-\d+$/.test(urlTargetId)) return;
+
+    const $target = $(event.target);
+
+    if ($target.closest(`#${urlTargetId}`).length === 0) {
+      const scrollPosition = $(window).scrollTop();
+      window.location.hash = '';
+      $(window).scrollTop(scrollPosition);
+      window.history.pushState(null, null, ' ');
+    }
+  });
+}
+
 function initRepository() {
   if ($('.repository').length === 0) {
     return;
@@ -732,6 +754,9 @@ function initRepository() {
       });
       return false;
     });
+
+    // Issue Comments
+    initIssueComments();
 
     // Issue/PR Context Menus
     $('.context-dropdown').dropdown({
