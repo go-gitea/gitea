@@ -140,6 +140,10 @@ for this case, where a distinction is required.
 
 ## Issues and Pull Requests References Summary
 
+This table illustrates the different kinds of cross-reference for issues and pull requests.
+In the examples, `User1/Repo1` refers to the repository where the reference is used, while
+`UserZ/RepoZ` indicates a different repository.
+
 | Reference in User1/Repo1  | Repo1 issues are external | RepoZ issues are external | Should render                    |
 |---------------------------|:-------------------------:|:-------------------------:|----------------------------------|
 | `#1234`                   |     no                    |    N/A                    | A link to issue/pull 1234 in `User1/Repo1` |
@@ -152,15 +156,17 @@ for this case, where a distinction is required.
 | `User1/Repo1!1234`        |    yes                    |    N/A                    | A link to _PR_ 1234 for `User1/Repo1` |
 | `UserZ/RepoZ#1234`        |    N/A                    |     no                    | A link to issue/pull 1234 in `UserZ/RepoZ` |
 | `UserZ/RepoZ!1234`        |    N/A                    |     no                    | A link to issue/pull 1234 in `UserZ/RepoZ` |
-| N/A                       |    N/A                    |    yes                    | A link to _external issue_ 1234 for `UserZ/RepoZ` |
+| _Not supported_           |    N/A                    |    yes                    | A link to _external issue_ 1234 for `UserZ/RepoZ` |
 | `UserZ/RepoZ!1234`        |    N/A                    |    yes                    | A link to _PR_ 1234 for `UserZ/RepoZ` |
 | **Alphanumeric issue IDs:** | -                       | -                         | - |
 | `AAA-1234`                |    yes                    |    N/A                    | A link to _external issue_ `AAA-1234` for `User1/Repo1` |
 | `!1234`                   |    yes                    |    N/A                    | A link to _PR_ 1234 for `User1/Repo1` |
 | `User1/Repo1!1234`        |    yes                    |    N/A                    | A link to _PR_ 1234 for `User1/Repo1` |
-| N/A                       |    N/A                    |    yes                    | A link to _external issue_ `AAA-1234` for `UserZ/RepoZ` |
+| _Not supported_           |    N/A                    |    yes                    | A link to _external issue_ `AAA-1234` for `UserZ/RepoZ` |
 | `UserZ/RepoZ!1234`        |    N/A                    |    yes                    | A link to _PR_ 1234 in `UserZ/RepoZ` |
 
 _The last section is for repositories with external issue trackers that use alphanumeric format._
+_**N/A**: not applicable._
 
-Note: automatic references between repositories with different types of issues (external vs. internal) are not fully supported and may render invalid links.
+Note: automatic references between repositories with different types of issues (external vs. internal) are not fully supported
+and may render invalid links.
