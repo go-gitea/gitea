@@ -439,7 +439,7 @@ type ReviewPayload struct {
 	Content string `json:"content"`
 }
 
-// PullRequestChangesPayload FIXME
+// PullRequestChangesPayload represents the payload information of pull request change
 type PullRequestChangesPayload struct {
 	Title        *ChangesFromPayload `json:"title,omitempty"`
 	Body         *ChangesFromPayload `json:"body,omitempty"`
