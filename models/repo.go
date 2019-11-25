@@ -1257,22 +1257,6 @@ type CreateRepoOptions struct {
 	Status      RepositoryStatus
 }
 
-// GenerateRepoOptions contains the template units to generate
-type GenerateRepoOptions struct {
-	Name        string
-	Description string
-	Private     bool
-	GitContent  bool
-	Topics      bool
-	GitHooks    bool
-	Webhooks    bool
-}
-
-// IsValid checks whether at least one option is chosen for generation
-func (gro GenerateRepoOptions) IsValid() bool {
-	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks // or other items as they are added
-}
-
 func getRepoInitFile(tp, name string) ([]byte, error) {
 	cleanedName := strings.TrimLeft(path.Clean("/"+name), "/")
 	relPath := path.Join("options", tp, cleanedName)
@@ -2957,8 +2941,12 @@ func (repo *Repository) GetTreePathLock(treePath string) (*LFSLock, error) {
 	return nil, nil
 }
 
+func updateRepositoryCols(e Engine, repo *Repository, cols ...string) error {
+	_, err := e.ID(repo.ID).Cols(cols...).Update(repo)
+	return err
+}
+
 // UpdateRepositoryCols updates repository's columns
 func UpdateRepositoryCols(repo *Repository, cols ...string) error {
-	_, err := x.ID(repo.ID).Cols(cols...).Update(repo)
-	return err
+	return updateRepositoryCols(x, repo, cols...)
 }
