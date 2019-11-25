@@ -231,9 +231,8 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 	}
 
 	for k, asset := range rel.Assets.Links {
-		u, _ := url.Parse(asset.URL)
 		r.Assets = append(r.Assets, base.ReleaseAsset{
-			URL:         u.String(),
+			URL:         asset.URL,
 			Name:        asset.Name,
 			ContentType: &rel.Assets.Sources[k].Format,
 		})
@@ -413,8 +412,6 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 		var merged bool
 		switch pr.State {
-		case "opened":
-			merged = false
 		case "closed":
 			merged = true
 		case "merged":
