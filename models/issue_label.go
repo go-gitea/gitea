@@ -279,10 +279,9 @@ func GetLabelsInRepoByIDs(repoID int64, labelIDs []int64) ([]*Label, error) {
 		Find(&labels)
 }
 
-// GetLabelsByRepoID returns all labels that belong to given repository by ID.
-func GetLabelsByRepoID(repoID int64, sortType string) ([]*Label, error) {
+func getLabelsByRepoID(e Engine, repoID int64, sortType string) ([]*Label, error) {
 	labels := make([]*Label, 0, 10)
-	sess := x.Where("repo_id = ?", repoID)
+	sess := e.Where("repo_id = ?", repoID)
 
 	switch sortType {
 	case "reversealphabetically":
@@ -296,6 +295,11 @@ func GetLabelsByRepoID(repoID int64, sortType string) ([]*Label, error) {
 	}
 
 	return labels, sess.Find(&labels)
+}
+
+// GetLabelsByRepoID returns all labels that belong to given repository by ID.
+func GetLabelsByRepoID(repoID int64, sortType string) ([]*Label, error) {
+	return getLabelsByRepoID(x, repoID, sortType)
 }
 
 func getLabelsByIssueID(e Engine, issueID int64) ([]*Label, error) {
