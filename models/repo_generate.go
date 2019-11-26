@@ -5,8 +5,11 @@
 package models
 
 import (
+	"code.gitea.io/gitea/modules/process"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -36,8 +39,86 @@ func (gro GenerateRepoOptions) IsValid() bool {
 	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar || gro.IssueLabels // or other items as they are added
 }
 
+func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, tmpDir string) error {
+	commitTimeStr := time.Now().Format(time.RFC3339)
+	authorSig := repo.Owner.NewGitSig()
+
+	// Because this may call hooks we should pass in the environment
+	env := append(os.Environ(),
+		"GIT_AUTHOR_NAME="+authorSig.Name,
+		"GIT_AUTHOR_EMAIL="+authorSig.Email,
+		"GIT_AUTHOR_DATE="+commitTimeStr,
+		"GIT_COMMITTER_NAME="+authorSig.Name,
+		"GIT_COMMITTER_EMAIL="+authorSig.Email,
+		"GIT_COMMITTER_DATE="+commitTimeStr,
+	)
+
+	// Clone to temporary path and do the init commit.
+	templateRepoPath := templateRepo.repoPath(e)
+	_, stderr, err := process.GetManager().ExecDirEnv(
+		-1, "",
+		fmt.Sprintf("generateRepoCommit(git clone): %s", templateRepoPath),
+		env,
+		git.GitExecutable, "clone", "--depth", "1", templateRepoPath, tmpDir,
+	)
+	if err != nil {
+		return fmt.Errorf("git clone: %v - %s", err, stderr)
+	}
+
+	if err := os.RemoveAll(path.Join(tmpDir, ".git")); err != nil {
+		return fmt.Errorf("remove git dir: %v", err)
+	}
+
+	// Variable expansion in .template files
+	if err := filepath.Walk(tmpDir, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+
+		if !strings.HasSuffix(path, ".template") {
+			return nil
+		}
+
+		content, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		fi, err := os.Create(strings.TrimSuffix(path, ".template"))
+		if err != nil {
+			return err
+		}
+		defer fi.Close()
+
+		if _, err := fi.WriteString(generateExpansion(string(content), templateRepo, generateRepo)); err != nil {
+			return err
+		}
+
+		return os.Remove(path)
+	}); err != nil {
+		return err
+	}
+
+	if err := git.InitRepository(tmpDir, false); err != nil {
+		return err
+	}
+
+	repoPath := repo.repoPath(e)
+	_, stderr, err = process.GetManager().ExecDirEnv(
+		-1, tmpDir,
+		fmt.Sprintf("generateRepoCommit(git remote add): %s", repoPath),
+		env,
+		git.GitExecutable, "remote", "add", "origin", repoPath,
+	)
+	if err != nil {
+		return fmt.Errorf("git remote add: %v - %s", err, stderr)
+	}
+
+	return initRepoCommit(tmpDir, repo.Owner)
+}
+
 // generateRepository initializes repository from template
-func generateRepository(e Engine, repo, templateRepo *Repository) (err error) {
+func generateRepository(e Engine, repo, templateRepo, generateRepo *Repository) (err error) {
 	tmpDir := filepath.Join(os.TempDir(), "gitea-"+repo.Name+"-"+com.ToStr(time.Now().Nanosecond()))
 
 	if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
@@ -50,7 +131,7 @@ func generateRepository(e Engine, repo, templateRepo *Repository) (err error) {
 		}
 	}()
 
-	if err = generateRepoCommit(e, repo, templateRepo, tmpDir); err != nil {
+	if err = generateRepoCommit(e, repo, templateRepo, generateRepo, tmpDir); err != nil {
 		return fmt.Errorf("generateRepoCommit: %v", err)
 	}
 
@@ -95,7 +176,7 @@ func GenerateRepository(ctx DBContext, doer, owner *User, templateRepo *Reposito
 
 // GenerateGitContent generates git content from a template repository
 func GenerateGitContent(ctx DBContext, templateRepo, generateRepo *Repository) error {
-	if err := generateRepository(ctx.e, generateRepo, templateRepo); err != nil {
+	if err := generateRepository(ctx.e, generateRepo, templateRepo, generateRepo); err != nil {
 		return err
 	}
 
@@ -144,7 +225,7 @@ func GenerateGitHooks(ctx DBContext, templateRepo, generateRepo *Repository) err
 			return err
 		}
 
-		generateHook.Content = templateHook.Content
+		generateHook.Content = generateExpansion(templateHook.Content, templateRepo, generateRepo)
 		if err := generateHook.Update(); err != nil {
 			return err
 		}
@@ -209,4 +290,29 @@ func GenerateIssueLabels(ctx DBContext, templateRepo, generateRepo *Repository) 
 		}
 	}
 	return nil
+}
+
+func generateExpansion(src string, templateRepo, generateRepo *Repository) string {
+	return os.Expand(src, func(key string) string {
+		switch key {
+		case "REPO_NAME":
+			return generateRepo.Name
+		case "TEMPLATE_NAME":
+			return templateRepo.Name
+		case "REPO_OWNER":
+			return generateRepo.MustOwnerName()
+		case "TEMPLATE_OWNER":
+			return templateRepo.MustOwnerName()
+		case "REPO_HTTPS_URL":
+			return generateRepo.CloneLink().HTTPS
+		case "TEMPLATE_HTTPS_URL":
+			return templateRepo.CloneLink().HTTPS
+		case "REPO_SSH_URL":
+			return generateRepo.CloneLink().SSH
+		case "TEMPLATE_SSH_URL":
+			return templateRepo.CloneLink().SSH
+		default:
+			return ""
+		}
+	})
 }
