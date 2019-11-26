@@ -208,6 +208,7 @@ input{background:#2e323e}
 .ui.blue.button:focus,.ui.blue.buttons .button:focus{background-color:#a27558}
 .ui.basic.blue.button:hover,.ui.basic.blue.buttons .button:hover{box-shadow:0 0 0 1px #87ab63 inset!important;color:#87ab63!important}
 .ui.basic.blue.button:focus,.ui.basic.blue.buttons .button:focus{box-shadow:0 0 0 1px #87ab63 inset!important;color:#87ab63!important}
+.repository.labels .ui.basic.black.label{background-color:#bbb!important}
 .lines-commit{background:#2e323e!important}
 .bottom-line{border-color:#4e525e!important}
 .lines-num{background:#2e323e!important;color:#9e9e9e!important;border-color:#2d2d2d!important}
