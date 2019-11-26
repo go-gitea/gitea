@@ -93,13 +93,9 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 			return err
 		}
 
-		fi, err := os.Create(newPath)
-		if err != nil {
-			return err
-		}
-		defer fi.Close()
-
-		if _, err := fi.WriteString(generateExpansion(string(content), templateRepo, generateRepo)); err != nil {
+		if err := ioutil.WriteFile(newPath,
+			[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
+			0644); err != nil {
 			return err
 		}
 
