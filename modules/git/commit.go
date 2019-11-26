@@ -216,6 +216,14 @@ func AddChanges(repoPath string, all bool, files ...string) error {
 	return err
 }
 
+// AddChangesWithArgs marks local changes to be ready for commit.
+func AddChangesWithArgs(repoPath string, args []string, files ...string) error {
+	cmd := NewPureCommand("add")
+	cmd.AddArguments(args...)
+	_, err := cmd.AddArguments(files...).RunInDir(repoPath)
+	return err
+}
+
 // CommitChangesOptions the options when a commit created
 type CommitChangesOptions struct {
 	Committer *Signature
@@ -226,7 +234,15 @@ type CommitChangesOptions struct {
 // CommitChanges commits local changes with given committer, author and message.
 // If author is nil, it will be the same as committer.
 func CommitChanges(repoPath string, opts CommitChangesOptions) error {
-	cmd := NewCommand()
+	cargs := make([]string, len(GlobalCommandArgs))
+	copy(cargs, GlobalCommandArgs)
+	return CommitChangesWithArgs(repoPath, cargs, opts)
+}
+
+// CommitChangesWithArgs commits local changes with given committer, author and message.
+// If author is nil, it will be the same as committer.
+func CommitChangesWithArgs(repoPath string, args []string, opts CommitChangesOptions) error {
+	cmd := NewPureCommand().AddArguments(args...)
 	if opts.Committer != nil {
 		cmd.AddArguments("-c", "user.name="+opts.Committer.Name, "-c", "user.email="+opts.Committer.Email)
 	}
