@@ -182,6 +182,17 @@ func NewQueueService() {
 	if _, ok := issueIndexerSectionMap["CONN_STR"]; !ok {
 		section.Key("CONN_STR").SetValue(Indexer.IssueQueueConnStr)
 	}
+
+	hasLength := false
+	for _, key := range Cfg.Section("queue.mail").Keys() {
+		if key.Name() == "LENGTH" {
+			hasLength = true
+			break
+		}
+	}
+	if !hasLength {
+		Cfg.Section("queue.mail").Key("LENGTH").SetValue(fmt.Sprintf("%d", Cfg.Section("mailer").Key("SEND_BUFFER_LEN").MustInt(100)))
+	}
 }
 
 // ParseQueueConnStr parses a queue connection string
