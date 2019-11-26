@@ -124,7 +124,7 @@ func TestLDAPUserSignin(t *testing.T) {
 		t.Skip()
 		return
 	}
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "")
 
 	u := gitLDAPUsers[0]
@@ -145,7 +145,7 @@ func TestLDAPUserSync(t *testing.T) {
 		t.Skip()
 		return
 	}
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "")
 	models.SyncExternalUsers()
 
@@ -191,7 +191,7 @@ func TestLDAPUserSigninFailed(t *testing.T) {
 		t.Skip()
 		return
 	}
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "")
 
 	u := otherLDAPUsers[0]
@@ -204,7 +204,7 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 		t.Skip()
 		return
 	}
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "sshPublicKey")
 	models.SyncExternalUsers()
 

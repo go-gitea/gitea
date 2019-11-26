@@ -18,7 +18,7 @@ import (
 )
 
 func TestLinksNoLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	var links = []string{
 		"/explore/repos",
@@ -44,7 +44,7 @@ func TestLinksNoLogin(t *testing.T) {
 }
 
 func TestRedirectsNoLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	var redirects = map[string]string{
 		"/user2/repo1/commits/master":                "/user2/repo1/commits/branch/master",
@@ -144,7 +144,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 }
 
 func TestLinksLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	testLinksAsUser("user2", t)
 }

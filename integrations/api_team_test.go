@@ -18,7 +18,7 @@ import (
 )
 
 func TestAPITeam(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	teamUser := models.AssertExistsAndLoadBean(t, &models.TeamUser{}).(*models.TeamUser)
 	team := models.AssertExistsAndLoadBean(t, &models.Team{ID: teamUser.TeamID}).(*models.Team)
@@ -122,7 +122,7 @@ type TeamSearchResults struct {
 }
 
 func TestAPITeamSearch(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	org := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)
