@@ -42,6 +42,8 @@ type CreateRepoForm struct {
 	Topics       bool
 	GitHooks     bool
 	Webhooks     bool
+	Avatar       bool
+	Labels       bool
 }
 
 // Validate validates the fields
@@ -507,9 +509,9 @@ func (f SubmitReviewForm) HasEmptyContent() bool {
 
 // NewReleaseForm form for creating release
 type NewReleaseForm struct {
-	TagName    string `binding:"Required;GitRefName"`
-	Target     string `form:"tag_target" binding:"Required"`
-	Title      string `binding:"Required"`
+	TagName    string `binding:"Required;GitRefName;MaxSize(255)"`
+	Target     string `form:"tag_target" binding:"Required;MaxSize(255)"`
+	Title      string `binding:"Required;MaxSize(255)"`
 	Content    string
 	Draft      string
 	Prerelease bool
@@ -523,7 +525,7 @@ func (f *NewReleaseForm) Validate(ctx *macaron.Context, errs binding.Errors) bin
 
 // EditReleaseForm form for changing release
 type EditReleaseForm struct {
-	Title      string `form:"title" binding:"Required"`
+	Title      string `form:"title" binding:"Required;MaxSize(255)"`
 	Content    string `form:"content"`
 	Draft      string `form:"draft"`
 	Prerelease bool   `form:"prerelease"`

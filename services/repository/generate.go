@@ -47,6 +47,20 @@ func GenerateRepository(doer, owner *models.User, templateRepo *models.Repositor
 			}
 		}
 
+		// Avatar
+		if opts.Avatar && len(templateRepo.Avatar) > 0 {
+			if err = models.GenerateAvatar(ctx, templateRepo, generateRepo); err != nil {
+				return err
+			}
+		}
+
+		// Issue Labels
+		if opts.IssueLabels {
+			if err = models.GenerateIssueLabels(ctx, templateRepo, generateRepo); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}); err != nil {
 		if generateRepo != nil {
