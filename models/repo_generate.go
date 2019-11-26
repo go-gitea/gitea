@@ -56,7 +56,7 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 	// Clone to temporary path and do the init commit.
 	templateRepoPath := templateRepo.repoPath(e)
 	_, stderr, err := process.GetManager().ExecDirEnv(
-		-1, "",
+		10*time.Minute, "",
 		fmt.Sprintf("generateRepoCommit(git clone): %s", templateRepoPath),
 		env,
 		git.GitExecutable, "clone", "--depth", "1", templateRepoPath, tmpDir,
@@ -69,22 +69,31 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 		return fmt.Errorf("remove git dir: %v", err)
 	}
 
-	// Variable expansion in .template files
+	// Variable expansion in _template files
 	if err := filepath.Walk(tmpDir, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
 
-		if !strings.HasSuffix(path, ".template") {
+		if info.IsDir() {
 			return nil
 		}
+
+		ext := filepath.Ext(path)
+		pathNoExt := strings.TrimSuffix(path, ext)
+
+		if !strings.HasSuffix(pathNoExt, "_template") {
+			return nil
+		}
+
+		newPath := fmt.Sprintf("%s%s", strings.TrimSuffix(pathNoExt, "_template"), ext)
 
 		content, err := ioutil.ReadFile(path)
 		if err != nil {
 			return err
 		}
 
-		fi, err := os.Create(strings.TrimSuffix(path, ".template"))
+		fi, err := os.Create(newPath)
 		if err != nil {
 			return err
 		}
@@ -303,6 +312,10 @@ func generateExpansion(src string, templateRepo, generateRepo *Repository) strin
 			return generateRepo.MustOwnerName()
 		case "TEMPLATE_OWNER":
 			return templateRepo.MustOwnerName()
+		case "REPO_LINK":
+			return generateRepo.Link()
+		case "TEMPLATE_LINK":
+			return templateRepo.Link()
 		case "REPO_HTTPS_URL":
 			return generateRepo.CloneLink().HTTPS
 		case "TEMPLATE_HTTPS_URL":
@@ -312,7 +325,7 @@ func generateExpansion(src string, templateRepo, generateRepo *Repository) strin
 		case "TEMPLATE_SSH_URL":
 			return templateRepo.CloneLink().SSH
 		default:
-			return ""
+			return key
 		}
 	})
 }
