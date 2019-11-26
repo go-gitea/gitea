@@ -307,7 +307,7 @@ func generateCommitWithNewData(size int, repoPath, email, fullName, prefix strin
 	//Commit
 	// Now here we should explicitly allow lfs filters to run
 	globalArgs := allowLFSFilters()
-	err = git.AddChangesWithArgs(repoPath, append(globalArgs, "--"), filepath.Base(tmpFile.Name()))
+	err = git.AddChangesWithArgs(repoPath, globalArgs, false, filepath.Base(tmpFile.Name()))
 	if err != nil {
 		return "", err
 	}

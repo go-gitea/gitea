@@ -177,7 +177,7 @@ func CloneWithArgs(from, to string, args []string, opts CloneRepoOptions) (err e
 		return err
 	}
 
-	cmd := NewPureCommand(args...).AddArguments("clone")
+	cmd := NewCommandNoGlobals(args...).AddArguments("clone")
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
 	}

@@ -52,8 +52,8 @@ func NewCommand(args ...string) *Command {
 	}
 }
 
-// NewPureCommand creates and returns a new Git Command based on given command and arguments without global command args
-func NewPureCommand(args ...string) *Command {
+// NewCommandNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
+func NewCommandNoGlobals(args ...string) *Command {
 	return &Command{
 		name: GitExecutable,
 		args: args,

@@ -212,7 +212,7 @@ func AddChanges(repoPath string, all bool, files ...string) error {
 
 // AddChangesWithArgs marks local changes to be ready for commit.
 func AddChangesWithArgs(repoPath string, gloablArgs []string, all bool, files ...string) error {
-	cmd := NewPureCommand(append(gloablArgs, "add")...)
+	cmd := NewCommandNoGlobals(append(gloablArgs, "add")...)
 	if all {
 		cmd.AddArguments("--all")
 	}
@@ -239,7 +239,7 @@ func CommitChanges(repoPath string, opts CommitChangesOptions) error {
 // CommitChangesWithArgs commits local changes with given committer, author and message.
 // If author is nil, it will be the same as committer.
 func CommitChangesWithArgs(repoPath string, args []string, opts CommitChangesOptions) error {
-	cmd := NewPureCommand(args...)
+	cmd := NewCommandNoGlobals(args...)
 	if opts.Committer != nil {
 		cmd.AddArguments("-c", "user.name="+opts.Committer.Name, "-c", "user.email="+opts.Committer.Email)
 	}
