@@ -43,11 +43,17 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 	}
 
 	var pageSize int64 = 20
-	totallPRs, err := x.Count(new(models.PullRequest))
+	qresult, err := sess.QueryInterface("SELECT max(id) as max_id FROM pull_request")
 	if err != nil {
 		return err
 	}
-	var totalPages int64 = totallPRs / pageSize
+	var totalPRs int64
+	totalPRs, ok := qresult[0]["max_id"].(int64)
+	if !ok {
+		// This shouldn't happen
+		return models.ErrNotExist{0}
+	}
+	var totalPages int64 = totalPRs / pageSize
 
 	// Find latest review of each user in each pull request, and set official field if appropriate
 	reviews := []*models.Review{}
@@ -61,11 +67,13 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 
 		for _, review := range reviews {
 			if err := review.LoadAttributes(); err != nil {
-				return err
+				// Error might occur if user or issue doesn't exist, ignore it.
+				continue
 			}
 			official, err := models.IsOfficialReviewer(review.Issue, review.Reviewer)
 			if err != nil {
-				return err
+				// Branch might not be proteced or other error, ignore it.
+				continue
 			}
 			review.Official = official
 
