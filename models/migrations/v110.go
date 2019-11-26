@@ -5,6 +5,8 @@
 package migrations
 
 import (
+	"errors"
+
 	"code.gitea.io/gitea/models"
 
 	"xorm.io/xorm"
@@ -14,7 +16,6 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 
 	type ProtectedBranch struct {
 		CanPush                  bool  `xorm:"NOT NULL DEFAULT false"`
-		EnableWhitelist          bool  `xorm:"NOT NULL DEFAULT false"`
 		EnableApprovalsWhitelist bool  `xorm:"NOT NULL DEFAULT false"`
 		RequiredApprovals        int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
@@ -51,9 +52,9 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 	totalPRs, ok := qresult[0]["max_id"].(int64)
 	if !ok {
 		// This shouldn't happen
-		return models.ErrNotExist{0}
+		return errors.New("Failed to get max id for Pull Requests")
 	}
-	var totalPages int64 = totalPRs / pageSize
+	totalPages := totalPRs / pageSize
 
 	// Find latest review of each user in each pull request, and set official field if appropriate
 	reviews := []*models.Review{}
