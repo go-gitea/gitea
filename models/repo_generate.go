@@ -7,6 +7,7 @@ package models
 import (
 	"code.gitea.io/gitea/modules/process"
 	"fmt"
+	"github.com/gobwas/glob"
 	"io/ioutil"
 	"os"
 	"path"
@@ -39,6 +40,34 @@ func (gro GenerateRepoOptions) IsValid() bool {
 	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar || gro.IssueLabels // or other items as they are added
 }
 
+func parseGiteaTemplate(tmpDir string) ([]glob.Glob, error) {
+	globs := make([]glob.Glob, 0)
+	gtPath := filepath.Join(tmpDir, ".giteatemplate")
+	if _, err := os.Stat(gtPath); err != nil {
+		return globs, err
+	}
+	content, err := ioutil.ReadFile(gtPath)
+	if err != nil {
+		return globs, err
+	}
+
+	lines := strings.Split(string(content), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		g, err := glob.Compile(line, '.', '/')
+		if err != nil {
+			log.Info("Invalid glob expression '%s' (skipped): %v", line, err)
+			continue
+		}
+		globs = append(globs, g)
+	}
+
+	return globs, os.Remove(gtPath)
+}
+
 func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, tmpDir string) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
@@ -69,7 +98,12 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 		return fmt.Errorf("remove git dir: %v", err)
 	}
 
-	// Variable expansion in _template files
+	// Variable expansion
+	globs, err := parseGiteaTemplate(tmpDir)
+	if err != nil {
+		return fmt.Errorf("parseGiteaTemplate: %v", err)
+	}
+
 	if err := filepath.Walk(tmpDir, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
@@ -79,27 +113,23 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 			return nil
 		}
 
-		ext := filepath.Ext(path)
-		pathNoExt := strings.TrimSuffix(path, ext)
+		base := strings.TrimPrefix(path, tmpDir)
+		for _, g := range globs {
+			if g.Match(base) {
+				content, err := ioutil.ReadFile(path)
+				if err != nil {
+					return err
+				}
 
-		if !strings.HasSuffix(pathNoExt, "_template") {
-			return nil
+				if err := ioutil.WriteFile(path,
+					[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
+					0644); err != nil {
+					return err
+				}
+				break
+			}
 		}
-
-		newPath := fmt.Sprintf("%s%s", strings.TrimSuffix(pathNoExt, "_template"), ext)
-
-		content, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		if err := ioutil.WriteFile(newPath,
-			[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
-			0644); err != nil {
-			return err
-		}
-
-		return os.Remove(path)
+		return nil
 	}); err != nil {
 		return err
 	}
