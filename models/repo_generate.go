@@ -304,6 +304,10 @@ func generateExpansion(src string, templateRepo, generateRepo *Repository) strin
 			return generateRepo.Name
 		case "TEMPLATE_NAME":
 			return templateRepo.Name
+		case "REPO_DESCRIPTION":
+			return generateRepo.Description
+		case "TEMPLATE_DESCRIPTION":
+			return templateRepo.Description
 		case "REPO_OWNER":
 			return generateRepo.MustOwnerName()
 		case "TEMPLATE_OWNER":
