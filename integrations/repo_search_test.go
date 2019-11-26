@@ -29,7 +29,7 @@ func resultFilenames(t testing.TB, doc *HTMLDoc) []string {
 }
 
 func TestSearchRepo(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)

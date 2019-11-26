@@ -43,7 +43,7 @@ func testGit(t *testing.T, u *url.URL) {
 	forkedUserCtx := NewAPITestContext(t, "user4", "repo1")
 
 	t.Run("HTTP", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		ensureAnonymousClone(t, u)
 		httpContext := baseAPITestContext
 		httpContext.Reponame = "repo-tmp-17"
@@ -77,7 +77,7 @@ func testGit(t *testing.T, u *url.URL) {
 		})
 	})
 	t.Run("SSH", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		sshContext := baseAPITestContext
 		sshContext.Reponame = "repo-tmp-18"
 		keyname := "my-testing-key"
@@ -127,7 +127,7 @@ func ensureAnonymousClone(t *testing.T, u *url.URL) {
 
 func standardCommitAndPushTest(t *testing.T, dstPath string) (little, big string) {
 	t.Run("Standard", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		little, big = commitAndPushTest(t, dstPath, "data-file-")
 	})
 	return
@@ -135,7 +135,7 @@ func standardCommitAndPushTest(t *testing.T, dstPath string) (little, big string
 
 func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS string) {
 	t.Run("LFS", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		setting.CheckLFSVersion()
 		if !setting.LFS.StartServer {
 			t.Skip()
@@ -168,7 +168,7 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 		littleLFS, bigLFS = commitAndPushTest(t, dstPath, prefix)
 
 		t.Run("Locks", func(t *testing.T) {
-			PrintCurrentTest(t)
+			defer PrintCurrentTest(t)()
 			lockTest(t, dstPath)
 		})
 	})
@@ -177,9 +177,9 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 
 func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string) {
 	t.Run("PushCommit", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		t.Run("Little", func(t *testing.T) {
-			PrintCurrentTest(t)
+			defer PrintCurrentTest(t)()
 			little = doCommitAndPush(t, littleSize, dstPath, prefix)
 		})
 		t.Run("Big", func(t *testing.T) {
@@ -187,7 +187,7 @@ func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string
 				t.Skip("Skipping test in short mode.")
 				return
 			}
-			PrintCurrentTest(t)
+			defer PrintCurrentTest(t)()
 			big = doCommitAndPush(t, bigSize, dstPath, prefix)
 		})
 	})
@@ -196,7 +196,7 @@ func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string
 
 func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS string) {
 	t.Run("Raw", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		username := ctx.Username
 		reponame := ctx.Reponame
 
@@ -232,7 +232,7 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 
 func mediaTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS string) {
 	t.Run("Media", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 
 		username := ctx.Username
 		reponame := ctx.Reponame
@@ -331,7 +331,7 @@ func generateCommitWithNewData(size int, repoPath, email, fullName, prefix strin
 
 func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 	return func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		t.Run("CreateBranchProtected", doGitCreateBranch(dstPath, "protected"))
 		t.Run("PushProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected"))
 
