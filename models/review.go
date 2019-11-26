@@ -345,9 +345,9 @@ func GetReviewersByPullID(pullID int64) (issueReviewers []*PullReviewersWithType
 	irs := []*PullReviewersWithType{}
 	if x.Dialect().DBType() == core.MSSQL {
 		err = x.SQL(`SELECT [user].*, review.type, review.official, review.review_updated_unix FROM
-(SELECT review.id, review.type, review.reviewer_id, max(review.updated_unix) as review_updated_unix
+(SELECT review.id, review.type, review.reviewer_id, review.official, max(review.updated_unix) as review_updated_unix
 FROM review WHERE review.issue_id=? AND (review.type = ? OR review.type = ?)
-GROUP BY review.id, review.type, review.reviewer_id) as review
+GROUP BY review.id, review.type, review.reviewer_id, review.official) as review
 INNER JOIN [user] ON review.reviewer_id = [user].id ORDER BY review_updated_unix DESC`,
 			pullID, ReviewTypeApprove, ReviewTypeReject).
 			Find(&irs)
@@ -357,12 +357,12 @@ INNER JOIN [user] ON review.reviewer_id = [user].id ORDER BY review_updated_unix
 			Join("INNER", "`user`", "review.reviewer_id = `user`.id").
 			Where("review.issue_id = ? AND (review.type = ? OR review.type = ?)",
 				pullID, ReviewTypeApprove, ReviewTypeReject).
-			GroupBy("`user`.id, review.type").
+			GroupBy("`user`.id, review.type, review.official").
 			OrderBy("review_updated_unix DESC").
 			Find(&irs)
 	}
 
-	// We need to group our results by user id _and_ review type, otherwise the query fails when using postgresql.
+	// We need to group our results by the fields we want, otherwise some databases will fail (only_full_group_by).
 	// But becaus we're doing this, we need to manually filter out multiple reviews of different types by the
 	// same person because we only want to show the newest review grouped by user. Thats why we're using a map here.
 	issueReviewers = []*PullReviewersWithType{}
