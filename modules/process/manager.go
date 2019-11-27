@@ -29,12 +29,13 @@ var (
 	DefaultContext = context.Background()
 )
 
-// Process represents a working process inherit from Gogs.
+// Process represents a working process inheriting from Gitea.
 type Process struct {
 	PID         int64 // Process ID, not system one.
 	Description string
 	Start       time.Time
 	Cmd         *exec.Cmd
+	Cancel      context.CancelFunc
 }
 
 // Manager knows about all processes and counts PIDs.
@@ -56,7 +57,7 @@ func GetManager() *Manager {
 }
 
 // Add a process to the ProcessManager and returns its PID.
-func (pm *Manager) Add(description string, cmd *exec.Cmd) int64 {
+func (pm *Manager) Add(description string, cmd *exec.Cmd, cancel context.CancelFunc) int64 {
 	pm.mutex.Lock()
 	pid := pm.counter + 1
 	pm.Processes[pid] = &Process{
@@ -64,6 +65,7 @@ func (pm *Manager) Add(description string, cmd *exec.Cmd) int64 {
 		Description: description,
 		Start:       time.Now(),
 		Cmd:         cmd,
+		Cancel:      cancel,
 	}
 	pm.counter = pid
 	pm.mutex.Unlock()
@@ -76,6 +78,16 @@ func (pm *Manager) Remove(pid int64) {
 	pm.mutex.Lock()
 	delete(pm.Processes, pid)
 	pm.mutex.Unlock()
+}
+
+// Cancel a process in the ProcessManager.
+func (pm *Manager) Cancel(pid int64) {
+	pm.mutex.Lock()
+	process, ok := pm.Processes[pid]
+	pm.mutex.Unlock()
+	if ok {
+		process.Cancel()
+	}
 }
 
 // Exec a command and use the default timeout.
@@ -129,7 +141,7 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 		return "", "", err
 	}
 
-	pid := pm.Add(desc, cmd)
+	pid := pm.Add(desc, cmd, cancel)
 	err := cmd.Wait()
 	pm.Remove(pid)
 
