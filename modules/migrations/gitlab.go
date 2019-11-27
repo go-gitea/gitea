@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -83,13 +84,22 @@ type GitlabDownloader struct {
 }
 
 // NewGitlabDownloader creates a gitlab Downloader via gitlab API
+//   Use either a username/password, personal token entered into the password field, or anonymous/public access
+//   Note: Public access only allows very basic access
 func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDownloader {
 	var downloader = GitlabDownloader{
 		ctx: context.Background(),
 	}
 
 	var client *http.Client
-	gitlabClient, err := gitlab.NewBasicAuthClient(client, baseURL, username, password)
+	var gitlabClient *gitlab.Client
+	var err error
+	if username != "" {
+		gitlabClient, err = gitlab.NewBasicAuthClient(client, baseURL, username, password)
+	} else {
+		gitlabClient = gitlab.NewClient(client, password)
+	}
+
 	if err != nil {
 		log.Trace("Error logging into gitlab: %v", err)
 		return nil
@@ -100,9 +110,14 @@ func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDo
 	if err != nil {
 		return nil
 	}
+
+	if gr == nil {
+		log.Trace("Error getting project, project is nil")
+		return nil
+	}
+
 	downloader.repoID = gr.ID
 	downloader.repoName = gr.Name
-
 	downloader.client = gitlabClient
 
 	return &downloader
@@ -110,23 +125,36 @@ func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDo
 
 // GetRepoInfo returns a repository information
 func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
+	if g == nil {
+		return nil, errors.New("error: GitlabDownloader is nil")
+	}
+
 	gr, _, err := g.client.Projects.GetProject(g.repoID, nil, nil)
 	if err != nil {
 		return nil, err
 	}
+
 	var private bool
 	switch gr.Visibility {
 	case gitlab.InternalVisibility:
 		private = true
 	case gitlab.PrivateVisibility:
 		private = true
-	case gitlab.PublicVisibility:
-		private = false
-	default:
-		private = true
 	}
+
+	var owner string
+	if gr.Owner == nil {
+		log.Trace("gr.Owner is nil, trying to get owner from Namespace")
+		if gr.Namespace != nil && gr.Namespace.Kind == "user" {
+			owner = gr.Namespace.Path
+		}
+	} else {
+		owner = gr.Owner.Username
+	}
+
 	// convert gitlab repo to stand Repo
 	return &base.Repository{
+		Owner:       owner,
 		Name:        gr.Name,
 		IsPrivate:   private,
 		Description: gr.Description,
@@ -137,6 +165,10 @@ func (g *GitlabDownloader) GetRepoInfo() (*base.Repository, error) {
 
 // GetTopics return gitlab topics
 func (g *GitlabDownloader) GetTopics() ([]string, error) {
+	if g == nil {
+		return nil, errors.New("error: GitlabDownloader is nil")
+	}
+
 	gr, _, err := g.client.Projects.GetProject(g.repoID, nil, nil)
 	if err != nil {
 		return nil, err
@@ -146,6 +178,9 @@ func (g *GitlabDownloader) GetTopics() ([]string, error) {
 
 // GetMilestones returns milestones
 func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
+	if g == nil {
+		return nil, errors.New("error: GitlabDownloader is nil")
+	}
 	var perPage = 100
 	var state = "all"
 	var milestones = make([]*base.Milestone, 0, perPage)
@@ -159,7 +194,6 @@ func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
 		if err != nil {
 			return nil, err
 		}
-		var milestones = make([]*base.Milestone, 0)
 
 		for _, m := range ms {
 			var desc string
@@ -167,8 +201,12 @@ func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
 				desc = m.Description
 			}
 			var state = "open"
+			var closedAt *time.Time
 			if m.State != "" {
 				state = m.State
+				if state == "closed" {
+					closedAt = m.UpdatedAt
+				}
 			}
 			deadline, err := time.Parse("2006-01-02", m.DueDate.String())
 			if err != nil {
@@ -181,7 +219,7 @@ func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
 				State:       state,
 				Created:     *m.CreatedAt,
 				Updated:     m.UpdatedAt,
-				Closed:      m.UpdatedAt,
+				Closed:      closedAt,
 			})
 		}
 		if len(ms) < perPage {
@@ -193,6 +231,9 @@ func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
 
 // GetLabels returns labels
 func (g *GitlabDownloader) GetLabels() ([]*base.Label, error) {
+	if g == nil {
+		return nil, errors.New("error: GitlabDownloader is nil")
+	}
 	var perPage = 100
 	var labels = make([]*base.Label, 0, perPage)
 	for i := 1; ; i++ {
@@ -264,6 +305,8 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 }
 
 // GetIssues returns issues according start and limit
+//   Note: issue label description and colors are not supported by the go-gitlab library at this time
+//   TODO: figure out how to transfer issue reactions
 func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	state := "all"
 	sort := "asc"
