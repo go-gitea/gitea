@@ -428,7 +428,8 @@
           "organization"
         ],
         "summary": "Create a repository in an organization",
-        "operationId": "createOrgRepo",
+        "operationId": "createOrgRepoDeprecated",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -983,6 +984,47 @@
         "responses": {
           "200": {
             "$ref": "#/responses/RepositoryList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Create a repository in an organization",
+        "operationId": "createOrgRepo",
+        "deprecated": true,
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateRepoOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
