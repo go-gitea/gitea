@@ -165,12 +165,19 @@ type CloneRepoOptions struct {
 
 // Clone clones original repository to target path.
 func Clone(from, to string, opts CloneRepoOptions) (err error) {
+	cargs := make([]string, len(GlobalCommandArgs))
+	copy(cargs, GlobalCommandArgs)
+	return CloneWithArgs(from, to, cargs, opts)
+}
+
+// CloneWithArgs original repository to target path.
+func CloneWithArgs(from, to string, args []string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
 	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err
 	}
 
-	cmd := NewCommand("clone")
+	cmd := NewCommandNoGlobals(args...).AddArguments("clone")
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
 	}
