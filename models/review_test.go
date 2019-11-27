@@ -107,20 +107,21 @@ func TestGetReviewersByIssueID(t *testing.T) {
 	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
 
 	expectedReviews := []*Review{}
-	expectedReviews = append(expectedReviews, &Review{
-		Reviewer:    user2,
-		Type:        ReviewTypeReject,
-		UpdatedUnix: 946684810,
-	},
+	expectedReviews = append(expectedReviews,
 		&Review{
 			Reviewer:    user3,
 			Type:        ReviewTypeReject,
-			UpdatedUnix: 946684810,
+			UpdatedUnix: 946684812,
 		},
 		&Review{
 			Reviewer:    user4,
 			Type:        ReviewTypeApprove,
-			UpdatedUnix: 946684810,
+			UpdatedUnix: 946684813,
+		},
+		&Review{
+			Reviewer:    user2,
+			Type:        ReviewTypeReject,
+			UpdatedUnix: 946684814,
 		})
 
 	allReviews, err := GetReviewersByIssueID(issue.ID)
