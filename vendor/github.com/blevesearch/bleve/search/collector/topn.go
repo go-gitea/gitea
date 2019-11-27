@@ -69,6 +69,7 @@ type TopNCollector struct {
 	lowestMatchOutsideResults *search.DocumentMatch
 	updateFieldVisitor        index.DocumentFieldTermVisitor
 	dvReader                  index.DocValueReader
+	searchAfter               *search.DocumentMatch
 }
 
 // CheckDoneEvery controls how frequently we check the context deadline
@@ -78,6 +79,21 @@ const CheckDoneEvery = uint64(1024)
 // skipping over the first 'skip' hits
 // ordering hits by the provided sort order
 func NewTopNCollector(size int, skip int, sort search.SortOrder) *TopNCollector {
+	return newTopNCollector(size, skip, sort)
+}
+
+// NewTopNCollector builds a collector to find the top 'size' hits
+// skipping over the first 'skip' hits
+// ordering hits by the provided sort order
+func NewTopNCollectorAfter(size int, sort search.SortOrder, after []string) *TopNCollector {
+	rv := newTopNCollector(size, 0, sort)
+	rv.searchAfter = &search.DocumentMatch{
+		Sort: after,
+	}
+	return rv
+}
+
+func newTopNCollector(size int, skip int, sort search.SortOrder) *TopNCollector {
 	hc := &TopNCollector{size: size, skip: skip, sort: sort}
 
 	// pre-allocate space on the store to avoid reslicing
@@ -141,6 +157,7 @@ func (hc *TopNCollector) Collect(ctx context.Context, searcher search.Searcher, 
 	searchContext := &search.SearchContext{
 		DocumentMatchPool: search.NewDocumentMatchPool(backingSize+searcher.DocumentMatchPoolSize(), len(hc.sort)),
 		Collector:         hc,
+		IndexReader:       reader,
 	}
 
 	hc.dvReader, err = reader.DocValueReader(hc.neededFields)
@@ -265,6 +282,19 @@ func MakeTopNDocumentMatchHandler(
 			if d == nil {
 				return nil
 			}
+
+			// support search after based pagination,
+			// if this hit is <= the search after sort key
+			// we should skip it
+			if hc.searchAfter != nil {
+				// exact sort order matches use hit number to break tie
+				// but we want to allow for exact match, so we pretend
+				hc.searchAfter.HitNumber = d.HitNumber
+				if hc.sort.Compare(hc.cachedScoring, hc.cachedDesc, d, hc.searchAfter) <= 0 {
+					return nil
+				}
+			}
+
 			// optimization, we track lowest sorting hit already removed from heap
 			// with this one comparison, we can avoid all heap operations if
 			// this hit would have been added and then immediately removed

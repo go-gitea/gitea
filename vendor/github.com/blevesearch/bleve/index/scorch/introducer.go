@@ -376,6 +376,7 @@ func (s *Scorch) introduceMerge(nextMerge *segmentMerge) {
 				fileSegments++
 			}
 		}
+
 	}
 
 	// before the newMerge introduction, need to clean the newly
@@ -392,7 +393,6 @@ func (s *Scorch) introduceMerge(nextMerge *segmentMerge) {
 			}
 		}
 	}
-
 	// In case where all the docs in the newly merged segment getting
 	// deleted by the time we reach here, can skip the introduction.
 	if nextMerge.new != nil &&
@@ -424,7 +424,6 @@ func (s *Scorch) introduceMerge(nextMerge *segmentMerge) {
 	newSnapshot.AddRef() // 1 ref for the nextMerge.notify response
 
 	newSnapshot.updateSize()
-
 	s.rootLock.Lock()
 	// swap in new index snapshot
 	newSnapshot.epoch = s.nextSnapshotEpoch
@@ -502,7 +501,6 @@ func (s *Scorch) revertToSnapshot(revertTo *snapshotReversion) error {
 	}
 
 	newSnapshot.updateSize()
-
 	// swap in new snapshot
 	rootPrev := s.root
 	s.root = newSnapshot
