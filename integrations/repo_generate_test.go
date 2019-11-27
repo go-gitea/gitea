@@ -55,13 +55,13 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateOwnerName, tem
 }
 
 func TestRepoGenerate(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	session := loginUser(t, "user1")
 	testRepoGenerate(t, session, "user27", "template1", "user1", "generated1")
 }
 
 func TestRepoGenerateToOrg(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	testRepoGenerate(t, session, "user27", "template1", "user2", "generated2")
 }

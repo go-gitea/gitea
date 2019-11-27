@@ -8,10 +8,12 @@ install:
 notifications:
   email: false
 go:
-- 1.7.x
-- 1.8.x
-- 1.9.x
-- 1.10.x
+- "1.7.x"
+- "1.8.x"
+- "1.9.x"
+- "1.10.x"
+- "1.11.x"
+- "1.12.x"
 - tip
 
 # whitelist
@@ -21,10 +23,14 @@ branches:
 script:
 - goveralls -v -service travis-ci -ignore arraycontainer_gen.go,bitmapcontainer_gen.go,rle16_gen.go,rle_gen.go,roaringarray_gen.go,rle.go || go test
 - go test -race -run TestConcurrent*
+- go build -tags appengine
+- go test -tags appengine
 - GOARCH=arm64 go build
 - GOARCH=386 go build
 - GOARCH=386 go test
 - GOARCH=arm go build
+- GOARCH=arm64 go build
+
 matrix:
   allow_failures:
   - go: tip
