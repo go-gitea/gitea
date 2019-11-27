@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
-	"xorm.io/core"
 )
 
 // ReviewType defines the sort of feedback a review gives
@@ -332,47 +331,25 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 	return review, comm, sess.Commit()
 }
 
-// PullReviewersWithType represents the type used to display a review overview
-type PullReviewersWithType struct {
-	User              `xorm:"extends"`
-	Type              ReviewType
-	Official          bool
-	ReviewUpdatedUnix timeutil.TimeStamp `xorm:"review_updated_unix"`
-}
-
-// GetReviewersByPullID gets all reviewers for a pull request with the statuses
-func GetReviewersByPullID(pullID int64) (issueReviewers []*PullReviewersWithType, err error) {
-	irs := []*PullReviewersWithType{}
-	if x.Dialect().DBType() == core.MSSQL {
-		err = x.SQL(`SELECT [user].*, review.type, review.official, review.review_updated_unix FROM
-(SELECT review.id, review.type, review.reviewer_id, review.official, max(review.updated_unix) as review_updated_unix
-FROM review WHERE review.issue_id=? AND (review.type = ? OR review.type = ?)
-GROUP BY review.id, review.type, review.reviewer_id, review.official) as review
-INNER JOIN [user] ON review.reviewer_id = [user].id ORDER BY review_updated_unix DESC`,
-			pullID, ReviewTypeApprove, ReviewTypeReject).
-			Find(&irs)
-	} else {
-		err = x.Select("`user`.*, review.type, review.official, max(review.updated_unix) as review_updated_unix").
-			Table("review").
-			Join("INNER", "`user`", "review.reviewer_id = `user`.id").
-			Where("review.issue_id = ? AND (review.type = ? OR review.type = ?)",
-				pullID, ReviewTypeApprove, ReviewTypeReject).
-			GroupBy("`user`.id, review.type, review.official").
-			OrderBy("review_updated_unix DESC").
-			Find(&irs)
+// GetReviewersByIssueID gets the latest review of each reviewer for a pull request
+func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, err
 	}
 
-	// We need to group our results by the fields we want, otherwise some databases will fail (only_full_group_by).
-	// But becaus we're doing this, we need to manually filter out multiple reviews of different types by the
-	// same person because we only want to show the newest review grouped by user. Thats why we're using a map here.
-	issueReviewers = []*PullReviewersWithType{}
-	usersInArray := make(map[int64]bool)
-	for _, ir := range irs {
-		if !usersInArray[ir.ID] {
-			issueReviewers = append(issueReviewers, ir)
-			usersInArray[ir.ID] = true
+	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND type in (?, ?) GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
+		issueID, ReviewTypeApprove, ReviewTypeReject).
+		Find(&reviews); err != nil {
+		return nil, err
+	}
+
+	for _, review := range reviews {
+		if err := review.loadReviewer(sess); err != nil {
+			return nil, err
 		}
 	}
 
-	return
+	return reviews, nil
 }
