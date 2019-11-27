@@ -6,7 +6,6 @@ package models
 
 import (
 	"fmt"
-	"github.com/gobwas/glob"
 	"io/ioutil"
 	"os"
 	"path"
@@ -20,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/gobwas/glob"
 	"github.com/unknwon/com"
 )
 
