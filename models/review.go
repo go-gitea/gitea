@@ -333,6 +333,8 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 
 // GetReviewersByIssueID gets the latest review of each reviewer for a pull request
 func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
+	reviewsUnfiltered := []*Review{}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -341,13 +343,18 @@ func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
 
 	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND type in (?, ?) GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject).
-		Find(&reviews); err != nil {
+		Find(&reviewsUnfiltered); err != nil {
 		return nil, err
 	}
 
-	for _, review := range reviews {
+	// Load reviewer and skip if user is deleted
+	for _, review := range reviewsUnfiltered {
 		if err := review.loadReviewer(sess); err != nil {
-			return nil, err
+			if !IsErrUserNotExist(err) {
+				return nil, err
+			}
+		} else {
+			reviews = append(reviews, review)
 		}
 	}
 
