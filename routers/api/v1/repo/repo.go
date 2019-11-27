@@ -337,7 +337,15 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//     "$ref": "#/responses/notFound"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	org := ctx.Org.Organization
+	org, err := models.GetOrgByName(ctx.Params(":org"))
+	if err != nil {
+		if models.IsErrOrgNotExist(err) {
+			ctx.Error(422, "", err)
+		} else {
+			ctx.Error(500, "GetOrgByName", err)
+		}
+		return
+	}
 
 	if !models.HasOrgVisible(org, ctx.User) {
 		ctx.NotFound("HasOrgVisible", nil)
@@ -345,12 +353,12 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	}
 
 	if !ctx.User.IsAdmin {
-		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("IsOwnedBy", err)
+			ctx.ServerError("CanCreateOrgRepo", err)
 			return
-		} else if !isOwner {
-			ctx.Error(403, "", "Given user is not owner of organization.")
+		} else if !canCreate {
+			ctx.Error(403, "", "Given user is not allowed to create repository in organization.")
 			return
 		}
 	}
