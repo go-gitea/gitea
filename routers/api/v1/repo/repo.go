@@ -280,7 +280,7 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 	CreateUserRepo(ctx, ctx.User, opt)
 }
 
-// CreateOrgRepo create one repository of the organization
+// CreateOrgRepoDeprecated create one repository of the organization
 func CreateOrgRepoDeprecated(ctx *context.APIContext, opt api.CreateRepoOption) {
 	// swagger:operation POST /org/{org}/repos organization createOrgRepoDeprecated
 	// ---
@@ -307,32 +307,7 @@ func CreateOrgRepoDeprecated(ctx *context.APIContext, opt api.CreateRepoOption) 
 	//     "$ref": "#/responses/validationError"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	org, err := models.GetOrgByName(ctx.Params(":org"))
-	if err != nil {
-		if models.IsErrOrgNotExist(err) {
-			ctx.Error(422, "", err)
-		} else {
-			ctx.Error(500, "GetOrgByName", err)
-		}
-		return
-	}
-
-	if !models.HasOrgVisible(org, ctx.User) {
-		ctx.NotFound("HasOrgVisible", nil)
-		return
-	}
-
-	if !ctx.User.IsAdmin {
-		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("CanCreateOrgRepo", err)
-			return
-		} else if !canCreate {
-			ctx.Error(403, "", "Given user is not allowed to create repository in organization.")
-			return
-		}
-	}
-	CreateUserRepo(ctx, org, opt)
+	CreateOrgRepo(ctx, opt)
 }
 
 // CreateOrgRepo create one repository of the organization
