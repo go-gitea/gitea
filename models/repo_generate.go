@@ -5,7 +5,6 @@
 package models
 
 import (
-	"code.gitea.io/gitea/modules/process"
 	"fmt"
 	"github.com/gobwas/glob"
 	"io/ioutil"
@@ -18,6 +17,8 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
 )
@@ -43,21 +44,24 @@ func (gro GenerateRepoOptions) IsValid() bool {
 func parseGiteaTemplate(tmpDir string) ([]glob.Glob, error) {
 	globs := make([]glob.Glob, 0)
 	gtPath := filepath.Join(tmpDir, ".giteatemplate")
-	if _, err := os.Stat(gtPath); err != nil {
+	if _, err := os.Stat(gtPath); os.IsNotExist(err) {
+		return globs, nil
+	} else if err != nil {
 		return globs, err
 	}
+
 	content, err := ioutil.ReadFile(gtPath)
 	if err != nil {
 		return globs, err
 	}
 
-	lines := strings.Split(string(content), "\n")
+	lines := strings.Split(string(util.NormalizeEOL(content)), "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		g, err := glob.Compile(line, '.', '/')
+		g, err := glob.Compile(line, '/')
 		if err != nil {
 			log.Info("Invalid glob expression '%s' (skipped): %v", line, err)
 			continue
@@ -84,14 +88,10 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 
 	// Clone to temporary path and do the init commit.
 	templateRepoPath := templateRepo.repoPath(e)
-	_, stderr, err := process.GetManager().ExecDirEnv(
-		10*time.Minute, "",
-		fmt.Sprintf("generateRepoCommit(git clone): %s", templateRepoPath),
-		env,
-		git.GitExecutable, "clone", "--depth", "1", templateRepoPath, tmpDir,
-	)
-	if err != nil {
-		return fmt.Errorf("git clone: %v - %s", err, stderr)
+	if err := git.Clone(templateRepoPath, tmpDir, git.CloneRepoOptions{
+		Depth: 1,
+	}); err != nil {
+		return fmt.Errorf("git clone: %v", err)
 	}
 
 	if err := os.RemoveAll(path.Join(tmpDir, ".git")); err != nil {
@@ -104,34 +104,38 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 		return fmt.Errorf("parseGiteaTemplate: %v", err)
 	}
 
-	if err := filepath.Walk(tmpDir, func(path string, info os.FileInfo, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-
-		if info.IsDir() {
-			return nil
-		}
-
-		base := strings.TrimPrefix(path, tmpDir)
-		for _, g := range globs {
-			if g.Match(base) {
-				content, err := ioutil.ReadFile(path)
-				if err != nil {
-					return err
-				}
-
-				if err := ioutil.WriteFile(path,
-					[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
-					0644); err != nil {
-					return err
-				}
-				break
+	// Avoid walking tree if there are no globs
+	if len(globs) > 0 {
+		tmpDirSlash := strings.TrimSuffix(filepath.ToSlash(tmpDir), "/") + "/"
+		if err := filepath.Walk(tmpDirSlash, func(path string, info os.FileInfo, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
 			}
+
+			if info.IsDir() {
+				return nil
+			}
+
+			base := strings.TrimPrefix(filepath.ToSlash(path), tmpDirSlash)
+			for _, g := range globs {
+				if g.Match(base) {
+					content, err := ioutil.ReadFile(path)
+					if err != nil {
+						return err
+					}
+
+					if err := ioutil.WriteFile(path,
+						[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
+						0644); err != nil {
+						return err
+					}
+					break
+				}
+			}
+			return nil
+		}); err != nil {
+			return err
 		}
-		return nil
-	}); err != nil {
-		return err
 	}
 
 	if err := git.InitRepository(tmpDir, false); err != nil {
@@ -139,7 +143,7 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 	}
 
 	repoPath := repo.repoPath(e)
-	_, stderr, err = process.GetManager().ExecDirEnv(
+	_, stderr, err := process.GetManager().ExecDirEnv(
 		-1, tmpDir,
 		fmt.Sprintf("generateRepoCommit(git remote add): %s", repoPath),
 		env,

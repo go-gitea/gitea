@@ -161,6 +161,7 @@ type CloneRepoOptions struct {
 	Branch     string
 	Shared     bool
 	NoCheckout bool
+	Depth      int
 }
 
 // Clone clones original repository to target path.
@@ -185,6 +186,9 @@ func Clone(from, to string, opts CloneRepoOptions) (err error) {
 	}
 	if opts.NoCheckout {
 		cmd.AddArguments("--no-checkout")
+	}
+	if opts.Depth > 0 {
+		cmd.AddArguments("--depth", strconv.Itoa(opts.Depth))
 	}
 
 	if len(opts.Branch) > 0 {
