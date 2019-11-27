@@ -853,6 +853,21 @@ func (rc *runContainer16) numIntervals() int {
 	return len(rc.iv)
 }
 
+// searchOptions allows us to accelerate search with
+// prior knowledge of (mostly lower) bounds. This is used by Union
+// and Intersect.
+type searchOptions struct {
+	// start here instead of at 0
+	startIndex int64
+
+	// upper bound instead of len(rc.iv);
+	// endxIndex == 0 means ignore the bound and use
+	// endxIndex == n ==len(rc.iv) which is also
+	// naturally the default for search()
+	// when opt = nil.
+	endxIndex int64
+}
+
 // search returns alreadyPresent to indicate if the
 // key is already in one of our interval16s.
 //
@@ -1134,135 +1149,163 @@ func (rc *runContainer16) Add(k uint16) (wasNew bool) {
 
 //msgp:ignore runIterator
 
-// runIterator16 advice: you must call Next() at least once
-// before calling Cur(); and you should call HasNext()
-// before calling Next() to insure there are contents.
+// runIterator16 advice: you must call hasNext()
+// before calling next()/peekNext() to insure there are contents.
 type runIterator16 struct {
 	rc            *runContainer16
 	curIndex      int64
 	curPosInIndex uint16
-	curSeq        int64
 }
 
 // newRunIterator16 returns a new empty run container.
 func (rc *runContainer16) newRunIterator16() *runIterator16 {
-	return &runIterator16{rc: rc, curIndex: -1}
+	return &runIterator16{rc: rc, curIndex: 0, curPosInIndex: 0}
 }
 
-// HasNext returns false if calling Next will panic. It
+// hasNext returns false if calling next will panic. It
 // returns true when there is at least one more value
 // available in the iteration sequence.
 func (ri *runIterator16) hasNext() bool {
-	if len(ri.rc.iv) == 0 {
-		return false
-	}
-	if ri.curIndex == -1 {
-		return true
-	}
-	return ri.curSeq+1 < ri.rc.cardinality()
+	return int64(len(ri.rc.iv)) > ri.curIndex+1 ||
+		(int64(len(ri.rc.iv)) == ri.curIndex+1 && ri.rc.iv[ri.curIndex].length >= ri.curPosInIndex)
 }
 
-// cur returns the current value pointed to by the iterator.
-func (ri *runIterator16) cur() uint16 {
+// next returns the next value in the iteration sequence.
+func (ri *runIterator16) next() uint16 {
+	next := ri.rc.iv[ri.curIndex].start + ri.curPosInIndex
+
+	if ri.curPosInIndex == ri.rc.iv[ri.curIndex].length {
+		ri.curPosInIndex = 0
+		ri.curIndex++
+	} else {
+		ri.curPosInIndex++
+	}
+
+	return next
+}
+
+// peekNext returns the next value in the iteration sequence without advancing the iterator
+func (ri *runIterator16) peekNext() uint16 {
 	return ri.rc.iv[ri.curIndex].start + ri.curPosInIndex
 }
 
-// Next returns the next value in the iteration sequence.
-func (ri *runIterator16) next() uint16 {
-	if !ri.hasNext() {
-		panic("no Next available")
+// advanceIfNeeded advances as long as the next value is smaller than minval
+func (ri *runIterator16) advanceIfNeeded(minval uint16) {
+	if !ri.hasNext() || ri.peekNext() >= minval {
+		return
 	}
-	if ri.curIndex >= int64(len(ri.rc.iv)) {
-		panic("runIterator.Next() going beyond what is available")
+
+	opt := &searchOptions{
+		startIndex: ri.curIndex,
+		endxIndex:  int64(len(ri.rc.iv)),
 	}
-	if ri.curIndex == -1 {
-		// first time is special
-		ri.curIndex = 0
+
+	// interval cannot be -1 because of minval > peekNext
+	interval, isPresent, _ := ri.rc.search(int64(minval), opt)
+
+	// if the minval is present, set the curPosIndex at the right position
+	if isPresent {
+		ri.curIndex = interval
+		ri.curPosInIndex = minval - ri.rc.iv[ri.curIndex].start
 	} else {
-		ri.curPosInIndex++
-		if int64(ri.rc.iv[ri.curIndex].start)+int64(ri.curPosInIndex) == int64(ri.rc.iv[ri.curIndex].last())+1 {
-			ri.curPosInIndex = 0
-			ri.curIndex++
-		}
-		ri.curSeq++
+		// otherwise interval is set to to the minimum index of rc.iv
+		// which comes strictly before the key, that's why we set the next interval
+		ri.curIndex = interval + 1
+		ri.curPosInIndex = 0
 	}
-	return ri.cur()
 }
 
-// remove removes the element that the iterator
-// is on from the run container. You can use
-// Cur if you want to double check what is about
-// to be deleted.
-func (ri *runIterator16) remove() uint16 {
-	n := ri.rc.cardinality()
-	if n == 0 {
-		panic("runIterator.Remove called on empty runContainer16")
-	}
-	cur := ri.cur()
-
-	ri.rc.deleteAt(&ri.curIndex, &ri.curPosInIndex, &ri.curSeq)
-	return cur
-}
-
-type manyRunIterator16 struct {
+// runReverseIterator16 advice: you must call hasNext()
+// before calling next() to insure there are contents.
+type runReverseIterator16 struct {
 	rc            *runContainer16
-	curIndex      int64
-	curPosInIndex uint16
-	curSeq        int64
+	curIndex      int64  // index into rc.iv
+	curPosInIndex uint16 // offset in rc.iv[curIndex]
 }
 
-func (rc *runContainer16) newManyRunIterator16() *manyRunIterator16 {
-	return &manyRunIterator16{rc: rc, curIndex: -1}
+// newRunReverseIterator16 returns a new empty run iterator.
+func (rc *runContainer16) newRunReverseIterator16() *runReverseIterator16 {
+	index := int64(len(rc.iv)) - 1
+	pos := uint16(0)
+
+	if index >= 0 {
+		pos = rc.iv[index].length
+	}
+
+	return &runReverseIterator16{
+		rc:            rc,
+		curIndex:      index,
+		curPosInIndex: pos,
+	}
 }
 
-func (ri *manyRunIterator16) hasNext() bool {
-	if len(ri.rc.iv) == 0 {
-		return false
+// hasNext returns false if calling next will panic. It
+// returns true when there is at least one more value
+// available in the iteration sequence.
+func (ri *runReverseIterator16) hasNext() bool {
+	return ri.curIndex > 0 || ri.curIndex == 0 && ri.curPosInIndex >= 0
+}
+
+// next returns the next value in the iteration sequence.
+func (ri *runReverseIterator16) next() uint16 {
+	next := ri.rc.iv[ri.curIndex].start + ri.curPosInIndex
+
+	if ri.curPosInIndex > 0 {
+		ri.curPosInIndex--
+	} else {
+		ri.curIndex--
+
+		if ri.curIndex >= 0 {
+			ri.curPosInIndex = ri.rc.iv[ri.curIndex].length
+		}
 	}
-	if ri.curIndex == -1 {
-		return true
-	}
-	return ri.curSeq+1 < ri.rc.cardinality()
+
+	return next
+}
+
+func (rc *runContainer16) newManyRunIterator16() *runIterator16 {
+	return rc.newRunIterator16()
 }
 
 // hs are the high bits to include to avoid needing to reiterate over the buffer in NextMany
-func (ri *manyRunIterator16) nextMany(hs uint32, buf []uint32) int {
+func (ri *runIterator16) nextMany(hs uint32, buf []uint32) int {
 	n := 0
+
 	if !ri.hasNext() {
 		return n
 	}
+
 	// start and end are inclusive
 	for n < len(buf) {
-		if ri.curIndex == -1 || int(ri.rc.iv[ri.curIndex].length-ri.curPosInIndex) <= 0 {
+		moreVals := 0
+
+		if ri.rc.iv[ri.curIndex].length >= ri.curPosInIndex {
+			// add as many as you can from this seq
+			moreVals = minOfInt(int(ri.rc.iv[ri.curIndex].length-ri.curPosInIndex)+1, len(buf)-n)
+			base := uint32(ri.rc.iv[ri.curIndex].start+ri.curPosInIndex) | hs
+
+			// allows BCE
+			buf2 := buf[n : n+moreVals]
+			for i := range buf2 {
+				buf2[i] = base + uint32(i)
+			}
+
+			// update values
+			n += moreVals
+		}
+
+		if moreVals+int(ri.curPosInIndex) > int(ri.rc.iv[ri.curIndex].length) {
 			ri.curPosInIndex = 0
 			ri.curIndex++
+
 			if ri.curIndex == int64(len(ri.rc.iv)) {
 				break
 			}
-			buf[n] = uint32(ri.rc.iv[ri.curIndex].start) | hs
-			if ri.curIndex != 0 {
-				ri.curSeq += 1
-			}
-			n += 1
-			// not strictly necessarily due to len(buf)-n min check, but saves some work
-			continue
+		} else {
+			ri.curPosInIndex += uint16(moreVals) //moreVals always fits in uint16
 		}
-		// add as many as you can from this seq
-		moreVals := minOfInt(int(ri.rc.iv[ri.curIndex].length-ri.curPosInIndex), len(buf)-n)
-
-		base := uint32(ri.rc.iv[ri.curIndex].start+ri.curPosInIndex+1) | hs
-
-		// allows BCE
-		buf2 := buf[n : n+moreVals]
-		for i := range buf2 {
-			buf2[i] = base + uint32(i)
-		}
-
-		// update values
-		ri.curPosInIndex += uint16(moreVals) //moreVals always fits in uint16
-		ri.curSeq += int64(moreVals)
-		n += moreVals
 	}
+
 	return n
 }
 
@@ -1270,21 +1313,19 @@ func (ri *manyRunIterator16) nextMany(hs uint32, buf []uint32) int {
 func (rc *runContainer16) removeKey(key uint16) (wasPresent bool) {
 
 	var index int64
-	var curSeq int64
 	index, wasPresent, _ = rc.search(int64(key), nil)
 	if !wasPresent {
 		return // already removed, nothing to do.
 	}
 	pos := key - rc.iv[index].start
-	rc.deleteAt(&index, &pos, &curSeq)
+	rc.deleteAt(&index, &pos)
 	return
 }
 
 // internal helper functions
 
-func (rc *runContainer16) deleteAt(curIndex *int64, curPosInIndex *uint16, curSeq *int64) {
+func (rc *runContainer16) deleteAt(curIndex *int64, curPosInIndex *uint16) {
 	rc.card--
-	*curSeq--
 	ci := *curIndex
 	pos := *curPosInIndex
 
@@ -1401,7 +1442,7 @@ func (rc *runContainer16) selectInt16(j uint16) int {
 
 	var offset int64
 	for k := range rc.iv {
-		nextOffset := offset + rc.iv[k].runlen() + 1
+		nextOffset := offset + rc.iv[k].runlen()
 		if nextOffset > int64(j) {
 			return int(int64(rc.iv[k].start) + (int64(j) - offset))
 		}
@@ -1724,24 +1765,750 @@ func (rc *runContainer16) containerType() contype {
 }
 
 func (rc *runContainer16) equals16(srb *runContainer16) bool {
-	//p("both rc16")
 	// Check if the containers are the same object.
 	if rc == srb {
-		//p("same object")
 		return true
 	}
 
 	if len(srb.iv) != len(rc.iv) {
-		//p("iv len differ")
 		return false
 	}
 
 	for i, v := range rc.iv {
 		if v != srb.iv[i] {
-			//p("differ at iv i=%v, srb.iv[i]=%v, rc.iv[i]=%v", i, srb.iv[i], rc.iv[i])
 			return false
 		}
 	}
-	//p("all intervals same, returning true")
 	return true
+}
+
+// compile time verify we meet interface requirements
+var _ container = &runContainer16{}
+
+func (rc *runContainer16) clone() container {
+	return newRunContainer16CopyIv(rc.iv)
+}
+
+func (rc *runContainer16) minimum() uint16 {
+	return rc.iv[0].start // assume not empty
+}
+
+func (rc *runContainer16) maximum() uint16 {
+	return rc.iv[len(rc.iv)-1].last() // assume not empty
+}
+
+func (rc *runContainer16) isFull() bool {
+	return (len(rc.iv) == 1) && ((rc.iv[0].start == 0) && (rc.iv[0].last() == MaxUint16))
+}
+
+func (rc *runContainer16) and(a container) container {
+	if rc.isFull() {
+		return a.clone()
+	}
+	switch c := a.(type) {
+	case *runContainer16:
+		return rc.intersect(c)
+	case *arrayContainer:
+		return rc.andArray(c)
+	case *bitmapContainer:
+		return rc.andBitmapContainer(c)
+	}
+	panic("unsupported container type")
+}
+
+func (rc *runContainer16) andCardinality(a container) int {
+	switch c := a.(type) {
+	case *runContainer16:
+		return int(rc.intersectCardinality(c))
+	case *arrayContainer:
+		return rc.andArrayCardinality(c)
+	case *bitmapContainer:
+		return rc.andBitmapContainerCardinality(c)
+	}
+	panic("unsupported container type")
+}
+
+// andBitmapContainer finds the intersection of rc and b.
+func (rc *runContainer16) andBitmapContainer(bc *bitmapContainer) container {
+	bc2 := newBitmapContainerFromRun(rc)
+	return bc2.andBitmap(bc)
+}
+
+func (rc *runContainer16) andArrayCardinality(ac *arrayContainer) int {
+	pos := 0
+	answer := 0
+	maxpos := ac.getCardinality()
+	if maxpos == 0 {
+		return 0 // won't happen in actual code
+	}
+	v := ac.content[pos]
+mainloop:
+	for _, p := range rc.iv {
+		for v < p.start {
+			pos++
+			if pos == maxpos {
+				break mainloop
+			}
+			v = ac.content[pos]
+		}
+		for v <= p.last() {
+			answer++
+			pos++
+			if pos == maxpos {
+				break mainloop
+			}
+			v = ac.content[pos]
+		}
+	}
+	return answer
+}
+
+func (rc *runContainer16) iand(a container) container {
+	if rc.isFull() {
+		return a.clone()
+	}
+	switch c := a.(type) {
+	case *runContainer16:
+		return rc.inplaceIntersect(c)
+	case *arrayContainer:
+		return rc.andArray(c)
+	case *bitmapContainer:
+		return rc.iandBitmapContainer(c)
+	}
+	panic("unsupported container type")
+}
+
+func (rc *runContainer16) inplaceIntersect(rc2 *runContainer16) container {
+	// TODO: optimize by doing less allocation, possibly?
+	// sect will be new
+	sect := rc.intersect(rc2)
+	*rc = *sect
+	return rc
+}
+
+func (rc *runContainer16) iandBitmapContainer(bc *bitmapContainer) container {
+	isect := rc.andBitmapContainer(bc)
+	*rc = *newRunContainer16FromContainer(isect)
+	return rc
+}
+
+func (rc *runContainer16) andArray(ac *arrayContainer) container {
+	if len(rc.iv) == 0 {
+		return newArrayContainer()
+	}
+
+	acCardinality := ac.getCardinality()
+	c := newArrayContainerCapacity(acCardinality)
+
+	for rlePos, arrayPos := 0, 0; arrayPos < acCardinality; {
+		iv := rc.iv[rlePos]
+		arrayVal := ac.content[arrayPos]
+
+		for iv.last() < arrayVal {
+			rlePos++
+			if rlePos == len(rc.iv) {
+				return c
+			}
+			iv = rc.iv[rlePos]
+		}
+
+		if iv.start > arrayVal {
+			arrayPos = advanceUntil(ac.content, arrayPos, len(ac.content), iv.start)
+		} else {
+			c.content = append(c.content, arrayVal)
+			arrayPos++
+		}
+	}
+	return c
+}
+
+func (rc *runContainer16) andNot(a container) container {
+	switch c := a.(type) {
+	case *arrayContainer:
+		return rc.andNotArray(c)
+	case *bitmapContainer:
+		return rc.andNotBitmap(c)
+	case *runContainer16:
+		return rc.andNotRunContainer16(c)
+	}
+	panic("unsupported container type")
+}
+
+func (rc *runContainer16) fillLeastSignificant16bits(x []uint32, i int, mask uint32) {
+	k := 0
+	var val int64
+	for _, p := range rc.iv {
+		n := p.runlen()
+		for j := int64(0); j < n; j++ {
+			val = int64(p.start) + j
+			x[k+i] = uint32(val) | mask
+			k++
+		}
+	}
+}
+
+func (rc *runContainer16) getShortIterator() shortPeekable {
+	return rc.newRunIterator16()
+}
+
+func (rc *runContainer16) getReverseIterator() shortIterable {
+	return rc.newRunReverseIterator16()
+}
+
+func (rc *runContainer16) getManyIterator() manyIterable {
+	return rc.newManyRunIterator16()
+}
+
+// add the values in the range [firstOfRange, endx). endx
+// is still abe to express 2^16 because it is an int not an uint16.
+func (rc *runContainer16) iaddRange(firstOfRange, endx int) container {
+
+	if firstOfRange >= endx {
+		panic(fmt.Sprintf("invalid %v = endx >= firstOfRange", endx))
+	}
+	addme := newRunContainer16TakeOwnership([]interval16{
+		{
+			start:  uint16(firstOfRange),
+			length: uint16(endx - 1 - firstOfRange),
+		},
+	})
+	*rc = *rc.union(addme)
+	return rc
+}
+
+// remove the values in the range [firstOfRange,endx)
+func (rc *runContainer16) iremoveRange(firstOfRange, endx int) container {
+	if firstOfRange >= endx {
+		panic(fmt.Sprintf("request to iremove empty set [%v, %v),"+
+			" nothing to do.", firstOfRange, endx))
+		//return rc
+	}
+	x := newInterval16Range(uint16(firstOfRange), uint16(endx-1))
+	rc.isubtract(x)
+	return rc
+}
+
+// not flip the values in the range [firstOfRange,endx)
+func (rc *runContainer16) not(firstOfRange, endx int) container {
+	if firstOfRange >= endx {
+		panic(fmt.Sprintf("invalid %v = endx >= firstOfRange = %v", endx, firstOfRange))
+	}
+
+	return rc.Not(firstOfRange, endx)
+}
+
+// Not flips the values in the range [firstOfRange,endx).
+// This is not inplace. Only the returned value has the flipped bits.
+//
+// Currently implemented as (!A intersect B) union (A minus B),
+// where A is rc, and B is the supplied [firstOfRange, endx) interval.
+//
+// TODO(time optimization): convert this to a single pass
+// algorithm by copying AndNotRunContainer16() and modifying it.
+// Current routine is correct but
+// makes 2 more passes through the arrays than should be
+// strictly necessary. Measure both ways though--this may not matter.
+//
+func (rc *runContainer16) Not(firstOfRange, endx int) *runContainer16 {
+
+	if firstOfRange >= endx {
+		panic(fmt.Sprintf("invalid %v = endx >= firstOfRange == %v", endx, firstOfRange))
+	}
+
+	if firstOfRange >= endx {
+		return rc.Clone()
+	}
+
+	a := rc
+	// algo:
+	// (!A intersect B) union (A minus B)
+
+	nota := a.invert()
+
+	bs := []interval16{newInterval16Range(uint16(firstOfRange), uint16(endx-1))}
+	b := newRunContainer16TakeOwnership(bs)
+
+	notAintersectB := nota.intersect(b)
+
+	aMinusB := a.AndNotRunContainer16(b)
+
+	rc2 := notAintersectB.union(aMinusB)
+	return rc2
+}
+
+// equals is now logical equals; it does not require the
+// same underlying container type.
+func (rc *runContainer16) equals(o container) bool {
+	srb, ok := o.(*runContainer16)
+
+	if !ok {
+		// maybe value instead of pointer
+		val, valok := o.(*runContainer16)
+		if valok {
+			srb = val
+			ok = true
+		}
+	}
+	if ok {
+		// Check if the containers are the same object.
+		if rc == srb {
+			return true
+		}
+
+		if len(srb.iv) != len(rc.iv) {
+			return false
+		}
+
+		for i, v := range rc.iv {
+			if v != srb.iv[i] {
+				return false
+			}
+		}
+		return true
+	}
+
+	// use generic comparison
+	if o.getCardinality() != rc.getCardinality() {
+		return false
+	}
+	rit := rc.getShortIterator()
+	bit := o.getShortIterator()
+
+	//k := 0
+	for rit.hasNext() {
+		if bit.next() != rit.next() {
+			return false
+		}
+		//k++
+	}
+	return true
+}
+
+func (rc *runContainer16) iaddReturnMinimized(x uint16) container {
+	rc.Add(x)
+	return rc
+}
+
+func (rc *runContainer16) iadd(x uint16) (wasNew bool) {
+	return rc.Add(x)
+}
+
+func (rc *runContainer16) iremoveReturnMinimized(x uint16) container {
+	rc.removeKey(x)
+	return rc
+}
+
+func (rc *runContainer16) iremove(x uint16) bool {
+	return rc.removeKey(x)
+}
+
+func (rc *runContainer16) or(a container) container {
+	if rc.isFull() {
+		return rc.clone()
+	}
+	switch c := a.(type) {
+	case *runContainer16:
+		return rc.union(c)
+	case *arrayContainer:
+		return rc.orArray(c)
+	case *bitmapContainer:
+		return rc.orBitmapContainer(c)
+	}
+	panic("unsupported container type")
+}
+
+func (rc *runContainer16) orCardinality(a container) int {
+	switch c := a.(type) {
+	case *runContainer16:
+		return int(rc.unionCardinality(c))
+	case *arrayContainer:
+		return rc.orArrayCardinality(c)
+	case *bitmapContainer:
+		return rc.orBitmapContainerCardinality(c)
+	}
+	panic("unsupported container type")
+}
+
+// orBitmapContainer finds the union of rc and bc.
+func (rc *runContainer16) orBitmapContainer(bc *bitmapContainer) container {
+	bc2 := newBitmapContainerFromRun(rc)
+	return bc2.iorBitmap(bc)
+}
+
+func (rc *runContainer16) andBitmapContainerCardinality(bc *bitmapContainer) int {
+	answer := 0
+	for i := range rc.iv {
+		answer += bc.getCardinalityInRange(uint(rc.iv[i].start), uint(rc.iv[i].last())+1)
+	}
+	//bc.computeCardinality()
+	return answer
+}
+
+func (rc *runContainer16) orBitmapContainerCardinality(bc *bitmapContainer) int {
+	return rc.getCardinality() + bc.getCardinality() - rc.andBitmapContainerCardinality(bc)
+}
+
+// orArray finds the union of rc and ac.
+func (rc *runContainer16) orArray(ac *arrayContainer) container {
+	bc1 := newBitmapContainerFromRun(rc)
+	bc2 := ac.toBitmapContainer()
+	return bc1.orBitmap(bc2)
+}
+
+// orArray finds the union of rc and ac.
+func (rc *runContainer16) orArrayCardinality(ac *arrayContainer) int {
+	return ac.getCardinality() + rc.getCardinality() - rc.andArrayCardinality(ac)
+}
+
+func (rc *runContainer16) ior(a container) container {
+	if rc.isFull() {
+		return rc
+	}
+	switch c := a.(type) {
+	case *runContainer16:
+		return rc.inplaceUnion(c)
+	case *arrayContainer:
+		return rc.iorArray(c)
+	case *bitmapContainer:
+		return rc.iorBitmapContainer(c)
+	}
+	panic("unsupported container type")
+}
+
+func (rc *runContainer16) inplaceUnion(rc2 *runContainer16) container {
+	for _, p := range rc2.iv {
+		last := int64(p.last())
+		for i := int64(p.start); i <= last; i++ {
+			rc.Add(uint16(i))
+		}
+	}
+	return rc
+}
+
+func (rc *runContainer16) iorBitmapContainer(bc *bitmapContainer) container {
+
+	it := bc.getShortIterator()
+	for it.hasNext() {
+		rc.Add(it.next())
+	}
+	return rc
+}
+
+func (rc *runContainer16) iorArray(ac *arrayContainer) container {
+	it := ac.getShortIterator()
+	for it.hasNext() {
+		rc.Add(it.next())
+	}
+	return rc
+}
+
+// lazyIOR is described (not yet implemented) in
+// this nice note from @lemire on
+// https://github.com/RoaringBitmap/roaring/pull/70#issuecomment-263613737
+//
+// Description of lazyOR and lazyIOR from @lemire:
+//
+// Lazy functions are optional and can be simply
+// wrapper around non-lazy functions.
+//
+// The idea of "laziness" is as follows. It is
+// inspired by the concept of lazy evaluation
+// you might be familiar with (functional programming
+// and all that). So a roaring bitmap is
+// such that all its containers are, in some
+// sense, chosen to use as little memory as
+// possible. This is nice. Also, all bitsets
+// are "cardinality aware" so that you can do
+// fast rank/select queries, or query the
+// cardinality of the whole bitmap... very fast,
+// without latency.
+//
+// However, imagine that you are aggregating 100
+// bitmaps together. So you OR the first two, then OR
+// that with the third one and so forth. Clearly,
+// intermediate bitmaps don't need to be as
+// compressed as possible, right? They can be
+// in a "dirty state". You only need the end
+// result to be in a nice state... which you
+// can achieve by calling repairAfterLazy at the end.
+//
+// The Java/C code does something special for
+// the in-place lazy OR runs. The idea is that
+// instead of taking two run containers and
+// generating a new one, we actually try to
+// do the computation in-place through a
+// technique invented by @gssiyankai (pinging him!).
+// What you do is you check whether the host
+// run container has lots of extra capacity.
+// If it does, you move its data at the end of
+// the backing array, and then you write
+// the answer at the beginning. What this
+// trick does is minimize memory allocations.
+//
+func (rc *runContainer16) lazyIOR(a container) container {
+	// not lazy at the moment
+	return rc.ior(a)
+}
+
+// lazyOR is described above in lazyIOR.
+func (rc *runContainer16) lazyOR(a container) container {
+	// not lazy at the moment
+	return rc.or(a)
+}
+
+func (rc *runContainer16) intersects(a container) bool {
+	// TODO: optimize by doing inplace/less allocation, possibly?
+	isect := rc.and(a)
+	return isect.getCardinality() > 0
+}
+
+func (rc *runContainer16) xor(a container) container {
+	switch c := a.(type) {
+	case *arrayContainer:
+		return rc.xorArray(c)
+	case *bitmapContainer:
+		return rc.xorBitmap(c)
+	case *runContainer16:
+		return rc.xorRunContainer16(c)
+	}
+	panic("unsupported container type")
+}
+
+func (rc *runContainer16) iandNot(a container) container {
+	switch c := a.(type) {
+	case *arrayContainer:
+		return rc.iandNotArray(c)
+	case *bitmapContainer:
+		return rc.iandNotBitmap(c)
+	case *runContainer16:
+		return rc.iandNotRunContainer16(c)
+	}
+	panic("unsupported container type")
+}
+
+// flip the values in the range [firstOfRange,endx)
+func (rc *runContainer16) inot(firstOfRange, endx int) container {
+	if firstOfRange >= endx {
+		panic(fmt.Sprintf("invalid %v = endx >= firstOfRange = %v", endx, firstOfRange))
+	}
+	// TODO: minimize copies, do it all inplace; not() makes a copy.
+	rc = rc.Not(firstOfRange, endx)
+	return rc
+}
+
+func (rc *runContainer16) getCardinality() int {
+	return int(rc.cardinality())
+}
+
+func (rc *runContainer16) rank(x uint16) int {
+	n := int64(len(rc.iv))
+	xx := int64(x)
+	w, already, _ := rc.search(xx, nil)
+	if w < 0 {
+		return 0
+	}
+	if !already && w == n-1 {
+		return rc.getCardinality()
+	}
+	var rnk int64
+	if !already {
+		for i := int64(0); i <= w; i++ {
+			rnk += rc.iv[i].runlen()
+		}
+		return int(rnk)
+	}
+	for i := int64(0); i < w; i++ {
+		rnk += rc.iv[i].runlen()
+	}
+	rnk += int64(x-rc.iv[w].start) + 1
+	return int(rnk)
+}
+
+func (rc *runContainer16) selectInt(x uint16) int {
+	return rc.selectInt16(x)
+}
+
+func (rc *runContainer16) andNotRunContainer16(b *runContainer16) container {
+	return rc.AndNotRunContainer16(b)
+}
+
+func (rc *runContainer16) andNotArray(ac *arrayContainer) container {
+	rcb := rc.toBitmapContainer()
+	acb := ac.toBitmapContainer()
+	return rcb.andNotBitmap(acb)
+}
+
+func (rc *runContainer16) andNotBitmap(bc *bitmapContainer) container {
+	rcb := rc.toBitmapContainer()
+	return rcb.andNotBitmap(bc)
+}
+
+func (rc *runContainer16) toBitmapContainer() *bitmapContainer {
+	bc := newBitmapContainer()
+	for i := range rc.iv {
+		bc.iaddRange(int(rc.iv[i].start), int(rc.iv[i].last())+1)
+	}
+	bc.computeCardinality()
+	return bc
+}
+
+func (rc *runContainer16) iandNotRunContainer16(x2 *runContainer16) container {
+	rcb := rc.toBitmapContainer()
+	x2b := x2.toBitmapContainer()
+	rcb.iandNotBitmapSurely(x2b)
+	// TODO: check size and optimize the return value
+	// TODO: is inplace modification really required? If not, elide the copy.
+	rc2 := newRunContainer16FromBitmapContainer(rcb)
+	*rc = *rc2
+	return rc
+}
+
+func (rc *runContainer16) iandNotArray(ac *arrayContainer) container {
+	rcb := rc.toBitmapContainer()
+	acb := ac.toBitmapContainer()
+	rcb.iandNotBitmapSurely(acb)
+	// TODO: check size and optimize the return value
+	// TODO: is inplace modification really required? If not, elide the copy.
+	rc2 := newRunContainer16FromBitmapContainer(rcb)
+	*rc = *rc2
+	return rc
+}
+
+func (rc *runContainer16) iandNotBitmap(bc *bitmapContainer) container {
+	rcb := rc.toBitmapContainer()
+	rcb.iandNotBitmapSurely(bc)
+	// TODO: check size and optimize the return value
+	// TODO: is inplace modification really required? If not, elide the copy.
+	rc2 := newRunContainer16FromBitmapContainer(rcb)
+	*rc = *rc2
+	return rc
+}
+
+func (rc *runContainer16) xorRunContainer16(x2 *runContainer16) container {
+	rcb := rc.toBitmapContainer()
+	x2b := x2.toBitmapContainer()
+	return rcb.xorBitmap(x2b)
+}
+
+func (rc *runContainer16) xorArray(ac *arrayContainer) container {
+	rcb := rc.toBitmapContainer()
+	acb := ac.toBitmapContainer()
+	return rcb.xorBitmap(acb)
+}
+
+func (rc *runContainer16) xorBitmap(bc *bitmapContainer) container {
+	rcb := rc.toBitmapContainer()
+	return rcb.xorBitmap(bc)
+}
+
+// convert to bitmap or array *if needed*
+func (rc *runContainer16) toEfficientContainer() container {
+
+	// runContainer16SerializedSizeInBytes(numRuns)
+	sizeAsRunContainer := rc.getSizeInBytes()
+	sizeAsBitmapContainer := bitmapContainerSizeInBytes()
+	card := int(rc.cardinality())
+	sizeAsArrayContainer := arrayContainerSizeInBytes(card)
+	if sizeAsRunContainer <= minOfInt(sizeAsBitmapContainer, sizeAsArrayContainer) {
+		return rc
+	}
+	if card <= arrayDefaultMaxSize {
+		return rc.toArrayContainer()
+	}
+	bc := newBitmapContainerFromRun(rc)
+	return bc
+}
+
+func (rc *runContainer16) toArrayContainer() *arrayContainer {
+	ac := newArrayContainer()
+	for i := range rc.iv {
+		ac.iaddRange(int(rc.iv[i].start), int(rc.iv[i].last())+1)
+	}
+	return ac
+}
+
+func newRunContainer16FromContainer(c container) *runContainer16 {
+
+	switch x := c.(type) {
+	case *runContainer16:
+		return x.Clone()
+	case *arrayContainer:
+		return newRunContainer16FromArray(x)
+	case *bitmapContainer:
+		return newRunContainer16FromBitmapContainer(x)
+	}
+	panic("unsupported container type")
+}
+
+// And finds the intersection of rc and b.
+func (rc *runContainer16) And(b *Bitmap) *Bitmap {
+	out := NewBitmap()
+	for _, p := range rc.iv {
+		plast := p.last()
+		for i := p.start; i <= plast; i++ {
+			if b.Contains(uint32(i)) {
+				out.Add(uint32(i))
+			}
+		}
+	}
+	return out
+}
+
+// Xor returns the exclusive-or of rc and b.
+func (rc *runContainer16) Xor(b *Bitmap) *Bitmap {
+	out := b.Clone()
+	for _, p := range rc.iv {
+		plast := p.last()
+		for v := p.start; v <= plast; v++ {
+			w := uint32(v)
+			if out.Contains(w) {
+				out.RemoveRange(uint64(w), uint64(w+1))
+			} else {
+				out.Add(w)
+			}
+		}
+	}
+	return out
+}
+
+// Or returns the union of rc and b.
+func (rc *runContainer16) Or(b *Bitmap) *Bitmap {
+	out := b.Clone()
+	for _, p := range rc.iv {
+		plast := p.last()
+		for v := p.start; v <= plast; v++ {
+			out.Add(uint32(v))
+		}
+	}
+	return out
+}
+
+// serializedSizeInBytes returns the number of bytes of memory
+// required by this runContainer16. This is for the
+// Roaring format, as specified https://github.com/RoaringBitmap/RoaringFormatSpec/
+func (rc *runContainer16) serializedSizeInBytes() int {
+	// number of runs in one uint16, then each run
+	// needs two more uint16
+	return 2 + len(rc.iv)*4
+}
+
+func (rc *runContainer16) addOffset(x uint16) []container {
+	low := newRunContainer16()
+	high := newRunContainer16()
+
+	for _, iv := range rc.iv {
+		val := int(iv.start) + int(x)
+		finalVal := int(val) + int(iv.length)
+		if val <= 0xffff {
+			if finalVal <= 0xffff {
+				low.iv = append(low.iv, interval16{uint16(val), iv.length})
+			} else {
+				low.iv = append(low.iv, interval16{uint16(val), uint16(0xffff - val)})
+				high.iv = append(high.iv, interval16{uint16(0), uint16(finalVal & 0xffff)})
+			}
+		} else {
+			high.iv = append(high.iv, interval16{uint16(val & 0xffff), iv.length})
+		}
+	}
+	return []container{low, high}
 }

@@ -6,7 +6,7 @@ package roaring
 
 import "github.com/tinylib/msgp/msgp"
 
-// DecodeMsg implements msgp.Decodable
+// Deprecated: DecodeMsg implements msgp.Decodable
 func (z *addHelper16) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -169,7 +169,7 @@ func (z *addHelper16) DecodeMsg(dc *msgp.Reader) (err error) {
 	return
 }
 
-// EncodeMsg implements msgp.Encodable
+// Deprecated: EncodeMsg implements msgp.Encodable
 func (z *addHelper16) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 5
 	// write "runstart"
@@ -284,7 +284,7 @@ func (z *addHelper16) EncodeMsg(en *msgp.Writer) (err error) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
+// Deprecated: MarshalMsg implements msgp.Marshaler
 func (z *addHelper16) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 5
@@ -334,7 +334,7 @@ func (z *addHelper16) MarshalMsg(b []byte) (o []byte, err error) {
 	return
 }
 
-// UnmarshalMsg implements msgp.Unmarshaler
+// Deprecated: UnmarshalMsg implements msgp.Unmarshaler
 func (z *addHelper16) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
@@ -498,7 +498,7 @@ func (z *addHelper16) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+// Deprecated: Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *addHelper16) Msgsize() (s int) {
 	s = 1 + 9 + msgp.Uint16Size + 7 + msgp.Uint16Size + 14 + msgp.Uint16Size + 2 + msgp.ArrayHeaderSize + (len(z.m) * (12 + msgp.Uint16Size + msgp.Uint16Size)) + 3
 	if z.rc == nil {
@@ -509,7 +509,7 @@ func (z *addHelper16) Msgsize() (s int) {
 	return
 }
 
-// DecodeMsg implements msgp.Decodable
+// Deprecated: DecodeMsg implements msgp.Decodable
 func (z *interval16) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -546,7 +546,7 @@ func (z *interval16) DecodeMsg(dc *msgp.Reader) (err error) {
 	return
 }
 
-// EncodeMsg implements msgp.Encodable
+// Deprecated: EncodeMsg implements msgp.Encodable
 func (z interval16) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 2
 	// write "start"
@@ -570,7 +570,7 @@ func (z interval16) EncodeMsg(en *msgp.Writer) (err error) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
+// Deprecated: MarshalMsg implements msgp.Marshaler
 func (z interval16) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 2
@@ -583,7 +583,7 @@ func (z interval16) MarshalMsg(b []byte) (o []byte, err error) {
 	return
 }
 
-// UnmarshalMsg implements msgp.Unmarshaler
+// Deprecated: UnmarshalMsg implements msgp.Unmarshaler
 func (z *interval16) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
@@ -621,13 +621,13 @@ func (z *interval16) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+// Deprecated: Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z interval16) Msgsize() (s int) {
 	s = 1 + 6 + msgp.Uint16Size + 5 + msgp.Uint16Size
 	return
 }
 
-// DecodeMsg implements msgp.Decodable
+// Deprecated: DecodeMsg implements msgp.Decodable
 func (z *runContainer16) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -701,7 +701,7 @@ func (z *runContainer16) DecodeMsg(dc *msgp.Reader) (err error) {
 	return
 }
 
-// EncodeMsg implements msgp.Encodable
+// Deprecated: EncodeMsg implements msgp.Encodable
 func (z *runContainer16) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 2
 	// write "iv"
@@ -746,7 +746,7 @@ func (z *runContainer16) EncodeMsg(en *msgp.Writer) (err error) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
+// Deprecated: MarshalMsg implements msgp.Marshaler
 func (z *runContainer16) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 2
@@ -768,7 +768,7 @@ func (z *runContainer16) MarshalMsg(b []byte) (o []byte, err error) {
 	return
 }
 
-// UnmarshalMsg implements msgp.Unmarshaler
+// Deprecated: UnmarshalMsg implements msgp.Unmarshaler
 func (z *runContainer16) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
@@ -843,13 +843,13 @@ func (z *runContainer16) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+// Deprecated: Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *runContainer16) Msgsize() (s int) {
 	s = 1 + 3 + msgp.ArrayHeaderSize + (len(z.iv) * (12 + msgp.Uint16Size + msgp.Uint16Size)) + 5 + msgp.Int64Size
 	return
 }
 
-// DecodeMsg implements msgp.Decodable
+// Deprecated: DecodeMsg implements msgp.Decodable
 func (z *runIterator16) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -891,11 +891,6 @@ func (z *runIterator16) DecodeMsg(dc *msgp.Reader) (err error) {
 			if err != nil {
 				return
 			}
-		case "curSeq":
-			z.curSeq, err = dc.ReadInt64()
-			if err != nil {
-				return
-			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -906,11 +901,11 @@ func (z *runIterator16) DecodeMsg(dc *msgp.Reader) (err error) {
 	return
 }
 
-// EncodeMsg implements msgp.Encodable
+// Deprecated: EncodeMsg implements msgp.Encodable
 func (z *runIterator16) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 4
+	// map header, size 3
 	// write "rc"
-	err = en.Append(0x84, 0xa2, 0x72, 0x63)
+	err = en.Append(0x83, 0xa2, 0x72, 0x63)
 	if err != nil {
 		return err
 	}
@@ -943,24 +938,15 @@ func (z *runIterator16) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "curSeq"
-	err = en.Append(0xa6, 0x63, 0x75, 0x72, 0x53, 0x65, 0x71)
-	if err != nil {
-		return err
-	}
-	err = en.WriteInt64(z.curSeq)
-	if err != nil {
-		return
-	}
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
+// Deprecated: MarshalMsg implements msgp.Marshaler
 func (z *runIterator16) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 4
+	// map header, size 3
 	// string "rc"
-	o = append(o, 0x84, 0xa2, 0x72, 0x63)
+	o = append(o, 0x83, 0xa2, 0x72, 0x63)
 	if z.rc == nil {
 		o = msgp.AppendNil(o)
 	} else {
@@ -975,13 +961,10 @@ func (z *runIterator16) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "curPosInIndex"
 	o = append(o, 0xad, 0x63, 0x75, 0x72, 0x50, 0x6f, 0x73, 0x49, 0x6e, 0x49, 0x6e, 0x64, 0x65, 0x78)
 	o = msgp.AppendUint16(o, z.curPosInIndex)
-	// string "curSeq"
-	o = append(o, 0xa6, 0x63, 0x75, 0x72, 0x53, 0x65, 0x71)
-	o = msgp.AppendInt64(o, z.curSeq)
 	return
 }
 
-// UnmarshalMsg implements msgp.Unmarshaler
+// Deprecated: UnmarshalMsg implements msgp.Unmarshaler
 func (z *runIterator16) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
@@ -1023,11 +1006,6 @@ func (z *runIterator16) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			if err != nil {
 				return
 			}
-		case "curSeq":
-			z.curSeq, bts, err = msgp.ReadInt64Bytes(bts)
-			if err != nil {
-				return
-			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
@@ -1039,7 +1017,7 @@ func (z *runIterator16) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+// Deprecated: Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *runIterator16) Msgsize() (s int) {
 	s = 1 + 3
 	if z.rc == nil {
@@ -1047,11 +1025,11 @@ func (z *runIterator16) Msgsize() (s int) {
 	} else {
 		s += z.rc.Msgsize()
 	}
-	s += 9 + msgp.Int64Size + 14 + msgp.Uint16Size + 7 + msgp.Int64Size
+	s += 9 + msgp.Int64Size + 14 + msgp.Uint16Size
 	return
 }
 
-// DecodeMsg implements msgp.Decodable
+// Deprecated: DecodeMsg implements msgp.Decodable
 func (z *uint16Slice) DecodeMsg(dc *msgp.Reader) (err error) {
 	var zjpj uint32
 	zjpj, err = dc.ReadArrayHeader()
@@ -1072,7 +1050,7 @@ func (z *uint16Slice) DecodeMsg(dc *msgp.Reader) (err error) {
 	return
 }
 
-// EncodeMsg implements msgp.Encodable
+// Deprecated: EncodeMsg implements msgp.Encodable
 func (z uint16Slice) EncodeMsg(en *msgp.Writer) (err error) {
 	err = en.WriteArrayHeader(uint32(len(z)))
 	if err != nil {
@@ -1087,7 +1065,7 @@ func (z uint16Slice) EncodeMsg(en *msgp.Writer) (err error) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
+// Deprecated: MarshalMsg implements msgp.Marshaler
 func (z uint16Slice) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	o = msgp.AppendArrayHeader(o, uint32(len(z)))
@@ -1097,7 +1075,7 @@ func (z uint16Slice) MarshalMsg(b []byte) (o []byte, err error) {
 	return
 }
 
-// UnmarshalMsg implements msgp.Unmarshaler
+// Deprecated: UnmarshalMsg implements msgp.Unmarshaler
 func (z *uint16Slice) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zgmo uint32
 	zgmo, bts, err = msgp.ReadArrayHeaderBytes(bts)
@@ -1119,7 +1097,7 @@ func (z *uint16Slice) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+// Deprecated: Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z uint16Slice) Msgsize() (s int) {
 	s = msgp.ArrayHeaderSize + (len(z) * (msgp.Uint16Size))
 	return
