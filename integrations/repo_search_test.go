@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +35,7 @@ func TestSearchRepo(t *testing.T) {
 	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)
 
-	executeIndexer(t, repo, models.UpdateRepoIndexer)
+	executeIndexer(t, repo, code_indexer.UpdateRepoIndexer)
 
 	testSearch(t, "/user2/repo1/search?q=Description&page=1", []string{"README.md"})
 
@@ -44,8 +45,8 @@ func TestSearchRepo(t *testing.T) {
 	repo, err = models.GetRepositoryByOwnerAndName("user2", "glob")
 	assert.NoError(t, err)
 
-	executeIndexer(t, repo, models.DeleteRepoFromIndexer)
-	executeIndexer(t, repo, models.UpdateRepoIndexer)
+	executeIndexer(t, repo, code_indexer.DeleteRepoFromIndexer)
+	executeIndexer(t, repo, code_indexer.UpdateRepoIndexer)
 
 	testSearch(t, "/user2/glob/search?q=loren&page=1", []string{"a.txt"})
 	testSearch(t, "/user2/glob/search?q=file3&page=1", []string{"x/b.txt"})

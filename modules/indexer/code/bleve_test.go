@@ -3,3 +3,14 @@
 // license that can be found in the LICENSE file.
 
 package code
+
+import (
+	"path/filepath"
+	"testing"
+
+	"code.gitea.io/gitea/models"
+)
+
+func TestMain(m *testing.M) {
+	models.MainTest(m, filepath.Join("..", "..", ".."))
+}
