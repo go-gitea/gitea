@@ -18,7 +18,7 @@ func trackedTimesToAPIFormatDeprecated(trackedTimes []*models.TrackedTime) []*ap
 	return apiTrackedTimes
 }
 
-// ListTrackedTimes list all the tracked times of an issue
+// ListTrackedTimesDeprecated list all the tracked times of an issue
 func ListTrackedTimesDeprecated(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/{id}/times issue issueTrackedTimes
 	// ---
@@ -45,7 +45,7 @@ func ListTrackedTimesDeprecated(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/TrackedTimeList"
+	//     "$ref": "#/responses/TrackedTimeListDeprecated"
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.NotFound("Timetracker is disabled")
 		return
@@ -69,11 +69,12 @@ func ListTrackedTimesDeprecated(ctx *context.APIContext) {
 	ctx.JSON(200, &apiTrackedTimes)
 }
 
-// AddTime adds time manual to the given issue
-func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
+// AddTimeDeprecated adds time manual to the given issue
+func AddTimeDeprecated(ctx *context.APIContext, form api.AddTimeOption) {
 	// swagger:operation Post /repos/{owner}/{repo}/issues/{id}/times issue issueAddTime
 	// ---
 	// summary: Add a tracked time to a issue
+	// deprecated: true
 	// consumes:
 	// - application/json
 	// produces:
@@ -101,7 +102,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	//     "$ref": "#/definitions/AddTimeOption"
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/empty"
+	//     "$ref": "#/responses/TrackedTimeDeprecated"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "403":
@@ -124,15 +125,15 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 		ctx.Status(403)
 		return
 	}
-	_, err = models.AddTime(ctx.User, issue, form.Time)
+	trackedTime, err := models.AddTime(ctx.User, issue, form.Time)
 	if err != nil {
 		ctx.Error(500, "AddTime", err)
 		return
 	}
-	ctx.Status(200)
+	ctx.JSON(200, trackedTime.APIFormatDeprecated())
 }
 
-// ListTrackedTimesByUser  lists all tracked times of the user
+// ListTrackedTimesByUserDeprecated  lists all tracked times of the user
 func ListTrackedTimesByUserDeprecated(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/times/{user} user userTrackedTimes
 	// ---
@@ -158,7 +159,7 @@ func ListTrackedTimesByUserDeprecated(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/TrackedTimeList"
+	//     "$ref": "#/responses/TrackedTimeListDeprecated"
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
 		return
@@ -187,7 +188,7 @@ func ListTrackedTimesByUserDeprecated(ctx *context.APIContext) {
 	ctx.JSON(200, &apiTrackedTimes)
 }
 
-// ListTrackedTimesByRepository lists all tracked times of the repository
+// ListTrackedTimesByRepositoryDeprecated lists all tracked times of the repository
 func ListTrackedTimesByRepositoryDeprecated(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/times repository repoTrackedTimes
 	// ---
@@ -208,7 +209,7 @@ func ListTrackedTimesByRepositoryDeprecated(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/TrackedTimeList"
+	//     "$ref": "#/responses/TrackedTimeListDeprecated"
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
 		return
@@ -223,7 +224,7 @@ func ListTrackedTimesByRepositoryDeprecated(ctx *context.APIContext) {
 	ctx.JSON(200, &apiTrackedTimes)
 }
 
-// ListMyTrackedTimes lists all tracked times of the current user
+// ListMyTrackedTimesDeprecated lists all tracked times of the current user
 func ListMyTrackedTimesDeprecated(ctx *context.APIContext) {
 	// swagger:operation GET /user/times user userCurrentTrackedTimes
 	// ---
@@ -233,7 +234,7 @@ func ListMyTrackedTimesDeprecated(ctx *context.APIContext) {
 	// - application/json
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/TrackedTimeList"
+	//     "$ref": "#/responses/TrackedTimeListDeprecated"
 	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{UserID: ctx.User.ID})
 	if err != nil {
 		ctx.Error(500, "GetTrackedTimesByUser", err)

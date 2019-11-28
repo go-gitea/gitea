@@ -685,7 +685,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						})
 						m.Group("/times", func() {
 							m.Combo("").Get(repo.ListTrackedTimesDeprecated).
-								Post(reqToken(), bind(api.AddTimeOption{}), repo.AddTime)
+								Post(reqToken(), bind(api.AddTimeOption{}), repo.AddTimeDeprecated)
 						})
 						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 						m.Group("/stopwatch", func() {

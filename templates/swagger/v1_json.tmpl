@@ -3195,7 +3195,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/TrackedTimeList"
+            "$ref": "#/responses/TrackedTimeListDeprecated"
           }
         }
       },
@@ -3211,6 +3211,7 @@
         ],
         "summary": "Add a tracked time to a issue",
         "operationId": "issueAddTime",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -3244,7 +3245,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/TrackedTimeDeprecated"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -6014,7 +6015,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/TrackedTimeList"
+            "$ref": "#/responses/TrackedTimeListDeprecated"
           }
         }
       }
@@ -6055,7 +6056,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/TrackedTimeList"
+            "$ref": "#/responses/TrackedTimeListDeprecated"
           }
         }
       }
@@ -7224,7 +7225,7 @@
         "deprecated": true,
         "responses": {
           "200": {
-            "$ref": "#/responses/TrackedTimeList"
+            "$ref": "#/responses/TrackedTimeListDeprecated"
           }
         }
       }
@@ -10947,8 +10948,54 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "TrackedTimeDeprecated": {
+    "TrackedTime": {
       "description": "TrackedTime worked time for an issue / pr",
+      "type": "object",
+      "properties": {
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "issue_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "IssueID"
+        },
+        "issue_index": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "IssueIndex"
+        },
+        "repository": {
+          "type": "string",
+          "x-go-name": "Repo"
+        },
+        "time": {
+          "description": "Time in seconds",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Time"
+        },
+        "user_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "UserID"
+        },
+        "user_name": {
+          "type": "string",
+          "x-go-name": "UserName"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "TrackedTimeDeprecated": {
+      "description": "TrackedTimeDeprecated worked time for an issue / pr",
       "type": "object",
       "properties": {
         "created": {
@@ -11602,10 +11649,25 @@
         "$ref": "#/definitions/TopicName"
       }
     },
+    "TrackedTime": {
+      "description": "TrackedTime",
+      "schema": {
+        "$ref": "#/definitions/TrackedTime"
+      }
+    },
     "TrackedTimeDeprecated": {
       "description": "TrackedTimeDeprecated",
       "schema": {
         "$ref": "#/definitions/TrackedTimeDeprecated"
+      }
+    },
+    "TrackedTimeList": {
+      "description": "TrackedTimeList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/TrackedTime"
+        }
       }
     },
     "TrackedTimeListDeprecated": {

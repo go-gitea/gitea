@@ -78,6 +78,20 @@ type swaggerResponseTrackedTimeListDeprecated struct {
 	Body []api.TrackedTimeDeprecated `json:"body"`
 }
 
+// TrackedTime
+// swagger:response TrackedTime
+type swaggerResponseTrackedTime struct {
+	// in:body
+	Body api.TrackedTime `json:"body"`
+}
+
+// TrackedTimeList
+// swagger:response TrackedTimeList
+type swaggerResponseTrackedTimeList struct {
+	// in:body
+	Body []api.TrackedTime `json:"body"`
+}
+
 // IssueDeadline
 // swagger:response IssueDeadline
 type swaggerIssueDeadline struct {

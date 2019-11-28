@@ -24,6 +24,9 @@ type TrackedTime struct {
 	Time        int64     `json:"time"`
 }
 
+// TrackedTimeList is a List ful of TrackedTime's
+type TrackedTimeList []*TrackedTime
+
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (t *TrackedTime) AfterLoad() {
 	t.Created = time.Unix(t.CreatedUnix, 0).In(setting.DefaultUILocation)
@@ -38,6 +41,44 @@ func (t *TrackedTime) APIFormatDeprecated() *api.TrackedTimeDeprecated {
 		Time:    t.Time,
 		Created: t.Created,
 	}
+}
+
+// APIFormat converts TrackedTime to API format
+func (t *TrackedTime) APIFormat() *api.TrackedTime {
+	user, err := GetUserByID(t.UserID)
+	if err != nil {
+		return nil
+	}
+	issue, err := GetIssueByID(t.IssueID)
+	if err != nil {
+		return nil
+	}
+	err = issue.LoadRepo()
+	if err != nil {
+		return nil
+	}
+	return &api.TrackedTime{
+		ID:         t.ID,
+		IssueID:    t.IssueID,
+		IssueIndex: issue.Index,
+		UserID:     t.UserID,
+		UserName:   user.Name,
+		Time:       t.Time,
+		Created:    t.Created,
+		Repo:       issue.Repo.FullName(),
+	}
+}
+
+// APIFormat converts TrackedTime to API format
+func (tl TrackedTimeList) APIFormat() api.TrackedTimeList {
+	var result api.TrackedTimeList
+	for _, t := range tl {
+		i := t.APIFormat()
+		if i != nil {
+			result = append(result, i)
+		}
+	}
+	return result
 }
 
 // FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.
@@ -75,7 +116,7 @@ func (opts *FindTrackedTimesOptions) ToSession(e Engine) *xorm.Session {
 }
 
 // GetTrackedTimes returns all tracked times that fit to the given options.
-func GetTrackedTimes(options FindTrackedTimesOptions) (trackedTimes []*TrackedTime, err error) {
+func GetTrackedTimes(options FindTrackedTimesOptions) (trackedTimes TrackedTimeList, err error) {
 	err = options.ToSession(x).Find(&trackedTimes)
 	return
 }
