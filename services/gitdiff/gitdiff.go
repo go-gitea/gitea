@@ -718,6 +718,14 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 
 			}
 
+			if len(diff.Files) >= maxFiles {
+				diff.IsIncomplete = true
+				_, err := io.Copy(ioutil.Discard, reader)
+				if err != nil {
+					return nil, fmt.Errorf("Copy: %v", err)
+				}
+				break
+			}
 			curFile = &DiffFile{
 				Name:      b,
 				OldName:   a,
@@ -727,14 +735,6 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				IsRenamed: a != b,
 			}
 			diff.Files = append(diff.Files, curFile)
-			if len(diff.Files) >= maxFiles {
-				diff.IsIncomplete = true
-				_, err := io.Copy(ioutil.Discard, reader)
-				if err != nil {
-					return nil, fmt.Errorf("Copy: %v", err)
-				}
-				break
-			}
 			curFileLinesCount = 0
 			leftLine = 1
 			rightLine = 1
