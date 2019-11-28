@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// TrackedTime worked time for an issue / pr
-type TrackedTime struct {
+// TrackedTimeDeprecated worked time for an issue / pr
+type TrackedTimeDeprecated struct {
 	ID int64 `json:"id"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created"`
@@ -19,8 +19,8 @@ type TrackedTime struct {
 	IssueID int64 `json:"issue_id"`
 }
 
-// TrackedTimes represent a list of tracked times
-type TrackedTimes []*TrackedTime
+// TrackedTimesDeprecated represent a list of tracked times
+type TrackedTimesDeprecated []*TrackedTimeDeprecated
 
 // AddTimeOption options for adding time to an issue
 type AddTimeOption struct {

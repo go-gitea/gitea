@@ -3168,6 +3168,7 @@
         ],
         "summary": "List an issue's tracked times",
         "operationId": "issueTrackedTimes",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -3243,7 +3244,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/TrackedTime"
+            "$ref": "#/responses/empty"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5994,6 +5995,7 @@
         ],
         "summary": "List a repo's tracked times",
         "operationId": "repoTrackedTimes",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -6027,6 +6029,7 @@
         ],
         "summary": "List a user's tracked times in a repo",
         "operationId": "userTrackedTimes",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -7218,6 +7221,7 @@
         ],
         "summary": "List the current user's tracked times",
         "operationId": "userCurrentTrackedTimes",
+        "deprecated": true,
         "responses": {
           "200": {
             "$ref": "#/responses/TrackedTimeList"
@@ -10943,7 +10947,7 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "TrackedTime": {
+    "TrackedTimeDeprecated": {
       "description": "TrackedTime worked time for an issue / pr",
       "type": "object",
       "properties": {
@@ -11598,18 +11602,18 @@
         "$ref": "#/definitions/TopicName"
       }
     },
-    "TrackedTime": {
-      "description": "TrackedTime",
+    "TrackedTimeDeprecated": {
+      "description": "TrackedTimeDeprecated",
       "schema": {
-        "$ref": "#/definitions/TrackedTime"
+        "$ref": "#/definitions/TrackedTimeDeprecated"
       }
     },
-    "TrackedTimeList": {
-      "description": "TrackedTimeList",
+    "TrackedTimeListDeprecated": {
+      "description": "TrackedTimeListDeprecated",
       "schema": {
         "type": "array",
         "items": {
-          "$ref": "#/definitions/TrackedTime"
+          "$ref": "#/definitions/TrackedTimeDeprecated"
         }
       }
     },

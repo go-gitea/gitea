@@ -582,7 +582,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Delete("", user.Unstar)
 				}, repoAssignment())
 			})
-			m.Get("/times", repo.ListMyTrackedTimes)
+			m.Get("/times", repo.ListMyTrackedTimesDeprecated)
 
 			m.Get("/subscriptions", user.GetMyWatchedRepos)
 
@@ -649,8 +649,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Delete(repo.DeleteDeploykey)
 				}, reqToken(), reqAdmin())
 				m.Group("/times", func() {
-					m.Combo("").Get(repo.ListTrackedTimesByRepository)
-					m.Combo("/:timetrackingusername").Get(repo.ListTrackedTimesByUser)
+					m.Combo("").Get(repo.ListTrackedTimesByRepositoryDeprecated)
+					m.Combo("/:timetrackingusername").Get(repo.ListTrackedTimesByUserDeprecated)
 				}, mustEnableIssues)
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
@@ -684,7 +684,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 							m.Delete("/:id", reqToken(), repo.DeleteIssueLabel)
 						})
 						m.Group("/times", func() {
-							m.Combo("").Get(repo.ListTrackedTimes).
+							m.Combo("").Get(repo.ListTrackedTimesDeprecated).
 								Post(reqToken(), bind(api.AddTimeOption{}), repo.AddTime)
 						})
 						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)

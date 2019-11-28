@@ -10,19 +10,20 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func trackedTimesToAPIFormat(trackedTimes []*models.TrackedTime) []*api.TrackedTime {
-	apiTrackedTimes := make([]*api.TrackedTime, len(trackedTimes))
+func trackedTimesToAPIFormatDeprecated(trackedTimes []*models.TrackedTime) []*api.TrackedTimeDeprecated {
+	apiTrackedTimes := make([]*api.TrackedTimeDeprecated, len(trackedTimes))
 	for i, trackedTime := range trackedTimes {
-		apiTrackedTimes[i] = trackedTime.APIFormat()
+		apiTrackedTimes[i] = trackedTime.APIFormatDeprecated()
 	}
 	return apiTrackedTimes
 }
 
 // ListTrackedTimes list all the tracked times of an issue
-func ListTrackedTimes(ctx *context.APIContext) {
+func ListTrackedTimesDeprecated(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/{id}/times issue issueTrackedTimes
 	// ---
 	// summary: List an issue's tracked times
+	// deprecated: true
 	// produces:
 	// - application/json
 	// parameters:
@@ -64,7 +65,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.Error(500, "GetTrackedTimesByIssue", err)
 		return
 	}
-	apiTrackedTimes := trackedTimesToAPIFormat(trackedTimes)
+	apiTrackedTimes := trackedTimesToAPIFormatDeprecated(trackedTimes)
 	ctx.JSON(200, &apiTrackedTimes)
 }
 
@@ -100,7 +101,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	//     "$ref": "#/definitions/AddTimeOption"
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/TrackedTime"
+	//     "$ref": "#/responses/empty"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "403":
@@ -123,19 +124,20 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 		ctx.Status(403)
 		return
 	}
-	trackedTime, err := models.AddTime(ctx.User, issue, form.Time)
+	_, err = models.AddTime(ctx.User, issue, form.Time)
 	if err != nil {
 		ctx.Error(500, "AddTime", err)
 		return
 	}
-	ctx.JSON(200, trackedTime.APIFormat())
+	ctx.Status(200)
 }
 
 // ListTrackedTimesByUser  lists all tracked times of the user
-func ListTrackedTimesByUser(ctx *context.APIContext) {
+func ListTrackedTimesByUserDeprecated(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/times/{user} user userTrackedTimes
 	// ---
 	// summary: List a user's tracked times in a repo
+	// deprecated: true
 	// produces:
 	// - application/json
 	// parameters:
@@ -181,15 +183,16 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
 		return
 	}
-	apiTrackedTimes := trackedTimesToAPIFormat(trackedTimes)
+	apiTrackedTimes := trackedTimesToAPIFormatDeprecated(trackedTimes)
 	ctx.JSON(200, &apiTrackedTimes)
 }
 
 // ListTrackedTimesByRepository lists all tracked times of the repository
-func ListTrackedTimesByRepository(ctx *context.APIContext) {
+func ListTrackedTimesByRepositoryDeprecated(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/times repository repoTrackedTimes
 	// ---
 	// summary: List a repo's tracked times
+	// deprecated: true
 	// produces:
 	// - application/json
 	// parameters:
@@ -216,15 +219,16 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
 		return
 	}
-	apiTrackedTimes := trackedTimesToAPIFormat(trackedTimes)
+	apiTrackedTimes := trackedTimesToAPIFormatDeprecated(trackedTimes)
 	ctx.JSON(200, &apiTrackedTimes)
 }
 
 // ListMyTrackedTimes lists all tracked times of the current user
-func ListMyTrackedTimes(ctx *context.APIContext) {
+func ListMyTrackedTimesDeprecated(ctx *context.APIContext) {
 	// swagger:operation GET /user/times user userCurrentTrackedTimes
 	// ---
 	// summary: List the current user's tracked times
+	// deprecated: true
 	// produces:
 	// - application/json
 	// responses:
@@ -235,6 +239,6 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
 		return
 	}
-	apiTrackedTimes := trackedTimesToAPIFormat(trackedTimes)
+	apiTrackedTimes := trackedTimesToAPIFormatDeprecated(trackedTimes)
 	ctx.JSON(200, &apiTrackedTimes)
 }

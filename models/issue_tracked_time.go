@@ -29,9 +29,9 @@ func (t *TrackedTime) AfterLoad() {
 	t.Created = time.Unix(t.CreatedUnix, 0).In(setting.DefaultUILocation)
 }
 
-// APIFormat converts TrackedTime to API format
-func (t *TrackedTime) APIFormat() *api.TrackedTime {
-	return &api.TrackedTime{
+// APIFormatDeprecated converts TrackedTime to deprecated API format
+func (t *TrackedTime) APIFormatDeprecated() *api.TrackedTimeDeprecated {
+	return &api.TrackedTimeDeprecated{
 		ID:      t.ID,
 		IssueID: t.IssueID,
 		UserID:  t.UserID,

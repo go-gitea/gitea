@@ -64,18 +64,18 @@ type swaggerResponseMilestoneList struct {
 	Body []api.Milestone `json:"body"`
 }
 
-// TrackedTime
-// swagger:response TrackedTime
-type swaggerResponseTrackedTime struct {
+// TrackedTimeDeprecated
+// swagger:response TrackedTimeDeprecated
+type swaggerResponseTrackedTimeDeprecated struct {
 	// in:body
-	Body api.TrackedTime `json:"body"`
+	Body api.TrackedTimeDeprecated `json:"body"`
 }
 
-// TrackedTimeList
-// swagger:response TrackedTimeList
-type swaggerResponseTrackedTimeList struct {
+// TrackedTimeListDeprecated
+// swagger:response TrackedTimeListDeprecated
+type swaggerResponseTrackedTimeListDeprecated struct {
 	// in:body
-	Body []api.TrackedTime `json:"body"`
+	Body []api.TrackedTimeDeprecated `json:"body"`
 }
 
 // IssueDeadline
