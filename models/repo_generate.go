@@ -264,7 +264,7 @@ func GenerateGitHooks(ctx DBContext, templateRepo, generateRepo *Repository) err
 			return err
 		}
 
-		generateHook.Content = generateExpansion(templateHook.Content, templateRepo, generateRepo)
+		generateHook.Content = templateHook.Content
 		if err := generateHook.Update(); err != nil {
 			return err
 		}
