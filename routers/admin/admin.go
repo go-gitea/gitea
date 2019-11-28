@@ -262,13 +262,7 @@ func shadowPassword(provider, cfgItem string) string {
 		return shadowURL(provider, cfgItem)
 		// postgres://pqgotest:password@localhost/pqgotest?sslmode=verify-full
 		// Notice: use shadowURL
-	case "VirtualSession":
-		var realSession session.Options
-		if err := json.Unmarshal([]byte(cfgItem), &realSession); err == nil {
-			return shadowPassword(realSession.Provider, realSession.ProviderConfig)
-		}
 	}
-
 	return cfgItem
 }
 
@@ -314,8 +308,14 @@ func Config(ctx *context.Context) {
 	ctx.Data["CacheItemTTL"] = setting.CacheService.TTL
 
 	sessionCfg := setting.SessionConfig
+	if sessionCfg.Provider == "VirtualSession" {
+		var realSession session.Options
+		if err := json.Unmarshal([]byte(sessionCfg.ProviderConfig), &realSession); err != nil {
+			log.Error("Unable to unmarshall session config for virtualed provider config: %s\nError: %v", sessionCfg.ProviderConfig, err)
+		}
+		sessionCfg = realSession
+	}
 	sessionCfg.ProviderConfig = shadowPassword(sessionCfg.Provider, sessionCfg.ProviderConfig)
-
 	ctx.Data["SessionConfig"] = sessionCfg
 
 	ctx.Data["DisableGravatar"] = setting.DisableGravatar
