@@ -1,0 +1,52 @@
+package models
+
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+var giteaTemplate = []byte(`
+# Header
+
+# All .go files
+**.go
+
+# All text files in /text/
+text/*.txt
+
+# All files in modules folders
+**/modules/*
+`)
+
+func TestParseGiteaTemplate(t *testing.T) {
+	globs := parseGiteaTemplate(giteaTemplate)
+	assert.Equal(t, len(globs), 3)
+
+	tt := []struct {
+		Path  string
+		Match bool
+	}{
+		{Path: "main.go", Match: true},
+		{Path: "a/b/c/d/e.go", Match: true},
+		{Path: "main.txt", Match: false},
+		{Path: "a/b.txt", Match: false},
+		{Path: "text/a.txt", Match: true},
+		{Path: "text/b.txt", Match: true},
+		{Path: "text/c.json", Match: false},
+		{Path: "a/b/c/modules/README.md", Match: true},
+		{Path: "a/b/c/modules/d/README.md", Match: false},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.Path, func(t *testing.T) {
+			match := false
+			for _, g := range globs {
+				if g.Match(tc.Path) {
+					match = true
+					break
+				}
+			}
+			assert.Equal(t, tc.Match, match)
+		})
+	}
+}

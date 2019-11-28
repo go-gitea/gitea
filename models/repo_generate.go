@@ -41,19 +41,34 @@ func (gro GenerateRepoOptions) IsValid() bool {
 	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar || gro.IssueLabels // or other items as they are added
 }
 
-func parseGiteaTemplate(tmpDir string) ([]glob.Glob, error) {
-	globs := make([]glob.Glob, 0)
+type GiteaTemplate struct {
+	Path    string
+	Content []byte
+}
+
+func checkGiteaTemplate(tmpDir string) (*GiteaTemplate, error) {
 	gtPath := filepath.Join(tmpDir, ".giteatemplate")
 	if _, err := os.Stat(gtPath); os.IsNotExist(err) {
-		return globs, nil
+		return nil, nil
 	} else if err != nil {
-		return globs, err
+		return nil, err
 	}
 
 	content, err := ioutil.ReadFile(gtPath)
 	if err != nil {
-		return globs, err
+		return nil, err
 	}
+
+	gt := &GiteaTemplate{
+		Path:    gtPath,
+		Content: content,
+	}
+
+	return gt, nil
+}
+
+func parseGiteaTemplate(content []byte) []glob.Glob {
+	globs := make([]glob.Glob, 0)
 
 	lines := strings.Split(string(util.NormalizeEOL(content)), "\n")
 	for _, line := range lines {
@@ -69,7 +84,7 @@ func parseGiteaTemplate(tmpDir string) ([]glob.Glob, error) {
 		globs = append(globs, g)
 	}
 
-	return globs, os.Remove(gtPath)
+	return globs
 }
 
 func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, tmpDir string) error {
@@ -99,10 +114,16 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 	}
 
 	// Variable expansion
-	globs, err := parseGiteaTemplate(tmpDir)
+	gt, err := checkGiteaTemplate(tmpDir)
 	if err != nil {
-		return fmt.Errorf("parseGiteaTemplate: %v", err)
+		return fmt.Errorf("checkGiteaTemplate: %v", err)
 	}
+
+	if err := os.Remove(gt.Path); err != nil {
+		return fmt.Errorf("remove .giteatemplate: %v", err)
+	}
+
+	globs := parseGiteaTemplate(gt.Content)
 
 	// Avoid walking tree if there are no globs
 	if len(globs) > 0 {
