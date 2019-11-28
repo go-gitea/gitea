@@ -12,6 +12,7 @@ type RepoIndexerStatus struct {
 	CommitSha string `xorm:"VARCHAR(40)"`
 }
 
+// GetIndexerStatus loads repo codes indxer status
 func (repo *Repository) GetIndexerStatus() error {
 	if repo.IndexerStatus != nil {
 		return nil
@@ -27,6 +28,7 @@ func (repo *Repository) GetIndexerStatus() error {
 	return nil
 }
 
+// UpdateIndexerStatus updates indexer status
 func (repo *Repository) UpdateIndexerStatus(sha string) error {
 	if err := repo.GetIndexerStatus(); err != nil {
 		return err
