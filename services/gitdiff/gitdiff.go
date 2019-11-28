@@ -546,6 +546,15 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 
 		// Get new file.
 		if strings.HasPrefix(line, cmdDiffHead) {
+			if len(diff.Files) >= maxFiles {
+				diff.IsIncomplete = true
+				_, err := io.Copy(ioutil.Discard, reader)
+				if err != nil {
+					return nil, fmt.Errorf("Copy: %v", err)
+				}
+				break
+			}
+
 			var middle int
 
 			// Note: In case file name is surrounded by double quotes (it happens only in git-shell).
@@ -590,14 +599,6 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				IsRenamed: a != b,
 			}
 			diff.Files = append(diff.Files, curFile)
-			if len(diff.Files) >= maxFiles {
-				diff.IsIncomplete = true
-				_, err := io.Copy(ioutil.Discard, reader)
-				if err != nil {
-					return nil, fmt.Errorf("Copy: %v", err)
-				}
-				break
-			}
 			curFileLinesCount = 0
 			curFileLFSPrefix = false
 
