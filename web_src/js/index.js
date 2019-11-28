@@ -14,6 +14,7 @@ let csrf;
 let suburl;
 let previewFileModes;
 let simpleMDEditor;
+const commentMDEditors = {};
 let codeMirrorEditor;
 
 // Disable Dropzone auto-discover because it's manually initialized
@@ -304,11 +305,27 @@ function initImagePaste(target) {
   });
 }
 
+function initSimpleMDEImagePaste(simplemde, files) {
+  simplemde.codemirror.on('paste', (_, event) => {
+    retrieveImageFromClipboardAsBlob(event, (img) => {
+      const name = img.name.substr(0, img.name.lastIndexOf('.'));
+      uploadFile(img, (res) => {
+        const data = JSON.parse(res);
+        const pos = simplemde.codemirror.getCursor();
+        simplemde.codemirror.replaceRange(`![${name}](${suburl}/attachments/${data.uuid})`, pos);
+        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+        files.append(input);
+      });
+    });
+  });
+}
+
 function initCommentForm() {
   if ($('.comment.form').length === 0) {
     return;
   }
 
+  setCommentSimpleMDE($('.comment.form textarea'));
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
   initImagePaste($('.comment.form textarea'));
@@ -797,6 +814,7 @@ function initRepository() {
       const $renderContent = $segment.find('.render-content');
       const $rawContent = $segment.find('.raw-content');
       let $textarea;
+      let $simplemde;
 
       // Setup new form
       if ($editContentZone.html().length === 0) {
@@ -881,8 +899,10 @@ function initRepository() {
         $tabMenu.find('.preview.item').attr('data-tab', $editContentZone.data('preview'));
         $editContentForm.find('.write.segment').attr('data-tab', $editContentZone.data('write'));
         $editContentForm.find('.preview.segment').attr('data-tab', $editContentZone.data('preview'));
-
+        $simplemde = setCommentSimpleMDE($textarea);
+        commentMDEditors[$editContentZone.data('write')] = $simplemde;
         initCommentPreviewTab($editContentForm);
+        initSimpleMDEImagePaste($simplemde, $files);
 
         $editContentZone.find('.cancel.button').click(() => {
           $renderContent.show();
@@ -929,6 +949,7 @@ function initRepository() {
         });
       } else {
         $textarea = $segment.find('textarea');
+        $simplemde = commentMDEditors[$editContentZone.data('write')];
       }
 
       // Show write/preview tab and copy raw content as needed
@@ -936,8 +957,10 @@ function initRepository() {
       $renderContent.hide();
       if ($textarea.val().length === 0) {
         $textarea.val($rawContent.text());
+        $simplemde.value($rawContent.text());
       }
       $textarea.focus();
+      $simplemde.codemirror.focus();
       event.preventDefault();
     });
 
@@ -1396,6 +1419,27 @@ function setSimpleMDE($editArea) {
   });
 
   return true;
+}
+
+function setCommentSimpleMDE($editArea) {
+  const simplemde = new SimpleMDE({
+    autoDownloadFontAwesome: false,
+    element: $editArea[0],
+    forceSync: true,
+    renderingConfig: {
+      singleLineBreaks: false
+    },
+    indentWithTabs: false,
+    tabSize: 4,
+    spellChecker: false,
+    toolbar: ['bold', 'italic', 'strikethrough', '|',
+      'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
+      'code', 'quote', '|',
+      'unordered-list', 'ordered-list', '|',
+      'link', 'image', 'table', 'horizontal-rule', '|',
+      'clean-block']
+  });
+  return simplemde;
 }
 
 function setCodeMirror($editArea) {
