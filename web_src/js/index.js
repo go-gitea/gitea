@@ -1439,6 +1439,15 @@ function setCommentSimpleMDE($editArea) {
       'link', 'image', 'table', 'horizontal-rule', '|',
       'clean-block']
   });
+  simplemde.codemirror.setOption('extraKeys', {
+    Enter: () => {
+      if (!(issuesTribute.isActive || emojiTribute.isActive)) {
+        return CodeMirror.Pass;
+      }
+    }
+  });
+  issuesTribute.attach(simplemde.codemirror.getInputField());
+  emojiTribute.attach(simplemde.codemirror.getInputField());
   return simplemde;
 }
 
