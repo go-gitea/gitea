@@ -1449,7 +1449,8 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 	switch ctx.Params(":action") {
 	case "react":
 		if !util.IsStringInSlice(form.Content, setting.UI.Reactions) {
-			log.Error("ChangeIssueReaction: '%s' is not an allowed reaction", form.Content)
+			err := fmt.Errorf("ChangeIssueReaction: '%s' is not an allowed reaction", form.Content)
+			ctx.ServerError(err.Error(), err)
 			return
 		}
 
@@ -1549,7 +1550,8 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 	switch ctx.Params(":action") {
 	case "react":
 		if !util.IsStringInSlice(form.Content, setting.UI.Reactions) {
-			log.Error("ChangeIssueReaction: '%s' is not an allowed reaction", form.Content)
+			err := fmt.Errorf("ChangeIssueReaction: '%s' is not an allowed reaction", form.Content)
+			ctx.ServerError(err.Error(), err)
 			return
 		}
 
