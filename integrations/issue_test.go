@@ -49,14 +49,14 @@ func assertMatch(t testing.TB, issue *models.Issue, keyword string) {
 }
 
 func TestNoLoginViewIssues(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/issues")
 	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestViewIssuesSortByType(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
@@ -84,7 +84,7 @@ func TestViewIssuesSortByType(t *testing.T) {
 }
 
 func TestViewIssuesKeyword(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
@@ -104,7 +104,7 @@ func TestViewIssuesKeyword(t *testing.T) {
 }
 
 func TestNoLoginViewIssue(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/issues/1")
 	MakeRequest(t, req, http.StatusOK)
@@ -173,13 +173,13 @@ func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, 
 }
 
 func TestNewIssue(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 }
 
 func TestIssueCommentClose(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 	testIssueAddComment(t, session, issueURL, "Test comment 1", "")
@@ -195,7 +195,7 @@ func TestIssueCommentClose(t *testing.T) {
 }
 
 func TestIssueCrossReference(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	// Issue that will be referenced
 	_, issueBase := testIssueWithBean(t, "user2", 1, "Title", "Description")

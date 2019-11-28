@@ -39,7 +39,7 @@ type docNumTermsVisitor func(docNum uint64, terms []byte) error
 
 type docVisitState struct {
 	dvrs    map[uint16]*docValueReader
-	segment *Segment
+	segment *SegmentBase
 }
 
 type docValueReader struct {
@@ -88,8 +88,8 @@ func (s *SegmentBase) loadFieldDocValueReader(field string,
 	fieldDvLocStart, fieldDvLocEnd uint64) (*docValueReader, error) {
 	// get the docValue offset for the given fields
 	if fieldDvLocStart == fieldNotUninverted {
-		return nil, fmt.Errorf("loadFieldDocValueReader: "+
-			"no docValues found for field: %s", field)
+		// no docValues found, nothing to do
+		return nil, nil
 	}
 
 	// read the number of chunks, and chunk offsets position
@@ -101,6 +101,8 @@ func (s *SegmentBase) loadFieldDocValueReader(field string,
 		chunkOffsetsLen := binary.BigEndian.Uint64(s.mem[fieldDvLocEnd-16 : fieldDvLocEnd-8])
 		// acquire position of chunk offsets
 		chunkOffsetsPosition = (fieldDvLocEnd - 16) - chunkOffsetsLen
+	} else {
+		return nil, fmt.Errorf("loadFieldDocValueReader: fieldDvLoc too small: %d-%d", fieldDvLocEnd, fieldDvLocStart)
 	}
 
 	fdvIter := &docValueReader{
@@ -250,7 +252,7 @@ func (di *docValueReader) getDocValueLocs(docNum uint64) (uint64, uint64) {
 
 // VisitDocumentFieldTerms is an implementation of the
 // DocumentFieldTermVisitable interface
-func (s *Segment) VisitDocumentFieldTerms(localDocNum uint64, fields []string,
+func (s *SegmentBase) VisitDocumentFieldTerms(localDocNum uint64, fields []string,
 	visitor index.DocumentFieldTermVisitor, dvsIn segment.DocVisitState) (
 	segment.DocVisitState, error) {
 	dvs, ok := dvsIn.(*docVisitState)
@@ -289,7 +291,7 @@ func (s *Segment) VisitDocumentFieldTerms(localDocNum uint64, fields []string,
 		if dvr, ok = dvs.dvrs[fieldID]; ok && dvr != nil {
 			// check if the chunk is already loaded
 			if docInChunk != dvr.curChunkNumber() {
-				err := dvr.loadDvChunk(docInChunk, &s.SegmentBase)
+				err := dvr.loadDvChunk(docInChunk, s)
 				if err != nil {
 					return dvs, err
 				}
@@ -304,6 +306,6 @@ func (s *Segment) VisitDocumentFieldTerms(localDocNum uint64, fields []string,
 // VisitableDocValueFields returns the list of fields with
 // persisted doc value terms ready to be visitable using the
 // VisitDocumentFieldTerms method.
-func (s *Segment) VisitableDocValueFields() ([]string, error) {
+func (s *SegmentBase) VisitableDocValueFields() ([]string, error) {
 	return s.fieldDvNames, nil
 }

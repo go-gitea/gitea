@@ -31,6 +31,14 @@ import (
 
 var DefaultFileMergerBufferSize = 1024 * 1024
 
+// ValidateMerge can be set by applications to perform additional checks
+// on a new segment produced by a merge, by default this does nothing.
+// Caller should provide EITHER segments or memSegments, but not both.
+// This API is experimental and may be removed at any time.
+var ValidateMerge = func(segments []*Segment, memSegments []*SegmentBase, drops []*roaring.Bitmap, newSegment *Segment) error {
+	return nil
+}
+
 const docDropped = math.MaxUint64 // sentinel docNum to represent a deleted doc
 
 // Merge takes a slice of zap segments and bit masks describing which
