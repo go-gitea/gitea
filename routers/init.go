@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
@@ -101,7 +102,7 @@ func GlobalInit() {
 		// Booting long running goroutines.
 		cron.NewContext()
 		issue_indexer.InitIssueIndexer(false)
-		models.InitRepoIndexer()
+		code_indexer.InitRepoIndexer()
 		mirror_service.InitSyncMirrors()
 		webhook.InitDeliverHooks()
 		models.InitTestPullRequests()

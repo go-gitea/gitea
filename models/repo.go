@@ -1101,10 +1101,6 @@ func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts api.MigrateR
 		repo, err = CleanUpMigrateInfo(repo)
 	}
 
-	if err != nil && !repo.IsEmpty {
-		UpdateRepoIndexer(repo)
-	}
-
 	return repo, err
 }
 
