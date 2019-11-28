@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	cloud.google.com/go v0.45.0 // indirect
+	gitea.com/lunny/levelqueue v0.1.0
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76
 	gitea.com/macaron/captcha v0.0.0-20190822015246-daa973478bae
@@ -59,7 +60,6 @@ require (
 	github.com/lafriks/xormstore v1.3.2
 	github.com/lib/pq v1.2.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
-	github.com/lunny/levelqueue v0.0.0-20190217115915-02b525a4418e
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/markbates/goth v1.56.0
 	github.com/mattn/go-isatty v0.0.7
