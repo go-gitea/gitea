@@ -140,25 +140,25 @@ func (queue *Queue) RPush(data []byte) error {
 
 // LPush pushes a data from left of queue
 func (queue *Queue) LPush(data []byte) error {
-	queue.highLock.Lock()
+	queue.lowLock.Lock()
 	id, err := queue.lowdecrement()
 	if err != nil {
-		queue.highLock.Unlock()
+		queue.lowLock.Unlock()
 		return err
 	}
 	err = queue.db.Put(id2bytes(id), data, nil)
-	queue.highLock.Unlock()
+	queue.lowLock.Unlock()
 	return err
 }
 
 // RPop pop a data from right of queue
 func (queue *Queue) RPop() ([]byte, error) {
 	queue.highLock.Lock()
+	defer queue.highLock.Unlock()
 	currentID := queue.high
 
 	res, err := queue.db.Get(id2bytes(currentID), nil)
 	if err != nil {
-		queue.highLock.Unlock()
 		if err == leveldb.ErrNotFound {
 			return nil, ErrNotFound
 		}
@@ -167,26 +167,50 @@ func (queue *Queue) RPop() ([]byte, error) {
 
 	_, err = queue.highdecrement()
 	if err != nil {
-		queue.highLock.Unlock()
 		return nil, err
 	}
 
 	err = queue.db.Delete(id2bytes(currentID), nil)
-	queue.highLock.Unlock()
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
 }
 
+// RHandle receives a user callback function to handle the right element of the queue, if function return nil, then delete the element, otherwise keep the element.
+func (queue *Queue) RHandle(h func([]byte) error) error {
+	queue.highLock.Lock()
+	defer queue.highLock.Unlock()
+	currentID := queue.high
+
+	res, err := queue.db.Get(id2bytes(currentID), nil)
+	if err != nil {
+		if err == leveldb.ErrNotFound {
+			return ErrNotFound
+		}
+		return err
+	}
+
+	if err = h(res); err != nil {
+		return err
+	}
+
+	_, err = queue.highdecrement()
+	if err != nil {
+		return err
+	}
+
+	return queue.db.Delete(id2bytes(currentID), nil)
+}
+
 // LPop pop a data from left of queue
 func (queue *Queue) LPop() ([]byte, error) {
 	queue.lowLock.Lock()
+	defer queue.lowLock.Unlock()
 	currentID := queue.low
 
 	res, err := queue.db.Get(id2bytes(currentID), nil)
 	if err != nil {
-		queue.lowLock.Unlock()
 		if err == leveldb.ErrNotFound {
 			return nil, ErrNotFound
 		}
@@ -199,11 +223,36 @@ func (queue *Queue) LPop() ([]byte, error) {
 	}
 
 	err = queue.db.Delete(id2bytes(currentID), nil)
-	queue.lowLock.Unlock()
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
+}
+
+// LHandle receives a user callback function to handle the left element of the queue, if function return nil, then delete the element, otherwise keep the element.
+func (queue *Queue) LHandle(h func([]byte) error) error {
+	queue.lowLock.Lock()
+	defer queue.lowLock.Unlock()
+	currentID := queue.low
+
+	res, err := queue.db.Get(id2bytes(currentID), nil)
+	if err != nil {
+		if err == leveldb.ErrNotFound {
+			return ErrNotFound
+		}
+		return err
+	}
+
+	if err = h(res); err != nil {
+		return err
+	}
+
+	_, err = queue.lowincrement()
+	if err != nil {
+		return err
+	}
+
+	return queue.db.Delete(id2bytes(currentID), nil)
 }
 
 // Close closes the queue
