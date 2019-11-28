@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/setting"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
