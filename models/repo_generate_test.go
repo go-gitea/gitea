@@ -18,9 +18,9 @@ text/*.txt
 **/modules/*
 `)
 
-func TestParseGiteaTemplate(t *testing.T) {
-	globs := parseGiteaTemplate(giteaTemplate)
-	assert.Equal(t, len(globs), 3)
+func TestGiteaTemplate(t *testing.T) {
+	gt := GiteaTemplate{Content: giteaTemplate}
+	assert.Equal(t, len(gt.Globs()), 3)
 
 	tt := []struct {
 		Path  string
@@ -40,7 +40,7 @@ func TestParseGiteaTemplate(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.Path, func(t *testing.T) {
 			match := false
-			for _, g := range globs {
+			for _, g := range gt.Globs() {
 				if g.Match(tc.Path) {
 					match = true
 					break

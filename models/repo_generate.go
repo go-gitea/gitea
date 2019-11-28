@@ -41,9 +41,35 @@ func (gro GenerateRepoOptions) IsValid() bool {
 	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar || gro.IssueLabels // or other items as they are added
 }
 
+// GiteaTemplate holds information about a .giteatemplate file
 type GiteaTemplate struct {
 	Path    string
 	Content []byte
+
+	globs []glob.Glob
+}
+
+// Globs parses the .giteatemplate globs or returns them if they were already parsed
+func (gt GiteaTemplate) Globs() []glob.Glob {
+	if gt.globs != nil {
+		return gt.globs
+	}
+
+	gt.globs = make([]glob.Glob, 0)
+	lines := strings.Split(string(util.NormalizeEOL(gt.Content)), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		g, err := glob.Compile(line, '/')
+		if err != nil {
+			log.Info("Invalid glob expression '%s' (skipped): %v", line, err)
+			continue
+		}
+		gt.globs = append(gt.globs, g)
+	}
+	return gt.globs
 }
 
 func checkGiteaTemplate(tmpDir string) (*GiteaTemplate, error) {
@@ -65,26 +91,6 @@ func checkGiteaTemplate(tmpDir string) (*GiteaTemplate, error) {
 	}
 
 	return gt, nil
-}
-
-func parseGiteaTemplate(content []byte) []glob.Glob {
-	globs := make([]glob.Glob, 0)
-
-	lines := strings.Split(string(util.NormalizeEOL(content)), "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		g, err := glob.Compile(line, '/')
-		if err != nil {
-			log.Info("Invalid glob expression '%s' (skipped): %v", line, err)
-			continue
-		}
-		globs = append(globs, g)
-	}
-
-	return globs
 }
 
 func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, tmpDir string) error {
@@ -123,10 +129,8 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 		return fmt.Errorf("remove .giteatemplate: %v", err)
 	}
 
-	globs := parseGiteaTemplate(gt.Content)
-
 	// Avoid walking tree if there are no globs
-	if len(globs) > 0 {
+	if len(gt.Globs()) > 0 {
 		tmpDirSlash := strings.TrimSuffix(filepath.ToSlash(tmpDir), "/") + "/"
 		if err := filepath.Walk(tmpDirSlash, func(path string, info os.FileInfo, walkErr error) error {
 			if walkErr != nil {
@@ -138,7 +142,7 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 			}
 
 			base := strings.TrimPrefix(filepath.ToSlash(path), tmpDirSlash)
-			for _, g := range globs {
+			for _, g := range gt.Globs() {
 				if g.Match(base) {
 					content, err := ioutil.ReadFile(path)
 					if err != nil {
