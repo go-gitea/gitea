@@ -72,6 +72,7 @@ func CreateCodeComment(doer *models.User, issue *models.Issue, line int64, conte
 			Type:     models.ReviewTypePending,
 			Reviewer: doer,
 			Issue:    issue,
+			Official: false,
 		})
 		if err != nil {
 			return nil, err

@@ -164,6 +164,7 @@ type CreateReviewOptions struct {
 	Type     ReviewType
 	Issue    *Issue
 	Reviewer *User
+	Official bool
 }
 
 // IsOfficialReviewer check if reviewer can make official reviews in issue (counts towards required approvals)
@@ -187,11 +188,6 @@ func isOfficialReviewer(e Engine, issue *Issue, reviewer *User) (bool, error) {
 }
 
 func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
-	official, err := isOfficialReviewer(e, opts.Issue, opts.Reviewer)
-	if err != nil {
-		return nil, err
-	}
-
 	review := &Review{
 		Type:       opts.Type,
 		Issue:      opts.Issue,
@@ -199,7 +195,7 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 		Reviewer:   opts.Reviewer,
 		ReviewerID: opts.Reviewer.ID,
 		Content:    opts.Content,
-		Official:   official,
+		Official:   opts.Official,
 	}
 	if _, err := e.Insert(review); err != nil {
 		return nil, err
@@ -265,10 +261,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 		return nil, nil, err
 	}
 
-	// Only reviewers latest review shall count as "official", so existing reviews needs to be cleared
-	if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
-		return nil, nil, err
-	}
+	var official = false
 
 	review, err := getCurrentReview(sess, doer, issue)
 	if err != nil {
@@ -280,12 +273,24 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 			return nil, nil, ContentEmptyErr{}
 		}
 
+		if reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject {
+			// Only reviewers latest review of type approve and reject shall count as "official", so existing reviews needs to be cleared
+			if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
+				return nil, nil, err
+			}
+			official, err = isOfficialReviewer(sess, issue, doer)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+
 		// No current review. Create a new one!
 		review, err = createReview(sess, CreateReviewOptions{
 			Type:     reviewType,
 			Issue:    issue,
 			Reviewer: doer,
 			Content:  content,
+			Official: official,
 		})
 		if err != nil {
 			return nil, nil, err
@@ -298,13 +303,18 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 			return nil, nil, ContentEmptyErr{}
 		}
 
-		// Official status of review updated at every submit in case settings changed
-		official, err := isOfficialReviewer(sess, issue, doer)
-		if err != nil {
-			return nil, nil, err
+		if reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject {
+			// Only reviewers latest review of type approve and reject shall count as "official", so existing reviews needs to be cleared
+			if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
+				return nil, nil, err
+			}
+			official, err = isOfficialReviewer(sess, issue, doer)
+			if err != nil {
+				return nil, nil, err
+			}
 		}
-		review.Official = official
 
+		review.Official = official
 		review.Issue = issue
 		review.Content = content
 		review.Type = reviewType
