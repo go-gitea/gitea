@@ -17,7 +17,7 @@ menu:
 Gitea repositories can include a `.gitea` directory at their base which will store settings/configurations for certain features.
 
 ## Templates
-Gitea v1.11.0 includes template repositories, and one feature implemented with them is auto-expansion of specific variables within your template files.  
+Gitea includes template repositories, and one feature implemented with them is auto-expansion of specific variables within your template files.  
 To tell Gitea which files to expand, you must include a `template` file inside the `.gitea` directory of the template repository.  
 Gitea uses [gobwas/glob](https://github.com/gobwas/glob) for its glob syntax. It closely resembles a traditional `.gitignore`, however there may be slight differences.
 
