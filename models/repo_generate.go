@@ -49,7 +49,7 @@ type GiteaTemplate struct {
 	globs []glob.Glob
 }
 
-// Globs parses the .giteatemplate globs or returns them if they were already parsed
+// Globs parses the .gitea/template globs or returns them if they were already parsed
 func (gt GiteaTemplate) Globs() []glob.Glob {
 	if gt.globs != nil {
 		return gt.globs
