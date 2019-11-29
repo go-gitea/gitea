@@ -410,9 +410,20 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	return file, nil
 }
 
+// PushUpdateOptions defines the push update options
+type PushUpdateOptions struct {
+	PusherID     int64
+	PusherName   string
+	RepoUserName string
+	RepoName     string
+	RefFullName  string
+	OldCommitID  string
+	NewCommitID  string
+}
+
 // PushUpdate must be called for any push actions in order to
 // generates necessary push action history feeds and other operations
-func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOptions) error {
+func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) error {
 	isNewRef := opts.OldCommitID == git.EmptySHA
 	isDelRef := opts.NewCommitID == git.EmptySHA
 	if isNewRef && isDelRef {
