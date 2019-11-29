@@ -1,5 +1,7 @@
 # cloud.google.com/go v0.45.0
 cloud.google.com/go/compute/metadata
+# gitea.com/lunny/levelqueue v0.1.0
+gitea.com/lunny/levelqueue
 # gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 gitea.com/macaron/binding
 # gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76
@@ -277,8 +279,6 @@ github.com/lib/pq/oid
 github.com/lib/pq/scram
 # github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 github.com/lunny/dingtalk_webhook
-# github.com/lunny/levelqueue v0.0.0-20190217115915-02b525a4418e
-github.com/lunny/levelqueue
 # github.com/lunny/log v0.0.0-20160921050905-7887c61bf0de
 github.com/lunny/log
 # github.com/lunny/nodb v0.0.0-20160621015157-fc1ef06ad4af
