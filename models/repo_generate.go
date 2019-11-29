@@ -41,7 +41,7 @@ func (gro GenerateRepoOptions) IsValid() bool {
 	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar || gro.IssueLabels // or other items as they are added
 }
 
-// GiteaTemplate holds information about a .giteatemplate file
+// GiteaTemplate holds information about a .gitea/template file
 type GiteaTemplate struct {
 	Path    string
 	Content []byte
