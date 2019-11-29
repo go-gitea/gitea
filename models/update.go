@@ -53,17 +53,6 @@ func ListToPushCommits(l *list.List) *PushCommits {
 	return &PushCommits{l.Len(), commits, "", make(map[string]string), make(map[string]*User)}
 }
 
-// PushUpdateOptions defines the push update options
-type PushUpdateOptions struct {
-	PusherID     int64
-	PusherName   string
-	RepoUserName string
-	RepoName     string
-	RefFullName  string
-	OldCommitID  string
-	NewCommitID  string
-}
-
 // PushUpdateDeleteTag must be called for any push actions to delete tag
 func PushUpdateDeleteTag(repo *Repository, tagName string) error {
 	rel, err := GetRelease(repo.ID, tagName)
