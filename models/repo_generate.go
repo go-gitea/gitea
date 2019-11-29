@@ -73,7 +73,7 @@ func (gt GiteaTemplate) Globs() []glob.Glob {
 }
 
 func checkGiteaTemplate(tmpDir string) (*GiteaTemplate, error) {
-	gtPath := filepath.Join(tmpDir, ".giteatemplate")
+	gtPath := filepath.Join(tmpDir, ".gitea", "template")
 	if _, err := os.Stat(gtPath); os.IsNotExist(err) {
 		return nil, nil
 	} else if err != nil {
