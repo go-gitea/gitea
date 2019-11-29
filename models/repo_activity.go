@@ -64,6 +64,8 @@ func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, pr
 		if err != nil {
 			return nil, fmt.Errorf("OpenRepository: %v", err)
 		}
+		defer gitRepo.Close()
+
 		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
 		if err != nil {
 			return nil, fmt.Errorf("FillFromGit: %v", err)
@@ -79,6 +81,8 @@ func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int)
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer gitRepo.Close()
+
 	code, err := gitRepo.GetCodeActivityStats(timeFrom, "")
 	if err != nil {
 		return nil, fmt.Errorf("FillFromGit: %v", err)

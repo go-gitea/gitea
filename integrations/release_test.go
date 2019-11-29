@@ -58,7 +58,7 @@ func checkLatestReleaseAndCount(t *testing.T, session *TestSession, repoURL, ver
 }
 
 func TestViewReleases(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
@@ -66,14 +66,14 @@ func TestViewReleases(t *testing.T) {
 }
 
 func TestViewReleasesNoLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
 	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestCreateRelease(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, false)
@@ -82,7 +82,7 @@ func TestCreateRelease(t *testing.T) {
 }
 
 func TestCreateReleasePreRelease(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", true, false)
@@ -91,7 +91,7 @@ func TestCreateReleasePreRelease(t *testing.T) {
 }
 
 func TestCreateReleaseDraft(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, true)
@@ -100,7 +100,7 @@ func TestCreateReleaseDraft(t *testing.T) {
 }
 
 func TestCreateReleasePaging(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	// Create enaugh releases to have paging

@@ -16,6 +16,7 @@ func TestRepository_GetCodeActivityStats(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
+	defer bareRepo1.Close()
 
 	timeFrom, err := time.Parse(time.RFC3339, "2016-01-01T00:00:00+00:00")
 	assert.NoError(t, err)

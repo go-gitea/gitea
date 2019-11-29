@@ -24,7 +24,7 @@
 						{{end}}
 						</td>
 						<td class="right aligned overflow-visible">
-							<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" ($.DefaultBranch|EscapePound)}}" data-variation="tiny inverted" data-position="top right">
+							<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" ($.DefaultBranch)}}" data-variation="tiny inverted" data-position="top right">
 							  <i class="download icon"></i>
 							  <div class="menu">
 							    <a class="item" href="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.zip"><i class="octicon octicon-file-zip"></i> ZIP</a>
@@ -97,7 +97,7 @@
 									</td>
 									<td class="two wide right aligned overflow-visible">
 										{{if (not .IsDeleted)}}
-											<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" (.Name|EscapePound)}}" data-variation="tiny inverted" data-position="top right">
+											<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" (.Name)}}" data-variation="tiny inverted" data-position="top right">
 												<i class="download icon"></i>
 												<div class="menu">
 													<a class="item" href="{{$.RepoLink}}/archive/{{EscapePound .Name}}.zip"><i class="octicon octicon-file-zip"></i> ZIP</a>
@@ -107,9 +107,9 @@
 										{{end}}
 										{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
 											{{if .IsDeleted}}
-												<a class="ui basic jump button icon poping up undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID | urlquery}}&name={{.DeletedBranch.Name | urlquery}}" data-content="{{$.i18n.Tr "repo.branch.restore" (.Name | EscapePound)}}" data-variation="tiny inverted" data-position="top right"><i class="octicon octicon-reply text blue"></i></a>
+												<a class="ui basic jump button icon poping up undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID | urlquery}}&name={{.DeletedBranch.Name | urlquery}}" data-content="{{$.i18n.Tr "repo.branch.restore" (.Name)}}" data-variation="tiny inverted" data-position="top right"><i class="octicon octicon-reply text blue"></i></a>
 											{{else}}
-												<a class="ui basic jump button icon poping up delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name | urlquery}}" data-content="{{$.i18n.Tr "repo.branch.delete" (.Name | EscapePound)}}" data-variation="tiny inverted" data-position="top right" data-name="{{.Name}}"><i class="trash icon text red"></i></a>
+												<a class="ui basic jump button icon poping up delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name | urlquery}}" data-content="{{$.i18n.Tr "repo.branch.delete" (.Name)}}" data-variation="tiny inverted" data-position="top right" data-name="{{.Name}}"><i class="trash icon text red"></i></a>
 											{{end}}
 										{{end}}
 									</td>

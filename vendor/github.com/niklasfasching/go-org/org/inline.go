@@ -147,8 +147,8 @@ func (d *Document) parseExplicitLineBreakOrLatexFragment(input string, start int
 	switch {
 	case start+2 >= len(input):
 	case input[start+1] == '\\' && start != 0 && input[start-1] != '\n':
-		for i := start + 2; unicode.IsSpace(rune(input[i])); i++ {
-			if i >= len(input) || input[i] == '\n' {
+		for i := start + 2; i <= len(input)-1 && unicode.IsSpace(rune(input[i])); i++ {
+			if input[i] == '\n' {
 				return i + 1 - start, ExplicitLineBreak{}
 			}
 		}
@@ -346,12 +346,12 @@ func (l RegularLink) Kind() string {
 	return "regular"
 }
 
-func (n Text) String() string              { return orgWriter.nodesAsString(n) }
-func (n LineBreak) String() string         { return orgWriter.nodesAsString(n) }
-func (n ExplicitLineBreak) String() string { return orgWriter.nodesAsString(n) }
-func (n StatisticToken) String() string    { return orgWriter.nodesAsString(n) }
-func (n Emphasis) String() string          { return orgWriter.nodesAsString(n) }
-func (n LatexFragment) String() string     { return orgWriter.nodesAsString(n) }
-func (n FootnoteLink) String() string      { return orgWriter.nodesAsString(n) }
-func (n RegularLink) String() string       { return orgWriter.nodesAsString(n) }
-func (n Timestamp) String() string         { return orgWriter.nodesAsString(n) }
+func (n Text) String() string              { return orgWriter.WriteNodesAsString(n) }
+func (n LineBreak) String() string         { return orgWriter.WriteNodesAsString(n) }
+func (n ExplicitLineBreak) String() string { return orgWriter.WriteNodesAsString(n) }
+func (n StatisticToken) String() string    { return orgWriter.WriteNodesAsString(n) }
+func (n Emphasis) String() string          { return orgWriter.WriteNodesAsString(n) }
+func (n LatexFragment) String() string     { return orgWriter.WriteNodesAsString(n) }
+func (n FootnoteLink) String() string      { return orgWriter.WriteNodesAsString(n) }
+func (n RegularLink) String() string       { return orgWriter.WriteNodesAsString(n) }
+func (n Timestamp) String() string         { return orgWriter.WriteNodesAsString(n) }

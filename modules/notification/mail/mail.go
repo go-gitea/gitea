@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/services/mailer"
@@ -40,7 +41,7 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.
 	}
 
 	if err := mailer.MailParticipantsComment(comment, act, issue); err != nil {
-		log.Error("MailParticipants: %v", err)
+		log.Error("MailParticipantsComment: %v", err)
 	}
 }
 
@@ -87,7 +88,7 @@ func (m *mailNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models
 		act = models.ActionCommentIssue
 	}
 	if err := mailer.MailParticipantsComment(comment, act, pr.Issue); err != nil {
-		log.Error("MailParticipants: %v", err)
+		log.Error("MailParticipantsComment: %v", err)
 	}
 }
 
@@ -96,5 +97,16 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *model
 	if !removed && doer.ID != assignee.ID && assignee.EmailNotifications() == models.EmailNotificationsEnabled {
 		ct := fmt.Sprintf("Assigned #%d.", issue.Index)
 		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []string{assignee.Email})
+	}
+}
+
+func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User, baseRepo *git.Repository) {
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("pr.LoadIssue: %v", err)
+		return
+	}
+
+	if err := mailer.MailParticipants(pr.Issue, doer, models.ActionClosePullRequest); err != nil {
+		log.Error("MailParticipants: %v", err)
 	}
 }
