@@ -22,7 +22,7 @@ To tell Gitea which files to expand, you must include a `template` file inside t
 Gitea uses [gobwas/glob](https://github.com/gobwas/glob) for its glob syntax. It closely resembles a traditional `.gitignore`, however there may be slight differences.
 
 ### Example `.gitea/template` file  
-All paths should be from the base of the repository
+All paths are relative to the base of the repository
 ```gitignore
 # All .go files, anywhere in the repository
 **.go
