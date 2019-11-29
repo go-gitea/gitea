@@ -194,6 +194,32 @@ func TestIssueCommentClose(t *testing.T) {
 	assert.Equal(t, "Description", val)
 }
 
+func TestIssueReaction(t *testing.T) {
+	defer prepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+
+	req := NewRequest(t, "GET", issueURL)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	req = NewRequestWithValues(t, "POST", path.Join(issueURL, "/reactions/react"), map[string]string{
+		"_csrf":   htmlDoc.GetCSRF(),
+		"content": "8ball",
+	})
+	session.MakeRequest(t, req, http.StatusInternalServerError)
+	req = NewRequestWithValues(t, "POST", path.Join(issueURL, "/reactions/react"), map[string]string{
+		"_csrf":   htmlDoc.GetCSRF(),
+		"content": "eyes",
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+	req = NewRequestWithValues(t, "POST", path.Join(issueURL, "/reactions/unreact"), map[string]string{
+		"_csrf":   htmlDoc.GetCSRF(),
+		"content": "eyes",
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
 func TestIssueCrossReference(t *testing.T) {
 	defer prepareTestEnv(t)()
 
