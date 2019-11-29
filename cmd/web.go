@@ -197,6 +197,7 @@ func runWeb(ctx *cli.Context) error {
 	log.Info("HTTP Listener: %s Closed", listenAddr)
 	graceful.Manager.WaitForServers()
 	graceful.Manager.WaitForTerminate()
+	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	log.Close()
 	return nil
 }
