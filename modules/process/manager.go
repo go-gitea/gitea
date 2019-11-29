@@ -156,6 +156,9 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 func (pm *Manager) Kill(pid int64) error {
 	if proc, exists := pm.Processes[pid]; exists {
 		pm.mutex.Lock()
+		if proc.Cancel != nil {
+			proc.Cancel()
+		}
 		if proc.Cmd != nil &&
 			proc.Cmd.Process != nil &&
 			proc.Cmd.ProcessState != nil &&
