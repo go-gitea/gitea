@@ -19,7 +19,7 @@
 					{{if .PageIsEditRelease}}
 						<b>{{.tag_name}}</b><span class="at">@</span><strong>{{.tag_target}}</strong>
 					{{else}}
-						<input id="tag-name" name="tag_name" value="{{.tag_name}}" placeholder="{{.i18n.Tr "repo.release.tag_name"}}" autofocus required>
+						<input id="tag-name" name="tag_name" value="{{.tag_name}}" placeholder="{{.i18n.Tr "repo.release.tag_name"}}" autofocus required maxlength="255">
 						<span class="at">@</span>
 						<div class="ui selection dropdown">
 							<input type="hidden" name="tag_target" value="{{.tag_target}}"/>
@@ -42,7 +42,7 @@
 			<div class="eleven wide column">
 				<div class="field {{if .Err_Title}}error{{end}}">
 					<label>{{.i18n.Tr "repo.release.title"}}</label>
-					<input name="title" placeholder="{{.i18n.Tr "repo.release.title"}}" value="{{.title}}" autofocus required>
+					<input name="title" placeholder="{{.i18n.Tr "repo.release.title"}}" value="{{.title}}" autofocus required maxlength="255">
 				</div>
 				<div class="field">
 					<label>{{.i18n.Tr "repo.release.content"}}</label>

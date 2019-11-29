@@ -19,9 +19,28 @@ import (
 
 // CreateCodeComment creates a comment on the code line
 func CreateCodeComment(doer *models.User, issue *models.Issue, line int64, content string, treePath string, isReview bool, replyReviewID int64) (*models.Comment, error) {
-	// It's not a review, maybe a reply to a review comment or a single comment.
+
+	var (
+		existsReview bool
+		err          error
+	)
+
+	// CreateCodeComment() is used for:
+	// - Single comments
+	// - Comments that are part of a review
+	// - Comments that reply to an existing review
+
 	if !isReview {
-		if err := issue.LoadRepo(); err != nil {
+		// It's not part of a review; maybe a reply to a review comment or a single comment.
+		// Check if there are reviews for that line already; if there are, this is a reply
+		if existsReview, err = models.ReviewExists(issue, treePath, line); err != nil {
+			return nil, err
+		}
+	}
+
+	// Comments that are replies don't require a review header to show up in the issue view
+	if !isReview && existsReview {
+		if err = issue.LoadRepo(); err != nil {
 			return nil, err
 		}
 
@@ -72,7 +91,14 @@ func CreateCodeComment(doer *models.User, issue *models.Issue, line int64, conte
 		return nil, err
 	}
 
-	// NOTICE: it's a pending review, so the notifications will not be fired until user submit review.
+	if !isReview && !existsReview {
+		// Submit the review we've just created so the comment shows up in the issue view
+		if _, _, err = SubmitReview(doer, issue, models.ReviewTypeComment, ""); err != nil {
+			return nil, err
+		}
+	}
+
+	// NOTICE: if it's a pending review the notifications will not be fired until user submit review.
 
 	return comment, nil
 }

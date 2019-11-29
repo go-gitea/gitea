@@ -16,7 +16,7 @@ import (
 )
 
 func TestAPIListIssues(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
@@ -35,7 +35,7 @@ func TestAPIListIssues(t *testing.T) {
 }
 
 func TestAPICreateIssue(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	const body, title = "apiTestBody", "apiTestTitle"
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)

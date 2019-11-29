@@ -1,5 +1,7 @@
 # cloud.google.com/go v0.45.0
 cloud.google.com/go/compute/metadata
+# gitea.com/lunny/levelqueue v0.1.0
+gitea.com/lunny/levelqueue
 # gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 gitea.com/macaron/binding
 # gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76
@@ -38,7 +40,7 @@ github.com/PuerkitoBio/goquery
 github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
-# github.com/RoaringBitmap/roaring v0.4.7
+# github.com/RoaringBitmap/roaring v0.4.21
 github.com/RoaringBitmap/roaring
 # github.com/andybalholm/cascadia v1.0.0
 github.com/andybalholm/cascadia
@@ -48,7 +50,7 @@ github.com/anmitsu/go-shlex
 github.com/asaskevich/govalidator
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/blevesearch/bleve v0.0.0-20190214220507-05d86ea8f6e3
+# github.com/blevesearch/bleve v0.8.1
 github.com/blevesearch/bleve
 github.com/blevesearch/bleve/analysis
 github.com/blevesearch/bleve/analysis/analyzer/custom
@@ -87,9 +89,9 @@ github.com/blevesearch/bleve/search/query
 github.com/blevesearch/bleve/search/scorer
 github.com/blevesearch/bleve/search/searcher
 github.com/blevesearch/bleve/size
-# github.com/blevesearch/go-porterstemmer v0.0.0-20141230013033-23a2c8e5cf1f
+# github.com/blevesearch/go-porterstemmer v1.0.2
 github.com/blevesearch/go-porterstemmer
-# github.com/blevesearch/segment v0.0.0-20160105220820-db70c57796cc
+# github.com/blevesearch/segment v0.0.0-20160915185041-762005e7a34f
 github.com/blevesearch/segment
 # github.com/boombuler/barcode v0.0.0-20161226211916-fe0f26ff6d26
 github.com/boombuler/barcode
@@ -103,9 +105,9 @@ github.com/couchbase/gomemcached/client
 # github.com/couchbase/goutils v0.0.0-20190315194238-f9d42b11473b
 github.com/couchbase/goutils/logging
 github.com/couchbase/goutils/scramsha
-# github.com/couchbase/vellum v0.0.0-20190111184608-e91b68ff3efe
+# github.com/couchbase/vellum v0.0.0-20190829182332-ef2e028c01fd
 github.com/couchbase/vellum
-github.com/couchbase/vellum/levenshtein2
+github.com/couchbase/vellum/levenshtein
 github.com/couchbase/vellum/regexp
 github.com/couchbase/vellum/utf8
 # github.com/couchbaselabs/go-couchbase v0.0.0-20190708161019-23e7ca2ce2b7
@@ -130,7 +132,7 @@ github.com/emirpasic/gods/lists/arraylist
 github.com/emirpasic/gods/trees
 github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/utils
-# github.com/etcd-io/bbolt v1.3.2
+# github.com/etcd-io/bbolt v1.3.3
 github.com/etcd-io/bbolt
 # github.com/ethantkoenig/rupture v0.0.0-20180203182544-0a76f03a811a
 github.com/ethantkoenig/rupture
@@ -138,7 +140,7 @@ github.com/ethantkoenig/rupture
 github.com/fsnotify/fsnotify
 # github.com/gliderlabs/ssh v0.2.2
 github.com/gliderlabs/ssh
-# github.com/glycerine/go-unsnap-stream v0.0.0-20180323001048-9f0cb55181dd
+# github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a
 github.com/glycerine/go-unsnap-stream
 # github.com/go-openapi/analysis v0.19.5
 github.com/go-openapi/analysis
@@ -277,8 +279,6 @@ github.com/lib/pq/oid
 github.com/lib/pq/scram
 # github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 github.com/lunny/dingtalk_webhook
-# github.com/lunny/levelqueue v0.0.0-20190217115915-02b525a4418e
-github.com/lunny/levelqueue
 # github.com/lunny/log v0.0.0-20160921050905-7887c61bf0de
 github.com/lunny/log
 # github.com/lunny/nodb v0.0.0-20160621015157-fc1ef06ad4af
@@ -358,6 +358,9 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
+# github.com/quasoft/websspi v1.0.0
+github.com/quasoft/websspi
+github.com/quasoft/websspi/secctx
 # github.com/russross/blackfriday/v2 v2.0.1
 github.com/russross/blackfriday/v2
 # github.com/satori/go.uuid v1.2.0
@@ -406,7 +409,7 @@ github.com/syndtr/goleveldb/leveldb/opt
 github.com/syndtr/goleveldb/leveldb/storage
 github.com/syndtr/goleveldb/leveldb/table
 github.com/syndtr/goleveldb/leveldb/util
-# github.com/tinylib/msgp v0.0.0-20180516164116-c8cf64dff200
+# github.com/tinylib/msgp v1.1.0
 github.com/tinylib/msgp/msgp
 # github.com/toqueteos/webbrowser v1.2.0
 github.com/toqueteos/webbrowser
@@ -423,7 +426,7 @@ github.com/unknwon/i18n
 github.com/unknwon/paginater
 # github.com/urfave/cli v1.20.0
 github.com/urfave/cli
-# github.com/willf/bitset v0.0.0-20180426185212-8ce1146b8621
+# github.com/willf/bitset v1.1.10
 github.com/willf/bitset
 # github.com/xanzy/ssh-agent v0.2.1
 github.com/xanzy/ssh-agent
@@ -477,11 +480,12 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20190910064555-bbd175535a8b
+# golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
+golang.org/x/sys/windows/svc/debug
 # golang.org/x/text v0.3.2
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap

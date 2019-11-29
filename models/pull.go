@@ -152,6 +152,9 @@ func (pr *PullRequest) loadIssue(e Engine) (err error) {
 	}
 
 	pr.Issue, err = getIssueByID(e, pr.IssueID)
+	if err == nil {
+		pr.Issue.PullRequest = pr
+	}
 	return err
 }
 
