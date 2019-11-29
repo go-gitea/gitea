@@ -368,6 +368,7 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		Forks:                     repo.NumForks,
 		Watchers:                  repo.NumWatches,
 		OpenIssues:                repo.NumOpenIssues,
+		OpenPulls:                 repo.NumOpenPulls,
 		DefaultBranch:             repo.DefaultBranch,
 		Created:                   repo.CreatedUnix.AsTime(),
 		Updated:                   repo.UpdatedUnix.AsTime(),
