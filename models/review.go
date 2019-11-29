@@ -223,6 +223,11 @@ func getCurrentReview(e Engine, reviewer *User, issue *Issue) (*Review, error) {
 	return reviews[0], nil
 }
 
+// ReviewExists returns whether a review exists for a particular line of code in the PR
+func ReviewExists(issue *Issue, treePath string, line int64) (bool, error) {
+	return x.Cols("id").Exist(&Comment{IssueID: issue.ID, TreePath: treePath, Line: line, Type: CommentTypeCode})
+}
+
 // GetCurrentReview returns the current pending review of reviewer for given issue
 func GetCurrentReview(reviewer *User, issue *Issue) (*Review, error) {
 	return getCurrentReview(x, reviewer, issue)
