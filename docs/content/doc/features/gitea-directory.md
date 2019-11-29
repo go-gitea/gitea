@@ -32,6 +32,9 @@ text/*.txt
 
 # A specific file
 a/b/c/d.json
+
+# Batch files in both upper or lower case can be matched
+**.[bB][aA][tT]
 ```
 **NOTE:** The `template` file will be removed from the `.gitea` directory when a repository is generated from the template.
 
