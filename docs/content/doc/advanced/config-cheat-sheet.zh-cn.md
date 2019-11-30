@@ -37,7 +37,7 @@ menu:
 
 - `EXPLORE_PAGING_NUM`: 探索页面每页显示的仓库数量。
 - `ISSUE_PAGING_NUM`: 工单页面每页显示的工单数量。
-- `FEED_MAX_COMMIT_NUM`: 活动流页面显示的最大提交树木。
+- `FEED_MAX_COMMIT_NUM`: 活动流页面显示的最大提交数量。
 
 ### UI - Admin (`ui.admin`)
 
@@ -129,6 +129,8 @@ menu:
 - `DELIVER_TIMEOUT`: 请求webhooks的超时时间，单位秒。
 - `SKIP_TLS_VERIFY`: 是否允许不安全的证书。
 - `PAGING_NUM`: 每页显示的Webhook 历史数量。
+- `PROXY_URL`: ****: 代理服务器网址，支持 http://, https//, socks://, 为空将使用环境变量中的 http_proxy/https_proxy 设置。
+- `PROXY_HOSTS`: ****: 逗号分隔的需要代理的域名或IP地址。支持 * 号匹配符，使用 ** 匹配所有域名和IP地址。
 
 ## Mailer (`mailer`)
 
@@ -172,6 +174,20 @@ menu:
 - `ALLOWED_TYPES`: 允许上传的附件类型。比如：`image/jpeg|image/png`，用 `*/*` 表示允许任何类型。
 - `MAX_SIZE`: 附件最大限制，单位 MB，比如： `4`。
 - `MAX_FILES`: 一次最多上传的附件数量，比如： `5`。
+
+关于 `ALLOWED_TYPES`， 在 (*)unix 系统中可以使用`file -I <filename>` 来快速获得对应的 `MIME type`。
+
+```shell
+$ file -I test00.tar.xz
+test00.tar.xz: application/x-xz; charset=binary
+
+$ file --mime test00.xlsx
+test00.xlsx: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; charset=binary
+
+file -I test01.xls
+test01.xls: application/vnd.ms-excel; charset=binary
+```
+
 
 ## Log (`log`)
 
@@ -255,6 +271,11 @@ IS_INPUT_FILE = false
 - `QUEUE_TYPE`: **channel**: 任务队列类型，可以为 `channel` 或 `redis`。
 - `QUEUE_LENGTH`: **1000**: 任务队列长度，当 `QUEUE_TYPE` 为 `channel` 时有效。
 - `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: 任务队列连接字符串，当 `QUEUE_TYPE` 为 `redis` 时有效。如果redis有密码，则可以 `addrs=127.0.0.1:6379 password=123 db=0`。
+
+## Migrations (`migrations`)
+
+- `MAX_ATTEMPTS`: **3**: 在迁移过程中的 http/https 请求重试次数。
+- `RETRY_BACKOFF`: **3**: 等待下一次重试的时间，单位秒。
 
 ## Other (`other`)
 

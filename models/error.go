@@ -647,6 +647,23 @@ func (err ErrLFSLockAlreadyExist) Error() string {
 	return fmt.Sprintf("lfs lock already exists [rid: %d, path: %s]", err.RepoID, err.Path)
 }
 
+// ErrLFSFileLocked represents a "LFSFileLocked" kind of error.
+type ErrLFSFileLocked struct {
+	RepoID   int64
+	Path     string
+	UserName string
+}
+
+// IsErrLFSFileLocked checks if an error is a ErrLFSFileLocked.
+func IsErrLFSFileLocked(err error) bool {
+	_, ok := err.(ErrLFSFileLocked)
+	return ok
+}
+
+func (err ErrLFSFileLocked) Error() string {
+	return fmt.Sprintf("File is lfs locked [repo: %d, locked by: %s, path: %s]", err.RepoID, err.UserName, err.Path)
+}
+
 // __________                           .__  __
 // \______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
 //  |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
@@ -1187,6 +1204,79 @@ func IsErrInvalidMergeStyle(err error) bool {
 func (err ErrInvalidMergeStyle) Error() string {
 	return fmt.Sprintf("merge strategy is not allowed or is invalid [repo_id: %d, strategy: %s]",
 		err.ID, err.Style)
+}
+
+// ErrMergeConflicts represents an error if merging fails with a conflict
+type ErrMergeConflicts struct {
+	Style  MergeStyle
+	StdOut string
+	StdErr string
+	Err    error
+}
+
+// IsErrMergeConflicts checks if an error is a ErrMergeConflicts.
+func IsErrMergeConflicts(err error) bool {
+	_, ok := err.(ErrMergeConflicts)
+	return ok
+}
+
+func (err ErrMergeConflicts) Error() string {
+	return fmt.Sprintf("Merge Conflict Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
+// ErrMergeUnrelatedHistories represents an error if merging fails due to unrelated histories
+type ErrMergeUnrelatedHistories struct {
+	Style  MergeStyle
+	StdOut string
+	StdErr string
+	Err    error
+}
+
+// IsErrMergeUnrelatedHistories checks if an error is a ErrMergeUnrelatedHistories.
+func IsErrMergeUnrelatedHistories(err error) bool {
+	_, ok := err.(ErrMergeUnrelatedHistories)
+	return ok
+}
+
+func (err ErrMergeUnrelatedHistories) Error() string {
+	return fmt.Sprintf("Merge UnrelatedHistories Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
+// ErrMergePushOutOfDate represents an error if merging fails due to unrelated histories
+type ErrMergePushOutOfDate struct {
+	Style  MergeStyle
+	StdOut string
+	StdErr string
+	Err    error
+}
+
+// IsErrMergePushOutOfDate checks if an error is a ErrMergePushOutOfDate.
+func IsErrMergePushOutOfDate(err error) bool {
+	_, ok := err.(ErrMergePushOutOfDate)
+	return ok
+}
+
+func (err ErrMergePushOutOfDate) Error() string {
+	return fmt.Sprintf("Merge PushOutOfDate Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
+// ErrRebaseConflicts represents an error if rebase fails with a conflict
+type ErrRebaseConflicts struct {
+	Style     MergeStyle
+	CommitSHA string
+	StdOut    string
+	StdErr    string
+	Err       error
+}
+
+// IsErrRebaseConflicts checks if an error is a ErrRebaseConflicts.
+func IsErrRebaseConflicts(err error) bool {
+	_, ok := err.(ErrRebaseConflicts)
+	return ok
+}
+
+func (err ErrRebaseConflicts) Error() string {
+	return fmt.Sprintf("Rebase Error: %v: Whilst Rebasing: %s\n%s\n%s", err.Err, err.CommitSHA, err.StdErr, err.StdOut)
 }
 
 // _________                                       __

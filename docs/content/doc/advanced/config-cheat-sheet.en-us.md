@@ -71,6 +71,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `WORK_IN_PROGRESS_PREFIXES`: **WIP:,\[WIP\]**: List of prefixes used in Pull Request
  title to mark them as Work In Progress
+- `CLOSE_KEYWORDS`: **close**, **closes**, **closed**, **fix**, **fixes**, **fixed**, **resolve**, **resolves**, **resolved**: List of
+ keywords used in Pull Request comments to automatically close a related issue
+- `REOPEN_KEYWORDS`: **reopen**, **reopens**, **reopened**: List of keywords used in Pull Request comments to automatically reopen
+ a related issue
 
 ### Repository - Issue (`repository.issue`)
 
@@ -114,8 +118,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
 - `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
   regardless of the value of `DEFAULT_THEME`.
-- `DEFAULT_SHOW_FULL_NAME`: false: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
-- `SEARCH_REPO_DESCRIPTION`: true: Whether to search within description at repository search on explore page.
+- `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
+- `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
+- `USE_SERVICE_WORKER`: **true**: Whether to enable a Service Worker to cache frontend assets.
 
 ### UI - Admin (`ui.admin`)
 
@@ -185,6 +190,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LETSENCRYPT_EMAIL`: **email@example.com**: Email used by Letsencrypt to notify about problems with issued certificates. (No default)
 - `ALLOW_GRACEFUL_RESTARTS`: **true**: Perform a graceful restart on SIGHUP
 - `GRACEFUL_HAMMER_TIME`: **60s**: After a restart the parent process will stop accepting new connections and will allow requests to finish before stopping. Shutdown will be forced if it takes longer than this time.
+- `STARTUP_TIMEOUT`: **0**: Shutsdown the server if startup takes longer than the provided time. On Windows setting this sends a waithint to the SVC host to tell the SVC host startup may take some time. Please note startup is determined by the opening of the listeners - HTTP/HTTPS/SSH. Indexers may take longer to startup and can have their own timeouts.
 
 ## Database (`database`)
 
@@ -240,6 +246,7 @@ relation to port exhaustion.
    authentication provided email.
 - `DISABLE_GIT_HOOKS`: **false**: Set to `true` to prevent all users (including admin) from creating custom
    git hooks.
+- `ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET`: **true**: Set to `false` to allow local users to push to gitea-repositories without setting up the Gitea environment. This is not recommended and if you want local users to push to gitea repositories you should set the environment appropriately.
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
 - `INTERNAL_TOKEN`: **\<random at every install if no uri set\>**: Secret used to validate communication within Gitea binary.
 - `INTERNAL_TOKEN_URI`: **<empty>**: Instead of defining internal token in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
@@ -293,13 +300,16 @@ relation to port exhaustion.
 - `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha.
 - `RECAPTCHA_URL`: **https://www.google.com/recaptcha/**: Set the recaptcha url - allows the use of recaptcha net.
 - `DEFAULT_ENABLE_DEPENDENCIES`: **true**: Enable this to have dependencies enabled by default.
+- `ALLOW_CROSS_REPOSITORY_DEPENDENCIES` : **true** Enable this to allow dependencies on issues from any repository where the user is granted access.
 - `ENABLE_USER_HEATMAP`: **true**: Enable this to display the heatmap on users profiles.
 - `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
   on this instance.
 - `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
 - `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
+- `AUTO_WATCH_ON_CHANGES`: **false**: Enable this to make users watch a repository after their first commit to it
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
 - `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
+- `ALLOW_ONLY_EXTERNAL_REGISTRATION`: **false** Set to true to force registration only using third-party services.
 
 ## Webhook (`webhook`)
 
@@ -307,6 +317,8 @@ relation to port exhaustion.
 - `DELIVER_TIMEOUT`: **5**: Delivery timeout (sec) for shooting webhooks.
 - `SKIP_TLS_VERIFY`: **false**: Allow insecure certification.
 - `PAGING_NUM`: **10**: Number of webhook history events that are shown in one page.
+- `PROXY_URL`: ****: Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy
+- `PROXY_HOSTS`: ****: Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
 
 ## Mailer (`mailer`)
 
@@ -548,13 +560,13 @@ Gitea can support Markup using external tools. The example below will add a mark
 
 ```ini
 [markup.asciidoc]
-ENABLED = false
+ENABLED = true
 FILE_EXTENSIONS = .adoc,.asciidoc
 RENDER_COMMAND = "asciidoc --out-file=- -"
 IS_INPUT_FILE = false
 ```
 
-- ENABLED: **false** Enable markup support.
+- ENABLED: **false** Enable markup support; set to **true** to enable this renderer.
 - FILE\_EXTENSIONS: **\<empty\>** List of file extensions that should be rendered by an external
    command. Multiple extentions needs a comma as splitter.
 - RENDER\_COMMAND: External command to render all matching extensions.
@@ -574,6 +586,11 @@ Two special environment variables are passed to the render command:
 - `QUEUE_TYPE`: **channel**: Task queue type, could be `channel` or `redis`.
 - `QUEUE_LENGTH`: **1000**: Task queue length, available only when `QUEUE_TYPE` is `channel`.
 - `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If there redis needs a password, use `addrs=127.0.0.1:6379 password=123 db=0`.
+
+## Migrations (`migrations`)
+
+- `MAX_ATTEMPTS`: **3**: Max attempts per http/https request on migrations.
+- `RETRY_BACKOFF`: **3**: Backoff time per http/https request retry (seconds)
 
 ## Other (`other`)
 

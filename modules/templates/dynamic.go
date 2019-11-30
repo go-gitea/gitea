@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"path"
 	"strings"
+	texttmpl "text/template"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -20,7 +21,8 @@ import (
 )
 
 var (
-	templates = template.New("")
+	subjectTemplates = texttmpl.New("")
+	bodyTemplates    = template.New("")
 )
 
 // HTMLRenderer implements the macaron handler for serving HTML templates.
@@ -59,9 +61,12 @@ func JSRenderer() macaron.Handler {
 }
 
 // Mailer provides the templates required for sending notification mails.
-func Mailer() *template.Template {
+func Mailer() (*texttmpl.Template, *template.Template) {
+	for _, funcs := range NewTextFuncMap() {
+		subjectTemplates.Funcs(funcs)
+	}
 	for _, funcs := range NewFuncMap() {
-		templates.Funcs(funcs)
+		bodyTemplates.Funcs(funcs)
 	}
 
 	staticDir := path.Join(setting.StaticRootPath, "templates", "mail")
@@ -84,15 +89,7 @@ func Mailer() *template.Template {
 					continue
 				}
 
-				_, err = templates.New(
-					strings.TrimSuffix(
-						filePath,
-						".tmpl",
-					),
-				).Parse(string(content))
-				if err != nil {
-					log.Warn("Failed to parse template %v", err)
-				}
+				buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, strings.TrimSuffix(filePath, ".tmpl"), content)
 			}
 		}
 	}
@@ -117,18 +114,10 @@ func Mailer() *template.Template {
 					continue
 				}
 
-				_, err = templates.New(
-					strings.TrimSuffix(
-						filePath,
-						".tmpl",
-					),
-				).Parse(string(content))
-				if err != nil {
-					log.Warn("Failed to parse template %v", err)
-				}
+				buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, strings.TrimSuffix(filePath, ".tmpl"), content)
 			}
 		}
 	}
 
-	return templates
+	return subjectTemplates, bodyTemplates
 }

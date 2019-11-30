@@ -8,6 +8,7 @@ package git
 import (
 	"fmt"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -131,6 +132,13 @@ func Init() error {
 		if _, stderr, err := process.GetManager().Exec("git.Init(git config --global gc.writeCommitGraph true)",
 			GitExecutable, "config", "--global", "gc.writeCommitGraph", "true"); err != nil {
 			return fmt.Errorf("Failed to execute 'git config --global gc.writeCommitGraph true': %s", stderr)
+		}
+	}
+
+	if runtime.GOOS == "windows" {
+		if _, stderr, err := process.GetManager().Exec("git.Init(git config --global core.longpaths true)",
+			GitExecutable, "config", "--global", "core.longpaths", "true"); err != nil {
+			return fmt.Errorf("Failed to execute 'git config --global core.longpaths true': %s", stderr)
 		}
 	}
 	return nil

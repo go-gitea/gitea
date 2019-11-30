@@ -884,7 +884,7 @@ func anyToSockaddr(fd int, rsa *RawSockaddrAny) (Sockaddr, error) {
 		for n < len(pp.Path) && pp.Path[n] != 0 {
 			n++
 		}
-		bytes := (*[10000]byte)(unsafe.Pointer(&pp.Path[0]))[0:n]
+		bytes := (*[len(pp.Path)]byte)(unsafe.Pointer(&pp.Path[0]))[0:n]
 		sa.Name = string(bytes)
 		return sa, nil
 
@@ -1222,6 +1222,34 @@ func KeyctlDHCompute(params *KeyctlDHParams, buffer []byte) (size int, err error
 	return keyctlDH(KEYCTL_DH_COMPUTE, params, buffer)
 }
 
+// KeyctlRestrictKeyring implements the KEYCTL_RESTRICT_KEYRING command. This
+// command limits the set of keys that can be linked to the keyring, regardless
+// of keyring permissions. The command requires the "setattr" permission.
+//
+// When called with an empty keyType the command locks the keyring, preventing
+// any further keys from being linked to the keyring.
+//
+// The "asymmetric" keyType defines restrictions requiring key payloads to be
+// DER encoded X.509 certificates signed by keys in another keyring. Restrictions
+// for "asymmetric" include "builtin_trusted", "builtin_and_secondary_trusted",
+// "key_or_keyring:<key>", and "key_or_keyring:<key>:chain".
+//
+// As of Linux 4.12, only the "asymmetric" keyType defines type-specific
+// restrictions.
+//
+// See the full documentation at:
+// http://man7.org/linux/man-pages/man3/keyctl_restrict_keyring.3.html
+// http://man7.org/linux/man-pages/man2/keyctl.2.html
+func KeyctlRestrictKeyring(ringid int, keyType string, restriction string) error {
+	if keyType == "" {
+		return keyctlRestrictKeyring(KEYCTL_RESTRICT_KEYRING, ringid)
+	}
+	return keyctlRestrictKeyringByType(KEYCTL_RESTRICT_KEYRING, ringid, keyType, restriction)
+}
+
+//sys keyctlRestrictKeyringByType(cmd int, arg2 int, keyType string, restriction string) (err error) = SYS_KEYCTL
+//sys keyctlRestrictKeyring(cmd int, arg2 int) (err error) = SYS_KEYCTL
+
 func Recvmsg(fd int, p, oob []byte, flags int) (n, oobn int, recvflags int, from Sockaddr, err error) {
 	var msg Msghdr
 	var rsa RawSockaddrAny
@@ -1465,7 +1493,11 @@ func PtraceSyscall(pid int, signal int) (err error) {
 
 func PtraceSingleStep(pid int) (err error) { return ptrace(PTRACE_SINGLESTEP, pid, 0, 0) }
 
+func PtraceInterrupt(pid int) (err error) { return ptrace(PTRACE_INTERRUPT, pid, 0, 0) }
+
 func PtraceAttach(pid int) (err error) { return ptrace(PTRACE_ATTACH, pid, 0, 0) }
+
+func PtraceSeize(pid int) (err error) { return ptrace(PTRACE_SEIZE, pid, 0, 0) }
 
 func PtraceDetach(pid int) (err error) { return ptrace(PTRACE_DETACH, pid, 0, 0) }
 
@@ -1821,6 +1853,17 @@ func NameToHandleAt(dirfd int, path string, flags int) (handle FileHandle, mount
 // file via a handle as previously returned by NameToHandleAt.
 func OpenByHandleAt(mountFD int, handle FileHandle, flags int) (fd int, err error) {
 	return openByHandleAt(mountFD, handle.fileHandle, flags)
+}
+
+// Klogset wraps the sys_syslog system call; it sets console_loglevel to
+// the value specified by arg and passes a dummy pointer to bufp.
+func Klogset(typ int, arg int) (err error) {
+	var p unsafe.Pointer
+	_, _, errno := Syscall(SYS_SYSLOG, uintptr(typ), uintptr(p), uintptr(arg))
+	if errno != 0 {
+		return errnoErr(errno)
+	}
+	return nil
 }
 
 /*

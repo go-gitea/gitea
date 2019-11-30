@@ -9,6 +9,7 @@ import (
 	"path"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
@@ -378,6 +379,12 @@ func (issue *Issue) apiFormat(e Engine) *api.Issue {
 		Updated:  issue.UpdatedUnix.AsTime(),
 	}
 
+	apiIssue.Repo = &api.RepositoryMeta{
+		ID:       issue.Repo.ID,
+		Name:     issue.Repo.Name,
+		FullName: issue.Repo.FullName(),
+	}
+
 	if issue.ClosedUnix != 0 {
 		apiIssue.Closed = issue.ClosedUnix.AsTimePtr()
 	}
@@ -645,7 +652,16 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 	}
 
 	// New action comment
-	if _, err = createStatusComment(e, doer, issue); err != nil {
+	cmtType := CommentTypeClose
+	if !issue.IsClosed {
+		cmtType = CommentTypeReopen
+	}
+	if _, err := createComment(e, &CreateCommentOptions{
+		Type:  cmtType,
+		Doer:  doer,
+		Repo:  issue.Repo,
+		Issue: issue,
+	}); err != nil {
 		return err
 	}
 
@@ -695,15 +711,18 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
 
-	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, issue.Title); err != nil {
-		return fmt.Errorf("createChangeTitleComment: %v", err)
+	if _, err = createComment(sess, &CreateCommentOptions{
+		Type:     CommentTypeChangeTitle,
+		Doer:     doer,
+		Repo:     issue.Repo,
+		Issue:    issue,
+		OldTitle: oldTitle,
+		NewTitle: issue.Title,
+	}); err != nil {
+		return fmt.Errorf("createComment: %v", err)
 	}
 
-	if err = issue.neuterCrossReferences(sess); err != nil {
-		return err
-	}
-
-	if err = issue.addCrossReferences(sess, doer); err != nil {
+	if err = issue.addCrossReferences(sess, doer, true); err != nil {
 		return err
 	}
 
@@ -721,7 +740,13 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if _, err := createDeleteBranchComment(sess, doer, repo, issue, branchName); err != nil {
+	if _, err := createComment(sess, &CreateCommentOptions{
+		Type:      CommentTypeDeleteBranch,
+		Doer:      doer,
+		Repo:      repo,
+		Issue:     issue,
+		CommitSHA: branchName,
+	}); err != nil {
 		return err
 	}
 
@@ -750,7 +775,6 @@ func (issue *Issue) UpdateAttachments(uuids []string) (err error) {
 
 // ChangeContent changes issue content, as the given user.
 func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
-	oldContent := issue.Content
 	issue.Content = content
 
 	sess := x.NewSession()
@@ -762,54 +786,12 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	if err = updateIssueCols(sess, issue, "content"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
-	if err = issue.neuterCrossReferences(sess); err != nil {
-		return err
-	}
-	if err = issue.addCrossReferences(sess, doer); err != nil {
+
+	if err = issue.addCrossReferences(sess, doer, true); err != nil {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-	sess.Close()
-
-	mode, _ := AccessLevel(issue.Poster, issue.Repo)
-	if issue.IsPull {
-		issue.PullRequest.Issue = issue
-		err = PrepareWebhooks(issue.Repo, HookEventPullRequest, &api.PullRequestPayload{
-			Action: api.HookIssueEdited,
-			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
-				Body: &api.ChangesFromPayload{
-					From: oldContent,
-				},
-			},
-			PullRequest: issue.PullRequest.APIFormat(),
-			Repository:  issue.Repo.APIFormat(mode),
-			Sender:      doer.APIFormat(),
-		})
-	} else {
-		err = PrepareWebhooks(issue.Repo, HookEventIssues, &api.IssuePayload{
-			Action: api.HookIssueEdited,
-			Index:  issue.Index,
-			Changes: &api.ChangesPayload{
-				Body: &api.ChangesFromPayload{
-					From: oldContent,
-				},
-			},
-			Issue:      issue.APIFormat(),
-			Repository: issue.Repo.APIFormat(mode),
-			Sender:     doer.APIFormat(),
-		})
-	}
-	if err != nil {
-		log.Error("PrepareWebhooks [is_pull: %v]: %v", issue.IsPull, err)
-	} else {
-		go HookQueue.Add(issue.RepoID)
-	}
-
-	return nil
+	return sess.Commit()
 }
 
 // GetTasks returns the amount of tasks in the issues content
@@ -956,7 +938,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	if err = opts.Issue.loadAttributes(e); err != nil {
 		return err
 	}
-	return opts.Issue.addCrossReferences(e, doer)
+	return opts.Issue.addCrossReferences(e, doer, false)
 }
 
 // NewIssue creates new issue with labels for repository.
@@ -1088,11 +1070,13 @@ type IssuesOptions struct {
 	LabelIDs    []int64
 	SortType    string
 	IssueIDs    []int64
+	// prioritize issues from this repo
+	PriorityRepoID int64
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
 // sortType string
-func sortIssuesSession(sess *xorm.Session, sortType string) {
+func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64) {
 	switch sortType {
 	case "oldest":
 		sess.Asc("issue.created_unix")
@@ -1107,9 +1091,12 @@ func sortIssuesSession(sess *xorm.Session, sortType string) {
 	case "priority":
 		sess.Desc("issue.priority")
 	case "nearduedate":
-		sess.Asc("issue.deadline_unix")
+		// 253370764800 is 01/01/9999 @ 12:00am (UTC)
+		sess.OrderBy("CASE WHEN issue.deadline_unix = 0 THEN 253370764800 ELSE issue.deadline_unix END ASC")
 	case "farduedate":
 		sess.Desc("issue.deadline_unix")
+	case "priorityrepo":
+		sess.OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(priorityRepoID, 10) + " THEN 1 ELSE 2 END, issue.created_unix DESC")
 	default:
 		sess.Desc("issue.created_unix")
 	}
@@ -1211,7 +1198,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	defer sess.Close()
 
 	opts.setupSession(sess)
-	sortIssuesSession(sess, opts.SortType)
+	sortIssuesSession(sess, opts.SortType, opts.PriorityRepoID)
 
 	issues := make([]*Issue, 0, setting.UI.IssuePagingNum)
 	if err := sess.Find(&issues); err != nil {
@@ -1224,6 +1211,19 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	}
 
 	return issues, nil
+}
+
+// GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,
+// but skips joining with `user` for performance reasons.
+// User permissions must be verified elsewhere if required.
+func GetParticipantsIDsByIssueID(issueID int64) ([]int64, error) {
+	userIDs := make([]int64, 0, 5)
+	return userIDs, x.Table("comment").
+		Cols("poster_id").
+		Where("issue_id = ?", issueID).
+		And("type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
+		Distinct("poster_id").
+		Find(&userIDs)
 }
 
 // GetParticipantsByIssueID returns all users who are participated in comments of an issue.
@@ -1323,8 +1323,12 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 				log.Warn("Malformed Labels argument: %s", opts.Labels)
 			} else {
 				for i, labelID := range labelIDs {
-					sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
-						fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+					if labelID > 0 {
+						sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
+							fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+					} else {
+						sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label WHERE label_id = ?)", -labelID)
+					}
 				}
 			}
 		}
@@ -1517,8 +1521,8 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 }
 
 // SearchIssueIDsByKeyword search issues on database
-func SearchIssueIDsByKeyword(kw string, repoID int64, limit, start int) (int64, []int64, error) {
-	var repoCond = builder.Eq{"repo_id": repoID}
+func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
+	var repoCond = builder.In("repo_id", repoIDs)
 	var subQuery = builder.Select("id").From("issue").Where(repoCond)
 	var cond = builder.And(
 		repoCond,
@@ -1568,13 +1572,10 @@ func UpdateIssue(issue *Issue) error {
 	if err := updateIssue(sess, issue); err != nil {
 		return err
 	}
-	if err := issue.neuterCrossReferences(sess); err != nil {
-		return err
-	}
 	if err := issue.loadPoster(sess); err != nil {
 		return err
 	}
-	if err := issue.addCrossReferences(sess, issue.Poster); err != nil {
+	if err := issue.addCrossReferences(sess, issue.Poster, true); err != nil {
 		return err
 	}
 	return sess.Commit()
@@ -1607,33 +1608,43 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *Us
 	return sess.Commit()
 }
 
+// DependencyInfo represents high level information about an issue which is a dependency of another issue.
+type DependencyInfo struct {
+	Issue      `xorm:"extends"`
+	Repository `xorm:"extends"`
+}
+
 // Get Blocked By Dependencies, aka all issues this issue is blocked by.
-func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*Issue, err error) {
+func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
 	return issueDeps, e.
-		Table("issue_dependency").
-		Select("issue.*").
-		Join("INNER", "issue", "issue.id = issue_dependency.dependency_id").
+		Table("issue").
+		Join("INNER", "repository", "repository.id = issue.repo_id").
+		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
 		Where("issue_id = ?", issue.ID).
+		//sort by repo id then created date, with the issues of the same repo at the beginning of the list
+		OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE issue.repo_id END, issue.created_unix DESC").
 		Find(&issueDeps)
 }
 
 // Get Blocking Dependencies, aka all issues this issue blocks.
-func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*Issue, err error) {
+func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*DependencyInfo, err error) {
 	return issueDeps, e.
-		Table("issue_dependency").
-		Select("issue.*").
-		Join("INNER", "issue", "issue.id = issue_dependency.issue_id").
+		Table("issue").
+		Join("INNER", "repository", "repository.id = issue.repo_id").
+		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
 		Where("dependency_id = ?", issue.ID).
+		//sort by repo id then created date, with the issues of the same repo at the beginning of the list
+		OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE issue.repo_id END, issue.created_unix DESC").
 		Find(&issueDeps)
 }
 
 // BlockedByDependencies finds all Dependencies an issue is blocked by
-func (issue *Issue) BlockedByDependencies() ([]*Issue, error) {
+func (issue *Issue) BlockedByDependencies() ([]*DependencyInfo, error) {
 	return issue.getBlockedByDependencies(x)
 }
 
 // BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
-func (issue *Issue) BlockingDependencies() ([]*Issue, error) {
+func (issue *Issue) BlockingDependencies() ([]*DependencyInfo, error) {
 	return issue.getBlockingDependencies(x)
 }
 

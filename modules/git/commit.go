@@ -207,7 +207,12 @@ func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
 
 // AddChanges marks local changes to be ready for commit.
 func AddChanges(repoPath string, all bool, files ...string) error {
-	cmd := NewCommand("add")
+	return AddChangesWithArgs(repoPath, GlobalCommandArgs, all, files...)
+}
+
+// AddChangesWithArgs marks local changes to be ready for commit.
+func AddChangesWithArgs(repoPath string, gloablArgs []string, all bool, files ...string) error {
+	cmd := NewCommandNoGlobals(append(gloablArgs, "add")...)
 	if all {
 		cmd.AddArguments("--all")
 	}
@@ -226,7 +231,15 @@ type CommitChangesOptions struct {
 // CommitChanges commits local changes with given committer, author and message.
 // If author is nil, it will be the same as committer.
 func CommitChanges(repoPath string, opts CommitChangesOptions) error {
-	cmd := NewCommand()
+	cargs := make([]string, len(GlobalCommandArgs))
+	copy(cargs, GlobalCommandArgs)
+	return CommitChangesWithArgs(repoPath, cargs, opts)
+}
+
+// CommitChangesWithArgs commits local changes with given committer, author and message.
+// If author is nil, it will be the same as committer.
+func CommitChangesWithArgs(repoPath string, args []string, opts CommitChangesOptions) error {
+	cmd := NewCommandNoGlobals(args...)
 	if opts.Committer != nil {
 		cmd.AddArguments("-c", "user.name="+opts.Committer.Name, "-c", "user.email="+opts.Committer.Email)
 	}
@@ -246,6 +259,16 @@ func CommitChanges(repoPath string, opts CommitChangesOptions) error {
 		return nil
 	}
 	return err
+}
+
+// AllCommitsCount returns count of all commits in repository
+func AllCommitsCount(repoPath string) (int64, error) {
+	stdout, err := NewCommand("rev-list", "--all", "--count").RunInDir(repoPath)
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 }
 
 func commitsCount(repoPath, revision, relpath string) (int64, error) {

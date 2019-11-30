@@ -68,6 +68,7 @@ _Symbols used in table:_
 | Create new branches | ✓ | ✘ | ✓ | ✓ | ✓ | ✘ | ✘ |
 | Web code editor | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Commit graph | ✓ | ✘ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Template Repositories | [✓](https://github.com/go-gitea/gitea/pull/8768) | ✘ | ✓ | ✘ | ✓ | ✓ | ✘ |
 
 #### Issue Tracker
 
