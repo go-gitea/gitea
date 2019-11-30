@@ -333,7 +333,6 @@ func Issues(ctx *context.Context) {
 
 	issueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
 		UserID:      ctxUser.ID,
-		RepoIDs:     repoIDs,
 		UserRepoIDs: userRepoIDs,
 		FilterMode:  filterMode,
 		IsPull:      isPullList,
