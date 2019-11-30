@@ -5,9 +5,12 @@
 package graceful
 
 import (
+	"context"
 	"time"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -34,9 +37,110 @@ const numberOfServersToCreate = 3
 var Manager *gracefulManager
 
 func init() {
-	Manager = newGracefulManager()
+	Manager = newGracefulManager(context.Background())
+	// Set the git default context to the HammerContext
+	git.DefaultContext = Manager.HammerContext()
+	// Set the process default context to the HammerContext
+	process.DefaultContext = Manager.HammerContext()
 }
 
+// CallbackWithContext is combined runnable and context to watch to see if the caller has finished
+type CallbackWithContext func(ctx context.Context, callback func())
+
+// RunnableWithShutdownFns is a runnable with functions to run at shutdown and terminate
+// After the callback to atShutdown is called and is complete, the main function must return.
+// Similarly the callback function provided to atTerminate must return once termination is complete.
+// Please note that use of the atShutdown and atTerminate callbacks will create go-routines that will wait till their respective signals
+// - users must therefore be careful to only call these as necessary.
+// If run is not expected to run indefinitely RunWithShutdownChan is likely to be more appropriate.
+type RunnableWithShutdownFns func(atShutdown, atTerminate func(context.Context, func()))
+
+// RunWithShutdownFns takes a function that has both atShutdown and atTerminate callbacks
+// After the callback to atShutdown is called and is complete, the main function must return.
+// Similarly the callback function provided to atTerminate must return once termination is complete.
+// Please note that use of the atShutdown and atTerminate callbacks will create go-routines that will wait till their respective signals
+// - users must therefore be careful to only call these as necessary.
+// If run is not expected to run indefinitely RunWithShutdownChan is likely to be more appropriate.
+func (g *gracefulManager) RunWithShutdownFns(run RunnableWithShutdownFns) {
+	g.runningServerWaitGroup.Add(1)
+	defer g.runningServerWaitGroup.Done()
+	run(func(ctx context.Context, atShutdown func()) {
+		go func() {
+			select {
+			case <-g.IsShutdown():
+				atShutdown()
+			case <-ctx.Done():
+				return
+			}
+		}()
+	}, func(ctx context.Context, atTerminate func()) {
+		g.RunAtTerminate(ctx, atTerminate)
+	})
+}
+
+// RunnableWithShutdownChan is a runnable with functions to run at shutdown and terminate.
+// After the atShutdown channel is closed, the main function must return once shutdown is complete.
+// (Optionally IsHammer may be waited for instead however, this should be avoided if possible.)
+// The callback function provided to atTerminate must return once termination is complete.
+// Please note that use of the atTerminate function will create a go-routine that will wait till terminate - users must therefore be careful to only call this as necessary.
+type RunnableWithShutdownChan func(atShutdown <-chan struct{}, atTerminate CallbackWithContext)
+
+// RunWithShutdownChan takes a function that has channel to watch for shutdown and atTerminate callbacks
+// After the atShutdown channel is closed, the main function must return once shutdown is complete.
+// (Optionally IsHammer may be waited for instead however, this should be avoided if possible.)
+// The callback function provided to atTerminate must return once termination is complete.
+// Please note that use of the atTerminate function will create a go-routine that will wait till terminate - users must therefore be careful to only call this as necessary.
+func (g *gracefulManager) RunWithShutdownChan(run RunnableWithShutdownChan) {
+	g.runningServerWaitGroup.Add(1)
+	defer g.runningServerWaitGroup.Done()
+	run(g.IsShutdown(), func(ctx context.Context, atTerminate func()) {
+		g.RunAtTerminate(ctx, atTerminate)
+	})
+}
+
+// RunWithShutdownContext takes a function that has a context to watch for shutdown.
+// After the provided context is Done(), the main function must return once shutdown is complete.
+// (Optionally the HammerContext may be obtained and waited for however, this should be avoided if possible.)
+func (g *gracefulManager) RunWithShutdownContext(run func(context.Context)) {
+	g.runningServerWaitGroup.Add(1)
+	defer g.runningServerWaitGroup.Done()
+	run(g.ShutdownContext())
+}
+
+// RunAtTerminate adds to the terminate wait group and creates a go-routine to run the provided function at termination
+func (g *gracefulManager) RunAtTerminate(ctx context.Context, terminate func()) {
+	g.terminateWaitGroup.Add(1)
+	go func() {
+		select {
+		case <-g.IsTerminate():
+			terminate()
+		case <-ctx.Done():
+		}
+		g.terminateWaitGroup.Done()
+	}()
+}
+
+// RunAtShutdown creates a go-routine to run the provided function at shutdown
+func (g *gracefulManager) RunAtShutdown(ctx context.Context, shutdown func()) {
+	go func() {
+		select {
+		case <-g.IsShutdown():
+			shutdown()
+		case <-ctx.Done():
+		}
+	}()
+}
+
+// RunAtHammer creates a go-routine to run the provided function at shutdown
+func (g *gracefulManager) RunAtHammer(ctx context.Context, hammer func()) {
+	go func() {
+		select {
+		case <-g.IsHammer():
+			hammer()
+		case <-ctx.Done():
+		}
+	}()
+}
 func (g *gracefulManager) doShutdown() {
 	if !g.setStateTransition(stateRunning, stateShuttingDown) {
 		return
@@ -50,6 +154,8 @@ func (g *gracefulManager) doShutdown() {
 	}
 	go func() {
 		g.WaitForServers()
+		// Mop up any remaining unclosed events.
+		g.doHammerTime(0)
 		<-time.After(1 * time.Second)
 		g.doTerminate()
 	}()

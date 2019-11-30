@@ -8,6 +8,7 @@ package gitdiff
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"html"
 	"html/template"
@@ -825,9 +826,12 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		return nil, err
 	}
 
+	// FIXME: graceful: These commands should likely have a timeout
+	ctx, cancel := context.WithCancel(git.DefaultContext)
+	defer cancel()
 	var cmd *exec.Cmd
 	if len(beforeCommitID) == 0 && commit.ParentCount() == 0 {
-		cmd = exec.Command(git.GitExecutable, "show", afterCommitID)
+		cmd = exec.CommandContext(ctx, git.GitExecutable, "show", afterCommitID)
 	} else {
 		actualBeforeCommitID := beforeCommitID
 		if len(actualBeforeCommitID) == 0 {
@@ -840,7 +844,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		}
 		diffArgs = append(diffArgs, actualBeforeCommitID)
 		diffArgs = append(diffArgs, afterCommitID)
-		cmd = exec.Command(git.GitExecutable, diffArgs...)
+		cmd = exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
 		beforeCommitID = actualBeforeCommitID
 	}
 	cmd.Dir = repoPath
@@ -855,7 +859,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		return nil, fmt.Errorf("Start: %v", err)
 	}
 
-	pid := process.GetManager().Add(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath), cmd)
+	pid := process.GetManager().Add(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath), cancel)
 	defer process.GetManager().Remove(pid)
 
 	diff, err := ParsePatch(maxLines, maxLineCharacters, maxFiles, stdout)
@@ -908,27 +912,31 @@ func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiff
 	if len(file) > 0 {
 		fileArgs = append(fileArgs, "--", file)
 	}
+	// FIXME: graceful: These commands should have a timeout
+	ctx, cancel := context.WithCancel(git.DefaultContext)
+	defer cancel()
+
 	var cmd *exec.Cmd
 	switch diffType {
 	case RawDiffNormal:
 		if len(startCommit) != 0 {
-			cmd = exec.Command(git.GitExecutable, append([]string{"diff", "-M", startCommit, endCommit}, fileArgs...)...)
+			cmd = exec.CommandContext(ctx, git.GitExecutable, append([]string{"diff", "-M", startCommit, endCommit}, fileArgs...)...)
 		} else if commit.ParentCount() == 0 {
-			cmd = exec.Command(git.GitExecutable, append([]string{"show", endCommit}, fileArgs...)...)
+			cmd = exec.CommandContext(ctx, git.GitExecutable, append([]string{"show", endCommit}, fileArgs...)...)
 		} else {
 			c, _ := commit.Parent(0)
-			cmd = exec.Command(git.GitExecutable, append([]string{"diff", "-M", c.ID.String(), endCommit}, fileArgs...)...)
+			cmd = exec.CommandContext(ctx, git.GitExecutable, append([]string{"diff", "-M", c.ID.String(), endCommit}, fileArgs...)...)
 		}
 	case RawDiffPatch:
 		if len(startCommit) != 0 {
 			query := fmt.Sprintf("%s...%s", endCommit, startCommit)
-			cmd = exec.Command(git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", "--root", query}, fileArgs...)...)
+			cmd = exec.CommandContext(ctx, git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", "--root", query}, fileArgs...)...)
 		} else if commit.ParentCount() == 0 {
-			cmd = exec.Command(git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", "--root", endCommit}, fileArgs...)...)
+			cmd = exec.CommandContext(ctx, git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", "--root", endCommit}, fileArgs...)...)
 		} else {
 			c, _ := commit.Parent(0)
 			query := fmt.Sprintf("%s...%s", endCommit, c.ID.String())
-			cmd = exec.Command(git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", query}, fileArgs...)...)
+			cmd = exec.CommandContext(ctx, git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", query}, fileArgs...)...)
 		}
 	default:
 		return fmt.Errorf("invalid diffType: %s", diffType)
@@ -939,6 +947,9 @@ func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiff
 	cmd.Dir = repoPath
 	cmd.Stdout = writer
 	cmd.Stderr = stderr
+	pid := process.GetManager().Add(fmt.Sprintf("GetRawDiffForFile: [repo_path: %s]", repoPath), cancel)
+	defer process.GetManager().Remove(pid)
+
 	if err = cmd.Run(); err != nil {
 		return fmt.Errorf("Run: %v - %s", err, stderr)
 	}
