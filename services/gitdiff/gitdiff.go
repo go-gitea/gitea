@@ -859,7 +859,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		return nil, fmt.Errorf("Start: %v", err)
 	}
 
-	pid := process.GetManager().Add(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath), cmd, cancel)
+	pid := process.GetManager().Add(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath), cancel)
 	defer process.GetManager().Remove(pid)
 
 	diff, err := ParsePatch(maxLines, maxLineCharacters, maxFiles, stdout)
@@ -947,7 +947,7 @@ func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiff
 	cmd.Dir = repoPath
 	cmd.Stdout = writer
 	cmd.Stderr = stderr
-	pid := process.GetManager().Add(fmt.Sprintf("GetRawDiffForFile: [repo_path: %s]", repoPath), cmd, cancel)
+	pid := process.GetManager().Add(fmt.Sprintf("GetRawDiffForFile: [repo_path: %s]", repoPath), cancel)
 	defer process.GetManager().Remove(pid)
 
 	if err = cmd.Run(); err != nil {

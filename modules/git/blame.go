@@ -117,7 +117,7 @@ func createBlameReader(dir string, command ...string) (*BlameReader, error) {
 		return nil, fmt.Errorf("Start: %v", err)
 	}
 
-	pid := process.GetManager().Add(fmt.Sprintf("GetBlame [repo_path: %s]", dir), cmd, cancel)
+	pid := process.GetManager().Add(fmt.Sprintf("GetBlame [repo_path: %s]", dir), cancel)
 
 	scanner := bufio.NewScanner(stdout)
 

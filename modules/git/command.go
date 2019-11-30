@@ -131,7 +131,7 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 	if desc == "" {
 		desc = fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), dir)
 	}
-	pid := process.GetManager().Add(desc, cmd, cancel)
+	pid := process.GetManager().Add(desc, cancel)
 	defer process.GetManager().Remove(pid)
 
 	if fn != nil {

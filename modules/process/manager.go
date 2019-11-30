@@ -35,7 +35,6 @@ type Process struct {
 	PID         int64 // Process ID, not system one.
 	Description string
 	Start       time.Time
-	Cmd         *exec.Cmd
 	Cancel      context.CancelFunc
 }
 
@@ -58,14 +57,13 @@ func GetManager() *Manager {
 }
 
 // Add a process to the ProcessManager and returns its PID.
-func (pm *Manager) Add(description string, cmd *exec.Cmd, cancel context.CancelFunc) int64 {
+func (pm *Manager) Add(description string, cancel context.CancelFunc) int64 {
 	pm.mutex.Lock()
 	pid := pm.counter + 1
 	pm.processes[pid] = &Process{
 		PID:         pid,
 		Description: description,
 		Start:       time.Now(),
-		Cmd:         cmd,
 		Cancel:      cancel,
 	}
 	pm.counter = pid
@@ -154,7 +152,7 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 		return "", "", err
 	}
 
-	pid := pm.Add(desc, cmd, cancel)
+	pid := pm.Add(desc, cancel)
 	err := cmd.Wait()
 	pm.Remove(pid)
 
