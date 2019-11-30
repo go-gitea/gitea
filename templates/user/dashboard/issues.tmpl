@@ -5,7 +5,7 @@
 		<div class="ui stackable grid">
 			<div class="four wide column">
 				<div class="ui secondary vertical filter menu">
-					<a class="{{if eq .ViewType "your_repositories"}}ui basic blue button{{end}} item" href="{{.Link}}?type=your_repositories&repos=[]&sort={{$.SortType}}&state={{.State}}">
+					<a class="{{if eq .ViewType "your_repositories"}}ui basic blue button{{end}} item" href="{{.Link}}?type=your_repositories&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 						{{.i18n.Tr "home.issues.in_your_repos"}}
 						<strong class="ui right">{{.IssueStats.YourRepositoriesCount}}</strong>
 					</a>
