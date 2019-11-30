@@ -67,6 +67,7 @@ type Repository struct {
 	Forks         int         `json:"forks_count"`
 	Watchers      int         `json:"watchers_count"`
 	OpenIssues    int         `json:"open_issues_count"`
+	OpenPulls     int         `json:"open_pr_counter"`
 	DefaultBranch string      `json:"default_branch"`
 	Archived      bool        `json:"archived"`
 	// swagger:strfmt date-time
