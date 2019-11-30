@@ -6,6 +6,7 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"runtime"
@@ -34,6 +35,9 @@ var (
 	// GitExecutable is the command name of git
 	// Could be updated to an absolute path while initialization
 	GitExecutable = "git"
+
+	// DefaultContext is the default context to run git commands in
+	DefaultContext = context.Background()
 
 	gitVersion string
 )

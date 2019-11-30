@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -128,11 +127,11 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 	}
 
 	if delTag {
-		_, stderr, err := process.GetManager().ExecDir(-1, repo.RepoPath(),
-			fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID),
-			git.GitExecutable, "tag", "-d", rel.TagName)
-		if err != nil && !strings.Contains(stderr, "not found") {
-			return fmt.Errorf("git tag -d: %v - %s", err, stderr)
+		if stdout, err := git.NewCommand("tag", "-d", rel.TagName).
+			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
+			RunInDir(repo.RepoPath()); err != nil && !strings.Contains(err.Error(), "not found") {
+			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)
+			return fmt.Errorf("git tag -d: %v", err)
 		}
 
 		if err := models.DeleteReleaseByID(id); err != nil {
