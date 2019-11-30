@@ -1361,54 +1361,6 @@ func prepareRepoCommit(e Engine, repo *Repository, tmpDir, repoPath string, opts
 	return nil
 }
 
-func generateRepoCommit(e Engine, repo, templateRepo *Repository, tmpDir string) error {
-	commitTimeStr := time.Now().Format(time.RFC3339)
-	authorSig := repo.Owner.NewGitSig()
-
-	// Because this may call hooks we should pass in the environment
-	env := append(os.Environ(),
-		"GIT_AUTHOR_NAME="+authorSig.Name,
-		"GIT_AUTHOR_EMAIL="+authorSig.Email,
-		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+authorSig.Name,
-		"GIT_COMMITTER_EMAIL="+authorSig.Email,
-		"GIT_COMMITTER_DATE="+commitTimeStr,
-	)
-
-	// Clone to temporary path and do the init commit.
-	templateRepoPath := templateRepo.repoPath(e)
-	_, stderr, err := process.GetManager().ExecDirEnv(
-		-1, "",
-		fmt.Sprintf("generateRepoCommit(git clone): %s", templateRepoPath),
-		env,
-		git.GitExecutable, "clone", "--depth", "1", templateRepoPath, tmpDir,
-	)
-	if err != nil {
-		return fmt.Errorf("git clone: %v - %s", err, stderr)
-	}
-
-	if err := os.RemoveAll(path.Join(tmpDir, ".git")); err != nil {
-		return fmt.Errorf("remove git dir: %v", err)
-	}
-
-	if err := git.InitRepository(tmpDir, false); err != nil {
-		return err
-	}
-
-	repoPath := repo.repoPath(e)
-	_, stderr, err = process.GetManager().ExecDirEnv(
-		-1, tmpDir,
-		fmt.Sprintf("generateRepoCommit(git remote add): %s", repoPath),
-		env,
-		git.GitExecutable, "remote", "add", "origin", repoPath,
-	)
-	if err != nil {
-		return fmt.Errorf("git remote add: %v - %s", err, stderr)
-	}
-
-	return initRepoCommit(tmpDir, repo.Owner)
-}
-
 func checkInitRepository(repoPath string) (err error) {
 	// Somehow the directory could exist.
 	if com.IsExist(repoPath) {
