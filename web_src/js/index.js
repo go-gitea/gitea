@@ -1444,6 +1444,10 @@ function setCommentSimpleMDE($editArea) {
       if (!(issuesTribute.isActive || emojiTribute.isActive)) {
         return CodeMirror.Pass;
       }
+    },
+    Backspace: (cm) => {
+      cm.getInputField().trigger('input');
+      cm.execCommand('delCharBefore');
     }
   });
   issuesTribute.attach(simplemde.codemirror.getInputField());
