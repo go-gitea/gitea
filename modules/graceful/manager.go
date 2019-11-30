@@ -50,7 +50,7 @@ type CallbackWithContext func(ctx context.Context, callback func())
 // RunnableWithShutdownFns is a runnable with functions to run at shutdown and terminate
 // After the callback to atShutdown is called and is complete, the main function must return.
 // Similarly the callback function provided to atTerminate must return once termination is complete.
-// Please note that use of the atShutdown and atTerminate callbacks will create go-routines that will wait till till their respective signals
+// Please note that use of the atShutdown and atTerminate callbacks will create go-routines that will wait till their respective signals
 // - users must therefore be careful to only call these as necessary.
 // If run is not expected to run indefinitely RunWithShutdownChan is likely to be more appropriate.
 type RunnableWithShutdownFns func(atShutdown, atTerminate func(context.Context, func()))
@@ -58,7 +58,7 @@ type RunnableWithShutdownFns func(atShutdown, atTerminate func(context.Context, 
 // RunWithShutdownFns takes a function that has both atShutdown and atTerminate callbacks
 // After the callback to atShutdown is called and is complete, the main function must return.
 // Similarly the callback function provided to atTerminate must return once termination is complete.
-// Please note that use of the atShutdown and atTerminate callbacks will create go-routines that will wait till till their respective signals
+// Please note that use of the atShutdown and atTerminate callbacks will create go-routines that will wait till their respective signals
 // - users must therefore be careful to only call these as necessary.
 // If run is not expected to run indefinitely RunWithShutdownChan is likely to be more appropriate.
 func (g *gracefulManager) RunWithShutdownFns(run RunnableWithShutdownFns) {
