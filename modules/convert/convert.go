@@ -257,7 +257,7 @@ func ToTeam(team *models.Team) *api.Team {
 
 // ToUser convert models.User to api.User
 // signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
-func ToUser(user *models.User, signed, authed bool) *api.User {
+func ToUser(user *models.User, signed bool, authed bool) *api.User {
 	result := &api.User{
 		UserName:  user.Name,
 		AvatarURL: user.AvatarLink(),
@@ -273,6 +273,7 @@ func ToUser(user *models.User, signed, authed bool) *api.User {
 		result.ID = user.ID
 		result.IsAdmin = user.IsAdmin
 		result.LastLogin = user.LastLoginUnix.AsTime()
+		result.Language = user.Language
 	}
 	return result
 }
