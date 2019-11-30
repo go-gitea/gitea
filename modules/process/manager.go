@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"sort"
 	"sync"
 	"time"
 )
@@ -43,14 +44,14 @@ type Manager struct {
 	mutex sync.Mutex
 
 	counter   int64
-	Processes map[int64]*Process
+	processes map[int64]*Process
 }
 
 // GetManager returns a Manager and initializes one as singleton if there's none yet
 func GetManager() *Manager {
 	if manager == nil {
 		manager = &Manager{
-			Processes: make(map[int64]*Process),
+			processes: make(map[int64]*Process),
 		}
 	}
 	return manager
@@ -60,7 +61,7 @@ func GetManager() *Manager {
 func (pm *Manager) Add(description string, cmd *exec.Cmd, cancel context.CancelFunc) int64 {
 	pm.mutex.Lock()
 	pid := pm.counter + 1
-	pm.Processes[pid] = &Process{
+	pm.processes[pid] = &Process{
 		PID:         pid,
 		Description: description,
 		Start:       time.Now(),
@@ -76,18 +77,30 @@ func (pm *Manager) Add(description string, cmd *exec.Cmd, cancel context.CancelF
 // Remove a process from the ProcessManager.
 func (pm *Manager) Remove(pid int64) {
 	pm.mutex.Lock()
-	delete(pm.Processes, pid)
+	delete(pm.processes, pid)
 	pm.mutex.Unlock()
 }
 
 // Cancel a process in the ProcessManager.
 func (pm *Manager) Cancel(pid int64) {
 	pm.mutex.Lock()
-	process, ok := pm.Processes[pid]
+	process, ok := pm.processes[pid]
 	pm.mutex.Unlock()
 	if ok {
 		process.Cancel()
 	}
+}
+
+// Processes gets the processes in a thread safe manner
+func (pm *Manager) Processes() []*Process {
+	pm.mutex.Lock()
+	processes := make([]*Process, 0, len(pm.processes))
+	for _, process := range pm.processes {
+		processes = append(processes, process)
+	}
+	pm.mutex.Unlock()
+	sort.Sort(processList(processes))
+	return processes
 }
 
 // Exec a command and use the default timeout.
@@ -152,24 +165,16 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 	return stdOut.String(), stdErr.String(), err
 }
 
-// Kill and remove a process from list.
-func (pm *Manager) Kill(pid int64) error {
-	if proc, exists := pm.Processes[pid]; exists {
-		pm.mutex.Lock()
-		if proc.Cancel != nil {
-			proc.Cancel()
-		}
-		if proc.Cmd != nil &&
-			proc.Cmd.Process != nil &&
-			proc.Cmd.ProcessState != nil &&
-			!proc.Cmd.ProcessState.Exited() {
-			if err := proc.Cmd.Process.Kill(); err != nil {
-				return fmt.Errorf("failed to kill process(%d/%s): %v", pid, proc.Description, err)
-			}
-		}
-		delete(pm.Processes, pid)
-		pm.mutex.Unlock()
-	}
+type processList []*Process
 
-	return nil
+func (l processList) Len() int {
+	return len(l)
+}
+
+func (l processList) Less(i, j int) bool {
+	return l[i].PID < l[j].PID
+}
+
+func (l processList) Swap(i, j int) {
+	l[i], l[j] = l[j], l[i]
 }
