@@ -465,7 +465,6 @@ func serviceRPC(h serviceHandler, service string) {
 	// set this for allow pre-receive and post-receive execute
 	h.environ = append(h.environ, "SSH_ORIGINAL_COMMAND="+service)
 
-	// FIXME: graceful: Is the defaultContext appropriate here or should it be the requests context?
 	ctx, cancel := gocontext.WithCancel(git.DefaultContext)
 	defer cancel()
 	var stderr bytes.Buffer
