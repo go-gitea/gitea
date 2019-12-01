@@ -347,7 +347,7 @@ func (f *CreateCommentForm) Validate(ctx *macaron.Context, errs binding.Errors) 
 
 // ReactionForm form for adding and removing reaction
 type ReactionForm struct {
-	Content string `binding:"Required;In(+1,-1,laugh,confused,heart,hooray)"`
+	Content string `binding:"Required"`
 }
 
 // Validate validates the fields

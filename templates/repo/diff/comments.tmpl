@@ -38,7 +38,7 @@
 		{{$reactions := .Reactions.GroupByType}}
 		{{if $reactions}}
 			<div class="ui attached segment reactions">
-			{{template "repo/issue/view_content/reactions" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions }}
+			{{template "repo/issue/view_content/reactions" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions "AllowedReactions" $.AllowedReactions }}
 			</div>
 		{{end}}
 	</div>
