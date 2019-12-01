@@ -291,14 +291,13 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 		}
 	}
 
-	comm, err := createComment(sess, &CreateCommentOptions{
+	comm, err := createCommentWithNoAction(sess, &CreateCommentOptions{
 		Type:     CommentTypeReview,
 		Doer:     doer,
 		Content:  review.Content,
 		Issue:    issue,
 		Repo:     issue.Repo,
 		ReviewID: review.ID,
-		NoAction: true,
 	})
 	if err != nil || comm == nil {
 		return nil, nil, err

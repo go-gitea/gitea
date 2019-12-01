@@ -273,6 +273,7 @@ func ToUser(user *models.User, signed, authed bool) *api.User {
 		result.ID = user.ID
 		result.IsAdmin = user.IsAdmin
 		result.LastLogin = user.LastLoginUnix.AsTime()
+		result.Language = user.Language
 	}
 	return result
 }

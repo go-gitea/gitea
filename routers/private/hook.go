@@ -159,7 +159,7 @@ func HookPostReceive(ctx *macaron.Context) {
 			})
 			return
 		}
-		if err := repofiles.PushUpdate(repo, branch, models.PushUpdateOptions{
+		if err := repofiles.PushUpdate(repo, branch, repofiles.PushUpdateOptions{
 			RefFullName:  refFullName,
 			OldCommitID:  oldCommitID,
 			NewCommitID:  newCommitID,

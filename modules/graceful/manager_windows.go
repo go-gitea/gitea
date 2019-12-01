@@ -8,6 +8,7 @@
 package graceful
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"sync"
@@ -29,6 +30,7 @@ const (
 )
 
 type gracefulManager struct {
+	ctx                    context.Context
 	isChild                bool
 	lock                   *sync.RWMutex
 	state                  state
@@ -40,10 +42,11 @@ type gracefulManager struct {
 	terminateWaitGroup     sync.WaitGroup
 }
 
-func newGracefulManager() *gracefulManager {
+func newGracefulManager(ctx context.Context) *gracefulManager {
 	manager := &gracefulManager{
 		isChild: false,
 		lock:    &sync.RWMutex{},
+		ctx:     ctx,
 	}
 	manager.createServerWaitGroup.Add(numberOfServersToCreate)
 	manager.Run()
@@ -89,23 +92,29 @@ func (g *gracefulManager) Execute(args []string, changes <-chan svc.ChangeReques
 	waitTime := 30 * time.Second
 
 loop:
-	for change := range changes {
-		switch change.Cmd {
-		case svc.Interrogate:
-			status <- change.CurrentStatus
-		case svc.Stop, svc.Shutdown:
+	for {
+		select {
+		case <-g.ctx.Done():
 			g.doShutdown()
 			waitTime += setting.GracefulHammerTime
 			break loop
-		case hammerCode:
-			g.doShutdown()
-			g.doHammerTime(0 * time.Second)
-			break loop
-		default:
-			log.Debug("Unexpected control request: %v", change.Cmd)
+		case change := <-changes:
+			switch change.Cmd {
+			case svc.Interrogate:
+				status <- change.CurrentStatus
+			case svc.Stop, svc.Shutdown:
+				g.doShutdown()
+				waitTime += setting.GracefulHammerTime
+				break loop
+			case hammerCode:
+				g.doShutdown()
+				g.doHammerTime(0 * time.Second)
+				break loop
+			default:
+				log.Debug("Unexpected control request: %v", change.Cmd)
+			}
 		}
 	}
-
 	status <- svc.Status{
 		State:    svc.StopPending,
 		WaitHint: uint32(waitTime / time.Millisecond),

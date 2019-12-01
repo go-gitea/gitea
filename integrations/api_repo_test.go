@@ -19,7 +19,7 @@ import (
 )
 
 func TestAPIUserReposNotLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name)
@@ -37,7 +37,7 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 }
 
 func TestAPISearchRepo(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	const keyword = "test"
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/search?q=%s", keyword)
@@ -207,7 +207,7 @@ func getRepo(t *testing.T, repoID int64) *models.Repository {
 }
 
 func TestAPIViewRepo(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -219,7 +219,7 @@ func TestAPIViewRepo(t *testing.T) {
 }
 
 func TestAPIOrgRepos(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 5}).(*models.User)
@@ -265,7 +265,7 @@ func TestAPIOrgRepos(t *testing.T) {
 }
 
 func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -286,7 +286,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 		{ctxUserID: 2, userID: 6, cloneURL: "https://github.com/go-gitea/git.git", repoName: "git-bad-org", expectedStatus: http.StatusForbidden},
 	}
 
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	for _, testCase := range testCases {
 		user := models.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
 		session := loginUser(t, user.Name)
@@ -351,7 +351,7 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 		{ctxUserID: 28, orgName: "user6", repoName: "repo-not-creator", expectedStatus: http.StatusForbidden},
 	}
 
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	for _, testCase := range testCases {
 		user := models.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
 		session := loginUser(t, user.Name)

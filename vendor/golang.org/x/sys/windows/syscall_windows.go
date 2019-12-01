@@ -313,6 +313,13 @@ func NewCallbackCDecl(fn interface{}) uintptr {
 //sys	CoTaskMemFree(address unsafe.Pointer) = ole32.CoTaskMemFree
 //sys	rtlGetVersion(info *OsVersionInfoEx) (ret error) = ntdll.RtlGetVersion
 //sys	rtlGetNtVersionNumbers(majorVersion *uint32, minorVersion *uint32, buildNumber *uint32) = ntdll.RtlGetNtVersionNumbers
+//sys	getProcessPreferredUILanguages(flags uint32, numLanguages *uint32, buf *uint16, bufSize *uint32) (err error) = kernel32.GetProcessPreferredUILanguages
+//sys	getThreadPreferredUILanguages(flags uint32, numLanguages *uint32, buf *uint16, bufSize *uint32) (err error) = kernel32.GetThreadPreferredUILanguages
+//sys	getUserPreferredUILanguages(flags uint32, numLanguages *uint32, buf *uint16, bufSize *uint32) (err error) = kernel32.GetUserPreferredUILanguages
+//sys	getSystemPreferredUILanguages(flags uint32, numLanguages *uint32, buf *uint16, bufSize *uint32) (err error) = kernel32.GetSystemPreferredUILanguages
+
+// Process Status API (PSAPI)
+//sys	EnumProcesses(processIds []uint32, bytesReturned *uint32) (err error) = psapi.EnumProcesses
 
 // syscall interface implementation for other packages
 
@@ -410,7 +417,11 @@ func Open(path string, mode int, perm uint32) (fd Handle, err error) {
 	default:
 		createmode = OPEN_EXISTING
 	}
-	h, e := CreateFile(pathp, access, sharemode, sa, createmode, FILE_ATTRIBUTE_NORMAL, 0)
+	var attrs uint32 = FILE_ATTRIBUTE_NORMAL
+	if perm&S_IWRITE == 0 {
+		attrs = FILE_ATTRIBUTE_READONLY
+	}
+	h, e := CreateFile(pathp, access, sharemode, sa, createmode, attrs, 0)
 	return h, e
 }
 
@@ -857,7 +868,7 @@ func (rsa *RawSockaddrAny) Sockaddr() (Sockaddr, error) {
 		for n < len(pp.Path) && pp.Path[n] != 0 {
 			n++
 		}
-		bytes := (*[10000]byte)(unsafe.Pointer(&pp.Path[0]))[0:n]
+		bytes := (*[len(pp.Path)]byte)(unsafe.Pointer(&pp.Path[0]))[0:n]
 		sa.Name = string(bytes)
 		return sa, nil
 
@@ -1370,4 +1381,55 @@ func RtlGetNtVersionNumbers() (majorVersion, minorVersion, buildNumber uint32) {
 	rtlGetNtVersionNumbers(&majorVersion, &minorVersion, &buildNumber)
 	buildNumber &= 0xffff
 	return
+}
+
+// GetProcessPreferredUILanguages retrieves the process preferred UI languages.
+func GetProcessPreferredUILanguages(flags uint32) ([]string, error) {
+	return getUILanguages(flags, getProcessPreferredUILanguages)
+}
+
+// GetThreadPreferredUILanguages retrieves the thread preferred UI languages for the current thread.
+func GetThreadPreferredUILanguages(flags uint32) ([]string, error) {
+	return getUILanguages(flags, getThreadPreferredUILanguages)
+}
+
+// GetUserPreferredUILanguages retrieves information about the user preferred UI languages.
+func GetUserPreferredUILanguages(flags uint32) ([]string, error) {
+	return getUILanguages(flags, getUserPreferredUILanguages)
+}
+
+// GetSystemPreferredUILanguages retrieves the system preferred UI languages.
+func GetSystemPreferredUILanguages(flags uint32) ([]string, error) {
+	return getUILanguages(flags, getSystemPreferredUILanguages)
+}
+
+func getUILanguages(flags uint32, f func(flags uint32, numLanguages *uint32, buf *uint16, bufSize *uint32) error) ([]string, error) {
+	size := uint32(128)
+	for {
+		var numLanguages uint32
+		buf := make([]uint16, size)
+		err := f(flags, &numLanguages, &buf[0], &size)
+		if err == ERROR_INSUFFICIENT_BUFFER {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		buf = buf[:size]
+		if numLanguages == 0 || len(buf) == 0 { // GetProcessPreferredUILanguages may return numLanguages==0 with "\0\0"
+			return []string{}, nil
+		}
+		if buf[len(buf)-1] == 0 {
+			buf = buf[:len(buf)-1] // remove terminating null
+		}
+		languages := make([]string, 0, numLanguages)
+		from := 0
+		for i, c := range buf {
+			if c == 0 {
+				languages = append(languages, string(utf16.Decode(buf[from:i])))
+				from = i + 1
+			}
+		}
+		return languages, nil
+	}
 }

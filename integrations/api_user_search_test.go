@@ -19,7 +19,7 @@ type SearchResults struct {
 }
 
 func TestAPIUserSearchLoggedIn(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
 	token := getTokenForLoggedInUser(t, session)
@@ -37,7 +37,7 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 }
 
 func TestAPIUserSearchNotLoggedIn(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	query := "user2"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query)
 	resp := MakeRequest(t, req, http.StatusOK)

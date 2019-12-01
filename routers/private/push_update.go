@@ -18,7 +18,7 @@ import (
 
 // PushUpdate update public key updates
 func PushUpdate(ctx *macaron.Context) {
-	var opt models.PushUpdateOptions
+	var opt repofiles.PushUpdateOptions
 	if err := json.NewDecoder(ctx.Req.Request.Body).Decode(&opt); err != nil {
 		ctx.JSON(500, map[string]interface{}{
 			"err": err.Error(),
