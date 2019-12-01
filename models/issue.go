@@ -656,16 +656,18 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 	if !issue.IsClosed {
 		cmtType = CommentTypeReopen
 	}
-	if _, err := createComment(e, &CreateCommentOptions{
+
+	var opts = &CreateCommentOptions{
 		Type:  cmtType,
 		Doer:  doer,
 		Repo:  issue.Repo,
 		Issue: issue,
-	}); err != nil {
+	}
+	comment, err := createCommentWithNoAction(e, opts)
+	if err != nil {
 		return err
 	}
-
-	return nil
+	return sendCreateCommentAction(e, opts, comment)
 }
 
 // ChangeStatus changes issue status to open or closed.
@@ -711,17 +713,21 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
 
-	if _, err = createComment(sess, &CreateCommentOptions{
+	var opts = &CreateCommentOptions{
 		Type:     CommentTypeChangeTitle,
 		Doer:     doer,
 		Repo:     issue.Repo,
 		Issue:    issue,
 		OldTitle: oldTitle,
 		NewTitle: issue.Title,
-	}); err != nil {
+	}
+	comment, err := createCommentWithNoAction(sess, opts)
+	if err != nil {
 		return fmt.Errorf("createComment: %v", err)
 	}
-
+	if err = sendCreateCommentAction(sess, opts, comment); err != nil {
+		return err
+	}
 	if err = issue.addCrossReferences(sess, doer, true); err != nil {
 		return err
 	}
@@ -740,13 +746,18 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if _, err := createComment(sess, &CreateCommentOptions{
+	var opts = &CreateCommentOptions{
 		Type:      CommentTypeDeleteBranch,
 		Doer:      doer,
 		Repo:      repo,
 		Issue:     issue,
 		CommitSHA: branchName,
-	}); err != nil {
+	}
+	comment, err := createCommentWithNoAction(sess, opts)
+	if err != nil {
+		return err
+	}
+	if err = sendCreateCommentAction(sess, opts, comment); err != nil {
 		return err
 	}
 
@@ -880,7 +891,20 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			return err
 		}
 
-		if _, err = createMilestoneComment(e, doer, opts.Repo, opts.Issue, 0, opts.Issue.MilestoneID); err != nil {
+		var opts = &CreateCommentOptions{
+			Type:           CommentTypeMilestone,
+			Doer:           doer,
+			Repo:           opts.Repo,
+			Issue:          opts.Issue,
+			OldMilestoneID: 0,
+			MilestoneID:    opts.Issue.MilestoneID,
+		}
+		comment, err := createCommentWithNoAction(e, opts)
+		if err != nil {
+			return err
+		}
+
+		if err = sendCreateCommentAction(e, opts, comment); err != nil {
 			return err
 		}
 	}
