@@ -22,11 +22,12 @@ type TrackedTimeDeprecated struct {
 // TrackedTimesDeprecated represent a list of tracked times
 type TrackedTimesDeprecated []*TrackedTimeDeprecated
 
-// AddTimeOption options for adding time to an issue
-type AddTimeOption struct {
+// EditTimeOption options for adding/deleting time to an issue
+type EditTimeOption struct {
 	// time in seconds
 	// required: true
-	Time int64 `json:"time" binding:"Required"`
+	Time     int64 `json:"time" binding:"Required"`
+	Negative bool  `json:"negative"`
 }
 
 // TrackedTime worked time for an issue / pr

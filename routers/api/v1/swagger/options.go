@@ -95,7 +95,7 @@ type swaggerParameterBodies struct {
 	EditTeamOption api.EditTeamOption
 
 	// in:body
-	AddTimeOption api.AddTimeOption
+	EditTimeOption api.EditTimeOption
 
 	// in:body
 	CreateUserOption api.CreateUserOption

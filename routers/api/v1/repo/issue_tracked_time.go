@@ -76,11 +76,11 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	ctx.JSON(200, trackedTimes.APIFormat())
 }
 
-// AddTime adds time manual to the given issue
-func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
-	// swagger:operation Post /repos/{owner}/{repo}/issues/{index}/times issue issueAddTime
+// EditTime adds/remove time manual to the given issue
+func EditTime(ctx *context.APIContext, form api.EditTimeOption) {
+	// swagger:operation Post /repos/{owner}/{repo}/issues/{index}/times issue issueEditTime
 	// ---
-	// summary: Add a tracked time to a issue
+	// summary: Edit the tracked time to a issue
 	// consumes:
 	// - application/json
 	// produces:
@@ -105,7 +105,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/AddTimeOption"
+	//     "$ref": "#/definitions/EditTimeOption"
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTime"
@@ -131,6 +131,11 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 		ctx.Status(403)
 		return
 	}
+
+	if form.Negative {
+		form.Time = form.Time * -1
+	}
+
 	trackedTime, err := models.AddTime(ctx.User, issue, form.Time)
 	if err != nil {
 		ctx.Error(500, "AddTime", err)
