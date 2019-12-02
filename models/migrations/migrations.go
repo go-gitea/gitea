@@ -274,6 +274,8 @@ var migrations = []Migration{
 	NewMigration("Add comment_id on table notification", addCommentIDOnNotification),
 	// v109 -> v110
 	NewMigration("add can_create_org_repo to team", addCanCreateOrgRepoColumnForTeam),
+	// v110 -> v111
+	NewMigration("change review content type to text", changeReviewContentToText),
 }
 
 // Migrate database to current version
