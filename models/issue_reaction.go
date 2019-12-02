@@ -48,14 +48,14 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 	return cond
 }
 
-//FindIssueReactions returns a ReactionList of all reactions from an comment
+// FindCommentReactions returns a ReactionList of all reactions from an comment
 func FindCommentReactions(comment *Comment) (ReactionList, error) {
 	return findReactions(x, FindReactionsOptions{
 		IssueID:   comment.IssueID,
 		CommentID: comment.ID})
 }
 
-//FindIssueReactions returns a ReactionList of all reactions from an issue
+// FindIssueReactions returns a ReactionList of all reactions from an issue
 func FindIssueReactions(issue *Issue) (ReactionList, error) {
 	return findReactions(x, FindReactionsOptions{
 		IssueID:   issue.ID,
@@ -184,7 +184,7 @@ func DeleteCommentReaction(doer *User, issue *Issue, comment *Comment, content s
 	})
 }
 
-// LoadUsers loads reactions' all users
+// LoadUser load user of reaction
 func (r *Reaction) LoadUser() (*User, error) {
 	user, err := getUserByID(x, r.UserID)
 	if err != nil {

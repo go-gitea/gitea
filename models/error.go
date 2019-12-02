@@ -1121,7 +1121,7 @@ func (err ErrNewIssueInsert) Error() string {
 	return err.OriginalError.Error()
 }
 
-// ErrNewIssueReaction is used when a forbidden Issue was try to created
+// ErrForbiddenIssueReaction is used when a forbidden reaction was try to created
 type ErrForbiddenIssueReaction struct {
 	Reaction string
 }

@@ -8,10 +8,12 @@ import (
 	"time"
 )
 
+// EditReactionOption contain the reaction type
 type EditReactionOption struct {
 	Reaction string `json:"content"`
 }
 
+// ReactionResponse contain one reaction
 type ReactionResponse struct {
 	User     *User  `json:"user"`
 	Reaction string `json:"content"`
