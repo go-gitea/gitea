@@ -5,40 +5,59 @@
 		<div class="ui stackable grid">
 			<div class="four wide column">
 				<div class="ui secondary vertical filter menu">
-					<a class="{{if eq .ViewType "your_repositories"}}ui basic blue button{{end}} item" href="{{.Link}}?type=your_repositories&repo={{.RepoID}}&sort={{$.SortType}}&state={{.State}}">
+					<a class="{{if eq .ViewType "your_repositories"}}ui basic blue button{{end}} item" href="{{.Link}}?type=your_repositories&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 						{{.i18n.Tr "home.issues.in_your_repos"}}
 						<strong class="ui right">{{.IssueStats.YourRepositoriesCount}}</strong>
 					</a>
 					{{if not .ContextUser.IsOrganization}}
-						<a class="{{if eq .ViewType "assigned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=assigned&repo={{.RepoID}}&sort={{$.SortType}}&state={{.State}}">
+						<a class="{{if eq .ViewType "assigned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=assigned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 							{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}
 							<strong class="ui right">{{.IssueStats.AssignCount}}</strong>
 						</a>
-						<a class="{{if eq .ViewType "created_by"}}ui basic blue button{{end}} item" href="{{.Link}}?type=created_by&repo={{.RepoID}}&sort={{$.SortType}}&state={{.State}}">
+						<a class="{{if eq .ViewType "created_by"}}ui basic blue button{{end}} item" href="{{.Link}}?type=created_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 							{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}
 							<strong class="ui right">{{.IssueStats.CreateCount}}</strong>
 						</a>
-						<a class="{{if eq .ViewType "mentioned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=mentioned&repo={{.RepoID}}&sort={{$.SortType}}&state={{.State}}">
+						<a class="{{if eq .ViewType "mentioned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 							{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}
 							<strong class="ui right">{{.IssueStats.MentionCount}}</strong>
 						</a>
 					{{end}}
 					<div class="ui divider"></div>
+					<a class="{{if not $.RepoIDs}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}">
+						<span class="text truncate">All</span>
+						<div class="floating ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{.TotalIssueCount}}</div>
+					</a>
 					{{range .Repos}}
-						<a class="{{if eq $.RepoID .ID}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}{{if not (eq $.RepoID .ID)}}&repo={{.ID}}{{end}}&sort={{$.SortType}}&state={{$.State}}" title="{{.FullName}}">
-							<span class="text truncate">{{.FullName}}</span>
-							<div class="floating ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts .ID}}</div>
-						</a>
+						{{with $Repo := .}}
+							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}ui basic blue button{{end}}{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&repos=[
+									{{with $include := true}}
+										{{range $.RepoIDs}}
+											{{if eq . $Repo.ID}}
+												{{$include = false}}
+											{{else}}
+												{{.}}%2C
+											{{end}}
+										{{end}}
+										{{if eq $include true}}
+											{{$Repo.ID}}%2C
+										{{end}}
+									{{end}}
+									]&sort={{$.SortType}}&state={{$.State}}" title="{{.FullName}}">
+								<span class="text truncate">{{$Repo.FullName}}</span>
+								<div class="floating ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts $Repo.ID}}</div>
+							</a>
+						{{end}}
 					{{end}}
 				</div>
 			</div>
 			<div class="twelve wide column content">
 				<div class="ui tiny basic status buttons">
-					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort={{$.SortType}}&state=open">
+					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open">
 						<i class="octicon octicon-issue-opened"></i>
 						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
 					</a>
-					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort={{$.SortType}}&state=closed">
+					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed">
 						<i class="octicon octicon-issue-closed"></i>
 						{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
 					</a>
@@ -51,14 +70,14 @@
 							<i class="dropdown icon"></i>
 						</span>
 						<div class="menu">
-							<a class="{{if or (eq .SortType "latest") (not .SortType)}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort=latest&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</a>
-							<a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort=oldest&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</a>
-							<a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort=recentupdate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-							<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort=leastupdate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-							<a class="{{if eq .SortType "mostcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort=mostcomment&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.mostcomment"}}</a>
-							<a class="{{if eq .SortType "leastcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort=leastcomment&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.leastcomment"}}</a>
-							<a class="{{if eq .SortType "nearduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort=nearduedate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.nearduedate"}}</a>
-							<a class="{{if eq .SortType "farduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort=farduedate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.farduedate"}}</a>
+							<a class="{{if or (eq .SortType "latest") (not .SortType)}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=latest&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</a>
+							<a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=oldest&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</a>
+							<a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=recentupdate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+							<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastupdate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+							<a class="{{if eq .SortType "mostcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomment&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+							<a class="{{if eq .SortType "leastcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomment&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+							<a class="{{if eq .SortType "nearduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=nearduedate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.nearduedate"}}</a>
+							<a class="{{if eq .SortType "farduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=farduedate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.farduedate"}}</a>
 						</div>
 					</div>
 				</div>
@@ -68,7 +87,8 @@
 
 						{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 						<li class="item">
-							<div class="ui label">{{if not $.RepoID}}{{.Repo.FullName}}{{end}}#{{.Index}}</div>
+							{{if .Repo}}
+							<div class="ui label">{{.Repo.FullName}}#{{.Index}}</div>
 							<a class="title has-emoji" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/issues/{{.Index}}">{{.Title}}</a>
 
                             {{if .IsPull }}
@@ -84,7 +104,7 @@
 								especially on mobile views. */}}
 								<span style="line-height: 2.5">
 									{{range .}}
-										<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&repo={{$.RepoID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
+										<a class="ui label has-emoji" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description}}">{{.Name}}</a>
 									{{end}}
 								</span>
 							{{end}}
@@ -133,6 +153,7 @@
 								{{end}}
 							</p>
 						</li>
+						{{end}}
 					{{end}}
 
 					{{template "base/paginate" .}}
