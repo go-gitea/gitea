@@ -699,8 +699,7 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 		Issue:            issue,
 		DependentIssueID: dependentIssue.ID,
 	}
-	_, err = createCommentWithNoAction(e, opts)
-	if err != nil {
+	if _, err = createCommentWithNoAction(e, opts); err != nil {
 		return
 	}
 
@@ -712,10 +711,6 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 		DependentIssueID: issue.ID,
 	}
 	_, err = createCommentWithNoAction(e, opts)
-	if err != nil {
-		return
-	}
-
 	return
 }
 

@@ -414,8 +414,7 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err
 		Label:   label,
 		Content: "1",
 	}
-	_, err = createCommentWithNoAction(e, opts)
-	if err != nil {
+	if _, err = createCommentWithNoAction(e, opts); err != nil {
 		return err
 	}
 
@@ -491,8 +490,7 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 		Issue: issue,
 		Label: label,
 	}
-	_, err = createCommentWithNoAction(e, opts)
-	if err != nil {
+	if _, err = createCommentWithNoAction(e, opts); err != nil {
 		return err
 	}
 
