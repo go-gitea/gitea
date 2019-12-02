@@ -657,9 +657,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
 					m.Group("/comments", func() {
 						m.Get("", repo.ListRepoIssueComments)
-						m.Combo("/:id", reqToken()).
-							Patch(mustNotBeArchived, bind(api.EditIssueCommentOption{}), repo.EditIssueComment).
-							Delete(repo.DeleteIssueComment)
+						m.Group("/:id", func() {
+							m.Combo("", reqToken()).
+								Patch(mustNotBeArchived, bind(api.EditIssueCommentOption{}), repo.EditIssueComment).
+								Delete(repo.DeleteIssueComment)
+							m.Combo("/reactions", reqToken()).
+								Get(repo.GetIssueCommentReactions).
+								Post(bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
+								Delete(bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
+						})
 					})
 					m.Group("/:index", func() {
 						m.Combo("").Get(repo.GetIssue).
