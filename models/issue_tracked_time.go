@@ -172,3 +172,28 @@ func TotalTimes(options FindTrackedTimesOptions) (map[*User]string, error) {
 	}
 	return totalTimes, nil
 }
+
+// DeleteTimes deletes times for issue
+func DeleteTimes(opts FindTrackedTimesOptions) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	ttl, err := GetTrackedTimes(opts)
+	if err != nil {
+		return err
+	}
+
+	if err := deleteTimes(sess, &ttl); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+func deleteTimes(e *xorm.Session, ttl *TrackedTimeList) error {
+	_, err := e.Delete(ttl)
+	return err
+}
