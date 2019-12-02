@@ -44,6 +44,21 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 	return cond
 }
 
+//FindIssueReactions returns a ReactionList of all reactions from an comment
+func FindCommentReactions(comment *Comment) (ReactionList, error) {
+	return findReactions(x, FindReactionsOptions{
+		IssueID:   comment.IssueID,
+		CommentID: comment.ID})
+}
+
+//FindIssueReactions returns a ReactionList of all reactions from an issue
+func FindIssueReactions(issue *Issue) (ReactionList, error) {
+	return findReactions(x, FindReactionsOptions{
+		IssueID:   issue.ID,
+		CommentID: 0,
+	})
+}
+
 func findReactions(e Engine, opts FindReactionsOptions) ([]*Reaction, error) {
 	reactions := make([]*Reaction, 0, 10)
 	sess := e.Where(opts.toConds())
