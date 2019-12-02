@@ -75,7 +75,7 @@ func (org *User) GetMembers() (err error) {
 	return
 }
 
-// FindOrgMembersOpts reprensts find org members condtions
+// FindOrgMembersOpts represensts find org members condtions
 type FindOrgMembersOpts struct {
 	OrgID      int64
 	PublicOnly bool
@@ -83,7 +83,7 @@ type FindOrgMembersOpts struct {
 	Limit      int
 }
 
-// CountOrgMembers counts the orgnization's members
+// CountOrgMembers counts the organization's members
 func CountOrgMembers(opts FindOrgMembersOpts) (int64, error) {
 	sess := x.Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly {
@@ -92,7 +92,7 @@ func CountOrgMembers(opts FindOrgMembersOpts) (int64, error) {
 	return sess.Count(new(OrgUser))
 }
 
-// FindOrgMembers loads orgnization members according conditions
+// FindOrgMembers loads organization members according conditions
 func FindOrgMembers(opts FindOrgMembersOpts) (UserList, map[int64]bool, error) {
 	ous, err := GetOrgUsersByOrgID(opts.OrgID, opts.PublicOnly, opts.Start, opts.Limit)
 	if err != nil {
