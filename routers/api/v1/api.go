@@ -649,7 +649,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						Delete(repo.DeleteDeploykey)
 				}, reqToken(), reqAdmin())
 				m.Group("/times", func() {
-					m.Combo("").Get(repo.ListTrackedTimesByRepositoryDeprecated)
+					m.Combo("").Get(repo.ListTrackedTimesByRepository)
 					m.Combo("/:timetrackingusername").Get(repo.ListTrackedTimesByUserDeprecated)
 				}, mustEnableIssues)
 				m.Group("/issues", func() {

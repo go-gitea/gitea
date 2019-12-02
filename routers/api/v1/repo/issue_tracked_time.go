@@ -188,12 +188,11 @@ func ListTrackedTimesByUserDeprecated(ctx *context.APIContext) {
 	ctx.JSON(200, &apiTrackedTimes)
 }
 
-// ListTrackedTimesByRepositoryDeprecated lists all tracked times of the repository
-func ListTrackedTimesByRepositoryDeprecated(ctx *context.APIContext) {
+// ListTrackedTimesByRepository lists all tracked times of the repository
+func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/times repository repoTrackedTimes
 	// ---
 	// summary: List a repo's tracked times
-	// deprecated: true
 	// produces:
 	// - application/json
 	// parameters:
@@ -209,19 +208,26 @@ func ListTrackedTimesByRepositoryDeprecated(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/TrackedTimeListDeprecated"
+	//     "$ref": "#/responses/TrackedTimeList"
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
 		return
 	}
-	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{
-		RepositoryID: ctx.Repo.Repository.ID})
+
+	opts := models.FindTrackedTimesOptions{
+		RepositoryID: ctx.Repo.Repository.ID,
+	}
+
+	if !ctx.IsUserRepoAdmin() && !ctx.User.IsAdmin {
+		opts.UserID = ctx.User.ID
+	}
+
+	trackedTimes, err := models.GetTrackedTimes(opts)
 	if err != nil {
-		ctx.Error(500, "GetTrackedTimesByUser", err)
+		ctx.Error(500, "GetTrackedTimes", err)
 		return
 	}
-	apiTrackedTimes := trackedTimesToAPIFormatDeprecated(trackedTimes)
-	ctx.JSON(200, &apiTrackedTimes)
+	ctx.JSON(200, trackedTimes.APIFormat())
 }
 
 // ListMyTrackedTimes lists all tracked times of the current user
