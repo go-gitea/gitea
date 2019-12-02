@@ -352,7 +352,16 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Processes"] = process.GetManager().Processes
+	ctx.Data["Processes"] = process.GetManager().Processes()
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.HTML(200, tplMonitor)
+}
+
+// MonitorCancel cancels a process
+func MonitorCancel(ctx *context.Context) {
+	pid := ctx.ParamsInt64("pid")
+	process.GetManager().Cancel(pid)
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": ctx.Repo.RepoLink + "/admin/monitor",
+	})
 }

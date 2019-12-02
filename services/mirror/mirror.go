@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -172,25 +171,36 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		gitArgs = append(gitArgs, "--prune")
 	}
 
-	_, stderr, err := process.GetManager().ExecDir(
-		timeout, repoPath, fmt.Sprintf("Mirror.runSync: %s", repoPath),
-		git.GitExecutable, gitArgs...)
-	if err != nil {
+	stdoutBuilder := strings.Builder{}
+	stderrBuilder := strings.Builder{}
+	if err := git.NewCommand(gitArgs...).
+		SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
+		RunInDirTimeoutPipeline(timeout, repoPath, &stdoutBuilder, &stderrBuilder); err != nil {
+		stdout := stdoutBuilder.String()
+		stderr := stderrBuilder.String()
 		// sanitize the output, since it may contain the remote address, which may
 		// contain a password
-		message, err := sanitizeOutput(stderr, repoPath)
-		if err != nil {
-			log.Error("sanitizeOutput: %v", err)
+		stderrMessage, sanitizeErr := sanitizeOutput(stderr, repoPath)
+		if sanitizeErr != nil {
+			log.Error("sanitizeOutput failed on stderr: %v", sanitizeErr)
+			log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderr, err)
 			return nil, false
 		}
-		desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, message)
-		log.Error(desc)
+		stdoutMessage, err := sanitizeOutput(stdout, repoPath)
+		if err != nil {
+			log.Error("sanitizeOutput failed: %v", sanitizeErr)
+			log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderrMessage, err)
+			return nil, false
+		}
+
+		log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
+		desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, stderrMessage)
 		if err = models.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 		return nil, false
 	}
-	output := stderr
+	output := stderrBuilder.String()
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
@@ -208,18 +218,30 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	}
 
 	if m.Repo.HasWiki() {
-		if _, stderr, err := process.GetManager().ExecDir(
-			timeout, wikiPath, fmt.Sprintf("Mirror.runSync: %s", wikiPath),
-			git.GitExecutable, "remote", "update", "--prune"); err != nil {
+		stderrBuilder.Reset()
+		stdoutBuilder.Reset()
+		if err := git.NewCommand("remote", "update", "--prune").
+			SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
+			RunInDirTimeoutPipeline(timeout, wikiPath, &stdoutBuilder, &stderrBuilder); err != nil {
+			stdout := stdoutBuilder.String()
+			stderr := stderrBuilder.String()
 			// sanitize the output, since it may contain the remote address, which may
 			// contain a password
-			message, err := sanitizeOutput(stderr, wikiPath)
-			if err != nil {
-				log.Error("sanitizeOutput: %v", err)
+			stderrMessage, sanitizeErr := sanitizeOutput(stderr, repoPath)
+			if sanitizeErr != nil {
+				log.Error("sanitizeOutput failed on stderr: %v", sanitizeErr)
+				log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderr, err)
 				return nil, false
 			}
-			desc := fmt.Sprintf("Failed to update mirror wiki repository '%s': %s", wikiPath, message)
-			log.Error(desc)
+			stdoutMessage, err := sanitizeOutput(stdout, repoPath)
+			if err != nil {
+				log.Error("sanitizeOutput failed: %v", sanitizeErr)
+				log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderrMessage, err)
+				return nil, false
+			}
+
+			log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
+			desc := fmt.Sprintf("Failed to update mirror repository wiki '%s': %s", wikiPath, stderrMessage)
 			if err = models.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
