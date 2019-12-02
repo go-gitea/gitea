@@ -76,12 +76,11 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	ctx.JSON(200, trackedTimes.APIFormat())
 }
 
-// AddTimeDeprecated adds time manual to the given issue
-func AddTimeDeprecated(ctx *context.APIContext, form api.AddTimeOption) {
-	// swagger:operation Post /repos/{owner}/{repo}/issues/{id}/times issue issueAddTime
+// AddTime adds time manual to the given issue
+func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
+	// swagger:operation Post /repos/{owner}/{repo}/issues/{index}/times issue issueAddTime
 	// ---
 	// summary: Add a tracked time to a issue
-	// deprecated: true
 	// consumes:
 	// - application/json
 	// produces:
@@ -97,7 +96,7 @@ func AddTimeDeprecated(ctx *context.APIContext, form api.AddTimeOption) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: index
 	//   in: path
 	//   description: index of the issue to add tracked time to
 	//   type: integer
@@ -109,7 +108,7 @@ func AddTimeDeprecated(ctx *context.APIContext, form api.AddTimeOption) {
 	//     "$ref": "#/definitions/AddTimeOption"
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/TrackedTimeDeprecated"
+	//     "$ref": "#/responses/TrackedTime"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "403":
@@ -137,7 +136,7 @@ func AddTimeDeprecated(ctx *context.APIContext, form api.AddTimeOption) {
 		ctx.Error(500, "AddTime", err)
 		return
 	}
-	ctx.JSON(200, trackedTime.APIFormatDeprecated())
+	ctx.JSON(200, trackedTime.APIFormat())
 }
 
 // ListTrackedTimesByUserDeprecated  lists all tracked times of the user
