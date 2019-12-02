@@ -162,13 +162,12 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		return
 	}
 
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	err = comment.LoadIssue()
 	if err != nil {
-		ctx.Error(500, "GetIssueByIndex", err)
-		return
+		ctx.Error(500, "comment.LoadIssue() failed", err)
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+	if comment.Issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
 		ctx.Error(403, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
 		return
 	}
@@ -182,6 +181,11 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 			} else {
 				ctx.Error(500, "CreateCommentReaction", err)
 			}
+			return
+		}
+		_, err = reaction.LoadUser()
+		if err != nil {
+			ctx.Error(500, "Reaction.LoadUser()", err)
 			return
 		}
 
@@ -365,6 +369,11 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 			} else {
 				ctx.Error(500, "CreateCommentReaction", err)
 			}
+			return
+		}
+		_, err = reaction.LoadUser()
+		if err != nil {
+			ctx.Error(500, "Reaction.LoadUser()", err)
 			return
 		}
 

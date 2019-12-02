@@ -184,6 +184,16 @@ func DeleteCommentReaction(doer *User, issue *Issue, comment *Comment, content s
 	})
 }
 
+// LoadUsers loads reactions' all users
+func (r *Reaction) LoadUser() (*User, error) {
+	user, err := getUserByID(x, r.UserID)
+	if err != nil {
+		return nil, err
+	}
+	r.User = user
+	return user, nil
+}
+
 // ReactionList represents list of reactions
 type ReactionList []*Reaction
 
