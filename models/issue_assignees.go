@@ -144,9 +144,6 @@ func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID in
 	if err != nil {
 		return false, nil, fmt.Errorf("createComment: %v", err)
 	}
-	if err = sendCreateCommentAction(sess, opts, comment); err != nil {
-		return false, nil, err
-	}
 
 	// if pull request is in the middle of creation - don't call webhook
 	if isCreate {
