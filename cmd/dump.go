@@ -56,7 +56,7 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 }
 
 func fatal(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, format + "\n", args...)
+	fmt.Fprintf(os.Stderr, format+"\n", args...)
 	log.Fatal(format, args...)
 }
 
