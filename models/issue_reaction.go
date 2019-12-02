@@ -186,6 +186,9 @@ func DeleteCommentReaction(doer *User, issue *Issue, comment *Comment, content s
 
 // LoadUser load user of reaction
 func (r *Reaction) LoadUser() (*User, error) {
+	if r.User != nil {
+		return r.User, nil
+	}
 	user, err := getUserByID(x, r.UserID)
 	if err != nil {
 		return nil, err
