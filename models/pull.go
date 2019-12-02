@@ -18,7 +18,6 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
@@ -536,16 +535,13 @@ func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
 	headFile := pr.GetGitRefName()
 
 	// Check if a pull request is merged into BaseBranch
-	_, stderr, err := process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("isMerged (git merge-base --is-ancestor): %d", pr.BaseRepo.ID),
-		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
-		git.GitExecutable, "merge-base", "--is-ancestor", headFile, pr.BaseBranch)
-
+	_, err := git.NewCommand("merge-base", "--is-ancestor", headFile, pr.BaseBranch).RunInDirWithEnv(pr.BaseRepo.RepoPath(), []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
 	if err != nil {
 		// Errors are signaled by a non-zero status that is not 1
 		if strings.Contains(err.Error(), "exit status 1") {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("git merge-base --is-ancestor: %v %v", stderr, err)
+		return nil, fmt.Errorf("git merge-base --is-ancestor: %v", err)
 	}
 
 	commitIDBytes, err := ioutil.ReadFile(pr.BaseRepo.RepoPath() + "/" + headFile)
@@ -559,11 +555,9 @@ func (pr *PullRequest) getMergeCommit() (*git.Commit, error) {
 	cmd := commitID[:40] + ".." + pr.BaseBranch
 
 	// Get the commit from BaseBranch where the pull request got merged
-	mergeCommit, stderr, err := process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("isMerged (git rev-list --ancestry-path --merges --reverse): %d", pr.BaseRepo.ID),
-		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
-		git.GitExecutable, "rev-list", "--ancestry-path", "--merges", "--reverse", cmd)
+	mergeCommit, err := git.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse", cmd).RunInDirWithEnv("", []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
 	if err != nil {
-		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v %v", stderr, err)
+		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v", err)
 	} else if len(mergeCommit) < 40 {
 		// PR was fast-forwarded, so just use last commit of PR
 		mergeCommit = commitID[:40]
@@ -621,12 +615,9 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 	indexTmpPath := filepath.Join(os.TempDir(), "gitea-"+pr.BaseRepo.Name+"-"+strconv.Itoa(time.Now().Nanosecond()))
 	defer os.Remove(indexTmpPath)
 
-	var stderr string
-	_, stderr, err = process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("testPatch (git read-tree): %d", pr.BaseRepo.ID),
-		[]string{"GIT_DIR=" + pr.BaseRepo.RepoPath(), "GIT_INDEX_FILE=" + indexTmpPath},
-		git.GitExecutable, "read-tree", pr.BaseBranch)
+	_, err = git.NewCommand("read-tree", pr.BaseBranch).RunInDirWithEnv("", []string{"GIT_DIR=" + pr.BaseRepo.RepoPath(), "GIT_INDEX_FILE=" + indexTmpPath})
 	if err != nil {
-		return fmt.Errorf("git read-tree --index-output=%s %s: %v - %s", indexTmpPath, pr.BaseBranch, err, stderr)
+		return fmt.Errorf("git read-tree --index-output=%s %s: %v", indexTmpPath, pr.BaseBranch, err)
 	}
 
 	prUnit, err := pr.BaseRepo.getUnit(e, UnitTypePullRequests)
@@ -642,9 +633,15 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 	args = append(args, patchPath)
 	pr.ConflictedFiles = []string{}
 
-	_, stderr, err = process.GetManager().ExecDirEnv(-1, "", fmt.Sprintf("testPatch (git apply --check): %d", pr.BaseRepo.ID),
+	stderrBuilder := new(strings.Builder)
+	err = git.NewCommand(args...).RunInDirTimeoutEnvPipeline(
 		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
-		git.GitExecutable, args...)
+		-1,
+		"",
+		nil,
+		stderrBuilder)
+	stderr := stderrBuilder.String()
+
 	if err != nil {
 		for i := range patchConflicts {
 			if strings.Contains(stderr, patchConflicts[i]) {

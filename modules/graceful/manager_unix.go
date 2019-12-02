@@ -7,6 +7,7 @@
 package graceful
 
 import (
+	"context"
 	"errors"
 	"os"
 	"os/signal"
@@ -31,19 +32,19 @@ type gracefulManager struct {
 	terminateWaitGroup     sync.WaitGroup
 }
 
-func newGracefulManager() *gracefulManager {
+func newGracefulManager(ctx context.Context) *gracefulManager {
 	manager := &gracefulManager{
 		isChild: len(os.Getenv(listenFDs)) > 0 && os.Getppid() > 1,
 		lock:    &sync.RWMutex{},
 	}
 	manager.createServerWaitGroup.Add(numberOfServersToCreate)
-	manager.Run()
+	manager.Run(ctx)
 	return manager
 }
 
-func (g *gracefulManager) Run() {
+func (g *gracefulManager) Run(ctx context.Context) {
 	g.setState(stateRunning)
-	go g.handleSignals()
+	go g.handleSignals(ctx)
 	c := make(chan struct{})
 	go func() {
 		defer close(c)
@@ -69,9 +70,7 @@ func (g *gracefulManager) Run() {
 	}
 }
 
-func (g *gracefulManager) handleSignals() {
-	var sig os.Signal
-
+func (g *gracefulManager) handleSignals(ctx context.Context) {
 	signalChannel := make(chan os.Signal, 1)
 
 	signal.Notify(
@@ -86,35 +85,40 @@ func (g *gracefulManager) handleSignals() {
 
 	pid := syscall.Getpid()
 	for {
-		sig = <-signalChannel
-		switch sig {
-		case syscall.SIGHUP:
-			if setting.GracefulRestartable {
-				log.Info("PID: %d. Received SIGHUP. Forking...", pid)
-				err := g.doFork()
-				if err != nil && err.Error() != "another process already forked. Ignoring this one" {
-					log.Error("Error whilst forking from PID: %d : %v", pid, err)
-				}
-			} else {
-				log.Info("PID: %d. Received SIGHUP. Not set restartable. Shutting down...", pid)
+		select {
+		case sig := <-signalChannel:
+			switch sig {
+			case syscall.SIGHUP:
+				if setting.GracefulRestartable {
+					log.Info("PID: %d. Received SIGHUP. Forking...", pid)
+					err := g.doFork()
+					if err != nil && err.Error() != "another process already forked. Ignoring this one" {
+						log.Error("Error whilst forking from PID: %d : %v", pid, err)
+					}
+				} else {
+					log.Info("PID: %d. Received SIGHUP. Not set restartable. Shutting down...", pid)
 
+					g.doShutdown()
+				}
+			case syscall.SIGUSR1:
+				log.Info("PID %d. Received SIGUSR1.", pid)
+			case syscall.SIGUSR2:
+				log.Warn("PID %d. Received SIGUSR2. Hammering...", pid)
+				g.doHammerTime(0 * time.Second)
+			case syscall.SIGINT:
+				log.Warn("PID %d. Received SIGINT. Shutting down...", pid)
 				g.doShutdown()
+			case syscall.SIGTERM:
+				log.Warn("PID %d. Received SIGTERM. Shutting down...", pid)
+				g.doShutdown()
+			case syscall.SIGTSTP:
+				log.Info("PID %d. Received SIGTSTP.", pid)
+			default:
+				log.Info("PID %d. Received %v.", pid, sig)
 			}
-		case syscall.SIGUSR1:
-			log.Info("PID %d. Received SIGUSR1.", pid)
-		case syscall.SIGUSR2:
-			log.Warn("PID %d. Received SIGUSR2. Hammering...", pid)
-			g.doHammerTime(0 * time.Second)
-		case syscall.SIGINT:
-			log.Warn("PID %d. Received SIGINT. Shutting down...", pid)
+		case <-ctx.Done():
+			log.Warn("PID: %d. Background context for manager closed - %v - Shutting down...", pid, ctx.Err())
 			g.doShutdown()
-		case syscall.SIGTERM:
-			log.Warn("PID %d. Received SIGTERM. Shutting down...", pid)
-			g.doShutdown()
-		case syscall.SIGTSTP:
-			log.Info("PID %d. Received SIGTSTP.", pid)
-		default:
-			log.Info("PID %d. Received %v.", pid, sig)
 		}
 	}
 }
