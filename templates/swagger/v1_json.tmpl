@@ -3069,7 +3069,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Add a reaction to a comment of a issue",
+        "summary": "Add a reaction to a comment of a issue comment",
         "operationId": "issuePostCommentReaction",
         "parameters": [
           {
@@ -3118,7 +3118,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Remove a reaction from a comment of a issue",
+        "summary": "Remove a reaction from a comment of a issue comment",
         "operationId": "issueDeleteCommentReaction",
         "parameters": [
           {
@@ -3825,6 +3825,148 @@
         ],
         "responses": {
           "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/reactions": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Get a list reactions of a issue",
+        "operationId": "issueGetIssueReactions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ReactionResponseList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Add a reaction to a comment of a issue",
+        "operationId": "issuePostIssueReaction",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "content",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditReactionOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/ReactionResponse"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Remove a reaction from a comment of a issue",
+        "operationId": "issueDeleteIssueReaction",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "content",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditReactionOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "$ref": "#/responses/empty"
           }
         }
