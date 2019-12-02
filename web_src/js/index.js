@@ -3150,7 +3150,7 @@ function initTopicbar() {
 
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
-            $(`<div class="ui small label topic" style="cursor:pointer;">${topicArray[i]}</div>`).insertBefore(last);
+            $(`<a class="ui repo-topic small label topic" href="${suburl}/explore/repos?q=${topicArray[i]}&topic=1">${topicArray[i]}</a>`).insertBefore(last);
           }
         }
         editDiv.css('display', 'none');
@@ -3277,7 +3277,7 @@ function initTopicbar() {
         rules: [
           {
             type: 'validateTopic',
-            value: /^[a-z0-9][a-z0-9-]{1,35}$/,
+            value: /^[a-z0-9][a-z0-9-]{0,35}$/,
             prompt: topicPrompts.formatPrompt
           },
           {
