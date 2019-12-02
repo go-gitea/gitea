@@ -582,7 +582,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 					m.Delete("", user.Unstar)
 				}, repoAssignment())
 			})
-			m.Get("/times", repo.ListMyTrackedTimesDeprecated)
+			m.Get("/times", repo.ListMyTrackedTimes)
 
 			m.Get("/subscriptions", user.GetMyWatchedRepos)
 

@@ -224,22 +224,20 @@ func ListTrackedTimesByRepositoryDeprecated(ctx *context.APIContext) {
 	ctx.JSON(200, &apiTrackedTimes)
 }
 
-// ListMyTrackedTimesDeprecated lists all tracked times of the current user
-func ListMyTrackedTimesDeprecated(ctx *context.APIContext) {
+// ListMyTrackedTimes lists all tracked times of the current user
+func ListMyTrackedTimes(ctx *context.APIContext) {
 	// swagger:operation GET /user/times user userCurrentTrackedTimes
 	// ---
 	// summary: List the current user's tracked times
-	// deprecated: true
 	// produces:
 	// - application/json
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/TrackedTimeListDeprecated"
+	//     "$ref": "#/responses/TrackedTimeList"
 	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{UserID: ctx.User.ID})
 	if err != nil {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
 		return
 	}
-	apiTrackedTimes := trackedTimesToAPIFormatDeprecated(trackedTimes)
-	ctx.JSON(200, &apiTrackedTimes)
+	ctx.JSON(200, trackedTimes.APIFormat())
 }
