@@ -394,12 +394,8 @@ func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilesto
 			OldMilestoneID: oldMilestoneID,
 			MilestoneID:    issue.MilestoneID,
 		}
-		comment, err := createCommentWithNoAction(e, opts)
+		_, err := createCommentWithNoAction(e, opts)
 		if err != nil {
-			return err
-		}
-
-		if err := sendCreateCommentAction(e, opts, comment); err != nil {
 			return err
 		}
 	}

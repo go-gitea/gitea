@@ -52,12 +52,8 @@ func updateIssueLock(opts *IssueLockOptions, lock bool) error {
 		Type:    commentType,
 		Content: opts.Reason,
 	}
-	comment, err := createCommentWithNoAction(sess, opt)
+	_, err := createCommentWithNoAction(sess, opt)
 	if err != nil {
-		return err
-	}
-
-	if err = sendCreateCommentAction(sess, opt, comment); err != nil {
 		return err
 	}
 
