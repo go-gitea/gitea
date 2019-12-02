@@ -41,6 +41,10 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 	if opts.CommentID > 0 {
 		cond = cond.And(builder.Eq{"reaction.comment_id": opts.CommentID})
 	}
+	if opts.CommentID == -1 {
+		cond = cond.And(builder.Eq{"reaction.comment_id": 0})
+	}
+
 	return cond
 }
 
@@ -55,7 +59,7 @@ func FindCommentReactions(comment *Comment) (ReactionList, error) {
 func FindIssueReactions(issue *Issue) (ReactionList, error) {
 	return findReactions(x, FindReactionsOptions{
 		IssueID:   issue.ID,
-		CommentID: 0,
+		CommentID: -1,
 	})
 }
 

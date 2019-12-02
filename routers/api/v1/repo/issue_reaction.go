@@ -6,7 +6,6 @@ package repo
 
 import (
 	"errors"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
