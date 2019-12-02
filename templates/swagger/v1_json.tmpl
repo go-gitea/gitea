@@ -3159,46 +3159,6 @@
       }
     },
     "/repos/{owner}/{repo}/issues/{id}/times": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "issue"
-        ],
-        "summary": "List an issue's tracked times",
-        "operationId": "issueTrackedTimes",
-        "deprecated": true,
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "index of the issue",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/TrackedTimeListDeprecated"
-          }
-        }
-      },
       "post": {
         "consumes": [
           "application/json"
@@ -4235,6 +4195,47 @@
           },
           "404": {
             "description": "Issue not found"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/times": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "List an issue's tracked times",
+        "operationId": "issueTrackedTimes",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimeList"
           }
         }
       }

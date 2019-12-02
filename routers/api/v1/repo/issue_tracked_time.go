@@ -18,12 +18,11 @@ func trackedTimesToAPIFormatDeprecated(trackedTimes []*models.TrackedTime) []*ap
 	return apiTrackedTimes
 }
 
-// ListTrackedTimesDeprecated list all the tracked times of an issue
-func ListTrackedTimesDeprecated(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/issues/{id}/times issue issueTrackedTimes
+// ListTrackedTimes list all the tracked times of an issue
+func ListTrackedTimes(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/times issue issueTrackedTimes
 	// ---
 	// summary: List an issue's tracked times
-	// deprecated: true
 	// produces:
 	// - application/json
 	// parameters:
@@ -37,7 +36,7 @@ func ListTrackedTimesDeprecated(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: index
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
@@ -45,7 +44,7 @@ func ListTrackedTimesDeprecated(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/TrackedTimeListDeprecated"
+	//     "$ref": "#/responses/TrackedTimeList"
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.NotFound("Timetracker is disabled")
 		return
@@ -60,13 +59,21 @@ func ListTrackedTimesDeprecated(ctx *context.APIContext) {
 		return
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{IssueID: issue.ID})
+	opts := models.FindTrackedTimesOptions{
+		RepositoryID: ctx.Repo.Repository.ID,
+		IssueID:      issue.ID,
+	}
+
+	if !ctx.IsUserRepoAdmin() && !ctx.User.IsAdmin {
+		opts.UserID = ctx.User.ID
+	}
+
+	trackedTimes, err := models.GetTrackedTimes(opts)
 	if err != nil {
-		ctx.Error(500, "GetTrackedTimesByIssue", err)
+		ctx.Error(500, "GetTrackedTimes", err)
 		return
 	}
-	apiTrackedTimes := trackedTimesToAPIFormatDeprecated(trackedTimes)
-	ctx.JSON(200, &apiTrackedTimes)
+	ctx.JSON(200, trackedTimes.APIFormat())
 }
 
 // AddTimeDeprecated adds time manual to the given issue
