@@ -132,11 +132,25 @@ func EditTime(ctx *context.APIContext, form api.EditTimeOption) {
 		return
 	}
 
+	value := form.Time
+
 	if form.Negative {
-		form.Time = form.Time * -1
+		availableTime, err := models.GetTrackedSeconds(models.FindTrackedTimesOptions{
+			IssueID: issue.ID,
+			UserID:  ctx.User.ID,
+		})
+		if err != nil {
+			ctx.Error(500, "GetTrackedSecounds", err)
+			return
+		}
+		if value > availableTime {
+			ctx.Error(403, "EditTime: forbidden to remove more time on issue than you have", nil)
+			return
+		}
+		value *= -1
 	}
 
-	trackedTime, err := models.AddTime(ctx.User, issue, form.Time)
+	trackedTime, err := models.AddTime(ctx.User, issue, value)
 	if err != nil {
 		ctx.Error(500, "AddTime", err)
 		return
@@ -196,12 +210,9 @@ func ResetIssueTime(ctx *context.APIContext) {
 		return
 	}
 
-	err = models.DeleteTimes(models.FindTrackedTimesOptions{
-		IssueID: issue.ID,
-		UserID:  ctx.User.ID,
-	})
+	err = models.DeleteIssueUserTimes(issue, ctx.User)
 	if err != nil {
-		ctx.Error(500, "AddTime", err)
+		ctx.Error(500, "DeleteIssueUserTimes", err)
 		return
 	}
 	ctx.Status(200)

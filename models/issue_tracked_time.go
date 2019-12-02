@@ -121,6 +121,19 @@ func GetTrackedTimes(options FindTrackedTimesOptions) (trackedTimes TrackedTimeL
 	return
 }
 
+// GetTrackedSeconds return sum of seconds
+func GetTrackedSeconds(options FindTrackedTimesOptions) (trackedSeconds int64, err error) {
+	var trackedTimes TrackedTimeList
+	err = options.ToSession(x).Find(&trackedTimes)
+	if err != nil {
+		return 0, err
+	}
+	for _, t := range trackedTimes {
+		trackedSeconds += t.Time
+	}
+	return trackedSeconds, nil
+}
+
 // AddTime will add the given time (in seconds) to the issue
 func AddTime(user *User, issue *Issue, time int64) (*TrackedTime, error) {
 	tt := &TrackedTime{
@@ -173,27 +186,21 @@ func TotalTimes(options FindTrackedTimesOptions) (map[*User]string, error) {
 	return totalTimes, nil
 }
 
-// DeleteTimes deletes times for issue
-func DeleteTimes(opts FindTrackedTimesOptions) error {
+// DeleteIssueUserTimes deletes times for issue
+func DeleteIssueUserTimes(issue *Issue, user *User) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	ttl, err := GetTrackedTimes(opts)
+	_, err := sess.Delete(TrackedTime{
+		IssueID: issue.ID,
+		UserID:  user.ID,
+	})
 	if err != nil {
 		return err
 	}
 
-	if err := deleteTimes(sess, &ttl); err != nil {
-		return err
-	}
-
 	return sess.Commit()
-}
-
-func deleteTimes(e *xorm.Session, ttl *TrackedTimeList) error {
-	_, err := e.Delete(ttl)
-	return err
 }
