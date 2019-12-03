@@ -285,7 +285,9 @@ func Issues(ctx *context.Context) {
 	}
 	opts.LabelIDs = labelIDs
 
-	opts.RepoIDs = repoIDs
+	if len(repoIDs) > 0 {
+		opts.RepoIDs = repoIDs
+	}
 
 	issues, err := models.Issues(opts)
 	if err != nil {
