@@ -293,7 +293,18 @@ func ServCommand(ctx *macaron.Context) {
 			})
 			return
 		}
-		repo, err = pushCreateRepo(user, ownerName, results.RepoName)
+
+		owner, err := models.GetUserByName(ownerName)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"results": results,
+				"type":    "InternalServerError",
+				"err":     fmt.Sprintf("Unable to get owner: %s %v", results.OwnerName, err),
+			})
+			return
+		}
+
+		repo, err = pushCreateRepo(user, owner, results.RepoName)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
 			ctx.JSON(http.StatusNotFound, map[string]interface{}{
@@ -332,12 +343,12 @@ func ServCommand(ctx *macaron.Context) {
 	// We will update the keys in a different call.
 }
 
-func pushCreateRepo(user *models.User, ownerName, repoName string) (*models.Repository, error) {
-	if !user.IsAdmin && user.Name != ownerName {
+func pushCreateRepo(authUser, owner *models.User, repoName string) (*models.Repository, error) {
+	if !authUser.IsAdmin && authUser.ID != owner.ID {
 		return nil, fmt.Errorf("cannot push-create repository for another user")
 	}
 
-	repo, err := models.CreateRepository(user, user, models.CreateRepoOptions{
+	repo, err := models.CreateRepository(authUser, owner, models.CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: true,
 	})
@@ -346,7 +357,7 @@ func pushCreateRepo(user *models.User, ownerName, repoName string) (*models.Repo
 	}
 
 	if repo != nil {
-		if errDelete := models.DeleteRepository(user, user.ID, repo.ID); errDelete != nil {
+		if errDelete := models.DeleteRepository(authUser, owner.ID, repo.ID); errDelete != nil {
 			log.Error("DeleteRepository: %v", errDelete)
 		}
 	}
