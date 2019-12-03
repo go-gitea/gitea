@@ -98,44 +98,44 @@ func ServCommand(ctx *macaron.Context) {
 	}
 
 	// Now get the Repository and set the results section
+	repoExist := true
 	repo, err := models.GetRepositoryByOwnerAndName(results.OwnerName, results.RepoName)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
-			ctx.JSON(http.StatusNotFound, map[string]interface{}{
+			repoExist = false
+		} else {
+			log.Error("Unable to get repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"results": results,
-				"type":    "ErrRepoNotExist",
-				"err":     fmt.Sprintf("Cannot find repository %s/%s", results.OwnerName, results.RepoName),
+				"type":    "InternalServerError",
+				"err":     fmt.Sprintf("Unable to get repository: %s/%s %v", results.OwnerName, results.RepoName, err),
 			})
 			return
 		}
-		log.Error("Unable to get repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"results": results,
-			"type":    "InternalServerError",
-			"err":     fmt.Sprintf("Unable to get repository: %s/%s %v", results.OwnerName, results.RepoName, err),
-		})
-		return
-	}
-	repo.OwnerName = ownerName
-	results.RepoID = repo.ID
-
-	if repo.IsBeingCreated() {
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"results": results,
-			"type":    "InternalServerError",
-			"err":     "Repository is being created, you could retry after it finished",
-		})
-		return
 	}
 
-	// We can shortcut at this point if the repo is a mirror
-	if mode > models.AccessModeRead && repo.IsMirror {
-		ctx.JSON(http.StatusUnauthorized, map[string]interface{}{
-			"results": results,
-			"type":    "ErrMirrorReadOnly",
-			"err":     fmt.Sprintf("Mirror Repository %s/%s is read-only", results.OwnerName, results.RepoName),
-		})
-		return
+	if repoExist {
+		repo.OwnerName = ownerName
+		results.RepoID = repo.ID
+
+		if repo.IsBeingCreated() {
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"results": results,
+				"type":    "InternalServerError",
+				"err":     "Repository is being created, you could retry after it finished",
+			})
+			return
+		}
+
+		// We can shortcut at this point if the repo is a mirror
+		if mode > models.AccessModeRead && repo.IsMirror {
+			ctx.JSON(http.StatusUnauthorized, map[string]interface{}{
+				"results": results,
+				"type":    "ErrMirrorReadOnly",
+				"err":     fmt.Sprintf("Mirror Repository %s/%s is read-only", results.OwnerName, results.RepoName),
+			})
+			return
+		}
 	}
 
 	// Get the Public Key represented by the keyID
@@ -160,6 +160,16 @@ func ServCommand(ctx *macaron.Context) {
 	results.KeyName = key.Name
 	results.KeyID = key.ID
 	results.UserID = key.OwnerID
+
+	// If repo doesn't exist, deploy key doesn't make sense
+	if !repoExist && key.Type == models.KeyTypeDeploy {
+		ctx.JSON(http.StatusNotFound, map[string]interface{}{
+			"results": results,
+			"type":    "ErrRepoNotExist",
+			"err":     fmt.Sprintf("Cannot find repository %s/%s", results.OwnerName, results.RepoName),
+		})
+		return
+	}
 
 	// Deploy Keys have ownerID set to 0 therefore we can't use the owner
 	// So now we need to check if the key is a deploy key
@@ -220,7 +230,7 @@ func ServCommand(ctx *macaron.Context) {
 	}
 
 	// Don't allow pushing if the repo is archived
-	if mode > models.AccessModeRead && repo.IsArchived {
+	if repoExist && mode > models.AccessModeRead && repo.IsArchived {
 		ctx.JSON(http.StatusUnauthorized, map[string]interface{}{
 			"results": results,
 			"type":    "ErrRepoIsArchived",
@@ -230,7 +240,7 @@ func ServCommand(ctx *macaron.Context) {
 	}
 
 	// Permissions checking:
-	if mode > models.AccessModeRead || repo.IsPrivate || setting.Service.RequireSignInView {
+	if repoExist && (mode > models.AccessModeRead || repo.IsPrivate || setting.Service.RequireSignInView) {
 		if key.Type == models.KeyTypeDeploy {
 			if deployKey.Mode < mode {
 				ctx.JSON(http.StatusUnauthorized, map[string]interface{}{
@@ -265,6 +275,36 @@ func ServCommand(ctx *macaron.Context) {
 		}
 	}
 
+	// We already know we aren't using a deploy key
+	if !repoExist {
+		if user.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
+			ctx.JSON(http.StatusForbidden, map[string]interface{}{
+				"results": results,
+				"type":    "ErrForbidden",
+				"err":     "Push to create is not enabled for organizations.",
+			})
+			return
+		}
+		if !user.IsOrganization() && !setting.Repository.EnablePushCreateUser {
+			ctx.JSON(http.StatusForbidden, map[string]interface{}{
+				"results": results,
+				"type":    "ErrForbidden",
+				"err":     "Push to create is not enabled for users.",
+			})
+			return
+		}
+		repo, err = pushCreateRepo(user, results.RepoName)
+		if err != nil {
+			log.Error("pushCreateRepo: %v", err)
+			ctx.JSON(http.StatusNotFound, map[string]interface{}{
+				"results": results,
+				"type":    "ErrRepoNotExist",
+				"err":     fmt.Sprintf("Cannot find repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err),
+			})
+			return
+		}
+	}
+
 	// Finally if we're trying to touch the wiki we should init it
 	if results.IsWiki {
 		if err = repo.InitWiki(); err != nil {
@@ -290,4 +330,21 @@ func ServCommand(ctx *macaron.Context) {
 
 	ctx.JSON(http.StatusOK, results)
 	// We will update the keys in a different call.
+}
+
+func pushCreateRepo(user *models.User, repoName string) (*models.Repository, error) {
+	repo, err := models.CreateRepository(user, user, models.CreateRepoOptions{
+		Name:      repoName,
+		IsPrivate: true,
+	})
+	if err == nil {
+		return repo, nil
+	}
+
+	if repo != nil {
+		if errDelete := models.DeleteRepository(user, user.ID, repo.ID); errDelete != nil {
+			log.Error("DeleteRepository: %v", errDelete)
+		}
+	}
+	return repo, err
 }
