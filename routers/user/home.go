@@ -178,7 +178,7 @@ func Issues(ctx *context.Context) {
 	)
 
 	if ctxUser.IsOrganization() {
-		viewType = "all"
+		viewType = "your_repositories"
 	} else {
 		viewType = ctx.Query("type")
 		switch viewType {
@@ -188,9 +188,9 @@ func Issues(ctx *context.Context) {
 			filterMode = models.FilterModeCreate
 		case "mentioned":
 			filterMode = models.FilterModeMention
-		case "all": // filterMode already set to All
+		case "your_repositories": // filterMode already set to All
 		default:
-			viewType = "all"
+			viewType = "your_repositories"
 		}
 	}
 
