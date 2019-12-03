@@ -182,6 +182,8 @@ func Issues(ctx *context.Context) {
 	} else {
 		viewType = ctx.Query("type")
 		switch viewType {
+		case "your_repositories":
+			filterMode = models.FilterModeOwn
 		case "assigned":
 			filterMode = models.FilterModeAssign
 		case "created_by":
@@ -220,21 +222,18 @@ func Issues(ctx *context.Context) {
 
 	isShowClosed := ctx.Query("state") == "closed"
 
-	// Get repositories.
-	var err error
-	var userRepoIDs []int64
+	var userRepoIDs []int64 // TO REMOVE
+	var err error           // TO REMOVE
+
+	// Get repository id's for FilterModeAll and FilterModeOwn
+	var ownRepoIDs []int64
+	var allRepoIDs []int64
 	if ctxUser.IsOrganization() {
-		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("AccessibleReposEnv", err)
-			return
-		}
-		userRepoIDs, err = env.RepoIDs(1, ctxUser.NumRepos)
-		if err != nil {
-			ctx.ServerError("env.RepoIDs", err)
-			return
-		}
+		ownRepoIDs, _ := models.GetUserRepositoryIDs(ctxUser.ID)
+		fmt.Println("BBBBBBBBBBs: ", ownRepoIDs)
+		allRepoIDs = ownRepoIDs
 	} else {
+		/*
 		unitType := models.UnitTypeIssues
 		if isPullList {
 			unitType = models.UnitTypePullRequests
@@ -244,9 +243,12 @@ func Issues(ctx *context.Context) {
 			ctx.ServerError("ctxUser.GetAccessRepoIDs", err)
 			return
 		}
-	}
-	if len(userRepoIDs) == 0 {
-		userRepoIDs = []int64{-1}
+		*/
+		ownRepoIDs, _ := models.GetUserRepositoryIDs(ctxUser.ID)
+
+		models.GetRepo
+		allRepoIDs
+		fmt.Println("BBBBBBBBBBs: ", ownRepoIDs) // thats how i degugg at runtime for now (not the best wax i know ...)
 	}
 
 	opts := &models.IssuesOptions{
@@ -257,7 +259,17 @@ func Issues(ctx *context.Context) {
 
 	switch filterMode {
 	case models.FilterModeAll:
-		opts.RepoIDs = userRepoIDs
+		if len(allRepoIDs) == 0 {
+			opts.RepoIDs = []int64{-1}
+		} else {
+			opts.RepoIDs = allRepoIDs
+		}
+	case models.FilterModeOwn:
+		if len(ownRepoIDs) == 0 {
+			opts.RepoIDs = []int64{-1}
+		} else {
+			opts.RepoIDs = ownRepoIDs
+		}
 	case models.FilterModeAssign:
 		opts.AssigneeID = ctxUser.ID
 	case models.FilterModeCreate:
@@ -266,6 +278,7 @@ func Issues(ctx *context.Context) {
 		opts.MentionedID = ctxUser.ID
 	}
 
+	fmt.Println("AAAAAAAAAAAAAAAAAAAAa: ", opts.RepoIDs) // thats how i degugg at runtime for now (not the best wax i know ...)
 	counts, err := models.CountIssuesByRepo(opts)
 	if err != nil {
 		ctx.ServerError("CountIssuesByRepo", err)

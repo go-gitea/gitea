@@ -2210,6 +2210,15 @@ func GetUserRepositories(userID int64, private bool, page, pageSize int, orderBy
 	return repos, sess.Find(&repos)
 }
 
+// GetUserRepositoryIDs return int64 list if all repos a user/org has
+func GetUserRepositoryIDs(userID int64) (repoIDs []int64, err error){
+	var u User{
+
+	}
+	err = x.Find(repoIDs)
+	return
+}
+
 // GetUserMirrorRepositories returns a list of mirror repositories of given user.
 func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 	repos := make([]*Repository, 0, 10)

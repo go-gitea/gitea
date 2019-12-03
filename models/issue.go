@@ -1289,6 +1289,7 @@ type IssueStats struct {
 // Filter modes.
 const (
 	FilterModeAll = iota
+	FilterModeOwn
 	FilterModeAssign
 	FilterModeCreate
 	FilterModeMention
