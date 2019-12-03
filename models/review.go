@@ -51,7 +51,7 @@ type Review struct {
 	ReviewerID int64  `xorm:"index"`
 	Issue      *Issue `xorm:"-"`
 	IssueID    int64  `xorm:"index"`
-	Content    string
+	Content    string `xorm:"TEXT"`
 	// Official is a review made by an assigned approver (counts towards approval)
 	Official bool `xorm:"NOT NULL DEFAULT false"`
 

@@ -721,12 +721,8 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 		OldTitle: oldTitle,
 		NewTitle: issue.Title,
 	}
-	comment, err := createCommentWithNoAction(sess, opts)
-	if err != nil {
+	if _, err = createCommentWithNoAction(sess, opts); err != nil {
 		return fmt.Errorf("createComment: %v", err)
-	}
-	if err = sendCreateCommentAction(sess, opts, comment); err != nil {
-		return err
 	}
 	if err = issue.addCrossReferences(sess, doer, true); err != nil {
 		return err
@@ -753,11 +749,7 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 		Issue:     issue,
 		CommitSHA: branchName,
 	}
-	comment, err := createCommentWithNoAction(sess, opts)
-	if err != nil {
-		return err
-	}
-	if err = sendCreateCommentAction(sess, opts, comment); err != nil {
+	if _, err = createCommentWithNoAction(sess, opts); err != nil {
 		return err
 	}
 
@@ -899,12 +891,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			OldMilestoneID: 0,
 			MilestoneID:    opts.Issue.MilestoneID,
 		}
-		comment, err := createCommentWithNoAction(e, opts)
-		if err != nil {
-			return err
-		}
-
-		if err = sendCreateCommentAction(e, opts, comment); err != nil {
+		if _, err = createCommentWithNoAction(e, opts); err != nil {
 			return err
 		}
 	}
@@ -1402,7 +1389,7 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 // UserIssueStatsOptions contains parameters accepted by GetUserIssueStats.
 type UserIssueStatsOptions struct {
 	UserID      int64
-	RepoID      int64
+	RepoIDs     []int64
 	UserRepoIDs []int64
 	FilterMode  int
 	IsPull      bool
@@ -1416,19 +1403,19 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 
 	cond := builder.NewCond()
 	cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull})
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
+	if len(opts.RepoIDs) > 0 {
+		cond = cond.And(builder.In("issue.repo_id", opts.RepoIDs))
 	}
 
 	switch opts.FilterMode {
 	case FilterModeAll:
-		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
 			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
+		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
 			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
@@ -1450,14 +1437,14 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 			return nil, err
 		}
 	case FilterModeCreate:
-		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
-			And("poster_id = ?", opts.UserID).
+		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+			And("issue.poster_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
-			And("poster_id = ?", opts.UserID).
+		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
+			And("issue.poster_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
