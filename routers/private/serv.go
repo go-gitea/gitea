@@ -293,13 +293,13 @@ func ServCommand(ctx *macaron.Context) {
 			})
 			return
 		}
-		repo, err = pushCreateRepo(user, results.RepoName)
+		repo, err = pushCreateRepo(user, ownerName, results.RepoName)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
 			ctx.JSON(http.StatusNotFound, map[string]interface{}{
 				"results": results,
 				"type":    "ErrRepoNotExist",
-				"err":     fmt.Sprintf("Cannot find repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err),
+				"err":     fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
 			})
 			return
 		}
@@ -332,7 +332,11 @@ func ServCommand(ctx *macaron.Context) {
 	// We will update the keys in a different call.
 }
 
-func pushCreateRepo(user *models.User, repoName string) (*models.Repository, error) {
+func pushCreateRepo(user *models.User, ownerName, repoName string) (*models.Repository, error) {
+	if !user.IsAdmin && user.Name != ownerName {
+		return nil, fmt.Errorf("cannot push-create repository for another user")
+	}
+
 	repo, err := models.CreateRepository(user, user, models.CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: true,
