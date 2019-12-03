@@ -285,7 +285,9 @@ func Issues(ctx *context.Context) {
 	}
 	opts.LabelIDs = labelIDs
 
-	opts.RepoIDs = repoIDs
+	if len(repoIDs) > 0 {
+		opts.RepoIDs = repoIDs
+	}
 
 	issues, err := models.Issues(opts)
 	if err != nil {
@@ -295,23 +297,29 @@ func Issues(ctx *context.Context) {
 
 	showReposMap := make(map[int64]*models.Repository, len(counts))
 	for repoID := range counts {
-		showReposMap[repoID], err = models.GetRepositoryByID(repoID)
-		if models.IsErrRepoNotExist(err) {
-			ctx.NotFound("GetRepositoryByID", err)
-			return
-		} else if err != nil {
-			ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
-			return
-		}
+		if repoID > 0 {
+			if _, ok := showReposMap[repoID]; !ok {
+				repo, err := models.GetRepositoryByID(repoID)
+				if models.IsErrRepoNotExist(err) {
+					ctx.NotFound("GetRepositoryByID", err)
+					return
+				} else if err != nil {
+					ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
+					return
+				}
+				showReposMap[repoID] = repo
+			}
+			repo := showReposMap[repoID]
 
-		// Check if user has access to given repository.
-		perm, err := models.GetUserRepoPermission(showReposMap[repoID], ctxUser)
-		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
-			return
-		}
-		if !perm.CanRead(models.UnitTypeIssues) {
-			log.Error("User created Issues in Repository which they no longer have access to: [%d]", repoID)
+			// Check if user has access to given repository.
+			perm, err := models.GetUserRepoPermission(repo, ctxUser)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
+				return
+			}
+			if !perm.CanRead(models.UnitTypeIssues) {
+				log.Error("User created Issues in Repository which they no longer have access to: [%d]", repoID)
+			}
 		}
 	}
 
