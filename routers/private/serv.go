@@ -314,6 +314,7 @@ func ServCommand(ctx *macaron.Context) {
 			})
 			return
 		}
+		results.RepoID = repo.ID
 	}
 
 	// Finally if we're trying to touch the wiki we should init it
