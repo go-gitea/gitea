@@ -678,7 +678,7 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 	if err != nil {
 		return nil, err
 	}
-	return comment, sendCreateCommentAction(e, opts, comment)
+	return comment, nil
 }
 
 // Creates issue dependency comment
@@ -699,12 +699,8 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 		Issue:            issue,
 		DependentIssueID: dependentIssue.ID,
 	}
-	comment, err := createCommentWithNoAction(e, opts)
-	if err != nil {
+	if _, err = createCommentWithNoAction(e, opts); err != nil {
 		return
-	}
-	if err = sendCreateCommentAction(e, opts, comment); err != nil {
-		return err
 	}
 
 	opts = &CreateCommentOptions{
@@ -714,14 +710,7 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 		Issue:            dependentIssue,
 		DependentIssueID: issue.ID,
 	}
-	comment, err = createCommentWithNoAction(e, opts)
-	if err != nil {
-		return
-	}
-	if err = sendCreateCommentAction(e, opts, comment); err != nil {
-		return err
-	}
-
+	_, err = createCommentWithNoAction(e, opts)
 	return
 }
 

@@ -52,7 +52,7 @@ type Review struct {
 	ReviewerID int64  `xorm:"index"`
 	Issue      *Issue `xorm:"-"`
 	IssueID    int64  `xorm:"index"`
-	Content    string
+	Content    string `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`

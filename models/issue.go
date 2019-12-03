@@ -721,12 +721,8 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 		OldTitle: oldTitle,
 		NewTitle: issue.Title,
 	}
-	comment, err := createCommentWithNoAction(sess, opts)
-	if err != nil {
+	if _, err = createCommentWithNoAction(sess, opts); err != nil {
 		return fmt.Errorf("createComment: %v", err)
-	}
-	if err = sendCreateCommentAction(sess, opts, comment); err != nil {
-		return err
 	}
 	if err = issue.addCrossReferences(sess, doer, true); err != nil {
 		return err
@@ -753,11 +749,7 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 		Issue:     issue,
 		CommitSHA: branchName,
 	}
-	comment, err := createCommentWithNoAction(sess, opts)
-	if err != nil {
-		return err
-	}
-	if err = sendCreateCommentAction(sess, opts, comment); err != nil {
+	if _, err = createCommentWithNoAction(sess, opts); err != nil {
 		return err
 	}
 
@@ -899,12 +891,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			OldMilestoneID: 0,
 			MilestoneID:    opts.Issue.MilestoneID,
 		}
-		comment, err := createCommentWithNoAction(e, opts)
-		if err != nil {
-			return err
-		}
-
-		if err = sendCreateCommentAction(e, opts, comment); err != nil {
+		if _, err = createCommentWithNoAction(e, opts); err != nil {
 			return err
 		}
 	}
