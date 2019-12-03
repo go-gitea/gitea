@@ -246,8 +246,12 @@ func Issues(ctx *context.Context) {
 		*/
 		ownRepoIDs, _ := models.GetUserRepositoryIDs(ctxUser.ID)
 
-		models.GetRepo
-		allRepoIDs
+		unitType := models.UnitTypeIssues
+		if isPullList {
+			unitType = models.UnitTypePullRequests
+		}
+
+		allRepoIDs, err = ctxUser.GetAccessRepoIDs(unitType)
 		fmt.Println("BBBBBBBBBBs: ", ownRepoIDs) // thats how i degugg at runtime for now (not the best wax i know ...)
 	}
 

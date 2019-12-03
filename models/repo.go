@@ -2212,10 +2212,19 @@ func GetUserRepositories(userID int64, private bool, page, pageSize int, orderBy
 
 // GetUserRepositoryIDs return int64 list if all repos a user/org has
 func GetUserRepositoryIDs(userID int64) (repoIDs []int64, err error){
-	var u User{
+	sess := x.NewSession()
+	defer sess.Close()
 
+	idSlice := make([]*struct {
+		RepoID int64
+	}, 0, 10)
+	if err := sess.Table("repository").And("owner_id=?", userID).Find(&idSlice); err != nil {
+		return nil, err
 	}
-	err = x.Find(repoIDs)
+
+	for _, c := range idSlice {
+		repoIDs = append(repoIDs, c.RepoID)
+	}
 	return
 }
 
