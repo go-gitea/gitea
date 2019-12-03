@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
@@ -605,6 +606,15 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
+	if extIssueUnit, _ := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker); extIssueUnit != nil {
+		if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric {
+			metas := ctx.Repo.Repository.ComposeMetas()
+			metas["index"] = ctx.Params(":index")
+			ctx.Redirect(com.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas))
+			return
+		}
+	}
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
