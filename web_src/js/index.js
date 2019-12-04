@@ -1043,6 +1043,11 @@ function initRepository() {
         $($(this).data('target')).addClass('disabled');
       }
     });
+    $('.disable-whitelist').change(function () {
+      if (this.checked) {
+        $($(this).data('target')).addClass('disabled');
+      }
+    });
   }
 }
 
