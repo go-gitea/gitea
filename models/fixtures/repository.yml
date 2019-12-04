@@ -621,5 +621,6 @@
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  num_pulls: 1
   is_mirror: false
   status: 0
