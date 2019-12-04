@@ -87,10 +87,6 @@ type GitlabDownloader struct {
 //   Use either a username/password, personal token entered into the password field, or anonymous/public access
 //   Note: Public access only allows very basic access
 func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDownloader {
-	var downloader = GitlabDownloader{
-		ctx: context.Background(),
-	}
-
 	var client *http.Client
 	var gitlabClient *gitlab.Client
 	var err error
@@ -108,6 +104,7 @@ func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDo
 	// Grab and store project/repo ID here, due to issues using the URL escaped path
 	gr, _, err := gitlabClient.Projects.GetProject(repoPath, nil, nil)
 	if err != nil {
+		log.Trace("Error retrieving project: %v", err)
 		return nil
 	}
 
@@ -116,11 +113,12 @@ func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDo
 		return nil
 	}
 
-	downloader.repoID = gr.ID
-	downloader.repoName = gr.Name
-	downloader.client = gitlabClient
-
-	return &downloader
+	return &GitlabDownloader{
+		ctx:      context.Background(),
+		client:   gitlabClient,
+		repoID:   gr.ID,
+		repoName: gr.Name,
+	}
 }
 
 // GetRepoInfo returns a repository information
@@ -208,10 +206,15 @@ func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
 					closedAt = m.UpdatedAt
 				}
 			}
-			deadline, err := time.Parse("2006-01-02", m.DueDate.String())
-			if err != nil {
-				return nil, err
+
+			var deadline time.Time
+			if m.DueDate != nil {
+				deadline, err = time.Parse("2006-01-02", m.DueDate.String())
+				if err != nil {
+					return nil, err
+				}
 			}
+
 			milestones = append(milestones, &base.Milestone{
 				Title:       m.Title,
 				Description: desc,
