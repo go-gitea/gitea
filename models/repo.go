@@ -63,8 +63,8 @@ var (
 	// Readmes contains the readme files
 	Readmes []string
 
-	// LabelTemplates contains the label template files
-	LabelTemplates []string
+	// LabelTemplates contains the label template files and the list of labels for each file
+	LabelTemplates map[string]string
 
 	// ItemsPerPage maximum items per page in forks, watchers and stars of a repo
 	ItemsPerPage = 40
@@ -99,11 +99,17 @@ func loadRepoConfig() {
 	Gitignores = typeFiles[0]
 	Licenses = typeFiles[1]
 	Readmes = typeFiles[2]
-	LabelTemplates = typeFiles[3]
+	LabelTemplatesFiles := typeFiles[3]
 	sort.Strings(Gitignores)
 	sort.Strings(Licenses)
 	sort.Strings(Readmes)
-	sort.Strings(LabelTemplates)
+	sort.Strings(LabelTemplatesFiles)
+
+	// Load label templates
+	LabelTemplates = make(map[string]string)
+	for _, templateFile := range LabelTemplatesFiles {
+		LabelTemplates[templateFile] = LoadLabelsFormatted(templateFile)
+	}
 
 	// Filter out invalid names and promote preferred licenses.
 	sortedLicenses := make([]string, 0, len(Licenses))
