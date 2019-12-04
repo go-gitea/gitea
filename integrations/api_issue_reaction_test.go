@@ -56,19 +56,24 @@ func TestAPIIssuesReactions(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	var apiReactions []*api.ReactionResponse
 	DecodeJSON(t, resp, &apiReactions)
-	var expectResponse []*api.ReactionResponse
-	expectResponse = append(expectResponse, &api.ReactionResponse{
+	expectResponse := make(map[int]api.ReactionResponse)
+	expectResponse[0] = api.ReactionResponse{
 		User:     user1.APIFormat(),
 		Reaction: "zzz",
 		Created:  time.Unix(1573248002, 0),
-	})
-	expectResponse = append(expectResponse, &api.ReactionResponse{
+	}
+	expectResponse[1] = api.ReactionResponse{
 		User:     user2.APIFormat(),
 		Reaction: "eyes",
 		Created:  time.Unix(1573248003, 0),
-	})
-	expectResponse = append(expectResponse, &apiNewReaction)
-	assert.Equal(t, expectResponse, apiReactions)
+	}
+	expectResponse[2] = apiNewReaction
+	assert.Len(t, apiReactions, 3)
+	for i, r := range apiReactions {
+		assert.Equal(t, expectResponse[i].Reaction, r.Reaction)
+		assert.Equal(t, expectResponse[i].Created, r.Created)
+		assert.Equal(t, expectResponse[i].User.ID, r.User.ID)
+	}
 }
 
 func TestAPICommentReactions(t *testing.T) {
@@ -113,17 +118,22 @@ func TestAPICommentReactions(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	var apiReactions []*api.ReactionResponse
 	DecodeJSON(t, resp, &apiReactions)
-	var expectResponse []*api.ReactionResponse
-	expectResponse = append(expectResponse, &api.ReactionResponse{
+	expectResponse := make(map[int]api.ReactionResponse)
+	expectResponse[0] = api.ReactionResponse{
 		User:     user2.APIFormat(),
 		Reaction: "laugh",
 		Created:  time.Unix(1573248004, 0),
-	})
-	expectResponse = append(expectResponse, &api.ReactionResponse{
+	}
+	expectResponse[1] = api.ReactionResponse{
 		User:     user1.APIFormat(),
 		Reaction: "laugh",
 		Created:  time.Unix(1573248005, 0),
-	})
-	expectResponse = append(expectResponse, &apiNewReaction)
-	assert.Equal(t, expectResponse, apiReactions)
+	}
+	expectResponse[2] = apiNewReaction
+	assert.Len(t, apiReactions, 3)
+	for i, r := range apiReactions {
+		assert.Equal(t, expectResponse[i].Reaction, r.Reaction)
+		assert.Equal(t, expectResponse[i].Created, r.Created)
+		assert.Equal(t, expectResponse[i].User.ID, r.User.ID)
+	}
 }
