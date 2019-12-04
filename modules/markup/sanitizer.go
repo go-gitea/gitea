@@ -47,6 +47,9 @@ func ReplaceSanitizer() {
 
 	// Allow keyword markup
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^` + keywordClass + `$`)).OnElements("span")
+
+	// Allow <kbd> tags for keyboard shortcut styling
+	sanitizer.policy.AllowElements("kbd")
 }
 
 // Sanitize takes a string that contains a HTML fragment or document and applies policy whitelist.

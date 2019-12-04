@@ -21,6 +21,7 @@ import (
 	"golang.org/x/sys/windows/svc/debug"
 )
 
+// WindowsServiceName is the name of the Windows service
 var WindowsServiceName = "gitea"
 
 const (
