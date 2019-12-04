@@ -207,18 +207,21 @@ func (g *GitlabDownloader) GetMilestones() ([]*base.Milestone, error) {
 				}
 			}
 
-			var deadline time.Time
+			var deadline *time.Time
 			if m.DueDate != nil {
-				deadline, err = time.Parse("2006-01-02", m.DueDate.String())
+				deadlineParsed, err := time.Parse("2006-01-02", m.DueDate.String())
 				if err != nil {
-					return nil, err
+					log.Trace("Error parsing Milestone DueDate time")
+					deadline = nil
+				} else {
+					deadline = &deadlineParsed
 				}
 			}
 
 			milestones = append(milestones, &base.Milestone{
 				Title:       m.Title,
 				Description: desc,
-				Deadline:    &deadline,
+				Deadline:    deadline,
 				State:       state,
 				Created:     *m.CreatedAt,
 				Updated:     m.UpdatedAt,
