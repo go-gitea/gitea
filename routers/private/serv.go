@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"gitea.com/macaron/macaron"
 )
@@ -345,22 +346,25 @@ func ServCommand(ctx *macaron.Context) {
 }
 
 func pushCreateRepo(authUser, owner *models.User, repoName string) (*models.Repository, error) {
-	if !authUser.IsAdmin && authUser.ID != owner.ID {
-		return nil, fmt.Errorf("cannot push-create repository for another user")
+	if !authUser.IsAdmin {
+		if owner.IsOrganization() {
+			if ok, err := owner.CanCreateOrgRepo(authUser.ID); err != nil {
+				return nil, err
+			} else if !ok {
+				return nil, fmt.Errorf("cannot push-create repository for org")
+			}
+		} else if authUser.ID != owner.ID {
+			return nil, fmt.Errorf("cannot push-create repository for another user")
+		}
 	}
 
-	repo, err := models.CreateRepository(authUser, owner, models.CreateRepoOptions{
+	repo, err := repo_service.CreateRepository(authUser, owner, models.CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: true,
 	})
-	if err == nil {
-		return repo, nil
+	if err != nil {
+		return nil, err
 	}
 
-	if repo != nil {
-		if errDelete := models.DeleteRepository(authUser, owner.ID, repo.ID); errDelete != nil {
-			log.Error("DeleteRepository: %v", errDelete)
-		}
-	}
-	return repo, err
+	return repo, nil
 }

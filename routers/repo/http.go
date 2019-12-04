@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // HTTP implmentation git smart HTTP protocol
@@ -354,32 +355,25 @@ func HTTP(ctx *context.Context) {
 func pushCreateRepo(authUser, owner *models.User, repoName string) (*models.Repository, error) {
 	if !authUser.IsAdmin {
 		if owner.IsOrganization() {
-			team, err := owner.GetOwnerTeam()
-			if err != nil {
+			if ok, err := owner.CanCreateOrgRepo(authUser.ID); err != nil {
 				return nil, err
-			}
-			if !team.IsMember(authUser.ID) {
-				return nil, fmt.Errorf("non-owners cannot push-create repository for an org")
+			} else if !ok {
+				return nil, fmt.Errorf("cannot push-create repository for org")
 			}
 		} else if authUser.ID != owner.ID {
 			return nil, fmt.Errorf("cannot push-create repository for another user")
 		}
 	}
 
-	repo, err := models.CreateRepository(authUser, owner, models.CreateRepoOptions{
+	repo, err := repo_service.CreateRepository(authUser, owner, models.CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: true,
 	})
-	if err == nil {
-		return repo, nil
+	if err != nil {
+		return nil, err
 	}
 
-	if repo != nil {
-		if errDelete := models.DeleteRepository(authUser, owner.ID, repo.ID); errDelete != nil {
-			log.Error("DeleteRepository: %v", errDelete)
-		}
-	}
-	return repo, err
+	return repo, nil
 }
 
 type serviceConfig struct {
