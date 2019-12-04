@@ -899,6 +899,7 @@ tbody.commit-list{vertical-align:baseline}
 #new-dependency-drop-list .text{width:100%;overflow:hidden}
 #manage_topic{font-size:12px}
 .label+#manage_topic{margin-left:5px}
+.ui.small.label.topic{margin-bottom:4px}
 .repo-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .repo-header .repo-buttons{display:flex;align-items:center}
 .repo-buttons .disabled-repo-button .label{opacity:.5}
