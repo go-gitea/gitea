@@ -107,6 +107,8 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify
+      GITLAB_READ_TOKEN:
+        from_secret: gitlab_read_token
     depends_on:
       - build
     when:
