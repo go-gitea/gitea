@@ -608,7 +608,7 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 func ViewIssue(ctx *context.Context) {
 	extIssueUnit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
 	if err == nil && extIssueUnit != nil {
-		if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric {
+		if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
 			metas := ctx.Repo.Repository.ComposeMetas()
 			metas["index"] = ctx.Params(":index")
 			ctx.Redirect(com.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas))
