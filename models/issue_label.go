@@ -145,7 +145,7 @@ func loadLabels(labelTemplate string) ([]string, error) {
 	return labels, nil
 }
 
-// Load the labels' list of a template file as a string separated by comma
+// LoadLabelsFormatted loads the labels' list of a template file as a string separated by comma
 func LoadLabelsFormatted(labelTemplate string) (string, error) {
 	labels, err := loadLabels(labelTemplate)
 	return strings.Join(labels, ", "), err
