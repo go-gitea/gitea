@@ -132,23 +132,23 @@ func (label *Label) ForegroundColor() template.CSS {
 	return template.CSS("#000")
 }
 
-func loadLabels(labelTemplate string) []string {
+func loadLabels(labelTemplate string) ([]string, error) {
 	list, err := GetLabelTemplateFile(labelTemplate)
 	if err != nil {
-		//return ErrIssueLabelTemplateLoad{labelTemplate, err}
+		return nil, ErrIssueLabelTemplateLoad{labelTemplate, err}
 	}
 
 	labels := make([]string, len(list))
 	for i := 0; i < len(list); i++ {
 		labels[i] = list[i][0]
 	}
-	return labels
+	return labels, nil
 }
 
 // Load the labels' list of a template file as a string separated by comma
-func LoadLabelsFormatted(labelTemplate string) string {
-	labels := loadLabels(labelTemplate)
-	return strings.Join(labels, ", ")
+func LoadLabelsFormatted(labelTemplate string) (string, error) {
+	labels, err := loadLabels(labelTemplate)
+	return strings.Join(labels, ", "), err
 }
 
 func initalizeLabels(e Engine, repoID int64, labelTemplate string) error {

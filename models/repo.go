@@ -108,7 +108,11 @@ func loadRepoConfig() {
 	// Load label templates
 	LabelTemplates = make(map[string]string)
 	for _, templateFile := range LabelTemplatesFiles {
-		LabelTemplates[templateFile] = LoadLabelsFormatted(templateFile)
+		labels, err := LoadLabelsFormatted(templateFile)
+		if err != nil {
+			log.Fatal("Failed to load labels: %v", err)
+		}
+		LabelTemplates[templateFile] = labels
 	}
 
 	// Filter out invalid names and promote preferred licenses.
