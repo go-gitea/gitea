@@ -4,6 +4,27 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.10.1](https://github.com/go-gitea/gitea/releases/tag/v1.10.1) - 2019-12-05
+* BUGFIXES
+  * [Backport] Fix max length check and limit in multiple repo forms (#9148) (#9204)
+  * [Backport] Properly fix displaying virtual session provider in admin panel (#9137) (#9203)
+  * upgrade levelqueue to 0.1.0 (#9192) (#9199)
+  * Fix panic when diff (#9187) (#9193)
+  * Fix #9151 - smtp logger configuration sendTos should be an array (#9154) (#9157)
+  * Backport v1.10 - Always Show Password Field on Link Account Sign-in Page (#9150)
+  * Backport: Create PR on Current Repository by Default (#8670) (#9141)
+  * Fix race on indexer (#9136) (#9139)
+  * Fix reCAPTCHA URL (#9119)
+  * Backport Hide migrated credentials to 1.10 (#9098)
+  * backport: update golang.org/x/crypto vendor to use acme v2 (#9056) (#9085)
+  * Backport: Fix password checks on admin create/edit user (#9076) (#9081)
+  *  fix: add search to reserved usernames (backport #9063)  (#9065)
+  * Backport: Fix permission checks for close/reopen from commit (#8875) (#9033)
+  * Ensure Written is set in GZIP ProxyResponseWriter (#9018) (#9025)
+  * [Backport] Fix broken link to branch from issue list (#9003) (#9021)
+  * Fix wrong system notice when repository is empty (#9020)
+  * Shadow password correctly for session config (#8984) (#9002)
+
 ## [1.10.0](https://github.com/go-gitea/gitea/releases/tag/v1.10.0) - 2019-11-13
 * BREAKING
   * Fix deadline on update issue or PR via API (#8698)
