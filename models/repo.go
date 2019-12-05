@@ -110,7 +110,7 @@ func loadRepoConfig() {
 	for _, templateFile := range LabelTemplatesFiles {
 		labels, err := LoadLabelsFormatted(templateFile)
 		if err != nil {
-			log.Fatal("Failed to load labels: %v", err)
+			log.Error("Failed to load labels: %v", err)
 		}
 		LabelTemplates[templateFile] = labels
 	}
