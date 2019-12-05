@@ -40,8 +40,7 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 	}
 	if opts.CommentID > 0 {
 		cond = cond.And(builder.Eq{"reaction.comment_id": opts.CommentID})
-	}
-	if opts.CommentID == -1 {
+	} else if opts.CommentID == -1 {
 		cond = cond.And(builder.Eq{"reaction.comment_id": 0})
 	}
 
