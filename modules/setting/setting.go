@@ -169,6 +169,7 @@ var (
 		DefaultShowFullName   bool
 		DefaultTheme          string
 		Themes                []string
+		Reactions             []string
 		SearchRepoDescription bool
 		UseServiceWorker      bool
 
@@ -198,6 +199,7 @@ var (
 		MaxDisplayFileSize:  8388608,
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
+		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int

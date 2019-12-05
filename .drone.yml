@@ -56,11 +56,10 @@ steps:
 
   - name: pre-build
     pull: always
-    image: webhippie/nodejs:latest
+    image: node:10 # this step is kept at the lowest version of node that we support
     commands:
       - make css
       - make js
-      - bash -c '[ -z "$(git status --porcelain public/js public/css)" ] || (echo "Generated js/css files do not match" && git status --porcelain public/js public/css && exit 1)'
 
   - name: build-without-gcc
     pull: always
@@ -69,6 +68,7 @@ steps:
       GO111MODULE: on
       GOPROXY: off
     commands:
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
 
   - name: build-linux-386
@@ -80,12 +80,14 @@ steps:
       GOOS: linux
       GOARCH: 386
     commands:
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
 
   - name: build
     pull: always
     image: golang:1.13
     commands:
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - make clean
       - make generate
       - make golangci-lint

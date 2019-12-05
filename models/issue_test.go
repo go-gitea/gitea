@@ -180,7 +180,7 @@ func TestGetUserIssueStats(t *testing.T) {
 		{
 			UserIssueStatsOptions{
 				UserID:     1,
-				RepoID:     1,
+				RepoIDs:    []int64{1},
 				FilterMode: FilterModeAll,
 			},
 			IssueStats{

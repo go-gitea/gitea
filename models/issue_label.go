@@ -406,14 +406,15 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err
 		return
 	}
 
-	if _, err = createComment(e, &CreateCommentOptions{
+	var opts = &CreateCommentOptions{
 		Type:    CommentTypeLabel,
 		Doer:    doer,
 		Repo:    issue.Repo,
 		Issue:   issue,
 		Label:   label,
 		Content: "1",
-	}); err != nil {
+	}
+	if _, err = createCommentWithNoAction(e, opts); err != nil {
 		return err
 	}
 
@@ -482,13 +483,14 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 		return
 	}
 
-	if _, err = createComment(e, &CreateCommentOptions{
+	var opts = &CreateCommentOptions{
 		Type:  CommentTypeLabel,
 		Doer:  doer,
 		Repo:  issue.Repo,
 		Issue: issue,
 		Label: label,
-	}); err != nil {
+	}
+	if _, err = createCommentWithNoAction(e, opts); err != nil {
 		return err
 	}
 

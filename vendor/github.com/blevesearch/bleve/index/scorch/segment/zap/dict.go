@@ -95,6 +95,10 @@ func (d *Dictionary) postingsListInit(rv *PostingsList, except *roaring.Bitmap) 
 	return rv
 }
 
+func (d *Dictionary) Contains(key []byte) (bool, error) {
+	return d.fst.Contains(key)
+}
+
 // Iterator returns an iterator for this dictionary
 func (d *Dictionary) Iterator() segment.DictionaryIterator {
 	rv := &DictionaryIterator{
@@ -143,11 +147,14 @@ func (d *Dictionary) RangeIterator(start, end string) segment.DictionaryIterator
 	}
 
 	// need to increment the end position to be inclusive
-	endBytes := []byte(end)
-	if endBytes[len(endBytes)-1] < 0xff {
-		endBytes[len(endBytes)-1]++
-	} else {
-		endBytes = append(endBytes, 0xff)
+	var endBytes []byte
+	if len(end) > 0 {
+		endBytes = []byte(end)
+		if endBytes[len(endBytes)-1] < 0xff {
+			endBytes[len(endBytes)-1]++
+		} else {
+			endBytes = append(endBytes, 0xff)
+		}
 	}
 
 	if d.fst != nil {

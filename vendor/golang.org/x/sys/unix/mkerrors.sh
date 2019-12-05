@@ -44,6 +44,7 @@ includes_AIX='
 #include <sys/stropts.h>
 #include <sys/mman.h>
 #include <sys/poll.h>
+#include <sys/select.h>
 #include <sys/termio.h>
 #include <termios.h>
 #include <fcntl.h>
@@ -190,11 +191,13 @@ struct ltchars {
 #include <linux/can.h>
 #include <linux/capability.h>
 #include <linux/cryptouser.h>
+#include <linux/devlink.h>
 #include <linux/errqueue.h>
 #include <linux/falloc.h>
 #include <linux/fanotify.h>
 #include <linux/filter.h>
 #include <linux/fs.h>
+#include <linux/fscrypt.h>
 #include <linux/genetlink.h>
 #include <linux/hdreg.h>
 #include <linux/icmpv6.h>
@@ -494,7 +497,9 @@ ccflags="$@"
 		$2 ~ /^CAN_/ ||
 		$2 ~ /^CAP_/ ||
 		$2 ~ /^ALG_/ ||
-		$2 ~ /^FS_(POLICY_FLAGS|KEY_DESC|ENCRYPTION_MODE|[A-Z0-9_]+_KEY_SIZE|IOC_(GET|SET)_ENCRYPTION)/ ||
+		$2 ~ /^FS_(POLICY_FLAGS|KEY_DESC|ENCRYPTION_MODE|[A-Z0-9_]+_KEY_SIZE)/ ||
+		$2 ~ /^FS_IOC_.*ENCRYPTION/ ||
+		$2 ~ /^FSCRYPT_/ ||
 		$2 ~ /^GRND_/ ||
 		$2 ~ /^RND/ ||
 		$2 ~ /^KEY_(SPEC|REQKEY_DEFL)_/ ||
@@ -524,6 +529,7 @@ ccflags="$@"
 		$2 ~ /^(HDIO|WIN|SMART)_/ ||
 		$2 ~ /^CRYPTO_/ ||
 		$2 ~ /^TIPC_/ ||
+		$2 ~ /^DEVLINK_/ ||
 		$2 !~ "WMESGLEN" &&
 		$2 ~ /^W[A-Z0-9]+$/ ||
 		$2 ~/^PPPIOC/ ||

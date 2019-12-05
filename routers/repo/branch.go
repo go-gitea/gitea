@@ -137,7 +137,7 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 	if err := repofiles.PushUpdate(
 		ctx.Repo.Repository,
 		branchName,
-		models.PushUpdateOptions{
+		repofiles.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + branchName,
 			OldCommitID:  commit.ID.String(),
 			NewCommitID:  git.EmptySHA,

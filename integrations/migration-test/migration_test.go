@@ -29,8 +29,8 @@ import (
 
 var currentEngine *xorm.Engine
 
-func initMigrationTest(t *testing.T) {
-	integrations.PrintCurrentTest(t, 2)
+func initMigrationTest(t *testing.T) func() {
+	deferFn := integrations.PrintCurrentTest(t, 2)
 	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
 		integrations.Printf("Environment variable $GITEA_ROOT not set\n")
@@ -56,6 +56,7 @@ func initMigrationTest(t *testing.T) {
 	setting.CheckLFSVersion()
 	setting.InitDBConfig()
 	setting.NewLogServices(true)
+	return deferFn
 }
 
 func availableVersions() ([]string, error) {
@@ -209,7 +210,7 @@ func wrappedMigrate(x *xorm.Engine) error {
 }
 
 func doMigrationTest(t *testing.T, version string) {
-	integrations.PrintCurrentTest(t)
+	defer integrations.PrintCurrentTest(t)()
 	integrations.Printf("Performing migration test for %s version: %s\n", setting.Database.Type, version)
 	if !restoreOldDB(t, version) {
 		return
@@ -225,7 +226,7 @@ func doMigrationTest(t *testing.T, version string) {
 }
 
 func TestMigrations(t *testing.T) {
-	initMigrationTest(t)
+	defer initMigrationTest(t)()
 
 	dialect := setting.Database.Type
 	versions, err := availableVersions()

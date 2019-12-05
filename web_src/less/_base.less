@@ -1092,6 +1092,12 @@ i.icon.centerlock {
     overflow-x: auto;
     overflow-y: hidden;
 
+    &.has-context-menu {
+        overflow: visible;
+        overflow-x: visible;
+        overflow-y: visible;
+    }
+
     *:not(.fa):not(.octicon):not(.icon) {
         font-size: 12px;
         font-family: @monospaced-fonts, monospace;

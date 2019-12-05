@@ -696,6 +696,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IssueWatch"] = iw
+	ctx.Data["AllowedReactions"] = setting.UI.Reactions
 
 	issue.RenderedContent = string(markdown.Render([]byte(issue.Content), ctx.Repo.RepoLink,
 		ctx.Repo.Repository.ComposeMetas()))
@@ -958,9 +959,9 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 
-		ctx.Data["PullReviewersWithType"], err = models.GetReviewersByPullID(issue.ID)
+		ctx.Data["PullReviewers"], err = models.GetReviewersByIssueID(issue.ID)
 		if err != nil {
-			ctx.ServerError("GetReviewersByPullID", err)
+			ctx.ServerError("GetReviewersByIssueID", err)
 			return
 		}
 	}
@@ -1471,6 +1472,12 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 
 	switch ctx.Params(":action") {
 	case "react":
+		if !util.IsStringInSlice(form.Content, setting.UI.Reactions) {
+			err := fmt.Errorf("ChangeIssueReaction: '%s' is not an allowed reaction", form.Content)
+			ctx.ServerError(err.Error(), err)
+			return
+		}
+
 		reaction, err := models.CreateIssueReaction(ctx.User, issue, form.Content)
 		if err != nil {
 			log.Info("CreateIssueReaction: %s", err)
@@ -1566,6 +1573,12 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 
 	switch ctx.Params(":action") {
 	case "react":
+		if !util.IsStringInSlice(form.Content, setting.UI.Reactions) {
+			err := fmt.Errorf("ChangeIssueReaction: '%s' is not an allowed reaction", form.Content)
+			ctx.ServerError(err.Error(), err)
+			return
+		}
+
 		reaction, err := models.CreateCommentReaction(ctx.User, comment.Issue, comment, form.Content)
 		if err != nil {
 			log.Info("CreateCommentReaction: %s", err)

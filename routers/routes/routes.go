@@ -422,6 +422,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/config", admin.Config)
 		m.Post("/config/test_mail", admin.SendTestMail)
 		m.Get("/monitor", admin.Monitor)
+		m.Post("/monitor/cancel/:pid", admin.MonitorCancel)
 
 		m.Group("/users", func() {
 			m.Get("", admin.Users)

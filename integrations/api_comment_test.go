@@ -16,7 +16,7 @@ import (
 )
 
 func TestAPIListRepoComments(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	comment := models.AssertExistsAndLoadBean(t, &models.Comment{},
 		models.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
@@ -40,7 +40,7 @@ func TestAPIListRepoComments(t *testing.T) {
 }
 
 func TestAPIListIssueComments(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	comment := models.AssertExistsAndLoadBean(t, &models.Comment{},
 		models.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
@@ -61,7 +61,7 @@ func TestAPIListIssueComments(t *testing.T) {
 }
 
 func TestAPICreateComment(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	const commentBody = "Comment body"
 
 	issue := models.AssertExistsAndLoadBean(t, &models.Issue{}).(*models.Issue)
@@ -84,7 +84,7 @@ func TestAPICreateComment(t *testing.T) {
 }
 
 func TestAPIEditComment(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	const newCommentBody = "This is the new comment body"
 
 	comment := models.AssertExistsAndLoadBean(t, &models.Comment{},
@@ -110,7 +110,7 @@ func TestAPIEditComment(t *testing.T) {
 }
 
 func TestAPIDeleteComment(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	comment := models.AssertExistsAndLoadBean(t, &models.Comment{},
 		models.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
