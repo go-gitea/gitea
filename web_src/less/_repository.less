@@ -737,16 +737,22 @@
                     font-size: 12px;
                     border: 1px solid rgba(0, 0, 0, 0.1);
                     border-radius: 3px;
-                    &.pending {
-                        color: black;
-                        background-color: #fffbb2;
+                    &.review {
                         margin-left: 5px;
+                        &.pending {
+                            color: black;
+                            background-color: #fffbb2;
+                        }
                     }
                 }
 
                 .actions {
                     .item {
                         float: left;
+
+                        &.context {
+                            float: none;
+                        }
 
                         &.tag {
                             margin-right: 5px;
@@ -838,6 +844,10 @@
                             color: #000000;
                         }
                     }
+                }
+
+                &:target > .content {
+                    box-shadow: 0 0 10px #8c8c8c;
                 }
 
                 .ui.form {
@@ -2420,6 +2430,10 @@ tbody.commit-list {
 
 .label + #manage_topic {
     margin-left: 5px;
+}
+
+.ui.small.label.topic {
+    margin-bottom: 4px;
 }
 
 .repo-header {

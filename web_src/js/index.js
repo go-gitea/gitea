@@ -2,8 +2,9 @@
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
-import './publicPath';
-import './gitGraph';
+import './publicPath.js';
+import './gitGraphLoader.js';
+import './semanticDropdown.js';
 
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
@@ -585,6 +586,28 @@ function initInstall() {
   });
 }
 
+function initIssueComments() {
+  if ($('.repository.view.issue .comments').length === 0) return;
+
+  $(document).click((event) => {
+    const urlTarget = $(':target');
+    if (urlTarget.length === 0) return;
+
+    const urlTargetId = urlTarget.attr('id');
+    if (!urlTargetId) return;
+    if (!/^(issue|pull)(comment)?-\d+$/.test(urlTargetId)) return;
+
+    const $target = $(event.target);
+
+    if ($target.closest(`#${urlTargetId}`).length === 0) {
+      const scrollPosition = $(window).scrollTop();
+      window.location.hash = '';
+      $(window).scrollTop(scrollPosition);
+      window.history.pushState(null, null, ' ');
+    }
+  });
+}
+
 function initRepository() {
   if ($('.repository').length === 0) {
     return;
@@ -732,10 +755,44 @@ function initRepository() {
       return false;
     });
 
+    // Issue Comments
+    initIssueComments();
+
+    // Issue/PR Context Menus
+    $('.context-dropdown').dropdown({
+      action: 'hide'
+    });
+
+    // Quote reply
+    $('.quote-reply').click(function (event) {
+      $(this).closest('.dropdown').find('.menu').toggle('visible');
+      const target = $(this).data('target');
+
+      let $content;
+      if ($(this).hasClass('quote-reply-diff')) {
+        const $parent = $(this).closest('.comment-code-cloud');
+        $parent.find('button.comment-form-reply').click();
+        $content = $parent.find('[name="content"]');
+      } else {
+        $content = $('#content');
+      }
+
+      const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
+      const content = `> ${quote}\n\n`;
+
+      if ($content.val() !== '') {
+        $content.val(`${$content.val()}\n\n${content}`);
+      } else {
+        $content.val(`${content}`);
+      }
+      $content.focus();
+      event.preventDefault();
+    });
+
     // Edit issue or comment content
-    $('.edit-content').click(function () {
-      const $segment = $(this).parent().parent().parent()
-        .next();
+    $('.edit-content').click(function (event) {
+      $(this).closest('.dropdown').find('.menu').toggle('visible');
+      const $segment = $(this).closest('.header').next();
       const $editContentZone = $segment.find('.edit-content-zone');
       const $renderContent = $segment.find('.render-content');
       const $rawContent = $segment.find('.raw-content');
@@ -881,7 +938,7 @@ function initRepository() {
         $textarea.val($rawContent.text());
       }
       $textarea.focus();
-      return false;
+      event.preventDefault();
     });
 
     // Delete comment
@@ -931,7 +988,6 @@ function initRepository() {
       $(this).closest('.form').hide();
       $mergeButton.parent().show();
     });
-
     initReactionSelector();
   }
 
@@ -984,6 +1040,11 @@ function initRepository() {
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
       } else {
+        $($(this).data('target')).addClass('disabled');
+      }
+    });
+    $('.disable-whitelist').change(function () {
+      if (this.checked) {
         $($(this).data('target')).addClass('disabled');
       }
     });
@@ -1723,9 +1784,9 @@ function initAdmin() {
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
     $('#auth_type').change(function () {
-      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size').hide();
+      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size .sspi').hide();
 
-      $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+      $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
       $('.binddnrequired').removeClass('required');
 
       const authType = $(this).val();
@@ -1752,6 +1813,10 @@ function initAdmin() {
           $('.oauth2').show();
           $('.oauth2 div.required:not(.oauth2_use_custom_url,.oauth2_use_custom_url_field,.open_id_connect_auto_discovery_url) input').attr('required', 'required');
           onOAuth2Change();
+          break;
+        case '7': // SSPI
+          $('.sspi').show();
+          $('.sspi div.required input').attr('required', 'required');
           break;
       }
       if (authType === '2' || authType === '5') {
@@ -3090,7 +3155,7 @@ function initTopicbar() {
 
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
-            $(`<div class="ui small label topic" style="cursor:pointer;">${topicArray[i]}</div>`).insertBefore(last);
+            $(`<a class="ui repo-topic small label topic" href="${suburl}/explore/repos?q=${topicArray[i]}&topic=1">${topicArray[i]}</a>`).insertBefore(last);
           }
         }
         editDiv.css('display', 'none');
@@ -3217,7 +3282,7 @@ function initTopicbar() {
         rules: [
           {
             type: 'validateTopic',
-            value: /^[a-z0-9][a-z0-9-]{1,35}$/,
+            value: /^[a-z0-9][a-z0-9-]{0,35}$/,
             prompt: topicPrompts.formatPrompt
           },
           {

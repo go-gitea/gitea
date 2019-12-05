@@ -471,6 +471,13 @@ code,
         text-align: center;
     }
 
+    .message > ul {
+        margin-left: auto;
+        margin-right: auto;
+        display: table;
+        text-align: left;
+    }
+
     &.bottom.attached.message {
         font-weight: bold;
         text-align: left;
@@ -1084,6 +1091,12 @@ i.icon.centerlock {
     overflow: auto;
     overflow-x: auto;
     overflow-y: hidden;
+
+    &.has-context-menu {
+        overflow: visible;
+        overflow-x: visible;
+        overflow-y: visible;
+    }
 
     *:not(.fa):not(.octicon):not(.icon) {
         font-size: 12px;

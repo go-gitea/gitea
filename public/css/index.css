@@ -113,6 +113,7 @@ a{cursor:pointer}
 .ui .text.nopadding{padding:0}
 .ui .text.nomargin{margin:0}
 .ui .message{text-align:center}
+.ui .message>ul{margin-left:auto;margin-right:auto;display:table;text-align:left}
 .ui.bottom.attached.message{font-weight:700;text-align:left;color:#000}
 .ui.bottom.attached.message .pull-right{color:#000}
 .ui.bottom.attached.message .pull-right>span,.ui.bottom.attached.message>span{color:#21ba45}
@@ -247,6 +248,7 @@ i.icon.centerlock{top:1.5em}
 .lines-commit .ui.avatar.image{height:18px;width:18px}
 .lines-code .bottom-line,.lines-commit .bottom-line,.lines-num .bottom-line{border-bottom:1px solid #eaecef}
 .code-view{overflow:auto;overflow-x:auto;overflow-y:hidden}
+.code-view.has-context-menu{overflow:visible;overflow-x:visible;overflow-y:visible}
 .code-view :not(.fa):not(.octicon):not(.icon){font-size:12px;font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace;line-height:20px}
 .code-view table{width:100%}
 .code-view .active{background:#fff866}
@@ -571,8 +573,10 @@ i.icon.centerlock{top:1.5em}
 .repository.view.issue .comment-list .timeline-line:before{display:block;content:"";position:absolute;margin-top:12px;margin-bottom:14px;top:0;bottom:0;left:82px;width:2px;background-color:#f3f3f3;z-index:-1}
 .repository.view.issue .comment-list .comment .avatar{width:3em}
 .repository.view.issue .comment-list .comment .tag{color:#767676;margin-top:3px;padding:2px 5px;font-size:12px;border:1px solid rgba(0,0,0,.1);border-radius:3px}
-.repository.view.issue .comment-list .comment .tag.pending{color:#000;background-color:#fffbb2;margin-left:5px}
+.repository.view.issue .comment-list .comment .tag.review{margin-left:5px}
+.repository.view.issue .comment-list .comment .tag.review.pending{color:#000;background-color:#fffbb2}
 .repository.view.issue .comment-list .comment .actions .item{float:left}
+.repository.view.issue .comment-list .comment .actions .item.context{float:none}
 .repository.view.issue .comment-list .comment .actions .item.tag{margin-right:5px}
 .repository.view.issue .comment-list .comment .actions .item.action{margin-top:6px;margin-left:10px}
 .repository.view.issue .comment-list .comment .content{margin-left:4em}
@@ -591,6 +595,7 @@ i.icon.centerlock{top:1.5em}
 .repository.view.issue .comment-list .comment .content>.bottom.segment .ui.image{max-height:100%;width:auto;margin:0;vertical-align:middle}
 .repository.view.issue .comment-list .comment .content>.bottom.segment span.ui.image{font-size:128px;color:#000}
 .repository.view.issue .comment-list .comment .content>.bottom.segment span.ui.image:hover{color:#000}
+.repository.view.issue .comment-list .comment:target>.content{box-shadow:0 0 10px #8c8c8c}
 .repository.view.issue .comment-list .comment .ui.form .field:first-child{clear:none}
 .repository.view.issue .comment-list .comment .ui.form .tab.segment{border:0;padding:10px 0 0}
 .repository.view.issue .comment-list .comment .ui.form textarea{height:200px;font-family:'SF Mono',Consolas,Menlo,'Liberation Mono',Monaco,'Lucida Console',monospace}
@@ -894,6 +899,7 @@ tbody.commit-list{vertical-align:baseline}
 #new-dependency-drop-list .text{width:100%;overflow:hidden}
 #manage_topic{font-size:12px}
 .label+#manage_topic{margin-left:5px}
+.ui.small.label.topic{margin-bottom:4px}
 .repo-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .repo-header .repo-buttons{display:flex;align-items:center}
 .repo-buttons .disabled-repo-button .label{opacity:.5}
@@ -1055,7 +1061,7 @@ td.blob-excerpt{background-color:#fafafa}
 .ui.user.list .item .description .octicon:not(:first-child){margin-left:5px}
 .ui.user.list .item .description a{color:#333}
 .ui.user.list .item .description a:hover{text-decoration:underline}
-.ui.button.add-code-comment{font-size:14px;height:16px;padding:2px 0 0;position:relative;width:16px;z-index:5;float:left;margin:-2px -10px -2px -20px;opacity:0;transition:transform .1s ease-in-out;transform:scale(1,1)}
+.ui.button.add-code-comment{font-size:14px;height:16px;line-height:16px!important;padding:0;position:relative;width:16px;z-index:5;float:left;margin:2px -10px 2px -20px;opacity:0;transition:transform .1s ease-in-out;transform:scale(1,1)}
 .ui.button.add-code-comment:hover{transform:scale(1.2,1.2)}
 .focus-lines-new .ui.button.add-code-comment.add-code-comment-right,.focus-lines-old .ui.button.add-code-comment.add-code-comment-left{opacity:1}
 .comment-code-cloud{padding:4px;position:relative;border:1px solid #f1f1f1;margin:13px 10px 5px auto}

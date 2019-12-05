@@ -3832,8 +3832,8 @@
           }
         ],
         "responses": {
-          "201": {
-            "$ref": "#/responses/empty"
+          "200": {
+            "$ref": "#/responses/UserList"
           },
           "404": {
             "description": "Issue not found"
@@ -8279,6 +8279,10 @@
         "name"
       ],
       "properties": {
+        "can_create_org_repo": {
+          "type": "boolean",
+          "x-go-name": "CanCreateOrgRepo"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
@@ -8847,6 +8851,10 @@
         "name"
       ],
       "properties": {
+        "can_create_org_repo": {
+          "type": "boolean",
+          "x-go-name": "CanCreateOrgRepo"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
@@ -10321,6 +10329,11 @@
           "format": "int64",
           "x-go-name": "OpenIssues"
         },
+        "open_pr_counter": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OpenPulls"
+        },
         "original_url": {
           "type": "string",
           "x-go-name": "OriginalURL"
@@ -10337,6 +10350,11 @@
         "private": {
           "type": "boolean",
           "x-go-name": "Private"
+        },
+        "release_counter": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Releases"
         },
         "size": {
           "type": "integer",
@@ -10506,6 +10524,10 @@
       "description": "Team represents a team in an organization",
       "type": "object",
       "properties": {
+        "can_create_org_repo": {
+          "type": "boolean",
+          "x-go-name": "CanCreateOrgRepo"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
