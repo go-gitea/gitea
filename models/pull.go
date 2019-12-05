@@ -976,8 +976,16 @@ func (pr *PullRequest) SetTargetBranch(targetBranch string, doer *User) (err err
 
 	issue := pr.Issue
 
-	if _, err = createChangePullRequestTargetBranchComment(sess, doer, issue.Repo, issue, oldBranch, targetBranch); err != nil {
-		return fmt.Errorf("createChangePullRequestTargetBranchComment: %v", err)
+	options := &CreateCommentOptions{
+		Type:   CommentTypeChangeTargetBranch,
+		Doer:   doer,
+		Repo:   issue.Repo,
+		Issue:  issue,
+		OldRef: oldBranch,
+		NewRef: targetBranch,
+	}
+	if _, err = createCommentWithNoAction(sess, options); err != nil {
+		return fmt.Errorf("CreateChangeTargetBranchComment: %v", err)
 	}
 
 	return sess.Commit()

@@ -687,17 +687,6 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 	return comment, nil
 }
 
-func createChangePullRequestTargetBranchComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldBranch string, newBranch string) (*Comment, error) {
-	return createComment(e, &CreateCommentOptions{
-		Type:   CommentTypeChangeTargetBranch,
-		Doer:   doer,
-		Repo:   repo,
-		Issue:  issue,
-		OldRef: oldBranch,
-		NewRef: newBranch,
-	})
-}
-
 // Creates issue dependency comment
 func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dependentIssue *Issue, add bool) (err error) {
 	cType := CommentTypeAddDependency
