@@ -361,7 +361,7 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 		})
 
 		// increment issueCount, to be used in GetPullRequests()
-		g.issueCount = g.issueCount + 1
+		g.issueCount++
 	}
 
 	return allIssues, len(issues) < perPage, nil

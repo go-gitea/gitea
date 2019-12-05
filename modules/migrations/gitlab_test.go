@@ -79,8 +79,8 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			assertLabelEqual(t, "enhancement", "5cb85c", "", l)
 		case "critical":
 			assertLabelEqual(t, "critical", "d9534f", "", l)
-		case "disucssion":
-			assertLabelEqual(t, "disucssion", "428bca", "", l)
+		case "discussion":
+			assertLabelEqual(t, "discussion", "428bca", "", l)
 		case "suggestion":
 			assertLabelEqual(t, "suggestion", "428bca", "", l)
 		case "support":
