@@ -1,10 +1,10 @@
-{{if gt (len .PullReviewersWithType) 0}}
+{{if gt (len .PullReviewers) 0}}
 	<div class="comment box">
 		<div class="content">
 			<div class="ui segment">
 				<h4>{{$.i18n.Tr "repo.issues.review.reviewers"}}</h4>
-				{{range .PullReviewersWithType}}
-					{{ $createdStr:= TimeSinceUnix .ReviewUpdatedUnix $.Lang }}
+				{{range .PullReviewers}}
+					{{ $createdStr:= TimeSinceUnix .UpdatedUnix $.Lang }}
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<span class="type-icon text {{if eq .Type 1}}green
@@ -13,10 +13,10 @@
 							{{else}}grey{{end}}">
 							<span class="octicon octicon-{{.Type.Icon}}"></span>
 						</span>
-						<a class="ui avatar image" href="{{.HomeLink}}">
-							<img src="{{.RelAvatarLink}}">
+						<a class="ui avatar image" href="{{.Reviewer.HomeLink}}">
+							<img src="{{.Reviewer.RelAvatarLink}}">
 						</a>
-						<span class="text grey"><a href="{{.HomeLink}}">{{.Name}}</a>
+						<span class="text grey"><a href="{{.Reviewer.HomeLink}}">{{.Reviewer.Name}}</a>
 							{{if eq .Type 1}}
 								{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
 							{{else if eq .Type 2}}

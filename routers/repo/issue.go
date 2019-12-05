@@ -935,9 +935,9 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 
-		ctx.Data["PullReviewersWithType"], err = models.GetReviewersByPullID(issue.ID)
+		ctx.Data["PullReviewers"], err = models.GetReviewersByIssueID(issue.ID)
 		if err != nil {
-			ctx.ServerError("GetReviewersByPullID", err)
+			ctx.ServerError("GetReviewersByIssueID", err)
 			return
 		}
 	}

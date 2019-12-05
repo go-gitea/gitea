@@ -196,32 +196,55 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 		}
 
 		var whitelistUsers, whitelistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams []int64
-		protectBranch.EnableWhitelist = f.EnableWhitelist
-		if strings.TrimSpace(f.WhitelistUsers) != "" {
-			whitelistUsers, _ = base.StringsToInt64s(strings.Split(f.WhitelistUsers, ","))
+		switch f.EnablePush {
+		case "all":
+			protectBranch.CanPush = true
+			protectBranch.EnableWhitelist = false
+			protectBranch.WhitelistDeployKeys = false
+		case "whitelist":
+			protectBranch.CanPush = true
+			protectBranch.EnableWhitelist = true
+			protectBranch.WhitelistDeployKeys = f.WhitelistDeployKeys
+			if strings.TrimSpace(f.WhitelistUsers) != "" {
+				whitelistUsers, _ = base.StringsToInt64s(strings.Split(f.WhitelistUsers, ","))
+			}
+			if strings.TrimSpace(f.WhitelistTeams) != "" {
+				whitelistTeams, _ = base.StringsToInt64s(strings.Split(f.WhitelistTeams, ","))
+			}
+		default:
+			protectBranch.CanPush = false
+			protectBranch.EnableWhitelist = false
+			protectBranch.WhitelistDeployKeys = false
 		}
-		if strings.TrimSpace(f.WhitelistTeams) != "" {
-			whitelistTeams, _ = base.StringsToInt64s(strings.Split(f.WhitelistTeams, ","))
-		}
+
 		protectBranch.EnableMergeWhitelist = f.EnableMergeWhitelist
-		if strings.TrimSpace(f.MergeWhitelistUsers) != "" {
-			mergeWhitelistUsers, _ = base.StringsToInt64s(strings.Split(f.MergeWhitelistUsers, ","))
-		}
-		if strings.TrimSpace(f.MergeWhitelistTeams) != "" {
-			mergeWhitelistTeams, _ = base.StringsToInt64s(strings.Split(f.MergeWhitelistTeams, ","))
+		if f.EnableMergeWhitelist {
+			if strings.TrimSpace(f.MergeWhitelistUsers) != "" {
+				mergeWhitelistUsers, _ = base.StringsToInt64s(strings.Split(f.MergeWhitelistUsers, ","))
+			}
+			if strings.TrimSpace(f.MergeWhitelistTeams) != "" {
+				mergeWhitelistTeams, _ = base.StringsToInt64s(strings.Split(f.MergeWhitelistTeams, ","))
+			}
 		}
 
 		protectBranch.EnableStatusCheck = f.EnableStatusCheck
-		protectBranch.StatusCheckContexts = f.StatusCheckContexts
-		protectBranch.WhitelistDeployKeys = f.WhitelistDeployKeys
+		if f.EnableStatusCheck {
+			protectBranch.StatusCheckContexts = f.StatusCheckContexts
+		} else {
+			protectBranch.StatusCheckContexts = nil
+		}
 
 		protectBranch.RequiredApprovals = f.RequiredApprovals
-		if strings.TrimSpace(f.ApprovalsWhitelistUsers) != "" {
-			approvalsWhitelistUsers, _ = base.StringsToInt64s(strings.Split(f.ApprovalsWhitelistUsers, ","))
+		protectBranch.EnableApprovalsWhitelist = f.EnableApprovalsWhitelist
+		if f.EnableApprovalsWhitelist {
+			if strings.TrimSpace(f.ApprovalsWhitelistUsers) != "" {
+				approvalsWhitelistUsers, _ = base.StringsToInt64s(strings.Split(f.ApprovalsWhitelistUsers, ","))
+			}
+			if strings.TrimSpace(f.ApprovalsWhitelistTeams) != "" {
+				approvalsWhitelistTeams, _ = base.StringsToInt64s(strings.Split(f.ApprovalsWhitelistTeams, ","))
+			}
 		}
-		if strings.TrimSpace(f.ApprovalsWhitelistTeams) != "" {
-			approvalsWhitelistTeams, _ = base.StringsToInt64s(strings.Split(f.ApprovalsWhitelistTeams, ","))
-		}
+
 		err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
 			UserIDs:          whitelistUsers,
 			TeamIDs:          whitelistTeams,
