@@ -33,6 +33,8 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 
+	"gitea.com/go-icon/octicon"
+
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
 
@@ -265,6 +267,18 @@ func NewFuncMap() []template.FuncMap {
 			default:
 				return ""
 			}
+		},
+		"Octicon": func(name string) template.HTML {
+			icon := octicon.Icon(name)
+			icon.Class("octicon")
+			icon.Style("") // Override default convenience style
+			return icon.HTML()
+		},
+		"MegaOcticon": func(name string) template.HTML {
+			icon := octicon.Icon(name)
+			icon.Class("mega-octicon")
+			icon.Style("") // Override default convenience style
+			return icon.HTML()
 		},
 	}}
 }

@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	cloud.google.com/go v0.45.0 // indirect
+	gitea.com/go-icon/octicon v0.0.0-20191205022335-e79fa0b410f0
 	gitea.com/lunny/levelqueue v0.1.0
 	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
 	gitea.com/macaron/cache v0.0.0-20190822004001-a6e7fee4ee76

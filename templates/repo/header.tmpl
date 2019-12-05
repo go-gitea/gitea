@@ -6,14 +6,47 @@
 				{{if .RelAvatarLink}}
 				<img class="ui avatar image" src="{{.RelAvatarLink}}">
 				{{else}}
-				<i class="mega-octicon octicon-{{if .IsPrivate}}lock{{else if .IsMirror}}repo-clone{{else if .IsFork}}repo-forked{{else}}repo{{end}}"></i>
+					{{if .IsPrivate}}
+						{{if .IsTemplate}}
+							{{MegaOcticon "repo-template-private"}}
+						{{else}}
+							{{MegaOcticon "lock"}}
+						{{end}}
+					{{else if .IsMirror}}
+						{{MegaOcticon "clone"}}
+					{{else if .IsFork}}
+						{{MegaOcticon "repo-forked"}}
+					{{else}}
+						{{if .IsTemplate}}
+							{{MegaOcticon "repo-template"}}
+						{{else}}
+							{{MegaOcticon "repo"}}
+						{{end}}
+					{{end}}
 				{{end}}
 				<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
 				<div class="divider"> / </div>
 				<a href="{{$.RepoLink}}">{{.Name}}</a>
-				{{if and .RelAvatarLink .IsPrivate}}<i class="mega-octicon octicon-lock"></i>{{end}}
-				{{if .IsTemplate}}<i class="icon fa-copy"></i>{{end}}
-				{{if .IsArchived}}<i class="archive icon archived-icon"></i>{{end}}
+				{{if .RelAvatarLink}}
+					{{if .IsPrivate}}
+						{{if .IsTemplate}}
+							{{MegaOcticon "repo-template-private"}}
+						{{else}}
+							{{MegaOcticon "lock"}}
+						{{end}}
+					{{else if .IsMirror}}
+						{{MegaOcticon "clone"}}
+					{{else if .IsFork}}
+						{{MegaOcticon "repo-forked"}}
+					{{else}}
+						{{if .IsTemplate}}
+							{{MegaOcticon "repo-template"}}
+						{{else}}
+							{{MegaOcticon "repo"}}
+						{{end}}
+					{{end}}
+				{{end}}
+				{{if .IsArchived}}{{MegaOcticon "archive"}}{{end}}
 				{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{MirrorAddress $.Mirror}}">{{MirrorAddress $.Mirror}}</a></div>{{end}}
 				{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{SubStr .BaseRepo.RelLink 1 -1}}</a></div>{{end}}
 				{{if .IsGenerated}}<div class="fork-flag">{{$.i18n.Tr "repo.generated_from"}} <a href="{{.TemplateRepo.Link}}">{{SubStr .TemplateRepo.RelLink 1 -1}}</a></div>{{end}}
