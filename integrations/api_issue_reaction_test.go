@@ -71,7 +71,7 @@ func TestAPIIssuesReactions(t *testing.T) {
 	assert.Len(t, apiReactions, 3)
 	for i, r := range apiReactions {
 		assert.Equal(t, expectResponse[i].Reaction, r.Reaction)
-		assert.Equal(t, expectResponse[i].Created, r.Created)
+		assert.Equal(t, expectResponse[i].Created.Unix(), r.Created.Unix())
 		assert.Equal(t, expectResponse[i].User.ID, r.User.ID)
 	}
 }
@@ -133,7 +133,7 @@ func TestAPICommentReactions(t *testing.T) {
 	assert.Len(t, apiReactions, 3)
 	for i, r := range apiReactions {
 		assert.Equal(t, expectResponse[i].Reaction, r.Reaction)
-		assert.Equal(t, expectResponse[i].Created, r.Created)
+		assert.Equal(t, expectResponse[i].Created.Unix(), r.Created.Unix())
 		assert.Equal(t, expectResponse[i].User.ID, r.User.ID)
 	}
 }
