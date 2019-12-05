@@ -159,16 +159,20 @@ func (pr *PullRequest) loadIssue(e Engine) (err error) {
 
 // LoadProtectedBranch loads the protected branch of the base branch
 func (pr *PullRequest) LoadProtectedBranch() (err error) {
+	return pr.loadProtectedBranch(x)
+}
+
+func (pr *PullRequest) loadProtectedBranch(e Engine) (err error) {
 	if pr.BaseRepo == nil {
 		if pr.BaseRepoID == 0 {
 			return nil
 		}
-		pr.BaseRepo, err = GetRepositoryByID(pr.BaseRepoID)
+		pr.BaseRepo, err = getRepositoryByID(e, pr.BaseRepoID)
 		if err != nil {
 			return
 		}
 	}
-	pr.ProtectedBranch, err = GetProtectedBranchBy(pr.BaseRepo.ID, pr.BaseBranch)
+	pr.ProtectedBranch, err = getProtectedBranchBy(e, pr.BaseRepo.ID, pr.BaseBranch)
 	return
 }
 
