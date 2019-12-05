@@ -276,6 +276,8 @@ var migrations = []Migration{
 	NewMigration("add can_create_org_repo to team", addCanCreateOrgRepoColumnForTeam),
 	// v110 -> v111
 	NewMigration("change review content type to text", changeReviewContentToText),
+	// v111 -> v112
+	NewMigration("update branch protection for can push and whitelist enable", addBranchProtectionCanPushAndEnableWhitelist),
 }
 
 // Migrate database to current version

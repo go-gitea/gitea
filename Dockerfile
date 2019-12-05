@@ -11,7 +11,7 @@ ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS "bindata $TAGS"
 
 #Build deps
-RUN apk --no-cache add build-base git
+RUN apk --no-cache add build-base git nodejs npm
 
 #Setup repo
 COPY . ${GOPATH}/src/code.gitea.io/gitea
