@@ -23,6 +23,10 @@ environment variable and to add the go bin directory or directories
 `${GOPATH//://bin:}/bin` to the `$PATH`. See the Go wiki entry for
 [GOPATH](https://github.com/golang/go/wiki/GOPATH).
 
+Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
+required to build the JavaScript and CSS files. The minimum supported Node.js
+version is 10 and the latest LTS version is recommended.
+
 You will also need make.
 <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>(See here how to get Make)</a>
 
@@ -98,7 +102,7 @@ from source</a>.
 The simplest recommended way to build from source is:
 
 ```bash
-TAGS="bindata sqlite sqlite_unlock_notify" make generate build
+TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
 
 However, there are a number of additional make tasks you should be aware of.
@@ -136,19 +140,17 @@ You should run revive, vet and spell-check on the code with:
 make revive vet misspell-check
 ```
 
-### Updating CSS
+### Working on CSS
 
-To generate the CSS, you need [Node.js](https://nodejs.org/) 8.0 or greater with npm. We use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our CSS. Do **not** edit the files in `public/css` directly, as they are generated from `lessc` from the files in `public/less`.
-
-Edit files in `public/less`, and then run the linter and build the CSS files via:
+Edit files in `web_src/less` and run the linter and build the CSS files via:
 
 ```bash
 make css
 ```
 
-### Updating JS
+### Working on JS
 
-To generate the JS files, you need [Node.js](https://nodejs.org/) 8.0 or greater with npm. Edit files in `public/js`, run the linter and build the JS files via:
+Edit files in `web_src/js`, run the linter and build the JS files via:
 
 ```bash
 make js
@@ -235,7 +237,7 @@ Unit tests will not and cannot completely test Gitea alone. Therefore, we
 have written integration tests; however, these are database dependent.
 
 ```bash
-TAGS="bindata sqlite sqlite_unlock_notify" make generate build test-sqlite
+TAGS="bindata sqlite sqlite_unlock_notify" make build test-sqlite
 ```
 
 will run the integration tests in an sqlite environment. Other database tests
