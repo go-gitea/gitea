@@ -448,6 +448,7 @@ func changeIssueStatus(repo *Repository, issue *Issue, doer *User, status bool) 
 	if !status {
 		tp = CommentTypeReopen
 	}
+
 	if err := sendCreateCommentAction(x, &CreateCommentOptions{
 		Type:  tp,
 		Doer:  doer,

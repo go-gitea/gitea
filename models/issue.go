@@ -609,7 +609,14 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (*C
 
 	// Nothing should be performed if current status is same as target status
 	if currentIssue.IsClosed == isClosed {
-		return nil, nil
+		if isClosed {
+			return nil, ErrIssueWasClosed{
+				ID: issue.ID,
+			}
+		}
+		return nil, ErrPullWasClosed{
+			ID: issue.ID,
+		}
 	}
 
 	// Check for open dependencies
