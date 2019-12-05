@@ -596,7 +596,7 @@ func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Co
 	return updateIssueCols(e, opts.Issue, "updated_unix")
 }
 
-func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, comment *Comment) (err error) {
+func sendCreateCommentAction(e Engine, opts *CreateCommentOptions, comment *Comment) (err error) {
 	// Compose comment action, could be plain comment, close or reopen issue/pull request.
 	// This object will be used to notify watchers in the end of function.
 	act := &Action{

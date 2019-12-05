@@ -436,12 +436,25 @@ func changeIssueStatus(repo *Repository, issue *Issue, doer *User, status bool) 
 	}
 
 	issue.Repo = repo
-	if err := issue.ChangeStatus(doer, status); err != nil {
+	comment, err := issue.ChangeStatus(doer, status)
+	if err != nil {
 		// Don't return an error when dependencies are open as this would let the push fail
 		if IsErrDependenciesLeft(err) {
 			return stopTimerIfAvailable(doer, issue)
 		}
 		return err
+	}
+	var tp = CommentTypeClose
+	if !status {
+		tp = CommentTypeReopen
+	}
+	if err := sendCreateCommentAction(x, &CreateCommentOptions{
+		Type:  tp,
+		Doer:  doer,
+		Repo:  issue.Repo,
+		Issue: issue,
+	}, comment); err != nil {
+		return fmt.Errorf("sendCreateCommentAction: %v", err)
 	}
 
 	return stopTimerIfAvailable(doer, issue)

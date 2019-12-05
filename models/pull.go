@@ -445,7 +445,7 @@ func (pr *PullRequest) CheckUserAllowedToMerge(doer *User) (err error) {
 }
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
-func (pr *PullRequest) SetMerged() (err error) {
+func (pr *PullRequest) SetMerged(doer *User) (err error) {
 	if pr.HasMerged {
 		return fmt.Errorf("PullRequest[%d] already merged", pr.Index)
 	}
@@ -472,9 +472,20 @@ func (pr *PullRequest) SetMerged() (err error) {
 		return err
 	}
 
-	if err = pr.Issue.changeStatus(sess, pr.Merger, true); err != nil {
+	comment, err := pr.Issue.changeStatus(sess, pr.Merger, true)
+	if err != nil {
 		return fmt.Errorf("Issue.changeStatus: %v", err)
 	}
+
+	if err := sendCreateCommentAction(sess, &CreateCommentOptions{
+		Type:  CommentTypeClose,
+		Doer:  doer,
+		Repo:  pr.Issue.Repo,
+		Issue: pr.Issue,
+	}, comment); err != nil {
+		return fmt.Errorf("sendCreateCommentAction: %v", err)
+	}
+
 	if _, err = sess.ID(pr.ID).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
 		return fmt.Errorf("update pull request: %v", err)
 	}
@@ -512,7 +523,7 @@ func (pr *PullRequest) manuallyMerged() bool {
 		pr.Merger = merger
 		pr.MergerID = merger.ID
 
-		if err = pr.SetMerged(); err != nil {
+		if err = pr.SetMerged(merger); err != nil {
 			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
 			return false
 		}
