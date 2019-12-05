@@ -383,6 +383,7 @@ func doProtectBranch(ctx APITestContext, branch string, userToWhitelist string) 
 			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), url.PathEscape(branch)), map[string]string{
 				"_csrf":            csrf,
 				"protected":        "on",
+				"enable_push":      "whitelist",
 				"enable_whitelist": "on",
 				"whitelist_users":  strconv.FormatInt(user.ID, 10),
 			})
