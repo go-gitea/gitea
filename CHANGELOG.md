@@ -18,7 +18,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Hide migrated credentials (#9098)
   * Update golang.org/x/crypto vendor to use acme v2 (#9056) (#9085)
   * Fix password checks on admin create/edit user (#9076) (#9081)
-  * Fix add search to reserved usernames (#9063) (#9065)
+  * Fix add search as a reserved username (#9063) (#9065)
   * Fix permission checks for close/reopen from commit (#8875) (#9033)
   * Ensure Written is set in GZIP ProxyResponseWriter (#9018) (#9025)
   * Fix broken link to branch from issue list (#9003) (#9021)
