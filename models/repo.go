@@ -43,7 +43,8 @@ import (
 	"xorm.io/builder"
 )
 
-var repoWorkingPool = sync.NewExclusivePool()
+// RepoWorkingPool represents a working pool to order the parallel changes to the same repository
+var RepoWorkingPool = sync.NewExclusivePool()
 
 var (
 	// ErrMirrorNotExist mirror does not exist error
@@ -1655,7 +1656,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("sess.Begin: %v", err)
 	}
 
-	owner := repo.Owner
+	oldOwner := repo.Owner
 
 	// Note: we have to set value here to make sure recalculate accesses is based on
 	// new owner.
@@ -1691,8 +1692,8 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	// Remove old team-repository relations.
-	if owner.IsOrganization() {
-		if err = owner.removeOrgRepo(sess, repo.ID); err != nil {
+	if oldOwner.IsOrganization() {
+		if err = oldOwner.removeOrgRepo(sess, repo.ID); err != nil {
 			return fmt.Errorf("removeOrgRepo: %v", err)
 		}
 	}
@@ -1716,7 +1717,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	// Update repository count.
 	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
 		return fmt.Errorf("increase new owner repository count: %v", err)
-	} else if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", owner.ID); err != nil {
+	} else if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", oldOwner.ID); err != nil {
 		return fmt.Errorf("decrease old owner repository count: %v", err)
 	}
 
@@ -1725,8 +1726,8 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	// Remove watch for organization.
-	if owner.IsOrganization() {
-		if err = watchRepo(sess, owner.ID, repo.ID, false); err != nil {
+	if oldOwner.IsOrganization() {
+		if err = watchRepo(sess, oldOwner.ID, repo.ID, false); err != nil {
 			return fmt.Errorf("watchRepo [false]: %v", err)
 		}
 	}
@@ -1738,12 +1739,12 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
-	if err = os.Rename(RepoPath(owner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
+	if err = os.Rename(RepoPath(oldOwner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
 
 	// Rename remote wiki repository to new path and delete local copy.
-	wikiPath := WikiPath(owner.Name, repo.Name)
+	wikiPath := WikiPath(oldOwner.Name, repo.Name)
 	if com.IsExist(wikiPath) {
 		if err = os.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
@@ -1755,11 +1756,16 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("delete repo redirect: %v", err)
 	}
 
+	if err := NewRepoRedirect(DBContext{sess}, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
+		return fmt.Errorf("NewRepoRedirect: %v", err)
+	}
+
 	return sess.Commit()
 }
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
 func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err error) {
+	oldRepoName := repo.Name
 	newRepoName = strings.ToLower(newRepoName)
 	if err = IsUsableRepoName(newRepoName); err != nil {
 		return err
@@ -1775,12 +1781,6 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 	} else if has {
 		return ErrRepoAlreadyExist{repo.Owner.Name, newRepoName}
 	}
-
-	// Change repository directory name. We must lock the local copy of the
-	// repo so that we can atomically rename the repo path and updates the
-	// local copy's origin accordingly.
-	repoWorkingPool.CheckIn(com.ToStr(repo.ID))
-	defer repoWorkingPool.CheckOut(com.ToStr(repo.ID))
 
 	newRepoPath := RepoPath(repo.Owner.Name, newRepoName)
 	if err = os.Rename(repo.RepoPath(), newRepoPath); err != nil {
@@ -1803,6 +1803,10 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 	// If there was previously a redirect at this location, remove it.
 	if err = deleteRepoRedirect(sess, repo.OwnerID, newRepoName); err != nil {
 		return fmt.Errorf("delete repo redirect: %v", err)
+	}
+
+	if err := NewRepoRedirect(DBContext{sess}, repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
+		return err
 	}
 
 	return sess.Commit()
