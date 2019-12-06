@@ -58,14 +58,13 @@ func (t *TrackedTime) APIFormat() *api.TrackedTime {
 		return nil
 	}
 	return &api.TrackedTime{
-		ID:         t.ID,
-		IssueID:    t.IssueID,
-		IssueIndex: issue.Index,
-		UserID:     t.UserID,
-		UserName:   user.Name,
-		Time:       t.Time,
-		Created:    t.Created,
-		Repo:       issue.Repo.FullName(),
+		ID:       t.ID,
+		IssueID:  t.IssueID,
+		Issue:    issue.APIFormat(),
+		UserID:   t.UserID,
+		UserName: user.Name,
+		Time:     t.Time,
+		Created:  t.Created,
 	}
 }
 

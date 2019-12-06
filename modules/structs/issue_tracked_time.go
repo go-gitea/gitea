@@ -36,12 +36,11 @@ type TrackedTime struct {
 	// swagger:strfmt date-time
 	Created time.Time `json:"created"`
 	// Time in seconds
-	Time       int64  `json:"time"`
-	UserID     int64  `json:"user_id"`
-	UserName   string `json:"user_name"`
-	IssueID    int64  `json:"issue_id"`
-	IssueIndex int64  `json:"issue_index"`
-	Repo       string `json:"repository"`
+	Time     int64  `json:"time"`
+	UserID   int64  `json:"user_id"`
+	UserName string `json:"user_name"`
+	IssueID  int64  `json:"issue_id"`
+	Issue    *Issue `json:"issue"`
 }
 
 // TrackedTimeList represent a list of tracked times
