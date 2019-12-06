@@ -1,3 +1,4 @@
+* text=auto eol=lf
 conf/* linguist-vendored
 docker/* linguist-vendored
 options/* linguist-vendored
