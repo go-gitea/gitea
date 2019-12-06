@@ -19,7 +19,7 @@ WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 
 #Checkout version if set
 RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
- && make clean generate build
+ && make clean build
 
 FROM alpine:3.10
 LABEL maintainer="maintainers@gitea.io"
