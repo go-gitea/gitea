@@ -51,6 +51,9 @@ func TestAPIIssuesReactions(t *testing.T) {
 	var apiNewReaction api.ReactionResponse
 	DecodeJSON(t, resp, &apiNewReaction)
 
+	//Add existing reaction
+	resp = session.MakeRequest(t, req, http.StatusForbidden)
+
 	//Get end result of reaction list of issue #1
 	req = NewRequestf(t, "GET", urlStr)
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -112,6 +115,9 @@ func TestAPICommentReactions(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusCreated)
 	var apiNewReaction api.ReactionResponse
 	DecodeJSON(t, resp, &apiNewReaction)
+
+	//Add existing reaction
+	resp = session.MakeRequest(t, req, http.StatusForbidden)
 
 	//Get end result of reaction list of issue #1
 	req = NewRequestf(t, "GET", urlStr)
