@@ -34,10 +34,14 @@ type FindReactionsOptions struct {
 }
 
 func (opts *FindReactionsOptions) toConds() builder.Cond {
+	//If Issue ID is set add to Query
 	var cond = builder.NewCond()
 	if opts.IssueID > 0 {
 		cond = cond.And(builder.Eq{"reaction.issue_id": opts.IssueID})
 	}
+	//If CommentID is > 0 add to Query
+	//If it is 0 Query ignore CommentID to select
+	//If it is -1 it explicit search of Issue Reactions where CommentID = 0
 	if opts.CommentID > 0 {
 		cond = cond.And(builder.Eq{"reaction.comment_id": opts.CommentID})
 	} else if opts.CommentID == -1 {
