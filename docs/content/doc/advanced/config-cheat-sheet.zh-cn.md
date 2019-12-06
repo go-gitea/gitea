@@ -37,6 +37,7 @@ menu:
 
 - `EXPLORE_PAGING_NUM`: 探索页面每页显示的仓库数量。
 - `ISSUE_PAGING_NUM`: 工单页面每页显示的工单数量。
+- `MEMBERS_PAGING_NUM`: **20**: 组织成员页面每页显示的成员数量。
 - `FEED_MAX_COMMIT_NUM`: 活动流页面显示的最大提交数量。
 
 ### UI - Admin (`ui.admin`)
