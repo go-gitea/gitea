@@ -69,6 +69,8 @@ coverage.all
 /modules/indexer/issues/indexers
 routers/repo/authorized_keys
 /yarn.lock
+/public/js
+/public/css
 
 # Snapcraft
 snap/.snapcraft/
