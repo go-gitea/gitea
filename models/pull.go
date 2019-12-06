@@ -609,8 +609,8 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 		return nil
 	}
 
-	repoWorkingPool.CheckIn(com.ToStr(pr.BaseRepoID))
-	defer repoWorkingPool.CheckOut(com.ToStr(pr.BaseRepoID))
+	RepoWorkingPool.CheckIn(com.ToStr(pr.BaseRepoID))
+	defer RepoWorkingPool.CheckOut(com.ToStr(pr.BaseRepoID))
 
 	log.Trace("PullRequest[%d].testPatch (patchPath): %s", pr.ID, patchPath)
 

@@ -537,14 +537,37 @@ func showOrgProfile(ctx *context.Context) {
 		return
 	}
 
-	if err := org.GetMembers(); err != nil {
-		ctx.ServerError("GetMembers", err)
+	var opts = models.FindOrgMembersOpts{
+		OrgID:      org.ID,
+		PublicOnly: true,
+		Limit:      25,
+	}
+
+	if ctx.User != nil {
+		isMember, err := org.IsOrgMember(ctx.User.ID)
+		if err != nil {
+			ctx.Error(500, "IsOrgMember")
+			return
+		}
+		opts.PublicOnly = !isMember
+	}
+
+	members, _, err := models.FindOrgMembers(opts)
+	if err != nil {
+		ctx.ServerError("FindOrgMembers", err)
+		return
+	}
+
+	membersCount, err := models.CountOrgMembers(opts)
+	if err != nil {
+		ctx.ServerError("CountOrgMembers", err)
 		return
 	}
 
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
-	ctx.Data["Members"] = org.Members
+	ctx.Data["MembersTotal"] = membersCount
+	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = org.Teams
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
