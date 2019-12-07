@@ -5,9 +5,12 @@
 package indexer
 
 import (
+	"context"
+	"os"
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -104,10 +107,11 @@ func (update RepoIndexerUpdate) AddToFlushingBatch(batch rupture.FlushingBatch) 
 func InitRepoIndexer(populateIndexer func() error) {
 	indexer, err := openIndexer(setting.Indexer.RepoPath, repoIndexerLatestVersion)
 	if err != nil {
-		log.Fatal("InitRepoIndexer: %v", err)
+		log.Fatal("InitRepoIndexer %s: %v", setting.Indexer.RepoPath, err)
 	}
 	if indexer != nil {
 		indexerHolder.set(indexer)
+		closeAtTerminate()
 		return
 	}
 
@@ -117,6 +121,21 @@ func InitRepoIndexer(populateIndexer func() error) {
 	if err = populateIndexer(); err != nil {
 		log.Fatal("PopulateRepoIndex: %v", err)
 	}
+	closeAtTerminate()
+}
+
+func closeAtTerminate() {
+	graceful.GetManager().RunAtTerminate(context.Background(), func() {
+		log.Debug("Closing repo indexer")
+		indexer := indexerHolder.get()
+		if indexer != nil {
+			err := indexer.Close()
+			if err != nil {
+				log.Error("Error whilst closing the repository indexer: %v", err)
+			}
+		}
+		log.Info("PID: %d Repository Indexer closed", os.Getpid())
+	})
 }
 
 // createRepoIndexer create a repo indexer if one does not already exist
