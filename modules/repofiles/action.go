@@ -7,14 +7,141 @@ package repofiles
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 )
+
+// getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
+// if the provided ref references a non-existent issue.
+func getIssueFromRef(repo *models.Repository, index int64) (*models.Issue, error) {
+	issue, err := models.GetIssueByIndex(repo.ID, index)
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return issue, nil
+}
+
+func changeIssueStatus(repo *models.Repository, issue *models.Issue, doer *models.User, status bool) error {
+	stopTimerIfAvailable := func(doer *models.User, issue *models.Issue) error {
+
+		if models.StopwatchExists(doer.ID, issue.ID) {
+			if err := models.CreateOrStopIssueStopwatch(doer, issue); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	issue.Repo = repo
+	if err := issue.ChangeStatus(doer, status); err != nil {
+		// Don't return an error when dependencies are open as this would let the push fail
+		if models.IsErrDependenciesLeft(err) {
+			return stopTimerIfAvailable(doer, issue)
+		}
+		return err
+	}
+
+	return stopTimerIfAvailable(doer, issue)
+}
+
+// UpdateIssuesCommit checks if issues are manipulated by commit message.
+func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*models.PushCommit, branchName string) error {
+	// Commits are appended in the reverse order.
+	for i := len(commits) - 1; i >= 0; i-- {
+		c := commits[i]
+
+		type markKey struct {
+			ID     int64
+			Action references.XRefAction
+		}
+
+		refMarked := make(map[markKey]bool)
+		var refRepo *models.Repository
+		var refIssue *models.Issue
+		var err error
+		for _, ref := range references.FindAllIssueReferences(c.Message) {
+
+			// issue is from another repo
+			if len(ref.Owner) > 0 && len(ref.Name) > 0 {
+				refRepo, err = models.GetRepositoryFromMatch(ref.Owner, ref.Name)
+				if err != nil {
+					continue
+				}
+			} else {
+				refRepo = repo
+			}
+			if refIssue, err = getIssueFromRef(refRepo, ref.Index); err != nil {
+				return err
+			}
+			if refIssue == nil {
+				continue
+			}
+
+			perm, err := models.GetUserRepoPermission(refRepo, doer)
+			if err != nil {
+				return err
+			}
+
+			key := markKey{ID: refIssue.ID, Action: ref.Action}
+			if refMarked[key] {
+				continue
+			}
+			refMarked[key] = true
+
+			// FIXME: this kind of condition is all over the code, it should be consolidated in a single place
+			canclose := perm.IsAdmin() || perm.IsOwner() || perm.CanWrite(models.UnitTypeIssues) || refIssue.PosterID == doer.ID
+			cancomment := canclose || perm.CanRead(models.UnitTypeIssues)
+
+			// Don't proceed if the user can't comment
+			if !cancomment {
+				continue
+			}
+
+			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
+			if err = models.CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
+				return err
+			}
+
+			// Only issues can be closed/reopened this way, and user needs the correct permissions
+			if refIssue.IsPull || !canclose {
+				continue
+			}
+
+			// Only process closing/reopening keywords
+			if ref.Action != references.XRefActionCloses && ref.Action != references.XRefActionReopens {
+				continue
+			}
+
+			if !repo.CloseIssuesViaCommitInAnyBranch {
+				// If the issue was specified to be in a particular branch, don't allow commits in other branches to close it
+				if refIssue.Ref != "" {
+					if branchName != refIssue.Ref {
+						continue
+					}
+					// Otherwise, only process commits to the default branch
+				} else if branchName != repo.DefaultBranch {
+					continue
+				}
+			}
+
+			if err := changeIssueStatus(refRepo, refIssue, doer, ref.Action == references.XRefActionCloses); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
 
 // CommitRepoActionOptions represent options of a new commit action.
 type CommitRepoActionOptions struct {
@@ -86,7 +213,7 @@ func CommitRepoAction(opts CommitRepoActionOptions) error {
 			opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 		}
 
-		if err = models.UpdateIssuesCommit(pusher, repo, opts.Commits.Commits, refName); err != nil {
+		if err = UpdateIssuesCommit(pusher, repo, opts.Commits.Commits, refName); err != nil {
 			log.Error("updateIssuesCommit: %v", err)
 		}
 	}
