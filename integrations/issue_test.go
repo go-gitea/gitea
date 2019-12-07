@@ -313,3 +313,23 @@ func testIssueChangeInfo(t *testing.T, user, issueURL, info string, value string
 	})
 	_ = session.MakeRequest(t, req, http.StatusOK)
 }
+
+func TestIssueRedirect(t *testing.T) {
+	defer prepareTestEnv(t)()
+	session := loginUser(t, "user2")
+
+	// Test external tracker where style not set (shall default numeric)
+	req := NewRequest(t, "GET", path.Join("org26", "repo_external_tracker", "issues", "1"))
+	resp := session.MakeRequest(t, req, http.StatusFound)
+	assert.Equal(t, "https://tracker.com/org26/repo_external_tracker/issues/1", test.RedirectURL(resp))
+
+	// Test external tracker with numeric style
+	req = NewRequest(t, "GET", path.Join("org26", "repo_external_tracker_numeric", "issues", "1"))
+	resp = session.MakeRequest(t, req, http.StatusFound)
+	assert.Equal(t, "https://tracker.com/org26/repo_external_tracker_numeric/issues/1", test.RedirectURL(resp))
+
+	// Test external tracker with alphanumeric style (for a pull request)
+	req = NewRequest(t, "GET", path.Join("org26", "repo_external_tracker_alpha", "issues", "1"))
+	resp = session.MakeRequest(t, req, http.StatusFound)
+	assert.Equal(t, "/"+path.Join("org26", "repo_external_tracker_alpha", "pulls", "1"), test.RedirectURL(resp))
+}

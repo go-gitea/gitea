@@ -18,30 +18,13 @@ import (
 // listMembers list an organization's members
 func listMembers(ctx *context.APIContext, publicOnly bool) {
 	var members []*models.User
-	if publicOnly {
-		orgUsers, err := models.GetOrgUsersByOrgID(ctx.Org.Organization.ID)
-		if err != nil {
-			ctx.Error(500, "GetOrgUsersByOrgID", err)
-			return
-		}
-
-		memberIDs := make([]int64, 0, len(orgUsers))
-		for _, orgUser := range orgUsers {
-			if orgUser.IsPublic {
-				memberIDs = append(memberIDs, orgUser.UID)
-			}
-		}
-
-		if members, err = models.GetUsersByIDs(memberIDs); err != nil {
-			ctx.Error(500, "GetUsersByIDs", err)
-			return
-		}
-	} else {
-		if err := ctx.Org.Organization.GetMembers(); err != nil {
-			ctx.Error(500, "GetMembers", err)
-			return
-		}
-		members = ctx.Org.Organization.Members
+	members, _, err := models.FindOrgMembers(models.FindOrgMembersOpts{
+		OrgID:      ctx.Org.Organization.ID,
+		PublicOnly: publicOnly,
+	})
+	if err != nil {
+		ctx.Error(500, "GetUsersByIDs", err)
+		return
 	}
 
 	apiMembers := make([]*api.User, len(members))

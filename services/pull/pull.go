@@ -139,7 +139,7 @@ func addHeadRepoTasks(prs []*models.PullRequest) {
 			continue
 		}
 
-		pr.AddToTaskQueue()
+		AddToTaskQueue(pr)
 	}
 }
 
@@ -178,6 +178,6 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 		return
 	}
 	for _, pr := range prs {
-		pr.AddToTaskQueue()
+		AddToTaskQueue(pr)
 	}
 }

@@ -68,10 +68,35 @@ func (org *User) GetTeams() error {
 }
 
 // GetMembers returns all members of organization.
-func (org *User) GetMembers() error {
-	ous, err := GetOrgUsersByOrgID(org.ID)
+func (org *User) GetMembers() (err error) {
+	org.Members, org.MembersIsPublic, err = FindOrgMembers(FindOrgMembersOpts{
+		OrgID: org.ID,
+	})
+	return
+}
+
+// FindOrgMembersOpts represensts find org members condtions
+type FindOrgMembersOpts struct {
+	OrgID      int64
+	PublicOnly bool
+	Start      int
+	Limit      int
+}
+
+// CountOrgMembers counts the organization's members
+func CountOrgMembers(opts FindOrgMembersOpts) (int64, error) {
+	sess := x.Where("org_id=?", opts.OrgID)
+	if opts.PublicOnly {
+		sess.And("is_public = ?", true)
+	}
+	return sess.Count(new(OrgUser))
+}
+
+// FindOrgMembers loads organization members according conditions
+func FindOrgMembers(opts FindOrgMembersOpts) (UserList, map[int64]bool, error) {
+	ous, err := GetOrgUsersByOrgID(opts.OrgID, opts.PublicOnly, opts.Start, opts.Limit)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	var ids = make([]int64, len(ous))
@@ -80,9 +105,12 @@ func (org *User) GetMembers() error {
 		ids[i] = ou.UID
 		idsIsPublic[ou.UID] = ou.IsPublic
 	}
-	org.MembersIsPublic = idsIsPublic
-	org.Members, err = GetUsersByIDs(ids)
-	return err
+
+	users, err := GetUsersByIDs(ids)
+	if err != nil {
+		return nil, nil, err
+	}
+	return users, idsIsPublic, nil
 }
 
 // AddMember adds new member to organization.
@@ -467,15 +495,20 @@ func GetOrgUsersByUserID(uid int64, all bool) ([]*OrgUser, error) {
 }
 
 // GetOrgUsersByOrgID returns all organization-user relations by organization ID.
-func GetOrgUsersByOrgID(orgID int64) ([]*OrgUser, error) {
-	return getOrgUsersByOrgID(x, orgID)
+func GetOrgUsersByOrgID(orgID int64, publicOnly bool, start, limit int) ([]*OrgUser, error) {
+	return getOrgUsersByOrgID(x, orgID, publicOnly, start, limit)
 }
 
-func getOrgUsersByOrgID(e Engine, orgID int64) ([]*OrgUser, error) {
+func getOrgUsersByOrgID(e Engine, orgID int64, publicOnly bool, start, limit int) ([]*OrgUser, error) {
 	ous := make([]*OrgUser, 0, 10)
-	err := e.
-		Where("org_id=?", orgID).
-		Find(&ous)
+	sess := e.Where("org_id=?", orgID)
+	if publicOnly {
+		sess.And("is_public = ?", true)
+	}
+	if limit > 0 {
+		sess.Limit(limit, start)
+	}
+	err := sess.Find(&ous)
 	return ous, err
 }
 
