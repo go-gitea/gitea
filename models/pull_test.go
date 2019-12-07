@@ -5,9 +5,7 @@
 package models
 
 import (
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -195,24 +193,6 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 // TODO TestPullRequest_UpdatePatch
 
 // TODO TestPullRequest_PushToBaseRepo
-
-func TestPullRequest_AddToTaskQueue(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
-	pr.AddToTaskQueue()
-
-	select {
-	case id := <-pullRequestQueue.Queue():
-		assert.EqualValues(t, strconv.FormatInt(pr.ID, 10), id)
-	case <-time.After(time.Second):
-		assert.Fail(t, "Timeout: nothing was added to pullRequestQueue")
-	}
-
-	assert.True(t, pullRequestQueue.Exist(pr.ID))
-	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
-	assert.Equal(t, PullRequestStatusChecking, pr.Status)
-}
 
 func TestPullRequestList_LoadAttributes(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())

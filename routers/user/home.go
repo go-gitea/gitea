@@ -178,7 +178,7 @@ func Issues(ctx *context.Context) {
 	)
 
 	if ctxUser.IsOrganization() {
-		viewType = "all"
+		viewType = "your_repositories"
 	} else {
 		viewType = ctx.Query("type")
 		switch viewType {
@@ -188,9 +188,9 @@ func Issues(ctx *context.Context) {
 			filterMode = models.FilterModeCreate
 		case "mentioned":
 			filterMode = models.FilterModeMention
-		case "all": // filterMode already set to All
+		case "your_repositories": // filterMode already set to All
 		default:
-			viewType = "all"
+			viewType = "your_repositories"
 		}
 	}
 
@@ -285,7 +285,9 @@ func Issues(ctx *context.Context) {
 	}
 	opts.LabelIDs = labelIDs
 
-	opts.RepoIDs = repoIDs
+	if len(repoIDs) > 0 {
+		opts.RepoIDs = repoIDs
+	}
 
 	issues, err := models.Issues(opts)
 	if err != nil {
@@ -295,23 +297,29 @@ func Issues(ctx *context.Context) {
 
 	showReposMap := make(map[int64]*models.Repository, len(counts))
 	for repoID := range counts {
-		showReposMap[repoID], err = models.GetRepositoryByID(repoID)
-		if models.IsErrRepoNotExist(err) {
-			ctx.NotFound("GetRepositoryByID", err)
-			return
-		} else if err != nil {
-			ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
-			return
-		}
+		if repoID > 0 {
+			if _, ok := showReposMap[repoID]; !ok {
+				repo, err := models.GetRepositoryByID(repoID)
+				if models.IsErrRepoNotExist(err) {
+					ctx.NotFound("GetRepositoryByID", err)
+					return
+				} else if err != nil {
+					ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
+					return
+				}
+				showReposMap[repoID] = repo
+			}
+			repo := showReposMap[repoID]
 
-		// Check if user has access to given repository.
-		perm, err := models.GetUserRepoPermission(showReposMap[repoID], ctxUser)
-		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
-			return
-		}
-		if !perm.CanRead(models.UnitTypeIssues) {
-			log.Error("User created Issues in Repository which they no longer have access to: [%d]", repoID)
+			// Check if user has access to given repository.
+			perm, err := models.GetUserRepoPermission(repo, ctxUser)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
+				return
+			}
+			if !perm.CanRead(models.UnitTypeIssues) {
+				log.Error("User created Issues in Repository which they no longer have access to: [%d]", repoID)
+			}
 		}
 	}
 
@@ -529,14 +537,37 @@ func showOrgProfile(ctx *context.Context) {
 		return
 	}
 
-	if err := org.GetMembers(); err != nil {
-		ctx.ServerError("GetMembers", err)
+	var opts = models.FindOrgMembersOpts{
+		OrgID:      org.ID,
+		PublicOnly: true,
+		Limit:      25,
+	}
+
+	if ctx.User != nil {
+		isMember, err := org.IsOrgMember(ctx.User.ID)
+		if err != nil {
+			ctx.Error(500, "IsOrgMember")
+			return
+		}
+		opts.PublicOnly = !isMember
+	}
+
+	members, _, err := models.FindOrgMembers(opts)
+	if err != nil {
+		ctx.ServerError("FindOrgMembers", err)
+		return
+	}
+
+	membersCount, err := models.CountOrgMembers(opts)
+	if err != nil {
+		ctx.ServerError("CountOrgMembers", err)
 		return
 	}
 
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
-	ctx.Data["Members"] = org.Members
+	ctx.Data["MembersTotal"] = membersCount
+	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = org.Teams
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)

@@ -159,6 +159,7 @@ var (
 		ExplorePagingNum      int
 		IssuePagingNum        int
 		RepoSearchPagingNum   int
+		MembersPagingNum      int
 		FeedMaxCommitNum      int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
@@ -170,6 +171,7 @@ var (
 		DefaultTheme          string
 		Themes                []string
 		Reactions             []string
+		ReactionsMap          map[string]bool
 		SearchRepoDescription bool
 		UseServiceWorker      bool
 
@@ -191,6 +193,7 @@ var (
 		ExplorePagingNum:    20,
 		IssuePagingNum:      10,
 		RepoSearchPagingNum: 10,
+		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
@@ -983,6 +986,11 @@ func NewContext() {
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
 
 	zip.Verbose = false
+
+	UI.ReactionsMap = make(map[string]bool)
+	for _, reaction := range UI.Reactions {
+		UI.ReactionsMap[reaction] = true
+	}
 }
 
 func loadInternalToken(sec *ini.Section) string {

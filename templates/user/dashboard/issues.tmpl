@@ -86,8 +86,8 @@
 					{{range .Issues}}
 
 						{{ $timeStr:= TimeSinceUnix .CreatedUnix $.Lang }}
+						{{if .Repo}}
 						<li class="item">
-							{{if .Repo}}
 							<div class="ui label">{{.Repo.FullName}}#{{.Index}}</div>
 							<a class="title has-emoji" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/issues/{{.Index}}">{{.Title}}</a>
 
