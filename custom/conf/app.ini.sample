@@ -877,6 +877,12 @@ SHOW_FOOTER_VERSION = true
 ; Show template execution time in the footer
 SHOW_FOOTER_TEMPLATE_LOAD_TIME = true
 
+[markup.sanitizer]
+; The following keys can be used multiple times to define sanitation policy rules.
+;ELEMENT = span
+;ALLOW_ATTR = class
+;REGEXP = ^(info|warning|error)$
+
 [markup.asciidoc]
 ENABLED = false
 ; List of file extensions that should be rendered by an external command
