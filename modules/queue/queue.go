@@ -48,6 +48,11 @@ type Shutdownable interface {
 	Terminate()
 }
 
+// Named represents a queue with a name
+type Named interface {
+	Name() string
+}
+
 // Queue defines an interface to save an issue indexer queue
 type Queue interface {
 	Run(atShutdown, atTerminate func(context.Context, func()))

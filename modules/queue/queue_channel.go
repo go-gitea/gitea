@@ -48,7 +48,7 @@ func NewChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 	dataChan := make(chan Data, config.QueueLength)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	return &ChannelQueue{
+	queue := &ChannelQueue{
 		pool: &WorkerPool{
 			baseCtx:      ctx,
 			cancel:       cancel,
@@ -62,7 +62,9 @@ func NewChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 		exemplar: exemplar,
 		workers:  config.Workers,
 		name:     config.Name,
-	}, nil
+	}
+	queue.pool.qid = GetManager().Add(queue, ChannelQueueType, config, exemplar, queue.pool.AddWorkers, queue.pool.NumberOfWorkers)
+	return queue, nil
 }
 
 // Run starts to run the queue
@@ -73,7 +75,9 @@ func (c *ChannelQueue) Run(atShutdown, atTerminate func(context.Context, func())
 	atTerminate(context.Background(), func() {
 		log.Warn("ChannelQueue: %s is not terminatable!", c.name)
 	})
-	c.pool.addWorkers(c.pool.baseCtx, c.workers)
+	go func() {
+		_ = c.pool.AddWorkers(c.workers, 0)
+	}()
 }
 
 // Push will push the indexer data to queue
@@ -88,6 +92,11 @@ func (c *ChannelQueue) Push(data Data) error {
 	}
 	c.pool.Push(data)
 	return nil
+}
+
+// Name returns the name of this queue
+func (c *ChannelQueue) Name() string {
+	return c.name
 }
 
 func init() {

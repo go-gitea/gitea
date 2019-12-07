@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/services/mailer"
@@ -35,6 +36,7 @@ const (
 	tplDashboard base.TplName = "admin/dashboard"
 	tplConfig    base.TplName = "admin/config"
 	tplMonitor   base.TplName = "admin/monitor"
+	tplQueue     base.TplName = "admin/queue"
 )
 
 var (
@@ -355,6 +357,7 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["PageIsAdminMonitor"] = true
 	ctx.Data["Processes"] = process.GetManager().Processes()
 	ctx.Data["Entries"] = cron.ListTasks()
+	ctx.Data["Queues"] = queue.GetManager().Descriptions()
 	ctx.HTML(200, tplMonitor)
 }
 
@@ -365,4 +368,60 @@ func MonitorCancel(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/admin/monitor",
 	})
+}
+
+// Queue shows details for a specific queue
+func Queue(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	desc := queue.GetManager().GetDescription(qid)
+	if desc == nil {
+		ctx.Status(404)
+		return
+	}
+	ctx.Data["Title"] = ctx.Tr("admin.monitor.queue", desc.Name)
+	ctx.Data["PageIsAdmin"] = true
+	ctx.Data["PageIsAdminMonitor"] = true
+	ctx.Data["Queue"] = desc
+	ctx.HTML(200, tplQueue)
+}
+
+// WorkerCancel cancels a worker group
+func WorkerCancel(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	desc := queue.GetManager().GetDescription(qid)
+	if desc == nil {
+		ctx.Status(404)
+		return
+	}
+	pid := ctx.ParamsInt64("pid")
+	desc.CancelWorkers(pid)
+	ctx.Flash.Info(ctx.Tr("admin.monitor.queue.pool.cancelling"))
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid),
+	})
+}
+
+// AddWorkers adds workers to a worker group
+func AddWorkers(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	desc := queue.GetManager().GetDescription(qid)
+	if desc == nil {
+		ctx.Status(404)
+		return
+	}
+	number := ctx.QueryInt("number")
+	if number < 1 {
+		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.addworkers.mustnumbergreaterzero"))
+		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		return
+	}
+	timeout, err := time.ParseDuration(ctx.Query("timeout"))
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.addworkers.musttimeoutduration"))
+		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		return
+	}
+	desc.AddWorkers(number, timeout)
+	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.pool.added"))
+	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
 }

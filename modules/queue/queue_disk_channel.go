@@ -85,7 +85,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 		return nil, ErrInvalidConfiguration{cfg: cfg}
 	}
 
-	return &PersistableChannelQueue{
+	queue := &PersistableChannelQueue{
 		ChannelQueue: channelQueue.(*ChannelQueue),
 		delayedStarter: delayedStarter{
 			cfg:         levelCfg,
@@ -95,7 +95,9 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 			name:        config.Name,
 		},
 		closed: make(chan struct{}),
-	}, nil
+	}
+	_ = GetManager().Add(queue, PersistableChannelQueueType, config, exemplar, nil, nil)
+	return queue, nil
 }
 
 // Name returns the name of this queue
@@ -127,7 +129,9 @@ func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 	// Just run the level queue - we shut it down later
 	go p.internal.Run(func(_ context.Context, _ func()) {}, func(_ context.Context, _ func()) {})
 
-	go p.ChannelQueue.pool.addWorkers(p.ChannelQueue.pool.baseCtx, p.workers)
+	go func() {
+		_ = p.ChannelQueue.pool.AddWorkers(p.workers, 0)
+	}()
 
 	<-p.closed
 	p.ChannelQueue.pool.cancel()

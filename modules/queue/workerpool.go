@@ -18,6 +18,7 @@ type WorkerPool struct {
 	baseCtx         context.Context
 	cancel          context.CancelFunc
 	cond            *sync.Cond
+	qid             int64
 	numberOfWorkers int
 	batchLength     int
 	handle          HandlerFunc
@@ -68,8 +69,21 @@ func (p *WorkerPool) pushBoost(data Data) {
 				return
 			}
 			p.blockTimeout *= 2
-			log.Warn("Worker Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
 			ctx, cancel := context.WithCancel(p.baseCtx)
+			desc := GetManager().GetDescription(p.qid)
+			if desc != nil {
+				log.Warn("Worker Channel for %v blocked for %v - adding %d temporary workers for %s, block timeout now %v", desc.Name, ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
+
+				start := time.Now()
+				pid := desc.RegisterWorkers(p.boostWorkers, start, false, start, cancel)
+				go func() {
+					<-ctx.Done()
+					desc.RemoveWorkers(pid)
+					cancel()
+				}()
+			} else {
+				log.Warn("Worker Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
+			}
 			go func() {
 				<-time.After(p.boostTimeout)
 				cancel()
@@ -95,12 +109,26 @@ func (p *WorkerPool) NumberOfWorkers() int {
 func (p *WorkerPool) AddWorkers(number int, timeout time.Duration) context.CancelFunc {
 	var ctx context.Context
 	var cancel context.CancelFunc
+	start := time.Now()
+	end := start
+	hasTimeout := false
 	if timeout > 0 {
 		ctx, cancel = context.WithTimeout(p.baseCtx, timeout)
+		end = start.Add(timeout)
+		hasTimeout = true
 	} else {
 		ctx, cancel = context.WithCancel(p.baseCtx)
 	}
 
+	desc := GetManager().GetDescription(p.qid)
+	if desc != nil {
+		pid := desc.RegisterWorkers(number, start, hasTimeout, end, cancel)
+		go func() {
+			<-ctx.Done()
+			desc.RemoveWorkers(pid)
+			cancel()
+		}()
+	}
 	p.addWorkers(ctx, number)
 	return cancel
 }

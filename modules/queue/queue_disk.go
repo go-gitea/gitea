@@ -50,7 +50,7 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	}
 	config := configInterface.(LevelQueueConfiguration)
 
-	queue, err := levelqueue.Open(config.DataDir)
+	internal, err := levelqueue.Open(config.DataDir)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	dataChan := make(chan Data, config.QueueLength)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	return &LevelQueue{
+	queue := &LevelQueue{
 		pool: &WorkerPool{
 			baseCtx:      ctx,
 			cancel:       cancel,
@@ -69,13 +69,15 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 			boostTimeout: config.BoostTimeout,
 			boostWorkers: config.BoostWorkers,
 		},
-		queue:      queue,
+		queue:      internal,
 		exemplar:   exemplar,
 		closed:     make(chan struct{}),
 		terminated: make(chan struct{}),
 		workers:    config.Workers,
 		name:       config.Name,
-	}, nil
+	}
+	queue.pool.qid = GetManager().Add(queue, LevelQueueType, config, exemplar, queue.pool.AddWorkers, queue.pool.NumberOfWorkers)
+	return queue, nil
 }
 
 // Run starts to run the queue
@@ -83,7 +85,9 @@ func (l *LevelQueue) Run(atShutdown, atTerminate func(context.Context, func())) 
 	atShutdown(context.Background(), l.Shutdown)
 	atTerminate(context.Background(), l.Terminate)
 
-	go l.pool.addWorkers(l.pool.baseCtx, l.workers)
+	go func() {
+		_ = l.pool.AddWorkers(l.workers, 0)
+	}()
 
 	go l.readToChan()
 
@@ -140,7 +144,7 @@ func (l *LevelQueue) readToChan() {
 
 			log.Trace("LevelQueue %s: task found: %#v", l.name, data)
 			l.pool.Push(data)
-			time.Sleep(time.Millisecond * 10)
+			time.Sleep(time.Millisecond * 100)
 
 		}
 	}
@@ -181,6 +185,11 @@ func (l *LevelQueue) Terminate() {
 	if err := l.queue.Close(); err != nil && err.Error() != "leveldb: closed" {
 		log.Error("Error whilst closing internal queue in %s: %v", l.name, err)
 	}
+}
+
+// Name returns the name of this queue
+func (l *LevelQueue) Name() string {
+	return l.name
 }
 
 func init() {

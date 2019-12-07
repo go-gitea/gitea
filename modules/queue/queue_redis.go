@@ -67,7 +67,7 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	dataChan := make(chan Data, config.QueueLength)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	var queue = RedisQueue{
+	var queue = &RedisQueue{
 		pool: &WorkerPool{
 			baseCtx:      ctx,
 			cancel:       cancel,
@@ -100,7 +100,9 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	if err := queue.client.Ping().Err(); err != nil {
 		return nil, err
 	}
-	return &queue, nil
+	queue.pool.qid = GetManager().Add(queue, RedisQueueType, config, exemplar, queue.pool.AddWorkers, queue.pool.NumberOfWorkers)
+
+	return queue, nil
 }
 
 // Run runs the redis queue
@@ -108,7 +110,9 @@ func (r *RedisQueue) Run(atShutdown, atTerminate func(context.Context, func())) 
 	atShutdown(context.Background(), r.Shutdown)
 	atTerminate(context.Background(), r.Terminate)
 
-	go r.pool.addWorkers(r.pool.baseCtx, r.workers)
+	go func() {
+		_ = r.pool.AddWorkers(r.workers, 0)
+	}()
 
 	go r.readToChan()
 
@@ -196,6 +200,11 @@ func (r *RedisQueue) Terminate() {
 	if err := r.client.Close(); err != nil {
 		log.Error("Error whilst closing internal redis client in %s: %v", r.name, err)
 	}
+}
+
+// Name returns the name of this queue
+func (r *RedisQueue) Name() string {
+	return r.name
 }
 
 func init() {
