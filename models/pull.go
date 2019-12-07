@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/unknwon/com"
+	"github.com/unknwon/i18n"
 )
 
 var pullRequestQueue = sync.NewUniqueQueue(setting.Repository.PullRequestQueueLength)
@@ -193,18 +194,20 @@ func (pr *PullRequest) RequiresApproval() bool {
 	return pr.requiredApprovals() > 0
 }
 
-// GetReviewLabel returns the localization label for the review of this pull request
-func (pr *PullRequest) GetReviewLabel() string {
+// GetReviewLabel returns the formatted review label with counter for the review of this pull request
+func (pr *PullRequest) GetReviewLabel(lang string) string {
 	if pr.RequiresApproval() {
+		rejections := pr.ProtectedBranch.GetRejectedReviewsCount(pr)
 		if pr.ProtectedBranch.GetRejectedReviewsCount(pr) > 0 {
-			return "repo.pulls.review_rejected"
+			return i18n.Tr(lang, "repo.pulls.review_rejected", rejections)
 		}
-		if pr.ProtectedBranch.HasEnoughApprovals(pr) {
-			return "repo.pulls.review_approved"
+		approvals := pr.ProtectedBranch.GetGrantedApprovalsCount(pr)
+		if approvals >= pr.ProtectedBranch.RequiredApprovals {
+			return i18n.Tr(lang, "repo.pulls.review_approved", approvals)
 		}
-		return "repo.pulls.review_required"
+		return i18n.Tr(lang, "repo.pulls.review_required", pr.ProtectedBranch.RequiredApprovals-approvals)
 	}
-	return "repo.pulls.review_approved" // by default
+	return i18n.Tr(lang, "repo.pulls.review_approved", 0) // by default
 }
 
 // GetDefaultMergeMessage returns default message used when merging pull request

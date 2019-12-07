@@ -240,7 +240,7 @@
 							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 						{{end}}
 						{{if .IsPull }}{{if .PullRequest.RequiresApproval }}
-							&bull; <a class="milestone" href="{{$.Link}}/{{.Index}}">{{$.i18n.Tr .PullRequest.GetReviewLabel }}</a>
+							<a class="milestone" href="{{$.Link}}/{{.Index}}">{{.PullRequest.GetReviewLabel $.i18n.Lang | Safe}}</a>
 						{{end}}{{end}}
 						{{if .Milestone}}
 							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
