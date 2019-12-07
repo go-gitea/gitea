@@ -6,8 +6,9 @@ package queue
 
 import (
 	"context"
-	"sync"
 	"time"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // PersistableChannelQueueType is the type for persistable queue
@@ -15,17 +16,20 @@ const PersistableChannelQueueType Type = "persistable-channel"
 
 // PersistableChannelQueueConfiguration is the configuration for a PersistableChannelQueue
 type PersistableChannelQueueConfiguration struct {
-	DataDir     string
-	BatchLength int
-	QueueLength int
-	Timeout     time.Duration
-	MaxAttempts int
-	Workers     int
+	DataDir      string
+	BatchLength  int
+	QueueLength  int
+	Timeout      time.Duration
+	MaxAttempts  int
+	Workers      int
+	BlockTimeout time.Duration
+	BoostTimeout time.Duration
+	BoostWorkers int
 }
 
 // PersistableChannelQueue wraps a channel queue and level queue together
 type PersistableChannelQueue struct {
-	*BatchedChannelQueue
+	*ChannelQueue
 	delayedStarter
 	closed chan struct{}
 }
@@ -39,26 +43,33 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 	}
 	config := configInterface.(PersistableChannelQueueConfiguration)
 
-	batchChannelQueue, err := NewBatchedChannelQueue(handle, BatchedChannelQueueConfiguration{
-		QueueLength: config.QueueLength,
-		BatchLength: config.BatchLength,
-		Workers:     config.Workers,
+	channelQueue, err := NewChannelQueue(handle, ChannelQueueConfiguration{
+		QueueLength:  config.QueueLength,
+		BatchLength:  config.BatchLength,
+		Workers:      config.Workers,
+		BlockTimeout: config.BlockTimeout,
+		BoostTimeout: config.BoostTimeout,
+		BoostWorkers: config.BoostWorkers,
 	}, exemplar)
 	if err != nil {
 		return nil, err
 	}
 
-	// the level backend only needs one worker to catch up with the previously dropped work
+	// the level backend only needs temporary workrers to catch up with the previously dropped work
 	levelCfg := LevelQueueConfiguration{
-		DataDir:     config.DataDir,
-		BatchLength: config.BatchLength,
-		Workers:     1,
+		DataDir:      config.DataDir,
+		QueueLength:  config.QueueLength,
+		BatchLength:  config.BatchLength,
+		Workers:      1,
+		BlockTimeout: 1 * time.Second,
+		BoostTimeout: 5 * time.Minute,
+		BoostWorkers: 5,
 	}
 
 	levelQueue, err := NewLevelQueue(handle, levelCfg, exemplar)
 	if err == nil {
 		return &PersistableChannelQueue{
-			BatchedChannelQueue: batchChannelQueue.(*BatchedChannelQueue),
+			ChannelQueue: channelQueue.(*ChannelQueue),
 			delayedStarter: delayedStarter{
 				internal: levelQueue.(*LevelQueue),
 			},
@@ -71,7 +82,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 	}
 
 	return &PersistableChannelQueue{
-		BatchedChannelQueue: batchChannelQueue.(*BatchedChannelQueue),
+		ChannelQueue: channelQueue.(*ChannelQueue),
 		delayedStarter: delayedStarter{
 			cfg:         levelCfg,
 			underlying:  LevelQueueType,
@@ -88,7 +99,7 @@ func (p *PersistableChannelQueue) Push(data Data) error {
 	case <-p.closed:
 		return p.internal.Push(data)
 	default:
-		return p.BatchedChannelQueue.Push(data)
+		return p.ChannelQueue.Push(data)
 	}
 }
 
@@ -96,7 +107,7 @@ func (p *PersistableChannelQueue) Push(data Data) error {
 func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
 	p.lock.Lock()
 	if p.internal == nil {
-		p.setInternal(atShutdown, p.handle, p.exemplar)
+		p.setInternal(atShutdown, p.ChannelQueue.pool.handle, p.exemplar)
 	} else {
 		p.lock.Unlock()
 	}
@@ -106,44 +117,16 @@ func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 	// Just run the level queue - we shut it down later
 	go p.internal.Run(func(_ context.Context, _ func()) {}, func(_ context.Context, _ func()) {})
 
-	wg := sync.WaitGroup{}
-	for i := 0; i < p.workers; i++ {
-		wg.Add(1)
-		go func() {
-			p.worker()
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-}
+	go p.ChannelQueue.pool.addWorkers(p.ChannelQueue.pool.baseCtx, p.workers)
 
-func (p *PersistableChannelQueue) worker() {
-	delay := time.Millisecond * 300
-	var datas = make([]Data, 0, p.batchLength)
-loop:
-	for {
-		select {
-		case data := <-p.queue:
-			datas = append(datas, data)
-			if len(datas) >= p.batchLength {
-				p.handle(datas...)
-				datas = make([]Data, 0, p.batchLength)
-			}
-		case <-time.After(delay):
-			delay = time.Millisecond * 100
-			if len(datas) > 0 {
-				p.handle(datas...)
-				datas = make([]Data, 0, p.batchLength)
-			}
-		case <-p.closed:
-			if len(datas) > 0 {
-				p.handle(datas...)
-			}
-			break loop
-		}
-	}
+	<-p.closed
+	p.ChannelQueue.pool.cancel()
+	p.internal.(*LevelQueue).pool.cancel()
+	p.ChannelQueue.pool.Wait()
+	p.internal.(*LevelQueue).pool.Wait()
+	// Redirect all remaining data in the chan to the internal channel
 	go func() {
-		for data := range p.queue {
+		for data := range p.ChannelQueue.pool.dataChan {
 			_ = p.internal.Push(data)
 		}
 	}()
@@ -154,17 +137,18 @@ func (p *PersistableChannelQueue) Shutdown() {
 	select {
 	case <-p.closed:
 	default:
-		close(p.closed)
 		p.lock.Lock()
 		defer p.lock.Unlock()
 		if p.internal != nil {
 			p.internal.(*LevelQueue).Shutdown()
 		}
+		close(p.closed)
 	}
 }
 
 // Terminate this queue and close the queue
 func (p *PersistableChannelQueue) Terminate() {
+	log.Trace("Terminating")
 	p.Shutdown()
 	p.lock.Lock()
 	defer p.lock.Unlock()

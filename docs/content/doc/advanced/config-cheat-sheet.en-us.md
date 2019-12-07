@@ -236,7 +236,7 @@ relation to port exhaustion.
 
 ## Queue (`queue`)
 
-- `TYPE`: **persistable-channel**: General queue type, currently support: `persistable-channel`, `batched-channel`, `channel`, `level`, `redis`, `dummy`
+- `TYPE`: **persistable-channel**: General queue type, currently support: `persistable-channel`, `channel`, `level`, `redis`, `dummy`
 - `DATADIR`: **queues/**: Base DataDir for storing persistent and level queues.
 - `LENGTH`: **20**: Maximal queue size before channel queues block
 - `BATCH_LENGTH`: **20**: Batch data before passing to the handler

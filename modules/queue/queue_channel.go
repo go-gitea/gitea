@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -17,14 +18,17 @@ const ChannelQueueType Type = "channel"
 
 // ChannelQueueConfiguration is the configuration for a ChannelQueue
 type ChannelQueueConfiguration struct {
-	QueueLength int
-	Workers     int
+	QueueLength  int
+	BatchLength  int
+	Workers      int
+	BlockTimeout time.Duration
+	BoostTimeout time.Duration
+	BoostWorkers int
 }
 
 // ChannelQueue implements
 type ChannelQueue struct {
-	queue    chan Data
-	handle   HandlerFunc
+	pool     *WorkerPool
 	exemplar interface{}
 	workers  int
 }
@@ -36,9 +40,23 @@ func NewChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 		return nil, err
 	}
 	config := configInterface.(ChannelQueueConfiguration)
+	if config.BatchLength == 0 {
+		config.BatchLength = 1
+	}
+	dataChan := make(chan Data, config.QueueLength)
+
+	ctx, cancel := context.WithCancel(context.Background())
 	return &ChannelQueue{
-		queue:    make(chan Data, config.QueueLength),
-		handle:   handle,
+		pool: &WorkerPool{
+			baseCtx:      ctx,
+			cancel:       cancel,
+			batchLength:  config.BatchLength,
+			handle:       handle,
+			dataChan:     dataChan,
+			blockTimeout: config.BlockTimeout,
+			boostTimeout: config.BoostTimeout,
+			boostWorkers: config.BoostWorkers,
+		},
 		exemplar: exemplar,
 		workers:  config.Workers,
 	}, nil
@@ -52,13 +70,7 @@ func (c *ChannelQueue) Run(atShutdown, atTerminate func(context.Context, func())
 	atTerminate(context.Background(), func() {
 		log.Warn("ChannelQueue is not terminatable!")
 	})
-	for i := 0; i < c.workers; i++ {
-		go func() {
-			for data := range c.queue {
-				c.handle(data)
-			}
-		}()
-	}
+	c.pool.addWorkers(c.pool.baseCtx, c.workers)
 }
 
 // Push will push the indexer data to queue
@@ -71,7 +83,7 @@ func (c *ChannelQueue) Push(data Data) error {
 			return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in queue: %s", data, c.exemplar, c.name)
 		}
 	}
-	c.queue <- data
+	c.pool.Push(data)
 	return nil
 }
 
