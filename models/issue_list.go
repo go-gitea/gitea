@@ -308,6 +308,7 @@ func (issues IssueList) loadPullRequests(e Engine) error {
 
 	for _, issue := range issues {
 		issue.PullRequest = pullRequestMaps[issue.ID]
+		issue.PullRequest.Issue = issue
 	}
 	return nil
 }
