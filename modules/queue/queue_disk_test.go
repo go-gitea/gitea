@@ -27,9 +27,13 @@ func TestLevelQueue(t *testing.T) {
 	var queueTerminate func()
 
 	queue, err := NewLevelQueue(handle, LevelQueueConfiguration{
-		DataDir:     "level-queue-test-data",
-		BatchLength: 2,
-		Workers:     1,
+		DataDir:      "level-queue-test-data",
+		BatchLength:  2,
+		Workers:      1,
+		QueueLength:  20,
+		BlockTimeout: 1 * time.Second,
+		BoostTimeout: 5 * time.Minute,
+		BoostWorkers: 5,
 	}, &testData{})
 	assert.NoError(t, err)
 
@@ -75,9 +79,13 @@ func TestLevelQueue(t *testing.T) {
 
 	// Reopen queue
 	queue, err = NewLevelQueue(handle, LevelQueueConfiguration{
-		DataDir:     "level-queue-test-data",
-		BatchLength: 2,
-		Workers:     1,
+		DataDir:      "level-queue-test-data",
+		BatchLength:  2,
+		Workers:      1,
+		QueueLength:  20,
+		BlockTimeout: 1 * time.Second,
+		BoostTimeout: 5 * time.Minute,
+		BoostWorkers: 5,
 	}, &testData{})
 	assert.NoError(t, err)
 

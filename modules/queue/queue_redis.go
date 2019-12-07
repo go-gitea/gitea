@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -31,23 +30,26 @@ type redisClient interface {
 
 // RedisQueue redis queue
 type RedisQueue struct {
-	client      redisClient
-	queueName   string
-	handle      HandlerFunc
-	batchLength int
-	closed      chan struct{}
-	exemplar    interface{}
-	workers     int
+	pool      *WorkerPool
+	client    redisClient
+	queueName string
+	closed    chan struct{}
+	exemplar  interface{}
+	workers   int
 }
 
 // RedisQueueConfiguration is the configuration for the redis queue
 type RedisQueueConfiguration struct {
-	Addresses   string
-	Password    string
-	DBIndex     int
-	BatchLength int
-	QueueName   string
-	Workers     int
+	Addresses    string
+	Password     string
+	DBIndex      int
+	BatchLength  int
+	QueueLength  int
+	QueueName    string
+	Workers      int
+	BlockTimeout time.Duration
+	BoostTimeout time.Duration
+	BoostWorkers int
 }
 
 // NewRedisQueue creates single redis or cluster redis queue
@@ -59,13 +61,25 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	config := configInterface.(RedisQueueConfiguration)
 
 	dbs := strings.Split(config.Addresses, ",")
+
+	dataChan := make(chan Data, config.QueueLength)
+	ctx, cancel := context.WithCancel(context.Background())
+
 	var queue = RedisQueue{
-		queueName:   config.QueueName,
-		handle:      handle,
-		batchLength: config.BatchLength,
-		exemplar:    exemplar,
-		closed:      make(chan struct{}),
-		workers:     config.Workers,
+		pool: &WorkerPool{
+			baseCtx:      ctx,
+			cancel:       cancel,
+			batchLength:  config.BatchLength,
+			handle:       handle,
+			dataChan:     dataChan,
+			blockTimeout: config.BlockTimeout,
+			boostTimeout: config.BoostTimeout,
+			boostWorkers: config.BoostWorkers,
+		},
+		queueName: config.QueueName,
+		exemplar:  exemplar,
+		closed:    make(chan struct{}),
+		workers:   config.Workers,
 	}
 	if len(dbs) == 0 {
 		return nil, errors.New("no redis host found")
@@ -90,79 +104,57 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 func (r *RedisQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
 	atShutdown(context.Background(), r.Shutdown)
 	atTerminate(context.Background(), r.Terminate)
-	wg := sync.WaitGroup{}
-	for i := 0; i < r.workers; i++ {
-		wg.Add(1)
-		go func() {
-			r.worker()
-			wg.Done()
-		}()
-	}
-	wg.Wait()
+
+	go r.pool.addWorkers(r.pool.baseCtx, r.workers)
+
+	go r.readToChan()
+
+	<-r.closed
+	r.pool.Wait()
+	// FIXME: graceful: Needs HammerContext
+	r.pool.CleanUp(context.TODO())
 }
 
-func (r *RedisQueue) worker() {
-	var i int
-	var datas = make([]Data, 0, r.batchLength)
+func (r *RedisQueue) readToChan() {
 	for {
 		select {
 		case <-r.closed:
-			if len(datas) > 0 {
-				log.Trace("Handling: %d data, %v", len(datas), datas)
-				r.handle(datas...)
-			}
+			// tell the pool to shutdown
+			r.pool.cancel()
 			return
 		default:
-		}
-		bs, err := r.client.LPop(r.queueName).Bytes()
-		if err != nil && err != redis.Nil {
-			log.Error("LPop failed: %v", err)
-			time.Sleep(time.Millisecond * 100)
-			continue
-		}
-
-		i++
-		if len(datas) > r.batchLength || (len(datas) > 0 && i > 3) {
-			log.Trace("Handling: %d data, %v", len(datas), datas)
-			r.handle(datas...)
-			datas = make([]Data, 0, r.batchLength)
-			i = 0
-		}
-
-		if len(bs) == 0 {
-			time.Sleep(time.Millisecond * 100)
-			continue
-		}
-
-		var data Data
-		if r.exemplar != nil {
-			t := reflect.TypeOf(r.exemplar)
-			n := reflect.New(t)
-			ne := n.Elem()
-			err = json.Unmarshal(bs, ne.Addr().Interface())
-			data = ne.Interface().(Data)
-		} else {
-			err = json.Unmarshal(bs, &data)
-		}
-		if err != nil {
-			log.Error("Unmarshal: %v", err)
-			time.Sleep(time.Millisecond * 100)
-			continue
-		}
-
-		log.Trace("RedisQueue: task found: %#v", data)
-
-		datas = append(datas, data)
-		select {
-		case <-r.closed:
-			if len(datas) > 0 {
-				log.Trace("Handling: %d data, %v", len(datas), datas)
-				r.handle(datas...)
+			bs, err := r.client.LPop(r.queueName).Bytes()
+			if err != nil && err != redis.Nil {
+				log.Error("LPop failed: %v", err)
+				time.Sleep(time.Millisecond * 100)
+				continue
 			}
-			return
-		default:
+
+			if len(bs) == 0 {
+				time.Sleep(time.Millisecond * 100)
+				continue
+			}
+
+			var data Data
+			if r.exemplar != nil {
+				t := reflect.TypeOf(r.exemplar)
+				n := reflect.New(t)
+				ne := n.Elem()
+				err = json.Unmarshal(bs, ne.Addr().Interface())
+				data = ne.Interface().(Data)
+			} else {
+				err = json.Unmarshal(bs, &data)
+			}
+			if err != nil {
+				log.Error("Unmarshal: %v", err)
+				time.Sleep(time.Millisecond * 100)
+				continue
+			}
+
+			log.Trace("RedisQueue: task found: %#v", data)
+			r.pool.Push(data)
+			time.Sleep(time.Millisecond * 10)
 		}
-		time.Sleep(time.Millisecond * 100)
 	}
 }
 
