@@ -587,3 +587,40 @@
   num_issues: 0
   is_mirror: false
   status: 0
+
+- 
+  id: 46
+  owner_id: 26
+  lower_name: repo_external_tracker
+  name: repo_external_tracker
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+- 
+  id: 47
+  owner_id: 26
+  lower_name: repo_external_tracker_numeric
+  name: repo_external_tracker_numeric
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+- 
+  id: 48
+  owner_id: 26
+  lower_name: repo_external_tracker_alpha
+  name: repo_external_tracker_alpha
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  num_pulls: 1
+  is_mirror: false
+  status: 0

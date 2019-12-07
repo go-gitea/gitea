@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
@@ -606,6 +607,19 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
+	extIssueUnit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
+	if err == nil && extIssueUnit != nil {
+		if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
+			metas := ctx.Repo.Repository.ComposeMetas()
+			metas["index"] = ctx.Params(":index")
+			ctx.Redirect(com.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas))
+			return
+		}
+	} else if err != nil && !models.IsErrUnitTypeNotExist(err) {
+		ctx.ServerError("GetUnit", err)
+		return
+	}
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
