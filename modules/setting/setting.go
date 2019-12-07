@@ -159,6 +159,7 @@ var (
 		ExplorePagingNum      int
 		IssuePagingNum        int
 		RepoSearchPagingNum   int
+		MembersPagingNum      int
 		FeedMaxCommitNum      int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
@@ -191,6 +192,7 @@ var (
 		ExplorePagingNum:    20,
 		IssuePagingNum:      10,
 		RepoSearchPagingNum: 10,
+		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
