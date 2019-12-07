@@ -119,7 +119,16 @@ func newQueueService() {
 	Queue.Timeout = sec.Key("TIMEOUT").MustDuration(GracefulHammerTime + 30*time.Second)
 	Queue.Workers = sec.Key("WORKER").MustInt(1)
 
-	Cfg.Section("queue.notification").Key("WORKER").MustInt(5)
+	hasWorkers := false
+	for _, key := range Cfg.Section("queue.notification").Keys() {
+		if key.Name() == "WORKERS" {
+			hasWorkers = true
+			break
+		}
+	}
+	if !hasWorkers {
+		Cfg.Section("queue.notification").Key("WORKERS").SetValue("5")
+	}
 }
 
 // ParseQueueConnStr parses a queue connection string
