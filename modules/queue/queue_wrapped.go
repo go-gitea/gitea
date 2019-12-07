@@ -111,7 +111,7 @@ func NewWrappedQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 		return nil, ErrInvalidConfiguration{cfg: cfg}
 	}
 
-	return &WrappedQueue{
+	queue = &WrappedQueue{
 		handle:   handle,
 		channel:  make(chan Data, config.QueueLength),
 		exemplar: exemplar,
@@ -122,7 +122,14 @@ func NewWrappedQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 			maxAttempts: config.MaxAttempts,
 			name:        config.Name,
 		},
-	}, nil
+	}
+	_ = GetManager().Add(queue, WrappedQueueType, config, exemplar, nil, nil)
+	return queue, nil
+}
+
+// Name returns the name of the queue
+func (q *WrappedQueue) Name() string {
+	return q.name + "-wrapper"
 }
 
 // Push will push the data to the internal channel checking it against the exemplar
