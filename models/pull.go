@@ -196,11 +196,11 @@ func (pr *PullRequest) RequiresApproval() bool {
 // GetReviewLabel returns the localization label for the review of this pull request
 func (pr *PullRequest) GetReviewLabel() string {
 	if pr.RequiresApproval() {
-		if pr.ProtectedBranch.HasEnoughApprovals(pr) {
-			return "repo.pulls.review_approved"
-		}
 		if pr.ProtectedBranch.GetRejectedReviewsCount(pr) > 0 {
 			return "repo.pulls.review_rejected"
+		}
+		if pr.ProtectedBranch.HasEnoughApprovals(pr) {
+			return "repo.pulls.review_approved"
 		}
 		return "repo.pulls.review_required"
 	}
