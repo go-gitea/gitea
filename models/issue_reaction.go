@@ -10,7 +10,6 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -100,7 +99,7 @@ type ReactionOptions struct {
 
 // CreateReaction creates reaction for issue or comment.
 func CreateReaction(opts *ReactionOptions) (reaction *Reaction, err error) {
-	if !util.IsStringInSlice(opts.Type, setting.UI.Reactions) {
+	if !setting.UI.ReactionsMap[opts.Type] {
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 
