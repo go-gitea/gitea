@@ -206,6 +206,9 @@
 						{{else}}
 							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
 						{{end}}
+						{{if .IsPull }}{{if .PullRequest.RequiresApproval }}
+							&bull; <a class="milestone" href="{{$.RepoLink}}/issues/{{.Index}}">{{$.i18n.Tr .PullRequest.GetReviewLabel }}</a>
+						{{end}}{{end}}
 						{{if .Ref}}
 							<a class="ref" href="{{$.RepoLink}}/src/branch/{{.Ref}}">
 								<span class="octicon octicon-git-branch"></span> {{.Ref}}

@@ -124,6 +124,9 @@
 								{{else}}
 									{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName|Escape) | Safe}}
 								{{end}}
+								{{if .IsPull }}{{if .PullRequest.RequiresApproval }}
+									&bull; <a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}/issues/{{.Index}}">{{$.i18n.Tr .PullRequest.GetReviewLabel }}</a>
+								{{end}}{{end}}
 								{{if .Milestone}}
 									<a class="milestone" href="{{AppSubUrl}}/{{.Repo.Owner.Name}}/{{.Repo.Name}}{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
 										<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}

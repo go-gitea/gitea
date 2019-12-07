@@ -335,6 +335,10 @@ func Issues(ctx *context.Context) {
 		issue.Repo = showReposMap[issue.RepoID]
 
 		if isPullList {
+			if err := issue.LoadPullRequest(); err != nil {
+				ctx.ServerError("LoadPullRequest", err)
+				return
+			}
 			commitStatus[issue.PullRequest.ID], _ = issue.PullRequest.GetLastCommitStatus()
 		}
 	}

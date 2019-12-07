@@ -180,6 +180,9 @@ func (issue *Issue) loadPullRequest(e Engine) (err error) {
 		}
 		issue.PullRequest.Issue = issue
 	}
+	if issue.PullRequest != nil && issue.PullRequest.Issue == nil {
+		issue.PullRequest.Issue = issue
+	}
 	return nil
 }
 

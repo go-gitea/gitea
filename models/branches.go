@@ -165,6 +165,20 @@ func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) 
 	return approvals
 }
 
+// GetRejectedReviewsCount returns the number of rejected reviews for pr.
+func (protectBranch *ProtectedBranch) GetRejectedReviewsCount(pr *PullRequest) int64 {
+	rejects, err := x.Where("issue_id = ?", pr.Issue.ID).
+		And("type = ?", ReviewTypeReject).
+		And("official = ?", true).
+		Count(new(Review))
+	if err != nil {
+		log.Error("GetRejectedReviewsCount: %v", err)
+		return 0
+	}
+
+	return rejects
+}
+
 // GetProtectedBranchByRepoID getting protected branch by repo ID
 func GetProtectedBranchByRepoID(repoID int64) ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)

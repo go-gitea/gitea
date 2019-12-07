@@ -176,6 +176,37 @@ func (pr *PullRequest) loadProtectedBranch(e Engine) (err error) {
 	return
 }
 
+func (pr *PullRequest) requiredApprovals() int64 {
+	if pr.ProtectedBranch == nil {
+		if err := pr.loadProtectedBranch(x); err != nil {
+			log.Error("Error loading ProtectedBranch", err)
+		}
+	}
+	if pr.ProtectedBranch != nil {
+		return pr.ProtectedBranch.RequiredApprovals
+	}
+	return 0
+}
+
+// RequiresApproval returns true if this pull request requires approval, otherwise returns false
+func (pr *PullRequest) RequiresApproval() bool {
+	return pr.requiredApprovals() > 0
+}
+
+// GetReviewLabel returns the localization label for the review of this pull request
+func (pr *PullRequest) GetReviewLabel() string {
+	if pr.RequiresApproval() {
+		if pr.ProtectedBranch.HasEnoughApprovals(pr) {
+			return "repo.pulls.review_approved"
+		}
+		if pr.ProtectedBranch.GetRejectedReviewsCount(pr) > 0 {
+			return "repo.pulls.review_rejected"
+		}
+		return "repo.pulls.review_required"
+	}
+	return "repo.pulls.review_approved" // by default
+}
+
 // GetDefaultMergeMessage returns default message used when merging pull request
 func (pr *PullRequest) GetDefaultMergeMessage() string {
 	if pr.HeadRepo == nil {
