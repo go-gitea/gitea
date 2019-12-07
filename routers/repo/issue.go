@@ -1282,7 +1282,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 				// Regenerate patch and test conflict.
 				if pr == nil {
-					if err = issue.PullRequest.UpdatePatch(); err != nil {
+					if err = pull_service.UpdatePatch(issue.PullRequest); err != nil {
 						ctx.ServerError("UpdatePatch", err)
 						return
 					}

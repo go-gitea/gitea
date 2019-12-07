@@ -14,9 +14,73 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
+const issueMaxDupIndexAttempts = 3
+
+// newPullRequest creates new pull request with labels for repository.
+func newPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, patch []byte) (err error) {
+	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
+	i := 0
+	for {
+		if err = newPullRequestAttempt(repo, pull, labelIDs, uuids, pr, patch); err == nil {
+			return nil
+		}
+		if !models.IsErrNewIssueInsert(err) {
+			return err
+		}
+		if i++; i == issueMaxDupIndexAttempts {
+			break
+		}
+		log.Error("NewPullRequest: error attempting to insert the new issue; will retry. Original error: %v", err)
+	}
+	return fmt.Errorf("NewPullRequest: too many errors attempting to insert the new issue. Last error was: %v", err)
+}
+
+func newPullRequestAttempt(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, patch []byte) (err error) {
+	ctx, commiter, err := models.TxDBContext()
+	if err != nil {
+		return err
+	}
+	defer commiter.Close()
+
+	if err = models.NewIssue(ctx, repo, pull, labelIDs, uuids); err != nil {
+		if models.IsErrUserDoesNotHaveAccessToRepo(err) || models.IsErrNewIssueInsert(err) {
+			return err
+		}
+		return fmt.Errorf("newIssue: %v", err)
+	}
+
+	pr.Index = pull.Index
+	pr.BaseRepo = repo
+	pr.Status = models.PullRequestStatusChecking
+	if len(patch) > 0 {
+		if err = savePatch(ctx, repo, pr.Index, patch); err != nil {
+			return fmt.Errorf("SavePatch: %v", err)
+		}
+
+		if err = testPatch(pr, ctx); err != nil {
+			return fmt.Errorf("testPatch: %v", err)
+		}
+	}
+	// No conflict appears after test means mergeable.
+	if pr.Status == models.PullRequestStatusChecking {
+		pr.Status = models.PullRequestStatusMergeable
+	}
+
+	pr.IssueID = pull.ID
+	if err = models.Insert(ctx, pr); err != nil {
+		return fmt.Errorf("insert pull repo: %v", err)
+	}
+
+	if err = commiter.Commit(); err != nil {
+		return fmt.Errorf("Commit: %v", err)
+	}
+
+	return nil
+}
+
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, patch []byte, assigneeIDs []int64) error {
-	if err := models.NewPullRequest(repo, pull, labelIDs, uuids, pr, patch); err != nil {
+	if err := newPullRequest(repo, pull, labelIDs, uuids, pr, patch); err != nil {
 		return err
 	}
 
@@ -56,7 +120,7 @@ func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *m
 func addHeadRepoTasks(prs []*models.PullRequest) {
 	for _, pr := range prs {
 		log.Trace("addHeadRepoTasks[%d]: composing new test task", pr.ID)
-		if err := pr.UpdatePatch(); err != nil {
+		if err := UpdatePatch(pr); err != nil {
 			log.Error("UpdatePatch: %v", err)
 			continue
 		} else if err := pr.PushToBaseRepo(); err != nil {

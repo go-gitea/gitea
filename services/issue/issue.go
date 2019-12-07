@@ -5,14 +5,30 @@
 package issue
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 )
 
+const issueMaxDupIndexAttempts = 3
+
 // NewIssue creates new issue with labels for repository.
-func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) error {
-	if err := models.NewIssue(repo, issue, labelIDs, uuids); err != nil {
-		return err
+func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uuids []string, assigneeIDs []int64) (err error) {
+	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
+	i := 0
+	for ; i < issueMaxDupIndexAttempts; i++ {
+		if err = newIssueAttempt(repo, issue, labelIDs, uuids); err == nil {
+			break
+		}
+		if !models.IsErrNewIssueInsert(err) {
+			return err
+		}
+		log.Error("NewIssue: error attempting to insert the new issue; will retry. Original error: %v", err)
+	}
+	if i >= issueMaxDupIndexAttempts {
+		return fmt.Errorf("NewIssue: too many errors attempting to insert the new issue. Last error was: %v", err)
 	}
 
 	for _, assigneeID := range assigneeIDs {
@@ -22,6 +38,27 @@ func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uu
 	}
 
 	notification.NotifyNewIssue(issue)
+
+	return nil
+}
+
+func newIssueAttempt(repo *models.Repository, issue *models.Issue, labelIDs []int64, uuids []string) (err error) {
+	ctx, commiter, err := models.TxDBContext()
+	if err != nil {
+		return err
+	}
+	defer commiter.Close()
+
+	if err = models.NewIssue(ctx, repo, issue, labelIDs, uuids); err != nil {
+		if models.IsErrUserDoesNotHaveAccessToRepo(err) || models.IsErrNewIssueInsert(err) {
+			return err
+		}
+		return fmt.Errorf("newIssue: %v", err)
+	}
+
+	if err = commiter.Commit(); err != nil {
+		return fmt.Errorf("Commit: %v", err)
+	}
 
 	return nil
 }

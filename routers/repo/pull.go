@@ -1008,7 +1008,7 @@ func DownloadPullDiff(ctx *context.Context) {
 		ctx.ServerError("GetBaseRepo", err)
 		return
 	}
-	patch, err := pr.BaseRepo.PatchPath(pr.Index)
+	patch, err := pull_service.PatchPath(pr.BaseRepo, pr.Index)
 	if err != nil {
 		ctx.ServerError("PatchPath", err)
 		return

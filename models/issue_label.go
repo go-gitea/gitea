@@ -413,7 +413,7 @@ func HasIssueLabel(issueID, labelID int64) bool {
 	return hasIssueLabel(x, issueID, labelID)
 }
 
-func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err error) {
+func newIssueLabel(e Engine, issue *Issue, label *Label, doer *User) (err error) {
 	if _, err = e.Insert(&IssueLabel{
 		IssueID: issue.ID,
 		LabelID: label.ID,

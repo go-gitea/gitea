@@ -66,7 +66,7 @@ func IsPullCommitStatusPass(pr *models.PullRequest) (bool, error) {
 		return false, errors.Wrap(err, "GetBranchCommitID")
 	}
 
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepo(models.DefaultDBContext()); err != nil {
 		return false, errors.Wrap(err, "LoadBaseRepo")
 	}
 

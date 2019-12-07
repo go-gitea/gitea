@@ -75,7 +75,6 @@ var (
 
 const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sx]\]\s.)|(\n\s*[-*]\s\[[\sx]\]\s.)`
 const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[x]\]\s.)|(\n\s*[-*]\s\[[x]\]\s.)`
-const issueMaxDupIndexAttempts = 3
 
 func init() {
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
@@ -447,7 +446,7 @@ func (issue *Issue) ReplyReference() string {
 	return fmt.Sprintf("%s/%s/%d@%s", issue.Repo.FullName(), path, issue.Index, setting.Domain)
 }
 
-func (issue *Issue) addLabel(e *xorm.Session, label *Label, doer *User) error {
+func (issue *Issue) addLabel(e Engine, label *Label, doer *User) error {
 	return newIssueLabel(e, issue, label, doer)
 }
 
@@ -843,10 +842,9 @@ type NewIssueOptions struct {
 	Issue       *Issue
 	LabelIDs    []int64
 	Attachments []string // In UUID format.
-	IsPull      bool
 }
 
-func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
+func newIssue(e Engine, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 
 	if opts.Issue.MilestoneID > 0 {
@@ -864,8 +862,8 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	// Milestone validation should happen before insert actual object.
-	if _, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
-		Where("repo_id=?", opts.Issue.RepoID).
+	if _, err := e.Where("repo_id=?", opts.Issue.RepoID).
+		SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
 		Insert(opts.Issue); err != nil {
 		return ErrNewIssueInsert{err}
 	}
@@ -896,7 +894,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	if opts.IsPull {
+	if opts.Issue.IsPull {
 		_, err = e.Exec("UPDATE `repository` SET num_pulls = num_pulls + 1 WHERE id = ?", opts.Issue.RepoID)
 	} else {
 		_, err = e.Exec("UPDATE `repository` SET num_issues = num_issues + 1 WHERE id = ?", opts.Issue.RepoID)
@@ -953,48 +951,13 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 }
 
 // NewIssue creates new issue with labels for repository.
-func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
-	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
-	i := 0
-	for {
-		if err = newIssueAttempt(repo, issue, labelIDs, uuids); err == nil {
-			return nil
-		}
-		if !IsErrNewIssueInsert(err) {
-			return err
-		}
-		if i++; i == issueMaxDupIndexAttempts {
-			break
-		}
-		log.Error("NewIssue: error attempting to insert the new issue; will retry. Original error: %v", err)
-	}
-	return fmt.Errorf("NewIssue: too many errors attempting to insert the new issue. Last error was: %v", err)
-}
-
-func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = newIssue(sess, issue.Poster, NewIssueOptions{
+func NewIssue(ctx DBContext, repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
+	return newIssue(ctx.e, issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
 		LabelIDs:    labelIDs,
 		Attachments: uuids,
-	}); err != nil {
-		if IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
-			return err
-		}
-		return fmt.Errorf("newIssue: %v", err)
-	}
-
-	if err = sess.Commit(); err != nil {
-		return fmt.Errorf("Commit: %v", err)
-	}
-
-	return nil
+	})
 }
 
 // GetIssueByIndex returns raw issue without loading attributes by index in a repository.

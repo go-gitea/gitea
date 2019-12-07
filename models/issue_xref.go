@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/references"
 
 	"github.com/unknwon/com"
-	"xorm.io/xorm"
 )
 
 type crossReference struct {
@@ -61,7 +60,7 @@ func neuterCrossReferencesIds(e Engine, ids []int64) error {
 //          \/     \/            \/
 //
 
-func (issue *Issue) addCrossReferences(e *xorm.Session, doer *User, removeOld bool) error {
+func (issue *Issue) addCrossReferences(e Engine, doer *User, removeOld bool) error {
 	var commentType CommentType
 	if issue.IsPull {
 		commentType = CommentTypePullRef
@@ -77,7 +76,7 @@ func (issue *Issue) addCrossReferences(e *xorm.Session, doer *User, removeOld bo
 	return issue.createCrossReferences(e, ctx, issue.Title, issue.Content)
 }
 
-func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesContext, plaincontent, mdcontent string) error {
+func (issue *Issue) createCrossReferences(e Engine, ctx *crossReferencesContext, plaincontent, mdcontent string) error {
 	xreflist, err := ctx.OrigIssue.getCrossReferences(e, ctx, plaincontent, mdcontent)
 	if err != nil {
 		return err
@@ -138,7 +137,7 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 	return nil
 }
 
-func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesContext, plaincontent, mdcontent string) ([]*crossReference, error) {
+func (issue *Issue) getCrossReferences(e Engine, ctx *crossReferencesContext, plaincontent, mdcontent string) ([]*crossReference, error) {
 	xreflist := make([]*crossReference, 0, 5)
 	var (
 		refRepo   *Repository
@@ -246,7 +245,7 @@ func (issue *Issue) verifyReferencedIssue(e Engine, ctx *crossReferencesContext,
 //         \/             \/      \/     \/     \/
 //
 
-func (comment *Comment) addCrossReferences(e *xorm.Session, doer *User, removeOld bool) error {
+func (comment *Comment) addCrossReferences(e Engine, doer *User, removeOld bool) error {
 	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
 		return nil
 	}

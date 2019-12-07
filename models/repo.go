@@ -496,6 +496,11 @@ func (repo *Repository) GetUnit(tp UnitType) (*RepoUnit, error) {
 	return repo.getUnit(x, tp)
 }
 
+// GetRepoUnit returns a RepoUnit object
+func GetRepoUnit(ctx DBContext, repo *Repository, tp UnitType) (*RepoUnit, error) {
+	return repo.getUnit(ctx.e, tp)
+}
+
 func (repo *Repository) getUnit(e Engine, tp UnitType) (*RepoUnit, error) {
 	if err := repo.getUnits(e); err != nil {
 		return nil, err
@@ -888,8 +893,8 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 }
 
 // PatchPath returns corresponding patch file path of repository by given issue ID.
-func (repo *Repository) PatchPath(index int64) (string, error) {
-	return repo.patchPath(x, index)
+func (repo *Repository) PatchPath(ctx DBContext, index int64) (string, error) {
+	return repo.patchPath(ctx.e, index)
 }
 
 func (repo *Repository) patchPath(e Engine, index int64) (string, error) {
@@ -898,29 +903,6 @@ func (repo *Repository) patchPath(e Engine, index int64) (string, error) {
 	}
 
 	return filepath.Join(RepoPath(repo.Owner.Name, repo.Name), "pulls", com.ToStr(index)+".patch"), nil
-}
-
-// SavePatch saves patch data to corresponding location by given issue ID.
-func (repo *Repository) SavePatch(index int64, patch []byte) error {
-	return repo.savePatch(x, index, patch)
-}
-
-func (repo *Repository) savePatch(e Engine, index int64, patch []byte) error {
-	patchPath, err := repo.patchPath(e, index)
-	if err != nil {
-		return fmt.Errorf("PatchPath: %v", err)
-	}
-	dir := filepath.Dir(patchPath)
-
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
-	}
-
-	if err = ioutil.WriteFile(patchPath, patch, 0644); err != nil {
-		return fmt.Errorf("WriteFile: %v", err)
-	}
-
-	return nil
 }
 
 func isRepositoryExist(e Engine, u *User, repoName string) (bool, error) {

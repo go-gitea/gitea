@@ -53,3 +53,9 @@ func WithTx(f func(ctx DBContext) error) error {
 	sess.Close()
 	return err
 }
+
+// Insert inserts an object to database
+func Insert(ctx DBContext, bean interface{}) error {
+	_, err := ctx.e.Insert(bean)
+	return err
+}

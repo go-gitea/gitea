@@ -6,6 +6,7 @@
 package pull
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -149,6 +150,111 @@ func manuallyMerged(pr *models.PullRequest) bool {
 	return false
 }
 
+// patchConflicts is a list of conflict description from Git.
+var patchConflicts = []string{
+	"patch does not apply",
+	"already exists in working directory",
+	"unrecognized input",
+	"error:",
+}
+
+// testPatch checks if patch can be merged to base repository without conflict.
+func testPatch(pr *models.PullRequest, ctx models.DBContext) (err error) {
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		return fmt.Errorf("LoadBaseRepo: %v", err)
+	}
+
+	patchPath, err := pr.BaseRepo.PatchPath(ctx, pr.Index)
+	if err != nil {
+		return fmt.Errorf("BaseRepo.PatchPath: %v", err)
+	}
+
+	// Fast fail if patch does not exist, this assumes data is corrupted.
+	if !com.IsFile(patchPath) {
+		log.Trace("PullRequest[%d].testPatch: ignored corrupted data", pr.ID)
+		return nil
+	}
+
+	models.RepoWorkingPool.CheckIn(com.ToStr(pr.BaseRepoID))
+	defer models.RepoWorkingPool.CheckOut(com.ToStr(pr.BaseRepoID))
+
+	log.Trace("PullRequest[%d].testPatch (patchPath): %s", pr.ID, patchPath)
+
+	pr.Status = models.PullRequestStatusChecking
+
+	indexTmpPath := filepath.Join(os.TempDir(), "gitea-"+pr.BaseRepo.Name+"-"+strconv.Itoa(time.Now().Nanosecond()))
+	defer os.Remove(indexTmpPath)
+
+	_, err = git.NewCommand("read-tree", pr.BaseBranch).RunInDirWithEnv("", []string{"GIT_DIR=" + pr.BaseRepo.RepoPath(), "GIT_INDEX_FILE=" + indexTmpPath})
+	if err != nil {
+		return fmt.Errorf("git read-tree --index-output=%s %s: %v", indexTmpPath, pr.BaseBranch, err)
+	}
+
+	prUnit, err := models.GetRepoUnit(ctx, pr.BaseRepo, models.UnitTypePullRequests)
+	if err != nil {
+		return err
+	}
+	prConfig := prUnit.PullRequestsConfig()
+
+	args := []string{"apply", "--check", "--cached"}
+	if prConfig.IgnoreWhitespaceConflicts {
+		args = append(args, "--ignore-whitespace")
+	}
+	args = append(args, patchPath)
+	pr.ConflictedFiles = []string{}
+
+	stderrBuilder := new(strings.Builder)
+	err = git.NewCommand(args...).RunInDirTimeoutEnvPipeline(
+		[]string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()},
+		-1,
+		"",
+		nil,
+		stderrBuilder)
+	stderr := stderrBuilder.String()
+
+	if err != nil {
+		for i := range patchConflicts {
+			if strings.Contains(stderr, patchConflicts[i]) {
+				log.Trace("PullRequest[%d].testPatch (apply): has conflict: %s", pr.ID, stderr)
+				const prefix = "error: patch failed:"
+				pr.Status = models.PullRequestStatusConflict
+				pr.ConflictedFiles = make([]string, 0, 5)
+				scanner := bufio.NewScanner(strings.NewReader(stderr))
+				for scanner.Scan() {
+					line := scanner.Text()
+
+					if strings.HasPrefix(line, prefix) {
+						var found bool
+						var filepath = strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
+						for _, f := range pr.ConflictedFiles {
+							if f == filepath {
+								found = true
+								break
+							}
+						}
+						if !found {
+							pr.ConflictedFiles = append(pr.ConflictedFiles, filepath)
+						}
+					}
+					// only list 10 conflicted files
+					if len(pr.ConflictedFiles) >= 10 {
+						break
+					}
+				}
+
+				if len(pr.ConflictedFiles) > 0 {
+					log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
+				}
+
+				return nil
+			}
+		}
+
+		return fmt.Errorf("git apply --check: %v - %s", err, stderr)
+	}
+	return nil
+}
+
 // TestPullRequests checks and tests untested patches of pull requests.
 // TODO: test more pull requests at same time.
 func TestPullRequests() {
@@ -170,7 +276,7 @@ func TestPullRequests() {
 		if manuallyMerged(pr) {
 			continue
 		}
-		if err := pr.TestPatch(); err != nil {
+		if err := testPatch(pr, models.DefaultDBContext()); err != nil {
 			log.Error("testPatch: %v", err)
 			continue
 		}
@@ -194,7 +300,7 @@ func TestPullRequests() {
 			continue
 		} else if manuallyMerged(pr) {
 			continue
-		} else if err = pr.TestPatch(); err != nil {
+		} else if err = testPatch(pr, models.DefaultDBContext()); err != nil {
 			log.Error("testPatch[%d]: %v", pr.ID, err)
 			continue
 		}

@@ -495,7 +495,7 @@ func (c *Comment) CodeCommentURL() string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
 }
 
-func createCommentWithNoAction(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
+func createCommentWithNoAction(e Engine, opts *CreateCommentOptions) (_ *Comment, err error) {
 	var LabelID int64
 	if opts.Label != nil {
 		LabelID = opts.Label.ID
@@ -546,7 +546,7 @@ func createCommentWithNoAction(e *xorm.Session, opts *CreateCommentOptions) (_ *
 	return comment, nil
 }
 
-func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Comment) (err error) {
+func updateCommentInfos(e Engine, opts *CreateCommentOptions, comment *Comment) (err error) {
 	// Check comment type.
 	switch opts.Type {
 	case CommentTypeCode:
@@ -596,7 +596,7 @@ func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Co
 	return updateIssueCols(e, opts.Issue, "updated_unix")
 }
 
-func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, comment *Comment) (err error) {
+func sendCreateCommentAction(e Engine, opts *CreateCommentOptions, comment *Comment) (err error) {
 	// Compose comment action, could be plain comment, close or reopen issue/pull request.
 	// This object will be used to notify watchers in the end of function.
 	act := &Action{
