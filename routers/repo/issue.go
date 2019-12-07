@@ -1463,14 +1463,12 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		if !util.IsStringInSlice(form.Content, setting.UI.Reactions) {
-			err := fmt.Errorf("ChangeIssueReaction: '%s' is not an allowed reaction", form.Content)
-			ctx.ServerError(err.Error(), err)
-			return
-		}
-
 		reaction, err := models.CreateIssueReaction(ctx.User, issue, form.Content)
 		if err != nil {
+			if models.IsErrForbiddenIssueReaction(err) {
+				ctx.ServerError("ChangeIssueReaction", err)
+				return
+			}
 			log.Info("CreateIssueReaction: %s", err)
 			break
 		}
@@ -1564,14 +1562,12 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		if !util.IsStringInSlice(form.Content, setting.UI.Reactions) {
-			err := fmt.Errorf("ChangeIssueReaction: '%s' is not an allowed reaction", form.Content)
-			ctx.ServerError(err.Error(), err)
-			return
-		}
-
 		reaction, err := models.CreateCommentReaction(ctx.User, comment.Issue, comment, form.Content)
 		if err != nil {
+			if models.IsErrForbiddenIssueReaction(err) {
+				ctx.ServerError("ChangeIssueReaction", err)
+				return
+			}
 			log.Info("CreateCommentReaction: %s", err)
 			break
 		}
