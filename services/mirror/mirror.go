@@ -427,6 +427,7 @@ func syncMirror(repoID string) {
 }
 
 // InitSyncMirrors initializes a go routine to sync the mirrors
+// FIXME: graceful: Needs to be a proper queue and graceful
 func InitSyncMirrors() {
 	go graceful.GetManager().RunWithShutdownContext(SyncMirrors)
 }

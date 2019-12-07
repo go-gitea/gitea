@@ -29,6 +29,7 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 }
 
 // MigrateRepository migrate repository according MigrateOptions
+// FIXME: graceful: ctx may need to be checked more often
 func MigrateRepository(ctx context.Context, doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
 	var (
 		downloader base.Downloader

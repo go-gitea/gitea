@@ -292,6 +292,8 @@ func NewContext() {
 	}
 
 	mailQueue = make(chan *Message, setting.MailService.QueueLength)
+
+	// FIXME: graceful: Needs to become a queue and graceful
 	go processMailQueue()
 }
 

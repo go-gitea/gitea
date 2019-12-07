@@ -21,6 +21,7 @@ var (
 )
 
 // RegisterNotifier providers method to receive notify messages
+// FIXME: graceful: This may need to become a queue
 func RegisterNotifier(notifier base.Notifier) {
 	go notifier.Run()
 	notifiers = append(notifiers, notifier)
