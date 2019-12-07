@@ -1074,10 +1074,11 @@ func DownloadPullPatch(ctx *context.Context) {
 func UpdatePullRequestTarget(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
 	pr := issue.PullRequest
-	if !issue.IsPull {
+	if ctx.Written() {
 		return
 	}
-	if ctx.Written() {
+	if !issue.IsPull {
+		ctx.Error(http.StatusNotFound)
 		return
 	}
 
