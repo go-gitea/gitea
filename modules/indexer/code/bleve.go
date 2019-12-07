@@ -6,6 +6,7 @@ package code
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -38,7 +39,7 @@ func InitRepoIndexer() {
 	repoIndexerOperationQueue = make(chan repoIndexerOperation, setting.Indexer.UpdateQueueLength)
 	go func() {
 		start := time.Now()
-		log.Info("Initializing Repository Indexer")
+		log.Info("PID: %d: Initializing Repository Indexer", os.Getpid())
 		indexer.InitRepoIndexer(populateRepoIndexerAsynchronously)
 		go processRepoIndexerOperationQueue()
 		waitChannel <- time.Since(start)
@@ -46,7 +47,7 @@ func InitRepoIndexer() {
 	if setting.Indexer.StartupTimeout > 0 {
 		go func() {
 			timeout := setting.Indexer.StartupTimeout
-			if graceful.Manager.IsChild() && setting.GracefulHammerTime > 0 {
+			if graceful.GetManager().IsChild() && setting.GracefulHammerTime > 0 {
 				timeout += setting.GracefulHammerTime
 			}
 			select {
@@ -90,10 +91,19 @@ func populateRepoIndexerAsynchronously() error {
 // should only be run when the indexer is created for the first time.
 func populateRepoIndexer(maxRepoID int64) {
 	log.Info("Populating the repo indexer with existing repositories")
+
+	isShutdown := graceful.GetManager().IsShutdown()
+
 	// start with the maximum existing repo ID and work backwards, so that we
 	// don't include repos that are created after gitea starts; such repos will
 	// already be added to the indexer, and we don't need to add them again.
 	for maxRepoID > 0 {
+		select {
+		case <-isShutdown:
+			log.Info("Repository Indexer population shutdown before completion")
+			return
+		default:
+		}
 		repos := make([]*models.Repository, 0, models.RepositoryListDefaultPageSize)
 		err := models.FindByMaxID(maxRepoID, models.RepositoryListDefaultPageSize, &repos)
 		if err != nil {
@@ -103,6 +113,12 @@ func populateRepoIndexer(maxRepoID int64) {
 			break
 		}
 		for _, repo := range repos {
+			select {
+			case <-isShutdown:
+				log.Info("Repository Indexer population shutdown before completion")
+				return
+			default:
+			}
 			repoIndexerOperationQueue <- repoIndexerOperation{
 				repoID:  repo.ID,
 				deleted: false,
@@ -323,20 +339,26 @@ func nonGenesisChanges(repo *models.Repository, revision string) (*repoChanges, 
 
 func processRepoIndexerOperationQueue() {
 	for {
-		op := <-repoIndexerOperationQueue
-		var err error
-		if op.deleted {
-			if err = indexer.DeleteRepoFromIndexer(op.repoID); err != nil {
-				log.Error("DeleteRepoFromIndexer: %v", err)
+		select {
+		case op := <-repoIndexerOperationQueue:
+			var err error
+			if op.deleted {
+				if err = indexer.DeleteRepoFromIndexer(op.repoID); err != nil {
+					log.Error("DeleteRepoFromIndexer: %v", err)
+				}
+			} else {
+				if err = updateRepoIndexer(op.repoID); err != nil {
+					log.Error("updateRepoIndexer: %v", err)
+				}
 			}
-		} else {
-			if err = updateRepoIndexer(op.repoID); err != nil {
-				log.Error("updateRepoIndexer: %v", err)
+			for _, watcher := range op.watchers {
+				watcher <- err
 			}
+		case <-graceful.GetManager().IsShutdown():
+			log.Info("PID: %d Repository indexer queue processing stopped", os.Getpid())
+			return
 		}
-		for _, watcher := range op.watchers {
-			watcher <- err
-		}
+
 	}
 }
 

@@ -172,7 +172,7 @@ func InitIssueIndexer(syncReindex bool) {
 	} else if setting.Indexer.StartupTimeout > 0 {
 		go func() {
 			timeout := setting.Indexer.StartupTimeout
-			if graceful.Manager.IsChild() && setting.GracefulHammerTime > 0 {
+			if graceful.GetManager().IsChild() && setting.GracefulHammerTime > 0 {
 				timeout += setting.GracefulHammerTime
 			}
 			select {
