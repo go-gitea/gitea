@@ -24,6 +24,7 @@ type WrappedQueueConfiguration struct {
 	MaxAttempts int
 	Config      interface{}
 	QueueLength int
+	Name        string
 }
 
 type delayedStarter struct {
@@ -33,6 +34,7 @@ type delayedStarter struct {
 	cfg         interface{}
 	timeout     time.Duration
 	maxAttempts int
+	name        string
 }
 
 func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), handle HandlerFunc, exemplar interface{}) {
@@ -55,7 +57,7 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 		select {
 		case <-ctx.Done():
 			q.lock.Unlock()
-			log.Fatal("Timedout creating queue %v with cfg %v ", q.underlying, q.cfg)
+			log.Fatal("Timedout creating queue %v with cfg %v in %s", q.underlying, q.cfg, q.name)
 		default:
 			queue, err := CreateQueue(q.underlying, handle, q.cfg, exemplar)
 			if err == nil {
@@ -64,12 +66,12 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 				break
 			}
 			if err.Error() != "resource temporarily unavailable" {
-				log.Warn("[Attempt: %d] Failed to create queue: %v cfg: %v error: %v", i, q.underlying, q.cfg, err)
+				log.Warn("[Attempt: %d] Failed to create queue: %v for %s cfg: %v error: %v", i, q.underlying, q.name, q.cfg, err)
 			}
 			i++
 			if q.maxAttempts > 0 && i > q.maxAttempts {
 				q.lock.Unlock()
-				log.Fatal("Unable to create queue %v with cfg %v by max attempts: error: %v", q.underlying, q.cfg, err)
+				log.Fatal("Unable to create queue %v for %s with cfg %v by max attempts: error: %v", q.underlying, q.name, q.cfg, err)
 			}
 			sleepTime := 100 * time.Millisecond
 			if q.timeout > 0 && q.maxAttempts > 0 {
@@ -118,6 +120,7 @@ func NewWrappedQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 			underlying:  config.Underlying,
 			timeout:     config.Timeout,
 			maxAttempts: config.MaxAttempts,
+			name:        config.Name,
 		},
 	}, nil
 }
@@ -156,6 +159,7 @@ func (q *WrappedQueue) Run(atShutdown, atTerminate func(context.Context, func())
 
 // Shutdown this queue and stop processing
 func (q *WrappedQueue) Shutdown() {
+	log.Trace("Shutdown: %s", q.name)
 	q.lock.Lock()
 	defer q.lock.Unlock()
 	if q.internal == nil {
@@ -168,6 +172,7 @@ func (q *WrappedQueue) Shutdown() {
 
 // Terminate this queue and close the queue
 func (q *WrappedQueue) Terminate() {
+	log.Trace("Terminating: %s", q.name)
 	q.lock.Lock()
 	defer q.lock.Unlock()
 	if q.internal == nil {

@@ -23,6 +23,7 @@ type queueSettings struct {
 	Type             string
 	Addresses        string
 	Password         string
+	QueueName        string
 	DBIndex          int
 	WrapIfNecessary  bool
 	MaxAttempts      int
@@ -40,13 +41,14 @@ var Queue = queueSettings{}
 func CreateQueue(name string, handle queue.HandlerFunc, exemplar interface{}) queue.Queue {
 	q := getQueueSettings(name)
 	opts := make(map[string]interface{})
+	opts["Name"] = name
 	opts["QueueLength"] = q.Length
 	opts["BatchLength"] = q.BatchLength
 	opts["DataDir"] = q.DataDir
 	opts["Addresses"] = q.Addresses
 	opts["Password"] = q.Password
 	opts["DBIndex"] = q.DBIndex
-	opts["QueueName"] = name
+	opts["QueueName"] = q.QueueName
 	opts["Workers"] = q.Workers
 	opts["BlockTimeout"] = q.BlockTimeout
 	opts["BoostTimeout"] = q.BoostTimeout
@@ -106,6 +108,7 @@ func getQueueSettings(name string) queueSettings {
 	q.BlockTimeout = sec.Key("BLOCK_TIMEOUT").MustDuration(Queue.BlockTimeout)
 	q.BoostTimeout = sec.Key("BOOST_TIMEOUT").MustDuration(Queue.BoostTimeout)
 	q.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(Queue.BoostWorkers)
+	q.QueueName = sec.Key("QUEUE_NAME").MustString(Queue.QueueName)
 
 	q.Addresses, q.Password, q.DBIndex, _ = ParseQueueConnStr(q.ConnectionString)
 	return q
@@ -130,6 +133,7 @@ func newQueueService() {
 	Queue.BlockTimeout = sec.Key("BLOCK_TIMEOUT").MustDuration(1 * time.Second)
 	Queue.BoostTimeout = sec.Key("BOOST_TIMEOUT").MustDuration(5 * time.Minute)
 	Queue.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(5)
+	Queue.QueueName = sec.Key("QUEUE_NAME").MustString(Queue.QueueName)
 
 	hasWorkers := false
 	for _, key := range Cfg.Section("queue.notification").Keys() {
