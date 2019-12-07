@@ -16,6 +16,7 @@ const PersistableChannelQueueType Type = "persistable-channel"
 
 // PersistableChannelQueueConfiguration is the configuration for a PersistableChannelQueue
 type PersistableChannelQueueConfiguration struct {
+	Name         string
 	DataDir      string
 	BatchLength  int
 	QueueLength  int
@@ -50,6 +51,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 		BlockTimeout: config.BlockTimeout,
 		BoostTimeout: config.BoostTimeout,
 		BoostWorkers: config.BoostWorkers,
+		Name:         config.Name + "-channel",
 	}, exemplar)
 	if err != nil {
 		return nil, err
@@ -64,6 +66,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 		BlockTimeout: 1 * time.Second,
 		BoostTimeout: 5 * time.Minute,
 		BoostWorkers: 5,
+		Name:         config.Name + "-level",
 	}
 
 	levelQueue, err := NewLevelQueue(handle, levelCfg, exemplar)
@@ -72,6 +75,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 			ChannelQueue: channelQueue.(*ChannelQueue),
 			delayedStarter: delayedStarter{
 				internal: levelQueue.(*LevelQueue),
+				name:     config.Name,
 			},
 			closed: make(chan struct{}),
 		}, nil
@@ -88,9 +92,15 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 			underlying:  LevelQueueType,
 			timeout:     config.Timeout,
 			maxAttempts: config.MaxAttempts,
+			name:        config.Name,
 		},
 		closed: make(chan struct{}),
 	}, nil
+}
+
+// Name returns the name of this queue
+func (p *PersistableChannelQueue) Name() string {
+	return p.delayedStarter.name
 }
 
 // Push will push the indexer data to queue
@@ -134,6 +144,7 @@ func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 
 // Shutdown processing this queue
 func (p *PersistableChannelQueue) Shutdown() {
+	log.Trace("Shutdown: %s", p.delayedStarter.name)
 	select {
 	case <-p.closed:
 	default:
@@ -148,7 +159,7 @@ func (p *PersistableChannelQueue) Shutdown() {
 
 // Terminate this queue and close the queue
 func (p *PersistableChannelQueue) Terminate() {
-	log.Trace("Terminating")
+	log.Trace("Terminating: %s", p.delayedStarter.name)
 	p.Shutdown()
 	p.lock.Lock()
 	defer p.lock.Unlock()

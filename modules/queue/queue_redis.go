@@ -36,6 +36,7 @@ type RedisQueue struct {
 	closed    chan struct{}
 	exemplar  interface{}
 	workers   int
+	name      string
 }
 
 // RedisQueueConfiguration is the configuration for the redis queue
@@ -50,6 +51,7 @@ type RedisQueueConfiguration struct {
 	BlockTimeout time.Duration
 	BoostTimeout time.Duration
 	BoostWorkers int
+	Name         string
 }
 
 // NewRedisQueue creates single redis or cluster redis queue
@@ -80,6 +82,7 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 		exemplar:  exemplar,
 		closed:    make(chan struct{}),
 		workers:   config.Workers,
+		name:      config.Name,
 	}
 	if len(dbs) == 0 {
 		return nil, errors.New("no redis host found")
@@ -125,7 +128,7 @@ func (r *RedisQueue) readToChan() {
 		default:
 			bs, err := r.client.LPop(r.queueName).Bytes()
 			if err != nil && err != redis.Nil {
-				log.Error("LPop failed: %v", err)
+				log.Error("RedisQueue: %s LPop failed: %v", r.name, err)
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
@@ -146,12 +149,12 @@ func (r *RedisQueue) readToChan() {
 				err = json.Unmarshal(bs, &data)
 			}
 			if err != nil {
-				log.Error("Unmarshal: %v", err)
+				log.Error("RedisQueue: %s Unmarshal: %v", r.name, err)
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
 
-			log.Trace("RedisQueue: task found: %#v", data)
+			log.Trace("RedisQueue: %s task found: %#v", r.name, data)
 			r.pool.Push(data)
 			time.Sleep(time.Millisecond * 10)
 		}
@@ -178,6 +181,7 @@ func (r *RedisQueue) Push(data Data) error {
 
 // Shutdown processing from this queue
 func (r *RedisQueue) Shutdown() {
+	log.Trace("Shutdown: %s", r.name)
 	select {
 	case <-r.closed:
 	default:
@@ -187,9 +191,10 @@ func (r *RedisQueue) Shutdown() {
 
 // Terminate this queue and close the queue
 func (r *RedisQueue) Terminate() {
+	log.Trace("Terminating: %s", r.name)
 	r.Shutdown()
 	if err := r.client.Close(); err != nil {
-		log.Error("Error whilst closing internal redis client: %v", err)
+		log.Error("Error whilst closing internal redis client in %s: %v", r.name, err)
 	}
 }
 

@@ -24,6 +24,7 @@ type ChannelQueueConfiguration struct {
 	BlockTimeout time.Duration
 	BoostTimeout time.Duration
 	BoostWorkers int
+	Name         string
 }
 
 // ChannelQueue implements
@@ -31,6 +32,7 @@ type ChannelQueue struct {
 	pool     *WorkerPool
 	exemplar interface{}
 	workers  int
+	name     string
 }
 
 // NewChannelQueue create a memory channel queue
@@ -59,16 +61,17 @@ func NewChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 		},
 		exemplar: exemplar,
 		workers:  config.Workers,
+		name:     config.Name,
 	}, nil
 }
 
 // Run starts to run the queue
 func (c *ChannelQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
 	atShutdown(context.Background(), func() {
-		log.Warn("ChannelQueue is not shutdownable!")
+		log.Warn("ChannelQueue: %s is not shutdownable!", c.name)
 	})
 	atTerminate(context.Background(), func() {
-		log.Warn("ChannelQueue is not terminatable!")
+		log.Warn("ChannelQueue: %s is not terminatable!", c.name)
 	})
 	c.pool.addWorkers(c.pool.baseCtx, c.workers)
 }
