@@ -656,16 +656,18 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 	if !issue.IsClosed {
 		cmtType = CommentTypeReopen
 	}
-	if _, err := createComment(e, &CreateCommentOptions{
+
+	var opts = &CreateCommentOptions{
 		Type:  cmtType,
 		Doer:  doer,
 		Repo:  issue.Repo,
 		Issue: issue,
-	}); err != nil {
+	}
+	comment, err := createCommentWithNoAction(e, opts)
+	if err != nil {
 		return err
 	}
-
-	return nil
+	return sendCreateCommentAction(e, opts, comment)
 }
 
 // ChangeStatus changes issue status to open or closed.
@@ -711,17 +713,17 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
 
-	if _, err = createComment(sess, &CreateCommentOptions{
+	var opts = &CreateCommentOptions{
 		Type:     CommentTypeChangeTitle,
 		Doer:     doer,
 		Repo:     issue.Repo,
 		Issue:    issue,
 		OldTitle: oldTitle,
 		NewTitle: issue.Title,
-	}); err != nil {
+	}
+	if _, err = createCommentWithNoAction(sess, opts); err != nil {
 		return fmt.Errorf("createComment: %v", err)
 	}
-
 	if err = issue.addCrossReferences(sess, doer, true); err != nil {
 		return err
 	}
@@ -740,13 +742,14 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if _, err := createComment(sess, &CreateCommentOptions{
+	var opts = &CreateCommentOptions{
 		Type:      CommentTypeDeleteBranch,
 		Doer:      doer,
 		Repo:      repo,
 		Issue:     issue,
 		CommitSHA: branchName,
-	}); err != nil {
+	}
+	if _, err = createCommentWithNoAction(sess, opts); err != nil {
 		return err
 	}
 
@@ -880,7 +883,15 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			return err
 		}
 
-		if _, err = createMilestoneComment(e, doer, opts.Repo, opts.Issue, 0, opts.Issue.MilestoneID); err != nil {
+		var opts = &CreateCommentOptions{
+			Type:           CommentTypeMilestone,
+			Doer:           doer,
+			Repo:           opts.Repo,
+			Issue:          opts.Issue,
+			OldMilestoneID: 0,
+			MilestoneID:    opts.Issue.MilestoneID,
+		}
+		if _, err = createCommentWithNoAction(e, opts); err != nil {
 			return err
 		}
 	}
@@ -1378,7 +1389,7 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 // UserIssueStatsOptions contains parameters accepted by GetUserIssueStats.
 type UserIssueStatsOptions struct {
 	UserID      int64
-	RepoID      int64
+	RepoIDs     []int64
 	UserRepoIDs []int64
 	FilterMode  int
 	IsPull      bool
@@ -1392,19 +1403,19 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 
 	cond := builder.NewCond()
 	cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull})
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
+	if len(opts.RepoIDs) > 0 {
+		cond = cond.And(builder.In("issue.repo_id", opts.RepoIDs))
 	}
 
 	switch opts.FilterMode {
 	case FilterModeAll:
-		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
 			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
+		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
 			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
@@ -1426,14 +1437,14 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 			return nil, err
 		}
 	case FilterModeCreate:
-		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
-			And("poster_id = ?", opts.UserID).
+		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+			And("issue.poster_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
-			And("poster_id = ?", opts.UserID).
+		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
+			And("issue.poster_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err

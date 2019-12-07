@@ -98,7 +98,7 @@ func HookPreReceive(ctx *macaron.Context) {
 
 		canPush := false
 		if isDeployKey {
-			canPush = protectBranch.WhitelistDeployKeys
+			canPush = protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
 		} else {
 			canPush = protectBranch.CanUserPush(userID)
 		}
@@ -159,7 +159,7 @@ func HookPostReceive(ctx *macaron.Context) {
 			})
 			return
 		}
-		if err := repofiles.PushUpdate(repo, branch, models.PushUpdateOptions{
+		if err := repofiles.PushUpdate(repo, branch, repofiles.PushUpdateOptions{
 			RefFullName:  refFullName,
 			OldCommitID:  oldCommitID,
 			NewCommitID:  newCommitID,

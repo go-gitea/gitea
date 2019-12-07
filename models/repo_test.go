@@ -17,7 +17,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRepo(t *testing.T) {
+func TestMetas(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
 	repo := &Repository{Name: "testRepo"}
 	repo.Owner = &User{Name: "testOwner"}
 
@@ -36,7 +38,7 @@ func TestRepo(t *testing.T) {
 
 	testSuccess := func(expectedStyle string) {
 		repo.Units = []*RepoUnit{&externalTracker}
-		repo.ExternalMetas = nil
+		repo.RenderingMetas = nil
 		metas := repo.ComposeMetas()
 		assert.Equal(t, expectedStyle, metas["style"])
 		assert.Equal(t, "testRepo", metas["repo"])
@@ -51,6 +53,15 @@ func TestRepo(t *testing.T) {
 
 	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleNumeric
 	testSuccess(markup.IssueNameStyleNumeric)
+
+	repo, err := GetRepositoryByID(3)
+	assert.NoError(t, err)
+
+	metas = repo.ComposeMetas()
+	assert.Contains(t, metas, "org")
+	assert.Contains(t, metas, "teams")
+	assert.Equal(t, metas["org"], "user3")
+	assert.Equal(t, metas["teams"], ",owners,team1,")
 }
 
 func TestGetRepositoryCount(t *testing.T) {

@@ -5,6 +5,7 @@
 package action
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"strings"
@@ -204,5 +205,54 @@ func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mode
 		IsPrivate: pr.Issue.Repo.IsPrivate,
 	}); err != nil {
 		log.Error("NotifyWatchers [%d]: %v", pr.ID, err)
+	}
+}
+
+func (a *actionNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+	data, err := json.Marshal(commits)
+	if err != nil {
+		log.Error("json.Marshal: %v", err)
+		return
+	}
+
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: repo.OwnerID,
+		ActUser:   repo.MustOwner(),
+		OpType:    models.ActionMirrorSyncPush,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		RefName:   refName,
+		Content:   string(data),
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifySyncCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: repo.OwnerID,
+		ActUser:   repo.MustOwner(),
+		OpType:    models.ActionMirrorSyncCreate,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		RefName:   refFullName,
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) NotifySyncDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: repo.OwnerID,
+		ActUser:   repo.MustOwner(),
+		OpType:    models.ActionMirrorSyncCreate,
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		RefName:   refFullName,
+	}); err != nil {
+		log.Error("notifyWatchers: %v", err)
 	}
 }
