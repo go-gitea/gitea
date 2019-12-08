@@ -460,14 +460,9 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 		}
 
 		var merged bool
-		switch pr.State {
-		case "closed":
-			merged = true
-		case "merged":
+		if pr.State == "merged" {
 			merged = true
 			pr.State = "closed"
-		default:
-			merged = false
 		}
 
 		var mergeTime = pr.MergedAt
