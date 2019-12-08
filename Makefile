@@ -1,4 +1,4 @@
-reDIST := dist
+DIST := dist
 IMPORT := code.gitea.io/gitea
 export GO111MODULE=off
 
