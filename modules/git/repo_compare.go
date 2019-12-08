@@ -95,8 +95,8 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 }
 
 // GetPatch generates and returns patch data between given revisions.
-func (repo *Repository) GetPatch(base, head string) ([]byte, error) {
-	return NewCommand("diff", "-p", "--binary", base, head).RunInDirBytes(repo.Path)
+func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
+	return NewCommand("diff", "-p", "--binary", base, head).RunInDirPipeline(repo.Path, w, nil)
 }
 
 // GetFormatPatch generates and returns format-patch data between given revisions.

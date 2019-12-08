@@ -15,6 +15,7 @@ import (
 	// Needed for jpeg support
 	_ "image/jpeg"
 	"image/png"
+	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -901,11 +902,11 @@ func (repo *Repository) patchPath(e Engine, index int64) (string, error) {
 }
 
 // SavePatch saves patch data to corresponding location by given issue ID.
-func (repo *Repository) SavePatch(index int64, patch []byte) error {
-	return repo.savePatch(x, index, patch)
+func (repo *Repository) SavePatch(index int64, name string) error {
+	return repo.savePatch(x, index, name)
 }
 
-func (repo *Repository) savePatch(e Engine, index int64, patch []byte) error {
+func (repo *Repository) savePatch(e Engine, index int64, name string) error {
 	patchPath, err := repo.patchPath(e, index)
 	if err != nil {
 		return fmt.Errorf("PatchPath: %v", err)
@@ -916,10 +917,21 @@ func (repo *Repository) savePatch(e Engine, index int64, patch []byte) error {
 		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
-	if err = ioutil.WriteFile(patchPath, patch, 0644); err != nil {
-		return fmt.Errorf("WriteFile: %v", err)
+	inputFile, err := os.Open(name)
+	if err != nil {
+		return fmt.Errorf("Couldn't open temporary patch file: %s", err)
 	}
-
+	outputFile, err := os.Create(patchPath)
+	if err != nil {
+		inputFile.Close()
+		return fmt.Errorf("Couldn't open destination patch file: %s", err)
+	}
+	defer outputFile.Close()
+	_, err = io.Copy(outputFile, inputFile)
+	inputFile.Close()
+	if err != nil {
+		return fmt.Errorf("Writing to patch file failed: %s", err)
+	}
 	return nil
 }
 

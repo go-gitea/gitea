@@ -6,7 +6,9 @@ package repo
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -244,12 +246,29 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		milestoneID = milestone.ID
 	}
 
-	patch, err := headGitRepo.GetPatch(compareInfo.MergeBase, headBranch)
+	tmpPatchFile, err := ioutil.TempFile("", "patch")
 	if err != nil {
+		ctx.Error(500, "CreateTemporaryFile", err)
+		return
+	}
+	defer func() {
+		_ = os.Remove(tmpPatchFile.Name())
+	}()
+
+	if err := headGitRepo.GetPatch(compareInfo.MergeBase, headBranch, tmpPatchFile); err != nil {
+		tmpPatchFile.Close()
 		ctx.Error(500, "GetPatch", err)
 		return
 	}
 
+	stat, err := tmpPatchFile.Stat()
+	if err != nil {
+		tmpPatchFile.Close()
+		ctx.Error(500, "StatPatch", err)
+		return
+	}
+
+	tmpPatchFile.Close()
 	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
@@ -306,7 +325,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		}
 	}
 
-	if err := pull_service.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch, assigneeIDs); err != nil {
+	if err := pull_service.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, stat.Size(), tmpPatchFile.Name(), assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
 			return

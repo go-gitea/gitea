@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 
@@ -785,11 +787,28 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		return
 	}
 
-	patch, err := headGitRepo.GetPatch(prInfo.MergeBase, headBranch)
+	tmpPatchFile, err := ioutil.TempFile("", "patch")
 	if err != nil {
+		ctx.ServerError("CreateTemporaryFile", err)
+		return
+	}
+	defer func() {
+		_ = os.Remove(tmpPatchFile.Name())
+	}()
+
+	if err := headGitRepo.GetPatch(prInfo.MergeBase, headBranch, tmpPatchFile); err != nil {
+		tmpPatchFile.Close()
 		ctx.ServerError("GetPatch", err)
 		return
 	}
+
+	stat, err := tmpPatchFile.Stat()
+	if err != nil {
+		tmpPatchFile.Close()
+		ctx.ServerError("StatPatch", err)
+		return
+	}
+	tmpPatchFile.Close()
 
 	pullIssue := &models.Issue{
 		RepoID:      repo.ID,
@@ -813,7 +832,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
 
-	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, patch, assigneeIDs); err != nil {
+	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, stat.Size(), tmpPatchFile.Name(), assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return

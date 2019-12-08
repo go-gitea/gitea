@@ -8,6 +8,7 @@ package models
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -595,11 +596,11 @@ func (pr *PullRequest) testPatch(e Engine) (err error) {
 }
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte) (err error) {
+func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patchFileSize int64, patchFileName string) (err error) {
 	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
 	i := 0
 	for {
-		if err = newPullRequestAttempt(repo, pull, labelIDs, uuids, pr, patch); err == nil {
+		if err = newPullRequestAttempt(repo, pull, labelIDs, uuids, pr, patchFileSize, patchFileName); err == nil {
 			return nil
 		}
 		if !IsErrNewIssueInsert(err) {
@@ -613,7 +614,7 @@ func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []str
 	return fmt.Errorf("NewPullRequest: too many errors attempting to insert the new issue. Last error was: %v", err)
 }
 
-func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patch []byte) (err error) {
+func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest, patchFileSize int64, patchFileName string) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -636,8 +637,8 @@ func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuid
 	pr.Index = pull.Index
 	pr.BaseRepo = repo
 	pr.Status = PullRequestStatusChecking
-	if len(patch) > 0 {
-		if err = repo.savePatch(sess, pr.Index, patch); err != nil {
+	if patchFileSize > 0 {
+		if err = repo.savePatch(sess, pr.Index, patchFileName); err != nil {
 			return fmt.Errorf("SavePatch: %v", err)
 		}
 
@@ -800,12 +801,23 @@ func (pr *PullRequest) UpdatePatch() (err error) {
 		return fmt.Errorf("Update: %v", err)
 	}
 
-	patch, err := headGitRepo.GetPatch(pr.MergeBase, pr.HeadBranch)
+	tmpPatchFile, err := ioutil.TempFile("", "patch")
 	if err != nil {
-		return fmt.Errorf("GetPatch: %v", err)
+		log.Error("Unable to create temporary patch file! Error: %v", err)
+		return fmt.Errorf("Unable to create temporary patch file! Error: %v", err)
+	}
+	defer func() {
+		_ = os.Remove(tmpPatchFile.Name())
+	}()
+
+	if err := headGitRepo.GetPatch(pr.MergeBase, pr.HeadBranch, tmpPatchFile); err != nil {
+		tmpPatchFile.Close()
+		log.Error("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
+		return fmt.Errorf("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
 	}
 
-	if err = pr.BaseRepo.SavePatch(pr.Index, patch); err != nil {
+	tmpPatchFile.Close()
+	if err = pr.BaseRepo.SavePatch(pr.Index, tmpPatchFile.Name()); err != nil {
 		return fmt.Errorf("BaseRepo.SavePatch: %v", err)
 	}
 

@@ -15,8 +15,8 @@ import (
 )
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, patch []byte, assigneeIDs []int64) error {
-	if err := models.NewPullRequest(repo, pull, labelIDs, uuids, pr, patch); err != nil {
+func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, patchFileSize int64, patchFileName string, assigneeIDs []int64) error {
+	if err := models.NewPullRequest(repo, pull, labelIDs, uuids, pr, patchFileSize, patchFileName); err != nil {
 		return err
 	}
 
