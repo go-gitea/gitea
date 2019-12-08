@@ -411,5 +411,17 @@
 					{{$.i18n.Tr "repo.issues.unlock_comment" $createdStr | Safe}}
 				</span>
 		</div>
+	{{else if eq .Type 25}}
+		<div class="event" id="{{.HashTag}}">
+			<span class="octicon octicon-primitive-dot"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a> {{$.i18n.Tr "repo.issues.del_time_history"  $createdStr | Safe}}</span>
+			<div class="detail">
+				<span class="octicon octicon-clock"></span>
+				<span class="text grey">{{.Content}}</span>
+			</div>
+		</div>
 	{{end}}
 {{end}}
