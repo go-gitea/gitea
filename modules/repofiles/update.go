@@ -513,10 +513,6 @@ func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) 
 
 	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true)
 
-	if opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
-		models.UpdateRepoIndexer(repo)
-	}
-
 	if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
 		log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
 	}
