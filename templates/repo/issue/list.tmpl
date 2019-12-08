@@ -239,9 +239,9 @@
 						{{else}}
 							{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 						{{end}}
-						{{if and .IsPull .PullRequest.RequiresApproval}}
+						{{if .IsPull }}{{if .PullRequest.RequiresApproval }}
 							<a class="milestone" href="{{$.Link}}/{{.Index}}">{{.PullRequest.GetReviewLabel $.i18n.Lang | Safe}}</a>
-						{{end}}
+						{{end}}{{end}}
 						{{if .Milestone}}
 							<a class="milestone" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.Milestone.ID}}&assignee={{$.AssigneeID}}">
 								<span class="octicon octicon-milestone"></span> {{.Milestone.Name}}
