@@ -14,6 +14,8 @@ type EditTimeOption struct {
 	// required: true
 	Time     int64 `json:"time" binding:"Required"`
 	Negative bool  `json:"negative"`
+	// swagger:strfmt date-time
+	Created time.Time `json:"created"`
 }
 
 // TrackedTime worked time for an issue / pr

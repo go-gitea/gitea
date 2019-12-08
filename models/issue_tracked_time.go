@@ -123,11 +123,24 @@ func GetTrackedSeconds(options FindTrackedTimesOptions) (trackedSeconds int64, e
 }
 
 // AddTime will add the given time (in seconds) to the issue
-func AddTime(user *User, issue *Issue, time int64) (*TrackedTime, error) {
+func AddTime(user *User, issue *Issue, amount int64) (*TrackedTime, error) {
+	return addTime(user, issue, amount, time.Now())
+}
+
+// AddTimeCreatedAt will add the given time (in seconds) to the issue at a specific time
+func AddTimeCreatedAt(user *User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
+	return addTime(user, issue, amount, created)
+}
+
+func addTime(user *User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
+	if created.IsZero() {
+		created = time.Now()
+	}
 	tt := &TrackedTime{
 		IssueID: issue.ID,
 		UserID:  user.ID,
-		Time:    time,
+		Time:    amount,
+		Created: created,
 	}
 	if _, err := x.Insert(tt); err != nil {
 		return nil, err
@@ -139,7 +152,7 @@ func AddTime(user *User, issue *Issue, time int64) (*TrackedTime, error) {
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
-		Content: SecToTime(time),
+		Content: SecToTime(amount),
 		Type:    CommentTypeAddTimeManual,
 	}); err != nil {
 		return nil, err

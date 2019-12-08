@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"time"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
@@ -142,7 +144,12 @@ func EditTime(ctx *context.APIContext, form api.EditTimeOption) {
 		value *= -1
 	}
 
-	trackedTime, err := models.AddTime(ctx.User, issue, value)
+	created := time.Time{}
+	if !form.Created.IsZero() {
+		created = form.Created
+	}
+
+	trackedTime, err := models.AddTimeCreatedAt(ctx.User, issue, value, created)
 	if err != nil {
 		ctx.Error(500, "AddTime", err)
 		return
