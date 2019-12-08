@@ -113,7 +113,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Perform global initialization
-	routers.GlobalInit()
+	routers.GlobalInit(graceful.GetManager().HammerContext())
 
 	// Set up Macaron
 	m := routes.NewMacaron()

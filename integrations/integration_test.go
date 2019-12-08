@@ -176,7 +176,7 @@ func initIntegrationTest() {
 		}
 		defer db.Close()
 	}
-	routers.GlobalInit()
+	routers.GlobalInit(graceful.GetManager().HammerContext())
 }
 
 func prepareTestEnv(t testing.TB, skip ...int) func() {

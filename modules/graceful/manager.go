@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -49,9 +48,6 @@ func GetManager() *Manager {
 func InitManager(ctx context.Context) {
 	initOnce.Do(func() {
 		manager = newGracefulManager(ctx)
-
-		// Set the git default context to the HammerContext
-		git.DefaultContext = manager.HammerContext()
 
 		// Set the process default context to the HammerContext
 		process.DefaultContext = manager.HammerContext()

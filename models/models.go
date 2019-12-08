@@ -6,11 +6,11 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/setting"
 
 	// Needed for the MySQL driver
@@ -165,12 +165,12 @@ func SetEngine() (err error) {
 }
 
 // NewEngine initializes a new xorm.Engine
-func NewEngine(migrateFunc func(*xorm.Engine) error) (err error) {
+func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
 	if err = SetEngine(); err != nil {
 		return err
 	}
 
-	x.SetDefaultContext(graceful.GetManager().HammerContext())
+	x.SetDefaultContext(ctx)
 
 	if err = x.Ping(); err != nil {
 		return err
