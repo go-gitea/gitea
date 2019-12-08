@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/setting"
 
 	// Needed for the MySQL driver
@@ -168,6 +169,8 @@ func NewEngine(migrateFunc func(*xorm.Engine) error) (err error) {
 	if err = SetEngine(); err != nil {
 		return err
 	}
+
+	x.SetDefaultContext(graceful.GetManager().HammerContext())
 
 	if err = x.Ping(); err != nil {
 		return err
