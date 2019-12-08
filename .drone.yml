@@ -388,11 +388,6 @@ steps:
     commands:
       - git fetch --tags --force
 
-  - name: pre-build
-    pull: always
-    image: node:10 # this step is kept at the lowest version of node that we support
-    commands:
-
   - name: build
     pull: always
     image: golang:1.13
