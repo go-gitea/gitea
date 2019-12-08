@@ -113,6 +113,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `EXPLORE_PAGING_NUM`: **20**: Number of repositories that are shown in one explore page.
 - `ISSUE_PAGING_NUM`: **10**: Number of issues that are shown in one page (for all pages that list issues).
+- `MEMBERS_PAGING_NUM`: **20**: Number of members that are shown in organization members.
 - `FEED_MAX_COMMIT_NUM`: **5**: Number of maximum commits shown in one activity feed.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
@@ -576,6 +577,24 @@ IS_INPUT_FILE = false
 Two special environment variables are passed to the render command:
 - `GITEA_PREFIX_SRC`, which contains the current URL prefix in the `src` path tree. To be used as prefix for links.
 - `GITEA_PREFIX_RAW`, which contains the current URL prefix in the `raw` path tree. To be used as prefix for image paths.
+
+
+Gitea supports customizing the sanitization policy for rendered HTML. The example below will support KaTeX output from pandoc.
+
+```ini
+[markup.sanitizer]
+; Pandoc renders TeX segments as <span>s with the "math" class, optionally
+; with "inline" or "display" classes depending on context.
+ELEMENT = span
+ALLOW_ATTR = class
+REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
+```
+
+ - `ELEMENT`: The element this policy applies to. Must be non-empty.
+ - `ALLOW_ATTR`: The attribute this policy allows. Must be non-empty.
+ - `REGEXP`: A regex to match the contents of the attribute against. Must be present but may be empty for unconditional whitelisting of this attribute.
+
+You may redefine `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` multiple times; each time all three are defined is a single policy entry.
 
 ## Time (`time`)
 

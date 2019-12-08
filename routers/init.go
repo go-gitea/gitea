@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	pull_service "code.gitea.io/gitea/services/pull"
 
 	"gitea.com/macaron/macaron"
 )
@@ -105,7 +106,7 @@ func GlobalInit() {
 		code_indexer.InitRepoIndexer()
 		mirror_service.InitSyncMirrors()
 		webhook.InitDeliverHooks()
-		models.InitTestPullRequests()
+		pull_service.Init()
 		if err := task.Init(); err != nil {
 			log.Fatal("Failed to initialize task scheduler: %v", err)
 		}

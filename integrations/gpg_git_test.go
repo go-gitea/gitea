@@ -23,7 +23,7 @@ import (
 )
 
 func TestGPGGit(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	username := "user2"
 
 	// OK Set a new GPG home

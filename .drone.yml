@@ -89,7 +89,6 @@ steps:
     commands:
       - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - make clean
-      - make generate
       - make golangci-lint
       - make revive
       - make swagger-check
@@ -394,7 +393,6 @@ steps:
     image: techknowlogick/xgo:latest
     commands:
       - export PATH=$PATH:$GOPATH/bin
-      - make generate
       - make release
     environment:
       GOPROXY: off
@@ -496,7 +494,6 @@ steps:
     image: techknowlogick/xgo:latest
     commands:
       - export PATH=$PATH:$GOPATH/bin
-      - make generate
       - make release
     environment:
       GOPROXY: off
