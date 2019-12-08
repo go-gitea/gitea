@@ -10,14 +10,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func trackedTimesToAPIFormatDeprecated(trackedTimes []*models.TrackedTime) []*api.TrackedTimeDeprecated {
-	apiTrackedTimes := make([]*api.TrackedTimeDeprecated, len(trackedTimes))
-	for i, trackedTime := range trackedTimes {
-		apiTrackedTimes[i] = trackedTime.APIFormatDeprecated()
-	}
-	return apiTrackedTimes
-}
-
 // ListTrackedTimes list all the tracked times of an issue
 func ListTrackedTimes(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/times issue issueTrackedTimes
@@ -218,12 +210,11 @@ func ResetIssueTime(ctx *context.APIContext) {
 	ctx.Status(200)
 }
 
-// ListTrackedTimesByUserDeprecated  lists all tracked times of the user
-func ListTrackedTimesByUserDeprecated(ctx *context.APIContext) {
+// ListTrackedTimesByUser  lists all tracked times of the user
+func ListTrackedTimesByUser(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/times/{user} user userTrackedTimes
 	// ---
 	// summary: List a user's tracked times in a repo
-	// deprecated: true
 	// produces:
 	// - application/json
 	// parameters:
@@ -269,8 +260,7 @@ func ListTrackedTimesByUserDeprecated(ctx *context.APIContext) {
 		ctx.Error(500, "GetTrackedTimesByUser", err)
 		return
 	}
-	apiTrackedTimes := trackedTimesToAPIFormatDeprecated(trackedTimes)
-	ctx.JSON(200, &apiTrackedTimes)
+	ctx.JSON(200, trackedTimes.APIFormat())
 }
 
 // ListTrackedTimesByRepository lists all tracked times of the repository

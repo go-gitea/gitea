@@ -650,7 +650,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				}, reqToken(), reqAdmin())
 				m.Group("/times", func() {
 					m.Combo("").Get(repo.ListTrackedTimesByRepository)
-					m.Combo("/:timetrackingusername").Get(repo.ListTrackedTimesByUserDeprecated)
+					m.Combo("/:timetrackingusername").Get(repo.ListTrackedTimesByUser)
 				}, mustEnableIssues)
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
