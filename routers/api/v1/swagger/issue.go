@@ -64,20 +64,6 @@ type swaggerResponseMilestoneList struct {
 	Body []api.Milestone `json:"body"`
 }
 
-// TrackedTimeDeprecated
-// swagger:response TrackedTimeDeprecated
-type swaggerResponseTrackedTimeDeprecated struct {
-	// in:body
-	Body api.TrackedTimeDeprecated `json:"body"`
-}
-
-// TrackedTimeListDeprecated
-// swagger:response TrackedTimeListDeprecated
-type swaggerResponseTrackedTimeListDeprecated struct {
-	// in:body
-	Body []api.TrackedTimeDeprecated `json:"body"`
-}
-
 // TrackedTime
 // swagger:response TrackedTime
 type swaggerResponseTrackedTime struct {

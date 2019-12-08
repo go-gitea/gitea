@@ -6075,7 +6075,6 @@
         ],
         "summary": "List a user's tracked times in a repo",
         "operationId": "userTrackedTimes",
-        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -6101,7 +6100,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/TrackedTimeListDeprecated"
+            "$ref": "#/responses/TrackedTimeList"
           }
         }
       }
@@ -11036,39 +11035,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "TrackedTimeDeprecated": {
-      "description": "TrackedTimeDeprecated worked time for an issue / pr",
-      "type": "object",
-      "properties": {
-        "created": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-name": "Created"
-        },
-        "id": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ID"
-        },
-        "issue_id": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "IssueID"
-        },
-        "time": {
-          "description": "Time in seconds",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Time"
-        },
-        "user_id": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "UserID"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "UpdateFileOptions": {
       "description": "UpdateFileOptions options for updating files\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
@@ -11697,27 +11663,12 @@
         "$ref": "#/definitions/TrackedTime"
       }
     },
-    "TrackedTimeDeprecated": {
-      "description": "TrackedTimeDeprecated",
-      "schema": {
-        "$ref": "#/definitions/TrackedTimeDeprecated"
-      }
-    },
     "TrackedTimeList": {
       "description": "TrackedTimeList",
       "schema": {
         "type": "array",
         "items": {
           "$ref": "#/definitions/TrackedTime"
-        }
-      }
-    },
-    "TrackedTimeListDeprecated": {
-      "description": "TrackedTimeListDeprecated",
-      "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/TrackedTimeDeprecated"
         }
       }
     },

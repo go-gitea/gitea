@@ -235,7 +235,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/TrackedTimeListDeprecated"
+	//     "$ref": "#/responses/TrackedTimeList"
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
 		return

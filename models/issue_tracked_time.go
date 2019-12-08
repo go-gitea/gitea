@@ -32,17 +32,6 @@ func (t *TrackedTime) AfterLoad() {
 	t.Created = time.Unix(t.CreatedUnix, 0).In(setting.DefaultUILocation)
 }
 
-// APIFormatDeprecated converts TrackedTime to deprecated API format
-func (t *TrackedTime) APIFormatDeprecated() *api.TrackedTimeDeprecated {
-	return &api.TrackedTimeDeprecated{
-		ID:      t.ID,
-		IssueID: t.IssueID,
-		UserID:  t.UserID,
-		Time:    t.Time,
-		Created: t.Created,
-	}
-}
-
 // APIFormat converts TrackedTime to API format
 func (t *TrackedTime) APIFormat() *api.TrackedTime {
 	user, err := GetUserByID(t.UserID)
@@ -187,16 +176,26 @@ func TotalTimes(options FindTrackedTimesOptions) (map[*User]string, error) {
 
 // DeleteIssueUserTimes deletes times for issue
 func DeleteIssueUserTimes(issue *Issue, user *User) error {
+	time := TrackedTime{
+		IssueID: issue.ID,
+		UserID:  user.ID,
+	}
+	return deleteTime(&time)
+}
+
+// DeleteTime delete a time
+func DeleteTime(time *TrackedTime) error {
+	return deleteTime(time)
+}
+
+func deleteTime(time *TrackedTime) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	_, err := sess.Delete(TrackedTime{
-		IssueID: issue.ID,
-		UserID:  user.ID,
-	})
+	_, err := sess.Delete(time)
 	if err != nil {
 		return err
 	}
