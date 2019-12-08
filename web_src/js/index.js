@@ -2019,6 +2019,7 @@ function initCodeView() {
     $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
       $row.replaceWith(blob);
       $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e); });
+      $('.diff-detail-box.ui.sticky').sticky();
     });
   }
   $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e); });
