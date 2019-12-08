@@ -397,7 +397,7 @@ $(EXECUTABLE): $(GO_SOURCES)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: js css generate release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
+release: generate release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
 
 .PHONY: release-dirs
 release-dirs:
