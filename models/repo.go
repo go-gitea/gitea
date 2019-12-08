@@ -901,11 +901,11 @@ func (repo *Repository) patchPath(e Engine, index int64) (string, error) {
 }
 
 // SavePatch saves patch data to corresponding location by given issue ID.
-func (repo *Repository) SavePatch(index int64, patch []byte) error {
-	return repo.savePatch(x, index, patch)
+func (repo *Repository) SavePatch(index int64, name string) error {
+	return repo.savePatch(x, index, name)
 }
 
-func (repo *Repository) savePatch(e Engine, index int64, patch []byte) error {
+func (repo *Repository) savePatch(e Engine, index int64, name string) error {
 	patchPath, err := repo.patchPath(e, index)
 	if err != nil {
 		return fmt.Errorf("PatchPath: %v", err)
@@ -916,7 +916,7 @@ func (repo *Repository) savePatch(e Engine, index int64, patch []byte) error {
 		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
-	if err = ioutil.WriteFile(patchPath, patch, 0644); err != nil {
+	if err := os.Rename(name, patchPath); err != nil {
 		return fmt.Errorf("WriteFile: %v", err)
 	}
 

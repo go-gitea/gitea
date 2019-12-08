@@ -143,7 +143,7 @@ func testCreatePR(t *testing.T, repo, doer int64, title, content string) *PullRe
 	d := AssertExistsAndLoadBean(t, &User{ID: doer}).(*User)
 	i := &Issue{RepoID: r.ID, PosterID: d.ID, Poster: d, Title: title, Content: content, IsPull: true}
 	pr := &PullRequest{HeadRepoID: repo, BaseRepoID: repo, HeadBranch: "head", BaseBranch: "base"}
-	assert.NoError(t, NewPullRequest(r, i, nil, nil, pr, nil))
+	assert.NoError(t, NewPullRequest(r, i, nil, nil, pr, 0, "unknown"))
 	pr.Issue = i
 	return pr
 }
