@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -19,6 +20,11 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	gitlabPersonalAccessToken := os.Getenv("GITLAB_READ_TOKEN")
 	if gitlabPersonalAccessToken == "" {
 		t.Skip("skipped test because GITLAB_READ_TOKEN was not in the environment")
+	}
+
+	resp, err := http.Get("https://gitlab.com/gitea/test_repo")
+	if err != nil || resp.StatusCode != 200 {
+		t.Skipf("Can't access test repo, skipping %s", t.Name())
 	}
 
 	downloader := NewGitlabDownloader("https://gitlab.com", "gitea/test_repo", "", gitlabPersonalAccessToken)
