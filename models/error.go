@@ -1121,6 +1121,21 @@ func (err ErrNewIssueInsert) Error() string {
 	return err.OriginalError.Error()
 }
 
+// ErrForbiddenIssueReaction is used when a forbidden reaction was try to created
+type ErrForbiddenIssueReaction struct {
+	Reaction string
+}
+
+// IsErrForbiddenIssueReaction checks if an error is a ErrForbiddenIssueReaction.
+func IsErrForbiddenIssueReaction(err error) bool {
+	_, ok := err.(ErrForbiddenIssueReaction)
+	return ok
+}
+
+func (err ErrForbiddenIssueReaction) Error() string {
+	return fmt.Sprintf("'%s' is not an allowed reaction", err.Reaction)
+}
+
 // __________      .__  .__ __________                                     __
 // \______   \__ __|  | |  |\______   \ ____  ________ __   ____   _______/  |_
 //  |     ___/  |  \  | |  | |       _// __ \/ ____/  |  \_/ __ \ /  ___/\   __\
@@ -1204,6 +1219,79 @@ func IsErrInvalidMergeStyle(err error) bool {
 func (err ErrInvalidMergeStyle) Error() string {
 	return fmt.Sprintf("merge strategy is not allowed or is invalid [repo_id: %d, strategy: %s]",
 		err.ID, err.Style)
+}
+
+// ErrMergeConflicts represents an error if merging fails with a conflict
+type ErrMergeConflicts struct {
+	Style  MergeStyle
+	StdOut string
+	StdErr string
+	Err    error
+}
+
+// IsErrMergeConflicts checks if an error is a ErrMergeConflicts.
+func IsErrMergeConflicts(err error) bool {
+	_, ok := err.(ErrMergeConflicts)
+	return ok
+}
+
+func (err ErrMergeConflicts) Error() string {
+	return fmt.Sprintf("Merge Conflict Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
+// ErrMergeUnrelatedHistories represents an error if merging fails due to unrelated histories
+type ErrMergeUnrelatedHistories struct {
+	Style  MergeStyle
+	StdOut string
+	StdErr string
+	Err    error
+}
+
+// IsErrMergeUnrelatedHistories checks if an error is a ErrMergeUnrelatedHistories.
+func IsErrMergeUnrelatedHistories(err error) bool {
+	_, ok := err.(ErrMergeUnrelatedHistories)
+	return ok
+}
+
+func (err ErrMergeUnrelatedHistories) Error() string {
+	return fmt.Sprintf("Merge UnrelatedHistories Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
+// ErrMergePushOutOfDate represents an error if merging fails due to unrelated histories
+type ErrMergePushOutOfDate struct {
+	Style  MergeStyle
+	StdOut string
+	StdErr string
+	Err    error
+}
+
+// IsErrMergePushOutOfDate checks if an error is a ErrMergePushOutOfDate.
+func IsErrMergePushOutOfDate(err error) bool {
+	_, ok := err.(ErrMergePushOutOfDate)
+	return ok
+}
+
+func (err ErrMergePushOutOfDate) Error() string {
+	return fmt.Sprintf("Merge PushOutOfDate Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
+}
+
+// ErrRebaseConflicts represents an error if rebase fails with a conflict
+type ErrRebaseConflicts struct {
+	Style     MergeStyle
+	CommitSHA string
+	StdOut    string
+	StdErr    string
+	Err       error
+}
+
+// IsErrRebaseConflicts checks if an error is a ErrRebaseConflicts.
+func IsErrRebaseConflicts(err error) bool {
+	_, ok := err.(ErrRebaseConflicts)
+	return ok
+}
+
+func (err ErrRebaseConflicts) Error() string {
+	return fmt.Sprintf("Rebase Error: %v: Whilst Rebasing: %s\n%s\n%s", err.Err, err.CommitSHA, err.StdErr, err.StdOut)
 }
 
 // _________                                       __

@@ -18,6 +18,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -102,7 +103,11 @@ func initIntegrationTest() {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
 	}
-	setting.AppPath = path.Join(giteaRoot, "gitea")
+	giteaBinary := "gitea"
+	if runtime.GOOS == "windows" {
+		giteaBinary += ".exe"
+	}
+	setting.AppPath = path.Join(giteaRoot, giteaBinary)
 	if _, err := os.Stat(setting.AppPath); err != nil {
 		fmt.Printf("Could not find gitea binary at %s\n", setting.AppPath)
 		os.Exit(1)
@@ -168,19 +173,20 @@ func initIntegrationTest() {
 	routers.GlobalInit()
 }
 
-func prepareTestEnv(t testing.TB, skip ...int) {
+func prepareTestEnv(t testing.TB, skip ...int) func() {
 	t.Helper()
 	ourSkip := 2
 	if len(skip) > 0 {
 		ourSkip += skip[0]
 	}
-	PrintCurrentTest(t, ourSkip)
+	deferFn := PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, os.RemoveAll(models.LocalCopyPath()))
 
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
+	return deferFn
 }
 
 type TestSession struct {

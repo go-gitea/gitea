@@ -76,6 +76,8 @@ func getGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, strin
 	if err != nil {
 		return nil, "OpenRepository", err
 	}
+	defer gitRepo.Close()
+
 	if len(filter) > 0 {
 		filter = "refs/" + filter
 	}

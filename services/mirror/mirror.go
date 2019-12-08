@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -171,25 +171,36 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		gitArgs = append(gitArgs, "--prune")
 	}
 
-	_, stderr, err := process.GetManager().ExecDir(
-		timeout, repoPath, fmt.Sprintf("Mirror.runSync: %s", repoPath),
-		git.GitExecutable, gitArgs...)
-	if err != nil {
+	stdoutBuilder := strings.Builder{}
+	stderrBuilder := strings.Builder{}
+	if err := git.NewCommand(gitArgs...).
+		SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
+		RunInDirTimeoutPipeline(timeout, repoPath, &stdoutBuilder, &stderrBuilder); err != nil {
+		stdout := stdoutBuilder.String()
+		stderr := stderrBuilder.String()
 		// sanitize the output, since it may contain the remote address, which may
 		// contain a password
-		message, err := sanitizeOutput(stderr, repoPath)
-		if err != nil {
-			log.Error("sanitizeOutput: %v", err)
+		stderrMessage, sanitizeErr := sanitizeOutput(stderr, repoPath)
+		if sanitizeErr != nil {
+			log.Error("sanitizeOutput failed on stderr: %v", sanitizeErr)
+			log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderr, err)
 			return nil, false
 		}
-		desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, message)
-		log.Error(desc)
+		stdoutMessage, err := sanitizeOutput(stdout, repoPath)
+		if err != nil {
+			log.Error("sanitizeOutput failed: %v", sanitizeErr)
+			log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderrMessage, err)
+			return nil, false
+		}
+
+		log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
+		desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, stderrMessage)
 		if err = models.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 		return nil, false
 	}
-	output := stderr
+	output := stderrBuilder.String()
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
@@ -197,26 +208,40 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		return nil, false
 	}
 	if err = models.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
+		gitRepo.Close()
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
+	gitRepo.Close()
 
 	if err := m.Repo.UpdateSize(); err != nil {
 		log.Error("Failed to update size for mirror repository: %v", err)
 	}
 
 	if m.Repo.HasWiki() {
-		if _, stderr, err := process.GetManager().ExecDir(
-			timeout, wikiPath, fmt.Sprintf("Mirror.runSync: %s", wikiPath),
-			git.GitExecutable, "remote", "update", "--prune"); err != nil {
+		stderrBuilder.Reset()
+		stdoutBuilder.Reset()
+		if err := git.NewCommand("remote", "update", "--prune").
+			SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
+			RunInDirTimeoutPipeline(timeout, wikiPath, &stdoutBuilder, &stderrBuilder); err != nil {
+			stdout := stdoutBuilder.String()
+			stderr := stderrBuilder.String()
 			// sanitize the output, since it may contain the remote address, which may
 			// contain a password
-			message, err := sanitizeOutput(stderr, wikiPath)
-			if err != nil {
-				log.Error("sanitizeOutput: %v", err)
+			stderrMessage, sanitizeErr := sanitizeOutput(stderr, repoPath)
+			if sanitizeErr != nil {
+				log.Error("sanitizeOutput failed on stderr: %v", sanitizeErr)
+				log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderr, err)
 				return nil, false
 			}
-			desc := fmt.Sprintf("Failed to update mirror wiki repository '%s': %s", wikiPath, message)
-			log.Error(desc)
+			stdoutMessage, err := sanitizeOutput(stdout, repoPath)
+			if err != nil {
+				log.Error("sanitizeOutput failed: %v", sanitizeErr)
+				log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderrMessage, err)
+				return nil, false
+			}
+
+			log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
+			desc := fmt.Sprintf("Failed to update mirror repository wiki '%s': %s", wikiPath, stderrMessage)
 			if err = models.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
@@ -290,97 +315,101 @@ func Update() {
 func SyncMirrors() {
 	// Start listening on new sync requests.
 	for repoID := range mirrorQueue.Queue() {
-		log.Trace("SyncMirrors [repo_id: %v]", repoID)
-		mirrorQueue.Remove(repoID)
+		syncMirror(repoID)
+	}
+}
 
-		m, err := models.GetMirrorByRepoID(com.StrTo(repoID).MustInt64())
+func syncMirror(repoID string) {
+	log.Trace("SyncMirrors [repo_id: %v]", repoID)
+	mirrorQueue.Remove(repoID)
+
+	m, err := models.GetMirrorByRepoID(com.StrTo(repoID).MustInt64())
+	if err != nil {
+		log.Error("GetMirrorByRepoID [%s]: %v", repoID, err)
+		return
+
+	}
+
+	results, ok := runSync(m)
+	if !ok {
+		return
+	}
+
+	m.ScheduleNextUpdate()
+	if err = models.UpdateMirror(m); err != nil {
+		log.Error("UpdateMirror [%s]: %v", repoID, err)
+		return
+	}
+
+	var gitRepo *git.Repository
+	if len(results) == 0 {
+		log.Trace("SyncMirrors [repo_id: %d]: no commits fetched", m.RepoID)
+	} else {
+		gitRepo, err = git.OpenRepository(m.Repo.RepoPath())
 		if err != nil {
-			log.Error("GetMirrorByRepoID [%s]: %v", repoID, err)
+			log.Error("OpenRepository [%d]: %v", m.RepoID, err)
+			return
+		}
+		defer gitRepo.Close()
+	}
+
+	for _, result := range results {
+		// Discard GitHub pull requests, i.e. refs/pull/*
+		if strings.HasPrefix(result.refName, "refs/pull/") {
 			continue
 		}
 
-		results, ok := runSync(m)
-		if !ok {
+		tp, _ := git.SplitRefName(result.refName)
+
+		// Create reference
+		if result.oldCommitID == gitShortEmptySha {
+			notification.NotifySyncCreateRef(m.Repo.MustOwner(), m.Repo, tp, result.refName)
 			continue
 		}
 
-		m.ScheduleNextUpdate()
-		if err = models.UpdateMirror(m); err != nil {
-			log.Error("UpdateMirror [%s]: %v", repoID, err)
+		// Delete reference
+		if result.newCommitID == gitShortEmptySha {
+			notification.NotifySyncDeleteRef(m.Repo.MustOwner(), m.Repo, tp, result.refName)
 			continue
 		}
 
-		var gitRepo *git.Repository
-		if len(results) == 0 {
-			log.Trace("SyncMirrors [repo_id: %d]: no commits fetched", m.RepoID)
-		} else {
-			gitRepo, err = git.OpenRepository(m.Repo.RepoPath())
-			if err != nil {
-				log.Error("OpenRepository [%d]: %v", m.RepoID, err)
-				continue
-			}
-		}
-
-		for _, result := range results {
-			// Discard GitHub pull requests, i.e. refs/pull/*
-			if strings.HasPrefix(result.refName, "refs/pull/") {
-				continue
-			}
-
-			// Create reference
-			if result.oldCommitID == gitShortEmptySha {
-				if err = SyncCreateAction(m.Repo, result.refName); err != nil {
-					log.Error("SyncCreateAction [repo_id: %d]: %v", m.RepoID, err)
-				}
-				continue
-			}
-
-			// Delete reference
-			if result.newCommitID == gitShortEmptySha {
-				if err = SyncDeleteAction(m.Repo, result.refName); err != nil {
-					log.Error("SyncDeleteAction [repo_id: %d]: %v", m.RepoID, err)
-				}
-				continue
-			}
-
-			// Push commits
-			oldCommitID, err := git.GetFullCommitID(gitRepo.Path, result.oldCommitID)
-			if err != nil {
-				log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
-				continue
-			}
-			newCommitID, err := git.GetFullCommitID(gitRepo.Path, result.newCommitID)
-			if err != nil {
-				log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
-				continue
-			}
-			commits, err := gitRepo.CommitsBetweenIDs(newCommitID, oldCommitID)
-			if err != nil {
-				log.Error("CommitsBetweenIDs [repo_id: %d, new_commit_id: %s, old_commit_id: %s]: %v", m.RepoID, newCommitID, oldCommitID, err)
-				continue
-			}
-			if err = SyncPushAction(m.Repo, SyncPushActionOptions{
-				RefName:     result.refName,
-				OldCommitID: oldCommitID,
-				NewCommitID: newCommitID,
-				Commits:     models.ListToPushCommits(commits),
-			}); err != nil {
-				log.Error("SyncPushAction [repo_id: %d]: %v", m.RepoID, err)
-				continue
-			}
-		}
-
-		// Get latest commit date and update to current repository updated time
-		commitDate, err := git.GetLatestCommitTime(m.Repo.RepoPath())
+		// Push commits
+		oldCommitID, err := git.GetFullCommitID(gitRepo.Path, result.oldCommitID)
 		if err != nil {
-			log.Error("GetLatestCommitDate [%d]: %v", m.RepoID, err)
+			log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
+			continue
+		}
+		newCommitID, err := git.GetFullCommitID(gitRepo.Path, result.newCommitID)
+		if err != nil {
+			log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
+			continue
+		}
+		commits, err := gitRepo.CommitsBetweenIDs(newCommitID, oldCommitID)
+		if err != nil {
+			log.Error("CommitsBetweenIDs [repo_id: %d, new_commit_id: %s, old_commit_id: %s]: %v", m.RepoID, newCommitID, oldCommitID, err)
 			continue
 		}
 
-		if err = models.UpdateRepositoryUpdatedTime(m.RepoID, commitDate); err != nil {
-			log.Error("Update repository 'updated_unix' [%d]: %v", m.RepoID, err)
-			continue
+		theCommits := models.ListToPushCommits(commits)
+		if len(theCommits.Commits) > setting.UI.FeedMaxCommitNum {
+			theCommits.Commits = theCommits.Commits[:setting.UI.FeedMaxCommitNum]
 		}
+
+		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID, newCommitID)
+
+		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, result.refName, oldCommitID, newCommitID, models.ListToPushCommits(commits))
+	}
+
+	// Get latest commit date and update to current repository updated time
+	commitDate, err := git.GetLatestCommitTime(m.Repo.RepoPath())
+	if err != nil {
+		log.Error("GetLatestCommitDate [%d]: %v", m.RepoID, err)
+		return
+	}
+
+	if err = models.UpdateRepositoryUpdatedTime(m.RepoID, commitDate); err != nil {
+		log.Error("Update repository 'updated_unix' [%d]: %v", m.RepoID, err)
+		return
 	}
 }
 
