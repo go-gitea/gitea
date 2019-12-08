@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -26,6 +27,16 @@ func getStopwatch(e Engine, userID, issueID int64) (sw *Stopwatch, exists bool, 
 		And("issue_id = ?", issueID).
 		Get(sw)
 	return
+}
+
+// GetUserStopwatches return list of all stopwatches of a user
+func GetUserStopwatches(userID int64) (sws *Stopwatches, err error) {
+	sws = new(Stopwatches)
+	err = x.Where("stopwatch.user_id = ?", userID).Find(sws)
+	if err != nil {
+		return nil, err
+	}
+	return sws, nil
 }
 
 // StopwatchExists returns true if the stopwatch exists
@@ -159,4 +170,32 @@ func SecToTime(duration int64) string {
 	}
 
 	return hrs
+}
+
+// APIFormat convert Stopwatch type to api.StopWatch type
+func (sw *Stopwatch) APIFormat() (api.StopWatch, error) {
+	issue, err := getIssueByID(x, sw.IssueID)
+	if err != nil {
+		return api.StopWatch{}, err
+	}
+	return api.StopWatch{
+		Created:    sw.CreatedUnix.AsTime(),
+		IssueIndex: issue.Index,
+	}, nil
+}
+
+// Stopwatches is a List ful of Stopwatch
+type Stopwatches []Stopwatch
+
+// APIFormat convert Stopwatches type to api.StopWatches type
+func (sws Stopwatches) APIFormat() (api.StopWatches, error) {
+	result := api.StopWatches(make([]api.StopWatch, 0, len(sws)))
+	for _, sw := range sws {
+		apiSW, err := sw.APIFormat()
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, apiSW)
+	}
+	return result, nil
 }

@@ -584,6 +584,8 @@ func RegisterRoutes(m *macaron.Macaron) {
 			})
 			m.Get("/times", repo.ListMyTrackedTimes)
 
+			m.Get("/stopwatches", repo.GetStopwatches)
+
 			m.Get("/subscriptions", user.GetMyWatchedRepos)
 
 			m.Get("/teams", org.ListUserTeams)
@@ -691,6 +693,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 						m.Group("/stopwatch", func() {
 							m.Post("/start", reqToken(), repo.StartIssueStopwatch)
 							m.Post("/stop", reqToken(), repo.StopIssueStopwatch)
+							m.Delete("/delete", reqToken(), repo.DeleteIssueStopwatch)
 						})
 						m.Group("/subscriptions", func() {
 							m.Get("", repo.GetIssueSubscribers)
