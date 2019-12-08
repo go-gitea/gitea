@@ -66,8 +66,6 @@ git checkout v{{< version >}}
 TAGS="bindata" make build
 ```
 
-警告: `generate` 已经废弃，使用 `generate` 会导致资源文件打包失败。
-
 默认的发布版本中的编译选项是： `TAGS="bindata sqlite sqlite_unlock_notify"`。以下为推荐的编译方式：
 
 ```bash
