@@ -71,6 +71,7 @@ func (tl TrackedTimeList) APIFormat() api.TrackedTimeList {
 
 // FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.
 type FindTrackedTimesOptions struct {
+	ID           int64
 	IssueID      int64
 	UserID       int64
 	RepositoryID int64
@@ -80,6 +81,9 @@ type FindTrackedTimesOptions struct {
 // ToCond will convert each condition into a xorm-Cond
 func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 	cond := builder.NewCond()
+	if opts.ID != 0 {
+		cond = cond.And(builder.Eq{"id": opts.ID})
+	}
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
 	}
@@ -189,29 +193,48 @@ func TotalTimes(options FindTrackedTimesOptions) (map[*User]string, error) {
 
 // DeleteIssueUserTimes deletes times for issue
 func DeleteIssueUserTimes(issue *Issue, user *User) error {
-	time := TrackedTime{
+	opts := FindTrackedTimesOptions{
 		IssueID: issue.ID,
 		UserID:  user.ID,
 	}
-	return deleteTime(&time)
+
+	removedTime, err := deleteTime(opts)
+
+	if err := issue.loadRepo(x); err != nil {
+		return err
+	}
+	if _, err := CreateComment(&CreateCommentOptions{
+		Issue:   issue,
+		Repo:    issue.Repo,
+		Doer:    user,
+		Content: "- " + SecToTime(removedTime),
+		Type:    CommentTypeDeleteTimeManual,
+	}); err != nil {
+		return err
+	}
+	return err
 }
 
-// DeleteTime delete a time
-func DeleteTime(time *TrackedTime) error {
-	return deleteTime(time)
-}
-
-func deleteTime(time *TrackedTime) error {
+func deleteTime(opts FindTrackedTimesOptions) (removedTime int64, err error) {
 	sess := x.NewSession()
 	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
+	if err = sess.Begin(); err != nil {
+		return
 	}
 
-	_, err := sess.Delete(time)
+	tt, err := GetTrackedTimes(opts)
 	if err != nil {
-		return err
+		return
 	}
 
-	return sess.Commit()
+	for _, t := range tt {
+		_, err = sess.Delete(t)
+		if err != nil {
+			return
+		}
+		removedTime += t.Time
+	}
+
+	err = sess.Commit()
+	return
 }
