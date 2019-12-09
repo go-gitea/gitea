@@ -797,7 +797,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	}()
 
 	if err := headGitRepo.GetPatch(prInfo.MergeBase, headBranch, tmpPatchFile); err != nil {
-			tmpPatchFile.Close()
+		tmpPatchFile.Close()
 		ctx.ServerError("GetPatch", err)
 		return
 	}
