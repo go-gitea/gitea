@@ -57,7 +57,7 @@ func (t *TrackedTime) APIFormat() *api.TrackedTime {
 	}
 }
 
-// APIFormat converts TrackedTime to API format
+// APIFormat converts TrackedTimeList to API format
 func (tl TrackedTimeList) APIFormat() api.TrackedTimeList {
 	var result api.TrackedTimeList
 	for _, t := range tl {
@@ -71,7 +71,6 @@ func (tl TrackedTimeList) APIFormat() api.TrackedTimeList {
 
 // FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.
 type FindTrackedTimesOptions struct {
-	ID           int64
 	IssueID      int64
 	UserID       int64
 	RepositoryID int64
@@ -81,9 +80,6 @@ type FindTrackedTimesOptions struct {
 // ToCond will convert each condition into a xorm-Cond
 func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 	cond := builder.NewCond()
-	if opts.ID != 0 {
-		cond = cond.And(builder.Eq{"id": opts.ID})
-	}
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
 	}
