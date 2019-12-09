@@ -57,6 +57,7 @@ func GetRawFile(ctx *context.APIContext) {
 		}
 		return
 	}
+	ctx.Context.Data["IsRawApi"] = true
 	if err = repo.ServeBlob(ctx.Context, blob); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
 	}

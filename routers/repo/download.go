@@ -8,7 +8,9 @@ package repo
 import (
 	"fmt"
 	"io"
+	"mime"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
@@ -32,7 +34,11 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	// Google Chrome dislike commas in filenames, so let's change it to a space
 	name = strings.Replace(name, ",", " ", -1)
 
-	if base.IsTextFile(buf) || ctx.QueryBool("render") {
+	mimeType := mime.TypeByExtension(filepath.Ext(name))
+
+	if base.IsTextFile(buf) && true == ctx.Data["IsRawApi"] && mimeType != "" {
+		ctx.Resp.Header().Set("Content-Type", mimeType)
+	} else if base.IsTextFile(buf) || ctx.QueryBool("render") {
 		ctx.Resp.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	} else if base.IsImageFile(buf) || base.IsPDFFile(buf) {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
