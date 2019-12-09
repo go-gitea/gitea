@@ -4191,8 +4191,8 @@
         "tags": [
           "issue"
         ],
-        "summary": "Edit the tracked time to a issue",
-        "operationId": "issueEditTime",
+        "summary": "Add tracked time to a issue",
+        "operationId": "issueAddTime",
         "parameters": [
           {
             "type": "string",
@@ -4211,7 +4211,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "index of the issue to add tracked time to",
+            "description": "index of the issue",
             "name": "index",
             "in": "path",
             "required": true
@@ -4220,7 +4220,7 @@
             "name": "body",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/EditTimeOption"
+              "$ref": "#/definitions/AddTimeOption"
             }
           }
         ],
@@ -4268,6 +4268,64 @@
             "format": "int64",
             "description": "index of the issue to add tracked time to",
             "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/times/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Delete specific tracked time",
+        "operationId": "issueDeleteTime",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of time to delete",
+            "name": "id",
             "in": "path",
             "required": true
           }
@@ -7802,6 +7860,27 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "AddTimeOption": {
+      "description": "AddTimeOption options for adding/deleting time to an issue",
+      "type": "object",
+      "required": [
+        "time"
+      ],
+      "properties": {
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "time": {
+          "description": "time in seconds",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Time"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "AnnotatedTag": {
       "description": "AnnotatedTag represents an annotated tag",
       "type": "object",
@@ -9218,31 +9297,6 @@
             "repo.releases",
             "repo.ext_wiki"
           ]
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "EditTimeOption": {
-      "description": "EditTimeOption options for adding/deleting time to an issue",
-      "type": "object",
-      "required": [
-        "time"
-      ],
-      "properties": {
-        "created": {
-          "type": "string",
-          "format": "date-time",
-          "x-go-name": "Created"
-        },
-        "negative": {
-          "type": "boolean",
-          "x-go-name": "Negative"
-        },
-        "time": {
-          "description": "time in seconds",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "Time"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

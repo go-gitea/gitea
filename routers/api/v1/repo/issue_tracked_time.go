@@ -70,11 +70,11 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	ctx.JSON(200, trackedTimes.APIFormat())
 }
 
-// EditTime adds/remove time manual to the given issue
-func EditTime(ctx *context.APIContext, form api.EditTimeOption) {
-	// swagger:operation Post /repos/{owner}/{repo}/issues/{index}/times issue issueEditTime
+// AddTime adds/remove time manual to the given issue
+func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
+	// swagger:operation Post /repos/{owner}/{repo}/issues/{index}/times issue issueAddTime
 	// ---
-	// summary: Edit the tracked time to a issue
+	// summary: Add tracked time to a issue
 	// consumes:
 	// - application/json
 	// produces:
@@ -92,14 +92,14 @@ func EditTime(ctx *context.APIContext, form api.EditTimeOption) {
 	//   required: true
 	// - name: index
 	//   in: path
-	//   description: index of the issue to add tracked time to
+	//   description: index of the issue
 	//   type: integer
 	//   format: int64
 	//   required: true
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/EditTimeOption"
+	//     "$ref": "#/definitions/AddTimeOption"
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTime"
@@ -127,22 +127,6 @@ func EditTime(ctx *context.APIContext, form api.EditTimeOption) {
 	}
 
 	value := form.Time
-
-	if form.Negative {
-		availableTime, err := models.GetTrackedSeconds(models.FindTrackedTimesOptions{
-			IssueID: issue.ID,
-			UserID:  ctx.User.ID,
-		})
-		if err != nil {
-			ctx.Error(500, "GetTrackedSecounds", err)
-			return
-		}
-		if value > availableTime {
-			ctx.Error(403, "EditTime: forbidden to remove more time on issue than you have", nil)
-			return
-		}
-		value *= -1
-	}
 
 	created := time.Time{}
 	if !form.Created.IsZero() {
@@ -212,6 +196,77 @@ func ResetIssueTime(ctx *context.APIContext) {
 	err = models.DeleteIssueUserTimes(issue, ctx.User)
 	if err != nil {
 		ctx.Error(500, "DeleteIssueUserTimes", err)
+		return
+	}
+	ctx.Status(200)
+}
+
+// DeleteTime delete a specific time by id
+func DeleteTime(ctx *context.APIContext) {
+	// swagger:operation Delete /repos/{owner}/{repo}/issues/{index}/times/{id} issue issueDeleteTime
+	// ---
+	// summary: Delete specific tracked time
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of time to delete
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/error"
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(500, "GetIssueByIndex", err)
+		}
+		return
+	}
+
+	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
+		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
+			ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
+			return
+		}
+		ctx.Status(403)
+		return
+	}
+
+	time, err := models.GetTrackedTimeByID(ctx.ParamsInt64(":id"))
+
+	//check if user has right to delete
+	// ToDo
+
+	err = models.DeleteTime(time)
+	if err != nil {
+		ctx.Error(500, "DeleteTime", err)
 		return
 	}
 	ctx.Status(200)

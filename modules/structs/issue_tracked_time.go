@@ -8,12 +8,11 @@ import (
 	"time"
 )
 
-// EditTimeOption options for adding/deleting time to an issue
-type EditTimeOption struct {
+// AddTimeOption options for adding/deleting time to an issue
+type AddTimeOption struct {
 	// time in seconds
 	// required: true
-	Time     int64 `json:"time" binding:"Required"`
-	Negative bool  `json:"negative"`
+	Time int64 `json:"time" binding:"Required"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created"`
 }

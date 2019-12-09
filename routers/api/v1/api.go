@@ -683,10 +683,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 								Delete(reqToken(), repo.ClearIssueLabels)
 							m.Delete("/:id", reqToken(), repo.DeleteIssueLabel)
 						})
-						m.Combo("/times", reqToken()).
-							Get(repo.ListTrackedTimes).
-							Post(bind(api.EditTimeOption{}), repo.EditTime).
-							Delete(repo.ResetIssueTime)
+						m.Group("/times", func() {
+							m.Combo("", reqToken()).
+								Get(repo.ListTrackedTimes).
+								Post(bind(api.AddTimeOption{}), repo.AddTime).
+								Delete(repo.ResetIssueTime)
+							m.Delete("/:id", reqToken(), repo.DeleteTime)
+						})
 						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 						m.Group("/stopwatch", func() {
 							m.Post("/start", reqToken(), repo.StartIssueStopwatch)

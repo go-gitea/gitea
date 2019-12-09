@@ -198,7 +198,7 @@ func DeleteIssueUserTimes(issue *Issue, user *User) error {
 		UserID:  user.ID,
 	}
 
-	removedTime, err := deleteTime(opts)
+	removedTime, err := deleteTimes(opts)
 
 	if err := issue.loadRepo(x); err != nil {
 		return err
@@ -215,7 +215,7 @@ func DeleteIssueUserTimes(issue *Issue, user *User) error {
 	return err
 }
 
-func deleteTime(opts FindTrackedTimesOptions) (removedTime int64, err error) {
+func deleteTimes(opts FindTrackedTimesOptions) (removedTime int64, err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -237,4 +237,56 @@ func deleteTime(opts FindTrackedTimesOptions) (removedTime int64, err error) {
 
 	err = sess.Commit()
 	return
+}
+
+// DeleteTime delete a specific Time
+func DeleteTime(t *TrackedTime) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	issue, err := getIssueByID(sess, t.IssueID)
+	if err != nil {
+		return err
+	}
+	if err := issue.loadRepo(x); err != nil {
+		return err
+	}
+	user, err := getUserByID(sess, t.UserID)
+	if err != nil {
+		return err
+	}
+
+	_, err = sess.Delete(t)
+	if err != nil {
+		return err
+	}
+
+	if _, err := CreateComment(&CreateCommentOptions{
+		Issue:   issue,
+		Repo:    issue.Repo,
+		Doer:    user,
+		Content: "- " + SecToTime(t.Time),
+		Type:    CommentTypeDeleteTimeManual,
+	}); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+// GetTrackedTimeByID returns raw TrackedTime without loading attributes by id
+func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
+	time := &TrackedTime{
+		ID: id,
+	}
+	has, err := x.Get(time)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrNotExist{ID: id}
+	}
+	return time, nil
 }
