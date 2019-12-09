@@ -183,10 +183,13 @@ func runWeb(ctx *cli.Context) error {
 		err = runHTTPS("tcp", listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.FCGI:
 		NoHTTPRedirector()
-		err = runFCGI(listenAddr, context2.ClearHandler(m))
+		err = runFCGI("tcp", listenAddr, context2.ClearHandler(m))
 	case setting.UnixSocket:
 		NoHTTPRedirector()
 		err = runHTTP("unix", listenAddr, context2.ClearHandler(m))
+	case setting.FCGIUnix:
+		NoHTTPRedirector()
+		err = runFCGI("unix", listenAddr, context2.ClearHandler(m))
 	default:
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}
