@@ -869,13 +869,11 @@ func (pr *PullRequest) SetTargetBranch(targetBranch string, doer *User) (err err
 		return fmt.Errorf("update pull request: %v", err)
 	}
 
-	issue := pr.Issue
-
 	options := &CreateCommentOptions{
 		Type:   CommentTypeChangeTargetBranch,
 		Doer:   doer,
-		Repo:   issue.Repo,
-		Issue:  issue,
+		Repo:   pr.Issue.Repo,
+		Issue:  pr.Issue,
 		OldRef: oldBranch,
 		NewRef: targetBranch,
 	}
