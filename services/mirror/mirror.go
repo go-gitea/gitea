@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/graceful"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
@@ -315,11 +317,16 @@ func Update(ctx context.Context) {
 }
 
 // SyncMirrors checks and syncs mirrors.
-// TODO: sync more mirrors at same time.
-func SyncMirrors() {
+// FIXME: graceful: this should be a persistable queue
+func SyncMirrors(ctx context.Context) {
 	// Start listening on new sync requests.
-	for repoID := range mirrorQueue.Queue() {
-		syncMirror(repoID)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case repoID := <-mirrorQueue.Queue():
+			syncMirror(repoID)
+		}
 	}
 }
 
@@ -419,7 +426,7 @@ func syncMirror(repoID string) {
 
 // InitSyncMirrors initializes a go routine to sync the mirrors
 func InitSyncMirrors() {
-	go SyncMirrors()
+	go graceful.GetManager().RunWithShutdownContext(SyncMirrors)
 }
 
 // StartToMirror adds repoID to mirror queue
