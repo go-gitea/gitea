@@ -121,5 +121,5 @@ func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models
 	if committerUser == nil {
 		committerUser = authorUser // No valid committer so use the author as the committer (was set to a valid user above)
 	}
-	return authorUser, committerUser
+	return committerUser, authorUser
 }
