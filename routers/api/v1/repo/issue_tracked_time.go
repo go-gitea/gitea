@@ -126,14 +126,23 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 		return
 	}
 
-	value := form.Time
+	user := ctx.User
+	if form.User != "" {
+		if (ctx.IsUserRepoAdmin() && ctx.User.Name != form.User) || ctx.User.IsAdmin {
+			//allow only RepoAdmin, Admin and User to add time
+			user, err = models.GetUserByName(form.User)
+			if err != nil {
+				ctx.Error(500, "GetUserByName", err)
+			}
+		}
+	}
 
 	created := time.Time{}
 	if !form.Created.IsZero() {
 		created = form.Created
 	}
 
-	trackedTime, err := models.AddTimeCreatedAt(ctx.User, issue, value, created)
+	trackedTime, err := models.AddTimeCreatedAt(user, issue, form.Time, created)
 	if err != nil {
 		ctx.Error(500, "AddTime", err)
 		return
