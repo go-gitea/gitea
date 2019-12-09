@@ -1101,7 +1101,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 			errorMessage := ctx.Tr("repo.pulls.has_pull_request", ctx.Repo.RepoLink, RepoRelPath, err.IssueID)
 
 			ctx.Flash.Error(errorMessage)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			ctx.JSON(http.StatusConflict, map[string]interface{}{
 				"error":      err.Error(),
 				"user_error": errorMessage,
 			})
@@ -1109,7 +1109,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 			errorMessage := ctx.Tr("repo.pulls.is_closed")
 
 			ctx.Flash.Error(errorMessage)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			ctx.JSON(http.StatusConflict, map[string]interface{}{
 				"error":      err.Error(),
 				"user_error": errorMessage,
 			})
@@ -1117,7 +1117,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 			errorMessage := ctx.Tr("repo.pulls.has_merged")
 
 			ctx.Flash.Error(errorMessage)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			ctx.JSON(http.StatusConflict, map[string]interface{}{
 				"error":      err.Error(),
 				"user_error": errorMessage,
 			})
@@ -1125,7 +1125,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 			errorMessage := ctx.Tr("repo.pulls.nothing_to_compare")
 
 			ctx.Flash.Error(errorMessage)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			ctx.JSON(http.StatusBadRequest, map[string]interface{}{
 				"error":      err.Error(),
 				"user_error": errorMessage,
 			})
