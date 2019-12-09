@@ -835,7 +835,8 @@ func NewContext() {
 			TimeFormat = timeFormatKey
 			TestTimeFormat, _ := time.Parse(TimeFormat, TimeFormat)
 			if TestTimeFormat.Format(time.RFC3339) != "2006-01-02T15:04:05Z" {
-				log.Fatal("Can't create time properly, please check your time format has 2006, 01, 02, 15, 04 and 05")
+				log.Warn("Provided TimeFormat: %s does not create a fully specified date and time.", TimeFormat)
+				log.Warn("In order to display dates and times correctly please check your time format has 2006, 01, 02, 15, 04 and 05")
 			}
 			log.Trace("Custom TimeFormat: %s", TimeFormat)
 		}
