@@ -43,9 +43,11 @@
 				<a class="{{if .PageIsPulls}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/pulls">
 					<i class="octicon octicon-git-pull-request"></i>&nbsp;{{.i18n.Tr "pull_requests"}}
 				</a>
-				<a class="{{if .PageIsMilestonesDashboard}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/milestones">
-					<i class="octicon octicon-milestone"></i>&nbsp;{{.i18n.Tr "milestones"}}
-				</a>
+				{{if .ShowMilestonesDashboardPage}}
+					<a class="{{if .PageIsMilestonesDashboard}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/milestones">
+						<i class="octicon octicon-milestone"></i>&nbsp;{{.i18n.Tr "milestones"}}
+					</a>
+				{{end}}
 				<div class="item">
 					<a class="ui blue basic button" href="{{.ContextUser.HomeLink}}" title='{{.i18n.Tr "home.view_home" .ContextUser.Name}}'>
 						{{.i18n.Tr "home.view_home" (.ContextUser.ShortName 10)}}
