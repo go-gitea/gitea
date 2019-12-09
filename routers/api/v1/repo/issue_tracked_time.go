@@ -269,6 +269,10 @@ func DeleteTime(ctx *context.APIContext) {
 	}
 
 	time, err := models.GetTrackedTimeByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.Error(500, "GetTrackedTimeByID", err)
+		return
+	}
 
 	if !ctx.User.IsAdmin && time.UserID != ctx.User.ID {
 		//Only Admin and User itself can delete there time
