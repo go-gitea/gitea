@@ -15,6 +15,7 @@ import (
 	// Needed for jpeg support
 	_ "image/jpeg"
 	"image/png"
+	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
