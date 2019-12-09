@@ -27,11 +27,11 @@ func TestAPIListStopWatches(t *testing.T) {
 	var apiWatches []*api.StopWatch
 	DecodeJSON(t, resp, &apiWatches)
 	expect := models.AssertExistsAndLoadBean(t, &models.Stopwatch{UserID: owner.ID}).(*models.Stopwatch)
-	expectApi, _ := expect.APIFormat()
+	expectAPI, _ := expect.APIFormat()
 	assert.Len(t, apiWatches, 1)
 
-	assert.EqualValues(t, expectApi.IssueIndex, apiWatches[0].IssueIndex)
-	assert.EqualValues(t, expectApi.Created, apiWatches[0].Created)
+	assert.EqualValues(t, expectAPI.IssueIndex, apiWatches[0].IssueIndex)
+	assert.EqualValues(t, expectAPI.Created, apiWatches[0].Created)
 }
 
 func TestAPIStopStopWatches(t *testing.T) {
