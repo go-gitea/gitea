@@ -31,7 +31,7 @@ func TestAPIListStopWatches(t *testing.T) {
 	assert.Len(t, apiWatches, 1)
 
 	assert.EqualValues(t, expectAPI.IssueIndex, apiWatches[0].IssueIndex)
-	assert.EqualValues(t, expectAPI.Created, apiWatches[0].Created)
+	assert.EqualValues(t, expectAPI.Created.Unix(), apiWatches[0].Created.Unix())
 }
 
 func TestAPIStopStopWatches(t *testing.T) {
