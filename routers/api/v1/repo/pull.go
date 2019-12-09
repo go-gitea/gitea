@@ -263,7 +263,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 
 	stat, err := tmpPatchFile.Stat()
 	if err != nil {
-			tmpPatchFile.Close()
+		tmpPatchFile.Close()
 		ctx.Error(500, "StatPatch", err)
 		return
 	}

@@ -804,7 +804,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 
 	stat, err := tmpPatchFile.Stat()
 	if err != nil {
-			tmpPatchFile.Close()
+		tmpPatchFile.Close()
 		ctx.ServerError("StatPatch", err)
 		return
 	}
