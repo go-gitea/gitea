@@ -84,16 +84,19 @@ type GitlabDownloader struct {
 }
 
 // NewGitlabDownloader creates a gitlab Downloader via gitlab API
-//   Use either a username/password, personal token entered into the password field, or anonymous/public access
+//   Use either a username/password, personal token entered into the username field, or anonymous/public access
 //   Note: Public access only allows very basic access
 func NewGitlabDownloader(baseURL, repoPath, username, password string) *GitlabDownloader {
 	var client *http.Client
 	var gitlabClient *gitlab.Client
 	var err error
 	if username != "" {
-		gitlabClient, err = gitlab.NewBasicAuthClient(client, baseURL, username, password)
-	} else {
-		gitlabClient = gitlab.NewClient(client, password)
+		if password == "" {
+			gitlabClient = gitlab.NewClient(client, username)
+		} else {
+			gitlabClient, err = gitlab.NewBasicAuthClient(client, baseURL, username, password)
+
+		}
 	}
 
 	if err != nil {
