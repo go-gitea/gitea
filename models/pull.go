@@ -811,10 +811,12 @@ func (pr *PullRequest) UpdatePatch() (err error) {
 	}()
 
 	if err := headGitRepo.GetPatch(pr.MergeBase, pr.HeadBranch, tmpPatchFile); err != nil {
+		tmpPatchFile.Close()
 		log.Error("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
 		return fmt.Errorf("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
 	}
 
+	tmpPatchFile.Close()
 	if err = pr.BaseRepo.SavePatch(pr.Index, tmpPatchFile.Name()); err != nil {
 		return fmt.Errorf("BaseRepo.SavePatch: %v", err)
 	}

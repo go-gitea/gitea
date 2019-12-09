@@ -256,12 +256,14 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	}()
 
 	if err := headGitRepo.GetPatch(compareInfo.MergeBase, headBranch, tmpPatchFile); err != nil {
+	tmpPatchFile.Close()
 		ctx.Error(500, "GetPatch", err)
 		return
 	}
 
 	stat, err := tmpPatchFile.Stat()
 	if err != nil {
+			tmpPatchFile.Close()
 		ctx.Error(500, "StatPatch", err)
 		return
 	}
