@@ -388,6 +388,13 @@ steps:
     commands:
       - git fetch --tags --force
 
+  - name: build
+    pull: always
+    image: node:10 # this step is kept at the lowest version of node that we support
+    commands:
+      - make css
+      - make js
+
   - name: static
     pull: always
     image: techknowlogick/xgo:latest
@@ -488,6 +495,13 @@ steps:
     image: docker:git
     commands:
       - git fetch --tags --force
+
+  - name: build
+    pull: always
+    image: node:10 # this step is kept at the lowest version of node that we support
+    commands:
+      - make css
+      - make js
 
   - name: static
     pull: always
@@ -647,8 +661,6 @@ steps:
         exclude:
         - pull_request
 
-
-
 ---
 kind: pipeline
 name: docker-linux-arm64
@@ -753,6 +765,9 @@ platform:
 workspace:
   base: /go
   path: src/code.gitea.io/gitea
+
+clone:
+  disable: true
 
 when:
   status:
