@@ -916,10 +916,21 @@ func (repo *Repository) savePatch(e Engine, index int64, name string) error {
 		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
-	if err := os.Rename(name, patchPath); err != nil {
-		return fmt.Errorf("WriteFile: %v", err)
+	inputFile, err := os.Open(name)
+	if err != nil {
+		return fmt.Errorf("Couldn't open temporary patch file: %s", err)
 	}
-
+	outputFile, err := os.Create(patchPath)
+	if err != nil {
+		inputFile.Close()
+		return fmt.Errorf("Couldn't open destination patch file: %s", err)
+	}
+	defer outputFile.Close()
+	_, err = io.Copy(outputFile, inputFile)
+	inputFile.Close()
+	if err != nil {
+		return fmt.Errorf("Writing to patch file failed: %s", err)
+	}
 	return nil
 }
 
