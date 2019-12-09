@@ -170,7 +170,7 @@ func TestPullRequests() {
 		if manuallyMerged(pr) {
 			continue
 		}
-		if err := pr.TestPatch(); err != nil {
+		if err := TestPatch(pr); err != nil {
 			log.Error("testPatch: %v", err)
 			continue
 		}
@@ -194,7 +194,7 @@ func TestPullRequests() {
 			continue
 		} else if manuallyMerged(pr) {
 			continue
-		} else if err = pr.TestPatch(); err != nil {
+		} else if err = TestPatch(pr); err != nil {
 			log.Error("testPatch[%d]: %v", pr.ID, err)
 			continue
 		}

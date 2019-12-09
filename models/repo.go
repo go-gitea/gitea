@@ -15,7 +15,6 @@ import (
 	// Needed for jpeg support
 	_ "image/jpeg"
 	"image/png"
-	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -886,53 +885,6 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 		return template.HTML(markup.Sanitize(repo.Description))
 	}
 	return template.HTML(markup.Sanitize(string(desc)))
-}
-
-// PatchPath returns corresponding patch file path of repository by given issue ID.
-func (repo *Repository) PatchPath(index int64) (string, error) {
-	return repo.patchPath(x, index)
-}
-
-func (repo *Repository) patchPath(e Engine, index int64) (string, error) {
-	if err := repo.getOwner(e); err != nil {
-		return "", err
-	}
-
-	return filepath.Join(RepoPath(repo.Owner.Name, repo.Name), "pulls", com.ToStr(index)+".patch"), nil
-}
-
-// SavePatch saves patch data to corresponding location by given issue ID.
-func (repo *Repository) SavePatch(index int64, name string) error {
-	return repo.savePatch(x, index, name)
-}
-
-func (repo *Repository) savePatch(e Engine, index int64, name string) error {
-	patchPath, err := repo.patchPath(e, index)
-	if err != nil {
-		return fmt.Errorf("PatchPath: %v", err)
-	}
-	dir := filepath.Dir(patchPath)
-
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
-	}
-
-	inputFile, err := os.Open(name)
-	if err != nil {
-		return fmt.Errorf("Couldn't open temporary patch file: %s", err)
-	}
-	outputFile, err := os.Create(patchPath)
-	if err != nil {
-		inputFile.Close()
-		return fmt.Errorf("Couldn't open destination patch file: %s", err)
-	}
-	defer outputFile.Close()
-	_, err = io.Copy(outputFile, inputFile)
-	inputFile.Close()
-	if err != nil {
-		return fmt.Errorf("Writing to patch file failed: %s", err)
-	}
-	return nil
 }
 
 func isRepositoryExist(e Engine, u *User, repoName string) (bool, error) {
