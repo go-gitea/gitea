@@ -342,14 +342,14 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	}
 
 	if form.EnablePush != nil {
-		if *form.EnablePush == false {
+		if !*form.EnablePush {
 			protectBranch.CanPush = false
 			protectBranch.EnableWhitelist = false
 			protectBranch.WhitelistDeployKeys = false
 		} else {
 			protectBranch.CanPush = true
 			if form.EnablePushWhitelist != nil {
-				if *form.EnablePushWhitelist == false {
+				if !*form.EnablePushWhitelist {
 					protectBranch.EnableWhitelist = false
 					protectBranch.WhitelistDeployKeys = false
 				} else {
