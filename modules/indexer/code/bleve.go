@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/ethantkoenig/rupture"
@@ -40,7 +39,7 @@ func InitRepoIndexer() {
 	go func() {
 		start := time.Now()
 		log.Info("PID: %d: Initializing Repository Indexer", os.Getpid())
-		indexer.InitRepoIndexer(populateRepoIndexerAsynchronously)
+		initRepoIndexer(populateRepoIndexerAsynchronously)
 		go processRepoIndexerOperationQueue()
 		waitChannel <- time.Since(start)
 	}()
@@ -146,7 +145,7 @@ func updateRepoIndexer(repoID int64) error {
 		return nil
 	}
 
-	batch := indexer.RepoIndexerBatch()
+	batch := RepoIndexerBatch()
 	for _, update := range changes.Updates {
 		if err := addUpdate(update, repo, batch); err != nil {
 			return err
@@ -214,10 +213,10 @@ func addUpdate(update fileUpdate, repo *models.Repository, batch rupture.Flushin
 		// FIXME: UTF-16 files will probably fail here
 		return nil
 	}
-	indexerUpdate := indexer.RepoIndexerUpdate{
+	indexerUpdate := RepoIndexerUpdate{
 		Filepath: update.Filename,
-		Op:       indexer.RepoIndexerOpUpdate,
-		Data: &indexer.RepoIndexerData{
+		Op:       RepoIndexerOpUpdate,
+		Data: &RepoIndexerData{
 			RepoID:  repo.ID,
 			Content: string(charset.ToUTF8DropErrors(fileContents)),
 		},
@@ -226,10 +225,10 @@ func addUpdate(update fileUpdate, repo *models.Repository, batch rupture.Flushin
 }
 
 func addDelete(filename string, repo *models.Repository, batch rupture.FlushingBatch) error {
-	indexerUpdate := indexer.RepoIndexerUpdate{
+	indexerUpdate := RepoIndexerUpdate{
 		Filepath: filename,
-		Op:       indexer.RepoIndexerOpDelete,
-		Data: &indexer.RepoIndexerData{
+		Op:       RepoIndexerOpDelete,
+		Data: &RepoIndexerData{
 			RepoID: repo.ID,
 		},
 	}
@@ -295,7 +294,7 @@ func nonGenesisChanges(repo *models.Repository, revision string) (*repoChanges, 
 		// previous commit sha may have been removed by a force push, so
 		// try rebuilding from scratch
 		log.Warn("git diff: %v", err)
-		if err = indexer.DeleteRepoFromIndexer(repo.ID); err != nil {
+		if err = deleteRepoFromIndexer(repo.ID); err != nil {
 			return nil, err
 		}
 		return genesisChanges(repo, revision)
@@ -343,7 +342,7 @@ func processRepoIndexerOperationQueue() {
 		case op := <-repoIndexerOperationQueue:
 			var err error
 			if op.deleted {
-				if err = indexer.DeleteRepoFromIndexer(op.repoID); err != nil {
+				if err = deleteRepoFromIndexer(op.repoID); err != nil {
 					log.Error("DeleteRepoFromIndexer: %v", err)
 				}
 			} else {

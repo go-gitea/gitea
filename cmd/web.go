@@ -127,6 +127,7 @@ func runWeb(ctx *cli.Context) error {
 		switch setting.Protocol {
 		case setting.UnixSocket:
 		case setting.FCGI:
+		case setting.FCGIUnix:
 		default:
 			// Save LOCAL_ROOT_URL if port changed
 			cfg := ini.Empty()
@@ -154,7 +155,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	listenAddr := setting.HTTPAddr
-	if setting.Protocol != setting.UnixSocket {
+	if setting.Protocol != setting.UnixSocket && setting.Protocol != setting.FCGIUnix {
 		listenAddr += ":" + setting.HTTPPort
 	}
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
@@ -188,10 +189,13 @@ func runWeb(ctx *cli.Context) error {
 		err = runHTTPS("tcp", listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.FCGI:
 		NoHTTPRedirector()
-		err = runFCGI(listenAddr, context2.ClearHandler(m))
+		err = runFCGI("tcp", listenAddr, context2.ClearHandler(m))
 	case setting.UnixSocket:
 		NoHTTPRedirector()
 		err = runHTTP("unix", listenAddr, context2.ClearHandler(m))
+	case setting.FCGIUnix:
+		NoHTTPRedirector()
+		err = runFCGI("unix", listenAddr, context2.ClearHandler(m))
 	default:
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}
