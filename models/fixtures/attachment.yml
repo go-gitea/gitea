@@ -69,3 +69,18 @@
   name: attach1
   download_count: 0
   created_unix: 946684800
+
+-
+  id: 9
+  uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19
+  release_id: 1
+  name: attach1
+  download_count: 0
+  created_unix: 946684800
+
+-
+  id: 10
+  uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20
+  name: attach1
+  download_count: 0
+  created_unix: 946684800 
