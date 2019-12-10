@@ -42,6 +42,7 @@ const (
 	HTTP       Scheme = "http"
 	HTTPS      Scheme = "https"
 	FCGI       Scheme = "fcgi"
+	FCGIUnix   Scheme = "fcgi+unix"
 	UnixSocket Scheme = "unix"
 )
 
@@ -553,6 +554,14 @@ func NewContext() {
 		KeyFile = sec.Key("KEY_FILE").String()
 	case "fcgi":
 		Protocol = FCGI
+	case "fcgi+unix":
+		Protocol = FCGIUnix
+		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
+		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
+		if err != nil || UnixSocketPermissionParsed > 0777 {
+			log.Fatal("Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
+		}
+		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	case "unix":
 		Protocol = UnixSocket
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
@@ -606,6 +615,8 @@ func NewContext() {
 	case UnixSocket:
 		defaultLocalURL = "http://unix/"
 	case FCGI:
+		defaultLocalURL = AppURL
+	case FCGIUnix:
 		defaultLocalURL = AppURL
 	default:
 		defaultLocalURL = string(Protocol) + "://"
