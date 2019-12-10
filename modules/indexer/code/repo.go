@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package indexer
+package code
 
 import (
 	"strings"
@@ -100,8 +100,8 @@ func (update RepoIndexerUpdate) AddToFlushingBatch(batch rupture.FlushingBatch) 
 	return nil
 }
 
-// InitRepoIndexer initialize repo indexer
-func InitRepoIndexer(populateIndexer func() error) {
+// initRepoIndexer initialize repo indexer
+func initRepoIndexer(populateIndexer func() error) {
 	indexer, err := openIndexer(setting.Indexer.RepoPath, repoIndexerLatestVersion)
 	if err != nil {
 		log.Fatal("InitRepoIndexer: %v", err)
@@ -173,8 +173,8 @@ func RepoIndexerBatch() rupture.FlushingBatch {
 	return rupture.NewFlushingBatch(indexerHolder.get(), maxBatchSize)
 }
 
-// DeleteRepoFromIndexer delete all of a repo's files from indexer
-func DeleteRepoFromIndexer(repoID int64) error {
+// deleteRepoFromIndexer delete all of a repo's files from indexer
+func deleteRepoFromIndexer(repoID int64) error {
 	query := numericEqualityQuery(repoID, "RepoID")
 	searchRequest := bleve.NewSearchRequestOptions(query, 2147483647, 0, false)
 	result, err := indexerHolder.get().Search(searchRequest)
