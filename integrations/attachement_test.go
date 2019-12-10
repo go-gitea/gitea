@@ -52,7 +52,7 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 	return obj["uuid"]
 }
 
-func TestCreateAnonymeAttachement(t *testing.T) {
+func TestCreateAnonymousAttachment(t *testing.T) {
 	prepareTestEnv(t)
 	session := emptyTestSession(t)
 	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusFound)
