@@ -295,9 +295,6 @@ func (r *bleveIndexerHolder) get() bleve.Index {
 	return r.index
 }
 
-// repoIndexer (thread-safe) index for repository contents
-var indexerHolder = newBleveIndexerHolder()
-
 // RepoIndexerOp type of operation to perform on repo indexer
 type RepoIndexerOp int
 
@@ -342,7 +339,7 @@ func (update RepoIndexerUpdate) AddToFlushingBatch(batch rupture.FlushingBatch) 
 }
 
 // createRepoIndexer create a repo indexer if one does not already exist
-func createRepoIndexer(path string, latestVersion int) error {
+func createRepoIndexer(path string, latestVersion int) (bleve.Index, error) {
 	docMapping := bleve.NewDocumentMapping()
 	numericFieldMapping := bleve.NewNumericFieldMapping()
 	numericFieldMapping.IncludeInAll = false
@@ -354,14 +351,14 @@ func createRepoIndexer(path string, latestVersion int) error {
 
 	mapping := bleve.NewIndexMapping()
 	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
-		return err
+		return nil, err
 	} else if err := mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]interface{}{
 		"type":          custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     unicode.Name,
 		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
 	}); err != nil {
-		return err
+		return nil, err
 	}
 	mapping.DefaultAnalyzer = repoIndexerAnalyzer
 	mapping.AddDocumentMapping(repoIndexerDocType, docMapping)
@@ -369,13 +366,15 @@ func createRepoIndexer(path string, latestVersion int) error {
 
 	indexer, err := bleve.New(path, mapping)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	indexerHolder.set(indexer)
 
-	return rupture.WriteIndexMetadata(path, &rupture.IndexMetadata{
+	if err = rupture.WriteIndexMetadata(path, &rupture.IndexMetadata{
 		Version: latestVersion,
-	})
+	}); err != nil {
+		return nil, err
+	}
+	return indexer, nil
 }
 
 func filenameIndexerID(repoID int64, filename string) string {
@@ -396,14 +395,15 @@ var (
 
 // BleveIndexer represents a bleve indexer implementation
 type BleveIndexer struct {
-	indexDir string
-	indexer  bleve.Index // indexer (thread-safe) index for repository contents
+	indexDir      string
+	indexerHolder *bleveIndexerHolder
 }
 
 // NewBleveIndexer creates a new bleve local indexer
 func NewBleveIndexer(indexDir string) *BleveIndexer {
 	return &BleveIndexer{
-		indexDir: indexDir,
+		indexDir:      indexDir,
+		indexerHolder: newBleveIndexerHolder(),
 	}
 }
 
@@ -414,20 +414,24 @@ func (b *BleveIndexer) Init() (bool, error) {
 		log.Fatal("openIndexer: %v", err)
 	}
 	if indexer != nil {
-		indexerHolder.set(indexer)
-		closeAtTerminate()
+		b.indexerHolder.set(indexer)
+		b.closeAtTerminate()
 		return false, nil
 	}
 
-	err = createRepoIndexer(setting.Indexer.RepoPath, repoIndexerLatestVersion)
-	closeAtTerminate()
-	return err == nil, err
+	indexer, err = createRepoIndexer(setting.Indexer.RepoPath, repoIndexerLatestVersion)
+	if err != nil {
+		return false, err
+	}
+	b.indexerHolder.set(indexer)
+	b.closeAtTerminate()
+	return true, nil
 }
 
-func closeAtTerminate() {
+func (b *BleveIndexer) closeAtTerminate() {
 	graceful.GetManager().RunAtTerminate(context.Background(), func() {
 		log.Debug("Closing repo indexer")
-		indexer := indexerHolder.get()
+		indexer := b.indexerHolder.get()
 		if indexer != nil {
 			err := indexer.Close()
 			if err != nil {
@@ -456,7 +460,7 @@ func (b *BleveIndexer) Index(repoID int64) error {
 		return nil
 	}
 
-	batch := rupture.NewFlushingBatch(indexerHolder.get(), maxBatchSize)
+	batch := rupture.NewFlushingBatch(b.indexerHolder.get(), maxBatchSize)
 	for _, update := range changes.Updates {
 		if err := addUpdate(update, repo, batch); err != nil {
 			return err
@@ -477,11 +481,11 @@ func (b *BleveIndexer) Index(repoID int64) error {
 func (b *BleveIndexer) Delete(repoID int64) error {
 	query := numericEqualityQuery(repoID, "RepoID")
 	searchRequest := bleve.NewSearchRequestOptions(query, 2147483647, 0, false)
-	result, err := indexerHolder.get().Search(searchRequest)
+	result, err := b.indexerHolder.get().Search(searchRequest)
 	if err != nil {
 		return err
 	}
-	batch := rupture.NewFlushingBatch(indexerHolder.get(), maxBatchSize)
+	batch := rupture.NewFlushingBatch(b.indexerHolder.get(), maxBatchSize)
 	for _, hit := range result.Hits {
 		if err = batch.Delete(hit.ID); err != nil {
 			return err
@@ -517,7 +521,7 @@ func (b *BleveIndexer) Search(repoIDs []int64, keyword string, page, pageSize in
 	searchRequest.Fields = []string{"Content", "RepoID"}
 	searchRequest.IncludeLocations = true
 
-	result, err := indexerHolder.get().Search(searchRequest)
+	result, err := b.indexerHolder.get().Search(searchRequest)
 	if err != nil {
 		return 0, nil, err
 	}
