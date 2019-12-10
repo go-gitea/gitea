@@ -210,9 +210,9 @@ func Milestones(ctx *context.Context) {
 		repoIDs = userRepoIDs
 	}
 
-	counts, err := models.CountMilestonesByRepo(repoIDs, isShowClosed)
+	counts, err := models.CountMilestonesByRepoIDs(repoIDs, isShowClosed)
 	if err != nil {
-		ctx.ServerError("CountMilestonesByRepo", err)
+		ctx.ServerError("CountMilestonesByRepoIDs", err)
 		return
 	}
 

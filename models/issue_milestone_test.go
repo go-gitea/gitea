@@ -290,7 +290,7 @@ func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
 	assert.Equal(t, miles[0].TotalTrackedTime, int64(3662))
 }
 
-func TestCountMilestonesByRepo(t *testing.T) {
+func TestCountMilestonesByRepoIDs(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	milestonesCount := func(repoID int64) (int, int) {
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
@@ -299,12 +299,12 @@ func TestCountMilestonesByRepo(t *testing.T) {
 	repo1OpenCount, repo1ClosedCount := milestonesCount(1)
 	repo2OpenCount, repo2ClosedCount := milestonesCount(2)
 
-	openCounts, err := CountMilestonesByRepo([]int64{1, 2}, false)
+	openCounts, err := CountMilestonesByRepoIDs([]int64{1, 2}, false)
 	assert.NoError(t, err)
 	assert.EqualValues(t, repo1OpenCount, openCounts[1])
 	assert.EqualValues(t, repo2OpenCount, openCounts[2])
 
-	closedCounts, err := CountMilestonesByRepo([]int64{1, 2}, true)
+	closedCounts, err := CountMilestonesByRepoIDs([]int64{1, 2}, true)
 	assert.NoError(t, err)
 	assert.EqualValues(t, repo1ClosedCount, closedCounts[1])
 	assert.EqualValues(t, repo2ClosedCount, closedCounts[2])
