@@ -516,7 +516,6 @@ func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuid
 
 	pr.Index = pull.Index
 	pr.BaseRepo = repo
-	pr.Status = PullRequestStatusChecking
 
 	pr.IssueID = pull.ID
 	if _, err = sess.Insert(pr); err != nil {
