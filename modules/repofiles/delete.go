@@ -69,7 +69,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 
 	message := strings.TrimSpace(opts.Message)
 
-	author, committer := GetAuthorAndCommitterUsers(opts.Committer, opts.Author, doer)
+	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
 
 	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
