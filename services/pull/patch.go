@@ -177,9 +177,9 @@ func TestPatch(pr *models.PullRequest) error {
 						filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
 						conflictMap[filepath] = true
 					} else if strings.HasPrefix(line, errorPrefix) {
+						conflict = true
 						for _, suffix := range patchErrorSuffices {
 							if strings.HasSuffix(line, suffix) {
-								conflict = true
 								filepath := strings.TrimSpace(strings.TrimSuffix(line[len(errorPrefix):], suffix))
 								if filepath != "" {
 									conflictMap[filepath] = true
