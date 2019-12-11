@@ -30,6 +30,9 @@ import (
 	"github.com/ethantkoenig/rupture"
 )
 
+const unicodeNormalizeName = "unicodeNormalize"
+const maxBatchSize = 16
+
 // indexerID a bleve-compatible unique identifier for an integer id
 func indexerID(id int64) string {
 	return strconv.FormatInt(id, 36)
@@ -44,16 +47,12 @@ func numericEqualityQuery(value int64, field string) *query.NumericRangeQuery {
 	return q
 }
 
-const unicodeNormalizeName = "unicodeNormalize"
-
 func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 	return m.AddCustomTokenFilter(unicodeNormalizeName, map[string]interface{}{
 		"type": unicodenorm.Name,
 		"form": unicodenorm.NFC,
 	})
 }
-
-const maxBatchSize = 16
 
 // openIndexer open the index at the specified path, checking for metadata
 // updates and bleve version updates.  If index needs to be created (or
@@ -87,35 +86,15 @@ func openIndexer(path string, latestVersion int) (bleve.Index, error) {
 	return index, nil
 }
 
-// repoChanges changes (file additions/updates/removals) to a repo
-type repoChanges struct {
-	Updates          []fileUpdate
-	RemovedFilenames []string
+// RepoIndexerData data stored in the repo indexer
+type RepoIndexerData struct {
+	RepoID  int64
+	Content string
 }
 
-type fileUpdate struct {
-	Filename string
-	BlobSha  string
-}
-
-func getDefaultBranchSha(repo *models.Repository) (string, error) {
-	stdout, err := git.NewCommand("show-ref", "-s", git.BranchPrefix+repo.DefaultBranch).RunInDir(repo.RepoPath())
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(stdout), nil
-}
-
-// getRepoChanges returns changes to repo since last indexer update
-func getRepoChanges(repo *models.Repository, revision string) (*repoChanges, error) {
-	if err := repo.GetIndexerStatus(); err != nil {
-		return nil, err
-	}
-
-	if len(repo.IndexerStatus.CommitSha) == 0 {
-		return genesisChanges(repo, revision)
-	}
-	return nonGenesisChanges(repo, revision)
+// Type returns the document type, for bleve's mapping.Classifier interface.
+func (d *RepoIndexerData) Type() string {
+	return repoIndexerDocType
 }
 
 func addUpdate(update fileUpdate, repo *models.Repository, batch rupture.FlushingBatch) error {
@@ -138,127 +117,17 @@ func addUpdate(update fileUpdate, repo *models.Repository, batch rupture.Flushin
 		// FIXME: UTF-16 files will probably fail here
 		return nil
 	}
-	indexerUpdate := RepoIndexerUpdate{
-		Filepath: update.Filename,
-		Op:       RepoIndexerOpUpdate,
-		Data: &RepoIndexerData{
-			RepoID:  repo.ID,
-			Content: string(charset.ToUTF8DropErrors(fileContents)),
-		},
-	}
-	return indexerUpdate.AddToFlushingBatch(batch)
+
+	id := filenameIndexerID(repo.ID, update.Filename)
+	return batch.Index(id, &RepoIndexerData{
+		RepoID:  repo.ID,
+		Content: string(charset.ToUTF8DropErrors(fileContents)),
+	})
 }
 
 func addDelete(filename string, repo *models.Repository, batch rupture.FlushingBatch) error {
-	indexerUpdate := RepoIndexerUpdate{
-		Filepath: filename,
-		Op:       RepoIndexerOpDelete,
-		Data: &RepoIndexerData{
-			RepoID: repo.ID,
-		},
-	}
-	return indexerUpdate.AddToFlushingBatch(batch)
-}
-
-func isIndexable(entry *git.TreeEntry) bool {
-	if !entry.IsRegular() && !entry.IsExecutable() {
-		return false
-	}
-	name := strings.ToLower(entry.Name())
-	for _, g := range setting.Indexer.ExcludePatterns {
-		if g.Match(name) {
-			return false
-		}
-	}
-	for _, g := range setting.Indexer.IncludePatterns {
-		if g.Match(name) {
-			return true
-		}
-	}
-	return len(setting.Indexer.IncludePatterns) == 0
-}
-
-// parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
-func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
-	entries, err := git.ParseTreeEntries(stdout)
-	if err != nil {
-		return nil, err
-	}
-	var idxCount = 0
-	updates := make([]fileUpdate, len(entries))
-	for _, entry := range entries {
-		if isIndexable(entry) {
-			updates[idxCount] = fileUpdate{
-				Filename: entry.Name(),
-				BlobSha:  entry.ID.String(),
-			}
-			idxCount++
-		}
-	}
-	return updates[:idxCount], nil
-}
-
-// genesisChanges get changes to add repo to the indexer for the first time
-func genesisChanges(repo *models.Repository, revision string) (*repoChanges, error) {
-	var changes repoChanges
-	stdout, err := git.NewCommand("ls-tree", "--full-tree", "-r", revision).
-		RunInDirBytes(repo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
-	changes.Updates, err = parseGitLsTreeOutput(stdout)
-	return &changes, err
-}
-
-// nonGenesisChanges get changes since the previous indexer update
-func nonGenesisChanges(repo *models.Repository, revision string) (*repoChanges, error) {
-	diffCmd := git.NewCommand("diff", "--name-status",
-		repo.IndexerStatus.CommitSha, revision)
-	stdout, err := diffCmd.RunInDir(repo.RepoPath())
-	if err != nil {
-		// previous commit sha may have been removed by a force push, so
-		// try rebuilding from scratch
-		log.Warn("git diff: %v", err)
-		if err = indexer.Delete(repo.ID); err != nil {
-			return nil, err
-		}
-		return genesisChanges(repo, revision)
-	}
-	var changes repoChanges
-	updatedFilenames := make([]string, 0, 10)
-	for _, line := range strings.Split(stdout, "\n") {
-		line = strings.TrimSpace(line)
-		if len(line) == 0 {
-			continue
-		}
-		filename := strings.TrimSpace(line[1:])
-		if len(filename) == 0 {
-			continue
-		} else if filename[0] == '"' {
-			filename, err = strconv.Unquote(filename)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		switch status := line[0]; status {
-		case 'M', 'A':
-			updatedFilenames = append(updatedFilenames, filename)
-		case 'D':
-			changes.RemovedFilenames = append(changes.RemovedFilenames, filename)
-		default:
-			log.Warn("Unrecognized status: %c (line=%s)", status, line)
-		}
-	}
-
-	cmd := git.NewCommand("ls-tree", "--full-tree", revision, "--")
-	cmd.AddArguments(updatedFilenames...)
-	lsTreeStdout, err := cmd.RunInDirBytes(repo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
-	changes.Updates, err = parseGitLsTreeOutput(lsTreeStdout)
-	return &changes, err
+	id := filenameIndexerID(repo.ID, filename)
+	return batch.Delete(id)
 }
 
 const (
@@ -293,49 +162,6 @@ func (r *bleveIndexerHolder) get() bleve.Index {
 		r.cond.Wait()
 	}
 	return r.index
-}
-
-// RepoIndexerOp type of operation to perform on repo indexer
-type RepoIndexerOp int
-
-const (
-	// RepoIndexerOpUpdate add/update a file's contents
-	RepoIndexerOpUpdate = iota
-
-	// RepoIndexerOpDelete delete a file
-	RepoIndexerOpDelete
-)
-
-// RepoIndexerData data stored in the repo indexer
-type RepoIndexerData struct {
-	RepoID  int64
-	Content string
-}
-
-// Type returns the document type, for bleve's mapping.Classifier interface.
-func (d *RepoIndexerData) Type() string {
-	return repoIndexerDocType
-}
-
-// RepoIndexerUpdate an update to the repo indexer
-type RepoIndexerUpdate struct {
-	Filepath string
-	Op       RepoIndexerOp
-	Data     *RepoIndexerData
-}
-
-// AddToFlushingBatch adds the update to the given flushing batch.
-func (update RepoIndexerUpdate) AddToFlushingBatch(batch rupture.FlushingBatch) error {
-	id := filenameIndexerID(update.Data.RepoID, update.Filepath)
-	switch update.Op {
-	case RepoIndexerOpUpdate:
-		return batch.Index(id, update.Data)
-	case RepoIndexerOpDelete:
-		return batch.Delete(id)
-	default:
-		log.Error("Unrecognized repo indexer op: %d", update.Op)
-	}
-	return nil
 }
 
 // createRepoIndexer create a repo indexer if one does not already exist
