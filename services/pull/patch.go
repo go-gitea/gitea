@@ -61,6 +61,13 @@ func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch bool) error 
 	return nil
 }
 
+var patchErrorSuffices = []string{
+	": already exists in index",
+	": patch does not apply",
+	": already exists in working directory",
+	"unrecognized input",
+}
+
 // TestPatch will test whether a simple patch will apply
 func TestPatch(pr *models.PullRequest) error {
 	// Clone base repo.
@@ -150,6 +157,7 @@ func TestPatch(pr *models.PullRequest) error {
 		_ = stderrReader.Close()
 		_ = stderrWriter.Close()
 	}()
+	conflict := false
 	err = git.NewCommand(args...).
 		RunInDirTimeoutEnvFullPipelineFunc(
 			nil, -1, tmpBasePath,
@@ -157,15 +165,28 @@ func TestPatch(pr *models.PullRequest) error {
 			func(ctx context.Context, cancel context.CancelFunc) {
 				_ = stderrWriter.Close()
 				const prefix = "error: patch failed:"
+				const errorPrefix = "error: "
 				conflictMap := map[string]bool{}
 
 				scanner := bufio.NewScanner(stderrReader)
 				for scanner.Scan() {
 					line := scanner.Text()
-
+					fmt.Printf("%s\n", line)
 					if strings.HasPrefix(line, prefix) {
-						var filepath = strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
+						conflict = true
+						filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
 						conflictMap[filepath] = true
+					} else if strings.HasPrefix(line, errorPrefix) {
+						for _, suffix := range patchErrorSuffices {
+							if strings.HasSuffix(line, suffix) {
+								conflict = true
+								filepath := strings.TrimSpace(strings.TrimSuffix(line[len(errorPrefix):], suffix))
+								if filepath != "" {
+									conflictMap[filepath] = true
+								}
+								break
+							}
+						}
 					}
 					// only list 10 conflicted files
 					if len(conflictMap) >= 10 {
@@ -177,17 +198,16 @@ func TestPatch(pr *models.PullRequest) error {
 					for key := range conflictMap {
 						pr.ConflictedFiles = append(pr.ConflictedFiles, key)
 					}
-					pr.Status = models.PullRequestStatusConflict
 				}
 				_ = stderrReader.Close()
 			})
 
 	if err != nil {
-		if len(pr.ConflictedFiles) > 0 {
+		if conflict {
+			pr.Status = models.PullRequestStatusConflict
 			log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
 			return nil
 		}
-
 		return fmt.Errorf("git apply --check: %v", err)
 	}
 	pr.Status = models.PullRequestStatusMergeable
