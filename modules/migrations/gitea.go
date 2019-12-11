@@ -201,7 +201,7 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 }
 
 // CreateReleases creates releases
-func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
+func (g *GiteaLocalUploader) CreateReleases(syncTags bool, releases ...*base.Release) error {
 	var rels = make([]*models.Release, 0, len(releases))
 	for _, release := range releases {
 		var rel = models.Release{
@@ -292,8 +292,12 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		return err
 	}
 
-	// sync tags to releases in database
-	return models.SyncReleasesWithTags(g.repo, g.gitRepo)
+	if syncTags {
+		// sync tags to releases in database
+		return models.SyncReleasesWithTags(g.repo, g.gitRepo)
+	}
+
+	return nil
 }
 
 // CreateIssues creates issues
