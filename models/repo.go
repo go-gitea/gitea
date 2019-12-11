@@ -1992,6 +1992,17 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
+	releaseAttachments := make([]string, 0, 20)
+	attachments := make([]*Attachment, 0, len(releaseAttachments))
+	if err = sess.Join("INNER", "release", "release.id = attachment.release_id").
+		Where("release.repo_id = ?", repoID).
+		Find(&attachments); err != nil {
+		return err
+	}
+	for i := 0; i < len(attachments); i++ {
+		releaseAttachments = append(releaseAttachments, attachments[i].LocalPath())
+	}
+
 	if err = deleteBeans(sess,
 		&Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
@@ -2043,7 +2054,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	attachmentPaths := make([]string, 0, 20)
-	attachments := make([]*Attachment, 0, len(attachmentPaths))
+	attachments = make([]*Attachment, 0, len(attachmentPaths))
 	if err = sess.Join("INNER", "issue", "issue.id = attachment.issue_id").
 		Where("issue.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
@@ -2085,11 +2096,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
-	// Remove attachment files.
-	for i := range attachmentPaths {
-		removeAllWithNotice(sess, "Delete attachment", attachmentPaths[i])
-	}
-
 	// Remove LFS objects
 	var lfsObjects []*LFSMetaObject
 	if err = sess.Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {
@@ -2127,6 +2133,23 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 			}
 		}
 		return fmt.Errorf("Commit: %v", err)
+	}
+
+	sess.Close()
+
+	// We should always delete the files after the database transaction succeed. If
+	// we delete the file but the database rollback, the repository will be borken.
+
+	// Remove issue attachment files.
+	for i := range attachmentPaths {
+		removeAllWithNotice(x, "Delete issue attachment", attachmentPaths[i])
+	}
+
+	// Remove release attachment files.
+	if len(releaseAttachments) > 0 {
+		for i := range releaseAttachments {
+			removeAllWithNotice(x, "Delete release attachment", releaseAttachments[i])
+		}
 	}
 
 	if len(repo.Avatar) > 0 {
