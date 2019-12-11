@@ -567,16 +567,9 @@ func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Co
 		}
 
 		// Check attachments
-		attachments := make([]*Attachment, 0, len(opts.Attachments))
-		for _, uuid := range opts.Attachments {
-			attach, err := getAttachmentByUUID(e, uuid)
-			if err != nil {
-				if IsErrAttachmentNotExist(err) {
-					continue
-				}
-				return fmt.Errorf("getAttachmentByUUID [%s]: %v", uuid, err)
-			}
-			attachments = append(attachments, attach)
+		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
+		if err != nil {
+			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", opts.Attachments, err)
 		}
 
 		for i := range attachments {
