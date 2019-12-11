@@ -288,11 +288,8 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 
 		rels = append(rels, &rel)
 	}
-	if err := models.InsertReleases(rels...); err != nil {
-		return err
-	}
 
-	return nil
+	return models.InsertReleases(rels...)
 }
 
 // SyncTags syncs releases with tags in the database
