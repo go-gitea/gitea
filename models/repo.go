@@ -1993,7 +1993,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	releaseAttachments := make([]string, 0, 20)
-	attachments := make([]*Attachment, 0, len(releaseAttachments))
+	attachments := make([]*Attachment, 0, cap(releaseAttachments))
 	if err = sess.Join("INNER", "release", "release.id = attachment.release_id").
 		Where("release.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
@@ -2054,7 +2054,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	attachmentPaths := make([]string, 0, 20)
-	attachments = make([]*Attachment, 0, len(attachmentPaths))
+	attachments = attachments[:0]
 	if err = sess.Join("INNER", "issue", "issue.id = attachment.issue_id").
 		Where("issue.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
@@ -2146,10 +2146,8 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	// Remove release attachment files.
-	if len(releaseAttachments) > 0 {
-		for i := range releaseAttachments {
-			removeAllWithNotice(x, "Delete release attachment", releaseAttachments[i])
-		}
+	for i := range releaseAttachments {
+		removeAllWithNotice(x, "Delete release attachment", releaseAttachments[i])
 	}
 
 	if len(repo.Avatar) > 0 {
