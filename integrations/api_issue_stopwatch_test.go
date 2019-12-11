@@ -62,7 +62,7 @@ func TestAPICancelStopWatches(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/stopwatch/delete?token=%s", owner.Name, issue.Repo.Name, issue.Index, token)
-	session.MakeRequest(t, req, http.StatusAccepted)
+	session.MakeRequest(t, req, http.StatusNoContent)
 	session.MakeRequest(t, req, http.StatusConflict)
 }
 
