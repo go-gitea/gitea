@@ -22,6 +22,7 @@ type repoIndexerOperation struct {
 var repoIndexerOperationQueue chan repoIndexerOperation
 
 func processRepoIndexerOperationQueue() {
+	repoIndexerOperationQueue = make(chan repoIndexerOperation, setting.Indexer.UpdateQueueLength)
 	for {
 		select {
 		case op := <-repoIndexerOperationQueue:
@@ -69,38 +70,31 @@ func addOperationToQueue(op repoIndexerOperation) {
 	}
 }
 
-// populateRepoIndexerAsynchronously asynchronously populates the repo indexer
-// with pre-existing data. This should only be run when the indexer is created
-// for the first time.
-func populateRepoIndexerAsynchronously() error {
+// populateRepoIndexer populate the repo indexer with pre-existing data. This
+// should only be run when the indexer is created for the first time.
+func populateRepoIndexer() {
+	log.Info("Populating the repo indexer with existing repositories")
+
+	isShutdown := graceful.GetManager().IsShutdown()
+
 	exist, err := models.IsTableNotEmpty("repository")
 	if err != nil {
-		return err
+		log.Fatal("System error: %v", err)
 	} else if !exist {
-		return nil
+		return
 	}
 
 	// if there is any existing repo indexer metadata in the DB, delete it
 	// since we are starting afresh. Also, xorm requires deletes to have a
 	// condition, and we want to delete everything, thus 1=1.
 	if err := models.DeleteAllRecords("repo_indexer_status"); err != nil {
-		return err
+		log.Fatal("System error: %v", err)
 	}
 
 	var maxRepoID int64
 	if maxRepoID, err = models.GetMaxID("repository"); err != nil {
-		return err
+		log.Fatal("System error: %v", err)
 	}
-	go populateRepoIndexer(maxRepoID)
-	return nil
-}
-
-// populateRepoIndexer populate the repo indexer with pre-existing data. This
-// should only be run when the indexer is created for the first time.
-func populateRepoIndexer(maxRepoID int64) {
-	log.Info("Populating the repo indexer with existing repositories")
-
-	isShutdown := graceful.GetManager().IsShutdown()
 
 	// start with the maximum existing repo ID and work backwards, so that we
 	// don't include repos that are created after gitea starts; such repos will
