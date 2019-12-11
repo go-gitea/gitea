@@ -72,7 +72,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 			ctx, cancel := context.WithCancel(p.baseCtx)
 			desc := GetManager().GetDescription(p.qid)
 			if desc != nil {
-				log.Warn("Worker Channel for %v blocked for %v - adding %d temporary workers for %s, block timeout now %v", desc.Name, ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
+				log.Warn("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, desc.Name, ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
 
 				start := time.Now()
 				pid := desc.RegisterWorkers(p.boostWorkers, start, false, start, cancel)
@@ -82,7 +82,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 					cancel()
 				}()
 			} else {
-				log.Warn("Worker Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
+				log.Warn("WorkerPool: %d Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
 			}
 			go func() {
 				<-time.After(p.boostTimeout)
@@ -128,6 +128,10 @@ func (p *WorkerPool) AddWorkers(number int, timeout time.Duration) context.Cance
 			desc.RemoveWorkers(pid)
 			cancel()
 		}()
+		log.Trace("WorkerPool: %d (for %s) adding %d workers with group id: %d", p.qid, desc.Name, number, pid)
+	} else {
+		log.Trace("WorkerPool: %d adding %d workers (no group id)", p.qid, number)
+
 	}
 	p.addWorkers(ctx, number)
 	return cancel
@@ -173,18 +177,18 @@ func (p *WorkerPool) Wait() {
 // CleanUp will drain the remaining contents of the channel
 // This should be called after AddWorkers context is closed
 func (p *WorkerPool) CleanUp(ctx context.Context) {
-	log.Trace("CleanUp")
+	log.Trace("WorkerPool: %d CleanUp", p.qid)
 	close(p.dataChan)
 	for data := range p.dataChan {
 		p.handle(data)
 		select {
 		case <-ctx.Done():
-			log.Warn("Cleanup context closed before finishing clean-up")
+			log.Warn("WorkerPool: %d Cleanup context closed before finishing clean-up", p.qid)
 			return
 		default:
 		}
 	}
-	log.Trace("CleanUp done")
+	log.Trace("WorkerPool: %d CleanUp Done", p.qid)
 }
 
 func (p *WorkerPool) doWork(ctx context.Context) {

@@ -12,6 +12,8 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 var manager *Manager
@@ -96,6 +98,7 @@ func (m *Manager) Add(queue Queue,
 	}
 	m.Queues[desc.QID] = desc
 	m.mutex.Unlock()
+	log.Trace("Queue Manager registered: %s (QID: %d)", desc.Name, desc.QID)
 	return desc.QID
 }
 
@@ -104,6 +107,8 @@ func (m *Manager) Remove(qid int64) {
 	m.mutex.Lock()
 	delete(m.Queues, qid)
 	m.mutex.Unlock()
+	log.Trace("Queue Manager removed: QID: %d", qid)
+
 }
 
 // GetDescription by qid

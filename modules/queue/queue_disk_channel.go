@@ -133,22 +133,28 @@ func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 		_ = p.ChannelQueue.pool.AddWorkers(p.workers, 0)
 	}()
 
+	log.Trace("PersistableChannelQueue: %s Waiting til closed", p.delayedStarter.name)
 	<-p.closed
+	log.Trace("PersistableChannelQueue: %s Cancelling pools", p.delayedStarter.name)
 	p.ChannelQueue.pool.cancel()
 	p.internal.(*LevelQueue).pool.cancel()
+	log.Trace("PersistableChannelQueue: %s Waiting til done", p.delayedStarter.name)
 	p.ChannelQueue.pool.Wait()
 	p.internal.(*LevelQueue).pool.Wait()
 	// Redirect all remaining data in the chan to the internal channel
 	go func() {
+		log.Trace("PersistableChannelQueue: %s Redirecting remaining data", p.delayedStarter.name)
 		for data := range p.ChannelQueue.pool.dataChan {
 			_ = p.internal.Push(data)
 		}
+		log.Trace("PersistableChannelQueue: %s Done Redirecting remaining data", p.delayedStarter.name)
 	}()
+	log.Trace("PersistableChannelQueue: %s Done main loop", p.delayedStarter.name)
 }
 
 // Shutdown processing this queue
 func (p *PersistableChannelQueue) Shutdown() {
-	log.Trace("Shutdown: %s", p.delayedStarter.name)
+	log.Trace("PersistableChannelQueue: %s Shutdown", p.delayedStarter.name)
 	select {
 	case <-p.closed:
 	default:
@@ -163,7 +169,7 @@ func (p *PersistableChannelQueue) Shutdown() {
 
 // Terminate this queue and close the queue
 func (p *PersistableChannelQueue) Terminate() {
-	log.Trace("Terminating: %s", p.delayedStarter.name)
+	log.Trace("PersistableChannelQueue: %s Terminating", p.delayedStarter.name)
 	p.Shutdown()
 	p.lock.Lock()
 	defer p.lock.Unlock()
