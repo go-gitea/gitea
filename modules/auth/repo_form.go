@@ -157,19 +157,20 @@ func (f *RepoSettingForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
-	Protected               bool
-	EnableWhitelist         bool
-	WhitelistUsers          string
-	WhitelistTeams          string
-	WhitelistDeployKeys     bool
-	EnableMergeWhitelist    bool
-	MergeWhitelistUsers     string
-	MergeWhitelistTeams     string
-	EnableStatusCheck       bool `xorm:"NOT NULL DEFAULT false"`
-	StatusCheckContexts     []string
-	RequiredApprovals       int64
-	ApprovalsWhitelistUsers string
-	ApprovalsWhitelistTeams string
+	Protected                bool
+	EnablePush               string
+	WhitelistUsers           string
+	WhitelistTeams           string
+	WhitelistDeployKeys      bool
+	EnableMergeWhitelist     bool
+	MergeWhitelistUsers      string
+	MergeWhitelistTeams      string
+	EnableStatusCheck        bool `xorm:"NOT NULL DEFAULT false"`
+	StatusCheckContexts      []string
+	RequiredApprovals        int64
+	EnableApprovalsWhitelist bool
+	ApprovalsWhitelistUsers  string
+	ApprovalsWhitelistTeams  string
 }
 
 // Validate validates the fields

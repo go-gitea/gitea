@@ -168,7 +168,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	message := strings.TrimSpace(opts.Message)
 
-	author, committer := GetAuthorAndCommitterUsers(opts.Committer, opts.Author, doer)
+	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
 
 	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
@@ -512,10 +512,6 @@ func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) 
 	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
 	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true)
-
-	if opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
-		models.UpdateRepoIndexer(repo)
-	}
 
 	if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
 		log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)

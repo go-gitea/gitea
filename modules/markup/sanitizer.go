@@ -50,6 +50,15 @@ func ReplaceSanitizer() {
 
 	// Allow <kbd> tags for keyboard shortcut styling
 	sanitizer.policy.AllowElements("kbd")
+
+	// Custom keyword markup
+	for _, rule := range setting.ExternalSanitizerRules {
+		if rule.Regexp != nil {
+			sanitizer.policy.AllowAttrs(rule.AllowAttr).Matching(rule.Regexp).OnElements(rule.Element)
+		} else {
+			sanitizer.policy.AllowAttrs(rule.AllowAttr).OnElements(rule.Element)
+		}
+	}
 }
 
 // Sanitize takes a string that contains a HTML fragment or document and applies policy whitelist.
