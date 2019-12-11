@@ -305,7 +305,7 @@ func ServCommand(ctx *macaron.Context) {
 			return
 		}
 
-		repo, err = pushCreateRepo(user, owner, results.RepoName)
+		repo, err = repo_service.PushCreateRepo(user, owner, results.RepoName)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
 			ctx.JSON(http.StatusNotFound, map[string]interface{}{
@@ -343,28 +343,4 @@ func ServCommand(ctx *macaron.Context) {
 
 	ctx.JSON(http.StatusOK, results)
 	// We will update the keys in a different call.
-}
-
-func pushCreateRepo(authUser, owner *models.User, repoName string) (*models.Repository, error) {
-	if !authUser.IsAdmin {
-		if owner.IsOrganization() {
-			if ok, err := owner.CanCreateOrgRepo(authUser.ID); err != nil {
-				return nil, err
-			} else if !ok {
-				return nil, fmt.Errorf("cannot push-create repository for org")
-			}
-		} else if authUser.ID != owner.ID {
-			return nil, fmt.Errorf("cannot push-create repository for another user")
-		}
-	}
-
-	repo, err := repo_service.CreateRepository(authUser, owner, models.CreateRepoOptions{
-		Name:      repoName,
-		IsPrivate: true,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return repo, nil
 }

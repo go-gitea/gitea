@@ -290,7 +290,7 @@ func HTTP(ctx *context.Context) {
 			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for users.")
 			return
 		}
-		repo, err = pushCreateRepo(authUser, owner, reponame)
+		repo, err = repo_service.PushCreateRepo(authUser, owner, reponame)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
 			ctx.Status(http.StatusNotFound)
@@ -350,30 +350,6 @@ func HTTP(ctx *context.Context) {
 	}
 
 	ctx.NotFound("Smart Git HTTP", nil)
-}
-
-func pushCreateRepo(authUser, owner *models.User, repoName string) (*models.Repository, error) {
-	if !authUser.IsAdmin {
-		if owner.IsOrganization() {
-			if ok, err := owner.CanCreateOrgRepo(authUser.ID); err != nil {
-				return nil, err
-			} else if !ok {
-				return nil, fmt.Errorf("cannot push-create repository for org")
-			}
-		} else if authUser.ID != owner.ID {
-			return nil, fmt.Errorf("cannot push-create repository for another user")
-		}
-	}
-
-	repo, err := repo_service.CreateRepository(authUser, owner, models.CreateRepoOptions{
-		Name:      repoName,
-		IsPrivate: true,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return repo, nil
 }
 
 type serviceConfig struct {
