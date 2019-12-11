@@ -129,16 +129,9 @@ func UpdateRelease(rel *Release) error {
 // AddReleaseAttachments adds a release attachments
 func AddReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
-	var attachments = make([]*Attachment, 0)
-	for _, uuid := range attachmentUUIDs {
-		attach, err := getAttachmentByUUID(x, uuid)
-		if err != nil {
-			if IsErrAttachmentNotExist(err) {
-				continue
-			}
-			return fmt.Errorf("getAttachmentByUUID [%s]: %v", uuid, err)
-		}
-		attachments = append(attachments, attach)
+	attachments, err := GetAttachmentsByUUIDs(attachmentUUIDs)
+	if err != nil {
+		return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
 	}
 
 	for i := range attachments {
