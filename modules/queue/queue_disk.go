@@ -91,16 +91,18 @@ func (l *LevelQueue) Run(atShutdown, atTerminate func(context.Context, func())) 
 
 	go l.readToChan()
 
-	log.Trace("%s Waiting til closed", l.name)
+	log.Trace("LevelQueue: %s Waiting til closed", l.name)
 	<-l.closed
 
-	log.Trace("%s Waiting til done", l.name)
+	log.Trace("LevelQueue: %s Waiting til done", l.name)
 	l.pool.Wait()
-	// FIXME: graceful: Needs HammerContext
-	log.Trace("%s Waiting til cleaned", l.name)
 
-	l.pool.CleanUp(context.TODO())
-	log.Trace("%s cleaned", l.name)
+	log.Trace("LevelQueue: %s Waiting til cleaned", l.name)
+	ctx, cancel := context.WithCancel(context.Background())
+	atTerminate(ctx, cancel)
+	l.pool.CleanUp(ctx)
+	cancel()
+	log.Trace("LevelQueue: %s Cleaned", l.name)
 
 }
 
@@ -115,7 +117,7 @@ func (l *LevelQueue) readToChan() {
 			bs, err := l.queue.RPop()
 			if err != nil {
 				if err != levelqueue.ErrNotFound {
-					log.Error("%s RPop: %v", l.name, err)
+					log.Error("LevelQueue: %s Error on RPop: %v", l.name, err)
 				}
 				time.Sleep(time.Millisecond * 100)
 				continue
@@ -137,14 +139,14 @@ func (l *LevelQueue) readToChan() {
 				err = json.Unmarshal(bs, &data)
 			}
 			if err != nil {
-				log.Error("LevelQueue: %s failed to unmarshal: %v", l.name, err)
-				time.Sleep(time.Millisecond * 10)
+				log.Error("LevelQueue: %s Failed to unmarshal with error: %v", l.name, err)
+				time.Sleep(time.Millisecond * 100)
 				continue
 			}
 
-			log.Trace("LevelQueue %s: task found: %#v", l.name, data)
+			log.Trace("LevelQueue %s: Task found: %#v", l.name, data)
 			l.pool.Push(data)
-			time.Sleep(time.Millisecond * 100)
+			time.Sleep(time.Millisecond * 10)
 
 		}
 	}
@@ -170,7 +172,7 @@ func (l *LevelQueue) Push(data Data) error {
 
 // Shutdown this queue and stop processing
 func (l *LevelQueue) Shutdown() {
-	log.Trace("Shutdown: %s", l.name)
+	log.Trace("LevelQueue: %s Shutdown", l.name)
 	select {
 	case <-l.closed:
 	default:
@@ -180,10 +182,16 @@ func (l *LevelQueue) Shutdown() {
 
 // Terminate this queue and close the queue
 func (l *LevelQueue) Terminate() {
-	log.Trace("Terminating: %s", l.name)
+	log.Trace("LevelQueue: %s Terminating", l.name)
 	l.Shutdown()
-	if err := l.queue.Close(); err != nil && err.Error() != "leveldb: closed" {
-		log.Error("Error whilst closing internal queue in %s: %v", l.name, err)
+	select {
+	case <-l.terminated:
+	default:
+		close(l.terminated)
+		if err := l.queue.Close(); err != nil && err.Error() != "leveldb: closed" {
+			log.Error("Error whilst closing internal queue in %s: %v", l.name, err)
+		}
+
 	}
 }
 

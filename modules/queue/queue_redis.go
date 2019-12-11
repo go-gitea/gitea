@@ -116,10 +116,16 @@ func (r *RedisQueue) Run(atShutdown, atTerminate func(context.Context, func())) 
 
 	go r.readToChan()
 
+	log.Trace("RedisQueue: %s Waiting til closed", r.name)
 	<-r.closed
+	log.Trace("RedisQueue: %s Waiting til done", r.name)
 	r.pool.Wait()
-	// FIXME: graceful: Needs HammerContext
-	r.pool.CleanUp(context.TODO())
+
+	log.Trace("RedisQueue: %s Waiting til cleaned", r.name)
+	ctx, cancel := context.WithCancel(context.Background())
+	atTerminate(ctx, cancel)
+	r.pool.CleanUp(ctx)
+	cancel()
 }
 
 func (r *RedisQueue) readToChan() {
@@ -132,7 +138,7 @@ func (r *RedisQueue) readToChan() {
 		default:
 			bs, err := r.client.LPop(r.queueName).Bytes()
 			if err != nil && err != redis.Nil {
-				log.Error("RedisQueue: %s LPop failed: %v", r.name, err)
+				log.Error("RedisQueue: %s Error on LPop: %v", r.name, err)
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
@@ -153,12 +159,12 @@ func (r *RedisQueue) readToChan() {
 				err = json.Unmarshal(bs, &data)
 			}
 			if err != nil {
-				log.Error("RedisQueue: %s Unmarshal: %v", r.name, err)
+				log.Error("RedisQueue: %s Error on Unmarshal: %v", r.name, err)
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
 
-			log.Trace("RedisQueue: %s task found: %#v", r.name, data)
+			log.Trace("RedisQueue: %s Task found: %#v", r.name, data)
 			r.pool.Push(data)
 			time.Sleep(time.Millisecond * 10)
 		}

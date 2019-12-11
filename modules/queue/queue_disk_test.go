@@ -6,6 +6,7 @@ package queue
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -23,11 +24,15 @@ func TestLevelQueue(t *testing.T) {
 		}
 	}
 
-	var queueShutdown func()
-	var queueTerminate func()
+	queueShutdown := []func(){}
+	queueTerminate := []func(){}
+
+	tmpDir, err := ioutil.TempDir("", "level-queue-test-data")
+	assert.NoError(t, err)
+	defer os.RemoveAll(tmpDir)
 
 	queue, err := NewLevelQueue(handle, LevelQueueConfiguration{
-		DataDir:      "level-queue-test-data",
+		DataDir:      tmpDir,
 		BatchLength:  2,
 		Workers:      1,
 		QueueLength:  20,
@@ -38,9 +43,9 @@ func TestLevelQueue(t *testing.T) {
 	assert.NoError(t, err)
 
 	go queue.Run(func(_ context.Context, shutdown func()) {
-		queueShutdown = shutdown
+		queueShutdown = append(queueShutdown, shutdown)
 	}, func(_ context.Context, terminate func()) {
-		queueTerminate = terminate
+		queueTerminate = append(queueTerminate, terminate)
 	})
 
 	test1 := testData{"A", 1}
@@ -64,7 +69,9 @@ func TestLevelQueue(t *testing.T) {
 	err = queue.Push(test1)
 	assert.Error(t, err)
 
-	queueShutdown()
+	for _, callback := range queueShutdown {
+		callback()
+	}
 	time.Sleep(200 * time.Millisecond)
 	err = queue.Push(&test1)
 	assert.NoError(t, err)
@@ -75,24 +82,30 @@ func TestLevelQueue(t *testing.T) {
 		assert.Fail(t, "Handler processing should have stopped")
 	default:
 	}
-	queueTerminate()
+	for _, callback := range queueTerminate {
+		callback()
+	}
 
 	// Reopen queue
-	queue, err = NewLevelQueue(handle, LevelQueueConfiguration{
-		DataDir:      "level-queue-test-data",
-		BatchLength:  2,
-		Workers:      1,
-		QueueLength:  20,
-		BlockTimeout: 1 * time.Second,
-		BoostTimeout: 5 * time.Minute,
-		BoostWorkers: 5,
-	}, &testData{})
+	queue, err = NewWrappedQueue(handle,
+		WrappedQueueConfiguration{
+			Underlying: LevelQueueType,
+			Config: LevelQueueConfiguration{
+				DataDir:      tmpDir,
+				BatchLength:  2,
+				Workers:      1,
+				QueueLength:  20,
+				BlockTimeout: 1 * time.Second,
+				BoostTimeout: 5 * time.Minute,
+				BoostWorkers: 5,
+			},
+		}, &testData{})
 	assert.NoError(t, err)
 
 	go queue.Run(func(_ context.Context, shutdown func()) {
-		queueShutdown = shutdown
+		queueShutdown = append(queueShutdown, shutdown)
 	}, func(_ context.Context, terminate func()) {
-		queueTerminate = terminate
+		queueTerminate = append(queueTerminate, terminate)
 	})
 
 	result3 := <-handleChan
@@ -102,8 +115,10 @@ func TestLevelQueue(t *testing.T) {
 	result4 := <-handleChan
 	assert.Equal(t, test2.TestString, result4.TestString)
 	assert.Equal(t, test2.TestInt, result4.TestInt)
-	queueShutdown()
-	queueTerminate()
-
-	os.RemoveAll("level-queue-test-data")
+	for _, callback := range queueShutdown {
+		callback()
+	}
+	for _, callback := range queueTerminate {
+		callback()
+	}
 }

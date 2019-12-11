@@ -92,7 +92,7 @@ type WrappedQueue struct {
 
 // NewWrappedQueue will attempt to create a queue of the provided type,
 // but if there is a problem creating this queue it will instead create
-// a WrappedQueue with delayed the startup of the queue instead and a
+// a WrappedQueue with delayed startup of the queue instead and a
 // channel which will be redirected to the queue
 func NewWrappedQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error) {
 	configInterface, err := toConfig(WrappedQueueConfiguration{}, cfg)
@@ -162,11 +162,12 @@ func (q *WrappedQueue) Run(atShutdown, atTerminate func(context.Context, func())
 	}
 
 	q.internal.Run(atShutdown, atTerminate)
+	log.Trace("WrappedQueue: %s Done", q.name)
 }
 
 // Shutdown this queue and stop processing
 func (q *WrappedQueue) Shutdown() {
-	log.Trace("Shutdown: %s", q.name)
+	log.Trace("WrappedQueue: %s Shutdown", q.name)
 	q.lock.Lock()
 	defer q.lock.Unlock()
 	if q.internal == nil {
@@ -179,7 +180,7 @@ func (q *WrappedQueue) Shutdown() {
 
 // Terminate this queue and close the queue
 func (q *WrappedQueue) Terminate() {
-	log.Trace("Terminating: %s", q.name)
+	log.Trace("WrappedQueue: %s Terminating", q.name)
 	q.lock.Lock()
 	defer q.lock.Unlock()
 	if q.internal == nil {

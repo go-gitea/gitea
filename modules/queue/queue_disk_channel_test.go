@@ -24,8 +24,8 @@ func TestPersistableChannelQueue(t *testing.T) {
 		}
 	}
 
-	var queueShutdown func()
-	var queueTerminate func()
+	queueShutdown := []func(){}
+	queueTerminate := []func(){}
 
 	tmpDir, err := ioutil.TempDir("", "persistable-channel-queue-test-data")
 	assert.NoError(t, err)
@@ -40,9 +40,9 @@ func TestPersistableChannelQueue(t *testing.T) {
 	assert.NoError(t, err)
 
 	go queue.Run(func(_ context.Context, shutdown func()) {
-		queueShutdown = shutdown
+		queueShutdown = append(queueShutdown, shutdown)
 	}, func(_ context.Context, terminate func()) {
-		queueTerminate = terminate
+		queueTerminate = append(queueTerminate, terminate)
 	})
 
 	test1 := testData{"A", 1}
@@ -66,7 +66,9 @@ func TestPersistableChannelQueue(t *testing.T) {
 	err = queue.Push(test1)
 	assert.Error(t, err)
 
-	queueShutdown()
+	for _, callback := range queueShutdown {
+		callback()
+	}
 	time.Sleep(200 * time.Millisecond)
 	err = queue.Push(&test1)
 	assert.NoError(t, err)
@@ -77,7 +79,9 @@ func TestPersistableChannelQueue(t *testing.T) {
 		assert.Fail(t, "Handler processing should have stopped")
 	default:
 	}
-	queueTerminate()
+	for _, callback := range queueTerminate {
+		callback()
+	}
 
 	// Reopen queue
 	queue, err = NewPersistableChannelQueue(handle, PersistableChannelQueueConfiguration{
@@ -89,9 +93,9 @@ func TestPersistableChannelQueue(t *testing.T) {
 	assert.NoError(t, err)
 
 	go queue.Run(func(_ context.Context, shutdown func()) {
-		queueShutdown = shutdown
+		queueShutdown = append(queueShutdown, shutdown)
 	}, func(_ context.Context, terminate func()) {
-		queueTerminate = terminate
+		queueTerminate = append(queueTerminate, terminate)
 	})
 
 	result3 := <-handleChan
@@ -101,7 +105,11 @@ func TestPersistableChannelQueue(t *testing.T) {
 	result4 := <-handleChan
 	assert.Equal(t, test2.TestString, result4.TestString)
 	assert.Equal(t, test2.TestInt, result4.TestInt)
-	queueShutdown()
-	queueTerminate()
+	for _, callback := range queueShutdown {
+		callback()
+	}
+	for _, callback := range queueTerminate {
+		callback()
+	}
 
 }
