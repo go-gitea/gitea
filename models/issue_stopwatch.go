@@ -20,6 +20,9 @@ type Stopwatch struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
+// Stopwatches is a List ful of Stopwatch
+type Stopwatches []Stopwatch
+
 func getStopwatch(e Engine, userID, issueID int64) (sw *Stopwatch, exists bool, err error) {
 	sw = new(Stopwatch)
 	exists, err = e.
@@ -183,9 +186,6 @@ func (sw *Stopwatch) APIFormat() (api.StopWatch, error) {
 		IssueIndex: issue.Index,
 	}, nil
 }
-
-// Stopwatches is a List ful of Stopwatch
-type Stopwatches []Stopwatch
 
 // APIFormat convert Stopwatches type to api.StopWatches type
 func (sws Stopwatches) APIFormat() (api.StopWatches, error) {

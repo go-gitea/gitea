@@ -132,7 +132,7 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 	//   format: int64
 	//   required: true
 	// responses:
-	//   "202":
+	//   "204":
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     description: Not repo writer, user does not have rights to toggle stopwatch
@@ -150,7 +150,7 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(202)
+	ctx.Status(204)
 }
 
 func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*models.Issue, error) {
