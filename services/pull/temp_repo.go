@@ -20,9 +20,25 @@ func createTemporaryRepo(pr *models.PullRequest) (string, error) {
 	if err := pr.GetHeadRepo(); err != nil {
 		log.Error("GetHeadRepo: %v", err)
 		return "", fmt.Errorf("GetHeadRepo: %v", err)
+	} else if pr.HeadRepo == nil {
+		log.Error("Pr %d HeadRepo %d does not exist", pr.ID, pr.HeadRepoID)
+		return "", &models.ErrRepoNotExist{
+			ID: pr.HeadRepoID,
+		}
 	} else if err := pr.GetBaseRepo(); err != nil {
 		log.Error("GetBaseRepo: %v", err)
 		return "", fmt.Errorf("GetBaseRepo: %v", err)
+	} else if pr.BaseRepo == nil {
+		log.Error("Pr %d BaseRepo %d does not exist", pr.ID, pr.BaseRepoID)
+		return "", &models.ErrRepoNotExist{
+			ID: pr.BaseRepoID,
+		}
+	} else if err := pr.HeadRepo.GetOwner(); err != nil {
+		log.Error("HeadRepo.GetOwner: %v", err)
+		return "", fmt.Errorf("HeadRepo.GetOwner: %v", err)
+	} else if err := pr.BaseRepo.GetOwner(); err != nil {
+		log.Error("BaseRepo.GetOwner: %v", err)
+		return "", fmt.Errorf("BaseRepo.GetOwner: %v", err)
 	}
 
 	// Clone base repo.
