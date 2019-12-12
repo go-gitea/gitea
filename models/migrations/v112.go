@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"fmt"
+
 	"xorm.io/xorm"
 )
 
