@@ -40,11 +40,11 @@ func newGracefulManager(ctx context.Context) *Manager {
 		lock:    &sync.RWMutex{},
 	}
 	manager.createServerWaitGroup.Add(numberOfServersToCreate)
-	manager.run(ctx)
+	manager.start(ctx)
 	return manager
 }
 
-func (g *Manager) run(ctx context.Context) {
+func (g *Manager) start(ctx context.Context) {
 	g.setState(stateRunning)
 	go g.handleSignals(ctx)
 	c := make(chan struct{})

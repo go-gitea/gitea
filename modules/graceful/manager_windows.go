@@ -52,11 +52,11 @@ func newGracefulManager(ctx context.Context) *Manager {
 		ctx:     ctx,
 	}
 	manager.createServerWaitGroup.Add(numberOfServersToCreate)
-	manager.run()
+	manager.start()
 	return manager
 }
 
-func (g *Manager) run() {
+func (g *Manager) start() {
 	g.setState(stateRunning)
 	if skip, _ := strconv.ParseBool(os.Getenv("SKIP_MINWINSVC")); skip {
 		return
