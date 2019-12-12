@@ -35,6 +35,7 @@ func InitRepoIndexer() {
 		return
 	}
 	waitChannel := make(chan time.Duration)
+	// FIXME: graceful: This should use a persistable queue
 	repoIndexerOperationQueue = make(chan repoIndexerOperation, setting.Indexer.UpdateQueueLength)
 	go func() {
 		start := time.Now()
@@ -88,6 +89,7 @@ func populateRepoIndexerAsynchronously() error {
 
 // populateRepoIndexer populate the repo indexer with pre-existing data. This
 // should only be run when the indexer is created for the first time.
+// FIXME: graceful: This should use a persistable queue
 func populateRepoIndexer(maxRepoID int64) {
 	log.Info("Populating the repo indexer with existing repositories")
 
