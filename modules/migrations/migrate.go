@@ -165,6 +165,11 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			}
 			releases = releases[relBatchSize:]
 		}
+
+		// Once all releases (if any) are inserted, sync any remaining non-release tags
+		if err := uploader.SyncTags(); err != nil {
+			return err
+		}
 	}
 
 	var commentBatchSize = uploader.MaxBatchInsertSize("comment")
