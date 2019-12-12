@@ -1994,8 +1994,8 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	releaseAttachments := make([]string, 0, 20)
 	attachments := make([]*Attachment, 0, cap(releaseAttachments))
-	if err = sess.Join("INNER", "release", "release.id = attachment.release_id").
-		Where("release.repo_id = ?", repoID).
+	if err = sess.Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
+		Where("`release`.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
 		return err
 	}
