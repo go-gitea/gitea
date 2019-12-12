@@ -2913,7 +2913,7 @@ func (repo *Repository) GetOriginalURLHostname() string {
 // GetTreePathLock returns LSF lock for the treePath
 func (repo *Repository) GetTreePathLock(treePath string) (*LFSLock, error) {
 	if setting.LFS.StartServer {
-		locks, err := GetLFSLockByRepoID(repo.ID)
+		locks, err := GetLFSLockByRepoID(repo.ID, 0, 0)
 		if err != nil {
 			return nil, err
 		}
