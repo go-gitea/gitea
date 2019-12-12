@@ -187,16 +187,13 @@ func (g *Manager) doHammerTime(d time.Duration) {
 	if g.hammer == nil {
 		g.hammer = make(chan struct{})
 	}
-	g.lock.Unlock()
 	select {
 	case <-g.hammer:
 	default:
 		log.Warn("Setting Hammer condition")
-		g.lock.Lock()
 		close(g.hammer)
-		g.lock.Unlock()
 	}
-
+	g.lock.Unlock()
 }
 
 func (g *Manager) doTerminate() {
