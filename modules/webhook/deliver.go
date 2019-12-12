@@ -160,21 +160,16 @@ func DeliverHooks(ctx context.Context) {
 		log.Error("DeliverHooks: %v", err)
 		return
 	}
-	select {
-	case <-ctx.Done():
-		return
-	default:
-	}
 
 	// Update hook task status.
 	for _, t := range tasks {
-		if err = Deliver(t); err != nil {
-			log.Error("deliver: %v", err)
-		}
 		select {
 		case <-ctx.Done():
 			return
 		default:
+		}
+		if err = Deliver(t); err != nil {
+			log.Error("deliver: %v", err)
 		}
 	}
 
