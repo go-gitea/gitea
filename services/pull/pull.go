@@ -83,7 +83,11 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 	if err != nil {
 		return err
 	}
-	if baseCommit.HasPreviousCommit(headCommit.ID) {
+	branchesEqual, err := baseCommit.HasPreviousCommit(headCommit.ID)
+	if err != nil {
+		return err
+	}
+	if branchesEqual {
 		return models.ErrBranchesEqual{
 			HeadBranchName: pr.HeadBranch,
 			BaseBranchName: targetBranch,
