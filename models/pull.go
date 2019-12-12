@@ -858,6 +858,11 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 func (pr *PullRequest) SetTargetBranch(targetBranch string, doer *User) (err error) {
 	oldBranch := pr.BaseBranch
 	pr.BaseBranch = targetBranch
+
+	if err := pr.TestPatch(); err != nil {
+		return err
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 
