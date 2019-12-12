@@ -803,7 +803,6 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 		CommitSHA: commitSHA,
 		Content:   content,
 	})
-
 	return err
 }
 

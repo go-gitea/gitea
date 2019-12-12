@@ -140,7 +140,7 @@ func manuallyMerged(pr *models.PullRequest) bool {
 		pr.Merger = merger
 		pr.MergerID = merger.ID
 
-		if err := pr.SetMerged(); err != nil {
+		if err = pr.SetMerged(); err != nil {
 			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
 			return false
 		}
