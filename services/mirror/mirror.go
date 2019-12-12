@@ -308,7 +308,7 @@ func Update(ctx context.Context) {
 		case <-ctx.Done():
 			return fmt.Errorf("Aborted due to shutdown")
 		default:
-			mirrorQueue.Add(m.RepoID)
+			_ = mirrorQueue.AddCtx(ctx, m.RepoID)
 			return nil
 		}
 	}); err != nil {
