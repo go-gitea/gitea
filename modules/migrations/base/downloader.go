@@ -220,7 +220,7 @@ func (d *LimitDownloader) GetRequestLimit() float32 {
 }
 
 func (d *LimitDownloader) sleep() {
-	secs := int(time.Now().Sub(d.startTime) / time.Second)
+	secs := int(time.Since(d.startTime) / time.Second)
 	if secs > 0 && float32(d.GetRequestTimes()/secs) > d.GetRequestLimit() {
 		time.Sleep(time.Second * time.Duration(int(float32(d.GetRequestTimes())/d.GetRequestLimit())-secs))
 	}
