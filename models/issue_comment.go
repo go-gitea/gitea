@@ -750,10 +750,6 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 		return nil, err
 	}
 
-	if err = sendCreateCommentAction(sess, opts, comment); err != nil {
-		return nil, err
-	}
-
 	if err = sess.Commit(); err != nil {
 		return nil, err
 	}
@@ -807,6 +803,7 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 		CommitSHA: commitSHA,
 		Content:   content,
 	})
+
 	return err
 }
 
