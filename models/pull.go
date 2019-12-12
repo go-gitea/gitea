@@ -859,12 +859,16 @@ func (pr *PullRequest) SetTargetBranch(targetBranch string, doer *User) (err err
 	oldBranch := pr.BaseBranch
 	pr.BaseBranch = targetBranch
 
-	if err := pr.TestPatch(); err != nil {
-		return err
-	}
-
 	sess := x.NewSession()
 	defer sess.Close()
+
+	// Regenerate patch and test conflict.
+	if err = pr.UpdatePatch(); err != nil {
+		return err
+	}
+	if err := pr.testPatch(sess); err != nil {
+		return err
+	}
 
 	if err = sess.Begin(); err != nil {
 		return err
