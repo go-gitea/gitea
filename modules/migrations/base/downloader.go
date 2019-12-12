@@ -21,6 +21,8 @@ type Downloader interface {
 	GetIssues(page, perPage int) ([]*Issue, bool, error)
 	GetComments(issueNumber int64) ([]*Comment, error)
 	GetPullRequests(page, perPage int) ([]*PullRequest, error)
+	GetRequestTimes() int
+	GetRequestLimit() float32
 }
 
 // DownloaderFactory defines an interface to match a downloader implementation and create a downloader
@@ -30,11 +32,16 @@ type DownloaderFactory interface {
 	GitServiceType() structs.GitServiceType
 }
 
+var (
+	_ Downloader = &RetryDownloader{}
+)
+
 // RetryDownloader retry the downloads
 type RetryDownloader struct {
 	Downloader
-	RetryTimes int // the total execute times
-	RetryDelay int // time to delay seconds
+	RetryTimes int       // the total execute times
+	RetryDelay int       // time to delay seconds
+	startTime  time.Time // start time
 }
 
 // NewRetryDownloader creates a retry downloader
@@ -43,7 +50,27 @@ func NewRetryDownloader(downloader Downloader, retryTimes, retryDelay int) *Retr
 		Downloader: downloader,
 		RetryTimes: retryTimes,
 		RetryDelay: retryDelay,
+		startTime:  time.Now(),
 	}
+}
+
+// GetRequestTimes returns request times
+func (d *RetryDownloader) GetRequestTimes() int {
+	return d.Downloader.GetRequestTimes()
+}
+
+// GetRequestLimit returns the limitation of the http request times per seconds.
+func (d *RetryDownloader) GetRequestLimit() float32 {
+	return d.Downloader.GetRequestLimit()
+}
+
+func (d *RetryDownloader) sleep() {
+	secs := int(time.Now().Sub(d.startTime) / time.Second)
+	var sleepTime = time.Second * time.Duration(d.RetryDelay)
+	if secs > 0 && float32(d.GetRequestTimes()/secs) > d.GetRequestLimit() {
+		sleepTime = time.Second * time.Duration(d.RetryDelay+int(float32(d.GetRequestTimes())/d.GetRequestLimit())-secs)
+	}
+	time.Sleep(sleepTime)
 }
 
 // GetRepoInfo returns a repository information with retry
@@ -57,7 +84,7 @@ func (d *RetryDownloader) GetRepoInfo() (*Repository, error) {
 		if repo, err = d.Downloader.GetRepoInfo(); err == nil {
 			return repo, nil
 		}
-		time.Sleep(time.Second * time.Duration(d.RetryDelay))
+		d.sleep()
 	}
 	return nil, err
 }

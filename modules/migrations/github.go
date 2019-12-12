@@ -67,12 +67,13 @@ func (f *GithubDownloaderV3Factory) GitServiceType() structs.GitServiceType {
 // GithubDownloaderV3 implements a Downloader interface to get repository informations
 // from github via APIv3
 type GithubDownloaderV3 struct {
-	ctx       context.Context
-	client    *github.Client
-	repoOwner string
-	repoName  string
-	userName  string
-	password  string
+	ctx          context.Context
+	client       *github.Client
+	repoOwner    string
+	repoName     string
+	userName     string
+	password     string
+	requestTimes int
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
@@ -107,12 +108,23 @@ func NewGithubDownloaderV3(userName, password, repoOwner, repoName string) *Gith
 	return &downloader
 }
 
+// GetRequestTimes returns request times to the git service
+func (g *GithubDownloaderV3) GetRequestTimes() int {
+	return g.requestTimes
+}
+
+// GetRequestLimit returns the limitation of the http request times per seconds.
+func (g *GithubDownloaderV3) GetRequestLimit() float32 {
+	return 5000 / 3600
+}
+
 // GetRepoInfo returns a repository information
 func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 	gr, _, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
 	if err != nil {
 		return nil, err
 	}
+	g.requestTimes++
 	// convert github repo to stand Repo
 	return &base.Repository{
 		Owner:       g.repoOwner,
@@ -127,6 +139,7 @@ func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 // GetTopics return github topics
 func (g *GithubDownloaderV3) GetTopics() ([]string, error) {
 	r, _, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
+	g.requestTimes++
 	return r.Topics, err
 }
 
@@ -142,6 +155,7 @@ func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 					Page:    i,
 					PerPage: perPage,
 				}})
+		g.requestTimes++
 		if err != nil {
 			return nil, err
 		}
@@ -194,6 +208,7 @@ func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 				Page:    i,
 				PerPage: perPage,
 			})
+		g.requestTimes++
 		if err != nil {
 			return nil, err
 		}
@@ -265,6 +280,7 @@ func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
 				Page:    i,
 				PerPage: perPage,
 			})
+		g.requestTimes++
 		if err != nil {
 			return nil, err
 		}
@@ -306,6 +322,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 	var allIssues = make([]*base.Issue, 0, perPage)
 
 	issues, _, err := g.client.Issues.ListByRepo(g.ctx, g.repoOwner, g.repoName, opt)
+	g.requestTimes++
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
@@ -366,6 +383,7 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 	}
 	for {
 		comments, resp, err := g.client.Issues.ListComments(g.ctx, g.repoOwner, g.repoName, int(issueNumber), opt)
+		g.requestTimes++
 		if err != nil {
 			return nil, fmt.Errorf("error while listing repos: %v", err)
 		}
@@ -410,6 +428,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 	var allPRs = make([]*base.PullRequest, 0, perPage)
 
 	prs, _, err := g.client.PullRequests.List(g.ctx, g.repoOwner, g.repoName, opt)
+	g.requestTimes++
 	if err != nil {
 		return nil, fmt.Errorf("error while listing repos: %v", err)
 	}
