@@ -9,10 +9,14 @@ import (
 	"image"
 	"image/png"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"os"
+	"path"
 	"testing"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -85,4 +89,37 @@ func TestCreateIssueAttachement(t *testing.T) {
 	//Validate that attachement is available
 	req = NewRequest(t, "GET", "/attachments/"+uuid)
 	session.MakeRequest(t, req, http.StatusOK)
+}
+
+func TestGetAttachement(t *testing.T) {
+	prepareTestEnv(t)
+	session := loginUser(t, "user2")
+	testCases := []struct {
+		name       string
+		uuid       string
+		createFile bool
+		want       int
+	}{
+		{"LinkedIssueUUID", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", true, http.StatusOK},
+		{"LinkedCommentUUID", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", true, http.StatusOK},
+		{"linked_release_uuid", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19", true, http.StatusOK},
+		{"NotExistingUUID", "not-existing-uuid", false, http.StatusNotFound},
+		{"FileMissing", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18", false, http.StatusInternalServerError},
+		{"NotLinked", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20", true, http.StatusOK},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//Write empty file to be available for response
+			if tc.createFile {
+				localPath := models.AttachmentLocalPath(tc.uuid)
+				err := os.MkdirAll(path.Dir(localPath), os.ModePerm)
+				assert.NoError(t, err)
+				err = ioutil.WriteFile(localPath, []byte("hello world"), 0644)
+				assert.NoError(t, err)
+			}
+			//Actual test
+			req := NewRequest(t, "GET", "/attachments/"+tc.uuid)
+			session.MakeRequest(t, req, tc.want)
+		})
+	}
 }
