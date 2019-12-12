@@ -194,7 +194,13 @@ func TestPullRequests() {
 			continue
 		} else if manuallyMerged(pr) {
 			continue
-		} else if err = TestPatch(pr); err != nil {
+		}
+		pr.Status = models.PullRequestStatusChecking
+		if err := pr.Update(); err != nil {
+			log.Error("testPatch[%d]: Unable to update status to Checking Status %v", pr.ID, err)
+			continue
+		}
+		if err = TestPatch(pr); err != nil {
 			log.Error("testPatch[%d]: %v", pr.ID, err)
 			continue
 		}
