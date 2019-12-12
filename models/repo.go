@@ -2475,7 +2475,7 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 	for _, result := range results {
 		select {
 		case <-ctx.Done():
-			log.Warn("Aborting due to shutdown")
+			log.Warn("CheckRepoStats: Aborting due to shutdown")
 			return
 		default:
 		}
@@ -2527,7 +2527,7 @@ func CheckRepoStats(ctx context.Context) {
 	for i := range checkers {
 		select {
 		case <-ctx.Done():
-			log.Warn("Aborting due to shutdown")
+			log.Warn("CheckRepoStats: Aborting due to shutdown")
 			return
 		default:
 			repoStatsCheck(ctx, checkers[i])
@@ -2543,7 +2543,7 @@ func CheckRepoStats(ctx context.Context) {
 		for _, result := range results {
 			select {
 			case <-ctx.Done():
-				log.Warn("Aborting due to shutdown")
+				log.Warn("CheckRepoStats: Aborting due to shutdown")
 				return
 			default:
 			}
@@ -2566,7 +2566,7 @@ func CheckRepoStats(ctx context.Context) {
 		for _, result := range results {
 			select {
 			case <-ctx.Done():
-				log.Warn("Aborting due to shutdown")
+				log.Warn("CheckRepoStats: Aborting due to shutdown")
 				return
 			default:
 			}
@@ -2589,7 +2589,7 @@ func CheckRepoStats(ctx context.Context) {
 		for _, result := range results {
 			select {
 			case <-ctx.Done():
-				log.Warn("Aborting due to shutdown")
+				log.Warn("CheckRepoStats: Aborting due to shutdown")
 				return
 			default:
 			}
