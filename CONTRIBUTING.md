@@ -278,7 +278,12 @@ they served:
 * 2019-01-01 ~ 2019-12-31
   * [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
   * [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
-  * [Matti Ranta](https://github.com/techknowlogick) <matti@mdranta.net>
+  * [Matti Ranta](https://github.com/techknowlogick) <techknowlogick@gitea.io>
+
+* 2020-01-01 ~ 2020-12-31
+  * [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
+  * [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) <lauris@nix.lv>
+  * [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
 
 ## Versions
 

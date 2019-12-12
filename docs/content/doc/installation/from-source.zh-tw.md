@@ -50,10 +50,10 @@ git checkout v{{< version >}}
 * `sqlite sqlite_unlock_notify`: 使用此標籤來啟用 [SQLite3](https://sqlite.org/) 資料庫，建議只有少數人時才使用此模式。
 * `pam`: 使用此標籤來啟用 PAM (Linux Pluggable Authentication Modules) 認證，對於系統使用者來說，此方式最方便了。
 
-現在您可以開始編譯執行檔了，我們建議使用 `bindata` 編譯選項，使用 `bindata` 選項前，您必須執行 `generate` 任務將所有資源都一起編譯進去，否則相關資源都不會被編譯進執行檔:
+現在您可以開始編譯執行檔了，我們建議使用 `bindata` 編譯選項:
 
 ```
-TAGS="bindata" make generate build
+TAGS="bindata" make build
 ```
 
 **注意**: 因為使用了套件管理工具，我們建議 Go 環境版本為 1.6 或者是更高，這樣不用在 Go 1.5 版本設定全域變數 `GO15VENDOREXPERIMENT`。
