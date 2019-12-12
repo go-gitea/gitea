@@ -3972,6 +3972,59 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/{index}/stopwatch/delete": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Delete an issue's existing stopwatch.",
+        "operationId": "issueDeleteStopWatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue to stop the stopwatch on",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "description": "Not repo writer, user does not have rights to toggle stopwatch"
+          },
+          "404": {
+            "description": "Issue not found"
+          },
+          "409": {
+            "description": "Cannot cancel a non existent stopwatch"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issues/{index}/stopwatch/start": {
       "post": {
         "consumes": [
@@ -4037,7 +4090,7 @@
           "issue"
         ],
         "summary": "Stop an issue's existing stopwatch.",
-        "operationId": "issueStopWatch",
+        "operationId": "issueStopStopWatch",
         "parameters": [
           {
             "type": "string",
@@ -7170,6 +7223,26 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/user/stopwatches": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get list of all existing stopwatches",
+        "operationId": "userGetStopWatches",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StopWatchList"
           }
         }
       }
@@ -10808,6 +10881,23 @@
       "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "StopWatch": {
+      "description": "StopWatch represent a running stopwatch",
+      "type": "object",
+      "properties": {
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "issue_index": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "IssueIndex"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Tag": {
       "description": "Tag represents a repository tag",
       "type": "object",
@@ -11550,6 +11640,21 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Status"
+        }
+      }
+    },
+    "StopWatch": {
+      "description": "StopWatch",
+      "schema": {
+        "$ref": "#/definitions/StopWatch"
+      }
+    },
+    "StopWatchList": {
+      "description": "StopWatchList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/StopWatch"
         }
       }
     },
