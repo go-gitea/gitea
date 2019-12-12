@@ -1992,13 +1992,13 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	releaseAttachments := make([]string, 0, 20)
-	attachments := make([]*Attachment, 0, cap(releaseAttachments))
+	attachments := make([]*Attachment, 0, 20)
 	if err = sess.Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
 		Where("`release`.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
 		return err
 	}
+	releaseAttachments := make([]string, 0, len(attachments))
 	for i := 0; i < len(attachments); i++ {
 		releaseAttachments = append(releaseAttachments, attachments[i].LocalPath())
 	}
@@ -2053,13 +2053,13 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
-	attachmentPaths := make([]string, 0, 20)
 	attachments = attachments[:0]
 	if err = sess.Join("INNER", "issue", "issue.id = attachment.issue_id").
 		Where("issue.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
 		return err
 	}
+	attachmentPaths := make([]string, 0, len(attachments))
 	for j := range attachments {
 		attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
 	}
