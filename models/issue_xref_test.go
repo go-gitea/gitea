@@ -94,7 +94,8 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 	i1 := testCreateIssue(t, 1, 2, "title1", "content1", false)
 	i2 := testCreateIssue(t, 1, 2, "title2", "content2", false)
 	i3 := testCreateIssue(t, 1, 2, "title3", "content3", false)
-	assert.NoError(t, i3.ChangeStatus(d, true))
+	_, err := i3.ChangeStatus(d, true)
+	assert.NoError(t, err)
 
 	pr := testCreatePR(t, 1, 2, "titlepr", fmt.Sprintf("closes #%d", i1.Index))
 	rp := AssertExistsAndLoadBean(t, &Comment{IssueID: i1.ID, RefIssueID: pr.Issue.ID, RefCommentID: 0}).(*Comment)
