@@ -48,7 +48,7 @@ func (q *UniqueQueue) Exist(id interface{}) bool {
 // AddFunc adds new instance to the queue with a custom runnable function,
 // the queue is blocked until the function exits.
 func (q *UniqueQueue) AddFunc(id interface{}, fn func()) {
-	q.AddCtxFunc(nil, id, fn)
+	q.AddCtxFunc(context.Background(), id, fn)
 }
 
 // AddCtxFunc adds new instance to the queue with a custom runnable function,
@@ -66,11 +66,6 @@ func (q *UniqueQueue) AddCtxFunc(ctx context.Context, id interface{}, fn func())
 		fn()
 	}
 	q.table.lock.Unlock()
-	if ctx == nil {
-		q.queue <- idStr
-		return true
-
-	}
 	select {
 	case <-ctx.Done():
 		return false
