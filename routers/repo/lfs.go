@@ -210,10 +210,7 @@ func LFSLockFile(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
 		return
 	}
-	lockPath = cleanPath(lockPath)
-	if lockPath[0] == '/' {
-		lockPath = lockPath[1:]
-	}
+	lockPath = path.Clean("/" + lockPath)[1:]
 	if len(lockPath) == 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_locking_path", originalPath))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
