@@ -49,7 +49,7 @@ func (l *LFSLock) AfterLoad(session *xorm.Session) {
 }
 
 func cleanPath(p string) string {
-	return path.Clean(p)
+	return path.Clean("/" + p)[1:]
 }
 
 // APIFormat convert a Release to lfs.LFSLock
