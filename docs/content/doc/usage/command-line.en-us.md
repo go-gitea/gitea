@@ -46,7 +46,7 @@ Starts the server:
     - `gitea web --port 80`
     - `gitea web --config /etc/gitea.ini --pid /var/run/gitea.pid`
 - Notes:
-    - Gitea should not be run as root. To bind to a port below 1000, you can use setcap on
+    - Gitea should not be run as root. To bind to a port below 1024, you can use setcap on
       Linux: `sudo setcap 'cap_net_bind_service=+ep' /path/to/gitea`. This will need to be
       redone every time you update Gitea.
 
