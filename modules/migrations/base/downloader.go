@@ -39,9 +39,8 @@ var (
 // RetryDownloader retry the downloads
 type RetryDownloader struct {
 	Downloader
-	RetryTimes int       // the total execute times
-	RetryDelay int       // time to delay seconds
-	startTime  time.Time // start time
+	RetryTimes int // the total execute times
+	RetryDelay int // time to delay seconds
 }
 
 // NewRetryDownloader creates a retry downloader
@@ -50,7 +49,6 @@ func NewRetryDownloader(downloader Downloader, retryTimes, retryDelay int) *Retr
 		Downloader: downloader,
 		RetryTimes: retryTimes,
 		RetryDelay: retryDelay,
-		startTime:  time.Now(),
 	}
 }
 
