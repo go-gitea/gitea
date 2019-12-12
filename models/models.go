@@ -254,3 +254,28 @@ func MaxBatchInsertSize(bean interface{}) int {
 func Count(bean interface{}) (int64, error) {
 	return x.Count(bean)
 }
+
+// IsTableNotEmpty returns true if table has at least one record
+func IsTableNotEmpty(tableName string) (bool, error) {
+	return x.Table(tableName).Exist()
+}
+
+// DeleteAllRecords will delete all the records of this table
+func DeleteAllRecords(tableName string) error {
+	_, err := x.Exec(fmt.Sprintf("DELETE FROM %s", tableName))
+	return err
+}
+
+// GetMaxID will return max id of the table
+func GetMaxID(beanOrTableName interface{}) (maxID int64, err error) {
+	_, err = x.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
+	return
+}
+
+// FindByMaxID filled results as the condition from database
+func FindByMaxID(maxID int64, limit int, results interface{}) error {
+	return x.Where("id <= ?", maxID).
+		OrderBy("id DESC").
+		Limit(limit).
+		Find(results)
+}

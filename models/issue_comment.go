@@ -495,7 +495,7 @@ func (c *Comment) CodeCommentURL() string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
 }
 
-func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
+func createCommentWithNoAction(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
 	var LabelID int64
 	if opts.Label != nil {
 		LabelID = opts.Label.ID
@@ -539,12 +539,6 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		return nil, err
 	}
 
-	if !opts.NoAction {
-		if err = sendCreateCommentAction(e, opts, comment); err != nil {
-			return nil, err
-		}
-	}
-
 	if err = comment.addCrossReferences(e, opts.Doer, false); err != nil {
 		return nil, err
 	}
@@ -573,16 +567,9 @@ func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Co
 		}
 
 		// Check attachments
-		attachments := make([]*Attachment, 0, len(opts.Attachments))
-		for _, uuid := range opts.Attachments {
-			attach, err := getAttachmentByUUID(e, uuid)
-			if err != nil {
-				if IsErrAttachmentNotExist(err) {
-					continue
-				}
-				return fmt.Errorf("getAttachmentByUUID [%s]: %v", uuid, err)
-			}
-			attachments = append(attachments, attach)
+		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
+		if err != nil {
+			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", opts.Attachments, err)
 		}
 
 		for i := range attachments {
@@ -651,19 +638,7 @@ func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, commen
 	return nil
 }
 
-func createMilestoneComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldMilestoneID, milestoneID int64) (*Comment, error) {
-	return createComment(e, &CreateCommentOptions{
-		Type:           CommentTypeMilestone,
-		Doer:           doer,
-		Repo:           repo,
-		Issue:          issue,
-		OldMilestoneID: oldMilestoneID,
-		MilestoneID:    milestoneID,
-	})
-}
-
 func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
-
 	var content string
 	var commentType CommentType
 
@@ -685,13 +660,18 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 		return nil, err
 	}
 
-	return createComment(e, &CreateCommentOptions{
+	var opts = &CreateCommentOptions{
 		Type:    commentType,
 		Doer:    doer,
 		Repo:    issue.Repo,
 		Issue:   issue,
 		Content: content,
-	})
+	}
+	comment, err := createCommentWithNoAction(e, opts)
+	if err != nil {
+		return nil, err
+	}
+	return comment, nil
 }
 
 // Creates issue dependency comment
@@ -705,28 +685,25 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 	}
 
 	// Make two comments, one in each issue
-	_, err = createComment(e, &CreateCommentOptions{
+	var opts = &CreateCommentOptions{
 		Type:             cType,
 		Doer:             doer,
 		Repo:             issue.Repo,
 		Issue:            issue,
 		DependentIssueID: dependentIssue.ID,
-	})
-	if err != nil {
+	}
+	if _, err = createCommentWithNoAction(e, opts); err != nil {
 		return
 	}
 
-	_, err = createComment(e, &CreateCommentOptions{
+	opts = &CreateCommentOptions{
 		Type:             cType,
 		Doer:             doer,
 		Repo:             issue.Repo,
 		Issue:            dependentIssue,
 		DependentIssueID: issue.ID,
-	})
-	if err != nil {
-		return
 	}
-
+	_, err = createCommentWithNoAction(e, opts)
 	return
 }
 
@@ -758,7 +735,6 @@ type CreateCommentOptions struct {
 	RefCommentID     int64
 	RefAction        references.XRefAction
 	RefIsPull        bool
-	NoAction         bool
 }
 
 // CreateComment creates comment of issue or commit.
@@ -769,7 +745,31 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 		return nil, err
 	}
 
-	comment, err = createComment(sess, opts)
+	comment, err = createCommentWithNoAction(sess, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = sendCreateCommentAction(sess, opts, comment); err != nil {
+		return nil, err
+	}
+
+	if err = sess.Commit(); err != nil {
+		return nil, err
+	}
+
+	return comment, nil
+}
+
+// CreateCommentWithNoAction creates comment of issue or commit with no action created
+func CreateCommentWithNoAction(opts *CreateCommentOptions) (comment *Comment, err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	comment, err = createCommentWithNoAction(sess, opts)
 	if err != nil {
 		return nil, err
 	}

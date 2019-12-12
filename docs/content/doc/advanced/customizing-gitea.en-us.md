@@ -161,6 +161,15 @@ Locales may change between versions, so keeping track of your customized locales
 
 To add a custom Readme, add a markdown formatted file (without an `.md` extension) to `custom/options/readme`
 
+### Reactions
+
+To change reaction emoji's you can set allowed reactions at app.ini
+```
+[ui]
+REACTIONS = +1, -1, laugh, confused, heart, hooray, eyes
+```
+A full list of supported emoji's is at [emoji list](https://gitea.com/gitea/gitea.com/issues/8)
+
 ## Customizing the look of Gitea
 
 As of version 1.6.0 Gitea has built-in themes. The two built-in themes are, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` to another one of the available options.  

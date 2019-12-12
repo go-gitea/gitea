@@ -424,7 +424,7 @@
   is_admin: false
   avatar: avatar26
   avatar_email: org26@example.com
-  num_repos: 1
+  num_repos: 4
   num_members: 0
   num_teams: 1
   repo_admin_change_team_access: true

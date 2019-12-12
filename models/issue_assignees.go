@@ -131,15 +131,16 @@ func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID in
 		return false, nil, fmt.Errorf("loadRepo: %v", err)
 	}
 
-	// Comment
-	comment, err = createComment(sess, &CreateCommentOptions{
+	var opts = &CreateCommentOptions{
 		Type:            CommentTypeAssignees,
 		Doer:            doer,
 		Repo:            issue.Repo,
 		Issue:           issue,
 		RemovedAssignee: removed,
 		AssigneeID:      assigneeID,
-	})
+	}
+	// Comment
+	comment, err = createCommentWithNoAction(sess, opts)
 	if err != nil {
 		return false, nil, fmt.Errorf("createComment: %v", err)
 	}

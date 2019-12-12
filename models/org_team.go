@@ -914,7 +914,11 @@ func RemoveTeamMember(team *Team, userID int64) error {
 
 // IsUserInTeams returns if a user in some teams
 func IsUserInTeams(userID int64, teamIDs []int64) (bool, error) {
-	return x.Where("uid=?", userID).In("team_id", teamIDs).Exist(new(TeamUser))
+	return isUserInTeams(x, userID, teamIDs)
+}
+
+func isUserInTeams(e Engine, userID int64, teamIDs []int64) (bool, error) {
+	return e.Where("uid=?", userID).In("team_id", teamIDs).Exist(new(TeamUser))
 }
 
 // UsersInTeamsCount counts the number of users which are in userIDs and teamIDs
