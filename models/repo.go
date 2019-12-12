@@ -2282,11 +2282,6 @@ func DeleteOldRepositoryArchives(ctx context.Context) {
 func deleteOldRepositoryArchives(ctx context.Context, idx int, bean interface{}) error {
 	repo := bean.(*Repository)
 	basePath := filepath.Join(repo.RepoPath(), "archives")
-	select {
-	case <-ctx.Done():
-		return fmt.Errorf("Aborted due to shutdown:\nin delete of old repository archives in %v ", repo)
-	default:
-	}
 
 	for _, ty := range []string{"zip", "targz"} {
 		select {
