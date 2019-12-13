@@ -62,7 +62,7 @@ func TestCreateAnonymousAttachment(t *testing.T) {
 	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusFound)
 }
 
-func TestCreateIssueAttachement(t *testing.T) {
+func TestCreateIssueAttachment(t *testing.T) {
 	prepareTestEnv(t)
 	const repoURL = "user2/repo1"
 	session := loginUser(t, "user2")
@@ -77,7 +77,7 @@ func TestCreateIssueAttachement(t *testing.T) {
 
 	postData := map[string]string{
 		"_csrf":    htmlDoc.GetCSRF(),
-		"title":    "New Issue With Attachement",
+		"title":    "New Issue With Attachment",
 		"content":  "some content",
 		"files[0]": uuid,
 	}
@@ -86,12 +86,12 @@ func TestCreateIssueAttachement(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusFound)
 	test.RedirectURL(resp) // check that redirect URL exists
 
-	//Validate that attachement is available
+	//Validate that attachment is available
 	req = NewRequest(t, "GET", "/attachments/"+uuid)
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
-func TestGetAttachement(t *testing.T) {
+func TestGetAttachment(t *testing.T) {
 	prepareTestEnv(t)
 	adminSession := loginUser(t, "user1")
 	user2Session := loginUser(t, "user2")
