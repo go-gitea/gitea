@@ -107,3 +107,8 @@ func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *mod
 func (r *indexerNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
+
+func (r *indexerNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+	issue_indexer.UpdateRepoIndexer(repo)
+	models.UpdateRepoIndexer(repo)
+}
