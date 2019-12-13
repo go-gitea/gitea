@@ -495,6 +495,53 @@ func RegisterRoutes(m *macaron.Macaron) {
 				return
 			}
 
+			if attach.IssueID != 0 {
+				iss, err := models.GetIssueByID(attach.IssueID)
+				if err != nil {
+					ctx.ServerError("GetAttachmentByUUID.GetIssueByID", err)
+					return
+				}
+				repo, err := models.GetRepositoryByID(iss.RepoID)
+				if err != nil {
+					ctx.ServerError("GetAttachmentByUUID.GetRepositoryByID", err)
+					return
+				}
+				if repo.IsPrivate {
+					if !ctx.IsSigned {
+						ctx.Error(http.StatusNotFound)
+						return
+					}
+					if !repo.CheckUnitUser(ctx.User.ID, ctx.User.IsAdmin, models.UnitTypeIssues) {
+						ctx.Error(http.StatusForbidden)
+						return
+					}
+				}
+			} else if attach.ReleaseID != 0 {
+				rel, err := models.GetReleaseByID(attach.ReleaseID)
+				if err != nil {
+					ctx.ServerError("GetAttachmentByUUID.GetReleaseByID", err)
+					return
+				}
+				repo, err := models.GetRepositoryByID(rel.RepoID)
+				if err != nil {
+					ctx.ServerError("GetAttachmentByUUID.GetRepositoryByID", err)
+					return
+				}
+				if repo.IsPrivate {
+					if !ctx.IsSigned {
+						ctx.Error(http.StatusNotFound)
+						return
+					}
+					if !repo.CheckUnitUser(ctx.User.ID, ctx.User.IsAdmin, models.UnitTypeReleases) {
+						ctx.Error(http.StatusForbidden)
+						return
+					}
+				}
+			} else {
+				ctx.Error(http.StatusNotFound)
+			}
+
+			//If we have matched and access to release or issue
 			fr, err := os.Open(attach.LocalPath())
 			if err != nil {
 				ctx.ServerError("Open", err)

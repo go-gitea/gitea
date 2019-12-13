@@ -93,19 +93,28 @@ func TestCreateIssueAttachement(t *testing.T) {
 
 func TestGetAttachement(t *testing.T) {
 	prepareTestEnv(t)
-	session := loginUser(t, "user2")
+	adminSession := loginUser(t, "user1")
+	user2Session := loginUser(t, "user2")
+	user8Session := loginUser(t, "user8")
+	emptySession := emptyTestSession(t)
 	testCases := []struct {
 		name       string
 		uuid       string
 		createFile bool
+		session    *TestSession
 		want       int
 	}{
-		{"LinkedIssueUUID", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", true, http.StatusOK},
-		{"LinkedCommentUUID", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", true, http.StatusOK},
-		{"linked_release_uuid", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19", true, http.StatusOK},
-		{"NotExistingUUID", "not-existing-uuid", false, http.StatusNotFound},
-		{"FileMissing", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18", false, http.StatusInternalServerError},
-		{"NotLinked", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20", true, http.StatusOK},
+		{"LinkedIssueUUID", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", true, user2Session, http.StatusOK},
+		{"LinkedCommentUUID", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", true, user2Session, http.StatusOK},
+		{"linked_release_uuid", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19", true, user2Session, http.StatusOK},
+		{"NotExistingUUID", "not-existing-uuid", false, user2Session, http.StatusNotFound},
+		{"FileMissing", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18", false, user2Session, http.StatusInternalServerError},
+		{"NotLinked", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20", true, user2Session, http.StatusNotFound},
+		{"PublicByNonLogged", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", true, emptySession, http.StatusOK},
+		{"PrivateByNonLogged", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", true, emptySession, http.StatusNotFound},
+		{"PrivateAccessibleByAdmin", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", true, adminSession, http.StatusOK},
+		{"PrivateAccessibleByUser", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", true, user2Session, http.StatusOK}, //TODO
+		{"NotAccessibleByUser", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", true, user8Session, http.StatusForbidden},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -119,7 +128,7 @@ func TestGetAttachement(t *testing.T) {
 			}
 			//Actual test
 			req := NewRequest(t, "GET", "/attachments/"+tc.uuid)
-			session.MakeRequest(t, req, tc.want)
+			tc.session.MakeRequest(t, req, tc.want)
 		})
 	}
 }
