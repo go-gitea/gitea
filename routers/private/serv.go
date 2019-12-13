@@ -278,7 +278,17 @@ func ServCommand(ctx *macaron.Context) {
 
 	// We already know we aren't using a deploy key
 	if !repoExist {
-		if user.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
+		owner, err := models.GetUserByName(ownerName)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"results": results,
+				"type":    "InternalServerError",
+				"err":     fmt.Sprintf("Unable to get owner: %s %v", results.OwnerName, err),
+			})
+			return
+		}
+
+		if owner.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
 			ctx.JSON(http.StatusForbidden, map[string]interface{}{
 				"results": results,
 				"type":    "ErrForbidden",
@@ -286,21 +296,11 @@ func ServCommand(ctx *macaron.Context) {
 			})
 			return
 		}
-		if !user.IsOrganization() && !setting.Repository.EnablePushCreateUser {
+		if !owner.IsOrganization() && !setting.Repository.EnablePushCreateUser {
 			ctx.JSON(http.StatusForbidden, map[string]interface{}{
 				"results": results,
 				"type":    "ErrForbidden",
 				"err":     "Push to create is not enabled for users.",
-			})
-			return
-		}
-
-		owner, err := models.GetUserByName(ownerName)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"results": results,
-				"type":    "InternalServerError",
-				"err":     fmt.Sprintf("Unable to get owner: %s %v", results.OwnerName, err),
 			})
 			return
 		}

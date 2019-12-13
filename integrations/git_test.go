@@ -458,5 +458,11 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		setting.Repository.EnablePushCreateUser = true
 		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
 		assert.NoError(t, err)
+
+		// Fetch repo from database
+		repo, err := models.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
+		assert.NoError(t, err)
+		assert.False(t, repo.IsEmpty)
+		assert.True(t, repo.IsPrivate)
 	}
 }
