@@ -161,19 +161,20 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		}
 
 		relBatchSize := uploader.MaxBatchInsertSize("release")
-		syncTags := false
 		for len(releases) > 0 {
-			if len(releases) <= relBatchSize {
-				if len(releases) < relBatchSize {
-					relBatchSize = len(releases)
-				}
-				syncTags = true
+			if len(releases) < relBatchSize {
+				relBatchSize = len(releases)
 			}
 
-			if err := uploader.CreateReleases(syncTags, releases[:relBatchSize]...); err != nil {
+			if err := uploader.CreateReleases(releases[:relBatchSize]...); err != nil {
 				return err
 			}
 			releases = releases[relBatchSize:]
+		}
+
+		// Once all releases (if any) are inserted, sync any remaining non-release tags
+		if err := uploader.SyncTags(); err != nil {
+			return err
 		}
 	}
 

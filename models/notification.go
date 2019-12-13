@@ -446,7 +446,7 @@ func (nl NotificationList) LoadComments() error {
 	}
 
 	for _, notification := range nl {
-		if notification.CommentID > 0 && notification.Comment == nil {
+		if notification.CommentID > 0 && notification.Comment == nil && comments[notification.CommentID] != nil {
 			notification.Comment = comments[notification.CommentID]
 			notification.Comment.Issue = notification.Issue
 		}
