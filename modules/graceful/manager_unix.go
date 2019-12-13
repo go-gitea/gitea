@@ -45,11 +45,20 @@ func newGracefulManager(ctx context.Context) *Manager {
 }
 
 func (g *Manager) start(ctx context.Context) {
+	// Make channels
+	g.terminate = make(chan struct{})
+	g.shutdown = make(chan struct{})
+	g.hammer = make(chan struct{})
+	g.done = make(chan struct{})
+
+	// Set the running state & handle signals
 	g.setState(stateRunning)
 	go g.handleSignals(ctx)
-	c := make(chan struct{})
+
+	// Handle clean up of unused provided listeners	and delayed start-up
+	startupDone := make(chan struct{})
 	go func() {
-		defer close(c)
+		defer close(startupDone)
 		// Wait till we're done getting all of the listeners and then close
 		// the unused ones
 		g.createServerWaitGroup.Wait()
@@ -60,7 +69,7 @@ func (g *Manager) start(ctx context.Context) {
 	if setting.StartupTimeout > 0 {
 		go func() {
 			select {
-			case <-c:
+			case <-startupDone:
 				return
 			case <-g.IsShutdown():
 				func() {

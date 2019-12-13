@@ -156,9 +156,6 @@ func (g *Manager) doShutdown() {
 		return
 	}
 	g.lock.Lock()
-	if g.shutdown == nil {
-		g.shutdown = make(chan struct{})
-	}
 	close(g.shutdown)
 	g.lock.Unlock()
 
@@ -184,9 +181,6 @@ func (g *Manager) doShutdown() {
 func (g *Manager) doHammerTime(d time.Duration) {
 	time.Sleep(d)
 	g.lock.Lock()
-	if g.hammer == nil {
-		g.hammer = make(chan struct{})
-	}
 	select {
 	case <-g.hammer:
 	default:
@@ -201,10 +195,12 @@ func (g *Manager) doTerminate() {
 		return
 	}
 	g.lock.Lock()
-	if g.terminate == nil {
-		g.terminate = make(chan struct{})
+	select {
+	case <-g.terminate:
+	default:
+		log.Warn("Terminating")
+		close(g.terminate)
 	}
-	close(g.terminate)
 	g.lock.Unlock()
 }
 
@@ -217,15 +213,6 @@ func (g *Manager) IsChild() bool {
 // The order of closure is IsShutdown, IsHammer (potentially), IsTerminate
 func (g *Manager) IsShutdown() <-chan struct{} {
 	g.lock.RLock()
-	if g.shutdown == nil {
-		g.lock.RUnlock()
-		g.lock.Lock()
-		if g.shutdown == nil {
-			g.shutdown = make(chan struct{})
-		}
-		defer g.lock.Unlock()
-		return g.shutdown
-	}
 	defer g.lock.RUnlock()
 	return g.shutdown
 }
@@ -236,15 +223,6 @@ func (g *Manager) IsShutdown() <-chan struct{} {
 // if not shutdown already
 func (g *Manager) IsHammer() <-chan struct{} {
 	g.lock.RLock()
-	if g.hammer == nil {
-		g.lock.RUnlock()
-		g.lock.Lock()
-		if g.hammer == nil {
-			g.hammer = make(chan struct{})
-		}
-		defer g.lock.Unlock()
-		return g.hammer
-	}
 	defer g.lock.RUnlock()
 	return g.hammer
 }
@@ -254,15 +232,6 @@ func (g *Manager) IsHammer() <-chan struct{} {
 // IsTerminate will only close once all running servers have stopped
 func (g *Manager) IsTerminate() <-chan struct{} {
 	g.lock.RLock()
-	if g.terminate == nil {
-		g.lock.RUnlock()
-		g.lock.Lock()
-		if g.terminate == nil {
-			g.terminate = make(chan struct{})
-		}
-		defer g.lock.Unlock()
-		return g.terminate
-	}
 	defer g.lock.RUnlock()
 	return g.terminate
 }
@@ -322,15 +291,6 @@ func (g *Manager) InformCleanup() {
 // Done allows the manager to be viewed as a context.Context, it returns a channel that is closed when the server is finished terminating
 func (g *Manager) Done() <-chan struct{} {
 	g.lock.RLock()
-	if g.done == nil {
-		g.lock.RUnlock()
-		g.lock.Lock()
-		if g.done == nil {
-			g.done = make(chan struct{})
-		}
-		defer g.lock.Unlock()
-		return g.done
-	}
 	defer g.lock.RUnlock()
 	return g.done
 }

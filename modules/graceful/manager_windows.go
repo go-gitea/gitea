@@ -57,10 +57,19 @@ func newGracefulManager(ctx context.Context) *Manager {
 }
 
 func (g *Manager) start() {
+	// Make channels
+	g.terminate = make(chan struct{})
+	g.shutdown = make(chan struct{})
+	g.hammer = make(chan struct{})
+	g.done = make(chan struct{})
+
+	// Set the running state
 	g.setState(stateRunning)
 	if skip, _ := strconv.ParseBool(os.Getenv("SKIP_MINWINSVC")); skip {
 		return
 	}
+
+	// Make SVC process
 	run := svc.Run
 	isInteractive, err := svc.IsAnInteractiveSession()
 	if err != nil {
