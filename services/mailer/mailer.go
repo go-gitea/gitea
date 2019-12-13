@@ -295,9 +295,18 @@ func NewContext() {
 	go processMailQueue()
 }
 
-// SendAsync send mail asynchronous
+// SendAsync send mail asynchronously
 func SendAsync(msg *Message) {
 	go func() {
 		mailQueue <- msg
+	}()
+}
+
+// SendAsyncs send mails asynchronously
+func SendAsyncs(msgs []*Message) {
+	go func() {
+		for _, msg := range msgs {
+			mailQueue <- msg
+		}
 	}()
 }

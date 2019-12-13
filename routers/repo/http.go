@@ -8,6 +8,7 @@ package repo
 import (
 	"bytes"
 	"compress/gzip"
+	gocontext "context"
 	"fmt"
 	"net/http"
 	"os"
@@ -19,11 +20,12 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -169,7 +171,7 @@ func HTTP(ctx *context.Context) {
 				// Assume password is token
 				authToken = authPasswd
 			}
-			uid := auth.CheckOAuthAccessToken(authToken)
+			uid := sso.CheckOAuthAccessToken(authToken)
 			if uid != 0 {
 				ctx.Data["IsApiToken"] = true
 
@@ -277,11 +279,56 @@ func HTTP(ctx *context.Context) {
 		}
 	}
 
-	HTTPBackend(ctx, &serviceConfig{
+	w := ctx.Resp
+	r := ctx.Req.Request
+	cfg := &serviceConfig{
 		UploadPack:  true,
 		ReceivePack: true,
 		Env:         environ,
-	})(ctx.Resp, ctx.Req.Request)
+	}
+
+	for _, route := range routes {
+		r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
+		if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
+			if setting.Repository.DisableHTTPGit {
+				w.WriteHeader(http.StatusForbidden)
+				_, err := w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
+				if err != nil {
+					log.Error(err.Error())
+				}
+				return
+			}
+			if route.method != r.Method {
+				if r.Proto == "HTTP/1.1" {
+					w.WriteHeader(http.StatusMethodNotAllowed)
+					_, err := w.Write([]byte("Method Not Allowed"))
+					if err != nil {
+						log.Error(err.Error())
+					}
+				} else {
+					w.WriteHeader(http.StatusBadRequest)
+					_, err := w.Write([]byte("Bad Request"))
+					if err != nil {
+						log.Error(err.Error())
+					}
+				}
+				return
+			}
+
+			file := strings.Replace(r.URL.Path, m[1]+"/", "", 1)
+			dir, err := getGitRepoPath(m[1])
+			if err != nil {
+				log.Error(err.Error())
+				ctx.NotFound("Smart Git HTTP", err)
+				return
+			}
+
+			route.handler(serviceHandler{cfg, w, r, dir, file, cfg.Env})
+			return
+		}
+	}
+
+	ctx.NotFound("Smart Git HTTP", nil)
 }
 
 type serviceConfig struct {
@@ -418,8 +465,10 @@ func serviceRPC(h serviceHandler, service string) {
 	// set this for allow pre-receive and post-receive execute
 	h.environ = append(h.environ, "SSH_ORIGINAL_COMMAND="+service)
 
+	ctx, cancel := gocontext.WithCancel(git.DefaultContext)
+	defer cancel()
 	var stderr bytes.Buffer
-	cmd := exec.Command(git.GitExecutable, service, "--stateless-rpc", h.dir)
+	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
 	cmd.Dir = h.dir
 	if service == "receive-pack" {
 		cmd.Env = append(os.Environ(), h.environ...)
@@ -427,6 +476,10 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Stdout = h.w
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
+
+	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
+	defer process.GetManager().Remove(pid)
+
 	if err := cmd.Run(); err != nil {
 		log.Error("Fail to serve RPC(%s): %v - %s", service, err, stderr.String())
 		return
@@ -521,52 +574,4 @@ func getGitRepoPath(subdir string) (string, error) {
 	}
 
 	return fpath, nil
-}
-
-// HTTPBackend middleware for git smart HTTP protocol
-func HTTPBackend(ctx *context.Context, cfg *serviceConfig) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		for _, route := range routes {
-			r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
-			if m := route.reg.FindStringSubmatch(r.URL.Path); m != nil {
-				if setting.Repository.DisableHTTPGit {
-					w.WriteHeader(http.StatusForbidden)
-					_, err := w.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
-					if err != nil {
-						log.Error(err.Error())
-					}
-					return
-				}
-				if route.method != r.Method {
-					if r.Proto == "HTTP/1.1" {
-						w.WriteHeader(http.StatusMethodNotAllowed)
-						_, err := w.Write([]byte("Method Not Allowed"))
-						if err != nil {
-							log.Error(err.Error())
-						}
-					} else {
-						w.WriteHeader(http.StatusBadRequest)
-						_, err := w.Write([]byte("Bad Request"))
-						if err != nil {
-							log.Error(err.Error())
-						}
-					}
-					return
-				}
-
-				file := strings.Replace(r.URL.Path, m[1]+"/", "", 1)
-				dir, err := getGitRepoPath(m[1])
-				if err != nil {
-					log.Error(err.Error())
-					ctx.NotFound("HTTPBackend", err)
-					return
-				}
-
-				route.handler(serviceHandler{cfg, w, r, dir, file, cfg.Env})
-				return
-			}
-		}
-
-		ctx.NotFound("HTTPBackend", nil)
-	}
 }

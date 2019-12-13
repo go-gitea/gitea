@@ -133,6 +133,11 @@ func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
 	return attach, nil
 }
 
+// GetAttachmentsByUUIDs returns attachment by given UUID list.
+func GetAttachmentsByUUIDs(uuids []string) ([]*Attachment, error) {
+	return getAttachmentsByUUIDs(x, uuids)
+}
+
 func getAttachmentsByUUIDs(e Engine, uuids []string) ([]*Attachment, error) {
 	if len(uuids) == 0 {
 		return []*Attachment{}, nil

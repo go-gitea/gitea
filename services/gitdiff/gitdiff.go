@@ -8,11 +8,13 @@ package gitdiff
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"html"
 	"html/template"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"regexp"
@@ -56,14 +58,41 @@ const (
 	DiffFileRename
 )
 
+// DiffLineExpandDirection represents the DiffLineSection expand direction
+type DiffLineExpandDirection uint8
+
+// DiffLineExpandDirection possible values.
+const (
+	DiffLineExpandNone DiffLineExpandDirection = iota + 1
+	DiffLineExpandSingle
+	DiffLineExpandUpDown
+	DiffLineExpandUp
+	DiffLineExpandDown
+)
+
 // DiffLine represents a line difference in a DiffSection.
 type DiffLine struct {
-	LeftIdx  int
-	RightIdx int
-	Type     DiffLineType
-	Content  string
-	Comments []*models.Comment
+	LeftIdx     int
+	RightIdx    int
+	Type        DiffLineType
+	Content     string
+	Comments    []*models.Comment
+	SectionInfo *DiffLineSectionInfo
 }
+
+// DiffLineSectionInfo represents diff line section meta data
+type DiffLineSectionInfo struct {
+	Path          string
+	LastLeftIdx   int
+	LastRightIdx  int
+	LeftIdx       int
+	RightIdx      int
+	LeftHunkSize  int
+	RightHunkSize int
+}
+
+// BlobExceprtChunkSize represent max lines of excerpt
+const BlobExceprtChunkSize = 20
 
 // GetType returns the type of a DiffLine.
 func (d *DiffLine) GetType() int {
@@ -89,6 +118,71 @@ func (d *DiffLine) GetLineTypeMarker() string {
 		return d.Content[0:1]
 	}
 	return ""
+}
+
+// GetBlobExcerptQuery builds query string to get blob excerpt
+func (d *DiffLine) GetBlobExcerptQuery() string {
+	query := fmt.Sprintf(
+		"last_left=%d&last_right=%d&"+
+			"left=%d&right=%d&"+
+			"left_hunk_size=%d&right_hunk_size=%d&"+
+			"path=%s",
+		d.SectionInfo.LastLeftIdx, d.SectionInfo.LastRightIdx,
+		d.SectionInfo.LeftIdx, d.SectionInfo.RightIdx,
+		d.SectionInfo.LeftHunkSize, d.SectionInfo.RightHunkSize,
+		url.QueryEscape(d.SectionInfo.Path))
+	return query
+}
+
+// GetExpandDirection gets DiffLineExpandDirection
+func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
+	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
+		return DiffLineExpandNone
+	}
+	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
+		return DiffLineExpandUp
+	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > BlobExceprtChunkSize && d.SectionInfo.RightHunkSize > 0 {
+		return DiffLineExpandUpDown
+	} else if d.SectionInfo.LeftHunkSize <= 0 && d.SectionInfo.RightHunkSize <= 0 {
+		return DiffLineExpandDown
+	}
+	return DiffLineExpandSingle
+}
+
+func getDiffLineSectionInfo(curFile *DiffFile, line string, lastLeftIdx, lastRightIdx int) *DiffLineSectionInfo {
+	var (
+		leftLine  int
+		leftHunk  int
+		rightLine int
+		righHunk  int
+	)
+	ss := strings.Split(line, "@@")
+	ranges := strings.Split(ss[1][1:], " ")
+	leftRange := strings.Split(ranges[0], ",")
+	leftLine, _ = com.StrTo(leftRange[0][1:]).Int()
+	if len(leftRange) > 1 {
+		leftHunk, _ = com.StrTo(leftRange[1]).Int()
+	}
+	if len(ranges) > 1 {
+		rightRange := strings.Split(ranges[1], ",")
+		rightLine, _ = com.StrTo(rightRange[0]).Int()
+		if len(rightRange) > 1 {
+			righHunk, _ = com.StrTo(rightRange[1]).Int()
+		}
+	} else {
+		log.Warn("Parse line number failed: %v", line)
+		rightLine = leftLine
+		righHunk = leftHunk
+	}
+	return &DiffLineSectionInfo{
+		Path:          curFile.Name,
+		LastLeftIdx:   lastLeftIdx,
+		LastRightIdx:  lastRightIdx,
+		LeftIdx:       leftLine,
+		RightIdx:      rightLine,
+		LeftHunkSize:  leftHunk,
+		RightHunkSize: righHunk,
+	}
 }
 
 // escape a line's content or return <br> needed for copy/paste purposes
@@ -246,6 +340,53 @@ func (diffFile *DiffFile) GetType() int {
 // GetHighlightClass returns highlight class for a filename.
 func (diffFile *DiffFile) GetHighlightClass() string {
 	return highlight.FileNameToHighlightClass(diffFile.Name)
+}
+
+// GetTailSection creates a fake DiffLineSection if the last section is not the end of the file
+func (diffFile *DiffFile) GetTailSection(gitRepo *git.Repository, leftCommitID, rightCommitID string) *DiffSection {
+	if diffFile.Type != DiffFileChange || diffFile.IsBin || diffFile.IsLFSFile {
+		return nil
+	}
+	leftCommit, err := gitRepo.GetCommit(leftCommitID)
+	if err != nil {
+		return nil
+	}
+	rightCommit, err := gitRepo.GetCommit(rightCommitID)
+	if err != nil {
+		return nil
+	}
+	lastSection := diffFile.Sections[len(diffFile.Sections)-1]
+	lastLine := lastSection.Lines[len(lastSection.Lines)-1]
+	leftLineCount := getCommitFileLineCount(leftCommit, diffFile.Name)
+	rightLineCount := getCommitFileLineCount(rightCommit, diffFile.Name)
+	if leftLineCount <= lastLine.LeftIdx || rightLineCount <= lastLine.RightIdx {
+		return nil
+	}
+	tailDiffLine := &DiffLine{
+		Type:    DiffLineSection,
+		Content: " ",
+		SectionInfo: &DiffLineSectionInfo{
+			Path:         diffFile.Name,
+			LastLeftIdx:  lastLine.LeftIdx,
+			LastRightIdx: lastLine.RightIdx,
+			LeftIdx:      leftLineCount,
+			RightIdx:     rightLineCount,
+		}}
+	tailSection := &DiffSection{Lines: []*DiffLine{tailDiffLine}}
+	return tailSection
+
+}
+
+func getCommitFileLineCount(commit *git.Commit, filePath string) int {
+	blob, err := commit.GetBlobByPath(filePath)
+	if err != nil {
+		return 0
+	}
+	lineCount, err := blob.GetBlobLineCount()
+	if err != nil {
+		return 0
+	}
+	return lineCount
 }
 
 // Diff represents a difference between two git trees.
@@ -510,19 +651,16 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 		case line[0] == '@':
 			curSection = &DiffSection{}
 			curFile.Sections = append(curFile.Sections, curSection)
-			ss := strings.Split(line, "@@")
-			diffLine := &DiffLine{Type: DiffLineSection, Content: line}
-			curSection.Lines = append(curSection.Lines, diffLine)
-
-			// Parse line number.
-			ranges := strings.Split(ss[1][1:], " ")
-			leftLine, _ = com.StrTo(strings.Split(ranges[0], ",")[0][1:]).Int()
-			if len(ranges) > 1 {
-				rightLine, _ = com.StrTo(strings.Split(ranges[1], ",")[0]).Int()
-			} else {
-				log.Warn("Parse line number failed: %v", line)
-				rightLine = leftLine
+			lineSectionInfo := getDiffLineSectionInfo(curFile, line, leftLine-1, rightLine-1)
+			diffLine := &DiffLine{
+				Type:        DiffLineSection,
+				Content:     line,
+				SectionInfo: lineSectionInfo,
 			}
+			curSection.Lines = append(curSection.Lines, diffLine)
+			// update line number.
+			leftLine = lineSectionInfo.LeftIdx
+			rightLine = lineSectionInfo.RightIdx
 			continue
 		case line[0] == '+':
 			curFile.Addition++
@@ -546,6 +684,15 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 
 		// Get new file.
 		if strings.HasPrefix(line, cmdDiffHead) {
+			if len(diff.Files) >= maxFiles {
+				diff.IsIncomplete = true
+				_, err := io.Copy(ioutil.Discard, reader)
+				if err != nil {
+					return nil, fmt.Errorf("Copy: %v", err)
+				}
+				break
+			}
+
 			var middle int
 
 			// Note: In case file name is surrounded by double quotes (it happens only in git-shell).
@@ -590,15 +737,9 @@ func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*D
 				IsRenamed: a != b,
 			}
 			diff.Files = append(diff.Files, curFile)
-			if len(diff.Files) >= maxFiles {
-				diff.IsIncomplete = true
-				_, err := io.Copy(ioutil.Discard, reader)
-				if err != nil {
-					return nil, fmt.Errorf("Copy: %v", err)
-				}
-				break
-			}
 			curFileLinesCount = 0
+			leftLine = 1
+			rightLine = 1
 			curFileLFSPrefix = false
 
 			// Check file diff type and is submodule.
@@ -685,9 +826,12 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		return nil, err
 	}
 
+	// FIXME: graceful: These commands should likely have a timeout
+	ctx, cancel := context.WithCancel(git.DefaultContext)
+	defer cancel()
 	var cmd *exec.Cmd
 	if len(beforeCommitID) == 0 && commit.ParentCount() == 0 {
-		cmd = exec.Command(git.GitExecutable, "show", afterCommitID)
+		cmd = exec.CommandContext(ctx, git.GitExecutable, "show", afterCommitID)
 	} else {
 		actualBeforeCommitID := beforeCommitID
 		if len(actualBeforeCommitID) == 0 {
@@ -700,7 +844,8 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		}
 		diffArgs = append(diffArgs, actualBeforeCommitID)
 		diffArgs = append(diffArgs, afterCommitID)
-		cmd = exec.Command(git.GitExecutable, diffArgs...)
+		cmd = exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
+		beforeCommitID = actualBeforeCommitID
 	}
 	cmd.Dir = repoPath
 	cmd.Stderr = os.Stderr
@@ -714,12 +859,18 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		return nil, fmt.Errorf("Start: %v", err)
 	}
 
-	pid := process.GetManager().Add(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath), cmd)
+	pid := process.GetManager().Add(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath), cancel)
 	defer process.GetManager().Remove(pid)
 
 	diff, err := ParsePatch(maxLines, maxLineCharacters, maxFiles, stdout)
 	if err != nil {
 		return nil, fmt.Errorf("ParsePatch: %v", err)
+	}
+	for _, diffFile := range diff.Files {
+		tailSection := diffFile.GetTailSection(gitRepo, beforeCommitID, afterCommitID)
+		if tailSection != nil {
+			diffFile.Sections = append(diffFile.Sections, tailSection)
+		}
 	}
 
 	if err = cmd.Wait(); err != nil {
@@ -761,27 +912,31 @@ func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiff
 	if len(file) > 0 {
 		fileArgs = append(fileArgs, "--", file)
 	}
+	// FIXME: graceful: These commands should have a timeout
+	ctx, cancel := context.WithCancel(git.DefaultContext)
+	defer cancel()
+
 	var cmd *exec.Cmd
 	switch diffType {
 	case RawDiffNormal:
 		if len(startCommit) != 0 {
-			cmd = exec.Command(git.GitExecutable, append([]string{"diff", "-M", startCommit, endCommit}, fileArgs...)...)
+			cmd = exec.CommandContext(ctx, git.GitExecutable, append([]string{"diff", "-M", startCommit, endCommit}, fileArgs...)...)
 		} else if commit.ParentCount() == 0 {
-			cmd = exec.Command(git.GitExecutable, append([]string{"show", endCommit}, fileArgs...)...)
+			cmd = exec.CommandContext(ctx, git.GitExecutable, append([]string{"show", endCommit}, fileArgs...)...)
 		} else {
 			c, _ := commit.Parent(0)
-			cmd = exec.Command(git.GitExecutable, append([]string{"diff", "-M", c.ID.String(), endCommit}, fileArgs...)...)
+			cmd = exec.CommandContext(ctx, git.GitExecutable, append([]string{"diff", "-M", c.ID.String(), endCommit}, fileArgs...)...)
 		}
 	case RawDiffPatch:
 		if len(startCommit) != 0 {
 			query := fmt.Sprintf("%s...%s", endCommit, startCommit)
-			cmd = exec.Command(git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", "--root", query}, fileArgs...)...)
+			cmd = exec.CommandContext(ctx, git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", "--root", query}, fileArgs...)...)
 		} else if commit.ParentCount() == 0 {
-			cmd = exec.Command(git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", "--root", endCommit}, fileArgs...)...)
+			cmd = exec.CommandContext(ctx, git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", "--root", endCommit}, fileArgs...)...)
 		} else {
 			c, _ := commit.Parent(0)
 			query := fmt.Sprintf("%s...%s", endCommit, c.ID.String())
-			cmd = exec.Command(git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", query}, fileArgs...)...)
+			cmd = exec.CommandContext(ctx, git.GitExecutable, append([]string{"format-patch", "--no-signature", "--stdout", query}, fileArgs...)...)
 		}
 	default:
 		return fmt.Errorf("invalid diffType: %s", diffType)
@@ -792,6 +947,9 @@ func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiff
 	cmd.Dir = repoPath
 	cmd.Stdout = writer
 	cmd.Stderr = stderr
+	pid := process.GetManager().Add(fmt.Sprintf("GetRawDiffForFile: [repo_path: %s]", repoPath), cancel)
+	defer process.GetManager().Remove(pid)
+
 	if err = cmd.Run(); err != nil {
 		return fmt.Errorf("Run: %v - %s", err, stderr)
 	}

@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 )
 
@@ -63,6 +64,11 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 	}
 
 	uploader.gitServiceType = opts.GitServiceType
+
+	if setting.Migrations.MaxAttempts > 1 {
+		downloader = base.NewRetryDownloader(downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
+	}
+
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
@@ -164,6 +170,11 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				return err
 			}
 			releases = releases[relBatchSize:]
+		}
+
+		// Once all releases (if any) are inserted, sync any remaining non-release tags
+		if err := uploader.SyncTags(); err != nil {
+			return err
 		}
 	}
 

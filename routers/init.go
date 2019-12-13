@@ -10,10 +10,12 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
+	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -25,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	pull_service "code.gitea.io/gitea/services/pull"
 
 	"gitea.com/macaron/macaron"
 )
@@ -100,10 +103,10 @@ func GlobalInit() {
 		// Booting long running goroutines.
 		cron.NewContext()
 		issue_indexer.InitIssueIndexer(false)
-		models.InitRepoIndexer()
+		code_indexer.InitRepoIndexer()
 		mirror_service.InitSyncMirrors()
 		webhook.InitDeliverHooks()
-		models.InitTestPullRequests()
+		pull_service.Init()
 		if err := task.Init(); err != nil {
 			log.Fatal("Failed to initialize task scheduler: %v", err)
 		}
@@ -123,5 +126,9 @@ func GlobalInit() {
 		} else {
 			ssh.Unused()
 		}
+	}
+
+	if setting.InstallLock {
+		sso.Init()
 	}
 }

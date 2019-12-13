@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/gzip"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
@@ -44,6 +43,7 @@ import (
 	"gitea.com/macaron/captcha"
 	"gitea.com/macaron/cors"
 	"gitea.com/macaron/csrf"
+	"gitea.com/macaron/gzip"
 	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
@@ -133,7 +133,7 @@ func NewMacaron() *macaron.Macaron {
 	if setting.EnableGzip {
 		m.Use(gzip.Middleware())
 	}
-	if setting.Protocol == setting.FCGI {
+	if setting.Protocol == setting.FCGI || setting.Protocol == setting.FCGIUnix {
 		m.SetURLPrefix(setting.AppSubURL)
 	}
 	m.Use(public.Custom(
@@ -422,6 +422,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/config", admin.Config)
 		m.Post("/config/test_mail", admin.SendTestMail)
 		m.Get("/monitor", admin.Monitor)
+		m.Post("/monitor/cancel/:pid", admin.MonitorCancel)
 
 		m.Group("/users", func() {
 			m.Get("", admin.Users)
@@ -684,6 +685,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Get("/pointers", repo.LFSPointerFiles)
 				m.Post("/pointers/associate", repo.LFSAutoAssociate)
 				m.Get("/find", repo.LFSFileFind)
+				m.Group("/locks", func() {
+					m.Get("/", repo.LFSLocks)
+					m.Post("/", repo.LFSLockFile)
+					m.Post("/:lid/unlock", repo.LFSUnlock)
+				})
 			})
 
 		}, func(ctx *context.Context) {
@@ -862,6 +868,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)
+		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
+
+		m.Group("/blob_excerpt", func() {
+			m.Get("/:sha", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
 		m.Group("/pulls/:index", func() {

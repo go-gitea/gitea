@@ -37,7 +37,8 @@ menu:
 
 - `EXPLORE_PAGING_NUM`: 探索页面每页显示的仓库数量。
 - `ISSUE_PAGING_NUM`: 工单页面每页显示的工单数量。
-- `FEED_MAX_COMMIT_NUM`: 活动流页面显示的最大提交树木。
+- `MEMBERS_PAGING_NUM`: **20**: 组织成员页面每页显示的成员数量。
+- `FEED_MAX_COMMIT_NUM`: 活动流页面显示的最大提交数量。
 
 ### UI - Admin (`ui.admin`)
 
@@ -271,6 +272,11 @@ IS_INPUT_FILE = false
 - `QUEUE_TYPE`: **channel**: 任务队列类型，可以为 `channel` 或 `redis`。
 - `QUEUE_LENGTH`: **1000**: 任务队列长度，当 `QUEUE_TYPE` 为 `channel` 时有效。
 - `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: 任务队列连接字符串，当 `QUEUE_TYPE` 为 `redis` 时有效。如果redis有密码，则可以 `addrs=127.0.0.1:6379 password=123 db=0`。
+
+## Migrations (`migrations`)
+
+- `MAX_ATTEMPTS`: **3**: 在迁移过程中的 http/https 请求重试次数。
+- `RETRY_BACKOFF`: **3**: 等待下一次重试的时间，单位秒。
 
 ## Other (`other`)
 

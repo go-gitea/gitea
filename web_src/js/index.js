@@ -2,6 +2,10 @@
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
+import './publicPath.js';
+import './gitGraphLoader.js';
+import './semanticDropdown.js';
+
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
 }
@@ -582,6 +586,28 @@ function initInstall() {
   });
 }
 
+function initIssueComments() {
+  if ($('.repository.view.issue .comments').length === 0) return;
+
+  $(document).click((event) => {
+    const urlTarget = $(':target');
+    if (urlTarget.length === 0) return;
+
+    const urlTargetId = urlTarget.attr('id');
+    if (!urlTargetId) return;
+    if (!/^(issue|pull)(comment)?-\d+$/.test(urlTargetId)) return;
+
+    const $target = $(event.target);
+
+    if ($target.closest(`#${urlTargetId}`).length === 0) {
+      const scrollPosition = $(window).scrollTop();
+      window.location.hash = '';
+      $(window).scrollTop(scrollPosition);
+      window.history.pushState(null, null, ' ');
+    }
+  });
+}
+
 function initRepository() {
   if ($('.repository').length === 0) {
     return;
@@ -729,10 +755,44 @@ function initRepository() {
       return false;
     });
 
+    // Issue Comments
+    initIssueComments();
+
+    // Issue/PR Context Menus
+    $('.context-dropdown').dropdown({
+      action: 'hide'
+    });
+
+    // Quote reply
+    $('.quote-reply').click(function (event) {
+      $(this).closest('.dropdown').find('.menu').toggle('visible');
+      const target = $(this).data('target');
+
+      let $content;
+      if ($(this).hasClass('quote-reply-diff')) {
+        const $parent = $(this).closest('.comment-code-cloud');
+        $parent.find('button.comment-form-reply').click();
+        $content = $parent.find('[name="content"]');
+      } else {
+        $content = $('#content');
+      }
+
+      const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
+      const content = `> ${quote}\n\n`;
+
+      if ($content.val() !== '') {
+        $content.val(`${$content.val()}\n\n${content}`);
+      } else {
+        $content.val(`${content}`);
+      }
+      $content.focus();
+      event.preventDefault();
+    });
+
     // Edit issue or comment content
-    $('.edit-content').click(function () {
-      const $segment = $(this).parent().parent().parent()
-        .next();
+    $('.edit-content').click(function (event) {
+      $(this).closest('.dropdown').find('.menu').toggle('visible');
+      const $segment = $(this).closest('.header').next();
       const $editContentZone = $segment.find('.edit-content-zone');
       const $renderContent = $segment.find('.render-content');
       const $rawContent = $segment.find('.raw-content');
@@ -878,7 +938,7 @@ function initRepository() {
         $textarea.val($rawContent.text());
       }
       $textarea.focus();
-      return false;
+      event.preventDefault();
     });
 
     // Delete comment
@@ -928,7 +988,6 @@ function initRepository() {
       $(this).closest('.form').hide();
       $mergeButton.parent().show();
     });
-
     initReactionSelector();
   }
 
@@ -981,6 +1040,11 @@ function initRepository() {
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
       } else {
+        $($(this).data('target')).addClass('disabled');
+      }
+    });
+    $('.disable-whitelist').change(function () {
+      if (this.checked) {
         $($(this).data('target')).addClass('disabled');
       }
     });
@@ -1134,6 +1198,8 @@ function initTeamSettings() {
 
 function initWikiForm() {
   const $editArea = $('.repository.wiki textarea#edit_area');
+  let sideBySideChanges = 0;
+  let sideBySideTimeout = null;
   if ($editArea.length > 0) {
     const simplemde = new SimpleMDE({
       autoDownloadFontAwesome: false,
@@ -1142,18 +1208,46 @@ function initWikiForm() {
       previewRender(plainText, preview) { // Async method
         setTimeout(() => {
           // FIXME: still send render request when return back to edit mode
-          $.post($editArea.data('url'), {
-            _csrf: csrf,
-            mode: 'gfm',
-            context: $editArea.data('context'),
-            text: plainText
-          }, (data) => {
-            preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-            emojify.run($('.editor-preview')[0]);
-          });
+          const render = function () {
+            sideBySideChanges = 0;
+            if (sideBySideTimeout != null) {
+              clearTimeout(sideBySideTimeout);
+              sideBySideTimeout = null;
+            }
+            $.post($editArea.data('url'), {
+              _csrf: csrf,
+              mode: 'gfm',
+              context: $editArea.data('context'),
+              text: plainText
+            },
+            (data) => {
+              preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
+              emojify.run($('.editor-preview')[0]);
+              $(preview).find('pre code').each((_, e) => {
+                hljs.highlightBlock(e);
+              });
+            });
+          };
+          if (!simplemde.isSideBySideActive()) {
+            render();
+          } else {
+            // delay preview by keystroke counting
+            sideBySideChanges++;
+            if (sideBySideChanges > 10) {
+              render();
+            }
+            // or delay preview by timeout
+            if (sideBySideTimeout != null) {
+              clearTimeout(sideBySideTimeout);
+              sideBySideTimeout = null;
+            }
+            sideBySideTimeout = setTimeout(render, 600);
+          }
         }, 0);
-
-        return 'Loading...';
+        if (!simplemde.isSideBySideActive()) {
+          return 'Loading...';
+        }
+        return preview.innerHTML;
       },
       renderingConfig: {
         singleLineBreaks: false
@@ -1199,9 +1293,49 @@ function initWikiForm() {
         }, '|',
         'unordered-list', 'ordered-list', '|',
         'link', 'image', 'table', 'horizontal-rule', '|',
-        'clean-block', 'preview', 'fullscreen']
+        'clean-block', 'preview', 'fullscreen', 'side-by-side']
     });
     $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
+
+    setTimeout(() => {
+      const $bEdit = $('.repository.wiki.new .previewtabs a[data-tab="write"]');
+      const $bPrev = $('.repository.wiki.new .previewtabs a[data-tab="preview"]');
+      const $toolbar = $('.editor-toolbar');
+      const $bPreview = $('.editor-toolbar a.fa-eye');
+      const $bSideBySide = $('.editor-toolbar a.fa-columns');
+      $bEdit.on('click', () => {
+        if ($toolbar.hasClass('disabled-for-preview')) {
+          $bPreview.click();
+        }
+      });
+      $bPrev.on('click', () => {
+        if (!$toolbar.hasClass('disabled-for-preview')) {
+          $bPreview.click();
+        }
+      });
+      $bPreview.on('click', () => {
+        setTimeout(() => {
+          if ($toolbar.hasClass('disabled-for-preview')) {
+            if ($bEdit.hasClass('active')) {
+              $bEdit.removeClass('active');
+            }
+            if (!$bPrev.hasClass('active')) {
+              $bPrev.addClass('active');
+            }
+          } else {
+            if (!$bEdit.hasClass('active')) {
+              $bEdit.addClass('active');
+            }
+            if ($bPrev.hasClass('active')) {
+              $bPrev.removeClass('active');
+            }
+          }
+        }, 0);
+      });
+      $bSideBySide.on('click', () => {
+        sideBySideChanges = 10;
+      });
+    }, 0);
   }
 }
 
@@ -1499,6 +1633,17 @@ function initUserSettings() {
   }
 }
 
+function initGithook() {
+  if ($('.edit.githook').length === 0) {
+    return;
+  }
+
+  CodeMirror.autoLoadMode(CodeMirror.fromTextArea($('#content')[0], {
+    lineNumbers: true,
+    mode: 'shell'
+  }), 'shell');
+}
+
 function initWebhook() {
   if ($('.new.webhook').length === 0) {
     return;
@@ -1639,9 +1784,9 @@ function initAdmin() {
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
     $('#auth_type').change(function () {
-      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size').hide();
+      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size .sspi').hide();
 
-      $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+      $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
       $('.binddnrequired').removeClass('required');
 
       const authType = $(this).val();
@@ -1668,6 +1813,10 @@ function initAdmin() {
           $('.oauth2').show();
           $('.oauth2 div.required:not(.oauth2_use_custom_url,.oauth2_use_custom_url_field,.open_id_connect_auto_discovery_url) input').attr('required', 'required');
           onOAuth2Change();
+          break;
+        case '7': // SSPI
+          $('.sspi').show();
+          $('.sspi div.required input').attr('required', 'required');
           break;
       }
       if (authType === '2' || authType === '5') {
@@ -1852,6 +2001,28 @@ function initCodeView() {
       }
     }).trigger('hashchange');
   }
+  $('.ui.fold-code').on('click', (e) => {
+    const $foldButton = $(e.target);
+    if ($foldButton.hasClass('fa-chevron-down')) {
+      $(e.target).parent().next().slideUp('fast', () => {
+        $foldButton.removeClass('fa-chevron-down').addClass('fa-chevron-right');
+      });
+    } else {
+      $(e.target).parent().next().slideDown('fast', () => {
+        $foldButton.removeClass('fa-chevron-right').addClass('fa-chevron-down');
+      });
+    }
+  });
+  function insertBlobExcerpt(e) {
+    const $blob = $(e.target);
+    const $row = $blob.parent().parent();
+    $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
+      $row.replaceWith(blob);
+      $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e); });
+      $('.diff-detail-box.ui.sticky').sticky();
+    });
+  }
+  $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e); });
 }
 
 function initU2FAuth() {
@@ -2275,6 +2446,7 @@ $(document).ready(() => {
   initEditForm();
   initEditor();
   initOrganization();
+  initGithook();
   initWebhook();
   initAdmin();
   initCodeView();
@@ -2984,7 +3156,7 @@ function initTopicbar() {
 
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
-            $(`<div class="ui small label topic" style="cursor:pointer;">${topicArray[i]}</div>`).insertBefore(last);
+            $(`<a class="ui repo-topic small label topic" href="${suburl}/explore/repos?q=${topicArray[i]}&topic=1">${topicArray[i]}</a>`).insertBefore(last);
           }
         }
         editDiv.css('display', 'none');
@@ -3111,7 +3283,7 @@ function initTopicbar() {
         rules: [
           {
             type: 'validateTopic',
-            value: /^[a-z0-9][a-z0-9-]{1,35}$/,
+            value: /^[a-z0-9][a-z0-9-]{0,35}$/,
             prompt: topicPrompts.formatPrompt
           },
           {

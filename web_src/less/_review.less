@@ -1,12 +1,13 @@
 .ui.button.add-code-comment {
     font-size: 14px;
     height: 16px;
-    padding: 2px 0 0;
+    line-height: 16px !important;
+    padding: 0;
     position: relative;
     width: 16px;
     z-index: 5;
     float: left;
-    margin: -2px -10px -2px -20px;
+    margin: 2px -10px 2px -20px;
     opacity: 0;
     transition: transform 0.1s ease-in-out;
     transform: scale(1, 1);
@@ -107,4 +108,27 @@
 .file-comment {
     font: 12px @monospaced-fonts, monospace;
     color: rgba(0, 0, 0, 0.87);
+}
+
+.ui.fold-code {
+    margin-right: 1em;
+    padding-left: 5px;
+    cursor: pointer;
+    width: 22px;
+    font-size: 12px;
+}
+
+.ui.fold-code:hover {
+    color: #428bca;
+}
+
+.ui.blob-excerpt {
+    display: block;
+    line-height: 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.ui.blob-excerpt:hover {
+    color: #428bca;
 }

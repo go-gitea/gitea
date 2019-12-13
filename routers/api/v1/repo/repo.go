@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
@@ -321,12 +322,12 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	}
 
 	if !ctx.User.IsAdmin {
-		isOwner, err := org.IsOwnedBy(ctx.User.ID)
+		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("IsOwnedBy", err)
+			ctx.ServerError("CanCreateOrgRepo", err)
 			return
-		} else if !isOwner {
-			ctx.Error(403, "", "Given user is not owner of organization.")
+		} else if !canCreate {
+			ctx.Error(403, "", "Given user is not allowed to create repository in organization.")
 			return
 		}
 	}
@@ -445,7 +446,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	repo, err := models.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
 		Name:        opts.RepoName,
 		Description: opts.Description,
-		OriginalURL: opts.CloneAddr,
+		OriginalURL: form.CloneAddr,
 		IsPrivate:   opts.Private,
 		IsMirror:    opts.Mirror,
 		Status:      models.RepositoryBeingMigrated,
@@ -631,15 +632,13 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) error {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
-
-	oldRepoName := repo.Name
 	newRepoName := repo.Name
 	if opts.Name != nil {
 		newRepoName = *opts.Name
 	}
 	// Check if repository name has been changed and not just a case change
 	if repo.LowerName != strings.ToLower(newRepoName) {
-		if err := models.ChangeRepositoryName(ctx.Repo.Owner, repo.Name, newRepoName); err != nil {
+		if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
 			switch {
 			case models.IsErrRepoAlreadyExist(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
@@ -652,14 +651,6 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 			}
 			return err
 		}
-
-		err := models.NewRepoRedirect(ctx.Repo.Owner.ID, repo.ID, repo.Name, newRepoName)
-		if err != nil {
-			ctx.Error(http.StatusUnprocessableEntity, "NewRepoRedirect", err)
-			return err
-		}
-
-		notification.NotifyRenameRepository(ctx.User, repo, oldRepoName)
 
 		log.Trace("Repository name changed: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newRepoName)
 	}
@@ -695,6 +686,17 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	if opts.Template != nil {
 		repo.IsTemplate = *opts.Template
+	}
+
+	// Default branch only updated if changed and exist
+	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch) {
+		if err := ctx.Repo.GitRepo.SetDefaultBranch(*opts.DefaultBranch); err != nil {
+			if !git.IsErrUnsupportedVersion(err) {
+				ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
+				return err
+			}
+		}
+		repo.DefaultBranch = *opts.DefaultBranch
 	}
 
 	if err := models.UpdateRepository(repo, visibilityChanged); err != nil {

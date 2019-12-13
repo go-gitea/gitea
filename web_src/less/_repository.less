@@ -88,7 +88,6 @@
 
     .metas {
         .menu {
-            max-height: 300px;
             overflow-x: auto;
         }
 
@@ -738,16 +737,22 @@
                     font-size: 12px;
                     border: 1px solid rgba(0, 0, 0, 0.1);
                     border-radius: 3px;
-                    &.pending {
-                        color: black;
-                        background-color: #fffbb2;
+                    &.review {
                         margin-left: 5px;
+                        &.pending {
+                            color: black;
+                            background-color: #fffbb2;
+                        }
                     }
                 }
 
                 .actions {
                     .item {
                         float: left;
+
+                        &.context {
+                            float: none;
+                        }
 
                         &.tag {
                             margin-right: 5px;
@@ -839,6 +844,10 @@
                             color: #000000;
                         }
                     }
+                }
+
+                &:target > .content {
+                    box-shadow: 0 0 10px #8c8c8c;
                 }
 
                 .ui.form {
@@ -1717,6 +1726,14 @@
             .editor-preview {
                 background-color: white;
             }
+
+            .ui.attached.tabular.menu.previewtabs {
+                margin-bottom: 15px;
+
+                & + .field .editor-toolbar:not(.fullscreen) a.fa-eye {
+                    display: none;
+                }
+            }
         }
 
         &.view {
@@ -1910,13 +1927,23 @@
     }
 
     .segment.reactions {
-        padding: 0.3em 1em;
+        padding: 0;
+        display: flex;
 
         .ui.label {
             padding: 0.4em;
+            padding-right: 1em;
+            padding-left: 1em;
+            border: 0;
+            border-right: 1px solid;
+            border-radius: 0;
+            margin: 0;
+            font-size: 14px;
+            border-color: inherit !important;
 
             &.disabled {
                 cursor: default;
+                opacity: 0.5;
             }
 
             > img {
@@ -1924,8 +1951,15 @@
             }
         }
 
+        .ui.label.basic.blue {
+            background-color: #f1f8ff !important;
+            border-color: inherit !important;
+        }
+
         .select-reaction {
-            float: none;
+            float: left;
+            padding: 0.5em;
+            padding-left: 1em;
 
             &:not(.active) a {
                 display: none;
@@ -2398,6 +2432,10 @@ tbody.commit-list {
     margin-left: 5px;
 }
 
+.ui.small.label.topic {
+    margin-bottom: 4px;
+}
+
 .repo-header {
     display: flex;
     align-items: center;
@@ -2436,6 +2474,10 @@ tbody.commit-list {
     border-color: #d3cfcf !important;
     padding-top: 8px;
     padding-bottom: 8px;
+}
+
+td.blob-excerpt {
+    background-color: #fafafa;
 }
 
 .issue-keyword {

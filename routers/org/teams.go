@@ -138,7 +138,8 @@ func TeamsRepoAction(ctx *context.Context) {
 	}
 
 	var err error
-	switch ctx.Params(":action") {
+	action := ctx.Params(":action")
+	switch action {
 	case "add":
 		repoName := path.Base(ctx.Query("repo_name"))
 		var repo *models.Repository
@@ -167,9 +168,12 @@ func TeamsRepoAction(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
-		"redirect": ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories",
-	})
+	if action == "addall" || action == "removeall" {
+		ctx.JSON(200, map[string]interface{}{
+			"redirect": ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories",
+		})
+		return
+	}
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories")
 }
 
@@ -197,6 +201,7 @@ func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 		Description:             form.Description,
 		Authorize:               models.ParseAccessMode(form.Permission),
 		IncludesAllRepositories: includesAllRepositories,
+		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 	}
 
 	if t.Authorize < models.AccessModeOwner {
@@ -312,6 +317,7 @@ func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
 			return
 		}
 	}
+	t.CanCreateOrgRepo = form.CanCreateOrgRepo
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplTeamNew)

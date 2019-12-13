@@ -7,7 +7,6 @@ package models
 
 import (
 	"fmt"
-	"html"
 	"path"
 	"strconv"
 	"strings"
@@ -16,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -30,26 +28,28 @@ type ActionType int
 
 // Possible action types.
 const (
-	ActionCreateRepo        ActionType = iota + 1 // 1
-	ActionRenameRepo                              // 2
-	ActionStarRepo                                // 3
-	ActionWatchRepo                               // 4
-	ActionCommitRepo                              // 5
-	ActionCreateIssue                             // 6
-	ActionCreatePullRequest                       // 7
-	ActionTransferRepo                            // 8
-	ActionPushTag                                 // 9
-	ActionCommentIssue                            // 10
-	ActionMergePullRequest                        // 11
-	ActionCloseIssue                              // 12
-	ActionReopenIssue                             // 13
-	ActionClosePullRequest                        // 14
-	ActionReopenPullRequest                       // 15
-	ActionDeleteTag                               // 16
-	ActionDeleteBranch                            // 17
-	ActionMirrorSyncPush                          // 18
-	ActionMirrorSyncCreate                        // 19
-	ActionMirrorSyncDelete                        // 20
+	ActionCreateRepo         ActionType = iota + 1 // 1
+	ActionRenameRepo                               // 2
+	ActionStarRepo                                 // 3
+	ActionWatchRepo                                // 4
+	ActionCommitRepo                               // 5
+	ActionCreateIssue                              // 6
+	ActionCreatePullRequest                        // 7
+	ActionTransferRepo                             // 8
+	ActionPushTag                                  // 9
+	ActionCommentIssue                             // 10
+	ActionMergePullRequest                         // 11
+	ActionCloseIssue                               // 12
+	ActionReopenIssue                              // 13
+	ActionClosePullRequest                         // 14
+	ActionReopenPullRequest                        // 15
+	ActionDeleteTag                                // 16
+	ActionDeleteBranch                             // 17
+	ActionMirrorSyncPush                           // 18
+	ActionMirrorSyncCreate                         // 19
+	ActionMirrorSyncDelete                         // 20
+	ActionApprovePullRequest                       // 21
+	ActionRejectPullRequest                        // 22
 )
 
 // Action represents user operation type and other information to
@@ -405,165 +405,6 @@ func (pc *PushCommits) AvatarLink(email string) string {
 	}
 
 	return pc.avatars[email]
-}
-
-// getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
-// if the provided ref references a non-existent issue.
-func getIssueFromRef(repo *Repository, index int64) (*Issue, error) {
-	issue, err := GetIssueByIndex(repo.ID, index)
-	if err != nil {
-		if IsErrIssueNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return issue, nil
-}
-
-func changeIssueStatus(repo *Repository, issue *Issue, doer *User, status bool) error {
-
-	stopTimerIfAvailable := func(doer *User, issue *Issue) error {
-
-		if StopwatchExists(doer.ID, issue.ID) {
-			if err := CreateOrStopIssueStopwatch(doer, issue); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}
-
-	issue.Repo = repo
-	if err := issue.ChangeStatus(doer, status); err != nil {
-		// Don't return an error when dependencies are open as this would let the push fail
-		if IsErrDependenciesLeft(err) {
-			return stopTimerIfAvailable(doer, issue)
-		}
-		return err
-	}
-
-	return stopTimerIfAvailable(doer, issue)
-}
-
-// UpdateIssuesCommit checks if issues are manipulated by commit message.
-func UpdateIssuesCommit(doer *User, repo *Repository, commits []*PushCommit, branchName string) error {
-	// Commits are appended in the reverse order.
-	for i := len(commits) - 1; i >= 0; i-- {
-		c := commits[i]
-
-		type markKey struct {
-			ID     int64
-			Action references.XRefAction
-		}
-
-		refMarked := make(map[markKey]bool)
-		var refRepo *Repository
-		var refIssue *Issue
-		var err error
-		for _, ref := range references.FindAllIssueReferences(c.Message) {
-
-			// issue is from another repo
-			if len(ref.Owner) > 0 && len(ref.Name) > 0 {
-				refRepo, err = GetRepositoryFromMatch(ref.Owner, ref.Name)
-				if err != nil {
-					continue
-				}
-			} else {
-				refRepo = repo
-			}
-			if refIssue, err = getIssueFromRef(refRepo, ref.Index); err != nil {
-				return err
-			}
-			if refIssue == nil {
-				continue
-			}
-
-			perm, err := GetUserRepoPermission(refRepo, doer)
-			if err != nil {
-				return err
-			}
-
-			key := markKey{ID: refIssue.ID, Action: ref.Action}
-			if refMarked[key] {
-				continue
-			}
-			refMarked[key] = true
-
-			// only create comments for issues if user has permission for it
-			if perm.IsAdmin() || perm.IsOwner() || perm.CanWrite(UnitTypeIssues) {
-				message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(c.Message))
-				if err = CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
-					return err
-				}
-			}
-
-			// Process closing/reopening keywords
-			if ref.Action != references.XRefActionCloses && ref.Action != references.XRefActionReopens {
-				continue
-			}
-
-			// Change issue status only if the commit has been pushed to the default branch.
-			// and if the repo is configured to allow only that
-			// FIXME: we should be using Issue.ref if set instead of repo.DefaultBranch
-			if repo.DefaultBranch != branchName && !repo.CloseIssuesViaCommitInAnyBranch {
-				continue
-			}
-
-			// only close issues in another repo if user has push access
-			if perm.IsAdmin() || perm.IsOwner() || perm.CanWrite(UnitTypeCode) {
-				if err := changeIssueStatus(refRepo, refIssue, doer, ref.Action == references.XRefActionCloses); err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func transferRepoAction(e Engine, doer, oldOwner *User, repo *Repository) (err error) {
-	if err = notifyWatchers(e, &Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		OpType:    ActionTransferRepo,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-		Content:   path.Join(oldOwner.Name, repo.Name),
-	}); err != nil {
-		return fmt.Errorf("notifyWatchers: %v", err)
-	}
-
-	// Remove watch for organization.
-	if oldOwner.IsOrganization() {
-		if err = watchRepo(e, oldOwner.ID, repo.ID, false); err != nil {
-			return fmt.Errorf("watchRepo [false]: %v", err)
-		}
-	}
-
-	return nil
-}
-
-// TransferRepoAction adds new action for transferring repository,
-// the Owner field of repository is assumed to be new owner.
-func TransferRepoAction(doer, oldOwner *User, repo *Repository) error {
-	return transferRepoAction(x, doer, oldOwner, repo)
-}
-
-func mergePullRequestAction(e Engine, doer *User, repo *Repository, issue *Issue) error {
-	return notifyWatchers(e, &Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		OpType:    ActionMergePullRequest,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-	})
-}
-
-// MergePullRequestAction adds new action for merging pull request.
-func MergePullRequestAction(actUser *User, repo *Repository, pull *Issue) error {
-	return mergePullRequestAction(x, actUser, repo, pull)
 }
 
 // GetFeedsOptions options for retrieving feeds
