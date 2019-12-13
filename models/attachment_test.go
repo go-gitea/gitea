@@ -61,7 +61,7 @@ func TestGetByCommentOrIssueID(t *testing.T) {
 	// count of attachments from issue ID
 	attachments, err := GetAttachmentsByIssueID(1)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(attachments))
+	assert.Equal(t, 1, len(attachments))
 
 	attachments, err = GetAttachmentsByCommentID(1)
 	assert.NoError(t, err)
@@ -73,7 +73,7 @@ func TestDeleteAttachments(t *testing.T) {
 
 	count, err := DeleteAttachmentsByIssue(4, false)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, count)
+	assert.Equal(t, 2, count)
 
 	count, err = DeleteAttachmentsByComment(2, false)
 	assert.NoError(t, err)
