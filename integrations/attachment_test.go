@@ -76,10 +76,10 @@ func TestCreateIssueAttachment(t *testing.T) {
 	assert.True(t, exists, "The template has changed")
 
 	postData := map[string]string{
-		"_csrf":    htmlDoc.GetCSRF(),
-		"title":    "New Issue With Attachment",
-		"content":  "some content",
-		"files[0]": uuid,
+		"_csrf":   htmlDoc.GetCSRF(),
+		"title":   "New Issue With Attachment",
+		"content": "some content",
+		"files":   uuid,
 	}
 
 	req = NewRequestWithValues(t, "POST", link, postData)
