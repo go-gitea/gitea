@@ -11,7 +11,6 @@ import (
 	"crypto/subtle"
 	"fmt"
 	"html"
-	"io"
 	"path"
 	"strings"
 
@@ -785,12 +784,6 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		return
 	}
 
-	patch, err := headGitRepo.GetPatch(prInfo.MergeBase, headBranch)
-	if err != nil {
-		ctx.ServerError("GetPatch", err)
-		return
-	}
-
 	pullIssue := &models.Issue{
 		RepoID:      repo.ID,
 		Title:       form.Title,
@@ -813,7 +806,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
 
-	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, patch, assigneeIDs); err != nil {
+	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
@@ -981,44 +974,16 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 // DownloadPullDiff render a pull's raw diff
 func DownloadPullDiff(ctx *context.Context) {
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
-	if err != nil {
-		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound("GetIssueByIndex", err)
-		} else {
-			ctx.ServerError("GetIssueByIndex", err)
-		}
-		return
-	}
-
-	// Return not found if it's not a pull request
-	if !issue.IsPull {
-		ctx.NotFound("DownloadPullDiff",
-			fmt.Errorf("Issue is not a pull request"))
-		return
-	}
-
-	if err = issue.LoadPullRequest(); err != nil {
-		ctx.ServerError("LoadPullRequest", err)
-		return
-	}
-
-	pr := issue.PullRequest
-	if err = pr.GetBaseRepo(); err != nil {
-		ctx.ServerError("GetBaseRepo", err)
-		return
-	}
-	patch, err := pr.BaseRepo.PatchPath(pr.Index)
-	if err != nil {
-		ctx.ServerError("PatchPath", err)
-		return
-	}
-
-	ctx.ServeFileContent(patch)
+	DownloadPullDiffOrPatch(ctx, false)
 }
 
 // DownloadPullPatch render a pull's raw patch
 func DownloadPullPatch(ctx *context.Context) {
+	DownloadPullDiffOrPatch(ctx, true)
+}
+
+// DownloadPullDiffOrPatch render a pull's raw diff or patch
+func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -1042,27 +1007,9 @@ func DownloadPullPatch(ctx *context.Context) {
 	}
 
 	pr := issue.PullRequest
-	if err = pr.GetHeadRepo(); err != nil {
-		ctx.ServerError("GetHeadRepo", err)
-		return
-	}
 
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
-	if err != nil {
-		ctx.ServerError("OpenRepository", err)
-		return
-	}
-	defer headGitRepo.Close()
-
-	patch, err := headGitRepo.GetFormatPatch(pr.MergeBase, pr.HeadBranch)
-	if err != nil {
-		ctx.ServerError("GetFormatPatch", err)
-		return
-	}
-
-	_, err = io.Copy(ctx, patch)
-	if err != nil {
-		ctx.ServerError("io.Copy", err)
+	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch); err != nil {
+		ctx.ServerError("DownloadDiffOrPatch", err)
 		return
 	}
 }
