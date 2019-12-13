@@ -212,8 +212,6 @@ func (g *Manager) IsChild() bool {
 // IsShutdown returns a channel which will be closed at shutdown.
 // The order of closure is IsShutdown, IsHammer (potentially), IsTerminate
 func (g *Manager) IsShutdown() <-chan struct{} {
-	g.lock.RLock()
-	defer g.lock.RUnlock()
 	return g.shutdown
 }
 
@@ -222,8 +220,6 @@ func (g *Manager) IsShutdown() <-chan struct{} {
 // Servers running within the running server wait group should respond to IsHammer
 // if not shutdown already
 func (g *Manager) IsHammer() <-chan struct{} {
-	g.lock.RLock()
-	defer g.lock.RUnlock()
 	return g.hammer
 }
 
@@ -231,8 +227,6 @@ func (g *Manager) IsHammer() <-chan struct{} {
 // The order of closure is IsShutdown, IsHammer (potentially), IsTerminate
 // IsTerminate will only close once all running servers have stopped
 func (g *Manager) IsTerminate() <-chan struct{} {
-	g.lock.RLock()
-	defer g.lock.RUnlock()
 	return g.terminate
 }
 
@@ -290,8 +284,6 @@ func (g *Manager) InformCleanup() {
 
 // Done allows the manager to be viewed as a context.Context, it returns a channel that is closed when the server is finished terminating
 func (g *Manager) Done() <-chan struct{} {
-	g.lock.RLock()
-	defer g.lock.RUnlock()
 	return g.done
 }
 
