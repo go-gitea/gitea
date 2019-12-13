@@ -72,13 +72,6 @@ func populateRepoIndexerAsynchronously() error {
 		return nil
 	}
 
-	// if there is any existing repo indexer metadata in the DB, delete it
-	// since we are starting afresh. Also, xorm requires deletes to have a
-	// condition, and we want to delete everything, thus 1=1.
-	if err := models.DeleteAllRecords("repo_indexer_status"); err != nil {
-		return err
-	}
-
 	var maxRepoID int64
 	if maxRepoID, err = models.GetMaxID("repository"); err != nil {
 		return err
@@ -105,15 +98,14 @@ func populateRepoIndexer(maxRepoID int64) {
 			return
 		default:
 		}
-		repos := make([]*models.Repository, 0, models.RepositoryListDefaultPageSize)
-		err := models.FindByMaxID(maxRepoID, models.RepositoryListDefaultPageSize, &repos)
+		ids, err := models.GetUnindexedRepos(maxRepoID, 0, 50)
 		if err != nil {
 			log.Error("populateRepoIndexer: %v", err)
 			return
-		} else if len(repos) == 0 {
+		} else if len(ids) == 0 {
 			break
 		}
-		for _, repo := range repos {
+		for _, id := range ids {
 			select {
 			case <-isShutdown:
 				log.Info("Repository Indexer population shutdown before completion")
@@ -121,13 +113,12 @@ func populateRepoIndexer(maxRepoID int64) {
 			default:
 			}
 			repoIndexerOperationQueue <- repoIndexerOperation{
-				repoID:  repo.ID,
+				repoID:  id,
 				deleted: false,
 			}
-			maxRepoID = repo.ID - 1
 		}
 	}
-	log.Info("Done populating the repo indexer with existing repositories")
+	log.Info("Done (re)populating the repo indexer with existing repositories")
 }
 
 func updateRepoIndexer(repoID int64) error {

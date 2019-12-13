@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -112,16 +113,29 @@ func initRepoIndexer(populateIndexer func() error) {
 	if indexer != nil {
 		indexerHolder.set(indexer)
 		closeAtTerminate()
+
+		// Continue population from where left off
+		if err = populateIndexer(); err != nil {
+			log.Fatal("PopulateRepoIndex: %v", err)
+		}
 		return
 	}
 
 	if err = createRepoIndexer(setting.Indexer.RepoPath, repoIndexerLatestVersion); err != nil {
 		log.Fatal("CreateRepoIndexer: %v", err)
 	}
+	closeAtTerminate()
+
+	// if there is any existing repo indexer metadata in the DB, delete it
+	// since we are starting afresh. Also, xorm requires deletes to have a
+	// condition, and we want to delete everything, thus 1=1.
+	if err := models.DeleteAllRecords("repo_indexer_status"); err != nil {
+		log.Fatal("DeleteAllRepoIndexerStatus: %v", err)
+	}
+
 	if err = populateIndexer(); err != nil {
 		log.Fatal("PopulateRepoIndex: %v", err)
 	}
-	closeAtTerminate()
 }
 
 func closeAtTerminate() {

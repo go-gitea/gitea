@@ -4,12 +4,41 @@
 
 package models
 
+import (
+	"xorm.io/builder"
+)
+
 // RepoIndexerStatus status of a repo's entry in the repo indexer
 // For now, implicitly refers to default branch
 type RepoIndexerStatus struct {
 	ID        int64  `xorm:"pk autoincr"`
 	RepoID    int64  `xorm:"INDEX"`
 	CommitSha string `xorm:"VARCHAR(40)"`
+}
+
+// GetUnindexedRepos returns repos which do not have an indexer status
+func GetUnindexedRepos(maxRepoID int64, page, pageSize int) ([]int64, error) {
+	ids := make([]int64, 0, 50)
+	cond := builder.Cond(builder.IsNull{
+		"repo_indexer_status.id",
+	})
+	sess := x.Table("repo").Join("LEFT OUTER", "repo_indexer_status", "repo.id = repo_indexer_status.repoID")
+	if maxRepoID > 0 {
+		cond = builder.And(cond, builder.Lte{
+			"repo.id": maxRepoID,
+		})
+	}
+	if page >= 0 && pageSize > 0 {
+		start := 0
+		if page > 0 {
+			start = (page - 1) * pageSize
+		}
+		sess.Limit(pageSize, start)
+	}
+
+	sess.Where(cond).Cols("repo.id")
+	err := sess.Find(&ids)
+	return ids, err
 }
 
 // GetIndexerStatus loads repo codes indxer status
