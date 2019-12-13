@@ -18,11 +18,12 @@ func (pr *PullRequest) SignMerge(u *User, tmpBasePath, baseCommit, headCommit st
 	}
 	repo := pr.BaseRepo
 
-	rules := signingModeFromStrings(setting.Repository.Signing.Merges)
 	signingKey := signingKey(repo.RepoPath())
 	if signingKey == "" {
 		return false, ""
 	}
+	rules := signingModeFromStrings(setting.Repository.Signing.Merges)
+
 	var gitRepo *git.Repository
 	var err error
 
