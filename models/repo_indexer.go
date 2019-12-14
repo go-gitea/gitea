@@ -22,10 +22,10 @@ func GetUnindexedRepos(maxRepoID int64, page, pageSize int) ([]int64, error) {
 	cond := builder.Cond(builder.IsNull{
 		"repo_indexer_status.id",
 	})
-	sess := x.Table("repo").Join("LEFT OUTER", "repo_indexer_status", "repo.id = repo_indexer_status.repoID")
+	sess := x.Table("repository").Join("LEFT OUTER", "repo_indexer_status", "repository.id = repo_indexer_status.repo_id")
 	if maxRepoID > 0 {
 		cond = builder.And(cond, builder.Lte{
-			"repo.id": maxRepoID,
+			"repository.id": maxRepoID,
 		})
 	}
 	if page >= 0 && pageSize > 0 {
@@ -36,7 +36,7 @@ func GetUnindexedRepos(maxRepoID int64, page, pageSize int) ([]int64, error) {
 		sess.Limit(pageSize, start)
 	}
 
-	sess.Where(cond).Cols("repo.id")
+	sess.Where(cond).Cols("repository.id")
 	err := sess.Find(&ids)
 	return ids, err
 }
