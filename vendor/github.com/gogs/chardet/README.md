@@ -9,4 +9,4 @@ The project was created by [saintfish](http://github.com/saintfish/chardet). In 
 
 ## Documentation and Usage
 
-See [pkgdoc](http://godoc.org/github.com/gogits/chardet)
+See [pkgdoc](http://godoc.org/github.com/gogs/chardet)
