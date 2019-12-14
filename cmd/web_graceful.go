@@ -37,9 +37,9 @@ func NoMainListener() {
 	graceful.Manager.InformCleanup()
 }
 
-func runFCGI(listenAddr string, m http.Handler) error {
+func runFCGI(network, listenAddr string, m http.Handler) error {
 	// This needs to handle stdin as fcgi point
-	fcgiServer := graceful.NewServer("tcp", listenAddr)
+	fcgiServer := graceful.NewServer(network, listenAddr)
 
 	err := fcgiServer.ListenAndServe(func(listener net.Listener) error {
 		return fcgi.Serve(listener, m)

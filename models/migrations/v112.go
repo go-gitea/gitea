@@ -5,19 +5,37 @@
 package migrations
 
 import (
-	"fmt"
+	"os"
 
+	"code.gitea.io/gitea/models"
+	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
-func featureChangeTargetBranch(x *xorm.Engine) error {
-	type Comment struct {
-		OldRef string
-		NewRef string
+func removeAttachmentMissedRepo(x *xorm.Engine) error {
+	type Attachment struct {
+		UUID string `xorm:"uuid"`
+	}
+	var start int
+	attachments := make([]*Attachment, 0, 50)
+	for {
+		err := x.Select("uuid").Where(builder.NotIn("release_id", builder.Select("id").From("`release`"))).
+			OrderBy("id").Limit(50, start).Find(&attachments)
+		if err != nil {
+			return err
+		}
+
+		for i := 0; i < len(attachments); i++ {
+			os.RemoveAll(models.AttachmentLocalPath(attachments[i].UUID))
+		}
+
+		if len(attachments) < 50 {
+			break
+		}
+		start += 50
+		attachments = attachments[:0]
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	_, err := x.Exec("DELETE FROM attachment WHERE release_id NOT IN (SELECT id FROM `release`)")
+	return err
 }

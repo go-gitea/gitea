@@ -25,7 +25,7 @@ func BenchmarkRepo(b *testing.B) {
 		{url: "https://github.com/golang/go.git", name: "go", skipShort: true},
 		{url: "https://github.com/torvalds/linux.git", name: "linux", skipShort: true},
 	}
-	prepareTestEnv(b)
+	defer prepareTestEnv(b)()
 	session := loginUser(b, "user2")
 	b.ResetTimer()
 
@@ -75,7 +75,7 @@ func StringWithCharset(length int, charset string) string {
 
 func BenchmarkRepoBranchCommit(b *testing.B) {
 	samples := []int64{1, 3, 15, 16}
-	prepareTestEnv(b)
+	defer prepareTestEnv(b)()
 	b.ResetTimer()
 
 	for _, repoID := range samples {

@@ -78,7 +78,7 @@ func allowLFSFilters() []string {
 
 func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bool) {
 	if len(prepare) == 0 || prepare[0] {
-		prepareTestEnv(t, 1)
+		defer prepareTestEnv(t, 1)()
 	}
 	s := http.Server{
 		Handler: mac,

@@ -887,42 +887,6 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 	return template.HTML(markup.Sanitize(string(desc)))
 }
 
-// PatchPath returns corresponding patch file path of repository by given issue ID.
-func (repo *Repository) PatchPath(index int64) (string, error) {
-	return repo.patchPath(x, index)
-}
-
-func (repo *Repository) patchPath(e Engine, index int64) (string, error) {
-	if err := repo.getOwner(e); err != nil {
-		return "", err
-	}
-
-	return filepath.Join(RepoPath(repo.Owner.Name, repo.Name), "pulls", com.ToStr(index)+".patch"), nil
-}
-
-// SavePatch saves patch data to corresponding location by given issue ID.
-func (repo *Repository) SavePatch(index int64, patch []byte) error {
-	return repo.savePatch(x, index, patch)
-}
-
-func (repo *Repository) savePatch(e Engine, index int64, patch []byte) error {
-	patchPath, err := repo.patchPath(e, index)
-	if err != nil {
-		return fmt.Errorf("PatchPath: %v", err)
-	}
-	dir := filepath.Dir(patchPath)
-
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
-	}
-
-	if err = ioutil.WriteFile(patchPath, patch, 0644); err != nil {
-		return fmt.Errorf("WriteFile: %v", err)
-	}
-
-	return nil
-}
-
 func isRepositoryExist(e Engine, u *User, repoName string) (bool, error) {
 	has, err := e.Get(&Repository{
 		OwnerID:   u.ID,
@@ -1110,10 +1074,6 @@ func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts api.MigrateR
 		err = UpdateRepository(repo, false)
 	} else {
 		repo, err = CleanUpMigrateInfo(repo)
-	}
-
-	if err != nil && !repo.IsEmpty {
-		UpdateRepoIndexer(repo)
 	}
 
 	return repo, err
@@ -1996,6 +1956,17 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
+	attachments := make([]*Attachment, 0, 20)
+	if err = sess.Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
+		Where("`release`.repo_id = ?", repoID).
+		Find(&attachments); err != nil {
+		return err
+	}
+	releaseAttachments := make([]string, 0, len(attachments))
+	for i := 0; i < len(attachments); i++ {
+		releaseAttachments = append(releaseAttachments, attachments[i].LocalPath())
+	}
+
 	if err = deleteBeans(sess,
 		&Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
@@ -2046,13 +2017,13 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
-	attachmentPaths := make([]string, 0, 20)
-	attachments := make([]*Attachment, 0, len(attachmentPaths))
+	attachments = attachments[:0]
 	if err = sess.Join("INNER", "issue", "issue.id = attachment.issue_id").
 		Where("issue.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
 		return err
 	}
+	attachmentPaths := make([]string, 0, len(attachments))
 	for j := range attachments {
 		attachmentPaths = append(attachmentPaths, attachments[j].LocalPath())
 	}
@@ -2087,11 +2058,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	err = repo.deleteWiki(sess)
 	if err != nil {
 		return err
-	}
-
-	// Remove attachment files.
-	for i := range attachmentPaths {
-		removeAllWithNotice(sess, "Delete attachment", attachmentPaths[i])
 	}
 
 	// Remove LFS objects
@@ -2131,6 +2097,21 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 			}
 		}
 		return fmt.Errorf("Commit: %v", err)
+	}
+
+	sess.Close()
+
+	// We should always delete the files after the database transaction succeed. If
+	// we delete the file but the database rollback, the repository will be borken.
+
+	// Remove issue attachment files.
+	for i := range attachmentPaths {
+		removeAllWithNotice(x, "Delete issue attachment", attachmentPaths[i])
+	}
+
+	// Remove release attachment files.
+	for i := range releaseAttachments {
+		removeAllWithNotice(x, "Delete release attachment", releaseAttachments[i])
 	}
 
 	if len(repo.Avatar) > 0 {
@@ -2896,7 +2877,7 @@ func (repo *Repository) GetOriginalURLHostname() string {
 // GetTreePathLock returns LSF lock for the treePath
 func (repo *Repository) GetTreePathLock(treePath string) (*LFSLock, error) {
 	if setting.LFS.StartServer {
-		locks, err := GetLFSLockByRepoID(repo.ID)
+		locks, err := GetLFSLockByRepoID(repo.ID, 0, 0)
 		if err != nil {
 			return nil, err
 		}

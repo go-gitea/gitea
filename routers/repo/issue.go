@@ -630,17 +630,20 @@ func getBranchData(ctx *context.Context, issue *models.Issue) {
 
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
-	extIssueUnit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
-	if err == nil && extIssueUnit != nil {
-		if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
-			metas := ctx.Repo.Repository.ComposeMetas()
-			metas["index"] = ctx.Params(":index")
-			ctx.Redirect(com.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas))
+	if ctx.Params(":type") == "issues" {
+		// If issue was requested we check if repo has external tracker and redirect
+		extIssueUnit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
+		if err == nil && extIssueUnit != nil {
+			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
+				metas := ctx.Repo.Repository.ComposeMetas()
+				metas["index"] = ctx.Params(":index")
+				ctx.Redirect(com.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas))
+				return
+			}
+		} else if err != nil && !models.IsErrUnitTypeNotExist(err) {
+			ctx.ServerError("GetUnit", err)
 			return
 		}
-	} else if err != nil && !models.IsErrUnitTypeNotExist(err) {
-		ctx.ServerError("GetUnit", err)
-		return
 	}
 
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
@@ -1279,7 +1282,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+		ctx.Redirect(issue.HTMLURL())
 		return
 	}
 
@@ -1306,11 +1309,6 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 				// Regenerate patch and test conflict.
 				if pr == nil {
-					if err = issue.PullRequest.UpdatePatch(); err != nil {
-						ctx.ServerError("UpdatePatch", err)
-						return
-					}
-
 					pull_service.AddToTaskQueue(issue.PullRequest)
 				}
 			}
@@ -1487,14 +1485,12 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		if !util.IsStringInSlice(form.Content, setting.UI.Reactions) {
-			err := fmt.Errorf("ChangeIssueReaction: '%s' is not an allowed reaction", form.Content)
-			ctx.ServerError(err.Error(), err)
-			return
-		}
-
 		reaction, err := models.CreateIssueReaction(ctx.User, issue, form.Content)
 		if err != nil {
+			if models.IsErrForbiddenIssueReaction(err) {
+				ctx.ServerError("ChangeIssueReaction", err)
+				return
+			}
 			log.Info("CreateIssueReaction: %s", err)
 			break
 		}
@@ -1588,14 +1584,12 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		if !util.IsStringInSlice(form.Content, setting.UI.Reactions) {
-			err := fmt.Errorf("ChangeIssueReaction: '%s' is not an allowed reaction", form.Content)
-			ctx.ServerError(err.Error(), err)
-			return
-		}
-
 		reaction, err := models.CreateCommentReaction(ctx.User, comment.Issue, comment, form.Content)
 		if err != nil {
+			if models.IsErrForbiddenIssueReaction(err) {
+				ctx.ServerError("ChangeIssueReaction", err)
+				return
+			}
 			log.Info("CreateCommentReaction: %s", err)
 			break
 		}
