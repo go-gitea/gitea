@@ -543,28 +543,23 @@ func GetMilestonesByRepoIDs(repoIDs []int64, page int, isClosed bool, sortType s
 	return miles, sess.Find(&miles)
 }
 
-// UserMilestoneStats represents milestone statistic information.
-type UserMilestoneStats struct {
+// MilestonesStats represents milestone statistic information.
+type MilestonesStats struct {
 	OpenCount, ClosedCount int64
 }
 
-// GetUserMilestoneStats returns milestone statistic information for dashboard by given conditions.
-func GetUserMilestoneStats(userID int64, repoID int64, userRepoIDs []int64) (*UserMilestoneStats, error) {
+// GetMilestonesStats returns milestone statistic information for dashboard by given conditions.
+func GetMilestonesStats(userRepoIDs []int64) (*MilestonesStats, error) {
 	var err error
-	stats := &UserMilestoneStats{}
+	stats := &MilestonesStats{}
 
-	cond := builder.NewCond()
-	if repoID > 0 {
-		cond = cond.And(builder.Eq{"repo_id": repoID})
-	}
-
-	stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+	stats.OpenCount, err = x.Where("is_closed = ?", false).
 		And(builder.In("repo_id", userRepoIDs)).
 		Count(new(Milestone))
 	if err != nil {
 		return nil, err
 	}
-	stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
+	stats.ClosedCount, err = x.Where("is_closed = ?", true).
 		And(builder.In("repo_id", userRepoIDs)).
 		Count(new(Milestone))
 	if err != nil {
