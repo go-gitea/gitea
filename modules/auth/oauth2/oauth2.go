@@ -11,19 +11,21 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
 	"github.com/lafriks/xormstore"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/bitbucket"
+	"github.com/markbates/goth/providers/discord"
 	"github.com/markbates/goth/providers/dropbox"
 	"github.com/markbates/goth/providers/facebook"
+	"github.com/markbates/goth/providers/gitea"
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/gitlab"
-	"github.com/markbates/goth/providers/gplus"
+	"github.com/markbates/goth/providers/google"
 	"github.com/markbates/goth/providers/openidConnect"
 	"github.com/markbates/goth/providers/twitter"
 	"github.com/satori/go.uuid"
+	"xorm.io/xorm"
 )
 
 var (
@@ -164,14 +166,32 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 			}
 		}
 		provider = gitlab.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL, "read_user")
-	case "gplus":
-		provider = gplus.New(clientID, clientSecret, callbackURL, "email")
+	case "gplus": // named gplus due to legacy gplus -> google migration (Google killed Google+). This ensures old connections still work
+		provider = google.New(clientID, clientSecret, callbackURL)
 	case "openidConnect":
 		if provider, err = openidConnect.New(clientID, clientSecret, callbackURL, openIDConnectAutoDiscoveryURL); err != nil {
 			log.Warn("Failed to create OpenID Connect Provider with name '%s' with url '%s': %v", providerName, openIDConnectAutoDiscoveryURL, err)
 		}
 	case "twitter":
 		provider = twitter.NewAuthenticate(clientID, clientSecret, callbackURL)
+	case "discord":
+		provider = discord.New(clientID, clientSecret, callbackURL, discord.ScopeIdentify, discord.ScopeEmail)
+	case "gitea":
+		authURL := gitea.AuthURL
+		tokenURL := gitea.TokenURL
+		profileURL := gitea.ProfileURL
+		if customURLMapping != nil {
+			if len(customURLMapping.AuthURL) > 0 {
+				authURL = customURLMapping.AuthURL
+			}
+			if len(customURLMapping.TokenURL) > 0 {
+				tokenURL = customURLMapping.TokenURL
+			}
+			if len(customURLMapping.ProfileURL) > 0 {
+				profileURL = customURLMapping.ProfileURL
+			}
+		}
+		provider = gitea.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL)
 	}
 
 	// always set the name if provider is created so we can support multiple setups of 1 provider
@@ -189,6 +209,8 @@ func GetDefaultTokenURL(provider string) string {
 		return github.TokenURL
 	case "gitlab":
 		return gitlab.TokenURL
+	case "gitea":
+		return gitea.TokenURL
 	}
 	return ""
 }
@@ -200,6 +222,8 @@ func GetDefaultAuthURL(provider string) string {
 		return github.AuthURL
 	case "gitlab":
 		return gitlab.AuthURL
+	case "gitea":
+		return gitea.AuthURL
 	}
 	return ""
 }
@@ -211,14 +235,15 @@ func GetDefaultProfileURL(provider string) string {
 		return github.ProfileURL
 	case "gitlab":
 		return gitlab.ProfileURL
+	case "gitea":
+		return gitea.ProfileURL
 	}
 	return ""
 }
 
 // GetDefaultEmailURL return the default email url for the given provider
 func GetDefaultEmailURL(provider string) string {
-	switch provider {
-	case "github":
+	if provider == "github" {
 		return github.EmailURL
 	}
 	return ""

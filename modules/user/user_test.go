@@ -13,7 +13,7 @@ func getWhoamiOutput() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(string(output[:])), nil
+	return strings.TrimSpace(string(output)), nil
 }
 
 func TestCurrentUsername(t *testing.T) {

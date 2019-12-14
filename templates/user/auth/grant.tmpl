@@ -1,0 +1,31 @@
+{{template "base/head" .}}
+<div class="ui one column stackable center aligned page grid oauth2-authorize-application-box">
+	<div class="column seven wide">
+		<div class="ui middle centered raised segments">
+			<h3 class="ui top attached header">
+				{{.i18n.Tr "auth.authorize_title" .Application.Name}}
+			</h3>
+			<div class="ui attached segment">
+				{{template "base/alert" .}}
+				<p>
+					<b>{{.i18n.Tr "auth.authorize_application_description"}}</b><br/>
+					{{.i18n.Tr "auth.authorize_application_created_by" .ApplicationUserLink | Str2html}}
+				</p>
+			</div>
+			<div class="ui attached segment">
+				<p>{{.i18n.Tr "auth.authorize_redirect_notice" .ApplicationRedirectDomainHTML | Str2html}}</p>
+			</div>
+			<div class="ui attached segment">
+				<form method="post" action="{{AppSubUrl}}/login/oauth/grant">
+					{{.CsrfTokenHtml}}
+					<input type="hidden" name="client_id" value="{{.Application.ClientID}}">
+					<input type="hidden" name="state" value="{{.State}}">
+					<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
+					<input type="submit" id="authorize-app" value="{{.i18n.Tr "auth.authorize_application"}}" class="ui red inline button"/>
+					<a href="{{.RedirectURI}}" class="ui basic primary inline button">Cancel</a>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

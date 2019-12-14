@@ -30,7 +30,12 @@
 					{{range .Repos}}
 						<tr>
 							<td>{{.ID}}</td>
-							<td><a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a></td>
+							<td>
+								<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
+								{{if .Owner.Visibility.IsPrivate}}
+									<span class="text gold"><i class="octicon octicon-lock"></i></span>
+								{{end}}
+							</td>
 							<td><a href="{{AppSubUrl}}/{{.Owner.Name}}/{{.Name}}">{{.Name}}</a></td>
 							<td><i class="fa fa{{if .IsPrivate}}-check{{end}}-square-o"></i></td>
 							<td>{{.NumWatches}}</td>
@@ -39,7 +44,7 @@
 							<td>{{.NumIssues}}</td>
 							<td>{{SizeFmt .Size}}</td>
 							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
-							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Current}}" data-id="{{.ID}}" data-name="{{.Name}}"><i class="trash icon text red"></i></a></td>
+							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}"><i class="trash icon text red"></i></a></td>
 						</tr>
 					{{end}}
 				</tbody>

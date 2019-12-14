@@ -28,7 +28,7 @@
 						</div>
 					</div>
 
-					<div id="sql_settings" class="{{if or (eq .CurDbOption "SQLite3") (eq .CurDbOption "TiDB")}}hide{{end}}">
+					<div id="sql_settings" class="{{if or (eq .CurDbOption "SQLite3")}}hide{{end}}">
 						<div class="inline required field {{if .Err_DbSetting}}error{{end}}">
 							<label for="db_host">{{.i18n.Tr "install.host"}}</label>
 							<input id="db_host" name="db_host" value="{{.db_host}}">
@@ -59,6 +59,21 @@
 									<div class="item" data-value="disable">Disable</div>
 									<div class="item" data-value="require">Require</div>
 									<div class="item" data-value="verify-full">Verify Full</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div id="mysql_settings" class="{{if not (eq .CurDbOption "MySQL")}}hide{{end}}">
+						<div class="inline required field">
+							<label>{{.i18n.Tr "install.charset"}}</label>
+							<div class="ui selection database type dropdown">
+								<input type="hidden" name="charset" value="{{if .charset}}{{.charset}}{{else}}utf8{{end}}">
+								<div class="default text">utf8</div>
+								<i class="dropdown icon"></i>
+								<div class="menu">
+									<div class="item" data-value="utf8">utf8</div>
+									<div class="item" data-value="utf8mb4">utf8mb4</div>
 								</div>
 							</div>
 						</div>

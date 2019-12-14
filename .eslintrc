@@ -1,0 +1,53 @@
+root: true
+
+extends:
+  - eslint-config-airbnb-base
+  - eslint:recommended
+
+parserOptions:
+  ecmaVersion: 2020
+
+env:
+  browser: true
+  es6: true
+  jquery: true
+  node: true
+
+globals:
+  __webpack_public_path__: true
+  Clipboard: false
+  CodeMirror: false
+  Dropzone: false
+  emojify: false
+  hljs: false
+  SimpleMDE: false
+  u2fApi: false
+  Vue: false
+
+rules:
+  arrow-body-style: [0]
+  camelcase: [0]
+  comma-dangle: [2, only-multiline]
+  consistent-return: [0]
+  default-case: [0]
+  func-names: [0]
+  import/extensions: [0]
+  max-len: [0]
+  newline-per-chained-call: [0]
+  no-alert: [0]
+  no-continue: [0]
+  no-mixed-operators: [0]
+  no-multi-assign: [0]
+  no-new: [0]
+  no-param-reassign: [0]
+  no-plusplus: [0]
+  no-restricted-syntax: [0]
+  no-shadow: [0]
+  no-unused-vars: [2, {args: all, argsIgnorePattern: ^_, varsIgnorePattern: ^_, ignoreRestSiblings: true}]
+  no-use-before-define: [0]
+  no-var: [2]
+  one-var-declaration-per-line: [0]
+  one-var: [0]
+  prefer-const: [2, {destructuring: all}]
+  prefer-destructuring: [0]
+  radix: [2, as-needed]

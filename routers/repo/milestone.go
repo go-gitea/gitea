@@ -13,14 +13,13 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"github.com/Unknwon/paginater"
 )
 
 const (
 	tplMilestone       base.TplName = "repo/issue/milestones"
 	tplMilestoneNew    base.TplName = "repo/issue/milestone_new"
-	tplMilestoneEdit   base.TplName = "repo/issue/milestone_edit"
 	tplMilestoneIssues base.TplName = "repo/issue/milestone_issues"
 )
 
@@ -51,7 +50,6 @@ func Milestones(ctx *context.Context) {
 	} else {
 		total = int(closedCount)
 	}
-	ctx.Data["Page"] = paginater.New(total, setting.UI.IssuePagingNum, page, 5)
 
 	miles, err := models.GetMilestones(ctx.Repo.Repository.ID, page, isShowClosed, sortType)
 	if err != nil {
@@ -59,7 +57,7 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 	if ctx.Repo.Repository.IsTimetrackerEnabled() {
-		if miles.LoadTotalTrackedTimes(); err != nil {
+		if err := miles.LoadTotalTrackedTimes(); err != nil {
 			ctx.ServerError("LoadTotalTrackedTimes", err)
 			return
 		}
@@ -77,6 +75,11 @@ func Milestones(ctx *context.Context) {
 
 	ctx.Data["SortType"] = sortType
 	ctx.Data["IsShowClosed"] = isShowClosed
+
+	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
+	pager.AddParam(ctx, "state", "State")
+	ctx.Data["Page"] = pager
+
 	ctx.HTML(200, tplMilestone)
 }
 
@@ -118,7 +121,7 @@ func NewMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 		RepoID:       ctx.Repo.Repository.ID,
 		Name:         form.Title,
 		Content:      form.Content,
-		DeadlineUnix: util.TimeStamp(deadline.Unix()),
+		DeadlineUnix: timeutil.TimeStamp(deadline.Unix()),
 	}); err != nil {
 		ctx.ServerError("NewMilestone", err)
 		return
@@ -188,7 +191,7 @@ func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
 	}
 	m.Name = form.Title
 	m.Content = form.Content
-	m.DeadlineUnix = util.TimeStamp(deadline.Unix())
+	m.DeadlineUnix = timeutil.TimeStamp(deadline.Unix())
 	if err = models.UpdateMilestone(m); err != nil {
 		ctx.ServerError("UpdateMilestone", err)
 		return
@@ -221,7 +224,7 @@ func ChangeMilestonStatus(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=open")
 	case "close":
 		if !m.IsClosed {
-			m.ClosedDateUnix = util.TimeStampNow()
+			m.ClosedDateUnix = timeutil.TimeStampNow()
 			if err = models.ChangeMilestoneStatus(m, true); err != nil {
 				ctx.ServerError("ChangeMilestoneStatus", err)
 				return
@@ -251,6 +254,11 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	milestoneID := ctx.ParamsInt64(":id")
 	milestone, err := models.GetMilestoneByID(milestoneID)
 	if err != nil {
+		if models.IsErrMilestoneNotExist(err) {
+			ctx.NotFound("GetMilestoneByID", err)
+			return
+		}
+
 		ctx.ServerError("GetMilestoneByID", err)
 		return
 	}
@@ -259,6 +267,14 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["Milestone"] = milestone
 
 	issues(ctx, milestoneID, util.OptionalBoolNone)
+
+	perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+	ctx.Data["CanWriteIssues"] = perm.CanWriteIssuesOrPulls(false)
+	ctx.Data["CanWritePulls"] = perm.CanWriteIssuesOrPulls(true)
 
 	ctx.HTML(200, tplMilestoneIssues)
 }

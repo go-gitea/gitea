@@ -20,10 +20,10 @@ file can be unpacked and used to restore an instance.
 
 ## Backup Command (`dump`)
 
-Switch to the user running gitea: `su git`. Run `./gitea dump -c /path/to/app.ini` in the gitea installation
+Switch to the user running Gitea: `su git`. Run `./gitea dump -c /path/to/app.ini` in the Gitea installation
 directory. There should be some output similar to the following:
 
-```
+```none
 2016/12/27 22:32:09 Creating tmp work dir: /tmp/gitea-dump-417443001
 2016/12/27 22:32:09 Dumping local repositories.../home/git/gitea-repositories
 2016/12/27 22:32:22 Dumping database...
@@ -34,7 +34,8 @@ directory. There should be some output similar to the following:
 
 Inside the `gitea-dump-1482906742.zip` file, will be the following:
 
-* `custom` - All config or customerize files in `custom/`.
+* `app.ini` - Optional copy of configuration file if originally stored outside of the default `custom/` directory
+* `custom` - All config or customization files in `custom/`.
 * `data` - Data directory in <GITEA_WORK_DIR>, except sessions if you are using file session. This directory includes `attachments`, `avatars`, `lfs`, `indexers`, sqlite file if you are using sqlite.
 * `gitea-db.sql` - SQL dump of database
 * `gitea-repo.zip` - Complete copy of the repository directory.
@@ -43,17 +44,34 @@ Inside the `gitea-dump-1482906742.zip` file, will be the following:
 Intermediate backup files are created in a temporary directory specified either with the
 `--tempdir` command-line parameter or the `TMPDIR` environment variable.
 
+### Using Docker (`dump`)
+
+There are a few caveats for using the `dump` command with Docker.
+
+The command has to be executed with the `RUN_USER = <OS_USERNAME>` specified in `gitea/conf/app.ini`; and, for the zipping of the backup folder to occur without permission error the command `docker exec` must be executed inside of the `--tempdir`.
+
+Example:
+
+```none
+docker exec -u <OS_USERNAME> -it -w <--tempdir> $(docker ps -qf "name=<NAME_OF_DOCKER_CONTAINER>") bash -c '/app/gitea/gitea dump -c </path/to/app.ini>'
+```
+
+*Note: `--tempdir` refers to the temporary directory of the docker environment used by Gitea; if you have not specified a custom `--tempdir`, then Gitea uses `/tmp` or the `TMPDIR` environment variable of the docker container. For `--tempdir` adjust your `docker exec` command options accordingly.
+
+The result should be a file, stored in the `--tempdir` specified, along the lines of: `gitea-dump-1482906742.zip`
+
 ## Restore Command (`restore`)
 
 There is currently no support for a recovery command. It is a manual process that mostly
 involves moving files to their correct locations and restoring a database dump.
 
 Example:
-```
+
+```none
 apt-get install gitea
 unzip gitea-dump-1482906742.zip
 cd gitea-dump-1482906742
-mv custom/conf/app.ini /etc/gitea/conf/app.ini
+mv custom/conf/app.ini /etc/gitea/conf/app.ini # or mv app.ini /etc/gitea/conf/app.ini
 unzip gitea-repo.zip
 mv gitea-repo/* /var/lib/gitea/repositories/
 chown -R gitea:gitea /etc/gitea/conf/app.ini /var/lib/gitea/repositories/
@@ -61,3 +79,9 @@ mysql -u$USER -p$PASS $DATABASE <gitea-db.sql
 # or  sqlite3 $DATABASE_PATH <gitea-db.sql
 service gitea restart
 ```
+
+Repository git-hooks should be regenerated if installation method is changed (eg. binary -> Docker), or if Gitea is installed to a different directory than the previous installation.
+
+With Gitea running, and from the directory Gitea's binary is located, execute: `./gitea admin regenerate hooks`
+
+This ensures that application and configuration file paths in repository git-hooks are consistent and applicable to the current installation. If these paths are not updated, repository `push` actions will fail.

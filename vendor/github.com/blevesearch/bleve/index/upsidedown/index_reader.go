@@ -15,10 +15,19 @@
 package upsidedown
 
 import (
+	"reflect"
+
 	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/index/store"
 )
+
+var reflectStaticSizeIndexReader int
+
+func init() {
+	var ir IndexReader
+	reflectStaticSizeIndexReader = int(reflect.TypeOf(ir).Size())
+}
 
 type IndexReader struct {
 	index    *UpsideDownCouch
@@ -200,4 +209,18 @@ func incrementBytes(in []byte) []byte {
 		}
 	}
 	return rv
+}
+
+func (i *IndexReader) DocValueReader(fields []string) (index.DocValueReader, error) {
+	return &DocValueReader{i: i, fields: fields}, nil
+}
+
+type DocValueReader struct {
+	i      *IndexReader
+	fields []string
+}
+
+func (dvr *DocValueReader) VisitDocValues(id index.IndexInternalID,
+	visitor index.DocumentFieldTermVisitor) error {
+	return dvr.i.DocumentVisitFieldTerms(id, dvr.fields, visitor)
 }

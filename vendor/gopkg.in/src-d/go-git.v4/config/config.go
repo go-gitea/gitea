@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 
+	"gopkg.in/src-d/go-git.v4/internal/url"
 	format "gopkg.in/src-d/go-git.v4/plumbing/format/config"
 )
 
@@ -119,6 +120,7 @@ const (
 	commentCharKey   = "commentChar"
 	windowKey        = "window"
 	mergeKey         = "merge"
+	rebaseKey        = "rebase"
 
 	// DefaultPackWindow holds the number of previous objects used to
 	// generate deltas. The value 10 is the same used by git command.
@@ -398,4 +400,8 @@ func (c *RemoteConfig) marshal() *format.Subsection {
 	}
 
 	return c.raw
+}
+
+func (c *RemoteConfig) IsFirstURLLocal() bool {
+	return url.IsLocalEndpoint(c.URLs[0])
 }

@@ -8,8 +8,10 @@
   num_closed_issues: 1
   num_pulls: 2
   num_closed_pulls: 0
-  num_milestones: 2
-  num_watches: 3
+  num_milestones: 3
+  num_closed_milestones: 1
+  num_watches: 4
+  status: 0
 
 -
   id: 2
@@ -17,11 +19,13 @@
   lower_name: repo2
   name: repo2
   is_private: true
-  num_issues: 1
+  num_issues: 2
   num_closed_issues: 1
   num_pulls: 0
   num_closed_pulls: 0
   num_stars: 1
+  close_issues_via_commit_in_any_branch: true
+  status: 0
 
 -
   id: 3
@@ -34,6 +38,7 @@
   num_pulls: 0
   num_closed_pulls: 0
   num_watches: 0
+  status: 0
 
 -
   id: 4
@@ -46,6 +51,7 @@
   num_pulls: 0
   num_closed_pulls: 0
   num_stars: 1
+  status: 0
 
 -
   id: 5
@@ -59,6 +65,7 @@
   num_closed_pulls: 0
   num_watches: 0
   is_mirror: true
+  status: 0
 
 -
   id: 6
@@ -71,6 +78,7 @@
   num_pulls: 0
   num_closed_pulls: 0
   is_mirror: false
+  status: 0
 
 -
   id: 7
@@ -83,6 +91,7 @@
   num_pulls: 0
   num_closed_pulls: 0
   is_mirror: false
+  status: 0
 
 -
   id: 8
@@ -95,6 +104,7 @@
   num_pulls: 0
   num_closed_pulls: 0
   is_mirror: false
+  status: 0
 
 -
   id: 9
@@ -107,6 +117,7 @@
   num_pulls: 0
   num_closed_pulls: 0
   is_mirror: false
+  status: 0
 
 -
   id: 10
@@ -116,10 +127,11 @@
   is_private: false
   num_issues: 0
   num_closed_issues: 0
-  num_pulls: 0
+  num_pulls: 1
   num_closed_pulls: 0
   is_mirror: false
   num_forks: 1
+  status: 0
 
 -
   id: 11
@@ -133,6 +145,7 @@
   num_pulls: 0
   num_closed_pulls: 0
   is_mirror: false
+  status: 0
 
 -
   id: 12
@@ -145,6 +158,7 @@
   num_pulls: 0
   num_closed_pulls: 0
   is_mirror: false
+  status: 0
 
 -
   id: 13
@@ -157,25 +171,29 @@
   num_pulls: 0
   num_closed_pulls: 0
   is_mirror: false
+  status: 0
 
 -
   id: 14
   owner_id: 14
   lower_name: test_repo_14
   name: test_repo_14
+  description: test_description_14
   is_private: false
   num_issues: 0
   num_closed_issues: 0
   num_pulls: 0
   num_closed_pulls: 0
   is_mirror: false
+  status: 0
 
 -
   id: 15
   owner_id: 2
   lower_name: repo15
   name: repo15
-  is_bare: true
+  is_empty: true
+  status: 0
 
 -
   id: 16
@@ -188,6 +206,7 @@
   num_pulls: 0
   num_closed_pulls: 0
   num_watches: 0
+  status: 0
 
 -
   id: 17
@@ -202,6 +221,7 @@
   num_watches: 0
   is_mirror: false
   is_fork: false
+  status: 0
 
 -
   id: 18
@@ -215,6 +235,7 @@
   num_closed_pulls: 0
   is_mirror: false
   is_fork: false
+  status: 0
 
 -
   id: 19
@@ -228,6 +249,7 @@
   num_closed_pulls: 0
   is_mirror: false
   is_fork: false
+  status: 0
 
 -
   id: 20
@@ -241,6 +263,7 @@
   num_closed_pulls: 0
   is_mirror: false
   is_fork: false
+  status: 0
 
 -
   id: 21
@@ -254,6 +277,7 @@
   num_closed_pulls: 0
   is_mirror: false
   is_fork: false
+  status: 0
 
 -
   id: 22
@@ -267,6 +291,7 @@
   num_closed_pulls: 0
   is_mirror: false
   is_fork: false
+  status: 0
 
 -
   id: 23
@@ -280,6 +305,7 @@
   num_closed_pulls: 0
   is_mirror: false
   is_fork: false
+  status: 0
 
 -
   id: 24
@@ -293,6 +319,7 @@
   num_closed_pulls: 0
   is_mirror: false
   is_fork: false
+  status: 0
 
 -
   id: 25
@@ -307,6 +334,7 @@
   num_watches: 0
   is_mirror: true
   is_fork: false
+  status: 0
 
 -
   id: 26
@@ -321,6 +349,7 @@
   num_watches: 0
   is_mirror: true
   is_fork: false
+  status: 0
 
 -
   id: 27
@@ -336,6 +365,7 @@
   is_mirror: true
   num_forks: 1
   is_fork: false
+  status: 0
 
 -
   id: 28
@@ -351,6 +381,7 @@
   is_mirror: true
   num_forks: 1
   is_fork: false
+  status: 0
 
 -
   id: 29
@@ -365,6 +396,7 @@
   num_closed_pulls: 0
   is_mirror: false
   is_fork: true
+  status: 0
 
 -
   id: 30
@@ -379,6 +411,7 @@
   num_closed_pulls: 0
   is_mirror: false
   is_fork: true
+  status: 0
 
 -
   id: 31
@@ -389,6 +422,7 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+  status: 0
 
 -
   id: 32 # org public repo
@@ -400,6 +434,7 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+  status: 0
 
 -
   id: 33
@@ -407,6 +442,7 @@
   lower_name: utf8
   name: utf8
   is_private: false
+  status: 0
 
 -
   id: 34
@@ -418,6 +454,7 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+  status: 0
 
 -
   id: 35
@@ -429,3 +466,161 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+  status: 0
+
+-
+  id: 36
+  owner_id: 2
+  lower_name: commits_search_test
+  name: commits_search_test
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+-
+  id: 37
+  owner_id: 2
+  lower_name: git_hooks_test
+  name: git_hooks_test
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+-
+  id: 38
+  owner_id: 22
+  lower_name: public_repo_on_limited_org
+  name: public_repo_on_limited_org
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+-
+  id: 39
+  owner_id: 22
+  lower_name: private_repo_on_limited_org
+  name: private_repo_on_limited_org
+  is_private: true
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+-
+  id: 40
+  owner_id: 23
+  lower_name: public_repo_on_private_org
+  name: public_repo_on_private_org
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+-
+  id: 41
+  owner_id: 23
+  lower_name: private_repo_on_private_org
+  name: private_repo_on_private_org
+  is_private: true
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+
+-
+  id: 42
+  owner_id: 2
+  lower_name: glob
+  name: glob
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+
+-
+  id: 43
+  owner_id: 26
+  lower_name: repo26
+  name: repo26
+  is_private: true
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+-
+  id: 44
+  owner_id: 27
+  lower_name: template1
+  name: template1
+  is_private: false
+  is_template: true
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+-
+  id: 45
+  owner_id: 27
+  lower_name: template2
+  name: template2
+  is_private: false
+  is_template: true
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+- 
+  id: 46
+  owner_id: 26
+  lower_name: repo_external_tracker
+  name: repo_external_tracker
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+- 
+  id: 47
+  owner_id: 26
+  lower_name: repo_external_tracker_numeric
+  name: repo_external_tracker_numeric
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+- 
+  id: 48
+  owner_id: 26
+  lower_name: repo_external_tracker_alpha
+  name: repo_external_tracker_alpha
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  num_pulls: 1
+  is_mirror: false
+  status: 0

@@ -1,0 +1,26 @@
+.CodeMirror {
+    font: 14px @monospaced-fonts, monospace;
+
+    &.cm-s-default {
+        border-radius: 3px;
+        padding: 0 !important;
+    }
+
+    .cm-comment {
+        background: inherit !important;
+    }
+}
+
+.repository.file.editor .tab[data-tab="write"] {
+    padding: 0 !important;
+}
+
+.repository.file.editor .tab[data-tab="write"] .editor-toolbar {
+    border: 0 !important;
+}
+
+.repository.file.editor .tab[data-tab="write"] .CodeMirror {
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+}

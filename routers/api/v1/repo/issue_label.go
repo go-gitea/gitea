@@ -8,8 +8,8 @@ package repo
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // ListIssueLabels list all the labels of an issue
@@ -44,10 +44,15 @@ func ListIssueLabels(ctx *context.APIContext) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if err := issue.LoadAttributes(); err != nil {
+		ctx.Error(500, "LoadAttributes", err)
 		return
 	}
 
@@ -94,7 +99,7 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
@@ -112,7 +117,7 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 		return
 	}
 
-	if err = issue.AddLabels(ctx.User, labels); err != nil {
+	if err = issue_service.AddLabels(issue, ctx.User, labels); err != nil {
 		ctx.Error(500, "AddLabels", err)
 		return
 	}
@@ -166,7 +171,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
@@ -232,7 +237,7 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
@@ -298,7 +303,7 @@ func ClearIssueLabels(ctx *context.APIContext) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetIssueByIndex", err)
 		}
@@ -310,7 +315,7 @@ func ClearIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	if err := issue.ClearLabels(ctx.User); err != nil {
+	if err := issue_service.ClearLabels(issue, ctx.User); err != nil {
 		ctx.Error(500, "ClearLabels", err)
 		return
 	}

@@ -15,6 +15,7 @@
 package search
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -36,6 +37,8 @@ type SearchSort interface {
 	RequiresDocID() bool
 	RequiresScoring() bool
 	RequiresFields() []string
+
+	Reverse()
 
 	Copy() SearchSort
 }
@@ -251,23 +254,21 @@ func (so SortOrder) Compare(cachedScoring, cachedDesc []bool, i, j *DocumentMatc
 }
 
 func (so SortOrder) RequiresScore() bool {
-	rv := false
 	for _, soi := range so {
 		if soi.RequiresScoring() {
-			rv = true
+			return true
 		}
 	}
-	return rv
+	return false
 }
 
 func (so SortOrder) RequiresDocID() bool {
-	rv := false
 	for _, soi := range so {
 		if soi.RequiresDocID() {
-			rv = true
+			return true
 		}
 	}
-	return rv
+	return false
 }
 
 func (so SortOrder) RequiredFields() []string {
@@ -279,7 +280,7 @@ func (so SortOrder) RequiredFields() []string {
 }
 
 func (so SortOrder) CacheIsScore() []bool {
-	var rv []bool
+	rv := make([]bool, 0, len(so))
 	for _, soi := range so {
 		rv = append(rv, soi.RequiresScoring())
 	}
@@ -287,11 +288,17 @@ func (so SortOrder) CacheIsScore() []bool {
 }
 
 func (so SortOrder) CacheDescending() []bool {
-	var rv []bool
+	rv := make([]bool, 0, len(so))
 	for _, soi := range so {
 		rv = append(rv, soi.Descending())
 	}
 	return rv
+}
+
+func (so SortOrder) Reverse() {
+	for _, soi := range so {
+		soi.Reverse()
+	}
 }
 
 // SortFieldType lets you control some internal sort behavior
@@ -344,14 +351,15 @@ type SortField struct {
 	Type    SortFieldType
 	Mode    SortFieldMode
 	Missing SortFieldMissing
-	values  []string
+	values  [][]byte
+	tmp     [][]byte
 }
 
 // UpdateVisitor notifies this sort field that in this document
 // this field has the specified term
 func (s *SortField) UpdateVisitor(field string, term []byte) {
 	if field == s.Field {
-		s.values = append(s.values, string(term))
+		s.values = append(s.values, term)
 	}
 }
 
@@ -361,7 +369,7 @@ func (s *SortField) UpdateVisitor(field string, term []byte) {
 func (s *SortField) Value(i *DocumentMatch) string {
 	iTerms := s.filterTermsByType(s.values)
 	iTerm := s.filterTermsByMode(iTerms)
-	s.values = nil
+	s.values = s.values[:0]
 	return iTerm
 }
 
@@ -370,17 +378,17 @@ func (s *SortField) Descending() bool {
 	return s.Desc
 }
 
-func (s *SortField) filterTermsByMode(terms []string) string {
+func (s *SortField) filterTermsByMode(terms [][]byte) string {
 	if len(terms) == 1 || (len(terms) > 1 && s.Mode == SortFieldDefault) {
-		return terms[0]
+		return string(terms[0])
 	} else if len(terms) > 1 {
 		switch s.Mode {
 		case SortFieldMin:
-			sort.Strings(terms)
-			return terms[0]
+			sort.Sort(BytesSlice(terms))
+			return string(terms[0])
 		case SortFieldMax:
-			sort.Strings(terms)
-			return terms[len(terms)-1]
+			sort.Sort(BytesSlice(terms))
+			return string(terms[len(terms)-1])
 		}
 	}
 
@@ -402,13 +410,13 @@ func (s *SortField) filterTermsByMode(terms []string) string {
 // return only the terms which had shift of 0
 // if we are in explicit number or date mode, return only valid
 // prefix coded numbers with shift of 0
-func (s *SortField) filterTermsByType(terms []string) []string {
+func (s *SortField) filterTermsByType(terms [][]byte) [][]byte {
 	stype := s.Type
 	if stype == SortFieldAuto {
 		allTermsPrefixCoded := true
-		var termsWithShiftZero []string
+		termsWithShiftZero := s.tmp[:0]
 		for _, term := range terms {
-			valid, shift := numeric.ValidPrefixCodedTerm(term)
+			valid, shift := numeric.ValidPrefixCodedTermBytes(term)
 			if valid && shift == 0 {
 				termsWithShiftZero = append(termsWithShiftZero, term)
 			} else if !valid {
@@ -417,16 +425,18 @@ func (s *SortField) filterTermsByType(terms []string) []string {
 		}
 		if allTermsPrefixCoded {
 			terms = termsWithShiftZero
+			s.tmp = termsWithShiftZero[:0]
 		}
 	} else if stype == SortFieldAsNumber || stype == SortFieldAsDate {
-		var termsWithShiftZero []string
+		termsWithShiftZero := s.tmp[:0]
 		for _, term := range terms {
-			valid, shift := numeric.ValidPrefixCodedTerm(term)
+			valid, shift := numeric.ValidPrefixCodedTermBytes(term)
 			if valid && shift == 0 {
 				termsWithShiftZero = append(termsWithShiftZero, term)
 			}
 		}
 		terms = termsWithShiftZero
+		s.tmp = termsWithShiftZero[:0]
 	}
 	return terms
 }
@@ -486,9 +496,17 @@ func (s *SortField) MarshalJSON() ([]byte, error) {
 }
 
 func (s *SortField) Copy() SearchSort {
-	var rv SortField
-	rv = *s
+	rv := *s
 	return &rv
+}
+
+func (s *SortField) Reverse() {
+	s.Desc = !s.Desc
+	if s.Missing == SortFieldMissingFirst {
+		s.Missing = SortFieldMissingLast
+	} else {
+		s.Missing = SortFieldMissingFirst
+	}
 }
 
 // SortDocID will sort results by the document identifier
@@ -499,7 +517,6 @@ type SortDocID struct {
 // UpdateVisitor is a no-op for SortDocID as it's value
 // is not dependent on any field terms
 func (s *SortDocID) UpdateVisitor(field string, term []byte) {
-
 }
 
 // Value returns the sort value of the DocumentMatch
@@ -529,9 +546,12 @@ func (s *SortDocID) MarshalJSON() ([]byte, error) {
 }
 
 func (s *SortDocID) Copy() SearchSort {
-	var rv SortDocID
-	rv = *s
+	rv := *s
 	return &rv
+}
+
+func (s *SortDocID) Reverse() {
+	s.Desc = !s.Desc
 }
 
 // SortScore will sort results by the document match score
@@ -542,7 +562,6 @@ type SortScore struct {
 // UpdateVisitor is a no-op for SortScore as it's value
 // is not dependent on any field terms
 func (s *SortScore) UpdateVisitor(field string, term []byte) {
-
 }
 
 // Value returns the sort value of the DocumentMatch
@@ -572,9 +591,12 @@ func (s *SortScore) MarshalJSON() ([]byte, error) {
 }
 
 func (s *SortScore) Copy() SearchSort {
-	var rv SortScore
-	rv = *s
+	rv := *s
 	return &rv
+}
+
+func (s *SortScore) Reverse() {
+	s.Desc = !s.Desc
 }
 
 var maxDistance = string(numeric.MustNewPrefixCodedInt64(math.MaxInt64, 0))
@@ -583,7 +605,6 @@ var maxDistance = string(numeric.MustNewPrefixCodedInt64(math.MaxInt64, 0))
 // their distance from the specified point.
 func NewSortGeoDistance(field, unit string, lon, lat float64, desc bool) (
 	*SortGeoDistance, error) {
-
 	rv := &SortGeoDistance{
 		Field: field,
 		Desc:  desc,
@@ -627,7 +648,7 @@ func (s *SortGeoDistance) UpdateVisitor(field string, term []byte) {
 func (s *SortGeoDistance) Value(i *DocumentMatch) string {
 	iTerms := s.filterTermsByType(s.values)
 	iTerm := s.filterTermsByMode(iTerms)
-	s.values = nil
+	s.values = s.values[:0]
 
 	if iTerm == "" {
 		return maxDistance
@@ -705,7 +726,16 @@ func (s *SortGeoDistance) MarshalJSON() ([]byte, error) {
 }
 
 func (s *SortGeoDistance) Copy() SearchSort {
-	var rv SortGeoDistance
-	rv = *s
+	rv := *s
 	return &rv
 }
+
+func (s *SortGeoDistance) Reverse() {
+	s.Desc = !s.Desc
+}
+
+type BytesSlice [][]byte
+
+func (p BytesSlice) Len() int           { return len(p) }
+func (p BytesSlice) Less(i, j int) bool { return bytes.Compare(p[i], p[j]) < 0 }
+func (p BytesSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }

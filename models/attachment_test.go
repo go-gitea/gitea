@@ -5,10 +5,39 @@
 package models
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestUploadAttachment(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+
+	var fPath = "./attachment_test.go"
+	f, err := os.Open(fPath)
+	assert.NoError(t, err)
+	defer f.Close()
+
+	var buf = make([]byte, 1024)
+	n, err := f.Read(buf)
+	assert.NoError(t, err)
+	buf = buf[:n]
+
+	attach, err := NewAttachment(&Attachment{
+		UploaderID: user.ID,
+		Name:       filepath.Base(fPath),
+	}, buf, f)
+	assert.NoError(t, err)
+
+	attachment, err := GetAttachmentByUUID(attach.UUID)
+	assert.NoError(t, err)
+	assert.EqualValues(t, user.ID, attachment.UploaderID)
+	assert.Equal(t, int64(0), attachment.DownloadCount)
+}
 
 func TestIncreaseDownloadCount(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
@@ -86,4 +115,16 @@ func TestUpdateAttachment(t *testing.T) {
 	assert.NoError(t, UpdateAttachment(attach))
 
 	AssertExistsAndLoadBean(t, &Attachment{Name: "new_name"})
+}
+
+func TestGetAttachmentsByUUIDs(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	attachList, err := GetAttachmentsByUUIDs([]string{"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", "not-existing-uuid"})
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(attachList))
+	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attachList[0].UUID)
+	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", attachList[1].UUID)
+	assert.Equal(t, int64(1), attachList[0].IssueID)
+	assert.Equal(t, int64(5), attachList[1].IssueID)
 }

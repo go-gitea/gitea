@@ -16,11 +16,20 @@ package document
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/blevesearch/bleve/analysis"
 	"github.com/blevesearch/bleve/geo"
 	"github.com/blevesearch/bleve/numeric"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeGeoPointField int
+
+func init() {
+	var f GeoPointField
+	reflectStaticSizeGeoPointField = int(reflect.TypeOf(f).Size())
+}
 
 var GeoPrecisionStep uint = 9
 
@@ -30,6 +39,12 @@ type GeoPointField struct {
 	options           IndexingOptions
 	value             numeric.PrefixCoded
 	numPlainTextBytes uint64
+}
+
+func (n *GeoPointField) Size() int {
+	return reflectStaticSizeGeoPointField + size.SizeOfPtr +
+		len(n.name) +
+		len(n.arrayPositions)*size.SizeOfUint64
 }
 
 func (n *GeoPointField) Name() string {

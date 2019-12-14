@@ -1,20 +1,16 @@
 # Gitea: Docs
 
-[![Build Status](http://drone.gitea.io/api/badges/go-gitea/docs/status.svg)](http://drone.gitea.io/go-gitea/docs)
-[![Join the chat at https://img.shields.io/discord/322538954119184384.svg](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/NsatcWJ)
+[![Join the chat at https://img.shields.io/discord/322538954119184384.svg](https://img.shields.io/discord/322538954119184384.svg)](https://discord.gg/Gitea)
 [![](https://images.microbadger.com/badges/image/gitea/docs.svg)](http://microbadger.com/images/gitea/docs "Get your own image badge on microbadger.com")
 
 ## Hosting
 
-This page is hosted on our infrastructure within Docker containers, it gets
+These pages are hosted using [netlifycms](https://www.netlifycms.org/) and get
 automatically updated on every push to the `master` branch.
-
-If you want to host this page on your own you can take our docker image
-[gitea/docs](https://hub.docker.com/r/gitea/docs/).
 
 ## Install
 
-This pages uses the [Hugo](https://github.com/spf13/hugo) static site generator.
+These pages use the [Hugo](https://gohugo.io/) static site generator.
 If you are planning to contribute you'll want to download and install Hugo on
 your local machine.
 

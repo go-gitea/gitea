@@ -53,22 +53,51 @@ func NewNumericRangeSearcher(indexReader index.IndexReader,
 	if !*inclusiveMax && maxInt64 != math.MinInt64 {
 		maxInt64--
 	}
+
+	var fieldDict index.FieldDictContains
+	var isIndexed filterFunc
+	var err error
+	if irr, ok := indexReader.(index.IndexReaderContains); ok {
+		fieldDict, err = irr.FieldDictContains(field)
+		if err != nil {
+			return nil, err
+		}
+
+		isIndexed = func(term []byte) bool {
+			found, err := fieldDict.Contains(term)
+			return err == nil && found
+		}
+	}
+
 	// FIXME hard-coded precision, should match field declaration
 	termRanges := splitInt64Range(minInt64, maxInt64, 4)
-	terms := termRanges.Enumerate()
+	terms := termRanges.Enumerate(isIndexed)
+	if fieldDict != nil {
+		if fd, ok := fieldDict.(index.FieldDict); ok {
+			cerr := fd.Close()
+			if cerr != nil {
+				err = cerr
+			}
+		}
+	}
+
 	if len(terms) < 1 {
 		// cannot return MatchNoneSearcher because of interaction with
 		// commit f391b991c20f02681bacd197afc6d8aed444e132
 		return NewMultiTermSearcherBytes(indexReader, terms, field, boost, options,
 			true)
 	}
-	var err error
-	terms, err = filterCandidateTerms(indexReader, terms, field)
-	if err != nil {
-		return nil, err
+
+	// for upside_down
+	if isIndexed == nil {
+		terms, err = filterCandidateTerms(indexReader, terms, field)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	if tooManyClauses(len(terms)) {
-		return nil, tooManyClausesErr()
+		return nil, tooManyClausesErr(len(terms))
 	}
 
 	return NewMultiTermSearcherBytes(indexReader, terms, field, boost, options,
@@ -77,6 +106,25 @@ func NewNumericRangeSearcher(indexReader index.IndexReader,
 
 func filterCandidateTerms(indexReader index.IndexReader,
 	terms [][]byte, field string) (rv [][]byte, err error) {
+
+	if ir, ok := indexReader.(index.IndexReaderOnly); ok {
+		fieldDict, err := ir.FieldDictOnly(field, terms, false)
+		if err != nil {
+			return nil, err
+		}
+		// enumerate the terms (no need to check them again)
+		tfd, err := fieldDict.Next()
+		for err == nil && tfd != nil {
+			rv = append(rv, []byte(tfd.Term))
+			tfd, err = fieldDict.Next()
+		}
+		if cerr := fieldDict.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+
+		return rv, err
+	}
+
 	fieldDict, err := indexReader.FieldDictRange(field, terms[0], terms[len(terms)-1])
 	if err != nil {
 		return nil, err
@@ -106,11 +154,17 @@ type termRange struct {
 	endTerm   []byte
 }
 
-func (t *termRange) Enumerate() [][]byte {
+func (t *termRange) Enumerate(filter filterFunc) [][]byte {
 	var rv [][]byte
 	next := t.startTerm
 	for bytes.Compare(next, t.endTerm) <= 0 {
-		rv = append(rv, next)
+		if filter != nil {
+			if filter(next) {
+				rv = append(rv, next)
+			}
+		} else {
+			rv = append(rv, next)
+		}
 		next = incrementBytes(next)
 	}
 	return rv
@@ -131,10 +185,10 @@ func incrementBytes(in []byte) []byte {
 
 type termRanges []*termRange
 
-func (tr termRanges) Enumerate() [][]byte {
+func (tr termRanges) Enumerate(filter filterFunc) [][]byte {
 	var rv [][]byte
 	for _, tri := range tr {
-		trie := tri.Enumerate()
+		trie := tri.Enumerate(filter)
 		rv = append(rv, trie...)
 	}
 	return rv

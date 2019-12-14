@@ -112,20 +112,23 @@ func (d MySQLDriver) Open(dsn string) (driver.Conn, error) {
 		mc.cleanup()
 		return nil, err
 	}
+	if plugin == "" {
+		plugin = defaultAuthPlugin
+	}
 
 	// Send Client Authentication Packet
-	authResp, addNUL, err := mc.auth(authData, plugin)
+	authResp, err := mc.auth(authData, plugin)
 	if err != nil {
 		// try the default auth plugin, if using the requested plugin failed
 		errLog.Print("could not use requested auth plugin '"+plugin+"': ", err.Error())
 		plugin = defaultAuthPlugin
-		authResp, addNUL, err = mc.auth(authData, plugin)
+		authResp, err = mc.auth(authData, plugin)
 		if err != nil {
 			mc.cleanup()
 			return nil, err
 		}
 	}
-	if err = mc.writeHandshakeResponsePacket(authResp, addNUL, plugin); err != nil {
+	if err = mc.writeHandshakeResponsePacket(authResp, plugin); err != nil {
 		mc.cleanup()
 		return nil, err
 	}

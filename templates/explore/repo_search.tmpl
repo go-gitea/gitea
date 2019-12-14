@@ -23,6 +23,7 @@
     <div class="ui fluid action input">
         <input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
         <input type="hidden" name="tab" value="{{$.TabName}}">
+        <input type="hidden" name="sort" value="{{$.SortType}}">
         <button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
     </div>
 </form>

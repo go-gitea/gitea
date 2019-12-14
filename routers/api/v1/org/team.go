@@ -1,15 +1,18 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package org
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/routers/api/v1/convert"
+	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/log"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
 )
 
@@ -37,7 +40,47 @@ func ListTeams(ctx *context.APIContext) {
 
 	apiTeams := make([]*api.Team, len(org.Teams))
 	for i := range org.Teams {
+		if err := org.Teams[i].GetUnits(); err != nil {
+			ctx.Error(500, "GetUnits", err)
+			return
+		}
+
 		apiTeams[i] = convert.ToTeam(org.Teams[i])
+	}
+	ctx.JSON(200, apiTeams)
+}
+
+// ListUserTeams list all the teams a user belongs to
+func ListUserTeams(ctx *context.APIContext) {
+	// swagger:operation GET /user/teams user userListTeams
+	// ---
+	// summary: List all the teams a user belongs to
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/TeamList"
+	teams, err := models.GetUserTeams(ctx.User.ID)
+	if err != nil {
+		ctx.Error(500, "GetUserTeams", err)
+		return
+	}
+
+	cache := make(map[int64]*api.Organization)
+	apiTeams := make([]*api.Team, len(teams))
+	for i := range teams {
+		apiOrg, ok := cache[teams[i].OrgID]
+		if !ok {
+			org, err := models.GetUserByID(teams[i].OrgID)
+			if err != nil {
+				ctx.Error(500, "GetUserByID", err)
+				return
+			}
+			apiOrg = convert.ToOrganization(org)
+			cache[teams[i].OrgID] = apiOrg
+		}
+		apiTeams[i] = convert.ToTeam(teams[i])
+		apiTeams[i].Organization = apiOrg
 	}
 	ctx.JSON(200, apiTeams)
 }
@@ -85,10 +128,12 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 	//   "201":
 	//     "$ref": "#/responses/Team"
 	team := &models.Team{
-		OrgID:       ctx.Org.Organization.ID,
-		Name:        form.Name,
-		Description: form.Description,
-		Authorize:   models.ParseAccessMode(form.Permission),
+		OrgID:                   ctx.Org.Organization.ID,
+		Name:                    form.Name,
+		Description:             form.Description,
+		IncludesAllRepositories: form.IncludesAllRepositories,
+		CanCreateOrgRepo:        form.CanCreateOrgRepo,
+		Authorize:               models.ParseAccessMode(form.Permission),
 	}
 
 	unitTypes := models.FindUnitTypes(form.Units...)
@@ -139,23 +184,40 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	//   "200":
 	//     "$ref": "#/responses/Team"
 	team := ctx.Org.Team
-	team.Name = form.Name
 	team.Description = form.Description
-	team.Authorize = models.ParseAccessMode(form.Permission)
 	unitTypes := models.FindUnitTypes(form.Units...)
+	team.CanCreateOrgRepo = form.CanCreateOrgRepo
+
+	isAuthChanged := false
+	isIncludeAllChanged := false
+	if !team.IsOwnerTeam() {
+		// Validate permission level.
+		auth := models.ParseAccessMode(form.Permission)
+
+		team.Name = form.Name
+		if team.Authorize != auth {
+			isAuthChanged = true
+			team.Authorize = auth
+		}
+
+		if team.IncludesAllRepositories != form.IncludesAllRepositories {
+			isIncludeAllChanged = true
+			team.IncludesAllRepositories = form.IncludesAllRepositories
+		}
+	}
 
 	if team.Authorize < models.AccessModeOwner {
 		var units = make([]*models.TeamUnit, 0, len(form.Units))
 		for _, tp := range unitTypes {
 			units = append(units, &models.TeamUnit{
-				OrgID: ctx.Org.Organization.ID,
+				OrgID: ctx.Org.Team.OrgID,
 				Type:  tp,
 			})
 		}
 		team.Units = units
 	}
 
-	if err := models.UpdateTeam(team, true); err != nil {
+	if err := models.UpdateTeam(team, isAuthChanged, isIncludeAllChanged); err != nil {
 		ctx.Error(500, "EditTeam", err)
 		return
 	}
@@ -206,7 +268,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 		ctx.Error(500, "IsOrganizationMember", err)
 		return
 	} else if !isMember {
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	team := ctx.Org.Team
@@ -216,9 +278,47 @@ func GetTeamMembers(ctx *context.APIContext) {
 	}
 	members := make([]*api.User, len(team.Members))
 	for i, member := range team.Members {
-		members[i] = member.APIFormat()
+		members[i] = convert.ToUser(member, ctx.IsSigned, ctx.User.IsAdmin)
 	}
 	ctx.JSON(200, members)
+}
+
+// GetTeamMember api for get a particular member of team
+func GetTeamMember(ctx *context.APIContext) {
+	// swagger:operation GET /teams/{id}/members/{username} organization orgListTeamMember
+	// ---
+	// summary: List a particular member of team
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: username
+	//   in: path
+	//   description: username of the member to list
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/User"
+	u := user.GetUserByParams(ctx)
+	if ctx.Written() {
+		return
+	}
+	teamID := ctx.ParamsInt64("teamid")
+	isTeamMember, err := models.IsUserInTeams(u.ID, []int64{teamID})
+	if err != nil {
+		ctx.Error(500, "IsUserInTeams", err)
+		return
+	} else if !isTeamMember {
+		ctx.NotFound()
+		return
+	}
+	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
 // AddTeamMember api for add a member to a team
@@ -326,7 +426,7 @@ func getRepositoryByParams(ctx *context.APIContext) *models.Repository {
 	repo, err := models.GetRepositoryByName(ctx.Org.Team.OrgID, ctx.Params(":reponame"))
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetRepositoryByName", err)
 		}
@@ -425,4 +525,84 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 		return
 	}
 	ctx.Status(204)
+}
+
+// SearchTeam api for searching teams
+func SearchTeam(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/teams/search organization teamSearch
+	// ---
+	// summary: Search for teams within an organization
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: q
+	//   in: query
+	//   description: keywords to search
+	//   type: string
+	// - name: include_desc
+	//   in: query
+	//   description: include search within team description (defaults to true)
+	//   type: boolean
+	// - name: limit
+	//   in: query
+	//   description: limit size of results
+	//   type: integer
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// responses:
+	//   "200":
+	//     description: "SearchResults of a successful search"
+	//     schema:
+	//       type: object
+	//       properties:
+	//         ok:
+	//           type: boolean
+	//         data:
+	//           type: array
+	//           items:
+	//             "$ref": "#/definitions/Team"
+	opts := &models.SearchTeamOptions{
+		UserID:      ctx.User.ID,
+		Keyword:     strings.TrimSpace(ctx.Query("q")),
+		OrgID:       ctx.Org.Organization.ID,
+		IncludeDesc: (ctx.Query("include_desc") == "" || ctx.QueryBool("include_desc")),
+		PageSize:    ctx.QueryInt("limit"),
+		Page:        ctx.QueryInt("page"),
+	}
+
+	teams, _, err := models.SearchTeam(opts)
+	if err != nil {
+		log.Error("SearchTeam failed: %v", err)
+		ctx.JSON(500, map[string]interface{}{
+			"ok":    false,
+			"error": "SearchTeam internal failure",
+		})
+		return
+	}
+
+	apiTeams := make([]*api.Team, len(teams))
+	for i := range teams {
+		if err := teams[i].GetUnits(); err != nil {
+			log.Error("Team GetUnits failed: %v", err)
+			ctx.JSON(500, map[string]interface{}{
+				"ok":    false,
+				"error": "SearchTeam failed to get units",
+			})
+			return
+		}
+		apiTeams[i] = convert.ToTeam(teams[i])
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"ok":   true,
+		"data": apiTeams,
+	})
+
 }

@@ -7,7 +7,7 @@ package misc
 import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/sdk/gitea"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // Version shows the version of the Gitea server
@@ -20,5 +20,5 @@ func Version(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ServerVersion"
-	ctx.JSON(200, &gitea.ServerVersion{Version: setting.AppVer})
+	ctx.JSON(200, &structs.ServerVersion{Version: setting.AppVer})
 }

@@ -43,6 +43,9 @@
 				<!-- OAuth2 -->
 				{{ template "admin/auth/source/oauth" . }}
 
+				<!-- SSPI -->
+				{{ template "admin/auth/source/sspi" . }}
+
 				<div class="ldap field">
 					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.auths.attributes_in_bind"}}</strong></label>
@@ -102,12 +105,16 @@
 				<span>{{.i18n.Tr "admin.auths.tip.github"}}</span>
 				<li>GitLab</li>
 				<span>{{.i18n.Tr "admin.auths.tip.gitlab"}}</span>
-				<li>Google+</li>
+				<li>Google</li>
 				<span>{{.i18n.Tr "admin.auths.tip.google_plus"}}</span>
 				<li>OpenID Connect</li>
 				<span>{{.i18n.Tr "admin.auths.tip.openid_connect"}}</span>
 				<li>Twitter</li>
 				<span>{{.i18n.Tr "admin.auths.tip.twitter"}}</span>
+				<li>Discord</li>
+				<span>{{.i18n.Tr "admin.auths.tip.discord"}}</span>
+				<li>Gitea</li>
+				<span>{{.i18n.Tr "admin.auths.tip.gitea"}}</span>
 			</div>
 		</div>
 	</div>

@@ -4,7 +4,9 @@
 
 package models
 
-import "strings"
+import (
+	"strings"
+)
 
 // RepoRedirect represents that a repo name should be redirected to another
 type RepoRedirect struct {
@@ -27,30 +29,22 @@ func LookupRepoRedirect(ownerID int64, repoName string) (int64, error) {
 }
 
 // NewRepoRedirect create a new repo redirect
-func NewRepoRedirect(ownerID, repoID int64, oldRepoName, newRepoName string) error {
+func NewRepoRedirect(ctx DBContext, ownerID, repoID int64, oldRepoName, newRepoName string) error {
 	oldRepoName = strings.ToLower(oldRepoName)
 	newRepoName = strings.ToLower(newRepoName)
-	sess := x.NewSession()
-	defer sess.Close()
 
-	if err := sess.Begin(); err != nil {
+	if err := deleteRepoRedirect(ctx.e, ownerID, newRepoName); err != nil {
 		return err
 	}
 
-	if err := deleteRepoRedirect(sess, ownerID, newRepoName); err != nil {
-		sess.Rollback()
-		return err
-	}
-
-	if _, err := sess.Insert(&RepoRedirect{
+	if _, err := ctx.e.Insert(&RepoRedirect{
 		OwnerID:        ownerID,
 		LowerName:      oldRepoName,
 		RedirectRepoID: repoID,
 	}); err != nil {
-		sess.Rollback()
 		return err
 	}
-	return sess.Commit()
+	return nil
 }
 
 // deleteRepoRedirect delete any redirect from the specified repo name to

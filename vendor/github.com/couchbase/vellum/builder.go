@@ -38,8 +38,7 @@ type Builder struct {
 	encoder encoder
 	opts    *BuilderOpts
 
-	builderNodePool builderNodePool
-	transitionPool  transitionPool
+	builderNodePool *builderNodePool
 }
 
 const noneAddr = 1
@@ -51,12 +50,14 @@ func newBuilder(w io.Writer, opts *BuilderOpts) (*Builder, error) {
 	if opts == nil {
 		opts = defaultBuilderOpts
 	}
+	builderNodePool := &builderNodePool{}
 	rv := &Builder{
-		registry: newRegistry(opts.RegistryTableSize, opts.RegistryMRUSize),
-		opts:     opts,
-		lastAddr: noneAddr,
+		unfinished:      newUnfinishedNodes(builderNodePool),
+		registry:        newRegistry(builderNodePool, opts.RegistryTableSize, opts.RegistryMRUSize),
+		builderNodePool: builderNodePool,
+		opts:            opts,
+		lastAddr:        noneAddr,
 	}
-	rv.unfinished = newUnfinishedNodes(&rv.builderNodePool)
 
 	var err error
 	rv.encoder, err = loadEncoder(opts.Encoder, w)
@@ -71,9 +72,7 @@ func newBuilder(w io.Writer, opts *BuilderOpts) (*Builder, error) {
 }
 
 func (b *Builder) Reset(w io.Writer) error {
-	b.transitionPool.reset()
-	b.builderNodePool.reset()
-	b.unfinished.Reset(&b.builderNodePool)
+	b.unfinished.Reset()
 	b.registry.Reset()
 	b.lastAddr = noneAddr
 	b.encoder.reset(w)
@@ -107,7 +106,7 @@ func (b *Builder) Insert(key []byte, val uint64) error {
 		return err
 	}
 	b.copyLastKey(key)
-	b.unfinished.addSuffix(key[prefixLen:], out, &b.builderNodePool)
+	b.unfinished.addSuffix(key[prefixLen:], out)
 
 	return nil
 }
@@ -142,7 +141,7 @@ func (b *Builder) compileFrom(iState int) error {
 		if addr == noneAddr {
 			node = b.unfinished.popEmpty()
 		} else {
-			node = b.unfinished.popFreeze(addr, &b.transitionPool)
+			node = b.unfinished.popFreeze(addr)
 		}
 		var err error
 		addr, err = b.compile(node)
@@ -150,7 +149,7 @@ func (b *Builder) compileFrom(iState int) error {
 			return nil
 		}
 	}
-	b.unfinished.topLastFreeze(addr, &b.transitionPool)
+	b.unfinished.topLastFreeze(addr)
 	return nil
 }
 
@@ -183,22 +182,25 @@ type unfinishedNodes struct {
 	// this means calls get() and pushXYZ() must be paired,
 	// as well as calls put() and popXYZ()
 	cache []builderNodeUnfinished
+
+	builderNodePool *builderNodePool
 }
 
-func (u *unfinishedNodes) Reset(p *builderNodePool) {
+func (u *unfinishedNodes) Reset() {
 	u.stack = u.stack[:0]
 	for i := 0; i < len(u.cache); i++ {
 		u.cache[i] = builderNodeUnfinished{}
 	}
-	u.pushEmpty(false, p)
+	u.pushEmpty(false)
 }
 
 func newUnfinishedNodes(p *builderNodePool) *unfinishedNodes {
 	rv := &unfinishedNodes{
-		stack: make([]*builderNodeUnfinished, 0, 64),
-		cache: make([]builderNodeUnfinished, 64),
+		stack:           make([]*builderNodeUnfinished, 0, 64),
+		cache:           make([]builderNodeUnfinished, 64),
+		builderNodePool: p,
 	}
-	rv.pushEmpty(false, p)
+	rv.pushEmpty(false)
 	return rv
 }
 
@@ -249,9 +251,9 @@ func (u *unfinishedNodes) findCommonPrefixAndSetOutput(key []byte,
 	return i, out
 }
 
-func (u *unfinishedNodes) pushEmpty(final bool, p *builderNodePool) {
+func (u *unfinishedNodes) pushEmpty(final bool) {
 	next := u.get()
-	next.node = p.alloc()
+	next.node = u.builderNodePool.Get()
 	next.node.final = final
 	u.stack = append(u.stack, next)
 }
@@ -265,11 +267,11 @@ func (u *unfinishedNodes) popRoot() *builderNode {
 	return rv
 }
 
-func (u *unfinishedNodes) popFreeze(addr int, tp *transitionPool) *builderNode {
+func (u *unfinishedNodes) popFreeze(addr int) *builderNode {
 	l := len(u.stack)
 	var unfinished *builderNodeUnfinished
 	u.stack, unfinished = u.stack[:l-1], u.stack[l-1]
-	unfinished.lastCompiled(addr, tp)
+	unfinished.lastCompiled(addr)
 	rv := unfinished.node
 	u.put()
 	return rv
@@ -289,12 +291,12 @@ func (u *unfinishedNodes) setRootOutput(out uint64) {
 	u.stack[0].node.finalOutput = out
 }
 
-func (u *unfinishedNodes) topLastFreeze(addr int, tp *transitionPool) {
+func (u *unfinishedNodes) topLastFreeze(addr int) {
 	last := len(u.stack) - 1
-	u.stack[last].lastCompiled(addr, tp)
+	u.stack[last].lastCompiled(addr)
 }
 
-func (u *unfinishedNodes) addSuffix(bs []byte, out uint64, p *builderNodePool) {
+func (u *unfinishedNodes) addSuffix(bs []byte, out uint64) {
 	if len(bs) == 0 {
 		return
 	}
@@ -304,13 +306,13 @@ func (u *unfinishedNodes) addSuffix(bs []byte, out uint64, p *builderNodePool) {
 	u.stack[last].lastOut = out
 	for _, b := range bs[1:] {
 		next := u.get()
-		next.node = p.alloc()
+		next.node = u.builderNodePool.Get()
 		next.hasLastT = true
 		next.lastIn = b
 		next.lastOut = 0
 		u.stack = append(u.stack, next)
 	}
-	u.pushEmpty(true, p)
+	u.pushEmpty(true)
 }
 
 type builderNodeUnfinished struct {
@@ -320,17 +322,17 @@ type builderNodeUnfinished struct {
 	hasLastT bool
 }
 
-func (b *builderNodeUnfinished) lastCompiled(addr int, tp *transitionPool) {
+func (b *builderNodeUnfinished) lastCompiled(addr int) {
 	if b.hasLastT {
 		transIn := b.lastIn
 		transOut := b.lastOut
 		b.hasLastT = false
 		b.lastOut = 0
-		trans := tp.alloc()
-		trans.in = transIn
-		trans.out = transOut
-		trans.addr = addr
-		b.node.trans = append(b.node.trans, trans)
+		b.node.trans = append(b.node.trans, transition{
+			in:   transIn,
+			out:  transOut,
+			addr: addr,
+		})
 	}
 }
 
@@ -338,8 +340,8 @@ func (b *builderNodeUnfinished) addOutputPrefix(prefix uint64) {
 	if b.node.final {
 		b.node.finalOutput = outputCat(prefix, b.node.finalOutput)
 	}
-	for _, t := range b.node.trans {
-		t.out = outputCat(prefix, t.out)
+	for i := range b.node.trans {
+		b.node.trans[i].out = outputCat(prefix, b.node.trans[i].out)
 	}
 	if b.hasLastT {
 		b.lastOut = outputCat(prefix, b.lastOut)
@@ -348,8 +350,22 @@ func (b *builderNodeUnfinished) addOutputPrefix(prefix uint64) {
 
 type builderNode struct {
 	finalOutput uint64
-	trans       []*transition
+	trans       []transition
 	final       bool
+
+	// intrusive linked list
+	next *builderNode
+}
+
+// reset resets the receiver builderNode to a re-usable state.
+func (n *builderNode) reset() {
+	n.final = false
+	n.finalOutput = 0
+	for i := range n.trans {
+		n.trans[i] = emptyTransition
+	}
+	n.trans = n.trans[:0]
+	n.next = nil
 }
 
 func (n *builderNode) equiv(o *builderNode) bool {
@@ -377,6 +393,8 @@ func (n *builderNode) equiv(o *builderNode) bool {
 	return true
 }
 
+var emptyTransition = transition{}
+
 type transition struct {
 	out  uint64
 	addr int
@@ -398,56 +416,37 @@ func outputCat(l, r uint64) uint64 {
 	return l + r
 }
 
-// the next builderNode to alloc() will be all[nextOuter][nextInner]
+// builderNodePool pools builderNodes using a singly linked list.
+//
+// NB: builderNode lifecylce is described by the following interactions -
+// +------------------------+                            +----------------------+
+// |    Unfinished Nodes    |      Transfer once         |        Registry      |
+// |(not frozen builderNode)|-----builderNode is ------->| (frozen builderNode) |
+// +------------------------+      marked frozen         +----------------------+
+//              ^                                                     |
+//              |                                                     |
+//              |                                                   Put()
+//              | Get() on        +-------------------+             when
+//              +-new char--------| builderNode Pool  |<-----------evicted
+//                                +-------------------+
 type builderNodePool struct {
-	all       [][]builderNode
-	nextOuter int
-	nextInner int
+	head *builderNode
 }
 
-func (p *builderNodePool) reset() {
-	p.nextOuter = 0
-	p.nextInner = 0
-}
-
-func (p *builderNodePool) alloc() *builderNode {
-	if p.nextOuter >= len(p.all) {
-		p.all = append(p.all, make([]builderNode, 256))
+func (p *builderNodePool) Get() *builderNode {
+	if p.head == nil {
+		return &builderNode{}
 	}
-	rv := &p.all[p.nextOuter][p.nextInner]
-	p.nextInner += 1
-	if p.nextInner >= len(p.all[p.nextOuter]) {
-		p.nextOuter += 1
-		p.nextInner = 0
-	}
-	rv.finalOutput = 0
-	rv.trans = rv.trans[:0]
-	rv.final = false
-	return rv
+	head := p.head
+	p.head = p.head.next
+	return head
 }
 
-// the next transition to alloc() will be all[nextOuter][nextInner]
-type transitionPool struct {
-	all       [][]transition
-	nextOuter int
-	nextInner int
-}
-
-func (p *transitionPool) reset() {
-	p.nextOuter = 0
-	p.nextInner = 0
-}
-
-func (p *transitionPool) alloc() *transition {
-	if p.nextOuter >= len(p.all) {
-		p.all = append(p.all, make([]transition, 256))
+func (p *builderNodePool) Put(v *builderNode) {
+	if v == nil {
+		return
 	}
-	rv := &p.all[p.nextOuter][p.nextInner]
-	p.nextInner += 1
-	if p.nextInner >= len(p.all[p.nextOuter]) {
-		p.nextOuter += 1
-		p.nextInner = 0
-	}
-	*rv = transition{}
-	return rv
+	v.reset()
+	v.next = p.head
+	p.head = v
 }

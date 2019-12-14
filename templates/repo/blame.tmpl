@@ -1,0 +1,51 @@
+<div class="tab-size-8 non-diff-file-content">
+
+	<h4 class="ui top attached header" id="repo-read-file">
+		<div class="ui stackable grid">
+			<div class="eight wide column">
+                <i class="file text outline icon ui left"></i>
+                <strong>{{.FileName}}</strong> <span class="text grey normal">{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
+			</div>
+			<div class="eight wide right aligned column">
+                <div class="ui right file-actions">
+                    <div class="ui buttons">
+                        <a class="ui button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
+                        {{if not .IsViewCommit}}
+                            <a class="ui button" href="{{.RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_permalink"}}</a>
+                        {{end}}
+                        <a class="ui button" href="{{.RepoLink}}/src/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.normal_view"}}</a>
+                        <a class="ui button" href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
+                    </div>
+                    {{if .Repository.CanEnableEditor}}
+                        {{if .CanEditFile}}
+                            <a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><i class="octicon octicon-pencil btn-octicon poping up"  data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i></a>
+                        {{else}}
+                            <i class="octicon octicon-pencil btn-octicon poping up disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i>
+                        {{end}}
+                        {{if .CanDeleteFile}}
+                            <a href="{{.RepoLink}}/_delete/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><i class="octicon octicon-trashcan btn-octicon btn-octicon-danger poping up"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i></a>
+                        {{else}}
+                            <i class="octicon octicon-trashcan btn-octicon poping up disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted"></i>
+                        {{end}}
+                    {{end}}
+                </div>
+			</div>
+		</div>
+	</h4>
+
+    <div class="ui attached table unstackable segment">
+        <div class="file-view code-view has-emoji">
+            <table>
+                <tbody>
+                    <tr>
+                        <td class="lines-commit">{{.BlameCommitInfo}}</td>
+                        <td class="lines-num">{{.BlameLineNums}}</td>
+                        <td class="lines-code"><pre><code class="{{.HighlightClass}}"><ol class="linenums">{{.BlameContent}}</ol></code></pre></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+</div>

@@ -18,8 +18,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/com"
-	"github.com/Unknwon/i18n"
+	"github.com/unknwon/com"
+	"github.com/unknwon/i18n"
 )
 
 const (
@@ -92,6 +92,7 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 	ctx.User.Website = form.Website
 	ctx.User.Location = form.Location
 	ctx.User.Language = form.Language
+	ctx.User.Description = form.Description
 	if err := models.UpdateUserSetting(ctx.User); err != nil {
 		if _, ok := err.(models.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
@@ -103,7 +104,7 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 	}
 
 	// Update the language to the one we just set
-	ctx.SetCookie("lang", ctx.User.Language, nil, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+	ctx.SetCookie("lang", ctx.User.Language, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 
 	log.Trace("User settings updated: %s", ctx.User.Name)
 	ctx.Flash.Success(i18n.Tr(ctx.User.Language, "settings.update_profile_success"))
@@ -126,6 +127,10 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 		}
 		defer fr.Close()
 
+		if form.Avatar.Size > setting.AvatarMaxFileSize {
+			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
+		}
+
 		data, err := ioutil.ReadAll(fr)
 		if err != nil {
 			return fmt.Errorf("ioutil.ReadAll: %v", err)
@@ -136,13 +141,11 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 		if err = ctxUser.UploadAvatar(data); err != nil {
 			return fmt.Errorf("UploadAvatar: %v", err)
 		}
-	} else {
+	} else if ctxUser.UseCustomAvatar && !com.IsFile(ctxUser.CustomAvatarPath()) {
 		// No avatar is uploaded but setting has been changed to enable,
 		// generate a random one when needed.
-		if ctxUser.UseCustomAvatar && !com.IsFile(ctxUser.CustomAvatarPath()) {
-			if err := ctxUser.GenerateRandomAvatar(); err != nil {
-				log.Error(4, "GenerateRandomAvatar[%d]: %v", ctxUser.ID, err)
-			}
+		if err := ctxUser.GenerateRandomAvatar(); err != nil {
+			log.Error("GenerateRandomAvatar[%d]: %v", ctxUser.ID, err)
 		}
 	}
 

@@ -25,19 +25,39 @@ type Sequences []Sequence
 // NewSequences constructs a collection of Sequence which describe the
 // byte ranges covered between the start and end runes.
 func NewSequences(start, end rune) (Sequences, error) {
-	var rv Sequences
+	rv, _, err := NewSequencesPrealloc(start, end, nil, nil, nil, nil)
+	return rv, err
+}
 
-	var rangeStack rangeStack
-	rangeStack = rangeStack.Push(&scalarRange{start, end})
+func NewSequencesPrealloc(start, end rune,
+	preallocSequences Sequences,
+	preallocRangeStack RangeStack,
+	preallocStartBytes, preallocEndBytes []byte) (Sequences, RangeStack, error) {
+	rv := preallocSequences[:0]
+
+	startBytes := preallocStartBytes
+	if cap(startBytes) < utf8.UTFMax {
+		startBytes = make([]byte, utf8.UTFMax)
+	}
+	startBytes = startBytes[:utf8.UTFMax]
+
+	endBytes := preallocEndBytes
+	if cap(endBytes) < utf8.UTFMax {
+		endBytes = make([]byte, utf8.UTFMax)
+	}
+	endBytes = endBytes[:utf8.UTFMax]
+
+	rangeStack := preallocRangeStack[:0]
+	rangeStack = rangeStack.Push(scalarRange{start, end})
 
 	rangeStack, r := rangeStack.Pop()
 TOP:
-	for r != nil {
+	for r != nilScalarRange {
 	INNER:
 		for {
 			r1, r2 := r.split()
-			if r1 != nil {
-				rangeStack = rangeStack.Push(&scalarRange{r2.start, r2.end})
+			if r1 != nilScalarRange {
+				rangeStack = rangeStack.Push(scalarRange{r2.start, r2.end})
 				r.start = r1.start
 				r.end = r1.end
 				continue INNER
@@ -49,13 +69,13 @@ TOP:
 			for i := 1; i < utf8.UTFMax; i++ {
 				max := maxScalarValue(i)
 				if r.start <= max && max < r.end {
-					rangeStack = rangeStack.Push(&scalarRange{max + 1, r.end})
+					rangeStack = rangeStack.Push(scalarRange{max + 1, r.end})
 					r.end = max
 					continue INNER
 				}
 			}
 			asciiRange := r.ascii()
-			if asciiRange != nil {
+			if asciiRange != nilRange {
 				rv = append(rv, Sequence{
 					asciiRange,
 				})
@@ -66,23 +86,21 @@ TOP:
 				m := rune((1 << (6 * i)) - 1)
 				if (r.start & ^m) != (r.end & ^m) {
 					if (r.start & m) != 0 {
-						rangeStack = rangeStack.Push(&scalarRange{(r.start | m) + 1, r.end})
+						rangeStack = rangeStack.Push(scalarRange{(r.start | m) + 1, r.end})
 						r.end = r.start | m
 						continue INNER
 					}
 					if (r.end & m) != m {
-						rangeStack = rangeStack.Push(&scalarRange{r.end & ^m, r.end})
+						rangeStack = rangeStack.Push(scalarRange{r.end & ^m, r.end})
 						r.end = (r.end & ^m) - 1
 						continue INNER
 					}
 				}
 			}
-			start := make([]byte, utf8.UTFMax)
-			end := make([]byte, utf8.UTFMax)
-			n, m := r.encode(start, end)
-			seq, err := SequenceFromEncodedRange(start[0:n], end[0:m])
+			n, m := r.encode(startBytes, endBytes)
+			seq, err := SequenceFromEncodedRange(startBytes[0:n], endBytes[0:m])
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			rv = append(rv, seq)
 			rangeStack, r = rangeStack.Pop()
@@ -90,11 +108,11 @@ TOP:
 		}
 	}
 
-	return rv, nil
+	return rv, rangeStack, nil
 }
 
-// Sequence is a collection of *Range
-type Sequence []*Range
+// Sequence is a collection of Range
+type Sequence []Range
 
 // SequenceFromEncodedRange creates sequence from the encoded bytes
 func SequenceFromEncodedRange(start, end []byte) (Sequence, error) {
@@ -104,21 +122,21 @@ func SequenceFromEncodedRange(start, end []byte) (Sequence, error) {
 	switch len(start) {
 	case 2:
 		return Sequence{
-			&Range{start[0], end[0]},
-			&Range{start[1], end[1]},
+			Range{start[0], end[0]},
+			Range{start[1], end[1]},
 		}, nil
 	case 3:
 		return Sequence{
-			&Range{start[0], end[0]},
-			&Range{start[1], end[1]},
-			&Range{start[2], end[2]},
+			Range{start[0], end[0]},
+			Range{start[1], end[1]},
+			Range{start[2], end[2]},
 		}, nil
 	case 4:
 		return Sequence{
-			&Range{start[0], end[0]},
-			&Range{start[1], end[1]},
-			&Range{start[2], end[2]},
-			&Range{start[3], end[3]},
+			Range{start[0], end[0]},
+			Range{start[1], end[1]},
+			Range{start[2], end[2]},
+			Range{start[3], end[3]},
 		}, nil
 	}
 
@@ -159,6 +177,8 @@ type Range struct {
 	End   byte
 }
 
+var nilRange = Range{0xff, 0}
+
 func (u Range) matches(b byte) bool {
 	if u.Start <= b && b <= u.End {
 		return true
@@ -178,37 +198,39 @@ type scalarRange struct {
 	end   rune
 }
 
+var nilScalarRange = scalarRange{0xffff, 0}
+
 func (s *scalarRange) String() string {
 	return fmt.Sprintf("ScalarRange(%d,%d)", s.start, s.end)
 }
 
 // split this scalar range if it overlaps with a surrogate codepoint
-func (s *scalarRange) split() (*scalarRange, *scalarRange) {
+func (s *scalarRange) split() (scalarRange, scalarRange) {
 	if s.start < 0xe000 && s.end > 0xd7ff {
-		return &scalarRange{
+		return scalarRange{
 				start: s.start,
 				end:   0xd7ff,
 			},
-			&scalarRange{
+			scalarRange{
 				start: 0xe000,
 				end:   s.end,
 			}
 	}
-	return nil, nil
+	return nilScalarRange, nilScalarRange
 }
 
 func (s *scalarRange) valid() bool {
 	return s.start <= s.end
 }
 
-func (s *scalarRange) ascii() *Range {
+func (s *scalarRange) ascii() Range {
 	if s.valid() && s.end <= 0x7f {
-		return &Range{
+		return Range{
 			Start: byte(s.start),
 			End:   byte(s.end),
 		}
 	}
-	return nil
+	return nilRange
 }
 
 // start and end MUST have capacity for utf8.UTFMax bytes
@@ -218,16 +240,16 @@ func (s *scalarRange) encode(start, end []byte) (int, int) {
 	return n, m
 }
 
-type rangeStack []*scalarRange
+type RangeStack []scalarRange
 
-func (s rangeStack) Push(v *scalarRange) rangeStack {
+func (s RangeStack) Push(v scalarRange) RangeStack {
 	return append(s, v)
 }
 
-func (s rangeStack) Pop() (rangeStack, *scalarRange) {
+func (s RangeStack) Pop() (RangeStack, scalarRange) {
 	l := len(s)
 	if l < 1 {
-		return s, nil
+		return s, nilScalarRange
 	}
 	return s[:l-1], s[l-1]
 }

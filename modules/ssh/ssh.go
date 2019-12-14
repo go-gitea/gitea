@@ -1,170 +1,165 @@
-// Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2017 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package ssh
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
 	"io"
-	"io/ioutil"
-	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"github.com/Unknwon/com"
-	"golang.org/x/crypto/ssh"
+	"sync"
+	"syscall"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/gliderlabs/ssh"
+	"github.com/unknwon/com"
+	gossh "golang.org/x/crypto/ssh"
 )
 
-func cleanCommand(cmd string) string {
-	i := strings.Index(cmd, "git")
-	if i == -1 {
-		return cmd
-	}
-	return cmd[i:]
-}
+type contextKey string
 
-func handleServerConn(keyID string, chans <-chan ssh.NewChannel) {
-	for newChan := range chans {
-		if newChan.ChannelType() != "session" {
-			newChan.Reject(ssh.UnknownChannelType, "unknown channel type")
-			continue
+const giteaKeyID = contextKey("gitea-key-id")
+
+func getExitStatusFromError(err error) int {
+	if err == nil {
+		return 0
+	}
+
+	exitErr, ok := err.(*exec.ExitError)
+	if !ok {
+		return 1
+	}
+
+	waitStatus, ok := exitErr.Sys().(syscall.WaitStatus)
+	if !ok {
+		// This is a fallback and should at least let us return something useful
+		// when running on Windows, even if it isn't completely accurate.
+		if exitErr.Success() {
+			return 0
 		}
 
-		ch, reqs, err := newChan.Accept()
-		if err != nil {
-			log.Error(3, "Error accepting channel: %v", err)
-			continue
-		}
-
-		go func(in <-chan *ssh.Request) {
-			defer ch.Close()
-			for req := range in {
-				payload := cleanCommand(string(req.Payload))
-				switch req.Type {
-				case "env":
-					args := strings.Split(strings.Replace(payload, "\x00", "", -1), "\v")
-					if len(args) != 2 {
-						log.Warn("SSH: Invalid env arguments: '%#v'", args)
-						continue
-					}
-					args[0] = strings.TrimLeft(args[0], "\x04")
-					_, _, err := com.ExecCmdBytes("env", args[0]+"="+args[1])
-					if err != nil {
-						log.Error(3, "env: %v", err)
-						return
-					}
-				case "exec":
-					cmdName := strings.TrimLeft(payload, "'()")
-					log.Trace("SSH: Payload: %v", cmdName)
-
-					args := []string{"serv", "key-" + keyID, "--config=" + setting.CustomConf}
-					log.Trace("SSH: Arguments: %v", args)
-					cmd := exec.Command(setting.AppPath, args...)
-					cmd.Env = append(
-						os.Environ(),
-						"SSH_ORIGINAL_COMMAND="+cmdName,
-						"SKIP_MINWINSVC=1",
-					)
-
-					stdout, err := cmd.StdoutPipe()
-					if err != nil {
-						log.Error(3, "SSH: StdoutPipe: %v", err)
-						return
-					}
-					stderr, err := cmd.StderrPipe()
-					if err != nil {
-						log.Error(3, "SSH: StderrPipe: %v", err)
-						return
-					}
-					input, err := cmd.StdinPipe()
-					if err != nil {
-						log.Error(3, "SSH: StdinPipe: %v", err)
-						return
-					}
-
-					// FIXME: check timeout
-					if err = cmd.Start(); err != nil {
-						log.Error(3, "SSH: Start: %v", err)
-						return
-					}
-
-					req.Reply(true, nil)
-					go io.Copy(input, ch)
-					io.Copy(ch, stdout)
-					io.Copy(ch.Stderr(), stderr)
-
-					if err = cmd.Wait(); err != nil {
-						log.Error(3, "SSH: Wait: %v", err)
-						return
-					}
-
-					ch.SendRequest("exit-status", false, []byte{0, 0, 0, 0})
-					return
-				default:
-				}
-			}
-		}(reqs)
+		return 1
 	}
+
+	return waitStatus.ExitStatus()
 }
 
-func listen(config *ssh.ServerConfig, host string, port int) {
-	listener, err := net.Listen("tcp", host+":"+com.ToStr(port))
+func sessionHandler(session ssh.Session) {
+	keyID := session.Context().Value(giteaKeyID).(int64)
+
+	command := session.RawCommand()
+
+	log.Trace("SSH: Payload: %v", command)
+
+	args := []string{"serv", "key-" + com.ToStr(keyID), "--config=" + setting.CustomConf}
+	log.Trace("SSH: Arguments: %v", args)
+	cmd := exec.Command(setting.AppPath, args...)
+	cmd.Env = append(
+		os.Environ(),
+		"SSH_ORIGINAL_COMMAND="+command,
+		"SKIP_MINWINSVC=1",
+	)
+
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Fatal(4, "Failed to start SSH server: %v", err)
+		log.Error("SSH: StdoutPipe: %v", err)
+		return
 	}
-	for {
-		// Once a ServerConfig has been configured, connections can be accepted.
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Error(3, "SSH: Error accepting incoming connection: %v", err)
-			continue
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		log.Error("SSH: StderrPipe: %v", err)
+		return
+	}
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		log.Error("SSH: StdinPipe: %v", err)
+		return
+	}
+
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
+
+	if err = cmd.Start(); err != nil {
+		log.Error("SSH: Start: %v", err)
+		return
+	}
+
+	go func() {
+		defer stdin.Close()
+		if _, err := io.Copy(stdin, session); err != nil {
+			log.Error("Failed to write session to stdin. %s", err)
 		}
+	}()
 
-		// Before use, a handshake must be performed on the incoming net.Conn.
-		// It must be handled in a separate goroutine,
-		// otherwise one user could easily block entire loop.
-		// For example, user could be asked to trust server key fingerprint and hangs.
-		go func() {
-			log.Trace("SSH: Handshaking for %s", conn.RemoteAddr())
-			sConn, chans, reqs, err := ssh.NewServerConn(conn, config)
-			if err != nil {
-				if err == io.EOF {
-					log.Warn("SSH: Handshaking was terminated: %v", err)
-				} else {
-					log.Error(3, "SSH: Error on handshaking: %v", err)
-				}
-				return
-			}
+	go func() {
+		defer wg.Done()
+		if _, err := io.Copy(session, stdout); err != nil {
+			log.Error("Failed to write stdout to session. %s", err)
+		}
+	}()
 
-			log.Trace("SSH: Connection from %s (%s)", sConn.RemoteAddr(), sConn.ClientVersion())
-			// The incoming Request channel must be serviced.
-			go ssh.DiscardRequests(reqs)
-			go handleServerConn(sConn.Permissions.Extensions["key-id"], chans)
-		}()
+	go func() {
+		defer wg.Done()
+		if _, err := io.Copy(session.Stderr(), stderr); err != nil {
+			log.Error("Failed to write stderr to session. %s", err)
+		}
+	}()
+
+	// Ensure all the output has been written before we wait on the command
+	// to exit.
+	wg.Wait()
+
+	// Wait for the command to exit and log any errors we get
+	err = cmd.Wait()
+	if err != nil {
+		log.Error("SSH: Wait: %v", err)
 	}
+
+	if err := session.Exit(getExitStatusFromError(err)); err != nil {
+		log.Error("Session failed to exit. %s", err)
+	}
+}
+
+func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
+	if ctx.User() != setting.SSH.BuiltinServerUser {
+		return false
+	}
+
+	pkey, err := models.SearchPublicKeyByContent(strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
+	if err != nil {
+		log.Error("SearchPublicKeyByContent: %v", err)
+		return false
+	}
+
+	ctx.SetValue(giteaKeyID, pkey.ID)
+
+	return true
 }
 
 // Listen starts a SSH server listens on given port.
 func Listen(host string, port int, ciphers []string, keyExchanges []string, macs []string) {
-	config := &ssh.ServerConfig{
-		Config: ssh.Config{
-			Ciphers:      ciphers,
-			KeyExchanges: keyExchanges,
-			MACs:         macs,
-		},
-		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-			pkey, err := models.SearchPublicKeyByContent(strings.TrimSpace(string(ssh.MarshalAuthorizedKey(key))))
-			if err != nil {
-				log.Error(3, "SearchPublicKeyByContent: %v", err)
-				return nil, err
-			}
-			return &ssh.Permissions{Extensions: map[string]string{"key-id": com.ToStr(pkey.ID)}}, nil
+	// TODO: Handle ciphers, keyExchanges, and macs
+
+	srv := ssh.Server{
+		Addr:             fmt.Sprintf("%s:%d", host, port),
+		PublicKeyHandler: publicKeyHandler,
+		Handler:          sessionHandler,
+
+		// We need to explicitly disable the PtyCallback so text displays
+		// properly.
+		PtyCallback: func(ctx ssh.Context, pty ssh.Pty) bool {
+			return false
 		},
 	}
 
@@ -173,25 +168,65 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 		filePath := filepath.Dir(keyPath)
 
 		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
-			log.Error(4, "Failed to create dir %s: %v", filePath, err)
+			log.Error("Failed to create dir %s: %v", filePath, err)
 		}
 
-		_, stderr, err := com.ExecCmd("ssh-keygen", "-f", keyPath, "-t", "rsa", "-N", "")
+		err := GenKeyPair(keyPath)
 		if err != nil {
-			log.Fatal(4, "Failed to generate private key: %v - %s", err, stderr)
+			log.Fatal("Failed to generate private key: %v", err)
 		}
-		log.Trace("SSH: New private key is generateed: %s", keyPath)
+		log.Trace("New private key is generated: %s", keyPath)
 	}
 
-	privateBytes, err := ioutil.ReadFile(keyPath)
+	err := srv.SetOption(ssh.HostKeyFile(keyPath))
 	if err != nil {
-		log.Fatal(4, "SSH: Failed to load private key")
+		log.Error("Failed to set Host Key. %s", err)
 	}
-	private, err := ssh.ParsePrivateKey(privateBytes)
-	if err != nil {
-		log.Fatal(4, "SSH: Failed to parse private key")
-	}
-	config.AddHostKey(private)
 
-	go listen(config, host, port)
+	go listen(&srv)
+
+}
+
+// GenKeyPair make a pair of public and private keys for SSH access.
+// Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
+// Private Key generated is PEM encoded
+func GenKeyPair(keyPath string) error {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return err
+	}
+
+	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
+	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err = f.Close(); err != nil {
+			log.Error("Close: %v", err)
+		}
+	}()
+
+	if err := pem.Encode(f, privateKeyPEM); err != nil {
+		return err
+	}
+
+	// generate public key
+	pub, err := gossh.NewPublicKey(&privateKey.PublicKey)
+	if err != nil {
+		return err
+	}
+
+	public := gossh.MarshalAuthorizedKey(pub)
+	p, err := os.OpenFile(keyPath+".pub", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err = p.Close(); err != nil {
+			log.Error("Close: %v", err)
+		}
+	}()
+	_, err = p.Write(public)
+	return err
 }

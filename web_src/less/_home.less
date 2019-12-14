@@ -1,0 +1,64 @@
+.home {
+    .logo {
+        max-width: 220px;
+    }
+
+    .hero {
+        @media only screen and (max-width: 767px) {
+            h1 {
+                font-size: 3.5em;
+            }
+
+            h2 {
+                font-size: 2em;
+            }
+        }
+
+        @media only screen and (min-width: 768px) {
+            h1 {
+                font-size: 5.5em;
+            }
+
+            h2 {
+                font-size: 3em;
+            }
+        }
+
+        .octicon {
+            color: #5aa509;
+            font-size: 40px;
+            width: 50px;
+        }
+
+        &.header {
+            font-size: 20px;
+        }
+    }
+
+    p.large {
+        font-size: 16px;
+    }
+
+    .stackable {
+        padding-top: 30px;
+    }
+
+    a {
+        color: #5aa509;
+    }
+}
+
+.signup {
+    padding-top: 15px;
+}
+
+footer {
+    .ui.container .left,
+    .ui.container .right {
+        @media only screen and (max-width: 880px) {
+            display: block;
+            text-align: center;
+            float: none;
+        }
+    }
+}

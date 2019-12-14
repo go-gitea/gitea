@@ -35,6 +35,8 @@ var ErrNoLazy = fmt.Errorf("lazy quantifiers are not allowed")
 // too many instructions
 var ErrCompiledTooBig = fmt.Errorf("too many instructions")
 
+var DefaultLimit = uint(10 * (1 << 20))
+
 // Regexp implements the vellum.Automaton interface for matcing a user
 // specified regular expression.
 type Regexp struct {
@@ -47,7 +49,7 @@ type Regexp struct {
 // compiled finite state automaton.  If this size is exceeded,
 // ErrCompiledTooBig will be returned.
 func New(expr string) (*Regexp, error) {
-	return NewWithLimit(expr, 10*(1<<20))
+	return NewWithLimit(expr, DefaultLimit)
 }
 
 // NewRegexpWithLimit creates a new Regular Expression automaton with
@@ -59,6 +61,10 @@ func NewWithLimit(expr string, size uint) (*Regexp, error) {
 	if err != nil {
 		return nil, err
 	}
+	return NewParsedWithLimit(expr, parsed, size)
+}
+
+func NewParsedWithLimit(expr string, parsed *syntax.Regexp, size uint) (*Regexp, error) {
 	compiler := newCompiler(size)
 	insts, err := compiler.compile(parsed)
 	if err != nil {
@@ -103,7 +109,7 @@ func (r *Regexp) WillAlwaysMatch(int) bool {
 	return false
 }
 
-// Accept returns the new state, resulting from the transite byte b
+// Accept returns the new state, resulting from the transition byte b
 // when currently in the state s.
 func (r *Regexp) Accept(s int, b byte) int {
 	if s < len(r.dfa.states) {

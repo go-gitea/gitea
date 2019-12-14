@@ -1,0 +1,82 @@
+APP_NAME = Gitea: Git with a cup of tea
+RUN_MODE = prod
+
+[database]
+DB_TYPE  = mysql
+HOST     = {{TEST_MYSQL8_HOST}}
+NAME     = {{TEST_MYSQL8_DBNAME}}
+USER     = {{TEST_MYSQL8_USERNAME}}
+PASSWD   = {{TEST_MYSQL8_PASSWORD}}
+SSL_MODE = disable
+
+[indexer]
+ISSUE_INDEXER_PATH = integrations/indexers-mysql8/issues.bleve
+REPO_INDEXER_ENABLED = true
+REPO_INDEXER_PATH = integrations/indexers-mysql8/repos.bleve
+
+[repository]
+ROOT = integrations/gitea-integration-mysql8/gitea-repositories
+
+[repository.local]
+LOCAL_COPY_PATH = tmp/local-repo-mysql8
+LOCAL_WIKI_PATH = tmp/local-wiki-mysql8
+
+[repository.signing]
+SIGNING_KEY = none
+
+[server]
+SSH_DOMAIN       = localhost
+HTTP_PORT        = 3004
+ROOT_URL         = http://localhost:3004/
+DISABLE_SSH      = false
+SSH_LISTEN_HOST  = localhost
+SSH_PORT         = 2204
+START_SSH_SERVER = true
+LFS_START_SERVER = true
+LFS_CONTENT_PATH = data/lfs-mysql8
+OFFLINE_MODE     = false
+LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
+APP_DATA_PATH    = integrations/gitea-integration-mysql8/data
+BUILTIN_SSH_SERVER_USER = git
+
+[mailer]
+ENABLED = false
+
+[service]
+REGISTER_EMAIL_CONFIRM            = false
+ENABLE_NOTIFY_MAIL                = false
+DISABLE_REGISTRATION              = false
+ENABLE_CAPTCHA                    = false
+REQUIRE_SIGNIN_VIEW               = false
+DEFAULT_KEEP_EMAIL_PRIVATE        = false
+DEFAULT_ALLOW_CREATE_ORGANIZATION = true
+NO_REPLY_ADDRESS                  = noreply.example.org
+
+[picture]
+DISABLE_GRAVATAR        = false
+ENABLE_FEDERATED_AVATAR = false
+
+[session]
+PROVIDER = file
+PROVIDER_CONFIG = data/sessions-mysql8
+
+[log]
+MODE                 = test,file
+ROOT_PATH            = mysql8-log
+REDIRECT_MACARON_LOG = true
+ROUTER               = ,
+MACARON              = ,
+XORM                 = file
+
+[log.test]
+LEVEL                = Info
+COLORIZE             = true
+
+[log.file]
+LEVEL                = Debug
+
+
+[security]
+INSTALL_LOCK   = true
+SECRET_KEY     = 9pCviYTWSb
+INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ

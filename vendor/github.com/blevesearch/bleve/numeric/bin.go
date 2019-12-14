@@ -14,7 +14,7 @@ var interleaveShift = []uint{1, 2, 4, 8, 16}
 
 // Interleave the first 32 bits of each uint64
 // apdated from org.apache.lucene.util.BitUtil
-// whcih was adapted from:
+// which was adapted from:
 // http://graphics.stanford.edu/~seander/bithacks.html#InterleaveBMN
 func Interleave(v1, v2 uint64) uint64 {
 	v1 = (v1 | (v1 << interleaveShift[4])) & interleaveMagic[4]

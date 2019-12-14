@@ -14,6 +14,22 @@
 
 package analysis
 
+import (
+	"reflect"
+
+	"github.com/blevesearch/bleve/size"
+)
+
+var reflectStaticSizeTokenLocation int
+var reflectStaticSizeTokenFreq int
+
+func init() {
+	var tl TokenLocation
+	reflectStaticSizeTokenLocation = int(reflect.TypeOf(tl).Size())
+	var tf TokenFreq
+	reflectStaticSizeTokenFreq = int(reflect.TypeOf(tf).Size())
+}
+
 // TokenLocation represents one occurrence of a term at a particular location in
 // a field. Start, End and Position have the same meaning as in analysis.Token.
 // Field and ArrayPositions identify the field value in the source document.
@@ -26,12 +42,27 @@ type TokenLocation struct {
 	Position       int
 }
 
+func (tl *TokenLocation) Size() int {
+	rv := reflectStaticSizeTokenLocation
+	rv += len(tl.ArrayPositions) * size.SizeOfUint64
+	return rv
+}
+
 // TokenFreq represents all the occurrences of a term in all fields of a
 // document.
 type TokenFreq struct {
 	Term      []byte
 	Locations []*TokenLocation
 	frequency int
+}
+
+func (tf *TokenFreq) Size() int {
+	rv := reflectStaticSizeTokenFreq
+	rv += len(tf.Term)
+	for _, loc := range tf.Locations {
+		rv += loc.Size()
+	}
+	return rv
 }
 
 func (tf *TokenFreq) Frequency() int {
@@ -41,6 +72,16 @@ func (tf *TokenFreq) Frequency() int {
 // TokenFrequencies maps document terms to their combined frequencies from all
 // fields.
 type TokenFrequencies map[string]*TokenFreq
+
+func (tfs TokenFrequencies) Size() int {
+	rv := size.SizeOfMap
+	rv += len(tfs) * (size.SizeOfString + size.SizeOfPtr)
+	for k, v := range tfs {
+		rv += len(k)
+		rv += v.Size()
+	}
+	return rv
+}
 
 func (tfs TokenFrequencies) MergeAll(remoteField string, other TokenFrequencies) {
 	// walk the new token frequencies

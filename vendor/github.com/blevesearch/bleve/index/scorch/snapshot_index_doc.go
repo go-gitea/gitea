@@ -16,15 +16,28 @@ package scorch
 
 import (
 	"bytes"
+	"reflect"
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/blevesearch/bleve/index"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeIndexSnapshotDocIDReader int
+
+func init() {
+	var isdr IndexSnapshotDocIDReader
+	reflectStaticSizeIndexSnapshotDocIDReader = int(reflect.TypeOf(isdr).Size())
+}
 
 type IndexSnapshotDocIDReader struct {
 	snapshot      *IndexSnapshot
 	iterators     []roaring.IntIterable
 	segmentOffset int
+}
+
+func (i *IndexSnapshotDocIDReader) Size() int {
+	return reflectStaticSizeIndexSnapshotDocIDReader + size.SizeOfPtr
 }
 
 func (i *IndexSnapshotDocIDReader) Next() (index.IndexInternalID, error) {

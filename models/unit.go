@@ -5,7 +5,10 @@
 package models
 
 import (
+	"fmt"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // UnitType is Unit's Type
@@ -22,9 +25,41 @@ const (
 	UnitTypeExternalTracker                     // 7 ExternalTracker
 )
 
+// Value returns integer value for unit type
+func (u UnitType) Value() int {
+	return int(u)
+}
+
+func (u UnitType) String() string {
+	switch u {
+	case UnitTypeCode:
+		return "UnitTypeCode"
+	case UnitTypeIssues:
+		return "UnitTypeIssues"
+	case UnitTypePullRequests:
+		return "UnitTypePullRequests"
+	case UnitTypeReleases:
+		return "UnitTypeReleases"
+	case UnitTypeWiki:
+		return "UnitTypeWiki"
+	case UnitTypeExternalWiki:
+		return "UnitTypeExternalWiki"
+	case UnitTypeExternalTracker:
+		return "UnitTypeExternalTracker"
+	}
+	return fmt.Sprintf("Unknown UnitType %d", u)
+}
+
+// ColorFormat provides a ColorFormatted version of this UnitType
+func (u UnitType) ColorFormat(s fmt.State) {
+	log.ColorFprintf(s, "%d:%s",
+		log.NewColoredIDValue(u),
+		u)
+}
+
 var (
-	// allRepUnitTypes contains all the unit types
-	allRepUnitTypes = []UnitType{
+	// AllRepoUnitTypes contains all the unit types
+	AllRepoUnitTypes = []UnitType{
 		UnitTypeCode,
 		UnitTypeIssues,
 		UnitTypePullRequests,
@@ -34,8 +69,8 @@ var (
 		UnitTypeExternalTracker,
 	}
 
-	// defaultRepoUnits contains the default unit types
-	defaultRepoUnits = []UnitType{
+	// DefaultRepoUnits contains the default unit types
+	DefaultRepoUnits = []UnitType{
 		UnitTypeCode,
 		UnitTypeIssues,
 		UnitTypePullRequests,

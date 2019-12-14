@@ -17,6 +17,8 @@ package zap
 import (
 	"hash/crc32"
 	"io"
+
+	"github.com/blevesearch/bleve/index/scorch/segment"
 )
 
 // CountHashWriter is a wrapper around a Writer which counts the number of
@@ -25,6 +27,7 @@ type CountHashWriter struct {
 	w   io.Writer
 	crc uint32
 	n   int
+	s   segment.StatsReporter
 }
 
 // NewCountHashWriter returns a CountHashWriter which wraps the provided Writer
@@ -32,11 +35,18 @@ func NewCountHashWriter(w io.Writer) *CountHashWriter {
 	return &CountHashWriter{w: w}
 }
 
+func NewCountHashWriterWithStatsReporter(w io.Writer, s segment.StatsReporter) *CountHashWriter {
+	return &CountHashWriter{w: w, s: s}
+}
+
 // Write writes the provided bytes to the wrapped writer and counts the bytes
 func (c *CountHashWriter) Write(b []byte) (int, error) {
 	n, err := c.w.Write(b)
 	c.crc = crc32.Update(c.crc, crc32.IEEETable, b[:n])
 	c.n += n
+	if c.s != nil {
+		c.s.ReportBytesWritten(uint64(n))
+	}
 	return n, err
 }
 

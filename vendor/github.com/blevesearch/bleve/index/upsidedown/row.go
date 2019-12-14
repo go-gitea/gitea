@@ -20,9 +20,21 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"reflect"
 
+	"github.com/blevesearch/bleve/size"
 	"github.com/golang/protobuf/proto"
 )
+
+var reflectStaticSizeTermFrequencyRow int
+var reflectStaticSizeTermVector int
+
+func init() {
+	var tfr TermFrequencyRow
+	reflectStaticSizeTermFrequencyRow = int(reflect.TypeOf(tfr).Size())
+	var tv TermVector
+	reflectStaticSizeTermVector = int(reflect.TypeOf(tv).Size())
+}
 
 const ByteSeparator byte = 0xff
 
@@ -358,6 +370,11 @@ type TermVector struct {
 	end            uint64
 }
 
+func (tv *TermVector) Size() int {
+	return reflectStaticSizeTermVector + size.SizeOfPtr +
+		len(tv.arrayPositions)*size.SizeOfUint64
+}
+
 func (tv *TermVector) String() string {
 	return fmt.Sprintf("Field: %d Pos: %d Start: %d End %d ArrayPositions: %#v", tv.field, tv.pos, tv.start, tv.end, tv.arrayPositions)
 }
@@ -369,6 +386,18 @@ type TermFrequencyRow struct {
 	vectors []*TermVector
 	norm    float32
 	field   uint16
+}
+
+func (tfr *TermFrequencyRow) Size() int {
+	sizeInBytes := reflectStaticSizeTermFrequencyRow +
+		len(tfr.term) +
+		len(tfr.doc)
+
+	for _, entry := range tfr.vectors {
+		sizeInBytes += entry.Size()
+	}
+
+	return sizeInBytes
 }
 
 func (tfr *TermFrequencyRow) Term() []byte {
@@ -555,7 +584,7 @@ func (tfr *TermFrequencyRow) parseK(key []byte) error {
 
 func (tfr *TermFrequencyRow) parseKDoc(key []byte, term []byte) error {
 	tfr.doc = key[3+len(term)+1:]
-	if len(tfr.doc) <= 0 {
+	if len(tfr.doc) == 0 {
 		return fmt.Errorf("invalid term frequency key, empty docid")
 	}
 

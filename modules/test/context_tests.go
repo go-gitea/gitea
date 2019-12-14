@@ -6,18 +6,17 @@ package test
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
-	"code.gitea.io/git"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 
-	"net/http/httptest"
-
-	"github.com/go-macaron/session"
+	"gitea.com/macaron/macaron"
+	"gitea.com/macaron/session"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/macaron.v1"
 )
 
 // MockContext mock context for unit tests
@@ -56,6 +55,7 @@ func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 func LoadRepoCommit(t *testing.T, ctx *context.Context) {
 	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
+	defer gitRepo.Close()
 	branch, err := gitRepo.GetHEADBranch()
 	assert.NoError(t, err)
 	ctx.Repo.Commit, err = gitRepo.GetBranchCommit(branch.Name)

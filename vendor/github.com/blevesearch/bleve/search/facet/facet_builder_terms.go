@@ -15,10 +15,19 @@
 package facet
 
 import (
+	"reflect"
 	"sort"
 
 	"github.com/blevesearch/bleve/search"
+	"github.com/blevesearch/bleve/size"
 )
+
+var reflectStaticSizeTermsFacetBuilder int
+
+func init() {
+	var tfb TermsFacetBuilder
+	reflectStaticSizeTermsFacetBuilder = int(reflect.TypeOf(tfb).Size())
+}
 
 type TermsFacetBuilder struct {
 	size       int
@@ -35,6 +44,18 @@ func NewTermsFacetBuilder(field string, size int) *TermsFacetBuilder {
 		field:      field,
 		termsCount: make(map[string]int),
 	}
+}
+
+func (fb *TermsFacetBuilder) Size() int {
+	sizeInBytes := reflectStaticSizeTermsFacetBuilder + size.SizeOfPtr +
+		len(fb.field)
+
+	for k, _ := range fb.termsCount {
+		sizeInBytes += size.SizeOfString + len(k) +
+			size.SizeOfInt
+	}
+
+	return sizeInBytes
 }
 
 func (fb *TermsFacetBuilder) Field() string {

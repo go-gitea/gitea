@@ -19,20 +19,9 @@ var CmdMigrate = cli.Command{
 	Usage:       "Migrate the database",
 	Description: "This is a command for migrating the database, so that you can run gitea admin create-user before starting the server.",
 	Action:      runMigrate,
-	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "config, c",
-			Value: "custom/conf/app.ini",
-			Usage: "Custom configuration file path",
-		},
-	},
 }
 
 func runMigrate(ctx *cli.Context) error {
-	if ctx.IsSet("config") {
-		setting.CustomConf = ctx.String("config")
-	}
-
 	if err := initDB(); err != nil {
 		return err
 	}
@@ -41,10 +30,10 @@ func runMigrate(ctx *cli.Context) error {
 	log.Trace("AppWorkPath: %s", setting.AppWorkPath)
 	log.Trace("Custom path: %s", setting.CustomPath)
 	log.Trace("Log path: %s", setting.LogRootPath)
-	models.LoadConfigs()
+	setting.InitDBConfig()
 
 	if err := models.NewEngine(migrations.Migrate); err != nil {
-		log.Fatal(4, "Failed to initialize ORM engine: %v", err)
+		log.Fatal("Failed to initialize ORM engine: %v", err)
 		return err
 	}
 

@@ -9,10 +9,11 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/urfave/cli"
 )
 
@@ -24,7 +25,7 @@ func argsSet(c *cli.Context, args ...string) error {
 			return errors.New(a + " is not set")
 		}
 
-		if len(strings.TrimSpace(c.String(a))) == 0 {
+		if util.IsEmptyString(a) {
 			return errors.New(a + " is required")
 		}
 	}
@@ -37,7 +38,7 @@ func initDB() error {
 
 func initDBDisableConsole(disableConsole bool) error {
 	setting.NewContext()
-	models.LoadConfigs()
+	setting.InitDBConfig()
 
 	setting.NewXORMLogService(disableConsole)
 	if err := models.SetEngine(); err != nil {

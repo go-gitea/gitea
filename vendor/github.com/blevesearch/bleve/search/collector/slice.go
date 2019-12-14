@@ -21,9 +21,9 @@ type collectStoreSlice struct {
 	compare collectorCompare
 }
 
-func newStoreSlice(cap int, compare collectorCompare) *collectStoreSlice {
+func newStoreSlice(capacity int, compare collectorCompare) *collectStoreSlice {
 	rv := &collectStoreSlice{
-		slice:   make(search.DocumentMatchCollection, 0, cap),
+		slice:   make(search.DocumentMatchCollection, 0, capacity),
 		compare: compare,
 	}
 	return rv

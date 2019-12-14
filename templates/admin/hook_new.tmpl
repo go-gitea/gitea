@@ -1,0 +1,43 @@
+{{template "base/head" .}}
+<div class="admin new webhook">
+	{{template "admin/navbar" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<h4 class="ui top attached header">
+			{{if .PageIsAdminHooksNew}}
+				{{.i18n.Tr "admin.hooks.add_webhook"}}
+			{{else}}
+				{{.i18n.Tr "admin.hooks.update_webhook"}}
+			{{end}}
+			<div class="ui right">
+				{{if eq .HookType "gitea"}}
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/gitea-sm.png">
+				{{else if eq .HookType "gogs"}}
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/gogs.ico">
+				{{else if eq .HookType "slack"}}
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/slack.png">
+				{{else if eq .HookType "discord"}}
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/discord.png">
+				{{else if eq .HookType "dingtalk"}}
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/dingtalk.ico">
+				{{else if eq .HookType "telegram"}}
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/telegram.png">
+				{{else if eq .HookType "msteams"}}
+					<img class="img-13" src="{{StaticUrlPrefix}}/img/msteams.png">
+				{{end}}
+			</div>
+		</h4>
+		<div class="ui attached segment">
+			{{template "repo/settings/webhook/gitea" .}}
+			{{template "repo/settings/webhook/gogs" .}}
+			{{template "repo/settings/webhook/slack" .}}
+			{{template "repo/settings/webhook/discord" .}}
+			{{template "repo/settings/webhook/dingtalk" .}}
+			{{template "repo/settings/webhook/telegram" .}}
+			{{template "repo/settings/webhook/msteams" .}}
+		</div>
+
+		{{template "repo/settings/webhook/history" .}}
+	</div>
+</div>
+{{template "base/footer" .}}

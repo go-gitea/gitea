@@ -25,5 +25,6 @@ func Organizations(ctx *context.Context) {
 	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type:     models.UserTypeOrganization,
 		PageSize: setting.UI.Admin.OrgPagingNum,
+		Private:  true,
 	}, tplOrgs)
 }

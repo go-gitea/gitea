@@ -5,13 +5,13 @@
 package repo
 
 import (
+	"errors"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/notification"
-
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
+	comment_service "code.gitea.io/gitea/services/comments"
 )
 
 // ListIssueComments list all the comments of an issue
@@ -56,6 +56,7 @@ func ListIssueComments(ctx *context.APIContext) {
 		ctx.Error(500, "GetRawIssueByIndex", err)
 		return
 	}
+	issue.Repo = ctx.Repo.Repository
 
 	comments, err := models.FindComments(models.FindCommentsOptions{
 		IssueID: issue.ID,
@@ -63,16 +64,18 @@ func ListIssueComments(ctx *context.APIContext) {
 		Type:    models.CommentTypeComment,
 	})
 	if err != nil {
-		ctx.Error(500, "GetCommentsByIssueIDSince", err)
+		ctx.Error(500, "FindComments", err)
+		return
+	}
+
+	if err := models.CommentList(comments).LoadPosters(); err != nil {
+		ctx.Error(500, "LoadPosters", err)
 		return
 	}
 
 	apiComments := make([]*api.Comment, len(comments))
-	if err = models.CommentList(comments).LoadPosters(); err != nil {
-		ctx.Error(500, "LoadPosters", err)
-		return
-	}
-	for i := range comments {
+	for i, comment := range comments {
+		comment.Issue = issue
 		apiComments[i] = comments[i].APIFormat()
 	}
 	ctx.JSON(200, &apiComments)
@@ -114,7 +117,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		Type:   models.CommentTypeComment,
 	})
 	if err != nil {
-		ctx.Error(500, "GetCommentsByRepoIDSince", err)
+		ctx.Error(500, "FindComments", err)
 		return
 	}
 
@@ -124,6 +127,18 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	}
 
 	apiComments := make([]*api.Comment, len(comments))
+	if err := models.CommentList(comments).LoadIssues(); err != nil {
+		ctx.Error(500, "LoadIssues", err)
+		return
+	}
+	if err := models.CommentList(comments).LoadPosters(); err != nil {
+		ctx.Error(500, "LoadPosters", err)
+		return
+	}
+	if _, err := models.CommentList(comments).Issues().LoadRepositories(); err != nil {
+		ctx.Error(500, "LoadRepositories", err)
+		return
+	}
 	for i := range comments {
 		apiComments[i] = comments[i].APIFormat()
 	}
@@ -169,13 +184,16 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		return
 	}
 
-	comment, err := models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Body, nil)
+	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+		ctx.Error(403, "CreateIssueComment", errors.New(ctx.Tr("repo.issues.comment_on_locked")))
+		return
+	}
+
+	comment, err := comment_service.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Body, nil)
 	if err != nil {
 		ctx.Error(500, "CreateIssueComment", err)
 		return
 	}
-
-	notification.NotifyCreateIssueComment(ctx.User, ctx.Repo.Repository, issue, comment)
 
 	ctx.JSON(201, comment.APIFormat())
 }
@@ -262,7 +280,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
-			ctx.Error(404, "GetCommentByID", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetCommentByID", err)
 		}
@@ -279,10 +297,11 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 
 	oldContent := comment.Content
 	comment.Content = form.Body
-	if err := models.UpdateComment(ctx.User, comment, oldContent); err != nil {
+	if err := comment_service.UpdateComment(comment, ctx.User, oldContent); err != nil {
 		ctx.Error(500, "UpdateComment", err)
 		return
 	}
+
 	ctx.JSON(200, comment.APIFormat())
 }
 
@@ -352,7 +371,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
-			ctx.Error(404, "GetCommentByID", err)
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetCommentByID", err)
 		}
@@ -367,9 +386,10 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = models.DeleteComment(ctx.User, comment); err != nil {
+	if err = comment_service.DeleteComment(comment, ctx.User); err != nil {
 		ctx.Error(500, "DeleteCommentByID", err)
 		return
 	}
+
 	ctx.Status(204)
 }

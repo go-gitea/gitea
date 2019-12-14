@@ -21,7 +21,7 @@ func StarRepo(userID, repoID int64, star bool) error {
 	}
 
 	if star {
-		if IsStaring(userID, repoID) {
+		if isStaring(sess, userID, repoID) {
 			return nil
 		}
 
@@ -35,7 +35,7 @@ func StarRepo(userID, repoID int64, star bool) error {
 			return err
 		}
 	} else {
-		if !IsStaring(userID, repoID) {
+		if !isStaring(sess, userID, repoID) {
 			return nil
 		}
 
@@ -55,7 +55,11 @@ func StarRepo(userID, repoID int64, star bool) error {
 
 // IsStaring checks if user has starred given repository.
 func IsStaring(userID, repoID int64) bool {
-	has, _ := x.Get(&Star{0, userID, repoID})
+	return isStaring(x, userID, repoID)
+}
+
+func isStaring(e Engine, userID, repoID int64) bool {
+	has, _ := e.Get(&Star{0, userID, repoID})
 	return has
 }
 

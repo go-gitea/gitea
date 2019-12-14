@@ -70,9 +70,11 @@ func (q *ConjunctionQuery) Searcher(i index.IndexReader, m mapping.IndexMapping,
 		}
 		ss = append(ss, sr)
 	}
+
 	if len(ss) < 1 {
 		return searcher.NewMatchNoneSearcher(i)
 	}
+
 	return searcher.NewConjunctionSearcher(i, ss, options)
 }
 

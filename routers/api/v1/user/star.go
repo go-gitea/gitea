@@ -5,10 +5,9 @@
 package user
 
 import (
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // getStarredRepos returns the repos that the user with the specified userID has
@@ -96,7 +95,7 @@ func IsStarring(ctx *context.APIContext) {
 	if models.IsStaring(ctx.User.ID, ctx.Repo.Repository.ID) {
 		ctx.Status(204)
 	} else {
-		ctx.Status(404)
+		ctx.NotFound()
 	}
 }
 

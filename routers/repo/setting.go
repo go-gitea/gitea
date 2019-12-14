@@ -6,20 +6,30 @@
 package repo
 
 import (
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
-
-	"code.gitea.io/git"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/mailer"
+	mirror_service "code.gitea.io/gitea/services/mirror"
+	repo_service "code.gitea.io/gitea/services/repository"
+
+	"github.com/unknwon/com"
+	"mvdan.cc/xurls/v2"
 )
 
 const (
@@ -32,10 +42,13 @@ const (
 	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
 )
 
+var validFormAddress *regexp.Regexp
+
 // Settings show a repository's settings page
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
+	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
 	ctx.HTML(200, tplSettingsOptions)
 }
 
@@ -53,13 +66,15 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		isNameChanged := false
-		oldRepoName := repo.Name
 		newRepoName := form.RepoName
 		// Check if repository name has been changed.
 		if repo.LowerName != strings.ToLower(newRepoName) {
-			isNameChanged = true
-			if err := models.ChangeRepositoryName(ctx.Repo.Owner, repo.Name, newRepoName); err != nil {
+			// Close the GitRepo if open
+			if ctx.Repo.GitRepo != nil {
+				ctx.Repo.GitRepo.Close()
+				ctx.Repo.GitRepo = nil
+			}
+			if err := repo_service.ChangeRepositoryName(ctx.Repo.Owner, repo, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case models.IsErrRepoAlreadyExist(err):
@@ -74,12 +89,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				return
 			}
 
-			err := models.NewRepoRedirect(ctx.Repo.Owner.ID, repo.ID, repo.Name, newRepoName)
-			if err != nil {
-				ctx.ServerError("NewRepoRedirect", err)
-				return
-			}
-
 			log.Trace("Repository name changed: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newRepoName)
 		}
 		// In case it's just a case change.
@@ -87,6 +96,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		repo.LowerName = strings.ToLower(newRepoName)
 		repo.Description = form.Description
 		repo.Website = form.Website
+		repo.IsTemplate = form.Template
 
 		// Visibility of forked repository is forced sync with base repository.
 		if repo.IsFork {
@@ -94,18 +104,18 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 
 		visibilityChanged := repo.IsPrivate != form.Private
+		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
+		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private && !ctx.User.IsAdmin {
+			ctx.ServerError("Force Private enabled", errors.New("cannot change private repository to public"))
+			return
+		}
+
 		repo.IsPrivate = form.Private
 		if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
-
-		if isNameChanged {
-			if err := models.RenameRepoAction(ctx.User, oldRepoName, repo); err != nil {
-				log.Error(4, "RenameRepoAction: %v", err)
-			}
-		}
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -116,23 +126,64 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
+		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
+		// as an error on the UI for this action
+		ctx.Data["Err_RepoName"] = nil
+
 		interval, err := time.ParseDuration(form.Interval)
-		if err != nil && (interval != 0 || interval < setting.Mirror.MinInterval) {
+		if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
+			ctx.Data["Err_Interval"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 		} else {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
 			ctx.Repo.Mirror.Interval = interval
 			if interval != 0 {
-				ctx.Repo.Mirror.NextUpdateUnix = util.TimeStampNow().AddDuration(interval)
+				ctx.Repo.Mirror.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(interval)
 			} else {
 				ctx.Repo.Mirror.NextUpdateUnix = 0
 			}
 			if err := models.UpdateMirror(ctx.Repo.Mirror); err != nil {
+				ctx.Data["Err_Interval"] = true
 				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 				return
 			}
 		}
-		if err := ctx.Repo.Mirror.SaveAddress(form.MirrorAddress); err != nil {
+
+		// Validate the form.MirrorAddress
+		u, err := url.Parse(form.MirrorAddress)
+		if err != nil {
+			ctx.Data["Err_MirrorAddress"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
+			return
+		}
+
+		if u.Opaque != "" || !(u.Scheme == "http" || u.Scheme == "https" || u.Scheme == "git") {
+			ctx.Data["Err_MirrorAddress"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, &form)
+			return
+		}
+
+		if form.MirrorUsername != "" || form.MirrorPassword != "" {
+			u.User = url.UserPassword(form.MirrorUsername, form.MirrorPassword)
+		}
+
+		// Now use xurls
+		address := validFormAddress.FindString(form.MirrorAddress)
+		if address != form.MirrorAddress && form.MirrorAddress != "" {
+			ctx.Data["Err_MirrorAddress"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
+			return
+		}
+
+		if u.EscapedPath() == "" || u.Host == "" || !u.IsAbs() {
+			ctx.Data["Err_MirrorAddress"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
+			return
+		}
+
+		address = u.String()
+
+		if err := mirror_service.SaveAddress(ctx.Repo.Mirror, address); err != nil {
 			ctx.ServerError("SaveAddress", err)
 			return
 		}
@@ -146,12 +197,17 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		go models.MirrorQueue.Add(repo.ID)
+		mirror_service.StartToMirror(repo.ID)
+
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "advanced":
 		var units []models.RepoUnit
+
+		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
+		// as an error on the UI for this action
+		ctx.Data["Err_RepoName"] = nil
 
 		for _, tp := range models.MustRepoUnits {
 			units = append(units, models.RepoUnit{
@@ -192,7 +248,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 					ctx.Redirect(repo.Link() + "/settings")
 					return
 				}
-				if len(form.TrackerURLFormat) != 0 && !validation.IsValidExternalURL(form.TrackerURLFormat) {
+				if len(form.TrackerURLFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(form.TrackerURLFormat) {
 					ctx.Flash.Error(ctx.Tr("repo.settings.tracker_url_format_error"))
 					ctx.Redirect(repo.Link() + "/settings")
 					return
@@ -250,12 +306,18 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		if repo.IsFsckEnabled != form.EnableHealthCheck {
 			repo.IsFsckEnabled = form.EnableHealthCheck
-			if err := models.UpdateRepository(repo, false); err != nil {
-				ctx.ServerError("UpdateRepository", err)
-				return
-			}
-			log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		}
+
+		if repo.CloseIssuesViaCommitInAnyBranch != form.EnableCloseIssuesViaCommitInAnyBranch {
+			repo.CloseIssuesViaCommitInAnyBranch = form.EnableCloseIssuesViaCommitInAnyBranch
+		}
+
+		if err := models.UpdateRepository(repo, false); err != nil {
+			ctx.ServerError("UpdateRepository", err)
+			return
+		}
+
+		log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -307,7 +369,12 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		if err = models.TransferOwnership(ctx.User, newOwner, repo); err != nil {
+		// Close the GitRepo if open
+		if ctx.Repo.GitRepo != nil {
+			ctx.Repo.GitRepo.Close()
+			ctx.Repo.GitRepo = nil
+		}
+		if err = repo_service.TransferOwnership(ctx.User, newOwner, repo); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else {
@@ -315,6 +382,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			}
 			return
 		}
+
 		log.Trace("Repository transferred: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_succeed"))
 		ctx.Redirect(setting.AppSubURL + "/" + newOwner + "/" + repo.Name)
@@ -329,7 +397,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		if err := models.DeleteRepository(ctx.User, ctx.Repo.Owner.ID, repo.ID); err != nil {
+		if err := repo_service.DeleteRepository(ctx.User, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("DeleteRepository", err)
 			return
 		}
@@ -348,10 +416,54 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		repo.DeleteWiki()
+		err := repo.DeleteWiki()
+		if err != nil {
+			log.Error("Delete Wiki: %v", err.Error())
+		}
 		log.Trace("Repository wiki deleted: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.wiki_deletion_success"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
+	case "archive":
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(403)
+			return
+		}
+
+		if repo.IsMirror {
+			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error_ismirror"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		if err := repo.SetArchiveRepoState(true); err != nil {
+			log.Error("Tried to archive a repo: %s", err)
+			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
+
+		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+	case "unarchive":
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(403)
+			return
+		}
+
+		if err := repo.SetArchiveRepoState(false); err != nil {
+			log.Error("Tried to unarchive a repo: %s", err)
+			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
+
+		log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
 	default:
@@ -370,6 +482,18 @@ func Collaboration(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Collaborators"] = users
+
+	teams, err := ctx.Repo.Repository.GetRepoTeams()
+	if err != nil {
+		ctx.ServerError("GetRepoTeams", err)
+		return
+	}
+	ctx.Data["Teams"] = teams
+	ctx.Data["Repo"] = ctx.Repo.Repository
+	ctx.Data["OrgID"] = ctx.Repo.Repository.OwnerID
+	ctx.Data["OrgName"] = ctx.Repo.Repository.OwnerName
+	ctx.Data["Org"] = ctx.Repo.Repository.Owner
+	ctx.Data["Units"] = models.Units
 
 	ctx.HTML(200, tplCollaboration)
 }
@@ -418,7 +542,7 @@ func CollaborationPost(ctx *context.Context) {
 	}
 
 	if setting.Service.EnableNotifyMail {
-		models.SendCollaboratorMail(u, ctx.User, ctx.Repo.Repository)
+		mailer.SendCollaboratorMail(u, ctx.User, ctx.Repo.Repository)
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_collaborator_success"))
@@ -430,7 +554,7 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 	if err := ctx.Repo.Repository.ChangeCollaborationAccessMode(
 		ctx.QueryInt64("uid"),
 		models.AccessMode(ctx.QueryInt("mode"))); err != nil {
-		log.Error(4, "ChangeCollaborationAccessMode: %v", err)
+		log.Error("ChangeCollaborationAccessMode: %v", err)
 	}
 }
 
@@ -442,6 +566,77 @@ func DeleteCollaboration(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
 	}
 
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
+	})
+}
+
+// AddTeamPost response for adding a team to a repository
+func AddTeamPost(ctx *context.Context) {
+	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.IsOwner() {
+		ctx.Flash.Error(ctx.Tr("repo.settings.change_team_access_not_allowed"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+		return
+	}
+
+	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.Query("team")))
+	if len(name) == 0 || ctx.Repo.Owner.LowerName == name {
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+		return
+	}
+
+	team, err := ctx.Repo.Owner.GetTeam(name)
+	if err != nil {
+		if models.IsErrTeamNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("form.team_not_exist"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+		} else {
+			ctx.ServerError("GetTeam", err)
+		}
+		return
+	}
+
+	if team.OrgID != ctx.Repo.Repository.OwnerID {
+		ctx.Flash.Error(ctx.Tr("repo.settings.team_not_in_organization"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+		return
+	}
+
+	if models.HasTeamRepo(ctx.Repo.Repository.OwnerID, team.ID, ctx.Repo.Repository.ID) {
+		ctx.Flash.Error(ctx.Tr("repo.settings.add_team_duplicate"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+		return
+	}
+
+	if err = team.AddRepository(ctx.Repo.Repository); err != nil {
+		ctx.ServerError("team.AddRepository", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_team_success"))
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+}
+
+// DeleteTeam response for deleting a team from a repository
+func DeleteTeam(ctx *context.Context) {
+	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.IsOwner() {
+		ctx.Flash.Error(ctx.Tr("repo.settings.change_team_access_not_allowed"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+		return
+	}
+
+	team, err := models.GetTeamByID(ctx.QueryInt64("id"))
+	if err != nil {
+		ctx.ServerError("GetTeamByID", err)
+		return
+	}
+
+	if err = team.RemoveRepository(ctx.Repo.Repository.ID); err != nil {
+		ctx.ServerError("team.RemoveRepositorys", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.remove_team_success"))
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
 	})
@@ -491,6 +686,7 @@ func GitHooks(ctx *context.Context) {
 func GitHooksEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.githooks")
 	ctx.Data["PageIsSettingsGitHooks"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 
 	name := ctx.Params(":name")
 	hook, err := ctx.Repo.GitRepo.GetHook(name)
@@ -581,6 +777,9 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 		case models.IsErrDeployKeyAlreadyExist(err):
 			ctx.Data["Err_Content"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_been_used"), tplDeployKeys, &form)
+		case models.IsErrKeyAlreadyExist(err):
+			ctx.Data["Err_Content"] = true
+			ctx.RenderWithErr(ctx.Tr("settings.ssh_key_been_used"), tplDeployKeys, &form)
 		case models.IsErrKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
@@ -606,4 +805,68 @@ func DeleteDeployKey(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/keys",
 	})
+}
+
+func init() {
+	var err error
+	validFormAddress, err = xurls.StrictMatchingScheme(`(https?)|(git)://`)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// UpdateAvatarSetting update repo's avatar
+func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
+	ctxRepo := ctx.Repo.Repository
+
+	if form.Avatar == nil {
+		// No avatar is uploaded and we not removing it here.
+		// No random avatar generated here.
+		// Just exit, no action.
+		if !com.IsFile(ctxRepo.CustomAvatarPath()) {
+			log.Trace("No avatar was uploaded for repo: %d. Default icon will appear instead.", ctxRepo.ID)
+		}
+		return nil
+	}
+
+	r, err := form.Avatar.Open()
+	if err != nil {
+		return fmt.Errorf("Avatar.Open: %v", err)
+	}
+	defer r.Close()
+
+	if form.Avatar.Size > setting.AvatarMaxFileSize {
+		return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
+	}
+
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return fmt.Errorf("ioutil.ReadAll: %v", err)
+	}
+	if !base.IsImageFile(data) {
+		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
+	}
+	if err = ctxRepo.UploadAvatar(data); err != nil {
+		return fmt.Errorf("UploadAvatar: %v", err)
+	}
+	return nil
+}
+
+// SettingsAvatar save new POSTed repository avatar
+func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
+	form.Source = auth.AvatarLocal
+	if err := UpdateAvatarSetting(ctx, form); err != nil {
+		ctx.Flash.Error(err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_avatar_success"))
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+}
+
+// SettingsDeleteAvatar delete repository avatar
+func SettingsDeleteAvatar(ctx *context.Context) {
+	if err := ctx.Repo.Repository.DeleteAvatar(); err != nil {
+		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 }

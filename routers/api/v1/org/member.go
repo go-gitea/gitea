@@ -7,46 +7,29 @@ package org
 import (
 	"fmt"
 
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
 )
 
 // listMembers list an organization's members
 func listMembers(ctx *context.APIContext, publicOnly bool) {
 	var members []*models.User
-	if publicOnly {
-		orgUsers, err := models.GetOrgUsersByOrgID(ctx.Org.Organization.ID)
-		if err != nil {
-			ctx.Error(500, "GetOrgUsersByOrgID", err)
-			return
-		}
-
-		memberIDs := make([]int64, 0, len(orgUsers))
-		for _, orgUser := range orgUsers {
-			if orgUser.IsPublic {
-				memberIDs = append(memberIDs, orgUser.UID)
-			}
-		}
-
-		if members, err = models.GetUsersByIDs(memberIDs); err != nil {
-			ctx.Error(500, "GetUsersByIDs", err)
-			return
-		}
-	} else {
-		if err := ctx.Org.Organization.GetMembers(); err != nil {
-			ctx.Error(500, "GetMembers", err)
-			return
-		}
-		members = ctx.Org.Organization.Members
+	members, _, err := models.FindOrgMembers(models.FindOrgMembersOpts{
+		OrgID:      ctx.Org.Organization.ID,
+		PublicOnly: publicOnly,
+	})
+	if err != nil {
+		ctx.Error(500, "GetUsersByIDs", err)
+		return
 	}
 
 	apiMembers := make([]*api.User, len(members))
 	for i, member := range members {
-		apiMembers[i] = member.APIFormat()
+		apiMembers[i] = convert.ToUser(member, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
 	ctx.JSON(200, apiMembers)
 }
@@ -135,11 +118,11 @@ func IsMember(ctx *context.APIContext) {
 			} else if userToCheckIsMember {
 				ctx.Status(204)
 			} else {
-				ctx.Status(404)
+				ctx.NotFound()
 			}
 			return
 		} else if ctx.User.ID == userToCheck.ID {
-			ctx.Status(404)
+			ctx.NotFound()
 			return
 		}
 	}
@@ -177,7 +160,7 @@ func IsPublicMember(ctx *context.APIContext) {
 	if userToCheck.IsPublicMember(ctx.Org.Organization.ID) {
 		ctx.Status(204)
 	} else {
-		ctx.Status(404)
+		ctx.NotFound()
 	}
 }
 

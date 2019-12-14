@@ -7,7 +7,23 @@
 			{{template "org/team/sidebar" .}}
 			<div class="ui ten wide column">
 				{{template "org/team/navbar" .}}
-				<div class="ui attached table segment members">
+				{{if .IsOrganizationOwner}}
+					<div class="ui attached segment">
+						<form class="ui form" id="add-member-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/add" method="post">
+							{{.CsrfTokenHtml}}
+							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
+							<div class="inline field ui left">
+								<div id="search-user-box" class="ui search">
+									<div class="ui input">
+										<input class="prompt" name="uname" placeholder="{{.i18n.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" required>
+									</div>
+								</div>
+							</div>
+							<button class="ui green button">{{.i18n.Tr "org.teams.add_team_member"}}</button>
+						</form>
+					</div>
+				{{end}}
+				<div class="ui bottom attached table segment members">
 					{{range .Team.Members}}
 						<div class="item">
 							{{if $.IsOrganizationOwner}}
@@ -24,22 +40,6 @@
 						</div>
 					{{end}}
 				</div>
-				{{if .IsOrganizationOwner}}
-					<div class="ui bottom attached segment">
-						<form class="ui form" id="add-member-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/add" method="post">
-							{{.CsrfTokenHtml}}
-							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
-							<div class="inline field ui left">
-								<div id="search-user-box" class="ui search">
-									<div class="ui input">
-										<input class="prompt" name="uname" placeholder="{{.i18n.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" required>
-									</div>
-								</div>
-							</div>
-							<button class="ui green button">{{.i18n.Tr "org.teams.add_team_member"}}</button>
-						</form>
-					</div>
-				{{end}}
 			</div>
 		</div>
 	</div>

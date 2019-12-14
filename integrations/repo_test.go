@@ -17,7 +17,7 @@ import (
 )
 
 func TestViewRepo(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1")
 	MakeRequest(t, req, http.StatusOK)
@@ -30,7 +30,7 @@ func TestViewRepo(t *testing.T) {
 }
 
 func TestViewRepo2(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user3/repo3")
 	session := loginUser(t, "user2")
@@ -38,7 +38,7 @@ func TestViewRepo2(t *testing.T) {
 }
 
 func TestViewRepo3(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user3/repo3")
 	session := loginUser(t, "user4")
@@ -46,7 +46,7 @@ func TestViewRepo3(t *testing.T) {
 }
 
 func TestViewRepo1CloneLinkAnonymous(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1")
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -60,7 +60,7 @@ func TestViewRepo1CloneLinkAnonymous(t *testing.T) {
 }
 
 func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
@@ -73,12 +73,12 @@ func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
 	assert.Equal(t, setting.AppURL+"user2/repo1.git", link)
 	link, exists = htmlDoc.doc.Find("#repo-clone-ssh").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
-	sshURL := fmt.Sprintf("ssh://%s@%s:%d/user2/repo1.git", setting.RunUser, setting.SSH.Domain, setting.SSH.Port)
+	sshURL := fmt.Sprintf("ssh://%s@%s:%d/user2/repo1.git", setting.SSH.BuiltinServerUser, setting.SSH.Domain, setting.SSH.Port)
 	assert.Equal(t, sshURL, link)
 }
 
 func TestViewRepoWithSymlinks(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
@@ -86,7 +86,7 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	files := htmlDoc.doc.Find("#repo-files-table > TBODY > TR > TD.name")
+	files := htmlDoc.doc.Find("#repo-files-table > TBODY > TR > TD.name > SPAN")
 	items := files.Map(func(i int, s *goquery.Selection) string {
 		cls, _ := s.Find("SPAN").Attr("class")
 		file := strings.Trim(s.Find("A").Text(), " \t\n")
@@ -98,4 +98,24 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 	assert.Equal(t, items[2], "link_d: octicon octicon-file-symlink-file")
 	assert.Equal(t, items[3], "link_hi: octicon octicon-file-symlink-file")
 	assert.Equal(t, items[4], "link_link: octicon octicon-file-symlink-file")
+}
+
+// TestViewAsRepoAdmin tests PR #2167
+func TestViewAsRepoAdmin(t *testing.T) {
+	for user, expectedNoDescription := range map[string]bool{
+		"user2": true,
+		"user4": false,
+	} {
+		defer prepareTestEnv(t)()
+
+		session := loginUser(t, user)
+
+		req := NewRequest(t, "GET", "/user2/repo1.git")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		noDescription := htmlDoc.doc.Find("#repo-desc").Children()
+
+		assert.Equal(t, expectedNoDescription, noDescription.HasClass("no-description"))
+	}
 }

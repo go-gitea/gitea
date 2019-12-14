@@ -263,7 +263,7 @@ func (r *Request) getResponse() (*http.Response, error) {
 	}
 
 	if r.req.Method == "GET" && len(paramBody) > 0 {
-		if strings.Index(r.url, "?") != -1 {
+		if strings.Contains(r.url, "?") {
 			r.url += "&" + paramBody
 		} else {
 			r.url = r.url + "?" + paramBody
@@ -290,10 +290,13 @@ func (r *Request) getResponse() (*http.Response, error) {
 					}
 				}
 				for k, v := range r.params {
-					bodyWriter.WriteField(k, v)
+					err := bodyWriter.WriteField(k, v)
+					if err != nil {
+						log.Fatal(err)
+					}
 				}
-				bodyWriter.Close()
-				pw.Close()
+				_ = bodyWriter.Close()
+				_ = pw.Close()
 			}()
 			r.Header("Content-Type", bodyWriter.FormDataContentType())
 			r.req.Body = ioutil.NopCloser(pr)
@@ -323,18 +326,15 @@ func (r *Request) getResponse() (*http.Response, error) {
 			Proxy:           proxy,
 			Dial:            TimeoutDialer(r.setting.ConnectTimeout, r.setting.ReadWriteTimeout),
 		}
-	} else {
-		// if r.transport is *http.Transport then set the settings.
-		if t, ok := trans.(*http.Transport); ok {
-			if t.TLSClientConfig == nil {
-				t.TLSClientConfig = r.setting.TLSClientConfig
-			}
-			if t.Proxy == nil {
-				t.Proxy = r.setting.Proxy
-			}
-			if t.Dial == nil {
-				t.Dial = TimeoutDialer(r.setting.ConnectTimeout, r.setting.ReadWriteTimeout)
-			}
+	} else if t, ok := trans.(*http.Transport); ok {
+		if t.TLSClientConfig == nil {
+			t.TLSClientConfig = r.setting.TLSClientConfig
+		}
+		if t.Proxy == nil {
+			t.Proxy = r.setting.Proxy
+		}
+		if t.Dial == nil {
+			t.Dial = TimeoutDialer(r.setting.ConnectTimeout, r.setting.ReadWriteTimeout)
 		}
 	}
 
@@ -461,7 +461,6 @@ func TimeoutDialer(cTimeout time.Duration, rwTimeout time.Duration) func(net, ad
 		if err != nil {
 			return nil, err
 		}
-		conn.SetDeadline(time.Now().Add(rwTimeout))
-		return conn, nil
+		return conn, conn.SetDeadline(time.Now().Add(rwTimeout))
 	}
 }

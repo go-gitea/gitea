@@ -9,10 +9,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/api/v1/convert"
-
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
@@ -125,7 +124,7 @@ func GetDeployKey(ctx *context.APIContext) {
 	key, err := models.GetDeployKeyByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrDeployKeyNotExist(err) {
-			ctx.Status(404)
+			ctx.NotFound()
 		} else {
 			ctx.Error(500, "GetDeployKeyByID", err)
 		}
@@ -159,6 +158,8 @@ func HandleCheckKeyStringError(ctx *context.APIContext, err error) {
 // HandleAddKeyError handle add key error
 func HandleAddKeyError(ctx *context.APIContext, err error) {
 	switch {
+	case models.IsErrDeployKeyAlreadyExist(err):
+		ctx.Error(422, "", "This key has already been added to this repository")
 	case models.IsErrKeyAlreadyExist(err):
 		ctx.Error(422, "", "Key content has been used as non-deploy key")
 	case models.IsErrKeyNameAlreadyUsed(err):

@@ -1,0 +1,26 @@
+{{if $.LatestCommitStatus}}
+    <div class="ui top attached header">
+         {{if eq .LatestCommitStatus.State "pending"}}
+            {{$.i18n.Tr "repo.pulls.status_checking"}}
+        {{else if eq .LatestCommitStatus.State "success"}}
+            {{$.i18n.Tr "repo.pulls.status_checks_success"}}
+        {{else if eq .LatestCommitStatus.State "error"}}
+            {{$.i18n.Tr "repo.pulls.status_checks_error"}}
+        {{else}}
+            {{$.i18n.Tr "repo.pulls.status_checking"}}
+        {{end}}
+    </div>
+
+    {{range $.LatestCommitStatuses}}
+        <div class="ui attached segment">
+            <span>{{template "repo/commit_status" .}}</span>
+            <span class="ui">{{.Context}} <span class="text grey">{{.Description}}</span></span>
+            <div class="ui right">
+                {{if $.is_context_required}}
+                    {{if (call $.is_context_required .Context)}}<div class="ui label">Required</div>{{end}} 
+                {{end}}
+                <span class="ui">{{if .TargetURL}}<a href="{{.TargetURL}}">Details</a>{{end}}</span>
+            </div>
+        </div>
+    {{end}}
+{{end}}

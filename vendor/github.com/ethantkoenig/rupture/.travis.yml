@@ -1,0 +1,14 @@
+language: go
+
+go:
+  - 1.8.x
+  - 1.9.x
+
+before_script:
+  - go get -u github.com/golang/lint/golint
+
+script:
+  - go vet
+  - golint -set_exit_status
+  - go build
+  - go test

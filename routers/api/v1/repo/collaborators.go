@@ -10,8 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-
-	api "code.gitea.io/sdk/gitea"
+	"code.gitea.io/gitea/modules/convert"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ListCollaborators list a repository's collaborators
@@ -42,7 +42,7 @@ func ListCollaborators(ctx *context.APIContext) {
 	}
 	users := make([]*api.User, len(collaborators))
 	for i, collaborator := range collaborators {
-		users[i] = collaborator.APIFormat()
+		users[i] = convert.ToUser(collaborator.User, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
 	ctx.JSON(200, users)
 }
@@ -92,7 +92,7 @@ func IsCollaborator(ctx *context.APIContext) {
 	if isColab {
 		ctx.Status(204)
 	} else {
-		ctx.Status(404)
+		ctx.NotFound()
 	}
 }
 

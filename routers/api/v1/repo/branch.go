@@ -1,22 +1,22 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package repo
 
 import (
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/routers/api/v1/convert"
-
-	api "code.gitea.io/sdk/gitea"
+	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/git"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // GetBranch get a branch of a repository
 func GetBranch(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/branches/{branch} repository repoGetBranch
 	// ---
-	// summary: Retrieve a specific branch from a repository
+	// summary: Retrieve a specific branch from a repository, including its effective branch protection
 	// produces:
 	// - application/json
 	// parameters:
@@ -42,13 +42,13 @@ func GetBranch(ctx *context.APIContext) {
 		// if TreePath != "", then URL contained extra slashes
 		// (i.e. "master/subbranch" instead of "master"), so branch does
 		// not exist
-		ctx.Status(404)
+		ctx.NotFound()
 		return
 	}
 	branch, err := ctx.Repo.Repository.GetBranch(ctx.Repo.BranchName)
 	if err != nil {
-		if models.IsErrBranchNotExist(err) {
-			ctx.Error(404, "GetBranch", err)
+		if git.IsErrBranchNotExist(err) {
+			ctx.NotFound(err)
 		} else {
 			ctx.Error(500, "GetBranch", err)
 		}
@@ -61,7 +61,13 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(200, convert.ToBranch(ctx.Repo.Repository, branch, c))
+	branchProtection, err := ctx.Repo.Repository.GetBranchProtection(ctx.Repo.BranchName)
+	if err != nil {
+		ctx.Error(500, "GetBranchProtection", err)
+		return
+	}
+
+	ctx.JSON(200, convert.ToBranch(ctx.Repo.Repository, branch, c, branchProtection, ctx.User))
 }
 
 // ListBranches list all the branches of a repository
@@ -98,7 +104,12 @@ func ListBranches(ctx *context.APIContext) {
 			ctx.Error(500, "GetCommit", err)
 			return
 		}
-		apiBranches[i] = convert.ToBranch(ctx.Repo.Repository, branches[i], c)
+		branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branches[i].Name)
+		if err != nil {
+			ctx.Error(500, "GetBranchProtection", err)
+			return
+		}
+		apiBranches[i] = convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.User)
 	}
 
 	ctx.JSON(200, &apiBranches)

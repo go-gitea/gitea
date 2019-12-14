@@ -1,0 +1,38 @@
+.install {
+    padding-top: 45px;
+
+    form {
+        @input-padding: 320px !important;
+
+        label {
+            text-align: right;
+            width: @input-padding;
+        }
+
+        input {
+            width: 35% !important;
+        }
+
+        .field {
+            text-align: left;
+
+            .help {
+                margin-left: @input-padding+15px;
+            }
+
+            &.optional .title {
+                margin-left: 38%;
+            }
+        }
+    }
+
+    .ui {
+        .checkbox {
+            margin-left: 40% !important;
+
+            label {
+                width: auto !important;
+            }
+        }
+    }
+}

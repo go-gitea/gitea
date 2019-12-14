@@ -9,21 +9,21 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // Reaction represents a reactions on issues and comments.
 type Reaction struct {
-	ID          int64          `xorm:"pk autoincr"`
-	Type        string         `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	IssueID     int64          `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	CommentID   int64          `xorm:"INDEX UNIQUE(s)"`
-	UserID      int64          `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	User        *User          `xorm:"-"`
-	CreatedUnix util.TimeStamp `xorm:"INDEX created"`
+	ID          int64              `xorm:"pk autoincr"`
+	Type        string             `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	IssueID     int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	CommentID   int64              `xorm:"INDEX UNIQUE(s)"`
+	UserID      int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	User        *User              `xorm:"-"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
 // FindReactionsOptions describes the conditions to Find reactions
@@ -33,14 +33,36 @@ type FindReactionsOptions struct {
 }
 
 func (opts *FindReactionsOptions) toConds() builder.Cond {
+	//If Issue ID is set add to Query
 	var cond = builder.NewCond()
 	if opts.IssueID > 0 {
 		cond = cond.And(builder.Eq{"reaction.issue_id": opts.IssueID})
 	}
+	//If CommentID is > 0 add to Query
+	//If it is 0 Query ignore CommentID to select
+	//If it is -1 it explicit search of Issue Reactions where CommentID = 0
 	if opts.CommentID > 0 {
 		cond = cond.And(builder.Eq{"reaction.comment_id": opts.CommentID})
+	} else if opts.CommentID == -1 {
+		cond = cond.And(builder.Eq{"reaction.comment_id": 0})
 	}
+
 	return cond
+}
+
+// FindCommentReactions returns a ReactionList of all reactions from an comment
+func FindCommentReactions(comment *Comment) (ReactionList, error) {
+	return findReactions(x, FindReactionsOptions{
+		IssueID:   comment.IssueID,
+		CommentID: comment.ID})
+}
+
+// FindIssueReactions returns a ReactionList of all reactions from an issue
+func FindIssueReactions(issue *Issue) (ReactionList, error) {
+	return findReactions(x, FindReactionsOptions{
+		IssueID:   issue.ID,
+		CommentID: -1,
+	})
 }
 
 func findReactions(e Engine, opts FindReactionsOptions) ([]*Reaction, error) {
@@ -77,6 +99,10 @@ type ReactionOptions struct {
 
 // CreateReaction creates reaction for issue or comment.
 func CreateReaction(opts *ReactionOptions) (reaction *Reaction, err error) {
+	if !setting.UI.ReactionsMap[opts.Type] {
+		return nil, ErrForbiddenIssueReaction{opts.Type}
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -158,6 +184,19 @@ func DeleteCommentReaction(doer *User, issue *Issue, comment *Comment, content s
 		Issue:   issue,
 		Comment: comment,
 	})
+}
+
+// LoadUser load user of reaction
+func (r *Reaction) LoadUser() (*User, error) {
+	if r.User != nil {
+		return r.User, nil
+	}
+	user, err := getUserByID(x, r.UserID)
+	if err != nil {
+		return nil, err
+	}
+	r.User = user
+	return user, nil
 }
 
 // ReactionList represents list of reactions

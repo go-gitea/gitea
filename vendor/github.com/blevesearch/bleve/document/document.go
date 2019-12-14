@@ -14,7 +14,19 @@
 
 package document
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+
+	"github.com/blevesearch/bleve/size"
+)
+
+var reflectStaticSizeDocument int
+
+func init() {
+	var d Document
+	reflectStaticSizeDocument = int(reflect.TypeOf(d).Size())
+}
 
 type Document struct {
 	ID              string  `json:"id"`
@@ -28,6 +40,21 @@ func NewDocument(id string) *Document {
 		Fields:          make([]Field, 0),
 		CompositeFields: make([]*CompositeField, 0),
 	}
+}
+
+func (d *Document) Size() int {
+	sizeInBytes := reflectStaticSizeDocument + size.SizeOfPtr +
+		len(d.ID)
+
+	for _, entry := range d.Fields {
+		sizeInBytes += entry.Size()
+	}
+
+	for _, entry := range d.CompositeFields {
+		sizeInBytes += entry.Size()
+	}
+
+	return sizeInBytes
 }
 
 func (d *Document) AddField(f Field) *Document {

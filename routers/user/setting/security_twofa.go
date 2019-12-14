@@ -73,12 +73,17 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 	uri := ctx.Session.Get("twofaUri")
 	if uri != nil {
 		otpKey, err = otp.NewKeyFromURL(uri.(string))
+		if err != nil {
+			ctx.ServerError("SettingsTwoFactor: NewKeyFromURL: ", err)
+			return false
+		}
 	}
+	// Filter unsafe character ':' in issuer
+	issuer := strings.Replace(setting.AppName+" ("+setting.Domain+")", ":", "", -1)
 	if otpKey == nil {
-		err = nil // clear the error, in case the URL was invalid
 		otpKey, err = totp.Generate(totp.GenerateOpts{
 			SecretSize:  40,
-			Issuer:      setting.AppName + " (" + strings.TrimRight(setting.AppURL, "/") + ")",
+			Issuer:      issuer,
 			AccountName: ctx.User.Name,
 		})
 		if err != nil {
@@ -101,8 +106,16 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 	}
 
 	ctx.Data["QrUri"] = template.URL("data:image/png;base64," + base64.StdEncoding.EncodeToString(imgBytes.Bytes()))
-	ctx.Session.Set("twofaSecret", otpKey.Secret())
-	ctx.Session.Set("twofaUri", otpKey.String())
+	err = ctx.Session.Set("twofaSecret", otpKey.Secret())
+	if err != nil {
+		ctx.ServerError("SettingsTwoFactor", err)
+		return false
+	}
+	err = ctx.Session.Set("twofaUri", otpKey.String())
+	if err != nil {
+		ctx.ServerError("SettingsTwoFactor", err)
+		return false
+	}
 	return true
 }
 
@@ -182,8 +195,16 @@ func EnrollTwoFactorPost(ctx *context.Context, form auth.TwoFactorAuthForm) {
 		return
 	}
 
-	ctx.Session.Delete("twofaSecret")
-	ctx.Session.Delete("twofaUri")
+	err = ctx.Session.Delete("twofaSecret")
+	if err != nil {
+		ctx.ServerError("SettingsTwoFactor", err)
+		return
+	}
+	err = ctx.Session.Delete("twofaUri")
+	if err != nil {
+		ctx.ServerError("SettingsTwoFactor", err)
+		return
+	}
 	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", token))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 }

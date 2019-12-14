@@ -5,8 +5,8 @@
 package auth
 
 import (
-	"github.com/go-macaron/binding"
-	"gopkg.in/macaron.v1"
+	"gitea.com/macaron/binding"
+	"gitea.com/macaron/macaron"
 )
 
 // SignInOpenIDForm form for signing in with OpenID
@@ -22,7 +22,7 @@ func (f *SignInOpenIDForm) Validate(ctx *macaron.Context, errs binding.Errors) b
 
 // SignUpOpenIDForm form for signin up with OpenID
 type SignUpOpenIDForm struct {
-	UserName           string `binding:"Required;AlphaDashDot;MaxSize(35)"`
+	UserName           string `binding:"Required;AlphaDashDot;MaxSize(40)"`
 	Email              string `binding:"Required;Email;MaxSize(254)"`
 	GRecaptchaResponse string `form:"g-recaptcha-response"`
 }

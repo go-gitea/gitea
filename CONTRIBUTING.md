@@ -11,7 +11,8 @@
   - [Translation](#translation)
   - [Code review](#code-review)
   - [Styleguide](#styleguide)
-  - [Sign-off your work](#sign-off-your-work)
+  - [Design guideline](#design-guideline)
+  - [Developer Certificate of Origin (DCO)](#developer-certificate-of-origin-dco)
   - [Release Cycle](#release-cycle)
   - [Maintainers](#maintainers)
   - [Owners](#owners)
@@ -64,20 +65,33 @@ high-level discussions.
 
 ## Testing redux
 
-Before sending code out for review, run all the tests for the
-whole tree to make sure the changes don't break other usage
-and keep the compatibility on upgrade. To make sure you are
-running the test suite exactly like we do, you should install
-the CLI for [Drone CI](https://github.com/drone/drone), as
-we are using the server for continuous testing, following [these
-instructions](http://docs.drone.io/cli-installation/). After that,
-you can simply call `drone exec --local --build-event "pull_request"` within
-your working directory and it will try to run the test suite locally.
+Before submitting a pull request, run all the tests for the whole tree
+to make sure your changes don't cause regression elsewhere.
+
+Here's how to run the test suite:
+
+- Install the correct version of the drone-cli package.  As of this
+  writing, the correct drone-cli version is
+  [1.2.0](https://docs.drone.io/cli/install/).
+- Ensure you have enough free disk space.  You will need at least
+  15-20 Gb of free disk space to hold all of the containers drone
+  creates (a default AWS or GCE disk size won't work -- see
+  [#6243](https://github.com/go-gitea/gitea/issues/6243)).
+- Change into the base directory of your copy of the gitea repository,
+  and run `drone exec --event pull_request`.
+- At the moment `drone exec` doesn't support the Docker Toolbox on Windows 10
+  (see [drone-cli#135](https://github.com/drone/drone-cli/issues/135))
+
+The drone version, command line, and disk requirements do change over
+time (see [#4053](https://github.com/go-gitea/gitea/issues/4053) and
+[#6243](https://github.com/go-gitea/gitea/issues/6243)); if you
+discover any issues, please feel free to send us a pull request to
+update these instructions.
 
 ## Vendoring
 
 We keep a cached copy of dependencies within the `vendor/` directory,
-managing updates via [dep](https://github.com/golang/dep).
+managing updates via [Modules](https://golang.org/cmd/go/#hdr-Module_maintenance).
 
 Pull requests should only include `vendor/` updates if they are part of
 the same change, be it a bugfix or a feature addition.
@@ -86,7 +100,7 @@ The `vendor/` update needs to be justified as part of the PR description,
 and must be verified by the reviewers and/or merger to always reference
 an existing upstream commit.
 
-You can find more information on how to get started with it on the [dep project website](https://golang.github.io/dep/docs/introduction.html).
+You can find more information on how to get started with it on the [Modules Wiki](https://github.com/golang/go/wiki/Modules).
 
 ## Translation
 
@@ -102,10 +116,12 @@ included in the next released version.
 Generally, the go build tools are installed as-needed in the `Makefile`.
 An exception are the tools to build the CSS and images.
 
-- To build CSS: Install [Node.js](https://nodejs.org/en/download/package-manager)
-  with `npm` and then run `npm install` and `make generate-stylesheets`.
+- To build CSS: Install [Node.js](https://nodejs.org/en/download/package-manager) at version 8.0 or above
+  with `npm` and then run `npm install` and `make css`.
 - To build Images: ImageMagick, inkscape and zopflipng binaries must be
   available in your `PATH` to run `make generate-images`.
+
+For more details on how to generate files, build and test Gitea, see the [hacking instructions](https://docs.gitea.io/en-us/hacking-on-gitea/)
 
 ## Code review
 
@@ -146,22 +162,37 @@ import (
 )
 ```
 
-## Sign-off your work
+## Design guideline
 
-The sign-off is a simple line at the end of the explanation for the
-patch. Your signature certifies that you wrote the patch or otherwise
-have the right to pass it on as an open-source patch. The rules are
-pretty simple: If you can certify [DCO](DCO), then you just add a line
-to every git commit message:
+To maintain understandable code and avoid circular dependencies it is important to have a good structure of the code. The gitea code is divided into the following parts:
+
+- **integration:** Integrations tests 
+- **models:** Contains the data structures used by xorm to construct database tables. It also contains supporting functions to query and update the database. Dependecies to other code in Gitea should be avoided although some modules might be needed (for example for logging).
+- **models/fixtures:** Sample model data used in integration tests.
+- **models/migrations:** Handling of database migrations between versions. PRs that changes a database structure shall also have a migration step.
+- **modules:** Different modules to handle specific functionality in Gitea.
+- **public:** Frontend files (javascript, images, css, etc.)
+- **routers:** Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers
+- **services:** Support functions for common routing operations. Uses models and modules to handle the request.
+- **templates:** Golang templates for generating the html output.
+- **vendor:** External code that Gitea depends on.
+
+
+## Developer Certificate of Origin (DCO)
+
+We consider the act of contributing to the code by submitting a Pull
+Request as the "Sign off" or agreement to the certifications and terms
+of the [DCO](DCO) and [MIT license](LICENSE). No further action is required.
+Additionally you could add a line at the end of your commit message.
 
 ```
 Signed-off-by: Joe Smith <joe.smith@email.com>
 ```
 
-Please use your real name; we really dislike pseudonyms or anonymous
-contributions. We are in the open-source world without secrets. If you
-set your `user.name` and `user.email` git configs, you can sign-off your
-commit automatically with `git commit -s`.
+If you set your `user.name` and `user.email` git configs, you can add the
+line to the end of your commit automatically with `git commit -s`.
+
+We assume in good faith that the information you provide is legally binding.
 
 ## Release Cycle
 
@@ -203,7 +234,7 @@ to the maintainers team. If a maintainer is inactive for more than 3
 months and forgets to leave the maintainers team, the owners may move
 him or her from the maintainers team to the advisors team.
 For security reasons, Maintainers should use 2FA for their accounts and
-if possible provide gpg signed commits. 
+if possible provide gpg signed commits.
 https://help.github.com/articles/securing-your-account-with-two-factor-authentication-2fa/
 https://help.github.com/articles/signing-commits-with-gpg/
 
@@ -247,7 +278,12 @@ they served:
 * 2019-01-01 ~ 2019-12-31
   * [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
   * [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
-  * [Matti Ranta](https://github.com/techknowlogick) <matti@mdranta.net>
+  * [Matti Ranta](https://github.com/techknowlogick) <techknowlogick@gitea.io>
+
+* 2020-01-01 ~ 2020-12-31
+  * [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
+  * [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) <lauris@nix.lv>
+  * [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
 
 ## Versions
 
@@ -270,10 +306,10 @@ be reviewed by two maintainers and must pass the automatic tests.
   * Create `-dev` tag as `git tag -s -F release.notes v$vmaj.$vmin.0-dev` and push the tag as `git push origin v$vmaj.$vmin.0-dev`.
   * When CI has finished building tag then you have to create a new branch named `release/v$vmaj.$vmin`
 * If it is bugfix version create PR for changelog on branch `release/v$vmaj.$vmin` and wait till it is reviewed and merged.
-* Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`. 
+* Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`.
 * And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically created a release and upload all the compiled binary. (But currently it didn't add the release notes automatically. Maybe we should fix that.)
 * If needed send PR for changelog on branch `master`.
-* Send PR to [blog repository](https://github.com/go-gitea/blog) announcing the release.
+* Send PR to [blog repository](https://gitea.com/gitea/blog) announcing the release.
 
 ## Copyright
 

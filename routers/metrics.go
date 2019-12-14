@@ -5,10 +5,12 @@
 package routers
 
 import (
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"crypto/subtle"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // Metrics validate auth token and render prometheus metrics
@@ -17,12 +19,14 @@ func Metrics(ctx *context.Context) {
 		promhttp.Handler().ServeHTTP(ctx.Resp, ctx.Req.Request)
 		return
 	}
-	header := ctx.Header().Get("Authorization")
+	header := ctx.Req.Header.Get("Authorization")
 	if header == "" {
 		ctx.Error(401)
 		return
 	}
-	if header != "Bearer "+setting.Metrics.Token {
+	got := []byte(header)
+	want := []byte("Bearer " + setting.Metrics.Token)
+	if subtle.ConstantTimeCompare(got, want) != 1 {
 		ctx.Error(401)
 		return
 	}

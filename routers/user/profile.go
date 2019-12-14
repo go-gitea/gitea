@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -9,19 +10,17 @@ import (
 	"path"
 	"strings"
 
-	"github.com/Unknwon/paginater"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/org"
 	"code.gitea.io/gitea/routers/repo"
 )
 
 const (
 	tplFollowers base.TplName = "user/meta/followers"
-	tplStars     base.TplName = "user/meta/stars"
 )
 
 // GetUserByName get user by name
@@ -58,9 +57,16 @@ func Profile(ctx *context.Context) {
 	isShowKeys := false
 	if strings.HasSuffix(uname, ".keys") {
 		isShowKeys = true
+		uname = strings.TrimSuffix(uname, ".keys")
 	}
 
-	ctxUser := GetUserByName(ctx, strings.TrimSuffix(uname, ".keys"))
+	isShowGPG := false
+	if strings.HasSuffix(uname, ".gpg") {
+		isShowGPG = true
+		uname = strings.TrimSuffix(uname, ".gpg")
+	}
+
+	ctxUser := GetUserByName(ctx, uname)
 	if ctx.Written() {
 		return
 	}
@@ -71,8 +77,14 @@ func Profile(ctx *context.Context) {
 		return
 	}
 
+	// Show GPG keys.
+	if isShowGPG {
+		ShowGPGKeys(ctx, ctxUser.ID)
+		return
+	}
+
 	if ctxUser.IsOrganization() {
-		showOrgProfile(ctx)
+		org.Home(ctx)
 		return
 	}
 
@@ -98,6 +110,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	ctx.Data["Orgs"] = orgs
+	ctx.Data["HasOrgsVisible"] = models.HasOrgsVisible(orgs, ctx.User)
 
 	tab := ctx.Query("tab")
 	ctx.Data["TabName"] = tab
@@ -112,6 +125,7 @@ func Profile(ctx *context.Context) {
 	var (
 		repos   []*models.Repository
 		count   int64
+		total   int
 		orderBy models.SearchOrderBy
 	)
 
@@ -156,86 +170,55 @@ func Profile(ctx *context.Context) {
 		}
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
-		if len(keyword) == 0 {
-			repos, err = ctxUser.GetStarredRepos(showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
-			if err != nil {
-				ctx.ServerError("GetStarredRepos", err)
-				return
-			}
-
-			count, err = ctxUser.GetStarredRepoCount(showPrivate)
-			if err != nil {
-				ctx.ServerError("GetStarredRepoCount", err)
-				return
-			}
-		} else {
-			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:     keyword,
-				OwnerID:     ctxUser.ID,
-				OrderBy:     orderBy,
-				Private:     showPrivate,
-				Page:        page,
-				PageSize:    setting.UI.User.RepoPagingNum,
-				Starred:     true,
-				Collaborate: util.OptionalBoolFalse,
-				TopicOnly:   topicOnly,
-			})
-			if err != nil {
-				ctx.ServerError("SearchRepositoryByName", err)
-				return
-			}
+		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+			Keyword:            keyword,
+			OrderBy:            orderBy,
+			Private:            ctx.IsSigned,
+			UserIsAdmin:        ctx.IsUserSiteAdmin(),
+			UserID:             ctx.Data["SignedUserID"].(int64),
+			Page:               page,
+			PageSize:           setting.UI.User.RepoPagingNum,
+			StarredByID:        ctxUser.ID,
+			Collaborate:        util.OptionalBoolFalse,
+			TopicOnly:          topicOnly,
+			IncludeDescription: setting.UI.SearchRepoDescription,
+		})
+		if err != nil {
+			ctx.ServerError("SearchRepository", err)
+			return
 		}
 
-		ctx.Data["Repos"] = repos
-		ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
-		ctx.Data["Total"] = count
+		total = int(count)
 	default:
-		if len(keyword) == 0 {
-			var total int
-			repos, err = models.GetUserRepositories(ctxUser.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
-			if err != nil {
-				ctx.ServerError("GetRepositories", err)
-				return
-			}
-			ctx.Data["Repos"] = repos
-
-			if showPrivate {
-				total = ctxUser.NumRepos
-			} else {
-				count, err := models.GetPublicRepositoryCount(ctxUser)
-				if err != nil {
-					ctx.ServerError("GetPublicRepositoryCount", err)
-					return
-				}
-				total = int(count)
-			}
-
-			ctx.Data["Page"] = paginater.New(total, setting.UI.User.RepoPagingNum, page, 5)
-			ctx.Data["Total"] = total
-		} else {
-			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:     keyword,
-				OwnerID:     ctxUser.ID,
-				OrderBy:     orderBy,
-				Private:     showPrivate,
-				Page:        page,
-				IsProfile:   true,
-				PageSize:    setting.UI.User.RepoPagingNum,
-				Collaborate: util.OptionalBoolFalse,
-				TopicOnly:   topicOnly,
-			})
-			if err != nil {
-				ctx.ServerError("SearchRepositoryByName", err)
-				return
-			}
-
-			ctx.Data["Repos"] = repos
-			ctx.Data["Page"] = paginater.New(int(count), setting.UI.User.RepoPagingNum, page, 5)
-			ctx.Data["Total"] = count
+		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+			Keyword:            keyword,
+			OwnerID:            ctxUser.ID,
+			OrderBy:            orderBy,
+			Private:            ctx.IsSigned,
+			UserIsAdmin:        ctx.IsUserSiteAdmin(),
+			UserID:             ctx.Data["SignedUserID"].(int64),
+			Page:               page,
+			IsProfile:          true,
+			PageSize:           setting.UI.User.RepoPagingNum,
+			Collaborate:        util.OptionalBoolFalse,
+			TopicOnly:          topicOnly,
+			IncludeDescription: setting.UI.SearchRepoDescription,
+		})
+		if err != nil {
+			ctx.ServerError("SearchRepository", err)
+			return
 		}
-	}
 
-	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
+		total = int(count)
+	}
+	ctx.Data["Repos"] = repos
+	ctx.Data["Total"] = total
+
+	pager := context.NewPagination(total, setting.UI.User.RepoPagingNum, page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
+
+	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
 
 	ctx.HTML(200, tplProfile)
 }
