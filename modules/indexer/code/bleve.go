@@ -124,12 +124,12 @@ func populateRepoIndexer(maxRepoID int64) {
 func updateRepoIndexer(repoID int64) error {
 	repo, err := models.GetRepositoryByID(repoID)
 	if err != nil {
-		return fmt.Errorf("UpdateRepoIndexer: Unable to GetRepositoryByID: %d, Error: %v", repoID, err))
+		return fmt.Errorf("UpdateRepoIndexer: Unable to GetRepositoryByID: %d, Error: %v", repoID, err)
 	}
 
 	sha, err := getDefaultBranchSha(repo)
 	if err != nil {
-		return fmt.Errorf("UpdateRepoIndexer: Unable to GetDefaultBranchSha for: %s/%s, Error: %v", repo.MustOwnerName(), repo.Name, err))
+		return fmt.Errorf("UpdateRepoIndexer: Unable to GetDefaultBranchSha for: %s/%s, Error: %v", repo.MustOwnerName(), repo.Name, err)
 	}
 	changes, err := getRepoChanges(repo, sha)
 	if err != nil {
@@ -141,7 +141,7 @@ func updateRepoIndexer(repoID int64) error {
 	batch := RepoIndexerBatch()
 	for _, update := range changes.Updates {
 		if err := addUpdate(update, repo, batch); err != nil {
-			return fmt.Errorf("UpdateRepoIndexer: Unable to addUpdate to: %s/%s Sha: %s, update: %s(%s) Error: %v", repo.MustOwnerName(), repo.Name, sha, update.Filename, update.BlobSha, err))
+			return fmt.Errorf("UpdateRepoIndexer: Unable to addUpdate to: %s/%s Sha: %s, update: %s(%s) Error: %v", repo.MustOwnerName(), repo.Name, sha, update.Filename, update.BlobSha, err)
 		}
 	}
 	for _, filename := range changes.RemovedFilenames {
