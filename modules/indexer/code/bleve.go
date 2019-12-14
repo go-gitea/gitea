@@ -158,7 +158,7 @@ type fileUpdate struct {
 }
 
 func getDefaultBranchSha(repo *models.Repository) (string, error) {
-	stdout, err := git.NewCommand("show-ref", "-s", repo.DefaultBranch).RunInDir(repo.RepoPath())
+	stdout, err := git.NewCommand("show-ref", "-s", git.BranchPrefix+repo.DefaultBranch).RunInDir(repo.RepoPath())
 	if err != nil {
 		return "", err
 	}
