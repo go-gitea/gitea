@@ -1,90 +1,36 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
+	"xorm.io/core"
 	"xorm.io/xorm"
 )
 
-func addProjectsInfo(x *xorm.Engine) error {
+func changeReviewContentToText(x *xorm.Engine) error {
 
-	sess := x.NewSession()
-	defer sess.Close()
-
-	type (
-		ProjectType      uint8
-		ProjectBoardType uint8
-	)
-
-	type Project struct {
-		ID              int64  `xorm:"pk autoincr"`
-		Title           string `xorm:"INDEX NOT NULL"`
-		Description     string `xorm:"TEXT"`
-		RepoID          int64  `xorm:"NOT NULL"`
-		CreatorID       int64  `xorm:"NOT NULL"`
-		IsClosed        bool   `xorm:"INDEX"`
-		NumIssues       int
-		NumClosedIssues int
-
-		BoardType ProjectBoardType
-		Type      ProjectType
-
-		ClosedDateUnix timeutil.TimeStamp
-		CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
-	}
-
-	if err := sess.Sync2(new(Project)); err != nil {
+	if x.Dialect().DBType() == core.MYSQL {
+		_, err := x.Exec("ALTER TABLE review MODIFY COLUMN content TEXT")
 		return err
 	}
 
-	type Comment struct {
-		OldProjectID int64
-		ProjectID    int64
-	}
-
-	if err := sess.Sync2(new(Comment)); err != nil {
+	if x.Dialect().DBType() == core.ORACLE {
+		_, err := x.Exec("ALTER TABLE review MODIFY content TEXT")
 		return err
 	}
 
-	type Repository struct {
-		NumProjects       int `xorm:"NOT NULL DEFAULT 0"`
-		NumClosedProjects int `xorm:"NOT NULL DEFAULT 0"`
-		NumOpenProjects   int `xorm:"-"`
-	}
-
-	if err := sess.Sync2(new(Repository)); err != nil {
+	if x.Dialect().DBType() == core.MSSQL {
+		_, err := x.Exec("ALTER TABLE review ALTER COLUMN content TEXT")
 		return err
 	}
 
-	type Issue struct {
-		ProjectID      int64 `xorm:"INDEX"`
-		ProjectBoardID int64 `xorm:"INDEX"`
-	}
-
-	if err := sess.Sync2(new(Issue)); err != nil {
+	if x.Dialect().DBType() == core.POSTGRES {
+		_, err := x.Exec("ALTER TABLE review ALTER COLUMN content TYPE TEXT")
 		return err
 	}
 
-	type ProjectBoard struct {
-		ID        int64 `xorm:"pk autoincr"`
-		ProjectID int64 `xorm:"INDEX NOT NULL"`
-		Title     string
-		RepoID    int64 `xorm:"INDEX NOT NULL"`
-
-		// Not really needed but helpful
-		CreatorID int64 `xorm:"NOT NULL"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-	}
-
-	if err := sess.Sync2(new(ProjectBoard)); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	// SQLite doesn't support ALTER COLUMN, and it seem to already make String to _TEXT_ default so no migration needed
+	return nil
 }

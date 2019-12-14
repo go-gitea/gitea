@@ -586,6 +586,28 @@ function initInstall() {
   });
 }
 
+function initIssueComments() {
+  if ($('.repository.view.issue .comments').length === 0) return;
+
+  $(document).click((event) => {
+    const urlTarget = $(':target');
+    if (urlTarget.length === 0) return;
+
+    const urlTargetId = urlTarget.attr('id');
+    if (!urlTargetId) return;
+    if (!/^(issue|pull)(comment)?-\d+$/.test(urlTargetId)) return;
+
+    const $target = $(event.target);
+
+    if ($target.closest(`#${urlTargetId}`).length === 0) {
+      const scrollPosition = $(window).scrollTop();
+      window.location.hash = '';
+      $(window).scrollTop(scrollPosition);
+      window.history.pushState(null, null, ' ');
+    }
+  });
+}
+
 function initRepository() {
   if ($('.repository').length === 0) {
     return;
@@ -732,6 +754,9 @@ function initRepository() {
       });
       return false;
     });
+
+    // Issue Comments
+    initIssueComments();
 
     // Issue/PR Context Menus
     $('.context-dropdown').dropdown({
@@ -1015,6 +1040,11 @@ function initRepository() {
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
       } else {
+        $($(this).data('target')).addClass('disabled');
+      }
+    });
+    $('.disable-whitelist').change(function () {
+      if (this.checked) {
         $($(this).data('target')).addClass('disabled');
       }
     });
@@ -3125,7 +3155,7 @@ function initTopicbar() {
 
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
-            $(`<div class="ui small label topic" style="cursor:pointer;">${topicArray[i]}</div>`).insertBefore(last);
+            $(`<a class="ui repo-topic small label topic" href="${suburl}/explore/repos?q=${topicArray[i]}&topic=1">${topicArray[i]}</a>`).insertBefore(last);
           }
         }
         editDiv.css('display', 'none');
@@ -3252,7 +3282,7 @@ function initTopicbar() {
         rules: [
           {
             type: 'validateTopic',
-            value: /^[a-z0-9][a-z0-9-]{1,35}$/,
+            value: /^[a-z0-9][a-z0-9-]{0,35}$/,
             prompt: topicPrompts.formatPrompt
           },
           {

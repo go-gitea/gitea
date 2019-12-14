@@ -22,6 +22,7 @@ type testResult struct {
 	Owner          string
 	Name           string
 	Issue          string
+	IsPull         bool
 	Action         XRefAction
 	RefLocation    *RefSpan
 	ActionLocation *RefSpan
@@ -33,7 +34,13 @@ func TestFindAllIssueReferences(t *testing.T) {
 		{
 			"Simply closes: #29 yes",
 			[]testResult{
-				{29, "", "", "29", XRefActionCloses, &RefSpan{Start: 15, End: 18}, &RefSpan{Start: 7, End: 13}},
+				{29, "", "", "29", false, XRefActionCloses, &RefSpan{Start: 15, End: 18}, &RefSpan{Start: 7, End: 13}},
+			},
+		},
+		{
+			"Simply closes: !29 yes",
+			[]testResult{
+				{29, "", "", "29", true, XRefActionCloses, &RefSpan{Start: 15, End: 18}, &RefSpan{Start: 7, End: 13}},
 			},
 		},
 		{
@@ -43,7 +50,7 @@ func TestFindAllIssueReferences(t *testing.T) {
 		{
 			" #124 yes, this is a reference.",
 			[]testResult{
-				{124, "", "", "124", XRefActionNone, &RefSpan{Start: 0, End: 4}, nil},
+				{124, "", "", "124", false, XRefActionNone, &RefSpan{Start: 0, End: 4}, nil},
 			},
 		},
 		{
@@ -57,7 +64,13 @@ func TestFindAllIssueReferences(t *testing.T) {
 		{
 			"This user3/repo4#200 yes.",
 			[]testResult{
-				{200, "user3", "repo4", "200", XRefActionNone, &RefSpan{Start: 5, End: 20}, nil},
+				{200, "user3", "repo4", "200", false, XRefActionNone, &RefSpan{Start: 5, End: 20}, nil},
+			},
+		},
+		{
+			"This user3/repo4!200 yes.",
+			[]testResult{
+				{200, "user3", "repo4", "200", true, XRefActionNone, &RefSpan{Start: 5, End: 20}, nil},
 			},
 		},
 		{
@@ -67,19 +80,19 @@ func TestFindAllIssueReferences(t *testing.T) {
 		{
 			"This [two](/user2/repo1/issues/921) yes.",
 			[]testResult{
-				{921, "user2", "repo1", "921", XRefActionNone, nil, nil},
+				{921, "user2", "repo1", "921", false, XRefActionNone, nil, nil},
 			},
 		},
 		{
 			"This [three](/user2/repo1/pulls/922) yes.",
 			[]testResult{
-				{922, "user2", "repo1", "922", XRefActionNone, nil, nil},
+				{922, "user2", "repo1", "922", true, XRefActionNone, nil, nil},
 			},
 		},
 		{
 			"This [four](http://gitea.com:3000/user3/repo4/issues/203) yes.",
 			[]testResult{
-				{203, "user3", "repo4", "203", XRefActionNone, nil, nil},
+				{203, "user3", "repo4", "203", false, XRefActionNone, nil, nil},
 			},
 		},
 		{
@@ -93,50 +106,50 @@ func TestFindAllIssueReferences(t *testing.T) {
 		{
 			"This http://gitea.com:3000/user4/repo5/pulls/202 yes.",
 			[]testResult{
-				{202, "user4", "repo5", "202", XRefActionNone, nil, nil},
+				{202, "user4", "repo5", "202", true, XRefActionNone, nil, nil},
 			},
 		},
 		{
 			"This http://GiTeA.COM:3000/user4/repo6/pulls/205 yes.",
 			[]testResult{
-				{205, "user4", "repo6", "205", XRefActionNone, nil, nil},
+				{205, "user4", "repo6", "205", true, XRefActionNone, nil, nil},
 			},
 		},
 		{
 			"Reopens #15 yes",
 			[]testResult{
-				{15, "", "", "15", XRefActionReopens, &RefSpan{Start: 8, End: 11}, &RefSpan{Start: 0, End: 7}},
+				{15, "", "", "15", false, XRefActionReopens, &RefSpan{Start: 8, End: 11}, &RefSpan{Start: 0, End: 7}},
 			},
 		},
 		{
 			"This closes #20 for you yes",
 			[]testResult{
-				{20, "", "", "20", XRefActionCloses, &RefSpan{Start: 12, End: 15}, &RefSpan{Start: 5, End: 11}},
+				{20, "", "", "20", false, XRefActionCloses, &RefSpan{Start: 12, End: 15}, &RefSpan{Start: 5, End: 11}},
 			},
 		},
 		{
 			"Do you fix user6/repo6#300 ? yes",
 			[]testResult{
-				{300, "user6", "repo6", "300", XRefActionCloses, &RefSpan{Start: 11, End: 26}, &RefSpan{Start: 7, End: 10}},
+				{300, "user6", "repo6", "300", false, XRefActionCloses, &RefSpan{Start: 11, End: 26}, &RefSpan{Start: 7, End: 10}},
 			},
 		},
 		{
 			"For 999 #1235 no keyword, but yes",
 			[]testResult{
-				{1235, "", "", "1235", XRefActionNone, &RefSpan{Start: 8, End: 13}, nil},
+				{1235, "", "", "1235", false, XRefActionNone, &RefSpan{Start: 8, End: 13}, nil},
 			},
 		},
 		{
 			"Which abc. #9434 same as above",
 			[]testResult{
-				{9434, "", "", "9434", XRefActionNone, &RefSpan{Start: 11, End: 16}, nil},
+				{9434, "", "", "9434", false, XRefActionNone, &RefSpan{Start: 11, End: 16}, nil},
 			},
 		},
 		{
 			"This closes #600 and reopens #599",
 			[]testResult{
-				{600, "", "", "600", XRefActionCloses, &RefSpan{Start: 12, End: 16}, &RefSpan{Start: 5, End: 11}},
-				{599, "", "", "599", XRefActionReopens, &RefSpan{Start: 29, End: 33}, &RefSpan{Start: 21, End: 28}},
+				{600, "", "", "600", false, XRefActionCloses, &RefSpan{Start: 12, End: 16}, &RefSpan{Start: 5, End: 11}},
+				{599, "", "", "599", false, XRefActionReopens, &RefSpan{Start: 29, End: 33}, &RefSpan{Start: 21, End: 28}},
 			},
 		},
 	}
@@ -190,6 +203,7 @@ func testFixtures(t *testing.T, fixtures []testFixture, context string) {
 				index:          e.Index,
 				owner:          e.Owner,
 				name:           e.Name,
+				isPull:         e.IsPull,
 				action:         e.Action,
 				issue:          e.Issue,
 				refLocation:    e.RefLocation,
@@ -329,25 +343,25 @@ func TestCustomizeCloseKeywords(t *testing.T) {
 		{
 			"Simplemente cierra: #29 yes",
 			[]testResult{
-				{29, "", "", "29", XRefActionCloses, &RefSpan{Start: 20, End: 23}, &RefSpan{Start: 12, End: 18}},
+				{29, "", "", "29", false, XRefActionCloses, &RefSpan{Start: 20, End: 23}, &RefSpan{Start: 12, End: 18}},
 			},
 		},
 		{
 			"Closes: #123 no, this English.",
 			[]testResult{
-				{123, "", "", "123", XRefActionNone, &RefSpan{Start: 8, End: 12}, nil},
+				{123, "", "", "123", false, XRefActionNone, &RefSpan{Start: 8, End: 12}, nil},
 			},
 		},
 		{
 			"Cerró user6/repo6#300 yes",
 			[]testResult{
-				{300, "user6", "repo6", "300", XRefActionCloses, &RefSpan{Start: 7, End: 22}, &RefSpan{Start: 0, End: 6}},
+				{300, "user6", "repo6", "300", false, XRefActionCloses, &RefSpan{Start: 7, End: 22}, &RefSpan{Start: 0, End: 6}},
 			},
 		},
 		{
 			"Reabre user3/repo4#200 yes",
 			[]testResult{
-				{200, "user3", "repo4", "200", XRefActionReopens, &RefSpan{Start: 7, End: 22}, &RefSpan{Start: 0, End: 6}},
+				{200, "user3", "repo4", "200", false, XRefActionReopens, &RefSpan{Start: 7, End: 22}, &RefSpan{Start: 0, End: 6}},
 			},
 		},
 	}

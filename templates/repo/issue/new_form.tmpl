@@ -13,7 +13,7 @@
 				</a>
 				<div class="ui segment content">
 					<div class="field">
-						<input name="title" id="issue_title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{.title}}" tabindex="3" autofocus required>
+						<input name="title" id="issue_title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{.title}}" tabindex="3" autofocus required maxlength="255">
 						{{if .PageIsComparePull}}
 							<div class="title_wip_desc">{{.i18n.Tr "repo.pulls.title_wip_desc" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}</div>
 						{{end}}

@@ -30,7 +30,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/options"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
@@ -42,7 +41,6 @@ import (
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 var repoWorkingPool = sync.NewExclusivePool()
@@ -176,8 +174,8 @@ type Repository struct {
 	*Mirror    `xorm:"-"`
 	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
-	ExternalMetas map[string]string `xorm:"-"`
-	Units         []*RepoUnit       `xorm:"-"`
+	RenderingMetas map[string]string `xorm:"-"`
+	Units          []*RepoUnit       `xorm:"-"`
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
@@ -373,6 +371,8 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		Forks:                     repo.NumForks,
 		Watchers:                  repo.NumWatches,
 		OpenIssues:                repo.NumOpenIssues,
+		OpenPulls:                 repo.NumOpenPulls,
+		Releases:                  repo.NumReleases,
 		DefaultBranch:             repo.DefaultBranch,
 		Created:                   repo.CreatedUnix.AsTime(),
 		Updated:                   repo.UpdatedUnix.AsTime(),
@@ -563,27 +563,39 @@ func (repo *Repository) mustOwnerName(e Engine) string {
 
 // ComposeMetas composes a map of metas for properly rendering issue links and external issue trackers.
 func (repo *Repository) ComposeMetas() map[string]string {
-	if repo.ExternalMetas == nil {
-		repo.ExternalMetas = map[string]string{
+	if repo.RenderingMetas == nil {
+		metas := map[string]string{
 			"user":     repo.MustOwner().Name,
 			"repo":     repo.Name,
 			"repoPath": repo.RepoPath(),
 		}
+
 		unit, err := repo.GetUnit(UnitTypeExternalTracker)
-		if err != nil {
-			return repo.ExternalMetas
+		if err == nil {
+			metas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
+			switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
+			case markup.IssueNameStyleAlphanumeric:
+				metas["style"] = markup.IssueNameStyleAlphanumeric
+			default:
+				metas["style"] = markup.IssueNameStyleNumeric
+			}
 		}
 
-		repo.ExternalMetas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
-		switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
-		case markup.IssueNameStyleAlphanumeric:
-			repo.ExternalMetas["style"] = markup.IssueNameStyleAlphanumeric
-		default:
-			repo.ExternalMetas["style"] = markup.IssueNameStyleNumeric
+		if repo.Owner.IsOrganization() {
+			teams := make([]string, 0, 5)
+			_ = x.Table("team_repo").
+				Join("INNER", "team", "team.id = team_repo.team_id").
+				Where("team_repo.repo_id = ?", repo.ID).
+				Select("team.lower_name").
+				OrderBy("team.lower_name").
+				Find(&teams)
+			metas["teams"] = "," + strings.Join(teams, ",") + ","
+			metas["org"] = repo.Owner.LowerName
 		}
 
+		repo.RenderingMetas = metas
 	}
-	return repo.ExternalMetas
+	return repo.RenderingMetas
 }
 
 // DeleteWiki removes the actual and local copy of repository wiki.
@@ -1194,11 +1206,11 @@ func initRepoCommit(tmpPath string, u *User) (err error) {
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
 
-	var stderr string
-	if _, stderr, err = process.GetManager().ExecDir(-1,
-		tmpPath, fmt.Sprintf("initRepoCommit (git add): %s", tmpPath),
-		git.GitExecutable, "add", "--all"); err != nil {
-		return fmt.Errorf("git add: %s", stderr)
+	if stdout, err := git.NewCommand("add", "--all").
+		SetDescription(fmt.Sprintf("initRepoCommit (git add): %s", tmpPath)).
+		RunInDir(tmpPath); err != nil {
+		log.Error("git add --all failed: Stdout: %s\nError: %v", stdout, err)
+		return fmt.Errorf("git add --all: %v", err)
 	}
 
 	binVersion, err := git.BinVersion()
@@ -1220,18 +1232,20 @@ func initRepoCommit(tmpPath string, u *User) (err error) {
 		}
 	}
 
-	if _, stderr, err = process.GetManager().ExecDirEnv(-1,
-		tmpPath, fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath),
-		env,
-		git.GitExecutable, args...); err != nil {
-		return fmt.Errorf("git commit: %s", stderr)
+	if stdout, err := git.NewCommand(args...).
+		SetDescription(fmt.Sprintf("initRepoCommit (git commit): %s", tmpPath)).
+		RunInDirWithEnv(tmpPath, env); err != nil {
+		log.Error("Failed to commit: %v: Stdout: %s\nError: %v", args, stdout, err)
+		return fmt.Errorf("git commit: %v", err)
 	}
 
-	if _, stderr, err = process.GetManager().ExecDir(-1,
-		tmpPath, fmt.Sprintf("initRepoCommit (git push): %s", tmpPath),
-		git.GitExecutable, "push", "origin", "master"); err != nil {
-		return fmt.Errorf("git push: %s", stderr)
+	if stdout, err := git.NewCommand("push", "origin", "master").
+		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
+		RunInDir(tmpPath); err != nil {
+		log.Error("Failed to push back to master: Stdout: %s\nError: %v", stdout, err)
+		return fmt.Errorf("git push: %v", err)
 	}
+
 	return nil
 }
 
@@ -1248,20 +1262,6 @@ type CreateRepoOptions struct {
 	IsMirror    bool
 	AutoInit    bool
 	Status      RepositoryStatus
-}
-
-// GenerateRepoOptions contains the template units to generate
-type GenerateRepoOptions struct {
-	Name        string
-	Description string
-	Private     bool
-	GitContent  bool
-	Topics      bool
-}
-
-// IsValid checks whether at least one option is chosen for generation
-func (gro GenerateRepoOptions) IsValid() bool {
-	return gro.GitContent || gro.Topics // or other items as they are added
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
@@ -1303,14 +1303,11 @@ func prepareRepoCommit(e Engine, repo *Repository, tmpDir, repoPath string, opts
 	)
 
 	// Clone to temporary path and do the init commit.
-	_, stderr, err := process.GetManager().ExecDirEnv(
-		-1, "",
-		fmt.Sprintf("initRepository(git clone): %s", repoPath),
-		env,
-		git.GitExecutable, "clone", repoPath, tmpDir,
-	)
-	if err != nil {
-		return fmt.Errorf("git clone: %v - %s", err, stderr)
+	if stdout, err := git.NewCommand("clone", repoPath, tmpDir).
+		SetDescription(fmt.Sprintf("initRepository (git clone): %s to %s", repoPath, tmpDir)).
+		RunInDirWithEnv("", env); err != nil {
+		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
+		return fmt.Errorf("git clone: %v", err)
 	}
 
 	// README
@@ -1365,54 +1362,6 @@ func prepareRepoCommit(e Engine, repo *Repository, tmpDir, repoPath string, opts
 	}
 
 	return nil
-}
-
-func generateRepoCommit(e Engine, repo, templateRepo *Repository, tmpDir string) error {
-	commitTimeStr := time.Now().Format(time.RFC3339)
-	authorSig := repo.Owner.NewGitSig()
-
-	// Because this may call hooks we should pass in the environment
-	env := append(os.Environ(),
-		"GIT_AUTHOR_NAME="+authorSig.Name,
-		"GIT_AUTHOR_EMAIL="+authorSig.Email,
-		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+authorSig.Name,
-		"GIT_COMMITTER_EMAIL="+authorSig.Email,
-		"GIT_COMMITTER_DATE="+commitTimeStr,
-	)
-
-	// Clone to temporary path and do the init commit.
-	templateRepoPath := templateRepo.repoPath(e)
-	_, stderr, err := process.GetManager().ExecDirEnv(
-		-1, "",
-		fmt.Sprintf("generateRepoCommit(git clone): %s", templateRepoPath),
-		env,
-		git.GitExecutable, "clone", "--depth", "1", templateRepoPath, tmpDir,
-	)
-	if err != nil {
-		return fmt.Errorf("git clone: %v - %s", err, stderr)
-	}
-
-	if err := os.RemoveAll(path.Join(tmpDir, ".git")); err != nil {
-		return fmt.Errorf("remove git dir: %v", err)
-	}
-
-	if err := git.InitRepository(tmpDir, false); err != nil {
-		return err
-	}
-
-	repoPath := repo.repoPath(e)
-	_, stderr, err = process.GetManager().ExecDirEnv(
-		-1, tmpDir,
-		fmt.Sprintf("generateRepoCommit(git remote add): %s", repoPath),
-		env,
-		git.GitExecutable, "remote", "add", "origin", repoPath,
-	)
-	if err != nil {
-		return fmt.Errorf("git remote add: %v - %s", err, stderr)
-	}
-
-	return initRepoCommit(tmpDir, repo.Owner)
 }
 
 func checkInitRepository(repoPath string) (err error) {
@@ -1475,37 +1424,6 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 	return nil
 }
 
-// generateRepository initializes repository from template
-func generateRepository(e Engine, repo, templateRepo *Repository) (err error) {
-	tmpDir := filepath.Join(os.TempDir(), "gitea-"+repo.Name+"-"+com.ToStr(time.Now().Nanosecond()))
-
-	if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", tmpDir, err)
-	}
-
-	defer func() {
-		if err := os.RemoveAll(tmpDir); err != nil {
-			log.Error("RemoveAll: %v", err)
-		}
-	}()
-
-	if err = generateRepoCommit(e, repo, templateRepo, tmpDir); err != nil {
-		return fmt.Errorf("generateRepoCommit: %v", err)
-	}
-
-	// re-fetch repo
-	if repo, err = getRepositoryByID(e, repo.ID); err != nil {
-		return fmt.Errorf("getRepositoryByID: %v", err)
-	}
-
-	repo.DefaultBranch = "master"
-	if err = updateRepository(e, repo, false); err != nil {
-		return fmt.Errorf("updateRepository: %v", err)
-	}
-
-	return nil
-}
-
 var (
 	reservedRepoNames    = []string{".", ".."}
 	reservedRepoPatterns = []string{"*.git", "*.wiki"}
@@ -1516,7 +1434,7 @@ func IsUsableRepoName(name string) error {
 	return isUsableName(reservedRepoNames, reservedRepoPatterns, name)
 }
 
-func createRepository(e *xorm.Session, doer, u *User, repo *Repository) (err error) {
+func createRepository(e Engine, doer, u *User, repo *Repository) (err error) {
 	if err = IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -1669,11 +1587,11 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 			}
 		}
 
-		_, stderr, err := process.GetManager().ExecDir(-1,
-			repoPath, fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath),
-			git.GitExecutable, "update-server-info")
-		if err != nil {
-			return nil, errors.New("CreateRepository(git update-server-info): " + stderr)
+		if stdout, err := git.NewCommand("update-server-info").
+			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
+			RunInDir(repoPath); err != nil {
+			log.Error("CreateRepitory(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+			return nil, fmt.Errorf("CreateRepository(git update-server-info): %v", err)
 		}
 	}
 
@@ -2507,12 +2425,13 @@ func GitGcRepos() error {
 				if err := repo.GetOwner(); err != nil {
 					return err
 				}
-				_, stderr, err := process.GetManager().ExecDir(
-					time.Duration(setting.Git.Timeout.GC)*time.Second,
-					RepoPath(repo.Owner.Name, repo.Name), "Repository garbage collection",
-					git.GitExecutable, args...)
-				if err != nil {
-					return fmt.Errorf("%v: %v", err, stderr)
+				if stdout, err := git.NewCommand(args...).
+					SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName())).
+					RunInDirTimeout(
+						time.Duration(setting.Git.Timeout.GC)*time.Second,
+						RepoPath(repo.Owner.Name, repo.Name)); err != nil {
+					log.Error("Repository garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout, err)
+					return fmt.Errorf("Repository garbage collection failed: Error: %v", err)
 				}
 				return nil
 			})
@@ -2732,18 +2651,19 @@ func ForkRepository(doer, owner *User, oldRepo *Repository, name, desc string) (
 	}
 
 	repoPath := RepoPath(owner.Name, repo.Name)
-	_, stderr, err := process.GetManager().ExecTimeout(10*time.Minute,
-		fmt.Sprintf("ForkRepository(git clone): %s/%s", owner.Name, repo.Name),
-		git.GitExecutable, "clone", "--bare", oldRepo.repoPath(sess), repoPath)
-	if err != nil {
-		return nil, fmt.Errorf("git clone: %v", stderr)
+	if stdout, err := git.NewCommand(
+		"clone", "--bare", oldRepo.repoPath(sess), repoPath).
+		SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", oldRepo.FullName(), repo.FullName())).
+		RunInDirTimeout(10*time.Minute, ""); err != nil {
+		log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, oldRepo, stdout, err)
+		return nil, fmt.Errorf("git clone: %v", err)
 	}
 
-	_, stderr, err = process.GetManager().ExecDir(-1,
-		repoPath, fmt.Sprintf("ForkRepository(git update-server-info): %s", repoPath),
-		git.GitExecutable, "update-server-info")
-	if err != nil {
-		return nil, fmt.Errorf("git update-server-info: %v", stderr)
+	if stdout, err := git.NewCommand("update-server-info").
+		SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
+		RunInDir(repoPath); err != nil {
+		log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
+		return nil, fmt.Errorf("git update-server-info: %v", err)
 	}
 
 	if err = createDelegateHooks(repoPath); err != nil {
@@ -2761,72 +2681,6 @@ func ForkRepository(doer, owner *User, oldRepo *Repository, name, desc string) (
 	}
 
 	return repo, CopyLFS(repo, oldRepo)
-}
-
-// GenerateRepository generates a repository from a template
-func GenerateRepository(doer, owner *User, templateRepo *Repository, opts GenerateRepoOptions) (_ *Repository, err error) {
-	repo := &Repository{
-		OwnerID:       owner.ID,
-		Owner:         owner,
-		Name:          opts.Name,
-		LowerName:     strings.ToLower(opts.Name),
-		Description:   opts.Description,
-		IsPrivate:     opts.Private,
-		IsEmpty:       !opts.GitContent || templateRepo.IsEmpty,
-		IsFsckEnabled: templateRepo.IsFsckEnabled,
-		TemplateID:    templateRepo.ID,
-	}
-
-	createSess := x.NewSession()
-	defer createSess.Close()
-	if err = createSess.Begin(); err != nil {
-		return nil, err
-	}
-
-	if err = createRepository(createSess, doer, owner, repo); err != nil {
-		return nil, err
-	}
-
-	//Commit repo to get created repo ID
-	err = createSess.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return repo, err
-	}
-
-	repoPath := RepoPath(owner.Name, repo.Name)
-	if err = checkInitRepository(repoPath); err != nil {
-		return repo, err
-	}
-
-	if opts.GitContent && !templateRepo.IsEmpty {
-		if err = generateRepository(sess, repo, templateRepo); err != nil {
-			return repo, err
-		}
-
-		if err = repo.updateSize(sess); err != nil {
-			return repo, fmt.Errorf("failed to update size for repository: %v", err)
-		}
-
-		if err = copyLFS(sess, repo, templateRepo); err != nil {
-			return repo, fmt.Errorf("failed to copy LFS: %v", err)
-		}
-	}
-
-	if opts.Topics {
-		for _, topic := range templateRepo.Topics {
-			if _, err = addTopicByNameToRepo(sess, repo.ID, topic); err != nil {
-				return repo, err
-			}
-		}
-	}
-
-	return repo, sess.Commit()
 }
 
 // GetForks returns all the forks of the repository
@@ -3045,8 +2899,12 @@ func (repo *Repository) GetTreePathLock(treePath string) (*LFSLock, error) {
 	return nil, nil
 }
 
+func updateRepositoryCols(e Engine, repo *Repository, cols ...string) error {
+	_, err := e.ID(repo.ID).Cols(cols...).Update(repo)
+	return err
+}
+
 // UpdateRepositoryCols updates repository's columns
 func UpdateRepositoryCols(repo *Repository, cols ...string) error {
-	_, err := x.ID(repo.ID).Cols(cols...).Update(repo)
-	return err
+	return updateRepositoryCols(x, repo, cols...)
 }

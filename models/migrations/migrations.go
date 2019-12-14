@@ -275,6 +275,10 @@ var migrations = []Migration{
 	// v109 -> v110
 	NewMigration("add can_create_org_repo to team", addCanCreateOrgRepoColumnForTeam),
 	// v110 -> v111
+	NewMigration("change review content type to text", changeReviewContentToText),
+	// v111 -> v112
+	NewMigration("update branch protection for can push and whitelist enable", addBranchProtectionCanPushAndEnableWhitelist),
+	// v112 -> v113
 	NewMigration("add projects info to repository table", addProjectsInfo),
 }
 
