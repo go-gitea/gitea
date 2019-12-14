@@ -116,6 +116,7 @@ func populateRepoIndexer(maxRepoID int64) {
 				repoID:  id,
 				deleted: false,
 			}
+			maxRepoID = id - 1
 		}
 	}
 	log.Info("Done (re)populating the repo indexer with existing repositories")
