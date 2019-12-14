@@ -18,17 +18,20 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/armor"
+	"github.com/unknwon/com"
 )
 
 const (
-	tplDashboard base.TplName = "user/dashboard/dashboard"
-	tplIssues    base.TplName = "user/dashboard/issues"
-	tplProfile   base.TplName = "user/profile"
+	tplDashboard  base.TplName = "user/dashboard/dashboard"
+	tplIssues     base.TplName = "user/dashboard/issues"
+	tplMilestones base.TplName = "user/dashboard/milestones"
+	tplProfile    base.TplName = "user/profile"
 )
 
 // getDashboardContextUser finds out dashboard is viewing as which context user.
@@ -148,6 +151,175 @@ func Dashboard(ctx *context.Context) {
 		return
 	}
 	ctx.HTML(200, tplDashboard)
+}
+
+// Milestones render the user milestones page
+func Milestones(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("milestones")
+	ctx.Data["PageIsMilestonesDashboard"] = true
+
+	ctxUser := getDashboardContextUser(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	sortType := ctx.Query("sort")
+	page := ctx.QueryInt("page")
+	if page <= 1 {
+		page = 1
+	}
+
+	repoID := ctx.QueryInt64("repo")
+	isShowClosed := ctx.Query("state") == "closed"
+
+	// Get repositories.
+	var err error
+	var userRepoIDs []int64
+	if ctxUser.IsOrganization() {
+		env, err := ctxUser.AccessibleReposEnv(ctx.User.ID)
+		if err != nil {
+			ctx.ServerError("AccessibleReposEnv", err)
+			return
+		}
+		userRepoIDs, err = env.RepoIDs(1, ctxUser.NumRepos)
+		if err != nil {
+			ctx.ServerError("env.RepoIDs", err)
+			return
+		}
+	} else {
+		unitType := models.UnitTypeIssues
+		userRepoIDs, err = ctxUser.GetAccessRepoIDs(unitType)
+		if err != nil {
+			ctx.ServerError("ctxUser.GetAccessRepoIDs", err)
+			return
+		}
+	}
+	if len(userRepoIDs) == 0 {
+		userRepoIDs = []int64{-1}
+	}
+
+	var repoIDs []int64
+	if repoID > 0 {
+		repoIDs = []int64{repoID}
+		if !com.IsSliceContainsInt64(userRepoIDs, repoID) {
+			// force an empty result
+			repoIDs = []int64{-1}
+		}
+	} else {
+		repoIDs = userRepoIDs
+	}
+
+	counts, err := models.CountMilestonesByRepoIDs(repoIDs, isShowClosed)
+	if err != nil {
+		ctx.ServerError("CountMilestonesByRepoIDs", err)
+		return
+	}
+
+	milestones, err := models.GetMilestonesByRepoIDs(repoIDs, page, isShowClosed, sortType)
+	if err != nil {
+		ctx.ServerError("GetMilestonesByRepoIDs", err)
+		return
+	}
+
+	showReposMap := make(map[int64]*models.Repository, len(counts))
+	for repoID := range counts {
+		repo, err := models.GetRepositoryByID(repoID)
+		if err != nil {
+			ctx.ServerError("GetRepositoryByID", err)
+			return
+		}
+		showReposMap[repoID] = repo
+	}
+
+	if repoID > 0 {
+		if _, ok := showReposMap[repoID]; !ok {
+			repo, err := models.GetRepositoryByID(repoID)
+			if models.IsErrRepoNotExist(err) {
+				ctx.NotFound("GetRepositoryByID", err)
+				return
+			} else if err != nil {
+				ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
+				return
+			}
+			showReposMap[repoID] = repo
+		}
+
+		repo := showReposMap[repoID]
+
+		// Check if user has access to given repository.
+		perm, err := models.GetUserRepoPermission(repo, ctxUser)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
+			return
+		}
+		if !perm.CanRead(models.UnitTypeIssues) {
+			if log.IsTrace() {
+				log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
+					"User in repo has Permissions: %-+v",
+					ctxUser,
+					models.UnitTypeIssues,
+					repo,
+					perm)
+			}
+			ctx.Status(404)
+			return
+		}
+	}
+
+	showRepos := models.RepositoryListOfMap(showReposMap)
+	sort.Sort(showRepos)
+	if err = showRepos.LoadAttributes(); err != nil {
+		ctx.ServerError("LoadAttributes", err)
+		return
+	}
+
+	for _, m := range milestones {
+		m.Repo = showReposMap[m.RepoID]
+		m.RenderedContent = string(markdown.Render([]byte(m.Content), m.Repo.Link(), m.Repo.ComposeMetas()))
+		if m.Repo.IsTimetrackerEnabled() {
+			err := m.LoadTotalTrackedTime()
+			if err != nil {
+				ctx.ServerError("LoadTotalTrackedTime", err)
+				return
+			}
+		}
+	}
+
+	milestoneStats, err := models.GetUserMilestoneStats(ctxUser.ID, repoID, userRepoIDs)
+	if err != nil {
+		ctx.ServerError("GetUserMilestoneStats", err)
+		return
+	}
+
+	var total int
+	if !isShowClosed {
+		total = int(milestoneStats.OpenCount)
+	} else {
+		total = int(milestoneStats.ClosedCount)
+	}
+
+	ctx.Data["Milestones"] = milestones
+	ctx.Data["Repos"] = showRepos
+	ctx.Data["Counts"] = counts
+	ctx.Data["MilestoneStats"] = milestoneStats
+	ctx.Data["Total"] = total
+	ctx.Data["SortType"] = sortType
+	ctx.Data["RepoID"] = repoID
+	ctx.Data["IsShowClosed"] = isShowClosed
+
+	if isShowClosed {
+		ctx.Data["State"] = "closed"
+	} else {
+		ctx.Data["State"] = "open"
+	}
+
+	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
+	pager.AddParam(ctx, "repo", "RepoID")
+	pager.AddParam(ctx, "sort", "SortType")
+	pager.AddParam(ctx, "state", "State")
+	ctx.Data["Page"] = pager
+
+	ctx.HTML(200, tplMilestones)
 }
 
 // Regexp for repos query
