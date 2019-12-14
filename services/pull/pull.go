@@ -15,8 +15,12 @@ import (
 )
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, patch []byte, assigneeIDs []int64) error {
-	if err := models.NewPullRequest(repo, pull, labelIDs, uuids, pr, patch); err != nil {
+func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, assigneeIDs []int64) error {
+	if err := TestPatch(pr); err != nil {
+		return err
+	}
+
+	if err := models.NewPullRequest(repo, pull, labelIDs, uuids, pr); err != nil {
 		return err
 	}
 
@@ -56,10 +60,7 @@ func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *m
 func addHeadRepoTasks(prs []*models.PullRequest) {
 	for _, pr := range prs {
 		log.Trace("addHeadRepoTasks[%d]: composing new test task", pr.ID)
-		if err := pr.UpdatePatch(); err != nil {
-			log.Error("UpdatePatch: %v", err)
-			continue
-		} else if err := pr.PushToBaseRepo(); err != nil {
+		if err := pr.PushToBaseRepo(); err != nil {
 			log.Error("PushToBaseRepo: %v", err)
 			continue
 		}
