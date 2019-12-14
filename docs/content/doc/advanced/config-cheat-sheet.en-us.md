@@ -140,7 +140,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Server (`server`)
 
-- `PROTOCOL`: **http**: \[http, https, fcgi, unix\]
+- `PROTOCOL`: **http**: \[http, https, fcgi, unix, fcgi+unix\]
 - `DOMAIN`: **localhost**: Domain name of this server.
 - `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**:
    Overwrite the automatically generated public URL.
@@ -155,7 +155,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
-   - If `PROTOCOL` is set to `unix`, this should be the name of the Unix socket file to use.
+   - If `PROTOCOL` is set to `unix` or `fcgi+unix`, this should be the name of the Unix socket file to use.
 - `HTTP_PORT`: **3000**: HTTP listen port.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
@@ -313,6 +313,8 @@ relation to port exhaustion.
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
 - `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
 - `ALLOW_ONLY_EXTERNAL_REGISTRATION`: **false** Set to true to force registration only using third-party services.
+- `NO_REPLY_ADDRESS`: **DOMAIN** Default value for the domain part of the user's email address in the git log if he has set KeepEmailPrivate to true. 
+  The user's email will be replaced with a concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 
 ## Webhook (`webhook`)
 
