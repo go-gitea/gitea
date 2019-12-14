@@ -91,7 +91,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"/milestones?type=your_repositories&sort=mostcomplete&state=closed",
 		"/milestones?sort=&repo=1&state=closed",
 		"/milestones?sort=&repo=1&state=open",
-		"/milestones?repo=0&sort=mostissues&state=open",
+		"/milestones?repos=[0]&sort=mostissues&state=open",
 		"/notifications",
 		"/repo/create",
 		"/repo/migrate",
