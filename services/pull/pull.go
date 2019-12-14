@@ -40,6 +40,7 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 
 // ChangeTargetBranch changes the target branch of this pull request, as the given user.
 func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch string) (err error) {
+	// Current target branch is already the same
 	if pr.BaseBranch == targetBranch {
 		return nil
 	}
@@ -98,7 +99,7 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 		}
 	}
 
-	// Check if pull request already exists
+	// Check if pull request for the new target branch already exists
 	existingPr, err := models.GetUnmergedPullRequest(pr.HeadRepoID, pr.BaseRepoID, pr.HeadBranch, targetBranch)
 	if existingPr != nil {
 		return models.ErrPullRequestAlreadyExists{
@@ -114,7 +115,35 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 		return err
 	}
 
-	return pr.SetTargetBranch(targetBranch, doer)
+	// Set new target branch
+	oldBranch := pr.BaseBranch
+	pr.BaseBranch = targetBranch
+
+	if err := TestPatch(pr); err != nil {
+		return err
+	}
+
+	if err := pr.UpdateCols("base_branch"); err != nil {
+		return err
+	}
+
+	// Update PR diff and status
+	checkAndUpdateStatus(pr)
+
+	// Create comment
+	options := &models.CreateCommentOptions{
+		Type:   models.CommentTypeChangeTargetBranch,
+		Doer:   doer,
+		Repo:   pr.Issue.Repo,
+		Issue:  pr.Issue,
+		OldRef: oldBranch,
+		NewRef: targetBranch,
+	}
+	if _, err = models.CreateCommentWithNoAction(options); err != nil {
+		return fmt.Errorf("CreateChangeTargetBranchComment: %v", err)
+	}
+
+	return nil
 }
 
 func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *models.User, branch string) error {

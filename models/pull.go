@@ -673,37 +673,6 @@ func (pr *PullRequest) PushToBaseRepo() (err error) {
 	return nil
 }
 
-// SetTargetBranch sets the target branch of this pull request
-func (pr *PullRequest) SetTargetBranch(targetBranch string, doer *User) (err error) {
-	oldBranch := pr.BaseBranch
-	pr.BaseBranch = targetBranch
-
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if _, err := sess.ID(pr.ID).Cols("base_branch").Update(pr); err != nil {
-		return fmt.Errorf("update pull request: %v", err)
-	}
-
-	options := &CreateCommentOptions{
-		Type:   CommentTypeChangeTargetBranch,
-		Doer:   doer,
-		Repo:   pr.Issue.Repo,
-		Issue:  pr.Issue,
-		OldRef: oldBranch,
-		NewRef: targetBranch,
-	}
-	if _, err = createCommentWithNoAction(sess, options); err != nil {
-		return fmt.Errorf("CreateChangeTargetBranchComment: %v", err)
-	}
-
-	return sess.Commit()
-}
-
 // IsWorkInProgress determine if the Pull Request is a Work In Progress by its title
 func (pr *PullRequest) IsWorkInProgress() bool {
 	if err := pr.LoadIssue(); err != nil {
