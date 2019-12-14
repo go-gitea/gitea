@@ -119,16 +119,19 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 	oldBranch := pr.BaseBranch
 	pr.BaseBranch = targetBranch
 
+	// Refresh patch
 	if err := TestPatch(pr); err != nil {
 		return err
 	}
 
-	if err := pr.UpdateCols("base_branch"); err != nil {
+	// Update target branch, PR diff and status
+	// This is the same as checkAndUpdateStatus in check service, but also updates base_branch
+	if pr.Status == models.PullRequestStatusChecking {
+		pr.Status = models.PullRequestStatusMergeable
+	}
+	if err := pr.UpdateCols("status, conflicted_files, base_branch"); err != nil {
 		return err
 	}
-
-	// Update PR diff and status
-	checkAndUpdateStatus(pr)
 
 	// Create comment
 	options := &models.CreateCommentOptions{
