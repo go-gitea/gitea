@@ -177,6 +177,7 @@ func DeliverHooks(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			hookQueue.Close()
 			return
 		case repoIDStr := <-hookQueue.Queue():
 			log.Trace("DeliverHooks [repo_id: %v]", repoIDStr)
