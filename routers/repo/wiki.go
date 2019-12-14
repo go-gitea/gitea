@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
 const (
@@ -577,7 +578,7 @@ func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 	}
 
 	wikiName := models.NormalizeWikiName(form.Title)
-	if err := ctx.Repo.Repository.AddWikiPage(ctx.User, wikiName, form.Content, form.Message); err != nil {
+	if err := wiki_service.AddWikiPage(ctx.User, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
 		if models.IsErrWikiReservedName(err) {
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.wiki.reserved_page", wikiName), tplWikiNew, &form)
@@ -626,7 +627,7 @@ func EditWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 	oldWikiName := models.NormalizeWikiName(ctx.Params(":page"))
 	newWikiName := models.NormalizeWikiName(form.Title)
 
-	if err := ctx.Repo.Repository.EditWikiPage(ctx.User, oldWikiName, newWikiName, form.Content, form.Message); err != nil {
+	if err := wiki_service.EditWikiPage(ctx.User, ctx.Repo.Repository, oldWikiName, newWikiName, form.Content, form.Message); err != nil {
 		ctx.ServerError("EditWikiPage", err)
 		return
 	}
@@ -641,7 +642,7 @@ func DeleteWikiPagePost(ctx *context.Context) {
 		wikiName = "Home"
 	}
 
-	if err := ctx.Repo.Repository.DeleteWikiPage(ctx.User, wikiName); err != nil {
+	if err := wiki_service.DeleteWikiPage(ctx.User, ctx.Repo.Repository, wikiName); err != nil {
 		ctx.ServerError("DeleteWikiPage", err)
 		return
 	}
