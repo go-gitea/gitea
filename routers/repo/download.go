@@ -42,7 +42,7 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
 	}
 
-	if true == ctx.Data["IsRawApi"] {
+	if ctx.Data["IsRawApi"] == true {
 		if mimeType := mime.TypeByExtension(filepath.Ext(name)); mimeType != "" {
 			ctx.Resp.Header().Set("Content-Type", mimeType)
 		}
