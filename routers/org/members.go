@@ -41,7 +41,7 @@ func Members(ctx *context.Context) {
 			ctx.Error(500, "IsOrgMember")
 			return
 		}
-		opts.PublicOnly = !isMember
+		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
 	}
 
 	total, err := models.CountOrgMembers(opts)
