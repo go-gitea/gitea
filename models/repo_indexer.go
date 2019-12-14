@@ -5,6 +5,8 @@
 package models
 
 import (
+	"fmt"
+
 	"xorm.io/builder"
 )
 
@@ -60,15 +62,18 @@ func (repo *Repository) GetIndexerStatus() error {
 // UpdateIndexerStatus updates indexer status
 func (repo *Repository) UpdateIndexerStatus(sha string) error {
 	if err := repo.GetIndexerStatus(); err != nil {
-		return err
+		return fmt.Errorf("UpdateIndexerStatus: Unable to getIndexerStatus for repo: %s/%s Error: %v", repo.MustOwnerName(), repo.Name, err)
 	}
 	if len(repo.IndexerStatus.CommitSha) == 0 {
 		repo.IndexerStatus.CommitSha = sha
 		_, err := x.Insert(repo.IndexerStatus)
-		return err
+		return fmt.Errorf("UpdateIndexerStatus: Unable to insert repoIndexerStatus for repo: %s/%s Sha: %s Error: %v", repo.MustOwnerName(), repo.Name, sha, err)
 	}
 	repo.IndexerStatus.CommitSha = sha
 	_, err := x.ID(repo.IndexerStatus.ID).Cols("commit_sha").
 		Update(repo.IndexerStatus)
-	return err
+	if err != nil {
+		return fmt.Errorf("UpdateIndexerStatus: Unable to update repoIndexerStatus for repo: %s/%s Sha: %s Error: %v", repo.MustOwnerName(), repo.Name, sha, err)
+	}
+	return nil
 }
