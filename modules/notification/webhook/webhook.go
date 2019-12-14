@@ -561,17 +561,17 @@ func (*webhookNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mod
 
 func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string) {
 	issue := pr.Issue
-	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
-	var err error
 	if !issue.IsPull {
 		return
 	}
+	var err error
 
 	if err = issue.LoadPullRequest(); err != nil {
 		log.Error("LoadPullRequest failed: %v", err)
 		return
 	}
 	issue.PullRequest.Issue = issue
+	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
 	err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 		Action: api.HookIssueEdited,
 		Index:  issue.Index,
