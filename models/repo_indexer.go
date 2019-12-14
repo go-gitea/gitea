@@ -38,7 +38,7 @@ func GetUnindexedRepos(maxRepoID int64, page, pageSize int) ([]int64, error) {
 		sess.Limit(pageSize, start)
 	}
 
-	sess.Where(cond).Cols("repository.id")
+	sess.Where(cond).Cols("repository.id").Desc("repository.id")
 	err := sess.Find(&ids)
 	return ids, err
 }
