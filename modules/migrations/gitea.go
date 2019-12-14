@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -111,7 +112,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		return err
 	}
 
-	r, err = models.MigrateRepositoryGitData(g.doer, owner, r, structs.MigrateRepoOption{
+	r, err = repository.MigrateRepositoryGitData(g.doer, owner, r, structs.MigrateRepoOption{
 		RepoName:       g.repoName,
 		Description:    repo.Description,
 		OriginalURL:    repo.OriginalURL,
@@ -294,7 +295,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 
 // SyncTags syncs releases with tags in the database
 func (g *GiteaLocalUploader) SyncTags() error {
-	return models.SyncReleasesWithTags(g.repo, g.gitRepo)
+	return repository.SyncReleasesWithTags(g.repo, g.gitRepo)
 }
 
 // CreateIssues creates issues
