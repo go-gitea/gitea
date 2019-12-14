@@ -6,6 +6,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -196,11 +197,43 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 
 	// Unassign a user from any issue (s)he has been assigned to in the
 	// repository
-	if err := removeIssueAssignees(sess, uid, repo.ID); err != nil {
+	if err := repo.removeIssueAssignees(sess, uid); err != nil {
 		return err
 	}
 
 	return sess.Commit()
+}
+
+func (repo *Repository) removeIssueAssignees(e Engine, userID int64) error {
+
+	err := repo.GetOwner()
+	if err != nil {
+		// Very weird case
+		return errors.New("user not loaded")
+	}
+
+	if repo.Owner.IsOrganization() {
+
+		teams, err := repo.Owner.GetUserTeams(userID)
+		if err != nil {
+			return err
+		}
+
+		for i := range teams {
+			if teams[i].HasRepository(repo.ID) && teams[i].IsMember(userID) {
+				return nil
+			}
+		}
+	}
+
+	assignee := &IssueAssignees{
+		AssigneeID: userID,
+	}
+
+	_, err = e.
+		Join("INNER", "issue", "`issue`.id = `issues_assignees`.issue_id AND `issue`.repo_id = ?", repo.ID).
+		Delete(assignee)
+	return err
 }
 
 func (repo *Repository) getRepoTeams(e Engine) (teams []*Team, err error) {
