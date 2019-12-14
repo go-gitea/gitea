@@ -33,8 +33,8 @@ func nameAllowed(name string) error {
 	return nil
 }
 
-// WikiNameToSubURL converts a wiki name to its corresponding sub-URL.
-func WikiNameToSubURL(name string) string {
+// NameToSubURL converts a wiki name to its corresponding sub-URL.
+func NameToSubURL(name string) string {
 	return url.QueryEscape(strings.Replace(name, " ", "-", -1))
 }
 
@@ -43,14 +43,14 @@ func NormalizeWikiName(name string) string {
 	return strings.Replace(name, "-", " ", -1)
 }
 
-// WikiNameToFilename converts a wiki name to its corresponding filename.
-func WikiNameToFilename(name string) string {
+// NameToFilename converts a wiki name to its corresponding filename.
+func NameToFilename(name string) string {
 	name = strings.Replace(name, " ", "-", -1)
 	return url.QueryEscape(name) + ".md"
 }
 
-// WikiFilenameToName converts a wiki filename to its corresponding page name.
-func WikiFilenameToName(filename string) (string, error) {
+// FilenameToName converts a wiki filename to its corresponding page name.
+func FilenameToName(filename string) (string, error) {
 	if !strings.HasSuffix(filename, ".md") {
 		return "", models.ErrWikiInvalidFileName{filename}
 	}
@@ -129,7 +129,7 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		}
 	}
 
-	newWikiPath := WikiNameToFilename(newWikiName)
+	newWikiPath := NameToFilename(newWikiName)
 	if isNew {
 		filesInIndex, err := gitRepo.LsFiles(newWikiPath)
 		if err != nil {
@@ -142,7 +142,7 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 			}
 		}
 	} else {
-		oldWikiPath := WikiNameToFilename(oldWikiName)
+		oldWikiPath := NameToFilename(oldWikiName)
 		filesInIndex, err := gitRepo.LsFiles(oldWikiPath)
 		if err != nil {
 			log.Error("%v", err)
@@ -271,7 +271,7 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
 	}
 
-	wikiPath := WikiNameToFilename(wikiName)
+	wikiPath := NameToFilename(wikiName)
 	filesInIndex, err := gitRepo.LsFiles(wikiPath)
 	found := false
 	for _, file := range filesInIndex {
