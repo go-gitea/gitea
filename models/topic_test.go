@@ -11,11 +11,15 @@ import (
 )
 
 func TestAddTopic(t *testing.T) {
+	totalNrOfTopics := 6
+	repo1NrOfTopics := 3
+	repo2NrOfTopics := 2
+
 	assert.NoError(t, PrepareTestDatabase())
 
 	topics, err := FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 4, len(topics))
+	assert.EqualValues(t, totalNrOfTopics, len(topics))
 
 	topics, err = FindTopics(&FindTopicOptions{
 		Limit: 2,
@@ -27,33 +31,36 @@ func TestAddTopic(t *testing.T) {
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 3, len(topics))
+	assert.EqualValues(t, repo1NrOfTopics, len(topics))
 
 	assert.NoError(t, SaveTopics(2, "golang"))
+	repo2NrOfTopics = 1
 	topics, err = FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 4, len(topics))
+	assert.EqualValues(t, totalNrOfTopics, len(topics))
 
 	topics, err = FindTopics(&FindTopicOptions{
 		RepoID: 2,
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 1, len(topics))
+	assert.EqualValues(t, repo2NrOfTopics, len(topics))
 
 	assert.NoError(t, SaveTopics(2, "golang", "gitea"))
+	repo2NrOfTopics = 2
+	totalNrOfTopics++
 	topic, err := GetTopicByName("gitea")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, topic.RepoCount)
 
 	topics, err = FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 5, len(topics))
+	assert.EqualValues(t, totalNrOfTopics, len(topics))
 
 	topics, err = FindTopics(&FindTopicOptions{
 		RepoID: 2,
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 2, len(topics))
+	assert.EqualValues(t, repo2NrOfTopics, len(topics))
 }
 
 func TestTopicValidator(t *testing.T) {

@@ -23,6 +23,10 @@ environment variable and to add the go bin directory or directories
 `${GOPATH//://bin:}/bin` to the `$PATH`. See the Go wiki entry for
 [GOPATH](https://github.com/golang/go/wiki/GOPATH).
 
+Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
+required to build the JavaScript and CSS files. The minimum supported Node.js
+version is 10 and the latest LTS version is recommended.
+
 You will also need make.
 <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>(See here how to get Make)</a>
 
@@ -32,7 +36,7 @@ necessary. To be able to use these you must have the `"$GOPATH"/bin` directory
 on the executable path. If you don't add the go bin directory to the
 executable path you will have to manage this yourself.
 
-**Note 2**: Go version 1.9 or higher is required; however, it is important
+**Note 2**: Go version 1.11 or higher is required; however, it is important
 to note that our continuous integration will check that the formatting of the
 source code is not changed by `gofmt` using `make fmt-check`. Unfortunately,
 the results of `gofmt` can differ by the version of `go`. It is therefore
@@ -98,7 +102,7 @@ from source</a>.
 The simplest recommended way to build from source is:
 
 ```bash
-TAGS="bindata sqlite sqlite_unlock_notify" make generate build
+TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
 
 However, there are a number of additional make tasks you should be aware of.
@@ -108,10 +112,10 @@ and look at our
 [`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see
 how our continuous integration works.
 
-### Formatting, linting, vetting and spell-check
+### Formatting, code analysis and spell check
 
 Our continous integration will reject PRs that are not properly formatted, fail
-linting, vet or spell-check.
+code analysis or spell check.
 
 You should format your code with `go fmt` using:
 
@@ -130,36 +134,29 @@ You should run the same version of go that is on the continuous integration
 server as mentioned above. `make fmt-check` will only check if your `go` would
 format differently - this may be different from the CI server version.
 
-You should lint, vet and spell-check with:
+You should run revive, vet and spell-check on the code with:
 
 ```bash
-make vet lint misspell-check
+make revive vet misspell-check
 ```
 
-### Updating the stylesheets
+### Working on CSS
 
-To generate the stylsheets, you will need [Node.js](https://nodejs.org/) at version 8.0 or above.
-
-At present we use [less](http://lesscss.org/) and [postcss](https://postcss.org) to generate our stylesheets. Do
-**not** edit the files in `public/css/` directly, as they are generated from
-`lessc` from the files in `public/less/`.
-
-If you wish to work on the stylesheets, you will need to install `lessc` the
-less compiler and `postcss`. The recommended way to do this is using `npm install`:
+Edit files in `web_src/less` and run the linter and build the CSS files via:
 
 ```bash
-cd "$GOPATH/src/code.gitea.io/gitea"
-npm install
+make css
 ```
 
-You can then edit the less stylesheets and regenerate the stylesheets using:
+### Working on JS
+
+Edit files in `web_src/js`, run the linter and build the JS files via:
 
 ```bash
-make generate-stylesheets
+make js
 ```
 
-You should commit both the changes to the css and the less files when making
-PRs.
+Note: When working on frontend code, it is advisable to set `USE_SERVICE_WORKER` to `false` in `app.ini` which will prevent undesirable caching of frontend assets.
 
 ### Updating the API
 
@@ -185,7 +182,7 @@ make generate-swagger
 You should validate your generated Swagger file and spell-check it with:
 
 ```bash
-make swagger-validate mispell-check
+make swagger-validate misspell-check
 ```
 
 You should commit the changed swagger JSON file. The continous integration
@@ -203,7 +200,7 @@ OpenAPI 3 documentation.
 When creating new configuration options, it is not enough to add them to the
 `modules/setting` files. You should add information to `custom/conf/app.ini`
 and to the
-<a href='{{ relref "doc/advanced/config-cheat-sheet.en-us.md"}}'>configuration cheat sheet</a>
+<a href='{{< relref "doc/advanced/config-cheat-sheet.en-us.md" >}}'>configuration cheat sheet</a>
 found in `docs/content/doc/advanced/config-cheat-sheet.en-us.md`
 
 ### Changing the logo
@@ -240,11 +237,11 @@ Unit tests will not and cannot completely test Gitea alone. Therefore, we
 have written integration tests; however, these are database dependent.
 
 ```bash
-TAGS="bindata sqlite sqlite_unlock_notify" make generate build test-sqlite
+TAGS="bindata sqlite sqlite_unlock_notify" make build test-sqlite
 ```
 
 will run the integration tests in an sqlite environment. Other database tests
-are available but may need adjustment to the local environment. 
+are available but may need adjustment to the local environment.
 
 Look at
 [`integrations/README.md`](https://github.com/go-gitea/gitea/blob/master/integrations/README.md)

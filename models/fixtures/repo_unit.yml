@@ -375,3 +375,101 @@
   type: 3
   config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
   created_unix: 946684810
+
+-
+  id: 55
+  repo_id: 10
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 56
+  repo_id: 10
+  type: 2
+  config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
+  created_unix: 946684810
+
+-
+  id: 57
+  repo_id: 10
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
+  created_unix: 946684810
+
+-
+  id: 58
+  repo_id: 11
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 59
+  repo_id: 42
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 60
+  repo_id: 42
+  type: 4
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 61
+  repo_id: 42
+  type: 5
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 62
+  repo_id: 42
+  type: 2
+  config: "{\"EnableTimetracker\":true,\"AllowOnlyContributorsToTrackTime\":true}"
+  created_unix: 946684810
+
+-
+  id: 63
+  repo_id: 42
+  type: 3
+  config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
+  created_unix: 946684810
+
+-
+  id: 64
+  repo_id: 44
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 65
+  repo_id: 45
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 66
+  repo_id: 46
+  type: 7
+  config: "{\"ExternalTrackerURL\":\"https://tracker.com\",\"ExternalTrackerFormat\":\"https://tracker.com/{user}/{repo}/issues/{index}\",\"ExternalTrackerStyle\":\"\"}"
+  created_unix: 946684810
+
+-
+  id: 67
+  repo_id: 47
+  type: 7
+  config: "{\"ExternalTrackerURL\":\"https://tracker.com\",\"ExternalTrackerFormat\":\"https://tracker.com/{user}/{repo}/issues/{index}\",\"ExternalTrackerStyle\":\"numeric\"}"
+  created_unix: 946684810
+
+-
+  id: 68
+  repo_id: 48
+  type: 7
+  config: "{\"ExternalTrackerURL\":\"https://tracker.com\",\"ExternalTrackerFormat\":\"https://tracker.com/{user}/{repo}/issues/{index}\",\"ExternalTrackerStyle\":\"alphanumeric\"}"
+  created_unix: 946684810

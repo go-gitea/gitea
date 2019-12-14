@@ -360,15 +360,13 @@ func (mc *mysqlConn) handleAuthResult(oldAuthData []byte, plugin string) error {
 					pubKey := mc.cfg.pubKey
 					if pubKey == nil {
 						// request public key from server
-						data, err := mc.buf.takeSmallBuffer(4 + 1)
-						if err != nil {
-							return err
-						}
+						data := mc.buf.takeSmallBuffer(4 + 1)
 						data[4] = cachingSha2PasswordRequestPublicKey
 						mc.writePacket(data)
 
 						// parse public key
-						if data, err = mc.readPacket(); err != nil {
+						data, err := mc.readPacket()
+						if err != nil {
 							return err
 						}
 

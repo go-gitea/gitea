@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // DeleteRepoFileOptions holds the repository delete file options
@@ -53,11 +53,9 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 				BranchName: opts.NewBranch,
 			}
 		}
-	} else {
-		if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
-			return nil, models.ErrUserCannotCommit{
-				UserName: doer.LowerName,
-			}
+	} else if protected, _ := repo.IsProtectedBranchForPush(opts.OldBranch, doer); protected {
+		return nil, models.ErrUserCannotCommit{
+			UserName: doer.LowerName,
 		}
 	}
 
@@ -71,13 +69,13 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 
 	message := strings.TrimSpace(opts.Message)
 
-	author, committer := GetAuthorAndCommitterUsers(opts.Committer, opts.Author, doer)
+	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
 
 	t, err := NewTemporaryUploadRepository(repo)
-	defer t.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer t.Close()
 	if err := t.Clone(opts.OldBranch); err != nil {
 		return nil, err
 	}
@@ -94,6 +92,12 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	// Assigned LastCommitID in opts if it hasn't been set
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
+	} else {
+		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+		if err != nil {
+			return nil, fmt.Errorf("DeleteRepoFile: Invalid last commit ID: %v", err)
+		}
+		opts.LastCommitID = lastCommitID.String()
 	}
 
 	// Get the files in the index
@@ -174,32 +178,10 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 		return nil, err
 	}
 
-	// Simulate push event.
-	oldCommitID := opts.LastCommitID
-	if opts.NewBranch != opts.OldBranch {
-		oldCommitID = git.EmptySHA
-	}
-
-	if err = repo.GetOwner(); err != nil {
-		return nil, fmt.Errorf("GetOwner: %v", err)
-	}
-	err = models.PushUpdate(
-		opts.NewBranch,
-		models.PushUpdateOptions{
-			PusherID:     doer.ID,
-			PusherName:   doer.Name,
-			RepoUserName: repo.Owner.Name,
-			RepoName:     repo.Name,
-			RefFullName:  git.BranchPrefix + opts.NewBranch,
-			OldCommitID:  oldCommitID,
-			NewCommitID:  commitHash,
-		},
-	)
+	commit, err = t.GetCommit(commitHash)
 	if err != nil {
-		return nil, fmt.Errorf("PushUpdate: %v", err)
+		return nil, err
 	}
-
-	// FIXME: Should we UpdateRepoIndexer(repo) here?
 
 	file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treePath)
 	if err != nil {

@@ -10,12 +10,12 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
-	"github.com/go-macaron/inject"
+	"gitea.com/macaron/inject"
+	"gitea.com/macaron/macaron"
 	"github.com/stretchr/testify/assert"
-	macaron "gopkg.in/macaron.v1"
 )
 
 const AppURL = "http://localhost:3000/"

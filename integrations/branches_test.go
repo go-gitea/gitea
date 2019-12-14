@@ -10,12 +10,12 @@ import (
 	"testing"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/Unknwon/i18n"
 	"github.com/stretchr/testify/assert"
+	"github.com/unknwon/i18n"
 )
 
 func TestViewBranches(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/branches")
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -26,13 +26,13 @@ func TestViewBranches(t *testing.T) {
 }
 
 func TestDeleteBranch(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	deleteBranch(t)
 }
 
 func TestUndoDeleteBranch(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	deleteBranch(t)
 	htmlDoc, name := branchAction(t, ".undo-button")
@@ -62,7 +62,7 @@ func branchAction(t *testing.T, button string) (*HTMLDoc, string) {
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": getCsrf(t, htmlDoc.doc),
 	})
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	url, err := url.Parse(link)
 	assert.NoError(t, err)

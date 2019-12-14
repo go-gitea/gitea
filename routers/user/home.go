@@ -7,8 +7,11 @@ package user
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -18,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/armor"
 )
@@ -27,7 +29,6 @@ const (
 	tplDashboard base.TplName = "user/dashboard/dashboard"
 	tplIssues    base.TplName = "user/dashboard/issues"
 	tplProfile   base.TplName = "user/profile"
-	tplOrgHome   base.TplName = "org/home"
 )
 
 // getDashboardContextUser finds out dashboard is viewing as which context user.
@@ -149,6 +150,9 @@ func Dashboard(ctx *context.Context) {
 	ctx.HTML(200, tplDashboard)
 }
 
+// Regexp for repos query
+var issueReposQueryPattern = regexp.MustCompile(`^\[\d+(,\d+)*,?\]$`)
+
 // Issues render the user issues page
 func Issues(ctx *context.Context) {
 	isPullList := ctx.Params(":type") == "pulls"
@@ -173,7 +177,7 @@ func Issues(ctx *context.Context) {
 	)
 
 	if ctxUser.IsOrganization() {
-		viewType = "all"
+		viewType = "your_repositories"
 	} else {
 		viewType = ctx.Query("type")
 		switch viewType {
@@ -181,9 +185,11 @@ func Issues(ctx *context.Context) {
 			filterMode = models.FilterModeAssign
 		case "created_by":
 			filterMode = models.FilterModeCreate
-		case "all": // filterMode already set to All
+		case "mentioned":
+			filterMode = models.FilterModeMention
+		case "your_repositories": // filterMode already set to All
 		default:
-			viewType = "all"
+			viewType = "your_repositories"
 		}
 	}
 
@@ -192,7 +198,25 @@ func Issues(ctx *context.Context) {
 		page = 1
 	}
 
-	repoID := ctx.QueryInt64("repo")
+	reposQuery := ctx.Query("repos")
+	var repoIDs []int64
+	if issueReposQueryPattern.MatchString(reposQuery) {
+		// remove "[" and "]" from string
+		reposQuery = reposQuery[1 : len(reposQuery)-1]
+		//for each ID (delimiter ",") add to int to repoIDs
+		for _, rID := range strings.Split(reposQuery, ",") {
+			// Ensure nonempty string entries
+			if rID != "" && rID != "0" {
+				rIDint64, err := strconv.ParseInt(rID, 10, 64)
+				if err == nil {
+					repoIDs = append(repoIDs, rIDint64)
+				}
+			}
+		}
+	} else {
+		log.Error("issueReposQueryPattern not match with query")
+	}
+
 	isShowClosed := ctx.Query("state") == "closed"
 
 	// Get repositories.
@@ -230,20 +254,9 @@ func Issues(ctx *context.Context) {
 		SortType: sortType,
 	}
 
-	if repoID > 0 {
-		opts.RepoIDs = []int64{repoID}
-	}
-
 	switch filterMode {
 	case models.FilterModeAll:
-		if repoID > 0 {
-			if !com.IsSliceContainsInt64(userRepoIDs, repoID) {
-				// force an empty result
-				opts.RepoIDs = []int64{-1}
-			}
-		} else {
-			opts.RepoIDs = userRepoIDs
-		}
+		opts.RepoIDs = userRepoIDs
 	case models.FilterModeAssign:
 		opts.AssigneeID = ctxUser.ID
 	case models.FilterModeCreate:
@@ -271,6 +284,10 @@ func Issues(ctx *context.Context) {
 	}
 	opts.LabelIDs = labelIDs
 
+	if len(repoIDs) > 0 {
+		opts.RepoIDs = repoIDs
+	}
+
 	issues, err := models.Issues(opts)
 	if err != nil {
 		ctx.ServerError("Issues", err)
@@ -279,46 +296,29 @@ func Issues(ctx *context.Context) {
 
 	showReposMap := make(map[int64]*models.Repository, len(counts))
 	for repoID := range counts {
-		repo, err := models.GetRepositoryByID(repoID)
-		if err != nil {
-			ctx.ServerError("GetRepositoryByID", err)
-			return
-		}
-		showReposMap[repoID] = repo
-	}
+		if repoID > 0 {
+			if _, ok := showReposMap[repoID]; !ok {
+				repo, err := models.GetRepositoryByID(repoID)
+				if models.IsErrRepoNotExist(err) {
+					ctx.NotFound("GetRepositoryByID", err)
+					return
+				} else if err != nil {
+					ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
+					return
+				}
+				showReposMap[repoID] = repo
+			}
+			repo := showReposMap[repoID]
 
-	if repoID > 0 {
-		if _, ok := showReposMap[repoID]; !ok {
-			repo, err := models.GetRepositoryByID(repoID)
-			if models.IsErrRepoNotExist(err) {
-				ctx.NotFound("GetRepositoryByID", err)
-				return
-			} else if err != nil {
-				ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
+			// Check if user has access to given repository.
+			perm, err := models.GetUserRepoPermission(repo, ctxUser)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
 				return
 			}
-			showReposMap[repoID] = repo
-		}
-
-		repo := showReposMap[repoID]
-
-		// Check if user has access to given repository.
-		perm, err := models.GetUserRepoPermission(repo, ctxUser)
-		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
-			return
-		}
-		if !perm.CanRead(models.UnitTypeIssues) {
-			if log.IsTrace() {
-				log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
-					"User in repo has Permissions: %-+v",
-					ctxUser,
-					models.UnitTypeIssues,
-					repo,
-					perm)
+			if !perm.CanRead(models.UnitTypeIssues) {
+				log.Error("User created Issues in Repository which they no longer have access to: [%d]", repoID)
 			}
-			ctx.Status(404)
-			return
 		}
 	}
 
@@ -340,7 +340,6 @@ func Issues(ctx *context.Context) {
 
 	issueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
 		UserID:      ctxUser.ID,
-		RepoID:      repoID,
 		UserRepoIDs: userRepoIDs,
 		FilterMode:  filterMode,
 		IsPull:      isPullList,
@@ -351,11 +350,26 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
-	var total int
+	allIssueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
+		UserID:      ctxUser.ID,
+		UserRepoIDs: userRepoIDs,
+		FilterMode:  filterMode,
+		IsPull:      isPullList,
+		IsClosed:    isShowClosed,
+	})
+	if err != nil {
+		ctx.ServerError("GetUserIssueStats All", err)
+		return
+	}
+
+	var shownIssues int
+	var totalIssues int
 	if !isShowClosed {
-		total = int(issueStats.OpenCount)
+		shownIssues = int(issueStats.OpenCount)
+		totalIssues = int(allIssueStats.OpenCount)
 	} else {
-		total = int(issueStats.ClosedCount)
+		shownIssues = int(issueStats.ClosedCount)
+		totalIssues = int(allIssueStats.ClosedCount)
 	}
 
 	ctx.Data["Issues"] = issues
@@ -365,8 +379,9 @@ func Issues(ctx *context.Context) {
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
-	ctx.Data["RepoID"] = repoID
+	ctx.Data["RepoIDs"] = repoIDs
 	ctx.Data["IsShowClosed"] = isShowClosed
+	ctx.Data["TotalIssueCount"] = totalIssues
 
 	if isShowClosed {
 		ctx.Data["State"] = "closed"
@@ -374,9 +389,14 @@ func Issues(ctx *context.Context) {
 		ctx.Data["State"] = "open"
 	}
 
-	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
+	// Convert []int64 to string
+	reposParam, _ := json.Marshal(repoIDs)
+
+	ctx.Data["ReposParam"] = string(reposParam)
+
+	pager := context.NewPagination(shownIssues, setting.UI.IssuePagingNum, page, 5)
 	pager.AddParam(ctx, "type", "ViewType")
-	pager.AddParam(ctx, "repo", "RepoID")
+	pager.AddParam(ctx, "repos", "ReposParam")
 	pager.AddParam(ctx, "sort", "SortType")
 	pager.AddParam(ctx, "state", "State")
 	pager.AddParam(ctx, "labels", "SelectLabels")
@@ -440,126 +460,6 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 	}
 	writer.Close()
 	ctx.PlainText(200, buf.Bytes())
-}
-
-func showOrgProfile(ctx *context.Context) {
-	ctx.SetParams(":org", ctx.Params(":username"))
-	context.HandleOrgAssignment(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	org := ctx.Org.Organization
-
-	if !models.HasOrgVisible(org, ctx.User) {
-		ctx.NotFound("HasOrgVisible", nil)
-		return
-	}
-
-	ctx.Data["Title"] = org.DisplayName()
-
-	var orderBy models.SearchOrderBy
-	ctx.Data["SortType"] = ctx.Query("sort")
-	switch ctx.Query("sort") {
-	case "newest":
-		orderBy = models.SearchOrderByNewest
-	case "oldest":
-		orderBy = models.SearchOrderByOldest
-	case "recentupdate":
-		orderBy = models.SearchOrderByRecentUpdated
-	case "leastupdate":
-		orderBy = models.SearchOrderByLeastUpdated
-	case "reversealphabetically":
-		orderBy = models.SearchOrderByAlphabeticallyReverse
-	case "alphabetically":
-		orderBy = models.SearchOrderByAlphabetically
-	case "moststars":
-		orderBy = models.SearchOrderByStarsReverse
-	case "feweststars":
-		orderBy = models.SearchOrderByStars
-	case "mostforks":
-		orderBy = models.SearchOrderByForksReverse
-	case "fewestforks":
-		orderBy = models.SearchOrderByForks
-	default:
-		ctx.Data["SortType"] = "recentupdate"
-		orderBy = models.SearchOrderByRecentUpdated
-	}
-
-	keyword := strings.Trim(ctx.Query("q"), " ")
-	ctx.Data["Keyword"] = keyword
-
-	page := ctx.QueryInt("page")
-	if page <= 0 {
-		page = 1
-	}
-
-	var (
-		repos []*models.Repository
-		count int64
-		err   error
-	)
-	if ctx.IsSigned && !ctx.User.IsAdmin {
-		env, err := org.AccessibleReposEnv(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("AccessibleReposEnv", err)
-			return
-		}
-		env.SetSort(orderBy)
-		if len(keyword) != 0 {
-			env.AddKeyword(keyword)
-		}
-		repos, err = env.Repos(page, setting.UI.User.RepoPagingNum)
-		if err != nil {
-			ctx.ServerError("env.Repos", err)
-			return
-		}
-		count, err = env.CountRepos()
-		if err != nil {
-			ctx.ServerError("env.CountRepos", err)
-			return
-		}
-	} else {
-		showPrivate := ctx.IsSigned && ctx.User.IsAdmin
-		if len(keyword) == 0 {
-			repos, err = models.GetUserRepositories(org.ID, showPrivate, page, setting.UI.User.RepoPagingNum, orderBy.String())
-			if err != nil {
-				ctx.ServerError("GetRepositories", err)
-				return
-			}
-			count = models.CountUserRepositories(org.ID, showPrivate)
-		} else {
-			repos, count, err = models.SearchRepositoryByName(&models.SearchRepoOptions{
-				Keyword:   keyword,
-				OwnerID:   org.ID,
-				OrderBy:   orderBy,
-				Private:   showPrivate,
-				Page:      page,
-				IsProfile: true,
-				PageSize:  setting.UI.User.RepoPagingNum,
-			})
-			if err != nil {
-				ctx.ServerError("SearchRepositoryByName", err)
-				return
-			}
-		}
-	}
-
-	if err := org.GetMembers(); err != nil {
-		ctx.ServerError("GetMembers", err)
-		return
-	}
-
-	ctx.Data["Repos"] = repos
-	ctx.Data["Total"] = count
-	ctx.Data["Members"] = org.Members
-	ctx.Data["Teams"] = org.Teams
-
-	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
-	pager.SetDefaultParams(ctx)
-	ctx.Data["Page"] = pager
-
-	ctx.HTML(200, tplOrgHome)
 }
 
 // Email2User show user page via email

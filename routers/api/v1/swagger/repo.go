@@ -5,7 +5,7 @@
 package swagger
 
 import (
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // Repository
@@ -38,9 +38,23 @@ type swaggerResponseBranchList struct {
 
 // TagList
 // swagger:response TagList
-type swaggerReponseTagList struct {
+type swaggerResponseTagList struct {
 	// in:body
 	Body []api.Tag `json:"body"`
+}
+
+// Tag
+// swagger:response Tag
+type swaggerResponseTag struct {
+	// in:body
+	Body api.Tag `json:"body"`
+}
+
+// AnnotatedTag
+// swagger:response AnnotatedTag
+type swaggerResponseAnnotatedTag struct {
+	// in:body
+	Body api.AnnotatedTag `json:"body"`
 }
 
 // Reference
@@ -176,6 +190,35 @@ type swaggerCommit struct {
 	Body api.Commit `json:"body"`
 }
 
+// CommitList
+// swagger:response CommitList
+type swaggerCommitList struct {
+	// The current page
+	Page int `json:"X-Page"`
+
+	// Commits per page
+	PerPage int `json:"X-PerPage"`
+
+	// Total commit count
+	Total int `json:"X-Total"`
+
+	// Total number of pages
+	PageCount int `json:"X-PageCount"`
+
+	// True if there is another page
+	HasMore bool `json:"X-HasMore"`
+
+	//in: body
+	Body []api.Commit `json:"body"`
+}
+
+// EmptyRepository
+// swagger:response EmptyRepository
+type swaggerEmptyRepository struct {
+	//in: body
+	Body api.APIError `json:"body"`
+}
+
 // FileResponse
 // swagger:response FileResponse
 type swaggerFileResponse struct {
@@ -183,11 +226,18 @@ type swaggerFileResponse struct {
 	Body api.FileResponse `json:"body"`
 }
 
-// FileContentResponse
-// swagger:response FileContentResponse
-type swaggerFileContentResponse struct {
+// ContentsResponse
+// swagger:response ContentsResponse
+type swaggerContentsResponse struct {
 	//in: body
-	Body api.FileContentResponse `json:"body"`
+	Body api.ContentsResponse `json:"body"`
+}
+
+// ContentsListResponse
+// swagger:response ContentsListResponse
+type swaggerContentsListResponse struct {
+	// in:body
+	Body []api.ContentsResponse `json:"body"`
 }
 
 // FileDeleteResponse
@@ -195,4 +245,18 @@ type swaggerFileContentResponse struct {
 type swaggerFileDeleteResponse struct {
 	//in: body
 	Body api.FileDeleteResponse `json:"body"`
+}
+
+// TopicListResponse
+// swagger:response TopicListResponse
+type swaggerTopicListResponse struct {
+	//in: body
+	Body []api.TopicResponse `json:"body"`
+}
+
+// TopicNames
+// swagger:response TopicNames
+type swaggerTopicNames struct {
+	//in: body
+	Body api.TopicName `json:"body"`
 }

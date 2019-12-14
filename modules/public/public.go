@@ -14,13 +14,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
-	"gopkg.in/macaron.v1"
+
+	"gitea.com/macaron/macaron"
 )
 
-//go:generate go-bindata -tags "bindata" -ignore "\\.go|\\.less" -pkg "public" -o "bindata.go" ../../public/...
-//go:generate go fmt bindata.go
-//go:generate sed -i.bak s/..\/..\/public\/// bindata.go
-//go:generate rm -f bindata.go.bak
+//go:generate go run -mod=vendor main.go
 
 // Options represents the available options to configure the macaron handler.
 type Options struct {

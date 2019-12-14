@@ -1,0 +1,33 @@
+Port ${SSH_LISTEN_PORT}
+Protocol 2
+
+AddressFamily any
+ListenAddress 0.0.0.0
+ListenAddress ::
+
+LogLevel INFO
+
+HostKey /data/ssh/ssh_host_ed25519_key
+HostKey /data/ssh/ssh_host_rsa_key
+HostKey /data/ssh/ssh_host_dsa_key
+HostKey /data/ssh/ssh_host_ecdsa_key
+
+AuthorizedKeysFile .ssh/authorized_keys
+
+UseDNS no
+AllowAgentForwarding no
+AllowTcpForwarding no
+PrintMotd no
+
+PermitUserEnvironment yes
+PermitRootLogin no
+ChallengeResponseAuthentication no
+PasswordAuthentication no
+PermitEmptyPasswords no
+
+AllowUsers ${USER}
+
+Banner none
+Subsystem sftp /usr/lib/ssh/sftp-server
+
+AcceptEnv GIT_PROTOCOL

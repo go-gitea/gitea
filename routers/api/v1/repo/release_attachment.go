@@ -5,15 +5,14 @@
 package repo
 
 import (
-	"errors"
-	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/upload"
 )
 
 // GetReleaseAttachment gets a single attachment of the release
@@ -57,6 +56,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	if attach.ReleaseID != releaseID {
+		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", releaseID, attachID)
 		ctx.NotFound()
 		return
 	}
@@ -177,20 +177,9 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Check if the filetype is allowed by the settings
-	fileType := http.DetectContentType(buf)
-
-	allowedTypes := strings.Split(setting.AttachmentAllowedTypes, ",")
-	allowed := false
-	for _, t := range allowedTypes {
-		t := strings.Trim(t, " ")
-		if t == "*/*" || t == fileType {
-			allowed = true
-			break
-		}
-	}
-
-	if !allowed {
-		ctx.Error(400, "DetectContentType", errors.New("File type is not allowed"))
+	err = upload.VerifyAllowedContentType(buf, strings.Split(setting.AttachmentAllowedTypes, ","))
+	if err != nil {
+		ctx.Error(400, "DetectContentType", err)
 		return
 	}
 
@@ -255,13 +244,14 @@ func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptio
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
-	attachID := ctx.ParamsInt64(":attachment")
+	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(500, "GetAttachmentByID", err)
 		return
 	}
 	if attach.ReleaseID != releaseID {
+		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", releaseID, attachID)
 		ctx.NotFound()
 		return
 	}
@@ -312,13 +302,14 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
-	attachID := ctx.ParamsInt64(":attachment")
+	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(500, "GetAttachmentByID", err)
 		return
 	}
 	if attach.ReleaseID != releaseID {
+		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", releaseID, attachID)
 		ctx.NotFound()
 		return
 	}

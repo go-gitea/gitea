@@ -34,11 +34,11 @@
 				<table class="ui unstackable striped very compact small selectable table">
 					<tbody>
 						{{range $notification := .Notifications}}
-							{{$issue := $notification.GetIssue}}
-							{{$repo := $notification.GetRepo}}
+							{{$issue := $notification.Issue}}
+							{{$repo := $notification.Repository}}
 							{{$repoOwner := $repo.MustOwner}}
 
-							<tr data-href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}/issues/{{$issue.Index}}">
+							<tr data-href="{{$notification.HTMLURL}}">
 								<td class="collapsing">
 									{{if eq $notification.Status 3}}
 										<i class="blue octicon octicon-pin"></i>
@@ -61,7 +61,7 @@
 									{{end}}
 								</td>
 								<td class="eleven wide">
-									<a class="item" href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}/issues/{{$issue.Index}}">
+									<a class="item" href="{{$notification.HTMLURL}}">
 										#{{$issue.Index}} - {{$issue.Title}}
 									</a>
 								</td>

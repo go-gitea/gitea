@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // TestAPICreateAndDeleteToken tests that token that was just created can be deleted
 func TestAPICreateAndDeleteToken(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 
 	req := NewRequestWithJSON(t, "POST", "/api/v1/users/user1/tokens", map[string]string{
@@ -26,10 +26,10 @@ func TestAPICreateAndDeleteToken(t *testing.T) {
 	var newAccessToken api.AccessToken
 	DecodeJSON(t, resp, &newAccessToken)
 	models.AssertExistsAndLoadBean(t, &models.AccessToken{
-		ID:   newAccessToken.ID,
-		Name: newAccessToken.Name,
-		Sha1: newAccessToken.Sha1,
-		UID:  user.ID,
+		ID:    newAccessToken.ID,
+		Name:  newAccessToken.Name,
+		Token: newAccessToken.Token,
+		UID:   user.ID,
 	})
 
 	req = NewRequestf(t, "DELETE", "/api/v1/users/user1/tokens/%d", newAccessToken.ID)
@@ -41,7 +41,7 @@ func TestAPICreateAndDeleteToken(t *testing.T) {
 
 // TestAPIDeleteMissingToken ensures that error is thrown when token not found
 func TestAPIDeleteMissingToken(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 
 	req := NewRequestf(t, "DELETE", "/api/v1/users/user1/tokens/%d", models.NonexistentID)

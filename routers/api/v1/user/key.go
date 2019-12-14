@@ -5,12 +5,11 @@
 package user
 
 import (
-	api "code.gitea.io/sdk/gitea"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/api/v1/convert"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 )
 
@@ -22,13 +21,13 @@ func appendPrivateInformation(apiKey *api.PublicKey, key *models.PublicKey, defa
 		apiKey.KeyType = "user"
 
 		if defaultUser.ID == key.OwnerID {
-			apiKey.Owner = defaultUser.APIFormat()
+			apiKey.Owner = convert.ToUser(defaultUser, true, true)
 		} else {
 			user, err := models.GetUserByID(key.OwnerID)
 			if err != nil {
 				return apiKey, err
 			}
-			apiKey.Owner = user.APIFormat()
+			apiKey.Owner = convert.ToUser(user, true, true)
 		}
 	} else {
 		apiKey.KeyType = "unknown"

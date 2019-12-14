@@ -40,7 +40,7 @@ To register Gitea as a Windows service, open a command prompt (cmd) as an Admini
 then run the following command:
 
 ```
-sc create gitea start= auto binPath= ""C:\gitea\gitea.exe" web --config "C:\gitea\custom\conf\app.ini""
+sc.exe create gitea start= auto binPath= "\"C:\gitea\gitea.exe\" web --config \"C:\gitea\custom\conf\app.ini\""
 ```
 
 Do not forget to replace `C:\gitea` with the correct Gitea directory.
@@ -54,5 +54,5 @@ that was configured).
 To unregister Gitea as a service, open a command prompt (cmd) as an Administrator and run:
 
 ```
-sc delete gitea
+sc.exe delete gitea
 ```

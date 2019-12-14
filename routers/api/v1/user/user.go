@@ -10,10 +10,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/routers/api/v1/convert"
-	api "code.gitea.io/sdk/gitea"
+	"code.gitea.io/gitea/modules/convert"
+	api "code.gitea.io/gitea/modules/structs"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 // Search search users
@@ -67,7 +67,7 @@ func Search(ctx *context.APIContext) {
 
 	results := make([]*api.User, len(users))
 	for i := range users {
-		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User.IsAdmin)
+		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
 
 	ctx.JSON(200, map[string]interface{}{
@@ -104,11 +104,7 @@ func GetInfo(ctx *context.APIContext) {
 		return
 	}
 
-	// Hide user e-mail when API caller isn't signed in.
-	if !ctx.IsSigned {
-		u.Email = ""
-	}
-	ctx.JSON(200, u.APIFormat())
+	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User != nil && (ctx.User.ID == u.ID || ctx.User.IsAdmin)))
 }
 
 // GetAuthenticatedUser get current user's information
@@ -121,7 +117,7 @@ func GetAuthenticatedUser(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/User"
-	ctx.JSON(200, ctx.User.APIFormat())
+	ctx.JSON(200, convert.ToUser(ctx.User, ctx.IsSigned, ctx.User != nil))
 }
 
 // GetUserHeatmapData is the handler to get a users heatmap

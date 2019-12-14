@@ -5,6 +5,7 @@
 package models
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 	"testing"
@@ -15,12 +16,66 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestUserIsPublicMember(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	tt := []struct {
+		uid      int64
+		orgid    int64
+		expected bool
+	}{
+		{2, 3, true},
+		{4, 3, false},
+		{5, 6, true},
+		{5, 7, false},
+	}
+	for _, v := range tt {
+		t.Run(fmt.Sprintf("UserId%dIsPublicMemberOf%d", v.uid, v.orgid), func(t *testing.T) {
+			testUserIsPublicMember(t, v.uid, v.orgid, v.expected)
+		})
+	}
+}
+
+func testUserIsPublicMember(t *testing.T, uid int64, orgID int64, expected bool) {
+	user, err := GetUserByID(uid)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, user.IsPublicMember(orgID))
+}
+
+func TestIsUserOrgOwner(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	tt := []struct {
+		uid      int64
+		orgid    int64
+		expected bool
+	}{
+		{2, 3, true},
+		{4, 3, false},
+		{5, 6, true},
+		{5, 7, true},
+	}
+	for _, v := range tt {
+		t.Run(fmt.Sprintf("UserId%dIsOrgOwnerOf%d", v.uid, v.orgid), func(t *testing.T) {
+			testIsUserOrgOwner(t, v.uid, v.orgid, v.expected)
+		})
+	}
+}
+
+func testIsUserOrgOwner(t *testing.T, uid int64, orgID int64, expected bool) {
+	user, err := GetUserByID(uid)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, user.IsUserOrgOwner(orgID))
+}
+
 func TestGetUserEmailsByNames(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	// ignore none active user email
 	assert.Equal(t, []string{"user8@example.com"}, GetUserEmailsByNames([]string{"user8", "user9"}))
 	assert.Equal(t, []string{"user8@example.com", "user5@example.com"}, GetUserEmailsByNames([]string{"user8", "user5"}))
+
+	assert.Equal(t, []string{"user8@example.com"}, GetUserEmailsByNames([]string{"user8", "user7"}))
 }
 
 func TestUser_APIFormat(t *testing.T) {
@@ -83,9 +138,12 @@ func TestSearchUsers(t *testing.T) {
 		[]int64{7, 17})
 
 	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 3, PageSize: 2},
-		[]int64{19})
+		[]int64{19, 25})
 
-	testOrgSuccess(&SearchUserOptions{Page: 4, PageSize: 2},
+	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 4, PageSize: 2},
+		[]int64{26})
+
+	testOrgSuccess(&SearchUserOptions{Page: 5, PageSize: 2},
 		[]int64{})
 
 	// test users
@@ -95,13 +153,13 @@ func TestSearchUsers(t *testing.T) {
 	}
 
 	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1},
-		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21})
+		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28})
 
 	testUserSuccess(&SearchUserOptions{Page: 1, IsActive: util.OptionalBoolFalse},
 		[]int64{9})
 
 	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1, IsActive: util.OptionalBoolTrue},
-		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21})
+		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 28})
 
 	testUserSuccess(&SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", Page: 1, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
@@ -143,25 +201,64 @@ func TestDeleteUser(t *testing.T) {
 	test(11)
 }
 
+func TestEmailNotificationPreferences(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	for _, test := range []struct {
+		expected string
+		userID   int64
+	}{
+		{EmailNotificationsEnabled, 1},
+		{EmailNotificationsEnabled, 2},
+		{EmailNotificationsOnMention, 3},
+		{EmailNotificationsOnMention, 4},
+		{EmailNotificationsEnabled, 5},
+		{EmailNotificationsEnabled, 6},
+		{EmailNotificationsDisabled, 7},
+		{EmailNotificationsEnabled, 8},
+		{EmailNotificationsOnMention, 9},
+	} {
+		user := AssertExistsAndLoadBean(t, &User{ID: test.userID}).(*User)
+		assert.Equal(t, test.expected, user.EmailNotifications())
+
+		// Try all possible settings
+		assert.NoError(t, user.SetEmailNotifications(EmailNotificationsEnabled))
+		assert.Equal(t, EmailNotificationsEnabled, user.EmailNotifications())
+
+		assert.NoError(t, user.SetEmailNotifications(EmailNotificationsOnMention))
+		assert.Equal(t, EmailNotificationsOnMention, user.EmailNotifications())
+
+		assert.NoError(t, user.SetEmailNotifications(EmailNotificationsDisabled))
+		assert.Equal(t, EmailNotificationsDisabled, user.EmailNotifications())
+	}
+}
+
 func TestHashPasswordDeterministic(t *testing.T) {
 	b := make([]byte, 16)
 	rand.Read(b)
 	u := &User{Salt: string(b)}
-	for i := 0; i < 50; i++ {
-		// generate a random password
-		rand.Read(b)
-		pass := string(b)
+	algos := []string{"pbkdf2", "argon2", "scrypt", "bcrypt"}
+	for j := 0; j < len(algos); j++ {
+		u.PasswdHashAlgo = algos[j]
+		for i := 0; i < 50; i++ {
+			// generate a random password
+			rand.Read(b)
+			pass := string(b)
 
-		// save the current password in the user - hash it and store the result
-		u.HashPassword(pass)
-		r1 := u.Passwd
+			// save the current password in the user - hash it and store the result
+			u.HashPassword(pass)
+			r1 := u.Passwd
 
-		// run again
-		u.HashPassword(pass)
-		r2 := u.Passwd
+			// run again
+			u.HashPassword(pass)
+			r2 := u.Passwd
 
-		// assert equal (given the same salt+pass, the same result is produced)
-		assert.Equal(t, r1, r2)
+			// assert equal (given the same salt+pass, the same result is produced) except bcrypt
+			if u.PasswdHashAlgo == "bcrypt" {
+				assert.NotEqual(t, r1, r2)
+			} else {
+				assert.Equal(t, r1, r2)
+			}
+		}
 	}
 }
 
@@ -261,6 +358,8 @@ func TestCreateUser_Issue5882(t *testing.T) {
 		{&User{Name: "GiteaBot2", Email: "GiteaBot2@gitea.io", Passwd: passwd, MustChangePassword: false}, true},
 	}
 
+	setting.Service.DefaultAllowCreateOrganization = true
+
 	for _, v := range tt {
 		setting.Admin.DisableRegularOrgCreation = v.disableOrgCreation
 
@@ -273,4 +372,17 @@ func TestCreateUser_Issue5882(t *testing.T) {
 
 		assert.NoError(t, DeleteUser(v.user))
 	}
+}
+
+func TestGetUserIDsByNames(t *testing.T) {
+
+	//ignore non existing
+	IDs, err := GetUserIDsByNames([]string{"user1", "user2", "none_existing_user"}, true)
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{1, 2}, IDs)
+
+	//ignore non existing
+	IDs, err = GetUserIDsByNames([]string{"user1", "do_not_exist"}, false)
+	assert.Error(t, err)
+	assert.Equal(t, []int64(nil), IDs)
 }

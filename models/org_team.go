@@ -14,24 +14,88 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 const ownerTeamName = "Owners"
 
 // Team represents a organization team.
 type Team struct {
-	ID          int64 `xorm:"pk autoincr"`
-	OrgID       int64 `xorm:"INDEX"`
-	LowerName   string
-	Name        string
-	Description string
-	Authorize   AccessMode
-	Repos       []*Repository `xorm:"-"`
-	Members     []*User       `xorm:"-"`
-	NumRepos    int
-	NumMembers  int
-	Units       []*TeamUnit `xorm:"-"`
+	ID                      int64 `xorm:"pk autoincr"`
+	OrgID                   int64 `xorm:"INDEX"`
+	LowerName               string
+	Name                    string
+	Description             string
+	Authorize               AccessMode
+	Repos                   []*Repository `xorm:"-"`
+	Members                 []*User       `xorm:"-"`
+	NumRepos                int
+	NumMembers              int
+	Units                   []*TeamUnit `xorm:"-"`
+	IncludesAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
+	CanCreateOrgRepo        bool        `xorm:"NOT NULL DEFAULT false"`
+}
+
+// SearchTeamOptions holds the search options
+type SearchTeamOptions struct {
+	UserID      int64
+	Keyword     string
+	OrgID       int64
+	IncludeDesc bool
+	PageSize    int
+	Page        int
+}
+
+// SearchTeam search for teams. Caller is responsible to check permissions.
+func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
+	if opts.Page <= 0 {
+		opts.Page = 1
+	}
+	if opts.PageSize == 0 {
+		// Default limit
+		opts.PageSize = 10
+	}
+
+	var cond = builder.NewCond()
+
+	if len(opts.Keyword) > 0 {
+		lowerKeyword := strings.ToLower(opts.Keyword)
+		var keywordCond builder.Cond = builder.Like{"lower_name", lowerKeyword}
+		if opts.IncludeDesc {
+			keywordCond = keywordCond.Or(builder.Like{"LOWER(description)", lowerKeyword})
+		}
+		cond = cond.And(keywordCond)
+	}
+
+	cond = cond.And(builder.Eq{"org_id": opts.OrgID})
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	count, err := sess.
+		Where(cond).
+		Count(new(Team))
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	sess = sess.Where(cond)
+	if opts.PageSize == -1 {
+		opts.PageSize = int(count)
+	} else {
+		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	}
+
+	teams := make([]*Team, 0, opts.PageSize)
+	if err = sess.
+		OrderBy("lower_name").
+		Find(&teams); err != nil {
+		return nil, 0, err
+	}
+
+	return teams, count, nil
 }
 
 // ColorFormat provides a basic color format for a Team
@@ -87,6 +151,9 @@ func (t *Team) IsMember(userID int64) bool {
 }
 
 func (t *Team) getRepositories(e Engine) error {
+	if t.Repos != nil {
+		return nil
+	}
 	return e.Join("INNER", "team_repo", "repository.id = team_repo.repo_id").
 		Where("team_repo.team_id=?", t.ID).
 		OrderBy("repository.name").
@@ -158,6 +225,40 @@ func (t *Team) addRepository(e Engine, repo *Repository) (err error) {
 	return nil
 }
 
+// addAllRepositories adds all repositories to the team.
+// If the team already has some repositories they will be left unchanged.
+func (t *Team) addAllRepositories(e Engine) error {
+	var orgRepos []Repository
+	if err := e.Where("owner_id = ?", t.OrgID).Find(&orgRepos); err != nil {
+		return fmt.Errorf("get org repos: %v", err)
+	}
+
+	for _, repo := range orgRepos {
+		if !t.hasRepository(e, repo.ID) {
+			if err := t.addRepository(e, &repo); err != nil {
+				return fmt.Errorf("addRepository: %v", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// AddAllRepositories adds all repositories to the team
+func (t *Team) AddAllRepositories() (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err = t.addAllRepositories(sess); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
 // AddRepository adds new repository to team of organization.
 func (t *Team) AddRepository(repo *Repository) (err error) {
 	if repo.OwnerID != t.OrgID {
@@ -179,6 +280,71 @@ func (t *Team) AddRepository(repo *Repository) (err error) {
 	return sess.Commit()
 }
 
+// RemoveAllRepositories removes all repositories from team and recalculates access
+func (t *Team) RemoveAllRepositories() (err error) {
+	if t.IncludesAllRepositories {
+		return nil
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err = t.removeAllRepositories(sess); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+// removeAllRepositories removes all repositories from team and recalculates access
+// Note: Shall not be called if team includes all repositories
+func (t *Team) removeAllRepositories(e Engine) (err error) {
+	// Delete all accesses.
+	for _, repo := range t.Repos {
+		if err := repo.recalculateTeamAccesses(e, t.ID); err != nil {
+			return err
+		}
+
+		// Remove watches from all users and now unaccessible repos
+		for _, user := range t.Members {
+			has, err := hasAccess(e, user.ID, repo)
+			if err != nil {
+				return err
+			} else if has {
+				continue
+			}
+
+			if err = watchRepo(e, user.ID, repo.ID, false); err != nil {
+				return err
+			}
+
+			// Remove all IssueWatches a user has subscribed to in the repositories
+			if err = removeIssueWatchersByRepoID(e, user.ID, repo.ID); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Delete team-repo
+	if _, err := e.
+		Where("team_id=?", t.ID).
+		Delete(new(TeamRepo)); err != nil {
+		return err
+	}
+
+	t.NumRepos = 0
+	if _, err = e.ID(t.ID).Cols("num_repos").Update(t); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// removeRepository removes a repository from a team and recalculates access
+// Note: Repository shall not be removed from team if it includes all repositories (unless the repository is deleted)
 func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (err error) {
 	if err = removeTeamRepo(e, t.ID, repo.ID); err != nil {
 		return err
@@ -222,8 +388,13 @@ func (t *Team) removeRepository(e Engine, repo *Repository, recalculate bool) (e
 }
 
 // RemoveRepository removes repository from team of organization.
+// If the team shall include all repositories the request is ignored.
 func (t *Team) RemoveRepository(repoID int64) error {
 	if !t.HasRepository(repoID) {
+		return nil
+	}
+
+	if t.IncludesAllRepositories {
 		return nil
 	}
 
@@ -252,7 +423,7 @@ func (t *Team) UnitEnabled(tp UnitType) bool {
 
 func (t *Team) unitEnabled(e Engine, tp UnitType) bool {
 	if err := t.getUnits(e); err != nil {
-		log.Warn("Error loading repository (ID: %d) units: %s", t.ID, err.Error())
+		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
 
 	for _, unit := range t.Units {
@@ -287,7 +458,8 @@ func NewTeam(t *Team) (err error) {
 	has, err := x.ID(t.OrgID).Get(new(User))
 	if err != nil {
 		return err
-	} else if !has {
+	}
+	if !has {
 		return ErrOrgNotExist{t.OrgID, ""}
 	}
 
@@ -298,7 +470,8 @@ func NewTeam(t *Team) (err error) {
 		Get(new(Team))
 	if err != nil {
 		return err
-	} else if has {
+	}
+	if has {
 		return ErrTeamAlreadyExist{t.OrgID, t.LowerName}
 	}
 
@@ -309,7 +482,10 @@ func NewTeam(t *Team) (err error) {
 	}
 
 	if _, err = sess.Insert(t); err != nil {
-		sess.Rollback()
+		errRollback := sess.Rollback()
+		if errRollback != nil {
+			log.Error("NewTeam sess.Rollback: %v", errRollback)
+		}
 		return err
 	}
 
@@ -319,14 +495,28 @@ func NewTeam(t *Team) (err error) {
 			unit.TeamID = t.ID
 		}
 		if _, err = sess.Insert(&t.Units); err != nil {
-			sess.Rollback()
+			errRollback := sess.Rollback()
+			if errRollback != nil {
+				log.Error("NewTeam sess.Rollback: %v", errRollback)
+			}
 			return err
+		}
+	}
+
+	// Add all repositories to the team if it has access to all of them.
+	if t.IncludesAllRepositories {
+		err = t.addAllRepositories(sess)
+		if err != nil {
+			return fmt.Errorf("addAllRepositories: %v", err)
 		}
 	}
 
 	// Update organization number of teams.
 	if _, err = sess.Exec("UPDATE `user` SET num_teams=num_teams+1 WHERE id = ?", t.OrgID); err != nil {
-		sess.Rollback()
+		errRollback := sess.Rollback()
+		if errRollback != nil {
+			log.Error("NewTeam sess.Rollback: %v", errRollback)
+		}
 		return err
 	}
 	return sess.Commit()
@@ -341,7 +531,7 @@ func getTeam(e Engine, orgID int64, name string) (*Team, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrTeamNotExist
+		return nil, ErrTeamNotExist{orgID, 0, name}
 	}
 	return t, nil
 }
@@ -351,13 +541,18 @@ func GetTeam(orgID int64, name string) (*Team, error) {
 	return getTeam(x, orgID, name)
 }
 
+// getOwnerTeam returns team by given team name and organization.
+func getOwnerTeam(e Engine, orgID int64) (*Team, error) {
+	return getTeam(e, orgID, ownerTeamName)
+}
+
 func getTeamByID(e Engine, teamID int64) (*Team, error) {
 	t := new(Team)
 	has, err := e.ID(teamID).Get(t)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrTeamNotExist
+		return nil, ErrTeamNotExist{0, teamID, ""}
 	}
 	return t, nil
 }
@@ -368,7 +563,7 @@ func GetTeamByID(teamID int64) (*Team, error) {
 }
 
 // UpdateTeam updates information of team.
-func UpdateTeam(t *Team, authChanged bool) (err error) {
+func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
 	if len(t.Name) == 0 {
 		return errors.New("empty team name")
 	}
@@ -412,7 +607,10 @@ func UpdateTeam(t *Team, authChanged bool) (err error) {
 		}
 
 		if _, err = sess.Insert(&t.Units); err != nil {
-			sess.Rollback()
+			errRollback := sess.Rollback()
+			if errRollback != nil {
+				log.Error("UpdateTeam sess.Rollback: %v", errRollback)
+			}
 			return err
 		}
 	}
@@ -427,6 +625,14 @@ func UpdateTeam(t *Team, authChanged bool) (err error) {
 			if err = repo.recalculateTeamAccesses(sess, 0); err != nil {
 				return fmt.Errorf("recalculateTeamAccesses: %v", err)
 			}
+		}
+	}
+
+	// Add all repositories to the team if it has access to all of them.
+	if includeAllChanged && t.IncludesAllRepositories {
+		err = t.addAllRepositories(sess)
+		if err != nil {
+			return fmt.Errorf("addAllRepositories: %v", err)
 		}
 	}
 
@@ -450,36 +656,7 @@ func DeleteTeam(t *Team) error {
 		return err
 	}
 
-	// Delete all accesses.
-	for _, repo := range t.Repos {
-		if err := repo.recalculateTeamAccesses(sess, t.ID); err != nil {
-			return err
-		}
-
-		// Remove watches from all users and now unaccessible repos
-		for _, user := range t.Members {
-			has, err := hasAccess(sess, user.ID, repo)
-			if err != nil {
-				return err
-			} else if has {
-				continue
-			}
-
-			if err = watchRepo(sess, user.ID, repo.ID, false); err != nil {
-				return err
-			}
-
-			// Remove all IssueWatches a user has subscribed to in the repositories
-			if err = removeIssueWatchersByRepoID(sess, user.ID, repo.ID); err != nil {
-				return err
-			}
-		}
-	}
-
-	// Delete team-repo
-	if _, err := sess.
-		Where("team_id=?", t.ID).
-		Delete(new(TeamRepo)); err != nil {
+	if err := t.removeAllRepositories(sess); err != nil {
 		return err
 	}
 
@@ -642,7 +819,7 @@ func AddTeamMember(team *Team, userID int64) error {
 
 	// Give access to team repositories.
 	for _, repo := range team.Repos {
-		if err := repo.recalculateTeamAccesses(sess, 0); err != nil {
+		if err := repo.recalculateUserAccess(sess, userID); err != nil {
 			return err
 		}
 		if setting.Service.AutoWatchNewRepos {
@@ -687,7 +864,7 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 
 	// Delete access to team repositories.
 	for _, repo := range team.Repos {
-		if err := repo.recalculateTeamAccesses(e, 0); err != nil {
+		if err := repo.recalculateUserAccess(e, userID); err != nil {
 			return err
 		}
 
@@ -737,15 +914,22 @@ func RemoveTeamMember(team *Team, userID int64) error {
 
 // IsUserInTeams returns if a user in some teams
 func IsUserInTeams(userID int64, teamIDs []int64) (bool, error) {
-	return x.Where("uid=?", userID).In("team_id", teamIDs).Exist(new(TeamUser))
+	return isUserInTeams(x, userID, teamIDs)
+}
+
+func isUserInTeams(e Engine, userID int64, teamIDs []int64) (bool, error) {
+	return e.Where("uid=?", userID).In("team_id", teamIDs).Exist(new(TeamUser))
 }
 
 // UsersInTeamsCount counts the number of users which are in userIDs and teamIDs
-func UsersInTeamsCount(userIDs []int64, teamIDs []int64) (count int64, err error) {
-	if count, err = x.In("uid", userIDs).In("team_id", teamIDs).Count(new(TeamUser)); err != nil {
+func UsersInTeamsCount(userIDs []int64, teamIDs []int64) (int64, error) {
+	var ids []int64
+	if err := x.In("uid", userIDs).In("team_id", teamIDs).
+		Table("team_user").
+		Cols("uid").GroupBy("uid").Find(&ids); err != nil {
 		return 0, err
 	}
-	return
+	return int64(len(ids)), nil
 }
 
 // ___________                  __________
@@ -841,7 +1025,10 @@ func UpdateTeamUnits(team *Team, units []TeamUnit) (err error) {
 	}
 
 	if _, err = sess.Insert(units); err != nil {
-		sess.Rollback()
+		errRollback := sess.Rollback()
+		if errRollback != nil {
+			log.Error("UpdateTeamUnits sess.Rollback: %v", errRollback)
+		}
 		return err
 	}
 

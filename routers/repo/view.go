@@ -11,11 +11,13 @@ import (
 	"fmt"
 	gotemplate "html/template"
 	"io/ioutil"
+	"net/url"
 	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -23,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 )
 
 const (
@@ -31,6 +32,7 @@ const (
 	tplRepoHome  base.TplName = "repo/home"
 	tplWatchers  base.TplName = "repo/watchers"
 	tplForks     base.TplName = "repo/forks"
+	tplMigrating base.TplName = "repo/migrating"
 )
 
 func renderDirectory(ctx *context.Context, treeLink string) {
@@ -160,10 +162,11 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				ctx.Data["FileSize"] = fileSize
 			} else {
 				d, _ := ioutil.ReadAll(dataRc)
-				buf = templates.ToUTF8WithFallback(append(buf, d...))
+				buf = charset.ToUTF8WithFallback(append(buf, d...))
 
-				if markup.Type(readmeFile.Name()) != "" {
+				if markupType := markup.Type(readmeFile.Name()); markupType != "" {
 					ctx.Data["IsMarkup"] = true
+					ctx.Data["MarkupType"] = string(markupType)
 					ctx.Data["FileContent"] = string(markup.Render(readmeFile.Name(), buf, treeLink, ctx.Repo.Repository.ComposeMetas()))
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
@@ -262,6 +265,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 		}
 	}
+	// Check LFS Lock
+	lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
+	ctx.Data["LFSLock"] = lfsLock
+	if err != nil {
+		ctx.ServerError("GetTreePathLock", err)
+		return
+	}
+	if lfsLock != nil {
+		ctx.Data["LFSLockOwner"] = lfsLock.Owner.DisplayName()
+		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")
+	}
 
 	// Assume file is not editable first.
 	if isLFSFile {
@@ -278,12 +292,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 
 		d, _ := ioutil.ReadAll(dataRc)
-		buf = templates.ToUTF8WithFallback(append(buf, d...))
+		buf = charset.ToUTF8WithFallback(append(buf, d...))
 
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
-		if markup.Type(blob.Name()) != "" {
+		if markupType := markup.Type(blob.Name()); markupType != "" {
 			ctx.Data["IsMarkup"] = true
+			ctx.Data["MarkupType"] = markupType
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
 		} else if readmeExist {
 			ctx.Data["IsRenderedHTML"] = true
@@ -293,10 +308,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		} else {
 			// Building code view blocks with line number on server side.
 			var fileContent string
-			if content, err := templates.ToUTF8WithErr(buf); err != nil {
-				if err != nil {
-					log.Error("ToUTF8WithErr: %v", err)
-				}
+			if content, err := charset.ToUTF8WithErr(buf); err != nil {
+				log.Error("ToUTF8WithErr: %v", err)
 				fileContent = string(buf)
 			} else {
 				fileContent = content
@@ -304,6 +317,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			var output bytes.Buffer
 			lines := strings.Split(fileContent, "\n")
+			ctx.Data["NumLines"] = len(lines)
+			if len(lines) == 1 && lines[0] == "" {
+				// If the file is completely empty, we show zero lines at the line counter
+				ctx.Data["NumLines"] = 0
+			}
+			ctx.Data["NumLinesSet"] = true
+
 			//Remove blank line at the end of file
 			if len(lines) > 0 && lines[len(lines)-1] == "" {
 				lines = lines[:len(lines)-1]
@@ -319,14 +339,19 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			output.Reset()
 			for i := 0; i < len(lines); i++ {
-				output.WriteString(fmt.Sprintf(`<span id="L%d">%d</span>`, i+1, i+1))
+				output.WriteString(fmt.Sprintf(`<span id="L%[1]d" data-line-number="%[1]d"></span>`, i+1))
 			}
 			ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 		}
 		if !isLFSFile {
 			if ctx.Repo.CanEnableEditor() {
-				ctx.Data["CanEditFile"] = true
-				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
+				if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
+					ctx.Data["CanEditFile"] = false
+					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
+				} else {
+					ctx.Data["CanEditFile"] = true
+					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.edit_this_file")
+				}
 			} else if !ctx.Repo.IsViewBranch {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
 			} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
@@ -342,11 +367,30 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["IsAudioFile"] = true
 	case base.IsImageFile(buf):
 		ctx.Data["IsImageFile"] = true
+	default:
+		if fileSize >= setting.UI.MaxDisplayFileSize {
+			ctx.Data["IsFileTooLarge"] = true
+			break
+		}
+
+		if markupType := markup.Type(blob.Name()); markupType != "" {
+			d, _ := ioutil.ReadAll(dataRc)
+			buf = append(buf, d...)
+			ctx.Data["IsMarkup"] = true
+			ctx.Data["MarkupType"] = markupType
+			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeMetas()))
+		}
+
 	}
 
 	if ctx.Repo.CanEnableEditor() {
-		ctx.Data["CanDeleteFile"] = true
-		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
+		if lfsLock != nil && lfsLock.OwnerID != ctx.User.ID {
+			ctx.Data["CanDeleteFile"] = false
+			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
+		} else {
+			ctx.Data["CanDeleteFile"] = true
+			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.delete_this_file")
+		}
 	} else if !ctx.Repo.IsViewBranch {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
 	} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
@@ -354,9 +398,37 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 }
 
+func safeURL(address string) string {
+	u, err := url.Parse(address)
+	if err != nil {
+		return address
+	}
+	u.User = nil
+	return u.String()
+}
+
 // Home render repository home page
 func Home(ctx *context.Context) {
 	if len(ctx.Repo.Units) > 0 {
+		if ctx.Repo.Repository.IsBeingCreated() {
+			task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
+			if err != nil {
+				ctx.ServerError("models.GetMigratingTask", err)
+				return
+			}
+			cfg, err := task.MigrateConfig()
+			if err != nil {
+				ctx.ServerError("task.MigrateConfig", err)
+				return
+			}
+
+			ctx.Data["Repo"] = ctx.Repo
+			ctx.Data["MigrateTask"] = task
+			ctx.Data["CloneAddr"] = safeURL(cfg.CloneAddr)
+			ctx.HTML(200, tplMigrating)
+			return
+		}
+
 		var firstUnit *models.Unit
 		for _, repoUnit := range ctx.Repo.Units {
 			if repoUnit.Type == models.UnitTypeCode {

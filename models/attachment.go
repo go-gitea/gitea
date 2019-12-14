@@ -11,11 +11,11 @@ import (
 	"path"
 
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
+	"xorm.io/xorm"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -27,9 +27,9 @@ type Attachment struct {
 	UploaderID    int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
 	CommentID     int64
 	Name          string
-	DownloadCount int64          `xorm:"DEFAULT 0"`
-	Size          int64          `xorm:"DEFAULT 0"`
-	CreatedUnix   util.TimeStamp `xorm:"created"`
+	DownloadCount int64              `xorm:"DEFAULT 0"`
+	Size          int64              `xorm:"DEFAULT 0"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 }
 
 // IncreaseDownloadCount is update download count + 1
@@ -131,6 +131,11 @@ func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
 		return nil, ErrAttachmentNotExist{0, uuid}
 	}
 	return attach, nil
+}
+
+// GetAttachmentsByUUIDs returns attachment by given UUID list.
+func GetAttachmentsByUUIDs(uuids []string) ([]*Attachment, error) {
+	return getAttachmentsByUUIDs(x, uuids)
 }
 
 func getAttachmentsByUUIDs(e Engine, uuids []string) ([]*Attachment, error) {
@@ -253,5 +258,11 @@ func updateAttachment(e Engine, atta *Attachment) error {
 		sess = e.Where("uuid = ?", atta.UUID)
 	}
 	_, err := sess.Cols("name", "issue_id", "release_id", "comment_id", "download_count").Update(atta)
+	return err
+}
+
+// DeleteAttachmentsByRelease deletes all attachments associated with the given release.
+func DeleteAttachmentsByRelease(releaseID int64) error {
+	_, err := x.Where("release_id = ?", releaseID).Delete(&Attachment{})
 	return err
 }

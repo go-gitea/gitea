@@ -11,14 +11,17 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 const (
 	// ProtectedBranchRepoID protected Repo ID
 	ProtectedBranchRepoID = "GITEA_REPO_ID"
+	// ProtectedBranchPRID protected Repo PR ID
+	ProtectedBranchPRID = "GITEA_PR_ID"
 )
 
 // ProtectedBranch struct
@@ -28,16 +31,20 @@ type ProtectedBranch struct {
 	BranchName                string `xorm:"UNIQUE(s)"`
 	CanPush                   bool   `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist           bool
-	WhitelistUserIDs          []int64        `xorm:"JSON TEXT"`
-	WhitelistTeamIDs          []int64        `xorm:"JSON TEXT"`
-	EnableMergeWhitelist      bool           `xorm:"NOT NULL DEFAULT false"`
-	MergeWhitelistUserIDs     []int64        `xorm:"JSON TEXT"`
-	MergeWhitelistTeamIDs     []int64        `xorm:"JSON TEXT"`
-	ApprovalsWhitelistUserIDs []int64        `xorm:"JSON TEXT"`
-	ApprovalsWhitelistTeamIDs []int64        `xorm:"JSON TEXT"`
-	RequiredApprovals         int64          `xorm:"NOT NULL DEFAULT 0"`
-	CreatedUnix               util.TimeStamp `xorm:"created"`
-	UpdatedUnix               util.TimeStamp `xorm:"updated"`
+	WhitelistUserIDs          []int64            `xorm:"JSON TEXT"`
+	WhitelistTeamIDs          []int64            `xorm:"JSON TEXT"`
+	EnableMergeWhitelist      bool               `xorm:"NOT NULL DEFAULT false"`
+	WhitelistDeployKeys       bool               `xorm:"NOT NULL DEFAULT false"`
+	MergeWhitelistUserIDs     []int64            `xorm:"JSON TEXT"`
+	MergeWhitelistTeamIDs     []int64            `xorm:"JSON TEXT"`
+	EnableStatusCheck         bool               `xorm:"NOT NULL DEFAULT false"`
+	StatusCheckContexts       []string           `xorm:"JSON TEXT"`
+	EnableApprovalsWhitelist  bool               `xorm:"NOT NULL DEFAULT false"`
+	ApprovalsWhitelistUserIDs []int64            `xorm:"JSON TEXT"`
+	ApprovalsWhitelistTeamIDs []int64            `xorm:"JSON TEXT"`
+	RequiredApprovals         int64              `xorm:"NOT NULL DEFAULT 0"`
+	CreatedUnix               timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix               timeutil.TimeStamp `xorm:"updated"`
 }
 
 // IsProtected returns if the branch is protected
@@ -47,8 +54,23 @@ func (protectBranch *ProtectedBranch) IsProtected() bool {
 
 // CanUserPush returns if some user could push to this protected branch
 func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
-	if !protectBranch.EnableWhitelist {
+	if !protectBranch.CanPush {
 		return false
+	}
+
+	if !protectBranch.EnableWhitelist {
+		if user, err := GetUserByID(userID); err != nil {
+			log.Error("GetUserByID: %v", err)
+			return false
+		} else if repo, err := GetRepositoryByID(protectBranch.RepoID); err != nil {
+			log.Error("GetRepositoryByID: %v", err)
+			return false
+		} else if writeAccess, err := HasAccessUnit(user, repo, UnitTypeCode, AccessModeWrite); err != nil {
+			log.Error("HasAccessUnit: %v", err)
+			return false
+		} else {
+			return writeAccess
+		}
 	}
 
 	if base.Int64sContains(protectBranch.WhitelistUserIDs, userID) {
@@ -89,6 +111,38 @@ func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
 	return in
 }
 
+// IsUserOfficialReviewer check if user is official reviewer for the branch (counts towards required approvals)
+func (protectBranch *ProtectedBranch) IsUserOfficialReviewer(user *User) (bool, error) {
+	return protectBranch.isUserOfficialReviewer(x, user)
+}
+
+func (protectBranch *ProtectedBranch) isUserOfficialReviewer(e Engine, user *User) (bool, error) {
+	repo, err := getRepositoryByID(e, protectBranch.RepoID)
+	if err != nil {
+		return false, err
+	}
+
+	if !protectBranch.EnableApprovalsWhitelist {
+		// Anyone with write access is considered official reviewer
+		writeAccess, err := hasAccessUnit(e, user, repo, UnitTypeCode, AccessModeWrite)
+		if err != nil {
+			return false, err
+		}
+		return writeAccess, nil
+	}
+
+	if base.Int64sContains(protectBranch.ApprovalsWhitelistUserIDs, user.ID) {
+		return true, nil
+	}
+
+	inTeam, err := isUserInTeams(e, user.ID, protectBranch.ApprovalsWhitelistTeamIDs)
+	if err != nil {
+		return false, err
+	}
+
+	return inTeam, nil
+}
+
 // HasEnoughApprovals returns true if pr has enough granted approvals.
 func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 	if protectBranch.RequiredApprovals == 0 {
@@ -99,42 +153,32 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 
 // GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
-	reviews, err := GetReviewersByPullID(pr.Issue.ID)
+	approvals, err := x.Where("issue_id = ?", pr.IssueID).
+		And("type = ?", ReviewTypeApprove).
+		And("official = ?", true).
+		Count(new(Review))
 	if err != nil {
-		log.Error("GetReviewersByPullID: %v", err)
+		log.Error("GetGrantedApprovalsCount: %v", err)
 		return 0
 	}
 
-	approvals := int64(0)
-	userIDs := make([]int64, 0)
-	for _, review := range reviews {
-		if review.Type != ReviewTypeApprove {
-			continue
-		}
-		if base.Int64sContains(protectBranch.ApprovalsWhitelistUserIDs, review.ID) {
-			approvals++
-			continue
-		}
-		userIDs = append(userIDs, review.ID)
-	}
-	approvalTeamCount, err := UsersInTeamsCount(userIDs, protectBranch.ApprovalsWhitelistTeamIDs)
-	if err != nil {
-		log.Error("UsersInTeamsCount: %v", err)
-		return 0
-	}
-	return approvalTeamCount + approvals
+	return approvals
 }
 
 // GetProtectedBranchByRepoID getting protected branch by repo ID
-func GetProtectedBranchByRepoID(RepoID int64) ([]*ProtectedBranch, error) {
+func GetProtectedBranchByRepoID(repoID int64) ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)
-	return protectedBranches, x.Where("repo_id = ?", RepoID).Desc("updated_unix").Find(&protectedBranches)
+	return protectedBranches, x.Where("repo_id = ?", repoID).Desc("updated_unix").Find(&protectedBranches)
 }
 
 // GetProtectedBranchBy getting protected branch by ID/Name
-func GetProtectedBranchBy(repoID int64, BranchName string) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{RepoID: repoID, BranchName: BranchName}
-	has, err := x.Get(rel)
+func GetProtectedBranchBy(repoID int64, branchName string) (*ProtectedBranch, error) {
+	return getProtectedBranchBy(x, repoID, branchName)
+}
+
+func getProtectedBranchBy(e Engine, repoID int64, branchName string) (*ProtectedBranch, error) {
+	rel := &ProtectedBranch{RepoID: repoID, BranchName: branchName}
+	has, err := e.Get(rel)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +234,7 @@ func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, opts 
 	}
 	protectBranch.MergeWhitelistUserIDs = whitelist
 
-	whitelist, err = updateUserWhitelist(repo, protectBranch.ApprovalsWhitelistUserIDs, opts.ApprovalsUserIDs)
+	whitelist, err = updateApprovalWhitelist(repo, protectBranch.ApprovalsWhitelistUserIDs, opts.ApprovalsUserIDs)
 	if err != nil {
 		return err
 	}
@@ -234,6 +278,11 @@ func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, opts 
 func (repo *Repository) GetProtectedBranches() ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)
 	return protectedBranches, x.Find(&protectedBranches, &ProtectedBranch{RepoID: repo.ID})
+}
+
+// GetBranchProtection get the branch protection of a branch
+func (repo *Repository) GetBranchProtection(branchName string) (*ProtectedBranch, error) {
+	return GetProtectedBranchBy(repo.ID, branchName)
 }
 
 // IsProtectedBranch checks if branch is protected
@@ -294,6 +343,27 @@ func (repo *Repository) IsProtectedBranchForMerging(pr *PullRequest, branchName 
 	}
 
 	return false, nil
+}
+
+// updateApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with
+// the users from newWhitelist which have explicit read or write access to the repo.
+func updateApprovalWhitelist(repo *Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+	hasUsersChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
+	if !hasUsersChanged {
+		return currentWhitelist, nil
+	}
+
+	whitelist = make([]int64, 0, len(newWhitelist))
+	for _, userID := range newWhitelist {
+		if reader, err := repo.IsReader(userID); err != nil {
+			return nil, err
+		} else if !reader {
+			continue
+		}
+		whitelist = append(whitelist, userID)
+	}
+
+	return
 }
 
 // updateUserWhitelist checks whether the user whitelist changed and returns a whitelist with
@@ -372,13 +442,13 @@ func (repo *Repository) DeleteProtectedBranch(id int64) (err error) {
 
 // DeletedBranch struct
 type DeletedBranch struct {
-	ID          int64          `xorm:"pk autoincr"`
-	RepoID      int64          `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Name        string         `xorm:"UNIQUE(s) NOT NULL"`
-	Commit      string         `xorm:"UNIQUE(s) NOT NULL"`
-	DeletedByID int64          `xorm:"INDEX"`
-	DeletedBy   *User          `xorm:"-"`
-	DeletedUnix util.TimeStamp `xorm:"INDEX created"`
+	ID          int64              `xorm:"pk autoincr"`
+	RepoID      int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Name        string             `xorm:"UNIQUE(s) NOT NULL"`
+	Commit      string             `xorm:"UNIQUE(s) NOT NULL"`
+	DeletedByID int64              `xorm:"INDEX"`
+	DeletedBy   *User              `xorm:"-"`
+	DeletedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
 // AddDeletedBranch adds a deleted branch to the database
@@ -456,11 +526,6 @@ func (deletedBranch *DeletedBranch) LoadUser() {
 
 // RemoveOldDeletedBranches removes old deleted branches
 func RemoveOldDeletedBranches() {
-	if !taskStatusTable.StartIfNotRunning(`deleted_branches_cleanup`) {
-		return
-	}
-	defer taskStatusTable.Stop(`deleted_branches_cleanup`)
-
 	log.Trace("Doing: DeletedBranchesCleanup")
 
 	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
@@ -15,8 +16,10 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
+	issue_service "code.gitea.io/gitea/services/issue"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // ListPullRequests returns a list of all PRs
@@ -188,10 +191,11 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	)
 
 	// Get repo/branch information
-	headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch := parseCompareInfo(ctx, form)
+	_, headRepo, headGitRepo, compareInfo, baseBranch, headBranch := parseCompareInfo(ctx, form)
 	if ctx.Written() {
 		return
 	}
+	defer headGitRepo.Close()
 
 	// Check if another PR exists with the same targets
 	existingPr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
@@ -240,20 +244,13 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		milestoneID = milestone.ID
 	}
 
-	patch, err := headGitRepo.GetPatch(prInfo.MergeBase, headBranch)
-	if err != nil {
-		ctx.Error(500, "GetPatch", err)
-		return
-	}
-
-	var deadlineUnix util.TimeStamp
+	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil {
-		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
+		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
 	prIssue := &models.Issue{
 		RepoID:       repo.ID,
-		Index:        repo.NextIssueIndex(),
 		Title:        form.Title,
 		PosterID:     ctx.User.ID,
 		Poster:       ctx.User,
@@ -264,15 +261,14 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		DeadlineUnix: deadlineUnix,
 	}
 	pr := &models.PullRequest{
-		HeadRepoID:   headRepo.ID,
-		BaseRepoID:   repo.ID,
-		HeadUserName: headUser.Name,
-		HeadBranch:   headBranch,
-		BaseBranch:   baseBranch,
-		HeadRepo:     headRepo,
-		BaseRepo:     repo,
-		MergeBase:    prInfo.MergeBase,
-		Type:         models.PullRequestGitea,
+		HeadRepoID: headRepo.ID,
+		BaseRepoID: repo.ID,
+		HeadBranch: headBranch,
+		BaseBranch: baseBranch,
+		HeadRepo:   headRepo,
+		BaseRepo:   repo,
+		MergeBase:  compareInfo.MergeBase,
+		Type:       models.PullRequestGitea,
 	}
 
 	// Get all assignee IDs
@@ -285,8 +281,26 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		}
 		return
 	}
+	// Check if the passed assignees is assignable
+	for _, aID := range assigneeIDs {
+		assignee, err := models.GetUserByID(aID)
+		if err != nil {
+			ctx.Error(500, "GetUserByID", err)
+			return
+		}
 
-	if err := models.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch, assigneeIDs); err != nil {
+		valid, err := models.CanBeAssigned(assignee, repo, true)
+		if err != nil {
+			ctx.Error(500, "canBeAssigned", err)
+			return
+		}
+		if !valid {
+			ctx.Error(422, "canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
+			return
+		}
+	}
+
+	if err := pull_service.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
 			return
@@ -308,7 +322,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/pulls/{index} repository repoEditPullRequest
 	// ---
-	// summary: Update a pull request
+	// summary: Update a pull request. If using deadline only the date will be taken into account, and time of day ignored.
 	// consumes:
 	// - application/json
 	// produces:
@@ -347,7 +361,11 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		return
 	}
 
-	pr.LoadIssue()
+	err = pr.LoadIssue()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
+		return
+	}
 	issue := pr.Issue
 	issue.Repo = ctx.Repo.Repository
 
@@ -363,15 +381,20 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		issue.Content = form.Body
 	}
 
-	// Update Deadline
-	var deadlineUnix util.TimeStamp
-	if form.Deadline != nil && !form.Deadline.IsZero() {
-		deadlineUnix = util.TimeStamp(form.Deadline.Unix())
-	}
+	// Update or remove deadline if set
+	if form.Deadline != nil || form.RemoveDeadline != nil {
+		var deadlineUnix timeutil.TimeStamp
+		if (form.RemoveDeadline == nil || !*form.RemoveDeadline) && !form.Deadline.IsZero() {
+			deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
+				23, 59, 59, 0, form.Deadline.Location())
+			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
+		}
 
-	if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
-		ctx.Error(500, "UpdateIssueDeadline", err)
-		return
+		if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.User); err != nil {
+			ctx.Error(500, "UpdateIssueDeadline", err)
+			return
+		}
+		issue.DeadlineUnix = deadlineUnix
 	}
 
 	// Add/delete assignees
@@ -383,12 +406,12 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
 	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
-		err = models.UpdateAPIAssignee(issue, form.Assignee, form.Assignees, ctx.User)
+		err = issue_service.UpdateAssignees(issue, form.Assignee, form.Assignees, ctx.User)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.Error(422, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
 			} else {
-				ctx.Error(500, "UpdateAPIAssignee", err)
+				ctx.Error(500, "UpdateAssignees", err)
 			}
 			return
 		}
@@ -398,7 +421,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone
-		if err = models.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+		if err = issue_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
 			ctx.Error(500, "ChangeMilestoneAssign", err)
 			return
 		}
@@ -421,7 +444,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		return
 	}
 	if form.State != nil {
-		if err = issue.ChangeStatus(ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
+		if err = issue_service.ChangeStatus(issue, ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
 			if models.IsErrDependenciesLeft(err) {
 				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
 				return
@@ -429,8 +452,6 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 			ctx.Error(500, "ChangeStatus", err)
 			return
 		}
-
-		notification.NotifyIssueChangeStatus(ctx.User, issue, api.StateClosed == api.StateType(*form.State))
 	}
 
 	// Refetch from database
@@ -541,7 +562,11 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	pr.LoadIssue()
+	err = pr.LoadIssue()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
+		return
+	}
 	pr.Issue.Repo = ctx.Repo.Repository
 
 	if ctx.IsSigned {
@@ -558,6 +583,17 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	}
 
 	if !pr.CanAutoMerge() || pr.HasMerged || pr.IsWorkInProgress() {
+		ctx.Status(405)
+		return
+	}
+
+	isPass, err := pull_service.IsPullCommitStatusPass(pr)
+	if err != nil {
+		ctx.Error(500, "IsPullCommitStatusPass", err)
+		return
+	}
+
+	if !isPass && !ctx.IsUserRepoAdmin() {
 		ctx.Status(405)
 		return
 	}
@@ -581,9 +617,21 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		message += "\n\n" + form.MergeMessageField
 	}
 
-	if err := pr.Merge(ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+	if err := pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Status(405)
+			return
+		} else if models.IsErrMergeConflicts(err) {
+			conflictError := err.(models.ErrMergeConflicts)
+			ctx.JSON(http.StatusConflict, conflictError)
+		} else if models.IsErrRebaseConflicts(err) {
+			conflictError := err.(models.ErrRebaseConflicts)
+			ctx.JSON(http.StatusConflict, conflictError)
+		} else if models.IsErrMergeUnrelatedHistories(err) {
+			conflictError := err.(models.ErrMergeUnrelatedHistories)
+			ctx.JSON(http.StatusConflict, conflictError)
+		} else if models.IsErrMergePushOutOfDate(err) {
+			ctx.Status(http.StatusConflict)
 			return
 		}
 		ctx.Error(500, "Merge", err)
@@ -594,7 +642,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	ctx.Status(200)
 }
 
-func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) (*models.User, *models.Repository, *git.Repository, *git.PullRequestInfo, string, string) {
+func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) (*models.User, *models.Repository, *git.Repository, *git.CompareInfo, string, string) {
 	baseRepo := ctx.Repo.Repository
 
 	// Get compared branches information
@@ -624,7 +672,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headUser, err = models.GetUserByName(headInfos[0])
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
-				ctx.NotFound("GetUserByName", nil)
+				ctx.NotFound("GetUserByName")
 			} else {
 				ctx.ServerError("GetUserByName", err)
 			}
@@ -642,7 +690,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	log.Info("Repo path: %s", ctx.Repo.GitRepo.Path)
 	// Check if base branch is valid.
 	if !ctx.Repo.GitRepo.IsBranchExist(baseBranch) {
-		ctx.NotFound()
+		ctx.NotFound("IsBranchExist")
 		return nil, nil, nil, nil, "", ""
 	}
 
@@ -650,7 +698,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	headRepo, has := models.HasForkedRepo(headUser.ID, baseRepo.ID)
 	if !has && !isSameRepo {
 		log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-		ctx.NotFound()
+		ctx.NotFound("HasForkedRepo")
 		return nil, nil, nil, nil, "", ""
 	}
 
@@ -666,33 +714,57 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		}
 	}
 
-	perm, err := models.GetUserRepoPermission(headRepo, ctx.User)
+	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
+	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
 	if err != nil {
+		headGitRepo.Close()
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
-	if !perm.CanReadIssuesOrPulls(true) {
+	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(models.UnitTypeCode) {
 		if log.IsTrace() {
-			log.Trace("Permission Denied: User %-v cannot create/read pull requests in Repo %-v\nUser in headRepo has Permissions: %-+v",
+			log.Trace("Permission Denied: User %-v cannot create/read pull requests or cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v",
+				ctx.User,
+				baseRepo,
+				permBase)
+		}
+		headGitRepo.Close()
+		ctx.NotFound("Can't read pulls or can't read UnitTypeCode")
+		return nil, nil, nil, nil, "", ""
+	}
+
+	// user should have permission to read headrepo's codes
+	permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
+	if err != nil {
+		headGitRepo.Close()
+		ctx.ServerError("GetUserRepoPermission", err)
+		return nil, nil, nil, nil, "", ""
+	}
+	if !permHead.CanRead(models.UnitTypeCode) {
+		if log.IsTrace() {
+			log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
 				ctx.User,
 				headRepo,
-				perm)
+				permHead)
 		}
-		ctx.NotFound()
+		headGitRepo.Close()
+		ctx.NotFound("Can't read headRepo UnitTypeCode")
 		return nil, nil, nil, nil, "", ""
 	}
 
 	// Check if head branch is valid.
 	if !headGitRepo.IsBranchExist(headBranch) {
+		headGitRepo.Close()
 		ctx.NotFound()
 		return nil, nil, nil, nil, "", ""
 	}
 
-	prInfo, err := headGitRepo.GetPullRequestInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
+	compareInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch)
 	if err != nil {
-		ctx.Error(500, "GetPullRequestInfo", err)
+		headGitRepo.Close()
+		ctx.Error(500, "GetCompareInfo", err)
 		return nil, nil, nil, nil, "", ""
 	}
 
-	return headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch
+	return headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch
 }

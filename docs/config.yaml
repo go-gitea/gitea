@@ -18,6 +18,13 @@ params:
   description: Git with a cup of tea
   author: The Gitea Authors
   website: https://docs.gitea.io
+  version: 1.10.1
+
+outputs:
+  home:
+    - HTML
+    - RSS
+    - JSON
 
 menu:
   page:

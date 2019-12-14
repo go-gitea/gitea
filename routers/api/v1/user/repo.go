@@ -7,7 +7,7 @@ package user
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // listUserRepos - List the repositories owned by the given user.
@@ -52,7 +52,7 @@ func ListUserRepos(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	private := ctx.IsSigned && (ctx.User.ID == user.ID || ctx.User.IsAdmin)
+	private := ctx.IsSigned
 	listUserRepos(ctx, user, private)
 }
 

@@ -21,13 +21,17 @@ environment variable and to add the go bin directory or directories
 `${GOPATH//://bin:}/bin` to the `$PATH`. See the Go wiki entry for
 [GOPATH](https://github.com/golang/go/wiki/GOPATH).
 
+Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
+required to build the JavaScript and CSS files. The minimum supported Node.js
+version is 10 and the latest LTS version is recommended.
+
 **Note**: When executing make tasks that require external tools, like
 `make misspell-check`, Gitea will automatically download and build these as
 necessary. To be able to use these, you must have the `"$GOPATH/bin"` directory
 on the executable path. If you don't add the go bin directory to the
 executable path, you will have to manage this yourself.
 
-**Note 2**: Go version 1.9 or higher is required. However, it is recommended to
+**Note 2**: Go version 1.11 or higher is required. However, it is recommended to
 obtain the same version as our continuous integration, see the advice given in
 <a href='{{< relref "doc/advanced/hacking-on-gitea.en-us.md" >}}'>Hacking on
 Gitea</a>
@@ -53,7 +57,7 @@ To work with tagged releases, the following commands can be used:
 
 ```bash
 git branch -a
-git checkout v1.0
+git checkout v{{< version >}}
 ```
 
 To validate a Pull Request, first enable the new branch (`xyz` is the PR id;
@@ -63,21 +67,24 @@ for example `2663` for [#2663](https://github.com/go-gitea/gitea/pull/2663)):
 git fetch origin pull/xyz/head:pr-xyz
 ```
 
-To build Gitea from source at a specific tagged release (like v1.0.0), list the
+To build Gitea from source at a specific tagged release (like v{{< version >}}), list the
 available tags and check out the specific tag.
 
 List available tags with the following.
 
 ```bash
 git tag -l
-git checkout v1.0.0  # or git checkout pr-xyz
+git checkout v{{< version >}}  # or git checkout pr-xyz
 ```
 
 ## Build
 
-Since all required libraries are already bundled in the Gitea source, it's
-possible to build Gitea with no additional downloads apart from Make
-<a href='{{< relref "doc/advanced/make.en-us.md" >}}'>(See here how to get Make)</a>.
+To build from source, the following programs must be present on the system:
+
+- `go` 1.11.0 or higher, see [here](https://golang.org/dl/)
+- `node` 10.0.0 or higher with `npm`, see [here](https://nodejs.org/en/download/)
+- `make`, see <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>here</a>
+
 Various [make tasks](https://github.com/go-gitea/gitea/blob/master/Makefile)
 are provided to keep the build process as simple as possible.
 
@@ -93,11 +100,10 @@ Depending on requirements, the following build tags can be included.
 
 Bundling assets into the binary using the `bindata` build tag can make
 development and testing easier, but is not ideal for a production deployment.
-To include assets, they must be built separately using the `generate` make
-task e.g.:
+To include assets, add the `bindata` tag:
 
 ```bash
-TAGS="bindata" make generate build
+TAGS="bindata" make build
 ```
 
 In the default release build of our continuous integration system, the build
@@ -105,7 +111,7 @@ tags are: `TAGS="bindata sqlite sqlite_unlock_notify"`. The simplest
 recommended way to build from source is therefore:
 
 ```bash
-TAGS="bindata sqlite sqlite_unlock_notify" make generate build
+TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
 
 ## Test
@@ -118,12 +124,12 @@ launched manually from command line, it can be killed by pressing `Ctrl + C`.
 ./gitea web
 ```
 
-## Changing the default CustomPath, CustomConf and AppWorkDir
+## Changing the default CustomPath, CustomConf and AppWorkPath
 
 Gitea will search for a number of things from the `CustomPath`. By default this is
 the `custom/` directory in the current working directory when running Gitea. It will also
 look for its configuration file `CustomConf` in `$CustomPath/conf/app.ini`, and will use the
-current working directory as the relative base path `AppWorkDir` for a number configurable
+current working directory as the relative base path `AppWorkPath` for a number configurable
 values.
 
 These values, although useful when developing, may conflict with downstream users preferences.
@@ -134,7 +140,7 @@ using the `LDFLAGS` environment variable for `make`. The appropriate settings ar
 
 * To set the `CustomPath` use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
 * For `CustomConf` you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
-* For `AppWorkDir` you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkDir=working-directory\"`
+* For `AppWorkPath` you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
 
 Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
 with the appropriate `TAGS` as above.

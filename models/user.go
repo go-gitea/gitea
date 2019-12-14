@@ -6,7 +6,6 @@
 package models
 
 import (
-	"bytes"
 	"container/list"
 	"crypto/md5"
 	"crypto/sha256"
@@ -14,13 +13,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"image"
-
-	// Needed for jpeg support
-	_ "image/jpeg"
+	_ "image/jpeg" // Needed for jpeg support
 	"image/png"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -32,16 +29,18 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	api "code.gitea.io/sdk/gitea"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/builder"
-	"github.com/go-xorm/core"
-	"github.com/go-xorm/xorm"
-	"github.com/nfnt/resize"
+	"github.com/unknwon/com"
+	"golang.org/x/crypto/argon2"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
+	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/ssh"
+	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // UserType defines the user type
@@ -55,7 +54,19 @@ const (
 	UserTypeOrganization
 )
 
-const syncExternalUsers = "sync_external_users"
+const (
+	algoBcrypt = "bcrypt"
+	algoScrypt = "scrypt"
+	algoArgon2 = "argon2"
+	algoPbkdf2 = "pbkdf2"
+
+	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications
+	EmailNotificationsEnabled = "enabled"
+	// EmailNotificationsOnMention indicates that the user would like to be notified via email when mentioned.
+	EmailNotificationsOnMention = "onmention"
+	// EmailNotificationsDisabled indicates that the user would not like to be notified via email.
+	EmailNotificationsDisabled = "disabled"
+)
 
 var (
 	// ErrUserNotKeyOwner user does not own this key error
@@ -84,9 +95,11 @@ type User struct {
 	Name      string `xorm:"UNIQUE NOT NULL"`
 	FullName  string
 	// Email is the primary email address (to be used for communication)
-	Email            string `xorm:"NOT NULL"`
-	KeepEmailPrivate bool
-	Passwd           string `xorm:"NOT NULL"`
+	Email                        string `xorm:"NOT NULL"`
+	KeepEmailPrivate             bool
+	EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
+	Passwd                       string `xorm:"NOT NULL"`
+	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'pbkdf2'"`
 
 	// MustChangePassword is an attribute that determines if a user
 	// is to change his/her password after registration.
@@ -106,9 +119,9 @@ type User struct {
 	Language    string `xorm:"VARCHAR(5)"`
 	Description string
 
-	CreatedUnix   util.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix   util.TimeStamp `xorm:"INDEX updated"`
-	LastLoginUnix util.TimeStamp `xorm:"INDEX"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix   timeutil.TimeStamp `xorm:"INDEX updated"`
+	LastLoginUnix timeutil.TimeStamp `xorm:"INDEX"`
 
 	// Remember visibility choice for convenience, true for private
 	LastRepoVisibility bool
@@ -135,11 +148,13 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	NumTeams   int
-	NumMembers int
-	Teams      []*Team             `xorm:"-"`
-	Members    []*User             `xorm:"-"`
-	Visibility structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+	NumTeams                  int
+	NumMembers                int
+	Teams                     []*Team             `xorm:"-"`
+	Members                   UserList            `xorm:"-"`
+	MembersIsPublic           map[int64]bool      `xorm:"-"`
+	Visibility                structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
+	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
 
 	// Preferences
 	DiffViewStyle string `xorm:"NOT NULL DEFAULT ''"`
@@ -185,7 +200,7 @@ func (u *User) AfterLoad() {
 
 // SetLastLogin set time to last login
 func (u *User) SetLastLogin() {
-	u.LastLoginUnix = util.TimeStampNow()
+	u.LastLoginUnix = timeutil.TimeStampNow()
 }
 
 // UpdateDiffViewStyle updates the users diff view style
@@ -200,9 +215,9 @@ func (u *User) UpdateTheme(themeName string) error {
 	return UpdateUserCols(u, "theme")
 }
 
-// getEmail returns an noreply email, if the user has set to keep his
+// GetEmail returns an noreply email, if the user has set to keep his
 // email address private, otherwise the primary email address.
-func (u *User) getEmail() string {
+func (u *User) GetEmail() string {
 	if u.KeepEmailPrivate {
 		return fmt.Sprintf("%s@%s", u.LowerName, setting.Service.NoReplyAddress)
 	}
@@ -215,10 +230,12 @@ func (u *User) APIFormat() *api.User {
 		ID:        u.ID,
 		UserName:  u.Name,
 		FullName:  u.FullName,
-		Email:     u.getEmail(),
+		Email:     u.GetEmail(),
 		AvatarURL: u.AvatarLink(),
 		Language:  u.Language,
 		IsAdmin:   u.IsAdmin,
+		LastLogin: u.LastLoginUnix.AsTime(),
+		Created:   u.CreatedUnix.AsTime(),
 	}
 }
 
@@ -358,9 +375,20 @@ func (u *User) generateRandomAvatar(e Engine) error {
 	return nil
 }
 
-// SizedRelAvatarLink returns a relative link to the user's avatar. When
-// applicable, the link is for an avatar of the indicated size (in pixels).
+// SizedRelAvatarLink returns a link to the user's avatar via
+// the local explore page. Function returns immediately.
+// When applicable, the link is for an avatar of the indicated size (in pixels).
 func (u *User) SizedRelAvatarLink(size int) string {
+	return strings.TrimRight(setting.AppSubURL, "/") + "/user/avatar/" + u.Name + "/" + strconv.Itoa(size)
+}
+
+// RealSizedAvatarLink returns a link to the user's avatar. When
+// applicable, the link is for an avatar of the indicated size (in pixels).
+//
+// This function make take time to return when federated avatars
+// are in use, due to a DNS lookup need
+//
+func (u *User) RealSizedAvatarLink(size int) string {
 	if u.ID == -1 {
 		return base.DefaultAvatarLink()
 	}
@@ -428,52 +456,62 @@ func (u *User) GetFollowing(page int) ([]*User, error) {
 func (u *User) NewGitSig() *git.Signature {
 	return &git.Signature{
 		Name:  u.GitName(),
-		Email: u.getEmail(),
+		Email: u.GetEmail(),
 		When:  time.Now(),
 	}
 }
 
-func hashPassword(passwd, salt string) string {
-	tempPasswd := pbkdf2.Key([]byte(passwd), []byte(salt), 10000, 50, sha256.New)
+func hashPassword(passwd, salt, algo string) string {
+	var tempPasswd []byte
+
+	switch algo {
+	case algoBcrypt:
+		tempPasswd, _ = bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
+		return string(tempPasswd)
+	case algoScrypt:
+		tempPasswd, _ = scrypt.Key([]byte(passwd), []byte(salt), 65536, 16, 2, 50)
+	case algoArgon2:
+		tempPasswd = argon2.IDKey([]byte(passwd), []byte(salt), 2, 65536, 8, 50)
+	case algoPbkdf2:
+		fallthrough
+	default:
+		tempPasswd = pbkdf2.Key([]byte(passwd), []byte(salt), 10000, 50, sha256.New)
+	}
+
 	return fmt.Sprintf("%x", tempPasswd)
 }
 
-// HashPassword hashes a password using PBKDF.
+// HashPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO.
 func (u *User) HashPassword(passwd string) {
-	u.Passwd = hashPassword(passwd, u.Salt)
+	u.PasswdHashAlgo = setting.PasswordHashAlgo
+	u.Passwd = hashPassword(passwd, u.Salt, setting.PasswordHashAlgo)
 }
 
 // ValidatePassword checks if given password matches the one belongs to the user.
 func (u *User) ValidatePassword(passwd string) bool {
-	tempHash := hashPassword(passwd, u.Salt)
-	return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1
+	tempHash := hashPassword(passwd, u.Salt, u.PasswdHashAlgo)
+
+	if u.PasswdHashAlgo != algoBcrypt && subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1 {
+		return true
+	}
+	if u.PasswdHashAlgo == algoBcrypt && bcrypt.CompareHashAndPassword([]byte(u.Passwd), []byte(passwd)) == nil {
+		return true
+	}
+	return false
 }
 
 // IsPasswordSet checks if the password is set or left empty
 func (u *User) IsPasswordSet() bool {
-	return !u.ValidatePassword("")
+	return len(u.Passwd) > 0
 }
 
 // UploadAvatar saves custom avatar for user.
 // FIXME: split uploads to different subdirs in case we have massive users.
 func (u *User) UploadAvatar(data []byte) error {
-	imgCfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	m, err := avatar.Prepare(data)
 	if err != nil {
-		return fmt.Errorf("DecodeConfig: %v", err)
+		return err
 	}
-	if imgCfg.Width > setting.AvatarMaxWidth {
-		return fmt.Errorf("Image width is to large: %d > %d", imgCfg.Width, setting.AvatarMaxWidth)
-	}
-	if imgCfg.Height > setting.AvatarMaxHeight {
-		return fmt.Errorf("Image height is to large: %d > %d", imgCfg.Height, setting.AvatarMaxHeight)
-	}
-
-	img, _, err := image.Decode(bytes.NewReader(data))
-	if err != nil {
-		return fmt.Errorf("Decode: %v", err)
-	}
-
-	m := resize.Resize(avatar.AvatarSize, avatar.AvatarSize, img, resize.NearestNeighbor)
 
 	sess := x.NewSession()
 	defer sess.Close()
@@ -497,7 +535,7 @@ func (u *User) UploadAvatar(data []byte) error {
 	}
 	defer fw.Close()
 
-	if err = png.Encode(fw, m); err != nil {
+	if err = png.Encode(fw, *m); err != nil {
 		return fmt.Errorf("Encode: %v", err)
 	}
 
@@ -661,6 +699,16 @@ func (u *User) DisplayName() string {
 	return u.Name
 }
 
+// GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
+// returns username otherwise.
+func (u *User) GetDisplayName() string {
+	trimmed := strings.TrimSpace(u.FullName)
+	if len(trimmed) > 0 && setting.UI.DefaultShowFullName {
+		return trimmed
+	}
+	return u.Name
+}
+
 func gitSafeName(name string) string {
 	return strings.TrimSpace(strings.NewReplacer("\n", "", "<", "", ">", "").Replace(name))
 }
@@ -690,6 +738,21 @@ func (u *User) ShortName(length int) string {
 // to receive emails.
 func (u *User) IsMailable() bool {
 	return u.IsActive
+}
+
+// EmailNotifications returns the User's email notification preference
+func (u *User) EmailNotifications() string {
+	return u.EmailNotificationsPreference
+}
+
+// SetEmailNotifications sets the user's email notification preference
+func (u *User) SetEmailNotifications(set string) error {
+	u.EmailNotificationsPreference = set
+	if err := UpdateUserCols(u, "email_notifications_preference"); err != nil {
+		log.Error("SetEmailNotifications: %v", err)
+		return err
+	}
+	return nil
 }
 
 func isUserExist(e Engine, uid int64, name string) (bool, error) {
@@ -725,6 +788,7 @@ func NewGhostUser() *User {
 
 var (
 	reservedUsernames = []string{
+		"attachments",
 		"admin",
 		"api",
 		"assets",
@@ -757,6 +821,8 @@ var (
 		"robots.txt",
 		".",
 		"..",
+		".well-known",
+		"search",
 	}
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
@@ -839,10 +905,10 @@ func CreateUser(u *User) (err error) {
 		return err
 	}
 	u.HashPassword(u.Passwd)
-	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
+	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
+	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
-	u.AllowCreateOrganization = !setting.Admin.DisableRegularOrgCreation
 
 	if _, err = sess.Insert(u); err != nil {
 		return err
@@ -927,21 +993,6 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	} else if isExist {
 		return ErrUserAlreadyExist{newUserName}
-	}
-
-	if err = ChangeUsernameInPullRequests(u.Name, newUserName); err != nil {
-		return fmt.Errorf("ChangeUsernameInPullRequests: %v", err)
-	}
-
-	// Delete all local copies of repository wiki that user owns.
-	if err = x.BufferSize(setting.IterateBufferSize).
-		Where("owner_id=?", u.ID).
-		Iterate(new(Repository), func(idx int, bean interface{}) error {
-			repo := bean.(*Repository)
-			RemoveAllWithNotice("Delete repository wiki local copy", repo.LocalWikiPath())
-			return nil
-		}); err != nil {
-		return fmt.Errorf("Delete repository wiki local copy: %v", err)
 	}
 
 	// Do not fail if directory does not exist
@@ -1032,7 +1083,7 @@ func deleteUser(e *xorm.Session, u *User) error {
 	// ***** START: Watch *****
 	watchedRepoIDs := make([]int64, 0, 10)
 	if err = e.Table("watch").Cols("watch.repo_id").
-		Where("watch.user_id = ?", u.ID).Find(&watchedRepoIDs); err != nil {
+		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", RepoWatchModeDont).Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
 	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
@@ -1092,7 +1143,10 @@ func deleteUser(e *xorm.Session, u *User) error {
 	if _, err = e.Delete(&PublicKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deletePublicKeys: %v", err)
 	}
-	rewriteAllPublicKeys(e)
+	err = rewriteAllPublicKeys(e)
+	if err != nil {
+		return err
+	}
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
@@ -1234,7 +1288,8 @@ func getUserByName(e Engine, name string) (*User, error) {
 	return u, nil
 }
 
-// GetUserEmailsByNames returns a list of e-mails corresponds to names.
+// GetUserEmailsByNames returns a list of e-mails corresponds to names of users
+// that have their email notifications set to enabled or onmention.
 func GetUserEmailsByNames(names []string) []string {
 	return getUserEmailsByNames(x, names)
 }
@@ -1246,11 +1301,25 @@ func getUserEmailsByNames(e Engine, names []string) []string {
 		if err != nil {
 			continue
 		}
-		if u.IsMailable() {
+		if u.IsMailable() && u.EmailNotifications() != EmailNotificationsDisabled {
 			mails = append(mails, u.Email)
 		}
 	}
 	return mails
+}
+
+// GetMaileableUsersByIDs gets users from ids, but only if they can receive mails
+func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	ous := make([]*User, 0, len(ids))
+	return ous, x.In("id", ids).
+		Where("`type` = ?", UserTypeIndividual).
+		And("`prohibit_login` = ?", false).
+		And("`is_active` = ?", true).
+		And("`email_notifications_preference` = ?", EmailNotificationsEnabled).
+		Find(&ous)
 }
 
 // GetUsersByIDs returns all resolved users from a list of Ids.
@@ -1266,16 +1335,20 @@ func GetUsersByIDs(ids []int64) ([]*User, error) {
 }
 
 // GetUserIDsByNames returns a slice of ids corresponds to names.
-func GetUserIDsByNames(names []string) []int64 {
+func GetUserIDsByNames(names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))
 	for _, name := range names {
 		u, err := GetUserByName(name)
 		if err != nil {
-			continue
+			if ignoreNonExistent {
+				continue
+			} else {
+				return nil, err
+			}
 		}
 		ids = append(ids, u.ID)
 	}
-	return ids
+	return ids, nil
 }
 
 // UserCommit represents a commit with validation of user.
@@ -1354,6 +1427,19 @@ func GetUserByEmail(email string) (*User, error) {
 		return GetUserByID(emailAddress.UID)
 	}
 
+	// Finally, if email address is the protected email address:
+	if strings.HasSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress)) {
+		username := strings.TrimSuffix(email, fmt.Sprintf("@%s", setting.Service.NoReplyAddress))
+		user := &User{LowerName: username}
+		has, err := x.Get(user)
+		if err != nil {
+			return nil, err
+		}
+		if has {
+			return user, nil
+		}
+	}
+
 	return nil, ErrUserNotExist{0, email, 0}
 }
 
@@ -1377,9 +1463,7 @@ type SearchUserOptions struct {
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
-
-	var cond = builder.NewCond()
-	cond = cond.And(builder.Eq{"type": opts.Type})
+	var cond builder.Cond = builder.Eq{"type": opts.Type}
 
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
@@ -1401,15 +1485,14 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 	if opts.OwnerID > 0 {
 		var exprCond builder.Cond
-		if DbCfg.Type == core.MYSQL {
+		if setting.Database.UseMySQL {
 			exprCond = builder.Expr("org_user.org_id = user.id")
-		} else if DbCfg.Type == core.MSSQL {
+		} else if setting.Database.UseMSSQL {
 			exprCond = builder.Expr("org_user.org_id = [user].id")
 		} else {
 			exprCond = builder.Expr("org_user.org_id = \"user\".id")
 		}
-		var accessCond = builder.NewCond()
-		accessCond = builder.Or(
+		accessCond := builder.Or(
 			builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.OwnerID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
 			builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
 		cond = cond.And(accessCond)
@@ -1475,6 +1558,7 @@ func GetStarredRepos(userID int64, private bool) ([]*Repository, error) {
 // GetWatchedRepos returns the repos watched by a particular user
 func GetWatchedRepos(userID int64, private bool) ([]*Repository, error) {
 	sess := x.Where("watch.user_id=?", userID).
+		And("`watch`.mode<>?", RepoWatchModeDont).
 		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
 	if !private {
 		sess = sess.And("is_private=?", false)
@@ -1519,9 +1603,9 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 }
 
 // addLdapSSHPublicKeys add a users public keys. Returns true if there are changes.
-func addLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []string) bool {
+func addLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
-	for _, sshKey := range SSHPublicKeys {
+	for _, sshKey := range sshPublicKeys {
 		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(sshKey))
 		if err == nil {
 			sshKeyName := fmt.Sprintf("%s-%s", s.Name, sshKey[0:40])
@@ -1543,7 +1627,7 @@ func addLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []string) boo
 }
 
 // synchronizeLdapSSHPublicKeys updates a users public keys. Returns true if there are changes.
-func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []string) bool {
+func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 
 	log.Trace("synchronizeLdapSSHPublicKeys[%s]: Handling LDAP Public SSH Key synchronization for user %s", s.Name, usr.Name)
@@ -1561,7 +1645,7 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []str
 
 	// Get Public Keys from LDAP and skip duplicate keys
 	var ldapKeys []string
-	for _, v := range SSHPublicKeys {
+	for _, v := range sshPublicKeys {
 		sshKeySplit := strings.Split(v, " ")
 		if len(sshKeySplit) > 1 {
 			ldapKey := strings.Join(sshKeySplit[:2], " ")
@@ -1612,11 +1696,6 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, SSHPublicKeys []str
 
 // SyncExternalUsers is used to synchronize users with external authorization source
 func SyncExternalUsers() {
-	if !taskStatusTable.StartIfNotRunning(syncExternalUsers) {
-		return
-	}
-	defer taskStatusTable.Stop(syncExternalUsers)
-
 	log.Trace("Doing: SyncExternalUsers")
 
 	ls, err := LoginSources()
@@ -1640,12 +1719,21 @@ func SyncExternalUsers() {
 			var sshKeysNeedUpdate bool
 
 			// Find all users with this login type
-			var users []User
-			x.Where("login_type = ?", LoginLDAP).
+			var users []*User
+			err = x.Where("login_type = ?", LoginLDAP).
 				And("login_source = ?", s.ID).
 				Find(&users)
+			if err != nil {
+				log.Error("SyncExternalUsers: %v", err)
+				return
+			}
 
-			sr := s.LDAP().SearchEntries()
+			sr, err := s.LDAP().SearchEntries()
+			if err != nil {
+				log.Error("SyncExternalUsers LDAP source failure [%s], skipped", s.Name)
+				continue
+			}
+
 			for _, su := range sr {
 				if len(su.Username) == 0 {
 					continue
@@ -1659,7 +1747,7 @@ func SyncExternalUsers() {
 				// Search for existing user
 				for _, du := range users {
 					if du.LowerName == strings.ToLower(su.Username) {
-						usr = &du
+						usr = du
 						break
 					}
 				}
@@ -1701,7 +1789,7 @@ func SyncExternalUsers() {
 
 					// Check if user data has changed
 					if (len(s.LDAP().AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
-						strings.ToLower(usr.Email) != strings.ToLower(su.Mail) ||
+						!strings.EqualFold(usr.Email, su.Mail) ||
 						usr.FullName != fullName ||
 						!usr.IsActive {
 
@@ -1725,7 +1813,10 @@ func SyncExternalUsers() {
 
 			// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 			if sshKeysNeedUpdate {
-				RewriteAllPublicKeys()
+				err = RewriteAllPublicKeys()
+				if err != nil {
+					log.Error("RewriteAllPublicKeys: %v", err)
+				}
 			}
 
 			// Deactivate users not present in LDAP
@@ -1742,7 +1833,7 @@ func SyncExternalUsers() {
 						log.Trace("SyncExternalUsers[%s]: Deactivating user %s", s.Name, usr.Name)
 
 						usr.IsActive = false
-						err = UpdateUserCols(&usr, "is_active")
+						err = UpdateUserCols(usr, "is_active")
 						if err != nil {
 							log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", s.Name, usr.Name, err)
 						}

@@ -31,7 +31,7 @@ Create a directory like `gitea` and paste the following content into a file name
 Note that the volume should be owned by the user/group with the UID/GID specified in the config file.
 If you don't give the volume correct permissions, the container may not start.
 Also be aware that the tag `:latest` will install the current development version.
-For a stable release you can use `:1` or specify a certain release like `:1.5.1`.
+For a stable release you can use `:1` or specify a certain release like `:{{< version >}}`.
 
 ```yaml
 version: "2"
@@ -51,6 +51,8 @@ services:
       - gitea
     volumes:
       - ./gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     ports:
       - "3000:3000"
       - "222:22"
@@ -80,6 +82,8 @@ services:
       - gitea
     volumes:
       - ./gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     ports:
 -      - "3000:3000"
 -      - "222:22"
@@ -115,6 +119,8 @@ services:
       - gitea
     volumes:
       - ./gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
      ports:
        - "3000:3000"
        - "222:22"
@@ -163,6 +169,8 @@ services:
       - gitea
     volumes:
       - ./gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     ports:
       - "3000:3000"
       - "222:22"
@@ -209,6 +217,8 @@ services:
     volumes:
 -      - ./gitea:/data
 +      - gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     ports:
       - "3000:3000"
       - "222:22"
@@ -245,9 +255,11 @@ You can configure some of Gitea's settings via environment variables:
 * `RUN_MODE`: **dev**: For performance and other purposes, change this to `prod` when deployed to a production environment.
 * `SSH_DOMAIN`: **localhost**: Domain name of this server, used for the displayed clone URL in Gitea's UI.
 * `SSH_PORT`: **22**: SSH port displayed in clone URL.
+* `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
 * `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
 * `HTTP_PORT`: **3000**: HTTP listen port.
 * `ROOT_URL`: **""**: Overwrite the automatically generated public URL. This is useful if the internal and the external URL don't match (e.g. in Docker).
+* `LFS_START_SERVER`: **false**: Enables git-lfs support.
 * `DB_TYPE`: **sqlite3**: The database type in use \[mysql, postgres, mssql, sqlite3\].
 * `DB_HOST`: **localhost:3306**: Database host address and port.
 * `DB_NAME`: **gitea**: Database name.
@@ -304,6 +316,8 @@ UID/GID as the container values `USER_UID`/`USER_GID`. You should also create th
         - gitea
       volumes:
         - /var/lib/gitea:/data
+        - /etc/timezone:/etc/timezone:ro
+        - /etc/localtime:/etc/localtime:ro
       ports:
         - "3000:3000"
         - "127.0.0.1:2222:22"

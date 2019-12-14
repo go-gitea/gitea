@@ -113,7 +113,7 @@ func (p *Permission) ColorFormat(s fmt.State) {
 				configBytes, err := unit.Config.ToDB()
 				config = string(configBytes)
 				if err != nil {
-					config = string(err.Error())
+					config = err.Error()
 				}
 			}
 			format += "\nUnits[%d]: ID: %d RepoID: %d Type: %-v Config: %s"
@@ -168,7 +168,17 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 		repo.mustOwner(e)
 	}
 
-	if repo.Owner.IsOrganization() && !HasOrgVisible(repo.Owner, user) {
+	var isCollaborator bool
+	if user != nil {
+		isCollaborator, err = repo.isCollaborator(e, user.ID)
+		if err != nil {
+			return perm, err
+		}
+	}
+
+	// Prevent strangers from checking out public repo of private orginization
+	// Allow user if they are collaborator of a repo within a private orginization but not a member of the orginization itself
+	if repo.Owner.IsOrganization() && !HasOrgVisible(repo.Owner, user) && !isCollaborator {
 		perm.AccessMode = AccessModeNone
 		return
 	}
@@ -207,9 +217,7 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 	perm.UnitsMode = make(map[UnitType]AccessMode)
 
 	// Collaborators on organization
-	if isCollaborator, err := repo.isCollaborator(e, user.ID); err != nil {
-		return perm, err
-	} else if isCollaborator {
+	if isCollaborator {
 		for _, u := range repo.Units {
 			perm.UnitsMode[u.Type] = perm.AccessMode
 		}
@@ -303,6 +311,12 @@ func AccessLevel(user *User, repo *Repository) (AccessMode, error) {
 	return accessLevelUnit(x, user, repo, UnitTypeCode)
 }
 
+// AccessLevelUnit returns the Access a user has to a repository's. Will return NoneAccess if the
+// user does not have access.
+func AccessLevelUnit(user *User, repo *Repository, unitType UnitType) (AccessMode, error) {
+	return accessLevelUnit(x, user, repo, unitType)
+}
+
 func accessLevelUnit(e Engine, user *User, repo *Repository, unitType UnitType) (AccessMode, error) {
 	perm, err := getUserRepoPermission(e, repo, user)
 	if err != nil {
@@ -321,10 +335,18 @@ func HasAccessUnit(user *User, repo *Repository, unitType UnitType, testMode Acc
 	return hasAccessUnit(x, user, repo, unitType, testMode)
 }
 
-// canBeAssigned return true if user could be assigned to a repo
+// CanBeAssigned return true if user can be assigned to issue or pull requests in repo
+// Currently any write access (code, issues or pr's) is assignable, to match assignee list in user interface.
 // FIXME: user could send PullRequest also could be assigned???
-func canBeAssigned(e Engine, user *User, repo *Repository) (bool, error) {
-	return hasAccessUnit(e, user, repo, UnitTypeCode, AccessModeWrite)
+func CanBeAssigned(user *User, repo *Repository, isPull bool) (bool, error) {
+	if user.IsOrganization() {
+		return false, fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
+	}
+	perm, err := GetUserRepoPermission(repo, user)
+	if err != nil {
+		return false, err
+	}
+	return perm.CanAccessAny(AccessModeWrite, UnitTypeCode, UnitTypeIssues, UnitTypePullRequests), nil
 }
 
 func hasAccess(e Engine, userID int64, repo *Repository) (bool, error) {

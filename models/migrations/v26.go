@@ -16,8 +16,8 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/Unknwon/com"
-	"github.com/go-xorm/xorm"
+	"github.com/unknwon/com"
+	"xorm.io/xorm"
 )
 
 func generateAndMigrateGitHookChains(x *xorm.Engine) (err error) {
@@ -36,7 +36,7 @@ func generateAndMigrateGitHookChains(x *xorm.Engine) (err error) {
 		hookTpl   = fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType)
 	)
 
-	return x.Where("id > 0").BufferSize(setting.IterateBufferSize).Iterate(new(Repository),
+	return x.Where("id > 0").BufferSize(setting.Database.IterateBufferSize).Iterate(new(Repository),
 		func(idx int, bean interface{}) error {
 			repo := bean.(*Repository)
 			user := new(User)

@@ -10,13 +10,13 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUserOrgs(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
 	session := loginUser(t, adminUsername)
@@ -38,12 +38,13 @@ func TestUserOrgs(t *testing.T) {
 			Description: "",
 			Website:     "",
 			Location:    "",
+			Visibility:  "public",
 		},
 	}, orgs)
 }
 
 func TestMyOrgs(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
@@ -63,6 +64,7 @@ func TestMyOrgs(t *testing.T) {
 			Description: "",
 			Website:     "",
 			Location:    "",
+			Visibility:  "public",
 		},
 	}, orgs)
 }

@@ -10,7 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	"github.com/Unknwon/com"
+
+	"github.com/unknwon/com"
 )
 
 // enumerates all the policy repository creating
@@ -53,18 +54,29 @@ var (
 		// Repository local settings
 		Local struct {
 			LocalCopyPath string
-			LocalWikiPath string
 		} `ini:"-"`
 
 		// Pull request settings
 		PullRequest struct {
 			WorkInProgressPrefixes []string
+			CloseKeywords          []string
+			ReopenKeywords         []string
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
 		Issue struct {
 			LockReasons []string
 		} `ini:"repository.issue"`
+
+		Signing struct {
+			SigningKey    string
+			SigningName   string
+			SigningEmail  string
+			InitialCommit []string
+			CRUDActions   []string `ini:"CRUD_ACTIONS"`
+			Merges        []string
+			Wiki          []string
+		} `ini:"repository.signing"`
 	}{
 		AnsiCharset:                             "",
 		ForcePrivate:                            false,
@@ -105,17 +117,21 @@ var (
 		// Repository local settings
 		Local: struct {
 			LocalCopyPath string
-			LocalWikiPath string
 		}{
 			LocalCopyPath: "tmp/local-repo",
-			LocalWikiPath: "tmp/local-wiki",
 		},
 
 		// Pull request settings
 		PullRequest: struct {
 			WorkInProgressPrefixes []string
+			CloseKeywords          []string
+			ReopenKeywords         []string
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
+			// Same as GitHub. See
+			// https://help.github.com/articles/closing-issues-via-commit-messages
+			CloseKeywords:  strings.Split("close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved", ","),
+			ReopenKeywords: strings.Split("reopen,reopens,reopened", ","),
 		},
 
 		// Issue settings
@@ -123,6 +139,25 @@ var (
 			LockReasons []string
 		}{
 			LockReasons: strings.Split("Too heated,Off-topic,Spam,Resolved", ","),
+		},
+
+		// Signing settings
+		Signing: struct {
+			SigningKey    string
+			SigningName   string
+			SigningEmail  string
+			InitialCommit []string
+			CRUDActions   []string `ini:"CRUD_ACTIONS"`
+			Merges        []string
+			Wiki          []string
+		}{
+			SigningKey:    "default",
+			SigningName:   "",
+			SigningEmail:  "",
+			InitialCommit: []string{"always"},
+			CRUDActions:   []string{"pubkey", "twofa", "parentsigned"},
+			Merges:        []string{"pubkey", "twofa", "basesigned", "commitssigned"},
+			Wiki:          []string{"never"},
 		},
 	}
 	RepoRootPath string

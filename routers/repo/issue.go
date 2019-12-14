@@ -21,15 +21,22 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	comment_service "code.gitea.io/gitea/services/comments"
+	issue_service "code.gitea.io/gitea/services/issue"
+	pull_service "code.gitea.io/gitea/services/pull"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 const (
+	tplAttachment base.TplName = "repo/issue/view_content/attachments"
+
 	tplIssues    base.TplName = "repo/issue/list"
 	tplIssueNew  base.TplName = "repo/issue/new"
 	tplIssueView base.TplName = "repo/issue/view"
@@ -40,8 +47,6 @@ const (
 )
 
 var (
-	// ErrFileTypeForbidden not allowed file type error
-	ErrFileTypeForbidden = errors.New("File type is not allowed")
 	// ErrTooManyFiles upload too many files
 	ErrTooManyFiles = errors.New("Maximum number of files to upload exceeded")
 	// IssueTemplateCandidates issue templates
@@ -145,7 +150,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 
 	var issueIDs []int64
 	if len(keyword) > 0 {
-		issueIDs, err = issue_indexer.SearchIssuesByKeyword(repo.ID, keyword)
+		issueIDs, err = issue_indexer.SearchIssuesByKeyword([]int64{repo.ID}, keyword)
 		if err != nil {
 			ctx.ServerError("issueIndexer.Search", err)
 			return
@@ -305,7 +310,7 @@ func Issues(ctx *context.Context) {
 
 	var err error
 	// Get milestones.
-	ctx.Data["Milestones"], err = models.GetMilestonesByRepoID(ctx.Repo.Repository.ID)
+	ctx.Data["Milestones"], err = models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")))
 	if err != nil {
 		ctx.ServerError("GetAllRepoMilestones", err)
 		return
@@ -425,12 +430,14 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["BodyQuery"] = body
 
 	milestoneID := ctx.QueryInt64("milestone")
-	milestone, err := models.GetMilestoneByID(milestoneID)
-	if err != nil {
-		log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
-	} else {
-		ctx.Data["milestone_id"] = milestoneID
-		ctx.Data["Milestone"] = milestone
+	if milestoneID > 0 {
+		milestone, err := models.GetMilestoneByID(milestoneID)
+		if err != nil {
+			log.Error("GetMilestoneByID: %d: %v", milestoneID, err)
+		} else {
+			ctx.Data["milestone_id"] = milestoneID
+			ctx.Data["Milestone"] = milestone
+		}
 	}
 
 	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
@@ -497,21 +504,21 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 			return nil, nil, 0
 		}
 
-		// Check if the passed assignees actually exists and has write access to the repo
+		// Check if the passed assignees actually exists and is assignable
 		for _, aID := range assigneeIDs {
-			user, err := models.GetUserByID(aID)
+			assignee, err := models.GetUserByID(aID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
 				return nil, nil, 0
 			}
 
-			perm, err := models.GetUserRepoPermission(repo, user)
+			valid, err := models.CanBeAssigned(assignee, repo, isPull)
 			if err != nil {
-				ctx.ServerError("GetUserRepoPermission", err)
+				ctx.ServerError("canBeAssigned", err)
 				return nil, nil, 0
 			}
-			if !perm.CanWriteIssuesOrPulls(isPull) {
-				ctx.ServerError("CanWriteIssuesOrPulls", fmt.Errorf("No permission for %s", user.Name))
+			if !valid {
+				ctx.ServerError("canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
 				return nil, nil, 0
 			}
 		}
@@ -568,7 +575,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		Content:     form.Content,
 		Ref:         form.Ref,
 	}
-	if err := models.NewIssue(repo, issue, labelIDs, assigneeIDs, attachments); err != nil {
+	if err := issue_service.NewIssue(repo, issue, labelIDs, attachments, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
@@ -576,8 +583,6 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		ctx.ServerError("NewIssue", err)
 		return
 	}
-
-	notification.NotifyNewIssue(issue)
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
@@ -602,6 +607,22 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
+	if ctx.Params(":type") == "issues" {
+		// If issue was requested we check if repo has external tracker and redirect
+		extIssueUnit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
+		if err == nil && extIssueUnit != nil {
+			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
+				metas := ctx.Repo.Repository.ComposeMetas()
+				metas["index"] = ctx.Params(":index")
+				ctx.Redirect(com.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas))
+				return
+			}
+		} else if err != nil && !models.IsErrUnitTypeNotExist(err) {
+			ctx.ServerError("GetUnit", err)
+			return
+		}
+	}
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -641,9 +662,13 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireTribute"] = true
 	renderAttachmentSettings(ctx)
 
-	err = issue.LoadAttributes()
-	if err != nil {
-		ctx.ServerError("GetIssueByIndex", err)
+	if err = issue.LoadAttributes(); err != nil {
+		ctx.ServerError("LoadAttributes", err)
+		return
+	}
+
+	if err = filterXRefComments(ctx, issue); err != nil {
+		ctx.ServerError("filterXRefComments", err)
 		return
 	}
 
@@ -666,6 +691,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IssueWatch"] = iw
+	ctx.Data["AllowedReactions"] = setting.UI.Reactions
 
 	issue.RenderedContent = string(markdown.Render([]byte(issue.Content), ctx.Repo.RepoLink,
 		ctx.Repo.Repository.ComposeMetas()))
@@ -770,9 +796,14 @@ func ViewIssue(ctx *context.Context) {
 	// Check if the user can use the dependencies
 	ctx.Data["CanCreateIssueDependencies"] = ctx.Repo.CanCreateIssueDependencies(ctx.User)
 
+	// check if dependencies can be created across repositories
+	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
+
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
 	for _, comment = range issue.Comments {
+		comment.Issue = issue
+
 		if err := comment.LoadPoster(); err != nil {
 			ctx.ServerError("LoadPoster", err)
 			return
@@ -800,17 +831,7 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 			marked[comment.PosterID] = comment.ShowTag
-
-			isAdded := false
-			for j := range participants {
-				if comment.Poster == participants[j] {
-					isAdded = true
-					break
-				}
-			}
-			if !isAdded && !issue.IsPoster(comment.Poster.ID) {
-				participants = append(participants, comment.Poster)
-			}
+			participants = addParticipant(comment.Poster, participants)
 		} else if comment.Type == models.CommentTypeLabel {
 			if err = comment.LoadLabel(); err != nil {
 				ctx.ServerError("LoadLabel", err)
@@ -846,12 +867,16 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadReview", err)
 				return
 			}
+			participants = addParticipant(comment.Poster, participants)
 			if comment.Review == nil {
 				continue
 			}
 			if err = comment.Review.LoadAttributes(); err != nil {
-				ctx.ServerError("Review.LoadAttributes", err)
-				return
+				if !models.IsErrUserNotExist(err) {
+					ctx.ServerError("Review.LoadAttributes", err)
+					return
+				}
+				comment.Review.Reviewer = models.NewGhostUser()
 			}
 			if err = comment.Review.LoadCodeComments(); err != nil {
 				ctx.ServerError("Review.LoadCodeComments", err)
@@ -928,16 +953,24 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 
-		ctx.Data["PullReviewersWithType"], err = models.GetReviewersByPullID(issue.ID)
+		ctx.Data["PullReviewers"], err = models.GetReviewersByIssueID(issue.ID)
 		if err != nil {
-			ctx.ServerError("GetReviewersByPullID", err)
+			ctx.ServerError("GetReviewersByIssueID", err)
 			return
 		}
 	}
 
 	// Get Dependencies
 	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies()
+	if err != nil {
+		ctx.ServerError("BlockedByDependencies", err)
+		return
+	}
 	ctx.Data["BlockingDependencies"], err = issue.BlockingDependencies()
+	if err != nil {
+		ctx.ServerError("BlockingDependencies", err)
+		return
+	}
 
 	ctx.Data["Participants"] = participants
 	ctx.Data["NumParticipants"] = len(participants)
@@ -1031,7 +1064,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
-	if err := issue.ChangeTitle(ctx.User, title); err != nil {
+	if err := issue_service.ChangeTitle(issue, ctx.User, title); err != nil {
 		ctx.ServerError("ChangeTitle", err)
 		return
 	}
@@ -1054,13 +1087,19 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	content := ctx.Query("content")
-	if err := issue.ChangeContent(ctx.User, content); err != nil {
+	if err := issue_service.ChangeContent(issue, ctx.User, content); err != nil {
 		ctx.ServerError("ChangeContent", err)
 		return
 	}
 
+	files := ctx.QueryStrings("files[]")
+	if err := updateAttachments(issue, files); err != nil {
+		ctx.ServerError("UpdateAttachments", err)
+	}
+
 	ctx.JSON(200, map[string]interface{}{
-		"content": string(markdown.Render([]byte(issue.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+		"content":     string(markdown.Render([]byte(issue.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+		"attachments": attachmentsHTML(ctx, issue.Attachments),
 	})
 }
 
@@ -1078,7 +1117,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 			continue
 		}
 		issue.MilestoneID = milestoneID
-		if err := models.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
+		if err := issue_service.ChangeMilestoneAssign(issue, ctx.User, oldMilestoneID); err != nil {
 			ctx.ServerError("ChangeMilestoneAssign", err)
 			return
 		}
@@ -1089,7 +1128,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 	})
 }
 
-// UpdateIssueAssignee change issue's assignee
+// UpdateIssueAssignee change issue's or pull's assignee
 func UpdateIssueAssignee(ctx *context.Context) {
 	issues := getActionIssues(ctx)
 	if ctx.Written() {
@@ -1102,15 +1141,34 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	for _, issue := range issues {
 		switch action {
 		case "clear":
-			if err := models.DeleteNotPassedAssignee(issue, ctx.User, []*models.User{}); err != nil {
+			if err := issue_service.DeleteNotPassedAssignee(issue, ctx.User, []*models.User{}); err != nil {
 				ctx.ServerError("ClearAssignees", err)
 				return
 			}
 		default:
-			if err := issue.ChangeAssignee(ctx.User, assigneeID); err != nil {
-				ctx.ServerError("ChangeAssignee", err)
+			assignee, err := models.GetUserByID(assigneeID)
+			if err != nil {
+				ctx.ServerError("GetUserByID", err)
 				return
 			}
+
+			valid, err := models.CanBeAssigned(assignee, issue.Repo, issue.IsPull)
+			if err != nil {
+				ctx.ServerError("canBeAssigned", err)
+				return
+			}
+			if !valid {
+				ctx.ServerError("canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name})
+				return
+			}
+
+			removed, comment, err := issue_service.ToggleAssignee(issue, ctx.User, assigneeID)
+			if err != nil {
+				ctx.ServerError("ToggleAssignee", err)
+				return
+			}
+
+			notification.NotifyIssueChangeAssignee(ctx.User, issue, assignee, removed, comment)
 		}
 	}
 	ctx.JSON(200, map[string]interface{}{
@@ -1141,7 +1199,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 	for _, issue := range issues {
 		if issue.IsClosed != isClosed {
-			if err := issue.ChangeStatus(ctx.User, isClosed); err != nil {
+			if err := issue_service.ChangeStatus(issue, ctx.User, isClosed); err != nil {
 				if models.IsErrDependenciesLeft(err) {
 					ctx.JSON(http.StatusPreconditionFailed, map[string]interface{}{
 						"error": "cannot close this issue because it still has open dependencies",
@@ -1151,8 +1209,6 @@ func UpdateIssueStatus(ctx *context.Context) {
 				ctx.ServerError("ChangeStatus", err)
 				return
 			}
-
-			notification.NotifyIssueChangeStatus(ctx.User, issue, isClosed)
 		}
 	}
 	ctx.JSON(200, map[string]interface{}{
@@ -1202,7 +1258,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+		ctx.Redirect(issue.HTMLURL())
 		return
 	}
 
@@ -1218,7 +1274,8 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 			if form.Status == "reopen" && issue.IsPull {
 				pull := issue.PullRequest
-				pr, err := models.GetUnmergedPullRequest(pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch)
+				var err error
+				pr, err = models.GetUnmergedPullRequest(pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch)
 				if err != nil {
 					if !models.IsErrPullRequestNotExist(err) {
 						ctx.ServerError("GetUnmergedPullRequest", err)
@@ -1228,12 +1285,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 				// Regenerate patch and test conflict.
 				if pr == nil {
-					if err = issue.PullRequest.UpdatePatch(); err != nil {
-						ctx.ServerError("UpdatePatch", err)
-						return
-					}
-
-					issue.PullRequest.AddToTaskQueue()
+					pull_service.AddToTaskQueue(issue.PullRequest)
 				}
 			}
 
@@ -1241,7 +1293,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 				ctx.Flash.Info(ctx.Tr("repo.pulls.open_unmerged_pull_exists", pr.Index))
 			} else {
 				isClosed := form.Status == "close"
-				if err := issue.ChangeStatus(ctx.User, isClosed); err != nil {
+				if err := issue_service.ChangeStatus(issue, ctx.User, isClosed); err != nil {
 					log.Error("ChangeStatus: %v", err)
 
 					if models.IsErrDependenciesLeft(err) {
@@ -1255,15 +1307,12 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 						return
 					}
 				} else {
-
 					if err := stopTimerIfAvailable(ctx.User, issue); err != nil {
 						ctx.ServerError("CreateOrStopIssueStopwatch", err)
 						return
 					}
 
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)
-
-					notification.NotifyIssueChangeStatus(ctx.User, issue, isClosed)
 				}
 			}
 		}
@@ -1285,13 +1334,11 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
-	comment, err := models.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Content, attachments)
+	comment, err := comment_service.CreateIssueComment(ctx.User, ctx.Repo.Repository, issue, form.Content, attachments)
 	if err != nil {
 		ctx.ServerError("CreateIssueComment", err)
 		return
 	}
-
-	notification.NotifyCreateIssueComment(ctx.User, ctx.Repo.Repository, issue, comment)
 
 	log.Trace("Comment created: %d/%d/%d", ctx.Repo.Repository.ID, issue.ID, comment.ID)
 }
@@ -1307,6 +1354,13 @@ func UpdateCommentContent(ctx *context.Context) {
 	if err := comment.LoadIssue(); err != nil {
 		ctx.NotFoundOrServerError("LoadIssue", models.IsErrIssueNotExist, err)
 		return
+	}
+
+	if comment.Type == models.CommentTypeComment {
+		if err := comment.LoadAttachments(); err != nil {
+			ctx.ServerError("LoadAttachments", err)
+			return
+		}
 	}
 
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
@@ -1325,15 +1379,19 @@ func UpdateCommentContent(ctx *context.Context) {
 		})
 		return
 	}
-	if err = models.UpdateComment(ctx.User, comment, oldContent); err != nil {
+	if err = comment_service.UpdateComment(comment, ctx.User, oldContent); err != nil {
 		ctx.ServerError("UpdateComment", err)
 		return
 	}
 
-	notification.NotifyUpdateComment(ctx.User, comment, oldContent)
+	files := ctx.QueryStrings("files[]")
+	if err := updateAttachments(comment, files); err != nil {
+		ctx.ServerError("UpdateAttachments", err)
+	}
 
 	ctx.JSON(200, map[string]interface{}{
-		"content": string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+		"content":     string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+		"attachments": attachmentsHTML(ctx, comment.Attachments),
 	})
 }
 
@@ -1358,12 +1416,10 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if err = models.DeleteComment(ctx.User, comment); err != nil {
+	if err = comment_service.DeleteComment(comment, ctx.User); err != nil {
 		ctx.ServerError("DeleteCommentByID", err)
 		return
 	}
-
-	notification.NotifyDeleteComment(ctx.User, comment)
 
 	ctx.Status(200)
 }
@@ -1407,6 +1463,10 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 	case "react":
 		reaction, err := models.CreateIssueReaction(ctx.User, issue, form.Content)
 		if err != nil {
+			if models.IsErrForbiddenIssueReaction(err) {
+				ctx.ServerError("ChangeIssueReaction", err)
+				return
+			}
 			log.Info("CreateIssueReaction: %s", err)
 			break
 		}
@@ -1502,6 +1562,10 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 	case "react":
 		reaction, err := models.CreateCommentReaction(ctx.User, comment.Issue, comment, form.Content)
 		if err != nil {
+			if models.IsErrForbiddenIssueReaction(err) {
+				ctx.ServerError("ChangeIssueReaction", err)
+				return
+			}
 			log.Info("CreateCommentReaction: %s", err)
 			break
 		}
@@ -1552,4 +1616,123 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 	ctx.JSON(200, map[string]interface{}{
 		"html": html,
 	})
+}
+
+func addParticipant(poster *models.User, participants []*models.User) []*models.User {
+	for _, part := range participants {
+		if poster.ID == part.ID {
+			return participants
+		}
+	}
+	return append(participants, poster)
+}
+
+func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
+	// Remove comments that the user has no permissions to see
+	for i := 0; i < len(issue.Comments); {
+		c := issue.Comments[i]
+		if models.CommentTypeIsRef(c.Type) && c.RefRepoID != issue.RepoID && c.RefRepoID != 0 {
+			var err error
+			// Set RefRepo for description in template
+			c.RefRepo, err = models.GetRepositoryByID(c.RefRepoID)
+			if err != nil {
+				return err
+			}
+			perm, err := models.GetUserRepoPermission(c.RefRepo, ctx.User)
+			if err != nil {
+				return err
+			}
+			if !perm.CanReadIssuesOrPulls(c.RefIsPull) {
+				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
+				continue
+			}
+		}
+		i++
+	}
+	return nil
+}
+
+// GetIssueAttachments returns attachments for the issue
+func GetIssueAttachments(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	var attachments = make([]*api.Attachment, len(issue.Attachments))
+	for i := 0; i < len(issue.Attachments); i++ {
+		attachments[i] = issue.Attachments[i].APIFormat()
+	}
+	ctx.JSON(200, attachments)
+}
+
+// GetCommentAttachments returns attachments for the comment
+func GetCommentAttachments(ctx *context.Context) {
+	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
+		return
+	}
+	var attachments = make([]*api.Attachment, 0)
+	if comment.Type == models.CommentTypeComment {
+		if err := comment.LoadAttachments(); err != nil {
+			ctx.ServerError("LoadAttachments", err)
+			return
+		}
+		for i := 0; i < len(comment.Attachments); i++ {
+			attachments = append(attachments, comment.Attachments[i].APIFormat())
+		}
+	}
+	ctx.JSON(200, attachments)
+}
+
+func updateAttachments(item interface{}, files []string) error {
+	var attachments []*models.Attachment
+	switch content := item.(type) {
+	case *models.Issue:
+		attachments = content.Attachments
+	case *models.Comment:
+		attachments = content.Attachments
+	default:
+		return fmt.Errorf("Unknow Type")
+	}
+	for i := 0; i < len(attachments); i++ {
+		if util.IsStringInSlice(attachments[i].UUID, files) {
+			continue
+		}
+		if err := models.DeleteAttachment(attachments[i], true); err != nil {
+			return err
+		}
+	}
+	var err error
+	if len(files) > 0 {
+		switch content := item.(type) {
+		case *models.Issue:
+			err = content.UpdateAttachments(files)
+		case *models.Comment:
+			err = content.UpdateAttachments(files)
+		default:
+			return fmt.Errorf("Unknow Type")
+		}
+		if err != nil {
+			return err
+		}
+	}
+	switch content := item.(type) {
+	case *models.Issue:
+		content.Attachments, err = models.GetAttachmentsByIssueID(content.ID)
+	case *models.Comment:
+		content.Attachments, err = models.GetAttachmentsByCommentID(content.ID)
+	default:
+		return fmt.Errorf("Unknow Type")
+	}
+	return err
+}
+
+func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment) string {
+	attachHTML, err := ctx.HTMLString(string(tplAttachment), map[string]interface{}{
+		"ctx":         ctx.Data,
+		"Attachments": attachments,
+	})
+	if err != nil {
+		ctx.ServerError("attachmentsHTML.HTMLString", err)
+		return ""
+	}
+	return attachHTML
 }

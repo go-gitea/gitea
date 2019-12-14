@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSearchRepositoryByName(t *testing.T) {
+func TestSearchRepository(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	// test search public repository on explore page
@@ -74,6 +74,34 @@ func TestSearchRepositoryByName(t *testing.T) {
 	assert.Empty(t, repos)
 	assert.Equal(t, int64(0), count)
 
+	// Test search within description
+	repos, count, err = SearchRepository(&SearchRepoOptions{
+		Keyword:            "description_14",
+		Page:               1,
+		PageSize:           10,
+		Collaborate:        util.OptionalBoolFalse,
+		IncludeDescription: true,
+	})
+
+	assert.NoError(t, err)
+	if assert.Len(t, repos, 1) {
+		assert.Equal(t, "test_repo_14", repos[0].Name)
+	}
+	assert.Equal(t, int64(1), count)
+
+	// Test NOT search within description
+	repos, count, err = SearchRepository(&SearchRepoOptions{
+		Keyword:            "description_14",
+		Page:               1,
+		PageSize:           10,
+		Collaborate:        util.OptionalBoolFalse,
+		IncludeDescription: false,
+	})
+
+	assert.NoError(t, err)
+	assert.Empty(t, repos)
+	assert.Equal(t, int64(0), count)
+
 	testCases := []struct {
 		name  string
 		opts  *SearchRepoOptions
@@ -117,7 +145,7 @@ func TestSearchRepositoryByName(t *testing.T) {
 			count: 4},
 		{name: "PublicRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15},
-			count: 4},
+			count: 5},
 		{name: "PublicRepositoriesOfUser2IncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 18},
 			count: 1},
@@ -126,13 +154,13 @@ func TestSearchRepositoryByName(t *testing.T) {
 			count: 3},
 		{name: "PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true},
-			count: 8},
+			count: 9},
 		{name: "PublicAndPrivateRepositoriesOfUser2IncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 18, Private: true},
 			count: 4},
 		{name: "PublicAndPrivateRepositoriesOfUser3IncludingCollaborative",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 20, Private: true},
-			count: 6},
+			count: 7},
 		{name: "PublicRepositoriesOfOrganization",
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, Collaborate: util.OptionalBoolFalse},
 			count: 1},
@@ -146,11 +174,11 @@ func TestSearchRepositoryByName(t *testing.T) {
 			opts:  &SearchRepoOptions{Keyword: "big_test_", Page: 1, PageSize: 10, Private: true, AllPublic: true, Collaborate: util.OptionalBoolFalse},
 			count: 14},
 		{name: "AllPublic/PublicRepositoriesOfUserIncludingCollaborative",
-			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, AllPublic: true},
-			count: 21},
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, AllPublic: true, Template: util.OptionalBoolFalse},
+			count: 25},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
-			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true},
-			count: 26},
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true, Template: util.OptionalBoolFalse},
+			count: 31},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborativeByName",
 			opts:  &SearchRepoOptions{Keyword: "test", Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true},
 			count: 15},
@@ -158,8 +186,11 @@ func TestSearchRepositoryByName(t *testing.T) {
 			opts:  &SearchRepoOptions{Keyword: "test", Page: 1, PageSize: 10, OwnerID: 18, Private: true, AllPublic: true},
 			count: 13},
 		{name: "AllPublic/PublicRepositoriesOfOrganization",
-			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, AllPublic: true, Collaborate: util.OptionalBoolFalse},
-			count: 21},
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 17, AllPublic: true, Collaborate: util.OptionalBoolFalse, Template: util.OptionalBoolFalse},
+			count: 25},
+		{name: "AllTemplates",
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, Template: util.OptionalBoolTrue},
+			count: 2},
 	}
 
 	for _, testCase := range testCases {

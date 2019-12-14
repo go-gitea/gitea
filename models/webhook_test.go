@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,18 +22,6 @@ func TestIsValidHookContentType(t *testing.T) {
 	assert.True(t, IsValidHookContentType("json"))
 	assert.True(t, IsValidHookContentType("form"))
 	assert.False(t, IsValidHookContentType("invalid"))
-}
-
-func TestWebhook_GetSlackHook(t *testing.T) {
-	w := &Webhook{
-		Meta: `{"channel": "foo", "username": "username", "color": "blue"}`,
-	}
-	slackHook := w.GetSlackHook()
-	assert.Equal(t, *slackHook, SlackMeta{
-		Channel:  "foo",
-		Username: "username",
-		Color:    "blue",
-	})
 }
 
 func TestWebhook_History(t *testing.T) {
@@ -253,23 +241,3 @@ func TestUpdateHookTask(t *testing.T) {
 	assert.NoError(t, UpdateHookTask(hook))
 	AssertExistsAndLoadBean(t, hook)
 }
-
-func TestPrepareWebhooks(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	hookTasks := []*HookTask{
-		{RepoID: repo.ID, HookID: 1, EventType: HookEventPush},
-	}
-	for _, hookTask := range hookTasks {
-		AssertNotExistsBean(t, hookTask)
-	}
-	assert.NoError(t, PrepareWebhooks(repo, HookEventPush, &api.PushPayload{}))
-	for _, hookTask := range hookTasks {
-		AssertExistsAndLoadBean(t, hookTask)
-	}
-}
-
-// TODO TestHookTask_deliver
-
-// TODO TestDeliverHooks

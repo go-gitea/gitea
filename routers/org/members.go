@@ -5,13 +5,13 @@
 package org
 
 import (
-	"github.com/Unknwon/com"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/unknwon/com"
 )
 
 const (
@@ -19,22 +19,55 @@ const (
 	tplMembers base.TplName = "org/member/members"
 )
 
-// Members render orgnization users page
+// Members render organization users page
 func Members(ctx *context.Context) {
 	org := ctx.Org.Organization
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgMembers"] = true
 
-	if err := org.GetMembers(); err != nil {
+	page := ctx.QueryInt("page")
+	if page <= 1 {
+		page = 1
+	}
+
+	var opts = models.FindOrgMembersOpts{
+		OrgID:      org.ID,
+		PublicOnly: true,
+	}
+
+	if ctx.User != nil {
+		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
+		if err != nil {
+			ctx.Error(500, "IsOrgMember")
+			return
+		}
+		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
+	}
+
+	total, err := models.CountOrgMembers(opts)
+	if err != nil {
+		ctx.Error(500, "CountOrgMembers")
+		return
+	}
+
+	pager := context.NewPagination(int(total), setting.UI.MembersPagingNum, page, 5)
+	opts.Start = (page - 1) * setting.UI.MembersPagingNum
+	opts.Limit = setting.UI.MembersPagingNum
+	members, membersIsPublic, err := models.FindOrgMembers(opts)
+	if err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
 	}
-	ctx.Data["Members"] = org.Members
+	ctx.Data["Page"] = pager
+	ctx.Data["Members"] = members
+	ctx.Data["MembersIsPublicMember"] = membersIsPublic
+	ctx.Data["MembersIsUserOrgOwner"] = members.IsUserOrgOwner(org.ID)
+	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus()
 
 	ctx.HTML(200, tplMembers)
 }
 
-// MembersAction response for operation to a member of orgnization
+// MembersAction response for operation to a member of organization
 func MembersAction(ctx *context.Context) {
 	uid := com.StrTo(ctx.Query("uid")).MustInt64()
 	if uid == 0 {

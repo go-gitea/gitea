@@ -21,6 +21,9 @@ ROOT = integrations/gitea-integration-mssql/gitea-repositories
 LOCAL_COPY_PATH = tmp/local-repo-mssql
 LOCAL_WIKI_PATH = tmp/local-wiki-mssql
 
+[repository.signing]
+SIGNING_KEY = none
+
 [server]
 SSH_DOMAIN       = localhost
 HTTP_PORT        = 3003
@@ -34,6 +37,7 @@ LFS_CONTENT_PATH = data/lfs-mssql
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-mssql/data
+BUILTIN_SSH_SERVER_USER = git
 
 [mailer]
 ENABLED = true
@@ -61,7 +65,7 @@ PROVIDER_CONFIG = data/sessions-mssql
 
 [log]
 MODE                 = test,file
-ROOT_PATH            = sqlite-log
+ROOT_PATH            = mssql-log
 REDIRECT_MACARON_LOG = true
 ROUTER               = ,
 MACARON              = ,

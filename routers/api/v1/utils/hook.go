@@ -11,11 +11,12 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/routers/api/v1/convert"
+	"code.gitea.io/gitea/modules/convert"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/routers/utils"
-	api "code.gitea.io/sdk/gitea"
 
-	"github.com/Unknwon/com"
+	"github.com/unknwon/com"
 )
 
 // GetOrgHook get an organization's webhook. If there is an error, write to
@@ -98,6 +99,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 		URL:         form.Config["url"],
 		ContentType: models.ToHookContentType(form.Config["content_type"]),
 		Secret:      form.Config["secret"],
+		HTTPMethod:  "POST",
 		HookEvent: &models.HookEvent{
 			ChooseEvents: true,
 			HookEvents: models.HookEvents{
@@ -111,6 +113,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 				Repository:   com.IsSliceContainsStr(form.Events, string(models.HookEventRepository)),
 				Release:      com.IsSliceContainsStr(form.Events, string(models.HookEventRelease)),
 			},
+			BranchFilter: form.BranchFilter,
 		},
 		IsActive:     form.Active,
 		HookTaskType: models.ToHookTaskType(form.Type),
@@ -127,7 +130,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 			return nil, false
 		}
 
-		meta, err := json.Marshal(&models.SlackMeta{
+		meta, err := json.Marshal(&webhook.SlackMeta{
 			Channel:  strings.TrimSpace(channel),
 			Username: form.Config["username"],
 			IconURL:  form.Config["icon_url"],
@@ -201,7 +204,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 
 		if w.HookTaskType == models.SLACK {
 			if channel, ok := form.Config["channel"]; ok {
-				meta, err := json.Marshal(&models.SlackMeta{
+				meta, err := json.Marshal(&webhook.SlackMeta{
 					Channel:  channel,
 					Username: form.Config["username"],
 					IconURL:  form.Config["icon_url"],
@@ -235,6 +238,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 	w.PullRequest = com.IsSliceContainsStr(form.Events, string(models.HookEventPullRequest))
 	w.Repository = com.IsSliceContainsStr(form.Events, string(models.HookEventRepository))
 	w.Release = com.IsSliceContainsStr(form.Events, string(models.HookEventRelease))
+	w.BranchFilter = form.BranchFilter
 
 	if err := w.UpdateEvent(); err != nil {
 		ctx.Error(500, "UpdateEvent", err)

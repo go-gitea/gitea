@@ -7,8 +7,7 @@ package repo
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 func trackedTimesToAPIFormat(trackedTimes []*models.TrackedTime) []*api.TrackedTime {

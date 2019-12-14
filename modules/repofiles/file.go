@@ -12,13 +12,13 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // GetFileResponseFromCommit Constructs a FileResponse from a Commit object
 func GetFileResponseFromCommit(repo *models.Repository, commit *git.Commit, branch, treeName string) (*api.FileResponse, error) {
-	fileContents, _ := GetFileContents(repo, treeName, branch)   // ok if fails, then will be nil
-	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
+	fileContents, _ := GetContents(repo, treeName, branch, false) // ok if fails, then will be nil
+	fileCommitResponse, _ := GetFileCommitResponse(repo, commit)  // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(commit)
 	fileResponse := &api.FileResponse{
 		Content:      fileContents,
@@ -80,13 +80,13 @@ func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*api.Fi
 }
 
 // GetAuthorAndCommitterUsers Gets the author and committer user objects from the IdentityOptions
-func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models.User) (committerUser, authorUser *models.User) {
+func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models.User) (authorUser, committerUser *models.User) {
 	// Committer and author are optional. If they are not the doer (not same email address)
 	// then we use bogus User objects for them to store their FullName and Email.
 	// If only one of the two are provided, we set both of them to it.
 	// If neither are provided, both are the doer.
 	if committer != nil && committer.Email != "" {
-		if doer != nil && strings.ToLower(doer.Email) == strings.ToLower(committer.Email) {
+		if doer != nil && strings.EqualFold(doer.Email, committer.Email) {
 			committerUser = doer // the committer is the doer, so will use their user object
 			if committer.Name != "" {
 				committerUser.FullName = committer.Name
@@ -99,7 +99,7 @@ func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models
 		}
 	}
 	if author != nil && author.Email != "" {
-		if doer != nil && strings.ToLower(doer.Email) == strings.ToLower(author.Email) {
+		if doer != nil && strings.EqualFold(doer.Email, author.Email) {
 			authorUser = doer // the author is the doer, so will use their user object
 			if authorUser.Name != "" {
 				authorUser.FullName = author.Name

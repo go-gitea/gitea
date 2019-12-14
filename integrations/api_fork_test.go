@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"testing"
 
-	api "code.gitea.io/sdk/gitea"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 func TestCreateForkNoLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/forks", &api.CreateForkOption{})
 	MakeRequest(t, req, http.StatusUnauthorized)
 }
