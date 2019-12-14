@@ -39,7 +39,6 @@ import (
 
 	"github.com/mcuadros/go-version"
 	"github.com/unknwon/com"
-	ini "gopkg.in/ini.v1"
 	"xorm.io/builder"
 )
 
@@ -941,25 +940,6 @@ func (repo *Repository) CloneLink() (cl *CloneLink) {
 	return repo.cloneLink(x, false)
 }
 
-/*
-	GitHub, GitLab, Gogs: *.wiki.git
-	BitBucket: *.git/wiki
-*/
-var commonWikiURLSuffixes = []string{".wiki.git", ".git/wiki"}
-
-// wikiRemoteURL returns accessible repository URL for wiki if exists.
-// Otherwise, it returns an empty string.
-func wikiRemoteURL(remote string) string {
-	remote = strings.TrimSuffix(remote, ".git")
-	for _, suffix := range commonWikiURLSuffixes {
-		wikiURL := remote + suffix
-		if git.IsRepoURLAccessible(wikiURL) {
-			return wikiURL
-		}
-	}
-	return ""
-}
-
 // CheckCreateRepository check if could created a repository
 func CheckCreateRepository(doer, u *User, name string) error {
 	if !doer.CanCreateRepo() {
@@ -979,118 +959,9 @@ func CheckCreateRepository(doer, u *User, name string) error {
 	return nil
 }
 
-// MigrateRepositoryGitData starts migrating git related data after created migrating repository
-func MigrateRepositoryGitData(doer, u *User, repo *Repository, opts api.MigrateRepoOption) (*Repository, error) {
-	repoPath := RepoPath(u.Name, opts.RepoName)
-
-	if u.IsOrganization() {
-		t, err := u.GetOwnerTeam()
-		if err != nil {
-			return nil, err
-		}
-		repo.NumWatches = t.NumMembers
-	} else {
-		repo.NumWatches = 1
-	}
-
-	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
-
-	var err error
-	if err = os.RemoveAll(repoPath); err != nil {
-		return repo, fmt.Errorf("Failed to remove %s: %v", repoPath, err)
-	}
-
-	if err = git.Clone(opts.CloneAddr, repoPath, git.CloneRepoOptions{
-		Mirror:  true,
-		Quiet:   true,
-		Timeout: migrateTimeout,
-	}); err != nil {
-		return repo, fmt.Errorf("Clone: %v", err)
-	}
-
-	if opts.Wiki {
-		wikiPath := WikiPath(u.Name, opts.RepoName)
-		wikiRemotePath := wikiRemoteURL(opts.CloneAddr)
-		if len(wikiRemotePath) > 0 {
-			if err := os.RemoveAll(wikiPath); err != nil {
-				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
-			}
-
-			if err = git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
-				Mirror:  true,
-				Quiet:   true,
-				Timeout: migrateTimeout,
-				Branch:  "master",
-			}); err != nil {
-				log.Warn("Clone wiki: %v", err)
-				if err := os.RemoveAll(wikiPath); err != nil {
-					return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
-				}
-			}
-		}
-	}
-
-	gitRepo, err := git.OpenRepository(repoPath)
-	if err != nil {
-		return repo, fmt.Errorf("OpenRepository: %v", err)
-	}
-	defer gitRepo.Close()
-
-	repo.IsEmpty, err = gitRepo.IsEmpty()
-	if err != nil {
-		return repo, fmt.Errorf("git.IsEmpty: %v", err)
-	}
-
-	if !opts.Releases && !repo.IsEmpty {
-		// Try to get HEAD branch and set it as default branch.
-		headBranch, err := gitRepo.GetHEADBranch()
-		if err != nil {
-			return repo, fmt.Errorf("GetHEADBranch: %v", err)
-		}
-		if headBranch != nil {
-			repo.DefaultBranch = headBranch.Name
-		}
-
-		if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
-			log.Error("Failed to synchronize tags to releases for repository: %v", err)
-		}
-	}
-
-	if err = repo.UpdateSize(); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
-	}
-
-	if opts.Mirror {
-		if _, err = x.InsertOne(&Mirror{
-			RepoID:         repo.ID,
-			Interval:       setting.Mirror.DefaultInterval,
-			EnablePrune:    true,
-			NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
-		}); err != nil {
-			return repo, fmt.Errorf("InsertOne: %v", err)
-		}
-
-		repo.IsMirror = true
-		err = UpdateRepository(repo, false)
-	} else {
-		repo, err = CleanUpMigrateInfo(repo)
-	}
-
-	return repo, err
-}
-
-// cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
-// This also removes possible user credentials.
-func cleanUpMigrateGitConfig(configPath string) error {
-	cfg, err := ini.Load(configPath)
-	if err != nil {
-		return fmt.Errorf("open config file: %v", err)
-	}
-	cfg.DeleteSection("remote \"origin\"")
-	if err = cfg.SaveToIndent(configPath, "\t"); err != nil {
-		return fmt.Errorf("save config file: %v", err)
-	}
-	return nil
+// CreateDelegateHooks creates all the hooks scripts for the repo
+func CreateDelegateHooks(repoPath string) error {
+	return createDelegateHooks(repoPath)
 }
 
 // createDelegateHooks creates all the hooks scripts for the repo
@@ -1130,32 +1001,6 @@ func createDelegateHooks(repoPath string) (err error) {
 	}
 
 	return nil
-}
-
-// CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
-func CleanUpMigrateInfo(repo *Repository) (*Repository, error) {
-	repoPath := repo.RepoPath()
-	if err := createDelegateHooks(repoPath); err != nil {
-		return repo, fmt.Errorf("createDelegateHooks: %v", err)
-	}
-	if repo.HasWiki() {
-		if err := createDelegateHooks(repo.WikiPath()); err != nil {
-			return repo, fmt.Errorf("createDelegateHooks.(wiki): %v", err)
-		}
-	}
-
-	_, err := git.NewCommand("remote", "rm", "origin").RunInDir(repoPath)
-	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
-		return repo, fmt.Errorf("CleanUpMigrateInfo: %v", err)
-	}
-
-	if repo.HasWiki() {
-		if err := cleanUpMigrateGitConfig(path.Join(repo.WikiPath(), "config")); err != nil {
-			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %v", err)
-		}
-	}
-
-	return repo, UpdateRepository(repo, false)
 }
 
 // initRepoCommit temporarily changes with work directory.
