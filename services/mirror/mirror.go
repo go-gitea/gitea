@@ -308,7 +308,7 @@ func Update(ctx context.Context) {
 		case <-ctx.Done():
 			return fmt.Errorf("Aborted due to shutdown")
 		default:
-			_ = mirrorQueue.AddCtx(ctx, m.RepoID)
+			mirrorQueue.Add(m.RepoID)
 			return nil
 		}
 	}); err != nil {
@@ -323,6 +323,7 @@ func SyncMirrors(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			mirrorQueue.Close()
 			return
 		case repoID := <-mirrorQueue.Queue():
 			syncMirror(repoID)

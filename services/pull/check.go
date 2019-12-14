@@ -154,37 +154,22 @@ func manuallyMerged(pr *models.PullRequest) bool {
 // TestPullRequests checks and tests untested patches of pull requests.
 // TODO: test more pull requests at same time.
 func TestPullRequests(ctx context.Context) {
-	prs, err := models.GetPullRequestsByCheckStatus(models.PullRequestStatusChecking)
-	if err != nil {
-		log.Error("Find Checking PRs: %v", err)
-		return
-	}
 
-	var checkedPRs = make(map[int64]struct{})
-
-	// Update pull request status.
-	for _, pr := range prs {
-		checkedPRs[pr.ID] = struct{}{}
-		if err := pr.GetBaseRepo(); err != nil {
-			log.Error("GetBaseRepo: %v", err)
-			continue
-		}
-		if manuallyMerged(pr) {
-			continue
-		}
-		if err := TestPatch(pr); err != nil {
-			log.Error("testPatch: %v", err)
-			continue
-		}
-
-		checkAndUpdateStatus(pr)
-		select {
-		case <-ctx.Done():
-			log.Info("PID: %d Pull Request testing shutdown", os.Getpid())
+	go func() {
+		prs, err := models.GetPullRequestIDsByCheckStatus(models.PullRequestStatusChecking)
+		if err != nil {
+			log.Error("Find Checking PRs: %v", err)
 			return
-		default:
 		}
-	}
+		for _, prID := range prs {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				pullRequestQueue.Add(prID)
+			}
+		}
+	}()
 
 	// Start listening on new test requests.
 	for {
@@ -194,9 +179,6 @@ func TestPullRequests(ctx context.Context) {
 			pullRequestQueue.Remove(prID)
 
 			id := com.StrTo(prID).MustInt64()
-			if _, ok := checkedPRs[id]; ok {
-				continue
-			}
 
 			pr, err := models.GetPullRequestByID(id)
 			if err != nil {
@@ -210,6 +192,7 @@ func TestPullRequests(ctx context.Context) {
 			}
 			checkAndUpdateStatus(pr)
 		case <-ctx.Done():
+			pullRequestQueue.Close()
 			log.Info("PID: %d Pull Request testing shutdown", os.Getpid())
 			return
 		}
