@@ -170,9 +170,6 @@ func (g *Manager) doShutdown() {
 		g.doTerminate()
 		g.WaitForTerminate()
 		g.lock.Lock()
-		if g.done == nil {
-			g.done = make(chan struct{})
-		}
 		close(g.done)
 		g.lock.Unlock()
 	}()
