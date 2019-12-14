@@ -709,6 +709,7 @@ func (pr *PullRequest) GetWorkInProgressPrefix() string {
 	return ""
 }
 
+// IsHeadEqualWithBranch returns if the commits of branchName are available in pull request head
 func (pr *PullRequest) IsHeadEqualWithBranch(branchName string) (bool, error) {
 	var err error
 	if err = pr.GetBaseRepo(); err != nil {
@@ -734,9 +735,5 @@ func (pr *PullRequest) IsHeadEqualWithBranch(branchName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	branchesEqual, err := baseCommit.HasPreviousCommit(headCommit.ID)
-	if err != nil {
-		return false, err
-	}
-	return branchesEqual, nil
+	return baseCommit.HasPreviousCommit(headCommit.ID)
 }
