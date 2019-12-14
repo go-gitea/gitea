@@ -5,41 +5,11 @@
 package models
 
 import (
-	"net/url"
 	"path/filepath"
 	"strings"
 
 	"github.com/unknwon/com"
 )
-
-// NormalizeWikiName normalizes a wiki name
-func NormalizeWikiName(name string) string {
-	return strings.Replace(name, "-", " ", -1)
-}
-
-// WikiNameToSubURL converts a wiki name to its corresponding sub-URL.
-func WikiNameToSubURL(name string) string {
-	return url.QueryEscape(strings.Replace(name, " ", "-", -1))
-}
-
-// WikiNameToFilename converts a wiki name to its corresponding filename.
-func WikiNameToFilename(name string) string {
-	name = strings.Replace(name, " ", "-", -1)
-	return url.QueryEscape(name) + ".md"
-}
-
-// WikiFilenameToName converts a wiki filename to its corresponding page name.
-func WikiFilenameToName(filename string) (string, error) {
-	if !strings.HasSuffix(filename, ".md") {
-		return "", ErrWikiInvalidFileName{filename}
-	}
-	basename := filename[:len(filename)-3]
-	unescaped, err := url.QueryUnescape(basename)
-	if err != nil {
-		return "", err
-	}
-	return NormalizeWikiName(unescaped), nil
-}
 
 // WikiCloneLink returns clone URLs of repository wiki.
 func (repo *Repository) WikiCloneLink() *CloneLink {
