@@ -169,7 +169,7 @@ func Milestones(ctx *context.Context) {
 		page = 1
 	}
 
-	repoID := ctx.QueryInt64("repo")
+	reposQuery := ctx.Query("repos")
 	isShowClosed := ctx.Query("state") == "closed"
 
 	// Get repositories.
@@ -199,17 +199,34 @@ func Milestones(ctx *context.Context) {
 	}
 
 	var repoIDs []int64
-	if repoID > 0 {
-		repoIDs = []int64{repoID}
-		if !com.IsSliceContainsInt64(userRepoIDs, repoID) {
+	if issueReposQueryPattern.MatchString(reposQuery) {
+		// remove "[" and "]" from string
+		reposQuery = reposQuery[1 : len(reposQuery)-1]
+		//for each ID (delimiter ",") add to int to repoIDs
+		reposSet := false
+		for _, rID := range strings.Split(reposQuery, ",") {
+			// Ensure nonempty string entries
+			if rID != "" && rID != "0" {
+				reposSet = true
+				rIDint64, err := strconv.ParseInt(rID, 10, 64)
+				if err == nil && com.IsSliceContainsInt64(userRepoIDs, rIDint64) {
+					repoIDs = append(repoIDs, rIDint64)
+				}
+			}
+		}
+		if reposSet && len(repoIDs) == 0 {
 			// force an empty result
 			repoIDs = []int64{-1}
 		}
 	} else {
+		log.Error("issueReposQueryPattern not match with query")
+	}
+
+	if len(repoIDs) == 0 {
 		repoIDs = userRepoIDs
 	}
 
-	counts, err := models.CountMilestonesByRepoIDs(repoIDs, isShowClosed)
+	counts, err := models.CountMilestonesByRepoIDs(userRepoIDs, isShowClosed)
 	if err != nil {
 		ctx.ServerError("CountMilestonesByRepoIDs", err)
 		return
@@ -222,36 +239,29 @@ func Milestones(ctx *context.Context) {
 	}
 
 	showReposMap := make(map[int64]*models.Repository, len(counts))
-	for repoID := range counts {
-		repo, err := models.GetRepositoryByID(repoID)
-		if err != nil {
-			ctx.ServerError("GetRepositoryByID", err)
-			return
+	for rID := range counts {
+		if rID == -1 {
+			break
 		}
-		showReposMap[repoID] = repo
-	}
-
-	if repoID > 0 {
-		if _, ok := showReposMap[repoID]; !ok {
-			repo, err := models.GetRepositoryByID(repoID)
+		repo, err := models.GetRepositoryByID(rID)
+		if err != nil {
 			if models.IsErrRepoNotExist(err) {
 				ctx.NotFound("GetRepositoryByID", err)
 				return
 			} else if err != nil {
-				ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", repoID, err))
+				ctx.ServerError("GetRepositoryByID", fmt.Errorf("[%d]%v", rID, err))
 				return
 			}
-			showReposMap[repoID] = repo
 		}
-
-		repo := showReposMap[repoID]
+		showReposMap[rID] = repo
 
 		// Check if user has access to given repository.
 		perm, err := models.GetUserRepoPermission(repo, ctxUser)
 		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", repoID, err))
+			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", rID, err))
 			return
 		}
+
 		if !perm.CanRead(models.UnitTypeIssues) {
 			if log.IsTrace() {
 				log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
@@ -285,36 +295,41 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	milestoneStats, err := models.GetMilestonesStats(userRepoIDs)
+	milestoneStats, err := models.GetMilestonesStats(repoIDs)
 	if err != nil {
 		ctx.ServerError("GetMilestoneStats", err)
 		return
 	}
 
-	var total int
-	if !isShowClosed {
-		total = int(milestoneStats.OpenCount)
+	totalMilestoneStats, err := models.GetMilestonesStats(userRepoIDs)
+	if err != nil {
+		ctx.ServerError("GetMilestoneStats", err)
+		return
+	}
+
+	var pagerCount int
+	if isShowClosed {
+		ctx.Data["State"] = "closed"
+		ctx.Data["Total"] = totalMilestoneStats.ClosedCount
+		pagerCount = int(milestoneStats.ClosedCount)
 	} else {
-		total = int(milestoneStats.ClosedCount)
+		ctx.Data["State"] = "open"
+		ctx.Data["Total"] = totalMilestoneStats.OpenCount
+		pagerCount = int(milestoneStats.OpenCount)
 	}
 
 	ctx.Data["Milestones"] = milestones
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = counts
 	ctx.Data["MilestoneStats"] = milestoneStats
-	ctx.Data["Total"] = total
 	ctx.Data["SortType"] = sortType
-	ctx.Data["RepoID"] = repoID
+	if len(repoIDs) != len(userRepoIDs) {
+		ctx.Data["RepoIDs"] = repoIDs
+	}
 	ctx.Data["IsShowClosed"] = isShowClosed
 
-	if isShowClosed {
-		ctx.Data["State"] = "closed"
-	} else {
-		ctx.Data["State"] = "open"
-	}
-
-	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
-	pager.AddParam(ctx, "repo", "RepoID")
+	pager := context.NewPagination(pagerCount, setting.UI.IssuePagingNum, page, 5)
+	pager.AddParam(ctx, "repos", "RepoIDs")
 	pager.AddParam(ctx, "sort", "SortType")
 	pager.AddParam(ctx, "state", "State")
 	ctx.Data["Page"] = pager
