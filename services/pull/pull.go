@@ -65,30 +65,7 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 	}
 
 	// Check if branches are equal
-	if err = pr.GetBaseRepo(); err != nil {
-		return err
-	}
-	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		return err
-	}
-	baseCommit, err := baseGitRepo.GetBranchCommit(targetBranch)
-	if err != nil {
-		return err
-	}
-
-	if err = pr.GetHeadRepo(); err != nil {
-		return err
-	}
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
-	if err != nil {
-		return err
-	}
-	headCommit, err := headGitRepo.GetBranchCommit(pr.HeadBranch)
-	if err != nil {
-		return err
-	}
-	branchesEqual, err := baseCommit.HasPreviousCommit(headCommit.ID)
+	branchesEqual, err := pr.IsHeadEqualWithBranch(targetBranch)
 	if err != nil {
 		return err
 	}

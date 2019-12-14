@@ -708,3 +708,35 @@ func (pr *PullRequest) GetWorkInProgressPrefix() string {
 	}
 	return ""
 }
+
+func (pr *PullRequest) IsHeadEqualWithBranch(branchName string) (bool, error) {
+	var err error
+	if err = pr.GetBaseRepo(); err != nil {
+		return false, err
+	}
+	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		return false, err
+	}
+	baseCommit, err := baseGitRepo.GetBranchCommit(branchName)
+	if err != nil {
+		return false, err
+	}
+
+	if err = pr.GetHeadRepo(); err != nil {
+		return false, err
+	}
+	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		return false, err
+	}
+	headCommit, err := headGitRepo.GetBranchCommit(pr.HeadBranch)
+	if err != nil {
+		return false, err
+	}
+	branchesEqual, err := baseCommit.HasPreviousCommit(headCommit.ID)
+	if err != nil {
+		return false, err
+	}
+	return branchesEqual, nil
+}
