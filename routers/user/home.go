@@ -285,9 +285,9 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	milestoneStats, err := models.GetUserMilestoneStats(ctxUser.ID, repoID, userRepoIDs)
+	milestoneStats, err := models.GetMilestonesStats(userRepoIDs)
 	if err != nil {
-		ctx.ServerError("GetUserMilestoneStats", err)
+		ctx.ServerError("GetMilestoneStats", err)
 		return
 	}
 
