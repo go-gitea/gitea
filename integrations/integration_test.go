@@ -131,6 +131,7 @@ func initIntegrationTest() {
 
 	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
+	os.RemoveAll(models.LocalCopyPath())
 	setting.CheckLFSVersion()
 	setting.InitDBConfig()
 
@@ -188,7 +189,6 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 	deferFn := PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, os.RemoveAll(models.LocalCopyPath()))
 
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
