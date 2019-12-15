@@ -307,9 +307,6 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		}
 		ctx.Error(500, "NewPullRequest", err)
 		return
-	} else if err := pr.PushToBaseRepo(); err != nil {
-		ctx.Error(500, "PushToBaseRepo", err)
-		return
 	}
 
 	notification.NotifyNewPullRequest(pr)

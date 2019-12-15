@@ -5,6 +5,7 @@
 package routers
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -53,11 +54,11 @@ func NewServices() {
 }
 
 // In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
-func initDBEngine() (err error) {
+func initDBEngine(ctx context.Context) (err error) {
 	log.Info("Beginning ORM engine initialization.")
 	for i := 0; i < setting.Database.DBConnectRetries; i++ {
 		log.Info("ORM engine initialization attempt #%d/%d...", i+1, setting.Database.DBConnectRetries)
-		if err = models.NewEngine(migrations.Migrate); err == nil {
+		if err = models.NewEngine(ctx, migrations.Migrate); err == nil {
 			break
 		} else if i == setting.Database.DBConnectRetries-1 {
 			return err
@@ -71,9 +72,9 @@ func initDBEngine() (err error) {
 }
 
 // GlobalInit is for global configuration reload-able.
-func GlobalInit() {
+func GlobalInit(ctx context.Context) {
 	setting.NewContext()
-	if err := git.Init(); err != nil {
+	if err := git.Init(ctx); err != nil {
 		log.Fatal("Git module init failed: %v", err)
 	}
 	setting.CheckLFSVersion()
@@ -88,7 +89,7 @@ func GlobalInit() {
 		highlight.NewContext()
 		external.RegisterParsers()
 		markup.Init()
-		if err := initDBEngine(); err == nil {
+		if err := initDBEngine(ctx); err == nil {
 			log.Info("ORM engine initialization successful!")
 		} else {
 			log.Fatal("ORM engine initialization failed: %v", err)
