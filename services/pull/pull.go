@@ -5,12 +5,14 @@
 package pull
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -54,6 +56,7 @@ func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *m
 		return fmt.Errorf("git.OpenRepository: %v", err)
 	}
 	go func() {
+		// FIXME: graceful: We need to tell the manager we're doing something...
 		err := requests.InvalidateCodeComments(doer, gitRepo, branch)
 		if err != nil {
 			log.Error("PullRequestList.InvalidateCodeComments: %v", err)
@@ -79,39 +82,45 @@ func addHeadRepoTasks(prs []*models.PullRequest) {
 // and generate new patch for testing as needed.
 func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSync bool) {
 	log.Trace("AddTestPullRequestTask [head_repo_id: %d, head_branch: %s]: finding pull requests", repoID, branch)
-	prs, err := models.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
-	if err != nil {
-		log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repoID, branch, err)
-		return
-	}
+	graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
+		// There is no sensible way to shut this down ":-("
+		// If you don't let it run all the way then you will lose data
+		// FIXME: graceful: AddTestPullRequestTask needs to become a queue!
 
-	if isSync {
-		requests := models.PullRequestList(prs)
-		if err = requests.LoadAttributes(); err != nil {
-			log.Error("PullRequestList.LoadAttributes: %v", err)
+		prs, err := models.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
+		if err != nil {
+			log.Error("Find pull requests [head_repo_id: %d, head_branch: %s]: %v", repoID, branch, err)
+			return
 		}
-		if invalidationErr := checkForInvalidation(requests, repoID, doer, branch); invalidationErr != nil {
-			log.Error("checkForInvalidation: %v", invalidationErr)
-		}
-		if err == nil {
-			for _, pr := range prs {
-				pr.Issue.PullRequest = pr
-				notification.NotifyPullRequestSynchronized(doer, pr)
+
+		if isSync {
+			requests := models.PullRequestList(prs)
+			if err = requests.LoadAttributes(); err != nil {
+				log.Error("PullRequestList.LoadAttributes: %v", err)
+			}
+			if invalidationErr := checkForInvalidation(requests, repoID, doer, branch); invalidationErr != nil {
+				log.Error("checkForInvalidation: %v", invalidationErr)
+			}
+			if err == nil {
+				for _, pr := range prs {
+					pr.Issue.PullRequest = pr
+					notification.NotifyPullRequestSynchronized(doer, pr)
+				}
 			}
 		}
-	}
 
-	addHeadRepoTasks(prs)
+		addHeadRepoTasks(prs)
 
-	log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", repoID, branch)
-	prs, err = models.GetUnmergedPullRequestsByBaseInfo(repoID, branch)
-	if err != nil {
-		log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", repoID, branch, err)
-		return
-	}
-	for _, pr := range prs {
-		AddToTaskQueue(pr)
-	}
+		log.Trace("AddTestPullRequestTask [base_repo_id: %d, base_branch: %s]: finding pull requests", repoID, branch)
+		prs, err = models.GetUnmergedPullRequestsByBaseInfo(repoID, branch)
+		if err != nil {
+			log.Error("Find pull requests [base_repo_id: %d, base_branch: %s]: %v", repoID, branch, err)
+			return
+		}
+		for _, pr := range prs {
+			AddToTaskQueue(pr)
+		}
+	})
 }
 
 // PushToBaseRepo pushes commits from branches of head repository to
