@@ -6,7 +6,6 @@
 package models
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -209,14 +208,14 @@ func (repo *Repository) removeIssueAssignees(e Engine, userID int64) error {
 	err := repo.GetOwner()
 	if err != nil {
 		// Very weird case
-		return errors.New("user not loaded")
+		return fmt.Errorf("removeIssueAssignees: Unable to load owner for repo: %d Error: %v", repo.ID, err)
 	}
 
 	if repo.Owner.IsOrganization() {
 
 		teams, err := repo.Owner.GetUserTeams(userID)
 		if err != nil {
-			return err
+			return fmt.Errorf("GetUserTeams: Unable to get user teams: Error: %v", err)
 		}
 
 		for i := range teams {
@@ -233,7 +232,11 @@ func (repo *Repository) removeIssueAssignees(e Engine, userID int64) error {
 	_, err = e.
 		Join("INNER", "issue", "`issue`.id = `issues_assignees`.issue_id AND `issue`.repo_id = ?", repo.ID).
 		Delete(assignee)
-	return err
+	if err != nil {
+		return fmt.Errorf("Delete.. Could not delete assignees %v", err)
+	}
+
+	return nil
 }
 
 func (repo *Repository) getRepoTeams(e Engine) (teams []*Team, err error) {
