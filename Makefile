@@ -128,7 +128,7 @@ vet:
 	$(GO) vet $(PACKAGES)
 
 .PHONY: generate
-generate:
+generate: js css
 	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
 
 .PHONY: generate-swagger
@@ -384,14 +384,8 @@ check: test
 install: $(wildcard *.go)
 	$(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
-.PHONY: go
-go: go-check $(EXECUTABLE)
-
-.PHONY: go-all
-go-all: go-check generate go
-
 .PHONY: build
-build: js css go-all
+build: go-check generate $(EXECUTABLE)
 
 $(EXECUTABLE): $(GO_SOURCES)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
