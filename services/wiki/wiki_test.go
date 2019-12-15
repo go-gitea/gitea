@@ -28,7 +28,7 @@ func TestWikiNameToSubURL(t *testing.T) {
 		{"name-with%2Fslash", "name with/slash"},
 		{"name-with%25percent", "name with%percent"},
 	} {
-		assert.Equal(t, test.Expected, WikiNameToSubURL(test.WikiName))
+		assert.Equal(t, test.Expected, NameToSubURL(test.WikiName))
 	}
 }
 
@@ -59,7 +59,7 @@ func TestWikiNameToFilename(t *testing.T) {
 		{"name-with%2Fslash.md", "name with/slash"},
 		{"name-with%25percent.md", "name with%percent"},
 	} {
-		assert.Equal(t, test.Expected, WikiNameToFilename(test.WikiName))
+		assert.Equal(t, test.Expected, NameToFilename(test.WikiName))
 	}
 }
 
@@ -72,7 +72,7 @@ func TestWikiFilenameToName(t *testing.T) {
 		{"hello world", "hello-world.md"},
 		{"symbols/?*", "symbols%2F%3F%2A.md"},
 	} {
-		name, err := WikiFilenameToName(test.Filename)
+		name, err := FilenameToName(test.Filename)
 		assert.NoError(t, err)
 		assert.Equal(t, test.Expected, name)
 	}
@@ -80,11 +80,11 @@ func TestWikiFilenameToName(t *testing.T) {
 		"nofileextension",
 		"wrongfileextension.txt",
 	} {
-		_, err := WikiFilenameToName(badFilename)
+		_, err := FilenameToName(badFilename)
 		assert.Error(t, err)
 		assert.True(t, models.IsErrWikiInvalidFileName(err))
 	}
-	_, err := WikiFilenameToName("badescaping%%.md")
+	_, err := FilenameToName("badescaping%%.md")
 	assert.Error(t, err)
 	assert.False(t, models.IsErrWikiInvalidFileName(err))
 }
@@ -98,8 +98,8 @@ func TestWikiNameToFilenameToName(t *testing.T) {
 		"wiki name with/slash",
 		"$$$%%%^^&&!@#$(),.<>",
 	} {
-		filename := WikiNameToFilename(name)
-		resultName, err := WikiFilenameToName(filename)
+		filename := NameToFilename(name)
+		resultName, err := FilenameToName(filename)
 		assert.NoError(t, err)
 		assert.Equal(t, NormalizeWikiName(name), resultName)
 	}
@@ -137,7 +137,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			defer gitRepo.Close()
 			masterTree, err := gitRepo.GetTree("master")
 			assert.NoError(t, err)
-			wikiPath := models.WikiNameToFilename(wikiName)
+			wikiPath := NameToFilename(wikiName)
 			entry, err := masterTree.GetTreeEntryByPath(wikiPath)
 			assert.NoError(t, err)
 			assert.Equal(t, wikiPath, entry.Name(), "%s not addded correctly", wikiName)
@@ -179,7 +179,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		assert.NoError(t, err)
 		masterTree, err := gitRepo.GetTree("master")
 		assert.NoError(t, err)
-		wikiPath := models.WikiNameToFilename(newWikiName)
+		wikiPath := NameToFilename(newWikiName)
 		entry, err := masterTree.GetTreeEntryByPath(wikiPath)
 		assert.NoError(t, err)
 		assert.Equal(t, wikiPath, entry.Name(), "%s not editted correctly", newWikiName)
@@ -204,7 +204,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	defer gitRepo.Close()
 	masterTree, err := gitRepo.GetTree("master")
 	assert.NoError(t, err)
-	wikiPath := models.WikiNameToFilename("Home")
+	wikiPath := NameToFilename("Home")
 	_, err = masterTree.GetTreeEntryByPath(wikiPath)
 	assert.Error(t, err)
 }
