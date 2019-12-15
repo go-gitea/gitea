@@ -67,7 +67,10 @@ func (repo *Repository) UpdateIndexerStatus(sha string) error {
 	if len(repo.IndexerStatus.CommitSha) == 0 {
 		repo.IndexerStatus.CommitSha = sha
 		_, err := x.Insert(repo.IndexerStatus)
-		return fmt.Errorf("UpdateIndexerStatus: Unable to insert repoIndexerStatus for repo: %s/%s Sha: %s Error: %v", repo.MustOwnerName(), repo.Name, sha, err)
+		if err != nil {
+			return fmt.Errorf("UpdateIndexerStatus: Unable to insert repoIndexerStatus for repo: %s/%s Sha: %s Error: %v", repo.MustOwnerName(), repo.Name, sha, err)
+		}
+		return nil
 	}
 	repo.IndexerStatus.CommitSha = sha
 	_, err := x.ID(repo.IndexerStatus.ID).Cols("commit_sha").
