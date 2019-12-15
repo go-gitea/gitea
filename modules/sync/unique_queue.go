@@ -79,10 +79,6 @@ func (q *UniqueQueue) Exist(id interface{}) bool {
 // AddFunc adds new instance to the queue with a custom runnable function,
 // the queue is blocked until the function exits.
 func (q *UniqueQueue) AddFunc(id interface{}, fn func()) {
-	if q.Exist(id) {
-		return
-	}
-
 	idStr := com.ToStr(id)
 	q.table.lock.Lock()
 	if _, ok := q.table.pool[idStr]; ok {
