@@ -25,7 +25,7 @@ type SearchResult struct {
 	Content    string
 }
 
-// Indexer defines an inteface to indexer issues contents
+// Indexer defines an interface to indexer issues contents
 type Indexer interface {
 	Init() (bool, error)
 	Index(repoID int64) error
