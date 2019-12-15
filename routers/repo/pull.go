@@ -813,9 +813,6 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		}
 		ctx.ServerError("NewPullRequest", err)
 		return
-	} else if err := pullRequest.PushToBaseRepo(); err != nil {
-		ctx.ServerError("PushToBaseRepo", err)
-		return
 	}
 
 	notification.NotifyNewPullRequest(pullRequest)
