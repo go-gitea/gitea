@@ -385,13 +385,10 @@ install: $(wildcard *.go)
 	$(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
 .PHONY: go
-go: go-check $(EXECUTABLE)
-
-.PHONY: go-all
-go-all: go-check generate go
+go: $(EXECUTABLE)
 
 .PHONY: build
-build: go-all
+build: go-check generate go
 
 $(EXECUTABLE): $(GO_SOURCES)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
