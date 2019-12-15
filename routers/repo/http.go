@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // HTTP implmentation git smart HTTP protocol
@@ -100,29 +101,29 @@ func HTTP(ctx *context.Context) {
 		return
 	}
 
+	repoExist := true
 	repo, err := models.GetRepositoryByName(owner.ID, reponame)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
-			redirectRepoID, err := models.LookupRepoRedirect(owner.ID, reponame)
-			if err == nil {
+			if redirectRepoID, err := models.LookupRepoRedirect(owner.ID, reponame); err == nil {
 				context.RedirectToRepo(ctx, redirectRepoID)
-			} else {
-				ctx.NotFoundOrServerError("GetRepositoryByName", models.IsErrRepoRedirectNotExist, err)
+				return
 			}
+			repoExist = false
 		} else {
 			ctx.ServerError("GetRepositoryByName", err)
+			return
 		}
-		return
 	}
 
 	// Don't allow pushing if the repo is archived
-	if repo.IsArchived && !isPull {
+	if repoExist && repo.IsArchived && !isPull {
 		ctx.HandleText(http.StatusForbidden, "This repo is archived. You can view files and clone it, but cannot push or open issues/pull-requests.")
 		return
 	}
 
 	// Only public pull don't need auth.
-	isPublicPull := !repo.IsPrivate && isPull
+	isPublicPull := repoExist && !repo.IsPrivate && isPull
 	var (
 		askAuth      = !isPublicPull || setting.Service.RequireSignInView
 		authUser     *models.User
@@ -243,20 +244,22 @@ func HTTP(ctx *context.Context) {
 			}
 		}
 
-		perm, err := models.GetUserRepoPermission(repo, authUser)
-		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
-			return
-		}
+		if repoExist {
+			perm, err := models.GetUserRepoPermission(repo, authUser)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
+			}
 
-		if !perm.CanAccess(accessMode, unitType) {
-			ctx.HandleText(http.StatusForbidden, "User permission denied")
-			return
-		}
+			if !perm.CanAccess(accessMode, unitType) {
+				ctx.HandleText(http.StatusForbidden, "User permission denied")
+				return
+			}
 
-		if !isPull && repo.IsMirror {
-			ctx.HandleText(http.StatusForbidden, "mirror repository is read-only")
-			return
+			if !isPull && repo.IsMirror {
+				ctx.HandleText(http.StatusForbidden, "mirror repository is read-only")
+				return
+			}
 		}
 
 		environ = []string{
@@ -264,7 +267,6 @@ func HTTP(ctx *context.Context) {
 			models.EnvRepoName + "=" + reponame,
 			models.EnvPusherName + "=" + authUser.Name,
 			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
-			models.ProtectedBranchRepoID + fmt.Sprintf("=%d", repo.ID),
 			models.EnvIsDeployKey + "=false",
 		}
 
@@ -278,6 +280,25 @@ func HTTP(ctx *context.Context) {
 			environ = append(environ, models.EnvRepoIsWiki+"=false")
 		}
 	}
+
+	if !repoExist {
+		if owner.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
+			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for organizations.")
+			return
+		}
+		if !owner.IsOrganization() && !setting.Repository.EnablePushCreateUser {
+			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for users.")
+			return
+		}
+		repo, err = repo_service.PushCreateRepo(authUser, owner, reponame)
+		if err != nil {
+			log.Error("pushCreateRepo: %v", err)
+			ctx.Status(http.StatusNotFound)
+			return
+		}
+	}
+
+	environ = append(environ, models.ProtectedBranchRepoID+fmt.Sprintf("=%d", repo.ID))
 
 	w := ctx.Resp
 	r := ctx.Req.Request
