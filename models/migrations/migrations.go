@@ -278,6 +278,8 @@ var migrations = []Migration{
 	NewMigration("change review content type to text", changeReviewContentToText),
 	// v111 -> v112
 	NewMigration("update branch protection for can push and whitelist enable", addBranchProtectionCanPushAndEnableWhitelist),
+	// v112 -> v113
+	NewMigration("remove release attachments which repository deleted", removeAttachmentMissedRepo),
 }
 
 // Migrate database to current version

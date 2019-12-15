@@ -504,7 +504,7 @@ DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME = true
 ; Default value for the domain part of the user's email address in the git log
 ; if he has set KeepEmailPrivate to true. The user's email will be replaced with a
 ; concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
-NO_REPLY_ADDRESS = noreply.example.org
+NO_REPLY_ADDRESS = noreply.%(DOMAIN)s
 ; Show Registration button
 SHOW_REGISTRATION_BUTTON = true
 ; Default value for AutoWatchNewRepos
@@ -876,6 +876,12 @@ SHOW_FOOTER_BRANDING = false
 SHOW_FOOTER_VERSION = true
 ; Show template execution time in the footer
 SHOW_FOOTER_TEMPLATE_LOAD_TIME = true
+
+[markup.sanitizer]
+; The following keys can be used multiple times to define sanitation policy rules.
+;ELEMENT = span
+;ALLOW_ATTR = class
+;REGEXP = ^(info|warning|error)$
 
 [markup.asciidoc]
 ENABLED = false

@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"github.com/unknwon/com"
+
 	"xorm.io/xorm"
 )
 
@@ -65,6 +65,14 @@ func GetUnmergedPullRequestsByBaseInfo(repoID int64, branch string) ([]*PullRequ
 		Where("base_repo_id=? AND base_branch=? AND has_merged=? AND issue.is_closed=?",
 			repoID, branch, false, false).
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
+		Find(&prs)
+}
+
+// GetPullRequestsByCheckStatus returns all pull requests according the special checking status.
+func GetPullRequestsByCheckStatus(status PullRequestStatus) ([]*PullRequest, error) {
+	prs := make([]*PullRequest, 0, 10)
+	return prs, x.
+		Where("status=?", status).
 		Find(&prs)
 }
 
@@ -160,65 +168,4 @@ func (prs PullRequestList) invalidateCodeComments(e Engine, doer *User, repo *gi
 // InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
 func (prs PullRequestList) InvalidateCodeComments(doer *User, repo *git.Repository, branch string) error {
 	return prs.invalidateCodeComments(x, doer, repo, branch)
-}
-
-// TestPullRequests checks and tests untested patches of pull requests.
-// TODO: test more pull requests at same time.
-func TestPullRequests() {
-	prs := make([]*PullRequest, 0, 10)
-
-	err := x.Where("status = ?", PullRequestStatusChecking).Find(&prs)
-	if err != nil {
-		log.Error("Find Checking PRs: %v", err)
-		return
-	}
-
-	var checkedPRs = make(map[int64]struct{})
-
-	// Update pull request status.
-	for _, pr := range prs {
-		checkedPRs[pr.ID] = struct{}{}
-		if err := pr.GetBaseRepo(); err != nil {
-			log.Error("GetBaseRepo: %v", err)
-			continue
-		}
-		if pr.manuallyMerged() {
-			continue
-		}
-		if err := pr.testPatch(x); err != nil {
-			log.Error("testPatch: %v", err)
-			continue
-		}
-
-		pr.checkAndUpdateStatus()
-	}
-
-	// Start listening on new test requests.
-	for prID := range pullRequestQueue.Queue() {
-		log.Trace("TestPullRequests[%v]: processing test task", prID)
-		pullRequestQueue.Remove(prID)
-
-		id := com.StrTo(prID).MustInt64()
-		if _, ok := checkedPRs[id]; ok {
-			continue
-		}
-
-		pr, err := GetPullRequestByID(id)
-		if err != nil {
-			log.Error("GetPullRequestByID[%s]: %v", prID, err)
-			continue
-		} else if pr.manuallyMerged() {
-			continue
-		} else if err = pr.testPatch(x); err != nil {
-			log.Error("testPatch[%d]: %v", pr.ID, err)
-			continue
-		}
-
-		pr.checkAndUpdateStatus()
-	}
-}
-
-// InitTestPullRequests runs the task to test all the checking status pull requests
-func InitTestPullRequests() {
-	go TestPullRequests()
 }

@@ -452,3 +452,24 @@
   type: 1
   config: "{}"
   created_unix: 946684810
+
+-
+  id: 66
+  repo_id: 46
+  type: 7
+  config: "{\"ExternalTrackerURL\":\"https://tracker.com\",\"ExternalTrackerFormat\":\"https://tracker.com/{user}/{repo}/issues/{index}\",\"ExternalTrackerStyle\":\"\"}"
+  created_unix: 946684810
+
+-
+  id: 67
+  repo_id: 47
+  type: 7
+  config: "{\"ExternalTrackerURL\":\"https://tracker.com\",\"ExternalTrackerFormat\":\"https://tracker.com/{user}/{repo}/issues/{index}\",\"ExternalTrackerStyle\":\"numeric\"}"
+  created_unix: 946684810
+
+-
+  id: 68
+  repo_id: 48
+  type: 7
+  config: "{\"ExternalTrackerURL\":\"https://tracker.com\",\"ExternalTrackerFormat\":\"https://tracker.com/{user}/{repo}/issues/{index}\",\"ExternalTrackerStyle\":\"alphanumeric\"}"
+  created_unix: 946684810

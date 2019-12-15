@@ -3016,6 +3016,148 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/comments/{id}/reactions": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Get a list reactions of a issue comment",
+        "operationId": "issueGetCommentReactions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the comment to edit",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ReactionResponseList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Add a reaction to a comment of a issue comment",
+        "operationId": "issuePostCommentReaction",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the comment to edit",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "content",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditReactionOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/ReactionResponse"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Remove a reaction from a comment of a issue comment",
+        "operationId": "issueDeleteCommentReaction",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the comment to edit",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "content",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditReactionOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issues/{id}/times": {
       "get": {
         "produces": [
@@ -3688,6 +3830,201 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/{index}/reactions": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Get a list reactions of a issue",
+        "operationId": "issueGetIssueReactions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ReactionResponseList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Add a reaction to a comment of a issue",
+        "operationId": "issuePostIssueReaction",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "content",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditReactionOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/ReactionResponse"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Remove a reaction from a comment of a issue",
+        "operationId": "issueDeleteIssueReaction",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "content",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditReactionOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/stopwatch/delete": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Delete an issue's existing stopwatch.",
+        "operationId": "issueDeleteStopWatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue to stop the stopwatch on",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "description": "Not repo writer, user does not have rights to toggle stopwatch"
+          },
+          "404": {
+            "description": "Issue not found"
+          },
+          "409": {
+            "description": "Cannot cancel a non existent stopwatch"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issues/{index}/stopwatch/start": {
       "post": {
         "consumes": [
@@ -3753,7 +4090,7 @@
           "issue"
         ],
         "summary": "Stop an issue's existing stopwatch.",
-        "operationId": "issueStopWatch",
+        "operationId": "issueStopStopWatch",
         "parameters": [
           {
             "type": "string",
@@ -6890,6 +7227,26 @@
         }
       }
     },
+    "/user/stopwatches": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get list of all existing stopwatches",
+        "operationId": "userGetStopWatches",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/StopWatchList"
+          }
+        }
+      }
+    },
     "/user/subscriptions": {
       "get": {
         "produces": [
@@ -8721,6 +9078,17 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "EditReactionOption": {
+      "description": "EditReactionOption contain the reaction type",
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string",
+          "x-go-name": "Reaction"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "EditReleaseOption": {
       "description": "EditReleaseOption options when editing a release",
       "type": "object",
@@ -10095,6 +10463,25 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ReactionResponse": {
+      "description": "ReactionResponse contain one reaction",
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string",
+          "x-go-name": "Reaction"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Reference": {
       "type": "object",
       "title": "Reference represents a Git reference.",
@@ -10492,6 +10879,23 @@
     "StatusState": {
       "description": "StatusState holds the state of a Status\nIt can be \"pending\", \"success\", \"error\", \"failure\", and \"warning\"",
       "type": "string",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "StopWatch": {
+      "description": "StopWatch represent a running stopwatch",
+      "type": "object",
+      "properties": {
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "issue_index": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "IssueIndex"
+        }
+      },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "Tag": {
@@ -10960,6 +11364,12 @@
         }
       }
     },
+    "EditReactionOption": {
+      "description": "EditReactionOption",
+      "schema": {
+        "$ref": "#/definitions/EditReactionOption"
+      }
+    },
     "EmailList": {
       "description": "EmailList",
       "schema": {
@@ -11146,6 +11556,21 @@
         }
       }
     },
+    "ReactionResponse": {
+      "description": "ReactionResponse",
+      "schema": {
+        "$ref": "#/definitions/ReactionResponse"
+      }
+    },
+    "ReactionResponseList": {
+      "description": "ReactionResponseList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ReactionResponse"
+        }
+      }
+    },
     "Reference": {
       "description": "Reference",
       "schema": {
@@ -11215,6 +11640,21 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Status"
+        }
+      }
+    },
+    "StopWatch": {
+      "description": "StopWatch",
+      "schema": {
+        "$ref": "#/definitions/StopWatch"
+      }
+    },
+    "StopWatchList": {
+      "description": "StopWatchList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/StopWatch"
         }
       }
     },
