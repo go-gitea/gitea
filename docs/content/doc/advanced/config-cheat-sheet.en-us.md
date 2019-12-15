@@ -96,7 +96,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `CRUD_ACTIONS`: **pubkey, twofa, parentsigned**: \[never, pubkey, twofa, parentsigned, always\]: Sign CRUD actions.
   - Options as above, with the addition of:
   - `parentsigned`: Only sign if the parent commit is signed.
-- `MERGES`: **pubkey, twofa, basesigned, commitssigned**: \[never, pubkey, twofa, basesigned, commitssigned, always\]: Sign merges.
+- `MERGES`: **pubkey, twofa, basesigned, commitssigned**: \[never, pubkey, twofa, approved, basesigned, commitssigned, always\]: Sign merges.
+  - `approved`: Only sign approved merges to a protected branch.
   - `basesigned`: Only sign if the parent commit in the base repo is signed.
   - `headsigned`: Only sign if the head commit in the head branch is signed.
   - `commitssigned`: Only sign if all the commits in the head branch to the merge point are signed.

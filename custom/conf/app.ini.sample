@@ -110,6 +110,7 @@ WIKI = never
 ; Determines when to sign on merges
 ; - basesigned: require that the parent of commit on the base repo is signed.
 ; - commitssigned: require that all the commits in the head branch are signed.
+; - approved: only sign when merging an approved pr to a protected branch
 MERGES = pubkey, twofa, basesigned, commitssigned
 
 [cors]
