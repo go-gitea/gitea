@@ -190,8 +190,6 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 	CheckConsistencyFor(t, pr)
 }
 
-// TODO TestPullRequest_PushToBaseRepo
-
 func TestPullRequestList_LoadAttributes(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
