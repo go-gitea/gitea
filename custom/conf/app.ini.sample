@@ -39,6 +39,9 @@ ACCESS_CONTROL_ALLOW_ORIGIN =
 USE_COMPAT_SSH_URI = false
 ; Close issues as long as a commit on any branch marks it as fixed
 DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH = false
+; Allow users to push local repositories to Gitea and have them automatically created for a user or an org
+ENABLE_PUSH_CREATE_USER = false
+ENABLE_PUSH_CREATE_ORG = false
 
 [repository.editor]
 ; List of file extensions for which lines should be wrapped in the CodeMirror editor
@@ -504,7 +507,7 @@ DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME = true
 ; Default value for the domain part of the user's email address in the git log
 ; if he has set KeepEmailPrivate to true. The user's email will be replaced with a
 ; concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
-NO_REPLY_ADDRESS = noreply.example.org
+NO_REPLY_ADDRESS = noreply.%(DOMAIN)s
 ; Show Registration button
 SHOW_REGISTRATION_BUTTON = true
 ; Default value for AutoWatchNewRepos
