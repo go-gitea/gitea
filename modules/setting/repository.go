@@ -35,6 +35,8 @@ var (
 		AccessControlAllowOrigin                string
 		UseCompatSSHURI                         bool
 		DefaultCloseIssuesViaCommitsInAnyBranch bool
+		EnablePushCreateUser                    bool
+		EnablePushCreateOrg                     bool
 
 		// Repository editor settings
 		Editor struct {
@@ -89,6 +91,8 @@ var (
 		AccessControlAllowOrigin:                "",
 		UseCompatSSHURI:                         false,
 		DefaultCloseIssuesViaCommitsInAnyBranch: false,
+		EnablePushCreateUser:                    false,
+		EnablePushCreateOrg:                     false,
 
 		// Repository editor settings
 		Editor: struct {
