@@ -511,6 +511,8 @@ DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME = true
 NO_REPLY_ADDRESS = noreply.%(DOMAIN)s
 ; Show Registration button
 SHOW_REGISTRATION_BUTTON = true
+; Show milestones dashboard page - a view of all the user's milestones
+SHOW_MILESTONES_DASHBOARD_PAGE = true
 ; Default value for AutoWatchNewRepos
 ; When adding a repo to a team or creating a new repo all team members will watch the
 ; repo automatically if enabled
