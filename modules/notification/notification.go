@@ -53,9 +53,9 @@ func NotifyNewIssue(issue *models.Issue) {
 }
 
 // NotifyIssueChangeStatus notifies close or reopen issue to notifiers
-func NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, closeOrReopen bool) {
+func NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, closeOrReopen bool) {
 	for _, notifier := range notifiers {
-		notifier.NotifyIssueChangeStatus(doer, issue, closeOrReopen)
+		notifier.NotifyIssueChangeStatus(doer, issue, actionComment, closeOrReopen)
 	}
 }
 

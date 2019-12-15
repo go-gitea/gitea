@@ -211,7 +211,7 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *model
 	}
 }
 
-func (m *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
+func (m *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
 	var err error
 	if issue.IsPull {

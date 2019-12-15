@@ -31,7 +31,7 @@ func (*NullNotifier) NotifyNewIssue(issue *models.Issue) {
 }
 
 // NotifyIssueChangeStatus places a place holder function
-func (*NullNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
+func (*NullNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
 }
 
 // NotifyNewPullRequest places a place holder function

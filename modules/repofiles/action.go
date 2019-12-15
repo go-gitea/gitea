@@ -31,7 +31,7 @@ func getIssueFromRef(repo *models.Repository, index int64) (*models.Issue, error
 	return issue, nil
 }
 
-func changeIssueStatus(repo *models.Repository, issue *models.Issue, doer *models.User, status bool) error {
+func changeIssueStatus(repo *models.Repository, issue *models.Issue, doer *models.User, closed bool) error {
 	stopTimerIfAvailable := func(doer *models.User, issue *models.Issue) error {
 
 		if models.StopwatchExists(doer.ID, issue.ID) {
@@ -44,13 +44,16 @@ func changeIssueStatus(repo *models.Repository, issue *models.Issue, doer *model
 	}
 
 	issue.Repo = repo
-	if err := issue.ChangeStatus(doer, status); err != nil {
+	comment, err := issue.ChangeStatus(doer, closed)
+	if err != nil {
 		// Don't return an error when dependencies are open as this would let the push fail
 		if models.IsErrDependenciesLeft(err) {
 			return stopTimerIfAvailable(doer, issue)
 		}
 		return err
 	}
+
+	notification.NotifyIssueChangeStatus(doer, issue, comment, closed)
 
 	return stopTimerIfAvailable(doer, issue)
 }
