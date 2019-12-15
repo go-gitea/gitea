@@ -17,8 +17,9 @@ import (
 
 // Milestone represents a milestone of repository.
 type Milestone struct {
-	ID              int64 `xorm:"pk autoincr"`
-	RepoID          int64 `xorm:"INDEX"`
+	ID              int64       `xorm:"pk autoincr"`
+	RepoID          int64       `xorm:"INDEX"`
+	Repo            *Repository `xorm:"-"`
 	Name            string
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
@@ -177,9 +178,36 @@ func (milestones MilestoneList) loadTotalTrackedTimes(e Engine) error {
 	return nil
 }
 
+func (m *Milestone) loadTotalTrackedTime(e Engine) error {
+	type totalTimesByMilestone struct {
+		MilestoneID int64
+		Time        int64
+	}
+	totalTime := &totalTimesByMilestone{MilestoneID: m.ID}
+	has, err := e.Table("issue").
+		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
+		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
+		Select("milestone_id, sum(time) as time").
+		Where("milestone_id = ?", m.ID).
+		GroupBy("milestone_id").
+		Get(totalTime)
+	if err != nil {
+		return err
+	} else if !has {
+		return nil
+	}
+	m.TotalTrackedTime = totalTime.Time
+	return nil
+}
+
 // LoadTotalTrackedTimes loads for every milestone in the list the TotalTrackedTime by a batch request
 func (milestones MilestoneList) LoadTotalTrackedTimes() error {
 	return milestones.loadTotalTrackedTimes(x)
+}
+
+// LoadTotalTrackedTime loads the tracked time for the milestone
+func (m *Milestone) LoadTotalTrackedTime() error {
+	return m.loadTotalTrackedTime(x)
 }
 
 func (milestones MilestoneList) getMilestoneIDs() []int64 {
@@ -464,4 +492,79 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 	return sess.Commit()
+}
+
+// CountMilestonesByRepoIDs map from repoIDs to number of milestones matching the options`
+func CountMilestonesByRepoIDs(repoIDs []int64, isClosed bool) (map[int64]int64, error) {
+	sess := x.Where("is_closed = ?", isClosed)
+	sess.In("repo_id", repoIDs)
+
+	countsSlice := make([]*struct {
+		RepoID int64
+		Count  int64
+	}, 0, 10)
+	if err := sess.GroupBy("repo_id").
+		Select("repo_id AS repo_id, COUNT(*) AS count").
+		Table("milestone").
+		Find(&countsSlice); err != nil {
+		return nil, err
+	}
+
+	countMap := make(map[int64]int64, len(countsSlice))
+	for _, c := range countsSlice {
+		countMap[c.RepoID] = c.Count
+	}
+	return countMap, nil
+}
+
+// GetMilestonesByRepoIDs returns a list of milestones of given repositories and status.
+func GetMilestonesByRepoIDs(repoIDs []int64, page int, isClosed bool, sortType string) (MilestoneList, error) {
+	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
+	sess := x.Where("is_closed = ?", isClosed)
+	sess.In("repo_id", repoIDs)
+	if page > 0 {
+		sess = sess.Limit(setting.UI.IssuePagingNum, (page-1)*setting.UI.IssuePagingNum)
+	}
+
+	switch sortType {
+	case "furthestduedate":
+		sess.Desc("deadline_unix")
+	case "leastcomplete":
+		sess.Asc("completeness")
+	case "mostcomplete":
+		sess.Desc("completeness")
+	case "leastissues":
+		sess.Asc("num_issues")
+	case "mostissues":
+		sess.Desc("num_issues")
+	default:
+		sess.Asc("deadline_unix")
+	}
+	return miles, sess.Find(&miles)
+}
+
+// MilestonesStats represents milestone statistic information.
+type MilestonesStats struct {
+	OpenCount, ClosedCount int64
+}
+
+// GetMilestonesStats returns milestone statistic information for dashboard by given conditions.
+func GetMilestonesStats(userRepoIDs []int64) (*MilestonesStats, error) {
+	var err error
+	stats := &MilestonesStats{}
+
+	stats.OpenCount, err = x.Where("is_closed = ?", false).
+		And(builder.In("repo_id", userRepoIDs)).
+		Count(new(Milestone))
+	if err != nil {
+		return nil, err
+	}
+	stats.ClosedCount, err = x.Where("is_closed = ?", true).
+		And(builder.In("repo_id", userRepoIDs)).
+		Count(new(Milestone))
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
 }
