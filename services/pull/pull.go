@@ -7,6 +7,8 @@ package pull
 import (
 	"context"
 	"fmt"
+	"os"
+	"path"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -34,6 +36,10 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 
 	pr.Issue = pull
 	pull.PullRequest = pr
+
+	if err := PushToBaseRepo(pr); err != nil {
+		return err
+	}
 
 	notification.NotifyNewPullRequest(pr)
 
@@ -63,7 +69,7 @@ func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *m
 func addHeadRepoTasks(prs []*models.PullRequest) {
 	for _, pr := range prs {
 		log.Trace("addHeadRepoTasks[%d]: composing new test task", pr.ID)
-		if err := pr.PushToBaseRepo(); err != nil {
+		if err := PushToBaseRepo(pr); err != nil {
 			log.Error("PushToBaseRepo: %v", err)
 			continue
 		}
@@ -115,4 +121,46 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 			AddToTaskQueue(pr)
 		}
 	})
+}
+
+// PushToBaseRepo pushes commits from branches of head repository to
+// corresponding branches of base repository.
+// FIXME: Only push branches that are actually updates?
+func PushToBaseRepo(pr *models.PullRequest) (err error) {
+	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
+
+	headRepoPath := pr.HeadRepo.RepoPath()
+	headGitRepo, err := git.OpenRepository(headRepoPath)
+	if err != nil {
+		return fmt.Errorf("OpenRepository: %v", err)
+	}
+	defer headGitRepo.Close()
+
+	tmpRemoteName := fmt.Sprintf("tmp-pull-%d", pr.ID)
+	if err = headGitRepo.AddRemote(tmpRemoteName, pr.BaseRepo.RepoPath(), false); err != nil {
+		return fmt.Errorf("headGitRepo.AddRemote: %v", err)
+	}
+	// Make sure to remove the remote even if the push fails
+	defer func() {
+		if err := headGitRepo.RemoveRemote(tmpRemoteName); err != nil {
+			log.Error("PushToBaseRepo: RemoveRemote: %s", err)
+		}
+	}()
+
+	headFile := pr.GetGitRefName()
+
+	// Remove head in case there is a conflict.
+	file := path.Join(pr.BaseRepo.RepoPath(), headFile)
+
+	_ = os.Remove(file)
+
+	if err = git.Push(headRepoPath, git.PushOptions{
+		Remote: tmpRemoteName,
+		Branch: fmt.Sprintf("%s:%s", pr.HeadBranch, headFile),
+		Force:  true,
+	}); err != nil {
+		return fmt.Errorf("Push: %v", err)
+	}
+
+	return nil
 }
