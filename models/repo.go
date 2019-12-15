@@ -7,6 +7,7 @@ package models
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"errors"
 	"fmt"
@@ -2098,19 +2099,27 @@ func DeleteRepositoryArchives() error {
 }
 
 // DeleteOldRepositoryArchives deletes old repository archives.
-func DeleteOldRepositoryArchives() {
+func DeleteOldRepositoryArchives(ctx context.Context) {
 	log.Trace("Doing: ArchiveCleanup")
 
-	if err := x.Where("id > 0").Iterate(new(Repository), deleteOldRepositoryArchives); err != nil {
+	if err := x.Where("id > 0").Iterate(new(Repository), func(idx int, bean interface{}) error {
+		return deleteOldRepositoryArchives(ctx, idx, bean)
+	}); err != nil {
 		log.Error("ArchiveClean: %v", err)
 	}
 }
 
-func deleteOldRepositoryArchives(idx int, bean interface{}) error {
+func deleteOldRepositoryArchives(ctx context.Context, idx int, bean interface{}) error {
 	repo := bean.(*Repository)
 	basePath := filepath.Join(repo.RepoPath(), "archives")
 
 	for _, ty := range []string{"zip", "targz"} {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("Aborted due to shutdown:\nin delete of old repository archives %v\nat delete file %s", repo, ty)
+		default:
+		}
+
 		path := filepath.Join(basePath, ty)
 		file, err := os.Open(path)
 		if err != nil {
@@ -2133,6 +2142,11 @@ func deleteOldRepositoryArchives(idx int, bean interface{}) error {
 		minimumOldestTime := time.Now().Add(-setting.Cron.ArchiveCleanup.OlderThan)
 		for _, info := range files {
 			if info.ModTime().Before(minimumOldestTime) && !info.IsDir() {
+				select {
+				case <-ctx.Done():
+					return fmt.Errorf("Aborted due to shutdown:\nin delete of old repository archives %v\nat delete file %s - %s", repo, ty, info.Name())
+				default:
+				}
 				toDelete := filepath.Join(path, info.Name())
 				// This is a best-effort purge, so we do not check error codes to confirm removal.
 				if err = os.Remove(toDelete); err != nil {
@@ -2226,13 +2240,17 @@ func SyncRepositoryHooks() error {
 }
 
 // GitFsck calls 'git fsck' to check repository health.
-func GitFsck() {
+func GitFsck(ctx context.Context) {
 	log.Trace("Doing: GitFsck")
-
 	if err := x.
 		Where("id>0 AND is_fsck_enabled=?", true).BufferSize(setting.Database.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
+				select {
+				case <-ctx.Done():
+					return fmt.Errorf("Aborted due to shutdown")
+				default:
+				}
 				repo := bean.(*Repository)
 				repoPath := repo.RepoPath()
 				log.Trace("Running health check on repository %s", repoPath)
@@ -2278,13 +2296,19 @@ type repoChecker struct {
 	desc                 string
 }
 
-func repoStatsCheck(checker *repoChecker) {
+func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 	results, err := x.Query(checker.querySQL)
 	if err != nil {
 		log.Error("Select %s: %v", checker.desc, err)
 		return
 	}
 	for _, result := range results {
+		select {
+		case <-ctx.Done():
+			log.Warn("CheckRepoStats: Aborting due to shutdown")
+			return
+		default:
+		}
 		id := com.StrTo(result["id"]).MustInt64()
 		log.Trace("Updating %s: %d", checker.desc, id)
 		_, err = x.Exec(checker.correctSQL, id, id)
@@ -2295,7 +2319,7 @@ func repoStatsCheck(checker *repoChecker) {
 }
 
 // CheckRepoStats checks the repository stats
-func CheckRepoStats() {
+func CheckRepoStats(ctx context.Context) {
 	log.Trace("Doing: CheckRepoStats")
 
 	checkers := []*repoChecker{
@@ -2331,7 +2355,13 @@ func CheckRepoStats() {
 		},
 	}
 	for i := range checkers {
-		repoStatsCheck(checkers[i])
+		select {
+		case <-ctx.Done():
+			log.Warn("CheckRepoStats: Aborting due to shutdown")
+			return
+		default:
+			repoStatsCheck(ctx, checkers[i])
+		}
 	}
 
 	// ***** START: Repository.NumClosedIssues *****
@@ -2341,6 +2371,12 @@ func CheckRepoStats() {
 		log.Error("Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
+			select {
+			case <-ctx.Done():
+				log.Warn("CheckRepoStats: Aborting due to shutdown")
+				return
+			default:
+			}
 			id := com.StrTo(result["id"]).MustInt64()
 			log.Trace("Updating %s: %d", desc, id)
 			_, err = x.Exec("UPDATE `repository` SET num_closed_issues=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, false, id)
@@ -2358,6 +2394,12 @@ func CheckRepoStats() {
 		log.Error("Select %s: %v", desc, err)
 	} else {
 		for _, result := range results {
+			select {
+			case <-ctx.Done():
+				log.Warn("CheckRepoStats: Aborting due to shutdown")
+				return
+			default:
+			}
 			id := com.StrTo(result["id"]).MustInt64()
 			log.Trace("Updating %s: %d", desc, id)
 			_, err = x.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, true, id)
@@ -2375,6 +2417,12 @@ func CheckRepoStats() {
 		log.Error("Select repository count 'num_forks': %v", err)
 	} else {
 		for _, result := range results {
+			select {
+			case <-ctx.Done():
+				log.Warn("CheckRepoStats: Aborting due to shutdown")
+				return
+			default:
+			}
 			id := com.StrTo(result["id"]).MustInt64()
 			log.Trace("Updating repository count 'num_forks': %d", id)
 

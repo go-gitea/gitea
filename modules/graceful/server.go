@@ -47,7 +47,7 @@ type Server struct {
 
 // NewServer creates a server on network at provided address
 func NewServer(network, address string) *Server {
-	if Manager.IsChild() {
+	if GetManager().IsChild() {
 		log.Info("Restarting new server: %s:%s on PID: %d", network, address, os.Getpid())
 	} else {
 		log.Info("Starting new server: %s:%s on PID: %d", network, address, os.Getpid())
@@ -138,12 +138,12 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 func (srv *Server) Serve(serve ServeFunction) error {
 	defer log.Debug("Serve() returning... (PID: %d)", syscall.Getpid())
 	srv.setState(stateRunning)
-	Manager.RegisterServer()
+	GetManager().RegisterServer()
 	err := serve(srv.listener)
 	log.Debug("Waiting for connections to finish... (PID: %d)", syscall.Getpid())
 	srv.wg.Wait()
 	srv.setState(stateTerminate)
-	Manager.ServerDone()
+	GetManager().ServerDone()
 	// use of closed means that the listeners are closed - i.e. we should be shutting down - return nil
 	if err != nil && strings.Contains(err.Error(), "use of closed") {
 		return nil
