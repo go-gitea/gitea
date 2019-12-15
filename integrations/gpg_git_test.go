@@ -344,11 +344,8 @@ func crudActionCreateFile(t *testing.T, ctx APITestContext, user *models.User, f
 }
 
 func importTestingKey(tmpDir, name, email string) (*openpgp.Entity, error) {
-	if stdout, _, err := process.GetManager().Exec("gpg --import integrations/private-testing.key", "gpg", "--import", "integrations/private-testing.key"); err != nil {
-		fmt.Fprintf(os.Stdout, stdout)
+	if _, _, err := process.GetManager().Exec("gpg --import integrations/private-testing.key", "gpg", "--import", "integrations/private-testing.key"); err != nil {
 		return nil, err
-	} else {
-		fmt.Fprintf(os.Stdout, stdout)
 	}
 	keyringFile, err := os.Open("integrations/private-testing.key")
 	if err != nil {
