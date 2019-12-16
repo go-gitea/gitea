@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
@@ -67,13 +68,13 @@ func (f *GithubDownloaderV3Factory) GitServiceType() structs.GitServiceType {
 // GithubDownloaderV3 implements a Downloader interface to get repository informations
 // from github via APIv3
 type GithubDownloaderV3 struct {
-	ctx          context.Context
-	client       *github.Client
-	repoOwner    string
-	repoName     string
-	userName     string
-	password     string
-	requestTimes int
+	ctx            context.Context
+	client         *github.Client
+	repoOwner      string
+	repoName       string
+	userName       string
+	password       string
+	remainRequests int
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
@@ -108,23 +109,20 @@ func NewGithubDownloaderV3(userName, password, repoOwner, repoName string) *Gith
 	return &downloader
 }
 
-// GetRequestTimes returns request times to the git service
-func (g *GithubDownloaderV3) GetRequestTimes() int {
-	return g.requestTimes
-}
-
-// GetRequestLimit returns the limitation of the http request times per seconds.
-func (g *GithubDownloaderV3) GetRequestLimit() float32 {
-	return 5000 / 3600
+func (g *GithubDownloaderV3) sleep() {
+	for g.remainRequests <= 0 {
+		time.Sleep(time.Second)
+	}
 }
 
 // GetRepoInfo returns a repository information
 func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
-	gr, _, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
+	g.sleep()
+	gr, resp, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
 	if err != nil {
 		return nil, err
 	}
-	g.requestTimes++
+	g.remainRequests = resp.Rate.Remaining
 	// convert github repo to stand Repo
 	return &base.Repository{
 		Owner:       g.repoOwner,
@@ -138,9 +136,13 @@ func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 
 // GetTopics return github topics
 func (g *GithubDownloaderV3) GetTopics() ([]string, error) {
-	r, _, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
-	g.requestTimes++
-	return r.Topics, err
+	g.sleep()
+	r, resp, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
+	if err != nil {
+		return nil, err
+	}
+	g.remainRequests = resp.Rate.Remaining
+	return r.Topics, nil
 }
 
 // GetMilestones returns milestones
@@ -148,17 +150,18 @@ func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 	var perPage = 100
 	var milestones = make([]*base.Milestone, 0, perPage)
 	for i := 1; ; i++ {
-		ms, _, err := g.client.Issues.ListMilestones(g.ctx, g.repoOwner, g.repoName,
+		g.sleep()
+		ms, resp, err := g.client.Issues.ListMilestones(g.ctx, g.repoOwner, g.repoName,
 			&github.MilestoneListOptions{
 				State: "all",
 				ListOptions: github.ListOptions{
 					Page:    i,
 					PerPage: perPage,
 				}})
-		g.requestTimes++
 		if err != nil {
 			return nil, err
 		}
+		g.remainRequests = resp.Rate.Remaining
 
 		for _, m := range ms {
 			var desc string
@@ -203,15 +206,16 @@ func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 	var perPage = 100
 	var labels = make([]*base.Label, 0, perPage)
 	for i := 1; ; i++ {
-		ls, _, err := g.client.Issues.ListLabels(g.ctx, g.repoOwner, g.repoName,
+		g.sleep()
+		ls, resp, err := g.client.Issues.ListLabels(g.ctx, g.repoOwner, g.repoName,
 			&github.ListOptions{
 				Page:    i,
 				PerPage: perPage,
 			})
-		g.requestTimes++
 		if err != nil {
 			return nil, err
 		}
+		g.remainRequests = resp.Rate.Remaining
 
 		for _, label := range ls {
 			labels = append(labels, convertGithubLabel(label))
@@ -275,15 +279,16 @@ func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
 	var perPage = 100
 	var releases = make([]*base.Release, 0, perPage)
 	for i := 1; ; i++ {
-		ls, _, err := g.client.Repositories.ListReleases(g.ctx, g.repoOwner, g.repoName,
+		g.sleep()
+		ls, resp, err := g.client.Repositories.ListReleases(g.ctx, g.repoOwner, g.repoName,
 			&github.ListOptions{
 				Page:    i,
 				PerPage: perPage,
 			})
-		g.requestTimes++
 		if err != nil {
 			return nil, err
 		}
+		g.remainRequests = resp.Rate.Remaining
 
 		for _, release := range ls {
 			releases = append(releases, g.convertGithubRelease(release))
@@ -320,12 +325,12 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 	}
 
 	var allIssues = make([]*base.Issue, 0, perPage)
-
-	issues, _, err := g.client.Issues.ListByRepo(g.ctx, g.repoOwner, g.repoName, opt)
-	g.requestTimes++
+	g.sleep()
+	issues, resp, err := g.client.Issues.ListByRepo(g.ctx, g.repoOwner, g.repoName, opt)
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
+	g.remainRequests = resp.Rate.Remaining
 	for _, issue := range issues {
 		if issue.IsPullRequest() {
 			continue
@@ -382,11 +387,12 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 		},
 	}
 	for {
+		g.sleep()
 		comments, resp, err := g.client.Issues.ListComments(g.ctx, g.repoOwner, g.repoName, int(issueNumber), opt)
-		g.requestTimes++
 		if err != nil {
 			return nil, fmt.Errorf("error while listing repos: %v", err)
 		}
+		g.remainRequests = resp.Rate.Remaining
 		for _, comment := range comments {
 			var email string
 			if comment.User.Email != nil {
@@ -426,12 +432,12 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 		},
 	}
 	var allPRs = make([]*base.PullRequest, 0, perPage)
-
-	prs, _, err := g.client.PullRequests.List(g.ctx, g.repoOwner, g.repoName, opt)
-	g.requestTimes++
+	g.sleep()
+	prs, resp, err := g.client.PullRequests.List(g.ctx, g.repoOwner, g.repoName, opt)
 	if err != nil {
 		return nil, fmt.Errorf("error while listing repos: %v", err)
 	}
+	g.remainRequests = resp.Rate.Remaining
 	for _, pr := range prs {
 		var body string
 		if pr.Body != nil {

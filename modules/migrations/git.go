@@ -28,16 +28,6 @@ func NewPlainGitDownloader(ownerName, repoName, remoteURL string) *PlainGitDownl
 	}
 }
 
-// GetRequestTimes returns request times to the git service
-func (g *PlainGitDownloader) GetRequestTimes() int {
-	return 1
-}
-
-// GetRequestLimit returns the limitation of the http request times per seconds.
-func (g *PlainGitDownloader) GetRequestLimit() float32 {
-	return 999999999.00
-}
-
 // GetRepoInfo returns a repository information
 func (g *PlainGitDownloader) GetRepoInfo() (*base.Repository, error) {
 	// convert github repo to stand Repo

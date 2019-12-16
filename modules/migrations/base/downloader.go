@@ -21,8 +21,6 @@ type Downloader interface {
 	GetIssues(page, perPage int) ([]*Issue, bool, error)
 	GetComments(issueNumber int64) ([]*Comment, error)
 	GetPullRequests(page, perPage int) ([]*PullRequest, error)
-	GetRequestTimes() int
-	GetRequestLimit() float32
 }
 
 // DownloaderFactory defines an interface to match a downloader implementation and create a downloader
@@ -33,7 +31,7 @@ type DownloaderFactory interface {
 }
 
 var (
-	_ Downloader = &LimitDownloader{}
+	_ Downloader = &RetryDownloader{}
 )
 
 // RetryDownloader retry the downloads
@@ -50,16 +48,6 @@ func NewRetryDownloader(downloader Downloader, retryTimes, retryDelay int) *Retr
 		RetryTimes: retryTimes,
 		RetryDelay: retryDelay,
 	}
-}
-
-// GetRequestTimes returns request times
-func (d *RetryDownloader) GetRequestTimes() int {
-	return d.Downloader.GetRequestTimes()
-}
-
-// GetRequestLimit returns the limitation of the http request times per seconds.
-func (d *RetryDownloader) GetRequestLimit() float32 {
-	return d.Downloader.GetRequestLimit()
 }
 
 // GetRepoInfo returns a repository information with retry
@@ -189,87 +177,4 @@ func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, er
 		time.Sleep(time.Second * time.Duration(d.RetryDelay))
 	}
 	return nil, err
-}
-
-var (
-	_ Downloader = &LimitDownloader{}
-)
-
-// LimitDownloader limit the downloads
-type LimitDownloader struct {
-	Downloader
-	startTime time.Time // start time
-}
-
-// NewLimitDownloader creates a limit downloader
-func NewLimitDownloader(downloader Downloader) *LimitDownloader {
-	return &LimitDownloader{
-		Downloader: downloader,
-		startTime:  time.Now(),
-	}
-}
-
-// GetRequestTimes returns request times
-func (d *LimitDownloader) GetRequestTimes() int {
-	return d.Downloader.GetRequestTimes()
-}
-
-// GetRequestLimit returns the limitation of the http request times per seconds.
-func (d *LimitDownloader) GetRequestLimit() float32 {
-	return d.Downloader.GetRequestLimit()
-}
-
-func (d *LimitDownloader) sleep() {
-	secs := int(time.Since(d.startTime) / time.Second)
-	if secs > 0 && float32(d.GetRequestTimes()/secs) > d.GetRequestLimit() {
-		time.Sleep(time.Second * time.Duration(int(float32(d.GetRequestTimes())/d.GetRequestLimit())-secs))
-	}
-}
-
-// GetRepoInfo returns a repository information with retry
-func (d *LimitDownloader) GetRepoInfo() (*Repository, error) {
-	d.sleep()
-	return d.Downloader.GetRepoInfo()
-}
-
-// GetTopics returns a repository's topics with retry
-func (d *LimitDownloader) GetTopics() ([]string, error) {
-	d.sleep()
-	return d.Downloader.GetTopics()
-}
-
-// GetMilestones returns a repository's milestones with retry
-func (d *LimitDownloader) GetMilestones() ([]*Milestone, error) {
-	d.sleep()
-	return d.Downloader.GetMilestones()
-}
-
-// GetReleases returns a repository's releases with retry
-func (d *LimitDownloader) GetReleases() ([]*Release, error) {
-	d.sleep()
-	return d.Downloader.GetReleases()
-}
-
-// GetLabels returns a repository's labels with retry
-func (d *LimitDownloader) GetLabels() ([]*Label, error) {
-	d.sleep()
-	return d.Downloader.GetLabels()
-}
-
-// GetIssues returns a repository's issues with retry
-func (d *LimitDownloader) GetIssues(page, perPage int) ([]*Issue, bool, error) {
-	d.sleep()
-	return d.Downloader.GetIssues(page, perPage)
-}
-
-// GetComments returns a repository's comments with retry
-func (d *LimitDownloader) GetComments(issueNumber int64) ([]*Comment, error) {
-	d.sleep()
-	return d.Downloader.GetComments(issueNumber)
-}
-
-// GetPullRequests returns a repository's pull requests with retry
-func (d *LimitDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, error) {
-	d.sleep()
-	return d.Downloader.GetPullRequests(page, perPage)
 }
