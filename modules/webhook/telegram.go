@@ -206,7 +206,6 @@ func getTelegramPullRequestPayload(p *api.PullRequestPayload) (*TelegramPayload,
 			title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request closed: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 				p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
 		}
-		text = p.PullRequest.Body
 	case api.HookIssueReOpened:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request re-opened: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
