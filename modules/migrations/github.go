@@ -111,7 +111,7 @@ func NewGithubDownloaderV3(userName, password, repoOwner, repoName string) *Gith
 
 func (g *GithubDownloaderV3) sleep() {
 	for g.rate != nil && g.rate.Remaining <= 0 {
-		time.Sleep(g.rate.Reset.Sub(time.Now()))
+		time.Sleep(time.Until(g.rate.Reset.Time))
 		rates, _, err := g.client.RateLimits(g.ctx)
 		if err != nil {
 			log.Error("g.client.RateLimits: %s", err)
