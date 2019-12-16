@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// AddTimeOption options for adding/deleting time to an issue
+// AddTimeOption options for adding time to an issue
 type AddTimeOption struct {
 	// time in seconds
 	// required: true

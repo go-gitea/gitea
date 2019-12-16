@@ -70,7 +70,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	ctx.JSON(200, trackedTimes.APIFormat())
 }
 
-// AddTime adds/remove time manual to the given issue
+// AddTime add time manual to the given issue
 func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	// swagger:operation Post /repos/{owner}/{repo}/issues/{index}/times issue issueAddTime
 	// ---
