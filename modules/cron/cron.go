@@ -6,9 +6,11 @@
 package cron
 
 import (
+	"context"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
@@ -37,17 +39,19 @@ var taskStatusTable = sync.NewStatusTable()
 type Func func()
 
 // WithUnique wrap a cron func with an unique running check
-func WithUnique(name string, body Func) Func {
+func WithUnique(name string, body func(context.Context)) Func {
 	return func() {
 		if !taskStatusTable.StartIfNotRunning(name) {
 			return
 		}
 		defer taskStatusTable.Stop(name)
-		body()
+		graceful.GetManager().RunWithShutdownContext(body)
 	}
 }
 
 // NewContext begins cron tasks
+// Each cron task is run within the shutdown context as a running server
+// AtShutdown the cron server is stopped
 func NewContext() {
 	var (
 		entry *cron.Entry
@@ -129,6 +133,7 @@ func NewContext() {
 	go WithUnique(updateMigrationPosterID, migrations.UpdateMigrationPosterID)()
 
 	c.Start()
+	graceful.GetManager().RunAtShutdown(context.Background(), c.Stop)
 }
 
 // ListTasks returns all running cron tasks.

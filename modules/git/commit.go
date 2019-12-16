@@ -306,6 +306,27 @@ func (c *Commit) CommitsBefore() (*list.List, error) {
 	return c.repo.getCommitsBefore(c.ID)
 }
 
+// HasPreviousCommit returns true if a given commitHash is contained in commit's parents
+func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
+	for i := 0; i < c.ParentCount(); i++ {
+		commit, err := c.Parent(i)
+		if err != nil {
+			return false, err
+		}
+		if commit.ID == commitHash {
+			return true, nil
+		}
+		commitInParentCommit, err := commit.HasPreviousCommit(commitHash)
+		if err != nil {
+			return false, err
+		}
+		if commitInParentCommit {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // CommitsBeforeLimit returns num commits before current revision
 func (c *Commit) CommitsBeforeLimit(num int) (*list.List, error) {
 	return c.repo.getCommitsBeforeLimit(c.ID, num)

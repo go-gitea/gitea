@@ -281,6 +281,8 @@ var migrations = []Migration{
 	// v112 -> v113
 	NewMigration("remove release attachments which repository deleted", removeAttachmentMissedRepo),
 	// v113 -> v114
+	NewMigration("new feature: change target branch of pull requests", featureChangeTargetBranch),
+	// v114 -> v115
 	NewMigration("fix publisher ID for tag releases", fixPublisherIDforTagReleases),
 }
 

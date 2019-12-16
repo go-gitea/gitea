@@ -388,17 +388,12 @@ steps:
     commands:
       - git fetch --tags --force
 
-  - name: build
-    pull: always
-    image: node:10 # this step is kept at the lowest version of node that we support
-    commands:
-      - make css
-      - make js
-
   - name: static
     pull: always
     image: techknowlogick/xgo:latest
     commands:
+      - apt update && apt -y install curl
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -419,8 +414,6 @@ steps:
         from_secret: gpgsign_key
       GPGSIGN_PASSPHRASE:
         from_secret: gpgsign_passphrase
-    depends_on:
-      - static
 
   - name: release-branch-release
     pull: always
@@ -438,8 +431,6 @@ steps:
         from_secret: aws_access_key_id
       AWS_SECRET_ACCESS_KEY:
         from_secret: aws_secret_access_key
-    depends_on:
-      - gpg-sign
     when:
       branch:
         - "release/*"
@@ -462,8 +453,6 @@ steps:
         from_secret: aws_access_key_id
       AWS_SECRET_ACCESS_KEY:
         from_secret: aws_secret_access_key
-    depends_on:
-      - gpg-sign
     when:
       branch:
         - master
@@ -496,17 +485,12 @@ steps:
     commands:
       - git fetch --tags --force
 
-  - name: build
-    pull: always
-    image: node:10 # this step is kept at the lowest version of node that we support
-    commands:
-      - make css
-      - make js
-
   - name: static
     pull: always
     image: techknowlogick/xgo:latest
     commands:
+      - apt update && apt -y install curl
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -527,8 +511,6 @@ steps:
         from_secret: gpgsign_key
       GPGSIGN_PASSPHRASE:
         from_secret: gpgsign_passphrase
-    depends_on:
-      - static
 
   - name: release
     pull: always
@@ -546,8 +528,6 @@ steps:
         from_secret: aws_access_key_id
       AWS_SECRET_ACCESS_KEY:
         from_secret: aws_secret_access_key
-    depends_on:
-      - gpg-sign
 
   - name: github
     pull: always
@@ -558,8 +538,6 @@ steps:
     environment:
       GITHUB_TOKEN:
         from_secret: github_token
-    depends_on:
-      - gpg-sign
 
 ---
 kind: pipeline
