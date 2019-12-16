@@ -109,9 +109,19 @@ func NewGithubDownloaderV3(userName, password, repoOwner, repoName string) *Gith
 	return &downloader
 }
 
+// SetContext set context
+func (g *GithubDownloaderV3) SetContext(ctx context.Context) {
+	g.ctx = ctx
+}
+
 func (g *GithubDownloaderV3) sleep() {
 	for g.rate != nil && g.rate.Remaining <= 0 {
-		time.Sleep(time.Until(g.rate.Reset.Time))
+		select {
+		case <-g.ctx.Done():
+			return
+		case <-time.After(time.Now().Sub(g.rate.Reset.Time)):
+		}
+
 		rates, _, err := g.client.RateLimits(g.ctx)
 		if err != nil {
 			log.Error("g.client.RateLimits: %s", err)
