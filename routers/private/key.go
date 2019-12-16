@@ -6,9 +6,10 @@
 package private
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/timeutil"
-	"net/http"
 
 	"gitea.com/macaron/macaron"
 )
