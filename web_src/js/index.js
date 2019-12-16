@@ -731,27 +731,66 @@ function initRepository() {
       $issueTitle.toggle();
       $('.not-in-edit').toggle();
       $('#edit-title-input').toggle();
+      $('#pull-desc').toggle();
+      $('#pull-desc-edit').toggle();
       $('.in-edit').toggle();
       $editInput.focus();
       return false;
     };
+
+    const changeBranchSelect = function () {
+      const selectionTextField = $('#pull-target-branch');
+
+      const baseName = selectionTextField.data('basename');
+      const branchNameNew = $(this).data('branch');
+      const branchNameOld = selectionTextField.data('branch');
+
+      // Replace branch name to keep translation from HTML template
+      selectionTextField.html(selectionTextField.html().replace(
+        `${baseName}:${branchNameOld}`,
+        `${baseName}:${branchNameNew}`
+      ));
+      selectionTextField.data('branch', branchNameNew); // update branch name in setting
+    };
+    $('#branch-select > .item').click(changeBranchSelect);
+
     $('#edit-title').click(editTitleToggle);
     $('#cancel-edit-title').click(editTitleToggle);
     $('#save-edit-title').click(editTitleToggle).click(function () {
+      const pullrequest_targetbranch_change = function (update_url) {
+        const targetBranch = $('#pull-target-branch').data('branch');
+        const $branchTarget = $('#branch_target');
+        if (targetBranch === $branchTarget.text()) {
+          return false;
+        }
+        $.post(update_url, {
+          _csrf: csrf,
+          target_branch: targetBranch
+        })
+          .success((data) => {
+            $branchTarget.text(data.base_branch);
+          })
+          .always(() => {
+            reload();
+          });
+      };
+
+      const pullrequest_target_update_url = $(this).data('target-update-url');
       if ($editInput.val().length === 0 || $editInput.val() === $issueTitle.text()) {
         $editInput.val($issueTitle.text());
-        return false;
+        pullrequest_targetbranch_change(pullrequest_target_update_url);
+      } else {
+        $.post($(this).data('update-url'), {
+          _csrf: csrf,
+          title: $editInput.val()
+        },
+        (data) => {
+          $editInput.val(data.title);
+          $issueTitle.text(data.title);
+          pullrequest_targetbranch_change(pullrequest_target_update_url);
+          reload();
+        });
       }
-
-      $.post($(this).data('update-url'), {
-        _csrf: csrf,
-        title: $editInput.val()
-      },
-      (data) => {
-        $editInput.val(data.title);
-        $issueTitle.text(data.title);
-        reload();
-      });
       return false;
     });
 

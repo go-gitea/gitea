@@ -46,6 +46,94 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	return nil
 }
 
+// ChangeTargetBranch changes the target branch of this pull request, as the given user.
+func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch string) (err error) {
+	// Current target branch is already the same
+	if pr.BaseBranch == targetBranch {
+		return nil
+	}
+
+	if pr.Issue.IsClosed {
+		return models.ErrIssueIsClosed{
+			ID:     pr.Issue.ID,
+			RepoID: pr.Issue.RepoID,
+			Index:  pr.Issue.Index,
+		}
+	}
+
+	if pr.HasMerged {
+		return models.ErrPullRequestHasMerged{
+			ID:         pr.ID,
+			IssueID:    pr.Index,
+			HeadRepoID: pr.HeadRepoID,
+			BaseRepoID: pr.BaseRepoID,
+			HeadBranch: pr.HeadBranch,
+			BaseBranch: pr.BaseBranch,
+		}
+	}
+
+	// Check if branches are equal
+	branchesEqual, err := pr.IsHeadEqualWithBranch(targetBranch)
+	if err != nil {
+		return err
+	}
+	if branchesEqual {
+		return models.ErrBranchesEqual{
+			HeadBranchName: pr.HeadBranch,
+			BaseBranchName: targetBranch,
+		}
+	}
+
+	// Check if pull request for the new target branch already exists
+	existingPr, err := models.GetUnmergedPullRequest(pr.HeadRepoID, pr.BaseRepoID, pr.HeadBranch, targetBranch)
+	if existingPr != nil {
+		return models.ErrPullRequestAlreadyExists{
+			ID:         existingPr.ID,
+			IssueID:    existingPr.Index,
+			HeadRepoID: existingPr.HeadRepoID,
+			BaseRepoID: existingPr.BaseRepoID,
+			HeadBranch: existingPr.HeadBranch,
+			BaseBranch: existingPr.BaseBranch,
+		}
+	}
+	if err != nil && !models.IsErrPullRequestNotExist(err) {
+		return err
+	}
+
+	// Set new target branch
+	oldBranch := pr.BaseBranch
+	pr.BaseBranch = targetBranch
+
+	// Refresh patch
+	if err := TestPatch(pr); err != nil {
+		return err
+	}
+
+	// Update target branch, PR diff and status
+	// This is the same as checkAndUpdateStatus in check service, but also updates base_branch
+	if pr.Status == models.PullRequestStatusChecking {
+		pr.Status = models.PullRequestStatusMergeable
+	}
+	if err := pr.UpdateCols("status, conflicted_files, base_branch"); err != nil {
+		return err
+	}
+
+	// Create comment
+	options := &models.CreateCommentOptions{
+		Type:   models.CommentTypeChangeTargetBranch,
+		Doer:   doer,
+		Repo:   pr.Issue.Repo,
+		Issue:  pr.Issue,
+		OldRef: oldBranch,
+		NewRef: targetBranch,
+	}
+	if _, err = models.CreateComment(options); err != nil {
+		return fmt.Errorf("CreateChangeTargetBranchComment: %v", err)
+	}
+
+	return nil
+}
+
 func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *models.User, branch string) error {
 	repo, err := models.GetRepositoryByID(repoID)
 	if err != nil {

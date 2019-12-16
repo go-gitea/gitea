@@ -953,6 +953,22 @@ func (err ErrBranchNameConflict) Error() string {
 	return fmt.Sprintf("branch conflicts with existing branch [name: %s]", err.BranchName)
 }
 
+// ErrBranchesEqual represents an error that branch name conflicts with other branch.
+type ErrBranchesEqual struct {
+	BaseBranchName string
+	HeadBranchName string
+}
+
+// IsErrBranchesEqual checks if an error is an ErrBranchesEqual.
+func IsErrBranchesEqual(err error) bool {
+	_, ok := err.(ErrBranchesEqual)
+	return ok
+}
+
+func (err ErrBranchesEqual) Error() string {
+	return fmt.Sprintf("branches are equal [head: %sm base: %s]", err.HeadBranchName, err.BaseBranchName)
+}
+
 // ErrNotAllowedToMerge represents an error that a branch is protected and the current user is not allowed to modify it.
 type ErrNotAllowedToMerge struct {
 	Reason string
@@ -1088,6 +1104,23 @@ func IsErrIssueNotExist(err error) bool {
 
 func (err ErrIssueNotExist) Error() string {
 	return fmt.Sprintf("issue does not exist [id: %d, repo_id: %d, index: %d]", err.ID, err.RepoID, err.Index)
+}
+
+// ErrIssueIsClosed represents a "IssueIsClosed" kind of error.
+type ErrIssueIsClosed struct {
+	ID     int64
+	RepoID int64
+	Index  int64
+}
+
+// IsErrIssueIsClosed checks if an error is a ErrIssueNotExist.
+func IsErrIssueIsClosed(err error) bool {
+	_, ok := err.(ErrIssueIsClosed)
+	return ok
+}
+
+func (err ErrIssueIsClosed) Error() string {
+	return fmt.Sprintf("issue is closed [id: %d, repo_id: %d, index: %d]", err.ID, err.RepoID, err.Index)
 }
 
 // ErrIssueLabelTemplateLoad represents a "ErrIssueLabelTemplateLoad" kind of error.
@@ -1324,6 +1357,28 @@ func IsErrRebaseConflicts(err error) bool {
 
 func (err ErrRebaseConflicts) Error() string {
 	return fmt.Sprintf("Rebase Error: %v: Whilst Rebasing: %s\n%s\n%s", err.Err, err.CommitSHA, err.StdErr, err.StdOut)
+}
+
+// ErrPullRequestHasMerged represents a "PullRequestHasMerged"-error
+type ErrPullRequestHasMerged struct {
+	ID         int64
+	IssueID    int64
+	HeadRepoID int64
+	BaseRepoID int64
+	HeadBranch string
+	BaseBranch string
+}
+
+// IsErrPullRequestHasMerged checks if an error is a ErrPullRequestHasMerged.
+func IsErrPullRequestHasMerged(err error) bool {
+	_, ok := err.(ErrPullRequestHasMerged)
+	return ok
+}
+
+// Error does pretty-printing :D
+func (err ErrPullRequestHasMerged) Error() string {
+	return fmt.Sprintf("pull request has merged [id: %d, issue_id: %d, head_repo_id: %d, base_repo_id: %d, head_branch: %s, base_branch: %s]",
+		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
 }
 
 // _________                                       __
