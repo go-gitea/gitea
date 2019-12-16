@@ -3252,7 +3252,10 @@ function initTopicbar() {
 
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
-            $(`<a class="ui repo-topic small label topic" href="${suburl}/explore/repos?q=${topicArray[i]}&topic=1">${topicArray[i]}</a>`).insertBefore(last);
+            const link = $('<a class="ui repo-topic small label topic"></a>');
+            link.attr('href', `${suburl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
+            link.text(topicArray[i]);
+            link.insertBefore(last);
           }
         }
         editDiv.css('display', 'none');
@@ -3298,7 +3301,7 @@ function initTopicbar() {
       label: 'ui small label'
     },
     apiSettings: {
-      url: `${suburl}/api/v1/topics/search?q={query}`,
+      url: `${suburl}/api/v1/topics/search?q={encodeURIComponent(query)}`,
       throttle: 500,
       cache: false,
       onResponse(res) {
