@@ -172,7 +172,7 @@ func InitIssueIndexer(syncReindex bool) {
 	} else if setting.Indexer.StartupTimeout > 0 {
 		go func() {
 			timeout := setting.Indexer.StartupTimeout
-			if graceful.Manager.IsChild() && setting.GracefulHammerTime > 0 {
+			if graceful.GetManager().IsChild() && setting.GracefulHammerTime > 0 {
 				timeout += setting.GracefulHammerTime
 			}
 			select {
@@ -204,23 +204,28 @@ func populateIssueIndexer() {
 		}
 
 		for _, repo := range repos {
-			is, err := models.Issues(&models.IssuesOptions{
-				RepoIDs:  []int64{repo.ID},
-				IsClosed: util.OptionalBoolNone,
-				IsPull:   util.OptionalBoolNone,
-			})
-			if err != nil {
-				log.Error("Issues: %v", err)
-				continue
-			}
-			if err = models.IssueList(is).LoadDiscussComments(); err != nil {
-				log.Error("LoadComments: %v", err)
-				continue
-			}
-			for _, issue := range is {
-				UpdateIssueIndexer(issue)
-			}
+			UpdateRepoIndexer(repo)
 		}
+	}
+}
+
+// UpdateRepoIndexer add/update all issues of the repositories
+func UpdateRepoIndexer(repo *models.Repository) {
+	is, err := models.Issues(&models.IssuesOptions{
+		RepoIDs:  []int64{repo.ID},
+		IsClosed: util.OptionalBoolNone,
+		IsPull:   util.OptionalBoolNone,
+	})
+	if err != nil {
+		log.Error("Issues: %v", err)
+		return
+	}
+	if err = models.IssueList(is).LoadDiscussComments(); err != nil {
+		log.Error("LoadComments: %v", err)
+		return
+	}
+	for _, issue := range is {
+		UpdateIssueIndexer(issue)
 	}
 }
 

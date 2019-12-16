@@ -37,3 +37,16 @@
   base_branch: master
   merge_base: 0abcb056019adb83
   has_merged: false
+
+-
+  id: 4
+  type: 0 # gitea pull request
+  status: 2 # mergable
+  issue_id: 9
+  index: 1
+  head_repo_id: 48
+  base_repo_id: 48
+  head_branch: branch1
+  base_branch: master
+  merge_base: abcdef1234567890
+  has_merged: false

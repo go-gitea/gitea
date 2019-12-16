@@ -539,12 +539,6 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		return nil, err
 	}
 
-	if !opts.NoAction {
-		if err = sendCreateCommentAction(e, opts, comment); err != nil {
-			return nil, err
-		}
-	}
-
 	if err = comment.addCrossReferences(e, opts.Doer, false); err != nil {
 		return nil, err
 	}
@@ -573,16 +567,9 @@ func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Co
 		}
 
 		// Check attachments
-		attachments := make([]*Attachment, 0, len(opts.Attachments))
-		for _, uuid := range opts.Attachments {
-			attach, err := getAttachmentByUUID(e, uuid)
-			if err != nil {
-				if IsErrAttachmentNotExist(err) {
-					continue
-				}
-				return fmt.Errorf("getAttachmentByUUID [%s]: %v", uuid, err)
-			}
-			attachments = append(attachments, attach)
+		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
+		if err != nil {
+			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", opts.Attachments, err)
 		}
 
 		for i := range attachments {
@@ -602,68 +589,7 @@ func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Co
 	return updateIssueCols(e, opts.Issue, "updated_unix")
 }
 
-func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, comment *Comment) (err error) {
-	// Compose comment action, could be plain comment, close or reopen issue/pull request.
-	// This object will be used to notify watchers in the end of function.
-	act := &Action{
-		ActUserID: opts.Doer.ID,
-		ActUser:   opts.Doer,
-		Content:   fmt.Sprintf("%d|%s", opts.Issue.Index, strings.Split(opts.Content, "\n")[0]),
-		RepoID:    opts.Repo.ID,
-		Repo:      opts.Repo,
-		Comment:   comment,
-		CommentID: comment.ID,
-		IsPrivate: opts.Repo.IsPrivate,
-	}
-	// Check comment type.
-	switch opts.Type {
-	case CommentTypeCode:
-		if comment.ReviewID != 0 {
-			if comment.Review == nil {
-				if err := comment.loadReview(e); err != nil {
-					return err
-				}
-			}
-			if comment.Review.Type <= ReviewTypePending {
-				return nil
-			}
-		}
-		fallthrough
-	case CommentTypeComment:
-		act.OpType = ActionCommentIssue
-	case CommentTypeReopen:
-		act.OpType = ActionReopenIssue
-		if opts.Issue.IsPull {
-			act.OpType = ActionReopenPullRequest
-		}
-	case CommentTypeClose:
-		act.OpType = ActionCloseIssue
-		if opts.Issue.IsPull {
-			act.OpType = ActionClosePullRequest
-		}
-	}
-	// Notify watchers for whatever action comes in, ignore if no action type.
-	if act.OpType > 0 {
-		if err = notifyWatchers(e, act); err != nil {
-			log.Error("notifyWatchers: %v", err)
-		}
-	}
-	return nil
-}
-
-func createMilestoneComment(e *xorm.Session, doer *User, repo *Repository, issue *Issue, oldMilestoneID, milestoneID int64) (*Comment, error) {
-	return createComment(e, &CreateCommentOptions{
-		Type:           CommentTypeMilestone,
-		Doer:           doer,
-		Repo:           repo,
-		Issue:          issue,
-		OldMilestoneID: oldMilestoneID,
-		MilestoneID:    milestoneID,
-	})
-}
-
 func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
-
 	var content string
 	var commentType CommentType
 
@@ -685,13 +611,18 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 		return nil, err
 	}
 
-	return createComment(e, &CreateCommentOptions{
+	var opts = &CreateCommentOptions{
 		Type:    commentType,
 		Doer:    doer,
 		Repo:    issue.Repo,
 		Issue:   issue,
 		Content: content,
-	})
+	}
+	comment, err := createComment(e, opts)
+	if err != nil {
+		return nil, err
+	}
+	return comment, nil
 }
 
 // Creates issue dependency comment
@@ -705,28 +636,25 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 	}
 
 	// Make two comments, one in each issue
-	_, err = createComment(e, &CreateCommentOptions{
+	var opts = &CreateCommentOptions{
 		Type:             cType,
 		Doer:             doer,
 		Repo:             issue.Repo,
 		Issue:            issue,
 		DependentIssueID: dependentIssue.ID,
-	})
-	if err != nil {
+	}
+	if _, err = createComment(e, opts); err != nil {
 		return
 	}
 
-	_, err = createComment(e, &CreateCommentOptions{
+	opts = &CreateCommentOptions{
 		Type:             cType,
 		Doer:             doer,
 		Repo:             issue.Repo,
 		Issue:            dependentIssue,
 		DependentIssueID: issue.ID,
-	})
-	if err != nil {
-		return
 	}
-
+	_, err = createComment(e, opts)
 	return
 }
 
@@ -758,7 +686,6 @@ type CreateCommentOptions struct {
 	RefCommentID     int64
 	RefAction        references.XRefAction
 	RefIsPull        bool
-	NoAction         bool
 }
 
 // CreateComment creates comment of issue or commit.

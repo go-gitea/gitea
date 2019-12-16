@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -171,10 +172,10 @@ func Dashboard(ctx *context.Context) {
 			err = models.ReinitMissingRepositories()
 		case syncExternalUsers:
 			success = ctx.Tr("admin.dashboard.sync_external_users_started")
-			go models.SyncExternalUsers()
+			go graceful.GetManager().RunWithShutdownContext(models.SyncExternalUsers)
 		case gitFsck:
 			success = ctx.Tr("admin.dashboard.git_fsck_started")
-			go models.GitFsck()
+			go graceful.GetManager().RunWithShutdownContext(models.GitFsck)
 		case deleteGeneratedRepositoryAvatars:
 			success = ctx.Tr("admin.dashboard.delete_generated_repository_avatars_success")
 			err = models.RemoveRandomAvatars()
@@ -352,7 +353,16 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Processes"] = process.GetManager().Processes
+	ctx.Data["Processes"] = process.GetManager().Processes()
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.HTML(200, tplMonitor)
+}
+
+// MonitorCancel cancels a process
+func MonitorCancel(ctx *context.Context) {
+	pid := ctx.ParamsInt64("pid")
+	process.GetManager().Cancel(pid)
+	ctx.JSON(200, map[string]interface{}{
+		"redirect": ctx.Repo.RepoLink + "/admin/monitor",
+	})
 }
