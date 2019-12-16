@@ -116,7 +116,7 @@ func (g *GithubDownloaderV3) SetContext(ctx context.Context) {
 
 func (g *GithubDownloaderV3) sleep() {
 	for g.rate != nil && g.rate.Remaining <= 0 {
-		timer := time.NewTimer(time.Now().Sub(g.rate.Reset.Time))
+		timer := time.NewTimer(time.Until(g.rate.Reset.Time))
 		select {
 		case <-g.ctx.Done():
 			timer.Stop()
