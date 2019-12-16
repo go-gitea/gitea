@@ -281,6 +281,7 @@ provided key. You should also set the value
 NB: opensshd requires the gitea program to be owned by root and not
 writable by group or others. The program must be specified by an absolute
 path.
+NB: Gitea must be running for this command to succeed.
 
 #### migrate
 Migrates the database. This command can be used to run other commands before starting the server for the first time.  
