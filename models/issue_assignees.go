@@ -140,7 +140,7 @@ func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID in
 		AssigneeID:      assigneeID,
 	}
 	// Comment
-	comment, err = createCommentWithNoAction(sess, opts)
+	comment, err = createComment(sess, opts)
 	if err != nil {
 		return false, nil, fmt.Errorf("createComment: %v", err)
 	}
