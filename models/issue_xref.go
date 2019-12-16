@@ -127,11 +127,8 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 			RefAction:    xref.Action,
 			RefIsPull:    ctx.OrigIssue.IsPull,
 		}
-		comment, err := createCommentWithNoAction(e, opts)
+		_, err := createComment(e, opts)
 		if err != nil {
-			return err
-		}
-		if err = sendCreateCommentAction(e, opts, comment); err != nil {
 			return err
 		}
 	}
