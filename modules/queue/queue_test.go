@@ -4,11 +4,12 @@
 
 package queue
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
 
-import "github.com/stretchr/testify/assert"
-
-import "encoding/json"
+	"github.com/stretchr/testify/assert"
+)
 
 type testData struct {
 	TestString string
