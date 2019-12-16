@@ -66,7 +66,7 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 
 	indexTmpPath, err := ioutil.TempDir(os.TempDir(), "gitea-"+pr.BaseRepo.Name)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create temp dir %s: %v", indexTmpPath, err)
+		return nil, fmt.Errorf("Failed to create temp dir for repository %s: %v", pr.BaseRepo.RepoPath(), err)
 	}
 	defer os.RemoveAll(indexTmpPath)
 

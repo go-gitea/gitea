@@ -1202,7 +1202,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 	if opts.AutoInit {
 		tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-"+repo.Name)
 		if err != nil {
-			return fmt.Errorf("Failed to create temp dir %s: %v", tmpDir, err)
+			return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.repoPath(e), err)
 		}
 
 		defer os.RemoveAll(tmpDir)
