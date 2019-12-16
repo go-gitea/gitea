@@ -51,7 +51,7 @@ func (m *mailNotifier) NotifyNewIssue(issue *models.Issue) {
 	}
 }
 
-func (m *mailNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
+func (m *mailNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
 	var actionType models.ActionType
 	if issue.IsPull {
 		if isClosed {

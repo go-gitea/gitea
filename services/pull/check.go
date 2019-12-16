@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -145,6 +146,15 @@ func manuallyMerged(pr *models.PullRequest) bool {
 			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
 			return false
 		}
+
+		baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+		if err != nil {
+			log.Error("OpenRepository[%s] : %v", pr.BaseRepo.RepoPath(), err)
+			return false
+		}
+
+		notification.NotifyMergePullRequest(pr, merger, baseGitRepo)
+
 		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
 		return true
 	}

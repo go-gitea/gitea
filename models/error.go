@@ -1121,6 +1121,38 @@ func (err ErrNewIssueInsert) Error() string {
 	return err.OriginalError.Error()
 }
 
+// ErrIssueWasClosed is used when close a closed issue
+type ErrIssueWasClosed struct {
+	ID    int64
+	Index int64
+}
+
+// IsErrIssueWasClosed checks if an error is a ErrIssueWasClosed.
+func IsErrIssueWasClosed(err error) bool {
+	_, ok := err.(ErrIssueWasClosed)
+	return ok
+}
+
+func (err ErrIssueWasClosed) Error() string {
+	return fmt.Sprintf("Issue [%d] %d was already closed", err.ID, err.Index)
+}
+
+// ErrPullWasClosed is used close a closed pull request
+type ErrPullWasClosed struct {
+	ID    int64
+	Index int64
+}
+
+// IsErrPullWasClosed checks if an error is a ErrErrPullWasClosed.
+func IsErrPullWasClosed(err error) bool {
+	_, ok := err.(ErrPullWasClosed)
+	return ok
+}
+
+func (err ErrPullWasClosed) Error() string {
+	return fmt.Sprintf("Pull request [%d] %d was already closed", err.ID, err.Index)
+}
+
 // ErrForbiddenIssueReaction is used when a forbidden reaction was try to created
 type ErrForbiddenIssueReaction struct {
 	Reaction string
