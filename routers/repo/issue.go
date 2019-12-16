@@ -605,19 +605,35 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 	return models.CommentTagNone, nil
 }
 
+func getBranchData(ctx *context.Context, issue *models.Issue) {
+	ctx.Data["BaseBranch"] = nil
+	ctx.Data["HeadBranch"] = nil
+	ctx.Data["HeadUserName"] = nil
+	ctx.Data["BaseName"] = ctx.Repo.Repository.OwnerName
+	if issue.IsPull {
+		pull := issue.PullRequest
+		ctx.Data["BaseBranch"] = pull.BaseBranch
+		ctx.Data["HeadBranch"] = pull.HeadBranch
+		ctx.Data["HeadUserName"] = pull.MustHeadUserName()
+	}
+}
+
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
-	extIssueUnit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
-	if err == nil && extIssueUnit != nil {
-		if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
-			metas := ctx.Repo.Repository.ComposeMetas()
-			metas["index"] = ctx.Params(":index")
-			ctx.Redirect(com.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas))
+	if ctx.Params(":type") == "issues" {
+		// If issue was requested we check if repo has external tracker and redirect
+		extIssueUnit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
+		if err == nil && extIssueUnit != nil {
+			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
+				metas := ctx.Repo.Repository.ComposeMetas()
+				metas["index"] = ctx.Params(":index")
+				ctx.Redirect(com.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas))
+				return
+			}
+		} else if err != nil && !models.IsErrUnitTypeNotExist(err) {
+			ctx.ServerError("GetUnit", err)
 			return
 		}
-	} else if err != nil && !models.IsErrUnitTypeNotExist(err) {
-		ctx.ServerError("GetUnit", err)
-		return
 	}
 
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
@@ -657,6 +673,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireDropzone"] = true
 	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 	renderAttachmentSettings(ctx)
 
 	if err = issue.LoadAttributes(); err != nil {
@@ -882,6 +899,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 
+	getBranchData(ctx, issue)
 	if issue.IsPull {
 		pull := issue.PullRequest
 		pull.Issue = issue
@@ -1255,7 +1273,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+		ctx.Redirect(issue.HTMLURL())
 		return
 	}
 
@@ -1282,11 +1300,6 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 				// Regenerate patch and test conflict.
 				if pr == nil {
-					if err = issue.PullRequest.UpdatePatch(); err != nil {
-						ctx.ServerError("UpdatePatch", err)
-						return
-					}
-
 					pull_service.AddToTaskQueue(issue.PullRequest)
 				}
 			}

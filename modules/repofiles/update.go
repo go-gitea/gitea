@@ -168,7 +168,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	message := strings.TrimSpace(opts.Message)
 
-	author, committer := GetAuthorAndCommitterUsers(opts.Committer, opts.Author, doer)
+	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
 
 	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {

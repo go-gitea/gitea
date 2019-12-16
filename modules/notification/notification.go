@@ -53,9 +53,9 @@ func NotifyNewIssue(issue *models.Issue) {
 }
 
 // NotifyIssueChangeStatus notifies close or reopen issue to notifiers
-func NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, closeOrReopen bool) {
+func NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, closeOrReopen bool) {
 	for _, notifier := range notifiers {
-		notifier.NotifyIssueChangeStatus(doer, issue, closeOrReopen)
+		notifier.NotifyIssueChangeStatus(doer, issue, actionComment, closeOrReopen)
 	}
 }
 
@@ -84,6 +84,13 @@ func NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
 func NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment) {
 	for _, notifier := range notifiers {
 		notifier.NotifyPullRequestReview(pr, review, comment)
+	}
+}
+
+// NotifyPullRequestChangeTargetBranch notifies when a pull request's target branch was changed
+func NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRequestChangeTargetBranch(doer, pr, oldBranch)
 	}
 }
 

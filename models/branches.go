@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -153,7 +154,7 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 
 // GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
-	approvals, err := x.Where("issue_id = ?", pr.Issue.ID).
+	approvals, err := x.Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeApprove).
 		And("official = ?", true).
 		Count(new(Review))
@@ -525,7 +526,8 @@ func (deletedBranch *DeletedBranch) LoadUser() {
 }
 
 // RemoveOldDeletedBranches removes old deleted branches
-func RemoveOldDeletedBranches() {
+func RemoveOldDeletedBranches(ctx context.Context) {
+	// Nothing to do for shutdown or terminate
 	log.Trace("Doing: DeletedBranchesCleanup")
 
 	deleteBefore := time.Now().Add(-setting.Cron.DeletedBranchesCleanup.OlderThan)

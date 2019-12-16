@@ -11,7 +11,7 @@ import (
 	"crypto/subtle"
 	"fmt"
 	"html"
-	"io"
+	"net/http"
 	"path"
 	"strings"
 
@@ -468,6 +468,7 @@ func ViewPullCommits(ctx *context.Context) {
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = commits.Len()
 
+	getBranchData(ctx, issue)
 	ctx.HTML(200, tplPullCommits)
 }
 
@@ -597,6 +598,7 @@ func ViewPullFiles(ctx *context.Context) {
 		ctx.ServerError("GetCurrentReview", err)
 		return
 	}
+	getBranchData(ctx, issue)
 	ctx.HTML(200, tplPullFiles)
 }
 
@@ -785,12 +787,6 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		return
 	}
 
-	patch, err := headGitRepo.GetPatch(prInfo.MergeBase, headBranch)
-	if err != nil {
-		ctx.ServerError("GetPatch", err)
-		return
-	}
-
 	pullIssue := &models.Issue{
 		RepoID:      repo.ID,
 		Title:       form.Title,
@@ -813,15 +809,12 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
 	// instead of 500.
 
-	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, patch, assigneeIDs); err != nil {
+	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
 		}
 		ctx.ServerError("NewPullRequest", err)
-		return
-	} else if err := pullRequest.PushToBaseRepo(); err != nil {
-		ctx.ServerError("PushToBaseRepo", err)
 		return
 	}
 
@@ -981,44 +974,16 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 // DownloadPullDiff render a pull's raw diff
 func DownloadPullDiff(ctx *context.Context) {
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
-	if err != nil {
-		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound("GetIssueByIndex", err)
-		} else {
-			ctx.ServerError("GetIssueByIndex", err)
-		}
-		return
-	}
-
-	// Return not found if it's not a pull request
-	if !issue.IsPull {
-		ctx.NotFound("DownloadPullDiff",
-			fmt.Errorf("Issue is not a pull request"))
-		return
-	}
-
-	if err = issue.LoadPullRequest(); err != nil {
-		ctx.ServerError("LoadPullRequest", err)
-		return
-	}
-
-	pr := issue.PullRequest
-	if err = pr.GetBaseRepo(); err != nil {
-		ctx.ServerError("GetBaseRepo", err)
-		return
-	}
-	patch, err := pr.BaseRepo.PatchPath(pr.Index)
-	if err != nil {
-		ctx.ServerError("PatchPath", err)
-		return
-	}
-
-	ctx.ServeFileContent(patch)
+	DownloadPullDiffOrPatch(ctx, false)
 }
 
 // DownloadPullPatch render a pull's raw patch
 func DownloadPullPatch(ctx *context.Context) {
+	DownloadPullDiffOrPatch(ctx, true)
+}
+
+// DownloadPullDiffOrPatch render a pull's raw diff or patch
+func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -1042,27 +1007,80 @@ func DownloadPullPatch(ctx *context.Context) {
 	}
 
 	pr := issue.PullRequest
-	if err = pr.GetHeadRepo(); err != nil {
-		ctx.ServerError("GetHeadRepo", err)
+
+	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch); err != nil {
+		ctx.ServerError("DownloadDiffOrPatch", err)
+		return
+	}
+}
+
+// UpdatePullRequestTarget change pull request's target branch
+func UpdatePullRequestTarget(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	pr := issue.PullRequest
+	if ctx.Written() {
+		return
+	}
+	if !issue.IsPull {
+		ctx.Error(http.StatusNotFound)
 		return
 	}
 
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
-	if err != nil {
-		ctx.ServerError("OpenRepository", err)
-		return
-	}
-	defer headGitRepo.Close()
-
-	patch, err := headGitRepo.GetFormatPatch(pr.MergeBase, pr.HeadBranch)
-	if err != nil {
-		ctx.ServerError("GetFormatPatch", err)
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
-	_, err = io.Copy(ctx, patch)
-	if err != nil {
-		ctx.ServerError("io.Copy", err)
+	targetBranch := ctx.QueryTrim("target_branch")
+	if len(targetBranch) == 0 {
+		ctx.Error(http.StatusNoContent)
 		return
 	}
+
+	if err := pull_service.ChangeTargetBranch(pr, ctx.User, targetBranch); err != nil {
+		if models.IsErrPullRequestAlreadyExists(err) {
+			err := err.(models.ErrPullRequestAlreadyExists)
+
+			RepoRelPath := ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
+			errorMessage := ctx.Tr("repo.pulls.has_pull_request", ctx.Repo.RepoLink, RepoRelPath, err.IssueID)
+
+			ctx.Flash.Error(errorMessage)
+			ctx.JSON(http.StatusConflict, map[string]interface{}{
+				"error":      err.Error(),
+				"user_error": errorMessage,
+			})
+		} else if models.IsErrIssueIsClosed(err) {
+			errorMessage := ctx.Tr("repo.pulls.is_closed")
+
+			ctx.Flash.Error(errorMessage)
+			ctx.JSON(http.StatusConflict, map[string]interface{}{
+				"error":      err.Error(),
+				"user_error": errorMessage,
+			})
+		} else if models.IsErrPullRequestHasMerged(err) {
+			errorMessage := ctx.Tr("repo.pulls.has_merged")
+
+			ctx.Flash.Error(errorMessage)
+			ctx.JSON(http.StatusConflict, map[string]interface{}{
+				"error":      err.Error(),
+				"user_error": errorMessage,
+			})
+		} else if models.IsErrBranchesEqual(err) {
+			errorMessage := ctx.Tr("repo.pulls.nothing_to_compare")
+
+			ctx.Flash.Error(errorMessage)
+			ctx.JSON(http.StatusBadRequest, map[string]interface{}{
+				"error":      err.Error(),
+				"user_error": errorMessage,
+			})
+		} else {
+			ctx.ServerError("UpdatePullRequestTarget", err)
+		}
+		return
+	}
+	notification.NotifyPullRequestChangeTargetBranch(ctx.User, pr, targetBranch)
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"base_branch": pr.BaseBranch,
+	})
 }

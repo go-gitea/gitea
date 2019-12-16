@@ -85,6 +85,20 @@ type swaggerIssueDeadline struct {
 	Body api.IssueDeadline `json:"body"`
 }
 
+// StopWatch
+// swagger:response StopWatch
+type swaggerResponseStopWatch struct {
+	// in:body
+	Body api.StopWatch `json:"body"`
+}
+
+// StopWatchList
+// swagger:response StopWatchList
+type swaggerResponseStopWatchList struct {
+	// in:body
+	Body []api.StopWatch `json:"body"`
+}
+
 // EditReactionOption
 // swagger:response EditReactionOption
 type swaggerEditReactionOption struct {

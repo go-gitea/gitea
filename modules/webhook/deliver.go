@@ -5,6 +5,7 @@
 package webhook
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/gobwas/glob"
@@ -145,8 +147,14 @@ func Deliver(t *models.HookTask) error {
 }
 
 // DeliverHooks checks and delivers undelivered hooks.
-// TODO: shoot more hooks at same time.
-func DeliverHooks() {
+// FIXME: graceful: This would likely benefit from either a worker pool with dummy queue
+// or a full queue. Then more hooks could be sent at same time.
+func DeliverHooks(ctx context.Context) {
+	select {
+	case <-ctx.Done():
+		return
+	default:
+	}
 	tasks, err := models.FindUndeliveredHookTasks()
 	if err != nil {
 		log.Error("DeliverHooks: %v", err)
@@ -155,33 +163,50 @@ func DeliverHooks() {
 
 	// Update hook task status.
 	for _, t := range tasks {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		if err = Deliver(t); err != nil {
 			log.Error("deliver: %v", err)
 		}
 	}
 
 	// Start listening on new hook requests.
-	for repoIDStr := range hookQueue.Queue() {
-		log.Trace("DeliverHooks [repo_id: %v]", repoIDStr)
-		hookQueue.Remove(repoIDStr)
+	for {
+		select {
+		case <-ctx.Done():
+			hookQueue.Close()
+			return
+		case repoIDStr := <-hookQueue.Queue():
+			log.Trace("DeliverHooks [repo_id: %v]", repoIDStr)
+			hookQueue.Remove(repoIDStr)
 
-		repoID, err := com.StrTo(repoIDStr).Int64()
-		if err != nil {
-			log.Error("Invalid repo ID: %s", repoIDStr)
-			continue
-		}
+			repoID, err := com.StrTo(repoIDStr).Int64()
+			if err != nil {
+				log.Error("Invalid repo ID: %s", repoIDStr)
+				continue
+			}
 
-		tasks, err := models.FindRepoUndeliveredHookTasks(repoID)
-		if err != nil {
-			log.Error("Get repository [%d] hook tasks: %v", repoID, err)
-			continue
-		}
-		for _, t := range tasks {
-			if err = Deliver(t); err != nil {
-				log.Error("deliver: %v", err)
+			tasks, err := models.FindRepoUndeliveredHookTasks(repoID)
+			if err != nil {
+				log.Error("Get repository [%d] hook tasks: %v", repoID, err)
+				continue
+			}
+			for _, t := range tasks {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+				if err = Deliver(t); err != nil {
+					log.Error("deliver: %v", err)
+				}
 			}
 		}
 	}
+
 }
 
 var (
@@ -234,5 +259,5 @@ func InitDeliverHooks() {
 		},
 	}
 
-	go DeliverHooks()
+	go graceful.GetManager().RunWithShutdownContext(DeliverHooks)
 }
