@@ -27,7 +27,9 @@ var (
 func nameAllowed(name string) error {
 	for _, reservedName := range reservedWikiNames {
 		if name == reservedName {
-			return models.ErrWikiReservedName{name}
+			return models.ErrWikiReservedName{
+				Title: name,
+			}
 		}
 	}
 	return nil
@@ -52,7 +54,9 @@ func NameToFilename(name string) string {
 // FilenameToName converts a wiki filename to its corresponding page name.
 func FilenameToName(filename string) (string, error) {
 	if !strings.HasSuffix(filename, ".md") {
-		return "", models.ErrWikiInvalidFileName{filename}
+		return "", models.ErrWikiInvalidFileName{
+			FileName: filename,
+		}
 	}
 	basename := filename[:len(filename)-3]
 	unescaped, err := url.QueryUnescape(basename)
@@ -138,7 +142,9 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		}
 		for _, file := range filesInIndex {
 			if file == newWikiPath {
-				return models.ErrWikiAlreadyExist{newWikiPath}
+				return models.ErrWikiAlreadyExist{
+					Title: newWikiPath,
+				}
 			}
 		}
 	} else {
