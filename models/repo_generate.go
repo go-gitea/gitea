@@ -179,10 +179,9 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 
 // generateRepository initializes repository from template
 func generateRepository(e Engine, repo, templateRepo, generateRepo *Repository) (err error) {
-	tmpDir := filepath.Join(os.TempDir(), "gitea-"+repo.Name+"-"+com.ToStr(time.Now().Nanosecond()))
-
-	if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", tmpDir, err)
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-"+repo.Name)
+	if err != nil {
+		return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.repoPath(e), err)
 	}
 
 	defer func() {

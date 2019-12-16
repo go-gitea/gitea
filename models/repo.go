@@ -1198,13 +1198,11 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 		return err
 	}
 
-	tmpDir := filepath.Join(os.TempDir(), "gitea-"+repo.Name+"-"+com.ToStr(time.Now().Nanosecond()))
-
 	// Initialize repository according to user's choice.
 	if opts.AutoInit {
-
-		if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-			return fmt.Errorf("Failed to create dir %s: %v", tmpDir, err)
+		tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-"+repo.Name)
+		if err != nil {
+			return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.repoPath(e), err)
 		}
 
 		defer os.RemoveAll(tmpDir)
