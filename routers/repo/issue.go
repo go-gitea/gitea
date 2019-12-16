@@ -673,6 +673,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireDropzone"] = true
 	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 	renderAttachmentSettings(ctx)
 
 	if err = issue.LoadAttributes(); err != nil {
