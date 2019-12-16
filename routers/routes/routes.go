@@ -770,6 +770,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.CompareDiff).
 			Post(context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
+		m.Group("/pull", func() {
+			m.Post("/:index/target_branch", repo.UpdatePullRequestTarget)
+		}, context.RepoMustNotBeArchived())
 
 		m.Group("", func() {
 			m.Group("", func() {

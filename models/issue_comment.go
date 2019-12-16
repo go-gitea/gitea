@@ -82,6 +82,8 @@ const (
 	CommentTypeLock
 	// Unlocks a previously locked issue
 	CommentTypeUnlock
+	// Change pull request's target branch
+	CommentTypeChangeTargetBranch
 )
 
 // CommentTag defines comment tag type
@@ -116,6 +118,8 @@ type Comment struct {
 	Assignee         *User `xorm:"-"`
 	OldTitle         string
 	NewTitle         string
+	OldRef           string
+	NewRef           string
 	DependentIssueID int64
 	DependentIssue   *Issue `xorm:"-"`
 
@@ -517,6 +521,8 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		Content:          opts.Content,
 		OldTitle:         opts.OldTitle,
 		NewTitle:         opts.NewTitle,
+		OldRef:           opts.OldRef,
+		NewRef:           opts.NewRef,
 		DependentIssueID: opts.DependentIssueID,
 		TreePath:         opts.TreePath,
 		ReviewID:         opts.ReviewID,
@@ -673,6 +679,8 @@ type CreateCommentOptions struct {
 	RemovedAssignee  bool
 	OldTitle         string
 	NewTitle         string
+	OldRef           string
+	NewRef           string
 	CommitID         int64
 	CommitSHA        string
 	Patch            string
