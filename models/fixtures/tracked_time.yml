@@ -39,3 +39,17 @@
   issue_id: 2
   time: 20
   created_unix: 946684812
+
+-
+  id: 7
+  user_id: 2
+  issue_id: 4
+  time: 3
+  created_unix: 946684813
+
+-
+  id: 8
+  user_id: 1
+  issue_id: 4
+  time: 71
+  created_unix: 947688814
