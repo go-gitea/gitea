@@ -116,10 +116,12 @@ func (g *GithubDownloaderV3) SetContext(ctx context.Context) {
 
 func (g *GithubDownloaderV3) sleep() {
 	for g.rate != nil && g.rate.Remaining <= 0 {
+		timer := time.NewTimer(time.Now().Sub(g.rate.Reset.Time))
 		select {
 		case <-g.ctx.Done():
+			timer.Stop()
 			return
-		case <-time.After(time.Now().Sub(g.rate.Reset.Time)):
+		case <-timer.C:
 		}
 
 		rates, _, err := g.client.RateLimits(g.ctx)
