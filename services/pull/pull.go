@@ -127,7 +127,7 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 		OldRef: oldBranch,
 		NewRef: targetBranch,
 	}
-	if _, err = models.CreateCommentWithNoAction(options); err != nil {
+	if _, err = models.CreateComment(options); err != nil {
 		return fmt.Errorf("CreateChangeTargetBranchComment: %v", err)
 	}
 
