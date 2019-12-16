@@ -177,7 +177,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 	//   format: int64
 	//   required: true
 	// responses:
-	//   "200":
+	//   "204":
 	//     "$ref": "#/responses/empty"
 	//   "400":
 	//     "$ref": "#/responses/error"
@@ -207,7 +207,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 		ctx.Error(500, "DeleteIssueUserTimes", err)
 		return
 	}
-	ctx.Status(200)
+	ctx.Status(204)
 }
 
 // DeleteTime delete a specific time by id
@@ -243,7 +243,7 @@ func DeleteTime(ctx *context.APIContext) {
 	//   format: int64
 	//   required: true
 	// responses:
-	//   "200":
+	//   "204":
 	//     "$ref": "#/responses/empty"
 	//   "400":
 	//     "$ref": "#/responses/error"
@@ -285,7 +285,7 @@ func DeleteTime(ctx *context.APIContext) {
 		ctx.Error(500, "DeleteTime", err)
 		return
 	}
-	ctx.Status(200)
+	ctx.Status(204)
 }
 
 // ListTrackedTimesByUser  lists all tracked times of the user
