@@ -68,13 +68,13 @@ func (f *GithubDownloaderV3Factory) GitServiceType() structs.GitServiceType {
 // GithubDownloaderV3 implements a Downloader interface to get repository informations
 // from github via APIv3
 type GithubDownloaderV3 struct {
-	ctx            context.Context
-	client         *github.Client
-	repoOwner      string
-	repoName       string
-	userName       string
-	password       string
-	remainRequests int
+	ctx       context.Context
+	client    *github.Client
+	repoOwner string
+	repoName  string
+	userName  string
+	password  string
+	rate      *github.Rate
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
@@ -110,8 +110,14 @@ func NewGithubDownloaderV3(userName, password, repoOwner, repoName string) *Gith
 }
 
 func (g *GithubDownloaderV3) sleep() {
-	for g.remainRequests <= 0 {
-		time.Sleep(time.Second)
+	for g.rate.Remaining <= 0 {
+		time.Sleep(g.rate.Reset.Sub(time.Now()))
+		rates, _, err := g.client.RateLimits(g.ctx)
+		if err != nil {
+			log.Error("g.client.RateLimits: %s", err)
+		}
+
+		g.rate = rates.GetCore()
 	}
 }
 
@@ -122,7 +128,8 @@ func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 	if err != nil {
 		return nil, err
 	}
-	g.remainRequests = resp.Rate.Remaining
+	g.rate = &resp.Rate
+
 	// convert github repo to stand Repo
 	return &base.Repository{
 		Owner:       g.repoOwner,
@@ -141,7 +148,7 @@ func (g *GithubDownloaderV3) GetTopics() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	g.remainRequests = resp.Rate.Remaining
+	g.rate = &resp.Rate
 	return r.Topics, nil
 }
 
@@ -161,7 +168,7 @@ func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 		if err != nil {
 			return nil, err
 		}
-		g.remainRequests = resp.Rate.Remaining
+		g.rate = &resp.Rate
 
 		for _, m := range ms {
 			var desc string
@@ -215,7 +222,7 @@ func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 		if err != nil {
 			return nil, err
 		}
-		g.remainRequests = resp.Rate.Remaining
+		g.rate = &resp.Rate
 
 		for _, label := range ls {
 			labels = append(labels, convertGithubLabel(label))
@@ -288,7 +295,7 @@ func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
 		if err != nil {
 			return nil, err
 		}
-		g.remainRequests = resp.Rate.Remaining
+		g.rate = &resp.Rate
 
 		for _, release := range ls {
 			releases = append(releases, g.convertGithubRelease(release))
@@ -330,7 +337,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
-	g.remainRequests = resp.Rate.Remaining
+	g.rate = &resp.Rate
 	for _, issue := range issues {
 		if issue.IsPullRequest() {
 			continue
@@ -392,7 +399,7 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 		if err != nil {
 			return nil, fmt.Errorf("error while listing repos: %v", err)
 		}
-		g.remainRequests = resp.Rate.Remaining
+		g.rate = &resp.Rate
 		for _, comment := range comments {
 			var email string
 			if comment.User.Email != nil {
@@ -437,7 +444,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 	if err != nil {
 		return nil, fmt.Errorf("error while listing repos: %v", err)
 	}
-	g.remainRequests = resp.Rate.Remaining
+	g.rate = &resp.Rate
 	for _, pr := range prs {
 		var body string
 		if pr.Body != nil {
