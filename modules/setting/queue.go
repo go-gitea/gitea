@@ -6,6 +6,7 @@ package setting
 
 import (
 	"encoding/json"
+	"fmt"
 	"path"
 	"strconv"
 	"strings"
@@ -144,6 +145,38 @@ func newQueueService() {
 	}
 	if !hasWorkers {
 		Cfg.Section("queue.notification").Key("WORKERS").SetValue("5")
+	}
+
+	// Now handle the old issue_indexer configuration
+	section := Cfg.Section("queue.issue_indexer")
+	issueIndexerSectionMap := map[string]string{}
+	for _, key := range section.Keys() {
+		issueIndexerSectionMap[key.Name()] = key.Value()
+	}
+	if _, ok := issueIndexerSectionMap["TYPE"]; !ok {
+		switch Indexer.IssueQueueType {
+		case LevelQueueType:
+			section.Key("TYPE").SetValue("level")
+		case ChannelQueueType:
+			section.Key("TYPE").SetValue("persistable-channel")
+		case RedisQueueType:
+			section.Key("TYPE").SetValue("redis")
+		default:
+			log.Fatal("Unsupported indexer queue type: %v",
+				Indexer.IssueQueueType)
+		}
+	}
+	if _, ok := issueIndexerSectionMap["LENGTH"]; !ok {
+		section.Key("LENGTH").SetValue(fmt.Sprintf("%d", Indexer.UpdateQueueLength))
+	}
+	if _, ok := issueIndexerSectionMap["BATCH_LENGTH"]; !ok {
+		section.Key("BATCH_LENGTH").SetValue(fmt.Sprintf("%d", Indexer.IssueQueueBatchNumber))
+	}
+	if _, ok := issueIndexerSectionMap["DATADIR"]; !ok {
+		section.Key("DATADIR").SetValue(Indexer.IssueQueueDir)
+	}
+	if _, ok := issueIndexerSectionMap["CONN_STR"]; !ok {
+		section.Key("CONN_STR").SetValue(Indexer.IssueQueueConnStr)
 	}
 }
 
