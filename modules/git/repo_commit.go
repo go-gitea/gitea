@@ -315,7 +315,13 @@ func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (in
 
 // CommitsBetween returns a list that contains commits between [last, before).
 func (repo *Repository) CommitsBetween(last *Commit, before *Commit) (*list.List, error) {
-	stdout, err := NewCommand("rev-list", before.ID.String()+"..."+last.ID.String()).RunInDirBytes(repo.Path)
+	var stdout []byte
+	var err error
+	if before == nil {
+		stdout, err = NewCommand("rev-list", before.ID.String()).RunInDirBytes(repo.Path)
+	} else {
+		stdout, err = NewCommand("rev-list", before.ID.String()+"..."+last.ID.String()).RunInDirBytes(repo.Path)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -327,6 +333,9 @@ func (repo *Repository) CommitsBetweenIDs(last, before string) (*list.List, erro
 	lastCommit, err := repo.GetCommit(last)
 	if err != nil {
 		return nil, err
+	}
+	if before == "" {
+		return repo.CommitsBetween(lastCommit, nil)
 	}
 	beforeCommit, err := repo.GetCommit(before)
 	if err != nil {
