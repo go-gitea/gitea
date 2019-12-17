@@ -68,9 +68,18 @@ func FindIssueReactions(issue *Issue) (ReactionList, error) {
 func findReactions(e Engine, opts FindReactionsOptions) ([]*Reaction, error) {
 	reactions := make([]*Reaction, 0, 10)
 	sess := e.Where(opts.toConds())
-	return reactions, sess.
-		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id").
+	err := sess.Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id").
 		Find(&reactions)
+	if err != nil {
+		return nil, err
+	}
+	var result []*Reaction
+	for _, r := range reactions {
+		if setting.UI.ReactionsMap[r.Type] {
+			result = append(result, r)
+		}
+	}
+	return result, nil
 }
 
 func createReaction(e *xorm.Session, opts *ReactionOptions) (*Reaction, error) {
