@@ -112,7 +112,7 @@ menu:
 
 ## Service (`service`)
 
-- `ACTIVE_CODE_LIVE_MINUTES`: 登陆验证码失效时间，单位分钟。
+- `ACTIVE_CODE_LIVE_MINUTES`: 登录验证码失效时间，单位分钟。
 - `RESET_PASSWD_CODE_LIVE_MINUTES`: 重置密码失效时间，单位分钟。
 - `REGISTER_EMAIL_CONFIRM`: 启用注册邮件激活，前提是 `Mailer` 已经启用。
 - `DISABLE_REGISTRATION`: 禁用注册，启用后只能用管理员添加用户。
