@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,6 +36,7 @@ var (
 
 // GiteaLocalUploader implements an Uploader to gitea sites
 type GiteaLocalUploader struct {
+	ctx            context.Context
 	doer           *models.User
 	repoOwner      string
 	repoName       string
@@ -49,8 +51,9 @@ type GiteaLocalUploader struct {
 }
 
 // NewGiteaLocalUploader creates an gitea Uploader via gitea API v1
-func NewGiteaLocalUploader(doer *models.User, repoOwner, repoName string) *GiteaLocalUploader {
+func NewGiteaLocalUploader(ctx context.Context, doer *models.User, repoOwner, repoName string) *GiteaLocalUploader {
 	return &GiteaLocalUploader{
+		ctx:         ctx,
 		doer:        doer,
 		repoOwner:   repoOwner,
 		repoName:    repoName,
