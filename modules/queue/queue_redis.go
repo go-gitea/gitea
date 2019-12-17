@@ -41,6 +41,7 @@ type RedisQueue struct {
 
 // RedisQueueConfiguration is the configuration for the redis queue
 type RedisQueueConfiguration struct {
+	Network      string
 	Addresses    string
 	Password     string
 	DBIndex      int
@@ -88,6 +89,7 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 		return nil, errors.New("no redis host found")
 	} else if len(dbs) == 1 {
 		queue.client = redis.NewClient(&redis.Options{
+			Network:  config.Network,
 			Addr:     strings.TrimSpace(dbs[0]), // use default Addr
 			Password: config.Password,           // no password set
 			DB:       config.DBIndex,            // use default DB
