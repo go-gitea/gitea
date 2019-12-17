@@ -36,7 +36,8 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 
 	for i, time := range expect {
 		assert.Equal(t, time.ID, apiTimes[i].ID)
-		assert.EqualValues(t, issue2.APIFormat(), apiTimes[i].Issue)
+		assert.EqualValues(t, issue2.Title, apiTimes[i].Issue.Title)
+		assert.EqualValues(t, issue2.ID, apiTimes[i].IssueID)
 		assert.Equal(t, time.Created.Unix(), apiTimes[i].Created.Unix())
 		assert.Equal(t, time.Time, apiTimes[i].Time)
 		user, err := models.GetUserByID(time.UserID)
@@ -105,5 +106,5 @@ func TestAPIAddTrackedTimes(t *testing.T) {
 
 	assert.EqualValues(t, 33, apiNewTime.Time)
 	assert.EqualValues(t, user2.ID, apiNewTime.UserID)
-	assert.EqualValues(t, time.Unix(947688818, 0), apiNewTime.Created)
+	assert.EqualValues(t, 947688818, apiNewTime.Created.Unix())
 }
