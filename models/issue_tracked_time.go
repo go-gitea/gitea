@@ -255,7 +255,7 @@ func DeleteTime(t *TrackedTime) error {
 	if err != nil {
 		return err
 	}
-	if err := issue.loadRepo(x); err != nil {
+	if err := issue.loadRepo(sess); err != nil {
 		return err
 	}
 	user, err := getUserByID(sess, t.UserID)
