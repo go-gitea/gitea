@@ -194,7 +194,15 @@ func DeleteIssueUserTimes(issue *Issue, user *User) error {
 		UserID:  user.ID,
 	}
 
-	removedTime, err := deleteTimes(opts)
+	removedTime, err := GetTrackedSeconds(opts)
+	if err != nil {
+		return err
+	}
+	if removedTime == 0 {
+		return ErrNotExist{}
+	}
+
+	removedTime, err = deleteTimes(opts)
 
 	if err := issue.loadRepo(x); err != nil {
 		return err

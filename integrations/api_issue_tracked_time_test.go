@@ -49,12 +49,10 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 func TestAPIDeleteTrackedTime(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	time2 := models.AssertExistsAndLoadBean(t, &models.TrackedTime{ID: 2}).(*models.TrackedTime)
+	time3 := models.AssertExistsAndLoadBean(t, &models.TrackedTime{ID: 3}).(*models.TrackedTime)
 	time6 := models.AssertExistsAndLoadBean(t, &models.TrackedTime{ID: 6}).(*models.TrackedTime)
 	issue2 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
-	issue4 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 4}).(*models.Issue)
 	assert.NoError(t, issue2.LoadRepo())
-	assert.NoError(t, issue4.LoadRepo())
 	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	session := loginUser(t, user2.Name)
@@ -64,22 +62,23 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, time6.ID, token)
 	session.MakeRequest(t, req, http.StatusForbidden)
 	//Delete own time
-	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, time2.ID, token)
+	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, time3.ID, token)
 	session.MakeRequest(t, req, http.StatusNoContent)
 	//Delete non existing time
-	session.MakeRequest(t, req, http.StatusInternalServerError)
+	//-session.MakeRequest(t, req, http.StatusInternalServerError)
 
-	//Reset time of user 2 on issue 4
-	trackedSeconds, err := models.GetTrackedSeconds(models.FindTrackedTimesOptions{IssueID: 4})
+	//Reset time of user 2 on issue 2
+	trackedSeconds, err := models.GetTrackedSeconds(models.FindTrackedTimesOptions{IssueID: 2, UserID: 2})
 	assert.NoError(t, err)
-	assert.Equal(t, int64(74), trackedSeconds)
+	assert.Equal(t, int64(3662), trackedSeconds)
 
-	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times?token=%s", user2.Name, issue4.Repo.Name, issue4.Index, token)
+	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, token)
 	session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNotFound)
 
-	trackedSeconds, err = models.GetTrackedSeconds(models.FindTrackedTimesOptions{IssueID: 4})
+	trackedSeconds, err = models.GetTrackedSeconds(models.FindTrackedTimesOptions{IssueID: 2, UserID: 2})
 	assert.NoError(t, err)
-	assert.Equal(t, int64(71), trackedSeconds)
+	assert.Equal(t, int64(0), trackedSeconds)
 }
 
 func TestAPIAddTrackedTimes(t *testing.T) {

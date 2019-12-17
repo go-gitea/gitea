@@ -204,7 +204,11 @@ func ResetIssueTime(ctx *context.APIContext) {
 
 	err = models.DeleteIssueUserTimes(issue, ctx.User)
 	if err != nil {
-		ctx.Error(500, "DeleteIssueUserTimes", err)
+		if models.IsErrNotExist(err) {
+			ctx.Error(404, "DeleteIssueUserTimes", err)
+		} else {
+			ctx.Error(500, "DeleteIssueUserTimes", err)
+		}
 		return
 	}
 	ctx.Status(204)
