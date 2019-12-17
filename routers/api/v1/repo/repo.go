@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
@@ -481,7 +482,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		}
 	}()
 
-	if _, err = migrations.MigrateRepository(ctx.User, ctxUser.Name, opts); err != nil {
+	if _, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.User, ctxUser.Name, opts); err != nil {
 		handleMigrateError(ctx, ctxUser, remoteAddr, err)
 		return
 	}

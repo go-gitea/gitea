@@ -11,6 +11,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	_ "crypto/sha512" // need for EC keys
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -126,21 +127,23 @@ func jwkEncode(pub crypto.PublicKey) (string, error) {
 
 // jwsSign signs the digest using the given key.
 // The hash is unused for ECDSA keys.
-//
-// Note: non-stdlib crypto.Signer implementations are expected to return
-// the signature in the format as specified in RFC7518.
-// See https://tools.ietf.org/html/rfc7518 for more details.
 func jwsSign(key crypto.Signer, hash crypto.Hash, digest []byte) ([]byte, error) {
-	if key, ok := key.(*ecdsa.PrivateKey); ok {
-		// The key.Sign method of ecdsa returns ASN1-encoded signature.
-		// So, we use the package Sign function instead
-		// to get R and S values directly and format the result accordingly.
-		r, s, err := ecdsa.Sign(rand.Reader, key, digest)
+	switch pub := key.Public().(type) {
+	case *rsa.PublicKey:
+		return key.Sign(rand.Reader, digest, hash)
+	case *ecdsa.PublicKey:
+		sigASN1, err := key.Sign(rand.Reader, digest, hash)
 		if err != nil {
 			return nil, err
 		}
-		rb, sb := r.Bytes(), s.Bytes()
-		size := key.Params().BitSize / 8
+
+		var rs struct{ R, S *big.Int }
+		if _, err := asn1.Unmarshal(sigASN1, &rs); err != nil {
+			return nil, err
+		}
+
+		rb, sb := rs.R.Bytes(), rs.S.Bytes()
+		size := pub.Params().BitSize / 8
 		if size%8 > 0 {
 			size++
 		}
@@ -149,7 +152,7 @@ func jwsSign(key crypto.Signer, hash crypto.Hash, digest []byte) ([]byte, error)
 		copy(sig[size*2-len(sb):], sb)
 		return sig, nil
 	}
-	return key.Sign(rand.Reader, digest, hash)
+	return nil, ErrUnsupportedKey
 }
 
 // jwsHasher indicates suitable JWS algorithm name and a hash function

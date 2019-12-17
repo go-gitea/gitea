@@ -395,7 +395,7 @@ func TestGetOrgUsersByUserID(t *testing.T) {
 func TestGetOrgUsersByOrgID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	orgUsers, err := GetOrgUsersByOrgID(3)
+	orgUsers, err := GetOrgUsersByOrgID(3, false, 0, 0)
 	assert.NoError(t, err)
 	if assert.Len(t, orgUsers, 3) {
 		assert.Equal(t, OrgUser{
@@ -410,7 +410,7 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 			IsPublic: false}, *orgUsers[1])
 	}
 
-	orgUsers, err = GetOrgUsersByOrgID(NonexistentID)
+	orgUsers, err = GetOrgUsersByOrgID(NonexistentID, false, 0, 0)
 	assert.NoError(t, err)
 	assert.Len(t, orgUsers, 0)
 }

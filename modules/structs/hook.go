@@ -398,10 +398,11 @@ type ChangesFromPayload struct {
 	From string `json:"from"`
 }
 
-// ChangesPayload FIXME
+// ChangesPayload represents the payload information of issue change
 type ChangesPayload struct {
 	Title *ChangesFromPayload `json:"title,omitempty"`
 	Body  *ChangesFromPayload `json:"body,omitempty"`
+	Ref   *ChangesFromPayload `json:"ref,omitempty"`
 }
 
 // __________      .__  .__    __________                                     __

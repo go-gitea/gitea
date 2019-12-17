@@ -156,7 +156,7 @@ In the examples, `User1/Repo1` refers to the repository where the reference is u
 | `User1/Repo1!1234`        |    yes                    |    N/A                    | A link to _PR_ 1234 for `User1/Repo1` |
 | `UserZ/RepoZ#1234`        |    N/A                    |     no                    | A link to issue/pull 1234 in `UserZ/RepoZ` |
 | `UserZ/RepoZ!1234`        |    N/A                    |     no                    | A link to issue/pull 1234 in `UserZ/RepoZ` |
-| _Not supported_           |    N/A                    |    yes                    | A link to _external issue_ 1234 for `UserZ/RepoZ` |
+| `UserZ/RepoZ#1234`        |    N/A                    |    yes                    | A link to _external issue_ 1234 for `UserZ/RepoZ` |
 | `UserZ/RepoZ!1234`        |    N/A                    |    yes                    | A link to _PR_ 1234 for `UserZ/RepoZ` |
 | **Alphanumeric issue IDs:** | -                       | -                         | - |
 | `AAA-1234`                |    yes                    |    N/A                    | A link to _external issue_ `AAA-1234` for `User1/Repo1` |

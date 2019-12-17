@@ -39,6 +39,9 @@ ACCESS_CONTROL_ALLOW_ORIGIN =
 USE_COMPAT_SSH_URI = false
 ; Close issues as long as a commit on any branch marks it as fixed
 DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH = false
+; Allow users to push local repositories to Gitea and have them automatically created for a user or an org
+ENABLE_PUSH_CREATE_USER = false
+ENABLE_PUSH_CREATE_ORG = false
 
 [repository.editor]
 ; List of file extensions for which lines should be wrapped in the CodeMirror editor
@@ -107,6 +110,7 @@ WIKI = never
 ; Determines when to sign on merges
 ; - basesigned: require that the parent of commit on the base repo is signed.
 ; - commitssigned: require that all the commits in the head branch are signed.
+; - approved: only sign when merging an approved pr to a protected branch
 MERGES = pubkey, twofa, basesigned, commitssigned
 
 [cors]
@@ -149,6 +153,9 @@ SHOW_USER_EMAIL = true
 DEFAULT_THEME = gitea
 ; All available themes. Allow users select personalized themes regardless of the value of `DEFAULT_THEME`.
 THEMES = gitea,arc-green
+; All available reactions. Allow users react with different emoji's
+: For the whole list look at https://gitea.com/gitea/gitea.com/issues/8
+REACTIONS = +1, -1, laugh, hooray, confused, heart, rocket, eyes
 ; Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 DEFAULT_SHOW_FULL_NAME = false
 ; Whether to search within description at repository search on explore page.
@@ -501,9 +508,11 @@ DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME = true
 ; Default value for the domain part of the user's email address in the git log
 ; if he has set KeepEmailPrivate to true. The user's email will be replaced with a
 ; concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
-NO_REPLY_ADDRESS = noreply.example.org
+NO_REPLY_ADDRESS = noreply.%(DOMAIN)s
 ; Show Registration button
 SHOW_REGISTRATION_BUTTON = true
+; Show milestones dashboard page - a view of all the user's milestones
+SHOW_MILESTONES_DASHBOARD_PAGE = true
 ; Default value for AutoWatchNewRepos
 ; When adding a repo to a team or creating a new repo all team members will watch the
 ; repo automatically if enabled
@@ -873,6 +882,12 @@ SHOW_FOOTER_BRANDING = false
 SHOW_FOOTER_VERSION = true
 ; Show template execution time in the footer
 SHOW_FOOTER_TEMPLATE_LOAD_TIME = true
+
+[markup.sanitizer]
+; The following keys can be used multiple times to define sanitation policy rules.
+;ELEMENT = span
+;ALLOW_ATTR = class
+;REGEXP = ^(info|warning|error)$
 
 [markup.asciidoc]
 ENABLED = false

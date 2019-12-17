@@ -5,16 +5,20 @@
 package mirror
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/graceful"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -207,7 +211,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		log.Error("OpenRepository: %v", err)
 		return nil, false
 	}
-	if err = models.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
+	if err = repository.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
 		gitRepo.Close()
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
@@ -293,29 +297,38 @@ func Password(m *models.Mirror) string {
 }
 
 // Update checks and updates mirror repositories.
-func Update() {
+func Update(ctx context.Context) {
 	log.Trace("Doing: Update")
-
 	if err := models.MirrorsIterate(func(idx int, bean interface{}) error {
 		m := bean.(*models.Mirror)
 		if m.Repo == nil {
 			log.Error("Disconnected mirror repository found: %d", m.ID)
 			return nil
 		}
-
-		mirrorQueue.Add(m.RepoID)
-		return nil
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("Aborted due to shutdown")
+		default:
+			mirrorQueue.Add(m.RepoID)
+			return nil
+		}
 	}); err != nil {
 		log.Error("Update: %v", err)
 	}
 }
 
 // SyncMirrors checks and syncs mirrors.
-// TODO: sync more mirrors at same time.
-func SyncMirrors() {
+// FIXME: graceful: this should be a persistable queue
+func SyncMirrors(ctx context.Context) {
 	// Start listening on new sync requests.
-	for repoID := range mirrorQueue.Queue() {
-		syncMirror(repoID)
+	for {
+		select {
+		case <-ctx.Done():
+			mirrorQueue.Close()
+			return
+		case repoID := <-mirrorQueue.Queue():
+			syncMirror(repoID)
+		}
 	}
 }
 
@@ -415,7 +428,7 @@ func syncMirror(repoID string) {
 
 // InitSyncMirrors initializes a go routine to sync the mirrors
 func InitSyncMirrors() {
-	go SyncMirrors()
+	go graceful.GetManager().RunWithShutdownContext(SyncMirrors)
 }
 
 // StartToMirror adds repoID to mirror queue
