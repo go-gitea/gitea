@@ -2896,7 +2896,7 @@ function initVueApp() {
     data: {
       searchLimit: document.querySelector('meta[name=_search_limit]').content,
       suburl: document.querySelector('meta[name=_suburl]').content,
-      uid: document.querySelector('meta[name=_context_uid]').content,
+      uid: Number(document.querySelector('meta[name=_context_uid]').content),
     },
   });
 }
