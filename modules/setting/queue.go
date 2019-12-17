@@ -22,6 +22,7 @@ type queueSettings struct {
 	BatchLength      int
 	ConnectionString string
 	Type             string
+	Network          string
 	Addresses        string
 	Password         string
 	QueueName        string
@@ -47,6 +48,7 @@ func CreateQueue(name string, handle queue.HandlerFunc, exemplar interface{}) qu
 	opts["BatchLength"] = q.BatchLength
 	opts["DataDir"] = q.DataDir
 	opts["Addresses"] = q.Addresses
+	opts["Network"] = q.Network
 	opts["Password"] = q.Password
 	opts["DBIndex"] = q.DBIndex
 	opts["QueueName"] = q.QueueName
@@ -111,7 +113,7 @@ func getQueueSettings(name string) queueSettings {
 	q.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(Queue.BoostWorkers)
 	q.QueueName = sec.Key("QUEUE_NAME").MustString(Queue.QueueName)
 
-	q.Addresses, q.Password, q.DBIndex, _ = ParseQueueConnStr(q.ConnectionString)
+	q.Network, q.Addresses, q.Password, q.DBIndex, _ = ParseQueueConnStr(q.ConnectionString)
 	return q
 }
 
@@ -128,7 +130,7 @@ func NewQueueService() {
 	Queue.ConnectionString = sec.Key("CONN_STR").MustString(path.Join(AppDataPath, ""))
 	validTypes := queue.RegisteredTypesAsString()
 	Queue.Type = sec.Key("TYPE").In(string(queue.PersistableChannelQueueType), validTypes)
-	Queue.Addresses, Queue.Password, Queue.DBIndex, _ = ParseQueueConnStr(Queue.ConnectionString)
+	Queue.Network, Queue.Addresses, Queue.Password, Queue.DBIndex, _ = ParseQueueConnStr(Queue.ConnectionString)
 	Queue.WrapIfNecessary = sec.Key("WRAP_IF_NECESSARY").MustBool(true)
 	Queue.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(10)
 	Queue.Timeout = sec.Key("TIMEOUT").MustDuration(GracefulHammerTime + 30*time.Second)
@@ -183,7 +185,7 @@ func NewQueueService() {
 }
 
 // ParseQueueConnStr parses a queue connection string
-func ParseQueueConnStr(connStr string) (addrs, password string, dbIdx int, err error) {
+func ParseQueueConnStr(connStr string) (network, addrs, password string, dbIdx int, err error) {
 	fields := strings.Fields(connStr)
 	for _, f := range fields {
 		items := strings.SplitN(f, "=", 2)
@@ -191,6 +193,8 @@ func ParseQueueConnStr(connStr string) (addrs, password string, dbIdx int, err e
 			continue
 		}
 		switch strings.ToLower(items[0]) {
+		case "network":
+			network = items[1]
 		case "addrs":
 			addrs = items[1]
 		case "password":
