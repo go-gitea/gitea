@@ -52,9 +52,9 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	time2 := models.AssertExistsAndLoadBean(t, &models.TrackedTime{ID: 2}).(*models.TrackedTime)
 	time6 := models.AssertExistsAndLoadBean(t, &models.TrackedTime{ID: 6}).(*models.TrackedTime)
 	issue2 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
-	issue5 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 5}).(*models.Issue)
+	issue4 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 4}).(*models.Issue)
 	assert.NoError(t, issue2.LoadRepo())
-	assert.NoError(t, issue5.LoadRepo())
+	assert.NoError(t, issue4.LoadRepo())
 	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	session := loginUser(t, user2.Name)
@@ -70,16 +70,16 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusInternalServerError)
 
 	//Reset time of user 2 on issue 4
-	timesBefore, err := models.GetTrackedSeconds(models.FindTrackedTimesOptions{IssueID: 5})
+	trackedSeconds, err := models.GetTrackedSeconds(models.FindTrackedTimesOptions{IssueID: 4})
 	assert.NoError(t, err)
-	assert.Equal(t, 74, timesBefore)
+	assert.Equal(t, int64(74), trackedSeconds)
 
-	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times?token=%s", user2.Name, issue5.Repo.Name, issue5.Index, token)
+	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times?token=%s", user2.Name, issue4.Repo.Name, issue4.Index, token)
 	session.MakeRequest(t, req, http.StatusNoContent)
 
-	timesAfter, err := models.GetTrackedSeconds(models.FindTrackedTimesOptions{IssueID: 5})
+	trackedSeconds, err = models.GetTrackedSeconds(models.FindTrackedTimesOptions{IssueID: 4})
 	assert.NoError(t, err)
-	assert.Equal(t, 71, timesAfter)
+	assert.Equal(t, int64(71), trackedSeconds)
 }
 
 func TestAPIAddTrackedTimes(t *testing.T) {
