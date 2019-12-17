@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"github.com/stretchr/testify/assert"
 )
@@ -43,7 +44,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	}
 	pushCommits.Len = len(pushCommits.Commits)
 
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 16}).(*Repository)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
 	payloadCommits, err := pushCommits.ToAPIPayloadCommits(repo.RepoPath(), "/user2/repo16")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, len(payloadCommits))
