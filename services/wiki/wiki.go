@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/unknwon/com"
 )
@@ -25,11 +26,9 @@ var (
 )
 
 func nameAllowed(name string) error {
-	for _, reservedName := range reservedWikiNames {
-		if name == reservedName {
-			return models.ErrWikiReservedName{
-				Title: name,
-			}
+	if util.IsStringInSlice(name, reservedWikiNames) {
+		return models.ErrWikiReservedName{
+			Title: name,
 		}
 	}
 	return nil
@@ -140,11 +139,9 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 			log.Error("%v", err)
 			return err
 		}
-		for _, file := range filesInIndex {
-			if file == newWikiPath {
-				return models.ErrWikiAlreadyExist{
-					Title: newWikiPath,
-				}
+		if util.IsStringInSlice(newWikiPath, filesInIndex) {
+			return models.ErrWikiAlreadyExist{
+				Title: newWikiPath,
 			}
 		}
 	} else {
@@ -154,14 +151,8 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 			log.Error("%v", err)
 			return err
 		}
-		found := false
-		for _, file := range filesInIndex {
-			if file == oldWikiPath {
-				found = true
-				break
-			}
-		}
-		if found {
+
+		if util.IsStringInSlice(oldWikiPath, filesInIndex) {
 			err := gitRepo.RemoveFilesFromIndex(oldWikiPath)
 			if err != nil {
 				log.Error("%v", err)
