@@ -144,7 +144,7 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 		}
 		patch = gitdiff.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 	}
-	return models.CreateCommentWithNoAction(&models.CreateCommentOptions{
+	return models.CreateComment(&models.CreateCommentOptions{
 		Type:      models.CommentTypeCode,
 		Doer:      doer,
 		Repo:      repo,

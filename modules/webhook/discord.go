@@ -238,10 +238,8 @@ func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPa
 	case api.HookIssueClosed:
 		title = fmt.Sprintf("[%s] Issue closed: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		color = redColor
-		text = p.Issue.Body
 	case api.HookIssueReOpened:
 		title = fmt.Sprintf("[%s] Issue re-opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 		color = yellowColor
 	case api.HookIssueEdited:
 		title = fmt.Sprintf("[%s] Issue edited: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
@@ -250,31 +248,24 @@ func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPa
 	case api.HookIssueAssigned:
 		title = fmt.Sprintf("[%s] Issue assigned to %s: #%d %s", p.Repository.FullName,
 			p.Issue.Assignee.UserName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 		color = greenColor
 	case api.HookIssueUnassigned:
 		title = fmt.Sprintf("[%s] Issue unassigned: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 		color = yellowColor
 	case api.HookIssueLabelUpdated:
 		title = fmt.Sprintf("[%s] Issue labels updated: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 		color = yellowColor
 	case api.HookIssueLabelCleared:
 		title = fmt.Sprintf("[%s] Issue labels cleared: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 		color = yellowColor
 	case api.HookIssueSynchronized:
 		title = fmt.Sprintf("[%s] Issue synchronized: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 		color = yellowColor
 	case api.HookIssueMilestoned:
 		title = fmt.Sprintf("[%s] Issue milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 		color = yellowColor
 	case api.HookIssueDemilestoned:
 		title = fmt.Sprintf("[%s] Issue clear milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 		color = yellowColor
 	}
 
@@ -368,10 +359,8 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 			title = fmt.Sprintf("[%s] Pull request closed: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 			color = redColor
 		}
-		text = p.PullRequest.Body
 	case api.HookIssueReOpened:
 		title = fmt.Sprintf("[%s] Pull request re-opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 		color = yellowColor
 	case api.HookIssueEdited:
 		title = fmt.Sprintf("[%s] Pull request edited: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
@@ -385,31 +374,24 @@ func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) 
 		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d by %s", p.Repository.FullName,
 			strings.Join(list, ", "),
 			p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 		color = greenColor
 	case api.HookIssueUnassigned:
 		title = fmt.Sprintf("[%s] Pull request unassigned: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 		color = yellowColor
 	case api.HookIssueLabelUpdated:
 		title = fmt.Sprintf("[%s] Pull request labels updated: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 		color = yellowColor
 	case api.HookIssueLabelCleared:
 		title = fmt.Sprintf("[%s] Pull request labels cleared: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 		color = yellowColor
 	case api.HookIssueSynchronized:
 		title = fmt.Sprintf("[%s] Pull request synchronized: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 		color = yellowColor
 	case api.HookIssueMilestoned:
 		title = fmt.Sprintf("[%s] Pull request milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 		color = yellowColor
 	case api.HookIssueDemilestoned:
 		title = fmt.Sprintf("[%s] Pull request clear milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 		color = yellowColor
 	}
 

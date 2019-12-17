@@ -10,10 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -67,13 +64,16 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 		}
 	}
 
-	indexTmpPath := filepath.Join(os.TempDir(), "gitea-"+pr.BaseRepo.Name+"-"+strconv.Itoa(time.Now().Nanosecond()))
-	defer os.Remove(indexTmpPath)
+	indexTmpPath, err := ioutil.TempDir(os.TempDir(), "gitea-"+pr.BaseRepo.Name)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create temp dir for repository %s: %v", pr.BaseRepo.RepoPath(), err)
+	}
+	defer os.RemoveAll(indexTmpPath)
 
 	headFile := pr.GetGitRefName()
 
 	// Check if a pull request is merged into BaseBranch
-	_, err := git.NewCommand("merge-base", "--is-ancestor", headFile, pr.BaseBranch).RunInDirWithEnv(pr.BaseRepo.RepoPath(), []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
+	_, err = git.NewCommand("merge-base", "--is-ancestor", headFile, pr.BaseBranch).RunInDirWithEnv(pr.BaseRepo.RepoPath(), []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
 	if err != nil {
 		// Errors are signaled by a non-zero status that is not 1
 		if strings.Contains(err.Error(), "exit status 1") {
