@@ -162,7 +162,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	// Determine if we should sign
 	signArg := ""
 	if version.Compare(binVersion, "1.7.9", ">=") {
-		sign, keyID := pr.BaseRepo.SignMerge(doer, tmpBasePath, "HEAD", trackingBranch)
+		sign, keyID := pr.SignMerge(doer, tmpBasePath, "HEAD", trackingBranch)
 		if sign {
 			signArg = "-S" + keyID
 		} else if version.Compare(binVersion, "2.0.0", ">=") {

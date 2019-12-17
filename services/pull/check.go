@@ -6,17 +6,17 @@
 package pull
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -64,13 +64,16 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 		}
 	}
 
-	indexTmpPath := filepath.Join(os.TempDir(), "gitea-"+pr.BaseRepo.Name+"-"+strconv.Itoa(time.Now().Nanosecond()))
-	defer os.Remove(indexTmpPath)
+	indexTmpPath, err := ioutil.TempDir(os.TempDir(), "gitea-"+pr.BaseRepo.Name)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create temp dir for repository %s: %v", pr.BaseRepo.RepoPath(), err)
+	}
+	defer os.RemoveAll(indexTmpPath)
 
 	headFile := pr.GetGitRefName()
 
 	// Check if a pull request is merged into BaseBranch
-	_, err := git.NewCommand("merge-base", "--is-ancestor", headFile, pr.BaseBranch).RunInDirWithEnv(pr.BaseRepo.RepoPath(), []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
+	_, err = git.NewCommand("merge-base", "--is-ancestor", headFile, pr.BaseBranch).RunInDirWithEnv(pr.BaseRepo.RepoPath(), []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
 	if err != nil {
 		// Errors are signaled by a non-zero status that is not 1
 		if strings.Contains(err.Error(), "exit status 1") {
@@ -143,6 +146,15 @@ func manuallyMerged(pr *models.PullRequest) bool {
 			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
 			return false
 		}
+
+		baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+		if err != nil {
+			log.Error("OpenRepository[%s] : %v", pr.BaseRepo.RepoPath(), err)
+			return false
+		}
+
+		notification.NotifyMergePullRequest(pr, merger, baseGitRepo)
+
 		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
 		return true
 	}
@@ -151,65 +163,53 @@ func manuallyMerged(pr *models.PullRequest) bool {
 
 // TestPullRequests checks and tests untested patches of pull requests.
 // TODO: test more pull requests at same time.
-func TestPullRequests() {
-	prs, err := models.GetPullRequestsByCheckStatus(models.PullRequestStatusChecking)
-	if err != nil {
-		log.Error("Find Checking PRs: %v", err)
-		return
-	}
+func TestPullRequests(ctx context.Context) {
 
-	var checkedPRs = make(map[int64]struct{})
-
-	// Update pull request status.
-	for _, pr := range prs {
-		checkedPRs[pr.ID] = struct{}{}
-		if err := pr.GetBaseRepo(); err != nil {
-			log.Error("GetBaseRepo: %v", err)
-			continue
+	go func() {
+		prs, err := models.GetPullRequestIDsByCheckStatus(models.PullRequestStatusChecking)
+		if err != nil {
+			log.Error("Find Checking PRs: %v", err)
+			return
 		}
-		if manuallyMerged(pr) {
-			continue
+		for _, prID := range prs {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				pullRequestQueue.Add(prID)
+			}
 		}
-		if err := TestPatch(pr); err != nil {
-			log.Error("testPatch: %v", err)
-			continue
-		}
-
-		checkAndUpdateStatus(pr)
-	}
+	}()
 
 	// Start listening on new test requests.
-	for prID := range pullRequestQueue.Queue() {
-		log.Trace("TestPullRequests[%v]: processing test task", prID)
-		pullRequestQueue.Remove(prID)
+	for {
+		select {
+		case prID := <-pullRequestQueue.Queue():
+			log.Trace("TestPullRequests[%v]: processing test task", prID)
+			pullRequestQueue.Remove(prID)
 
-		id := com.StrTo(prID).MustInt64()
-		if _, ok := checkedPRs[id]; ok {
-			continue
-		}
+			id := com.StrTo(prID).MustInt64()
 
-		pr, err := models.GetPullRequestByID(id)
-		if err != nil {
-			log.Error("GetPullRequestByID[%s]: %v", prID, err)
-			continue
-		} else if manuallyMerged(pr) {
-			continue
+			pr, err := models.GetPullRequestByID(id)
+			if err != nil {
+				log.Error("GetPullRequestByID[%s]: %v", prID, err)
+				continue
+			} else if manuallyMerged(pr) {
+				continue
+			} else if err = TestPatch(pr); err != nil {
+				log.Error("testPatch[%d]: %v", pr.ID, err)
+				continue
+			}
+			checkAndUpdateStatus(pr)
+		case <-ctx.Done():
+			pullRequestQueue.Close()
+			log.Info("PID: %d Pull Request testing shutdown", os.Getpid())
+			return
 		}
-		pr.Status = models.PullRequestStatusChecking
-		if err := pr.Update(); err != nil {
-			log.Error("testPatch[%d]: Unable to update status to Checking Status %v", pr.ID, err)
-			continue
-		}
-		if err = TestPatch(pr); err != nil {
-			log.Error("testPatch[%d]: %v", pr.ID, err)
-			continue
-		}
-
-		checkAndUpdateStatus(pr)
 	}
 }
 
 // Init runs the task queue to test all the checking status pull requests
 func Init() {
-	go TestPullRequests()
+	go graceful.GetManager().RunWithShutdownContext(TestPullRequests)
 }

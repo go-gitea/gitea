@@ -5,6 +5,8 @@
 package migrations
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/modules/migrations/base"
 )
 
@@ -26,6 +28,10 @@ func NewPlainGitDownloader(ownerName, repoName, remoteURL string) *PlainGitDownl
 		repoName:  repoName,
 		remoteURL: remoteURL,
 	}
+}
+
+// SetContext set context
+func (g *PlainGitDownloader) SetContext(ctx context.Context) {
 }
 
 // GetRepoInfo returns a repository information

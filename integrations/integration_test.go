@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -24,6 +25,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
@@ -55,6 +57,10 @@ func NewNilResponseRecorder() *NilResponseRecorder {
 }
 
 func TestMain(m *testing.M) {
+	managerCtx, cancel := context.WithCancel(context.Background())
+	graceful.InitManager(managerCtx)
+	defer cancel()
+
 	initIntegrationTest()
 	mac = routes.NewMacaron()
 	routes.RegisterRoutes(mac)
@@ -171,7 +177,7 @@ func initIntegrationTest() {
 		}
 		defer db.Close()
 	}
-	routers.GlobalInit()
+	routers.GlobalInit(graceful.GetManager().HammerContext())
 }
 
 func prepareTestEnv(t testing.TB, skip ...int) func() {

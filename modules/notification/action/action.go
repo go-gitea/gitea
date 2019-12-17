@@ -53,6 +53,60 @@ func (a *actionNotifier) NotifyNewIssue(issue *models.Issue) {
 	}
 }
 
+// NotifyIssueChangeStatus notifies close or reopen issue to notifiers
+func (a *actionNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, closeOrReopen bool) {
+	// Compose comment action, could be plain comment, close or reopen issue/pull request.
+	// This object will be used to notify watchers in the end of function.
+	act := &models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		Content:   fmt.Sprintf("%d|%s", issue.Index, ""),
+		RepoID:    issue.Repo.ID,
+		Repo:      issue.Repo,
+		Comment:   actionComment,
+		CommentID: actionComment.ID,
+		IsPrivate: issue.Repo.IsPrivate,
+	}
+	// Check comment type.
+	if closeOrReopen {
+		act.OpType = models.ActionCloseIssue
+		if issue.IsPull {
+			act.OpType = models.ActionClosePullRequest
+		}
+	} else {
+		act.OpType = models.ActionReopenIssue
+		if issue.IsPull {
+			act.OpType = models.ActionReopenPullRequest
+		}
+	}
+
+	// Notify watchers for whatever action comes in, ignore if no action type.
+	if err := models.NotifyWatchers(act); err != nil {
+		log.Error("NotifyWatchers: %v", err)
+	}
+}
+
+// NotifyCreateIssueComment notifies comment on an issue to notifiers
+func (a *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
+	issue *models.Issue, comment *models.Comment) {
+	act := &models.Action{
+		OpType:    models.ActionCommentIssue,
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		Content:   fmt.Sprintf("%d|%s", issue.Index, comment.Content),
+		RepoID:    issue.Repo.ID,
+		Repo:      issue.Repo,
+		Comment:   comment,
+		CommentID: comment.ID,
+		IsPrivate: issue.Repo.IsPrivate,
+	}
+
+	// Notify watchers for whatever action comes in, ignore if no action type.
+	if err := models.NotifyWatchers(act); err != nil {
+		log.Error("NotifyWatchers: %v", err)
+	}
+}
+
 func (a *actionNotifier) NotifyNewPullRequest(pull *models.PullRequest) {
 	if err := pull.LoadIssue(); err != nil {
 		log.Error("pull.LoadIssue: %v", err)
