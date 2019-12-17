@@ -144,8 +144,8 @@ func getSlackForkPayload(p *api.ForkPayload, slack *SlackMeta) (*SlackPayload, e
 
 func getSlackIssuesPayload(p *api.IssuePayload, slack *SlackMeta) (*SlackPayload, error) {
 	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
-	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index),
-		fmt.Sprintf("#%d %s", p.Index, p.Issue.Title))
+	titleLink := fmt.Sprintf("[%s](%s/issues/%d)", SlackTextFormatter(fmt.Sprintf("#%d %s", p.Index, p.Issue.Title)),
+		p.Repository.HTMLURL, p.Index)
 	repoLink := SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	var text, title, attachmentText string
 	switch p.Action {
@@ -193,8 +193,8 @@ func getSlackIssuesPayload(p *api.IssuePayload, slack *SlackMeta) (*SlackPayload
 
 func getSlackIssueCommentPayload(p *api.IssueCommentPayload, slack *SlackMeta) (*SlackPayload, error) {
 	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
-	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID)),
-		fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title))
+	titleLink := fmt.Sprintf("[%s](%s/issues/%d#%s)", SlackTextFormatter(fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title)),
+		p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID))
 	repoLink := SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	var text, title, attachmentText string
 	switch p.Action {
@@ -294,8 +294,8 @@ func getSlackPushPayload(p *api.PushPayload, slack *SlackMeta) (*SlackPayload, e
 
 func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*SlackPayload, error) {
 	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
-	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index),
-		fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
+	titleLink := fmt.Sprintf("[%s](%s/pulls/%d)", fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title),
+		p.Repository.HTMLURL, p.Index)
 	repoLink := SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	var text, title, attachmentText string
 	switch p.Action {
@@ -351,8 +351,8 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 
 func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackMeta, event models.HookEventType) (*SlackPayload, error) {
 	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
-	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index),
-		fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
+	titleLink := fmt.Sprintf("[%s](%s/pulls/%d)", fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title),
+		p.Repository.HTMLURL, p.Index)
 	repoLink := SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	var text, title, attachmentText string
 	switch p.Action {
