@@ -5,8 +5,9 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/migrations/base"
 	"context"
+
+	"code.gitea.io/gitea/modules/migrations/base"
 )
 
 var (
