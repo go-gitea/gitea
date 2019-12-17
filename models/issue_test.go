@@ -259,7 +259,7 @@ func TestIssue_loadTotalTimes(t *testing.T) {
 	ms, err := GetIssueByID(2)
 	assert.NoError(t, err)
 	assert.NoError(t, ms.loadTotalTimes(x))
-	assert.Equal(t, int64(3662), ms.TotalTrackedTime)
+	assert.Equal(t, int64(3682), ms.TotalTrackedTime)
 }
 
 func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
