@@ -458,6 +458,8 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 
 func renderUploadSettings(ctx *context.Context) {
 	ctx.Data["RequireDropzone"] = true
+	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["UploadAllowedTypes"] = strings.Join(setting.Repository.Upload.AllowedTypes, ",")
 	ctx.Data["UploadMaxSize"] = setting.Repository.Upload.FileMaxSize
 	ctx.Data["UploadMaxFiles"] = setting.Repository.Upload.MaxFiles
