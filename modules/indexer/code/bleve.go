@@ -204,7 +204,7 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 	return indexer, created, err
 }
 
-// Init init the indexer
+// init init the indexer
 func (b *BleveIndexer) init() (bool, error) {
 	var err error
 	b.indexer, err = openIndexer(b.indexDir, repoIndexerLatestVersion)
@@ -223,6 +223,7 @@ func (b *BleveIndexer) init() (bool, error) {
 	return true, nil
 }
 
+// Close close the indexer
 func (b *BleveIndexer) Close() {
 	log.Debug("Closing repo indexer")
 	if b.indexer != nil {
