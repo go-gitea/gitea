@@ -70,6 +70,7 @@ type HookEvents struct {
 	PullRequestAssign    bool `json:"pull_request_assign"`
 	PullRequestLabel     bool `json:"pull_request_label"`
 	PullRequestMilestone bool `json:"pull_request_milestone"`
+	PullRequestReview    bool `json:"pull_request_review"`
 	PullRequestSync      bool `json:"pull_request_sync"`
 	Repository           bool `json:"repository"`
 	Release              bool `json:"release"`
@@ -215,6 +216,24 @@ func (w *Webhook) HasPullRequestMilestoneEvent() bool {
 		(w.ChooseEvents && w.HookEvents.PullRequestMilestone)
 }
 
+// HasPullRequestReviewEvent returns true if hook enabled pull request review event.
+func (w *Webhook) HasPullRequestApprovedEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.PullRequestReview)
+}
+
+// HasPullRequestRejectedEvent returns true if hook enabled pull request review event.
+func (w *Webhook) HasPullRequestRejectedEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.PullRequestReview)
+}
+
+// HasPullRequestCommentEvent returns true if hook enabled pull request review event.
+func (w *Webhook) HasPullRequestCommentEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.PullRequestReview)
+}
+
 // HasPullRequestSyncEvent returns true if hook enabled pull request sync event.
 func (w *Webhook) HasPullRequestSyncEvent() bool {
 	return w.SendEverything ||
@@ -255,6 +274,9 @@ func (w *Webhook) EventCheckers() []struct {
 		{w.HasPullRequestAssignEvent, HookEventPullRequestAssign},
 		{w.HasPullRequestLabelEvent, HookEventPullRequestLabel},
 		{w.HasPullRequestMilestoneEvent, HookEventPullRequestMilestone},
+		{w.HasPullRequestApprovedEvent, HookEventPullRequestApproved},
+		{w.HasPullRequestRejectedEvent, HookEventPullRequestRejected},
+		{w.HasPullRequestCommentEvent, HookEventPullRequestComment},
 		{w.HasPullRequestSyncEvent, HookEventPullRequestSync},
 		{w.HasRepositoryEvent, HookEventRepository},
 		{w.HasReleaseEvent, HookEventRelease},
