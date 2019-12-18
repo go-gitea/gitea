@@ -509,19 +509,21 @@ func RegisterRoutes(m *macaron.Macaron) {
 				return
 			}
 
-			if repository == nil {
-				ctx.Error(http.StatusNotFound)
-				return
-			}
-
-			if repository.IsPrivate {
-				if !ctx.IsSigned {
+			if repository == nil { //If not linked
+				if !(ctx.IsSigned && attach.UploaderID == ctx.User.ID) { //We block if not the uploader
 					ctx.Error(http.StatusNotFound)
 					return
 				}
-				if !repository.CheckUnitUser(ctx.User.ID, ctx.User.IsAdmin, unitType) {
-					ctx.Error(http.StatusForbidden)
-					return
+			} else { //If we have the repository we check acces
+				if repository.IsPrivate {
+					if !ctx.IsSigned {
+						ctx.Error(http.StatusNotFound)
+						return
+					}
+					if !repository.CheckUnitUser(ctx.User.ID, ctx.User.IsAdmin, unitType) {
+						ctx.Error(http.StatusForbidden)
+						return
+					}
 				}
 			}
 
