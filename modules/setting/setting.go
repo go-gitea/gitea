@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
 
 	shellquote "github.com/kballard/go-shellquote"
@@ -43,6 +42,7 @@ const (
 	HTTP       Scheme = "http"
 	HTTPS      Scheme = "https"
 	FCGI       Scheme = "fcgi"
+	FCGIUnix   Scheme = "fcgi+unix"
 	UnixSocket Scheme = "unix"
 )
 
@@ -99,6 +99,7 @@ var (
 	LetsEncryptEmail     string
 	GracefulRestartable  bool
 	GracefulHammerTime   time.Duration
+	StartupTimeout       time.Duration
 	StaticURLPrefix      string
 
 	SSH = struct {
@@ -159,6 +160,7 @@ var (
 		ExplorePagingNum      int
 		IssuePagingNum        int
 		RepoSearchPagingNum   int
+		MembersPagingNum      int
 		FeedMaxCommitNum      int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
@@ -169,7 +171,10 @@ var (
 		DefaultShowFullName   bool
 		DefaultTheme          string
 		Themes                []string
+		Reactions             []string
+		ReactionsMap          map[string]bool
 		SearchRepoDescription bool
+		UseServiceWorker      bool
 
 		Admin struct {
 			UserPagingNum   int
@@ -189,6 +194,7 @@ var (
 		ExplorePagingNum:    20,
 		IssuePagingNum:      10,
 		RepoSearchPagingNum: 10,
+		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
@@ -197,6 +203,7 @@ var (
 		MaxDisplayFileSize:  8388608,
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
+		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -547,6 +554,14 @@ func NewContext() {
 		KeyFile = sec.Key("KEY_FILE").String()
 	case "fcgi":
 		Protocol = FCGI
+	case "fcgi+unix":
+		Protocol = FCGIUnix
+		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
+		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
+		if err != nil || UnixSocketPermissionParsed > 0777 {
+			log.Fatal("Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
+		}
+		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	case "unix":
 		Protocol = UnixSocket
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
@@ -569,6 +584,7 @@ func NewContext() {
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
 	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
 	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
+	StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(0 * time.Second)
 
 	defaultAppURL := string(Protocol) + "://" + Domain
 	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
@@ -599,6 +615,8 @@ func NewContext() {
 	case UnixSocket:
 		defaultLocalURL = "http://unix/"
 	case FCGI:
+		defaultLocalURL = AppURL
+	case FCGIUnix:
 		defaultLocalURL = AppURL
 	default:
 		defaultLocalURL = string(Protocol) + "://"
@@ -828,7 +846,8 @@ func NewContext() {
 			TimeFormat = timeFormatKey
 			TestTimeFormat, _ := time.Parse(TimeFormat, TimeFormat)
 			if TestTimeFormat.Format(time.RFC3339) != "2006-01-02T15:04:05Z" {
-				log.Fatal("Can't create time properly, please check your time format has 2006, 01, 02, 15, 04 and 05")
+				log.Warn("Provided TimeFormat: %s does not create a fully specified date and time.", TimeFormat)
+				log.Warn("In order to display dates and times correctly please check your time format has 2006, 01, 02, 15, 04 and 05")
 			}
 			log.Trace("Custom TimeFormat: %s", TimeFormat)
 		}
@@ -968,6 +987,7 @@ func NewContext() {
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
+	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(true)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 
@@ -978,6 +998,11 @@ func NewContext() {
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
 
 	zip.Verbose = false
+
+	UI.ReactionsMap = make(map[string]bool)
+	for _, reaction := range UI.Reactions {
+		UI.ReactionsMap[reaction] = true
+	}
 }
 
 func loadInternalToken(sec *ini.Section) string {

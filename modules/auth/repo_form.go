@@ -40,6 +40,10 @@ type CreateRepoForm struct {
 	RepoTemplate int64
 	GitContent   bool
 	Topics       bool
+	GitHooks     bool
+	Webhooks     bool
+	Avatar       bool
+	Labels       bool
 }
 
 // Validate validates the fields
@@ -153,19 +157,20 @@ func (f *RepoSettingForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // ProtectBranchForm form for changing protected branch settings
 type ProtectBranchForm struct {
-	Protected               bool
-	EnableWhitelist         bool
-	WhitelistUsers          string
-	WhitelistTeams          string
-	WhitelistDeployKeys     bool
-	EnableMergeWhitelist    bool
-	MergeWhitelistUsers     string
-	MergeWhitelistTeams     string
-	EnableStatusCheck       bool `xorm:"NOT NULL DEFAULT false"`
-	StatusCheckContexts     []string
-	RequiredApprovals       int64
-	ApprovalsWhitelistUsers string
-	ApprovalsWhitelistTeams string
+	Protected                bool
+	EnablePush               string
+	WhitelistUsers           string
+	WhitelistTeams           string
+	WhitelistDeployKeys      bool
+	EnableMergeWhitelist     bool
+	MergeWhitelistUsers      string
+	MergeWhitelistTeams      string
+	EnableStatusCheck        bool `xorm:"NOT NULL DEFAULT false"`
+	StatusCheckContexts      []string
+	RequiredApprovals        int64
+	EnableApprovalsWhitelist bool
+	ApprovalsWhitelistUsers  string
+	ApprovalsWhitelistTeams  string
 }
 
 // Validate validates the fields
@@ -343,7 +348,7 @@ func (f *CreateCommentForm) Validate(ctx *macaron.Context, errs binding.Errors) 
 
 // ReactionForm form for adding and removing reaction
 type ReactionForm struct {
-	Content string `binding:"Required;In(+1,-1,laugh,confused,heart,hooray)"`
+	Content string `binding:"Required"`
 }
 
 // Validate validates the fields
@@ -505,9 +510,9 @@ func (f SubmitReviewForm) HasEmptyContent() bool {
 
 // NewReleaseForm form for creating release
 type NewReleaseForm struct {
-	TagName    string `binding:"Required;GitRefName"`
-	Target     string `form:"tag_target" binding:"Required"`
-	Title      string `binding:"Required"`
+	TagName    string `binding:"Required;GitRefName;MaxSize(255)"`
+	Target     string `form:"tag_target" binding:"Required;MaxSize(255)"`
+	Title      string `binding:"Required;MaxSize(255)"`
 	Content    string
 	Draft      string
 	Prerelease bool
@@ -521,7 +526,7 @@ func (f *NewReleaseForm) Validate(ctx *macaron.Context, errs binding.Errors) bin
 
 // EditReleaseForm form for changing release
 type EditReleaseForm struct {
-	Title      string `form:"title" binding:"Required"`
+	Title      string `form:"title" binding:"Required;MaxSize(255)"`
 	Content    string `form:"content"`
 	Draft      string `form:"draft"`
 	Prerelease bool   `form:"prerelease"`

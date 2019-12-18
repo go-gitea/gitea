@@ -135,11 +135,9 @@ func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
 	case api.HookIssueClosed:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue closed: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.Issue.URL, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueReOpened:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue re-opened: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.Issue.URL, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueEdited:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue edited: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.Issue.URL, p.Index, p.Issue.Title)
@@ -147,31 +145,24 @@ func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
 	case api.HookIssueAssigned:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue assigned to %s: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.Issue.Assignee.UserName, p.Issue.URL, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueUnassigned:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue unassigned: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.Issue.URL, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueLabelUpdated:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue labels updated: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.Issue.URL, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueLabelCleared:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue labels cleared: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.Issue.URL, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueSynchronized:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue synchronized: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.Issue.URL, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueMilestoned:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue milestone: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.Issue.URL, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueDemilestoned:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue clear milestone: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.Issue.URL, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	}
 
 	return &TelegramPayload{
@@ -215,11 +206,9 @@ func getTelegramPullRequestPayload(p *api.PullRequestPayload) (*TelegramPayload,
 			title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request closed: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 				p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
 		}
-		text = p.PullRequest.Body
 	case api.HookIssueReOpened:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request re-opened: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	case api.HookIssueEdited:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request edited: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
@@ -231,31 +220,24 @@ func getTelegramPullRequestPayload(p *api.PullRequestPayload) (*TelegramPayload,
 		}
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request assigned to %s: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			list, p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	case api.HookIssueUnassigned:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request unassigned: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	case api.HookIssueLabelUpdated:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request labels updated: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	case api.HookIssueLabelCleared:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request labels cleared: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	case api.HookIssueSynchronized:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request synchronized: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	case api.HookIssueMilestoned:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request milestone: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	case api.HookIssueDemilestoned:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request clear milestone: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
 			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	}
 
 	return &TelegramPayload{

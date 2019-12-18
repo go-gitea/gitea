@@ -53,9 +53,9 @@ func NotifyNewIssue(issue *models.Issue) {
 }
 
 // NotifyIssueChangeStatus notifies close or reopen issue to notifiers
-func NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, closeOrReopen bool) {
+func NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, closeOrReopen bool) {
 	for _, notifier := range notifiers {
-		notifier.NotifyIssueChangeStatus(doer, issue, closeOrReopen)
+		notifier.NotifyIssueChangeStatus(doer, issue, actionComment, closeOrReopen)
 	}
 }
 
@@ -84,6 +84,13 @@ func NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
 func NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment) {
 	for _, notifier := range notifiers {
 		notifier.NotifyPullRequestReview(pr, review, comment)
+	}
+}
+
+// NotifyPullRequestChangeTargetBranch notifies when a pull request's target branch was changed
+func NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRequestChangeTargetBranch(doer, pr, oldBranch)
 	}
 }
 
@@ -225,5 +232,26 @@ func NotifyCreateRef(pusher *models.User, repo *models.Repository, refType, refF
 func NotifyDeleteRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
 	for _, notifier := range notifiers {
 		notifier.NotifyDeleteRef(pusher, repo, refType, refFullName)
+	}
+}
+
+// NotifySyncPushCommits notifies commits pushed to notifiers
+func NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+	for _, notifier := range notifiers {
+		notifier.NotifySyncPushCommits(pusher, repo, refName, oldCommitID, newCommitID, commits)
+	}
+}
+
+// NotifySyncCreateRef notifies branch or tag creation to notifiers
+func NotifySyncCreateRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	for _, notifier := range notifiers {
+		notifier.NotifySyncCreateRef(pusher, repo, refType, refFullName)
+	}
+}
+
+// NotifySyncDeleteRef notifies branch or tag deletion to notifiers
+func NotifySyncDeleteRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
+	for _, notifier := range notifiers {
+		notifier.NotifySyncDeleteRef(pusher, repo, refType, refFullName)
 	}
 }

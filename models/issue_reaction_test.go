@@ -81,22 +81,22 @@ func TestIssueReactionCount(t *testing.T) {
 	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
 	ghost := NewGhostUser()
 
-	issue1 := AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
+	issue := AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
 
-	addReaction(t, user1, issue1, nil, "heart")
-	addReaction(t, user2, issue1, nil, "heart")
-	addReaction(t, user3, issue1, nil, "heart")
-	addReaction(t, user3, issue1, nil, "+1")
-	addReaction(t, user4, issue1, nil, "+1")
-	addReaction(t, user4, issue1, nil, "heart")
-	addReaction(t, ghost, issue1, nil, "-1")
+	addReaction(t, user1, issue, nil, "heart")
+	addReaction(t, user2, issue, nil, "heart")
+	addReaction(t, user3, issue, nil, "heart")
+	addReaction(t, user3, issue, nil, "+1")
+	addReaction(t, user4, issue, nil, "+1")
+	addReaction(t, user4, issue, nil, "heart")
+	addReaction(t, ghost, issue, nil, "-1")
 
-	err := issue1.loadReactions(x)
+	err := issue.loadReactions(x)
 	assert.NoError(t, err)
 
-	assert.Len(t, issue1.Reactions, 7)
+	assert.Len(t, issue.Reactions, 7)
 
-	reactions := issue1.Reactions.GroupByType()
+	reactions := issue.Reactions.GroupByType()
 	assert.Len(t, reactions["heart"], 4)
 	assert.Equal(t, 2, reactions["heart"].GetMoreUserCount())
 	assert.Equal(t, user1.DisplayName()+", "+user2.DisplayName(), reactions["heart"].GetFirstUsers())

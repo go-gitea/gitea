@@ -88,7 +88,6 @@
 
     .metas {
         .menu {
-            max-height: 300px;
             overflow-x: auto;
         }
 
@@ -150,7 +149,7 @@
 
         .octicon {
             float: left;
-            margin: 5px -7px 0 -5px;
+            margin: 0 -7px 0 -5px;
             width: 16px;
         }
 
@@ -738,16 +737,22 @@
                     font-size: 12px;
                     border: 1px solid rgba(0, 0, 0, 0.1);
                     border-radius: 3px;
-                    &.pending {
-                        color: black;
-                        background-color: #fffbb2;
+                    &.review {
                         margin-left: 5px;
+                        &.pending {
+                            color: black;
+                            background-color: #fffbb2;
+                        }
                     }
                 }
 
                 .actions {
                     .item {
                         float: left;
+
+                        &.context {
+                            float: none;
+                        }
 
                         &.tag {
                             margin-right: 5px;
@@ -839,6 +844,10 @@
                             color: #000000;
                         }
                     }
+                }
+
+                &:target > .content {
+                    box-shadow: 0 0 10px #8c8c8c;
                 }
 
                 .ui.form {
@@ -1717,6 +1726,14 @@
             .editor-preview {
                 background-color: white;
             }
+
+            .ui.attached.tabular.menu.previewtabs {
+                margin-bottom: 15px;
+
+                & + .field .editor-toolbar:not(.fullscreen) a.fa-eye {
+                    display: none;
+                }
+            }
         }
 
         &.view {
@@ -2413,6 +2430,10 @@ tbody.commit-list {
 
 .label + #manage_topic {
     margin-left: 5px;
+}
+
+.ui.small.label.topic {
+    margin-bottom: 4px;
 }
 
 .repo-header {

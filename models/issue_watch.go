@@ -56,8 +56,21 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 	exists, err = e.
 		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
+		And("is_watching = ?", true).
 		Get(iw)
 	return
+}
+
+// GetIssueWatchersIDs returns IDs of subscribers to a given issue id
+// but avoids joining with `user` for performance reasons
+// User permissions must be verified elsewhere if required
+func GetIssueWatchersIDs(issueID int64) ([]int64, error) {
+	ids := make([]int64, 0, 64)
+	return ids, x.Table("issue_watch").
+		Where("issue_id=?", issueID).
+		And("is_watching = ?", true).
+		Select("user_id").
+		Find(&ids)
 }
 
 // GetIssueWatchers returns watchers/unwatchers of a given issue
@@ -68,6 +81,7 @@ func GetIssueWatchers(issueID int64) (IssueWatchList, error) {
 func getIssueWatchers(e Engine, issueID int64) (watches IssueWatchList, err error) {
 	err = e.
 		Where("`issue_watch`.issue_id = ?", issueID).
+		And("`issue_watch`.is_watching = ?", true).
 		And("`user`.is_active = ?", true).
 		And("`user`.prohibit_login = ?", false).
 		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id").

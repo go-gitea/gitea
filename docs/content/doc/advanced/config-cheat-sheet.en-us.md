@@ -66,6 +66,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    default is not to present. **WARNING**: This maybe harmful to you website if you do not
    give it a right value.
 - `DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH`:  **false**: Close an issue if a commit on a non default branch marks it as closed.
+- `ENABLE_PUSH_CREATE_USER`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for a user.
+- `ENABLE_PUSH_CREATE_ORG`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for an org.
 
 ### Repository - Pull Request (`repository.pull-request`)
 
@@ -94,7 +96,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `CRUD_ACTIONS`: **pubkey, twofa, parentsigned**: \[never, pubkey, twofa, parentsigned, always\]: Sign CRUD actions.
   - Options as above, with the addition of:
   - `parentsigned`: Only sign if the parent commit is signed.
-- `MERGES`: **pubkey, twofa, basesigned, commitssigned**: \[never, pubkey, twofa, basesigned, commitssigned, always\]: Sign merges.
+- `MERGES`: **pubkey, twofa, basesigned, commitssigned**: \[never, pubkey, twofa, approved, basesigned, commitssigned, always\]: Sign merges.
+  - `approved`: Only sign approved merges to a protected branch.
   - `basesigned`: Only sign if the parent commit in the base repo is signed.
   - `headsigned`: Only sign if the head commit in the head branch is signed.
   - `commitssigned`: Only sign if all the commits in the head branch to the merge point are signed.
@@ -113,13 +116,16 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `EXPLORE_PAGING_NUM`: **20**: Number of repositories that are shown in one explore page.
 - `ISSUE_PAGING_NUM`: **10**: Number of issues that are shown in one page (for all pages that list issues).
+- `MEMBERS_PAGING_NUM`: **20**: Number of members that are shown in organization members.
 - `FEED_MAX_COMMIT_NUM`: **5**: Number of maximum commits shown in one activity feed.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
 - `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes
   regardless of the value of `DEFAULT_THEME`.
-- `DEFAULT_SHOW_FULL_NAME`: false: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
-- `SEARCH_REPO_DESCRIPTION`: true: Whether to search within description at repository search on explore page.
+- `REACTIONS`: All available reactions. Allow users react with different emoji's.
+- `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
+- `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
+- `USE_SERVICE_WORKER`: **true**: Whether to enable a Service Worker to cache frontend assets.
 
 ### UI - Admin (`ui.admin`)
 
@@ -137,7 +143,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Server (`server`)
 
-- `PROTOCOL`: **http**: \[http, https, fcgi, unix\]
+- `PROTOCOL`: **http**: \[http, https, fcgi, unix, fcgi+unix\]
 - `DOMAIN`: **localhost**: Domain name of this server.
 - `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**:
    Overwrite the automatically generated public URL.
@@ -152,7 +158,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
-   - If `PROTOCOL` is set to `unix`, this should be the name of the Unix socket file to use.
+   - If `PROTOCOL` is set to `unix` or `fcgi+unix`, this should be the name of the Unix socket file to use.
 - `HTTP_PORT`: **3000**: HTTP listen port.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
@@ -189,6 +195,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LETSENCRYPT_EMAIL`: **email@example.com**: Email used by Letsencrypt to notify about problems with issued certificates. (No default)
 - `ALLOW_GRACEFUL_RESTARTS`: **true**: Perform a graceful restart on SIGHUP
 - `GRACEFUL_HAMMER_TIME`: **60s**: After a restart the parent process will stop accepting new connections and will allow requests to finish before stopping. Shutdown will be forced if it takes longer than this time.
+- `STARTUP_TIMEOUT`: **0**: Shutsdown the server if startup takes longer than the provided time. On Windows setting this sends a waithint to the SVC host to tell the SVC host startup may take some time. Please note startup is determined by the opening of the listeners - HTTP/HTTPS/SSH. Indexers may take longer to startup and can have their own timeouts.
 
 ## Database (`database`)
 
@@ -303,11 +310,14 @@ relation to port exhaustion.
 - `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
   on this instance.
 - `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
+- `SHOW_MILESTONES_DASHBOARD_PAGE`: **true** Enable this to show the milestones dashboard page - a view of all the user's milestones
 - `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
 - `AUTO_WATCH_ON_CHANGES`: **false**: Enable this to make users watch a repository after their first commit to it
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
 - `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
 - `ALLOW_ONLY_EXTERNAL_REGISTRATION`: **false** Set to true to force registration only using third-party services.
+- `NO_REPLY_ADDRESS`: **DOMAIN** Default value for the domain part of the user's email address in the git log if he has set KeepEmailPrivate to true. 
+  The user's email will be replaced with a concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 
 ## Webhook (`webhook`)
 
@@ -558,13 +568,13 @@ Gitea can support Markup using external tools. The example below will add a mark
 
 ```ini
 [markup.asciidoc]
-ENABLED = false
+ENABLED = true
 FILE_EXTENSIONS = .adoc,.asciidoc
 RENDER_COMMAND = "asciidoc --out-file=- -"
 IS_INPUT_FILE = false
 ```
 
-- ENABLED: **false** Enable markup support.
+- ENABLED: **false** Enable markup support; set to **true** to enable this renderer.
 - FILE\_EXTENSIONS: **\<empty\>** List of file extensions that should be rendered by an external
    command. Multiple extentions needs a comma as splitter.
 - RENDER\_COMMAND: External command to render all matching extensions.
@@ -573,6 +583,24 @@ IS_INPUT_FILE = false
 Two special environment variables are passed to the render command:
 - `GITEA_PREFIX_SRC`, which contains the current URL prefix in the `src` path tree. To be used as prefix for links.
 - `GITEA_PREFIX_RAW`, which contains the current URL prefix in the `raw` path tree. To be used as prefix for image paths.
+
+
+Gitea supports customizing the sanitization policy for rendered HTML. The example below will support KaTeX output from pandoc.
+
+```ini
+[markup.sanitizer]
+; Pandoc renders TeX segments as <span>s with the "math" class, optionally
+; with "inline" or "display" classes depending on context.
+ELEMENT = span
+ALLOW_ATTR = class
+REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
+```
+
+ - `ELEMENT`: The element this policy applies to. Must be non-empty.
+ - `ALLOW_ATTR`: The attribute this policy allows. Must be non-empty.
+ - `REGEXP`: A regex to match the contents of the attribute against. Must be present but may be empty for unconditional whitelisting of this attribute.
+
+You may redefine `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` multiple times; each time all three are defined is a single policy entry.
 
 ## Time (`time`)
 

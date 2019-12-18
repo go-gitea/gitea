@@ -62,7 +62,7 @@ func (ns *notificationService) NotifyNewIssue(issue *models.Issue) {
 	}
 }
 
-func (ns *notificationService) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
+func (ns *notificationService) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
 	ns.issueQueue <- issueNotificationOpts{
 		issueID:              issue.ID,
 		notificationAuthorID: doer.ID,

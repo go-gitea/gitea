@@ -31,7 +31,7 @@ func (*NullNotifier) NotifyNewIssue(issue *models.Issue) {
 }
 
 // NotifyIssueChangeStatus places a place holder function
-func (*NullNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, isClosed bool) {
+func (*NullNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
 }
 
 // NotifyNewPullRequest places a place holder function
@@ -48,6 +48,10 @@ func (*NullNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *models
 
 // NotifyPullRequestSynchronized places a place holder function
 func (*NullNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest) {
+}
+
+// NotifyPullRequestChangeTargetBranch places a place holder function
+func (*NullNotifier) NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string) {
 }
 
 // NotifyUpdateComment places a place holder function
@@ -129,4 +133,16 @@ func (*NullNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repo
 
 // NotifyTransferRepository places a place holder function
 func (*NullNotifier) NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string) {
+}
+
+// NotifySyncPushCommits places a place holder function
+func (*NullNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+}
+
+// NotifySyncCreateRef places a place holder function
+func (*NullNotifier) NotifySyncCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
+}
+
+// NotifySyncDeleteRef places a place holder function
+func (*NullNotifier) NotifySyncDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
 }

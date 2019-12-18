@@ -249,12 +249,14 @@ func ToTeam(team *models.Team) *api.Team {
 		Name:                    team.Name,
 		Description:             team.Description,
 		IncludesAllRepositories: team.IncludesAllRepositories,
+		CanCreateOrgRepo:        team.CanCreateOrgRepo,
 		Permission:              team.Authorize.String(),
 		Units:                   team.GetUnitNames(),
 	}
 }
 
 // ToUser convert models.User to api.User
+// signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
 func ToUser(user *models.User, signed, authed bool) *api.User {
 	result := &api.User{
 		UserName:  user.Name,
@@ -262,16 +264,16 @@ func ToUser(user *models.User, signed, authed bool) *api.User {
 		FullName:  markup.Sanitize(user.FullName),
 		Created:   user.CreatedUnix.AsTime(),
 	}
-	// hide primary email if API caller isn't user itself or an admin
-	if !signed {
-		result.Email = ""
-	} else if user.KeepEmailPrivate && !authed {
-		result.Email = user.GetEmail()
-	} else { // only user himself and admin could visit these information
-		result.ID = user.ID
+	// hide primary email if API caller is anonymous or user keep email private
+	if signed && (!user.KeepEmailPrivate || authed) {
 		result.Email = user.Email
+	}
+	// only site admin will get these information and possibly user himself
+	if authed {
+		result.ID = user.ID
 		result.IsAdmin = user.IsAdmin
 		result.LastLogin = user.LastLoginUnix.AsTime()
+		result.Language = user.Language
 	}
 	return result
 }

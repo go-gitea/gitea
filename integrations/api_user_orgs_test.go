@@ -16,7 +16,7 @@ import (
 )
 
 func TestUserOrgs(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
 	session := loginUser(t, adminUsername)
@@ -44,7 +44,7 @@ func TestUserOrgs(t *testing.T) {
 }
 
 func TestMyOrgs(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)

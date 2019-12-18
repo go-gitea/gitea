@@ -10,7 +10,7 @@ import (
 )
 
 func TestExploreRepos(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/explore/repos")
 	MakeRequest(t, req, http.StatusOK)

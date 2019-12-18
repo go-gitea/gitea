@@ -12,6 +12,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -38,6 +39,7 @@ import (
 
 const (
 	tplSettingsLFS         base.TplName = "repo/settings/lfs"
+	tplSettingsLFSLocks    base.TplName = "repo/settings/lfs_locks"
 	tplSettingsLFSFile     base.TplName = "repo/settings/lfs_file"
 	tplSettingsLFSFileFind base.TplName = "repo/settings/lfs_file_find"
 	tplSettingsLFSPointers base.TplName = "repo/settings/lfs_pointers"
@@ -58,6 +60,7 @@ func LFSFiles(ctx *context.Context) {
 		ctx.ServerError("LFSFiles", err)
 		return
 	}
+	ctx.Data["Total"] = total
 
 	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs")
@@ -70,6 +73,179 @@ func LFSFiles(ctx *context.Context) {
 	ctx.Data["LFSFiles"] = lfsMetaObjects
 	ctx.Data["Page"] = pager
 	ctx.HTML(200, tplSettingsLFS)
+}
+
+// LFSLocks shows a repository's LFS locks
+func LFSLocks(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		ctx.NotFound("LFSLocks", nil)
+		return
+	}
+	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
+
+	page := ctx.QueryInt("page")
+	if page <= 1 {
+		page = 1
+	}
+	total, err := models.CountLFSLockByRepoID(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("LFSLocks", err)
+		return
+	}
+	ctx.Data["Total"] = total
+
+	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
+	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs_locks")
+	ctx.Data["PageIsSettingsLFS"] = true
+	lfsLocks, err := models.GetLFSLockByRepoID(ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.UI.ExplorePagingNum)
+	if err != nil {
+		ctx.ServerError("LFSLocks", err)
+		return
+	}
+	ctx.Data["LFSLocks"] = lfsLocks
+
+	if len(lfsLocks) == 0 {
+		ctx.Data["Page"] = pager
+		ctx.HTML(200, tplSettingsLFSLocks)
+		return
+	}
+
+	// Clone base repo.
+	tmpBasePath, err := models.CreateTemporaryPath("locks")
+	if err != nil {
+		log.Error("Failed to create temporary path: %v", err)
+		ctx.ServerError("LFSLocks", err)
+		return
+	}
+	defer func() {
+		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
+			log.Error("LFSLocks: RemoveTemporaryPath: %v", err)
+		}
+	}()
+
+	if err := git.Clone(ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
+		Bare:   true,
+		Shared: true,
+	}); err != nil {
+		log.Error("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err)
+		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err))
+	}
+
+	gitRepo, err := git.OpenRepository(tmpBasePath)
+	if err != nil {
+		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
+		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to open new temporary repository in: %s %v", tmpBasePath, err))
+	}
+
+	filenames := make([]string, len(lfsLocks))
+
+	for i, lock := range lfsLocks {
+		filenames[i] = lock.Path
+	}
+
+	if err := gitRepo.ReadTreeToIndex(ctx.Repo.Repository.DefaultBranch); err != nil {
+		log.Error("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err)
+		ctx.ServerError("LFSLocks", fmt.Errorf("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err))
+	}
+
+	name2attribute2info, err := gitRepo.CheckAttribute(git.CheckAttributeOpts{
+		Attributes: []string{"lockable"},
+		Filenames:  filenames,
+		CachedOnly: true,
+	})
+	if err != nil {
+		log.Error("Unable to check attributes in %s (%v)", tmpBasePath, err)
+		ctx.ServerError("LFSLocks", err)
+	}
+
+	lockables := make([]bool, len(lfsLocks))
+	for i, lock := range lfsLocks {
+		attribute2info, has := name2attribute2info[lock.Path]
+		if !has {
+			continue
+		}
+		if attribute2info["lockable"] != "set" {
+			continue
+		}
+		lockables[i] = true
+	}
+	ctx.Data["Lockables"] = lockables
+
+	filelist, err := gitRepo.LsFiles(filenames...)
+	if err != nil {
+		log.Error("Unable to lsfiles in %s (%v)", tmpBasePath, err)
+		ctx.ServerError("LFSLocks", err)
+	}
+
+	filemap := make(map[string]bool, len(filelist))
+	for _, name := range filelist {
+		filemap[name] = true
+	}
+
+	linkable := make([]bool, len(lfsLocks))
+	for i, lock := range lfsLocks {
+		linkable[i] = filemap[lock.Path]
+	}
+	ctx.Data["Linkable"] = linkable
+
+	ctx.Data["Page"] = pager
+	ctx.HTML(200, tplSettingsLFSLocks)
+}
+
+// LFSLockFile locks a file
+func LFSLockFile(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		ctx.NotFound("LFSLocks", nil)
+		return
+	}
+	originalPath := ctx.Query("path")
+	lockPath := originalPath
+	if len(lockPath) == 0 {
+		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_locking_path", originalPath))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+		return
+	}
+	if lockPath[len(lockPath)-1] == '/' {
+		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_lock_directory", originalPath))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+		return
+	}
+	lockPath = path.Clean("/" + lockPath)[1:]
+	if len(lockPath) == 0 {
+		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_locking_path", originalPath))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+		return
+	}
+
+	_, err := models.CreateLFSLock(&models.LFSLock{
+		Repo:  ctx.Repo.Repository,
+		Path:  lockPath,
+		Owner: ctx.User,
+	})
+	if err != nil {
+		if models.IsErrLFSLockAlreadyExist(err) {
+			ctx.Flash.Error(ctx.Tr("repo.settings.lfs_lock_already_exists", originalPath))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+			return
+		}
+		ctx.ServerError("LFSLockFile", err)
+		return
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
+}
+
+// LFSUnlock forcibly unlocks an LFS lock
+func LFSUnlock(ctx *context.Context) {
+	if !setting.LFS.StartServer {
+		ctx.NotFound("LFSUnlock", nil)
+		return
+	}
+	_, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.User, true)
+	if err != nil {
+		ctx.ServerError("LFSUnlock", err)
+		return
+	}
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
 }
 
 // LFSFileGet serves a single LFS file

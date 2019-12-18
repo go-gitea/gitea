@@ -8,7 +8,7 @@ import (
 	"github.com/tinylib/msgp/msgp"
 )
 
-// DecodeMsg implements msgp.Decodable
+// Deprecated: DecodeMsg implements msgp.Decodable
 func (z *containerSerz) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -48,7 +48,7 @@ func (z *containerSerz) DecodeMsg(dc *msgp.Reader) (err error) {
 	return
 }
 
-// EncodeMsg implements msgp.Encodable
+// Deprecated: EncodeMsg implements msgp.Encodable
 func (z *containerSerz) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 2
 	// write "t"
@@ -72,7 +72,7 @@ func (z *containerSerz) EncodeMsg(en *msgp.Writer) (err error) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
+// Deprecated: MarshalMsg implements msgp.Marshaler
 func (z *containerSerz) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 2
@@ -88,7 +88,7 @@ func (z *containerSerz) MarshalMsg(b []byte) (o []byte, err error) {
 	return
 }
 
-// UnmarshalMsg implements msgp.Unmarshaler
+// Deprecated: UnmarshalMsg implements msgp.Unmarshaler
 func (z *containerSerz) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
@@ -129,13 +129,13 @@ func (z *containerSerz) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+// Deprecated: Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *containerSerz) Msgsize() (s int) {
 	s = 1 + 2 + msgp.Uint8Size + 2 + z.r.Msgsize()
 	return
 }
 
-// DecodeMsg implements msgp.Decodable
+// Deprecated: DecodeMsg implements msgp.Decodable
 func (z *contype) DecodeMsg(dc *msgp.Reader) (err error) {
 	{
 		var zajw uint8
@@ -148,7 +148,7 @@ func (z *contype) DecodeMsg(dc *msgp.Reader) (err error) {
 	return
 }
 
-// EncodeMsg implements msgp.Encodable
+// Deprecated: EncodeMsg implements msgp.Encodable
 func (z contype) EncodeMsg(en *msgp.Writer) (err error) {
 	err = en.WriteUint8(uint8(z))
 	if err != nil {
@@ -157,14 +157,14 @@ func (z contype) EncodeMsg(en *msgp.Writer) (err error) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
+// Deprecated: MarshalMsg implements msgp.Marshaler
 func (z contype) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	o = msgp.AppendUint8(o, uint8(z))
 	return
 }
 
-// UnmarshalMsg implements msgp.Unmarshaler
+// Deprecated: UnmarshalMsg implements msgp.Unmarshaler
 func (z *contype) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	{
 		var zwht uint8
@@ -178,13 +178,13 @@ func (z *contype) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+// Deprecated: Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z contype) Msgsize() (s int) {
 	s = msgp.Uint8Size
 	return
 }
 
-// DecodeMsg implements msgp.Decodable
+// Deprecated: DecodeMsg implements msgp.Decodable
 func (z *roaringArray) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
@@ -295,7 +295,7 @@ func (z *roaringArray) DecodeMsg(dc *msgp.Reader) (err error) {
 	return
 }
 
-// EncodeMsg implements msgp.Encodable
+// Deprecated: EncodeMsg implements msgp.Encodable
 func (z *roaringArray) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 4
 	// write "keys"
@@ -370,7 +370,7 @@ func (z *roaringArray) EncodeMsg(en *msgp.Writer) (err error) {
 	return
 }
 
-// MarshalMsg implements msgp.Marshaler
+// Deprecated: MarshalMsg implements msgp.Marshaler
 func (z *roaringArray) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 4
@@ -407,7 +407,7 @@ func (z *roaringArray) MarshalMsg(b []byte) (o []byte, err error) {
 	return
 }
 
-// UnmarshalMsg implements msgp.Unmarshaler
+// Deprecated: UnmarshalMsg implements msgp.Unmarshaler
 func (z *roaringArray) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
@@ -519,7 +519,7 @@ func (z *roaringArray) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	return
 }
 
-// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+// Deprecated: Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *roaringArray) Msgsize() (s int) {
 	s = 1 + 5 + msgp.ArrayHeaderSize + (len(z.keys) * (msgp.Uint16Size)) + 16 + msgp.ArrayHeaderSize + (len(z.needCopyOnWrite) * (msgp.BoolSize)) + 12 + msgp.BoolSize + 8 + msgp.ArrayHeaderSize
 	for zxhx := range z.conserz {

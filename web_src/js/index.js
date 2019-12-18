@@ -2,6 +2,10 @@
 /* exported timeAddManual, toggleStopwatch, cancelStopwatch, initHeatmap */
 /* exported toggleDeadlineForm, setDeadline, updateDeadline, deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
 
+import './publicPath.js';
+import './gitGraphLoader.js';
+import './semanticDropdown.js';
+
 function htmlEncode(text) {
   return jQuery('<div />').text(text).html();
 }
@@ -10,6 +14,7 @@ let csrf;
 let suburl;
 let previewFileModes;
 let simpleMDEditor;
+const commentMDEditors = {};
 let codeMirrorEditor;
 
 // Disable Dropzone auto-discover because it's manually initialized
@@ -300,11 +305,27 @@ function initImagePaste(target) {
   });
 }
 
+function initSimpleMDEImagePaste(simplemde, files) {
+  simplemde.codemirror.on('paste', (_, event) => {
+    retrieveImageFromClipboardAsBlob(event, (img) => {
+      const name = img.name.substr(0, img.name.lastIndexOf('.'));
+      uploadFile(img, (res) => {
+        const data = JSON.parse(res);
+        const pos = simplemde.codemirror.getCursor();
+        simplemde.codemirror.replaceRange(`![${name}](${suburl}/attachments/${data.uuid})`, pos);
+        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+        files.append(input);
+      });
+    });
+  });
+}
+
 function initCommentForm() {
   if ($('.comment.form').length === 0) {
     return;
   }
 
+  setCommentSimpleMDE($('.comment.form textarea'));
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
   initImagePaste($('.comment.form textarea'));
@@ -582,6 +603,28 @@ function initInstall() {
   });
 }
 
+function initIssueComments() {
+  if ($('.repository.view.issue .comments').length === 0) return;
+
+  $(document).click((event) => {
+    const urlTarget = $(':target');
+    if (urlTarget.length === 0) return;
+
+    const urlTargetId = urlTarget.attr('id');
+    if (!urlTargetId) return;
+    if (!/^(issue|pull)(comment)?-\d+$/.test(urlTargetId)) return;
+
+    const $target = $(event.target);
+
+    if ($target.closest(`#${urlTargetId}`).length === 0) {
+      const scrollPosition = $(window).scrollTop();
+      window.location.hash = '';
+      $(window).scrollTop(scrollPosition);
+      window.history.pushState(null, null, ' ');
+    }
+  });
+}
+
 function initRepository() {
   if ($('.repository').length === 0) {
     return;
@@ -705,38 +748,112 @@ function initRepository() {
       $issueTitle.toggle();
       $('.not-in-edit').toggle();
       $('#edit-title-input').toggle();
+      $('#pull-desc').toggle();
+      $('#pull-desc-edit').toggle();
       $('.in-edit').toggle();
       $editInput.focus();
       return false;
     };
+
+    const changeBranchSelect = function () {
+      const selectionTextField = $('#pull-target-branch');
+
+      const baseName = selectionTextField.data('basename');
+      const branchNameNew = $(this).data('branch');
+      const branchNameOld = selectionTextField.data('branch');
+
+      // Replace branch name to keep translation from HTML template
+      selectionTextField.html(selectionTextField.html().replace(
+        `${baseName}:${branchNameOld}`,
+        `${baseName}:${branchNameNew}`
+      ));
+      selectionTextField.data('branch', branchNameNew); // update branch name in setting
+    };
+    $('#branch-select > .item').click(changeBranchSelect);
+
     $('#edit-title').click(editTitleToggle);
     $('#cancel-edit-title').click(editTitleToggle);
     $('#save-edit-title').click(editTitleToggle).click(function () {
+      const pullrequest_targetbranch_change = function (update_url) {
+        const targetBranch = $('#pull-target-branch').data('branch');
+        const $branchTarget = $('#branch_target');
+        if (targetBranch === $branchTarget.text()) {
+          return false;
+        }
+        $.post(update_url, {
+          _csrf: csrf,
+          target_branch: targetBranch
+        })
+          .success((data) => {
+            $branchTarget.text(data.base_branch);
+          })
+          .always(() => {
+            reload();
+          });
+      };
+
+      const pullrequest_target_update_url = $(this).data('target-update-url');
       if ($editInput.val().length === 0 || $editInput.val() === $issueTitle.text()) {
         $editInput.val($issueTitle.text());
-        return false;
+        pullrequest_targetbranch_change(pullrequest_target_update_url);
+      } else {
+        $.post($(this).data('update-url'), {
+          _csrf: csrf,
+          title: $editInput.val()
+        },
+        (data) => {
+          $editInput.val(data.title);
+          $issueTitle.text(data.title);
+          pullrequest_targetbranch_change(pullrequest_target_update_url);
+          reload();
+        });
       }
-
-      $.post($(this).data('update-url'), {
-        _csrf: csrf,
-        title: $editInput.val()
-      },
-      (data) => {
-        $editInput.val(data.title);
-        $issueTitle.text(data.title);
-        reload();
-      });
       return false;
     });
 
+    // Issue Comments
+    initIssueComments();
+
+    // Issue/PR Context Menus
+    $('.context-dropdown').dropdown({
+      action: 'hide'
+    });
+
+    // Quote reply
+    $('.quote-reply').click(function (event) {
+      $(this).closest('.dropdown').find('.menu').toggle('visible');
+      const target = $(this).data('target');
+
+      let $content;
+      if ($(this).hasClass('quote-reply-diff')) {
+        const $parent = $(this).closest('.comment-code-cloud');
+        $parent.find('button.comment-form-reply').click();
+        $content = $parent.find('[name="content"]');
+      } else {
+        $content = $('#content');
+      }
+
+      const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
+      const content = `> ${quote}\n\n`;
+
+      if ($content.val() !== '') {
+        $content.val(`${$content.val()}\n\n${content}`);
+      } else {
+        $content.val(`${content}`);
+      }
+      $content.focus();
+      event.preventDefault();
+    });
+
     // Edit issue or comment content
-    $('.edit-content').click(function () {
-      const $segment = $(this).parent().parent().parent()
-        .next();
+    $('.edit-content').click(function (event) {
+      $(this).closest('.dropdown').find('.menu').toggle('visible');
+      const $segment = $(this).closest('.header').next();
       const $editContentZone = $segment.find('.edit-content-zone');
       const $renderContent = $segment.find('.render-content');
       const $rawContent = $segment.find('.raw-content');
       let $textarea;
+      let $simplemde;
 
       // Setup new form
       if ($editContentZone.html().length === 0) {
@@ -821,8 +938,10 @@ function initRepository() {
         $tabMenu.find('.preview.item').attr('data-tab', $editContentZone.data('preview'));
         $editContentForm.find('.write.segment').attr('data-tab', $editContentZone.data('write'));
         $editContentForm.find('.preview.segment').attr('data-tab', $editContentZone.data('preview'));
-
+        $simplemde = setCommentSimpleMDE($textarea);
+        commentMDEditors[$editContentZone.data('write')] = $simplemde;
         initCommentPreviewTab($editContentForm);
+        initSimpleMDEImagePaste($simplemde, $files);
 
         $editContentZone.find('.cancel.button').click(() => {
           $renderContent.show();
@@ -869,6 +988,7 @@ function initRepository() {
         });
       } else {
         $textarea = $segment.find('textarea');
+        $simplemde = commentMDEditors[$editContentZone.data('write')];
       }
 
       // Show write/preview tab and copy raw content as needed
@@ -876,9 +996,11 @@ function initRepository() {
       $renderContent.hide();
       if ($textarea.val().length === 0) {
         $textarea.val($rawContent.text());
+        $simplemde.value($rawContent.text());
       }
       $textarea.focus();
-      return false;
+      $simplemde.codemirror.focus();
+      event.preventDefault();
     });
 
     // Delete comment
@@ -928,7 +1050,6 @@ function initRepository() {
       $(this).closest('.form').hide();
       $mergeButton.parent().show();
     });
-
     initReactionSelector();
   }
 
@@ -981,6 +1102,11 @@ function initRepository() {
       if (this.checked) {
         $($(this).data('target')).removeClass('disabled');
       } else {
+        $($(this).data('target')).addClass('disabled');
+      }
+    });
+    $('.disable-whitelist').change(function () {
+      if (this.checked) {
         $($(this).data('target')).addClass('disabled');
       }
     });
@@ -1232,6 +1358,46 @@ function initWikiForm() {
         'clean-block', 'preview', 'fullscreen', 'side-by-side']
     });
     $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
+
+    setTimeout(() => {
+      const $bEdit = $('.repository.wiki.new .previewtabs a[data-tab="write"]');
+      const $bPrev = $('.repository.wiki.new .previewtabs a[data-tab="preview"]');
+      const $toolbar = $('.editor-toolbar');
+      const $bPreview = $('.editor-toolbar a.fa-eye');
+      const $bSideBySide = $('.editor-toolbar a.fa-columns');
+      $bEdit.on('click', () => {
+        if ($toolbar.hasClass('disabled-for-preview')) {
+          $bPreview.click();
+        }
+      });
+      $bPrev.on('click', () => {
+        if (!$toolbar.hasClass('disabled-for-preview')) {
+          $bPreview.click();
+        }
+      });
+      $bPreview.on('click', () => {
+        setTimeout(() => {
+          if ($toolbar.hasClass('disabled-for-preview')) {
+            if ($bEdit.hasClass('active')) {
+              $bEdit.removeClass('active');
+            }
+            if (!$bPrev.hasClass('active')) {
+              $bPrev.addClass('active');
+            }
+          } else {
+            if (!$bEdit.hasClass('active')) {
+              $bEdit.addClass('active');
+            }
+            if ($bPrev.hasClass('active')) {
+              $bPrev.removeClass('active');
+            }
+          }
+        }, 0);
+      });
+      $bSideBySide.on('click', () => {
+        sideBySideChanges = 10;
+      });
+    }, 0);
   }
 }
 
@@ -1297,6 +1463,40 @@ function setSimpleMDE($editArea) {
   });
 
   return true;
+}
+
+function setCommentSimpleMDE($editArea) {
+  const simplemde = new SimpleMDE({
+    autoDownloadFontAwesome: false,
+    element: $editArea[0],
+    forceSync: true,
+    renderingConfig: {
+      singleLineBreaks: false
+    },
+    indentWithTabs: false,
+    tabSize: 4,
+    spellChecker: false,
+    toolbar: ['bold', 'italic', 'strikethrough', '|',
+      'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
+      'code', 'quote', '|',
+      'unordered-list', 'ordered-list', '|',
+      'link', 'image', 'table', 'horizontal-rule', '|',
+      'clean-block']
+  });
+  simplemde.codemirror.setOption('extraKeys', {
+    Enter: () => {
+      if (!(issuesTribute.isActive || emojiTribute.isActive)) {
+        return CodeMirror.Pass;
+      }
+    },
+    Backspace: (cm) => {
+      cm.getInputField().trigger('input');
+      cm.execCommand('delCharBefore');
+    }
+  });
+  issuesTribute.attach(simplemde.codemirror.getInputField());
+  emojiTribute.attach(simplemde.codemirror.getInputField());
+  return simplemde;
 }
 
 function setCodeMirror($editArea) {
@@ -1680,9 +1880,9 @@ function initAdmin() {
   // New authentication
   if ($('.admin.new.authentication').length > 0) {
     $('#auth_type').change(function () {
-      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size').hide();
+      $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls .search-page-size .sspi').hide();
 
-      $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required]').removeAttr('required');
+      $('.ldap input[required], .binddnrequired input[required], .dldap input[required], .smtp input[required], .pam input[required], .oauth2 input[required], .has-tls input[required], .sspi input[required]').removeAttr('required');
       $('.binddnrequired').removeClass('required');
 
       const authType = $(this).val();
@@ -1709,6 +1909,10 @@ function initAdmin() {
           $('.oauth2').show();
           $('.oauth2 div.required:not(.oauth2_use_custom_url,.oauth2_use_custom_url_field,.open_id_connect_auto_discovery_url) input').attr('required', 'required');
           onOAuth2Change();
+          break;
+        case '7': // SSPI
+          $('.sspi').show();
+          $('.sspi div.required input').attr('required', 'required');
           break;
       }
       if (authType === '2' || authType === '5') {
@@ -1911,6 +2115,7 @@ function initCodeView() {
     $.get(`${$blob.data('url')}?${$blob.data('query')}&anchor=${$blob.data('anchor')}`, (blob) => {
       $row.replaceWith(blob);
       $(`[data-anchor="${$blob.data('anchor')}"]`).on('click', (e) => { insertBlobExcerpt(e); });
+      $('.diff-detail-box.ui.sticky').sticky();
     });
   }
   $('.ui.blob-excerpt').on('click', (e) => { insertBlobExcerpt(e); });
@@ -2691,7 +2896,7 @@ function initVueApp() {
     data: {
       searchLimit: document.querySelector('meta[name=_search_limit]').content,
       suburl: document.querySelector('meta[name=_suburl]').content,
-      uid: document.querySelector('meta[name=_context_uid]').content,
+      uid: Number(document.querySelector('meta[name=_context_uid]').content),
     },
   });
 }
@@ -3047,7 +3252,10 @@ function initTopicbar() {
 
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
-            $(`<div class="ui small label topic" style="cursor:pointer;">${topicArray[i]}</div>`).insertBefore(last);
+            const link = $('<a class="ui repo-topic small label topic"></a>');
+            link.attr('href', `${suburl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
+            link.text(topicArray[i]);
+            link.insertBefore(last);
           }
         }
         editDiv.css('display', 'none');
@@ -3093,7 +3301,7 @@ function initTopicbar() {
       label: 'ui small label'
     },
     apiSettings: {
-      url: `${suburl}/api/v1/topics/search?q={query}`,
+      url: `${suburl}/api/v1/topics/search?q={encodeURIComponent(query)}`,
       throttle: 500,
       cache: false,
       onResponse(res) {
@@ -3174,7 +3382,7 @@ function initTopicbar() {
         rules: [
           {
             type: 'validateTopic',
-            value: /^[a-z0-9][a-z0-9-]{1,35}$/,
+            value: /^[a-z0-9][a-z0-9-]{0,35}$/,
             prompt: topicPrompts.formatPrompt
           },
           {

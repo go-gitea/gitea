@@ -7,6 +7,7 @@ package models
 
 import (
 	"container/list"
+	"context"
 	"crypto/md5"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -822,6 +823,7 @@ var (
 		".",
 		"..",
 		".well-known",
+		"search",
 	}
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
@@ -1307,6 +1309,20 @@ func getUserEmailsByNames(e Engine, names []string) []string {
 	return mails
 }
 
+// GetMaileableUsersByIDs gets users from ids, but only if they can receive mails
+func GetMaileableUsersByIDs(ids []int64) ([]*User, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	ous := make([]*User, 0, len(ids))
+	return ous, x.In("id", ids).
+		Where("`type` = ?", UserTypeIndividual).
+		And("`prohibit_login` = ?", false).
+		And("`is_active` = ?", true).
+		And("`email_notifications_preference` = ?", EmailNotificationsEnabled).
+		Find(&ous)
+}
+
 // GetUsersByIDs returns all resolved users from a list of Ids.
 func GetUsersByIDs(ids []int64) ([]*User, error) {
 	ous := make([]*User, 0, len(ids))
@@ -1680,7 +1696,7 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []str
 }
 
 // SyncExternalUsers is used to synchronize users with external authorization source
-func SyncExternalUsers() {
+func SyncExternalUsers(ctx context.Context) {
 	log.Trace("Doing: SyncExternalUsers")
 
 	ls, err := LoginSources()
@@ -1694,6 +1710,12 @@ func SyncExternalUsers() {
 	for _, s := range ls {
 		if !s.IsActived || !s.IsSyncEnabled {
 			continue
+		}
+		select {
+		case <-ctx.Done():
+			log.Warn("SyncExternalUsers: Aborted due to shutdown before update of %s", s.Name)
+			return
+		default:
 		}
 
 		if s.IsLDAP() {
@@ -1712,6 +1734,12 @@ func SyncExternalUsers() {
 				log.Error("SyncExternalUsers: %v", err)
 				return
 			}
+			select {
+			case <-ctx.Done():
+				log.Warn("SyncExternalUsers: Aborted due to shutdown before update of %s", s.Name)
+				return
+			default:
+			}
 
 			sr, err := s.LDAP().SearchEntries()
 			if err != nil {
@@ -1720,6 +1748,19 @@ func SyncExternalUsers() {
 			}
 
 			for _, su := range sr {
+				select {
+				case <-ctx.Done():
+					log.Warn("SyncExternalUsers: Aborted due to shutdown at update of %s before completed update of users", s.Name)
+					// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
+					if sshKeysNeedUpdate {
+						err = RewriteAllPublicKeys()
+						if err != nil {
+							log.Error("RewriteAllPublicKeys: %v", err)
+						}
+					}
+					return
+				default:
+				}
 				if len(su.Username) == 0 {
 					continue
 				}
@@ -1802,6 +1843,13 @@ func SyncExternalUsers() {
 				if err != nil {
 					log.Error("RewriteAllPublicKeys: %v", err)
 				}
+			}
+
+			select {
+			case <-ctx.Done():
+				log.Warn("SyncExternalUsers: Aborted due to shutdown at update of %s before delete users", s.Name)
+				return
+			default:
 			}
 
 			// Deactivate users not present in LDAP

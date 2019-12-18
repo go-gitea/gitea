@@ -132,6 +132,25 @@ func (label *Label) ForegroundColor() template.CSS {
 	return template.CSS("#000")
 }
 
+func loadLabels(labelTemplate string) ([]string, error) {
+	list, err := GetLabelTemplateFile(labelTemplate)
+	if err != nil {
+		return nil, ErrIssueLabelTemplateLoad{labelTemplate, err}
+	}
+
+	labels := make([]string, len(list))
+	for i := 0; i < len(list); i++ {
+		labels[i] = list[i][0]
+	}
+	return labels, nil
+}
+
+// LoadLabelsFormatted loads the labels' list of a template file as a string separated by comma
+func LoadLabelsFormatted(labelTemplate string) (string, error) {
+	labels, err := loadLabels(labelTemplate)
+	return strings.Join(labels, ", "), err
+}
+
 func initalizeLabels(e Engine, repoID int64, labelTemplate string) error {
 	list, err := GetLabelTemplateFile(labelTemplate)
 	if err != nil {
@@ -279,10 +298,9 @@ func GetLabelsInRepoByIDs(repoID int64, labelIDs []int64) ([]*Label, error) {
 		Find(&labels)
 }
 
-// GetLabelsByRepoID returns all labels that belong to given repository by ID.
-func GetLabelsByRepoID(repoID int64, sortType string) ([]*Label, error) {
+func getLabelsByRepoID(e Engine, repoID int64, sortType string) ([]*Label, error) {
 	labels := make([]*Label, 0, 10)
-	sess := x.Where("repo_id = ?", repoID)
+	sess := e.Where("repo_id = ?", repoID)
 
 	switch sortType {
 	case "reversealphabetically":
@@ -296,6 +314,11 @@ func GetLabelsByRepoID(repoID int64, sortType string) ([]*Label, error) {
 	}
 
 	return labels, sess.Find(&labels)
+}
+
+// GetLabelsByRepoID returns all labels that belong to given repository by ID.
+func GetLabelsByRepoID(repoID int64, sortType string) ([]*Label, error) {
+	return getLabelsByRepoID(x, repoID, sortType)
 }
 
 func getLabelsByIssueID(e Engine, issueID int64) ([]*Label, error) {
@@ -402,14 +425,15 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err
 		return
 	}
 
-	if _, err = createComment(e, &CreateCommentOptions{
+	var opts = &CreateCommentOptions{
 		Type:    CommentTypeLabel,
 		Doer:    doer,
 		Repo:    issue.Repo,
 		Issue:   issue,
 		Label:   label,
 		Content: "1",
-	}); err != nil {
+	}
+	if _, err = createComment(e, opts); err != nil {
 		return err
 	}
 
@@ -478,13 +502,14 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 		return
 	}
 
-	if _, err = createComment(e, &CreateCommentOptions{
+	var opts = &CreateCommentOptions{
 		Type:  CommentTypeLabel,
 		Doer:  doer,
 		Repo:  issue.Repo,
 		Issue: issue,
 		Label: label,
-	}); err != nil {
+	}
+	if _, err = createComment(e, opts); err != nil {
 		return err
 	}
 

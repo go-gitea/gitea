@@ -39,6 +39,7 @@ const (
 	LoginPAM              // 4
 	LoginDLDAP            // 5
 	LoginOAuth2           // 6
+	LoginSSPI             // 7
 )
 
 // LoginNames contains the name of LoginType values.
@@ -48,6 +49,7 @@ var LoginNames = map[LoginType]string{
 	LoginSMTP:   "SMTP",
 	LoginPAM:    "PAM",
 	LoginOAuth2: "OAuth2",
+	LoginSSPI:   "SPNEGO with SSPI",
 }
 
 // SecurityProtocolNames contains the name of SecurityProtocol values.
@@ -63,6 +65,7 @@ var (
 	_ core.Conversion = &SMTPConfig{}
 	_ core.Conversion = &PAMConfig{}
 	_ core.Conversion = &OAuth2Config{}
+	_ core.Conversion = &SSPIConfig{}
 )
 
 // LDAPConfig holds configuration for LDAP login source.
@@ -140,6 +143,25 @@ func (cfg *OAuth2Config) ToDB() ([]byte, error) {
 	return json.Marshal(cfg)
 }
 
+// SSPIConfig holds configuration for SSPI single sign-on.
+type SSPIConfig struct {
+	AutoCreateUsers      bool
+	AutoActivateUsers    bool
+	StripDomainNames     bool
+	SeparatorReplacement string
+	DefaultLanguage      string
+}
+
+// FromDB fills up an SSPIConfig from serialized format.
+func (cfg *SSPIConfig) FromDB(bs []byte) error {
+	return json.Unmarshal(bs, cfg)
+}
+
+// ToDB exports an SSPIConfig to a serialized format.
+func (cfg *SSPIConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
 // LoginSource represents an external way for authorizing users.
 type LoginSource struct {
 	ID            int64 `xorm:"pk autoincr"`
@@ -176,6 +198,8 @@ func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 			source.Cfg = new(PAMConfig)
 		case LoginOAuth2:
 			source.Cfg = new(OAuth2Config)
+		case LoginSSPI:
+			source.Cfg = new(SSPIConfig)
 		default:
 			panic("unrecognized login source type: " + com.ToStr(*val))
 		}
@@ -210,6 +234,11 @@ func (source *LoginSource) IsPAM() bool {
 // IsOAuth2 returns true of this source is of the OAuth2 type.
 func (source *LoginSource) IsOAuth2() bool {
 	return source.Type == LoginOAuth2
+}
+
+// IsSSPI returns true of this source is of the SSPI type.
+func (source *LoginSource) IsSSPI() bool {
+	return source.Type == LoginSSPI
 }
 
 // HasTLS returns true of this source supports TLS.
@@ -264,6 +293,11 @@ func (source *LoginSource) OAuth2() *OAuth2Config {
 	return source.Cfg.(*OAuth2Config)
 }
 
+// SSPI returns SSPIConfig for this source, if of SSPI type.
+func (source *LoginSource) SSPI() *SSPIConfig {
+	return source.Cfg.(*SSPIConfig)
+}
+
 // CreateLoginSource inserts a LoginSource in the DB if not already
 // existing with the given name.
 func CreateLoginSource(source *LoginSource) error {
@@ -298,6 +332,38 @@ func CreateLoginSource(source *LoginSource) error {
 func LoginSources() ([]*LoginSource, error) {
 	auths := make([]*LoginSource, 0, 6)
 	return auths, x.Find(&auths)
+}
+
+// LoginSourcesByType returns all sources of the specified type
+func LoginSourcesByType(loginType LoginType) ([]*LoginSource, error) {
+	sources := make([]*LoginSource, 0, 1)
+	if err := x.Where("type = ?", loginType).Find(&sources); err != nil {
+		return nil, err
+	}
+	return sources, nil
+}
+
+// ActiveLoginSources returns all active sources of the specified type
+func ActiveLoginSources(loginType LoginType) ([]*LoginSource, error) {
+	sources := make([]*LoginSource, 0, 1)
+	if err := x.Where("is_actived = ? and type = ?", true, loginType).Find(&sources); err != nil {
+		return nil, err
+	}
+	return sources, nil
+}
+
+// IsSSPIEnabled returns true if there is at least one activated login
+// source of type LoginSSPI
+func IsSSPIEnabled() bool {
+	if !HasEngine {
+		return false
+	}
+	sources, err := ActiveLoginSources(LoginSSPI)
+	if err != nil {
+		log.Error("ActiveLoginSources: %v", err)
+		return false
+	}
+	return len(sources) > 0
 }
 
 // GetLoginSourceByID returns login source by given ID.
@@ -719,8 +785,8 @@ func UserSignIn(username, password string) (*User, error) {
 	}
 
 	for _, source := range sources {
-		if source.IsOAuth2() {
-			// don't try to authenticate against OAuth2 sources
+		if source.IsOAuth2() || source.IsSSPI() {
+			// don't try to authenticate against OAuth2 and SSPI sources here
 			continue
 		}
 		authUser, err := ExternalUserLogin(nil, username, password, source, true)
