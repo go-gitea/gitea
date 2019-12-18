@@ -204,6 +204,8 @@ func (pr *PullRequest) GetCommitMessages() string {
 		log.Error("Unable to open head repository: Error: %v", err)
 		return ""
 	}
+	defer gitRepo.Close()
+
 	headCommit, err := gitRepo.GetBranchCommit(pr.HeadBranch)
 	if err != nil {
 		log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
@@ -216,11 +218,15 @@ func (pr *PullRequest) GetCommitMessages() string {
 		return ""
 	}
 
-	list, err := gitRepo.CommitsBetween(headCommit, mergeBase)
+	limit := setting.Repository.PullRequest.DefaultMergeMessageCommitsLimit
+
+	list, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, 0)
 	if err != nil {
 		log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
 		return ""
 	}
+
+	maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
 
 	posterSig := pr.Issue.Poster.NewGitSig().String()
 
@@ -231,14 +237,20 @@ func (pr *PullRequest) GetCommitMessages() string {
 	for element != nil {
 		commit := element.Value.(*git.Commit)
 
-		if _, err := stringBuilder.Write([]byte(commit.CommitMessage)); err != nil {
-			log.Error("Unable to write commit message Error: %v", err)
-			return ""
-		}
+		if maxSize > -1 && stringBuilder.Len() < maxSize {
+			toWrite := []byte(commit.CommitMessage)
+			if len(toWrite) > maxSize-stringBuilder.Len() {
+				toWrite = append(toWrite[:maxSize-stringBuilder.Len()], "..."...)
+			}
+			if _, err := stringBuilder.Write(toWrite); err != nil {
+				log.Error("Unable to write commit message Error: %v", err)
+				return ""
+			}
 
-		if _, err := stringBuilder.Write([]byte{'\n'}); err != nil {
-			log.Error("Unable to write commit message Error: %v", err)
-			return ""
+			if _, err := stringBuilder.Write([]byte{'\n'}); err != nil {
+				log.Error("Unable to write commit message Error: %v", err)
+				return ""
+			}
 		}
 
 		authorString := commit.Author.String()
@@ -247,6 +259,35 @@ func (pr *PullRequest) GetCommitMessages() string {
 			authorsMap[authorString] = true
 		}
 		element = element.Next()
+	}
+
+	// Consider collecting the remaining authors
+	if limit >= 0 && setting.Repository.PullRequest.DefaultMergeMessageAllAuthors {
+		skip := limit
+		limit = 30
+		for {
+			list, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, skip)
+			if err != nil {
+				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
+				return ""
+
+			}
+			if list.Len() == 0 {
+				break
+			}
+			element := list.Front()
+			for element != nil {
+				commit := element.Value.(*git.Commit)
+
+				authorString := commit.Author.String()
+				if !authorsMap[authorString] && authorString != posterSig {
+					authors = append(authors, authorString)
+					authorsMap[authorString] = true
+				}
+				element = element.Next()
+			}
+
+		}
 	}
 
 	if len(authors) > 0 {

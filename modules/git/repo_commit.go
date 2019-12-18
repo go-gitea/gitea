@@ -328,6 +328,21 @@ func (repo *Repository) CommitsBetween(last *Commit, before *Commit) (*list.List
 	return repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
 }
 
+// CommitsBetweenLimit returns a list that contains at most limit commits skipping the first skip commits between [last, before)
+func (repo *Repository) CommitsBetweenLimit(last *Commit, before *Commit, limit, skip int) (*list.List, error) {
+	var stdout []byte
+	var err error
+	if before == nil {
+		stdout, err = NewCommand("rev-list", "--max-count", strconv.Itoa(limit), "--skip", strconv.Itoa(skip), last.ID.String()).RunInDirBytes(repo.Path)
+	} else {
+		stdout, err = NewCommand("rev-list", "--max-count", strconv.Itoa(limit), "--skip", strconv.Itoa(skip), before.ID.String()+"..."+last.ID.String()).RunInDirBytes(repo.Path)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
+}
+
 // CommitsBetweenIDs return commits between twoe commits
 func (repo *Repository) CommitsBetweenIDs(last, before string) (*list.List, error) {
 	lastCommit, err := repo.GetCommit(last)
