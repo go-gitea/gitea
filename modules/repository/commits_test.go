@@ -15,6 +15,8 @@ import (
 )
 
 func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
+	assert.NoError(t, models.PrepareTestDatabase())
+
 	pushCommits := NewPushCommits()
 	pushCommits.Commits = []*PushCommit{
 		{
