@@ -27,10 +27,10 @@ type SearchResult struct {
 
 // Indexer defines an interface to indexer issues contents
 type Indexer interface {
-	Init() (bool, error)
 	Index(repoID int64) error
 	Delete(repoID int64) error
 	Search(repoIDs []int64, keyword string, page, pageSize int) (int64, []*SearchResult, error)
+	Close()
 }
 
 // Init initialize the repo indexer
@@ -43,13 +43,15 @@ func Init() {
 	go func() {
 		start := time.Now()
 		log.Info("Initializing Repository Indexer")
-		indexer = NewBleveIndexer(setting.Indexer.RepoPath)
-		created, err := indexer.Init()
+		var created bool
+		var err error
+		indexer, created, err = NewBleveIndexer(setting.Indexer.RepoPath)
 		if err != nil {
+			indexer.Close()
 			log.Fatal("indexer.Init: %v", err)
 		}
 
-		go processRepoIndexerOperationQueue()
+		go processRepoIndexerOperationQueue(indexer)
 
 		if created {
 			go populateRepoIndexer()

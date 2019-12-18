@@ -21,7 +21,9 @@ type repoIndexerOperation struct {
 
 var repoIndexerOperationQueue chan repoIndexerOperation
 
-func processRepoIndexerOperationQueue() {
+func processRepoIndexerOperationQueue(indexer Indexer) {
+	defer indexer.Close()
+
 	repoIndexerOperationQueue = make(chan repoIndexerOperation, setting.Indexer.UpdateQueueLength)
 	for {
 		select {

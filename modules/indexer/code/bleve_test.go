@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,13 +24,16 @@ func TestIndexAndSearch(t *testing.T) {
 	models.PrepareTestEnv(t)
 
 	dir := "./bleve.index"
-	defer os.RemoveAll(dir)
-	indexer := NewBleveIndexer(dir)
+	os.RemoveAll(dir)
 
-	_, err := indexer.Init()
-	assert.NoError(t, err)
+	setting.Indexer.RepoIndexerEnabled = true
+	idx, _, err := NewBleveIndexer(dir)
+	if err != nil {
+		idx.Close()
+		log.Fatal("indexer.Init: %v", err)
+	}
 
-	err = indexer.Index(1)
+	err = idx.Index(1)
 	assert.NoError(t, err)
 
 	var (
@@ -52,7 +57,7 @@ func TestIndexAndSearch(t *testing.T) {
 	)
 
 	for _, kw := range keywords {
-		total, res, err := indexer.Search(nil, kw.Keyword, 1, 10)
+		total, res, err := idx.Search(nil, kw.Keyword, 1, 10)
 		assert.NoError(t, err)
 		assert.EqualValues(t, len(kw.IDs), total)
 
