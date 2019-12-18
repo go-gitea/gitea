@@ -35,8 +35,8 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 					Email: "johndoe@example.com",
 				},
 				Committer: api.Identity{
-					Name:  "Jane Doe",
-					Email: "janedoe@example.com",
+					Name:  "Anne Doe",
+					Email: "annedoe@example.com",
 				},
 			},
 			SHA: "103ff9234cefeee5ec5361d22b49fbb04d385885",
@@ -80,14 +80,14 @@ func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileRespon
 			HTMLURL: setting.AppURL + "user2/repo1/commit/" + commitID,
 			Author: &api.CommitUser{
 				Identity: api.Identity{
-					Name:  "Jane Doe",
-					Email: "janedoe@example.com",
+					Name:  "John Doe",
+					Email: "johndoe@example.com",
 				},
 			},
 			Committer: &api.CommitUser{
 				Identity: api.Identity{
-					Name:  "John Doe",
-					Email: "johndoe@example.com",
+					Name:  "Anne Doe",
+					Email: "annedoe@example.com",
 				},
 			},
 			Message: "My update of README.md\n",
