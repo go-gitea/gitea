@@ -16,6 +16,9 @@ else
 	ifeq ($(UNAME_S),Darwin)
 		SED_INPLACE := sed -i ''
 	endif
+	ifeq ($(UNAME_S),FreeBSD)
+		SED_INPLACE := sed -i ''
+	endif
 endif
 
 GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
@@ -24,7 +27,7 @@ GOFMT ?= gofmt -s
 GOFLAGS := -v
 EXTRA_GOFLAGS ?=
 
-MAKE_VERSION := $(shell make -v | head -n 1)
+MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
 
 ifneq ($(DRONE_TAG),)
 	VERSION ?= $(subst v,,$(DRONE_TAG))

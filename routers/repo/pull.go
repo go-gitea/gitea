@@ -438,30 +438,23 @@ func ViewPullCommits(ctx *context.Context) {
 	pull := issue.PullRequest
 
 	var commits *list.List
+	var prInfo *git.CompareInfo
 	if pull.HasMerged {
-		prInfo := PrepareMergedViewPullInfo(ctx, issue)
-		if ctx.Written() {
-			return
-		} else if prInfo == nil {
-			ctx.NotFound("ViewPullCommits", nil)
-			return
-		}
-		ctx.Data["Username"] = ctx.Repo.Owner.Name
-		ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-		commits = prInfo.Commits
+		prInfo = PrepareMergedViewPullInfo(ctx, issue)
 	} else {
-		prInfo := PrepareViewPullInfo(ctx, issue)
-		if ctx.Written() {
-			return
-		} else if prInfo == nil {
-			ctx.NotFound("ViewPullCommits", nil)
-			return
-		}
-		ctx.Data["Username"] = pull.MustHeadUserName()
-		ctx.Data["Reponame"] = pull.HeadRepo.Name
-		commits = prInfo.Commits
+		prInfo = PrepareViewPullInfo(ctx, issue)
 	}
 
+	if ctx.Written() {
+		return
+	} else if prInfo == nil {
+		ctx.NotFound("ViewPullCommits", nil)
+		return
+	}
+
+	ctx.Data["Username"] = ctx.Repo.Owner.Name
+	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
+	commits = prInfo.Commits
 	commits = models.ValidateCommitsWithEmails(commits)
 	commits = models.ParseCommitsWithSignature(commits)
 	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
@@ -497,63 +490,35 @@ func ViewPullFiles(ctx *context.Context) {
 	)
 
 	var headTarget string
+	var prInfo *git.CompareInfo
 	if pull.HasMerged {
-		prInfo := PrepareMergedViewPullInfo(ctx, issue)
-		if ctx.Written() {
-			return
-		} else if prInfo == nil {
-			ctx.NotFound("ViewPullFiles", nil)
-			return
-		}
-
-		diffRepoPath = ctx.Repo.GitRepo.Path
-		gitRepo = ctx.Repo.GitRepo
-
-		headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
-		if err != nil {
-			ctx.ServerError("GetRefCommitID", err)
-			return
-		}
-
-		startCommitID = prInfo.MergeBase
-		endCommitID = headCommitID
-
-		headTarget = path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-		ctx.Data["Username"] = ctx.Repo.Owner.Name
-		ctx.Data["Reponame"] = ctx.Repo.Repository.Name
+		prInfo = PrepareMergedViewPullInfo(ctx, issue)
 	} else {
-		prInfo := PrepareViewPullInfo(ctx, issue)
-		if ctx.Written() {
-			return
-		} else if prInfo == nil {
-			ctx.NotFound("ViewPullFiles", nil)
-			return
-		}
-
-		headRepoPath := pull.HeadRepo.RepoPath()
-
-		headGitRepo, err := git.OpenRepository(headRepoPath)
-		if err != nil {
-			ctx.ServerError("OpenRepository", err)
-			return
-		}
-		defer headGitRepo.Close()
-
-		headCommitID, err := headGitRepo.GetBranchCommitID(pull.HeadBranch)
-		if err != nil {
-			ctx.ServerError("GetBranchCommitID", err)
-			return
-		}
-
-		diffRepoPath = headRepoPath
-		startCommitID = prInfo.MergeBase
-		endCommitID = headCommitID
-		gitRepo = headGitRepo
-
-		headTarget = path.Join(pull.MustHeadUserName(), pull.HeadRepo.Name)
-		ctx.Data["Username"] = pull.MustHeadUserName()
-		ctx.Data["Reponame"] = pull.HeadRepo.Name
+		prInfo = PrepareViewPullInfo(ctx, issue)
 	}
+
+	if ctx.Written() {
+		return
+	} else if prInfo == nil {
+		ctx.NotFound("ViewPullFiles", nil)
+		return
+	}
+
+	diffRepoPath = ctx.Repo.GitRepo.Path
+	gitRepo = ctx.Repo.GitRepo
+
+	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
+	if err != nil {
+		ctx.ServerError("GetRefCommitID", err)
+		return
+	}
+
+	startCommitID = prInfo.MergeBase
+	endCommitID = headCommitID
+
+	headTarget = path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	ctx.Data["Username"] = ctx.Repo.Owner.Name
+	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["AfterCommitID"] = endCommitID
 
 	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
