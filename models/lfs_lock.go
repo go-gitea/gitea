@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 // LFSLock represents a git lfs lock of repository.
@@ -49,7 +49,7 @@ func (l *LFSLock) AfterLoad(session *xorm.Session) {
 }
 
 func cleanPath(p string) string {
-	return path.Clean(p)
+	return path.Clean("/" + p)[1:]
 }
 
 // APIFormat convert a Release to lfs.LFSLock
@@ -70,6 +70,8 @@ func CreateLFSLock(lock *LFSLock) (*LFSLock, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	lock.Path = cleanPath(lock.Path)
 
 	l, err := GetLFSLock(lock.Repo, lock.Path)
 	if err == nil {
@@ -110,9 +112,24 @@ func GetLFSLockByID(id int64) (*LFSLock, error) {
 }
 
 // GetLFSLockByRepoID returns a list of locks of repository.
-func GetLFSLockByRepoID(repoID int64) (locks []*LFSLock, err error) {
-	err = x.Where("repo_id = ?", repoID).Find(&locks)
-	return
+func GetLFSLockByRepoID(repoID int64, page, pageSize int) ([]*LFSLock, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if page >= 0 && pageSize > 0 {
+		start := 0
+		if page > 0 {
+			start = (page - 1) * pageSize
+		}
+		sess.Limit(pageSize, start)
+	}
+	lfsLocks := make([]*LFSLock, 0, pageSize)
+	return lfsLocks, sess.Find(&lfsLocks, &LFSLock{RepoID: repoID})
+}
+
+// CountLFSLockByRepoID returns a count of all LFSLocks associated with a repository.
+func CountLFSLockByRepoID(repoID int64) (int64, error) {
+	return x.Count(&LFSLock{RepoID: repoID})
 }
 
 // DeleteLFSLockByID deletes a lock by given ID.

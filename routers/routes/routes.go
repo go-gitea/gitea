@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/gzip"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
@@ -44,6 +43,7 @@ import (
 	"gitea.com/macaron/captcha"
 	"gitea.com/macaron/cors"
 	"gitea.com/macaron/csrf"
+	"gitea.com/macaron/gzip"
 	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
@@ -133,20 +133,20 @@ func NewMacaron() *macaron.Macaron {
 	if setting.EnableGzip {
 		m.Use(gzip.Middleware())
 	}
-	if setting.Protocol == setting.FCGI {
+	if setting.Protocol == setting.FCGI || setting.Protocol == setting.FCGIUnix {
 		m.SetURLPrefix(setting.AppSubURL)
 	}
 	m.Use(public.Custom(
 		&public.Options{
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 	m.Use(public.Static(
 		&public.Options{
 			Directory:    path.Join(setting.StaticRootPath, "public"),
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 	m.Use(public.StaticHandler(
@@ -154,7 +154,7 @@ func NewMacaron() *macaron.Macaron {
 		&public.Options{
 			Prefix:       "avatars",
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 	m.Use(public.StaticHandler(
@@ -162,7 +162,7 @@ func NewMacaron() *macaron.Macaron {
 		&public.Options{
 			Prefix:       "repo-avatars",
 			SkipLogging:  setting.DisableRouterLog,
-			ExpiresAfter: time.Hour * 6,
+			ExpiresAfter: setting.StaticCacheTime,
 		},
 	))
 
@@ -254,6 +254,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}
 	}
 
+	reqMilestonesDashboardPageEnabled := func(ctx *context.Context) {
+		if !setting.Service.ShowMilestonesDashboardPage {
+			ctx.Error(403)
+			return
+		}
+	}
+
 	m.Use(user.GetNotificationCount)
 
 	// FIXME: not all routes need go through same middlewares.
@@ -276,6 +283,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Combo("/install", routers.InstallInit).Get(routers.Install).
 		Post(bindIgnErr(auth.InstallForm{}), routers.InstallPost)
 	m.Get("/^:type(issues|pulls)$", reqSignIn, user.Issues)
+	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
 	// ***** START: User *****
 	m.Group("/user", func() {
@@ -422,6 +430,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/config", admin.Config)
 		m.Post("/config/test_mail", admin.SendTestMail)
 		m.Get("/monitor", admin.Monitor)
+		m.Post("/monitor/cancel/:pid", admin.MonitorCancel)
 
 		m.Group("/users", func() {
 			m.Get("", admin.Users)
@@ -513,8 +522,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		})
 	}, ignSignIn)
 
-	m.Group("", func() {
-		m.Post("/attachments", repo.UploadAttachment)
+	m.Group("/attachments", func() {
+		m.Post("", repo.UploadAttachment)
+		m.Post("/delete", repo.DeleteAttachment)
 	}, reqSignIn)
 
 	m.Group("/:username", func() {
@@ -554,6 +564,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/:org", func() {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/^:type(issues|pulls)$", user.Issues)
+			m.Get("/milestones", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Get("/members", org.Members)
 			m.Get("/members/action/:action", org.MembersAction)
 
@@ -676,8 +687,23 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/delete", repo.DeleteDeployKey)
 			})
 
+			m.Group("/lfs", func() {
+				m.Get("", repo.LFSFiles)
+				m.Get("/show/:oid", repo.LFSFileGet)
+				m.Post("/delete/:oid", repo.LFSDelete)
+				m.Get("/pointers", repo.LFSPointerFiles)
+				m.Post("/pointers/associate", repo.LFSAutoAssociate)
+				m.Get("/find", repo.LFSFileFind)
+				m.Group("/locks", func() {
+					m.Get("/", repo.LFSLocks)
+					m.Post("/", repo.LFSLockFile)
+					m.Post("/:lid/unlock", repo.LFSUnlock)
+				})
+			})
+
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
+			ctx.Data["LFSStartServer"] = setting.LFS.StartServer
 		})
 	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
@@ -710,6 +736,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeIssueReaction)
 				m.Post("/lock", reqRepoIssueWriter, bindIgnErr(auth.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoIssueWriter, repo.UnlockIssue)
+				m.Get("/attachments", repo.GetIssueAttachments)
 			}, context.RepoMustNotBeArchived())
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
@@ -721,6 +748,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/:action", bindIgnErr(auth.ReactionForm{}), repo.ChangeCommentReaction)
+			m.Get("/attachments", repo.GetCommentAttachments)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/labels", func() {
 			m.Post("/new", bindIgnErr(auth.CreateLabelForm{}), repo.NewLabel)
@@ -742,6 +770,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.CompareDiff).
 			Post(context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
+		m.Group("/pull", func() {
+			m.Post("/:index/target_branch", repo.UpdatePullRequestTarget)
+		}, context.RepoMustNotBeArchived())
 
 		m.Group("", func() {
 			m.Group("", func() {
@@ -845,8 +876,14 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Get("/archive/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.Download)
 
+		m.Get("/status", reqRepoCodeReader, repo.Status)
+
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)
+		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
+
+		m.Group("/blob_excerpt", func() {
+			m.Get("/:sha", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
 		m.Group("/pulls/:index", func() {

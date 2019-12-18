@@ -19,6 +19,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +43,7 @@ func testGit(t *testing.T, u *url.URL) {
 	forkedUserCtx := NewAPITestContext(t, "user4", "repo1")
 
 	t.Run("HTTP", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		ensureAnonymousClone(t, u)
 		httpContext := baseAPITestContext
 		httpContext.Reponame = "repo-tmp-17"
@@ -74,9 +75,11 @@ func testGit(t *testing.T, u *url.URL) {
 			rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 			mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 		})
+
+		t.Run("PushCreate", doPushCreate(httpContext, u))
 	})
 	t.Run("SSH", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		sshContext := baseAPITestContext
 		sshContext.Reponame = "repo-tmp-18"
 		keyname := "my-testing-key"
@@ -112,6 +115,8 @@ func testGit(t *testing.T, u *url.URL) {
 				rawTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 				mediaTest(t, &forkedUserCtx, little, big, littleLFS, bigLFS)
 			})
+
+			t.Run("PushCreate", doPushCreate(sshContext, sshURL))
 		})
 	})
 }
@@ -126,7 +131,7 @@ func ensureAnonymousClone(t *testing.T, u *url.URL) {
 
 func standardCommitAndPushTest(t *testing.T, dstPath string) (little, big string) {
 	t.Run("Standard", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		little, big = commitAndPushTest(t, dstPath, "data-file-")
 	})
 	return
@@ -134,7 +139,12 @@ func standardCommitAndPushTest(t *testing.T, dstPath string) (little, big string
 
 func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS string) {
 	t.Run("LFS", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
+		setting.CheckLFSVersion()
+		if !setting.LFS.StartServer {
+			t.Skip()
+			return
+		}
 		prefix := "lfs-data-file-"
 		_, err := git.NewCommand("lfs").AddArguments("install").RunInDir(dstPath)
 		assert.NoError(t, err)
@@ -143,10 +153,25 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 		err = git.AddChanges(dstPath, false, ".gitattributes")
 		assert.NoError(t, err)
 
+		err = git.CommitChangesWithArgs(dstPath, allowLFSFilters(), git.CommitChangesOptions{
+			Committer: &git.Signature{
+				Email: "user2@example.com",
+				Name:  "User Two",
+				When:  time.Now(),
+			},
+			Author: &git.Signature{
+				Email: "user2@example.com",
+				Name:  "User Two",
+				When:  time.Now(),
+			},
+			Message: fmt.Sprintf("Testing commit @ %v", time.Now()),
+		})
+		assert.NoError(t, err)
+
 		littleLFS, bigLFS = commitAndPushTest(t, dstPath, prefix)
 
 		t.Run("Locks", func(t *testing.T) {
-			PrintCurrentTest(t)
+			defer PrintCurrentTest(t)()
 			lockTest(t, dstPath)
 		})
 	})
@@ -155,9 +180,9 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 
 func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string) {
 	t.Run("PushCommit", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		t.Run("Little", func(t *testing.T) {
-			PrintCurrentTest(t)
+			defer PrintCurrentTest(t)()
 			little = doCommitAndPush(t, littleSize, dstPath, prefix)
 		})
 		t.Run("Big", func(t *testing.T) {
@@ -165,7 +190,7 @@ func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string
 				t.Skip("Skipping test in short mode.")
 				return
 			}
-			PrintCurrentTest(t)
+			defer PrintCurrentTest(t)()
 			big = doCommitAndPush(t, bigSize, dstPath, prefix)
 		})
 	})
@@ -174,7 +199,7 @@ func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string
 
 func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS string) {
 	t.Run("Raw", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		username := ctx.Username
 		reponame := ctx.Reponame
 
@@ -185,27 +210,32 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, littleSize, resp.Body.Len())
 
-		req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", littleLFS))
-		resp = session.MakeRequest(t, req, http.StatusOK)
-		assert.NotEqual(t, littleSize, resp.Body.Len())
-		assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+		setting.CheckLFSVersion()
+		if setting.LFS.StartServer {
+			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", littleLFS))
+			resp = session.MakeRequest(t, req, http.StatusOK)
+			assert.NotEqual(t, littleSize, resp.Body.Len())
+			assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+		}
 
 		if !testing.Short() {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", big))
 			resp = session.MakeRequest(t, req, http.StatusOK)
 			assert.Equal(t, bigSize, resp.Body.Len())
 
-			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", bigLFS))
-			resp = session.MakeRequest(t, req, http.StatusOK)
-			assert.NotEqual(t, bigSize, resp.Body.Len())
-			assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+			if setting.LFS.StartServer {
+				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", bigLFS))
+				resp = session.MakeRequest(t, req, http.StatusOK)
+				assert.NotEqual(t, bigSize, resp.Body.Len())
+				assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+			}
 		}
 	})
 }
 
 func mediaTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS string) {
 	t.Run("Media", func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 
 		username := ctx.Username
 		reponame := ctx.Reponame
@@ -217,18 +247,23 @@ func mediaTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS
 		resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
 		assert.Equal(t, littleSize, resp.Length)
 
-		req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", littleLFS))
-		resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-		assert.Equal(t, littleSize, resp.Length)
+		setting.CheckLFSVersion()
+		if setting.LFS.StartServer {
+			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", littleLFS))
+			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+			assert.Equal(t, littleSize, resp.Length)
+		}
 
 		if !testing.Short() {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", big))
 			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
 			assert.Equal(t, bigSize, resp.Length)
 
-			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", bigLFS))
-			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, resp.Length)
+			if setting.LFS.StartServer {
+				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", bigLFS))
+				resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+				assert.Equal(t, bigSize, resp.Length)
+			}
 		}
 	})
 }
@@ -274,11 +309,13 @@ func generateCommitWithNewData(size int, repoPath, email, fullName, prefix strin
 	}
 
 	//Commit
-	err = git.AddChanges(repoPath, false, filepath.Base(tmpFile.Name()))
+	// Now here we should explicitly allow lfs filters to run
+	globalArgs := allowLFSFilters()
+	err = git.AddChangesWithArgs(repoPath, globalArgs, false, filepath.Base(tmpFile.Name()))
 	if err != nil {
 		return "", err
 	}
-	err = git.CommitChanges(repoPath, git.CommitChangesOptions{
+	err = git.CommitChangesWithArgs(repoPath, globalArgs, git.CommitChangesOptions{
 		Committer: &git.Signature{
 			Email: email,
 			Name:  fullName,
@@ -296,7 +333,7 @@ func generateCommitWithNewData(size int, repoPath, email, fullName, prefix strin
 
 func doBranchProtectPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 	return func(t *testing.T) {
-		PrintCurrentTest(t)
+		defer PrintCurrentTest(t)()
 		t.Run("CreateBranchProtected", doGitCreateBranch(dstPath, "protected"))
 		t.Run("PushProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected"))
 
@@ -350,6 +387,7 @@ func doProtectBranch(ctx APITestContext, branch string, userToWhitelist string) 
 			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), url.PathEscape(branch)), map[string]string{
 				"_csrf":            csrf,
 				"protected":        "on",
+				"enable_push":      "whitelist",
 				"enable_whitelist": "on",
 				"whitelist_users":  strconv.FormatInt(user.ID, 10),
 			})
@@ -372,5 +410,59 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 		})
 		t.Run("MergePR", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
+	}
+}
+
+func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
+	return func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+		ctx.Reponame = fmt.Sprintf("repo-tmp-push-create-%s", u.Scheme)
+		u.Path = ctx.GitPath()
+
+		tmpDir, err := ioutil.TempDir("", ctx.Reponame)
+		assert.NoError(t, err)
+
+		err = git.InitRepository(tmpDir, false)
+		assert.NoError(t, err)
+
+		_, err = os.Create(filepath.Join(tmpDir, "test.txt"))
+		assert.NoError(t, err)
+
+		err = git.AddChanges(tmpDir, true)
+		assert.NoError(t, err)
+
+		err = git.CommitChanges(tmpDir, git.CommitChangesOptions{
+			Committer: &git.Signature{
+				Email: "user2@example.com",
+				Name:  "User Two",
+				When:  time.Now(),
+			},
+			Author: &git.Signature{
+				Email: "user2@example.com",
+				Name:  "User Two",
+				When:  time.Now(),
+			},
+			Message: fmt.Sprintf("Testing push create @ %v", time.Now()),
+		})
+		assert.NoError(t, err)
+
+		_, err = git.NewCommand("remote", "add", "origin", u.String()).RunInDir(tmpDir)
+		assert.NoError(t, err)
+
+		// Push to create disabled
+		setting.Repository.EnablePushCreateUser = false
+		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
+		assert.Error(t, err)
+
+		// Push to create enabled
+		setting.Repository.EnablePushCreateUser = true
+		_, err = git.NewCommand("push", "origin", "master").RunInDir(tmpDir)
+		assert.NoError(t, err)
+
+		// Fetch repo from database
+		repo, err := models.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
+		assert.NoError(t, err)
+		assert.False(t, repo.IsEmpty)
+		assert.True(t, repo.IsPrivate)
 	}
 }

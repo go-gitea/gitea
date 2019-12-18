@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/webhook"
 
 	"github.com/unknwon/com"
 )
@@ -267,7 +268,7 @@ func DiscordHooksNewPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 		return
 	}
 
-	meta, err := json.Marshal(&models.DiscordMeta{
+	meta, err := json.Marshal(&webhook.DiscordMeta{
 		Username: form.Username,
 		IconURL:  form.IconURL,
 	})
@@ -356,7 +357,7 @@ func TelegramHooksNewPost(ctx *context.Context, form auth.NewTelegramHookForm) {
 		return
 	}
 
-	meta, err := json.Marshal(&models.TelegramMeta{
+	meta, err := json.Marshal(&webhook.TelegramMeta{
 		BotToken: form.BotToken,
 		ChatID:   form.ChatID,
 	})
@@ -451,7 +452,7 @@ func SlackHooksNewPost(ctx *context.Context, form auth.NewSlackHookForm) {
 		return
 	}
 
-	meta, err := json.Marshal(&models.SlackMeta{
+	meta, err := json.Marshal(&webhook.SlackMeta{
 		Channel:  strings.TrimSpace(form.Channel),
 		Username: form.Username,
 		IconURL:  form.IconURL,
@@ -514,11 +515,11 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *models.Webhook) {
 	ctx.Data["HookType"] = w.HookTaskType.Name()
 	switch w.HookTaskType {
 	case models.SLACK:
-		ctx.Data["SlackHook"] = w.GetSlackHook()
+		ctx.Data["SlackHook"] = webhook.GetSlackHook(w)
 	case models.DISCORD:
-		ctx.Data["DiscordHook"] = w.GetDiscordHook()
+		ctx.Data["DiscordHook"] = webhook.GetDiscordHook(w)
 	case models.TELEGRAM:
-		ctx.Data["TelegramHook"] = w.GetTelegramHook()
+		ctx.Data["TelegramHook"] = webhook.GetTelegramHook(w)
 	}
 
 	ctx.Data["History"], err = w.History(1)
@@ -645,7 +646,7 @@ func SlackHooksEditPost(ctx *context.Context, form auth.NewSlackHookForm) {
 		return
 	}
 
-	meta, err := json.Marshal(&models.SlackMeta{
+	meta, err := json.Marshal(&webhook.SlackMeta{
 		Channel:  strings.TrimSpace(form.Channel),
 		Username: form.Username,
 		IconURL:  form.IconURL,
@@ -689,7 +690,7 @@ func DiscordHooksEditPost(ctx *context.Context, form auth.NewDiscordHookForm) {
 		return
 	}
 
-	meta, err := json.Marshal(&models.DiscordMeta{
+	meta, err := json.Marshal(&webhook.DiscordMeta{
 		Username: form.Username,
 		IconURL:  form.IconURL,
 	})
@@ -762,7 +763,7 @@ func TelegramHooksEditPost(ctx *context.Context, form auth.NewTelegramHookForm) 
 		ctx.HTML(200, orCtx.NewTemplate)
 		return
 	}
-	meta, err := json.Marshal(&models.TelegramMeta{
+	meta, err := json.Marshal(&webhook.TelegramMeta{
 		BotToken: form.BotToken,
 		ChatID:   form.ChatID,
 	})
@@ -864,11 +865,10 @@ func TestWebhook(ctx *context.Context) {
 		Pusher: apiUser,
 		Sender: apiUser,
 	}
-	if err := models.PrepareWebhook(w, ctx.Repo.Repository, models.HookEventPush, p); err != nil {
+	if err := webhook.PrepareWebhook(w, ctx.Repo.Repository, models.HookEventPush, p); err != nil {
 		ctx.Flash.Error("PrepareWebhook: " + err.Error())
 		ctx.Status(500)
 	} else {
-		go models.HookQueue.Add(ctx.Repo.Repository.ID)
 		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.test_delivery_success"))
 		ctx.Status(200)
 	}

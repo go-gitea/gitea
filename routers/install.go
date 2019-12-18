@@ -16,13 +16,14 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/user"
 
-	"github.com/go-xorm/xorm"
 	"github.com/unknwon/com"
 	"gopkg.in/ini.v1"
+	"xorm.io/xorm"
 )
 
 const (
@@ -351,7 +352,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		return
 	}
 
-	GlobalInit()
+	GlobalInit(graceful.GetManager().HammerContext())
 
 	// Create admin account
 	if len(form.AdminName) > 0 {
@@ -386,6 +387,12 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	}
 
 	log.Info("First-time run install finished!")
+	// FIXME: This isn't really enough to completely take account of new configuration
+	// We should really be restarting:
+	// - On windows this is probably just a simple restart
+	// - On linux we can't just use graceful.RestartProcess() everything that was passed in on LISTEN_FDS
+	//   (active or not) needs to be passed out and everything new passed out too.
+	//   This means we need to prevent the cleanup goroutine from running prior to the second GlobalInit
 	ctx.Flash.Success(ctx.Tr("install.install_success"))
 	ctx.Redirect(form.AppURL + "user/login")
 }

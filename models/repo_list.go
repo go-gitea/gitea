@@ -111,17 +111,18 @@ func (repos MirrorRepositoryList) LoadAttributes() error {
 
 // SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
-	UserID      int64
-	UserIsAdmin bool
-	Keyword     string
-	OwnerID     int64
-	OrderBy     SearchOrderBy
-	Private     bool // Include private repositories in results
-	StarredByID int64
-	Page        int
-	IsProfile   bool
-	AllPublic   bool // Include also all public repositories
-	PageSize    int  // Can be smaller than or equal to setting.ExplorePagingNum
+	UserID          int64
+	UserIsAdmin     bool
+	Keyword         string
+	OwnerID         int64
+	PriorityOwnerID int64
+	OrderBy         SearchOrderBy
+	Private         bool // Include private repositories in results
+	StarredByID     int64
+	Page            int
+	IsProfile       bool
+	AllPublic       bool // Include also all public repositories
+	PageSize        int  // Can be smaller than or equal to setting.ExplorePagingNum
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
 	// False -> incude just non-collaborative
@@ -130,6 +131,10 @@ type SearchRepoOptions struct {
 	// True -> include just forks
 	// False -> include just non-forks
 	Fork util.OptionalBool
+	// None -> include templates AND non-templates
+	// True -> include just templates
+	// False -> include just non-templates
+	Template util.OptionalBool
 	// None -> include mirrors AND non-mirrors
 	// True -> include just mirrors
 	// False -> include just non-mirrors
@@ -176,28 +181,7 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	if opts.Private {
 		if !opts.UserIsAdmin && opts.UserID != 0 && opts.UserID != opts.OwnerID {
 			// OK we're in the context of a User
-			// We should be Either
-			cond = cond.And(builder.Or(
-				// 1. Be able to see all non-private repositories that either:
-				cond.And(
-					builder.Eq{"is_private": false},
-					builder.Or(
-						//   A. Aren't in organisations  __OR__
-						builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
-						//   B. Isn't a private organisation. (Limited is OK because we're logged in)
-						builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePrivate}))),
-				),
-				// 2. Be able to see all repositories that we have access to
-				builder.In("id", builder.Select("repo_id").
-					From("`access`").
-					Where(builder.And(
-						builder.Eq{"user_id": opts.UserID},
-						builder.Gt{"mode": int(AccessModeNone)}))),
-				// 3. Be able to see all repositories that we are in a team
-				builder.In("id", builder.Select("`team_repo`.repo_id").
-					From("team_repo").
-					Where(builder.Eq{"`team_user`.uid": opts.UserID}).
-					Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id"))))
+			cond = cond.And(accessibleRepositoryCondition(opts.UserID))
 		}
 	} else {
 		// Not looking at private organisations
@@ -209,6 +193,10 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 			//   B. Isn't a private or limited organisation.
 			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}))))
 		cond = cond.And(accessCond)
+	}
+
+	if opts.Template != util.OptionalBoolNone {
+		cond = cond.And(builder.Eq{"is_template": opts.Template == util.OptionalBoolTrue})
 	}
 
 	// Restrict to starred repositories
@@ -287,6 +275,10 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
+	if opts.PriorityOwnerID > 0 {
+		opts.OrderBy = SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = %d THEN 0 ELSE owner_id END, %s", opts.PriorityOwnerID, opts.OrderBy))
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -314,6 +306,35 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	}
 
 	return repos, count, nil
+}
+
+// accessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
+func accessibleRepositoryCondition(userID int64) builder.Cond {
+	return builder.Or(
+		// 1. Be able to see all non-private repositories that either:
+		builder.And(
+			builder.Eq{"`repository`.is_private": false},
+			builder.Or(
+				//   A. Aren't in organisations  __OR__
+				builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"type": UserTypeOrganization})),
+				//   B. Isn't a private organisation. (Limited is OK because we're logged in)
+				builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePrivate}))),
+		),
+		// 2. Be able to see all repositories that we have access to
+		builder.Or(
+			builder.In("`repository`.id", builder.Select("repo_id").
+				From("`access`").
+				Where(builder.And(
+					builder.Eq{"user_id": userID},
+					builder.Gt{"mode": int(AccessModeNone)}))),
+			builder.In("`repository`.id", builder.Select("id").
+				From("`repository`").
+				Where(builder.Eq{"owner_id": userID}))),
+		// 3. Be able to see all repositories that we are in a team
+		builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").
+			From("team_repo").
+			Where(builder.Eq{"`team_user`.uid": userID}).
+			Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id")))
 }
 
 // SearchRepositoryByName takes keyword and part of repository name to search,

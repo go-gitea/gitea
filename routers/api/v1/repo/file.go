@@ -95,6 +95,7 @@ func GetArchive(ctx *context.APIContext) {
 		return
 	}
 	ctx.Repo.GitRepo = gitRepo
+	defer gitRepo.Close()
 
 	repo.Download(ctx.Context)
 }
@@ -136,7 +137,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 	}
 
 	fileName := ctx.Params("filename")
-	def := ec.GetDefinitionForFilename(fileName)
+	def, err := ec.GetDefinitionForFilename(fileName)
 	if def == nil {
 		ctx.NotFound(err)
 		return

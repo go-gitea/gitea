@@ -1,7 +1,7 @@
 <div class="ui container" id="navbar">
 	<div class="item brand" style="justify-content: space-between;">
 		<a href="{{AppSubUrl}}/">
-			<img class="ui mini image" src="{{AppSubUrl}}/img/gitea-sm.png">
+			<img class="ui mini image" src="{{StaticUrlPrefix}}/img/gitea-sm.png">
 		</a>
 		<div class="ui basic icon button mobile-only" id="navbar-expand-toggle">
 			<i class="sidebar icon"></i>
@@ -12,6 +12,7 @@
 		<a class="item {{if .PageIsDashboard}}active{{end}}" href="{{AppSubUrl}}/">{{.i18n.Tr "dashboard"}}</a>
 		<a class="item {{if .PageIsIssues}}active{{end}}" href="{{AppSubUrl}}/issues">{{.i18n.Tr "issues"}}</a>
 		<a class="item {{if .PageIsPulls}}active{{end}}" href="{{AppSubUrl}}/pulls">{{.i18n.Tr "pull_requests"}}</a>
+		{{if .ShowMilestonesDashboardPage}}<a class="item {{if .PageIsMilestonesDashboard}}active{{end}}" href="{{AppSubUrl}}/milestones">{{.i18n.Tr "milestones"}}</a>{{end}}
 		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
 	{{else if .IsLandingPageHome}}
 		<a class="item {{if .PageIsHome}}active{{end}}" href="{{AppSubUrl}}/">{{.i18n.Tr "home"}}</a>
@@ -125,7 +126,7 @@
 					<i class="octicon octicon-person"></i> {{.i18n.Tr "register"}}
 				</a>
 			{{end}}
-			<a class="item{{if .PageIsSignIn}} active{{end}}" href="{{AppSubUrl}}/user/login?redirect_to={{.Link}}">
+			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{.Link}}">
 				<i class="octicon octicon-sign-in"></i> {{.i18n.Tr "sign_in"}}
 			</a>
 		</div><!-- end anonymous right menu -->

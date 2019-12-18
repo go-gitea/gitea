@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitgraph"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -91,7 +92,15 @@ func Graph(ctx *context.Context) {
 		return
 	}
 
-	graph, err := models.GetCommitGraph(ctx.Repo.GitRepo)
+	allCommitsCount, err := ctx.Repo.GitRepo.GetAllCommitsCount()
+	if err != nil {
+		ctx.ServerError("GetAllCommitsCount", err)
+		return
+	}
+
+	page := ctx.QueryInt("page")
+
+	graph, err := gitgraph.GetCommitGraph(ctx.Repo.GitRepo, page)
 	if err != nil {
 		ctx.ServerError("GetCommitGraph", err)
 		return
@@ -102,9 +111,8 @@ func Graph(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Branch"] = ctx.Repo.BranchName
-	ctx.Data["RequireGitGraph"] = true
+	ctx.Data["Page"] = context.NewPagination(int(allCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
 	ctx.HTML(200, tplGraph)
-
 }
 
 // SearchCommits render commits filtered by keyword
@@ -237,6 +245,7 @@ func Diff(ctx *context.Context) {
 	}
 
 	ctx.Data["CommitID"] = commitID
+	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
 

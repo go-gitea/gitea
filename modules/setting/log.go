@@ -6,6 +6,7 @@ package setting
 
 import (
 	"encoding/json"
+	"fmt"
 	golog "log"
 	"os"
 	"path"
@@ -16,6 +17,8 @@ import (
 
 	ini "gopkg.in/ini.v1"
 )
+
+var filenameSuffix = ""
 
 type defaultLogOptions struct {
 	levelName      string // LogLevel
@@ -112,7 +115,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 			panic(err.Error())
 		}
 
-		logConfig["filename"] = logPath
+		logConfig["filename"] = logPath + filenameSuffix
 		logConfig["rotate"] = sec.Key("LOG_ROTATE").MustBool(true)
 		logConfig["maxsize"] = 1 << uint(sec.Key("MAX_SIZE_SHIFT").MustInt(28))
 		logConfig["daily"] = sec.Key("DAILY_ROTATE").MustBool(true)
@@ -128,7 +131,11 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 		logConfig["username"] = sec.Key("USER").MustString("example@example.com")
 		logConfig["password"] = sec.Key("PASSWD").MustString("******")
 		logConfig["host"] = sec.Key("HOST").MustString("127.0.0.1:25")
-		logConfig["sendTos"] = sec.Key("RECEIVERS").MustString("[]")
+		sendTos := strings.Split(sec.Key("RECEIVERS").MustString(""), ",")
+		for i, address := range sendTos {
+			sendTos[i] = strings.TrimSpace(address)
+		}
+		logConfig["sendTos"] = sendTos
 		logConfig["subject"] = sec.Key("SUBJECT").MustString("Diagnostic message from Gitea")
 	}
 
@@ -275,6 +282,12 @@ func newLogService() {
 	golog.SetFlags(0)
 	golog.SetPrefix("")
 	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
+}
+
+// RestartLogsWithPIDSuffix restarts the logs with a PID suffix on files
+func RestartLogsWithPIDSuffix() {
+	filenameSuffix = fmt.Sprintf(".%d", os.Getpid())
+	NewLogServices(false)
 }
 
 // NewLogServices creates all the log services

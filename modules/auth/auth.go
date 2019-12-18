@@ -8,111 +8,20 @@ package auth
 import (
 	"reflect"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/validation"
 
 	"gitea.com/macaron/binding"
 	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
-	gouuid "github.com/satori/go.uuid"
 	"github.com/unknwon/com"
 )
 
 // IsAPIPath if URL is an api path
 func IsAPIPath(url string) bool {
 	return strings.HasPrefix(url, "/api/")
-}
-
-// IsAttachmentDownload check if request is a file download (GET) with URL to an attachment
-func IsAttachmentDownload(ctx *macaron.Context) bool {
-	return strings.HasPrefix(ctx.Req.URL.Path, "/attachments/") && ctx.Req.Method == "GET"
-}
-
-// SignedInID returns the id of signed in user.
-func SignedInID(ctx *macaron.Context, sess session.Store) int64 {
-	if !models.HasEngine {
-		return 0
-	}
-
-	// Check access token.
-	if IsAPIPath(ctx.Req.URL.Path) || IsAttachmentDownload(ctx) {
-		tokenSHA := ctx.Query("token")
-		if len(tokenSHA) == 0 {
-			tokenSHA = ctx.Query("access_token")
-		}
-		if len(tokenSHA) == 0 {
-			// Well, check with header again.
-			auHead := ctx.Req.Header.Get("Authorization")
-			if len(auHead) > 0 {
-				auths := strings.Fields(auHead)
-				if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
-					tokenSHA = auths[1]
-				}
-			}
-		}
-
-		// Let's see if token is valid.
-		if len(tokenSHA) > 0 {
-			if strings.Contains(tokenSHA, ".") {
-				uid := CheckOAuthAccessToken(tokenSHA)
-				if uid != 0 {
-					ctx.Data["IsApiToken"] = true
-				}
-				return uid
-			}
-			t, err := models.GetAccessTokenBySHA(tokenSHA)
-			if err != nil {
-				if models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err) {
-					log.Error("GetAccessTokenBySHA: %v", err)
-				}
-				return 0
-			}
-			t.UpdatedUnix = timeutil.TimeStampNow()
-			if err = models.UpdateAccessToken(t); err != nil {
-				log.Error("UpdateAccessToken: %v", err)
-			}
-			ctx.Data["IsApiToken"] = true
-			return t.UID
-		}
-	}
-
-	uid := sess.Get("uid")
-	if uid == nil {
-		return 0
-	} else if id, ok := uid.(int64); ok {
-		return id
-	}
-	return 0
-}
-
-// CheckOAuthAccessToken returns uid of user from oauth token token
-func CheckOAuthAccessToken(accessToken string) int64 {
-	// JWT tokens require a "."
-	if !strings.Contains(accessToken, ".") {
-		return 0
-	}
-	token, err := models.ParseOAuth2Token(accessToken)
-	if err != nil {
-		log.Trace("ParseOAuth2Token: %v", err)
-		return 0
-	}
-	var grant *models.OAuth2Grant
-	if grant, err = models.GetOAuth2GrantByID(token.GrantID); err != nil || grant == nil {
-		return 0
-	}
-	if token.Type != models.TypeAccessToken {
-		return 0
-	}
-	if token.ExpiresAt < time.Now().Unix() || token.IssuedAt > time.Now().Unix() {
-		return 0
-	}
-	return grant.UserID
 }
 
 // SignedInUser returns the user object of signed user.
@@ -122,122 +31,18 @@ func SignedInUser(ctx *macaron.Context, sess session.Store) (*models.User, bool)
 		return nil, false
 	}
 
-	if uid := SignedInID(ctx, sess); uid > 0 {
-		user, err := models.GetUserByID(uid)
-		if err == nil {
-			return user, false
-		} else if !models.IsErrUserNotExist(err) {
-			log.Error("GetUserById: %v", err)
+	// Try to sign in with each of the enabled plugins
+	for _, ssoMethod := range sso.Methods() {
+		if !ssoMethod.IsEnabled() {
+			continue
+		}
+		user := ssoMethod.VerifyAuthData(ctx, sess)
+		if user != nil {
+			_, isBasic := ssoMethod.(*sso.Basic)
+			return user, isBasic
 		}
 	}
 
-	if setting.Service.EnableReverseProxyAuth {
-		webAuthUser := ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
-		if len(webAuthUser) > 0 {
-			u, err := models.GetUserByName(webAuthUser)
-			if err != nil {
-				if !models.IsErrUserNotExist(err) {
-					log.Error("GetUserByName: %v", err)
-					return nil, false
-				}
-
-				// Check if enabled auto-registration.
-				if setting.Service.EnableReverseProxyAutoRegister {
-					email := gouuid.NewV4().String() + "@localhost"
-					if setting.Service.EnableReverseProxyEmail {
-						webAuthEmail := ctx.Req.Header.Get(setting.ReverseProxyAuthEmail)
-						if len(webAuthEmail) > 0 {
-							email = webAuthEmail
-						}
-					}
-					u := &models.User{
-						Name:     webAuthUser,
-						Email:    email,
-						Passwd:   webAuthUser,
-						IsActive: true,
-					}
-					if err = models.CreateUser(u); err != nil {
-						// FIXME: should I create a system notice?
-						log.Error("CreateUser: %v", err)
-						return nil, false
-					}
-					return u, false
-				}
-			}
-			return u, false
-		}
-	}
-
-	// Check with basic auth.
-	baHead := ctx.Req.Header.Get("Authorization")
-	if len(baHead) > 0 {
-		auths := strings.Fields(baHead)
-		if len(auths) == 2 && auths[0] == "Basic" {
-			var u *models.User
-
-			uname, passwd, _ := base.BasicAuthDecode(auths[1])
-
-			// Check if username or password is a token
-			isUsernameToken := len(passwd) == 0 || passwd == "x-oauth-basic"
-			// Assume username is token
-			authToken := uname
-			if !isUsernameToken {
-				// Assume password is token
-				authToken = passwd
-			}
-
-			uid := CheckOAuthAccessToken(authToken)
-			if uid != 0 {
-				var err error
-				ctx.Data["IsApiToken"] = true
-
-				u, err = models.GetUserByID(uid)
-				if err != nil {
-					log.Error("GetUserByID:  %v", err)
-					return nil, false
-				}
-			}
-			token, err := models.GetAccessTokenBySHA(authToken)
-			if err == nil {
-				if isUsernameToken {
-					u, err = models.GetUserByID(token.UID)
-					if err != nil {
-						log.Error("GetUserByID:  %v", err)
-						return nil, false
-					}
-				} else {
-					u, err = models.GetUserByName(uname)
-					if err != nil {
-						log.Error("GetUserByID:  %v", err)
-						return nil, false
-					}
-					if u.ID != token.UID {
-						return nil, false
-					}
-				}
-				token.UpdatedUnix = timeutil.TimeStampNow()
-				if err = models.UpdateAccessToken(token); err != nil {
-					log.Error("UpdateAccessToken:  %v", err)
-				}
-			} else if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-				log.Error("GetAccessTokenBySha: %v", err)
-			}
-
-			if u == nil {
-				u, err = models.UserSignIn(uname, passwd)
-				if err != nil {
-					if !models.IsErrUserNotExist(err) {
-						log.Error("UserSignIn: %v", err)
-					}
-					return nil, false
-				}
-			} else {
-				ctx.Data["IsApiToken"] = true
-			}
-
-			return u, true
-		}
-	}
 	return nil, false
 }
 

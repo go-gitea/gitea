@@ -15,7 +15,7 @@ import (
 )
 
 func TestUserHeatmap(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
 	session := loginUser(t, adminUsername)
@@ -26,7 +26,7 @@ func TestUserHeatmap(t *testing.T) {
 	var heatmap []*models.UserHeatmapData
 	DecodeJSON(t, resp, &heatmap)
 	var dummyheatmap []*models.UserHeatmapData
-	dummyheatmap = append(dummyheatmap, &models.UserHeatmapData{Timestamp: 1540080000, Contributions: 1})
+	dummyheatmap = append(dummyheatmap, &models.UserHeatmapData{Timestamp: 1571616000, Contributions: 1})
 
 	assert.Equal(t, dummyheatmap, heatmap)
 }

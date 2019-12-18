@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/references"
 )
 
 // MailParticipantsComment sends new comment emails to repository watchers
@@ -19,29 +19,27 @@ func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue 
 }
 
 func mailParticipantsComment(ctx models.DBContext, c *models.Comment, opType models.ActionType, issue *models.Issue) (err error) {
-	mentions := markup.FindAllMentions(c.Content)
-	if err = models.UpdateIssueMentions(ctx, c.IssueID, mentions); err != nil {
+	rawMentions := references.FindAllMentionsMarkdown(c.Content)
+	userMentions, err := issue.ResolveMentionsByVisibility(ctx, c.Poster, rawMentions)
+	if err != nil {
+		return fmt.Errorf("ResolveMentionsByVisibility [%d]: %v", c.IssueID, err)
+	}
+	if err = models.UpdateIssueMentions(ctx, c.IssueID, userMentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
-
-	if len(c.Content) > 0 {
-		if err = mailIssueCommentToParticipants(issue, c.Poster, c.Content, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
+	mentions := make([]int64, len(userMentions))
+	for i, u := range userMentions {
+		mentions[i] = u.ID
 	}
-
-	switch opType {
-	case models.ActionCloseIssue:
-		ct := fmt.Sprintf("Closed #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(issue, c.Poster, ct, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
-	case models.ActionReopenIssue:
-		ct := fmt.Sprintf("Reopened #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(issue, c.Poster, ct, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
+	if err = mailIssueCommentToParticipants(
+		&mailCommentContext{
+			Issue:      issue,
+			Doer:       c.Poster,
+			ActionType: opType,
+			Content:    c.Content,
+			Comment:    c,
+		}, mentions); err != nil {
+		log.Error("mailIssueCommentToParticipants: %v", err)
 	}
-
 	return nil
 }

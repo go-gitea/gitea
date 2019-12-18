@@ -6,9 +6,11 @@ package indexer
 
 import (
 	"code.gitea.io/gitea/models"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 type indexerNotifier struct {
@@ -74,6 +76,11 @@ func (r *indexerNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 
 func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models.Comment) {
 	if comment.Type == models.CommentTypeComment {
+		if err := comment.LoadIssue(); err != nil {
+			log.Error("LoadIssue: %v", err)
+			return
+		}
+
 		var found bool
 		if comment.Issue.Comments != nil {
 			for i := 0; i < len(comment.Issue.Comments); i++ {
@@ -98,6 +105,22 @@ func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models
 
 func (r *indexerNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
 	issue_indexer.DeleteRepoIssueIndexer(repo)
+	if setting.Indexer.RepoIndexerEnabled {
+		code_indexer.DeleteRepoFromIndexer(repo)
+	}
+}
+
+func (r *indexerNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+	issue_indexer.UpdateRepoIndexer(repo)
+	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
+		code_indexer.UpdateRepoIndexer(repo)
+	}
+}
+
+func (r *indexerNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+	if setting.Indexer.RepoIndexerEnabled && refName == repo.DefaultBranch {
+		code_indexer.UpdateRepoIndexer(repo)
+	}
 }
 
 func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {

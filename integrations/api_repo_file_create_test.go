@@ -30,12 +30,12 @@ func getCreateFileOptions() api.CreateFileOptions {
 			NewBranchName: "master",
 			Message:       "Making this new file new/file.txt",
 			Author: api.Identity{
-				Name:  "John Doe",
-				Email: "johndoe@example.com",
+				Name:  "Anne Doe",
+				Email: "annedoe@example.com",
 			},
 			Committer: api.Identity{
-				Name:  "Jane Doe",
-				Email: "janedoe@example.com",
+				Name:  "John Doe",
+				Email: "johndoe@example.com",
 			},
 		},
 		Content: contentEncoded,
@@ -77,8 +77,8 @@ func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileRespon
 			HTMLURL: setting.AppURL + "user2/repo1/commit/" + commitID,
 			Author: &api.CommitUser{
 				Identity: api.Identity{
-					Name:  "Jane Doe",
-					Email: "janedoe@example.com",
+					Name:  "Anne Doe",
+					Email: "annedoe@example.com",
 				},
 			},
 			Committer: &api.CommitUser{
@@ -91,7 +91,7 @@ func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileRespon
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
-			Reason:    "unsigned",
+			Reason:    "gpg.error.not_signed_commit",
 			Signature: "",
 			Payload:   "",
 		},
@@ -139,6 +139,7 @@ func TestAPICreateFile(t *testing.T) {
 			assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
 			assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
 			assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
+			gitRepo.Close()
 		}
 
 		// Test creating a file in a new branch

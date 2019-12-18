@@ -132,6 +132,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	topicOnly := ctx.QueryBool("topic")
+	ctx.Data["TopicOnly"] = topicOnly
 
 	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
 		Page:               page,
@@ -155,6 +156,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 
 	pager := context.NewPagination(int(count), opts.PageSize, page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParam(ctx, "topic", "TopicOnly")
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, opts.TplName)
@@ -273,7 +275,7 @@ func ExploreOrganizations(ctx *context.Context) {
 // ExploreCode render explore code page
 func ExploreCode(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled {
-		ctx.Redirect("/explore", 302)
+		ctx.Redirect(setting.AppSubURL+"/explore", 302)
 		return
 	}
 

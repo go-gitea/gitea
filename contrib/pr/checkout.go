@@ -5,6 +5,7 @@ Checkout a PR and load the tests data into sqlite database
 */
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -27,13 +28,13 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
-	"github.com/go-xorm/xorm"
 	context2 "github.com/gorilla/context"
 	"github.com/unknwon/com"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/testfixtures.v2"
+	"xorm.io/xorm"
 )
 
 var codeFilePath = "contrib/pr/checkout.go"
@@ -92,7 +93,7 @@ func runPR() {
 	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 
 	var helper testfixtures.Helper = &testfixtures.SQLite{}
-	models.NewEngine(func(_ *xorm.Engine) error {
+	models.NewEngine(context.Background(), func(_ *xorm.Engine) error {
 		return nil
 	})
 	models.HasEngine = true

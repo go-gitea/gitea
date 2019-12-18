@@ -36,7 +36,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 			continue
 		}
 		if !info.lfsMetaObject.Existing {
-			if err := t.repo.RemoveLFSMetaObjectByOid(info.lfsMetaObject.Oid); err != nil {
+			if _, err := t.repo.RemoveLFSMetaObjectByOid(info.lfsMetaObject.Oid); err != nil {
 				original = fmt.Errorf("%v, %v", original, err)
 			}
 		}
@@ -55,6 +55,23 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		return fmt.Errorf("GetUploadsByUUIDs [uuids: %v]: %v", opts.Files, err)
 	}
 
+	names := make([]string, len(uploads))
+	infos := make([]uploadInfo, len(uploads))
+	for i, upload := range uploads {
+		// Check file is not lfs locked, will return nil if lock setting not enabled
+		filepath := path.Join(opts.TreePath, upload.Name)
+		lfsLock, err := repo.GetTreePathLock(filepath)
+		if err != nil {
+			return err
+		}
+		if lfsLock != nil && lfsLock.OwnerID != doer.ID {
+			return models.ErrLFSFileLocked{RepoID: repo.ID, Path: filepath, UserName: lfsLock.Owner.Name}
+		}
+
+		names[i] = upload.Name
+		infos[i] = uploadInfo{upload: upload}
+	}
+
 	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
 		return err
@@ -67,16 +84,12 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		return err
 	}
 
-	names := make([]string, len(uploads))
-	infos := make([]uploadInfo, len(uploads))
-	for i, upload := range uploads {
-		names[i] = upload.Name
-		infos[i] = uploadInfo{upload: upload}
-	}
-
-	filename2attribute2info, err := t.CheckAttribute("filter", names...)
-	if err != nil {
-		return err
+	var filename2attribute2info map[string]map[string]string
+	if setting.LFS.StartServer {
+		filename2attribute2info, err = t.CheckAttribute("filter", names...)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Copy uploaded files into repository.
@@ -88,7 +101,7 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		defer file.Close()
 
 		var objectHash string
-		if filename2attribute2info[uploadInfo.upload.Name] != nil && filename2attribute2info[uploadInfo.upload.Name]["filter"] == "lfs" {
+		if setting.LFS.StartServer && filename2attribute2info[uploadInfo.upload.Name] != nil && filename2attribute2info[uploadInfo.upload.Name]["filter"] == "lfs" {
 			// Handle LFS
 			// FIXME: Inefficient! this should probably happen in models.Upload
 			oid, err := models.GenerateLFSOid(file)

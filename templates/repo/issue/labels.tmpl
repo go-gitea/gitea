@@ -17,16 +17,16 @@
 					<div class="ui grid">
 						<div class="three wide column">
 							<div class="ui small input">
-								<input class="new-label-input emoji-input" name="title" placeholder="{{.i18n.Tr "repo.issues.new_label_placeholder"}}" autofocus required>
+								<input class="new-label-input emoji-input" name="title" placeholder="{{.i18n.Tr "repo.issues.new_label_placeholder"}}" autofocus required maxlength="50">
 							</div>
 						</div>
 						<div class="five wide column">
 							<div class="ui small fluid input">
-								<input class="new-label-desc-input" name="description" placeholder="{{.i18n.Tr "repo.issues.new_label_desc_placeholder"}}">
+								<input class="new-label-desc-input" name="description" placeholder="{{.i18n.Tr "repo.issues.new_label_desc_placeholder"}}" maxlength="200">
 							</div>
 						</div>
 						<div class="color picker column">
-							<input class="color-picker" name="color" value="#70c24a" required>
+							<input class="color-picker" name="color" value="#70c24a" required maxlength="7">
 						</div>
 						<div class="column precolors">
 							{{template "repo/issue/label_precolors"}}
@@ -57,7 +57,7 @@
 			</div>
 		</div>
 		{{template "base/alert" .}}
-		<div class="ui black label">{{.i18n.Tr "repo.issues.label_count" .NumLabels}}</div>
+		<div class="ui black basic label">{{.i18n.Tr "repo.issues.label_count" .NumLabels}}</div>
 		<div class="label list">
 			{{if and (or $.CanWriteIssues $.CanWritePulls) (eq .NumLabels 0) (not $.Repository.IsArchived) }}
 				<div class="ui centered grid">
@@ -79,8 +79,8 @@
 										<input type="hidden" name="template_name" value="Default">
 										<div class="default text">{{.i18n.Tr "repo.issues.label_templates.helper"}}</div>
 										<div class="menu">
-											{{range .LabelTemplates}}
-											<div class="item" data-value="{{.}}">{{.}}</div>
+											{{range $template, $labels := .LabelTemplates}}
+												<div class="item" data-value="{{$template}}">{{$template}}<br/><i>({{$labels}})</i></div>
 											{{end}}
 										</div>
 									</div>
@@ -151,16 +151,16 @@
 				<div class="ui grid">
 					<div class="three wide column">
 						<div class="ui small input">
-							<input class="new-label-input emoji-input" name="title" placeholder="{{.i18n.Tr "repo.issues.new_label_placeholder"}}" autofocus required>
+							<input class="new-label-input emoji-input" name="title" placeholder="{{.i18n.Tr "repo.issues.new_label_placeholder"}}" autofocus required maxlength="50">
 						</div>
 					</div>
 					<div class="five wide column">
 						<div class="ui small fluid input">
-							<input class="new-label-desc-input" name="description" placeholder="{{.i18n.Tr "repo.issues.new_label_desc_placeholder"}}">
+							<input class="new-label-desc-input" name="description" placeholder="{{.i18n.Tr "repo.issues.new_label_desc_placeholder"}}" maxlength="200">
 						</div>
 					</div>
 					<div class="color picker column">
-						<input class="color-picker" name="color" value="#70c24a" required>
+						<input class="color-picker" name="color" value="#70c24a" required maxlength="7">
 					</div>
 					<div class="column precolors">
 						{{template "repo/issue/label_precolors"}}

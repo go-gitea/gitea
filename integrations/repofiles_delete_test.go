@@ -53,7 +53,7 @@ func getExpectedDeleteFileResponse(u *url.URL) *api.FileResponse {
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
-			Reason:    "",
+			Reason:    "gpg.error.not_signed_commit",
 			Signature: "",
 			Payload:   "",
 		},
@@ -73,6 +73,7 @@ func testDeleteRepoFile(t *testing.T, u *url.URL) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
 	repo := ctx.Repo.Repository
 	doer := ctx.User
 	opts := getDeleteRepoFileOptions(repo)
@@ -111,6 +112,8 @@ func testDeleteRepoFileWithoutBranchNames(t *testing.T, u *url.URL) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	repo := ctx.Repo.Repository
 	doer := ctx.User
 	opts := getDeleteRepoFileOptions(repo)
@@ -139,6 +142,8 @@ func TestDeleteRepoFileErrors(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	repo := ctx.Repo.Repository
 	doer := ctx.User
 

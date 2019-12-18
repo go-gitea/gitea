@@ -15,10 +15,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/gzip"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 
+	"gitea.com/macaron/gzip"
 	gzipp "github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
 )
@@ -57,7 +57,12 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 }
 
 func doLfs(t *testing.T, content *[]byte, expectGzip bool) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
+	setting.CheckLFSVersion()
+	if !setting.LFS.StartServer {
+		t.Skip()
+		return
+	}
 	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)

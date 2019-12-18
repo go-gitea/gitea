@@ -20,12 +20,14 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/unknwon/com"
 	"mvdan.cc/xurls/v2"
@@ -65,13 +67,15 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		isNameChanged := false
-		oldRepoName := repo.Name
 		newRepoName := form.RepoName
 		// Check if repository name has been changed.
 		if repo.LowerName != strings.ToLower(newRepoName) {
-			isNameChanged = true
-			if err := models.ChangeRepositoryName(ctx.Repo.Owner, repo.Name, newRepoName); err != nil {
+			// Close the GitRepo if open
+			if ctx.Repo.GitRepo != nil {
+				ctx.Repo.GitRepo.Close()
+				ctx.Repo.GitRepo = nil
+			}
+			if err := repo_service.ChangeRepositoryName(ctx.Repo.Owner, repo, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case models.IsErrRepoAlreadyExist(err):
@@ -86,12 +90,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 				return
 			}
 
-			err := models.NewRepoRedirect(ctx.Repo.Owner.ID, repo.ID, repo.Name, newRepoName)
-			if err != nil {
-				ctx.ServerError("NewRepoRedirect", err)
-				return
-			}
-
 			log.Trace("Repository name changed: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newRepoName)
 		}
 		// In case it's just a case change.
@@ -99,6 +97,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		repo.LowerName = strings.ToLower(newRepoName)
 		repo.Description = form.Description
 		repo.Website = form.Website
+		repo.IsTemplate = form.Template
 
 		// Visibility of forked repository is forced sync with base repository.
 		if repo.IsFork {
@@ -118,12 +117,6 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
-
-		if isNameChanged {
-			if err := models.RenameRepoAction(ctx.User, oldRepoName, repo); err != nil {
-				log.Error("RenameRepoAction: %v", err)
-			}
-		}
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -346,7 +339,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 		repo.IsMirror = false
 
-		if _, err := models.CleanUpMigrateInfo(repo); err != nil {
+		if _, err := repository.CleanUpMigrateInfo(repo); err != nil {
 			ctx.ServerError("CleanUpMigrateInfo", err)
 			return
 		} else if err = models.DeleteMirrorByRepoID(ctx.Repo.Repository.ID); err != nil {
@@ -377,19 +370,17 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		oldOwnerID := ctx.Repo.Owner.ID
-		if err = models.TransferOwnership(ctx.User, newOwner, repo); err != nil {
+		// Close the GitRepo if open
+		if ctx.Repo.GitRepo != nil {
+			ctx.Repo.GitRepo.Close()
+			ctx.Repo.GitRepo = nil
+		}
+		if err = repo_service.TransferOwnership(ctx.User, newOwner, repo); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else {
 				ctx.ServerError("TransferOwnership", err)
 			}
-			return
-		}
-
-		err = models.NewRepoRedirect(oldOwnerID, repo.ID, repo.Name, repo.Name)
-		if err != nil {
-			ctx.ServerError("NewRepoRedirect", err)
 			return
 		}
 
@@ -407,7 +398,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			return
 		}
 
-		if err := models.DeleteRepository(ctx.User, ctx.Repo.Owner.ID, repo.ID); err != nil {
+		if err := repo_service.DeleteRepository(ctx.User, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("DeleteRepository", err)
 			return
 		}
@@ -696,6 +687,7 @@ func GitHooks(ctx *context.Context) {
 func GitHooksEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.githooks")
 	ctx.Data["PageIsSettingsGitHooks"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 
 	name := ctx.Params(":name")
 	hook, err := ctx.Repo.GitRepo.GetHook(name)

@@ -458,6 +458,8 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 
 func renderUploadSettings(ctx *context.Context) {
 	ctx.Data["RequireDropzone"] = true
+	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["UploadAllowedTypes"] = strings.Join(setting.Repository.Upload.AllowedTypes, ",")
 	ctx.Data["UploadMaxSize"] = setting.Repository.Upload.FileMaxSize
 	ctx.Data["UploadMaxFiles"] = setting.Repository.Upload.MaxFiles
@@ -585,7 +587,11 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 		Files:        form.Files,
 	}); err != nil {
 		ctx.Data["Err_TreePath"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.editor.unable_to_upload_files", form.TreePath, err), tplUploadFile, &form)
+		if models.IsErrLFSFileLocked(err) {
+			ctx.RenderWithErr(ctx.Tr("repo.editor.upload_file_is_locked", err.(models.ErrLFSFileLocked).Path, err.(models.ErrLFSFileLocked).UserName), tplUploadFile, &form)
+		} else {
+			ctx.RenderWithErr(ctx.Tr("repo.editor.unable_to_upload_files", form.TreePath, err), tplUploadFile, &form)
+		}
 		return
 	}
 

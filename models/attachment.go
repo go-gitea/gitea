@@ -14,8 +14,8 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
+	"xorm.io/xorm"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -131,6 +131,11 @@ func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
 		return nil, ErrAttachmentNotExist{0, uuid}
 	}
 	return attach, nil
+}
+
+// GetAttachmentsByUUIDs returns attachment by given UUID list.
+func GetAttachmentsByUUIDs(uuids []string) ([]*Attachment, error) {
+	return getAttachmentsByUUIDs(x, uuids)
 }
 
 func getAttachmentsByUUIDs(e Engine, uuids []string) ([]*Attachment, error) {

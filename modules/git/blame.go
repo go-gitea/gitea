@@ -6,6 +6,7 @@ package git
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -28,6 +29,7 @@ type BlameReader struct {
 	output  io.ReadCloser
 	scanner *bufio.Scanner
 	lastSha *string
+	cancel  context.CancelFunc
 }
 
 var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
@@ -76,7 +78,8 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 
 // Close BlameReader - don't run NextPart after invoking that
 func (r *BlameReader) Close() error {
-	process.GetManager().Remove(r.pid)
+	defer process.GetManager().Remove(r.pid)
+	defer r.cancel()
 
 	if err := r.cmd.Wait(); err != nil {
 		return fmt.Errorf("Wait: %v", err)
@@ -87,29 +90,34 @@ func (r *BlameReader) Close() error {
 
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(repoPath, commitID, file string) (*BlameReader, error) {
-	_, err := OpenRepository(repoPath)
+	gitRepo, err := OpenRepository(repoPath)
 	if err != nil {
 		return nil, err
 	}
+	gitRepo.Close()
 
 	return createBlameReader(repoPath, GitExecutable, "blame", commitID, "--porcelain", "--", file)
 }
 
 func createBlameReader(dir string, command ...string) (*BlameReader, error) {
-	cmd := exec.Command(command[0], command[1:]...)
+	// FIXME: graceful: This should have a timeout
+	ctx, cancel := context.WithCancel(DefaultContext)
+	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
 	cmd.Dir = dir
 	cmd.Stderr = os.Stderr
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
+		defer cancel()
 		return nil, fmt.Errorf("StdoutPipe: %v", err)
 	}
 
 	if err = cmd.Start(); err != nil {
+		defer cancel()
 		return nil, fmt.Errorf("Start: %v", err)
 	}
 
-	pid := process.GetManager().Add(fmt.Sprintf("GetBlame [repo_path: %s]", dir), cmd)
+	pid := process.GetManager().Add(fmt.Sprintf("GetBlame [repo_path: %s]", dir), cancel)
 
 	scanner := bufio.NewScanner(stdout)
 
@@ -119,5 +127,6 @@ func createBlameReader(dir string, command ...string) (*BlameReader, error) {
 		stdout,
 		scanner,
 		nil,
+		cancel,
 	}, nil
 }

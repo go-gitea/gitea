@@ -289,3 +289,88 @@ func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
 
 	assert.Equal(t, miles[0].TotalTrackedTime, int64(3662))
 }
+
+func TestCountMilestonesByRepoIDs(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	milestonesCount := func(repoID int64) (int, int) {
+		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
+		return repo.NumOpenMilestones, repo.NumClosedMilestones
+	}
+	repo1OpenCount, repo1ClosedCount := milestonesCount(1)
+	repo2OpenCount, repo2ClosedCount := milestonesCount(2)
+
+	openCounts, err := CountMilestonesByRepoIDs([]int64{1, 2}, false)
+	assert.NoError(t, err)
+	assert.EqualValues(t, repo1OpenCount, openCounts[1])
+	assert.EqualValues(t, repo2OpenCount, openCounts[2])
+
+	closedCounts, err := CountMilestonesByRepoIDs([]int64{1, 2}, true)
+	assert.NoError(t, err)
+	assert.EqualValues(t, repo1ClosedCount, closedCounts[1])
+	assert.EqualValues(t, repo2ClosedCount, closedCounts[2])
+}
+
+func TestGetMilestonesByRepoIDs(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	test := func(sortType string, sortCond func(*Milestone) int) {
+		for _, page := range []int{0, 1} {
+			openMilestones, err := GetMilestonesByRepoIDs([]int64{repo1.ID, repo2.ID}, page, false, sortType)
+			assert.NoError(t, err)
+			assert.Len(t, openMilestones, repo1.NumOpenMilestones+repo2.NumOpenMilestones)
+			values := make([]int, len(openMilestones))
+			for i, milestone := range openMilestones {
+				values[i] = sortCond(milestone)
+			}
+			assert.True(t, sort.IntsAreSorted(values))
+
+			closedMilestones, err := GetMilestonesByRepoIDs([]int64{repo1.ID, repo2.ID}, page, true, sortType)
+			assert.NoError(t, err)
+			assert.Len(t, closedMilestones, repo1.NumClosedMilestones+repo2.NumClosedMilestones)
+			values = make([]int, len(closedMilestones))
+			for i, milestone := range closedMilestones {
+				values[i] = sortCond(milestone)
+			}
+			assert.True(t, sort.IntsAreSorted(values))
+		}
+	}
+	test("furthestduedate", func(milestone *Milestone) int {
+		return -int(milestone.DeadlineUnix)
+	})
+	test("leastcomplete", func(milestone *Milestone) int {
+		return milestone.Completeness
+	})
+	test("mostcomplete", func(milestone *Milestone) int {
+		return -milestone.Completeness
+	})
+	test("leastissues", func(milestone *Milestone) int {
+		return milestone.NumIssues
+	})
+	test("mostissues", func(milestone *Milestone) int {
+		return -milestone.NumIssues
+	})
+	test("soonestduedate", func(milestone *Milestone) int {
+		return int(milestone.DeadlineUnix)
+	})
+}
+
+func TestLoadTotalTrackedTime(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	milestone := AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
+
+	assert.NoError(t, milestone.LoadTotalTrackedTime())
+
+	assert.Equal(t, milestone.TotalTrackedTime, int64(3662))
+}
+
+func TestGetMilestonesStats(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+
+	milestoneStats, err := GetMilestonesStats([]int64{repo1.ID, repo2.ID})
+	assert.NoError(t, err)
+	assert.EqualValues(t, repo1.NumOpenMilestones+repo2.NumOpenMilestones, milestoneStats.OpenCount)
+	assert.EqualValues(t, repo1.NumClosedMilestones+repo2.NumClosedMilestones, milestoneStats.ClosedCount)
+}

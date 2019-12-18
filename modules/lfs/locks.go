@@ -110,7 +110,7 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 
 	//If no query params path or id
-	lockList, err := models.GetLFSLockByRepoID(repository.ID)
+	lockList, err := models.GetLFSLockByRepoID(repository.ID, 0, 0)
 	if err != nil {
 		ctx.JSON(500, api.LFSLockError{
 			Message: "unable to list locks : " + err.Error(),
@@ -155,7 +155,9 @@ func PostLockHandler(ctx *context.Context) {
 	}
 
 	var req api.LFSLockRequest
-	dec := json.NewDecoder(ctx.Req.Body().ReadCloser())
+	bodyReader := ctx.Req.Body().ReadCloser()
+	defer bodyReader.Close()
+	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		writeStatus(ctx, 400)
 		return
@@ -218,7 +220,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	}
 
 	//TODO handle body json cursor and limit
-	lockList, err := models.GetLFSLockByRepoID(repository.ID)
+	lockList, err := models.GetLFSLockByRepoID(repository.ID, 0, 0)
 	if err != nil {
 		ctx.JSON(500, api.LFSLockError{
 			Message: "unable to list locks : " + err.Error(),
@@ -269,7 +271,9 @@ func UnLockHandler(ctx *context.Context) {
 	}
 
 	var req api.LFSLockDeleteRequest
-	dec := json.NewDecoder(ctx.Req.Body().ReadCloser())
+	bodyReader := ctx.Req.Body().ReadCloser()
+	defer bodyReader.Close()
+	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		writeStatus(ctx, 400)
 		return

@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 // Mirror represents mirror information of a repository.
@@ -96,4 +96,10 @@ func MirrorsIterate(f func(idx int, bean interface{}) error) error {
 		Where("next_update_unix<=?", time.Now().Unix()).
 		And("next_update_unix!=0").
 		Iterate(new(Mirror), f)
+}
+
+// InsertMirror inserts a mirror to database
+func InsertMirror(mirror *Mirror) error {
+	_, err := x.Insert(mirror)
+	return err
 }

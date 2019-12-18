@@ -84,6 +84,11 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 		if err != nil {
 			return err
 		}
+		defer func() {
+			if err = lfsDataRc.Close(); err != nil {
+				log.Error("ServeBlobOrLFS: Close: %v", err)
+			}
+		}()
 		return ServeData(ctx, ctx.Repo.TreePath, lfsDataRc)
 	}
 

@@ -10,8 +10,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/repository"
 
-	"github.com/go-xorm/xorm"
+	"xorm.io/xorm"
 )
 
 // ReleaseV39 describes the added field for Release
@@ -44,9 +45,10 @@ func releaseAddColumnIsTagAndSyncTags(x *xorm.Engine) error {
 				continue
 			}
 
-			if err = models.SyncReleasesWithTags(repo, gitRepo); err != nil {
+			if err = repository.SyncReleasesWithTags(repo, gitRepo); err != nil {
 				log.Warn("SyncReleasesWithTags: %v", err)
 			}
+			gitRepo.Close()
 		}
 		if len(repos) < pageSize {
 			break

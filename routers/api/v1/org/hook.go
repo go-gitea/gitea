@@ -7,8 +7,8 @@ package org
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/v1/convert"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 

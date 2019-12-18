@@ -10,8 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/v1/convert"
 
 	"github.com/unknwon/com"
 )
@@ -104,7 +104,7 @@ func GetInfo(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.ID == u.ID || ctx.User.IsAdmin))
+	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User != nil && (ctx.User.ID == u.ID || ctx.User.IsAdmin)))
 }
 
 // GetAuthenticatedUser get current user's information

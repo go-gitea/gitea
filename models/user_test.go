@@ -153,13 +153,13 @@ func TestSearchUsers(t *testing.T) {
 	}
 
 	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1},
-		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24})
+		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28})
 
 	testUserSuccess(&SearchUserOptions{Page: 1, IsActive: util.OptionalBoolFalse},
 		[]int64{9})
 
 	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", Page: 1, IsActive: util.OptionalBoolTrue},
-		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24})
+		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 28})
 
 	testUserSuccess(&SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", Page: 1, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
@@ -372,4 +372,17 @@ func TestCreateUser_Issue5882(t *testing.T) {
 
 		assert.NoError(t, DeleteUser(v.user))
 	}
+}
+
+func TestGetUserIDsByNames(t *testing.T) {
+
+	//ignore non existing
+	IDs, err := GetUserIDsByNames([]string{"user1", "user2", "none_existing_user"}, true)
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{1, 2}, IDs)
+
+	//ignore non existing
+	IDs, err = GetUserIDsByNames([]string{"user1", "do_not_exist"}, false)
+	assert.Error(t, err)
+	assert.Equal(t, []int64(nil), IDs)
 }

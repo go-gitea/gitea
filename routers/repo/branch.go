@@ -28,6 +28,7 @@ type Branch struct {
 	Commit            *git.Commit
 	IsProtected       bool
 	IsDeleted         bool
+	IsIncluded        bool
 	DeletedBranch     *models.DeletedBranch
 	CommitsAhead      int
 	CommitsBehind     int
@@ -136,7 +137,7 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 	if err := repofiles.PushUpdate(
 		ctx.Repo.Repository,
 		branchName,
-		models.PushUpdateOptions{
+		repofiles.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + branchName,
 			OldCommitID:  commit.ID.String(),
 			NewCommitID:  git.EmptySHA,
@@ -203,10 +204,13 @@ func loadBranches(ctx *context.Context) []*Branch {
 			}
 		}
 
+		isIncluded := divergence.Ahead == 0 && ctx.Repo.Repository.DefaultBranch != branchName
+
 		branches[i] = &Branch{
 			Name:              branchName,
 			Commit:            commit,
 			IsProtected:       isProtected,
+			IsIncluded:        isIncluded,
 			CommitsAhead:      divergence.Ahead,
 			CommitsBehind:     divergence.Behind,
 			LatestPullRequest: pr,

@@ -21,10 +21,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-xorm/xorm"
 	gouuid "github.com/satori/go.uuid"
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
+	"xorm.io/xorm"
 )
 
 const minDBVersion = 4
@@ -252,6 +252,36 @@ var migrations = []Migration{
 	NewMigration("add repo_admin_change_team_access to user", addRepoAdminChangeTeamAccessColumnForUser),
 	// v98 -> v99
 	NewMigration("add original author name and id on migrated release", addOriginalAuthorOnMigratedReleases),
+	// v99 -> v100
+	NewMigration("add task table and status column for repository table", addTaskTable),
+	// v100 -> v101
+	NewMigration("update migration repositories' service type", updateMigrationServiceTypes),
+	// v101 -> v102
+	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
+	// v102 -> v103
+	NewMigration("update migration repositories' service type", dropColumnHeadUserNameOnPullRequest),
+	// v103 -> v104
+	NewMigration("Add WhitelistDeployKeys to protected branch", addWhitelistDeployKeysToBranches),
+	// v104 -> v105
+	NewMigration("remove unnecessary columns from label", removeLabelUneededCols),
+	// v105 -> v106
+	NewMigration("add includes_all_repositories to teams", addTeamIncludesAllRepositories),
+	// v106 -> v107
+	NewMigration("add column `mode` to table watch", addModeColumnToWatch),
+	// v107 -> v108
+	NewMigration("Add template options to repository", addTemplateToRepo),
+	// v108 -> v109
+	NewMigration("Add comment_id on table notification", addCommentIDOnNotification),
+	// v109 -> v110
+	NewMigration("add can_create_org_repo to team", addCanCreateOrgRepoColumnForTeam),
+	// v110 -> v111
+	NewMigration("change review content type to text", changeReviewContentToText),
+	// v111 -> v112
+	NewMigration("update branch protection for can push and whitelist enable", addBranchProtectionCanPushAndEnableWhitelist),
+	// v112 -> v113
+	NewMigration("remove release attachments which repository deleted", removeAttachmentMissedRepo),
+	// v113 -> v114
+	NewMigration("new feature: change target branch of pull requests", featureChangeTargetBranch),
 }
 
 // Migrate database to current version
@@ -404,9 +434,11 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		}
 		for _, index := range res {
 			indexName := index["column_name"]
-			_, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
-			if err != nil {
-				return err
+			if len(indexName) > 0 {
+				_, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s` ON `%s`", indexName, tableName))
+				if err != nil {
+					return err
+				}
 			}
 		}
 

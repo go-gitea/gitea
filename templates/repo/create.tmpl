@@ -55,68 +55,116 @@
 						<label for="description">{{.i18n.Tr "repo.repo_desc"}}</label>
 						<textarea id="description" name="description">{{.description}}</textarea>
 					</div>
-
 					<div class="inline field">
-						<label>{{.i18n.Tr "repo.issue_labels"}}</label>
-						<div class="ui search normal selection dropdown">
-							<input type="hidden" name="issue_labels" value="{{.issueLabels}}">
-							<div class="default text">{{.i18n.Tr "repo.issue_labels_helper"}}</div>
+						<label>{{.i18n.Tr "repo.template"}}</label>
+						<div id="repo_template_search" class="ui search normal selection dropdown">
+							<input type="hidden" id="repo_template" name="repo_template" value="{{.repo_template}}">
+							<div class="default text">{{.repo_template_name}}</div>
 							<div class="menu">
-								<div class="item" data-value="">{{.i18n.Tr "repo.issue_labels_helper"}}</div>
-                                {{range .LabelTemplates}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
-                                {{end}}
 							</div>
 						</div>
 					</div>
 
-					<div class="ui divider"></div>
-
-					<div class="inline field">
-						<label>.gitignore</label>
-						<div class="ui multiple search normal selection dropdown">
-							<input type="hidden" name="gitignores" value="{{.gitignores}}">
-							<div class="default text">{{.i18n.Tr "repo.repo_gitignore_helper"}}</div>
-							<div class="menu">
-								{{range .Gitignores}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
-								{{end}}
+					<div id="template_units" style="display: none;">
+						<div class="inline field">
+							<label>{{.i18n.Tr "repo.template.items"}}</label>
+							<div class="ui checkbox">
+								<input class="hidden" name="git_content" type="checkbox" tabindex="0" {{if .git_content}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.template.git_content"}}</label>
+							</div>
+							<div class="ui checkbox" {{if not .SignedUser.CanEditGitHook}}data-tooltip="{{.i18n.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
+								<input class="hidden" name="git_hooks" type="checkbox" tabindex="0" {{if .git_hooks}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.template.git_hooks"}}</label>
+							</div>
+						</div>
+						<div class="inline field">
+							<label></label>
+							<div class="ui checkbox">
+								<input class="hidden" name="webhooks" type="checkbox" tabindex="0" {{if .webhooks}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.template.webhooks"}}</label>
+							</div>
+							<div class="ui checkbox">
+								<input class="hidden" name="topics" type="checkbox" tabindex="0" {{if .topics}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.template.topics"}}</label>
+							</div>
+						</div>
+						<div class="inline field">
+							<label></label>
+							<div class="ui checkbox">
+								<input class="hidden" name="avatar" type="checkbox" tabindex="0" {{if .avatar}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.template.avatar"}}</label>
+							</div>
+							<div class="ui checkbox">
+								<input class="hidden" name="labels" type="checkbox" tabindex="0" {{if .labels}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.template.issue_labels"}}</label>
 							</div>
 						</div>
 					</div>
-					<div class="inline field">
-						<label>{{.i18n.Tr "repo.license"}}</label>
-						<div class="ui search selection dropdown">
-							<input type="hidden" name="license" value="{{.license}}">
-							<div class="default text">{{.i18n.Tr "repo.license_helper"}}</div>
-							<div class="menu">
-								<div class="item" data-value="">{{.i18n.Tr "repo.license_helper"}}</div>
-								{{range .Licenses}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
-								{{end}}
+
+					<div id="non_template">
+						<div class="inline field">
+							<label>{{.i18n.Tr "repo.issue_labels"}}</label>
+							<div class="ui search normal selection dropdown">
+								<input type="hidden" name="issue_labels" value="{{.issueLabels}}">
+								<div class="default text">{{.i18n.Tr "repo.issue_labels_helper"}}</div>
+								<div class="menu">
+									<div class="item" data-value="">{{.i18n.Tr "repo.issue_labels_helper"}}</div>
+									{{range $template, $labels := .LabelTemplates}}
+										<div class="item" data-value="{{$template}}">{{$template}}<br/><i>({{$labels}})</i></div>
+									{{end}}
+								</div>
+							</div>
+						</div>
+
+						<div class="ui divider"></div>
+
+						<div class="inline field">
+							<label>.gitignore</label>
+							<div class="ui multiple search normal selection dropdown">
+								<input type="hidden" name="gitignores" value="{{.gitignores}}">
+								<div class="default text">{{.i18n.Tr "repo.repo_gitignore_helper"}}</div>
+								<div class="menu">
+									{{range .Gitignores}}
+										<div class="item" data-value="{{.}}">{{.}}</div>
+									{{end}}
+								</div>
+							</div>
+						</div>
+						<div class="inline field">
+							<label>{{.i18n.Tr "repo.license"}}</label>
+							<div class="ui search selection dropdown">
+								<input type="hidden" name="license" value="{{.license}}">
+								<div class="default text">{{.i18n.Tr "repo.license_helper"}}</div>
+								<div class="menu">
+									<div class="item" data-value="">{{.i18n.Tr "repo.license_helper"}}</div>
+									{{range .Licenses}}
+										<div class="item" data-value="{{.}}">{{.}}</div>
+									{{end}}
+								</div>
+							</div>
+						</div>
+
+						<div class="inline field">
+							<label>{{.i18n.Tr "repo.readme"}}</label>
+							<div class="ui selection dropdown">
+								<input type="hidden" name="readme" value="{{.readme}}">
+								<div class="default text">{{.i18n.Tr "repo.readme_helper"}}</div>
+								<div class="menu">
+									{{range .Readmes}}
+										<div class="item" data-value="{{.}}">{{.}}</div>
+									{{end}}
+								</div>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox" id="auto-init">
+								<input class="hidden" name="auto_init" type="checkbox" tabindex="0" {{if .auto_init}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.auto_init"}}</label>
 							</div>
 						</div>
 					</div>
 
-					<div class="inline field">
-						<label>{{.i18n.Tr "repo.readme"}}</label>
-						<div class="ui selection dropdown">
-							<input type="hidden" name="readme" value="{{.readme}}">
-							<div class="default text">{{.i18n.Tr "repo.readme_helper"}}</div>
-							<div class="menu">
-								{{range .Readmes}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
-								{{end}}
-							</div>
-						</div>
-					</div>
-					<div class="inline field">
-						<div class="ui checkbox" id="auto-init">
-							<input class="hidden" name="auto_init" type="checkbox" tabindex="0" {{if .auto_init}}checked{{end}}>
-							<label>{{.i18n.Tr "repo.auto_init"}}</label>
-						</div>
-					</div>
-
+					<br/>
 					<div class="inline field">
 						<label></label>
 						<button class="ui green button">

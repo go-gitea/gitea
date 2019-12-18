@@ -108,7 +108,7 @@ func getExpectedFileResponseForRepofilesCreate(commitID string) *api.FileRespons
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
-			Reason:    "unsigned",
+			Reason:    "gpg.error.not_signed_commit",
 			Signature: "",
 			Payload:   "",
 		},
@@ -175,7 +175,7 @@ func getExpectedFileResponseForRepofilesUpdate(commitID, filename string) *api.F
 		},
 		Verification: &api.PayloadCommitVerification{
 			Verified:  false,
-			Reason:    "unsigned",
+			Reason:    "gpg.error.not_signed_commit",
 			Signature: "",
 			Payload:   "",
 		},
@@ -191,6 +191,8 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 		test.LoadRepoCommit(t, ctx)
 		test.LoadUser(t, ctx, 2)
 		test.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+
 		repo := ctx.Repo.Repository
 		doer := ctx.User
 		opts := getCreateRepoFileOptions(repo)
@@ -201,6 +203,8 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 		// asserts
 		assert.Nil(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		defer gitRepo.Close()
+
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
 		expectedFileResponse := getExpectedFileResponseForRepofilesCreate(commitID)
 		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
@@ -220,6 +224,8 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 		test.LoadRepoCommit(t, ctx)
 		test.LoadUser(t, ctx, 2)
 		test.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+
 		repo := ctx.Repo.Repository
 		doer := ctx.User
 		opts := getUpdateRepoFileOptions(repo)
@@ -230,6 +236,8 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 		// asserts
 		assert.Nil(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		defer gitRepo.Close()
+
 		commitID, _ := gitRepo.GetBranchCommitID(opts.NewBranch)
 		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commitID, opts.TreePath)
 		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
@@ -249,6 +257,8 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 		test.LoadRepoCommit(t, ctx)
 		test.LoadUser(t, ctx, 2)
 		test.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+
 		repo := ctx.Repo.Repository
 		doer := ctx.User
 		opts := getUpdateRepoFileOptions(repo)
@@ -261,11 +271,20 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 		// asserts
 		assert.Nil(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		defer gitRepo.Close()
+
 		commit, _ := gitRepo.GetBranchCommit(opts.NewBranch)
 		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commit.ID.String(), opts.TreePath)
 		// assert that the old file no longer exists in the last commit of the branch
 		fromEntry, err := commit.GetTreeEntryByPath(opts.FromTreePath)
+		switch err.(type) {
+		case git.ErrNotExist:
+			// correct, continue
+		default:
+			t.Fatalf("expected git.ErrNotExist, got:%v", err)
+		}
 		toEntry, err := commit.GetTreeEntryByPath(opts.TreePath)
+		assert.Nil(t, err)
 		assert.Nil(t, fromEntry)  // Should no longer exist here
 		assert.NotNil(t, toEntry) // Should exist here
 		// assert SHA has remained the same but paths use the new file name
@@ -288,6 +307,8 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 		test.LoadRepoCommit(t, ctx)
 		test.LoadUser(t, ctx, 2)
 		test.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+
 		repo := ctx.Repo.Repository
 		doer := ctx.User
 		opts := getUpdateRepoFileOptions(repo)
@@ -300,6 +321,8 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 		// asserts
 		assert.Nil(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
+		defer gitRepo.Close()
+
 		commitID, _ := gitRepo.GetBranchCommitID(repo.DefaultBranch)
 		expectedFileResponse := getExpectedFileResponseForRepofilesUpdate(commitID, opts.TreePath)
 		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
@@ -315,6 +338,8 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 		test.LoadRepoCommit(t, ctx)
 		test.LoadUser(t, ctx, 2)
 		test.LoadGitRepo(t, ctx)
+		defer ctx.Repo.GitRepo.Close()
+
 		repo := ctx.Repo.Repository
 		doer := ctx.User
 

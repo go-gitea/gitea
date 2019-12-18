@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	_ "code.gitea.io/gitea/modules/minwinsvc" // import minwinsvc for windows services
 	"code.gitea.io/gitea/modules/user"
 
 	shellquote "github.com/kballard/go-shellquote"
@@ -43,6 +42,7 @@ const (
 	HTTP       Scheme = "http"
 	HTTPS      Scheme = "https"
 	FCGI       Scheme = "fcgi"
+	FCGIUnix   Scheme = "fcgi+unix"
 	UnixSocket Scheme = "unix"
 )
 
@@ -87,6 +87,7 @@ var (
 	CertFile             string
 	KeyFile              string
 	StaticRootPath       string
+	StaticCacheTime      time.Duration
 	EnableGzip           bool
 	LandingPageURL       LandingPage
 	UnixSocketPermission uint32
@@ -96,6 +97,10 @@ var (
 	LetsEncryptTOS       bool
 	LetsEncryptDirectory string
 	LetsEncryptEmail     string
+	GracefulRestartable  bool
+	GracefulHammerTime   time.Duration
+	StartupTimeout       time.Duration
+	StaticURLPrefix      string
 
 	SSH = struct {
 		Disabled                 bool           `ini:"DISABLE_SSH"`
@@ -136,23 +141,26 @@ var (
 	}
 
 	// Security settings
-	InstallLock           bool
-	SecretKey             string
-	LogInRememberDays     int
-	CookieUserName        string
-	CookieRememberName    string
-	ReverseProxyAuthUser  string
-	ReverseProxyAuthEmail string
-	MinPasswordLength     int
-	ImportLocalPaths      bool
-	DisableGitHooks       bool
-	PasswordHashAlgo      string
+	InstallLock                        bool
+	SecretKey                          string
+	LogInRememberDays                  int
+	CookieUserName                     string
+	CookieRememberName                 string
+	ReverseProxyAuthUser               string
+	ReverseProxyAuthEmail              string
+	MinPasswordLength                  int
+	ImportLocalPaths                   bool
+	DisableGitHooks                    bool
+	OnlyAllowPushIfGiteaEnvironmentSet bool
+	PasswordComplexity                 []string
+	PasswordHashAlgo                   string
 
 	// UI settings
 	UI = struct {
 		ExplorePagingNum      int
 		IssuePagingNum        int
 		RepoSearchPagingNum   int
+		MembersPagingNum      int
 		FeedMaxCommitNum      int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
@@ -163,7 +171,10 @@ var (
 		DefaultShowFullName   bool
 		DefaultTheme          string
 		Themes                []string
+		Reactions             []string
+		ReactionsMap          map[string]bool
 		SearchRepoDescription bool
+		UseServiceWorker      bool
 
 		Admin struct {
 			UserPagingNum   int
@@ -183,6 +194,7 @@ var (
 		ExplorePagingNum:    20,
 		IssuePagingNum:      10,
 		RepoSearchPagingNum: 10,
+		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
@@ -191,6 +203,7 @@ var (
 		MaxDisplayFileSize:  8388608,
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
+		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 		Admin: struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -515,7 +528,7 @@ func NewContext() {
 	} else {
 		log.Warn("Custom config '%s' not found, ignore this if you're running first time", CustomConf)
 	}
-	Cfg.NameMapper = ini.AllCapsUnderscore
+	Cfg.NameMapper = ini.SnackCase
 
 	homeDir, err := com.HomeDir()
 	if err != nil {
@@ -541,6 +554,14 @@ func NewContext() {
 		KeyFile = sec.Key("KEY_FILE").String()
 	case "fcgi":
 		Protocol = FCGI
+	case "fcgi+unix":
+		Protocol = FCGIUnix
+		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
+		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
+		if err != nil || UnixSocketPermissionParsed > 0777 {
+			log.Fatal("Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
+		}
+		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 	case "unix":
 		Protocol = UnixSocket
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
@@ -561,13 +582,16 @@ func NewContext() {
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
+	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
+	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
+	StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(0 * time.Second)
 
 	defaultAppURL := string(Protocol) + "://" + Domain
 	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
 		defaultAppURL += ":" + HTTPPort
 	}
 	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
-	AppURL = strings.TrimRight(AppURL, "/") + "/"
+	AppURL = strings.TrimSuffix(AppURL, "/") + "/"
 
 	// Check if has app suburl.
 	appURL, err := url.Parse(AppURL)
@@ -577,6 +601,7 @@ func NewContext() {
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
+	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
 	// TODO: Can be replaced with url.Hostname() when minimal GoLang version is 1.8
@@ -590,6 +615,8 @@ func NewContext() {
 	case UnixSocket:
 		defaultLocalURL = "http://unix/"
 	case FCGI:
+		defaultLocalURL = AppURL
+	case FCGIUnix:
 		defaultLocalURL = AppURL
 	default:
 		defaultLocalURL = string(Protocol) + "://"
@@ -606,6 +633,7 @@ func NewContext() {
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(AppWorkPath)
+	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
@@ -769,10 +797,20 @@ func NewContext() {
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(false)
+	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 
 	InternalToken = loadInternalToken(sec)
+
+	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
+	PasswordComplexity = make([]string, 0, len(cfgdata))
+	for _, name := range cfgdata {
+		name := strings.ToLower(strings.Trim(name, `"`))
+		if name != "" {
+			PasswordComplexity = append(PasswordComplexity, name)
+		}
+	}
 
 	sec = Cfg.Section("attachment")
 	AttachmentPath = sec.Key("PATH").MustString(path.Join(AppDataPath, "attachments"))
@@ -808,7 +846,8 @@ func NewContext() {
 			TimeFormat = timeFormatKey
 			TestTimeFormat, _ := time.Parse(TimeFormat, TimeFormat)
 			if TestTimeFormat.Format(time.RFC3339) != "2006-01-02T15:04:05Z" {
-				log.Fatal("Can't create time properly, please check your time format has 2006, 01, 02, 15, 04 and 05")
+				log.Warn("Provided TimeFormat: %s does not create a fully specified date and time.", TimeFormat)
+				log.Warn("In order to display dates and times correctly please check your time format has 2006, 01, 02, 15, 04 and 05")
 			}
 			log.Trace("Custom TimeFormat: %s", TimeFormat)
 		}
@@ -948,6 +987,7 @@ func NewContext() {
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
+	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(true)
 
 	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
 
@@ -958,6 +998,11 @@ func NewContext() {
 	U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimRight(AppURL, "/"))
 
 	zip.Verbose = false
+
+	UI.ReactionsMap = make(map[string]bool)
+	for _, reaction := range UI.Reactions {
+		UI.ReactionsMap[reaction] = true
+	}
 }
 
 func loadInternalToken(sec *ini.Section) string {
@@ -1042,5 +1087,7 @@ func NewServices() {
 	newRegisterMailService()
 	newNotifyMailService()
 	newWebhookService()
+	newMigrationsService()
 	newIndexerService()
+	newTaskService()
 }

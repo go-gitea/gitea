@@ -5,9 +5,7 @@
 package models
 
 import (
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -192,28 +190,6 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 	CheckConsistencyFor(t, pr)
 }
 
-// TODO TestPullRequest_UpdatePatch
-
-// TODO TestPullRequest_PushToBaseRepo
-
-func TestPullRequest_AddToTaskQueue(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
-	pr.AddToTaskQueue()
-
-	select {
-	case id := <-pullRequestQueue.Queue():
-		assert.EqualValues(t, strconv.FormatInt(pr.ID, 10), id)
-	case <-time.After(time.Second):
-		assert.Fail(t, "Timeout: nothing was added to pullRequestQueue")
-	}
-
-	assert.True(t, pullRequestQueue.Exist(pr.ID))
-	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
-	assert.Equal(t, PullRequestStatusChecking, pr.Status)
-}
-
 func TestPullRequestList_LoadAttributes(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
@@ -231,20 +207,6 @@ func TestPullRequestList_LoadAttributes(t *testing.T) {
 }
 
 // TODO TestAddTestPullRequestTask
-
-func TestChangeUsernameInPullRequests(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	const newUsername = "newusername"
-	assert.NoError(t, ChangeUsernameInPullRequests("user1", newUsername))
-
-	prs := make([]*PullRequest, 0, 10)
-	assert.NoError(t, x.Where("head_user_name = ?", newUsername).Find(&prs))
-	assert.Len(t, prs, 2)
-	for _, pr := range prs {
-		assert.Equal(t, newUsername, pr.HeadUserName)
-	}
-	CheckConsistencyFor(t, &PullRequest{})
-}
 
 func TestPullRequest_IsWorkInProgress(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())

@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/services/mailer"
@@ -78,12 +79,11 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	}
 
 	u := &models.User{
-		Name:               form.UserName,
-		Email:              form.Email,
-		Passwd:             form.Password,
-		IsActive:           true,
-		LoginType:          models.LoginPlain,
-		MustChangePassword: form.MustChangePassword,
+		Name:      form.UserName,
+		Email:     form.Email,
+		Passwd:    form.Password,
+		IsActive:  true,
+		LoginType: models.LoginPlain,
 	}
 
 	if len(form.LoginType) > 0 {
@@ -94,7 +94,19 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 			u.LoginName = form.LoginName
 		}
 	}
-
+	if u.LoginType == models.LoginNoType || u.LoginType == models.LoginPlain {
+		if len(form.Password) < setting.MinPasswordLength {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
+			return
+		}
+		if !password.IsComplexEnough(form.Password) {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserNew, &form)
+			return
+		}
+		u.MustChangePassword = form.MustChangePassword
+	}
 	if err := models.CreateUser(u); err != nil {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
@@ -197,6 +209,15 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 
 	if len(form.Password) > 0 {
 		var err error
+		if len(form.Password) < setting.MinPasswordLength {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserEdit, &form)
+			return
+		}
+		if !password.IsComplexEnough(form.Password) {
+			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserEdit, &form)
+			return
+		}
 		if u.Salt, err = models.GetUserSalt(); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
