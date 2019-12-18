@@ -11,8 +11,8 @@ Version: 3.4.1
 File(s): /vendor/plugins/jquery-migrate/jquery-migrate.min.js
 Version: 3.0.1
 
-File(s): /vendor/plugins/semantic/semantic.min.js
-Version: 2.3.1
+File(s): /vendor/plugins/fomantic/semantic.min.js
+Version: 2.8.2
 
 File(s): /vendor/plugins/clipboard/clipboard.min.js
 Version: 1.5.9
