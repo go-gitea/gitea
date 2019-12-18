@@ -20,6 +20,7 @@ func removeAttachmentMissedRepo(x *xorm.Engine) error {
 	attachments := make([]*Attachment, 0, 50)
 	for {
 		err := x.Select("uuid").Where(builder.NotIn("release_id", builder.Select("id").From("`release`"))).
+			And("release_id > 0").
 			OrderBy("id").Limit(50, start).Find(&attachments)
 		if err != nil {
 			return err
@@ -36,6 +37,6 @@ func removeAttachmentMissedRepo(x *xorm.Engine) error {
 		attachments = attachments[:0]
 	}
 
-	_, err := x.Exec("DELETE FROM attachment WHERE release_id NOT IN (SELECT id FROM `release`)")
+	_, err := x.Exec("DELETE FROM attachment WHERE release_id > 0 AND release_id NOT IN (SELECT id FROM `release`)")
 	return err
 }

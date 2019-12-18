@@ -588,6 +588,7 @@ func ViewPullFiles(ctx *context.Context) {
 	setPathsCompareContext(ctx, baseCommit, commit, headTarget)
 
 	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	if ctx.Data["Assignees"], err = ctx.Repo.Repository.GetAssignees(); err != nil {
 		ctx.ServerError("GetAssignees", err)
@@ -817,8 +818,6 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 		ctx.ServerError("NewPullRequest", err)
 		return
 	}
-
-	notification.NotifyNewPullRequest(pullRequest)
 
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pullIssue.Index))

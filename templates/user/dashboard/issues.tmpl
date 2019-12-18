@@ -26,7 +26,7 @@
 					<div class="ui divider"></div>
 					<a class="{{if not $.RepoIDs}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}">
 						<span class="text truncate">All</span>
-						<div class="floating ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{.TotalIssueCount}}</div>
+						<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{.TotalIssueCount}}</div>
 					</a>
 					{{range .Repos}}
 						{{with $Repo := .}}
@@ -45,7 +45,7 @@
 									{{end}}
 									]&sort={{$.SortType}}&state={{$.State}}" title="{{.FullName}}">
 								<span class="text truncate">{{$Repo.FullName}}</span>
-								<div class="floating ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts $Repo.ID}}</div>
+								<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts $Repo.ID}}</div>
 							</a>
 						{{end}}
 					{{end}}

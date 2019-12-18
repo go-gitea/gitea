@@ -6,6 +6,8 @@
 package private
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -17,7 +19,7 @@ func UpdatePublicKeyInRepo(ctx *macaron.Context) {
 	keyID := ctx.ParamsInt64(":id")
 	repoID := ctx.ParamsInt64(":repoid")
 	if err := models.UpdatePublicKeyUpdated(keyID); err != nil {
-		ctx.JSON(500, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"err": err.Error(),
 		})
 		return
@@ -29,18 +31,33 @@ func UpdatePublicKeyInRepo(ctx *macaron.Context) {
 			ctx.PlainText(200, []byte("success"))
 			return
 		}
-		ctx.JSON(500, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"err": err.Error(),
 		})
 		return
 	}
 	deployKey.UpdatedUnix = timeutil.TimeStampNow()
 	if err = models.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
-		ctx.JSON(500, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"err": err.Error(),
 		})
 		return
 	}
 
-	ctx.PlainText(200, []byte("success"))
+	ctx.PlainText(http.StatusOK, []byte("success"))
+}
+
+// AuthorizedPublicKeyByContent searches content as prefix (leak e-mail part)
+// and returns public key found.
+func AuthorizedPublicKeyByContent(ctx *macaron.Context) {
+	content := ctx.Query("content")
+
+	publicKey, err := models.SearchPublicKeyByContent(content)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
+	ctx.PlainText(http.StatusOK, []byte(publicKey.AuthorizedString()))
 }
