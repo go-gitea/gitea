@@ -16,7 +16,6 @@ require (
 	gitea.com/macaron/macaron v1.3.3-0.20190821202302-9646c0587edb
 	gitea.com/macaron/session v0.0.0-20190821211443-122c47c5f705
 	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
-	github.com/OneOfOne/xxhash v1.2.5 // indirect
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/RoaringBitmap/roaring v0.4.21 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
@@ -25,17 +24,12 @@ require (
 	github.com/blevesearch/go-porterstemmer v1.0.2 // indirect
 	github.com/blevesearch/segment v0.0.0-20160915185041-762005e7a34f // indirect
 	github.com/boombuler/barcode v0.0.0-20161226211916-fe0f26ff6d26 // indirect
-	github.com/coreos/bbolt v1.3.3 // indirect
-	github.com/coreos/etcd v3.3.15+incompatible // indirect
-	github.com/coreos/go-semver v0.3.0 // indirect
-	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/couchbase/vellum v0.0.0-20190829182332-ef2e028c01fd // indirect
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20190924004331-208c0a498538
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/dgryski/go-sip13 v0.0.0-20190329191031-25c5027a8c7b // indirect
 	github.com/editorconfig/editorconfig-core-go/v2 v2.1.1
 	github.com/emirpasic/gods v1.12.0
 	github.com/etcd-io/bbolt v1.3.3 // indirect
@@ -45,7 +39,6 @@ require (
 	github.com/facebookgo/subset v0.0.0-20150612182917-8dac2c3c4870 // indirect
 	github.com/gliderlabs/ssh v0.2.2
 	github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a // indirect
-	github.com/go-kit/kit v0.9.0 // indirect
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
@@ -53,12 +46,8 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
-	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6 // indirect
 	github.com/google/go-github/v24 v24.0.1
-	github.com/google/pprof v0.0.0-20190723021845-34ac40c74b70 // indirect
 	github.com/gorilla/context v1.1.1
-	github.com/grpc-ecosystem/grpc-gateway v1.9.6 // indirect
-	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/issue9/assert v1.3.2 // indirect
 	github.com/issue9/identicon v0.0.0-20160320065130-d36b54562f4c
 	github.com/jaytaylor/html2text v0.0.0-20160923191438-8fb95d837f7d
@@ -66,9 +55,7 @@ require (
 	github.com/joho/godotenv v1.3.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20170619183022-cd60e84ee657
 	github.com/keybase/go-crypto v0.0.0-20170605145657-00ac4db533f6
-	github.com/kisielk/errcheck v1.2.0 // indirect
 	github.com/klauspost/compress v1.9.2
-	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/lafriks/xormstore v1.3.2
 	github.com/lib/pq v1.2.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
@@ -80,7 +67,6 @@ require (
 	github.com/mcuadros/go-version v0.0.0-20190308113854-92cdf37c5b75
 	github.com/microcosm-cc/bluemonday v0.0.0-20161012083705-f77f16ffc87a
 	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
-	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/nfnt/resize v0.0.0-20160724205520-891127d8d1b5
 	github.com/niklasfasching/go-org v0.1.8
 	github.com/oliamb/cutter v0.2.2
@@ -89,23 +75,18 @@ require (
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4 // indirect
 	github.com/prometheus/procfs v0.0.4 // indirect
-	github.com/prometheus/tsdb v0.10.0 // indirect
 	github.com/quasoft/websspi v1.0.0
 	github.com/remyoudompheng/bigfft v0.0.0-20190321074620-2f0d2b0e0001 // indirect
-	github.com/rogpeppe/fastuuid v1.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.0.0
 	github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
-	github.com/sirupsen/logrus v1.4.2 // indirect
-	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/steveyen/gtreap v0.0.0-20150807155958-0abe01ef9be2 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/tecbot/gorocksdb v0.0.0-20181010114359-8752a9433481 // indirect
 	github.com/tstranex/u2f v1.0.0
-	github.com/ugorji/go v1.1.7 // indirect
 	github.com/unknwon/cae v0.0.0-20190822084630-55a0b64484a1
 	github.com/unknwon/com v0.0.0-20190804042917-757f69c95f3e
 	github.com/unknwon/i18n v0.0.0-20190805065654-5c6446a380b6
@@ -114,13 +95,11 @@ require (
 	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 	go.etcd.io/bbolt v1.3.3 // indirect
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
-	golang.org/x/mobile v0.0.0-20190814143026-e8b3e6111d02 // indirect
 	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
 	golang.org/x/text v0.3.2
 	golang.org/x/tools v0.0.0-20191213221258-04c2e8eff935 // indirect
-	google.golang.org/grpc v1.23.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/asn1-ber.v1 v1.0.0-20150924051756-4e86f4367175 // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
@@ -129,7 +108,6 @@ require (
 	gopkg.in/src-d/go-billy.v4 v4.3.2
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/testfixtures.v2 v2.5.0
-	honnef.co/go/tools v0.0.1-2019.2.2 // indirect
 	mvdan.cc/xurls/v2 v2.1.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.6
