@@ -16,6 +16,9 @@ else
 	ifeq ($(UNAME_S),Darwin)
 		SED_INPLACE := sed -i ''
 	endif
+	ifeq ($(UNAME_S),FreeBSD)
+		SED_INPLACE := sed -i ''
+	endif
 endif
 
 GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
@@ -24,7 +27,7 @@ GOFMT ?= gofmt -s
 GOFLAGS := -v
 EXTRA_GOFLAGS ?=
 
-MAKE_VERSION := $(shell make -v | head -n 1)
+MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
 
 ifneq ($(DRONE_TAG),)
 	VERSION ?= $(subst v,,$(DRONE_TAG))
@@ -128,7 +131,7 @@ vet:
 	$(GO) vet $(PACKAGES)
 
 .PHONY: generate
-generate:
+generate: js css
 	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
 
 .PHONY: generate-swagger
@@ -384,14 +387,8 @@ check: test
 install: $(wildcard *.go)
 	$(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
-.PHONY: go
-go: go-check $(EXECUTABLE)
-
-.PHONY: go-all
-go-all: go-check generate go
-
 .PHONY: build
-build: js css go-all
+build: go-check generate $(EXECUTABLE)
 
 $(EXECUTABLE): $(GO_SOURCES)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@

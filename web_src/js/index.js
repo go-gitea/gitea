@@ -14,6 +14,7 @@ let csrf;
 let suburl;
 let previewFileModes;
 let simpleMDEditor;
+const commentMDEditors = {};
 let codeMirrorEditor;
 
 // Disable Dropzone auto-discover because it's manually initialized
@@ -304,11 +305,27 @@ function initImagePaste(target) {
   });
 }
 
+function initSimpleMDEImagePaste(simplemde, files) {
+  simplemde.codemirror.on('paste', (_, event) => {
+    retrieveImageFromClipboardAsBlob(event, (img) => {
+      const name = img.name.substr(0, img.name.lastIndexOf('.'));
+      uploadFile(img, (res) => {
+        const data = JSON.parse(res);
+        const pos = simplemde.codemirror.getCursor();
+        simplemde.codemirror.replaceRange(`![${name}](${suburl}/attachments/${data.uuid})`, pos);
+        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+        files.append(input);
+      });
+    });
+  });
+}
+
 function initCommentForm() {
   if ($('.comment.form').length === 0) {
     return;
   }
 
+  setCommentSimpleMDE($('.comment.form textarea'));
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
   initImagePaste($('.comment.form textarea'));
@@ -731,27 +748,66 @@ function initRepository() {
       $issueTitle.toggle();
       $('.not-in-edit').toggle();
       $('#edit-title-input').toggle();
+      $('#pull-desc').toggle();
+      $('#pull-desc-edit').toggle();
       $('.in-edit').toggle();
       $editInput.focus();
       return false;
     };
+
+    const changeBranchSelect = function () {
+      const selectionTextField = $('#pull-target-branch');
+
+      const baseName = selectionTextField.data('basename');
+      const branchNameNew = $(this).data('branch');
+      const branchNameOld = selectionTextField.data('branch');
+
+      // Replace branch name to keep translation from HTML template
+      selectionTextField.html(selectionTextField.html().replace(
+        `${baseName}:${branchNameOld}`,
+        `${baseName}:${branchNameNew}`
+      ));
+      selectionTextField.data('branch', branchNameNew); // update branch name in setting
+    };
+    $('#branch-select > .item').click(changeBranchSelect);
+
     $('#edit-title').click(editTitleToggle);
     $('#cancel-edit-title').click(editTitleToggle);
     $('#save-edit-title').click(editTitleToggle).click(function () {
+      const pullrequest_targetbranch_change = function (update_url) {
+        const targetBranch = $('#pull-target-branch').data('branch');
+        const $branchTarget = $('#branch_target');
+        if (targetBranch === $branchTarget.text()) {
+          return false;
+        }
+        $.post(update_url, {
+          _csrf: csrf,
+          target_branch: targetBranch
+        })
+          .success((data) => {
+            $branchTarget.text(data.base_branch);
+          })
+          .always(() => {
+            reload();
+          });
+      };
+
+      const pullrequest_target_update_url = $(this).data('target-update-url');
       if ($editInput.val().length === 0 || $editInput.val() === $issueTitle.text()) {
         $editInput.val($issueTitle.text());
-        return false;
+        pullrequest_targetbranch_change(pullrequest_target_update_url);
+      } else {
+        $.post($(this).data('update-url'), {
+          _csrf: csrf,
+          title: $editInput.val()
+        },
+        (data) => {
+          $editInput.val(data.title);
+          $issueTitle.text(data.title);
+          pullrequest_targetbranch_change(pullrequest_target_update_url);
+          reload();
+        });
       }
-
-      $.post($(this).data('update-url'), {
-        _csrf: csrf,
-        title: $editInput.val()
-      },
-      (data) => {
-        $editInput.val(data.title);
-        $issueTitle.text(data.title);
-        reload();
-      });
       return false;
     });
 
@@ -797,6 +853,7 @@ function initRepository() {
       const $renderContent = $segment.find('.render-content');
       const $rawContent = $segment.find('.raw-content');
       let $textarea;
+      let $simplemde;
 
       // Setup new form
       if ($editContentZone.html().length === 0) {
@@ -881,8 +938,10 @@ function initRepository() {
         $tabMenu.find('.preview.item').attr('data-tab', $editContentZone.data('preview'));
         $editContentForm.find('.write.segment').attr('data-tab', $editContentZone.data('write'));
         $editContentForm.find('.preview.segment').attr('data-tab', $editContentZone.data('preview'));
-
+        $simplemde = setCommentSimpleMDE($textarea);
+        commentMDEditors[$editContentZone.data('write')] = $simplemde;
         initCommentPreviewTab($editContentForm);
+        initSimpleMDEImagePaste($simplemde, $files);
 
         $editContentZone.find('.cancel.button').click(() => {
           $renderContent.show();
@@ -929,6 +988,7 @@ function initRepository() {
         });
       } else {
         $textarea = $segment.find('textarea');
+        $simplemde = commentMDEditors[$editContentZone.data('write')];
       }
 
       // Show write/preview tab and copy raw content as needed
@@ -936,8 +996,10 @@ function initRepository() {
       $renderContent.hide();
       if ($textarea.val().length === 0) {
         $textarea.val($rawContent.text());
+        $simplemde.value($rawContent.text());
       }
       $textarea.focus();
+      $simplemde.codemirror.focus();
       event.preventDefault();
     });
 
@@ -1401,6 +1463,40 @@ function setSimpleMDE($editArea) {
   });
 
   return true;
+}
+
+function setCommentSimpleMDE($editArea) {
+  const simplemde = new SimpleMDE({
+    autoDownloadFontAwesome: false,
+    element: $editArea[0],
+    forceSync: true,
+    renderingConfig: {
+      singleLineBreaks: false
+    },
+    indentWithTabs: false,
+    tabSize: 4,
+    spellChecker: false,
+    toolbar: ['bold', 'italic', 'strikethrough', '|',
+      'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
+      'code', 'quote', '|',
+      'unordered-list', 'ordered-list', '|',
+      'link', 'image', 'table', 'horizontal-rule', '|',
+      'clean-block']
+  });
+  simplemde.codemirror.setOption('extraKeys', {
+    Enter: () => {
+      if (!(issuesTribute.isActive || emojiTribute.isActive)) {
+        return CodeMirror.Pass;
+      }
+    },
+    Backspace: (cm) => {
+      cm.getInputField().trigger('input');
+      cm.execCommand('delCharBefore');
+    }
+  });
+  issuesTribute.attach(simplemde.codemirror.getInputField());
+  emojiTribute.attach(simplemde.codemirror.getInputField());
+  return simplemde;
 }
 
 function setCodeMirror($editArea) {
@@ -2800,7 +2896,7 @@ function initVueApp() {
     data: {
       searchLimit: document.querySelector('meta[name=_search_limit]').content,
       suburl: document.querySelector('meta[name=_suburl]').content,
-      uid: document.querySelector('meta[name=_context_uid]').content,
+      uid: Number(document.querySelector('meta[name=_context_uid]').content),
     },
   });
 }
@@ -3156,7 +3252,10 @@ function initTopicbar() {
 
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
-            $(`<a class="ui repo-topic small label topic" href="${suburl}/explore/repos?q=${topicArray[i]}&topic=1">${topicArray[i]}</a>`).insertBefore(last);
+            const link = $('<a class="ui repo-topic small label topic"></a>');
+            link.attr('href', `${suburl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
+            link.text(topicArray[i]);
+            link.insertBefore(last);
           }
         }
         editDiv.css('display', 'none');
@@ -3202,7 +3301,7 @@ function initTopicbar() {
       label: 'ui small label'
     },
     apiSettings: {
-      url: `${suburl}/api/v1/topics/search?q={query}`,
+      url: `${suburl}/api/v1/topics/search?q={encodeURIComponent(query)}`,
       throttle: 500,
       cache: false,
       onResponse(res) {

@@ -6,7 +6,7 @@
 	 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING,
 	 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE,
 	 18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY, 21 = CODE,
-	 22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED -->
+	 22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED, 25 = TARGET_BRANCH_CHANGED -->
 	{{if eq .Type 0}}
 		<div class="comment" id="{{.HashTag}}">
 		{{if .OriginalAuthor }}
@@ -410,6 +410,16 @@
 				<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 					{{$.i18n.Tr "repo.issues.unlock_comment" $createdStr | Safe}}
 				</span>
+		</div>
+	{{else if eq .Type 25}}
+		<div class="event">
+			<span class="octicon octicon-primitive-dot"></span>
+			<a class="ui avatar image" href="{{.Poster.HomeLink}}">
+				<img src="{{.Poster.RelAvatarLink}}">
+			</a>
+			<span class="text grey"><a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
+			{{$.i18n.Tr "repo.pulls.change_target_branch_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
+			</span>
 		</div>
 	{{end}}
 {{end}}

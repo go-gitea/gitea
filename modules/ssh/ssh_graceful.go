@@ -24,5 +24,5 @@ func listen(server *ssh.Server) {
 
 // Unused informs our cleanup routine that we will not be using a ssh port
 func Unused() {
-	graceful.Manager.InformCleanup()
+	graceful.GetManager().InformCleanup()
 }

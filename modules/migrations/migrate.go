@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -28,10 +29,10 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 }
 
 // MigrateRepository migrate repository according MigrateOptions
-func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
+func MigrateRepository(ctx context.Context, doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
 	var (
 		downloader base.Downloader
-		uploader   = NewGiteaLocalUploader(doer, ownerName, opts.RepoName)
+		uploader   = NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
 		theFactory base.DownloaderFactory
 	)
 
@@ -68,6 +69,8 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 	if setting.Migrations.MaxAttempts > 1 {
 		downloader = base.NewRetryDownloader(downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
 	}
+
+	downloader.SetContext(ctx)
 
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
