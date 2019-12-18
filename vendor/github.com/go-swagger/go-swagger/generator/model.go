@@ -55,6 +55,8 @@ func GenerateDefinition(modelNames []string, opts *GenOpts) error {
 		return errors.New("gen opts are required")
 	}
 
+	templates.SetAllowOverride(opts.AllowTemplateOverride)
+
 	if opts.TemplateDir != "" {
 		if err := templates.LoadDir(opts.TemplateDir); err != nil {
 			return err
