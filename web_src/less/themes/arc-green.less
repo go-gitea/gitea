@@ -483,13 +483,18 @@ a.ui.basic.green.label:hover {
     color: #dbdbdb;
 }
 
-.ui.table thead th {
-    background: #404552;
-    color: #dbdbdb;
+.ui.table thead th,
+.ui.table > thead > tr > th {
+    background: #404552 !important;
+    color: #dbdbdb !important;
+}
+
+.repository.file.list #repo-files-table tr {
+    background: #2a2e3a;
 }
 
 .repository.file.list #repo-files-table tr:hover {
-    background-color: #393d4a;
+    background-color: #393d4a !important;
 }
 
 .ui.table {
@@ -600,6 +605,10 @@ a.ui.basic.green.label:hover {
     background: #353945;
     color: #9e9e9e !important;
     border: 1px solid #404552;
+}
+
+.ui.list > .item > .content {
+    color: #9e9e9e !important;
 }
 
 .ui.active.button:active,
