@@ -46,7 +46,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(doer *models.User, issue *model
 			return
 		}
 
-		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequestLabel, &api.PullRequestPayload{
 			Action:      api.HookIssueLabelCleared,
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
@@ -54,7 +54,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(doer *models.User, issue *model
 			Sender:      doer.APIFormat(),
 		})
 	} else {
-		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssueLabel, &api.IssuePayload{
 			Action:     api.HookIssueLabelCleared,
 			Index:      issue.Index,
 			Issue:      issue.APIFormat(),
@@ -145,7 +145,7 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *mo
 			apiPullRequest.Action = api.HookIssueAssigned
 		}
 		// Assignee comment triggers a webhook
-		if err := webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, apiPullRequest); err != nil {
+		if err := webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequestAssign, apiPullRequest); err != nil {
 			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
 			return
 		}
@@ -163,7 +163,7 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *mo
 			apiIssue.Action = api.HookIssueAssigned
 		}
 		// Assignee comment triggers a webhook
-		if err := webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, apiIssue); err != nil {
+		if err := webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssueAssign, apiIssue); err != nil {
 			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
 			return
 		}
@@ -436,7 +436,7 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *mode
 			log.Error("LoadIssue: %v", err)
 			return
 		}
-		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequestLabel, &api.PullRequestPayload{
 			Action:      api.HookIssueLabelUpdated,
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
@@ -444,7 +444,7 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *mode
 			Sender:      doer.APIFormat(),
 		})
 	} else {
-		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssueLabel, &api.IssuePayload{
 			Action:     api.HookIssueLabelUpdated,
 			Index:      issue.Index,
 			Issue:      issue.APIFormat(),
@@ -478,7 +478,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *m
 			log.Error("LoadIssue: %v", err)
 			return
 		}
-		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequestMilestone, &api.PullRequestPayload{
 			Action:      hookAction,
 			Index:       issue.Index,
 			PullRequest: issue.PullRequest.APIFormat(),
@@ -486,7 +486,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *m
 			Sender:      doer.APIFormat(),
 		})
 	} else {
-		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssues, &api.IssuePayload{
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssueMilestone, &api.IssuePayload{
 			Action:     hookAction,
 			Index:      issue.Index,
 			Issue:      issue.APIFormat(),
@@ -671,7 +671,7 @@ func (m *webhookNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *m
 		return
 	}
 
-	if err := webhook_module.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
+	if err := webhook_module.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequestSync, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
 		Index:       pr.Issue.Index,
 		PullRequest: pr.Issue.PullRequest.APIFormat(),

@@ -57,15 +57,22 @@ func IsValidHookContentType(name string) bool {
 
 // HookEvents is a set of web hook events
 type HookEvents struct {
-	Create       bool `json:"create"`
-	Delete       bool `json:"delete"`
-	Fork         bool `json:"fork"`
-	Issues       bool `json:"issues"`
-	IssueComment bool `json:"issue_comment"`
-	Push         bool `json:"push"`
-	PullRequest  bool `json:"pull_request"`
-	Repository   bool `json:"repository"`
-	Release      bool `json:"release"`
+	Create               bool `json:"create"`
+	Delete               bool `json:"delete"`
+	Fork                 bool `json:"fork"`
+	Issues               bool `json:"issues"`
+	IssueAssign          bool `json:"issue_assign"`
+	IssueLabel           bool `json:"issue_label"`
+	IssueMilestone       bool `json:"issue_milestone"`
+	IssueComment         bool `json:"issue_comment"`
+	Push                 bool `json:"push"`
+	PullRequest          bool `json:"pull_request"`
+	PullRequestAssign    bool `json:"pull_request_assign"`
+	PullRequestLabel     bool `json:"pull_request_label"`
+	PullRequestMilestone bool `json:"pull_request_milestone"`
+	PullRequestSync      bool `json:"pull_request_sync"`
+	Repository           bool `json:"repository"`
+	Release              bool `json:"release"`
 }
 
 // HookEvent represents events that will delivery hook.
@@ -154,6 +161,24 @@ func (w *Webhook) HasIssuesEvent() bool {
 		(w.ChooseEvents && w.HookEvents.Issues)
 }
 
+// HasIssuesAssignEvent returns true if hook enabled issues assign event.
+func (w *Webhook) HasIssuesAssignEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.IssueAssign)
+}
+
+// HasIssuesLabelEvent returns true if hook enabled issues label event.
+func (w *Webhook) HasIssuesLabelEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.IssueLabel)
+}
+
+// HasIssuesMilestoneEvent returns true if hook enabled issues milestone event.
+func (w *Webhook) HasIssuesMilestoneEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.IssueMilestone)
+}
+
 // HasIssueCommentEvent returns true if hook enabled issue_comment event.
 func (w *Webhook) HasIssueCommentEvent() bool {
 	return w.SendEverything ||
@@ -170,6 +195,30 @@ func (w *Webhook) HasPushEvent() bool {
 func (w *Webhook) HasPullRequestEvent() bool {
 	return w.SendEverything ||
 		(w.ChooseEvents && w.HookEvents.PullRequest)
+}
+
+// HasPullRequestAssignEvent returns true if hook enabled pull request assign event.
+func (w *Webhook) HasPullRequestAssignEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.PullRequestAssign)
+}
+
+// HasPullRequestLabelEvent returns true if hook enabled pull request label event.
+func (w *Webhook) HasPullRequestLabelEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.PullRequestLabel)
+}
+
+// HasPullRequestMilestoneEvent returns true if hook enabled pull request milestone event.
+func (w *Webhook) HasPullRequestMilestoneEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.PullRequestMilestone)
+}
+
+// HasPullRequestSyncEvent returns true if hook enabled pull request sync event.
+func (w *Webhook) HasPullRequestSyncEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.PullRequestSync)
 }
 
 // HasReleaseEvent returns if hook enabled release event.
@@ -198,8 +247,15 @@ func (w *Webhook) EventCheckers() []struct {
 		{w.HasForkEvent, HookEventFork},
 		{w.HasPushEvent, HookEventPush},
 		{w.HasIssuesEvent, HookEventIssues},
+		{w.HasIssuesAssignEvent, HookEventIssueAssign},
+		{w.HasIssuesLabelEvent, HookEventIssueLabel},
+		{w.HasIssuesMilestoneEvent, HookEventIssueMilestone},
 		{w.HasIssueCommentEvent, HookEventIssueComment},
 		{w.HasPullRequestEvent, HookEventPullRequest},
+		{w.HasPullRequestAssignEvent, HookEventPullRequestAssign},
+		{w.HasPullRequestLabelEvent, HookEventPullRequestLabel},
+		{w.HasPullRequestMilestoneEvent, HookEventPullRequestMilestone},
+		{w.HasPullRequestSyncEvent, HookEventPullRequestSync},
 		{w.HasRepositoryEvent, HookEventRepository},
 		{w.HasReleaseEvent, HookEventRelease},
 	}
@@ -481,18 +537,25 @@ type HookEventType string
 
 // Types of hook events
 const (
-	HookEventCreate              HookEventType = "create"
-	HookEventDelete              HookEventType = "delete"
-	HookEventFork                HookEventType = "fork"
-	HookEventPush                HookEventType = "push"
-	HookEventIssues              HookEventType = "issues"
-	HookEventIssueComment        HookEventType = "issue_comment"
-	HookEventPullRequest         HookEventType = "pull_request"
-	HookEventRepository          HookEventType = "repository"
-	HookEventRelease             HookEventType = "release"
-	HookEventPullRequestApproved HookEventType = "pull_request_approved"
-	HookEventPullRequestRejected HookEventType = "pull_request_rejected"
-	HookEventPullRequestComment  HookEventType = "pull_request_comment"
+	HookEventCreate               HookEventType = "create"
+	HookEventDelete               HookEventType = "delete"
+	HookEventFork                 HookEventType = "fork"
+	HookEventPush                 HookEventType = "push"
+	HookEventIssues               HookEventType = "issues"
+	HookEventIssueAssign          HookEventType = "issue_assign"
+	HookEventIssueLabel           HookEventType = "issue_label"
+	HookEventIssueMilestone       HookEventType = "issue_milestone"
+	HookEventIssueComment         HookEventType = "issue_comment"
+	HookEventPullRequest          HookEventType = "pull_request"
+	HookEventPullRequestAssign    HookEventType = "pull_request_assign"
+	HookEventPullRequestLabel     HookEventType = "pull_request_label"
+	HookEventPullRequestMilestone HookEventType = "pull_request_milestone"
+	HookEventPullRequestSync      HookEventType = "pull_request_sync"
+	HookEventRepository           HookEventType = "repository"
+	HookEventRelease              HookEventType = "release"
+	HookEventPullRequestApproved  HookEventType = "pull_request_approved"
+	HookEventPullRequestRejected  HookEventType = "pull_request_rejected"
+	HookEventPullRequestComment   HookEventType = "pull_request_comment"
 )
 
 // HookRequest represents hook task request information.
