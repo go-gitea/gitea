@@ -184,7 +184,7 @@ github.com/go-redis/redis/internal/util
 github.com/go-sql-driver/mysql
 # github.com/go-stack/stack v1.8.0
 github.com/go-stack/stack
-# github.com/go-swagger/go-swagger v0.20.1
+# github.com/go-swagger/go-swagger v0.21.0
 github.com/go-swagger/go-swagger/cmd/swagger
 github.com/go-swagger/go-swagger/cmd/swagger/commands
 github.com/go-swagger/go-swagger/cmd/swagger/commands/diff
