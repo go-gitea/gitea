@@ -128,3 +128,35 @@ func TestGetAttachmentsByUUIDs(t *testing.T) {
 	assert.Equal(t, int64(1), attachList[0].IssueID)
 	assert.Equal(t, int64(5), attachList[1].IssueID)
 }
+
+func TestLinkedRepository(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	testCases := []struct {
+		name             string
+		attachID         int64
+		expectedErr      error
+		expectedRepo     *Repository
+		expectedUnitType UnitType
+	}{
+		{"LinkedIssue", 1, nil, &Repository{ID: 1}, UnitTypeIssues},
+		{"LinkedComment", 3, nil, &Repository{ID: 1}, UnitTypeIssues},
+		{"LinkedRelease", 9, nil, &Repository{ID: 1}, UnitTypeReleases},
+		{"Notlinked", 10, nil, nil, -1},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			attach, err := GetAttachmentByID(tc.attachID)
+			assert.NoError(t, err)
+			repo, unitType, err := attach.LinkedRepository()
+			if tc.expectedErr == nil {
+				assert.NoError(t, err)
+				if tc.expectedRepo != nil {
+					assert.Equal(t, tc.expectedRepo.ID, repo.ID)
+				}
+				assert.Equal(t, tc.expectedUnitType, unitType)
+			} else {
+				assert.Equal(t, tc.expectedErr, repo.ID)
+			}
+		})
+	}
+}
