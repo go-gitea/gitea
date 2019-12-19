@@ -176,11 +176,11 @@ func (u *SimpleUser) Full() (*User, error) {
 
 // Simple return SimpleUser
 func (u *User) Simple() *SimpleUser {
-	var s SimpleUser
-	s.ID = u.ID
-	s.Name = u.Name
-	s.FullName = u.FullName
-	return &s
+	return &SimpleUser{
+		ID:       u.ID,
+		Name:     u.Name,
+		FullName: u.FullName,
+	}
 }
 
 // ColorFormat writes a colored string to identify this struct
