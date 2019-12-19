@@ -616,10 +616,22 @@ func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
 	return users, nil
 }
 
+func (repo *Repository) getIssueAuthors(e Engine) (authors []*User, err error) {
+	err = e.Where("issue.repo_id = ?", repo.ID).
+		Join("LEFT", "user", "user.id = issue.poster_id").OrderBy("user.id").
+		GroupBy("user.id").Select("user.id, user.name, user.full_name").Find(authors)
+
+	return
+}
+
 // GetAssignees returns all users that have write access and can be assigned to issues
 // of the repository,
 func (repo *Repository) GetAssignees() (_ []*User, err error) {
 	return repo.getAssignees(x)
+}
+
+func (repo *Repository) GetIssueAuthors() (_ []*User, err error) {
+	return repo.getIssueAuthors(x)
 }
 
 // GetMilestoneByID returns the milestone belongs to repository by given ID.
