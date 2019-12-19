@@ -17,8 +17,6 @@ func sanitizeOriginalURL(x *xorm.Engine) error {
 		OriginalURL string `xorm:"VARCHAR(2048)"`
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
 	var last int
 	const batchSize = 50
 	for {
@@ -42,14 +40,12 @@ func sanitizeOriginalURL(x *xorm.Engine) error {
 				// it is ok to continue here, we only care about fixing URLs that we can read
 				continue
 			}
-
-			if len(u.User.Username()) > 0 {
-				originalURL := u.Scheme + "://" + u.Host + u.Path
+			u.User = nil
+			originalURL := u.String()
 				_, err = x.Exec("UPDATE repository SET original_url = ? WHERE id = ?", originalURL, res.ID)
 				if err != nil {
 					return err
 				}
-			}
 		}
 	}
 	return nil
