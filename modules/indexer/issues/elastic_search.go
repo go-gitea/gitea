@@ -24,7 +24,6 @@ var (
 type ElasticSearchIndexer struct {
 	client      *elastic.Client
 	indexerName string
-	typeName    string
 }
 
 type elasticLogger struct {
@@ -62,7 +61,6 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, er
 	return &ElasticSearchIndexer{
 		client:      client,
 		indexerName: indexerName,
-		typeName:    "indexer_data",
 	}, nil
 }
 

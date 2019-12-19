@@ -100,7 +100,7 @@ func InitIssueIndexer(syncReindex bool) {
 
 	// Create the Queue
 	switch setting.Indexer.IssueType {
-	case "bleve":
+	case "bleve", "elasticsearch":
 		handler := func(data ...queue.Data) {
 			indexer := holder.get()
 			if indexer == nil {

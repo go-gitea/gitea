@@ -28,6 +28,7 @@ var (
 		IssueType             string
 		IssuePath             string
 		IssueConnStr          string
+		IssueIndexerName      string
 		IssueQueueType        string
 		IssueQueueDir         string
 		IssueQueueConnStr     string
@@ -44,6 +45,7 @@ var (
 		IssueType:             "bleve",
 		IssuePath:             "indexers/issues.bleve",
 		IssueConnStr:          "",
+		IssueIndexerName:      "gitea_issues",
 		IssueQueueType:        LevelQueueType,
 		IssueQueueDir:         "indexers/issues.queue",
 		IssueQueueConnStr:     "",
@@ -60,7 +62,9 @@ func newIndexerService() {
 	if !filepath.IsAbs(Indexer.IssuePath) {
 		Indexer.IssuePath = path.Join(AppWorkPath, Indexer.IssuePath)
 	}
-	Indexer.IssueConnStr = sec.Key("ISSUE_INDEXER_CONN_STR").MustString("")
+	Indexer.IssueConnStr = sec.Key("ISSUE_INDEXER_CONN_STR").MustString(Indexer.IssueConnStr)
+	Indexer.IssueIndexerName = sec.Key("ISSUE_INDEXER_NAME").MustString(Indexer.IssueIndexerName)
+
 	Indexer.IssueQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(LevelQueueType)
 	Indexer.IssueQueueDir = sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(path.Join(AppDataPath, "indexers/issues.queue"))
 	Indexer.IssueQueueConnStr = sec.Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString(path.Join(AppDataPath, ""))
