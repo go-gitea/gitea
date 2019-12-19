@@ -2,6 +2,7 @@ package misc
 
 import (
 	"io/ioutil"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
