@@ -6,7 +6,6 @@ package migrations
 
 import (
 	"net/url"
-	"strings"
 
 	"xorm.io/xorm"
 )
@@ -45,11 +44,8 @@ func sanitizeOriginalURL(x *xorm.Engine) error {
 			}
 
 			if len(u.User.Username()) > 0 {
-				pass, _ := u.User.Password()
-				userAuth := u.User.Username() + ":" + pass + "@"
-				OriginalURL := strings.Replace(res.OriginalURL, userAuth, "", -1)
-
-				_, err = x.Exec("UPDATE repository SET original_url = ? WHERE id = ?", OriginalURL, res.ID)
+				originalURL := u.Scheme + "://" + u.Host + u.Path
+				_, err = x.Exec("UPDATE repository SET original_url = ? WHERE id = ?", originalURL, res.ID)
 				if err != nil {
 					return err
 				}
