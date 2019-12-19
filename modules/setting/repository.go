@@ -147,7 +147,7 @@ var (
 			CloseKeywords:                            strings.Split("close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved", ","),
 			ReopenKeywords:                           strings.Split("reopen,reopens,reopened", ","),
 			DefaultMergeMessageCommitsLimit:          10,
-			DefaultMergeMessageSize:                  5 * 1024 * 1024,
+			DefaultMergeMessageSize:                  5 * 1024,
 			DefaultMergeMessageAllAuthors:            false,
 			DefaultMergeMessageMaxApprovers:          10,
 			DefaultMergeMessageOfficialApproversOnly: true,
