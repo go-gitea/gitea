@@ -42,10 +42,10 @@ func sanitizeOriginalURL(x *xorm.Engine) error {
 			}
 			u.User = nil
 			originalURL := u.String()
-				_, err = x.Exec("UPDATE repository SET original_url = ? WHERE id = ?", originalURL, res.ID)
-				if err != nil {
-					return err
-				}
+			_, err = x.Exec("UPDATE repository SET original_url = ? WHERE id = ?", originalURL, res.ID)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
