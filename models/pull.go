@@ -247,7 +247,7 @@ func (pr *PullRequest) GetCommitMessages() string {
 				return ""
 			}
 
-			if _, err := stringBuilder.Write([]byte{'\n'}); err != nil {
+			if _, err := stringBuilder.WriteRune('\n'); err != nil {
 				log.Error("Unable to write commit message Error: %v", err)
 				return ""
 			}
@@ -291,7 +291,7 @@ func (pr *PullRequest) GetCommitMessages() string {
 	}
 
 	if len(authors) > 0 {
-		if _, err := stringBuilder.Write([]byte{'\n'}); err != nil {
+		if _, err := stringBuilder.WriteRune('\n'); err != nil {
 			log.Error("Unable to write to string builder Error: %v", err)
 			return ""
 		}
@@ -306,7 +306,7 @@ func (pr *PullRequest) GetCommitMessages() string {
 			log.Error("Unable to write to string builder Error: %v", err)
 			return ""
 		}
-		if _, err := stringBuilder.Write([]byte{'\n'}); err != nil {
+		if _, err := stringBuilder.WriteRune('\n'); err != nil {
 			log.Error("Unable to write to string builder Error: %v", err)
 			return ""
 		}
