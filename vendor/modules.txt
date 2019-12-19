@@ -99,10 +99,10 @@ github.com/boombuler/barcode/qr
 github.com/boombuler/barcode/utils
 # github.com/bradfitz/gomemcache v0.0.0-20190329173943-551aad21a668
 github.com/bradfitz/gomemcache/memcache
-# github.com/couchbase/gomemcached v0.0.0-20190515232915-c4b4ca0eb21d
+# github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2
 github.com/couchbase/gomemcached
 github.com/couchbase/gomemcached/client
-# github.com/couchbase/goutils v0.0.0-20190315194238-f9d42b11473b
+# github.com/couchbase/goutils v0.0.0-20191018232750-b49639060d85
 github.com/couchbase/goutils/logging
 github.com/couchbase/goutils/scramsha
 # github.com/couchbase/vellum v0.0.0-20190829182332-ef2e028c01fd
