@@ -328,24 +328,41 @@ func (pr *PullRequest) GetApprovers() string {
 }
 
 func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
+	maxReviewers := setting.Repository.PullRequest.DefaultMergeMessageMaxApprovers
+
+	if maxReviewers == 0 {
+		return nil
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
+	// Note: This doesn't page as we only expect a very limited number of reviews
 	reviews, err := findReviews(sess, FindReviewOptions{
-		Type:    ReviewTypeApprove,
-		IssueID: pr.IssueID,
+		Type:         ReviewTypeApprove,
+		IssueID:      pr.IssueID,
+		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,
 	})
 	if err != nil {
 		log.Error("Unable to FindReviews for PR ID %d: %v", pr.ID, err)
 		return err
 	}
+
+	reviewersWritten := 0
+
 	for _, review := range reviews {
-		if err := review.loadReviewer(sess); err != nil {
+		if maxReviewers > 0 && reviewersWritten > maxReviewers {
+			break
+		}
+
+		if err := review.loadReviewer(sess); err != nil && !IsErrUserNotExist(err) {
 			log.Error("Unable to LoadReviewer[%d] for PR ID %d : %v", review.ReviewerID, pr.ID, err)
 			return err
+		} else if review.Reviewer == nil {
+			continue
 		}
 		if _, err := writer.Write([]byte("Reviewed-by: ")); err != nil {
 			return err
@@ -356,6 +373,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		if _, err := writer.Write([]byte{'\n'}); err != nil {
 			return err
 		}
+		reviewersWritten++
 	}
 	return sess.Commit()
 }
