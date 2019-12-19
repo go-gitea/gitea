@@ -57,7 +57,7 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 		opts.PullRequests = false
 		opts.GitServiceType = structs.PlainGitService
 		downloader = NewPlainGitDownloader(ownerName, opts.RepoName, opts.CloneAddr)
-		log.Trace("Will migrate from git: %s", opts.CloneAddr)
+		log.Trace("Will migrate from git: %s", opts.OriginalURL)
 	} else if opts.GitServiceType == structs.NotMigrated {
 		opts.GitServiceType = theFactory.GitServiceType()
 	}
@@ -68,7 +68,7 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 			log.Error("rollback failed: %v", err1)
 		}
 
-		if err2 := models.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.CloneAddr, err)); err2 != nil {
+		if err2 := models.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
 			log.Error("create respotiry notice failed: ", err2)
 		}
 		return nil, err
