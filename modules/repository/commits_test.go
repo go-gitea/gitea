@@ -86,6 +86,8 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 }
 
 func TestPushCommits_AvatarLink(t *testing.T) {
+	assert.NoError(t, models.PrepareTestDatabase())
+
 	pushCommits := NewPushCommits()
 	pushCommits.Commits = []*PushCommit{
 		{
@@ -108,7 +110,7 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 	pushCommits.Len = len(pushCommits.Commits)
 
 	assert.Equal(t,
-		"/suburl/user/avatar/user2/-1",
+		"/user/avatar/user2/-1",
 		pushCommits.AvatarLink("user2@example.com"))
 
 	assert.Equal(t,
