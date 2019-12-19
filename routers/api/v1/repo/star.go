@@ -31,6 +31,7 @@ func ListStargazers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	stargazers, err := ctx.Repo.Repository.GetStargazers(-1)
 	if err != nil {
 		ctx.Error(500, "GetStargazers", err)

@@ -123,6 +123,7 @@ func Search(ctx *context.APIContext) {
 	//     "$ref": "#/responses/SearchResults"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	opts := &models.SearchRepoOptions{
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
@@ -272,6 +273,7 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//     description: The repository with the same name already exists.
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	if ctx.User.IsOrganization() {
 		// Shouldn't reach this condition, but just in case.
 		ctx.Error(422, "", "not allowed creating repository for organization")
@@ -306,6 +308,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//     "$ref": "#/responses/validationError"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+
 	org, err := models.GetOrgByName(ctx.Params(":org"))
 	if err != nil {
 		if models.IsErrOrgNotExist(err) {
@@ -544,6 +547,7 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
+
 	ctx.JSON(200, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
 }
 
@@ -564,6 +568,7 @@ func GetByID(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
+
 	repo, err := models.GetRepositoryByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
@@ -616,6 +621,7 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	if err := updateBasicProperties(ctx, opts); err != nil {
 		return
 	}
@@ -930,6 +936,7 @@ func Delete(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 

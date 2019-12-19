@@ -45,6 +45,7 @@ func GetStarredRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+
 	user := GetUserByParams(ctx)
 	private := user.ID == ctx.User.ID
 	repos, err := getStarredRepos(user, private)
@@ -64,6 +65,7 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+
 	repos, err := getStarredRepos(ctx.User, true)
 	if err != nil {
 		ctx.Error(500, "getStarredRepos", err)
@@ -92,6 +94,7 @@ func IsStarring(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	if models.IsStaring(ctx.User.ID, ctx.Repo.Repository.ID) {
 		ctx.Status(204)
 	} else {
@@ -118,6 +121,7 @@ func Star(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	err := models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(500, "StarRepo", err)
@@ -145,6 +149,7 @@ func Unstar(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	err := models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(500, "StarRepo", err)

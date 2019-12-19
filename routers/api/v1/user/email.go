@@ -23,6 +23,7 @@ func ListEmails(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/EmailList"
+
 	emails, err := models.GetEmailAddresses(ctx.User.ID)
 	if err != nil {
 		ctx.Error(500, "GetEmailAddresses", err)
@@ -103,6 +104,7 @@ func DeleteEmail(ctx *context.APIContext, form api.DeleteEmailOption) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	if len(form.Emails) == 0 {
 		ctx.Status(204)
 		return

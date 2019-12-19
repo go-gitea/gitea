@@ -27,6 +27,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
+
 	tokens, err := models.ListAccessTokens(ctx.User.ID)
 	if err != nil {
 		ctx.Error(500, "ListAccessTokens", err)
@@ -71,6 +72,7 @@ func CreateAccessToken(ctx *context.APIContext, form api.CreateAccessTokenOption
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AccessToken"
+
 	t := &models.AccessToken{
 		UID:  ctx.User.ID,
 		Name: form.Name,
@@ -109,6 +111,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	tokenID := ctx.ParamsInt64(":id")
 	if err := models.DeleteAccessTokenByID(tokenID, ctx.User.ID); err != nil {
 		if models.IsErrAccessTokenNotExist(err) {

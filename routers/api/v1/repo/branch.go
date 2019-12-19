@@ -38,6 +38,7 @@ func GetBranch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Branch"
+
 	if ctx.Repo.TreePath != "" {
 		// if TreePath != "", then URL contained extra slashes
 		// (i.e. "master/subbranch" instead of "master"), so branch does
@@ -91,6 +92,7 @@ func ListBranches(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/BranchList"
+
 	branches, err := ctx.Repo.Repository.GetBranches()
 	if err != nil {
 		ctx.Error(500, "GetBranches", err)

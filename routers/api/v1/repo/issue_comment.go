@@ -45,6 +45,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
+
 	var since time.Time
 	if len(ctx.Query("since")) > 0 {
 		since, _ = time.Parse(time.RFC3339, ctx.Query("since"))
@@ -106,6 +107,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
+
 	var since time.Time
 	if len(ctx.Query("since")) > 0 {
 		since, _ = time.Parse(time.RFC3339, ctx.Query("since"))

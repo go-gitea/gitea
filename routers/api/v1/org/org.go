@@ -36,6 +36,7 @@ func ListMyOrgs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
+
 	listUserOrgs(ctx, ctx.User, true)
 }
 
@@ -55,6 +56,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -135,6 +137,7 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
+
 	if !models.HasOrgVisible(ctx.Org.Organization, ctx.User) {
 		ctx.NotFound("HasOrgVisible", nil)
 		return
@@ -165,6 +168,7 @@ func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
+
 	org := ctx.Org.Organization
 	org.FullName = form.FullName
 	org.Description = form.Description
@@ -197,6 +201,7 @@ func Delete(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	if err := models.DeleteOrganization(ctx.Org.Organization); err != nil {
 		ctx.Error(500, "DeleteOrganization", err)
 		return

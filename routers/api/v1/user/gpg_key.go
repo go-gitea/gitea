@@ -42,6 +42,7 @@ func ListGPGKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
+
 	user := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -59,6 +60,7 @@ func ListMyGPGKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
+
 	listGPGKeys(ctx, ctx.User.ID)
 }
 
@@ -81,6 +83,7 @@ func GetGPGKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/GPGKey"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	key, err := models.GetGPGKeyByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrGPGKeyNotExist(err) {
@@ -123,6 +126,7 @@ func CreateGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption) {
 	//     "$ref": "#/responses/GPGKey"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	CreateUserGPGKey(ctx, form, ctx.User.ID)
 }
 
@@ -145,6 +149,7 @@ func DeleteGPGKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+
 	if err := models.DeleteGPGKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrGPGKeyAccessDenied(err) {
 			ctx.Error(403, "", "You do not have access to this key")

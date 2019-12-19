@@ -32,6 +32,7 @@ func ListTeams(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
+
 	org := ctx.Org.Organization
 	if err := org.GetTeams(); err != nil {
 		ctx.Error(500, "GetTeams", err)
@@ -60,6 +61,7 @@ func ListUserTeams(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
+
 	teams, err := models.GetUserTeams(ctx.User.ID)
 	if err != nil {
 		ctx.Error(500, "GetUserTeams", err)
@@ -102,6 +104,7 @@ func GetTeam(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Team"
+
 	ctx.JSON(200, convert.ToTeam(ctx.Org.Team))
 }
 
@@ -186,6 +189,7 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Team"
+
 	team := ctx.Org.Team
 	team.Description = form.Description
 	unitTypes := models.FindUnitTypes(form.Units...)
@@ -242,6 +246,7 @@ func DeleteTeam(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: team deleted
+
 	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
 		ctx.Error(500, "DeleteTeam", err)
 		return
@@ -266,6 +271,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	isMember, err := models.IsOrganizationMember(ctx.Org.Team.OrgID, ctx.User.ID)
 	if err != nil {
 		ctx.Error(500, "IsOrganizationMember", err)
@@ -417,6 +423,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+
 	team := ctx.Org.Team
 	if err := team.GetRepositories(); err != nil {
 		ctx.Error(500, "GetTeamRepos", err)
@@ -586,6 +593,7 @@ func SearchTeam(ctx *context.APIContext) {
 	//           type: array
 	//           items:
 	//             "$ref": "#/definitions/Team"
+
 	opts := &models.SearchTeamOptions{
 		UserID:      ctx.User.ID,
 		Keyword:     strings.TrimSpace(ctx.Query("q")),

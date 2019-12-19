@@ -35,6 +35,7 @@ func ListHooks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"
+
 	hooks, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.Error(500, "GetWebhooksByRepoID", err)
@@ -114,6 +115,7 @@ func TestHook(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	if ctx.Repo.Commit == nil {
 		// if repo does not have any commits, then don't send a webhook
 		ctx.Status(204)

@@ -31,6 +31,7 @@ func ListSubscribers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	subscribers, err := ctx.Repo.Repository.GetWatchers(0)
 	if err != nil {
 		ctx.Error(500, "GetWatchers", err)

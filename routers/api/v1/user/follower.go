@@ -38,6 +38,7 @@ func ListMyFollowers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	listUserFollowers(ctx, ctx.User)
 }
 
@@ -57,6 +58,7 @@ func ListFollowers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	u := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -83,6 +85,7 @@ func ListMyFollowing(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	listUserFollowing(ctx, ctx.User)
 }
 
@@ -102,6 +105,7 @@ func ListFollowing(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	u := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -133,6 +137,7 @@ func CheckMyFollowing(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	target := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -161,6 +166,7 @@ func CheckFollowing(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	u := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -186,6 +192,7 @@ func Follow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	target := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -211,6 +218,7 @@ func Unfollow(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	target := GetUserByParams(ctx)
 	if ctx.Written() {
 		return

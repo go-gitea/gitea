@@ -31,6 +31,7 @@ func ListTags(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TagList"
+
 	tags, err := ctx.Repo.GitRepo.GetTagInfos()
 	if err != nil {
 		ctx.Error(500, "GetTags", err)

@@ -32,6 +32,7 @@ func ListForks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+
 	forks, err := ctx.Repo.Repository.GetForks()
 	if err != nil {
 		ctx.Error(500, "GetForks", err)

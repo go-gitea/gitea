@@ -44,6 +44,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description: Cannot start a stopwatch again if it already exists
+
 	issue, err := prepareIssueStopwatch(ctx, false)
 	if err != nil {
 		return
@@ -92,6 +93,7 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description:  Cannot stop a non existent stopwatch
+
 	issue, err := prepareIssueStopwatch(ctx, true)
 	if err != nil {
 		return
@@ -140,6 +142,7 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description:  Cannot cancel a non existent stopwatch
+
 	issue, err := prepareIssueStopwatch(ctx, true)
 	if err != nil {
 		return

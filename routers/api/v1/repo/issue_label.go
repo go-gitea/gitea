@@ -41,6 +41,7 @@ func ListIssueLabels(ctx *context.APIContext) {
 	//     "$ref": "#/responses/LabelList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {

@@ -53,6 +53,7 @@ func SearchIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
+
 	var isClosed util.OptionalBool
 	switch ctx.Query("state") {
 	case "closed":
@@ -189,6 +190,7 @@ func ListIssues(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
+
 	var isClosed util.OptionalBool
 	switch ctx.Query("state") {
 	case "closed":

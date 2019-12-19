@@ -61,6 +61,7 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	u := &models.User{
 		Name:               form.Username,
 		FullName:           form.FullName,
@@ -129,6 +130,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -217,6 +219,7 @@ func DeleteUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -262,6 +265,7 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -295,6 +299,7 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -327,6 +332,7 @@ func GetAllUsers(ctx *context.APIContext) {
 	//     "$ref": "#/responses/UserList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+
 	users, _, err := models.SearchUsers(&models.SearchUserOptions{
 		Type:     models.UserTypeIndividual,
 		OrderBy:  models.SearchOrderByAlphabetically,

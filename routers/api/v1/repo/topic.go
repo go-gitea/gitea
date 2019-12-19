@@ -41,6 +41,7 @@ func ListTopics(ctx *context.APIContext) {
 	})
 	if err != nil {
 		log.Error("ListTopics failed: %v", err)
+		
 		ctx.JSON(500, map[string]interface{}{
 			"message": "ListTopics failed.",
 		})

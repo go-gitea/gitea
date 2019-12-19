@@ -32,6 +32,7 @@ func ListGitHooks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GitHookList"
+
 	hooks, err := ctx.Repo.GitRepo.Hooks()
 	if err != nil {
 		ctx.Error(500, "Hooks", err)
@@ -73,6 +74,7 @@ func GetGitHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/GitHook"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	hookID := ctx.Params(":id")
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {
@@ -118,6 +120,7 @@ func EditGitHook(ctx *context.APIContext, form api.EditGitHookOption) {
 	//     "$ref": "#/responses/GitHook"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	hookID := ctx.Params(":id")
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {
@@ -166,6 +169,7 @@ func DeleteGitHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	hookID := ctx.Params(":id")
 	hook, err := ctx.Repo.GitRepo.GetHook(hookID)
 	if err != nil {

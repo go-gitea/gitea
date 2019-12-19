@@ -340,6 +340,7 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileDeleteResponse"
+
 	if !CanWriteFiles(ctx.Repo) {
 		ctx.Error(500, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,

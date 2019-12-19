@@ -46,6 +46,7 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+
 	user := GetUserByParams(ctx)
 	private := user.ID == ctx.User.ID
 	repos, err := getWatchedRepos(user, private)
@@ -65,6 +66,7 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
+
 	repos, err := getWatchedRepos(ctx.User, true)
 	if err != nil {
 		ctx.Error(500, "getWatchedRepos", err)
@@ -92,6 +94,7 @@ func IsWatching(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
+
 	if models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID) {
 		ctx.JSON(200, api.WatchInfo{
 			Subscribed:    true,
@@ -125,6 +128,7 @@ func Watch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
+
 	err := models.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(500, "WatchRepo", err)
@@ -160,6 +164,7 @@ func Unwatch(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	err := models.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(500, "UnwatchRepo", err)

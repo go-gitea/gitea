@@ -39,6 +39,7 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -95,6 +96,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/OrganizationList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+
 	users, _, err := models.SearchUsers(&models.SearchUserOptions{
 		Type:     models.UserTypeOrganization,
 		OrderBy:  models.SearchOrderByAlphabetically,

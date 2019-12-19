@@ -50,6 +50,7 @@ func ListMembers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	publicOnly := true
 	if ctx.User != nil {
 		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
@@ -78,6 +79,7 @@ func ListPublicMembers(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	listMembers(ctx, true)
 }
 
@@ -104,6 +106,7 @@ func IsMember(ctx *context.APIContext) {
 	//     description: redirection to /orgs/{org}/public_members/{username}
 	//   "404":
 	//     description: user is not a member
+
 	userToCheck := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -155,6 +158,7 @@ func IsPublicMember(ctx *context.APIContext) {
 	//     description: user is a public member
 	//   "404":
 	//     description: user is not a public member
+
 	userToCheck := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -267,6 +271,7 @@ func DeleteMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: member removed
+
 	member := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return

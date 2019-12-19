@@ -35,6 +35,7 @@ func ListCollaborators(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	collaborators, err := ctx.Repo.Repository.GetCollaborators()
 	if err != nil {
 		ctx.Error(500, "ListCollaborators", err)

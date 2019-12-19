@@ -28,6 +28,7 @@ func ListHooks(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"
+
 	org := ctx.Org.Organization
 	orgHooks, err := models.GetWebhooksByOrgID(org.ID)
 	if err != nil {
@@ -63,6 +64,7 @@ func GetHook(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
+
 	org := ctx.Org.Organization
 	hookID := ctx.ParamsInt64(":id")
 	hook, err := utils.GetOrgHook(ctx, org.ID, hookID)
@@ -159,6 +161,7 @@ func DeleteHook(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	org := ctx.Org.Organization
 	hookID := ctx.ParamsInt64(":id")
 	if err := models.DeleteWebhookByOrgID(org.ID, hookID); err != nil {

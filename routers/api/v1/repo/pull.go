@@ -69,6 +69,7 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
+
 	prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
 		Page:        ctx.QueryInt("page"),
 		State:       ctx.QueryTrim("state"),
@@ -134,6 +135,7 @@ func GetPullRequest(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequest"
+
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -506,6 +508,7 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 	//     description: pull request has been merged
 	//   "404":
 	//     description: pull request has not been merged
+
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {

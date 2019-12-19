@@ -112,6 +112,7 @@ func ListMyPublicKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"
+
 	listPublicKeys(ctx, ctx.User)
 }
 
@@ -135,6 +136,7 @@ func ListPublicKeys(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"
+
 	user := GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -161,6 +163,7 @@ func GetPublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/PublicKey"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	key, err := models.GetPublicKeyByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrKeyNotExist(err) {
@@ -219,6 +222,7 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	//     "$ref": "#/responses/PublicKey"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	CreateUserPublicKey(ctx, form, ctx.User.ID)
 }
 
@@ -243,6 +247,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
 	if err := models.DeletePublicKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrKeyNotExist(err) {
 			ctx.NotFound()
