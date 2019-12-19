@@ -5,7 +5,6 @@
 package repo
 
 import (
-
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -72,6 +71,8 @@ func GetTag(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AnnotatedTag"
+	//   "400":
+	//     "$ref": "#/responses/error"
 
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {

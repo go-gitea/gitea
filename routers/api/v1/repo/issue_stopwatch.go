@@ -41,7 +41,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 	//   "403":
 	//     description: Not repo writer, user does not have rights to toggle stopwatch
 	//   "404":
-	//     description: Issue not found
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description: Cannot start a stopwatch again if it already exists
 	issue, err := prepareIssueStopwatch(ctx, false)
@@ -89,7 +89,7 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 	//   "403":
 	//     description: Not repo writer, user does not have rights to toggle stopwatch
 	//   "404":
-	//     description: Issue not found
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description:  Cannot stop a non existent stopwatch
 	issue, err := prepareIssueStopwatch(ctx, true)
@@ -137,7 +137,7 @@ func DeleteIssueStopwatch(ctx *context.APIContext) {
 	//   "403":
 	//     description: Not repo writer, user does not have rights to toggle stopwatch
 	//   "404":
-	//     description: Issue not found
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     description:  Cannot cancel a non existent stopwatch
 	issue, err := prepareIssueStopwatch(ctx, true)

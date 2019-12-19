@@ -57,6 +57,8 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	//     "$ref": "#/responses/User"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	u := &models.User{

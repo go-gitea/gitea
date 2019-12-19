@@ -75,6 +75,9 @@ func GetHook(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	repo := ctx.Repo
 	hookID := ctx.ParamsInt64(":id")
 	hook, err := utils.GetRepoHook(ctx, repo.Repository.ID, hookID)

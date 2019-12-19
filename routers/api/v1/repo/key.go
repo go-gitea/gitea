@@ -196,6 +196,9 @@ func CreateDeployKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/DeployKey"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	content, err := models.CheckPublicKeyString(form.Key)
 	if err != nil {
 		HandleCheckKeyStringError(ctx, err)
@@ -238,6 +241,9 @@ func DeleteDeploykey(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	if err := models.DeleteDeployKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
 		if models.IsErrKeyAccessDenied(err) {
 			ctx.Error(403, "", "You do not have access to this key")

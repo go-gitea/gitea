@@ -5,7 +5,6 @@
 package repo
 
 import (
-
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/repofiles"
 )
@@ -36,6 +35,8 @@ func GetBlob(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GitBlobResponse"
+	//   "400":
+	//     "$ref": "#/responses/error"
 
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {

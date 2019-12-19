@@ -42,6 +42,9 @@ func GetRawFile(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.NotFound()
 		return
@@ -87,6 +90,9 @@ func GetArchive(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
@@ -125,6 +131,9 @@ func GetEditorconfig(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	ec, err := ctx.Repo.GetEditorconfig()
 	if err != nil {
 		if git.IsErrNotExist(err) {

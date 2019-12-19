@@ -45,6 +45,9 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.NotFound("Timetracker is disabled")
 		return
@@ -104,7 +107,8 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "403":
-	//     "$ref": "#/responses/error"
+	//     "$ref": "#/responses/forbidden"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -157,6 +161,9 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
 		return
@@ -206,6 +213,9 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
 		return

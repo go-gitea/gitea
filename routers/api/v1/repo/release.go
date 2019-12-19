@@ -146,6 +146,9 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Release"
+	//   "409":
+	//     "$ref": "#/responses/error"
+
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !models.IsErrReleaseNotExist(err) {

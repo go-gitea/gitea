@@ -74,7 +74,10 @@ func IsCollaborator(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 	//   "404":
-	//     "$ref": "#/responses/empty"
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	user, err := models.GetUserByName(ctx.Params(":collaborator"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
@@ -126,6 +129,9 @@ func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	collaborator, err := models.GetUserByName(ctx.Params(":collaborator"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
@@ -182,6 +188,9 @@ func DeleteCollaborator(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	collaborator, err := models.GetUserByName(ctx.Params(":collaborator"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {

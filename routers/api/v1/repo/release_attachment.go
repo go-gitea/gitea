@@ -147,6 +147,8 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
+	//   "400":
+	//     "$ref": "#/responses/error"
 
 	// Check if attachments are enabled
 	if !setting.AttachmentEnabled {

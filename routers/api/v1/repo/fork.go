@@ -74,6 +74,11 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 	// responses:
 	//   "202":
 	//     "$ref": "#/responses/Repository"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	repo := ctx.Repo.Repository
 	var forker *models.User // user/org that will own the fork
 	if form.Organization == nil {
@@ -105,5 +110,6 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 		return
 	}
 
+	//TODO change back to 201
 	ctx.JSON(202, fork.APIFormat(models.AccessModeOwner))
 }

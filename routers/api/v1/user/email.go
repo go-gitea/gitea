@@ -55,6 +55,9 @@ func AddEmail(ctx *context.APIContext, form api.CreateEmailOption) {
 	// responses:
 	//   '201':
 	//     "$ref": "#/responses/EmailList"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	if len(form.Emails) == 0 {
 		ctx.Status(422)
 		return

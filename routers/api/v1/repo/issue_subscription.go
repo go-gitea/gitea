@@ -46,7 +46,8 @@ func AddIssueSubscription(ctx *context.APIContext) {
 	//   "304":
 	//     description: User can only subscribe itself if he is no admin
 	//   "404":
-	//     description: Issue not found
+	//     "$ref": "#/responses/notFound"
+
 	setIssueSubscription(ctx, true)
 }
 
@@ -87,7 +88,8 @@ func DelIssueSubscription(ctx *context.APIContext) {
 	//   "304":
 	//     description: User can only subscribe itself if he is no admin
 	//   "404":
-	//     description: Issue not found
+	//     "$ref": "#/responses/notFound"
+
 	setIssueSubscription(ctx, false)
 }
 
@@ -158,7 +160,8 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 	//   "404":
-	//     description: Issue not found
+	//     "$ref": "#/responses/notFound"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {

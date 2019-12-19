@@ -100,6 +100,8 @@ func IsMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: user is a member
+	//   "302":
+	//     description: redirection to /orgs/{org}/public_members/{username}
 	//   "404":
 	//     description: user is not a member
 	userToCheck := user.GetUserByParams(ctx)
@@ -185,6 +187,9 @@ func PublicizeMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: membership publicized
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	userToPublicize := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -222,6 +227,9 @@ func ConcealMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	userToConceal := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return

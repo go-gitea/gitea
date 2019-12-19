@@ -351,6 +351,11 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	ctxUser := ctx.User
 	// Not equal means context user is an organization,
 	// or is another user/organization if current user is admin.
@@ -967,6 +972,9 @@ func MirrorSync(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	repo := ctx.Repo.Repository
 
 	if !ctx.Repo.CanWrite(models.UnitTypeCode) {

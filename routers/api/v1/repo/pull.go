@@ -182,6 +182,11 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PullRequest"
+	//   "409":
+	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	var (
 		repo        = ctx.Repo.Repository
 		labelIDs    []int64
@@ -347,6 +352,13 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/PullRequest"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "412":
+	//     "$ref": "#/responses/error"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -543,6 +555,9 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	//     "$ref": "#/responses/empty"
 	//   "405":
 	//     "$ref": "#/responses/empty"
+	//   "409":
+	//     "$ref": "#/responses/error"
+
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {

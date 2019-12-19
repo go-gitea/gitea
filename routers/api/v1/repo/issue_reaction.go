@@ -41,6 +41,9 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReactionResponseList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
@@ -112,6 +115,9 @@ func PostIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOpti
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/ReactionResponse"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	changeIssueCommentReaction(ctx, form, true)
 }
 
@@ -146,8 +152,11 @@ func DeleteIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 	//   schema:
 	//     "$ref": "#/definitions/EditReactionOption"
 	// responses:
-	//   "200":
+	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	changeIssueCommentReaction(ctx, form, false)
 }
 
@@ -201,7 +210,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 			ctx.Error(500, "DeleteCommentReaction", err)
 			return
 		}
-		ctx.Status(200)
+		ctx.Status(204)
 	}
 }
 
@@ -234,6 +243,9 @@ func GetIssueReactions(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReactionResponseList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	issue, err := models.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -305,6 +317,9 @@ func PostIssueReaction(ctx *context.APIContext, form api.EditReactionOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/ReactionResponse"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	changeIssueReaction(ctx, form, true)
 }
 
@@ -339,8 +354,11 @@ func DeleteIssueReaction(ctx *context.APIContext, form api.EditReactionOption) {
 	//   schema:
 	//     "$ref": "#/definitions/EditReactionOption"
 	// responses:
-	//   "200":
+	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	changeIssueReaction(ctx, form, false)
 }
 
@@ -389,6 +407,6 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 			ctx.Error(500, "DeleteIssueReaction", err)
 			return
 		}
-		ctx.Status(200)
+		ctx.Status(204)
 	}
 }

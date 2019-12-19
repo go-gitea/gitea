@@ -43,6 +43,9 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Status"
+	//   "400":
+	//     "$ref": "#/responses/error"
+
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {
 		ctx.Error(400, "sha not given", nil)
@@ -105,6 +108,9 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/StatusList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+
 	getCommitStatuses(ctx, ctx.Params("sha"))
 }
 
@@ -151,6 +157,8 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/StatusList"
+	//   "400":
+	//     "$ref": "#/responses/error"
 
 	filter := ctx.Params("ref")
 	if len(filter) == 0 {
@@ -251,6 +259,9 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Status"
+	//   "400":
+	//     "$ref": "#/responses/error"
+
 	sha := ctx.Params("ref")
 	if len(sha) == 0 {
 		ctx.Error(400, "ref/sha not given", nil)

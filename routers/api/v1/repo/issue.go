@@ -274,6 +274,9 @@ func GetIssue(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	issue, err := models.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -313,6 +316,13 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "412":
+	//     "$ref": "#/responses/error"
+	//     description: cannot close this issue because it still has open dependencies
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
@@ -428,6 +438,14 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "412":
+	//     "$ref": "#/responses/error"
+	//     description: cannot close this issue because it still has open dependencies
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -564,8 +582,9 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	//     "$ref": "#/responses/IssueDeadline"
 	//   "403":
 	//     description: Not repo writer
+	//     "$ref": "#/responses/forbidden"
 	//   "404":
-	//     description: Issue not found
+	//     "$ref": "#/responses/notFound"
 
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {

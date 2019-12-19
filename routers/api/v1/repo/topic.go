@@ -139,6 +139,8 @@ func AddTopic(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
 
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
@@ -203,6 +205,9 @@ func DeleteTopic(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
 	if !models.ValidateTopic(topicName) {
@@ -242,6 +247,9 @@ func TopicSearch(ctx *context.Context) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TopicListResponse"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	if ctx.User == nil {
 		ctx.JSON(403, map[string]interface{}{
 			"message": "Only owners could change the topics.",

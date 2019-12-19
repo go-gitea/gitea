@@ -178,6 +178,9 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Comment"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(500, "GetIssueByIndex", err)
@@ -273,6 +276,11 @@ func EditIssueCommentDeprecated(ctx *context.APIContext, form api.EditIssueComme
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Comment"
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	editIssueComment(ctx, form)
 }
 
@@ -330,6 +338,9 @@ func DeleteIssueComment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	deleteIssueComment(ctx)
 }
 
@@ -364,6 +375,9 @@ func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	deleteIssueComment(ctx)
 }
 

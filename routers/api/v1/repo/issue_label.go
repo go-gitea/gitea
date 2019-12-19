@@ -96,6 +96,9 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -168,6 +171,11 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -234,6 +242,9 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -300,6 +311,9 @@ func ClearIssueLabels(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {

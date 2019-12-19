@@ -127,6 +127,9 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Team"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	team := &models.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.Name,
@@ -305,6 +308,9 @@ func GetTeamMember(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/User"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -343,6 +349,9 @@ func AddTeamMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -376,6 +385,9 @@ func RemoveTeamMember(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -462,6 +474,9 @@ func AddTeamRepository(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	repo := getRepositoryByParams(ctx)
 	if ctx.Written() {
 		return
@@ -509,6 +524,9 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	repo := getRepositoryByParams(ctx)
 	if ctx.Written() {
 		return
