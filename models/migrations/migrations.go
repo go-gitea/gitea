@@ -274,6 +274,14 @@ var migrations = []Migration{
 	NewMigration("Add comment_id on table notification", addCommentIDOnNotification),
 	// v109 -> v110
 	NewMigration("add can_create_org_repo to team", addCanCreateOrgRepoColumnForTeam),
+	// v110 -> v111
+	NewMigration("change review content type to text", changeReviewContentToText),
+	// v111 -> v112
+	NewMigration("update branch protection for can push and whitelist enable", addBranchProtectionCanPushAndEnableWhitelist),
+	// v112 -> v113
+	NewMigration("remove release attachments which repository deleted", removeAttachmentMissedRepo),
+	// v113 -> v114
+	NewMigration("new feature: change target branch of pull requests", featureChangeTargetBranch),
 }
 
 // Migrate database to current version

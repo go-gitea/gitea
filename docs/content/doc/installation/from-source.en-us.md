@@ -21,6 +21,10 @@ environment variable and to add the go bin directory or directories
 `${GOPATH//://bin:}/bin` to the `$PATH`. See the Go wiki entry for
 [GOPATH](https://github.com/golang/go/wiki/GOPATH).
 
+Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
+required to build the JavaScript and CSS files. The minimum supported Node.js
+version is 10 and the latest LTS version is recommended.
+
 **Note**: When executing make tasks that require external tools, like
 `make misspell-check`, Gitea will automatically download and build these as
 necessary. To be able to use these, you must have the `"$GOPATH/bin"` directory
@@ -75,9 +79,12 @@ git checkout v{{< version >}}  # or git checkout pr-xyz
 
 ## Build
 
-Since all required libraries are already bundled in the Gitea source, it's
-possible to build Gitea with no additional downloads apart from Make
-<a href='{{< relref "doc/advanced/make.en-us.md" >}}'>(See here how to get Make)</a>.
+To build from source, the following programs must be present on the system:
+
+- `go` 1.11.0 or higher, see [here](https://golang.org/dl/)
+- `node` 10.0.0 or higher with `npm`, see [here](https://nodejs.org/en/download/)
+- `make`, see <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>here</a>
+
 Various [make tasks](https://github.com/go-gitea/gitea/blob/master/Makefile)
 are provided to keep the build process as simple as possible.
 
@@ -93,11 +100,10 @@ Depending on requirements, the following build tags can be included.
 
 Bundling assets into the binary using the `bindata` build tag can make
 development and testing easier, but is not ideal for a production deployment.
-To include assets, they must be built separately using the `generate` make
-task e.g.:
+To include assets, add the `bindata` tag:
 
 ```bash
-TAGS="bindata" make generate build
+TAGS="bindata" make build
 ```
 
 In the default release build of our continuous integration system, the build
@@ -105,7 +111,7 @@ tags are: `TAGS="bindata sqlite sqlite_unlock_notify"`. The simplest
 recommended way to build from source is therefore:
 
 ```bash
-TAGS="bindata sqlite sqlite_unlock_notify" make generate build
+TAGS="bindata sqlite sqlite_unlock_notify" make build
 ```
 
 ## Test

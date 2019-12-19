@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
@@ -95,7 +96,7 @@ func runMigrateTask(t *models.Task) (err error) {
 	}
 
 	opts.MigrateToRepoID = t.RepoID
-	repo, err := migrations.MigrateRepository(t.Doer, t.Owner.Name, *opts)
+	repo, err := migrations.MigrateRepository(graceful.GetManager().HammerContext(), t.Doer, t.Owner.Name, *opts)
 	if err == nil {
 		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, t.Owner.Name, repo.Name)
 		return nil

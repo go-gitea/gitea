@@ -116,7 +116,7 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 		if ctx.OrigComment != nil {
 			refCommentID = ctx.OrigComment.ID
 		}
-		if _, err := createComment(e, &CreateCommentOptions{
+		var opts = &CreateCommentOptions{
 			Type:         ctx.Type,
 			Doer:         ctx.Doer,
 			Repo:         xref.Issue.Repo,
@@ -126,7 +126,9 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 			RefCommentID: refCommentID,
 			RefAction:    xref.Action,
 			RefIsPull:    ctx.OrigIssue.IsPull,
-		}); err != nil {
+		}
+		_, err := createComment(e, opts)
+		if err != nil {
 			return err
 		}
 	}

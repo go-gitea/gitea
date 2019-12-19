@@ -244,12 +244,6 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		milestoneID = milestone.ID
 	}
 
-	patch, err := headGitRepo.GetPatch(compareInfo.MergeBase, headBranch)
-	if err != nil {
-		ctx.Error(500, "GetPatch", err)
-		return
-	}
-
 	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
@@ -306,15 +300,12 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		}
 	}
 
-	if err := pull_service.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, patch, assigneeIDs); err != nil {
+	if err := pull_service.NewPullRequest(repo, prIssue, labelIDs, []string{}, pr, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err)
 			return
 		}
 		ctx.Error(500, "NewPullRequest", err)
-		return
-	} else if err := pr.PushToBaseRepo(); err != nil {
-		ctx.Error(500, "PushToBaseRepo", err)
 		return
 	}
 

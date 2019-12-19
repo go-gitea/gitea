@@ -21,7 +21,7 @@ type Notifier interface {
 	NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string)
 
 	NotifyNewIssue(*models.Issue)
-	NotifyIssueChangeStatus(*models.User, *models.Issue, bool)
+	NotifyIssueChangeStatus(*models.User, *models.Issue, *models.Comment, bool)
 	NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64)
 	NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment)
 	NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string)
@@ -34,6 +34,7 @@ type Notifier interface {
 	NotifyMergePullRequest(*models.PullRequest, *models.User, *git.Repository)
 	NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest)
 	NotifyPullRequestReview(*models.PullRequest, *models.Review, *models.Comment)
+	NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string)
 
 	NotifyCreateIssueComment(*models.User, *models.Repository,
 		*models.Issue, *models.Comment)

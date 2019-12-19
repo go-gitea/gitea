@@ -84,3 +84,38 @@ type swaggerIssueDeadline struct {
 	// in:body
 	Body api.IssueDeadline `json:"body"`
 }
+
+// StopWatch
+// swagger:response StopWatch
+type swaggerResponseStopWatch struct {
+	// in:body
+	Body api.StopWatch `json:"body"`
+}
+
+// StopWatchList
+// swagger:response StopWatchList
+type swaggerResponseStopWatchList struct {
+	// in:body
+	Body []api.StopWatch `json:"body"`
+}
+
+// EditReactionOption
+// swagger:response EditReactionOption
+type swaggerEditReactionOption struct {
+	// in:body
+	Body api.EditReactionOption `json:"body"`
+}
+
+// ReactionResponse
+// swagger:response ReactionResponse
+type swaggerReactionResponse struct {
+	// in:body
+	Body api.ReactionResponse `json:"body"`
+}
+
+// ReactionResponseList
+// swagger:response ReactionResponseList
+type swaggerReactionResponseList struct {
+	// in:body
+	Body []api.ReactionResponse `json:"body"`
+}

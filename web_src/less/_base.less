@@ -354,6 +354,10 @@ code,
         z-index: 21;
     }
 
+    &.dropdown .menu > .header {
+        font-size: 0.8em;
+    }
+
     .text {
         &.red {
             color: #d95c5c !important;
@@ -1092,6 +1096,12 @@ i.icon.centerlock {
     overflow-x: auto;
     overflow-y: hidden;
 
+    &.has-context-menu {
+        overflow: visible;
+        overflow-x: visible;
+        overflow-y: visible;
+    }
+
     *:not(.fa):not(.octicon):not(.icon) {
         font-size: 12px;
         font-family: @monospaced-fonts, monospace;
@@ -1105,4 +1115,8 @@ i.icon.centerlock {
     .active {
         background: #fff866;
     }
+}
+
+.octicon-tiny {
+    font-size: 0.85714286rem;
 }

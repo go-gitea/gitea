@@ -37,6 +37,7 @@ menu:
 
 - `EXPLORE_PAGING_NUM`: 探索页面每页显示的仓库数量。
 - `ISSUE_PAGING_NUM`: 工单页面每页显示的工单数量。
+- `MEMBERS_PAGING_NUM`: **20**: 组织成员页面每页显示的成员数量。
 - `FEED_MAX_COMMIT_NUM`: 活动流页面显示的最大提交数量。
 
 ### UI - Admin (`ui.admin`)
@@ -111,7 +112,7 @@ menu:
 
 ## Service (`service`)
 
-- `ACTIVE_CODE_LIVE_MINUTES`: 登陆验证码失效时间，单位分钟。
+- `ACTIVE_CODE_LIVE_MINUTES`: 登录验证码失效时间，单位分钟。
 - `RESET_PASSWD_CODE_LIVE_MINUTES`: 重置密码失效时间，单位分钟。
 - `REGISTER_EMAIL_CONFIRM`: 启用注册邮件激活，前提是 `Mailer` 已经启用。
 - `DISABLE_REGISTRATION`: 禁用注册，启用后只能用管理员添加用户。

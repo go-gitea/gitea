@@ -72,6 +72,7 @@ func CreateCodeComment(doer *models.User, issue *models.Issue, line int64, conte
 			Type:     models.ReviewTypePending,
 			Reviewer: doer,
 			Issue:    issue,
+			Official: false,
 		})
 		if err != nil {
 			return nil, err
@@ -154,7 +155,6 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 		CommitSHA: commitID,
 		ReviewID:  reviewID,
 		Patch:     patch,
-		NoAction:  true,
 	})
 }
 

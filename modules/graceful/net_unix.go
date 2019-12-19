@@ -101,7 +101,7 @@ func CloseProvidedListeners() error {
 // creates a new one using net.Listen.
 func GetListener(network, address string) (net.Listener, error) {
 	// Add a deferral to say that we've tried to grab a listener
-	defer Manager.InformCleanup()
+	defer GetManager().InformCleanup()
 	switch network {
 	case "tcp", "tcp4", "tcp6":
 		tcpAddr, err := net.ResolveTCPAddr(network, address)

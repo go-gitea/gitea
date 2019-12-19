@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
@@ -338,7 +339,7 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 		}
 		repo.IsMirror = false
 
-		if _, err := models.CleanUpMigrateInfo(repo); err != nil {
+		if _, err := repository.CleanUpMigrateInfo(repo); err != nil {
 			ctx.ServerError("CleanUpMigrateInfo", err)
 			return
 		} else if err = models.DeleteMirrorByRepoID(ctx.Repo.Repository.ID); err != nil {
