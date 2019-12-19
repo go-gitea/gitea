@@ -162,6 +162,27 @@ type User struct {
 	Theme         string `xorm:"NOT NULL DEFAULT ''"`
 }
 
+// SimpleUser is a small form of User
+type SimpleUser struct {
+	ID       int64
+	Name     string
+	FullName string
+}
+
+// Full return normal User
+func (u *SimpleUser) Full() (*User, error) {
+	return getUserByID(x, u.ID)
+}
+
+// Simple return SimpleUser
+func (u *User) Simple() *SimpleUser {
+	var s SimpleUser
+	s.ID = u.ID
+	s.Name = u.Name
+	s.FullName = u.FullName
+	return &s
+}
+
 // ColorFormat writes a colored string to identify this struct
 func (u *User) ColorFormat(s fmt.State) {
 	log.ColorFprintf(s, "%d:%s",
@@ -426,6 +447,11 @@ func (u *User) AvatarLink() string {
 		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
 	}
 	return link
+}
+
+// AvatarLink returns user avatar absolute link.
+func (su *SimpleUser) RelAvatarLink() string {
+	return strings.TrimRight(setting.AppSubURL, "/") + "/user/avatar/" + su.Name + "/" + strconv.Itoa(base.DefaultAvatarSize)
 }
 
 // GetFollowers returns range of user's followers.
@@ -708,6 +734,16 @@ func (u *User) GetDisplayName() string {
 		return trimmed
 	}
 	return u.Name
+}
+
+// GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
+// returns username otherwise.
+func (su *SimpleUser) GetDisplayName() string {
+	trimmed := strings.TrimSpace(su.FullName)
+	if len(trimmed) > 0 && setting.UI.DefaultShowFullName {
+		return trimmed
+	}
+	return su.Name
 }
 
 func gitSafeName(name string) string {

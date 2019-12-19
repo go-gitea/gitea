@@ -620,7 +620,7 @@ func (repo *Repository) deleteWiki(e Engine) error {
 	return err
 }
 
-func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
+func (repo *Repository) getAssignees(e Engine) (_ []*SimpleUser, err error) {
 	if err = repo.getOwner(e); err != nil {
 		return nil, err
 	}
@@ -634,19 +634,19 @@ func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
 
 	// Leave a seat for owner itself to append later, but if owner is an organization
 	// and just waste 1 unit is cheaper than re-allocate memory once.
-	users := make([]*User, 0, len(accesses)+1)
+	users := make([]*SimpleUser, 0, len(accesses)+1)
 	if len(accesses) > 0 {
 		userIDs := make([]int64, len(accesses))
 		for i := 0; i < len(accesses); i++ {
 			userIDs[i] = accesses[i].UserID
 		}
 
-		if err = e.In("id", userIDs).Find(&users); err != nil {
+		if err = e.In("id", userIDs).Table("user").Find(&users); err != nil {
 			return nil, err
 		}
 	}
 	if !repo.Owner.IsOrganization() {
-		users = append(users, repo.Owner)
+		users = append(users, repo.Owner.Simple())
 	}
 
 	return users, nil
@@ -654,7 +654,7 @@ func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
 
 // GetAssignees returns all users that have write access and can be assigned to issues
 // of the repository,
-func (repo *Repository) GetAssignees() (_ []*User, err error) {
+func (repo *Repository) GetAssignees() (_ []*SimpleUser, err error) {
 	return repo.getAssignees(x)
 }
 
