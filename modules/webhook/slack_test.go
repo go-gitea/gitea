@@ -38,7 +38,7 @@ func TestSlackIssuesPayload(t *testing.T) {
 
 	pl, err := getSlackIssuesPayload(p, sl)
 	require.Nil(t, err)
-	assert.NotNil(t, pl)
+	require.NotNil(t, pl)
 
 	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue closed: <http://localhost:3000/api/v1/repos/test/repo/issues/2|#1 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
 }

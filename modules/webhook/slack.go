@@ -144,12 +144,7 @@ func getSlackForkPayload(p *api.ForkPayload, slack *SlackMeta) (*SlackPayload, e
 }
 
 func getSlackIssuesPayload(p *api.IssuePayload, slack *SlackMeta) (*SlackPayload, error) {
-	text, issueTitle, _ := getIssuesPayloadInfo(p, SlackLinkFormatter)
-
-	var attachmentText string
-	if p.Action == api.HookIssueOpened || p.Action == api.HookIssueEdited {
-		attachmentText = SlackTextFormatter(p.Issue.Body)
-	}
+	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, SlackLinkFormatter)
 
 	pl := &SlackPayload{
 		Channel:  slack.Channel,
@@ -158,6 +153,7 @@ func getSlackIssuesPayload(p *api.IssuePayload, slack *SlackMeta) (*SlackPayload
 		IconURL:  slack.IconURL,
 	}
 	if attachmentText != "" {
+		attachmentText = SlackTextFormatter(attachmentText)
 		issueTitle = SlackTextFormatter(issueTitle)
 		pl.Attachments = []SlackAttachment{{
 			Color:     slack.Color,
@@ -272,12 +268,7 @@ func getSlackPushPayload(p *api.PushPayload, slack *SlackMeta) (*SlackPayload, e
 }
 
 func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*SlackPayload, error) {
-	text, issueTitle := getPullRequestPayloadInfo(p, SlackLinkFormatter)
-
-	var attachmentText string
-	if p.Action == api.HookIssueOpened || p.Action == api.HookIssueEdited {
-		attachmentText = SlackTextFormatter(p.PullRequest.Body)
-	}
+	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, SlackLinkFormatter)
 
 	pl := &SlackPayload{
 		Channel:  slack.Channel,
@@ -286,6 +277,7 @@ func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*S
 		IconURL:  slack.IconURL,
 	}
 	if attachmentText != "" {
+		attachmentText = SlackTextFormatter(p.PullRequest.Body)
 		issueTitle = SlackTextFormatter(issueTitle)
 		pl.Attachments = []SlackAttachment{{
 			Color:     slack.Color,

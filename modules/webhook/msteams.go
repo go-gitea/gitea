@@ -266,12 +266,7 @@ func getMSTeamsPushPayload(p *api.PushPayload) (*MSTeamsPayload, error) {
 }
 
 func getMSTeamsIssuesPayload(p *api.IssuePayload) (*MSTeamsPayload, error) {
-	text, _, color := getIssuesPayloadInfo(p, noneLinkFormatter)
-
-	var attachmentText string
-	if p.Action == api.HookIssueOpened || p.Action == api.HookIssueEdited {
-		attachmentText = p.Issue.Body
-	}
+	text, _, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter)
 
 	return &MSTeamsPayload{
 		Type:       "MessageCard",
@@ -388,69 +383,20 @@ func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload,
 }
 
 func getMSTeamsPullRequestPayload(p *api.PullRequestPayload) (*MSTeamsPayload, error) {
-	var text, title string
-	var color int
-	switch p.Action {
-	case api.HookIssueOpened:
-		title = fmt.Sprintf("[%s] Pull request opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-		color = greenColor
-	case api.HookIssueClosed:
-		if p.PullRequest.HasMerged {
-			title = fmt.Sprintf("[%s] Pull request merged: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-			color = purpleColor
-		} else {
-			title = fmt.Sprintf("[%s] Pull request closed: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-			color = redColor
-		}
-	case api.HookIssueReOpened:
-		title = fmt.Sprintf("[%s] Pull request re-opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		color = yellowColor
-	case api.HookIssueEdited:
-		title = fmt.Sprintf("[%s] Pull request edited: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-		color = yellowColor
-	case api.HookIssueAssigned:
-		list := make([]string, len(p.PullRequest.Assignees))
-		for i, user := range p.PullRequest.Assignees {
-			list[i] = user.UserName
-		}
-		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d by %s", p.Repository.FullName,
-			strings.Join(list, ", "),
-			p.Index, p.PullRequest.Title)
-		color = greenColor
-	case api.HookIssueUnassigned:
-		title = fmt.Sprintf("[%s] Pull request unassigned: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		color = yellowColor
-	case api.HookIssueLabelUpdated:
-		title = fmt.Sprintf("[%s] Pull request labels updated: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		color = yellowColor
-	case api.HookIssueLabelCleared:
-		title = fmt.Sprintf("[%s] Pull request labels cleared: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		color = yellowColor
-	case api.HookIssueSynchronized:
-		title = fmt.Sprintf("[%s] Pull request synchronized: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		color = yellowColor
-	case api.HookIssueMilestoned:
-		title = fmt.Sprintf("[%s] Pull request milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		color = yellowColor
-	case api.HookIssueDemilestoned:
-		title = fmt.Sprintf("[%s] Pull request clear milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		color = yellowColor
-	}
+	text, _, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter)
 
 	return &MSTeamsPayload{
 		Type:       "MessageCard",
 		Context:    "https://schema.org/extensions",
 		ThemeColor: fmt.Sprintf("%x", color),
-		Title:      title,
-		Summary:    title,
+		Title:      text,
+		Summary:    text,
 		Sections: []MSTeamsSection{
 			{
 				ActivityTitle:    p.Sender.FullName,
 				ActivitySubtitle: p.Sender.UserName,
 				ActivityImage:    p.Sender.AvatarURL,
-				Text:             text,
+				Text:             attachmentText,
 				Facts: []MSTeamsFact{
 					{
 						Name:  "Repository:",

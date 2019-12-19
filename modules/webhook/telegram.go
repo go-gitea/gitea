@@ -126,12 +126,7 @@ func getTelegramPushPayload(p *api.PushPayload) (*TelegramPayload, error) {
 }
 
 func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
-	text, _, _ := getIssuesPayloadInfo(p, htmlLinkFormatter)
-
-	var attachmentText string
-	if p.Action == api.HookIssueOpened || p.Action == api.HookIssueEdited {
-		attachmentText = p.Issue.Body
-	}
+	text, _, attachmentText, _ := getIssuesPayloadInfo(p, htmlLinkFormatter)
 
 	return &TelegramPayload{
 		Message: text + "\n\n" + attachmentText,
@@ -160,12 +155,7 @@ func getTelegramIssueCommentPayload(p *api.IssueCommentPayload) (*TelegramPayloa
 }
 
 func getTelegramPullRequestPayload(p *api.PullRequestPayload) (*TelegramPayload, error) {
-	text, _ := getPullRequestPayloadInfo(p, htmlLinkFormatter)
-
-	var attachmentText string
-	if p.Action == api.HookIssueOpened || p.Action == api.HookIssueEdited {
-		attachmentText = p.PullRequest.Body
-	}
+	text, _, attachmentText, _ := getPullRequestPayloadInfo(p, htmlLinkFormatter)
 
 	return &TelegramPayload{
 		Message: text + "\n" + attachmentText,

@@ -132,41 +132,14 @@ func getDingtalkPushPayload(p *api.PushPayload) (*DingtalkPayload, error) {
 }
 
 func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
-	var text, title string
-	switch p.Action {
-	case api.HookIssueOpened:
-		title = fmt.Sprintf("[%s] Issue opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueClosed:
-		title = fmt.Sprintf("[%s] Issue closed: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	case api.HookIssueReOpened:
-		title = fmt.Sprintf("[%s] Issue re-opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	case api.HookIssueEdited:
-		title = fmt.Sprintf("[%s] Issue edited: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueAssigned:
-		title = fmt.Sprintf("[%s] Issue assigned to %s: #%d %s", p.Repository.FullName,
-			p.Issue.Assignee.UserName, p.Index, p.Issue.Title)
-	case api.HookIssueUnassigned:
-		title = fmt.Sprintf("[%s] Issue unassigned: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	case api.HookIssueLabelUpdated:
-		title = fmt.Sprintf("[%s] Issue labels updated: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	case api.HookIssueLabelCleared:
-		title = fmt.Sprintf("[%s] Issue labels cleared: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	case api.HookIssueSynchronized:
-		title = fmt.Sprintf("[%s] Issue synchronized: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	case api.HookIssueMilestoned:
-		title = fmt.Sprintf("[%s] Issue milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	case api.HookIssueDemilestoned:
-		title = fmt.Sprintf("[%s] Issue clear milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	}
+	text, _, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text: title + "\r\n\r\n" + text,
+			Text: text + "\r\n\r\n" + attachmentText,
 			//Markdown:    "# " + title + "\n" + text,
-			Title:       title,
+			Title:       text,
 			HideAvatar:  "0",
 			SingleTitle: "view issue",
 			SingleURL:   p.Issue.URL,
@@ -218,50 +191,14 @@ func getDingtalkIssueCommentPayload(p *api.IssueCommentPayload) (*DingtalkPayloa
 }
 
 func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload, error) {
-	var text, title string
-	switch p.Action {
-	case api.HookIssueOpened:
-		title = fmt.Sprintf("[%s] Pull request opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueClosed:
-		if p.PullRequest.HasMerged {
-			title = fmt.Sprintf("[%s] Pull request merged: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		} else {
-			title = fmt.Sprintf("[%s] Pull request closed: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		}
-	case api.HookIssueReOpened:
-		title = fmt.Sprintf("[%s] Pull request re-opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-	case api.HookIssueEdited:
-		title = fmt.Sprintf("[%s] Pull request edited: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueAssigned:
-		list := make([]string, len(p.PullRequest.Assignees))
-		for i, user := range p.PullRequest.Assignees {
-			list[i] = user.UserName
-		}
-		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d %s", p.Repository.FullName,
-			strings.Join(list, ", "),
-			p.Index, p.PullRequest.Title)
-	case api.HookIssueUnassigned:
-		title = fmt.Sprintf("[%s] Pull request unassigned: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-	case api.HookIssueLabelUpdated:
-		title = fmt.Sprintf("[%s] Pull request labels updated: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-	case api.HookIssueLabelCleared:
-		title = fmt.Sprintf("[%s] Pull request labels cleared: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-	case api.HookIssueSynchronized:
-		title = fmt.Sprintf("[%s] Pull request synchronized: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-	case api.HookIssueMilestoned:
-		title = fmt.Sprintf("[%s] Pull request milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-	case api.HookIssueDemilestoned:
-		title = fmt.Sprintf("[%s] Pull request clear milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-	}
+	text, _, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text: title + "\r\n\r\n" + text,
+			Text: text + "\r\n\r\n" + attachmentText,
 			//Markdown:    "# " + title + "\n" + text,
-			Title:       title,
+			Title:       text,
 			HideAvatar:  "0",
 			SingleTitle: "view pull request",
 			SingleURL:   p.PullRequest.HTMLURL,

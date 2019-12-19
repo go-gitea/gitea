@@ -227,12 +227,7 @@ func getDiscordPushPayload(p *api.PushPayload, meta *DiscordMeta) (*DiscordPaylo
 }
 
 func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPayload, error) {
-	text, _, color := getIssuesPayloadInfo(p, noneLinkFormatter)
-
-	var attachmentText string
-	if p.Action == api.HookIssueOpened || p.Action == api.HookIssueEdited {
-		attachmentText = p.Issue.Body
-	}
+	text, _, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter)
 
 	return &DiscordPayload{
 		Username:  meta.Username,
@@ -309,64 +304,15 @@ func getDiscordIssueCommentPayload(p *api.IssueCommentPayload, discord *DiscordM
 }
 
 func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) (*DiscordPayload, error) {
-	var text, title string
-	var color int
-	switch p.Action {
-	case api.HookIssueOpened:
-		title = fmt.Sprintf("[%s] Pull request opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-		color = greenColor
-	case api.HookIssueClosed:
-		if p.PullRequest.HasMerged {
-			title = fmt.Sprintf("[%s] Pull request merged: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-			color = purpleColor
-		} else {
-			title = fmt.Sprintf("[%s] Pull request closed: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-			color = redColor
-		}
-	case api.HookIssueReOpened:
-		title = fmt.Sprintf("[%s] Pull request re-opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		color = yellowColor
-	case api.HookIssueEdited:
-		title = fmt.Sprintf("[%s] Pull request edited: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-		color = yellowColor
-	case api.HookIssueAssigned:
-		list := make([]string, len(p.PullRequest.Assignees))
-		for i, user := range p.PullRequest.Assignees {
-			list[i] = user.UserName
-		}
-		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d by %s", p.Repository.FullName,
-			strings.Join(list, ", "),
-			p.Index, p.PullRequest.Title)
-		color = greenColor
-	case api.HookIssueUnassigned:
-		title = fmt.Sprintf("[%s] Pull request unassigned: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		color = yellowColor
-	case api.HookIssueLabelUpdated:
-		title = fmt.Sprintf("[%s] Pull request labels updated: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		color = yellowColor
-	case api.HookIssueLabelCleared:
-		title = fmt.Sprintf("[%s] Pull request labels cleared: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		color = yellowColor
-	case api.HookIssueSynchronized:
-		title = fmt.Sprintf("[%s] Pull request synchronized: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		color = yellowColor
-	case api.HookIssueMilestoned:
-		title = fmt.Sprintf("[%s] Pull request milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		color = yellowColor
-	case api.HookIssueDemilestoned:
-		title = fmt.Sprintf("[%s] Pull request clear milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		color = yellowColor
-	}
+	text, _, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter)
 
 	return &DiscordPayload{
 		Username:  meta.Username,
 		AvatarURL: meta.IconURL,
 		Embeds: []DiscordEmbed{
 			{
-				Title:       title,
-				Description: text,
+				Title:       text,
+				Description: attachmentText,
 				URL:         p.PullRequest.HTMLURL,
 				Color:       color,
 				Author: DiscordEmbedAuthor{

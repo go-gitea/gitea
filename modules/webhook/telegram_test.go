@@ -34,7 +34,7 @@ func TestGetTelegramIssuesPayload(t *testing.T) {
 
 	pl, err := getTelegramIssuesPayload(p)
 	require.Nil(t, err)
-	assert.NotNil(t, pl)
+	require.NotNil(t, pl)
 
 	assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Issue closed: <a href=\"http://localhost:3000/api/v1/repos/test/repo/issues/2\">#1 crash</a> by <a href=\"https://try.gitea.io/user1\">user1</a>\n\n", pl.Message)
 
