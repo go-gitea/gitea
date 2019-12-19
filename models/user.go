@@ -449,9 +449,9 @@ func (u *User) AvatarLink() string {
 	return link
 }
 
-// AvatarLink returns user avatar absolute link.
-func (su *SimpleUser) RelAvatarLink() string {
-	return strings.TrimRight(setting.AppSubURL, "/") + "/user/avatar/" + su.Name + "/" + strconv.Itoa(base.DefaultAvatarSize)
+// RelAvatarLink returns a relative link to the user's avatar
+func (u *SimpleUser) RelAvatarLink() string {
+	return strings.TrimRight(setting.AppSubURL, "/") + "/user/avatar/" + u.Name + "/" + strconv.Itoa(base.DefaultAvatarSize)
 }
 
 // GetFollowers returns range of user's followers.
@@ -736,14 +736,13 @@ func (u *User) GetDisplayName() string {
 	return u.Name
 }
 
-// GetDisplayName returns full name if it's not empty and DEFAULT_SHOW_FULL_NAME is set,
-// returns username otherwise.
-func (su *SimpleUser) GetDisplayName() string {
-	trimmed := strings.TrimSpace(su.FullName)
+// GetDisplayName is the same as for normal user type
+func (u *SimpleUser) GetDisplayName() string {
+	trimmed := strings.TrimSpace(u.FullName)
 	if len(trimmed) > 0 && setting.UI.DefaultShowFullName {
 		return trimmed
 	}
-	return su.Name
+	return u.Name
 }
 
 func gitSafeName(name string) string {
