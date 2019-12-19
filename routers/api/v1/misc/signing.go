@@ -2,7 +2,6 @@ package misc
 
 import (
 	"fmt"
-	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -57,6 +56,6 @@ func SigningKey(ctx *context.Context) {
 	_, err = ctx.Write([]byte(content))
 	if err != nil {
 		log.Error("Error writing key content %v", err)
-		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("%v", err))
+		ctx.Error(500, fmt.Sprintf("%v", err))
 	}
 }

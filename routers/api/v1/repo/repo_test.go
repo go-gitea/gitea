@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"net/http"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -55,7 +54,7 @@ func TestRepoEdit(t *testing.T) {
 
 	Edit(&context.APIContext{Context: ctx, Org: nil}, opts)
 
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, 200, ctx.Resp.Status())
 	models.AssertExistsAndLoadBean(t, &models.Repository{
 		ID: 1,
 	}, models.Cond("name = ? AND is_archived = 1", *opts.Name))
@@ -74,7 +73,7 @@ func TestRepoEditNameChange(t *testing.T) {
 	}
 
 	Edit(&context.APIContext{Context: ctx, Org: nil}, opts)
-	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
+	assert.EqualValues(t, 200, ctx.Resp.Status())
 
 	models.AssertExistsAndLoadBean(t, &models.Repository{
 		ID: 1,

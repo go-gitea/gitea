@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"net/http"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -24,7 +23,7 @@ func TestTestHook(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	TestHook(&context.APIContext{Context: ctx, Org: nil})
-	assert.EqualValues(t, http.StatusNoContent, ctx.Resp.Status())
+	assert.EqualValues(t, 204, ctx.Resp.Status())
 
 	models.AssertExistsAndLoadBean(t, &models.HookTask{
 		RepoID: 1,

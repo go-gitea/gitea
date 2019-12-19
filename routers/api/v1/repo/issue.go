@@ -7,7 +7,6 @@ package repo
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -379,7 +378,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	if form.Closed {
 		if err := issue_service.ChangeStatus(issue, ctx.User, true); err != nil {
 			if models.IsErrDependenciesLeft(err) {
-				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
+				ctx.Error(412, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
 				return
 			}
 			ctx.Error(500, "ChangeStatus", err)
@@ -513,7 +512,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	if form.State != nil {
 		if err = issue_service.ChangeStatus(issue, ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
 			if models.IsErrDependenciesLeft(err) {
-				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
+				ctx.Error(412, "DependenciesLeft", "cannot close this issue because it still has open dependencies")
 				return
 			}
 			ctx.Error(500, "ChangeStatus", err)

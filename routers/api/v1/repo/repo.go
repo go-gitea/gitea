@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 
@@ -162,7 +161,7 @@ func Search(ctx *context.APIContext) {
 		opts.Collaborate = util.OptionalBoolTrue
 	case "":
 	default:
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid search mode: \"%s\"", mode))
+		ctx.Error(422, "", fmt.Errorf("Invalid search mode: \"%s\"", mode))
 		return
 	}
 
@@ -176,11 +175,11 @@ func Search(ctx *context.APIContext) {
 			if orderBy, ok := searchModeMap[sortMode]; ok {
 				opts.OrderBy = orderBy
 			} else {
-				ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid sort mode: \"%s\"", sortMode))
+				ctx.Error(422, "", fmt.Errorf("Invalid sort mode: \"%s\"", sortMode))
 				return
 			}
 		} else {
-			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid sort order: \"%s\"", sortOrder))
+			ctx.Error(422, "", fmt.Errorf("Invalid sort order: \"%s\"", sortOrder))
 			return
 		}
 	}
@@ -626,7 +625,7 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
+	ctx.JSON(200, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
 }
 
 // updateBasicProperties updates the basic properties of a repo: Name, Description, Website and Visibility
@@ -642,13 +641,13 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
 			switch {
 			case models.IsErrRepoAlreadyExist(err):
-				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
+				ctx.Error(422, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
 			case models.IsErrNameReserved(err):
-				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is reserved [name: %s]", newRepoName), err)
+				ctx.Error(422, fmt.Sprintf("repo name is reserved [name: %s]", newRepoName), err)
 			case models.IsErrNamePatternNotAllowed(err):
-				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name's pattern is not allowed [name: %s, pattern: %s]", newRepoName, err.(models.ErrNamePatternNotAllowed).Pattern), err)
+				ctx.Error(422, fmt.Sprintf("repo name's pattern is not allowed [name: %s, pattern: %s]", newRepoName, err.(models.ErrNamePatternNotAllowed).Pattern), err)
 			default:
-				ctx.Error(http.StatusUnprocessableEntity, "ChangeRepositoryName", err)
+				ctx.Error(422, "ChangeRepositoryName", err)
 			}
 			return err
 		}
@@ -678,7 +677,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
 		if visibilityChanged && setting.Repository.ForcePrivate && !*opts.Private && !ctx.User.IsAdmin {
 			err := fmt.Errorf("cannot change private repository to public")
-			ctx.Error(http.StatusUnprocessableEntity, "Force Private enabled", err)
+			ctx.Error(422, "Force Private enabled", err)
 			return err
 		}
 
@@ -693,7 +692,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch) {
 		if err := ctx.Repo.GitRepo.SetDefaultBranch(*opts.DefaultBranch); err != nil {
 			if !git.IsErrUnsupportedVersion(err) {
-				ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
+				ctx.Error(500, "SetDefaultBranch", err)
 				return err
 			}
 		}
@@ -701,7 +700,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	}
 
 	if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateRepository", err)
+		ctx.Error(500, "UpdateRepository", err)
 		return err
 	}
 
@@ -737,12 +736,12 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
 				err := fmt.Errorf("External tracker URL not valid")
-				ctx.Error(http.StatusUnprocessableEntity, "Invalid external tracker URL", err)
+				ctx.Error(422, "Invalid external tracker URL", err)
 				return err
 			}
 			if len(opts.ExternalTracker.ExternalTrackerFormat) != 0 && !validation.IsValidExternalTrackerURLFormat(opts.ExternalTracker.ExternalTrackerFormat) {
 				err := fmt.Errorf("External tracker URL format not valid")
-				ctx.Error(http.StatusUnprocessableEntity, "Invalid external tracker URL format", err)
+				ctx.Error(422, "Invalid external tracker URL format", err)
 				return err
 			}
 
@@ -797,7 +796,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
 				err := fmt.Errorf("External wiki URL not valid")
-				ctx.Error(http.StatusUnprocessableEntity, "", "Invalid external wiki URL")
+				ctx.Error(422, "", "Invalid external wiki URL")
 				return err
 			}
 
@@ -866,7 +865,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	}
 
 	if err := models.UpdateRepositoryUnits(repo, units); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
+		ctx.Error(500, "UpdateRepositoryUnits", err)
 		return err
 	}
 
@@ -881,20 +880,20 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 	if opts.Archived != nil {
 		if repo.IsMirror {
 			err := fmt.Errorf("repo is a mirror, cannot archive/un-archive")
-			ctx.Error(http.StatusUnprocessableEntity, err.Error(), err)
+			ctx.Error(422, err.Error(), err)
 			return err
 		}
 		if *opts.Archived {
 			if err := repo.SetArchiveRepoState(*opts.Archived); err != nil {
 				log.Error("Tried to archive a repo: %s", err)
-				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
+				ctx.Error(500, "ArchiveRepoState", err)
 				return err
 			}
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		} else {
 			if err := repo.SetArchiveRepoState(*opts.Archived); err != nil {
 				log.Error("Tried to un-archive a repo: %s", err)
-				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
+				ctx.Error(500, "ArchiveRepoState", err)
 				return err
 			}
 			log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)

@@ -7,7 +7,6 @@ package repo
 
 import (
 	"encoding/base64"
-	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -53,12 +52,12 @@ func GetRawFile(ctx *context.APIContext) {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
+			ctx.Error(500, "GetBlobByPath", err)
 		}
 		return
 	}
 	if err = repo.ServeBlob(ctx.Context, blob); err != nil {
-		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
+		ctx.Error(500, "ServeBlob", err)
 	}
 }
 
@@ -91,7 +90,7 @@ func GetArchive(ctx *context.APIContext) {
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+		ctx.Error(500, "OpenRepository", err)
 		return
 	}
 	ctx.Repo.GitRepo = gitRepo
@@ -131,7 +130,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetEditorconfig", err)
+			ctx.Error(500, "GetEditorconfig", err)
 		}
 		return
 	}
@@ -142,7 +141,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 		ctx.NotFound(err)
 		return
 	}
-	ctx.JSON(http.StatusOK, def)
+	ctx.JSON(200, def)
 }
 
 // CanWriteFiles returns true if repository is editable and user has proper access level.
@@ -211,9 +210,9 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 	}
 
 	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateFile", err)
+		ctx.Error(500, "CreateFile", err)
 	} else {
-		ctx.JSON(http.StatusCreated, fileResponse)
+		ctx.JSON(201, fileResponse)
 	}
 }
 
@@ -275,9 +274,9 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 	}
 
 	if fileResponse, err := createOrUpdateFile(ctx, opts); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateFile", err)
+		ctx.Error(500, "UpdateFile", err)
 	} else {
-		ctx.JSON(http.StatusOK, fileResponse)
+		ctx.JSON(200, fileResponse)
 	}
 }
 
@@ -333,7 +332,7 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	//   "200":
 	//     "$ref": "#/responses/FileDeleteResponse"
 	if !CanWriteFiles(ctx.Repo) {
-		ctx.Error(http.StatusInternalServerError, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
+		ctx.Error(500, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
@@ -361,9 +360,9 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	}
 
 	if fileResponse, err := repofiles.DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteFile", err)
+		ctx.Error(500, "DeleteFile", err)
 	} else {
-		ctx.JSON(http.StatusOK, fileResponse)
+		ctx.JSON(200, fileResponse)
 	}
 }
 
@@ -400,7 +399,7 @@ func GetContents(ctx *context.APIContext) {
 	//     "$ref": "#/responses/ContentsResponse"
 
 	if !CanReadFiles(ctx.Repo) {
-		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", models.ErrUserDoesNotHaveAccessToRepo{
+		ctx.Error(500, "GetContentsOrList", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
@@ -411,9 +410,9 @@ func GetContents(ctx *context.APIContext) {
 	ref := ctx.QueryTrim("ref")
 
 	if fileList, err := repofiles.GetContentsOrList(ctx.Repo.Repository, treePath, ref); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", err)
+		ctx.Error(500, "GetContentsOrList", err)
 	} else {
-		ctx.JSON(http.StatusOK, fileList)
+		ctx.JSON(200, fileList)
 	}
 }
 
