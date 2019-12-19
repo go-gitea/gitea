@@ -153,6 +153,13 @@ func (res *MCResponse) Transmit(w io.Writer) (n int, err error) {
 
 // Receive will fill this MCResponse with the data from this reader.
 func (res *MCResponse) Receive(r io.Reader, hdrBytes []byte) (n int, err error) {
+	return res.ReceiveWithBuf(r, hdrBytes, nil)
+}
+
+// ReceiveWithBuf takes an optional pre-allocated []byte buf which
+// will be used if its capacity is large enough, otherwise a new
+// []byte slice is allocated.
+func (res *MCResponse) ReceiveWithBuf(r io.Reader, hdrBytes, buf []byte) (n int, err error) {
 	if len(hdrBytes) < HDR_LEN {
 		hdrBytes = []byte{
 			0, 0, 0, 0, 0, 0, 0, 0,
@@ -187,7 +194,13 @@ func (res *MCResponse) Receive(r io.Reader, hdrBytes []byte) (n int, err error) 
 		}
 	}()
 
-	buf := make([]byte, klen+elen+bodyLen)
+	bufNeed := klen + elen + bodyLen
+	if buf != nil && cap(buf) >= bufNeed {
+		buf = buf[0:bufNeed]
+	} else {
+		buf = make([]byte, bufNeed)
+	}
+
 	m, err := io.ReadFull(r, buf)
 	if err == nil {
 		res.Extras = buf[0:elen]
