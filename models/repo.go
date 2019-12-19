@@ -616,22 +616,25 @@ func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
 	return users, nil
 }
 
-func (repo *Repository) getIssueAuthors(e Engine) (authors []*User, err error) {
-	err = e.Where("issue.repo_id = ?", repo.ID).
-		Join("LEFT", "user", "user.id = issue.poster_id").OrderBy("user.id").
-		GroupBy("user.id").Select("user.id, user.name, user.full_name").Find(authors)
-
-	return
+func (repo *Repository) getIssueAuthors(e Engine, lim int, keyword string) (authors []*User, err error) {
+	var authorIDs []int64
+	if err = e.SQL("SELECT user.id FROM issue,user WHERE user.id = issue.poster_id AND issue.repo_id = ? AND user.name LIKE '%"+keyword+"%' GROUP BY user.id ORDER BY user.id", repo.ID).
+		Limit(lim, 0).Find(&authorIDs); err != nil {
+		return nil, err
+	}
+	return GetUsersByIDs(authorIDs)
 }
 
 // GetAssignees returns all users that have write access and can be assigned to issues
 // of the repository,
-func (repo *Repository) GetAssignees() (_ []*User, err error) {
+func (repo *Repository) GetAssignees() ([]*User, error) {
 	return repo.getAssignees(x)
 }
 
-func (repo *Repository) GetIssueAuthors() (_ []*User, err error) {
-	return repo.getIssueAuthors(x)
+// GetIssueAuthors return the first 15 users who have created an issue in this repo
+// the users can be specified by a keyword
+func (repo *Repository) GetIssueAuthors(keyword string) ([]*User, error) {
+	return repo.getIssueAuthors(x, 15, keyword)
 }
 
 // GetMilestoneByID returns the milestone belongs to repository by given ID.
