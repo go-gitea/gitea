@@ -126,47 +126,15 @@ func getTelegramPushPayload(p *api.PushPayload) (*TelegramPayload, error) {
 }
 
 func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
-	var text, title string
-	switch p.Action {
-	case api.HookIssueOpened:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue opened: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.Issue.URL, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueClosed:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue closed: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.Issue.URL, p.Index, p.Issue.Title)
-	case api.HookIssueReOpened:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue re-opened: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.Issue.URL, p.Index, p.Issue.Title)
-	case api.HookIssueEdited:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue edited: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.Issue.URL, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueAssigned:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue assigned to %s: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.Issue.Assignee.UserName, p.Issue.URL, p.Index, p.Issue.Title)
-	case api.HookIssueUnassigned:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue unassigned: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.Issue.URL, p.Index, p.Issue.Title)
-	case api.HookIssueLabelUpdated:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue labels updated: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.Issue.URL, p.Index, p.Issue.Title)
-	case api.HookIssueLabelCleared:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue labels cleared: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.Issue.URL, p.Index, p.Issue.Title)
-	case api.HookIssueSynchronized:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue synchronized: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.Issue.URL, p.Index, p.Issue.Title)
-	case api.HookIssueMilestoned:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue milestone: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.Issue.URL, p.Index, p.Issue.Title)
-	case api.HookIssueDemilestoned:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Issue clear milestone: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.Issue.URL, p.Index, p.Issue.Title)
+	text, _, _ := getIssuesPayloadInfo(p, htmlLinkFormatter)
+
+	var attachmentText string
+	if p.Action == api.HookIssueOpened || p.Action == api.HookIssueEdited {
+		attachmentText = p.Issue.Body
 	}
 
 	return &TelegramPayload{
-		Message: title + "\n\n" + text,
+		Message: text + "\n\n" + attachmentText,
 	}, nil
 }
 
@@ -192,56 +160,15 @@ func getTelegramIssueCommentPayload(p *api.IssueCommentPayload) (*TelegramPayloa
 }
 
 func getTelegramPullRequestPayload(p *api.PullRequestPayload) (*TelegramPayload, error) {
-	var text, title string
-	switch p.Action {
-	case api.HookIssueOpened:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request opened: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueClosed:
-		if p.PullRequest.HasMerged {
-			title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request merged: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-				p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-		} else {
-			title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request closed: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-				p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-		}
-	case api.HookIssueReOpened:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request re-opened: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-	case api.HookIssueEdited:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request edited: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueAssigned:
-		list, err := models.MakeAssigneeList(&models.Issue{ID: p.PullRequest.ID})
-		if err != nil {
-			return &TelegramPayload{}, err
-		}
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request assigned to %s: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			list, p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-	case api.HookIssueUnassigned:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request unassigned: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-	case api.HookIssueLabelUpdated:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request labels updated: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-	case api.HookIssueLabelCleared:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request labels cleared: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-	case api.HookIssueSynchronized:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request synchronized: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-	case api.HookIssueMilestoned:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request milestone: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
-	case api.HookIssueDemilestoned:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Pull request clear milestone: <a href="%s">#%d %s</a>`, p.Repository.HTMLURL, p.Repository.FullName,
-			p.PullRequest.HTMLURL, p.Index, p.PullRequest.Title)
+	text, _ := getPullRequestPayloadInfo(p, htmlLinkFormatter)
+
+	var attachmentText string
+	if p.Action == api.HookIssueOpened || p.Action == api.HookIssueEdited {
+		attachmentText = p.PullRequest.Body
 	}
 
 	return &TelegramPayload{
-		Message: title + "\n" + text,
+		Message: text + "\n" + attachmentText,
 	}, nil
 }
 

@@ -227,46 +227,11 @@ func getDiscordPushPayload(p *api.PushPayload, meta *DiscordMeta) (*DiscordPaylo
 }
 
 func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPayload, error) {
-	var text, title string
-	var color int
-	url := fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index)
-	switch p.Action {
-	case api.HookIssueOpened:
-		title = fmt.Sprintf("[%s] Issue opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-		color = orangeColor
-	case api.HookIssueClosed:
-		title = fmt.Sprintf("[%s] Issue closed: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		color = redColor
-	case api.HookIssueReOpened:
-		title = fmt.Sprintf("[%s] Issue re-opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		color = yellowColor
-	case api.HookIssueEdited:
-		title = fmt.Sprintf("[%s] Issue edited: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-		color = yellowColor
-	case api.HookIssueAssigned:
-		title = fmt.Sprintf("[%s] Issue assigned to %s: #%d %s", p.Repository.FullName,
-			p.Issue.Assignee.UserName, p.Index, p.Issue.Title)
-		color = greenColor
-	case api.HookIssueUnassigned:
-		title = fmt.Sprintf("[%s] Issue unassigned: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		color = yellowColor
-	case api.HookIssueLabelUpdated:
-		title = fmt.Sprintf("[%s] Issue labels updated: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		color = yellowColor
-	case api.HookIssueLabelCleared:
-		title = fmt.Sprintf("[%s] Issue labels cleared: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		color = yellowColor
-	case api.HookIssueSynchronized:
-		title = fmt.Sprintf("[%s] Issue synchronized: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		color = yellowColor
-	case api.HookIssueMilestoned:
-		title = fmt.Sprintf("[%s] Issue milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		color = yellowColor
-	case api.HookIssueDemilestoned:
-		title = fmt.Sprintf("[%s] Issue clear milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		color = yellowColor
+	text, _, color := getIssuesPayloadInfo(p, noneLinkFormatter)
+
+	var attachmentText string
+	if p.Action == api.HookIssueOpened || p.Action == api.HookIssueEdited {
+		attachmentText = p.Issue.Body
 	}
 
 	return &DiscordPayload{
@@ -274,9 +239,9 @@ func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPa
 		AvatarURL: meta.IconURL,
 		Embeds: []DiscordEmbed{
 			{
-				Title:       title,
-				Description: text,
-				URL:         url,
+				Title:       text,
+				Description: attachmentText,
+				URL:         p.Issue.URL,
 				Color:       color,
 				Author: DiscordEmbedAuthor{
 					Name:    p.Sender.UserName,
