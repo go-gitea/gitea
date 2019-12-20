@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -77,17 +79,17 @@ func GetTag(ctx *context.APIContext) {
 
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {
-		ctx.Error(400, "", "SHA not provided")
+		ctx.Error(http.StatusBadRequest, "", "SHA not provided")
 		return
 	}
 
 	if tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(sha); err != nil {
-		ctx.Error(400, "GetTag", err)
+		ctx.Error(http.StatusBadRequest, "GetTag", err)
 	} else {
 		commit, err := tag.Commit()
 		if err != nil {
-			ctx.Error(400, "GetTag", err)
+			ctx.Error(http.StatusBadRequest, "GetTag", err)
 		}
-		ctx.JSON(200, convert.ToAnnotatedTag(ctx.Repo.Repository, tag, commit))
+		ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx.Repo.Repository, tag, commit))
 	}
 }

@@ -5,6 +5,7 @@
 package user
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -145,16 +146,16 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	user, err := models.GetUserByName(ctx.Params(":username"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Status(404)
+			ctx.Status(http.StatusNotFound)
 		} else {
-			ctx.Error(500, "GetUserByName", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 		}
 		return
 	}
 
 	heatmap, err := models.GetUserHeatmapDataByUser(user)
 	if err != nil {
-		ctx.Error(500, "GetUserHeatmapDataByUser", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserHeatmapDataByUser", err)
 		return
 	}
 	ctx.JSON(200, heatmap)

@@ -6,6 +6,7 @@ package utils
 
 import (
 	"encoding/json"
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -73,7 +74,7 @@ func AddOrgHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	org := ctx.Org.Organization
 	hook, ok := addHook(ctx, form, org.ID, 0)
 	if ok {
-		ctx.JSON(201, convert.ToHook(org.HomeLink(), hook))
+		ctx.JSON(http.StatusCreated, convert.ToHook(org.HomeLink(), hook))
 	}
 }
 
@@ -82,7 +83,7 @@ func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	repo := ctx.Repo
 	hook, ok := addHook(ctx, form, 0, repo.Repository.ID)
 	if ok {
-		ctx.JSON(201, convert.ToHook(repo.RepoLink, hook))
+		ctx.JSON(http.StatusCreated, convert.ToHook(repo.RepoLink, hook))
 	}
 }
 

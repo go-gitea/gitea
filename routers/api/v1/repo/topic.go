@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -49,7 +50,7 @@ func ListTopics(ctx *context.APIContext) {
 	for i, topic := range topics {
 		topicNames[i] = topic.Name
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"topics": topicNames,
 	})
 }
@@ -86,12 +87,15 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 	validTopics, invalidTopics := models.SanitizeAndValidateTopics(topicNames)
 
 	if len(validTopics) > 25 {
-		ctx.Error(422, "", "Exceeding maximum number of topics per repo")
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+			"invalidTopics": nil,
+			"message":       "Exceeding maximum number of topics per repo",
+		})
 		return
 	}
 
 	if len(invalidTopics) > 0 {
-		ctx.JSON(422, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
 			"invalidTopics": invalidTopics,
 			"message":       "Topic names are invalid",
 		})
@@ -105,7 +109,7 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 		return
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // AddTopic adds a topic name to a repo
@@ -140,7 +144,7 @@ func AddTopic(ctx *context.APIContext) {
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
 	if !models.ValidateTopic(topicName) {
-		ctx.JSON(422, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
 			"invalidTopics": topicName,
 			"message":       "Topic name is invalid",
 		})
@@ -157,7 +161,7 @@ func AddTopic(ctx *context.APIContext) {
 		return
 	}
 	if len(topics) >= 25 {
-		ctx.JSON(422, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
 			"message": "Exceeding maximum allowed topics per repo.",
 		})
 		return
@@ -170,7 +174,7 @@ func AddTopic(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // DeleteTopic removes topic name from repo
@@ -205,7 +209,7 @@ func DeleteTopic(ctx *context.APIContext) {
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
 	if !models.ValidateTopic(topicName) {
-		ctx.JSON(422, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
 			"invalidTopics": topicName,
 			"message":       "Topic name is invalid",
 		})
@@ -223,7 +227,7 @@ func DeleteTopic(ctx *context.APIContext) {
 		ctx.NotFound()
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // TopicSearch search for creating topic
@@ -246,7 +250,7 @@ func TopicSearch(ctx *context.Context) {
 	//     "$ref": "#/responses/forbidden"
 
 	if ctx.User == nil {
-		ctx.Error(403, "UserIsNil", "Only owners could change the topics.")
+		ctx.Error(http.StatusForbidden, "UserIsNil", "Only owners could change the topics.")
 		return
 	}
 
@@ -266,7 +270,7 @@ func TopicSearch(ctx *context.Context) {
 	for i, topic := range topics {
 		topicResponses[i] = convert.ToTopicResponse(topic)
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"topics": topicResponses,
 	})
 }

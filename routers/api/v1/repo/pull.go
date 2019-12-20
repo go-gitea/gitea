@@ -6,6 +6,7 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -373,7 +374,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 
 	err = pr.LoadIssue()
 	if err != nil {
-		ctx.Error(500, "LoadIssue", err)
+		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return
 	}
 	issue := pr.Issue
@@ -456,7 +457,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	if form.State != nil {
 		if err = issue_service.ChangeStatus(issue, ctx.User, api.StateClosed == api.StateType(*form.State)); err != nil {
 			if models.IsErrDependenciesLeft(err) {
-				ctx.Error(412, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
+				ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
 				return
 			}
 			ctx.Error(500, "ChangeStatus", err)
@@ -578,7 +579,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 
 	err = pr.LoadIssue()
 	if err != nil {
-		ctx.Error(500, "LoadIssue", err)
+		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return
 	}
 	pr.Issue.Repo = ctx.Repo.Repository
@@ -637,15 +638,15 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 			return
 		} else if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
-			ctx.JSON(409, conflictError)
+			ctx.JSON(http.StatusConflict, conflictError)
 		} else if models.IsErrRebaseConflicts(err) {
 			conflictError := err.(models.ErrRebaseConflicts)
-			ctx.JSON(409, conflictError)
+			ctx.JSON(http.StatusConflict, conflictError)
 		} else if models.IsErrMergeUnrelatedHistories(err) {
 			conflictError := err.(models.ErrMergeUnrelatedHistories)
-			ctx.JSON(409, conflictError)
+			ctx.JSON(http.StatusConflict, conflictError)
 		} else if models.IsErrMergePushOutOfDate(err) {
-			ctx.Error(409, "Merge", "merge push out of date")
+			ctx.Error(http.StatusConflict, "Merge", "merge push out of date")
 			return
 		}
 		ctx.Error(500, "Merge", err)
