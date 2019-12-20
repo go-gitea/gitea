@@ -80,7 +80,7 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//     "$ref": "#/responses/invalidTopicsError"
 
 	topicNames := form.Topics
 	validTopics, invalidTopics := models.SanitizeAndValidateTopics(topicNames)
@@ -135,7 +135,7 @@ func AddTopic(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//     "$ref": "#/responses/invalidTopicsError"
 
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 

@@ -6365,7 +6365,7 @@
             "$ref": "#/responses/empty"
           },
           "422": {
-            "$ref": "#/responses/validationError"
+            "$ref": "#/responses/invalidTopicsError"
           }
         }
       }
@@ -6408,7 +6408,7 @@
             "$ref": "#/responses/empty"
           },
           "422": {
-            "$ref": "#/responses/validationError"
+            "$ref": "#/responses/invalidTopicsError"
           }
         }
       },
@@ -6449,7 +6449,7 @@
             "$ref": "#/responses/empty"
           },
           "422": {
-            "$ref": "#/responses/validationError"
+            "$ref": "#/responses/invalidTopicsError"
           }
         }
       }
@@ -11985,6 +11985,17 @@
           "type": "string"
         },
         "url": {
+          "type": "string"
+        }
+      }
+    },
+    "invalidTopicsError": {
+      "description": "APIInvalidTopicsError is error format response to invalid topics",
+      "headers": {
+        "invalidTopics": {
+          "type": "string"
+        },
+        "message": {
           "type": "string"
         }
       }
