@@ -5,6 +5,8 @@
 package user
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -51,9 +53,9 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	private := user.ID == ctx.User.ID
 	repos, err := getWatchedRepos(user, private)
 	if err != nil {
-		ctx.Error(500, "getWatchedRepos", err)
+		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}
-	ctx.JSON(200, &repos)
+	ctx.JSON(http.StatusOK, &repos)
 }
 
 // GetMyWatchedRepos returns the repos that the authenticated user is watching
@@ -69,9 +71,9 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 
 	repos, err := getWatchedRepos(ctx.User, true)
 	if err != nil {
-		ctx.Error(500, "getWatchedRepos", err)
+		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}
-	ctx.JSON(200, &repos)
+	ctx.JSON(http.StatusOK, &repos)
 }
 
 // IsWatching returns whether the authenticated user is watching the repo
@@ -96,7 +98,7 @@ func IsWatching(ctx *context.APIContext) {
 	//     "$ref": "#/responses/WatchInfo"
 
 	if models.IsWatching(ctx.User.ID, ctx.Repo.Repository.ID) {
-		ctx.JSON(200, api.WatchInfo{
+		ctx.JSON(http.StatusOK, api.WatchInfo{
 			Subscribed:    true,
 			Ignored:       false,
 			Reason:        nil,
@@ -131,10 +133,10 @@ func Watch(ctx *context.APIContext) {
 
 	err := models.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
-		ctx.Error(500, "WatchRepo", err)
+		ctx.Error(http.StatusInternalServerError, "WatchRepo", err)
 		return
 	}
-	ctx.JSON(200, api.WatchInfo{
+	ctx.JSON(http.StatusOK, api.WatchInfo{
 		Subscribed:    true,
 		Ignored:       false,
 		Reason:        nil,
@@ -167,10 +169,10 @@ func Unwatch(ctx *context.APIContext) {
 
 	err := models.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
-		ctx.Error(500, "UnwatchRepo", err)
+		ctx.Error(http.StatusInternalServerError, "UnwatchRepo", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // subscriptionURL returns the URL of the subscription API endpoint of a repo

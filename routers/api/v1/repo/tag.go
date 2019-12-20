@@ -36,7 +36,7 @@ func ListTags(ctx *context.APIContext) {
 
 	tags, err := ctx.Repo.GitRepo.GetTagInfos()
 	if err != nil {
-		ctx.Error(500, "GetTags", err)
+		ctx.Error(http.StatusInternalServerError, "GetTags", err)
 		return
 	}
 
@@ -45,7 +45,7 @@ func ListTags(ctx *context.APIContext) {
 		apiTags[i] = convert.ToTag(ctx.Repo.Repository, tags[i])
 	}
 
-	ctx.JSON(200, &apiTags)
+	ctx.JSON(http.StatusOK, &apiTags)
 }
 
 // GetTag get the tag of a repository.

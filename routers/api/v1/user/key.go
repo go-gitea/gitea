@@ -5,6 +5,8 @@
 package user
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -43,7 +45,7 @@ func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
 		if models.IsErrUserNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetUserByName", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 		}
 		return nil
 	}
@@ -81,7 +83,7 @@ func listPublicKeys(ctx *context.APIContext, user *models.User) {
 	}
 
 	if err != nil {
-		ctx.Error(500, "ListPublicKeys", err)
+		ctx.Error(http.StatusInternalServerError, "ListPublicKeys", err)
 		return
 	}
 
@@ -94,7 +96,7 @@ func listPublicKeys(ctx *context.APIContext, user *models.User) {
 		}
 	}
 
-	ctx.JSON(200, &apiKeys)
+	ctx.JSON(http.StatusOK, &apiKeys)
 }
 
 // ListMyPublicKeys list all of the authenticated user's public keys
@@ -169,7 +171,7 @@ func GetPublicKey(ctx *context.APIContext) {
 		if models.IsErrKeyNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetPublicKeyByID", err)
+			ctx.Error(http.StatusInternalServerError, "GetPublicKeyByID", err)
 		}
 		return
 	}
@@ -179,7 +181,7 @@ func GetPublicKey(ctx *context.APIContext) {
 	if ctx.User.IsAdmin || ctx.User.ID == key.OwnerID {
 		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.User)
 	}
-	ctx.JSON(200, apiKey)
+	ctx.JSON(http.StatusOK, apiKey)
 }
 
 // CreateUserPublicKey creates new public key to given user by ID.
@@ -200,7 +202,7 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 	if ctx.User.IsAdmin || ctx.User.ID == key.OwnerID {
 		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.User)
 	}
-	ctx.JSON(201, apiKey)
+	ctx.JSON(http.StatusCreated, apiKey)
 }
 
 // CreatePublicKey create one public key for me
@@ -252,12 +254,12 @@ func DeletePublicKey(ctx *context.APIContext) {
 		if models.IsErrKeyNotExist(err) {
 			ctx.NotFound()
 		} else if models.IsErrKeyAccessDenied(err) {
-			ctx.Error(403, "", "You do not have access to this key")
+			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {
-			ctx.Error(500, "DeletePublicKey", err)
+			ctx.Error(http.StatusInternalServerError, "DeletePublicKey", err)
 		}
 		return
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }

@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"net/http"
 	"strconv"
 
 	"code.gitea.io/gitea/models"
@@ -37,7 +38,7 @@ func ListLabels(ctx *context.APIContext) {
 
 	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"))
 	if err != nil {
-		ctx.Error(500, "GetLabelsByRepoID", err)
+		ctx.Error(http.StatusInternalServerError, "GetLabelsByRepoID", err)
 		return
 	}
 
@@ -45,7 +46,7 @@ func ListLabels(ctx *context.APIContext) {
 	for i := range labels {
 		apiLabels[i] = labels[i].APIFormat()
 	}
-	ctx.JSON(200, &apiLabels)
+	ctx.JSON(http.StatusOK, &apiLabels)
 }
 
 // GetLabel get label by repository and label id
@@ -90,12 +91,12 @@ func GetLabel(ctx *context.APIContext) {
 		if models.IsErrLabelNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetLabelByRepoID", err)
+			ctx.Error(http.StatusInternalServerError, "GetLabelByRepoID", err)
 		}
 		return
 	}
 
-	ctx.JSON(200, label.APIFormat())
+	ctx.JSON(http.StatusOK, label.APIFormat())
 }
 
 // CreateLabel create a label for a repository
@@ -133,10 +134,10 @@ func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
 		Description: form.Description,
 	}
 	if err := models.NewLabel(label); err != nil {
-		ctx.Error(500, "NewLabel", err)
+		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
 		return
 	}
-	ctx.JSON(201, label.APIFormat())
+	ctx.JSON(http.StatusCreated, label.APIFormat())
 }
 
 // EditLabel modify a label for a repository
@@ -178,7 +179,7 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 		if models.IsErrLabelNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetLabelByRepoID", err)
+			ctx.Error(http.StatusInternalServerError, "GetLabelByRepoID", err)
 		}
 		return
 	}
@@ -196,7 +197,7 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 		ctx.ServerError("UpdateLabel", err)
 		return
 	}
-	ctx.JSON(200, label.APIFormat())
+	ctx.JSON(http.StatusOK, label.APIFormat())
 }
 
 // DeleteLabel delete a label for a repository
@@ -226,9 +227,9 @@ func DeleteLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 
 	if err := models.DeleteLabel(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
-		ctx.Error(500, "DeleteLabel", err)
+		ctx.Error(http.StatusInternalServerError, "DeleteLabel", err)
 		return
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }

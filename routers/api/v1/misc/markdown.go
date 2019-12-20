@@ -5,6 +5,7 @@
 package misc
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/modules/context"
@@ -37,7 +38,7 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	//     "$ref": "#/responses/validationError"
 
 	if ctx.HasAPIError() {
-		ctx.Error(422, "", ctx.GetErrMsg())
+		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())
 		return
 	}
 
@@ -108,7 +109,7 @@ func MarkdownRaw(ctx *context.APIContext) {
 
 	body, err := ctx.Req.Body().Bytes()
 	if err != nil {
-		ctx.Error(422, "", err)
+		ctx.Error(http.StatusUnprocessableEntity, "", err)
 		return
 	}
 	_, err = ctx.Write(markdown.RenderRaw(body, "", false))

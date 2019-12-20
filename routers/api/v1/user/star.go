@@ -5,6 +5,8 @@
 package user
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
@@ -50,9 +52,9 @@ func GetStarredRepos(ctx *context.APIContext) {
 	private := user.ID == ctx.User.ID
 	repos, err := getStarredRepos(user, private)
 	if err != nil {
-		ctx.Error(500, "getStarredRepos", err)
+		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 	}
-	ctx.JSON(200, &repos)
+	ctx.JSON(http.StatusOK, &repos)
 }
 
 // GetMyStarredRepos returns the repos that the authenticated user has starred
@@ -68,9 +70,9 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 
 	repos, err := getStarredRepos(ctx.User, true)
 	if err != nil {
-		ctx.Error(500, "getStarredRepos", err)
+		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 	}
-	ctx.JSON(200, &repos)
+	ctx.JSON(http.StatusOK, &repos)
 }
 
 // IsStarring returns whether the authenticated is starring the repo
@@ -96,7 +98,7 @@ func IsStarring(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if models.IsStaring(ctx.User.ID, ctx.Repo.Repository.ID) {
-		ctx.Status(204)
+		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.NotFound()
 	}
@@ -124,10 +126,10 @@ func Star(ctx *context.APIContext) {
 
 	err := models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
-		ctx.Error(500, "StarRepo", err)
+		ctx.Error(http.StatusInternalServerError, "StarRepo", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // Unstar the repo specified in the APIContext, as the authenticated user
@@ -152,8 +154,8 @@ func Unstar(ctx *context.APIContext) {
 
 	err := models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
-		ctx.Error(500, "StarRepo", err)
+		ctx.Error(http.StatusInternalServerError, "StarRepo", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }

@@ -6,6 +6,8 @@
 package repo
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
@@ -51,24 +53,24 @@ func GetBranch(ctx *context.APIContext) {
 		if git.IsErrBranchNotExist(err) {
 			ctx.NotFound(err)
 		} else {
-			ctx.Error(500, "GetBranch", err)
+			ctx.Error(http.StatusInternalServerError, "GetBranch", err)
 		}
 		return
 	}
 
 	c, err := branch.GetCommit()
 	if err != nil {
-		ctx.Error(500, "GetCommit", err)
+		ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 		return
 	}
 
 	branchProtection, err := ctx.Repo.Repository.GetBranchProtection(ctx.Repo.BranchName)
 	if err != nil {
-		ctx.Error(500, "GetBranchProtection", err)
+		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
 	}
 
-	ctx.JSON(200, convert.ToBranch(ctx.Repo.Repository, branch, c, branchProtection, ctx.User))
+	ctx.JSON(http.StatusOK, convert.ToBranch(ctx.Repo.Repository, branch, c, branchProtection, ctx.User))
 }
 
 // ListBranches list all the branches of a repository
@@ -95,7 +97,7 @@ func ListBranches(ctx *context.APIContext) {
 
 	branches, err := ctx.Repo.Repository.GetBranches()
 	if err != nil {
-		ctx.Error(500, "GetBranches", err)
+		ctx.Error(http.StatusInternalServerError, "GetBranches", err)
 		return
 	}
 
@@ -103,16 +105,16 @@ func ListBranches(ctx *context.APIContext) {
 	for i := range branches {
 		c, err := branches[i].GetCommit()
 		if err != nil {
-			ctx.Error(500, "GetCommit", err)
+			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 			return
 		}
 		branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branches[i].Name)
 		if err != nil {
-			ctx.Error(500, "GetBranchProtection", err)
+			ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 			return
 		}
 		apiBranches[i] = convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.User)
 	}
 
-	ctx.JSON(200, &apiBranches)
+	ctx.JSON(http.StatusOK, &apiBranches)
 }

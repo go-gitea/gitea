@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 )
@@ -99,7 +101,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 
 		return
@@ -110,7 +112,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		if models.IsErrUserNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetUserByName", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 		}
 
 		return
@@ -118,16 +120,16 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 
 	//only admin and user for itself can change subscription
 	if user.ID != ctx.User.ID && !ctx.User.IsAdmin {
-		ctx.Error(403, "User", nil)
+		ctx.Error(http.StatusForbidden, "User", nil)
 		return
 	}
 
 	if err := models.CreateOrUpdateIssueWatch(user.ID, issue.ID, watch); err != nil {
-		ctx.Error(500, "CreateOrUpdateIssueWatch", err)
+		ctx.Error(http.StatusInternalServerError, "CreateOrUpdateIssueWatch", err)
 		return
 	}
 
-	ctx.Status(201)
+	ctx.Status(http.StatusCreated)
 }
 
 // GetIssueSubscribers return subscribers of an issue
@@ -167,7 +169,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 
 		return
@@ -175,15 +177,15 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 
 	iwl, err := models.GetIssueWatchers(issue.ID)
 	if err != nil {
-		ctx.Error(500, "GetIssueWatchers", err)
+		ctx.Error(http.StatusInternalServerError, "GetIssueWatchers", err)
 		return
 	}
 
 	users, err := iwl.LoadWatchUsers()
 	if err != nil {
-		ctx.Error(500, "LoadWatchUsers", err)
+		ctx.Error(http.StatusInternalServerError, "LoadWatchUsers", err)
 		return
 	}
 
-	ctx.JSON(200, users.APIFormat())
+	ctx.JSON(http.StatusOK, users.APIFormat())
 }

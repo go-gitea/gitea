@@ -6,6 +6,7 @@
 package org
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -35,20 +36,20 @@ func ListTeams(ctx *context.APIContext) {
 
 	org := ctx.Org.Organization
 	if err := org.GetTeams(); err != nil {
-		ctx.Error(500, "GetTeams", err)
+		ctx.Error(http.StatusInternalServerError, "GetTeams", err)
 		return
 	}
 
 	apiTeams := make([]*api.Team, len(org.Teams))
 	for i := range org.Teams {
 		if err := org.Teams[i].GetUnits(); err != nil {
-			ctx.Error(500, "GetUnits", err)
+			ctx.Error(http.StatusInternalServerError, "GetUnits", err)
 			return
 		}
 
 		apiTeams[i] = convert.ToTeam(org.Teams[i])
 	}
-	ctx.JSON(200, apiTeams)
+	ctx.JSON(http.StatusOK, apiTeams)
 }
 
 // ListUserTeams list all the teams a user belongs to
@@ -64,7 +65,7 @@ func ListUserTeams(ctx *context.APIContext) {
 
 	teams, err := models.GetUserTeams(ctx.User.ID)
 	if err != nil {
-		ctx.Error(500, "GetUserTeams", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserTeams", err)
 		return
 	}
 
@@ -75,7 +76,7 @@ func ListUserTeams(ctx *context.APIContext) {
 		if !ok {
 			org, err := models.GetUserByID(teams[i].OrgID)
 			if err != nil {
-				ctx.Error(500, "GetUserByID", err)
+				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
 				return
 			}
 			apiOrg = convert.ToOrganization(org)
@@ -84,7 +85,7 @@ func ListUserTeams(ctx *context.APIContext) {
 		apiTeams[i] = convert.ToTeam(teams[i])
 		apiTeams[i].Organization = apiOrg
 	}
-	ctx.JSON(200, apiTeams)
+	ctx.JSON(http.StatusOK, apiTeams)
 }
 
 // GetTeam api for get a team
@@ -105,7 +106,7 @@ func GetTeam(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Team"
 
-	ctx.JSON(200, convert.ToTeam(ctx.Org.Team))
+	ctx.JSON(http.StatusOK, convert.ToTeam(ctx.Org.Team))
 }
 
 // CreateTeam api for create a team
@@ -157,14 +158,14 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 
 	if err := models.NewTeam(team); err != nil {
 		if models.IsErrTeamAlreadyExist(err) {
-			ctx.Error(422, "", err)
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(500, "NewTeam", err)
+			ctx.Error(http.StatusInternalServerError, "NewTeam", err)
 		}
 		return
 	}
 
-	ctx.JSON(201, convert.ToTeam(team))
+	ctx.JSON(http.StatusCreated, convert.ToTeam(team))
 }
 
 // EditTeam api for edit a team
@@ -225,10 +226,10 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	}
 
 	if err := models.UpdateTeam(team, isAuthChanged, isIncludeAllChanged); err != nil {
-		ctx.Error(500, "EditTeam", err)
+		ctx.Error(http.StatusInternalServerError, "EditTeam", err)
 		return
 	}
-	ctx.JSON(200, convert.ToTeam(team))
+	ctx.JSON(http.StatusOK, convert.ToTeam(team))
 }
 
 // DeleteTeam api for delete a team
@@ -248,10 +249,10 @@ func DeleteTeam(ctx *context.APIContext) {
 	//     description: team deleted
 
 	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
-		ctx.Error(500, "DeleteTeam", err)
+		ctx.Error(http.StatusInternalServerError, "DeleteTeam", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // GetTeamMembers api for get a team's members
@@ -274,7 +275,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 
 	isMember, err := models.IsOrganizationMember(ctx.Org.Team.OrgID, ctx.User.ID)
 	if err != nil {
-		ctx.Error(500, "IsOrganizationMember", err)
+		ctx.Error(http.StatusInternalServerError, "IsOrganizationMember", err)
 		return
 	} else if !isMember {
 		ctx.NotFound()
@@ -282,14 +283,14 @@ func GetTeamMembers(ctx *context.APIContext) {
 	}
 	team := ctx.Org.Team
 	if err := team.GetMembers(); err != nil {
-		ctx.Error(500, "GetTeamMembers", err)
+		ctx.Error(http.StatusInternalServerError, "GetTeamMembers", err)
 		return
 	}
 	members := make([]*api.User, len(team.Members))
 	for i, member := range team.Members {
 		members[i] = convert.ToUser(member, ctx.IsSigned, ctx.User.IsAdmin)
 	}
-	ctx.JSON(200, members)
+	ctx.JSON(http.StatusOK, members)
 }
 
 // GetTeamMember api for get a particular member of team
@@ -324,13 +325,13 @@ func GetTeamMember(ctx *context.APIContext) {
 	teamID := ctx.ParamsInt64("teamid")
 	isTeamMember, err := models.IsUserInTeams(u.ID, []int64{teamID})
 	if err != nil {
-		ctx.Error(500, "IsUserInTeams", err)
+		ctx.Error(http.StatusInternalServerError, "IsUserInTeams", err)
 		return
 	} else if !isTeamMember {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(200, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
+	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
 }
 
 // AddTeamMember api for add a member to a team
@@ -363,10 +364,10 @@ func AddTeamMember(ctx *context.APIContext) {
 		return
 	}
 	if err := ctx.Org.Team.AddMember(u.ID); err != nil {
-		ctx.Error(500, "AddMember", err)
+		ctx.Error(http.StatusInternalServerError, "AddMember", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // RemoveTeamMember api for remove one member from a team
@@ -400,10 +401,10 @@ func RemoveTeamMember(ctx *context.APIContext) {
 	}
 
 	if err := ctx.Org.Team.RemoveMember(u.ID); err != nil {
-		ctx.Error(500, "RemoveMember", err)
+		ctx.Error(http.StatusInternalServerError, "RemoveMember", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // GetTeamRepos api for get a team's repos
@@ -426,18 +427,18 @@ func GetTeamRepos(ctx *context.APIContext) {
 
 	team := ctx.Org.Team
 	if err := team.GetRepositories(); err != nil {
-		ctx.Error(500, "GetTeamRepos", err)
+		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 	}
 	repos := make([]*api.Repository, len(team.Repos))
 	for i, repo := range team.Repos {
 		access, err := models.AccessLevel(ctx.User, repo)
 		if err != nil {
-			ctx.Error(500, "GetTeamRepos", err)
+			ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 			return
 		}
 		repos[i] = repo.APIFormat(access)
 	}
-	ctx.JSON(200, repos)
+	ctx.JSON(http.StatusOK, repos)
 }
 
 // getRepositoryByParams get repository by a team's organization ID and repo name
@@ -447,7 +448,7 @@ func getRepositoryByParams(ctx *context.APIContext) *models.Repository {
 		if models.IsErrRepoNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetRepositoryByName", err)
+			ctx.Error(http.StatusInternalServerError, "GetRepositoryByName", err)
 		}
 		return nil
 	}
@@ -489,17 +490,17 @@ func AddTeamRepository(ctx *context.APIContext) {
 		return
 	}
 	if access, err := models.AccessLevel(ctx.User, repo); err != nil {
-		ctx.Error(500, "AccessLevel", err)
+		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if access < models.AccessModeAdmin {
-		ctx.Error(403, "", "Must have admin-level access to the repository")
+		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
 	if err := ctx.Org.Team.AddRepository(repo); err != nil {
-		ctx.Error(500, "AddRepository", err)
+		ctx.Error(http.StatusInternalServerError, "AddRepository", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // RemoveTeamRepository api for removing a repository from a team
@@ -539,17 +540,17 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 		return
 	}
 	if access, err := models.AccessLevel(ctx.User, repo); err != nil {
-		ctx.Error(500, "AccessLevel", err)
+		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if access < models.AccessModeAdmin {
-		ctx.Error(403, "", "Must have admin-level access to the repository")
+		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
 	if err := ctx.Org.Team.RemoveRepository(repo.ID); err != nil {
-		ctx.Error(500, "RemoveRepository", err)
+		ctx.Error(http.StatusInternalServerError, "RemoveRepository", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // SearchTeam api for searching teams
@@ -606,7 +607,7 @@ func SearchTeam(ctx *context.APIContext) {
 	teams, _, err := models.SearchTeam(opts)
 	if err != nil {
 		log.Error("SearchTeam failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"ok":    false,
 			"error": "SearchTeam internal failure",
 		})
@@ -617,7 +618,7 @@ func SearchTeam(ctx *context.APIContext) {
 	for i := range teams {
 		if err := teams[i].GetUnits(); err != nil {
 			log.Error("Team GetUnits failed: %v", err)
-			ctx.JSON(500, map[string]interface{}{
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"ok":    false,
 				"error": "SearchTeam failed to get units",
 			})
@@ -626,7 +627,7 @@ func SearchTeam(ctx *context.APIContext) {
 		apiTeams[i] = convert.ToTeam(teams[i])
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
 		"data": apiTeams,
 	})
