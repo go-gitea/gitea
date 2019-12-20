@@ -930,7 +930,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	}
 
 	if err := repofiles.PushUpdate(
-		ctx.Repo.Repository,
+		pr.HeadRepo,
 		pr.HeadBranch,
 		repofiles.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + pr.HeadBranch,
@@ -938,8 +938,8 @@ func CleanUpPullRequest(ctx *context.Context) {
 			NewCommitID:  git.EmptySHA,
 			PusherID:     ctx.User.ID,
 			PusherName:   ctx.User.Name,
-			RepoUserName: ctx.Repo.Owner.Name,
-			RepoName:     ctx.Repo.Repository.Name,
+			RepoUserName: pr.HeadRepo.Owner.Name,
+			RepoName:     pr.HeadRepo.Name,
 		}); err != nil {
 		log.Error("Update: %v", err)
 	}
