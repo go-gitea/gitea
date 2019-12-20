@@ -97,8 +97,12 @@ github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e/go.mod h1:F5haX7
 github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f/go.mod h1:E3G3o1h8I7cfcXa63jLwjI0eiQQMgzzUDFVpN/nH/eA=
 github.com/couchbase/gomemcached v0.0.0-20190515232915-c4b4ca0eb21d h1:XMf4E1U+b9E3ElF0mjvfXZdflBRZz4gLp16nQ/QSHQM=
 github.com/couchbase/gomemcached v0.0.0-20190515232915-c4b4ca0eb21d/go.mod h1:srVSlQLB8iXBVXHgnqemxUXqN6FCvClgCMPCsjBDR7c=
+github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2 h1:vZryARwW4PSFXd9arwegEywvMTvPuXL3/oa+4L5NTe8=
+github.com/couchbase/gomemcached v0.0.0-20191004160342-7b5da2ec40b2/go.mod h1:srVSlQLB8iXBVXHgnqemxUXqN6FCvClgCMPCsjBDR7c=
 github.com/couchbase/goutils v0.0.0-20190315194238-f9d42b11473b h1:bZ9rKU2/V8sY+NulSfxDOnXTWcs1rySqdF1sVepihvo=
 github.com/couchbase/goutils v0.0.0-20190315194238-f9d42b11473b/go.mod h1:BQwMFlJzDjFDG3DJUdU0KORxn88UlsOULuxLExMh3Hs=
+github.com/couchbase/goutils v0.0.0-20191018232750-b49639060d85 h1:0WMIDtuXCKEm4wtAJgAAXa/qtM5O9MariLwgHaRlYmk=
+github.com/couchbase/goutils v0.0.0-20191018232750-b49639060d85/go.mod h1:BQwMFlJzDjFDG3DJUdU0KORxn88UlsOULuxLExMh3Hs=
 github.com/couchbase/vellum v0.0.0-20190829182332-ef2e028c01fd h1:zeuJhcG3f8eePshH3KxkNE+Xtl53pVln9MOUPMyr/1w=
 github.com/couchbase/vellum v0.0.0-20190829182332-ef2e028c01fd/go.mod h1:xbc8Ff/oG7h2ejd7AlwOpfd+6QZntc92ygpAOfGwcKY=
 github.com/couchbaselabs/go-couchbase v0.0.0-20190708161019-23e7ca2ce2b7 h1:1XjEY/gnjQ+AfXef2U6dxCquhiRzkEpxZuWqs+QxTL8=
