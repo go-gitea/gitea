@@ -60,7 +60,7 @@ func AddEmail(ctx *context.APIContext, form api.CreateEmailOption) {
 	//     "$ref": "#/responses/validationError"
 
 	if len(form.Emails) == 0 {
-		ctx.Status(422)
+		ctx.Error(422, "", "Email list empty")
 		return
 	}
 

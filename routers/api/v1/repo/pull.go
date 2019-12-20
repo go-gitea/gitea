@@ -645,7 +645,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 			conflictError := err.(models.ErrMergeUnrelatedHistories)
 			ctx.JSON(409, conflictError)
 		} else if models.IsErrMergePushOutOfDate(err) {
-			ctx.Status(409)
+			ctx.Error(409, "Merge", "merge push out of date")
 			return
 		}
 		ctx.Error(500, "Merge", err)

@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
@@ -99,7 +101,7 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 			ctx.ServerError("IsOrgMember", err)
 			return
 		} else if !isMember {
-			ctx.Status(403)
+			ctx.Error(403, "isMemberNot", fmt.Sprintf("User is no Member of Organisation '%s'", org.Name))
 			return
 		}
 		forker = org

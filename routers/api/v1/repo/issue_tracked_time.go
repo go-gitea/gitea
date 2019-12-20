@@ -121,7 +121,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
 		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
-			ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
+			ctx.Error(400, "", "time tracking disabled")
 			return
 		}
 		ctx.Status(403)
@@ -165,7 +165,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
-		ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
+		ctx.Error(400, "", "time tracking disabled")
 		return
 	}
 	user, err := models.GetUserByName(ctx.Params(":timetrackingusername"))
@@ -217,7 +217,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
-		ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
+		ctx.Error(400, "", "time tracking disabled")
 		return
 	}
 	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{

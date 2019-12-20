@@ -176,7 +176,7 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		}
 		if err := releaseservice.CreateRelease(ctx.Repo.GitRepo, rel, nil); err != nil {
 			if models.IsErrReleaseAlreadyExist(err) {
-				ctx.Status(409)
+				ctx.Error(409, "ReleaseAlreadyExist", err)
 			} else {
 				ctx.Error(500, "CreateRelease", err)
 			}
@@ -184,7 +184,7 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 		}
 	} else {
 		if !rel.IsTag {
-			ctx.Status(409)
+			ctx.Error(409, "GetRelease", "Release is has no Tag")
 			return
 		}
 

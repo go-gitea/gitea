@@ -41,10 +41,7 @@ func ListTopics(ctx *context.APIContext) {
 	})
 	if err != nil {
 		log.Error("ListTopics failed: %v", err)
-		
-		ctx.JSON(500, map[string]interface{}{
-			"message": "ListTopics failed.",
-		})
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -95,7 +92,6 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 
 	if len(invalidTopics) > 0 {
 		ctx.JSON(422, map[string]interface{}{
-
 			"invalidTopics": invalidTopics,
 			"message":       "Topic names are invalid",
 		})
@@ -105,9 +101,7 @@ func UpdateTopics(ctx *context.APIContext, form api.RepoTopicOptions) {
 	err := models.SaveTopics(ctx.Repo.Repository.ID, validTopics...)
 	if err != nil {
 		log.Error("SaveTopics failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
-			"message": "Save topics failed.",
-		})
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -156,9 +150,7 @@ func AddTopic(ctx *context.APIContext) {
 	})
 	if err != nil {
 		log.Error("AddTopic failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
-			"message": "ListTopics failed.",
-		})
+		ctx.InternalServerError(err)
 		return
 	}
 	if len(topics) >= 25 {
@@ -171,9 +163,7 @@ func AddTopic(ctx *context.APIContext) {
 	_, err = models.AddTopic(ctx.Repo.Repository.ID, topicName)
 	if err != nil {
 		log.Error("AddTopic failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
-			"message": "AddTopic failed.",
-		})
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -207,21 +197,22 @@ func DeleteTopic(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 	//   "422":
-	//     "$ref": "#/responses/validationError"
+	//     "$ref": "#/responses/invalidTopicsError"
 
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
 	if !models.ValidateTopic(topicName) {
-		ctx.Error(422, "", "Topic name is invalid")
+		ctx.JSON(422, map[string]interface{}{
+			"invalidTopics": topicName,
+			"message":       "Topic name is invalid",
+		})
 		return
 	}
 
 	topic, err := models.DeleteTopic(ctx.Repo.Repository.ID, topicName)
 	if err != nil {
 		log.Error("DeleteTopic failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
-			"message": "DeleteTopic failed.",
-		})
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -266,9 +257,7 @@ func TopicSearch(ctx *context.Context) {
 	})
 	if err != nil {
 		log.Error("SearchTopics failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
-			"message": "Search topics failed.",
-		})
+		ctx.InternalServerError(err)
 		return
 	}
 
