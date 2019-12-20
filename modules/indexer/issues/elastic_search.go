@@ -93,7 +93,7 @@ const (
 	}`
 )
 
-// Init will initial the indexer
+// Init will initialize the indexer
 func (b *ElasticSearchIndexer) Init() (bool, error) {
 	ctx := context.Background()
 	exists, err := b.client.IndexExists(b.indexerName).Do(ctx)
@@ -142,7 +142,6 @@ func (b *ElasticSearchIndexer) Index(issues []*IndexerData) error {
 		reqs = append(reqs,
 			elastic.NewBulkIndexRequest().
 				Index(b.indexerName).
-				//Type(b.typeName).
 				Id(fmt.Sprintf("%d", issue.ID)).
 				Doc(map[string]interface{}{
 					"id":       issue.ID,
