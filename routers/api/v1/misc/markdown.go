@@ -64,20 +64,20 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 		if form.Wiki {
 			_, err := ctx.Write([]byte(markdown.RenderWiki(md, urlPrefix, meta)))
 			if err != nil {
-				ctx.Error(500, "", err)
+				ctx.InternalServerError(err)
 				return
 			}
 		} else {
 			_, err := ctx.Write(markdown.Render(md, urlPrefix, meta))
 			if err != nil {
-				ctx.Error(500, "", err)
+				ctx.InternalServerError(err)
 				return
 			}
 		}
 	default:
 		_, err := ctx.Write(markdown.RenderRaw([]byte(form.Text), "", false))
 		if err != nil {
-			ctx.Error(500, "", err)
+			ctx.InternalServerError(err)
 			return
 		}
 	}
@@ -111,7 +111,7 @@ func MarkdownRaw(ctx *context.APIContext) {
 	}
 	_, err = ctx.Write(markdown.RenderRaw(body, "", false))
 	if err != nil {
-		ctx.Error(500, "", err)
+		ctx.InternalServerError(err)
 		return
 	}
 }
