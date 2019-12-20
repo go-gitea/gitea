@@ -321,6 +321,7 @@ func DeleteRepoIssueIndexer(repo *models.Repository) {
 }
 
 // SearchIssuesByKeyword search issue ids by keywords and repo id
+// WARNNING: You have to ensure user have permission to visit repoIDs' issues
 func SearchIssuesByKeyword(repoIDs []int64, keyword string) ([]int64, error) {
 	var issueIDs []int64
 	indexer := holder.get()
