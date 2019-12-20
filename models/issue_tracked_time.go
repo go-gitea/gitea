@@ -268,7 +268,7 @@ func DeleteTime(t *TrackedTime) error {
 		return err
 	}
 
-	if _, err := CreateComment(&CreateCommentOptions{
+	if _, err := createComment(sess, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
