@@ -11993,7 +11993,10 @@
       "description": "APIInvalidTopicsError is error format response to invalid topics",
       "headers": {
         "invalidTopics": {
-          "type": "string"
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "message": {
           "type": "string"

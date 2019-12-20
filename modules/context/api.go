@@ -42,8 +42,8 @@ type APIValidationError struct {
 // APIInvalidTopicsError is error format response to invalid topics
 // swagger:response invalidTopicsError
 type APIInvalidTopicsError struct {
-	Topics  string `json:"invalidTopics"`
-	Message string `json:"message"`
+	Topics  []string `json:"invalidTopics"`
+	Message string   `json:"message"`
 }
 
 //APIEmpty is an empty response

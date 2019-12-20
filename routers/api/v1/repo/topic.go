@@ -140,7 +140,10 @@ func AddTopic(ctx *context.APIContext) {
 	topicName := strings.TrimSpace(strings.ToLower(ctx.Params(":topic")))
 
 	if !models.ValidateTopic(topicName) {
-		ctx.Error(422, "", "Topic name is invalid")
+		ctx.JSON(422, map[string]interface{}{
+			"invalidTopics": topicName,
+			"message":       "Topic name is invalid",
+		})
 		return
 	}
 
