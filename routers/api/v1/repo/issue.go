@@ -322,7 +322,6 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "412":
 	//     "$ref": "#/responses/error"
-	//     description: cannot close this issue because it still has open dependencies
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
@@ -446,7 +445,6 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	//     "$ref": "#/responses/notFound"
 	//   "412":
 	//     "$ref": "#/responses/error"
-	//     description: cannot close this issue because it still has open dependencies
 
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -583,7 +581,6 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	//   "201":
 	//     "$ref": "#/responses/IssueDeadline"
 	//   "403":
-	//     description: Not repo writer
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
@@ -599,7 +596,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	}
 
 	if !ctx.Repo.CanWrite(models.UnitTypeIssues) {
-		ctx.Status(403)
+		ctx.Error(403, "", "Not repo writer")
 		return
 	}
 
