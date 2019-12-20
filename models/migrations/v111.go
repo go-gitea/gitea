@@ -34,6 +34,9 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 		return err
 	}
 
+	if _, err := sess.Exec("UPDATE `protected_branch` SET `enable_whitelist` = 0 WHERE enable_whitelist IS NULL"); err != nil {
+		return err
+	}
 	if _, err := sess.Exec("UPDATE `protected_branch` SET `can_push` = `enable_whitelist`"); err != nil {
 		return err
 	}
