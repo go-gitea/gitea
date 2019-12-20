@@ -243,9 +243,7 @@ func TopicSearch(ctx *context.Context) {
 	//     "$ref": "#/responses/forbidden"
 
 	if ctx.User == nil {
-		ctx.JSON(403, map[string]interface{}{
-			"message": "Only owners could change the topics.",
-		})
+		ctx.Error(403, "UserIsNil", "Only owners could change the topics.")
 		return
 	}
 
