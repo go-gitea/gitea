@@ -264,51 +264,18 @@ func getDingtalkRepositoryPayload(p *api.RepositoryPayload) (*DingtalkPayload, e
 }
 
 func getDingtalkReleasePayload(p *api.ReleasePayload) (*DingtalkPayload, error) {
-	var title, url string
-	switch p.Action {
-	case api.HookReleasePublished:
-		title = fmt.Sprintf("[%s] Release created", p.Release.TagName)
-		url = p.Release.URL
-		return &DingtalkPayload{
-			MsgType: "actionCard",
-			ActionCard: dingtalk.ActionCard{
-				Text:        title,
-				Title:       title,
-				HideAvatar:  "0",
-				SingleTitle: "view release",
-				SingleURL:   url,
-			},
-		}, nil
-	case api.HookReleaseUpdated:
-		title = fmt.Sprintf("[%s] Release updated", p.Release.TagName)
-		url = p.Release.URL
-		return &DingtalkPayload{
-			MsgType: "actionCard",
-			ActionCard: dingtalk.ActionCard{
-				Text:        title,
-				Title:       title,
-				HideAvatar:  "0",
-				SingleTitle: "view release",
-				SingleURL:   url,
-			},
-		}, nil
+	text, _ := getReleasePayloadInfo(p, noneLinkFormatter)
 
-	case api.HookReleaseDeleted:
-		title = fmt.Sprintf("[%s] Release deleted", p.Release.TagName)
-		url = p.Release.URL
-		return &DingtalkPayload{
-			MsgType: "actionCard",
-			ActionCard: dingtalk.ActionCard{
-				Text:        title,
-				Title:       title,
-				HideAvatar:  "0",
-				SingleTitle: "view release",
-				SingleURL:   url,
-			},
-		}, nil
-	}
-
-	return nil, nil
+	return &DingtalkPayload{
+		MsgType: "actionCard",
+		ActionCard: dingtalk.ActionCard{
+			Text:        text,
+			Title:       text,
+			HideAvatar:  "0",
+			SingleTitle: "view release",
+			SingleURL:   p.Release.URL,
+		},
+	}, nil
 }
 
 // GetDingtalkPayload converts a ding talk webhook into a DingtalkPayload

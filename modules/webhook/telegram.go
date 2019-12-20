@@ -180,30 +180,11 @@ func getTelegramRepositoryPayload(p *api.RepositoryPayload) (*TelegramPayload, e
 }
 
 func getTelegramReleasePayload(p *api.ReleasePayload) (*TelegramPayload, error) {
-	var title, url string
-	switch p.Action {
-	case api.HookReleasePublished:
-		title = fmt.Sprintf("[%s] Release created", p.Release.TagName)
-		url = p.Release.URL
-		return &TelegramPayload{
-			Message: title + "\n" + url,
-		}, nil
-	case api.HookReleaseUpdated:
-		title = fmt.Sprintf("[%s] Release updated", p.Release.TagName)
-		url = p.Release.URL
-		return &TelegramPayload{
-			Message: title + "\n" + url,
-		}, nil
+	text, _ := getReleasePayloadInfo(p, htmlLinkFormatter)
 
-	case api.HookReleaseDeleted:
-		title = fmt.Sprintf("[%s] Release deleted", p.Release.TagName)
-		url = p.Release.URL
-		return &TelegramPayload{
-			Message: title + "\n" + url,
-		}, nil
-	}
-
-	return nil, nil
+	return &TelegramPayload{
+		Message: text + "\n",
+	}, nil
 }
 
 // GetTelegramPayload converts a telegram webhook into a TelegramPayload

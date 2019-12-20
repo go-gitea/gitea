@@ -536,29 +536,14 @@ func getMSTeamsRepositoryPayload(p *api.RepositoryPayload) (*MSTeamsPayload, err
 }
 
 func getMSTeamsReleasePayload(p *api.ReleasePayload) (*MSTeamsPayload, error) {
-	var title, url string
-	var color int
-	switch p.Action {
-	case api.HookReleasePublished:
-		title = fmt.Sprintf("[%s] Release created", p.Release.TagName)
-		url = p.Release.URL
-		color = greenColor
-	case api.HookReleaseUpdated:
-		title = fmt.Sprintf("[%s] Release updated", p.Release.TagName)
-		url = p.Release.URL
-		color = greenColor
-	case api.HookReleaseDeleted:
-		title = fmt.Sprintf("[%s] Release deleted", p.Release.TagName)
-		url = p.Release.URL
-		color = greenColor
-	}
+	text, color := getReleasePayloadInfo(p, noneLinkFormatter)
 
 	return &MSTeamsPayload{
 		Type:       "MessageCard",
 		Context:    "https://schema.org/extensions",
 		ThemeColor: fmt.Sprintf("%x", color),
-		Title:      title,
-		Summary:    title,
+		Title:      text,
+		Summary:    text,
 		Sections: []MSTeamsSection{
 			{
 				ActivityTitle:    p.Sender.FullName,
@@ -584,7 +569,7 @@ func getMSTeamsReleasePayload(p *api.ReleasePayload) (*MSTeamsPayload, error) {
 				Targets: []MSTeamsActionTarget{
 					{
 						Os:  "default",
-						URI: url,
+						URI: p.Release.URL,
 					},
 				},
 			},

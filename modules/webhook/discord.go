@@ -401,31 +401,16 @@ func getDiscordRepositoryPayload(p *api.RepositoryPayload, meta *DiscordMeta) (*
 }
 
 func getDiscordReleasePayload(p *api.ReleasePayload, meta *DiscordMeta) (*DiscordPayload, error) {
-	var title, url string
-	var color int
-	switch p.Action {
-	case api.HookReleasePublished:
-		title = fmt.Sprintf("[%s] Release created", p.Release.TagName)
-		url = p.Release.URL
-		color = greenColor
-	case api.HookReleaseUpdated:
-		title = fmt.Sprintf("[%s] Release updated", p.Release.TagName)
-		url = p.Release.URL
-		color = yellowColor
-	case api.HookReleaseDeleted:
-		title = fmt.Sprintf("[%s] Release deleted", p.Release.TagName)
-		url = p.Release.URL
-		color = redColor
-	}
+	text, color := getReleasePayloadInfo(p, noneLinkFormatter)
 
 	return &DiscordPayload{
 		Username:  meta.Username,
 		AvatarURL: meta.IconURL,
 		Embeds: []DiscordEmbed{
 			{
-				Title:       title,
+				Title:       text,
 				Description: p.Release.Note,
-				URL:         url,
+				URL:         p.Release.URL,
 				Color:       color,
 				Author: DiscordEmbedAuthor{
 					Name:    p.Sender.UserName,
