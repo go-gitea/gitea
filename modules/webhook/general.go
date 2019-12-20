@@ -132,17 +132,17 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 func getReleasePayloadInfo(p *api.ReleasePayload, linkFormatter linkFormatter) (text string, color int) {
 	senderLink := linkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-	relLink := linkFormatter(p.Release.URL, p.Release.TagName)
+	refLink := linkFormatter(p.Repository.HTMLURL+"/src/"+p.Release.TagName, p.Release.TagName)
 
 	switch p.Action {
 	case api.HookReleasePublished:
-		text = fmt.Sprintf("[%s] Release %s created by %s", repoLink, relLink, senderLink)
+		text = fmt.Sprintf("[%s] Release %s created by %s", repoLink, refLink, senderLink)
 		color = greenColor
 	case api.HookReleaseUpdated:
-		text = fmt.Sprintf("[%s] Release %s updated by %s", repoLink, relLink, senderLink)
+		text = fmt.Sprintf("[%s] Release %s updated by %s", repoLink, refLink, senderLink)
 		color = yellowColor
 	case api.HookReleaseDeleted:
-		text = fmt.Sprintf("[%s] Release %s deleted by %s", repoLink, relLink, senderLink)
+		text = fmt.Sprintf("[%s] Release %s deleted by %s", repoLink, refLink, senderLink)
 		color = redColor
 	}
 
