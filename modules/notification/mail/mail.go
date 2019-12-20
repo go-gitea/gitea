@@ -106,7 +106,7 @@ func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mode
 		return
 	}
 
-	if err := mailer.MailParticipants(pr.Issue, doer, models.ActionClosePullRequest); err != nil {
+	if err := mailer.MailParticipants(pr.Issue, doer, models.ActionMergePullRequest); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
