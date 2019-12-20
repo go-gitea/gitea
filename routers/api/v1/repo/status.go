@@ -6,6 +6,7 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -43,9 +44,12 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Status"
+	//   "400":
+	//     "$ref": "#/responses/error"
+
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {
-		ctx.Error(400, "sha not given", nil)
+		ctx.Error(http.StatusBadRequest, "sha not given", nil)
 		return
 	}
 	status := &models.CommitStatus{
@@ -55,11 +59,11 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 		Context:     form.Context,
 	}
 	if err := repofiles.CreateCommitStatus(ctx.Repo.Repository, ctx.User, sha, status); err != nil {
-		ctx.Error(500, "CreateCommitStatus", err)
+		ctx.Error(http.StatusInternalServerError, "CreateCommitStatus", err)
 		return
 	}
 
-	ctx.JSON(201, status.APIFormat())
+	ctx.JSON(http.StatusCreated, status.APIFormat())
 }
 
 // GetCommitStatuses returns all statuses for any given commit hash
@@ -105,6 +109,9 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/StatusList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+
 	getCommitStatuses(ctx, ctx.Params("sha"))
 }
 
@@ -151,17 +158,19 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/StatusList"
+	//   "400":
+	//     "$ref": "#/responses/error"
 
 	filter := ctx.Params("ref")
 	if len(filter) == 0 {
-		ctx.Error(400, "ref not given", nil)
+		ctx.Error(http.StatusBadRequest, "ref not given", nil)
 		return
 	}
 
 	for _, reftype := range []string{"heads", "tags"} { //Search branches and tags
 		refSHA, lastMethodName, err := searchRefCommitByType(ctx, reftype, filter)
 		if err != nil {
-			ctx.Error(500, lastMethodName, err)
+			ctx.Error(http.StatusInternalServerError, lastMethodName, err)
 			return
 		}
 		if refSHA != "" {
@@ -187,7 +196,7 @@ func searchRefCommitByType(ctx *context.APIContext, refType, filter string) (str
 
 func getCommitStatuses(ctx *context.APIContext, sha string) {
 	if len(sha) == 0 {
-		ctx.Error(400, "ref/sha not given", nil)
+		ctx.Error(http.StatusBadRequest, "ref/sha not given", nil)
 		return
 	}
 	repo := ctx.Repo.Repository
@@ -198,7 +207,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 		State:    ctx.QueryTrim("state"),
 	})
 	if err != nil {
-		ctx.Error(500, "GetCommitStatuses", fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %v", repo.FullName(), sha, ctx.QueryInt("page"), err))
+		ctx.Error(http.StatusInternalServerError, "GetCommitStatuses", fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %v", repo.FullName(), sha, ctx.QueryInt("page"), err))
 		return
 	}
 
@@ -207,7 +216,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 		apiStatuses = append(apiStatuses, status.APIFormat())
 	}
 
-	ctx.JSON(200, apiStatuses)
+	ctx.JSON(http.StatusOK, apiStatuses)
 }
 
 type combinedCommitStatus struct {
@@ -251,9 +260,12 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Status"
+	//   "400":
+	//     "$ref": "#/responses/error"
+
 	sha := ctx.Params("ref")
 	if len(sha) == 0 {
-		ctx.Error(400, "ref/sha not given", nil)
+		ctx.Error(http.StatusBadRequest, "ref/sha not given", nil)
 		return
 	}
 	repo := ctx.Repo.Repository
@@ -262,12 +274,12 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 
 	statuses, err := models.GetLatestCommitStatus(repo, sha, page)
 	if err != nil {
-		ctx.Error(500, "GetLatestCommitStatus", fmt.Errorf("GetLatestCommitStatus[%s, %s, %d]: %v", repo.FullName(), sha, page, err))
+		ctx.Error(http.StatusInternalServerError, "GetLatestCommitStatus", fmt.Errorf("GetLatestCommitStatus[%s, %s, %d]: %v", repo.FullName(), sha, page, err))
 		return
 	}
 
 	if len(statuses) == 0 {
-		ctx.Status(200)
+		ctx.Status(http.StatusOK)
 		return
 	}
 
@@ -286,5 +298,5 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.JSON(200, retStatus)
+	ctx.JSON(http.StatusOK, retStatus)
 }
