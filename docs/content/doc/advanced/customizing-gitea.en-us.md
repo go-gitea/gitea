@@ -65,7 +65,7 @@ Place the png image at the following path: `custom/public/img/avatar_default.png
 ## Customizing Gitea pages
 
 The `custom/templates` folder allows changing every single page of Gitea. Templates
-to override can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/master/templates) directory of Gitea source. Override by
+to override can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/master/templates) directory of Gitea source (Note: the example link is from `master` branch. Make sure to copy templates from same release you are using). Override by
 making a copy of the file under `custom/templates` using a full path structure
 matching source.
 

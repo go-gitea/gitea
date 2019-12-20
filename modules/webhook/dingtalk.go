@@ -139,35 +139,26 @@ func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
 		text = p.Issue.Body
 	case api.HookIssueClosed:
 		title = fmt.Sprintf("[%s] Issue closed: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueReOpened:
 		title = fmt.Sprintf("[%s] Issue re-opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueEdited:
 		title = fmt.Sprintf("[%s] Issue edited: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
 		text = p.Issue.Body
 	case api.HookIssueAssigned:
 		title = fmt.Sprintf("[%s] Issue assigned to %s: #%d %s", p.Repository.FullName,
 			p.Issue.Assignee.UserName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueUnassigned:
 		title = fmt.Sprintf("[%s] Issue unassigned: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueLabelUpdated:
 		title = fmt.Sprintf("[%s] Issue labels updated: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueLabelCleared:
 		title = fmt.Sprintf("[%s] Issue labels cleared: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueSynchronized:
 		title = fmt.Sprintf("[%s] Issue synchronized: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueMilestoned:
 		title = fmt.Sprintf("[%s] Issue milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	case api.HookIssueDemilestoned:
 		title = fmt.Sprintf("[%s] Issue clear milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
 	}
 
 	return &DingtalkPayload{
@@ -238,10 +229,8 @@ func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload,
 		} else {
 			title = fmt.Sprintf("[%s] Pull request closed: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		}
-		text = p.PullRequest.Body
 	case api.HookIssueReOpened:
 		title = fmt.Sprintf("[%s] Pull request re-opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	case api.HookIssueEdited:
 		title = fmt.Sprintf("[%s] Pull request edited: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
 		text = p.PullRequest.Body
@@ -253,25 +242,18 @@ func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload,
 		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d %s", p.Repository.FullName,
 			strings.Join(list, ", "),
 			p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	case api.HookIssueUnassigned:
 		title = fmt.Sprintf("[%s] Pull request unassigned: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	case api.HookIssueLabelUpdated:
 		title = fmt.Sprintf("[%s] Pull request labels updated: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	case api.HookIssueLabelCleared:
 		title = fmt.Sprintf("[%s] Pull request labels cleared: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	case api.HookIssueSynchronized:
 		title = fmt.Sprintf("[%s] Pull request synchronized: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	case api.HookIssueMilestoned:
 		title = fmt.Sprintf("[%s] Pull request milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	case api.HookIssueDemilestoned:
 		title = fmt.Sprintf("[%s] Pull request clear milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
 	}
 
 	return &DingtalkPayload{

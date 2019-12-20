@@ -59,6 +59,7 @@
 package v1
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -92,14 +93,14 @@ func sudo() macaron.Handler {
 					if models.IsErrUserNotExist(err) {
 						ctx.NotFound()
 					} else {
-						ctx.Error(500, "GetUserByName", err)
+						ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 					}
 					return
 				}
 				log.Trace("Sudo from (%s) to: %s", ctx.User.Name, user.Name)
 				ctx.User = user
 			} else {
-				ctx.JSON(403, map[string]string{
+				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "Only administrators allowed to sudo.",
 				})
 				return
@@ -127,7 +128,7 @@ func repoAssignment() macaron.Handler {
 				if models.IsErrUserNotExist(err) {
 					ctx.NotFound()
 				} else {
-					ctx.Error(500, "GetUserByName", err)
+					ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 				}
 				return
 			}
@@ -144,10 +145,10 @@ func repoAssignment() macaron.Handler {
 				} else if models.IsErrRepoRedirectNotExist(err) {
 					ctx.NotFound()
 				} else {
-					ctx.Error(500, "LookupRepoRedirect", err)
+					ctx.Error(http.StatusInternalServerError, "LookupRepoRedirect", err)
 				}
 			} else {
-				ctx.Error(500, "GetRepositoryByName", err)
+				ctx.Error(http.StatusInternalServerError, "GetRepositoryByName", err)
 			}
 			return
 		}
@@ -157,7 +158,7 @@ func repoAssignment() macaron.Handler {
 
 		ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
 		if err != nil {
-			ctx.Error(500, "GetUserRepoPermission", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
 		}
 
@@ -182,14 +183,14 @@ func reqToken() macaron.Handler {
 			ctx.RequireCSRF()
 			return
 		}
-		ctx.Context.Error(401)
+		ctx.Context.Error(http.StatusUnauthorized)
 	}
 }
 
 func reqBasicAuth() macaron.Handler {
 	return func(ctx *context.APIContext) {
 		if !ctx.Context.IsBasicAuth {
-			ctx.Context.Error(401)
+			ctx.Context.Error(http.StatusUnauthorized)
 			return
 		}
 		ctx.CheckForOTP()
@@ -200,7 +201,7 @@ func reqBasicAuth() macaron.Handler {
 func reqSiteAdmin() macaron.Handler {
 	return func(ctx *context.Context) {
 		if !ctx.IsUserSiteAdmin() {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 	}
@@ -210,7 +211,7 @@ func reqSiteAdmin() macaron.Handler {
 func reqOwner() macaron.Handler {
 	return func(ctx *context.Context) {
 		if !ctx.IsUserRepoOwner() && !ctx.IsUserSiteAdmin() {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 	}
@@ -220,7 +221,7 @@ func reqOwner() macaron.Handler {
 func reqAdmin() macaron.Handler {
 	return func(ctx *context.Context) {
 		if !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 	}
@@ -230,7 +231,7 @@ func reqAdmin() macaron.Handler {
 func reqRepoWriter(unitTypes ...models.UnitType) macaron.Handler {
 	return func(ctx *context.Context) {
 		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 	}
@@ -240,7 +241,7 @@ func reqRepoWriter(unitTypes ...models.UnitType) macaron.Handler {
 func reqRepoReader(unitType models.UnitType) macaron.Handler {
 	return func(ctx *context.Context) {
 		if !ctx.IsUserRepoReaderSpecific(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 	}
@@ -250,7 +251,7 @@ func reqRepoReader(unitType models.UnitType) macaron.Handler {
 func reqAnyRepoReader() macaron.Handler {
 	return func(ctx *context.Context) {
 		if !ctx.IsUserRepoReaderAny() && !ctx.IsUserSiteAdmin() {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 	}
@@ -269,17 +270,17 @@ func reqOrgOwnership() macaron.Handler {
 		} else if ctx.Org.Team != nil {
 			orgID = ctx.Org.Team.OrgID
 		} else {
-			ctx.Error(500, "", "reqOrgOwnership: unprepared context")
+			ctx.Error(http.StatusInternalServerError, "", "reqOrgOwnership: unprepared context")
 			return
 		}
 
 		isOwner, err := models.IsOrganizationOwner(orgID, ctx.User.ID)
 		if err != nil {
-			ctx.Error(500, "IsOrganizationOwner", err)
+			ctx.Error(http.StatusInternalServerError, "IsOrganizationOwner", err)
 			return
 		} else if !isOwner {
 			if ctx.Org.Organization != nil {
-				ctx.Error(403, "", "Must be an organization owner")
+				ctx.Error(http.StatusForbidden, "", "Must be an organization owner")
 			} else {
 				ctx.NotFound()
 			}
@@ -295,28 +296,28 @@ func reqTeamMembership() macaron.Handler {
 			return
 		}
 		if ctx.Org.Team == nil {
-			ctx.Error(500, "", "reqTeamMembership: unprepared context")
+			ctx.Error(http.StatusInternalServerError, "", "reqTeamMembership: unprepared context")
 			return
 		}
 
 		var orgID = ctx.Org.Team.OrgID
 		isOwner, err := models.IsOrganizationOwner(orgID, ctx.User.ID)
 		if err != nil {
-			ctx.Error(500, "IsOrganizationOwner", err)
+			ctx.Error(http.StatusInternalServerError, "IsOrganizationOwner", err)
 			return
 		} else if isOwner {
 			return
 		}
 
 		if isTeamMember, err := models.IsTeamMember(orgID, ctx.Org.Team.ID, ctx.User.ID); err != nil {
-			ctx.Error(500, "IsTeamMember", err)
+			ctx.Error(http.StatusInternalServerError, "IsTeamMember", err)
 			return
 		} else if !isTeamMember {
 			isOrgMember, err := models.IsOrganizationMember(orgID, ctx.User.ID)
 			if err != nil {
-				ctx.Error(500, "IsOrganizationMember", err)
+				ctx.Error(http.StatusInternalServerError, "IsOrganizationMember", err)
 			} else if isOrgMember {
-				ctx.Error(403, "", "Must be a team member")
+				ctx.Error(http.StatusForbidden, "", "Must be a team member")
 			} else {
 				ctx.NotFound()
 			}
@@ -338,16 +339,16 @@ func reqOrgMembership() macaron.Handler {
 		} else if ctx.Org.Team != nil {
 			orgID = ctx.Org.Team.OrgID
 		} else {
-			ctx.Error(500, "", "reqOrgMembership: unprepared context")
+			ctx.Error(http.StatusInternalServerError, "", "reqOrgMembership: unprepared context")
 			return
 		}
 
 		if isMember, err := models.IsOrganizationMember(orgID, ctx.User.ID); err != nil {
-			ctx.Error(500, "IsOrganizationMember", err)
+			ctx.Error(http.StatusInternalServerError, "IsOrganizationMember", err)
 			return
 		} else if !isMember {
 			if ctx.Org.Organization != nil {
-				ctx.Error(403, "", "Must be an organization member")
+				ctx.Error(http.StatusForbidden, "", "Must be an organization member")
 			} else {
 				ctx.NotFound()
 			}
@@ -359,7 +360,7 @@ func reqOrgMembership() macaron.Handler {
 func reqGitHook() macaron.Handler {
 	return func(ctx *context.APIContext) {
 		if !ctx.User.CanEditGitHook() {
-			ctx.Error(403, "", "must be allowed to edit Git hooks")
+			ctx.Error(http.StatusForbidden, "", "must be allowed to edit Git hooks")
 			return
 		}
 	}
@@ -386,7 +387,7 @@ func orgAssignment(args ...bool) macaron.Handler {
 				if models.IsErrOrgNotExist(err) {
 					ctx.NotFound()
 				} else {
-					ctx.Error(500, "GetOrgByName", err)
+					ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
 				}
 				return
 			}
@@ -398,7 +399,7 @@ func orgAssignment(args ...bool) macaron.Handler {
 				if models.IsErrUserNotExist(err) {
 					ctx.NotFound()
 				} else {
-					ctx.Error(500, "GetTeamById", err)
+					ctx.Error(http.StatusInternalServerError, "GetTeamById", err)
 				}
 				return
 			}

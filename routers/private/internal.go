@@ -80,6 +80,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	bind := binding.Bind
 
 	m.Group("/", func() {
+		m.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
 		m.Post("/ssh/:id/update/:repoid", UpdatePublicKeyInRepo)
 		m.Post("/hook/pre-receive/:owner/:repo", bind(private.HookOptions{}), HookPreReceive)
 		m.Post("/hook/post-receive/:owner/:repo", bind(private.HookOptions{}), HookPostReceive)
