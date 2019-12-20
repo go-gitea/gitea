@@ -41,8 +41,8 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 	//   schema:
 	//     "$ref": "#/definitions/CreateStatusOption"
 	// responses:
-	//   "200":
-	//     "$ref": "#/responses/StatusList"
+	//   "201":
+	//     "$ref": "#/responses/Status"
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {
 		ctx.Error(400, "sha not given", nil)
