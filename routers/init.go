@@ -6,6 +6,7 @@ package routers
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -57,6 +58,11 @@ func NewServices() {
 func initDBEngine(ctx context.Context) (err error) {
 	log.Info("Beginning ORM engine initialization.")
 	for i := 0; i < setting.Database.DBConnectRetries; i++ {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("Aborted due to shutdown:\nin retry ORM engine initialization")
+		default:
+		}
 		log.Info("ORM engine initialization attempt #%d/%d...", i+1, setting.Database.DBConnectRetries)
 		if err = models.NewEngine(ctx, migrations.Migrate); err == nil {
 			break
