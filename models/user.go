@@ -1532,20 +1532,17 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
-	if opts.PageSize == 0 || opts.PageSize > setting.UI.ExplorePagingNum {
-		opts.PageSize = setting.UI.ExplorePagingNum
-	}
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
 	if len(opts.OrderBy) == 0 {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
-	sess := opts.setSessionPagination(x.Where(cond))
+	sess := x.Where(cond).OrderBy(opts.OrderBy.String())
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
+	}
 
 	users = make([]*User, 0, opts.PageSize)
-	return users, count, sess.OrderBy(opts.OrderBy.String()).Find(&users)
+	return users, count, sess.Find(&users)
 }
 
 // GetStarredRepos returns the repos starred by a particular user
