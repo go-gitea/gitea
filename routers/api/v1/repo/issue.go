@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/modules/convert"
 	"fmt"
 	"net/http"
 	"strings"
@@ -70,8 +71,10 @@ func SearchIssues(ctx *context.APIContext) {
 	issueCount := 0
 	for page := 1; ; page++ {
 		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			Page:        page,
-			PageSize:    15,
+			ListOptions: models.ListOptions{
+				Page:     ctx.QueryInt("page"),
+				PageSize: 15,
+			},
 			Private:     true,
 			Keyword:     "",
 			OwnerID:     ctx.User.ID,
@@ -129,9 +132,11 @@ func SearchIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
+			ListOptions: models.ListOptions{
+				Page:           ctx.QueryInt("page"),
+				PageSize:       setting.UI.IssuePagingNum,
+			},
 			RepoIDs:        repoIDs,
-			Page:           ctx.QueryInt("page"),
-			PageSize:       setting.UI.IssuePagingNum,
 			IsClosed:       isClosed,
 			IssueIDs:       issueIDs,
 			LabelIDs:       labelIDs,
@@ -162,6 +167,14 @@ func ListIssues(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: owner
 	//   in: path
 	//   description: owner of the repo
@@ -180,10 +193,6 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
 	//   type: string
-	// - name: page
-	//   in: query
-	//   description: page number of requested issues
-	//   type: integer
 	// - name: q
 	//   in: query
 	//   description: search string
@@ -227,9 +236,11 @@ func ListIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
+			ListOptions: models.ListOptions{
+				Page:     ctx.QueryInt("page"),
+				PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+			},
 			RepoIDs:  []int64{ctx.Repo.Repository.ID},
-			Page:     ctx.QueryInt("page"),
-			PageSize: setting.UI.IssuePagingNum,
 			IsClosed: isClosed,
 			IssueIDs: issueIDs,
 			LabelIDs: labelIDs,

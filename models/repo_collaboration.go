@@ -52,9 +52,13 @@ func (repo *Repository) AddCollaborator(u *User) error {
 	return sess.Commit()
 }
 
-func (repo *Repository) getCollaborations(e Engine) ([]*Collaboration, error) {
+func (repo *Repository) getCollaborations(e Engine, listOptions ListOptions) ([]*Collaboration, error) {
 	var collaborations []*Collaboration
-	return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
+	if listOptions.Page == 0 {
+		return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
+	}
+
+	return collaborations, listOptions.getPaginatedSession().Find(&collaborations, &Collaboration{RepoID: repo.ID})
 }
 
 // Collaborator represents a user with collaboration details.
@@ -63,8 +67,8 @@ type Collaborator struct {
 	Collaboration *Collaboration
 }
 
-func (repo *Repository) getCollaborators(e Engine) ([]*Collaborator, error) {
-	collaborations, err := repo.getCollaborations(e)
+func (repo *Repository) getCollaborators(e Engine, listOptions ListOptions) ([]*Collaborator, error) {
+	collaborations, err := repo.getCollaborations(e, listOptions)
 	if err != nil {
 		return nil, fmt.Errorf("getCollaborations: %v", err)
 	}
@@ -84,8 +88,8 @@ func (repo *Repository) getCollaborators(e Engine) ([]*Collaborator, error) {
 }
 
 // GetCollaborators returns the collaborators for a repository
-func (repo *Repository) GetCollaborators() ([]*Collaborator, error) {
-	return repo.getCollaborators(x)
+func (repo *Repository) GetCollaborators(listOptions ListOptions) ([]*Collaborator, error) {
+	return repo.getCollaborators(x, listOptions)
 }
 
 func (repo *Repository) getCollaboration(e Engine, uid int64) (*Collaboration, error) {

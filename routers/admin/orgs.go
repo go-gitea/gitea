@@ -23,8 +23,10 @@ func Organizations(ctx *context.Context) {
 	ctx.Data["PageIsAdminOrganizations"] = true
 
 	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:     models.UserTypeOrganization,
-		PageSize: setting.UI.Admin.OrgPagingNum,
-		Private:  true,
+		Type: models.UserTypeOrganization,
+		ListOptions: models.ListOptions{
+			PageSize: setting.UI.Admin.UserPagingNum,
+		},
+		Private: true,
 	}, tplOrgs)
 }

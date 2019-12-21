@@ -67,6 +67,20 @@
         ],
         "summary": "List all users",
         "operationId": "adminGetAllUsers",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/UserList"
@@ -6594,6 +6608,18 @@
         "parameters": [
           {
             "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "type": "integer",
             "format": "int64",
             "description": "id of the team",
             "name": "id",
@@ -6726,6 +6752,18 @@
         "summary": "List a team's repos",
         "operationId": "orgListTeamRepos",
         "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
+          },
           {
             "type": "integer",
             "format": "int64",

@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/modules/convert"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -28,6 +29,14 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: owner
 	//   in: path
 	//   description: owner of the repo
@@ -64,7 +73,13 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{IssueID: issue.ID})
+	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
+		IssueID: issue.ID,
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimesByIssue", err)
 		return
@@ -202,6 +217,14 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: owner
 	//   in: path
 	//   description: owner of the repo
@@ -223,6 +246,10 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		return
 	}
 	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
 		RepositoryID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimesByUser", err)
@@ -237,13 +264,28 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	// swagger:operation GET /user/times user userCurrentTrackedTimes
 	// ---
 	// summary: List the current user's tracked times
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// produces:
 	// - application/json
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
 
-	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{UserID: ctx.User.ID})
+	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
+		UserID: ctx.User.ID,
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimesByUser", err)
 		return

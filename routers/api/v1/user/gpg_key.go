@@ -13,8 +13,8 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func listGPGKeys(ctx *context.APIContext, uid int64) {
-	keys, err := models.ListGPGKeys(uid)
+func listGPGKeys(ctx *context.APIContext, uid int64, listOptions models.ListOptions) {
+	keys, err := models.ListGPGKeys(uid, listOptions)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListGPGKeys", err)
 		return
@@ -36,6 +36,14 @@ func ListGPGKeys(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: username
 	//   in: path
 	//   description: username of user
@@ -49,7 +57,10 @@ func ListGPGKeys(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	listGPGKeys(ctx, user.ID)
+	listGPGKeys(ctx, user.ID, models.ListOptions{
+		Page:     ctx.QueryInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+	})
 }
 
 //ListMyGPGKeys get the GPG key list of the authenticated user
@@ -57,13 +68,25 @@ func ListMyGPGKeys(ctx *context.APIContext) {
 	// swagger:operation GET /user/gpg_keys user userCurrentListGPGKeys
 	// ---
 	// summary: List the authenticated user's GPG keys
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// produces:
 	// - application/json
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
 
-	listGPGKeys(ctx, ctx.User.ID)
+	listGPGKeys(ctx, ctx.User.ID, models.ListOptions{
+		Page:     ctx.QueryInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+	})
 }
 
 //GetGPGKey get the GPG key based on a id

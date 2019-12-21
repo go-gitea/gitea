@@ -42,6 +42,14 @@ func ListDeployKeys(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: owner
 	//   in: path
 	//   description: owner of the repo
@@ -72,7 +80,10 @@ func ListDeployKeys(ctx *context.APIContext) {
 	if fingerprint != "" || keyID != 0 {
 		keys, err = models.SearchDeployKeys(ctx.Repo.Repository.ID, keyID, fingerprint)
 	} else {
-		keys, err = models.ListDeployKeys(ctx.Repo.Repository.ID)
+		keys, err = models.ListDeployKeys(ctx.Repo.Repository.ID, models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		})
 	}
 
 	if err != nil {

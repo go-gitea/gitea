@@ -64,12 +64,12 @@ func isStaring(e Engine, userID, repoID int64) bool {
 }
 
 // GetStargazers returns the users that starred the repo.
-func (repo *Repository) GetStargazers(page int) ([]*User, error) {
+func (repo *Repository) GetStargazers(opts ListOptions) ([]*User, error) {
 	users := make([]*User, 0, ItemsPerPage)
 	sess := x.Where("star.repo_id = ?", repo.ID).
 		Join("LEFT", "star", "`user`.id = star.uid")
-	if page > 0 {
-		sess = sess.Limit(ItemsPerPage, (page-1)*ItemsPerPage)
+	if opts.Page > 0 {
+		sess = opts.setSessionPagination(sess)
 	}
 	return users, sess.Find(&users)
 }

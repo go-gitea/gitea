@@ -47,7 +47,7 @@ func TestGetAccessTokenBySHA(t *testing.T) {
 
 func TestListAccessTokens(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	tokens, err := ListAccessTokens(1)
+	tokens, err := ListAccessTokens(1, ListOptions{})
 	assert.NoError(t, err)
 	if assert.Len(t, tokens, 2) {
 		assert.Equal(t, int64(1), tokens[0].UID)
@@ -56,14 +56,14 @@ func TestListAccessTokens(t *testing.T) {
 		assert.Contains(t, []string{tokens[0].Name, tokens[1].Name}, "Token B")
 	}
 
-	tokens, err = ListAccessTokens(2)
+	tokens, err = ListAccessTokens(2, ListOptions{})
 	assert.NoError(t, err)
 	if assert.Len(t, tokens, 1) {
 		assert.Equal(t, int64(2), tokens[0].UID)
 		assert.Equal(t, "Token A", tokens[0].Name)
 	}
 
-	tokens, err = ListAccessTokens(100)
+	tokens, err = ListAccessTokens(100, ListOptions{})
 	assert.NoError(t, err)
 	assert.Empty(t, tokens)
 }

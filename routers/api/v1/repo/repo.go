@@ -126,11 +126,13 @@ func Search(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	opts := &models.SearchRepoOptions{
+		ListOptions: models.ListOptions{
+			Page:               ctx.QueryInt("page"),
+			PageSize:           convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
 		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
-		Page:               ctx.QueryInt("page"),
-		PageSize:           convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		TopicOnly:          ctx.QueryBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),

@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/modules/convert"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -56,24 +57,19 @@ func Releases(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 	ctx.Data["PageIsReleaseList"] = true
 
-	page := ctx.QueryInt("page")
-	if page <= 1 {
-		page = 1
-	}
-	limit := ctx.QueryInt("limit")
-	if limit <= 0 {
-		limit = 10
-	}
-
 	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	opts := models.FindReleasesOptions{
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
 		IncludeDrafts: writeAccess,
 		IncludeTags:   true,
 	}
 
-	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts, page, limit)
+	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.ServerError("GetReleasesByRepoID", err)
 		return
@@ -121,7 +117,7 @@ func Releases(ctx *context.Context) {
 
 	ctx.Data["Releases"] = releases
 
-	pager := context.NewPagination(int(count), limit, page, 5)
+	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 

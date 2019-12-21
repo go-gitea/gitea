@@ -19,9 +19,13 @@ import (
 // listMembers list an organization's members
 func listMembers(ctx *context.APIContext, publicOnly bool) {
 	var members []*models.User
-	members, _, err := models.FindOrgMembers(models.FindOrgMembersOpts{
+	members, _, err := models.FindOrgMembers(&models.FindOrgMembersOpts{
 		OrgID:      ctx.Org.Organization.ID,
 		PublicOnly: publicOnly,
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
@@ -43,6 +47,14 @@ func ListMembers(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: org
 	//   in: path
 	//   description: name of the organization
@@ -70,6 +82,14 @@ func ListPublicMembers(ctx *context.APIContext) {
 	// ---
 	// summary: List an organization's public members
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: org
 	//   in: path
 	//   description: name of the organization

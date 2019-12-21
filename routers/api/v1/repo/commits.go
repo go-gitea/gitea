@@ -76,6 +76,14 @@ func GetAllCommits(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: owner
 	//   in: path
 	//   description: owner of the repo
@@ -90,10 +98,6 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   in: query
 	//   description: SHA or branch to start listing commits from (usually 'master')
 	//   type: string
-	// - name: page
-	//   in: query
-	//   description: page number of requested commits
-	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CommitList"
@@ -120,6 +124,11 @@ func GetAllCommits(ctx *context.APIContext) {
 	page := ctx.QueryInt("page")
 	if page <= 0 {
 		page = 1
+	}
+
+	pageSize := ctx.QueryInt("limit")
+	if pageSize <= 0 {
+		pageSize = git.CommitsRangeSize
 	}
 
 	sha := ctx.Query("sha")
@@ -157,7 +166,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	pageCount := int(math.Ceil(float64(commitsCountTotal) / float64(git.CommitsRangeSize)))
 
 	// Query commits
-	commits, err := baseCommit.CommitsByRange(page)
+	commits, err := baseCommit.CommitsByRange(page, pageSize)
 	if err != nil {
 		ctx.ServerError("CommitsByRange", err)
 		return

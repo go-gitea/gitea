@@ -22,6 +22,14 @@ func ListHooks(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: org
 	//   in: path
 	//   description: name of the organization
@@ -32,9 +40,15 @@ func ListHooks(ctx *context.APIContext) {
 	//     "$ref": "#/responses/HookList"
 
 	org := ctx.Org.Organization
-	orgHooks, err := models.GetWebhooksByOrgID(org.ID)
+	orgHooks, err := models.GetWebhooksByOrgID(&models.SearchWebhooksOptions{
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
+		OrgID: org.ID,
+	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetWebhooksByOrgID", err)
+		ctx.Error(http.StatusInternalServerError, "GetAllWebhooksByOrgID", err)
 		return
 	}
 	hooks := make([]*api.Hook, len(orgHooks))

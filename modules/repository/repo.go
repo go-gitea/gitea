@@ -184,7 +184,7 @@ func SyncReleasesWithTags(repo *models.Repository, gitRepo *git.Repository) erro
 	existingRelTags := make(map[string]struct{})
 	opts := models.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
 	for page := 1; ; page++ {
-		rels, err := models.GetReleasesByRepoID(repo.ID, opts, page, 100)
+		rels, err := models.GetReleasesByRepoID(repo.ID, opts)
 		if err != nil {
 			return fmt.Errorf("GetReleasesByRepoID: %v", err)
 		}

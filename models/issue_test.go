@@ -139,24 +139,30 @@ func TestIssues(t *testing.T) {
 			IssuesOptions{
 				RepoIDs:  []int64{1, 3},
 				SortType: "oldest",
-				Page:     1,
-				PageSize: 4,
+				ListOptions: ListOptions{
+					Page:     1,
+					PageSize: 4,
+				},
 			},
 			[]int64{1, 2, 3, 5},
 		},
 		{
 			IssuesOptions{
 				LabelIDs: []int64{1},
-				Page:     1,
-				PageSize: 4,
+				ListOptions: ListOptions{
+					Page:     1,
+					PageSize: 4,
+				},
 			},
 			[]int64{2, 1},
 		},
 		{
 			IssuesOptions{
 				LabelIDs: []int64{1, 2},
-				Page:     1,
-				PageSize: 4,
+				ListOptions: ListOptions{
+					Page:     1,
+					PageSize: 4,
+				},
 			},
 			[]int64{}, // issues with **both** label 1 and 2, none of these issues matches, TODO: add more tests
 		},

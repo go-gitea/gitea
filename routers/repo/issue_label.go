@@ -50,7 +50,7 @@ func InitializeLabels(ctx *context.Context, form auth.InitializeLabelsForm) {
 
 // RetrieveLabels find all the labels of a repository
 func RetrieveLabels(ctx *context.Context) {
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"))
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"), models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("RetrieveLabels.GetLabels", err)
 		return

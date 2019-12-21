@@ -192,7 +192,7 @@ func (repo *Repository) refreshAccesses(e Engine, accessMap map[int64]AccessMode
 
 // refreshCollaboratorAccesses retrieves repository collaborations with their access modes.
 func (repo *Repository) refreshCollaboratorAccesses(e Engine, accessMap map[int64]AccessMode) error {
-	collaborations, err := repo.getCollaborations(e)
+	collaborations, err := repo.getCollaborations(e, ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborations: %v", err)
 	}

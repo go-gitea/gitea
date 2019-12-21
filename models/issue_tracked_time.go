@@ -42,6 +42,7 @@ func (t *TrackedTime) APIFormat() *api.TrackedTime {
 
 // FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.
 type FindTrackedTimesOptions struct {
+	ListOptions
 	IssueID      int64
 	UserID       int64
 	RepositoryID int64
@@ -68,10 +69,24 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 
 // ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
 func (opts *FindTrackedTimesOptions) ToSession(e Engine) *xorm.Session {
+	var sess *xorm.Session
 	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
-		return e.Join("INNER", "issue", "issue.id = tracked_time.issue_id").Where(opts.ToCond())
+		sess = e.Join("INNER", "issue", "issue.id = tracked_time.issue_id")
 	}
-	return x.Where(opts.ToCond())
+
+	if opts.Page != 0 {
+		if sess == nil {
+			sess = opts.getPaginatedSession()
+		} else {
+			sess = opts.setSessionPagination(sess)
+		}
+	}
+
+	if sess == nil {
+		return e.Where(opts.ToCond())
+	}
+
+	return sess.Where(opts.ToCond())
 }
 
 // GetTrackedTimes returns all tracked times that fit to the given options.

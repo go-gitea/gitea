@@ -43,7 +43,7 @@ func TestTeam_GetRepositories(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
-		assert.NoError(t, team.GetRepositories())
+		assert.NoError(t, team.GetRepositories(&SearchTeamOptions{}))
 		assert.Len(t, team.Repos, team.NumRepos)
 		for _, repo := range team.Repos {
 			AssertExistsAndLoadBean(t, &TeamRepo{TeamID: teamID, RepoID: repo.ID})
@@ -58,7 +58,7 @@ func TestTeam_GetMembers(t *testing.T) {
 
 	test := func(teamID int64) {
 		team := AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
-		assert.NoError(t, team.GetMembers())
+		assert.NoError(t, team.GetMembers(&SearchMembersOptions{}))
 		assert.Len(t, team.Members, team.NumMembers)
 		for _, member := range team.Members {
 			AssertExistsAndLoadBean(t, &TeamUser{UID: member.ID, TeamID: teamID})
@@ -289,7 +289,7 @@ func TestGetTeamMembers(t *testing.T) {
 func TestGetUserTeams(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	test := func(userID int64) {
-		teams, err := GetUserTeams(userID)
+		teams, err := GetUserTeams(userID, ListOptions{})
 		assert.NoError(t, err)
 		for _, team := range teams {
 			AssertExistsAndLoadBean(t, &TeamUser{TeamID: team.ID, UID: userID})
@@ -383,7 +383,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 
 	testTeamRepositories := func(teamID int64, repoIds []int64) {
 		team := AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
-		assert.NoError(t, team.GetRepositories(), "%s: GetRepositories", team.Name)
+		assert.NoError(t, team.GetRepositories(&SearchTeamOptions{}), "%s: GetRepositories", team.Name)
 		assert.Len(t, team.Repos, team.NumRepos, "%s: len repo", team.Name)
 		assert.Equal(t, len(repoIds), len(team.Repos), "%s: repo count", team.Name)
 		for i, rid := range repoIds {

@@ -78,6 +78,12 @@ type HookEvent struct {
 	HookEvents `json:"events"`
 }
 
+// SearchWebhooksOptions holds the search options
+type SearchWebhooksOptions struct {
+	ListOptions
+	OrgID int64
+}
+
 // HookStatus is the status of a web hook
 type HookStatus int
 
@@ -274,9 +280,14 @@ func getActiveWebhooksByRepoID(e Engine, repoID int64) ([]*Webhook, error) {
 }
 
 // GetWebhooksByRepoID returns all webhooks of a repository.
-func GetWebhooksByRepoID(repoID int64) ([]*Webhook, error) {
-	webhooks := make([]*Webhook, 0, 5)
-	return webhooks, x.Find(&webhooks, &Webhook{RepoID: repoID})
+func GetWebhooksByRepoID(repoID int64, listOptions ListOptions) ([]*Webhook, error) {
+	var webhooks []*Webhook
+
+	if listOptions.Page == 0 {
+		return webhooks, x.Find(&webhooks, &Webhook{RepoID: repoID})
+	}
+
+	return webhooks, listOptions.getPaginatedSession().Find(&webhooks, &Webhook{RepoID: repoID})
 }
 
 // GetActiveWebhooksByOrgID returns all active webhooks for an organization.
@@ -292,9 +303,13 @@ func getActiveWebhooksByOrgID(e Engine, orgID int64) (ws []*Webhook, err error) 
 	return ws, err
 }
 
-// GetWebhooksByOrgID returns all webhooks for an organization.
-func GetWebhooksByOrgID(orgID int64) (ws []*Webhook, err error) {
-	err = x.Find(&ws, &Webhook{OrgID: orgID})
+// GetWebhooksByOrgID returns paginated webhooks for an organization.
+func GetWebhooksByOrgID(opts *SearchWebhooksOptions) (ws []*Webhook, err error) {
+	if opts.Page == 0 {
+		err = x.Find(&ws, &Webhook{OrgID: opts.OrgID})
+		return ws, err
+	}
+	err = opts.getPaginatedSession().Find(&ws, &Webhook{OrgID: opts.OrgID})
 	return ws, err
 }
 

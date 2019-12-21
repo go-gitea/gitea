@@ -135,8 +135,10 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["TopicOnly"] = topicOnly
 
 	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
-		Page:               page,
-		PageSize:           opts.PageSize,
+		ListOptions: models.ListOptions{
+			Page:     page,
+			PageSize: opts.PageSize,
+		},
 		OrderBy:            orderBy,
 		Private:            opts.Private,
 		Keyword:            keyword,
@@ -245,10 +247,10 @@ func ExploreUsers(ctx *context.Context) {
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:     models.UserTypeIndividual,
-		PageSize: setting.UI.ExplorePagingNum,
-		IsActive: util.OptionalBoolTrue,
-		Private:  true,
+		Type:        models.UserTypeIndividual,
+		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
+		IsActive:    util.OptionalBoolTrue,
+		Private:     true,
 	}, tplExploreUsers)
 }
 
@@ -265,10 +267,10 @@ func ExploreOrganizations(ctx *context.Context) {
 	}
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:     models.UserTypeOrganization,
-		PageSize: setting.UI.ExplorePagingNum,
-		Private:  ctx.User != nil,
-		OwnerID:  ownerID,
+		Type:        models.UserTypeOrganization,
+		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
+		Private:     ctx.User != nil,
+		OwnerID:     ownerID,
 	}, tplExploreOrganizations)
 }
 

@@ -109,7 +109,7 @@ func SignInitialCommit(repoPath string, u *User) (bool, string) {
 		case always:
 			break
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID)
+			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil || len(keys) == 0 {
 				return false, ""
 			}
@@ -138,7 +138,7 @@ func (repo *Repository) SignWikiCommit(u *User) (bool, string) {
 		case always:
 			break
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID)
+			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil || len(keys) == 0 {
 				return false, ""
 			}
@@ -184,7 +184,7 @@ func (repo *Repository) SignCRUDAction(u *User, tmpBasePath, parentCommit string
 		case always:
 			break
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID)
+			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil || len(keys) == 0 {
 				return false, ""
 			}

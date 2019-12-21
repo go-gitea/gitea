@@ -86,7 +86,7 @@ func TestUser_GetOwnerTeam(t *testing.T) {
 func TestUser_GetTeams(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	assert.NoError(t, org.GetTeams())
+	assert.NoError(t, org.GetTeams(&SearchTeamOptions{}))
 	if assert.Len(t, org.Teams, 4) {
 		assert.Equal(t, int64(1), org.Teams[0].ID)
 		assert.Equal(t, int64(2), org.Teams[1].ID)
@@ -367,7 +367,7 @@ func TestGetOwnedOrgsByUserIDDesc(t *testing.T) {
 func TestGetOrgUsersByUserID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	orgUsers, err := GetOrgUsersByUserID(5, true)
+	orgUsers, err := GetOrgUsersByUserID(5, &SearchOrganizationsOptions{All: true})
 	assert.NoError(t, err)
 	if assert.Len(t, orgUsers, 2) {
 		assert.Equal(t, OrgUser{
@@ -382,12 +382,12 @@ func TestGetOrgUsersByUserID(t *testing.T) {
 			IsPublic: false}, *orgUsers[1])
 	}
 
-	publicOrgUsers, err := GetOrgUsersByUserID(5, false)
+	publicOrgUsers, err := GetOrgUsersByUserID(5, &SearchOrganizationsOptions{All: false})
 	assert.NoError(t, err)
 	assert.Len(t, publicOrgUsers, 1)
 	assert.Equal(t, *orgUsers[0], *publicOrgUsers[0])
 
-	orgUsers, err = GetOrgUsersByUserID(1, true)
+	orgUsers, err = GetOrgUsersByUserID(1, &SearchOrganizationsOptions{All: true})
 	assert.NoError(t, err)
 	assert.Len(t, orgUsers, 0)
 }
@@ -395,7 +395,11 @@ func TestGetOrgUsersByUserID(t *testing.T) {
 func TestGetOrgUsersByOrgID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	orgUsers, err := GetOrgUsersByOrgID(3, false, 0, 0)
+	orgUsers, err := GetOrgUsersByOrgID(&FindOrgMembersOpts{
+		ListOptions: ListOptions{},
+		OrgID:       3,
+		PublicOnly:  false,
+	})
 	assert.NoError(t, err)
 	if assert.Len(t, orgUsers, 3) {
 		assert.Equal(t, OrgUser{
@@ -410,7 +414,11 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 			IsPublic: false}, *orgUsers[1])
 	}
 
-	orgUsers, err = GetOrgUsersByOrgID(NonexistentID, false, 0, 0)
+	orgUsers, err = GetOrgUsersByOrgID(&FindOrgMembersOpts{
+		ListOptions: ListOptions{},
+		OrgID:       NonexistentID,
+		PublicOnly:  false,
+	})
 	assert.NoError(t, err)
 	assert.Len(t, orgUsers, 0)
 }

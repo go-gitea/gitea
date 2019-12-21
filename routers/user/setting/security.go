@@ -71,7 +71,7 @@ func loadSecurityData(ctx *context.Context) {
 		ctx.Data["RequireU2F"] = true
 	}
 
-	tokens, err := models.ListAccessTokens(ctx.User.ID)
+	tokens, err := models.ListAccessTokens(ctx.User.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
 		return

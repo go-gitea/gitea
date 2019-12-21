@@ -111,6 +111,7 @@ func (repos MirrorRepositoryList) LoadAttributes() error {
 
 // SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
+	ListOptions
 	UserID          int64
 	UserIsAdmin     bool
 	Keyword         string
@@ -119,10 +120,8 @@ type SearchRepoOptions struct {
 	OrderBy         SearchOrderBy
 	Private         bool // Include private repositories in results
 	StarredByID     int64
-	Page            int
 	IsProfile       bool
 	AllPublic       bool // Include also all public repositories
-	PageSize        int  // Can be smaller than or equal to setting.ExplorePagingNum
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
 	// False -> incude just non-collaborative

@@ -1309,7 +1309,7 @@ func createRepository(e Engine, doer, u *User, repo *Repository) (err error) {
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
-		if err := u.GetTeams(); err != nil {
+		if err := u.GetTeams(&SearchTeamOptions{}); err != nil {
 			return fmt.Errorf("GetTeams: %v", err)
 		}
 		for _, t := range u.Teams {
@@ -1483,7 +1483,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	// Remove redundant collaborators.
-	collaborators, err := repo.getCollaborators(sess)
+	collaborators, err := repo.getCollaborators(sess, ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborators: %v", err)
 	}
@@ -1513,7 +1513,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	if newOwner.IsOrganization() {
-		if err := newOwner.GetTeams(); err != nil {
+		if err := newOwner.GetTeams(&SearchTeamOptions{}); err != nil {
 			return fmt.Errorf("GetTeams: %v", err)
 		}
 		for _, t := range newOwner.Teams {
@@ -1754,7 +1754,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 	if org.IsOrganization() {
-		if err = org.GetTeams(); err != nil {
+		if err = org.GetTeams(&SearchTeamOptions{}); err != nil {
 			return err
 		}
 	}
@@ -1774,7 +1774,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	// Delete Deploy Keys
-	deployKeys, err := listDeployKeys(sess, repo.ID)
+	deployKeys, err := listDeployKeys(sess, repo.ID, ListOptions{})
 	if err != nil {
 		return fmt.Errorf("listDeployKeys: %v", err)
 	}
@@ -2028,25 +2028,20 @@ func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
 }
 
 // GetUserRepositories returns a list of repositories of given user.
-func GetUserRepositories(userID int64, private bool, page, pageSize int, orderBy string) ([]*Repository, error) {
-	if len(orderBy) == 0 {
-		orderBy = "updated_unix DESC"
+func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, error) {
+	if len(opts.OrderBy) == 0 {
+		opts.OrderBy = "updated_unix DESC"
 	}
 
 	sess := x.
-		Where("owner_id = ?", userID).
-		OrderBy(orderBy)
-	if !private {
+		Where("owner_id = ?", opts.UserID).
+		OrderBy(opts.OrderBy.String())
+	if !opts.Private {
 		sess.And("is_private=?", false)
 	}
 
-	if page <= 0 {
-		page = 1
-	}
-	sess.Limit(pageSize, (page-1)*pageSize)
-
-	repos := make([]*Repository, 0, pageSize)
-	return repos, sess.Find(&repos)
+	var repos []*Repository
+	return repos, opts.setSessionPagination(sess).Find(&repos)
 }
 
 // GetUserMirrorRepositories returns a list of mirror repositories of given user.
@@ -2566,9 +2561,14 @@ func ForkRepository(doer, owner *User, oldRepo *Repository, name, desc string) (
 }
 
 // GetForks returns all the forks of the repository
-func (repo *Repository) GetForks() ([]*Repository, error) {
-	forks := make([]*Repository, 0, repo.NumForks)
-	return forks, x.Find(&forks, &Repository{ForkID: repo.ID})
+func (repo *Repository) GetForks(listOptions ListOptions) ([]*Repository, error) {
+	var forks []*Repository
+	if listOptions.Page == 0 {
+		return forks, x.Find(&forks, &Repository{ForkID: repo.ID})
+	}
+
+	sess := listOptions.getPaginatedSession()
+	return forks, sess.Find(&forks, &Repository{ForkID: repo.ID})
 }
 
 // GetUserFork return user forked repository from this repository, if not forked return nil

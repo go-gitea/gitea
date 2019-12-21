@@ -25,6 +25,14 @@ func ListTeams(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: org
 	//   in: path
 	//   description: name of the organization
@@ -35,7 +43,12 @@ func ListTeams(ctx *context.APIContext) {
 	//     "$ref": "#/responses/TeamList"
 
 	org := ctx.Org.Organization
-	if err := org.GetTeams(); err != nil {
+	if err := org.GetTeams(&models.SearchTeamOptions{
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
+	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeams", err)
 		return
 	}
@@ -59,11 +72,23 @@ func ListUserTeams(ctx *context.APIContext) {
 	// summary: List all the teams a user belongs to
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
-	teams, err := models.GetUserTeams(ctx.User.ID)
+	teams, err := models.GetUserTeams(ctx.User.ID, models.ListOptions{
+		Page:     ctx.QueryInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserTeams", err)
 		return
@@ -263,6 +288,14 @@ func GetTeamMembers(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: id
 	//   in: path
 	//   description: id of the team
@@ -282,7 +315,12 @@ func GetTeamMembers(ctx *context.APIContext) {
 		return
 	}
 	team := ctx.Org.Team
-	if err := team.GetMembers(); err != nil {
+	if err := team.GetMembers(&models.SearchMembersOptions{
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
+	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamMembers", err)
 		return
 	}
@@ -415,6 +453,14 @@ func GetTeamRepos(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: id
 	//   in: path
 	//   description: id of the team
@@ -426,7 +472,12 @@ func GetTeamRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 
 	team := ctx.Org.Team
-	if err := team.GetRepositories(); err != nil {
+	if err := team.GetRepositories(&models.SearchTeamOptions{
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
+	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 	}
 	repos := make([]*api.Repository, len(team.Repos))
@@ -600,8 +651,10 @@ func SearchTeam(ctx *context.APIContext) {
 		Keyword:     strings.TrimSpace(ctx.Query("q")),
 		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: (ctx.Query("include_desc") == "" || ctx.QueryBool("include_desc")),
-		PageSize:    ctx.QueryInt("limit"),
-		Page:        ctx.QueryInt("page"),
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
 	}
 
 	teams, _, err := models.SearchTeam(opts)

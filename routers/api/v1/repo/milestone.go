@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/modules/convert"
 	"net/http"
 	"time"
 
@@ -22,6 +23,14 @@ func ListMilestones(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: owner
 	//   in: path
 	//   description: owner of the repo
@@ -40,7 +49,10 @@ func ListMilestones(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/MilestoneList"
 
-	milestones, err := models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")))
+	milestones, err := models.GetMilestonesByRepoID(ctx.Repo.Repository.ID, api.StateType(ctx.Query("state")), models.ListOptions{
+		Page:     ctx.QueryInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetMilestonesByRepoID", err)
 		return

@@ -5,6 +5,7 @@
 package user
 
 import (
+	"code.gitea.io/gitea/modules/convert"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -15,8 +16,8 @@ import (
 
 // getWatchedRepos returns the repos that the user with the specified userID is
 // watching
-func getWatchedRepos(user *models.User, private bool) ([]*api.Repository, error) {
-	watchedRepos, err := models.GetWatchedRepos(user.ID, private)
+func getWatchedRepos(user *models.User, private bool, listOptions models.ListOptions) ([]*api.Repository, error) {
+	watchedRepos, err := models.GetWatchedRepos(user.ID, private, listOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -40,6 +41,14 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: username
 	//   type: string
 	//   in: path
@@ -51,7 +60,10 @@ func GetWatchedRepos(ctx *context.APIContext) {
 
 	user := GetUserByParams(ctx)
 	private := user.ID == ctx.User.ID
-	repos, err := getWatchedRepos(user, private)
+	repos, err := getWatchedRepos(user, private, models.ListOptions{
+		Page:     ctx.QueryInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}
@@ -65,11 +77,23 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 	// summary: List repositories watched by the authenticated user
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	repos, err := getWatchedRepos(ctx.User, true)
+	repos, err := getWatchedRepos(ctx.User, true, models.ListOptions{
+		Page:     ctx.QueryInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}

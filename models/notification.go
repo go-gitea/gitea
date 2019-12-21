@@ -75,7 +75,7 @@ func CreateOrUpdateIssueNotifications(issueID, commentID int64, notificationAuth
 }
 
 func createOrUpdateIssueNotifications(e Engine, issueID, commentID int64, notificationAuthorID int64) error {
-	issueWatches, err := getIssueWatchers(e, issueID)
+	issueWatches, err := getIssueWatchers(e, issueID, ListOptions{})
 	if err != nil {
 		return err
 	}

@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/modules/convert"
 	"fmt"
 	"net/http"
 	"strings"
@@ -30,6 +31,14 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: owner
 	//   in: path
 	//   description: owner of the repo
@@ -40,10 +49,6 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: page
-	//   in: query
-	//   description: Page number
-	//   type: integer
 	// - name: state
 	//   in: query
 	//   description: "State of pull request: open or closed (optional)"
@@ -72,7 +77,10 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	//     "$ref": "#/responses/PullRequestList"
 
 	prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
-		Page:        ctx.QueryInt("page"),
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
 		State:       ctx.QueryTrim("state"),
 		SortType:    ctx.QueryTrim("sort"),
 		Labels:      ctx.QueryStrings("labels"),

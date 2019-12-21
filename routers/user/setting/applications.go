@@ -68,7 +68,7 @@ func DeleteApplication(ctx *context.Context) {
 }
 
 func loadApplicationsData(ctx *context.Context) {
-	tokens, err := models.ListAccessTokens(ctx.User.ID)
+	tokens, err := models.ListAccessTokens(ctx.User.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
 		return

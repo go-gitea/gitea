@@ -51,10 +51,10 @@ func Search(ctx *context.APIContext) {
 	//             "$ref": "#/definitions/User"
 
 	opts := &models.SearchUserOptions{
-		Keyword:  strings.Trim(ctx.Query("q"), " "),
-		UID:      com.StrTo(ctx.Query("uid")).MustInt64(),
-		Type:     models.UserTypeIndividual,
-		PageSize: com.StrTo(ctx.Query("limit")).MustInt(),
+		Keyword:     strings.Trim(ctx.Query("q"), " "),
+		UID:         com.StrTo(ctx.Query("uid")).MustInt64(),
+		Type:        models.UserTypeIndividual,
+		ListOptions: models.ListOptions{PageSize: ctx.QueryInt("page")},
 	}
 
 	users, _, err := models.SearchUsers(opts)

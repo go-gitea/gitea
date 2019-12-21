@@ -5,11 +5,11 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/modules/convert"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
@@ -59,20 +59,6 @@ func GetRelease(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, release.APIFormat())
 }
 
-func getPagesInfo(ctx *context.APIContext) (int, int) {
-	page := ctx.QueryInt("page")
-	if page == 0 {
-		page = 1
-	}
-	perPage := ctx.QueryInt("per_page")
-	if perPage == 0 {
-		perPage = setting.API.DefaultPagingNum
-	} else if perPage > setting.API.MaxResponseItems {
-		perPage = setting.API.MaxResponseItems
-	}
-	return page, perPage
-}
-
 // ListReleases list a repository's releases
 func ListReleases(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/releases repository repoListReleases
@@ -81,6 +67,14 @@ func ListReleases(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: owner
 	//   in: path
 	//   description: owner of the repo
@@ -91,23 +85,18 @@ func ListReleases(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: page
-	//   in: query
-	//   description: page wants to load
-	//   type: integer
-	// - name: per_page
-	//   in: query
-	//   description: items count every page wants to load
-	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
 
-	page, limit := getPagesInfo(ctx)
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
 		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite,
 		IncludeTags:   false,
-	}, page, limit)
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetReleasesByRepoID", err)
 		return

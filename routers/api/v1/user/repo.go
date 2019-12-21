@@ -5,6 +5,7 @@
 package user
 
 import (
+	"code.gitea.io/gitea/modules/convert"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -14,7 +15,14 @@ import (
 
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
-	repos, err := models.GetUserRepositories(u.ID, private, 1, u.NumRepos, "")
+	repos, err := models.GetUserRepositories(&models.SearchRepoOptions{
+		UserID:  u.ID,
+		Private: private,
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
 		return
@@ -42,6 +50,14 @@ func ListUserRepos(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: username
 	//   in: path
 	//   description: username of user
@@ -66,11 +82,27 @@ func ListMyRepos(ctx *context.APIContext) {
 	// summary: List the repos that the authenticated user owns or has access to
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	ownRepos, err := models.GetUserRepositories(ctx.User.ID, true, 1, ctx.User.NumRepos, "")
+	ownRepos, err := models.GetUserRepositories(&models.SearchRepoOptions{
+		UserID:  ctx.User.ID,
+		Private: true,
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
 		return
@@ -101,6 +133,14 @@ func ListOrgRepos(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: org
 	//   in: path
 	//   description: name of the organization

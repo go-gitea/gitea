@@ -477,7 +477,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
-	users, err := ctx.Repo.Repository.GetCollaborators()
+	users, err := ctx.Repo.Repository.GetCollaborators(models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetCollaborators", err)
 		return
@@ -729,7 +729,7 @@ func DeployKeys(ctx *context.Context) {
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID)
+	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return
@@ -744,7 +744,7 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 
-	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID)
+	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return

@@ -118,7 +118,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	// Team.
 	if ctx.Org.IsMember {
 		if ctx.Org.IsOwner {
-			if err := org.GetTeams(); err != nil {
+			if err := org.GetTeams(&models.SearchTeamOptions{}); err != nil {
 				ctx.ServerError("GetTeams", err)
 				return
 			}

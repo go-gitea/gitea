@@ -79,7 +79,10 @@ func listPublicKeys(ctx *context.APIContext, user *models.User) {
 		}
 	} else {
 		// Use ListPublicKeys
-		keys, err = models.ListPublicKeys(user.ID)
+		keys, err = models.ListPublicKeys(user.ID, models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		})
 	}
 
 	if err != nil {
@@ -109,6 +112,14 @@ func ListMyPublicKeys(ctx *context.APIContext) {
 	//   in: query
 	//   description: fingerprint of the key
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// produces:
 	// - application/json
 	// responses:
@@ -126,6 +137,14 @@ func ListPublicKeys(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: username
 	//   in: path
 	//   description: username of user

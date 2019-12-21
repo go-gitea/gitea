@@ -16,7 +16,13 @@ import (
 )
 
 func listUserOrgs(ctx *context.APIContext, u *models.User, all bool) {
-	if err := u.GetOrganizations(all); err != nil {
+	if err := u.GetOrganizations(&models.SearchOrganizationsOptions{
+		ListOptions: models.ListOptions{
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		},
+		All: all,
+	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetOrganizations", err)
 		return
 	}
@@ -35,6 +41,15 @@ func ListMyOrgs(ctx *context.APIContext) {
 	// summary: List the current user's organizations
 	// produces:
 	// - application/json
+	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
@@ -50,6 +65,14 @@ func ListUserOrgs(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// - name: username
 	//   in: path
 	//   description: username of user
