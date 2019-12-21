@@ -14,7 +14,7 @@ menu:
 ---
 
 ##  Using Nginx as a reverse proxy
-If you want Nginx to serve your Gitea instance, you can the following `server` section inside the `http` section of `nginx.conf`:
+If you want Nginx to serve your Gitea instance, you can follow the `server` section inside the `http` section of `nginx.conf`:
 
 ```
 server {
