@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"net/http"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -39,6 +40,9 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 		ctx.NotFound("Timetracker is disabled")
 		return
@@ -48,7 +52,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 		return
 	}
@@ -64,10 +68,10 @@ func ListTrackedTimes(ctx *context.APIContext) {
 
 	trackedTimes, err := models.GetTrackedTimes(opts)
 	if err != nil {
-		ctx.Error(500, "GetTrackedTimes", err)
+		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
 	}
-	ctx.JSON(200, trackedTimes.APIFormat())
+	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
 }
 
 // AddTime add time manual to the given issue
@@ -106,23 +110,24 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "403":
-	//     "$ref": "#/responses/error"
+	//     "$ref": "#/responses/forbidden"
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 		return
 	}
 
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
 		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
-			ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
+			ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 			return
 		}
-		ctx.Status(403)
+		ctx.Status(http.StatusForbidden)
 		return
 	}
 
@@ -144,10 +149,10 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 
 	trackedTime, err := models.AddTimeCreatedAt(user, issue, form.Time, created)
 	if err != nil {
-		ctx.Error(500, "AddTime", err)
+		ctx.Error(http.StatusInternalServerError, "AddTime", err)
 		return
 	}
-	ctx.JSON(200, trackedTime.APIFormat())
+	ctx.JSON(http.StatusOK, trackedTime.APIFormat())
 }
 
 // ResetIssueTime reset time manual to the given issue
@@ -318,8 +323,11 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
-		ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
+		ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 		return
 	}
 	user, err := models.GetUserByName(ctx.Params(":timetrackingusername"))
@@ -327,7 +335,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		if models.IsErrUserNotExist(err) {
 			ctx.NotFound(err)
 		} else {
-			ctx.Error(500, "GetUserByName", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 		}
 		return
 	}
@@ -339,10 +347,10 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		UserID:       user.ID,
 		RepositoryID: ctx.Repo.Repository.ID})
 	if err != nil {
-		ctx.Error(500, "GetTrackedTimesByUser", err)
+		ctx.Error(http.StatusInternalServerError, "GetTrackedTimesByUser", err)
 		return
 	}
-	ctx.JSON(200, trackedTimes.APIFormat())
+	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
 }
 
 // ListTrackedTimesByRepository lists all tracked times of the repository
@@ -366,8 +374,11 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+
 	if !ctx.Repo.Repository.IsTimetrackerEnabled() {
-		ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
+		ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 		return
 	}
 
@@ -381,10 +392,10 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 
 	trackedTimes, err := models.GetTrackedTimes(opts)
 	if err != nil {
-		ctx.Error(500, "GetTrackedTimes", err)
+		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
 	}
-	ctx.JSON(200, trackedTimes.APIFormat())
+	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
 }
 
 // ListMyTrackedTimes lists all tracked times of the current user
@@ -397,10 +408,11 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
+
 	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{UserID: ctx.User.ID})
 	if err != nil {
-		ctx.Error(500, "GetTrackedTimesByUser", err)
+		ctx.Error(http.StatusInternalServerError, "GetTrackedTimesByUser", err)
 		return
 	}
-	ctx.JSON(200, trackedTimes.APIFormat())
+	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
 }

@@ -129,6 +129,8 @@ If you want Apache HTTPD to serve your Gitea instance, you can add the following
 
 Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`
 
+If you wish to use Let's Encrypt with webroot validation, add the line `ProxyPass /.well-known !` before `ProxyPass` to disable proxying these requests to Gitea.
+
 ## Using Apache HTTPD with a sub-path as a reverse proxy
 
 In case you already have a site, and you want Gitea to share the domain name, you can setup Apache HTTPD to serve Gitea under a sub-path by adding the following to you Apache HTTPD configuration (usually located at `/etc/apache2/httpd.conf` in Ubuntu):
