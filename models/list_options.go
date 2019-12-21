@@ -23,6 +23,12 @@ func (opts ListOptions) setSessionPagination(sess *xorm.Session) *xorm.Session {
 	return sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 }
 
+func (opts ListOptions) setEnginePagination(e Engine) Engine {
+	opts.setDefaultValues()
+
+	return e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+}
+
 func (opts ListOptions) setDefaultValues() {
 	if opts.PageSize <= 0 || opts.PageSize > setting.UI.ExplorePagingNum {
 		opts.PageSize = setting.UI.ExplorePagingNum

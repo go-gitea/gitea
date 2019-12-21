@@ -57,8 +57,7 @@ func (repo *Repository) getCollaborations(e Engine, listOptions ListOptions) ([]
 	if listOptions.Page == 0 {
 		return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
 	}
-
-	return collaborations, listOptions.getPaginatedSession().Find(&collaborations, &Collaboration{RepoID: repo.ID})
+	return collaborations, listOptions.setEnginePagination(e).Find(&collaborations, &Collaboration{RepoID: repo.ID})
 }
 
 // Collaborator represents a user with collaboration details.

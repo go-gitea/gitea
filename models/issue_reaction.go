@@ -69,12 +69,13 @@ func FindIssueReactions(issue *Issue, listOptions ListOptions) (ReactionList, er
 
 func findReactions(e Engine, opts FindReactionsOptions) ([]*Reaction, error) {
 	var reactions []*Reaction
-	sess := e.Where(opts.toConds())
+	sess := e
 	if opts.Page != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = opts.setEnginePagination(e)
 	}
 
 	return reactions, sess.
+		Where(opts.toConds()).
 		In("reaction.`type`", setting.UI.Reactions).
 		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id").
 		Find(&reactions)

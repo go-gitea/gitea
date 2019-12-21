@@ -760,17 +760,13 @@ func GetTeamMembers(teamID int64) ([]*User, error) {
 }
 
 func getUserTeams(e Engine, userID int64, listOptions ListOptions) (teams []*Team, err error) {
-	if listOptions.Page == 0 {
-		return teams, e.
-			Join("INNER", "team_user", "team_user.team_id = team.id").
-			Where("team_user.uid=?", userID).
-			Find(&teams)
-	}
-
-	return teams, listOptions.getPaginatedSession().
+	sess := e.
 		Join("INNER", "team_user", "team_user.team_id = team.id").
-		Where("team_user.uid=?", userID).
-		Find(&teams)
+		Where("team_user.uid=?", userID)
+	if listOptions.Page != 0 {
+		sess = listOptions.setSessionPagination(sess)
+	}
+	return teams, sess.Find(&teams)
 }
 
 func getUserOrgTeams(e Engine, orgID, userID int64) (teams []*Team, err error) {

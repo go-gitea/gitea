@@ -74,19 +74,17 @@ func (opts *FindTrackedTimesOptions) ToSession(e Engine) *xorm.Session {
 		sess = e.Join("INNER", "issue", "issue.id = tracked_time.issue_id")
 	}
 
-	if opts.Page != 0 {
-		if sess == nil {
-			sess = opts.getPaginatedSession()
-		} else {
-			sess = opts.setSessionPagination(sess)
-		}
-	}
-
 	if sess == nil {
-		return e.Where(opts.ToCond())
+		sess = e.Where(opts.ToCond())
+	} else {
+		sess = sess.Where(opts.ToCond())
 	}
 
-	return sess.Where(opts.ToCond())
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
+	}
+
+	return sess
 }
 
 // GetTrackedTimes returns all tracked times that fit to the given options.
