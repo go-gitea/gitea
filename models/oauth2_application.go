@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/dgrijalva/jwt-go"
-	uuid "github.com/satori/go.uuid"
+	gouuid "github.com/satori/go.uuid"
 	"github.com/unknwon/com"
 	"golang.org/x/crypto/bcrypt"
 	"xorm.io/xorm"
@@ -174,7 +174,7 @@ func CreateOAuth2Application(opts CreateOAuth2ApplicationOptions) (*OAuth2Applic
 }
 
 func createOAuth2Application(e Engine, opts CreateOAuth2ApplicationOptions) (*OAuth2Application, error) {
-	clientID := uuid.NewV4().String()
+	clientID := gouuid.NewV4().String()
 	app := &OAuth2Application{
 		UID:          opts.UserID,
 		Name:         opts.Name,
