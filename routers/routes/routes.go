@@ -323,7 +323,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("", user.U2F)
 			m.Get("/challenge", user.U2FChallenge)
 			m.Post("/sign", bindIgnErr(u2f.SignResponse{}), user.U2FSign)
-
+		})
+		m.Group("/webauthn", func() {
+			m.Get("", user.WebAuthn)
+			m.Get("/begin", user.WebAuthnLoginBegin)
+			m.Post("/finish", user.WebAuthnLoginFinish)
 		})
 	}, reqSignOut)
 

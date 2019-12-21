@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/auth/sso"
+	"code.gitea.io/gitea/modules/auth/webauthn"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/git"
@@ -92,6 +93,7 @@ func GlobalInit(ctx context.Context) {
 	NewServices()
 
 	if setting.InstallLock {
+		webauthn.Init()
 		highlight.NewContext()
 		external.RegisterParsers()
 		markup.Init()

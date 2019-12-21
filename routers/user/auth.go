@@ -6,6 +6,7 @@
 package user
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/auth/oauth2"
+	wa "code.gitea.io/gitea/modules/auth/webauthn"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -26,6 +28,8 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 
 	"gitea.com/macaron/captcha"
+	"github.com/duo-labs/webauthn/protocol"
+	"github.com/duo-labs/webauthn/webauthn"
 	"github.com/markbates/goth"
 	"github.com/tstranex/u2f"
 )
@@ -45,6 +49,7 @@ const (
 	tplTwofaScratch   base.TplName = "user/auth/twofa_scratch"
 	tplLinkAccount    base.TplName = "user/auth/link_account"
 	tplU2F            base.TplName = "user/auth/u2f"
+	tplWebAuthn       base.TplName = "user/auth/webauthn"
 )
 
 // AutoSignIn reads cookie and try to auto-login.
@@ -214,9 +219,9 @@ func SignInPost(ctx *context.Context, form auth.SignInForm) {
 		return
 	}
 
-	regs, err := models.GetU2FRegistrationsByUID(u.ID)
+	regs, err := models.GetWebAuthnCredentialsByUID(u.ID)
 	if err == nil && len(regs) > 0 {
-		ctx.Redirect(setting.AppSubURL + "/user/u2f")
+		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return
 	}
 
@@ -366,6 +371,25 @@ func TwoFactorScratchPost(ctx *context.Context, form auth.TwoFactorScratchAuthFo
 	ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplTwofaScratch, auth.TwoFactorScratchAuthForm{})
 }
 
+// WebAuthn shows the WebAuthn login page
+func WebAuthn(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("twofa")
+	ctx.Data["RequireWebAuthn"] = true
+
+	// Check auto-login.
+	if checkAutoLogin(ctx) {
+		return
+	}
+
+	//Ensure user is in a 2FA session.
+	if ctx.Session.Get("twofaUid") == nil {
+		ctx.ServerError("UserSignIn", errors.New("not in WebAuthn session"))
+		return
+	}
+
+	ctx.HTML(200, tplWebAuthn)
+}
+
 // U2F shows the U2F login page
 func U2F(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa")
@@ -382,6 +406,46 @@ func U2F(ctx *context.Context) {
 	}
 
 	ctx.HTML(200, tplU2F)
+}
+
+// WebAuthnLoginBegin submits a WebAuthn challenge to the browser
+func WebAuthnLoginBegin(ctx *context.Context) {
+	// Ensure user is in a WebAuthn session.
+	idSess := ctx.Session.Get("twofaUid")
+	if idSess == nil {
+		ctx.ServerError("UserSignIn", errors.New("not in WebAuthn session"))
+		return
+	}
+
+	user, err := models.GetUserByID(idSess.(int64))
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
+
+	creds := user.WebAuthnCredentials()
+	if len(creds) == 0 {
+		ctx.ServerError("UserSignIn", errors.New("no device registered"))
+		return
+	}
+
+	options, sessionData, err := wa.WebAuthn.BeginLogin(
+		user,
+		webauthn.WithAssertionExtensions(
+			protocol.AuthenticationExtensions{
+				"appid": setting.AppURL,
+			},
+		),
+	)
+	if err != nil {
+		ctx.ServerError("webauthn.BeginLogin", err)
+		return
+	}
+	if err = ctx.Session.Set("webAuthnData", sessionData); err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
+	ctx.JSON(200, options)
 }
 
 // U2FChallenge submits a sign challenge to the browser
@@ -412,6 +476,57 @@ func U2FChallenge(ctx *context.Context) {
 		return
 	}
 	ctx.JSON(200, challenge.SignRequest(regs.ToRegistrations()))
+}
+
+// WebAuthnLoginFinish validates the signature and logs the user in
+func WebAuthnLoginFinish(ctx *context.Context) {
+	idSess := ctx.Session.Get("twofaUid")
+	sessionData := ctx.Session.Get("webAuthnData")
+	if sessionData == nil || idSess == nil {
+		ctx.ServerError("UserSignIn", errors.New("not in WebAuthn session"))
+		return
+	}
+	user, err := models.GetUserByID(idSess.(int64))
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
+	cred, err := wa.WebAuthn.FinishLogin(user, sessionData.(webauthn.SessionData), ctx.Req.Request)
+	if err != nil {
+		ctx.Error(401, err.Error())
+	}
+
+	dbCred, err := models.GetWebAuthnCredentialByCredID(base64.RawStdEncoding.EncodeToString(cred.ID))
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+	}
+
+	dbCred.SignCount = cred.Authenticator.SignCount
+	if err := dbCred.UpdateSignCount(); err != nil {
+		ctx.ServerError("UserSignIn", err)
+	}
+
+	if ctx.Session.Get("linkAccount") != nil {
+		gothUser := ctx.Session.Get("linkAccountGothUser")
+		if gothUser == nil {
+			ctx.ServerError("UserSignIn", errors.New("not in LinkAccount session"))
+			return
+		}
+
+		err = externalaccount.LinkAccountToUser(user, gothUser.(goth.User))
+		if err != nil {
+			ctx.ServerError("UserSignIn", err)
+			return
+		}
+	}
+
+	remember := ctx.Session.Get("twofaRemember").(bool)
+	redirect := handleSignInFull(ctx, user, remember, false)
+	if redirect == "" {
+		redirect = setting.AppSubURL + "/"
+	}
+	ctx.PlainText(200, []byte(redirect))
+	return
 }
 
 // U2FSign authenticates the user by signResp

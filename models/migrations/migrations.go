@@ -284,6 +284,10 @@ var migrations = []Migration{
 	NewMigration("new feature: change target branch of pull requests", featureChangeTargetBranch),
 	// v114 -> v115
 	NewMigration("Remove authentication credentials from stored URL", sanitizeOriginalURL),
+	// v115 -> v116
+	NewMigration("Add WebAuthn credential table", addWebAuthnCred),
+	// v116 -> v117
+	NewMigration("Migrate U2F registrations to WebAuthn", migrateU2FToWebAuthn),
 }
 
 // Migrate database to current version

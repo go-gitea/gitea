@@ -1697,7 +1697,7 @@ func (err ErrExternalLoginUserNotExist) Error() string {
 // |    |   //  ____/|    __)   |       _// __ \ / ___\|  |/  ___/\   __\_  __ \__  \\   __\  |/  _ \ /    \
 // |    |  //       \|     \    |    |   \  ___// /_/  >  |\___ \  |  |  |  | \// __ \|  | |  (  <_> )   |  \
 // |______/ \_______ \___  /    |____|_  /\___  >___  /|__/____  > |__|  |__|  (____  /__| |__|\____/|___|  /
-// \/   \/            \/     \/_____/         \/                   \/                    \/
+//                  \/   \/            \/     \/_____/         \/                   \/                    \/
 
 // ErrU2FRegistrationNotExist represents a "ErrU2FRegistrationNotExist" kind of error.
 type ErrU2FRegistrationNotExist struct {
@@ -1711,6 +1711,33 @@ func (err ErrU2FRegistrationNotExist) Error() string {
 // IsErrU2FRegistrationNotExist checks if an error is a ErrU2FRegistrationNotExist.
 func IsErrU2FRegistrationNotExist(err error) bool {
 	_, ok := err.(ErrU2FRegistrationNotExist)
+	return ok
+}
+
+//  __      __      ___.       _____          __  .__           _________                    .___             __  .__       .__
+// /  \    /  \ ____\_ |__    /  _  \  __ ___/  |_|  |__   ____ \_   ___ \_______   ____   __| _/____   _____/  |_|__|____  |  |
+// \   \/\/   // __ \| __ \  /  /_\  \|  |  \   __\  |  \ /    \/    \  \/\_  __ \_/ __ \ / __ |/ __ \ /    \   __\  \__  \ |  |
+//  \        /\  ___/| \_\ \/    |    \  |  /|  | |   Y  \   |  \     \____|  | \/\  ___// /_/ \  ___/|   |  \  | |  |/ __ \|  |__
+//   \__/\  /  \___  >___  /\____|__  /____/ |__| |___|  /___|  /\______  /|__|    \___  >____ |\___  >___|  /__| |__(____  /____/
+//        \/       \/    \/         \/                 \/     \/        \/             \/     \/    \/     \/             \/
+
+// ErrWebAuthnCredentialNotExist represents a "ErrWebAuthnCRedentialNotExist" kind of error.
+type ErrWebAuthnCredentialNotExist struct {
+	ID           int64
+	CredentialID string
+}
+
+func (err ErrWebAuthnCredentialNotExist) Error() string {
+	if err.CredentialID == "" {
+		return fmt.Sprintf("WebAuthn credential does not exist [id: %d]", err.ID)
+	} else {
+		return fmt.Sprintf("WebAuthn credential does not exist [credential_id: %s]", err.CredentialID)
+	}
+}
+
+//IsErrWebAuthnCredentialNotExist checks if an error is a ErrWebAuthnCredentialNotExist.
+func IsErrWebAuthnCredentialNotExist(err error) bool {
+	_, ok := err.(ErrWebAuthnCredentialNotExist)
 	return ok
 }
 

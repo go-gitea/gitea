@@ -1,0 +1,64 @@
+// Copyright (c) 2012-2018 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+// Code generated from sort-slice.go.tmpl - DO NOT EDIT.
+
+{{/*
+xxxSlice
+xxxIntf
+xxxIntfSlice
+xxxRv
+xxxRvSlice
+
+I'm now going to create them for
+- sortables
+- sortablesplus
+
+With the parameters passed in sortables or sortablesplus,
+'time, 'bytes' are special, and correspond to time.Time and []byte respectively.
+*/}}
+
+package codec
+
+import "time"
+import "reflect"
+import "bytes"
+
+{{/* func init() { _ = time.Unix } */}}
+
+{{define "T"}}
+func (p {{ .Type }}) Len() int           { return len(p) }
+func (p {{ .Type }}) Swap(i, j int)      { p[uint(i)], p[uint(j)] = p[uint(j)], p[uint(i)] }
+func (p {{ .Type }}) Less(i, j int) bool {
+	{{ if eq .Kind "bool"         }} return !p[uint(i)]{{.V}} && p[uint(j)]{{.V}}
+    {{ else if eq .Kind "float32" }} return p[uint(i)]{{.V}} < p[uint(j)]{{.V}} || isNaN32(p[uint(i)]{{.V}}) && !isNaN32(p[uint(j)]{{.V}})
+    {{ else if eq .Kind "float64" }} return p[uint(i)]{{.V}} < p[uint(j)]{{.V}} || isNaN64(p[uint(i)]{{.V}}) && !isNaN64(p[uint(j)]{{.V}})
+    {{ else if eq .Kind "time"    }} return p[uint(i)]{{.V}}.Before(p[uint(j)]{{.V}})
+    {{ else if eq .Kind "bytes"   }} return bytes.Compare(p[uint(i)]{{.V}}, p[uint(j)]{{.V}}) == -1
+    {{ else                    }} return p[uint(i)]{{.V}} < p[uint(j)]{{.V}}
+    {{ end -}}
+}
+{{end}}
+
+{{range $i, $v := sortables }}{{ $t := tshort $v }}
+type {{ $v }}Slice []{{ $t }}
+{{template "T" args "Kind" $v "Type" (print $v "Slice") "V" ""}}
+{{end}}
+
+{{range $i, $v := sortablesplus }}{{ $t := tshort $v }}
+
+type {{ $v }}Rv struct {
+	v {{ $t }}
+	r reflect.Value
+}
+type {{ $v }}RvSlice []{{ $v }}Rv
+{{template "T" args "Kind" $v "Type" (print $v "RvSlice") "V" ".v"}}
+
+type {{ $v }}Intf struct {
+	v {{ $t }}
+	i interface{}
+}
+type {{ $v }}IntfSlice []{{ $v }}Intf
+{{template "T" args "Kind" $v "Type" (print $v "IntfSlice") "V" ".v"}}
+
+{{end}}
