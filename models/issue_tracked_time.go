@@ -209,6 +209,9 @@ func DeleteIssueUserTimes(issue *Issue, user *User) error {
 	}
 
 	removedTime, err = deleteTimes(sess, opts)
+	if err != nil {
+		return err
+	}
 
 	if err := issue.loadRepo(sess); err != nil {
 		return err
