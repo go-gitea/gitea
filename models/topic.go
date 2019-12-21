@@ -171,7 +171,7 @@ func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
 	}
-	if opts.Page != 0 {
+	if opts.PageSize != 0 {
 		sess = opts.setSessionPagination(sess)
 	}
 	return topics, sess.Desc("topic.repo_count").Find(&topics)
