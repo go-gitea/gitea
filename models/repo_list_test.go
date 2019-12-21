@@ -18,8 +18,8 @@ func TestSearchRepository(t *testing.T) {
 	// test search public repository on explore page
 	repos, count, err := SearchRepositoryByName(&SearchRepoOptions{
 		ListOptions: ListOptions{
-			Page:        1,
-			PageSize:    10,
+			Page:     1,
+			PageSize: 10,
 		},
 		Keyword:     "repo_12",
 		Collaborate: util.OptionalBoolFalse,
@@ -33,8 +33,8 @@ func TestSearchRepository(t *testing.T) {
 
 	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
 		ListOptions: ListOptions{
-			Page:        1,
-			PageSize:    10,
+			Page:     1,
+			PageSize: 10,
 		},
 		Keyword:     "test_repo",
 		Collaborate: util.OptionalBoolFalse,
@@ -47,8 +47,8 @@ func TestSearchRepository(t *testing.T) {
 	// test search private repository on explore page
 	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
 		ListOptions: ListOptions{
-			Page:        1,
-			PageSize:    10,
+			Page:     1,
+			PageSize: 10,
 		},
 		Keyword:     "repo_13",
 		Private:     true,
@@ -63,8 +63,8 @@ func TestSearchRepository(t *testing.T) {
 
 	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{
 		ListOptions: ListOptions{
-			Page:        1,
-			PageSize:    10,
+			Page:     1,
+			PageSize: 10,
 		},
 		Keyword:     "test_repo",
 		Private:     true,
@@ -85,8 +85,8 @@ func TestSearchRepository(t *testing.T) {
 	// Test search within description
 	repos, count, err = SearchRepository(&SearchRepoOptions{
 		ListOptions: ListOptions{
-			Page:        1,
-			PageSize:    10,
+			Page:     1,
+			PageSize: 10,
 		},
 		Keyword:            "description_14",
 		Collaborate:        util.OptionalBoolFalse,
@@ -102,8 +102,8 @@ func TestSearchRepository(t *testing.T) {
 	// Test NOT search within description
 	repos, count, err = SearchRepository(&SearchRepoOptions{
 		ListOptions: ListOptions{
-			Page:        1,
-			PageSize:    10,
+			Page:     1,
+			PageSize: 10,
 		},
 		Keyword:            "description_14",
 		Collaborate:        util.OptionalBoolFalse,

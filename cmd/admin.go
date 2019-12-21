@@ -353,7 +353,7 @@ func runRepoSyncReleases(c *cli.Context) error {
 				PageSize: models.RepositoryListDefaultPageSize,
 				Page:     page,
 			},
-			Private:  true,
+			Private: true,
 		})
 		if err != nil {
 			return fmt.Errorf("SearchRepositoryByName: %v", err)

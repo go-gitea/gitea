@@ -100,13 +100,13 @@ func GetAllOrgs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	users, _, err := models.SearchUsers(&models.SearchUserOptions{
-		Type:     models.UserTypeOrganization,
-		OrderBy:  models.SearchOrderByAlphabetically,
+		Type:    models.UserTypeOrganization,
+		OrderBy: models.SearchOrderByAlphabetically,
 		ListOptions: models.ListOptions{
 			Page:     ctx.QueryInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		},
-		Private:  true,
+		Private: true,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchOrganizations", err)

@@ -127,8 +127,8 @@ func Search(ctx *context.APIContext) {
 
 	opts := &models.SearchRepoOptions{
 		ListOptions: models.ListOptions{
-			Page:               ctx.QueryInt("page"),
-			PageSize:           convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+			Page:     ctx.QueryInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		},
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),

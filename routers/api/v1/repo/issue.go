@@ -133,8 +133,8 @@ func SearchIssues(ctx *context.APIContext) {
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
 			ListOptions: models.ListOptions{
-				Page:           ctx.QueryInt("page"),
-				PageSize:       setting.UI.IssuePagingNum,
+				Page:     ctx.QueryInt("page"),
+				PageSize: setting.UI.IssuePagingNum,
 			},
 			RepoIDs:        repoIDs,
 			IsClosed:       isClosed,
