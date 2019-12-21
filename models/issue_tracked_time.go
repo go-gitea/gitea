@@ -189,6 +189,12 @@ func TotalTimes(options FindTrackedTimesOptions) (map[*User]string, error) {
 
 // DeleteIssueUserTimes deletes times for issue
 func DeleteIssueUserTimes(issue *Issue, user *User) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
 	opts := FindTrackedTimesOptions{
 		IssueID: issue.ID,
 		UserID:  user.ID,
@@ -202,12 +208,12 @@ func DeleteIssueUserTimes(issue *Issue, user *User) error {
 		return ErrNotExist{}
 	}
 
-	removedTime, err = deleteTimes(opts)
+	removedTime, err = deleteTimes(sess, opts)
 
-	if err := issue.loadRepo(x); err != nil {
+	if err := issue.loadRepo(sess); err != nil {
 		return err
 	}
-	if _, err := CreateComment(&CreateCommentOptions{
+	if _, err := createComment(sess, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
@@ -216,30 +222,24 @@ func DeleteIssueUserTimes(issue *Issue, user *User) error {
 	}); err != nil {
 		return err
 	}
+
+	err = sess.Commit()
 	return err
 }
 
-func deleteTimes(opts FindTrackedTimesOptions) (removedTime int64, err error) {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return
-	}
-
+func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err error) {
 	tt, err := GetTrackedTimes(opts)
 	if err != nil {
 		return
 	}
 
 	for _, t := range tt {
-		_, err = sess.Delete(t)
+		_, err = e.Delete(t)
 		if err != nil {
 			return
 		}
 		removedTime += t.Time
 	}
-
-	err = sess.Commit()
 	return
 }
 
