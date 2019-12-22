@@ -84,6 +84,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/ssh/:id/update/:repoid", UpdatePublicKeyInRepo)
 		m.Post("/hook/pre-receive/:owner/:repo", bind(private.HookOptions{}), HookPreReceive)
 		m.Post("/hook/post-receive/:owner/:repo", bind(private.HookOptions{}), HookPostReceive)
+		m.Post("/hook/set-default-branch/:owner/:repo/:branch", SetDefaultBranch)
 		m.Get("/serv/none/:keyid", ServNoCommand)
 		m.Get("/serv/command/:keyid/:owner/:repo", ServCommand)
 	}, CheckInternalToken)

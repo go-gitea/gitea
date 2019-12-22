@@ -228,7 +228,9 @@ Gitea or set your environment appropriately.`, "")
 	refFullNames := make([]string, hookBatchSize)
 	count := 0
 	total := 0
-	results := make([]private.HookPostReceiveResult, 0)
+	wasEmpty := false
+	masterPushed := false
+	results := make([]private.HookPostReceiveBranchResult, 0)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
@@ -246,6 +248,9 @@ Gitea or set your environment appropriately.`, "")
 		oldCommitIDs[count] = string(fields[0])
 		newCommitIDs[count] = string(fields[1])
 		refFullNames[count] = string(fields[2])
+		if refFullNames[count] == git.BranchPrefix+"master" && newCommitIDs[count] != git.EmptySHA && count == total {
+			masterPushed = true
+		}
 		count++
 		total++
 		os.Stdout.Sync()
@@ -256,13 +261,22 @@ Gitea or set your environment appropriately.`, "")
 			hookOptions.OldCommitIDs = oldCommitIDs
 			hookOptions.NewCommitIDs = newCommitIDs
 			hookOptions.RefFullNames = refFullNames
-			resps, err := private.HookPostReceive(repoUser, repoName, hookOptions)
-			if resps == nil {
+			resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
+			if resp == nil {
 				hookPrintResults(results)
 				fail("Internal Server Error", err)
 			}
-			results = append(results, resps...)
+			wasEmpty = wasEmpty || resp.RepoWasEmpty
+			results = append(results, resp.Results...)
 			count = 0
+		}
+	}
+
+	if wasEmpty && masterPushed {
+		// We need to tell the repo to reset the default branch to master
+		err := private.SetDefaultBranch(repoUser, repoName, "master")
+		if err != nil {
+			fail("Internal Server Error", err)
 		}
 	}
 
@@ -296,7 +310,7 @@ Gitea or set your environment appropriately.`, "")
 	return nil
 }
 
-func hookPrintResults(results []private.HookPostReceiveResult) {
+func hookPrintResults(results []private.HookPostReceiveBranchResult) {
 	for _, res := range results {
 		if !res.Message {
 			continue

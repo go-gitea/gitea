@@ -133,6 +133,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 
 	var repo *models.Repository
 	updates := make([]*repofiles.PushUpdateOptions, 0, len(opts.OldCommitIDs))
+	wasEmpty := false
 
 	for i := range opts.OldCommitIDs {
 		refFullName := opts.RefFullNames[i]
@@ -153,16 +154,15 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				repo, err = models.GetRepositoryByOwnerAndName(ownerName, repoName)
 				if err != nil {
 					log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
-					ctx.JSON(http.StatusInternalServerError, []private.HookPostReceiveResult{
-						{
-							Err: fmt.Sprintf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err),
-						},
+					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+						Err: fmt.Sprintf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err),
 					})
 					return
 				}
 				if repo.OwnerName == "" {
 					repo.OwnerName = ownerName
 				}
+				wasEmpty = repo.IsEmpty
 			}
 
 			option := repofiles.PushUpdateOptions{
@@ -192,16 +192,14 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 			}
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 
-			ctx.JSON(http.StatusInternalServerError, []private.HookPostReceiveResult{
-				{
-					Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
-				},
+			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
 			})
 			return
 		}
 	}
 
-	results := make([]private.HookPostReceiveResult, 0, len(opts.OldCommitIDs))
+	results := make([]private.HookPostReceiveBranchResult, 0, len(opts.OldCommitIDs))
 
 	// We have to reload the repo in case its state is changed above
 	repo = nil
@@ -224,10 +222,9 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				repo, err = models.GetRepositoryByOwnerAndName(ownerName, repoName)
 				if err != nil {
 					log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
-					ctx.JSON(http.StatusInternalServerError, []private.HookPostReceiveResult{
-						{
-							Err: fmt.Sprintf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err),
-						},
+					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+						Err:          fmt.Sprintf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err),
+						RepoWasEmpty: wasEmpty,
 					})
 					return
 				}
@@ -238,8 +235,8 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				pullRequestAllowed := repo.AllowsPulls()
 				if !pullRequestAllowed {
 					// We can stop there's no need to go any further
-					ctx.JSON(http.StatusOK, []private.HookPostReceiveResult{
-						{},
+					ctx.JSON(http.StatusOK, private.HookPostReceiveResult{
+						RepoWasEmpty: wasEmpty,
 					})
 					return
 				}
@@ -248,10 +245,9 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				if repo.IsFork {
 					if err := repo.GetBaseRepo(); err != nil {
 						log.Error("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err)
-						ctx.JSON(http.StatusInternalServerError, []private.HookPostReceiveResult{
-							{
-								Err: fmt.Sprintf("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err),
-							},
+						ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+							Err:          fmt.Sprintf("Failed to get Base Repository of Forked repository: %-v Error: %v", repo, err),
+							RepoWasEmpty: wasEmpty,
 						})
 						return
 					}
@@ -260,18 +256,17 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 			}
 
 			if !repo.IsFork && branch == baseRepo.DefaultBranch {
-				results = append(results, private.HookPostReceiveResult{})
+				results = append(results, private.HookPostReceiveBranchResult{})
 				continue
 			}
 
 			pr, err := models.GetUnmergedPullRequest(repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch)
 			if err != nil && !models.IsErrPullRequestNotExist(err) {
 				log.Error("Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err)
-				ctx.JSON(http.StatusInternalServerError, []private.HookPostReceiveResult{
-					{
-						Err: fmt.Sprintf(
-							"Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err),
-					},
+				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+					Err: fmt.Sprintf(
+						"Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err),
+					RepoWasEmpty: wasEmpty,
 				})
 				return
 			}
@@ -280,14 +275,14 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				if repo.IsFork {
 					branch = fmt.Sprintf("%s:%s", repo.OwnerName, branch)
 				}
-				results = append(results, private.HookPostReceiveResult{
+				results = append(results, private.HookPostReceiveBranchResult{
 					Message: true,
 					Create:  true,
 					Branch:  branch,
 					URL:     fmt.Sprintf("%s/compare/%s...%s", baseRepo.HTMLURL(), util.PathEscapeSegments(baseRepo.DefaultBranch), util.PathEscapeSegments(branch)),
 				})
 			} else {
-				results = append(results, private.HookPostReceiveResult{
+				results = append(results, private.HookPostReceiveBranchResult{
 					Message: true,
 					Create:  false,
 					Branch:  branch,
@@ -296,5 +291,53 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 			}
 		}
 	}
-	ctx.JSON(http.StatusOK, results)
+	ctx.JSON(http.StatusOK, private.HookPostReceiveResult{
+		Results:      results,
+		RepoWasEmpty: wasEmpty,
+	})
+}
+
+// SetDefaultBranch updates the default branch
+func SetDefaultBranch(ctx *macaron.Context, opts private.HookOptions) {
+	ownerName := ctx.Params(":owner")
+	repoName := ctx.Params(":repo")
+	branch := ctx.Params(":branch")
+	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+	if err != nil {
+		log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"Err": fmt.Sprintf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err),
+		})
+		return
+	}
+	if repo.OwnerName == "" {
+		repo.OwnerName = ownerName
+	}
+
+	repo.DefaultBranch = branch
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"Err": fmt.Sprintf("Failed to get git repository: %s/%s Error: %v", ownerName, repoName, err),
+		})
+		return
+	}
+	if err := gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+		if !git.IsErrUnsupportedVersion(err) {
+			gitRepo.Close()
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"Err": fmt.Sprintf("Unable to set default branch onrepository: %s/%s Error: %v", ownerName, repoName, err),
+			})
+			return
+		}
+	}
+	gitRepo.Close()
+
+	if err := repo.UpdateDefaultBranch(); err != nil {
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"Err": fmt.Sprintf("Unable to set default branch onrepository: %s/%s Error: %v", ownerName, repoName, err),
+		})
+		return
+	}
+	ctx.PlainText(200, []byte("success"))
 }
