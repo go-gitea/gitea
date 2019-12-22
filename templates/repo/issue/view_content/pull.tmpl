@@ -131,7 +131,6 @@
 					{{end}}
 					{{if .AllowMerge}}
 						{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
-						{{$commitMessages := .Issue.PullRequest.GetCommitMessages}}
 						{{$approvers := .Issue.PullRequest.GetApprovers}}
 						{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
 							<div class="ui divider"></div>
@@ -187,6 +186,7 @@
 							</div>
 							{{end}}
 							{{if $prUnit.PullRequestsConfig.AllowSquash}}
+							{{$commitMessages := .Issue.PullRequest.GetCommitMessages}}
 							<div class="ui form squash-fields" style="display: none">
 								<form action="{{.Link}}/merge" method="post">
 									{{.CsrfTokenHtml}}

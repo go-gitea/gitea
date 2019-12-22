@@ -146,7 +146,7 @@ var (
 			// https://help.github.com/articles/closing-issues-via-commit-messages
 			CloseKeywords:                            strings.Split("close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved", ","),
 			ReopenKeywords:                           strings.Split("reopen,reopens,reopened", ","),
-			DefaultMergeMessageCommitsLimit:          10,
+			DefaultMergeMessageCommitsLimit:          50,
 			DefaultMergeMessageSize:                  5 * 1024,
 			DefaultMergeMessageAllAuthors:            false,
 			DefaultMergeMessageMaxApprovers:          10,
