@@ -34,8 +34,8 @@ type IdentityOptions struct {
 
 // CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE
 type CommitDateOptions struct {
-	Author   time.Time
-	Commiter time.Time
+	Author    time.Time
+	Committer time.Time
 }
 
 // UpdateRepoFileOptions holds the repository file update options
@@ -381,7 +381,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// Now commit the tree
 	var commitHash string
 	if opts.Dates != nil {
-		commitHash, err = t.CommitTreeWithDate(author, committer, treeHash, message, opts.Dates.Author, opts.Dates.Commiter)
+		commitHash, err = t.CommitTreeWithDate(author, committer, treeHash, message, opts.Dates.Author, opts.Dates.Committer)
 	} else {
 		commitHash, err = t.CommitTree(author, committer, treeHash, message)
 	}

@@ -215,15 +215,15 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 			Email: apiOpts.Author.Email,
 		},
 		Dates: &repofiles.CommitDateOptions{
-			Author:   apiOpts.Dates.Author,
-			Commiter: apiOpts.Dates.Author,
+			Author:    apiOpts.Dates.Author,
+			Committer: apiOpts.Dates.Committer,
 		},
 	}
 	if opts.Dates.Author.IsZero() {
 		opts.Dates.Author = time.Now()
 	}
-	if opts.Dates.Commiter.IsZero() {
-		opts.Dates.Commiter = time.Now()
+	if opts.Dates.Committer.IsZero() {
+		opts.Dates.Committer = time.Now()
 	}
 
 	if opts.Message == "" {
@@ -289,15 +289,15 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 			Email: apiOpts.Author.Email,
 		},
 		Dates: &repofiles.CommitDateOptions{
-			Author:   apiOpts.Dates.Author,
-			Commiter: apiOpts.Dates.Author,
+			Author:    apiOpts.Dates.Author,
+			Committer: apiOpts.Dates.Committer,
 		},
 	}
 	if opts.Dates.Author.IsZero() {
 		opts.Dates.Author = time.Now()
 	}
-	if opts.Dates.Commiter.IsZero() {
-		opts.Dates.Commiter = time.Now()
+	if opts.Dates.Committer.IsZero() {
+		opts.Dates.Committer = time.Now()
 	}
 
 	if opts.Message == "" {
@@ -386,15 +386,15 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 			Email: apiOpts.Author.Email,
 		},
 		Dates: &repofiles.CommitDateOptions{
-			Author:   apiOpts.Dates.Author,
-			Commiter: apiOpts.Dates.Author,
+			Author:    apiOpts.Dates.Author,
+			Committer: apiOpts.Dates.Committer,
 		},
 	}
 	if opts.Dates.Author.IsZero() {
 		opts.Dates.Author = time.Now()
 	}
-	if opts.Dates.Commiter.IsZero() {
-		opts.Dates.Commiter = time.Now()
+	if opts.Dates.Committer.IsZero() {
+		opts.Dates.Committer = time.Now()
 	}
 
 	if opts.Message == "" {

@@ -192,7 +192,7 @@ func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, t
 }
 
 // CommitTreeWithDate creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models.User, treeHash string, message string, authorDate, commiterDate time.Time) (string, error) {
+func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models.User, treeHash string, message string, authorDate, committerDate time.Time) (string, error) {
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
@@ -208,7 +208,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 		"GIT_AUTHOR_DATE="+authorDate.Format(time.RFC3339),
 		"GIT_COMMITTER_NAME="+committerSig.Name,
 		"GIT_COMMITTER_EMAIL="+committerSig.Email,
-		"GIT_COMMITTER_DATE="+commiterDate.Format(time.RFC3339),
+		"GIT_COMMITTER_DATE="+committerDate.Format(time.RFC3339),
 	)
 
 	messageBytes := new(bytes.Buffer)

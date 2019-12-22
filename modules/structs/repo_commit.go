@@ -52,5 +52,5 @@ type CommitDateOptions struct {
 	// swagger:strfmt date-time
 	Author time.Time `json:"author"`
 	// swagger:strfmt date-time
-	Commiter time.Time `json:"commiter"`
+	Committer time.Time `json:"committer"`
 }
