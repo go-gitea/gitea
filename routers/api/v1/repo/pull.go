@@ -76,11 +76,13 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
 
+	listOptions := models.ListOptions{
+		Page:     ctx.QueryInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+	}
+
 	prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
-		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		},
+		ListOptions: listOptions,
 		State:       ctx.QueryTrim("state"),
 		SortType:    ctx.QueryTrim("sort"),
 		Labels:      ctx.QueryStrings("labels"),
@@ -113,7 +115,7 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 		apiPrs[i] = prs[i].APIFormat()
 	}
 
-	ctx.SetLinkHeader(int(maxResults), models.ItemsPerPage)
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
 	ctx.JSON(http.StatusOK, &apiPrs)
 }
 

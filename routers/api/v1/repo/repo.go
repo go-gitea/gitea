@@ -217,7 +217,7 @@ func Search(ctx *context.APIContext) {
 		results[i] = repo.APIFormat(accessMode)
 	}
 
-	ctx.SetLinkHeader(int(count), setting.API.MaxResponseItems)
+	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, api.SearchResults{
 		OK:   true,

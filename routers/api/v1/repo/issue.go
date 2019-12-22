@@ -72,7 +72,7 @@ func SearchIssues(ctx *context.APIContext) {
 	for page := 1; ; page++ {
 		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
 			ListOptions: models.ListOptions{
-				Page:     ctx.QueryInt("page"),
+				Page:     page,
 				PageSize: 15,
 			},
 			Private:     true,
@@ -232,18 +232,20 @@ func ListIssues(ctx *context.APIContext) {
 		}
 	}
 
+	listOptions := models.ListOptions{
+		Page:     ctx.QueryInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+	}
+
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
 		issues, err = models.Issues(&models.IssuesOptions{
-			ListOptions: models.ListOptions{
-				Page:     ctx.QueryInt("page"),
-				PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-			},
-			RepoIDs:  []int64{ctx.Repo.Repository.ID},
-			IsClosed: isClosed,
-			IssueIDs: issueIDs,
-			LabelIDs: labelIDs,
+			ListOptions: listOptions,
+			RepoIDs:     []int64{ctx.Repo.Repository.ID},
+			IsClosed:    isClosed,
+			IssueIDs:    issueIDs,
+			LabelIDs:    labelIDs,
 		})
 	}
 
@@ -257,7 +259,7 @@ func ListIssues(ctx *context.APIContext) {
 		apiIssues[i] = issues[i].APIFormat()
 	}
 
-	ctx.SetLinkHeader(ctx.Repo.Repository.NumIssues, setting.UI.IssuePagingNum)
+	ctx.SetLinkHeader(ctx.Repo.Repository.NumIssues, listOptions.PageSize)
 	ctx.JSON(http.StatusOK, &apiIssues)
 }
 

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/modules/setting"
 	"xorm.io/xorm"
 )
 
@@ -29,8 +30,8 @@ func (opts ListOptions) setEnginePagination(e Engine) Engine {
 }
 
 func (opts ListOptions) setDefaultValues() {
-	if opts.PageSize <= 0 || opts.PageSize > ItemsPerPage {
-		opts.PageSize = ItemsPerPage
+	if opts.PageSize <= 0 || opts.PageSize > setting.API.MaxResponseItems {
+		opts.PageSize = setting.API.MaxResponseItems
 	}
 	if opts.Page <= 0 {
 		opts.Page = 1
