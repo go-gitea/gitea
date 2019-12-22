@@ -90,7 +90,6 @@ func (a *actionNotifier) NotifyIssueChangeStatus(doer *models.User, issue *model
 func (a *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
 	act := &models.Action{
-		OpType:    models.ActionCommentIssue,
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		Content:   fmt.Sprintf("%d|%s", issue.Index, comment.Content),
@@ -99,6 +98,11 @@ func (a *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *model
 		Comment:   comment,
 		CommentID: comment.ID,
 		IsPrivate: issue.Repo.IsPrivate,
+	}
+	if issue.IsPull {
+		act.OpType = models.ActionCommentPull
+	} else {
+		act.OpType = models.ActionCommentIssue
 	}
 
 	// Notify watchers for whatever action comes in, ignore if no action type.
@@ -208,7 +212,7 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 					ActUserID: review.Reviewer.ID,
 					ActUser:   review.Reviewer,
 					Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comm.Content, "\n")[0]),
-					OpType:    models.ActionCommentIssue,
+					OpType:    models.ActionCommentPull,
 					RepoID:    review.Issue.RepoID,
 					Repo:      review.Issue.Repo,
 					IsPrivate: review.Issue.Repo.IsPrivate,
@@ -237,7 +241,7 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 		case models.ReviewTypeReject:
 			action.OpType = models.ActionRejectPullRequest
 		default:
-			action.OpType = models.ActionCommentIssue
+			action.OpType = models.ActionCommentPull
 		}
 
 		actions = append(actions, action)
