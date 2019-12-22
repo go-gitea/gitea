@@ -132,7 +132,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 	repoName := ctx.Params(":repo")
 
 	var repo *models.Repository
-	updates := make([]repofiles.PushUpdateOptions, 0, len(opts.OldCommitIDs))
+	updates := make([]*repofiles.PushUpdateOptions, 0, len(opts.OldCommitIDs))
 
 	for i := range opts.OldCommitIDs {
 		refFullName := opts.RefFullNames[i]
@@ -164,7 +164,8 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 					repo.OwnerName = ownerName
 				}
 			}
-			updates = append(updates, repofiles.PushUpdateOptions{
+
+			option := repofiles.PushUpdateOptions{
 				RefFullName:  refFullName,
 				OldCommitID:  opts.OldCommitIDs[i],
 				NewCommitID:  opts.NewCommitIDs[i],
@@ -173,23 +174,31 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				PusherName:   opts.UserName,
 				RepoUserName: ownerName,
 				RepoName:     repoName,
-			})
+			}
+			updates = append(updates, &option)
+			if repo.IsEmpty && branch == "master" && strings.HasPrefix(refFullName, git.BranchPrefix) {
+				// put the master branch first
+				copy(updates[1:], updates)
+				updates[0] = &option
+			}
 		}
 	}
 
-	if err := repofiles.PushUpdates(repo, updates); err != nil {
-		log.Error("Failed to Update: %s/%s Total Updates: %d", ownerName, repoName, len(updates))
-		for i, update := range updates {
-			log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.Branch)
-		}
-		log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
+	if repo != nil && len(updates) > 0 {
+		if err := repofiles.PushUpdates(repo, updates); err != nil {
+			log.Error("Failed to Update: %s/%s Total Updates: %d", ownerName, repoName, len(updates))
+			for i, update := range updates {
+				log.Error("Failed to Update: %s/%s Update: %d/%d: Branch: %s", ownerName, repoName, i, len(updates), update.Branch)
+			}
+			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 
-		ctx.JSON(http.StatusInternalServerError, []private.HookPostReceiveResult{
-			{
-				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
-			},
-		})
-		return
+			ctx.JSON(http.StatusInternalServerError, []private.HookPostReceiveResult{
+				{
+					Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
+				},
+			})
+			return
+		}
 	}
 
 	results := make([]private.HookPostReceiveResult, 0, len(opts.OldCommitIDs))

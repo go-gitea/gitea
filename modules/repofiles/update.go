@@ -474,7 +474,7 @@ func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) 
 }
 
 // PushUpdates generates push action history feeds for push updating multiple refs
-func PushUpdates(repo *models.Repository, optsList []PushUpdateOptions) error {
+func PushUpdates(repo *models.Repository, optsList []*PushUpdateOptions) error {
 	actions := make([]CommitRepoActionOptions, len(optsList))
 
 	repoPath := repo.RepoPath()
@@ -491,7 +491,7 @@ func PushUpdates(repo *models.Repository, optsList []PushUpdateOptions) error {
 	}
 
 	for i, opts := range optsList {
-		commitRepoActionOptions, err := createCommitRepoActionOption(repo, gitRepo, &opts)
+		commitRepoActionOptions, err := createCommitRepoActionOption(repo, gitRepo, opts)
 		if err != nil {
 			return err
 		}
