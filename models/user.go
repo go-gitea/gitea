@@ -442,6 +442,9 @@ func (u *User) GetFollowers(listOptions ListOptions) ([]*User, error) {
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
+
+		users := make([]*User, 0, listOptions.PageSize)
+		return users, sess.Find(&users)
 	}
 
 	var users []*User
@@ -461,6 +464,9 @@ func (u *User) GetFollowing(listOptions ListOptions) ([]*User, error) {
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
+
+		users := make([]*User, 0, listOptions.PageSize)
+		return users, sess.Find(&users)
 	}
 
 	var users []*User
@@ -1555,14 +1561,13 @@ func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
+
+		repos := make([]*Repository, 0, listOptions.PageSize)
+		return repos, sess.Find(&repos)
 	}
 
 	var repos []*Repository
-	err := sess.Find(&repos)
-	if err != nil {
-		return nil, err
-	}
-	return repos, nil
+	return repos, sess.Find(&repos)
 }
 
 // GetWatchedRepos returns the repos watched by a particular user
@@ -1576,14 +1581,13 @@ func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
+
+		repos := make([]*Repository, 0, listOptions.PageSize)
+		return repos, sess.Find(&repos)
 	}
 
 	var repos []*Repository
-	err := sess.Find(&repos)
-	if err != nil {
-		return nil, err
-	}
-	return repos, nil
+	return repos, sess.Find(&repos)
 }
 
 // deleteKeysMarkedForDeletion returns true if ssh keys needs update

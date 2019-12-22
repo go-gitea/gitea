@@ -508,16 +508,19 @@ func GetOrgUsersByOrgID(opts *FindOrgMembersOpts) ([]*OrgUser, error) {
 }
 
 func getOrgUsersByOrgID(e Engine, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
-	var ous []*OrgUser
 	sess := e.Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly {
 		sess.And("is_public = ?", true)
 	}
 	if opts.ListOptions.PageSize > 0 {
 		sess = opts.setSessionPagination(sess)
+
+		ous := make([]*OrgUser, 0, opts.PageSize)
+		return ous, sess.Find(&ous)
 	}
-	err := sess.Find(&ous)
-	return ous, err
+
+	var ous []*OrgUser
+	return ous, sess.Find(&ous)
 }
 
 // ChangeOrgUserStatus changes public or private membership status.

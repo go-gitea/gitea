@@ -2040,7 +2040,9 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, error) {
 		sess.And("is_private=?", false)
 	}
 
-	var repos []*Repository
+	sess = opts.setSessionPagination(sess)
+
+	repos := make([]*Repository, 0, opts.PageSize)
 	return repos, opts.setSessionPagination(sess).Find(&repos)
 }
 
@@ -2562,12 +2564,13 @@ func ForkRepository(doer, owner *User, oldRepo *Repository, name, desc string) (
 
 // GetForks returns all the forks of the repository
 func (repo *Repository) GetForks(listOptions ListOptions) ([]*Repository, error) {
-	var forks []*Repository
 	if listOptions.Page == 0 {
+		var forks []*Repository
 		return forks, x.Find(&forks, &Repository{ForkID: repo.ID})
 	}
 
 	sess := listOptions.getPaginatedSession()
+	forks := make([]*Repository, 0, listOptions.PageSize)
 	return forks, sess.Find(&forks, &Repository{ForkID: repo.ID})
 }
 

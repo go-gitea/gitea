@@ -85,6 +85,9 @@ func ListAccessTokens(uid int64, listOptions ListOptions) ([]*AccessToken, error
 
 	if listOptions.Page == 0 {
 		sess = listOptions.setSessionPagination(sess)
+
+		tokens := make([]*AccessToken, 0, listOptions.PageSize)
+		return tokens, sess.Find(&tokens)
 	}
 
 	var tokens []*AccessToken

@@ -571,6 +571,9 @@ func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
 	sess := x.Where("owner_id = ?", uid)
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
+
+		keys := make([]*PublicKey, 0, listOptions.PageSize)
+		return keys, sess.Find(&keys)
 	}
 
 	var keys []*PublicKey
@@ -978,12 +981,15 @@ func ListDeployKeys(repoID int64, listOptions ListOptions) ([]*DeployKey, error)
 }
 
 func listDeployKeys(e Engine, repoID int64, listOptions ListOptions) ([]*DeployKey, error) {
-	var keys []*DeployKey
-
 	sess := e.Where("repo_id = ?", repoID)
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
+
+		keys := make([]*DeployKey, 0, listOptions.PageSize)
+		return keys, sess.Find(&keys)
 	}
+
+	var keys []*DeployKey
 	return keys, sess.Find(&keys)
 }
 

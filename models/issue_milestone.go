@@ -240,7 +240,7 @@ func GetMilestonesByRepoID(repoID int64, state api.StateType, listOptions ListOp
 		sess = listOptions.setSessionPagination(sess)
 	}
 
-	var miles []*Milestone
+	miles := make([]*Milestone, 0, listOptions.PageSize)
 	return miles, sess.Asc("deadline_unix").Asc("id").Find(&miles)
 }
 

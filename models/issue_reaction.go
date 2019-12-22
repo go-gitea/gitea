@@ -68,17 +68,19 @@ func FindIssueReactions(issue *Issue, listOptions ListOptions) (ReactionList, er
 }
 
 func findReactions(e Engine, opts FindReactionsOptions) ([]*Reaction, error) {
-	var reactions []*Reaction
-	sess := e
-	if opts.Page != 0 {
-		sess = opts.setEnginePagination(e)
-	}
-
-	return reactions, sess.
+	e = e.
 		Where(opts.toConds()).
 		In("reaction.`type`", setting.UI.Reactions).
-		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id").
-		Find(&reactions)
+		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id")
+	if opts.Page != 0 {
+		e = opts.setEnginePagination(e)
+
+		reactions := make([]*Reaction, 0, opts.PageSize)
+		return reactions, e.Find(&reactions)
+	}
+
+	var reactions []*Reaction
+	return reactions, e.Find(&reactions)
 }
 
 func createReaction(e *xorm.Session, opts *ReactionOptions) (*Reaction, error) {

@@ -154,13 +154,17 @@ func GetRepoWatchersIDs(repoID int64) ([]int64, error) {
 
 // GetWatchers returns range of users watching given repository.
 func (repo *Repository) GetWatchers(opts ListOptions) ([]*User, error) {
-	var users []*User
 	sess := x.Where("watch.repo_id=?", repo.ID).
 		Join("LEFT", "watch", "`user`.id=`watch`.user_id").
 		And("`watch`.mode<>?", RepoWatchModeDont)
 	if opts.Page > 0 {
 		sess = opts.setSessionPagination(sess)
+		users := make([]*User, 0, opts.PageSize)
+
+		return users, sess.Find(&users)
 	}
+
+	var users []*User
 	return users, sess.Find(&users)
 }
 
