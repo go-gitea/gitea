@@ -379,7 +379,12 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// Now commit the tree
-	commitHash, err := t.CommitTreeWithDate(author, committer, treeHash, message, opts.Dates.Author, opts.Dates.Commiter)
+	var commitHash string
+	if opts.Dates != nil {
+		commitHash, err = t.CommitTreeWithDate(author, committer, treeHash, message, opts.Dates.Author, opts.Dates.Commiter)
+	} else {
+		commitHash, err = t.CommitTree(author, committer, treeHash, message)
+	}
 	if err != nil {
 		return nil, err
 	}
