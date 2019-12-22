@@ -292,7 +292,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 }
 
 // SetDefaultBranch updates the default branch
-func SetDefaultBranch(ctx *macaron.Context, opts private.HookOptions) {
+func SetDefaultBranch(ctx *macaron.Context) {
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
 	branch := ctx.Params(":branch")
