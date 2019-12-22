@@ -308,53 +308,20 @@ func getMSTeamsIssuesPayload(p *api.IssuePayload) (*MSTeamsPayload, error) {
 }
 
 func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload, error) {
-	title := fmt.Sprintf("#%d: %s", p.Issue.Index, p.Issue.Title)
-	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID))
-	content := ""
-	var color int
-	switch p.Action {
-	case api.HookIssueCommentCreated:
-		if p.IsPull {
-			title = "New comment on pull request " + title
-			color = greenColorLight
-		} else {
-			title = "New comment on issue " + title
-			color = orangeColorLight
-		}
-		content = p.Comment.Body
-	case api.HookIssueCommentEdited:
-		if p.IsPull {
-			title = "Comment edited on pull request " + title
-		} else {
-			title = "Comment edited on issue " + title
-		}
-		content = p.Comment.Body
-		color = yellowColor
-	case api.HookIssueCommentDeleted:
-		if p.IsPull {
-			title = "Comment deleted on pull request " + title
-		} else {
-			title = "Comment deleted on issue " + title
-		}
-		url = fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index)
-		content = p.Comment.Body
-		color = redColor
-	}
-
-	title = fmt.Sprintf("[%s] %s", p.Repository.FullName, title)
+	text, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter)
 
 	return &MSTeamsPayload{
 		Type:       "MessageCard",
 		Context:    "https://schema.org/extensions",
 		ThemeColor: fmt.Sprintf("%x", color),
-		Title:      title,
-		Summary:    title,
+		Title:      text,
+		Summary:    text,
 		Sections: []MSTeamsSection{
 			{
 				ActivityTitle:    p.Sender.FullName,
 				ActivitySubtitle: p.Sender.UserName,
 				ActivityImage:    p.Sender.AvatarURL,
-				Text:             content,
+				Text:             p.Comment.Body,
 				Facts: []MSTeamsFact{
 					{
 						Name:  "Repository:",
@@ -374,7 +341,7 @@ func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload,
 				Targets: []MSTeamsActionTarget{
 					{
 						Os:  "default",
-						URI: url,
+						URI: p.Issue.URL,
 					},
 				},
 			},

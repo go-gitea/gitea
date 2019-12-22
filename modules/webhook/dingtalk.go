@@ -132,14 +132,14 @@ func getDingtalkPushPayload(p *api.PushPayload) (*DingtalkPayload, error) {
 }
 
 func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
-	text, _, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter)
+	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
 			Text: text + "\r\n\r\n" + attachmentText,
 			//Markdown:    "# " + title + "\n" + text,
-			Title:       text,
+			Title:       issueTitle,
 			HideAvatar:  "0",
 			SingleTitle: "view issue",
 			SingleURL:   p.Issue.URL,
@@ -148,57 +148,29 @@ func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
 }
 
 func getDingtalkIssueCommentPayload(p *api.IssueCommentPayload) (*DingtalkPayload, error) {
-	title := fmt.Sprintf("#%d: %s", p.Issue.Index, p.Issue.Title)
-	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID))
-	var content string
-	switch p.Action {
-	case api.HookIssueCommentCreated:
-		if p.IsPull {
-			title = "New comment on pull request " + title
-		} else {
-			title = "New comment on issue " + title
-		}
-		content = p.Comment.Body
-	case api.HookIssueCommentEdited:
-		if p.IsPull {
-			title = "Comment edited on pull request " + title
-		} else {
-			title = "Comment edited on issue " + title
-		}
-		content = p.Comment.Body
-	case api.HookIssueCommentDeleted:
-		if p.IsPull {
-			title = "Comment deleted on pull request " + title
-		} else {
-			title = "Comment deleted on issue " + title
-		}
-		url = fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index)
-		content = p.Comment.Body
-	}
-
-	title = fmt.Sprintf("[%s] %s", p.Repository.FullName, title)
+	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text:        title + "\r\n\r\n" + content,
-			Title:       title,
+			Text:        text + "\r\n\r\n" + p.Comment.Body,
+			Title:       issueTitle,
 			HideAvatar:  "0",
 			SingleTitle: "view issue comment",
-			SingleURL:   url,
+			SingleURL:   p.Issue.URL,
 		},
 	}, nil
 }
 
 func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload, error) {
-	text, _, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter)
+	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
 			Text: text + "\r\n\r\n" + attachmentText,
 			//Markdown:    "# " + title + "\n" + text,
-			Title:       text,
+			Title:       issueTitle,
 			HideAvatar:  "0",
 			SingleTitle: "view pull request",
 			SingleURL:   p.PullRequest.HTMLURL,

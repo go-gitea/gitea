@@ -167,25 +167,7 @@ func getSlackIssuesPayload(p *api.IssuePayload, slack *SlackMeta) (*SlackPayload
 }
 
 func getSlackIssueCommentPayload(p *api.IssueCommentPayload, slack *SlackMeta) (*SlackPayload, error) {
-	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
-	title := SlackTextFormatter(fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title))
-	repoLink := SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-	var text, titleLink, attachmentText string
-
-	switch p.Action {
-	case api.HookIssueCommentCreated:
-		text = fmt.Sprintf("[%s] New comment created by %s", repoLink, senderLink)
-		titleLink = fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID))
-		attachmentText = SlackTextFormatter(p.Comment.Body)
-	case api.HookIssueCommentEdited:
-		text = fmt.Sprintf("[%s] Comment edited by %s", repoLink, senderLink)
-		titleLink = fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID))
-		attachmentText = SlackTextFormatter(p.Comment.Body)
-	case api.HookIssueCommentDeleted:
-		text = fmt.Sprintf("[%s] Comment deleted by %s", repoLink, senderLink)
-		titleLink = fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index)
-		attachmentText = SlackTextFormatter(p.Comment.Body)
-	}
+	text, issueTitle, _ := getIssueCommentPayloadInfo(p, SlackLinkFormatter)
 
 	return &SlackPayload{
 		Channel:  slack.Channel,
@@ -194,9 +176,9 @@ func getSlackIssueCommentPayload(p *api.IssueCommentPayload, slack *SlackMeta) (
 		IconURL:  slack.IconURL,
 		Attachments: []SlackAttachment{{
 			Color:     slack.Color,
-			Title:     title,
-			TitleLink: titleLink,
-			Text:      attachmentText,
+			Title:     issueTitle,
+			TitleLink: p.Issue.URL,
+			Text:      SlackTextFormatter(p.Comment.Body),
 		}},
 	}, nil
 }

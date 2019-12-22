@@ -249,49 +249,16 @@ func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPa
 }
 
 func getDiscordIssueCommentPayload(p *api.IssueCommentPayload, discord *DiscordMeta) (*DiscordPayload, error) {
-	title := fmt.Sprintf("#%d: %s", p.Issue.Index, p.Issue.Title)
-	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID))
-	content := ""
-	var color int
-	switch p.Action {
-	case api.HookIssueCommentCreated:
-		if p.IsPull {
-			title = "New comment on pull request " + title
-			color = greenColorLight
-		} else {
-			title = "New comment on issue " + title
-			color = orangeColorLight
-		}
-		content = p.Comment.Body
-	case api.HookIssueCommentEdited:
-		if p.IsPull {
-			title = "Comment edited on pull request " + title
-		} else {
-			title = "Comment edited on issue " + title
-		}
-		content = p.Comment.Body
-		color = yellowColor
-	case api.HookIssueCommentDeleted:
-		if p.IsPull {
-			title = "Comment deleted on pull request " + title
-		} else {
-			title = "Comment deleted on issue " + title
-		}
-		url = fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index)
-		content = p.Comment.Body
-		color = redColor
-	}
-
-	title = fmt.Sprintf("[%s] %s", p.Repository.FullName, title)
+	text, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter)
 
 	return &DiscordPayload{
 		Username:  discord.Username,
 		AvatarURL: discord.IconURL,
 		Embeds: []DiscordEmbed{
 			{
-				Title:       title,
-				Description: content,
-				URL:         url,
+				Title:       text,
+				Description: p.Comment.Body,
+				URL:         p.Issue.URL,
 				Color:       color,
 				Author: DiscordEmbedAuthor{
 					Name:    p.Sender.UserName,

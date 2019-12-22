@@ -6,6 +6,7 @@ package webhook
 
 import (
 	"fmt"
+	"html"
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -21,7 +22,7 @@ func noneLinkFormatter(url string, text string) string {
 
 // htmlLinkFormatter creates a HTML link
 func htmlLinkFormatter(url string, text string) string {
-	return fmt.Sprintf(`<a href="%s">%s</a>`, url, text)
+	return fmt.Sprintf(`<a href="%s">%s</a>`, url, html.EscapeString(text))
 }
 
 func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter) (string, string, string, int) {
@@ -147,4 +148,35 @@ func getReleasePayloadInfo(p *api.ReleasePayload, linkFormatter linkFormatter) (
 	}
 
 	return text, color
+}
+
+func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFormatter) (string, string, int) {
+	senderLink := linkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
+	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
+	issueTitle := fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title)
+	var text, typ string
+	color := yellowColor
+
+	if p.IsPull {
+		typ = "pull request"
+	} else {
+		typ = "issue"
+	}
+
+	switch p.Action {
+	case api.HookIssueCommentCreated:
+		text = fmt.Sprintf("[%s] New comment on %s by %s", repoLink, typ, senderLink)
+		if p.IsPull {
+			color = greenColorLight
+		} else {
+			color = orangeColorLight
+		}
+	case api.HookIssueCommentEdited:
+		text = fmt.Sprintf("[%s] Comment on %s edited by %s", repoLink, typ, senderLink)
+	case api.HookIssueCommentDeleted:
+		text = fmt.Sprintf("[%s] Comment on %s deleted by %s", repoLink, typ, senderLink)
+		color = redColor
+	}
+
+	return text, issueTitle, color
 }

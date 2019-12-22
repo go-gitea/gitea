@@ -7,7 +7,6 @@ package webhook
 import (
 	"encoding/json"
 	"fmt"
-	"html"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -134,23 +133,10 @@ func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
 }
 
 func getTelegramIssueCommentPayload(p *api.IssueCommentPayload) (*TelegramPayload, error) {
-	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID))
-	title := fmt.Sprintf(`<a href="%s">#%d %s</a>`, url, p.Issue.Index, html.EscapeString(p.Issue.Title))
-	var text string
-	switch p.Action {
-	case api.HookIssueCommentCreated:
-		text = "New comment: " + title
-		text += p.Comment.Body
-	case api.HookIssueCommentEdited:
-		text = "Comment edited: " + title
-		text += p.Comment.Body
-	case api.HookIssueCommentDeleted:
-		text = "Comment deleted: " + title
-		text += p.Comment.Body
-	}
+	text, _, _ := getIssueCommentPayloadInfo(p, htmlLinkFormatter)
 
 	return &TelegramPayload{
-		Message: title + "\n" + text,
+		Message: text + "\n" + p.Comment.Body,
 	}, nil
 }
 
