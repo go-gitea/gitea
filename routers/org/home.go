@@ -97,7 +97,7 @@ func Home(ctx *context.Context) {
 	var opts = models.FindOrgMembersOpts{
 		OrgID:       org.ID,
 		PublicOnly:  true,
-		ListOptions: models.ListOptions{PageSize: 25},
+		ListOptions: models.ListOptions{Page: 1, PageSize: 25},
 	}
 
 	if ctx.User != nil {
