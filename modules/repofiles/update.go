@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/cache"
@@ -31,6 +32,12 @@ type IdentityOptions struct {
 	Email string
 }
 
+// CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE
+type CommitDateOptions struct {
+	Author   time.Time
+	Commiter time.Time
+}
+
 // UpdateRepoFileOptions holds the repository file update options
 type UpdateRepoFileOptions struct {
 	LastCommitID string
@@ -44,6 +51,7 @@ type UpdateRepoFileOptions struct {
 	IsNewFile    bool
 	Author       *IdentityOptions
 	Committer    *IdentityOptions
+	Dates        *CommitDateOptions
 }
 
 func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string, bool) {
@@ -371,7 +379,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// Now commit the tree
-	commitHash, err := t.CommitTree(author, committer, treeHash, message)
+	commitHash, err := t.CommitTreeWithDate(author, committer, treeHash, message, opts.Dates.Author, opts.Dates.Commiter)
 	if err != nil {
 		return nil, err
 	}
