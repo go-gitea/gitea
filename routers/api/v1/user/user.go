@@ -54,7 +54,7 @@ func Search(ctx *context.APIContext) {
 		Keyword:     strings.Trim(ctx.Query("q"), " "),
 		UID:         com.StrTo(ctx.Query("uid")).MustInt64(),
 		Type:        models.UserTypeIndividual,
-		ListOptions: models.ListOptions{PageSize: ctx.QueryInt("page")},
+		ListOptions: models.ListOptions{Page: 1, PageSize: ctx.QueryInt("limit")},
 	}
 
 	users, _, err := models.SearchUsers(opts)

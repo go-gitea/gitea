@@ -127,7 +127,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	}
 
 	pageSize := ctx.QueryInt("limit")
-	if pageSize <= 0 {
+	if pageSize <= 0 || pageSize > git.CommitsRangeSize {
 		pageSize = git.CommitsRangeSize
 	}
 
@@ -163,7 +163,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		return
 	}
 
-	pageCount := int(math.Ceil(float64(commitsCountTotal) / float64(git.CommitsRangeSize)))
+	pageCount := int(math.Ceil(float64(commitsCountTotal) / float64(pageSize)))
 
 	// Query commits
 	commits, err := baseCommit.CommitsByRange(page, pageSize)
@@ -190,10 +190,10 @@ func GetAllCommits(ctx *context.APIContext) {
 		i++
 	}
 
-	ctx.SetLinkHeader(int(commitsCountTotal), git.CommitsRangeSize)
+	ctx.SetLinkHeader(int(commitsCountTotal), pageSize)
 
 	ctx.Header().Set("X-Page", strconv.Itoa(page))
-	ctx.Header().Set("X-PerPage", strconv.Itoa(git.CommitsRangeSize))
+	ctx.Header().Set("X-PerPage", strconv.Itoa(pageSize))
 	ctx.Header().Set("X-Total", strconv.FormatInt(commitsCountTotal, 10))
 	ctx.Header().Set("X-PageCount", strconv.Itoa(pageCount))
 	ctx.Header().Set("X-HasMore", strconv.FormatBool(page < pageCount))

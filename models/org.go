@@ -508,7 +508,7 @@ func GetOrgUsersByOrgID(opts *FindOrgMembersOpts) ([]*OrgUser, error) {
 }
 
 func getOrgUsersByOrgID(e Engine, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
-	ous := make([]*OrgUser, 0, 10)
+	var ous []*OrgUser
 	sess := e.Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly {
 		sess.And("is_public = ?", true)
