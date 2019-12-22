@@ -272,15 +272,14 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
-	if wasEmpty && masterPushed {
-		// We need to tell the repo to reset the default branch to master
-		err := private.SetDefaultBranch(repoUser, repoName, "master")
-		if err != nil {
-			fail("Internal Server Error", err)
-		}
-	}
-
 	if count == 0 {
+		if wasEmpty && masterPushed {
+			// We need to tell the repo to reset the default branch to master
+			err := private.SetDefaultBranch(repoUser, repoName, "master")
+			if err != nil {
+				fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
+			}
+		}
 		fmt.Fprintf(os.Stdout, "Processed %d references in total\n", total)
 		os.Stdout.Sync()
 
@@ -295,15 +294,24 @@ Gitea or set your environment appropriately.`, "")
 	fmt.Fprintf(os.Stdout, " Processing %d references\n", count)
 	os.Stdout.Sync()
 
-	resps, err := private.HookPostReceive(repoUser, repoName, hookOptions)
-	if resps == nil {
+	resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
+	if resp == nil {
 		hookPrintResults(results)
 		fail("Internal Server Error", err)
 	}
-	results = append(results, resps...)
+	wasEmpty = wasEmpty || resp.RepoWasEmpty
+	results = append(results, resp.Results...)
 
 	fmt.Fprintf(os.Stdout, "Processed %d references in total\n", total)
 	os.Stdout.Sync()
+
+	if wasEmpty && masterPushed {
+		// We need to tell the repo to reset the default branch to master
+		err := private.SetDefaultBranch(repoUser, repoName, "master")
+		if err != nil {
+			fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
+		}
+	}
 
 	hookPrintResults(results)
 

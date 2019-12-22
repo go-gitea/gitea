@@ -209,12 +209,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 		refFullName := opts.RefFullNames[i]
 		newCommitID := opts.NewCommitIDs[i]
 
-		branch := opts.RefFullNames[i]
-		if strings.HasPrefix(branch, git.BranchPrefix) {
-			branch = strings.TrimPrefix(branch, git.BranchPrefix)
-		} else {
-			branch = strings.TrimPrefix(branch, git.TagPrefix)
-		}
+		branch := git.RefEndName(opts.RefFullNames[i])
 
 		if newCommitID != git.EmptySHA && strings.HasPrefix(refFullName, git.BranchPrefix) {
 			if repo == nil {
@@ -232,8 +227,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 					repo.OwnerName = ownerName
 				}
 
-				pullRequestAllowed := repo.AllowsPulls()
-				if !pullRequestAllowed {
+				if !repo.AllowsPulls() {
 					// We can stop there's no need to go any further
 					ctx.JSON(http.StatusOK, private.HookPostReceiveResult{
 						RepoWasEmpty: wasEmpty,
