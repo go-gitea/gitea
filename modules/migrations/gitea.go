@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -27,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/services/gitdiff"
 
 	gouuid "github.com/satori/go.uuid"
 )
@@ -704,6 +706,115 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	// TODO: assignees
 
 	return &pullRequest, nil
+}
+
+func convertReviewState(state string) models.ReviewType {
+	switch state {
+	case "PENDING":
+		return models.ReviewTypePending
+	case "APPROVE":
+		return models.ReviewTypeApprove
+	case "REQUEST_CHANGES":
+		return models.ReviewTypeReject
+	case "COMMENT":
+		return models.ReviewTypeComment
+	default:
+		return models.ReviewTypePending
+	}
+}
+
+// CreateReviews create pull request reviews
+func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
+	var cms = make([]*models.Review, 0, len(reviews))
+	for _, review := range reviews {
+		var issueID int64
+		if issueIDStr, ok := g.issues.Load(review.IssueIndex); !ok {
+			issue, err := models.GetIssueByIndex(g.repo.ID, review.IssueIndex)
+			if err != nil {
+				return err
+			}
+			issueID = issue.ID
+			g.issues.Store(review.IssueIndex, issueID)
+		} else {
+			issueID = issueIDStr.(int64)
+		}
+
+		userid, ok := g.userMap[review.ReviewerID]
+		tp := g.gitServiceType.Name()
+		if !ok && tp != "" {
+			var err error
+			userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", review.ReviewerID))
+			if err != nil {
+				log.Error("GetUserIDByExternalUserID: %v", err)
+			}
+			if userid > 0 {
+				g.userMap[review.ReviewerID] = userid
+			}
+		}
+
+		var cm = models.Review{
+			Type:        convertReviewState(review.State),
+			IssueID:     issueID,
+			Content:     review.Content,
+			Official:    review.Official,
+			CreatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
+			UpdatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
+		}
+
+		if userid > 0 {
+			cm.ReviewerID = userid
+		} else {
+			cm.ReviewerID = g.doer.ID
+			cm.OriginalAuthor = review.ReviewerName
+			cm.OriginalAuthorID = review.ReviewerID
+		}
+
+		// TODO: cache pr
+		pr, err := models.GetPullRequestByID(issueID)
+		if err != nil {
+			return err
+		}
+
+		for _, comment := range review.Comments {
+			headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitRefName())
+			if err != nil {
+				return fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
+			}
+			patchBuf := new(bytes.Buffer)
+			if err := gitdiff.GetRawDiffForFile(g.gitRepo.Path, pr.MergeBase, headCommitID, gitdiff.RawDiffNormal, comment.TreePath, patchBuf); err != nil {
+				return fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", err, g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath)
+			}
+			line := int64(comment.Position)
+			patch := gitdiff.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+
+			var c = models.Comment{
+				Type:      models.CommentTypeCode,
+				PosterID:  comment.PosterID,
+				IssueID:   issueID,
+				Content:   comment.Content,
+				Line:      line,
+				TreePath:  comment.TreePath,
+				CommitSHA: comment.CommitID,
+				Patch:     patch,
+			}
+
+			if userid > 0 {
+				c.PosterID = userid
+			} else {
+				c.PosterID = g.doer.ID
+				c.OriginalAuthor = review.ReviewerName
+				c.OriginalAuthorID = review.ReviewerID
+			}
+
+			cm.Comments = append(cm.Comments, &c)
+		}
+
+		cms = append(cms, &cm)
+
+		// TODO: Reactions
+	}
+
+	return models.InsertReviews(cms)
 }
 
 // Rollback when migrating failed, this will rollback all the changes.

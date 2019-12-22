@@ -614,3 +614,77 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 
 	return allPRs, nil
 }
+
+func convertGithubReview(r *github.PullRequestReview) *base.Review {
+	return &base.Review{
+		ID:           r.GetID(),
+		ReviewerID:   r.GetUser().GetID(),
+		ReviewerName: r.GetUser().GetLogin(),
+		CommitID:     r.GetCommitID(),
+		Content:      r.GetBody(),
+		CreatedAt:    r.GetSubmittedAt(),
+		State:        r.GetState(),
+	}
+}
+
+func convertGithubReviewComments(cs []*github.PullRequestComment) []*base.ReviewComment {
+	var rcs = make([]*base.ReviewComment, 0, len(cs))
+	for _, c := range cs {
+		rcs = append(rcs, &base.ReviewComment{
+			ID:        c.GetID(),
+			InReplyTo: c.GetInReplyTo(),
+			Content:   c.GetBody(),
+			TreePath:  c.GetPath(),
+			Position:  c.GetPosition(),
+			CommitID:  c.GetCommitID(),
+			PosterID:  c.GetUser().GetID(),
+			Reactions: convertGithubReactions(c.Reactions),
+			CreatedAt: c.GetCreatedAt(),
+			UpdatedAt: c.GetUpdatedAt(),
+		})
+	}
+	return rcs
+}
+
+// GetReviews returns pull requests review
+func (g *GithubDownloaderV3) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
+	var allReviews = make([]*base.Review, 0, 100)
+	opt := &github.ListOptions{
+		PerPage: 100,
+	}
+	for {
+		g.sleep()
+		reviews, resp, err := g.client.PullRequests.ListReviews(g.ctx, g.repoOwner, g.repoName, int(pullRequestNumber), opt)
+		if err != nil {
+			return nil, fmt.Errorf("error while listing repos: %v", err)
+		}
+		g.rate = &resp.Rate
+		for _, review := range reviews {
+			r := convertGithubReview(review)
+			r.IssueIndex = pullRequestNumber
+			// retrieve all review comments
+			opt2 := &github.ListOptions{
+				PerPage: 100,
+			}
+			for {
+				g.sleep()
+				reviewComments, resp, err := g.client.PullRequests.ListReviewComments(g.ctx, g.repoOwner, g.repoName, int(pullRequestNumber), review.GetID(), opt2)
+				if err != nil {
+					return nil, fmt.Errorf("error while listing repos: %v", err)
+				}
+				g.rate = &resp.Rate
+				r.Comments = append(r.Comments, convertGithubReviewComments(reviewComments)...)
+				if resp.NextPage == 0 {
+					break
+				}
+				opt2.Page = resp.NextPage
+			}
+			allReviews = append(allReviews, r)
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+	return allReviews, nil
+}
