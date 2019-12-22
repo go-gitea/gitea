@@ -111,7 +111,7 @@ func SetDefaultBranch(ownerName, repoName, branch string) error {
 	req := newInternalRequest(reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
 
-	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
+	req.SetTimeout(60*time.Second, time.Duration(60*time.Second)
 	resp, err := req.Response()
 	if err != nil {
 		return fmt.Errorf("Unable to contact gitea: %v", err)
