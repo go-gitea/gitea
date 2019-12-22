@@ -239,7 +239,6 @@ func notifyWatchers(e Engine, actions ...*Action) error {
 			if act.ActUserID == watcher.UserID {
 				continue
 			}
-
 			act.ID = 0
 			act.UserID = watcher.UserID
 			act.Repo.Units = nil
@@ -253,7 +252,7 @@ func notifyWatchers(e Engine, actions ...*Action) error {
 				if !permIssue[i] {
 					continue
 				}
-			case ActionCreatePullRequest, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest:
+			case ActionCreatePullRequest, ActionCommentPull, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest:
 				if !permPR[i] {
 					continue
 				}

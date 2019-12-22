@@ -548,7 +548,7 @@ func ActionIcon(opType models.ActionType) string {
 		return "issue-opened"
 	case models.ActionCreatePullRequest:
 		return "git-pull-request"
-	case models.ActionCommentIssue:
+	case models.ActionCommentIssue, models.ActionCommentPull:
 		return "comment-discussion"
 	case models.ActionMergePullRequest:
 		return "git-merge"

@@ -291,7 +291,7 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 	switch actionType {
 	case models.ActionCreateIssue, models.ActionCreatePullRequest:
 		name = "new"
-	case models.ActionCommentIssue:
+	case models.ActionCommentIssue, models.ActionCommentPull:
 		name = "comment"
 	case models.ActionCloseIssue, models.ActionClosePullRequest:
 		name = "close"
