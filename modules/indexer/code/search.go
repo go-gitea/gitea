@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package search
+package code
 
 import (
 	"bytes"
@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/highlight"
-	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -60,7 +59,7 @@ func writeStrings(buf *bytes.Buffer, strs ...string) error {
 	return nil
 }
 
-func searchResult(result *code_indexer.RepoSearchResult, startIndex, endIndex int) (*Result, error) {
+func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, error) {
 	startLineNum := 1 + strings.Count(result.Content[:startIndex], "\n")
 
 	var formattedLinesBuffer bytes.Buffer
@@ -113,7 +112,7 @@ func PerformSearch(repoIDs []int64, keyword string, page, pageSize int) (int, []
 		return 0, nil, nil
 	}
 
-	total, results, err := code_indexer.SearchRepoByKeyword(repoIDs, keyword, page, pageSize)
+	total, results, err := indexer.Search(repoIDs, keyword, page, pageSize)
 	if err != nil {
 		return 0, nil, err
 	}
