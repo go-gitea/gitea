@@ -45,6 +45,8 @@ var (
 		IssueQueueDir:         "indexers/issues.queue",
 		IssueQueueConnStr:     "",
 		IssueQueueBatchNumber: 20,
+
+		MaxIndexerFileSize: 1024 * 1024,
 	}
 )
 

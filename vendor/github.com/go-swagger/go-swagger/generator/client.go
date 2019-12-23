@@ -41,6 +41,8 @@ func GenerateClient(name string, modelNames, operationIDs []string, opts *GenOpt
 		}
 	}
 
+	templates.SetAllowOverride(opts.AllowTemplateOverride)
+
 	if opts.TemplateDir != "" {
 		if err := templates.LoadDir(opts.TemplateDir); err != nil {
 			return err

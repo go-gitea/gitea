@@ -76,6 +76,7 @@ func CheckUnitUser(ctx *macaron.Context) {
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func RegisterRoutes(m *macaron.Macaron) {
 	m.Group("/", func() {
+		m.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
 		m.Post("/ssh/:id/update/:repoid", UpdatePublicKeyInRepo)
 		m.Get("/hook/pre-receive/:owner/:repo", HookPreReceive)
 		m.Get("/hook/post-receive/:owner/:repo", HookPostReceive)

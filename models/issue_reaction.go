@@ -69,6 +69,7 @@ func findReactions(e Engine, opts FindReactionsOptions) ([]*Reaction, error) {
 	reactions := make([]*Reaction, 0, 10)
 	sess := e.Where(opts.toConds())
 	return reactions, sess.
+		In("reaction.`type`", setting.UI.Reactions).
 		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id").
 		Find(&reactions)
 }

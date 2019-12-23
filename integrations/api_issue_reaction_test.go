@@ -26,7 +26,6 @@ func TestAPIIssuesReactions(t *testing.T) {
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	user1 := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/reactions?token=%s",
 		owner.Name, issue.Repo.Name, issue.Index, token)
@@ -61,17 +60,12 @@ func TestAPIIssuesReactions(t *testing.T) {
 	DecodeJSON(t, resp, &apiReactions)
 	expectResponse := make(map[int]api.ReactionResponse)
 	expectResponse[0] = api.ReactionResponse{
-		User:     user1.APIFormat(),
-		Reaction: "zzz",
-		Created:  time.Unix(1573248002, 0),
-	}
-	expectResponse[1] = api.ReactionResponse{
 		User:     user2.APIFormat(),
 		Reaction: "eyes",
 		Created:  time.Unix(1573248003, 0),
 	}
-	expectResponse[2] = apiNewReaction
-	assert.Len(t, apiReactions, 3)
+	expectResponse[1] = apiNewReaction
+	assert.Len(t, apiReactions, 2)
 	for i, r := range apiReactions {
 		assert.Equal(t, expectResponse[i].Reaction, r.Reaction)
 		assert.Equal(t, expectResponse[i].Created.Unix(), r.Created.Unix())

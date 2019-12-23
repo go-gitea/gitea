@@ -10,6 +10,8 @@ import (
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/spec"
 	flags "github.com/jessevdk/go-flags"
+
+	"github.com/go-swagger/go-swagger/generator"
 )
 
 const (
@@ -24,6 +26,7 @@ type MixinSpec struct {
 	ExpectedCollisionCount uint           `short:"c" description:"expected # of rejected mixin paths, defs, etc due to existing key. Non-zero exit if does not match actual."`
 	Compact                bool           `long:"compact" description:"applies to JSON formatted specs. When present, doesn't prettify the json"`
 	Output                 flags.Filename `long:"output" short:"o" description:"the file to write to"`
+	KeepSpecOrder          bool           `long:"keep-spec-order" description:"Keep schema properties order identical to spec file"`
 	Format                 string         `long:"format" description:"the format for the spec document" default:"json" choice:"yaml" choice:"json"`
 }
 
@@ -89,6 +92,9 @@ func (c *MixinSpec) MixinFiles(primaryFile string, mixinFiles []string, w io.Wri
 
 	var mixins []*spec.Swagger
 	for _, mixinFile := range mixinFiles {
+		if c.KeepSpecOrder {
+			mixinFile = generator.WithAutoXOrder(mixinFile)
+		}
 		mixin, lerr := loads.Spec(mixinFile)
 		if lerr != nil {
 			return nil, lerr
