@@ -210,7 +210,7 @@ func notifyWatchers(e Engine, act *Action) error {
 			if !act.Repo.checkUnitUser(e, act.UserID, false, UnitTypeIssues) {
 				continue
 			}
-		case ActionCreatePullRequest, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest:
+		case ActionCreatePullRequest, ActionCommentPull, ActionMergePullRequest, ActionClosePullRequest, ActionReopenPullRequest:
 			if !act.Repo.checkUnitUser(e, act.UserID, false, UnitTypePullRequests) {
 				continue
 			}

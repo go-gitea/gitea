@@ -124,6 +124,7 @@ func Search(ctx *context.APIContext) {
 	//     "$ref": "#/responses/SearchResults"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	opts := &models.SearchRepoOptions{
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
@@ -188,7 +189,7 @@ func Search(ctx *context.APIContext) {
 	var err error
 	repos, count, err := models.SearchRepository(opts)
 	if err != nil {
-		ctx.JSON(500, api.SearchError{
+		ctx.JSON(http.StatusInternalServerError, api.SearchError{
 			OK:    false,
 			Error: err.Error(),
 		})
@@ -198,7 +199,7 @@ func Search(ctx *context.APIContext) {
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
 		if err = repo.GetOwner(); err != nil {
-			ctx.JSON(500, api.SearchError{
+			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
 				Error: err.Error(),
 			})
@@ -206,7 +207,7 @@ func Search(ctx *context.APIContext) {
 		}
 		accessMode, err := models.AccessLevel(ctx.User, repo)
 		if err != nil {
-			ctx.JSON(500, api.SearchError{
+			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
 				Error: err.Error(),
 			})
@@ -216,7 +217,7 @@ func Search(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(count), setting.API.MaxResponseItems)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.JSON(200, api.SearchResults{
+	ctx.JSON(http.StatusOK, api.SearchResults{
 		OK:   true,
 		Data: results,
 	})
@@ -239,17 +240,17 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 	})
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
-			ctx.Error(409, "", "The repository with the same name already exists.")
+			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
 		} else if models.IsErrNameReserved(err) ||
 			models.IsErrNamePatternNotAllowed(err) {
-			ctx.Error(422, "", err)
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(500, "CreateRepository", err)
+			ctx.Error(http.StatusInternalServerError, "CreateRepository", err)
 		}
 		return
 	}
 
-	ctx.JSON(201, repo.APIFormat(models.AccessModeOwner))
+	ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeOwner))
 }
 
 // Create one repository of mine
@@ -273,9 +274,10 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//     description: The repository with the same name already exists.
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	if ctx.User.IsOrganization() {
 		// Shouldn't reach this condition, but just in case.
-		ctx.Error(422, "", "not allowed creating repository for organization")
+		ctx.Error(http.StatusUnprocessableEntity, "", "not allowed creating repository for organization")
 		return
 	}
 	CreateUserRepo(ctx, ctx.User, opt)
@@ -307,12 +309,13 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//     "$ref": "#/responses/validationError"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+
 	org, err := models.GetOrgByName(ctx.Params(":org"))
 	if err != nil {
 		if models.IsErrOrgNotExist(err) {
-			ctx.Error(422, "", err)
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(500, "GetOrgByName", err)
+			ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
 		}
 		return
 	}
@@ -328,7 +331,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return
 		} else if !canCreate {
-			ctx.Error(403, "", "Given user is not allowed to create repository in organization.")
+			ctx.Error(http.StatusForbidden, "", "Given user is not allowed to create repository in organization.")
 			return
 		}
 	}
@@ -352,6 +355,11 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Repository"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	ctxUser := ctx.User
 	// Not equal means context user is an organization,
 	// or is another user/organization if current user is admin.
@@ -359,9 +367,9 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		org, err := models.GetUserByID(form.UID)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
-				ctx.Error(422, "", err)
+				ctx.Error(http.StatusUnprocessableEntity, "", err)
 			} else {
-				ctx.Error(500, "GetUserByID", err)
+				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
 			}
 			return
 		}
@@ -369,13 +377,13 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	}
 
 	if ctx.HasError() {
-		ctx.Error(422, "", ctx.GetErrMsg())
+		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())
 		return
 	}
 
 	if !ctx.User.IsAdmin {
 		if !ctxUser.IsOrganization() && ctx.User.ID != ctxUser.ID {
-			ctx.Error(403, "", "Given user is not an organization.")
+			ctx.Error(http.StatusForbidden, "", "Given user is not an organization.")
 			return
 		}
 
@@ -383,10 +391,10 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 			// Check ownership of organization.
 			isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
 			if err != nil {
-				ctx.Error(500, "IsOwnedBy", err)
+				ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
 				return
 			} else if !isOwner {
-				ctx.Error(403, "", "Given user is not owner of organization.")
+				ctx.Error(http.StatusForbidden, "", "Given user is not owner of organization.")
 				return
 			}
 		}
@@ -398,16 +406,16 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 			addrErr := err.(models.ErrInvalidCloneAddr)
 			switch {
 			case addrErr.IsURLError:
-				ctx.Error(422, "", err)
+				ctx.Error(http.StatusUnprocessableEntity, "", err)
 			case addrErr.IsPermissionDenied:
-				ctx.Error(422, "", "You are not allowed to import local repositories.")
+				ctx.Error(http.StatusUnprocessableEntity, "", "You are not allowed to import local repositories.")
 			case addrErr.IsInvalidPath:
-				ctx.Error(422, "", "Invalid local path, it does not exist or not a directory.")
+				ctx.Error(http.StatusUnprocessableEntity, "", "Invalid local path, it does not exist or not a directory.")
 			default:
-				ctx.Error(500, "ParseRemoteAddr", "Unknown error type (ErrInvalidCloneAddr): "+err.Error())
+				ctx.Error(http.StatusInternalServerError, "ParseRemoteAddr", "Unknown error type (ErrInvalidCloneAddr): "+err.Error())
 			}
 		} else {
-			ctx.Error(500, "ParseRemoteAddr", err)
+			ctx.Error(http.StatusInternalServerError, "ParseRemoteAddr", err)
 		}
 		return
 	}
@@ -488,33 +496,33 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	}
 
 	log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
-	ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
+	ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeAdmin))
 }
 
 func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteAddr string, err error) {
 	switch {
 	case models.IsErrRepoAlreadyExist(err):
-		ctx.Error(409, "", "The repository with the same name already exists.")
+		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
 	case migrations.IsRateLimitError(err):
-		ctx.Error(422, "", "Remote visit addressed rate limitation.")
+		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit addressed rate limitation.")
 	case migrations.IsTwoFactorAuthError(err):
-		ctx.Error(422, "", "Remote visit required two factors authentication.")
+		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit required two factors authentication.")
 	case models.IsErrReachLimitOfRepo(err):
-		ctx.Error(422, "", fmt.Sprintf("You have already reached your limit of %d repositories.", repoOwner.MaxCreationLimit()))
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("You have already reached your limit of %d repositories.", repoOwner.MaxCreationLimit()))
 	case models.IsErrNameReserved(err):
-		ctx.Error(422, "", fmt.Sprintf("The username '%s' is reserved.", err.(models.ErrNameReserved).Name))
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' is reserved.", err.(models.ErrNameReserved).Name))
 	case models.IsErrNamePatternNotAllowed(err):
-		ctx.Error(422, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(models.ErrNamePatternNotAllowed).Pattern))
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(models.ErrNamePatternNotAllowed).Pattern))
 	default:
 		err = util.URLSanitizedError(err, remoteAddr)
 		if strings.Contains(err.Error(), "Authentication failed") ||
 			strings.Contains(err.Error(), "Bad credentials") ||
 			strings.Contains(err.Error(), "could not read Username") {
-			ctx.Error(422, "", fmt.Sprintf("Authentication failed: %v.", err))
+			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Authentication failed: %v.", err))
 		} else if strings.Contains(err.Error(), "fatal:") {
-			ctx.Error(422, "", fmt.Sprintf("Migration failed: %v.", err))
+			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Migration failed: %v.", err))
 		} else {
-			ctx.Error(500, "MigrateRepository", err)
+			ctx.Error(http.StatusInternalServerError, "MigrateRepository", err)
 		}
 	}
 }
@@ -540,7 +548,8 @@ func Get(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
-	ctx.JSON(200, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
+
+	ctx.JSON(http.StatusOK, ctx.Repo.Repository.APIFormat(ctx.Repo.AccessMode))
 }
 
 // GetByID returns a single Repository
@@ -560,25 +569,26 @@ func GetByID(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Repository"
+
 	repo, err := models.GetRepositoryByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetRepositoryByID", err)
+			ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
 		}
 		return
 	}
 
 	perm, err := models.GetUserRepoPermission(repo, ctx.User)
 	if err != nil {
-		ctx.Error(500, "AccessLevel", err)
+		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if !perm.HasAccess() {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(200, repo.APIFormat(perm.AccessMode))
+	ctx.JSON(http.StatusOK, repo.APIFormat(perm.AccessMode))
 }
 
 // Edit edit repository properties
@@ -612,6 +622,7 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	if err := updateBasicProperties(ctx, opts); err != nil {
 		return
 	}
@@ -926,25 +937,26 @@ func Delete(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
 	canDelete, err := repo.CanUserDelete(ctx.User)
 	if err != nil {
-		ctx.Error(500, "CanUserDelete", err)
+		ctx.Error(http.StatusInternalServerError, "CanUserDelete", err)
 		return
 	} else if !canDelete {
-		ctx.Error(403, "", "Given user is not owner of organization.")
+		ctx.Error(http.StatusForbidden, "", "Given user is not owner of organization.")
 		return
 	}
 
 	if err := repo_service.DeleteRepository(ctx.User, repo); err != nil {
-		ctx.Error(500, "DeleteRepository", err)
+		ctx.Error(http.StatusInternalServerError, "DeleteRepository", err)
 		return
 	}
 
 	log.Trace("Repository deleted: %s/%s", owner.Name, repo.Name)
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // MirrorSync adds a mirrored repository to the sync queue
@@ -968,13 +980,16 @@ func MirrorSync(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	repo := ctx.Repo.Repository
 
 	if !ctx.Repo.CanWrite(models.UnitTypeCode) {
-		ctx.Error(403, "MirrorSync", "Must have write access")
+		ctx.Error(http.StatusForbidden, "MirrorSync", "Must have write access")
 	}
 
 	mirror_service.StartToMirror(repo.ID)
 
-	ctx.Status(200)
+	ctx.Status(http.StatusOK)
 }
