@@ -312,6 +312,12 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 }
 
 func (ctx *postProcessCtx) visitNode(node *html.Node) {
+	// Add user-content- to IDs if they don't already have them
+	for idx, attr := range node.Attr {
+		if attr.Key == "id" && !strings.HasPrefix(attr.Val, "user-content-") {
+			node.Attr[idx].Val = "user-content-" + attr.Val
+		}
+	}
 	// We ignore code, pre and already generated links.
 	switch node.Type {
 	case html.TextNode:
