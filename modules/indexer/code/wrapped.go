@@ -48,6 +48,9 @@ func (w *wrappedIndexer) get() (Indexer, error) {
 			return nil, ErrWrappedIndexerClosed
 		}
 		w.cond.Wait()
+		if w.closed {
+			return nil, ErrWrappedIndexerClosed
+		}
 	}
 	return w.internal, nil
 }
