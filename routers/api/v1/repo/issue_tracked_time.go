@@ -71,6 +71,10 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
 	}
+	if err = trackedTimes.LoadAttributes(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		return
+	}
 	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
 }
 
@@ -150,6 +154,10 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	trackedTime, err := models.AddTime(user, issue, form.Time, created)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddTime", err)
+		return
+	}
+	if err = trackedTime.LoadAttributes(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, trackedTime.APIFormat())
@@ -349,7 +357,11 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		UserID:       user.ID,
 		RepositoryID: ctx.Repo.Repository.ID})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetTrackedTimesByUser", err)
+		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
+		return
+	}
+	if err = trackedTimes.LoadAttributes(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
@@ -397,6 +409,10 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
 	}
+	if err = trackedTimes.LoadAttributes(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		return
+	}
 	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
 }
 
@@ -414,6 +430,10 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{UserID: ctx.User.ID})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimesByUser", err)
+		return
+	}
+	if err = trackedTimes.LoadAttributes(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())

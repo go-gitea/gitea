@@ -16,12 +16,14 @@ import (
 
 // TrackedTime represents a time that was spent for a specific issue.
 type TrackedTime struct {
-	ID          int64     `xorm:"pk autoincr" json:"id"`
-	IssueID     int64     `xorm:"INDEX" json:"issue_id"`
-	UserID      int64     `xorm:"INDEX" json:"user_id"`
-	Created     time.Time `xorm:"-" json:"created"`
-	CreatedUnix int64     `xorm:"created" json:"-"`
-	Time        int64     `json:"time"`
+	ID          int64     `xorm:"pk autoincr"`
+	IssueID     int64     `xorm:"INDEX"`
+	Issue       *Issue    `xorm:"-"`
+	UserID      int64     `xorm:"INDEX"`
+	User        *User     `xorm:"-"`
+	Created     time.Time `xorm:"-"`
+	CreatedUnix int64     `xorm:"created"`
+	Time        int64     `xorm:"NOT NULL"`
 }
 
 // TrackedTimeList is a List of TrackedTime's
@@ -32,39 +34,59 @@ func (t *TrackedTime) AfterLoad() {
 	t.Created = time.Unix(t.CreatedUnix, 0).In(setting.DefaultUILocation)
 }
 
+// LoadAttributes load Issue, User
+func (t *TrackedTime) LoadAttributes() (err error) {
+	return t.loadAttributes(x)
+}
+
+func (t *TrackedTime) loadAttributes(e Engine) (err error) {
+	if t.Issue == nil {
+		t.Issue, err = getIssueByID(e, t.IssueID)
+		if err != nil {
+			return
+		}
+		err = t.Issue.loadRepo(e)
+		if err != nil {
+			return
+		}
+	}
+	if t.User == nil {
+		t.User, err = getUserByID(e, t.UserID)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
 // APIFormat converts TrackedTime to API format
 func (t *TrackedTime) APIFormat() *api.TrackedTime {
-	user, err := GetUserByID(t.UserID)
-	if err != nil {
-		return nil
-	}
-	issue, err := GetIssueByID(t.IssueID)
-	if err != nil {
-		return nil
-	}
-	err = issue.LoadRepo()
-	if err != nil {
-		return nil
-	}
 	return &api.TrackedTime{
 		ID:       t.ID,
 		IssueID:  t.IssueID,
-		Issue:    issue.APIFormat(),
+		Issue:    t.Issue.APIFormat(),
 		UserID:   t.UserID,
-		UserName: user.Name,
+		UserName: t.User.Name,
 		Time:     t.Time,
 		Created:  t.Created,
 	}
 }
 
+// LoadAttributes load Issue, User
+func (tl TrackedTimeList) LoadAttributes() (err error) {
+	for _, t := range tl {
+		if err = t.LoadAttributes(); err != nil {
+			return err
+		}
+	}
+	return
+}
+
 // APIFormat converts TrackedTimeList to API format
 func (tl TrackedTimeList) APIFormat() api.TrackedTimeList {
-	var result api.TrackedTimeList
-	for _, t := range tl {
-		i := t.APIFormat()
-		if i != nil {
-			result = append(result, i)
-		}
+	result := make([]*api.TrackedTime, 0, len(tl))
+	for i, t := range tl {
+		result[i] = t.APIFormat()
 	}
 	return result
 }
