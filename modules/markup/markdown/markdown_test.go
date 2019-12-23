@@ -165,7 +165,7 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 
 <h3 id="user-content-footnotes">Footnotes</h3>
 
-<p>Here is a simple footnote,<sup id="user-content-fnref:1"><a href="#fn:1" rel="nofollow">1</a></sup> and here is a longer one.<sup id="user-content-fnref:bignote"><a href="#fn:bignote" rel="nofollow">2</a></sup></p>
+<p>Here is a simple footnote,<sup id="user-content-fnref:1"><a href="#user-content-fn:1" rel="nofollow">1</a></sup> and here is a longer one.<sup id="user-content-fnref:bignote"><a href="#user-content-fn:bignote" rel="nofollow">2</a></sup></p>
 
 <div>
 
