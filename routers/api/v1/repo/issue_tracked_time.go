@@ -147,7 +147,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 		created = form.Created
 	}
 
-	trackedTime, err := models.AddTimeCreatedAt(user, issue, form.Time, created)
+	trackedTime, err := models.AddTime(user, issue, form.Time, created)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddTime", err)
 		return

@@ -6,6 +6,7 @@ package models
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +21,7 @@ func TestAddTime(t *testing.T) {
 	assert.NoError(t, err)
 
 	//3661 = 1h 1min 1s
-	trackedTime, err := AddTime(user3, issue1, 3661)
+	trackedTime, err := AddTime(user3, issue1, 3661, time.Now())
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), trackedTime.UserID)
 	assert.Equal(t, int64(1), trackedTime.IssueID)
