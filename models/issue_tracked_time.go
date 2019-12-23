@@ -93,7 +93,7 @@ func (tl TrackedTimeList) LoadAttributes() (err error) {
 func (tl TrackedTimeList) APIFormat() api.TrackedTimeList {
 	result := make([]*api.TrackedTime, 0, len(tl))
 	for _, t := range tl {
-		result= append(result, t.APIFormat())
+		result = append(result, t.APIFormat())
 	}
 	return result
 }
