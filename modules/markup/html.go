@@ -58,6 +58,9 @@ var (
 	emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)(?:\\s|$|\\)|\\]|\\.(\\s|$))")
 
 	linkRegex, _ = xurls.StrictMatchingScheme("https?://")
+
+	// blackfriday extensions create IDs like fn:user-content-footnote
+	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 )
 
 // CSS class for action keywords (e.g. "closes: #1")
@@ -312,6 +315,12 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 }
 
 func (ctx *postProcessCtx) visitNode(node *html.Node) {
+	// Add user-content- to IDs if they don't already have them
+	for idx, attr := range node.Attr {
+		if attr.Key == "id" && !(strings.HasPrefix(attr.Val, "user-content-") || blackfridayExtRegex.MatchString(attr.Val)) {
+			node.Attr[idx].Val = "user-content-" + attr.Val
+		}
+	}
 	// We ignore code, pre and already generated links.
 	switch node.Type {
 	case html.TextNode:
