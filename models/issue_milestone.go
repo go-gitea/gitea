@@ -153,7 +153,7 @@ func (milestones MilestoneList) loadTotalTrackedTimes(e Engine) error {
 	rows, err := e.Table("issue").
 		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
 		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
-		Where("deleted is false").
+		Where("deleted = 0").
 		Select("milestone_id, sum(time) as time").
 		In("milestone_id", milestones.getMilestoneIDs()).
 		GroupBy("milestone_id").
@@ -188,7 +188,7 @@ func (m *Milestone) loadTotalTrackedTime(e Engine) error {
 	has, err := e.Table("issue").
 		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
 		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
-		Where("tracked_time.deleted is false").
+		Where("tracked_time.deleted = 0").
 		Select("milestone_id, sum(time) as time").
 		Where("milestone_id = ?", m.ID).
 		GroupBy("milestone_id").
