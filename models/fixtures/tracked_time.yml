@@ -4,6 +4,7 @@
   issue_id: 1
   time: 400
   created_unix: 946684800
+  deleted: false
 
 -
   id: 2
@@ -11,6 +12,7 @@
   issue_id: 2
   time: 3661
   created_unix: 946684801
+  deleted: false
 
 -
   id: 3
@@ -18,6 +20,7 @@
   issue_id: 2
   time: 1
   created_unix: 946684802
+  deleted: false
 
 -
   id: 4
@@ -25,6 +28,7 @@
   issue_id: 4
   time: 1
   created_unix: 946684803
+  deleted: false
 
 -
   id: 5
@@ -32,6 +36,7 @@
   issue_id: 5
   time: 1
   created_unix: 946684804
+  deleted: false
 
 -
   id: 6
@@ -39,6 +44,7 @@
   issue_id: 2
   time: 20
   created_unix: 946684812
+  deleted: false
 
 -
   id: 7
@@ -46,6 +52,7 @@
   issue_id: 4
   time: 3
   created_unix: 946684813
+  deleted: false
 
 -
   id: 8
@@ -53,3 +60,12 @@
   issue_id: 4
   time: 71
   created_unix: 947688814
+  deleted: false
+
+-
+  id: 9
+  user_id: 2
+  issue_id: 2
+  time: 100000
+  created_unix: 947688815
+  deleted: true

@@ -24,6 +24,7 @@ type TrackedTime struct {
 	Created     time.Time `xorm:"-"`
 	CreatedUnix int64     `xorm:"created"`
 	Time        int64     `xorm:"NOT NULL"`
+	Deleted     bool      `xorm:"NOT NULL DEFAULT false"`
 }
 
 // TrackedTimeList is a List of TrackedTime's
@@ -101,7 +102,7 @@ type FindTrackedTimesOptions struct {
 
 // ToCond will convert each condition into a xorm-Cond
 func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
-	cond := builder.NewCond()
+	cond := builder.NewCond().And(builder.Eq{"deleted": false})
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
 	}
@@ -247,45 +248,12 @@ func DeleteIssueUserTimes(issue *Issue, user *User) error {
 	return err
 }
 
-func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err error) {
-	tt, err := getTrackedTimes(e, opts)
-	if err != nil {
-		return
-	}
-
-	for _, t := range tt {
-		_, err = e.Delete(t)
-		if err != nil {
-			return
-		}
-		removedTime += t.Time
-	}
-	return
-}
-
 // DeleteTime delete a specific Time
 func DeleteTime(t *TrackedTime) error {
 	sess := x.NewSession()
 	defer sess.Close()
 
 	if err := deleteTime(sess, t); err != nil {
-		return err
-	}
-	return sess.Commit()
-}
-
-func deleteTime(e Engine, t *TrackedTime) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if err := t.LoadAttributes(); err != nil {
-		return err
-	}
-
-	if _, err := sess.Delete(t); err != nil {
 		return err
 	}
 
@@ -298,7 +266,29 @@ func deleteTime(e Engine, t *TrackedTime) error {
 	}); err != nil {
 		return err
 	}
-	return nil
+
+	return sess.Commit()
+}
+
+func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err error) {
+	tt, err := getTrackedTimes(e, opts)
+	if err != nil {
+		return
+	}
+
+	for _, t := range tt {
+		if err = deleteTime(e, t); err != nil {
+			return
+		}
+		removedTime += t.Time
+	}
+	return
+}
+
+func deleteTime(e Engine, t *TrackedTime) error {
+	t.Deleted = true
+	_, err := e.ID(t.ID).Cols("deleted").Update(t)
+	return err
 }
 
 // GetTrackedTimeByID returns raw TrackedTime without loading attributes by id
