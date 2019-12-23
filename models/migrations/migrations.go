@@ -260,6 +260,30 @@ var migrations = []Migration{
 	NewMigration("change length of some external login users columns", changeSomeColumnsLengthOfExternalLoginUser),
 	// v102 -> v103
 	NewMigration("update migration repositories' service type", dropColumnHeadUserNameOnPullRequest),
+	// v103 -> v104
+	NewMigration("Add WhitelistDeployKeys to protected branch", addWhitelistDeployKeysToBranches),
+	// v104 -> v105
+	NewMigration("remove unnecessary columns from label", removeLabelUneededCols),
+	// v105 -> v106
+	NewMigration("add includes_all_repositories to teams", addTeamIncludesAllRepositories),
+	// v106 -> v107
+	NewMigration("add column `mode` to table watch", addModeColumnToWatch),
+	// v107 -> v108
+	NewMigration("Add template options to repository", addTemplateToRepo),
+	// v108 -> v109
+	NewMigration("Add comment_id on table notification", addCommentIDOnNotification),
+	// v109 -> v110
+	NewMigration("add can_create_org_repo to team", addCanCreateOrgRepoColumnForTeam),
+	// v110 -> v111
+	NewMigration("change review content type to text", changeReviewContentToText),
+	// v111 -> v112
+	NewMigration("update branch protection for can push and whitelist enable", addBranchProtectionCanPushAndEnableWhitelist),
+	// v112 -> v113
+	NewMigration("remove release attachments which repository deleted", removeAttachmentMissedRepo),
+	// v113 -> v114
+	NewMigration("new feature: change target branch of pull requests", featureChangeTargetBranch),
+	// v114 -> v115
+	NewMigration("Remove authentication credentials from stored URL", sanitizeOriginalURL),
 }
 
 // Migrate database to current version

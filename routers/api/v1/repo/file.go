@@ -43,6 +43,9 @@ func GetRawFile(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.NotFound()
 		return
@@ -88,6 +91,9 @@ func GetArchive(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
@@ -95,6 +101,7 @@ func GetArchive(ctx *context.APIContext) {
 		return
 	}
 	ctx.Repo.GitRepo = gitRepo
+	defer gitRepo.Close()
 
 	repo.Download(ctx.Context)
 }
@@ -125,6 +132,9 @@ func GetEditorconfig(ctx *context.APIContext) {
 	// responses:
 	//   200:
 	//     description: success
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	ec, err := ctx.Repo.GetEditorconfig()
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -331,6 +341,7 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileDeleteResponse"
+
 	if !CanWriteFiles(ctx.Repo) {
 		ctx.Error(http.StatusInternalServerError, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,

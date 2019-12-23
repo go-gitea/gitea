@@ -96,3 +96,23 @@
   authorize: 1 # read
   num_repos: 0
   num_members: 0
+
+-
+  id: 12
+  org_id: 3
+  lower_name: team12creators
+  name: team12Creators
+  authorize: 3 # admin
+  num_repos: 0
+  num_members: 1
+  can_create_org_repo: true
+
+-
+  id: 13
+  org_id: 6
+  lower_name: team13notcreators
+  name: team13NotCreators
+  authorize: 3 # admin
+  num_repos: 0
+  num_members: 1
+  can_create_org_repo: false

@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	gitealog "code.gitea.io/gitea/modules/log"
 	"github.com/unknwon/com"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	gogit "gopkg.in/src-d/go-git.v4"
@@ -45,6 +46,11 @@ type GPGSettings struct {
 }
 
 const prettyLogFormat = `--pretty=format:%H`
+
+// GetAllCommitsCount returns count of all commits in repository
+func (repo *Repository) GetAllCommitsCount() (int64, error) {
+	return AllCommitsCount(repo.Path)
+}
 
 func (repo *Repository) parsePrettyFormatLogToList(logs []byte) (*list.List, error) {
 	l := list.New()
@@ -117,6 +123,21 @@ func OpenRepository(repoPath string) (*Repository, error) {
 	}, nil
 }
 
+// Close this repository, in particular close the underlying gogitStorage if this is not nil
+func (repo *Repository) Close() {
+	if repo == nil || repo.gogitStorage == nil {
+		return
+	}
+	if err := repo.gogitStorage.Close(); err != nil {
+		gitealog.Error("Error closing storage: %v", err)
+	}
+}
+
+// GoGitRepo gets the go-git repo representation
+func (repo *Repository) GoGitRepo() *gogit.Repository {
+	return repo.gogitRepo
+}
+
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf strings.Builder
@@ -140,16 +161,24 @@ type CloneRepoOptions struct {
 	Branch     string
 	Shared     bool
 	NoCheckout bool
+	Depth      int
 }
 
 // Clone clones original repository to target path.
 func Clone(from, to string, opts CloneRepoOptions) (err error) {
+	cargs := make([]string, len(GlobalCommandArgs))
+	copy(cargs, GlobalCommandArgs)
+	return CloneWithArgs(from, to, cargs, opts)
+}
+
+// CloneWithArgs original repository to target path.
+func CloneWithArgs(from, to string, args []string, opts CloneRepoOptions) (err error) {
 	toDir := path.Dir(to)
 	if err = os.MkdirAll(toDir, os.ModePerm); err != nil {
 		return err
 	}
 
-	cmd := NewCommand("clone")
+	cmd := NewCommandNoGlobals(args...).AddArguments("clone")
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
 	}
@@ -164,6 +193,9 @@ func Clone(from, to string, opts CloneRepoOptions) (err error) {
 	}
 	if opts.NoCheckout {
 		cmd.AddArguments("--no-checkout")
+	}
+	if opts.Depth > 0 {
+		cmd.AddArguments("--depth", strconv.Itoa(opts.Depth))
 	}
 
 	if len(opts.Branch) > 0 {
@@ -294,8 +326,8 @@ const (
 	statSizeGarbage  = "size-garbage: "
 )
 
-// GetRepoSize returns disk consumption for repo in path
-func GetRepoSize(repoPath string) (*CountObject, error) {
+// CountObjects returns the results of git count-objects on the repoPath
+func CountObjects(repoPath string) (*CountObject, error) {
 	cmd := NewCommand("count-objects", "-v")
 	stdout, err := cmd.RunInDir(repoPath)
 	if err != nil {

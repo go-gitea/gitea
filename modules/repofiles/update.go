@@ -168,7 +168,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	message := strings.TrimSpace(opts.Message)
 
-	author, committer := GetAuthorAndCommitterUsers(opts.Committer, opts.Author, doer)
+	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
 
 	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
@@ -385,7 +385,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		contentStore := &lfs.ContentStore{BasePath: setting.LFS.ContentPath}
 		if !contentStore.Exists(lfsMetaObject) {
 			if err := contentStore.Put(lfsMetaObject, strings.NewReader(opts.Content)); err != nil {
-				if err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
+				if _, err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
 					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
 				}
 				return nil, err
@@ -410,9 +410,20 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	return file, nil
 }
 
+// PushUpdateOptions defines the push update options
+type PushUpdateOptions struct {
+	PusherID     int64
+	PusherName   string
+	RepoUserName string
+	RepoName     string
+	RefFullName  string
+	OldCommitID  string
+	NewCommitID  string
+}
+
 // PushUpdate must be called for any push actions in order to
 // generates necessary push action history feeds and other operations
-func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOptions) error {
+func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) error {
 	isNewRef := opts.OldCommitID == git.EmptySHA
 	isDelRef := opts.NewCommitID == git.EmptySHA
 	if isNewRef && isDelRef {
@@ -430,6 +441,7 @@ func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOp
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
+	defer gitRepo.Close()
 
 	if err = repo.UpdateSize(); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
@@ -501,8 +513,9 @@ func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOp
 
 	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true)
 
-	if opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
-		models.UpdateRepoIndexer(repo)
+	if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
+		log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
 	}
+
 	return nil
 }

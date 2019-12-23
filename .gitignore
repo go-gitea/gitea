@@ -12,6 +12,7 @@ _test
 
 # MS VSCode
 .vscode
+__debug_bin
 
 # Architecture specific extensions/prefixes
 *.[568vq]
@@ -68,6 +69,8 @@ coverage.all
 /modules/indexer/issues/indexers
 routers/repo/authorized_keys
 /yarn.lock
+/public/js
+/public/css
 
 # Snapcraft
 snap/.snapcraft/

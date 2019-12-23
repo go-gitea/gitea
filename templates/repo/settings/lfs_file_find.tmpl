@@ -1,0 +1,52 @@
+{{template "base/head" .}}
+<div class="repository settings lfs">
+	{{template "repo/header" .}}
+	{{template "repo/settings/navbar" .}}
+	<div class="ui container repository file list">
+		{{template "base/alert" .}}
+		<div class="tab-size-8 non-diff-file-content">
+			<h4 class="ui top attached header">
+				<a href="{{.LFSFilesLink}}">{{.i18n.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.Oid}}</span>
+			</h4>
+			<table id="lfs-files-find-table" class="ui attached segment single line table">
+				<tbody>
+					{{range .Results}}
+						<tr>
+							<td>
+								<span class="octicon octicon-file-text"></span>
+								<a href="{{EscapePound $.RepoLink}}/src/commit/{{.SHA}}/{{EscapePound .Name}}" title="{{.Name}}">{{.Name}}</a>
+							</td>
+							<td class="message has-emoji">
+								<span class="truncate">
+									<a href="{{$.RepoLink}}/commit/{{.SHA}}" title="{{.Summary}}">
+										{{.Summary}}
+									</a>
+								</span>
+							</td>
+							<td>
+								<span class="text grey"><i class="octicon octicon-git-branch"></i>{{.BranchName}}</span>
+							</td>
+							<td>
+								{{if .ParentHashes}}
+									{{$.i18n.Tr "repo.diff.parent"}}
+									{{range .ParentHashes}}
+										<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.String}}">{{ShortSha .String}}</a>
+									{{end}}
+								{{end}}
+								<div class="mobile-only"></div>
+								{{$.i18n.Tr "repo.diff.commit"}}
+								<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.SHA}}">{{ShortSha .SHA}}</a>
+							</td>
+							<td>{{TimeSince .When $.Lang}}</td>
+						</tr>
+					{{else}}
+						<tr>
+							<td colspan="5">{{.i18n.Tr "repo.settings.lfs_lfs_file_no_commits"}}</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

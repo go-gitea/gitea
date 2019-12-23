@@ -35,6 +35,8 @@ var (
 		AccessControlAllowOrigin                string
 		UseCompatSSHURI                         bool
 		DefaultCloseIssuesViaCommitsInAnyBranch bool
+		EnablePushCreateUser                    bool
+		EnablePushCreateOrg                     bool
 
 		// Repository editor settings
 		Editor struct {
@@ -59,6 +61,8 @@ var (
 		// Pull request settings
 		PullRequest struct {
 			WorkInProgressPrefixes []string
+			CloseKeywords          []string
+			ReopenKeywords         []string
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -87,6 +91,8 @@ var (
 		AccessControlAllowOrigin:                "",
 		UseCompatSSHURI:                         false,
 		DefaultCloseIssuesViaCommitsInAnyBranch: false,
+		EnablePushCreateUser:                    false,
+		EnablePushCreateOrg:                     false,
 
 		// Repository editor settings
 		Editor: struct {
@@ -122,8 +128,14 @@ var (
 		// Pull request settings
 		PullRequest: struct {
 			WorkInProgressPrefixes []string
+			CloseKeywords          []string
+			ReopenKeywords         []string
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
+			// Same as GitHub. See
+			// https://help.github.com/articles/closing-issues-via-commit-messages
+			CloseKeywords:  strings.Split("close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved", ","),
+			ReopenKeywords: strings.Split("reopen,reopens,reopened", ","),
 		},
 
 		// Issue settings

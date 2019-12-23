@@ -166,13 +166,13 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <h3 id="footnotes">Footnotes</h3>
 
 <p>Here is a simple footnote,<sup id="fnref:1"><a href="#fn:1" rel="nofollow">1</a></sup> and here is a longer one.<sup id="fnref:bignote"><a href="#fn:bignote" rel="nofollow">2</a></sup></p>
+
 <div>
 
 <hr/>
 
 <ol>
-<li id="fn:1">This is the first footnote.
-</li>
+<li id="fn:1">This is the first footnote.</li>
 
 <li id="fn:bignote"><p>Here is one with multiple paragraphs and code.</p>
 
@@ -180,9 +180,9 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 
 <p><code>{ my code }</code></p>
 
-<p>Add as many paragraphs as you like.</p>
-</li>
+<p>Add as many paragraphs as you like.</p></li>
 </ol>
+
 </div>
 `,
 	}
@@ -293,4 +293,26 @@ func TestTotal_RenderString(t *testing.T) {
 		line := RenderString(testCases[i], AppSubURL, nil)
 		assert.Equal(t, testCases[i+1], line)
 	}
+}
+
+func TestRender_RenderParagraphs(t *testing.T) {
+	test := func(t *testing.T, str string, cnt int) {
+		unix := []byte(str)
+		res := string(RenderRaw(unix, "", false))
+		assert.Equal(t, strings.Count(res, "<p"), cnt)
+
+		mac := []byte(strings.ReplaceAll(str, "\n", "\r"))
+		res = string(RenderRaw(mac, "", false))
+		assert.Equal(t, strings.Count(res, "<p"), cnt)
+
+		dos := []byte(strings.ReplaceAll(str, "\n", "\r\n"))
+		res = string(RenderRaw(dos, "", false))
+		assert.Equal(t, strings.Count(res, "<p"), cnt)
+	}
+
+	test(t, "\nOne\nTwo\nThree", 1)
+	test(t, "\n\nOne\nTwo\nThree", 1)
+	test(t, "\n\nOne\nTwo\nThree\n\n\n", 1)
+	test(t, "A\n\nB\nC\n", 2)
+	test(t, "A\n\n\nB\nC\n", 2)
 }

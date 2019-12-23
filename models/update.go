@@ -22,6 +22,8 @@ const (
 	EnvPusherName   = "GITEA_PUSHER_NAME"
 	EnvPusherEmail  = "GITEA_PUSHER_EMAIL"
 	EnvPusherID     = "GITEA_PUSHER_ID"
+	EnvKeyID        = "GITEA_KEY_ID"
+	EnvIsDeployKey  = "GITEA_IS_DEPLOY_KEY"
 )
 
 // CommitToPushCommit transforms a git.Commit to PushCommit type.
@@ -49,17 +51,6 @@ func ListToPushCommits(l *list.List) *PushCommits {
 		commits = append(commits, CommitToPushCommit(commit))
 	}
 	return &PushCommits{l.Len(), commits, "", make(map[string]string), make(map[string]*User)}
-}
-
-// PushUpdateOptions defines the push update options
-type PushUpdateOptions struct {
-	PusherID     int64
-	PusherName   string
-	RepoUserName string
-	RepoName     string
-	RefFullName  string
-	OldCommitID  string
-	NewCommitID  string
 }
 
 // PushUpdateDeleteTag must be called for any push actions to delete tag

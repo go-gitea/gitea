@@ -5,6 +5,7 @@
 package git
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -20,7 +21,9 @@ func TestGetFormatPatch(t *testing.T) {
 	defer os.RemoveAll(clonedPath)
 	repo, err := OpenRepository(clonedPath)
 	assert.NoError(t, err)
-	rd, err := repo.GetFormatPatch("8d92fc95^", "8d92fc95")
+	defer repo.Close()
+	rd := &bytes.Buffer{}
+	err = repo.GetPatch("8d92fc95^", "8d92fc95", rd)
 	assert.NoError(t, err)
 	patchb, err := ioutil.ReadAll(rd)
 	assert.NoError(t, err)

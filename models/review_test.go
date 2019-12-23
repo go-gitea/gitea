@@ -98,15 +98,7 @@ func TestCreateReview(t *testing.T) {
 	AssertExistsAndLoadBean(t, &Review{Content: "New Review"})
 }
 
-func TestUpdateReview(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	review := AssertExistsAndLoadBean(t, &Review{ID: 1}).(*Review)
-	review.Content = "Updated Review"
-	assert.NoError(t, UpdateReview(review))
-	AssertExistsAndLoadBean(t, &Review{ID: 1, Content: "Updated Review"})
-}
-
-func TestGetReviewersByPullID(t *testing.T) {
+func TestGetReviewersByIssueID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	issue := AssertExistsAndLoadBean(t, &Issue{ID: 3}).(*Issue)
@@ -114,24 +106,29 @@ func TestGetReviewersByPullID(t *testing.T) {
 	user3 := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
 	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
 
-	expectedReviews := []*PullReviewersWithType{}
-	expectedReviews = append(expectedReviews, &PullReviewersWithType{
-		User:              *user2,
-		Type:              ReviewTypeReject,
-		ReviewUpdatedUnix: 946684810,
-	},
-		&PullReviewersWithType{
-			User:              *user3,
-			Type:              ReviewTypeReject,
-			ReviewUpdatedUnix: 946684810,
+	expectedReviews := []*Review{}
+	expectedReviews = append(expectedReviews,
+		&Review{
+			Reviewer:    user3,
+			Type:        ReviewTypeReject,
+			UpdatedUnix: 946684812,
 		},
-		&PullReviewersWithType{
-			User:              *user4,
-			Type:              ReviewTypeApprove,
-			ReviewUpdatedUnix: 946684810,
+		&Review{
+			Reviewer:    user4,
+			Type:        ReviewTypeApprove,
+			UpdatedUnix: 946684813,
+		},
+		&Review{
+			Reviewer:    user2,
+			Type:        ReviewTypeReject,
+			UpdatedUnix: 946684814,
 		})
 
-	allReviews, err := GetReviewersByPullID(issue.ID)
+	allReviews, err := GetReviewersByIssueID(issue.ID)
 	assert.NoError(t, err)
-	assert.Equal(t, expectedReviews, allReviews)
+	for i, review := range allReviews {
+		assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
+		assert.Equal(t, expectedReviews[i].Type, review.Type)
+		assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
+	}
 }

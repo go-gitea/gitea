@@ -22,6 +22,8 @@ func TestGetDiffPreview(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	branch := ctx.Repo.Repository.DefaultBranch
 	treePath := "README.md"
 	content := "# repo1\n\nDescription for repo1\nthis is a new line"
@@ -53,6 +55,15 @@ func TestGetDiffPreview(t *testing.T) {
 								Type:     4,
 								Content:  "@@ -1,3 +1,4 @@",
 								Comments: nil,
+								SectionInfo: &gitdiff.DiffLineSectionInfo{
+									Path:          "README.md",
+									LastLeftIdx:   0,
+									LastRightIdx:  0,
+									LeftIdx:       1,
+									RightIdx:      1,
+									LeftHunkSize:  3,
+									RightHunkSize: 4,
+								},
 							},
 							{
 								LeftIdx:  1,
@@ -119,6 +130,8 @@ func TestGetDiffPreviewErrors(t *testing.T) {
 	test.LoadRepoCommit(t, ctx)
 	test.LoadUser(t, ctx, 2)
 	test.LoadGitRepo(t, ctx)
+	defer ctx.Repo.GitRepo.Close()
+
 	branch := ctx.Repo.Repository.DefaultBranch
 	treePath := "README.md"
 	content := "# repo1\n\nDescription for repo1\nthis is a new line"

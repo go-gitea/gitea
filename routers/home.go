@@ -12,8 +12,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/search"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/user"
@@ -132,6 +132,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 
 	keyword := strings.Trim(ctx.Query("q"), " ")
 	topicOnly := ctx.QueryBool("topic")
+	ctx.Data["TopicOnly"] = topicOnly
 
 	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
 		Page:               page,
@@ -155,6 +156,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 
 	pager := context.NewPagination(int(count), opts.PageSize, page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParam(ctx, "topic", "TopicOnly")
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, opts.TplName)
@@ -273,7 +275,7 @@ func ExploreOrganizations(ctx *context.Context) {
 // ExploreCode render explore code page
 func ExploreCode(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled {
-		ctx.Redirect("/explore", 302)
+		ctx.Redirect(setting.AppSubURL+"/explore", 302)
 		return
 	}
 
@@ -310,7 +312,7 @@ func ExploreCode(ctx *context.Context) {
 
 	var (
 		total         int
-		searchResults []*search.Result
+		searchResults []*code_indexer.Result
 	)
 
 	// if non-admin login user, we need check UnitTypeCode at first
@@ -332,14 +334,14 @@ func ExploreCode(ctx *context.Context) {
 
 		ctx.Data["RepoMaps"] = rightRepoMap
 
-		total, searchResults, err = search.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
+		total, searchResults, err = code_indexer.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
 		}
 		// if non-login user or isAdmin, no need to check UnitTypeCode
 	} else if (ctx.User == nil && len(repoIDs) > 0) || isAdmin {
-		total, searchResults, err = search.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
+		total, searchResults, err = code_indexer.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return

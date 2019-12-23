@@ -27,28 +27,19 @@ func mailParticipantsComment(ctx models.DBContext, c *models.Comment, opType mod
 	if err = models.UpdateIssueMentions(ctx, c.IssueID, userMentions); err != nil {
 		return fmt.Errorf("UpdateIssueMentions [%d]: %v", c.IssueID, err)
 	}
-	mentions := make([]string, len(userMentions))
+	mentions := make([]int64, len(userMentions))
 	for i, u := range userMentions {
-		mentions[i] = u.LowerName
+		mentions[i] = u.ID
 	}
-	if len(c.Content) > 0 {
-		if err = mailIssueCommentToParticipants(issue, c.Poster, c.Content, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
+	if err = mailIssueCommentToParticipants(
+		&mailCommentContext{
+			Issue:      issue,
+			Doer:       c.Poster,
+			ActionType: opType,
+			Content:    c.Content,
+			Comment:    c,
+		}, mentions); err != nil {
+		log.Error("mailIssueCommentToParticipants: %v", err)
 	}
-
-	switch opType {
-	case models.ActionCloseIssue:
-		ct := fmt.Sprintf("Closed #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(issue, c.Poster, ct, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
-	case models.ActionReopenIssue:
-		ct := fmt.Sprintf("Reopened #%d.", issue.Index)
-		if err = mailIssueCommentToParticipants(issue, c.Poster, ct, c, mentions); err != nil {
-			log.Error("mailIssueCommentToParticipants: %v", err)
-		}
-	}
-
 	return nil
 }

@@ -54,6 +54,7 @@ type Repository struct {
 	Empty         bool        `json:"empty"`
 	Private       bool        `json:"private"`
 	Fork          bool        `json:"fork"`
+	Template      bool        `json:"template"`
 	Parent        *Repository `json:"parent"`
 	Mirror        bool        `json:"mirror"`
 	Size          int         `json:"size"`
@@ -66,6 +67,8 @@ type Repository struct {
 	Forks         int         `json:"forks_count"`
 	Watchers      int         `json:"watchers_count"`
 	OpenIssues    int         `json:"open_issues_count"`
+	OpenPulls     int         `json:"open_pr_counter"`
+	Releases      int         `json:"release_counter"`
 	DefaultBranch string      `json:"default_branch"`
 	Archived      bool        `json:"archived"`
 	// swagger:strfmt date-time
@@ -125,6 +128,8 @@ type EditRepoOption struct {
 	// Note: you will get a 422 error if the organization restricts changing repository visibility to organization
 	// owners and a non-owner tries to change the value of private.
 	Private *bool `json:"private,omitempty"`
+	// either `true` to make this repository a template or `false` to make it a normal repository
+	Template *bool `json:"template,omitempty"`
 	// either `true` to enable issues for this repository or `false` to disable them.
 	HasIssues *bool `json:"has_issues,omitempty"`
 	// set this structure to configure internal issue tracker (requires has_issues)

@@ -7,6 +7,7 @@ package repo
 
 import (
 	"math"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -51,6 +52,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 		ctx.ServerError("OpenRepository", err)
 		return
 	}
+	defer gitRepo.Close()
 	commit, err := gitRepo.GetCommit(ctx.Params(":sha"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommit", git.IsErrNotExist, err)
@@ -63,7 +65,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(200, json)
+	ctx.JSON(http.StatusOK, json)
 }
 
 // GetAllCommits get all commits via
@@ -101,7 +103,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	//     "$ref": "#/responses/EmptyRepository"
 
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.JSON(409, api.APIError{
+		ctx.JSON(http.StatusConflict, api.APIError{
 			Message: "Git Repository is empty.",
 			URL:     setting.API.SwaggerURL,
 		})
@@ -113,6 +115,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		ctx.ServerError("OpenRepository", err)
 		return
 	}
+	defer gitRepo.Close()
 
 	page := ctx.QueryInt("page")
 	if page <= 0 {
@@ -186,7 +189,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	ctx.Header().Set("X-PageCount", strconv.Itoa(pageCount))
 	ctx.Header().Set("X-HasMore", strconv.FormatBool(page < pageCount))
 
-	ctx.JSON(200, &apiCommits)
+	ctx.JSON(http.StatusOK, &apiCommits)
 }
 
 func toCommit(ctx *context.APIContext, repo *models.Repository, commit *git.Commit, userCache map[string]*models.User) (*api.Commit, error) {

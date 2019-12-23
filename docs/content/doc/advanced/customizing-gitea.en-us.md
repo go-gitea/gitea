@@ -65,12 +65,18 @@ Place the png image at the following path: `custom/public/img/avatar_default.png
 ## Customizing Gitea pages
 
 The `custom/templates` folder allows changing every single page of Gitea. Templates
-to override can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/master/templates) directory of Gitea source. Override by
+to override can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/master/templates) directory of Gitea source (Note: the example link is from `master` branch. Make sure to copy templates from same release you are using). Override by
 making a copy of the file under `custom/templates` using a full path structure
 matching source.
 
 Any statement contained inside `{{` and `}}` are Gitea's template syntax and
 shouldn't be touched without fully understanding these components.
+
+### Customizing startpage / homepage
+
+Copy [`home.tmpl`](https://github.com/go-gitea/gitea/blob/master/templates/home.tmpl) for your version of Gitea from `templates` to `custom/templates`.
+Edit as you wish.
+Dont forget to restart your gitea to apply the changes.
 
 ### Adding links and tabs
 
@@ -140,7 +146,7 @@ To add a custom license, add a file with the license text to `custom/options/lic
 Locales are managed via our [crowdin](https://crowdin.com/project/gitea).  
 You can override a locale by placing an altered locale file in `custom/options/locale`.  
 Gitea's default locale files can be found in  the [`options/locale`](https://github.com/go-gitea/gitea/tree/master/options/locale) source folder and these should be used as examples for your changes.  
-  
+
 To add a completely new locale, as well as placing the file in the above location, you will need to add the new lang and name to the `[i18n]` section in your `app.ini`. Keep in mind that Gitea will use those settings as **overrides**, so if you want to keep the other languages as well you will need to copy/paste the default values and add your own to them.
 
 ```
@@ -154,6 +160,15 @@ Locales may change between versions, so keeping track of your customized locales
 ### Readmes
 
 To add a custom Readme, add a markdown formatted file (without an `.md` extension) to `custom/options/readme`
+
+### Reactions
+
+To change reaction emoji's you can set allowed reactions at app.ini
+```
+[ui]
+REACTIONS = +1, -1, laugh, confused, heart, hooray, eyes
+```
+A full list of supported emoji's is at [emoji list](https://gitea.com/gitea/gitea.com/issues/8)
 
 ## Customizing the look of Gitea
 

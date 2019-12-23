@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	"github.com/lunny/levelqueue"
+	"gitea.com/lunny/levelqueue"
 )
 
 var (

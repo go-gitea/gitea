@@ -28,9 +28,8 @@ type IndexerData struct {
 
 // Match represents on search result
 type Match struct {
-	ID     int64   `json:"id"`
-	RepoID int64   `json:"repo_id"`
-	Score  float64 `json:"score"`
+	ID    int64   `json:"id"`
+	Score float64 `json:"score"`
 }
 
 // SearchResult represents search results
@@ -39,12 +38,12 @@ type SearchResult struct {
 	Hits  []Match
 }
 
-// Indexer defines an inteface to indexer issues contents
+// Indexer defines an interface to indexer issues contents
 type Indexer interface {
 	Init() (bool, error)
 	Index(issue []*IndexerData) error
 	Delete(ids ...int64) error
-	Search(kw string, repoID int64, limit, start int) (*SearchResult, error)
+	Search(kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
 }
 
 type indexerHolder struct {
@@ -173,7 +172,7 @@ func InitIssueIndexer(syncReindex bool) {
 	} else if setting.Indexer.StartupTimeout > 0 {
 		go func() {
 			timeout := setting.Indexer.StartupTimeout
-			if graceful.IsChild && setting.GracefulHammerTime > 0 {
+			if graceful.GetManager().IsChild() && setting.GracefulHammerTime > 0 {
 				timeout += setting.GracefulHammerTime
 			}
 			select {
@@ -205,23 +204,28 @@ func populateIssueIndexer() {
 		}
 
 		for _, repo := range repos {
-			is, err := models.Issues(&models.IssuesOptions{
-				RepoIDs:  []int64{repo.ID},
-				IsClosed: util.OptionalBoolNone,
-				IsPull:   util.OptionalBoolNone,
-			})
-			if err != nil {
-				log.Error("Issues: %v", err)
-				continue
-			}
-			if err = models.IssueList(is).LoadDiscussComments(); err != nil {
-				log.Error("LoadComments: %v", err)
-				continue
-			}
-			for _, issue := range is {
-				UpdateIssueIndexer(issue)
-			}
+			UpdateRepoIndexer(repo)
 		}
+	}
+}
+
+// UpdateRepoIndexer add/update all issues of the repositories
+func UpdateRepoIndexer(repo *models.Repository) {
+	is, err := models.Issues(&models.IssuesOptions{
+		RepoIDs:  []int64{repo.ID},
+		IsClosed: util.OptionalBoolNone,
+		IsPull:   util.OptionalBoolNone,
+	})
+	if err != nil {
+		log.Error("Issues: %v", err)
+		return
+	}
+	if err = models.IssueList(is).LoadDiscussComments(); err != nil {
+		log.Error("LoadComments: %v", err)
+		return
+	}
+	for _, issue := range is {
+		UpdateIssueIndexer(issue)
 	}
 }
 
@@ -262,9 +266,9 @@ func DeleteRepoIssueIndexer(repo *models.Repository) {
 }
 
 // SearchIssuesByKeyword search issue ids by keywords and repo id
-func SearchIssuesByKeyword(repoID int64, keyword string) ([]int64, error) {
+func SearchIssuesByKeyword(repoIDs []int64, keyword string) ([]int64, error) {
 	var issueIDs []int64
-	res, err := holder.get().Search(keyword, repoID, 1000, 0)
+	res, err := holder.get().Search(keyword, repoIDs, 1000, 0)
 	if err != nil {
 		return nil, err
 	}
