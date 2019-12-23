@@ -286,7 +286,7 @@ func DeleteTime(ctx *context.APIContext) {
 	}
 
 	if !ctx.User.IsAdmin && time.UserID != ctx.User.ID {
-		//Only Admin and User itself can delete there time
+		//Only Admin and User itself can delete their time
 		ctx.Status(403)
 		return
 	}

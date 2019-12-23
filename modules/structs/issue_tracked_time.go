@@ -15,7 +15,7 @@ type AddTimeOption struct {
 	Time int64 `json:"time" binding:"Required"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created"`
-	// User who spend the time (optional)
+	// User who spent the time (optional)
 	User string `json:"user_name"`
 }
 
@@ -34,5 +34,5 @@ type TrackedTime struct {
 	Issue   *Issue `json:"issue"`
 }
 
-// TrackedTimeList represent a list of tracked times
+// TrackedTimeList represents a list of tracked times
 type TrackedTimeList []*TrackedTime

@@ -24,7 +24,7 @@ type TrackedTime struct {
 	Time        int64     `json:"time"`
 }
 
-// TrackedTimeList is a List ful of TrackedTime's
+// TrackedTimeList is a List of TrackedTime's
 type TrackedTimeList []*TrackedTime
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
