@@ -282,6 +282,8 @@ var migrations = []Migration{
 	NewMigration("remove release attachments which repository deleted", removeAttachmentMissedRepo),
 	// v113 -> v114
 	NewMigration("new feature: change target branch of pull requests", featureChangeTargetBranch),
+	// v114 -> v115
+	NewMigration("Remove authentication credentials from stored URL", sanitizeOriginalURL),
 }
 
 // Migrate database to current version
