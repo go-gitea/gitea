@@ -237,9 +237,9 @@ func (pr *PullRequest) GetCommitMessages() string {
 	for element != nil {
 		commit := element.Value.(*git.Commit)
 
-		if maxSize > -1 && stringBuilder.Len() < maxSize {
+		if maxSize < 0 || stringBuilder.Len() < maxSize {
 			toWrite := []byte(commit.CommitMessage)
-			if len(toWrite) > maxSize-stringBuilder.Len() {
+			if len(toWrite) > maxSize-stringBuilder.Len() && maxSize > -1 {
 				toWrite = append(toWrite[:maxSize-stringBuilder.Len()], "..."...)
 			}
 			if _, err := stringBuilder.Write(toWrite); err != nil {
