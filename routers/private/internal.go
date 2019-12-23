@@ -20,7 +20,7 @@ func CheckInternalToken(ctx *macaron.Context) {
 	tokens := ctx.Req.Header.Get("Authorization")
 	fields := strings.Fields(tokens)
 	if len(fields) != 2 || fields[0] != "Bearer" || fields[1] != setting.InternalToken {
-		log.Warn("Forbidden attempt to access internal url: Authorization header: %s", tokens)
+		log.Debug("Forbidden attempt to access internal url: Authorization header: %s", tokens)
 		ctx.Error(403)
 	}
 }
