@@ -5,72 +5,73 @@
 package code
 
 import (
-	"os"
-	"strconv"
+	"time"
 
+	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/blevesearch/bleve"
-	"github.com/blevesearch/bleve/analysis/token/unicodenorm"
-	"github.com/blevesearch/bleve/index/upsidedown"
-	"github.com/blevesearch/bleve/mapping"
-	"github.com/blevesearch/bleve/search/query"
-	"github.com/ethantkoenig/rupture"
 )
 
-// indexerID a bleve-compatible unique identifier for an integer id
-func indexerID(id int64) string {
-	return strconv.FormatInt(id, 36)
+var (
+	indexer Indexer
+)
+
+// SearchResult result of performing a search in a repo
+type SearchResult struct {
+	RepoID     int64
+	StartIndex int
+	EndIndex   int
+	Filename   string
+	Content    string
 }
 
-// numericEqualityQuery a numeric equality query for the given value and field
-func numericEqualityQuery(value int64, field string) *query.NumericRangeQuery {
-	f := float64(value)
-	tru := true
-	q := bleve.NewNumericRangeInclusiveQuery(&f, &f, &tru, &tru)
-	q.SetField(field)
-	return q
+// Indexer defines an interface to indexer issues contents
+type Indexer interface {
+	Index(repoID int64) error
+	Delete(repoID int64) error
+	Search(repoIDs []int64, keyword string, page, pageSize int) (int64, []*SearchResult, error)
+	Close()
 }
 
-const unicodeNormalizeName = "unicodeNormalize"
-
-func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
-	return m.AddCustomTokenFilter(unicodeNormalizeName, map[string]interface{}{
-		"type": unicodenorm.Name,
-		"form": unicodenorm.NFC,
-	})
-}
-
-const maxBatchSize = 16
-
-// openIndexer open the index at the specified path, checking for metadata
-// updates and bleve version updates.  If index needs to be created (or
-// re-created), returns (nil, nil)
-func openIndexer(path string, latestVersion int) (bleve.Index, error) {
-	_, err := os.Stat(setting.Indexer.IssuePath)
-	if err != nil && os.IsNotExist(err) {
-		return nil, nil
-	} else if err != nil {
-		return nil, err
+// Init initialize the repo indexer
+func Init() {
+	if !setting.Indexer.RepoIndexerEnabled {
+		return
 	}
 
-	metadata, err := rupture.ReadIndexMetadata(path)
-	if err != nil {
-		return nil, err
-	}
-	if metadata.Version < latestVersion {
-		// the indexer is using a previous version, so we should delete it and
-		// re-populate
-		return nil, os.RemoveAll(path)
-	}
+	waitChannel := make(chan time.Duration)
+	go func() {
+		start := time.Now()
+		log.Info("Initializing Repository Indexer")
+		var created bool
+		var err error
+		indexer, created, err = NewBleveIndexer(setting.Indexer.RepoPath)
+		if err != nil {
+			indexer.Close()
+			log.Fatal("indexer.Init: %v", err)
+		}
 
-	index, err := bleve.Open(path)
-	if err != nil && err == upsidedown.IncompatibleVersion {
-		// the indexer was built with a previous version of bleve, so we should
-		// delete it and re-populate
-		return nil, os.RemoveAll(path)
-	} else if err != nil {
-		return nil, err
+		go processRepoIndexerOperationQueue(indexer)
+
+		if created {
+			go populateRepoIndexer()
+		}
+
+		waitChannel <- time.Since(start)
+	}()
+
+	if setting.Indexer.StartupTimeout > 0 {
+		go func() {
+			timeout := setting.Indexer.StartupTimeout
+			if graceful.GetManager().IsChild() && setting.GracefulHammerTime > 0 {
+				timeout += setting.GracefulHammerTime
+			}
+			select {
+			case duration := <-waitChannel:
+				log.Info("Repository Indexer Initialization took %v", duration)
+			case <-time.After(timeout):
+				log.Fatal("Repository Indexer Initialization Timed-Out after: %v", timeout)
+			}
+		}()
 	}
-	return index, nil
 }
