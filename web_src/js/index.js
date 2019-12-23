@@ -2475,7 +2475,7 @@ $(document).ready(() => {
     $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
       let node = $(this);
       node = node.wrap('<div class="anchor-wrap"></div>');
-      node.append(`<a class="anchor" href="#${node.attr('id')}"><span class="octicon octicon-link"></span></a>`);
+      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}"><span class="octicon octicon-link"></span></a>`);
     });
   });
 
