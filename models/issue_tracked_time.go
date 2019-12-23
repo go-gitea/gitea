@@ -108,7 +108,7 @@ type FindTrackedTimesOptions struct {
 
 // ToCond will convert each condition into a xorm-Cond
 func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
-	cond := builder.NewCond().And(builder.Eq{"deleted": false})
+	cond := builder.NewCond().And(builder.Eq{"tracked_time.deleted": false})
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
 	}
@@ -236,6 +236,9 @@ func DeleteIssueUserTimes(issue *Issue, user *User) error {
 	if err != nil {
 		return err
 	}
+	if removedTime == 0 {
+		return ErrNotExist{}
+	}
 
 	if err := issue.loadRepo(sess); err != nil {
 		return err
@@ -292,6 +295,9 @@ func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err
 }
 
 func deleteTime(e Engine, t *TrackedTime) error {
+	if t.Deleted {
+		return ErrNotExist{ID: t.ID}
+	}
 	t.Deleted = true
 	_, err := e.ID(t.ID).Cols("deleted").Update(t)
 	return err
