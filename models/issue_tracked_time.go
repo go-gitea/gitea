@@ -248,7 +248,7 @@ func DeleteIssueUserTimes(issue *Issue, user *User) error {
 }
 
 func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err error) {
-	tt, err := GetTrackedTimes(opts)
+	tt, err := getTrackedTimes(e, opts)
 	if err != nil {
 		return
 	}
