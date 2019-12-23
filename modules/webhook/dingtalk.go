@@ -157,7 +157,7 @@ func getDingtalkIssueCommentPayload(p *api.IssueCommentPayload) (*DingtalkPayloa
 			Title:       issueTitle,
 			HideAvatar:  "0",
 			SingleTitle: "view issue comment",
-			SingleURL:   p.Issue.URL,
+			SingleURL:   p.Comment.HTMLURL,
 		},
 	}, nil
 }

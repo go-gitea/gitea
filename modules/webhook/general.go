@@ -29,7 +29,7 @@ func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter) (str
 	senderLink := linkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	issueTitle := fmt.Sprintf("#%d %s", p.Index, p.Issue.Title)
-	titleLink := linkFormatter(p.Issue.URL, issueTitle)
+	titleLink := linkFormatter(fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Index), issueTitle)
 	var text string
 	color := yellowColor
 
@@ -83,43 +83,43 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 
 	switch p.Action {
 	case api.HookIssueOpened:
-		text = fmt.Sprintf("[%s] Pull request opened by %s", repoLink, senderLink)
+		text = fmt.Sprintf("[%s] Pull request %s opened by %s", repoLink, titleLink, senderLink)
 		color = greenColor
 	case api.HookIssueClosed:
 		if p.PullRequest.HasMerged {
-			text = fmt.Sprintf("[%s] Pull request merged: %s by %s", repoLink, titleLink, senderLink)
+			text = fmt.Sprintf("[%s] Pull request %s merged by %s", repoLink, titleLink, senderLink)
 			color = purpleColor
 		} else {
-			text = fmt.Sprintf("[%s] Pull request closed: %s by %s", repoLink, titleLink, senderLink)
+			text = fmt.Sprintf("[%s] Pull request %s closed by %s", repoLink, titleLink, senderLink)
 			color = redColor
 		}
 	case api.HookIssueReOpened:
-		text = fmt.Sprintf("[%s] Pull request re-opened: %s by %s", repoLink, titleLink, senderLink)
+		text = fmt.Sprintf("[%s] Pull request %s re-opened by %s", repoLink, titleLink, senderLink)
 	case api.HookIssueEdited:
-		text = fmt.Sprintf("[%s] Pull request edited: %s by %s", repoLink, titleLink, senderLink)
+		text = fmt.Sprintf("[%s] Pull request %s edited by %s", repoLink, titleLink, senderLink)
 	case api.HookIssueAssigned:
 		list := make([]string, len(p.PullRequest.Assignees))
 		for i, user := range p.PullRequest.Assignees {
 			list[i] = linkFormatter(setting.AppURL+user.UserName, user.UserName)
 		}
-		text = fmt.Sprintf("[%s] Pull request assigned to %s: %s by %s", repoLink,
+		text = fmt.Sprintf("[%s] Pull request %s assigned to %s by %s", repoLink,
 			strings.Join(list, ", "),
 			titleLink, senderLink)
 		color = greenColor
 	case api.HookIssueUnassigned:
-		text = fmt.Sprintf("[%s] Pull request unassigned: %s by %s", repoLink, titleLink, senderLink)
+		text = fmt.Sprintf("[%s] Pull request %s unassigned by %s", repoLink, titleLink, senderLink)
 	case api.HookIssueLabelUpdated:
-		text = fmt.Sprintf("[%s] Pull request labels updated: %s by %s", repoLink, titleLink, senderLink)
+		text = fmt.Sprintf("[%s] Pull request %s labels updated by %s", repoLink, titleLink, senderLink)
 	case api.HookIssueLabelCleared:
-		text = fmt.Sprintf("[%s] Pull request labels cleared: %s by %s", repoLink, titleLink, senderLink)
+		text = fmt.Sprintf("[%s] Pull request %s labels cleared by %s", repoLink, titleLink, senderLink)
 	case api.HookIssueSynchronized:
-		text = fmt.Sprintf("[%s] Pull request synchronized: %s by %s", repoLink, titleLink, senderLink)
+		text = fmt.Sprintf("[%s] Pull request %s synchronized by %s", repoLink, titleLink, senderLink)
 	case api.HookIssueMilestoned:
 		mileStoneLink := fmt.Sprintf("%s/milestone/%d", p.Repository.HTMLURL, p.PullRequest.Milestone.ID)
-		text = fmt.Sprintf("[%s] Pull request milestoned to %s: %s by %s", repoLink,
+		text = fmt.Sprintf("[%s] Pull request %s milestoned to %s by %s", repoLink,
 			linkFormatter(mileStoneLink, p.PullRequest.Milestone.Title), titleLink, senderLink)
 	case api.HookIssueDemilestoned:
-		text = fmt.Sprintf("[%s] Pull request milestone cleared: %s %s", repoLink, titleLink, senderLink)
+		text = fmt.Sprintf("[%s] Pull request %s milestone cleared by %s", repoLink, titleLink, senderLink)
 	}
 
 	var attachmentText string
@@ -154,27 +154,30 @@ func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFo
 	senderLink := linkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	issueTitle := fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title)
-	var text, typ string
+
+	var text, typ, titleLink string
 	color := yellowColor
 
 	if p.IsPull {
 		typ = "pull request"
+		titleLink = linkFormatter(p.Comment.PRURL, issueTitle)
 	} else {
 		typ = "issue"
+		titleLink = linkFormatter(p.Comment.IssueURL, issueTitle)
 	}
 
 	switch p.Action {
 	case api.HookIssueCommentCreated:
-		text = fmt.Sprintf("[%s] New comment on %s by %s", repoLink, typ, senderLink)
+		text = fmt.Sprintf("[%s] New comment on %s %s by %s", repoLink, typ, titleLink, senderLink)
 		if p.IsPull {
 			color = greenColorLight
 		} else {
 			color = orangeColorLight
 		}
 	case api.HookIssueCommentEdited:
-		text = fmt.Sprintf("[%s] Comment on %s edited by %s", repoLink, typ, senderLink)
+		text = fmt.Sprintf("[%s] Comment on %s %s edited by %s", repoLink, typ, titleLink, senderLink)
 	case api.HookIssueCommentDeleted:
-		text = fmt.Sprintf("[%s] Comment on %s deleted by %s", repoLink, typ, senderLink)
+		text = fmt.Sprintf("[%s] Comment on %s %s deleted by %s", repoLink, typ, titleLink, senderLink)
 		color = redColor
 	}
 

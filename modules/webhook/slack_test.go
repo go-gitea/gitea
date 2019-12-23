@@ -7,29 +7,12 @@ package webhook
 import (
 	"testing"
 
-	api "code.gitea.io/gitea/modules/structs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSlackIssuesPayload(t *testing.T) {
-	p := &api.IssuePayload{
-		Index:  1,
-		Action: api.HookIssueClosed,
-		Sender: &api.User{
-			UserName: "user1",
-		},
-		Repository: &api.Repository{
-			HTMLURL:  "http://localhost:3000/test/repo",
-			Name:     "repo",
-			FullName: "test/repo",
-		},
-		Issue: &api.Issue{
-			ID:    2,
-			URL:   "http://localhost:3000/api/v1/repos/test/repo/issues/2",
-			Title: "crash",
-		},
-	}
+	p := issueTestPayLoad()
 
 	sl := &SlackMeta{
 		Username: p.Sender.UserName,
@@ -39,5 +22,33 @@ func TestSlackIssuesPayload(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, pl)
 
-	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue closed: <http://localhost:3000/api/v1/repos/test/repo/issues/2|#1 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
+	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue closed: <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
+}
+
+func TestSlackIssueCommentPayload(t *testing.T) {
+	p := issueCommentTestPayLoad()
+
+	sl := &SlackMeta{
+		Username: p.Sender.UserName,
+	}
+
+	pl, err := getSlackIssueCommentPayload(p, sl)
+	require.Nil(t, err)
+	require.NotNil(t, pl)
+
+	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New comment on issue <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
+}
+
+func TestSlackPullRequestCommentPayload(t *testing.T) {
+	p := pullRequestCommentTestPayLoad()
+
+	sl := &SlackMeta{
+		Username: p.Sender.UserName,
+	}
+
+	pl, err := getSlackIssueCommentPayload(p, sl)
+	require.Nil(t, err)
+	require.NotNil(t, pl)
+
+	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New comment on pull request <http://localhost:3000/test/repo/pulls/2|#2 Fix bug> by <https://try.gitea.io/user1|user1>", pl.Text)
 }

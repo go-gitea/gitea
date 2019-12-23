@@ -258,7 +258,7 @@ func getDiscordIssueCommentPayload(p *api.IssueCommentPayload, discord *DiscordM
 			{
 				Title:       text,
 				Description: p.Comment.Body,
-				URL:         p.Issue.URL,
+				URL:         p.Comment.HTMLURL,
 				Color:       color,
 				Author: DiscordEmbedAuthor{
 					Name:    p.Sender.UserName,

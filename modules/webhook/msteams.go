@@ -341,7 +341,7 @@ func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload,
 				Targets: []MSTeamsActionTarget{
 					{
 						Os:  "default",
-						URI: p.Issue.URL,
+						URI: p.Comment.HTMLURL,
 					},
 				},
 			},
