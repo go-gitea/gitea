@@ -8,6 +8,7 @@ package repo
 import (
 	"encoding/base64"
 	"net/http"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -213,6 +214,16 @@ func CreateFile(ctx *context.APIContext, apiOpts api.CreateFileOptions) {
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
+		Dates: &repofiles.CommitDateOptions{
+			Author:    apiOpts.Dates.Author,
+			Committer: apiOpts.Dates.Committer,
+		},
+	}
+	if opts.Dates.Author.IsZero() {
+		opts.Dates.Author = time.Now()
+	}
+	if opts.Dates.Committer.IsZero() {
+		opts.Dates.Committer = time.Now()
 	}
 
 	if opts.Message == "" {
@@ -277,6 +288,16 @@ func UpdateFile(ctx *context.APIContext, apiOpts api.UpdateFileOptions) {
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
+		Dates: &repofiles.CommitDateOptions{
+			Author:    apiOpts.Dates.Author,
+			Committer: apiOpts.Dates.Committer,
+		},
+	}
+	if opts.Dates.Author.IsZero() {
+		opts.Dates.Author = time.Now()
+	}
+	if opts.Dates.Committer.IsZero() {
+		opts.Dates.Committer = time.Now()
 	}
 
 	if opts.Message == "" {
@@ -364,6 +385,16 @@ func DeleteFile(ctx *context.APIContext, apiOpts api.DeleteFileOptions) {
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
+		Dates: &repofiles.CommitDateOptions{
+			Author:    apiOpts.Dates.Author,
+			Committer: apiOpts.Dates.Committer,
+		},
+	}
+	if opts.Dates.Author.IsZero() {
+		opts.Dates.Author = time.Now()
+	}
+	if opts.Dates.Committer.IsZero() {
+		opts.Dates.Committer = time.Now()
 	}
 
 	if opts.Message == "" {
