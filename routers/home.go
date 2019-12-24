@@ -12,8 +12,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/search"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/user"
@@ -45,7 +45,7 @@ func Home(ctx *context.Context) {
 		} else if ctx.User.MustChangePassword {
 			ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 			ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
-			ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.RequestURI, 0, setting.AppSubURL)
+			ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)
 			ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 		} else {
 			user.Dashboard(ctx)
@@ -312,7 +312,7 @@ func ExploreCode(ctx *context.Context) {
 
 	var (
 		total         int
-		searchResults []*search.Result
+		searchResults []*code_indexer.Result
 	)
 
 	// if non-admin login user, we need check UnitTypeCode at first
@@ -334,14 +334,14 @@ func ExploreCode(ctx *context.Context) {
 
 		ctx.Data["RepoMaps"] = rightRepoMap
 
-		total, searchResults, err = search.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
+		total, searchResults, err = code_indexer.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
 		}
 		// if non-login user or isAdmin, no need to check UnitTypeCode
 	} else if (ctx.User == nil && len(repoIDs) > 0) || isAdmin {
-		total, searchResults, err = search.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
+		total, searchResults, err = code_indexer.PerformSearch(repoIDs, keyword, page, setting.UI.RepoSearchPagingNum)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return

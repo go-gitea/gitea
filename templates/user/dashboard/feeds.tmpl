@@ -67,6 +67,9 @@
 						{{else if eq .GetOpType 22}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.reject_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}
+						{{else if eq .GetOpType 23}}
+							{{ $index := index .GetIssueInfos 0}}
+							{{$.i18n.Tr "action.comment_pull" .GetRepoLink $index .ShortRepoPath | Str2html}}
 						{{end}}
 					</p>
 					{{if or (eq .GetOpType 5) (eq .GetOpType 18)}}
@@ -86,7 +89,7 @@
 						<span class="text truncate issue title has-emoji">{{index .GetIssueInfos 1}}</span>
 					{{else if eq .GetOpType 7}}
 						<span class="text truncate issue title has-emoji">{{index .GetIssueInfos 1}}</span>
-					{{else if or (eq .GetOpType 10) (eq .GetOpType 21) (eq .GetOpType 22)}}
+					{{else if or (eq .GetOpType 10) (eq .GetOpType 21) (eq .GetOpType 22) (eq .GetOpType 23)}}
 						<a href="{{.GetCommentLink}}" class="text truncate issue title has-emoji">{{.GetIssueTitle}}</a>
 						<p class="text light grey has-emoji">{{index .GetIssueInfos 1}}</p>
 					{{else if eq .GetOpType 11}}
