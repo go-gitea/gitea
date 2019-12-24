@@ -164,6 +164,17 @@ func AddTime(user *User, issue *Issue, amount int64, created time.Time) (*Tracke
 	if err != nil {
 		return nil, err
 	}
+
+	if _, err := createComment(sess, &CreateCommentOptions{
+		Issue:   issue,
+		Repo:    issue.Repo,
+		Doer:    user,
+		Content: SecToTime(amount),
+		Type:    CommentTypeAddTimeManual,
+	}); err != nil {
+		return nil, err
+	}
+
 	return t, sess.Commit()
 }
 
@@ -184,15 +195,6 @@ func addTime(e Engine, user *User, issue *Issue, amount int64, created time.Time
 		return nil, err
 	}
 
-	if _, err := CreateComment(&CreateCommentOptions{
-		Issue:   issue,
-		Repo:    issue.Repo,
-		Doer:    user,
-		Content: SecToTime(amount),
-		Type:    CommentTypeAddTimeManual,
-	}); err != nil {
-		return nil, err
-	}
 	return tt, nil
 }
 
