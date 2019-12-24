@@ -116,11 +116,11 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <li><a href="` + baseURLContent + `/plot_var_example" rel="nofollow">Plot var helper</a></li>
 </ul>
 `,
-		`<h2 id="what-is-wine-staging">What is Wine Staging?</h2>
+		`<h2 id="user-content-what-is-wine-staging">What is Wine Staging?</h2>
 
 <p><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
 
-<h2 id="quick-links">Quick Links</h2>
+<h2 id="user-content-quick-links">Quick Links</h2>
 
 <p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
 
@@ -149,11 +149,11 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <a href="` + baseURLImages + `/images/2.png" rel="nofollow"><img src="` + baseURLImages + `/images/2.png" title="2.png" alt="images/2.png"/></a></li>
 </ol>
 
-<h2 id="custom-id">More tests</h2>
+<h2 id="user-content-custom-id">More tests</h2>
 
 <p>(from <a href="https://www.markdownguide.org/extended-syntax/" rel="nofollow">https://www.markdownguide.org/extended-syntax/</a>)</p>
 
-<h3 id="definition-list">Definition list</h3>
+<h3 id="user-content-definition-list">Definition list</h3>
 
 <dl>
 <dt>First Term</dt>
@@ -163,18 +163,18 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <dd>This is another definition of the second term.</dd>
 </dl>
 
-<h3 id="footnotes">Footnotes</h3>
+<h3 id="user-content-footnotes">Footnotes</h3>
 
-<p>Here is a simple footnote,<sup id="fnref:1"><a href="#fn:1" rel="nofollow">1</a></sup> and here is a longer one.<sup id="fnref:bignote"><a href="#fn:bignote" rel="nofollow">2</a></sup></p>
+<p>Here is a simple footnote,<sup id="fnref:user-content-1"><a href="#fn:user-content-1" rel="nofollow">1</a></sup> and here is a longer one.<sup id="fnref:user-content-bignote"><a href="#fn:user-content-bignote" rel="nofollow">2</a></sup></p>
 
 <div>
 
 <hr/>
 
 <ol>
-<li id="fn:1">This is the first footnote.</li>
+<li id="fn:user-content-1">This is the first footnote.</li>
 
-<li id="fn:bignote"><p>Here is one with multiple paragraphs and code.</p>
+<li id="fn:user-content-bignote"><p>Here is one with multiple paragraphs and code.</p>
 
 <p>Indent paragraphs to include them in the footnote.</p>
 

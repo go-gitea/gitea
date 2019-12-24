@@ -146,7 +146,9 @@ const (
 func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
 	renderer := &Renderer{
 		Renderer: blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
-			Flags: blackfridayHTMLFlags,
+			Flags:                blackfridayHTMLFlags,
+			FootnoteAnchorPrefix: "user-content-",
+			HeadingIDPrefix:      "user-content-",
 		}),
 		URLPrefix: urlPrefix,
 		IsWiki:    wikiMarkdown,
