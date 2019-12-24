@@ -156,6 +156,10 @@ func AddTime(user *User, issue *Issue, amount int64, created time.Time) (*Tracke
 	sess := x.NewSession()
 	defer sess.Close()
 
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
+
 	t, err := addTime(x, user, issue, amount, created)
 	if err != nil {
 		return nil, err
@@ -223,6 +227,7 @@ func TotalTimes(options FindTrackedTimesOptions) (map[*User]string, error) {
 func DeleteIssueUserTimes(issue *Issue, user *User) error {
 	sess := x.NewSession()
 	defer sess.Close()
+
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -261,6 +266,10 @@ func DeleteIssueUserTimes(issue *Issue, user *User) error {
 func DeleteTime(t *TrackedTime) error {
 	sess := x.NewSession()
 	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
 
 	if err := deleteTime(sess, t); err != nil {
 		return err
