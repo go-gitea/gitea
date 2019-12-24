@@ -6,6 +6,7 @@ package repo
 
 import (
 	"errors"
+	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -41,29 +42,32 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReactionResponseList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)
 		} else {
-			ctx.Error(500, "GetCommentByID", err)
+			ctx.Error(http.StatusInternalServerError, "GetCommentByID", err)
 		}
 		return
 	}
 
 	if !ctx.Repo.CanRead(models.UnitTypeIssues) && !ctx.User.IsAdmin {
-		ctx.Error(403, "GetIssueCommentReactions", errors.New("no permission to get reactions"))
+		ctx.Error(http.StatusForbidden, "GetIssueCommentReactions", errors.New("no permission to get reactions"))
 		return
 	}
 
 	reactions, err := models.FindCommentReactions(comment)
 	if err != nil {
-		ctx.Error(500, "FindIssueReactions", err)
+		ctx.Error(http.StatusInternalServerError, "FindIssueReactions", err)
 		return
 	}
 	_, err = reactions.LoadUsers()
 	if err != nil {
-		ctx.Error(500, "ReactionList.LoadUsers()", err)
+		ctx.Error(http.StatusInternalServerError, "ReactionList.LoadUsers()", err)
 		return
 	}
 
@@ -76,7 +80,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		})
 	}
 
-	ctx.JSON(200, result)
+	ctx.JSON(http.StatusOK, result)
 }
 
 // PostIssueCommentReaction add a reaction to a comment of a issue
@@ -112,6 +116,9 @@ func PostIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOpti
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/ReactionResponse"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	changeIssueCommentReaction(ctx, form, true)
 }
 
@@ -148,6 +155,9 @@ func DeleteIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	changeIssueCommentReaction(ctx, form, false)
 }
 
@@ -157,18 +167,18 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		if models.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)
 		} else {
-			ctx.Error(500, "GetCommentByID", err)
+			ctx.Error(http.StatusInternalServerError, "GetCommentByID", err)
 		}
 		return
 	}
 
 	err = comment.LoadIssue()
 	if err != nil {
-		ctx.Error(500, "comment.LoadIssue() failed", err)
+		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue() failed", err)
 	}
 
 	if comment.Issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
-		ctx.Error(403, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
+		ctx.Error(http.StatusForbidden, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
 		return
 	}
 
@@ -177,19 +187,19 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		reaction, err := models.CreateCommentReaction(ctx.User, comment.Issue, comment, form.Reaction)
 		if err != nil {
 			if models.IsErrForbiddenIssueReaction(err) {
-				ctx.Error(403, err.Error(), err)
+				ctx.Error(http.StatusForbidden, err.Error(), err)
 			} else {
-				ctx.Error(500, "CreateCommentReaction", err)
+				ctx.Error(http.StatusInternalServerError, "CreateCommentReaction", err)
 			}
 			return
 		}
 		_, err = reaction.LoadUser()
 		if err != nil {
-			ctx.Error(500, "Reaction.LoadUser()", err)
+			ctx.Error(http.StatusInternalServerError, "Reaction.LoadUser()", err)
 			return
 		}
 
-		ctx.JSON(201, api.ReactionResponse{
+		ctx.JSON(http.StatusCreated, api.ReactionResponse{
 			User:     reaction.User.APIFormat(),
 			Reaction: reaction.Type,
 			Created:  reaction.CreatedUnix.AsTime(),
@@ -198,10 +208,11 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		// DeleteIssueCommentReaction part
 		err = models.DeleteCommentReaction(ctx.User, comment.Issue, comment, form.Reaction)
 		if err != nil {
-			ctx.Error(500, "DeleteCommentReaction", err)
+			ctx.Error(http.StatusInternalServerError, "DeleteCommentReaction", err)
 			return
 		}
-		ctx.Status(200)
+		//ToDo respond 204
+		ctx.Status(http.StatusOK)
 	}
 }
 
@@ -234,29 +245,32 @@ func GetIssueReactions(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ReactionResponseList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	issue, err := models.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 		return
 	}
 
 	if !ctx.Repo.CanRead(models.UnitTypeIssues) && !ctx.User.IsAdmin {
-		ctx.Error(403, "GetIssueReactions", errors.New("no permission to get reactions"))
+		ctx.Error(http.StatusForbidden, "GetIssueReactions", errors.New("no permission to get reactions"))
 		return
 	}
 
 	reactions, err := models.FindIssueReactions(issue)
 	if err != nil {
-		ctx.Error(500, "FindIssueReactions", err)
+		ctx.Error(http.StatusInternalServerError, "FindIssueReactions", err)
 		return
 	}
 	_, err = reactions.LoadUsers()
 	if err != nil {
-		ctx.Error(500, "ReactionList.LoadUsers()", err)
+		ctx.Error(http.StatusInternalServerError, "ReactionList.LoadUsers()", err)
 		return
 	}
 
@@ -269,7 +283,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 		})
 	}
 
-	ctx.JSON(200, result)
+	ctx.JSON(http.StatusOK, result)
 }
 
 // PostIssueReaction add a reaction to a comment of a issue
@@ -305,6 +319,9 @@ func PostIssueReaction(ctx *context.APIContext, form api.EditReactionOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/ReactionResponse"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	changeIssueReaction(ctx, form, true)
 }
 
@@ -341,6 +358,9 @@ func DeleteIssueReaction(ctx *context.APIContext, form api.EditReactionOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
 	changeIssueReaction(ctx, form, false)
 }
 
@@ -350,13 +370,13 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(500, "GetIssueByIndex", err)
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 		return
 	}
 
 	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
-		ctx.Error(403, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
+		ctx.Error(http.StatusForbidden, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
 		return
 	}
 
@@ -365,19 +385,19 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		reaction, err := models.CreateIssueReaction(ctx.User, issue, form.Reaction)
 		if err != nil {
 			if models.IsErrForbiddenIssueReaction(err) {
-				ctx.Error(403, err.Error(), err)
+				ctx.Error(http.StatusForbidden, err.Error(), err)
 			} else {
-				ctx.Error(500, "CreateCommentReaction", err)
+				ctx.Error(http.StatusInternalServerError, "CreateCommentReaction", err)
 			}
 			return
 		}
 		_, err = reaction.LoadUser()
 		if err != nil {
-			ctx.Error(500, "Reaction.LoadUser()", err)
+			ctx.Error(http.StatusInternalServerError, "Reaction.LoadUser()", err)
 			return
 		}
 
-		ctx.JSON(201, api.ReactionResponse{
+		ctx.JSON(http.StatusCreated, api.ReactionResponse{
 			User:     reaction.User.APIFormat(),
 			Reaction: reaction.Type,
 			Created:  reaction.CreatedUnix.AsTime(),
@@ -386,9 +406,10 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		// DeleteIssueReaction part
 		err = models.DeleteIssueReaction(ctx.User, issue, form.Reaction)
 		if err != nil {
-			ctx.Error(500, "DeleteIssueReaction", err)
+			ctx.Error(http.StatusInternalServerError, "DeleteIssueReaction", err)
 			return
 		}
-		ctx.Status(200)
+		//ToDo respond 204
+		ctx.Status(http.StatusOK)
 	}
 }
