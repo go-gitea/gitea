@@ -260,8 +260,7 @@ func DeleteIssueUserTimes(issue *Issue, user *User) error {
 		return err
 	}
 
-	err = sess.Commit()
-	return err
+	return sess.Commit()
 }
 
 // DeleteTime delete a specific Time
