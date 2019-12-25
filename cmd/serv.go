@@ -41,12 +41,20 @@ var CmdServ = cli.Command{
 		cli.BoolFlag{
 			Name: "enable-pprof",
 		},
+		cli.BoolFlag{
+			Name: "debug",
+		},
 	},
 }
 
-func setup(logPath string) {
-	_ = log.DelLogger("console")
+func setup(logPath string, debug bool) {
+	if !debug {
+		_ = log.DelLogger("console")
+	}
 	setting.NewContext()
+	if debug {
+		setting.ProdMode = false
+	}
 }
 
 func parseCmd(cmd string) (string, string) {
@@ -80,7 +88,7 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 
 func runServ(c *cli.Context) error {
 	// FIXME: This needs to internationalised
-	setup("serv.log")
+	setup("serv.log", c.Bool("debug"))
 
 	if setting.SSH.Disabled {
 		println("Gitea: SSH has been disabled")
