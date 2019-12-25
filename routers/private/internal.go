@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -21,6 +22,7 @@ func CheckInternalToken(ctx *macaron.Context) {
 	tokens := ctx.Req.Header.Get("Authorization")
 	fields := strings.Fields(tokens)
 	if len(fields) != 2 || fields[0] != "Bearer" || fields[1] != setting.InternalToken {
+		log.Debug("Forbidden attempt to access internal url: Authorization header: %s", tokens)
 		ctx.Error(403)
 	}
 }
