@@ -13,9 +13,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/queue"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // taskQueue is a global queue of tasks
@@ -82,7 +82,7 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 		return nil, err
 	}
 
-	repo, err := repo_service.CreateRepository(doer, u, models.CreateRepoOptions{
+	repo, err := repo_module.CreateRepository(doer, u, models.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    opts.OriginalURL,
