@@ -76,5 +76,4 @@ After that, enable HTTPS by following one of these guides:
 * [apache2/httpd](https://httpd.apache.org/docs/2.4/ssl/ssl_howto.html)
 * [caddy](https://caddyserver.com/docs/tls)
 
-Note: Your connection between your reverse proxy and Gitea might be unencrypted. To encrypt it too, follow the [built-in server guide](#using-built-in-server) and change
-the proxy url to `https://[URL]`.
+Note: Enabling HTTPS by this method is referred as [TLS Termination Proxy](https://en.wikipedia.org/wiki/TLS_termination_proxy). The reverse proxy handles TLS connections, and decrypted them for passing to Gitea. This is fine as long as the reverse proxy and Gitea instance are either on the same machine, or on different machines at private network (with the reverse proxy is exposed to outside network. If your Gitea instance is at public network instead, you might also consider to [enable HTTPS using built-in server](#using-the-built-in-server) to encrypt connections from reverse proxy to Gitea. 
