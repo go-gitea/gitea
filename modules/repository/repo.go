@@ -116,7 +116,7 @@ func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opt
 		}
 	}
 
-	if err = repo.UpdateSize(); err != nil {
+	if err = repo.UpdateSize(models.DefaultDBContext()); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
