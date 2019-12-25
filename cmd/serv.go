@@ -43,7 +43,7 @@ var CmdServ = cli.Command{
 		},
 		cli.BoolFlag{
 			Name: "debug",
-		}
+		},
 	},
 }
 
