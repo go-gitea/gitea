@@ -21,10 +21,11 @@ type repoIndexerOperation struct {
 
 var repoIndexerOperationQueue chan repoIndexerOperation
 
-func processRepoIndexerOperationQueue(indexer Indexer) {
-	defer indexer.Close()
+func initQueue(queueLength int) {
+	repoIndexerOperationQueue = make(chan repoIndexerOperation, queueLength)
+}
 
-	repoIndexerOperationQueue = make(chan repoIndexerOperation, setting.Indexer.UpdateQueueLength)
+func processRepoIndexerOperationQueue(indexer Indexer) {
 	for {
 		select {
 		case op := <-repoIndexerOperationQueue:
