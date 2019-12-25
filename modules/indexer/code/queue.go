@@ -21,8 +21,11 @@ type repoIndexerOperation struct {
 
 var repoIndexerOperationQueue chan repoIndexerOperation
 
+func initQueue(queueLength int) {
+	repoIndexerOperationQueue = make(chan repoIndexerOperation, queueLength)
+}
+
 func processRepoIndexerOperationQueue(indexer Indexer) {
-	repoIndexerOperationQueue = make(chan repoIndexerOperation, setting.Indexer.UpdateQueueLength)
 	for {
 		select {
 		case op := <-repoIndexerOperationQueue:
