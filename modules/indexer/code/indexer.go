@@ -38,6 +38,8 @@ func Init() {
 		return
 	}
 
+	initQueue(setting.Indexer.UpdateQueueLength)
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	graceful.GetManager().RunAtTerminate(ctx, func() {
