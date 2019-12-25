@@ -160,7 +160,7 @@ func AddTime(user *User, issue *Issue, amount int64, created time.Time) (*Tracke
 		return nil, err
 	}
 
-	t, err := addTime(x, user, issue, amount, created)
+	t, err := addTime(sess, user, issue, amount, created)
 	if err != nil {
 		return nil, err
 	}
