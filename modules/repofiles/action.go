@@ -159,7 +159,7 @@ type CommitRepoActionOptions struct {
 
 // CommitRepoAction adds new commit action to the repository, and prepare
 // corresponding webhooks.
-func CommitRepoAction(optsList ...CommitRepoActionOptions) error {
+func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 	var pusher *models.User
 	var repo *models.Repository
 	actions := make([]*models.Action, len(optsList))
