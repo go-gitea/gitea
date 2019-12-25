@@ -365,18 +365,20 @@ func (issue *Issue) apiFormat(e Engine) *api.Issue {
 
 	issue.loadPoster(e)
 	issue.loadRepo(e)
+	issue.loadReactions(e)
 	apiIssue := &api.Issue{
-		ID:       issue.ID,
-		URL:      issue.APIURL(),
-		Index:    issue.Index,
-		Poster:   issue.Poster.APIFormat(),
-		Title:    issue.Title,
-		Body:     issue.Content,
-		Labels:   apiLabels,
-		State:    issue.State(),
-		Comments: issue.NumComments,
-		Created:  issue.CreatedUnix.AsTime(),
-		Updated:  issue.UpdatedUnix.AsTime(),
+		ID:        issue.ID,
+		URL:       issue.APIURL(),
+		Index:     issue.Index,
+		Poster:    issue.Poster.APIFormat(),
+		Title:     issue.Title,
+		Body:      issue.Content,
+		Labels:    apiLabels,
+		State:     issue.State(),
+		Comments:  issue.NumComments,
+		Created:   issue.CreatedUnix.AsTime(),
+		Updated:   issue.UpdatedUnix.AsTime(),
+		Reactions: issue.Reactions.Summary(),
 	}
 
 	apiIssue.Repo = &api.RepositoryMeta{

@@ -36,18 +36,19 @@ type RepositoryMeta struct {
 // Issue represents an issue in a repository
 // swagger:model
 type Issue struct {
-	ID               int64      `json:"id"`
-	URL              string     `json:"url"`
-	Index            int64      `json:"number"`
-	Poster           *User      `json:"user"`
-	OriginalAuthor   string     `json:"original_author"`
-	OriginalAuthorID int64      `json:"original_author_id"`
-	Title            string     `json:"title"`
-	Body             string     `json:"body"`
-	Labels           []*Label   `json:"labels"`
-	Milestone        *Milestone `json:"milestone"`
-	Assignee         *User      `json:"assignee"`
-	Assignees        []*User    `json:"assignees"`
+	ID               int64              `json:"id"`
+	URL              string             `json:"url"`
+	Index            int64              `json:"number"`
+	Poster           *User              `json:"user"`
+	OriginalAuthor   string             `json:"original_author"`
+	OriginalAuthorID int64              `json:"original_author_id"`
+	Title            string             `json:"title"`
+	Body             string             `json:"body"`
+	Labels           []*Label           `json:"labels"`
+	Milestone        *Milestone         `json:"milestone"`
+	Assignee         *User              `json:"assignee"`
+	Assignees        []*User            `json:"assignees"`
+	Reactions        []*GroupedReaction `json:"reaction_summary"`
 	// Whether the issue is open or closed
 	//
 	// type: string
