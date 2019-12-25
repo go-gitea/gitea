@@ -165,6 +165,10 @@ func AddTime(user *User, issue *Issue, amount int64, created time.Time) (*Tracke
 		return nil, err
 	}
 
+	if err := issue.loadRepo(sess); err != nil {
+		return nil, err
+	}
+
 	if _, err := createComment(sess, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
@@ -189,9 +193,6 @@ func addTime(e Engine, user *User, issue *Issue, amount int64, created time.Time
 		Created: created,
 	}
 	if _, err := e.Insert(tt); err != nil {
-		return nil, err
-	}
-	if err := issue.loadRepo(e); err != nil {
 		return nil, err
 	}
 
