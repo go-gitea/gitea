@@ -1011,6 +1011,7 @@ func initRepoCommit(tmpPath string, u *User) (err error) {
 	sig := u.NewGitSig()
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),
+		"SSH_ORIGINAL_COMMAND=gitea-internal",
 		"GIT_AUTHOR_NAME="+sig.Name,
 		"GIT_AUTHOR_EMAIL="+sig.Email,
 		"GIT_AUTHOR_DATE="+commitTimeStr,
@@ -1054,7 +1055,7 @@ func initRepoCommit(tmpPath string, u *User) (err error) {
 
 	if stdout, err := git.NewCommand("push", "origin", "master").
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
-		RunInDir(tmpPath); err != nil {
+		RunInDirWithEnv(tmpPath, env); err != nil {
 		log.Error("Failed to push back to master: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git push: %v", err)
 	}
