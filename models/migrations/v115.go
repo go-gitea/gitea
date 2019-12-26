@@ -7,7 +7,7 @@ package migrations
 import (
 	"crypto/md5"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -46,7 +46,7 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 
 		for _, user := range users {
 			oldAvatar := user.Avatar
-			newAvatar := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%s", user.ID, user.Avatar))))
+
 			if _, err := os.Stat(filepath.Join(setting.AvatarUploadPath, oldAvatar)); err != nil {
 				log.Warn("[user: %s] os.Stat: %v", user.LowerName, err)
 				// avatar doesn't exist in the storage
@@ -55,7 +55,8 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 				continue
 			}
 
-			if err := copyAvatar(oldAvatar, newAvatar); err != nil {
+			newAvatar, err := copyOldAvatarToNewLocation(user.ID, oldAvatar)
+			if err != nil {
 				_ = sess.Rollback()
 				return fmt.Errorf("[user: %s] %v", user.LowerName, err)
 			}
@@ -82,21 +83,25 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 	return nil
 }
 
-func copyAvatar(oldAvatar, newAvatar string) error {
+// copyOldAvatarToNewLocation copies oldAvatar to newAvatarLocation
+// and returns newAvatar location
+func copyOldAvatarToNewLocation(userID int64, oldAvatar string) (string, error) {
 	fr, err := os.Open(filepath.Join(setting.AvatarUploadPath, oldAvatar))
 	if err != nil {
-		return fmt.Errorf("os.Open: %v", err)
+		return "", fmt.Errorf("os.Open: %v", err)
 	}
 	defer fr.Close()
 
-	fw, err := os.Create(filepath.Join(setting.AvatarUploadPath, newAvatar))
+	data, err := ioutil.ReadAll(fr)
 	if err != nil {
-		return fmt.Errorf("os.Create: %v", err)
+		return "", fmt.Errorf("ioutil.ReadAll: %v", err)
 	}
-	defer fw.Close()
 
-	if _, err := io.Copy(fw, fr); err != nil {
-		return fmt.Errorf("io.Copy: %v", err)
+	newAvatar := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", userID, md5.Sum(data)))))
+
+	if err := ioutil.WriteFile(filepath.Join(setting.AvatarUploadPath, newAvatar), data, 0666); err != nil {
+		return "", fmt.Errorf("ioutil.WriteFile: %v", err)
 	}
-	return nil
+
+	return newAvatar, nil
 }
