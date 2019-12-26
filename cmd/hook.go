@@ -21,6 +21,10 @@ import (
 	"github.com/urfave/cli"
 )
 
+const (
+	hookBatchSize = 30
+)
+
 var (
 	// CmdHook represents the available hooks sub-command.
 	CmdHook = cli.Command{
@@ -75,12 +79,25 @@ Gitea or set your environment appropriately.`, "")
 	prID, _ := strconv.ParseInt(os.Getenv(models.ProtectedBranchPRID), 10, 64)
 	isDeployKey, _ := strconv.ParseBool(os.Getenv(models.EnvIsDeployKey))
 
-	buf := bytes.NewBuffer(nil)
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		buf.Write(scanner.Bytes())
-		buf.WriteByte('\n')
+	hookOptions := private.HookOptions{
+		UserID:                          userID,
+		GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
+		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
+		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
+		ProtectedBranchID:               prID,
+		IsDeployKey:                     isDeployKey,
+	}
 
+	scanner := bufio.NewScanner(os.Stdin)
+
+	oldCommitIDs := make([]string, hookBatchSize)
+	newCommitIDs := make([]string, hookBatchSize)
+	refFullNames := make([]string, hookBatchSize)
+	count := 0
+	total := 0
+	lastline := 0
+
+	for scanner.Scan() {
 		// TODO: support news feeds for wiki
 		if isWiki {
 			continue
@@ -94,28 +111,71 @@ Gitea or set your environment appropriately.`, "")
 		oldCommitID := string(fields[0])
 		newCommitID := string(fields[1])
 		refFullName := string(fields[2])
+		total++
+		lastline++
 
 		// If the ref is a branch, check if it's protected
 		if strings.HasPrefix(refFullName, git.BranchPrefix) {
-			statusCode, msg := private.HookPreReceive(username, reponame, private.HookOptions{
-				OldCommitID:                     oldCommitID,
-				NewCommitID:                     newCommitID,
-				RefFullName:                     refFullName,
-				UserID:                          userID,
-				GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
-				GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
-				GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
-				ProtectedBranchID:               prID,
-				IsDeployKey:                     isDeployKey,
-			})
-			switch statusCode {
-			case http.StatusInternalServerError:
-				fail("Internal Server Error", msg)
-			case http.StatusForbidden:
-				fail(msg, "")
+			oldCommitIDs[count] = oldCommitID
+			newCommitIDs[count] = newCommitID
+			refFullNames[count] = refFullName
+			count++
+			fmt.Fprintf(os.Stdout, "*")
+			os.Stdout.Sync()
+
+			if count >= hookBatchSize {
+				fmt.Fprintf(os.Stdout, " Checking %d branches\n", count)
+				os.Stdout.Sync()
+
+				hookOptions.OldCommitIDs = oldCommitIDs
+				hookOptions.NewCommitIDs = newCommitIDs
+				hookOptions.RefFullNames = refFullNames
+				statusCode, msg := private.HookPreReceive(username, reponame, hookOptions)
+				switch statusCode {
+				case http.StatusOK:
+					// no-op
+				case http.StatusInternalServerError:
+					fail("Internal Server Error", msg)
+				default:
+					fail(msg, "")
+				}
+				count = 0
+				lastline = 0
 			}
+		} else {
+			fmt.Fprintf(os.Stdout, ".")
+			os.Stdout.Sync()
+		}
+		if lastline >= hookBatchSize {
+			fmt.Fprintf(os.Stdout, "\n")
+			os.Stdout.Sync()
+			lastline = 0
 		}
 	}
+
+	if count > 0 {
+		hookOptions.OldCommitIDs = oldCommitIDs[:count]
+		hookOptions.NewCommitIDs = newCommitIDs[:count]
+		hookOptions.RefFullNames = refFullNames[:count]
+
+		fmt.Fprintf(os.Stdout, " Checking %d branches\n", count)
+		os.Stdout.Sync()
+
+		statusCode, msg := private.HookPreReceive(username, reponame, hookOptions)
+		switch statusCode {
+		case http.StatusInternalServerError:
+			fail("Internal Server Error", msg)
+		case http.StatusForbidden:
+			fail(msg, "")
+		}
+	} else if lastline > 0 {
+		fmt.Fprintf(os.Stdout, "\n")
+		os.Stdout.Sync()
+		lastline = 0
+	}
+
+	fmt.Fprintf(os.Stdout, "Checked %d references in total\n", total)
+	os.Stdout.Sync()
 
 	return nil
 }
@@ -156,12 +216,24 @@ Gitea or set your environment appropriately.`, "")
 	pusherID, _ := strconv.ParseInt(os.Getenv(models.EnvPusherID), 10, 64)
 	pusherName := os.Getenv(models.EnvPusherName)
 
-	buf := bytes.NewBuffer(nil)
+	hookOptions := private.HookOptions{
+		UserName:                        pusherName,
+		UserID:                          pusherID,
+		GitAlternativeObjectDirectories: os.Getenv(private.GitAlternativeObjectDirectories),
+		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
+		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
+	}
+	oldCommitIDs := make([]string, hookBatchSize)
+	newCommitIDs := make([]string, hookBatchSize)
+	refFullNames := make([]string, hookBatchSize)
+	count := 0
+	total := 0
+	wasEmpty := false
+	masterPushed := false
+	results := make([]private.HookPostReceiveBranchResult, 0)
+
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		buf.Write(scanner.Bytes())
-		buf.WriteByte('\n')
-
 		// TODO: support news feeds for wiki
 		if isWiki {
 			continue
@@ -172,36 +244,95 @@ Gitea or set your environment appropriately.`, "")
 			continue
 		}
 
-		oldCommitID := string(fields[0])
-		newCommitID := string(fields[1])
-		refFullName := string(fields[2])
-
-		res, err := private.HookPostReceive(repoUser, repoName, private.HookOptions{
-			OldCommitID: oldCommitID,
-			NewCommitID: newCommitID,
-			RefFullName: refFullName,
-			UserID:      pusherID,
-			UserName:    pusherName,
-		})
-
-		if res == nil {
-			fail("Internal Server Error", err)
+		fmt.Fprintf(os.Stdout, ".")
+		oldCommitIDs[count] = string(fields[0])
+		newCommitIDs[count] = string(fields[1])
+		refFullNames[count] = string(fields[2])
+		if refFullNames[count] == git.BranchPrefix+"master" && newCommitIDs[count] != git.EmptySHA && count == total {
+			masterPushed = true
 		}
+		count++
+		total++
+		os.Stdout.Sync()
 
-		if res["message"] == false {
+		if count >= hookBatchSize {
+			fmt.Fprintf(os.Stdout, " Processing %d references\n", count)
+			os.Stdout.Sync()
+			hookOptions.OldCommitIDs = oldCommitIDs
+			hookOptions.NewCommitIDs = newCommitIDs
+			hookOptions.RefFullNames = refFullNames
+			resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
+			if resp == nil {
+				hookPrintResults(results)
+				fail("Internal Server Error", err)
+			}
+			wasEmpty = wasEmpty || resp.RepoWasEmpty
+			results = append(results, resp.Results...)
+			count = 0
+		}
+	}
+
+	if count == 0 {
+		if wasEmpty && masterPushed {
+			// We need to tell the repo to reset the default branch to master
+			err := private.SetDefaultBranch(repoUser, repoName, "master")
+			if err != nil {
+				fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
+			}
+		}
+		fmt.Fprintf(os.Stdout, "Processed %d references in total\n", total)
+		os.Stdout.Sync()
+
+		hookPrintResults(results)
+		return nil
+	}
+
+	hookOptions.OldCommitIDs = oldCommitIDs[:count]
+	hookOptions.NewCommitIDs = newCommitIDs[:count]
+	hookOptions.RefFullNames = refFullNames[:count]
+
+	fmt.Fprintf(os.Stdout, " Processing %d references\n", count)
+	os.Stdout.Sync()
+
+	resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
+	if resp == nil {
+		hookPrintResults(results)
+		fail("Internal Server Error", err)
+	}
+	wasEmpty = wasEmpty || resp.RepoWasEmpty
+	results = append(results, resp.Results...)
+
+	fmt.Fprintf(os.Stdout, "Processed %d references in total\n", total)
+	os.Stdout.Sync()
+
+	if wasEmpty && masterPushed {
+		// We need to tell the repo to reset the default branch to master
+		err := private.SetDefaultBranch(repoUser, repoName, "master")
+		if err != nil {
+			fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
+		}
+	}
+
+	hookPrintResults(results)
+
+	return nil
+}
+
+func hookPrintResults(results []private.HookPostReceiveBranchResult) {
+	for _, res := range results {
+		if !res.Message {
 			continue
 		}
 
 		fmt.Fprintln(os.Stderr, "")
-		if res["create"] == true {
-			fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", res["branch"])
-			fmt.Fprintf(os.Stderr, "  %s\n", res["url"])
+		if res.Create {
+			fmt.Fprintf(os.Stderr, "Create a new pull request for '%s':\n", res.Branch)
+			fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
 		} else {
 			fmt.Fprint(os.Stderr, "Visit the existing pull request:\n")
-			fmt.Fprintf(os.Stderr, "  %s\n", res["url"])
+			fmt.Fprintf(os.Stderr, "  %s\n", res.URL)
 		}
 		fmt.Fprintln(os.Stderr, "")
+		os.Stderr.Sync()
 	}
-
-	return nil
 }
