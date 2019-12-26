@@ -171,6 +171,7 @@ func TestIssues(t *testing.T) {
 	}
 }
 
+//TODO add a test with issue ids
 func TestGetUserIssueStats(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	for _, test := range []struct {

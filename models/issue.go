@@ -1397,6 +1397,7 @@ type UserIssueStatsOptions struct {
 	FilterMode  int
 	IsPull      bool
 	IsClosed    bool
+	IssueIDs    []int64
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
@@ -1408,6 +1409,9 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull})
 	if len(opts.RepoIDs) > 0 {
 		cond = cond.And(builder.In("issue.repo_id", opts.RepoIDs))
+	}
+	if len(opts.IssueIDs) > 0 {
+		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
 	}
 
 	switch opts.FilterMode {

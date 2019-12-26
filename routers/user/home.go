@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -454,10 +455,35 @@ func Issues(ctx *context.Context) {
 		opts.MentionedID = ctxUser.ID
 	}
 
-	counts, err := models.CountIssuesByRepo(opts)
-	if err != nil {
-		ctx.ServerError("CountIssuesByRepo", err)
-		return
+	var forceEmpty bool
+	var issueIDs []int64
+	if !isPullList {
+		keyword := strings.Trim(ctx.Query("q"), " ")
+		if bytes.Contains([]byte(keyword), []byte{0x00}) {
+			keyword = ""
+		}
+
+		if len(keyword) > 0 {
+			issueIDs, err = issue_indexer.SearchIssuesByKeyword(userRepoIDs, keyword)
+			if err != nil {
+				ctx.ServerError("SearchIssuesByKeyword", err)
+				return
+			}
+			if len(issueIDs) > 0 {
+				opts.IssueIDs = issueIDs
+			} else {
+				forceEmpty = true
+			}
+		}
+	}
+
+	var counts map[int64]int64
+	if !forceEmpty {
+		counts, err = models.CountIssuesByRepo(opts)
+		if err != nil {
+			ctx.ServerError("CountIssuesByRepo", err)
+			return
+		}
 	}
 
 	opts.Page = page
@@ -477,10 +503,15 @@ func Issues(ctx *context.Context) {
 		opts.RepoIDs = repoIDs
 	}
 
-	issues, err := models.Issues(opts)
-	if err != nil {
-		ctx.ServerError("Issues", err)
-		return
+	var issues []*models.Issue
+	if !forceEmpty {
+		issues, err = models.Issues(opts)
+		if err != nil {
+			ctx.ServerError("Issues", err)
+			return
+		}
+	} else {
+		issues = []*models.Issue{}
 	}
 
 	showReposMap := make(map[int64]*models.Repository, len(counts))
@@ -545,6 +576,7 @@ func Issues(ctx *context.Context) {
 		FilterMode:  filterMode,
 		IsPull:      isPullList,
 		IsClosed:    isShowClosed,
+		IssueIDs:    issueIDs,
 	})
 	if err != nil {
 		ctx.ServerError("GetUserIssueStats All", err)
