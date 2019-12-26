@@ -70,6 +70,9 @@ Gitea or set your environment appropriately.`, "")
 			return nil
 		}
 	}
+	if os.Getenv(models.EnvIsInternal) == "true" {
+		return nil
+	}
 
 	// the environment setted on serv command
 	isWiki := (os.Getenv(models.EnvRepoIsWiki) == "true")
@@ -207,6 +210,9 @@ Gitea or set your environment appropriately.`, "")
 		} else {
 			return nil
 		}
+	}
+	if os.Getenv(models.EnvIsInternal) == "true" {
+		return nil
 	}
 
 	// the environment setted on serv command

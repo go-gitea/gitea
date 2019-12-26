@@ -1005,7 +1005,7 @@ func createDelegateHooks(repoPath string) (err error) {
 }
 
 // initRepoCommit temporarily changes with work directory.
-func initRepoCommit(tmpPath string, repo *Repository, u *User) (err error) {
+func initRepoCommit(tmpPath string, u *User) (err error) {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	sig := u.NewGitSig()
@@ -1054,7 +1054,7 @@ func initRepoCommit(tmpPath string, repo *Repository, u *User) (err error) {
 
 	if stdout, err := git.NewCommand("push", "origin", "master").
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
-		RunInDirWithEnv(tmpPath, PushingEnvironment(u, repo)); err != nil {
+		RunInDirWithEnv(tmpPath, internalPushingEnvironment()); err != nil {
 		log.Error("Failed to push back to master: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git push: %v", err)
 	}
@@ -1212,7 +1212,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 		}
 
 		// Apply changes and commit.
-		if err = initRepoCommit(tmpDir, repo, u); err != nil {
+		if err = initRepoCommit(tmpDir, u); err != nil {
 			return fmt.Errorf("initRepoCommit: %v", err)
 		}
 	}
