@@ -294,38 +294,22 @@ func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err
 
 	removedTime, err = getTrackedSeconds(e, opts)
 	if err != nil || removedTime == 0 {
-		return 0, err
+		return
 	}
 
 	/*
 		ToDo: if xorm understand:
 		_, err = opts.ToSession(e).SetExpr("tracked_time.deleted", true).Update(&TrackedTime{})
-		remove this and add simple statement (don't work for now :(
+		remove this and add simple statement [ don't work for now :( ]
 	*/
-	query := "UPDATE `tracked_time` SET deleted = ? WHERE `tracked_time`.deleted = ?"
-	args := []interface{}{true, false}
-	if opts.IssueID != 0 {
-		query += " AND `tracked_time`.issue_id = ?"
-		args = append(args, opts.IssueID)
-	}
-	if opts.UserID != 0 {
-		query += " AND `tracked_time`.user_id = ?"
-		args = append(args, opts.UserID)
-	}
-	if opts.RepositoryID != 0 {
-		query += " AND EXISTS ( SELECT * FROM `issue` WHERE `issue`.id = `tracked_time`.issue_id AND `issue`.repo_id = ?)"
-		args = append(args, opts.RepositoryID)
-	}
-	if opts.MilestoneID != 0 {
-		query += " AND EXISTS ( SELECT * FROM `issue` WHERE `issue`.id = `tracked_time`.issue_id AND `issue`.milestone_id = ?)"
-		args = append(args, opts.MilestoneID)
-	}
-	args = append([]interface{}{query}, args...)
-
-	_, err = e.Exec(args...)
-
+	tl, err := getTrackedTimes(e, opts)
 	if err != nil {
 		return 0, err
+	}
+	for _, t := range tl {
+		if err = deleteTime(e, t); err != nil {
+			return 0, err
+		}
 	}
 	return removedTime, err
 }
