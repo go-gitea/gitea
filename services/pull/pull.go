@@ -242,10 +242,18 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 
 	_ = os.Remove(file)
 
+	if err = pr.LoadIssue(); err != nil {
+		return fmt.Errorf("unable to load issue %d for pr %d: %v", pr.IssueID, pr.ID, err)
+	}
+	if err = pr.Issue.LoadPoster(); err != nil {
+		return fmt.Errorf("unable to load poster %d for pr %d: %v", pr.Issue.PosterID, pr.ID, err)
+	}
+
 	if err = git.Push(headRepoPath, git.PushOptions{
 		Remote: tmpRemoteName,
 		Branch: fmt.Sprintf("%s:%s", pr.HeadBranch, headFile),
 		Force:  true,
+		Env:    models.PushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
 	}); err != nil {
 		return fmt.Errorf("Push: %v", err)
 	}
