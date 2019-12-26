@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
+	gouuid "github.com/gofrs/uuid"
 	"github.com/lafriks/xormstore"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -24,7 +25,6 @@ import (
 	"github.com/markbates/goth/providers/google"
 	"github.com/markbates/goth/providers/openidConnect"
 	"github.com/markbates/goth/providers/twitter"
-	gouuid "github.com/satori/go.uuid"
 	"xorm.io/xorm"
 )
 
@@ -60,7 +60,7 @@ func Init(x *xorm.Engine) error {
 	gothic.Store = store
 
 	gothic.SetState = func(req *http.Request) string {
-		return gouuid.NewV4().String()
+		return gouuid.Must(gouuid.NewV4()).String()
 	}
 
 	gothic.GetProviderName = func(req *http.Request) (string, error) {

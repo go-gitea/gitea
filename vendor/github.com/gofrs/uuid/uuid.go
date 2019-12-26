@@ -19,31 +19,37 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-// Package uuid provides implementation of Universally Unique Identifier (UUID).
-// Supported versions are 1, 3, 4 and 5 (as specified in RFC 4122) and
-// version 2 (as specified in DCE 1.1).
+// Package uuid provides implementations of the Universally Unique Identifier (UUID), as specified in RFC-4122 and DCE 1.1.
+//
+// RFC-4122[1] provides the specification for versions 1, 3, 4, and 5.
+//
+// DCE 1.1[2] provides the specification for version 2.
+//
+// [1] https://tools.ietf.org/html/rfc4122
+// [2] http://pubs.opengroup.org/onlinepubs/9696989899/chap5.htm#tagcjh_08_02_01_01
 package uuid
 
 import (
-	"bytes"
+	"encoding/binary"
 	"encoding/hex"
+	"fmt"
+	"time"
 )
 
 // Size of a UUID in bytes.
 const Size = 16
 
-// UUID representation compliant with specification
-// described in RFC 4122.
+// UUID is an array type to represent the value of a UUID, as defined in RFC-4122.
 type UUID [Size]byte
 
-// UUID versions
+// UUID versions.
 const (
-	_ byte = iota
-	V1
-	V2
-	V3
-	V4
-	V5
+	_  byte = iota
+	V1      // Version 1 (date-time and MAC address)
+	V2      // Version 2 (date-time and MAC address, DCE security version)
+	V3      // Version 3 (namespace name-based)
+	V4      // Version 4 (random)
+	V5      // Version 5 (namespace name-based)
 )
 
 // UUID layout variants.
@@ -61,14 +67,41 @@ const (
 	DomainOrg
 )
 
+// Timestamp is the count of 100-nanosecond intervals since 00:00:00.00,
+// 15 October 1582 within a V1 UUID. This type has no meaning for V2-V5
+// UUIDs since they don't have an embedded timestamp.
+type Timestamp uint64
+
+const _100nsPerSecond = 10000000
+
+// Time returns the UTC time.Time representation of a Timestamp
+func (t Timestamp) Time() (time.Time, error) {
+	secs := uint64(t) / _100nsPerSecond
+	nsecs := 100 * (uint64(t) % _100nsPerSecond)
+	return time.Unix(int64(secs)-(epochStart/_100nsPerSecond), int64(nsecs)), nil
+}
+
+// TimestampFromV1 returns the Timestamp embedded within a V1 UUID.
+// Returns an error if the UUID is any version other than 1.
+func TimestampFromV1(u UUID) (Timestamp, error) {
+	if u.Version() != 1 {
+		err := fmt.Errorf("uuid: %s is version %d, not version 1", u, u.Version())
+		return 0, err
+	}
+	low := binary.BigEndian.Uint32(u[0:4])
+	mid := binary.BigEndian.Uint16(u[4:6])
+	hi := binary.BigEndian.Uint16(u[6:8]) & 0xfff
+	return Timestamp(uint64(low) + (uint64(mid) << 32) + (uint64(hi) << 48)), nil
+}
+
 // String parse helpers.
 var (
 	urnPrefix  = []byte("urn:uuid:")
 	byteGroups = []int{8, 4, 4, 4, 12}
 )
 
-// Nil is special form of UUID that is specified to have all
-// 128 bits set to zero.
+// Nil is the nil UUID, as specified in RFC-4122, that has all 128 bits set to
+// zero.
 var Nil = UUID{}
 
 // Predefined namespace UUIDs.
@@ -79,17 +112,12 @@ var (
 	NamespaceX500 = Must(FromString("6ba7b814-9dad-11d1-80b4-00c04fd430c8"))
 )
 
-// Equal returns true if u1 and u2 equals, otherwise returns false.
-func Equal(u1 UUID, u2 UUID) bool {
-	return bytes.Equal(u1[:], u2[:])
-}
-
-// Version returns algorithm version used to generate UUID.
+// Version returns the algorithm version used to generate the UUID.
 func (u UUID) Version() byte {
 	return u[6] >> 4
 }
 
-// Variant returns UUID layout variant.
+// Variant returns the UUID layout variant.
 func (u UUID) Variant() byte {
 	switch {
 	case (u[8] >> 7) == 0x00:
@@ -105,12 +133,12 @@ func (u UUID) Variant() byte {
 	}
 }
 
-// Bytes returns bytes slice representation of UUID.
+// Bytes returns a byte slice representation of the UUID.
 func (u UUID) Bytes() []byte {
 	return u[:]
 }
 
-// Returns canonical string representation of UUID:
+// String returns a canonical RFC-4122 string representation of the UUID:
 // xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.
 func (u UUID) String() string {
 	buf := make([]byte, 36)
@@ -128,12 +156,12 @@ func (u UUID) String() string {
 	return string(buf)
 }
 
-// SetVersion sets version bits.
+// SetVersion sets the version bits.
 func (u *UUID) SetVersion(v byte) {
 	u[6] = (u[6] & 0x0f) | (v << 4)
 }
 
-// SetVariant sets variant bits.
+// SetVariant sets the variant bits.
 func (u *UUID) SetVariant(v byte) {
 	switch v {
 	case VariantNCS:
@@ -152,7 +180,7 @@ func (u *UUID) SetVariant(v byte) {
 // Must is a helper that wraps a call to a function returning (UUID, error)
 // and panics if the error is non-nil. It is intended for use in variable
 // initializations such as
-//	var packageUUID = uuid.Must(uuid.FromString("123e4567-e89b-12d3-a456-426655440000"));
+//  var packageUUID = uuid.Must(uuid.FromString("123e4567-e89b-12d3-a456-426655440000"))
 func Must(u UUID, err error) UUID {
 	if err != nil {
 		panic(err)

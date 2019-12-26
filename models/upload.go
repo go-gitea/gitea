@@ -14,7 +14,7 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	gouuid "github.com/satori/go.uuid"
+	gouuid "github.com/gofrs/uuid"
 	"github.com/unknwon/com"
 )
 
@@ -45,8 +45,12 @@ func (upload *Upload) LocalPath() string {
 
 // NewUpload creates a new upload object.
 func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err error) {
+	uuid, err := gouuid.NewV4()
+	if err != nil {
+		return nil, fmt.Errorf("Create UUID: %v", err)
+	}
 	upload := &Upload{
-		UUID: gouuid.NewV4().String(),
+		UUID: uuid.String(),
 		Name: name,
 	}
 

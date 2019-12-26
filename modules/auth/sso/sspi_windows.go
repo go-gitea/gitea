@@ -17,8 +17,8 @@ import (
 	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
 
+	gouuid "github.com/gofrs/uuid"
 	"github.com/quasoft/websspi"
-	gouuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -157,12 +157,20 @@ func (s *SSPI) shouldAuthenticate(ctx *macaron.Context) (shouldAuth bool) {
 // newUser creates a new user object for the purpose of automatic registration
 // and populates its name and email with the information present in request headers.
 func (s *SSPI) newUser(ctx *macaron.Context, username string, cfg *models.SSPIConfig) (*models.User, error) {
-	email := gouuid.NewV4().String() + "@localhost.localdomain"
+	emailUUID, err := gouuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
+	email := emailUUID.String() + "@localhost.localdomain"
+	passwdUUID, err := gouuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
 	user := &models.User{
 		Name:                         username,
 		Email:                        email,
 		KeepEmailPrivate:             true,
-		Passwd:                       gouuid.NewV4().String(),
+		Passwd:                       passwdUUID.String(),
 		IsActive:                     cfg.AutoActivateUsers,
 		Language:                     cfg.DefaultLanguage,
 		UseCustomAvatar:              true,

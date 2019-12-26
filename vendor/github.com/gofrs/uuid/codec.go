@@ -27,15 +27,16 @@ import (
 	"fmt"
 )
 
-// FromBytes returns UUID converted from raw byte slice input.
-// It will return error if the slice isn't 16 bytes long.
-func FromBytes(input []byte) (u UUID, err error) {
-	err = u.UnmarshalBinary(input)
-	return
+// FromBytes returns a UUID generated from the raw byte slice input.
+// It will return an error if the slice isn't 16 bytes long.
+func FromBytes(input []byte) (UUID, error) {
+	u := UUID{}
+	err := u.UnmarshalBinary(input)
+	return u, err
 }
 
-// FromBytesOrNil returns UUID converted from raw byte slice input.
-// Same behavior as FromBytes, but returns a Nil UUID on error.
+// FromBytesOrNil returns a UUID generated from the raw byte slice input.
+// Same behavior as FromBytes(), but returns uuid.Nil instead of an error.
 func FromBytesOrNil(input []byte) UUID {
 	uuid, err := FromBytes(input)
 	if err != nil {
@@ -44,15 +45,16 @@ func FromBytesOrNil(input []byte) UUID {
 	return uuid
 }
 
-// FromString returns UUID parsed from string input.
+// FromString returns a UUID parsed from the input string.
 // Input is expected in a form accepted by UnmarshalText.
-func FromString(input string) (u UUID, err error) {
-	err = u.UnmarshalText([]byte(input))
-	return
+func FromString(input string) (UUID, error) {
+	u := UUID{}
+	err := u.UnmarshalText([]byte(input))
+	return u, err
 }
 
-// FromStringOrNil returns UUID parsed from string input.
-// Same behavior as FromString, but returns a Nil UUID on error.
+// FromStringOrNil returns a UUID parsed from the input string.
+// Same behavior as FromString(), but returns uuid.Nil instead of an error.
 func FromStringOrNil(input string) UUID {
 	uuid, err := FromString(input)
 	if err != nil {
@@ -62,93 +64,99 @@ func FromStringOrNil(input string) UUID {
 }
 
 // MarshalText implements the encoding.TextMarshaler interface.
-// The encoding is the same as returned by String.
-func (u UUID) MarshalText() (text []byte, err error) {
-	text = []byte(u.String())
-	return
+// The encoding is the same as returned by the String() method.
+func (u UUID) MarshalText() ([]byte, error) {
+	return []byte(u.String()), nil
 }
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 // Following formats are supported:
+//
 //   "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
 //   "{6ba7b810-9dad-11d1-80b4-00c04fd430c8}",
 //   "urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8"
 //   "6ba7b8109dad11d180b400c04fd430c8"
+//   "{6ba7b8109dad11d180b400c04fd430c8}",
+//   "urn:uuid:6ba7b8109dad11d180b400c04fd430c8"
+//
 // ABNF for supported UUID text representation follows:
-//   uuid := canonical | hashlike | braced | urn
-//   plain := canonical | hashlike
-//   canonical := 4hexoct '-' 2hexoct '-' 2hexoct '-' 6hexoct
-//   hashlike := 12hexoct
-//   braced := '{' plain '}'
-//   urn := URN ':' UUID-NID ':' plain
+//
 //   URN := 'urn'
 //   UUID-NID := 'uuid'
-//   12hexoct := 6hexoct 6hexoct
-//   6hexoct := 4hexoct 2hexoct
-//   4hexoct := 2hexoct 2hexoct
-//   2hexoct := hexoct hexoct
-//   hexoct := hexdig hexdig
+//
 //   hexdig := '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' |
 //             'a' | 'b' | 'c' | 'd' | 'e' | 'f' |
 //             'A' | 'B' | 'C' | 'D' | 'E' | 'F'
-func (u *UUID) UnmarshalText(text []byte) (err error) {
+//
+//   hexoct := hexdig hexdig
+//   2hexoct := hexoct hexoct
+//   4hexoct := 2hexoct 2hexoct
+//   6hexoct := 4hexoct 2hexoct
+//   12hexoct := 6hexoct 6hexoct
+//
+//   hashlike := 12hexoct
+//   canonical := 4hexoct '-' 2hexoct '-' 2hexoct '-' 6hexoct
+//
+//   plain := canonical | hashlike
+//   uuid := canonical | hashlike | braced | urn
+//
+//   braced := '{' plain '}' | '{' hashlike  '}'
+//   urn := URN ':' UUID-NID ':' plain
+//
+func (u *UUID) UnmarshalText(text []byte) error {
 	switch len(text) {
 	case 32:
 		return u.decodeHashLike(text)
+	case 34, 38:
+		return u.decodeBraced(text)
 	case 36:
 		return u.decodeCanonical(text)
-	case 38:
-		return u.decodeBraced(text)
-	case 41:
-		fallthrough
-	case 45:
+	case 41, 45:
 		return u.decodeURN(text)
 	default:
 		return fmt.Errorf("uuid: incorrect UUID length: %s", text)
 	}
 }
 
-// decodeCanonical decodes UUID string in format
+// decodeCanonical decodes UUID strings that are formatted as defined in RFC-4122 (section 3):
 // "6ba7b810-9dad-11d1-80b4-00c04fd430c8".
-func (u *UUID) decodeCanonical(t []byte) (err error) {
+func (u *UUID) decodeCanonical(t []byte) error {
 	if t[8] != '-' || t[13] != '-' || t[18] != '-' || t[23] != '-' {
 		return fmt.Errorf("uuid: incorrect UUID format %s", t)
 	}
 
-	src := t[:]
+	src := t
 	dst := u[:]
 
 	for i, byteGroup := range byteGroups {
 		if i > 0 {
 			src = src[1:] // skip dash
 		}
-		_, err = hex.Decode(dst[:byteGroup/2], src[:byteGroup])
+		_, err := hex.Decode(dst[:byteGroup/2], src[:byteGroup])
 		if err != nil {
-			return
+			return err
 		}
 		src = src[byteGroup:]
 		dst = dst[byteGroup/2:]
 	}
 
-	return
+	return nil
 }
 
-// decodeHashLike decodes UUID string in format
-// "6ba7b8109dad11d180b400c04fd430c8".
-func (u *UUID) decodeHashLike(t []byte) (err error) {
+// decodeHashLike decodes UUID strings that are using the following format:
+//  "6ba7b8109dad11d180b400c04fd430c8".
+func (u *UUID) decodeHashLike(t []byte) error {
 	src := t[:]
 	dst := u[:]
 
-	if _, err = hex.Decode(dst, src); err != nil {
-		return err
-	}
-	return
+	_, err := hex.Decode(dst, src)
+	return err
 }
 
-// decodeBraced decodes UUID string in format
-// "{6ba7b810-9dad-11d1-80b4-00c04fd430c8}" or in format
-// "{6ba7b8109dad11d180b400c04fd430c8}".
-func (u *UUID) decodeBraced(t []byte) (err error) {
+// decodeBraced decodes UUID strings that are using the following formats:
+//  "{6ba7b810-9dad-11d1-80b4-00c04fd430c8}"
+//  "{6ba7b8109dad11d180b400c04fd430c8}".
+func (u *UUID) decodeBraced(t []byte) error {
 	l := len(t)
 
 	if t[0] != '{' || t[l-1] != '}' {
@@ -158,49 +166,47 @@ func (u *UUID) decodeBraced(t []byte) (err error) {
 	return u.decodePlain(t[1 : l-1])
 }
 
-// decodeURN decodes UUID string in format
-// "urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8" or in format
-// "urn:uuid:6ba7b8109dad11d180b400c04fd430c8".
-func (u *UUID) decodeURN(t []byte) (err error) {
+// decodeURN decodes UUID strings that are using the following formats:
+//  "urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+//  "urn:uuid:6ba7b8109dad11d180b400c04fd430c8".
+func (u *UUID) decodeURN(t []byte) error {
 	total := len(t)
 
-	urn_uuid_prefix := t[:9]
+	urnUUIDPrefix := t[:9]
 
-	if !bytes.Equal(urn_uuid_prefix, urnPrefix) {
+	if !bytes.Equal(urnUUIDPrefix, urnPrefix) {
 		return fmt.Errorf("uuid: incorrect UUID format: %s", t)
 	}
 
 	return u.decodePlain(t[9:total])
 }
 
-// decodePlain decodes UUID string in canonical format
-// "6ba7b810-9dad-11d1-80b4-00c04fd430c8" or in hash-like format
-// "6ba7b8109dad11d180b400c04fd430c8".
-func (u *UUID) decodePlain(t []byte) (err error) {
+// decodePlain decodes UUID strings that are using the following formats:
+//  "6ba7b810-9dad-11d1-80b4-00c04fd430c8" or in hash-like format
+//  "6ba7b8109dad11d180b400c04fd430c8".
+func (u *UUID) decodePlain(t []byte) error {
 	switch len(t) {
 	case 32:
 		return u.decodeHashLike(t)
 	case 36:
 		return u.decodeCanonical(t)
 	default:
-		return fmt.Errorf("uuid: incorrrect UUID length: %s", t)
+		return fmt.Errorf("uuid: incorrect UUID length: %s", t)
 	}
 }
 
 // MarshalBinary implements the encoding.BinaryMarshaler interface.
-func (u UUID) MarshalBinary() (data []byte, err error) {
-	data = u.Bytes()
-	return
+func (u UUID) MarshalBinary() ([]byte, error) {
+	return u.Bytes(), nil
 }
 
 // UnmarshalBinary implements the encoding.BinaryUnmarshaler interface.
-// It will return error if the slice isn't 16 bytes long.
-func (u *UUID) UnmarshalBinary(data []byte) (err error) {
+// It will return an error if the slice isn't 16 bytes long.
+func (u *UUID) UnmarshalBinary(data []byte) error {
 	if len(data) != Size {
-		err = fmt.Errorf("uuid: UUID must be exactly 16 bytes long, got %d bytes", len(data))
-		return
+		return fmt.Errorf("uuid: UUID must be exactly 16 bytes long, got %d bytes", len(data))
 	}
 	copy(u[:], data)
 
-	return
+	return nil
 }

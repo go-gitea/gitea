@@ -21,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	gouuid "github.com/satori/go.uuid"
+	gouuid "github.com/gofrs/uuid"
 	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 	"xorm.io/xorm"
@@ -637,9 +637,13 @@ func attachmentRefactor(x *xorm.Engine) error {
 			// If the attachment is already missing, there is no point to update it.
 			continue
 		}
+		uuid, err := gouuid.NewV4()
+		if err != nil {
+			return fmt.Errorf("could not create UUID for attachment: %v", err)
+		}
 		attachments = append(attachments, &Attachment{
 			ID:   com.StrTo(attach["id"]).MustInt64(),
-			UUID: gouuid.NewV4().String(),
+			UUID: uuid.String(),
 			Path: string(attach["path"]),
 		})
 	}

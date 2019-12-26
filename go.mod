@@ -46,6 +46,7 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/go-swagger/go-swagger v0.21.0
 	github.com/gobwas/glob v0.2.3
+	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/google/go-github/v24 v24.0.1
@@ -80,7 +81,6 @@ require (
 	github.com/quasoft/websspi v1.0.0
 	github.com/remyoudompheng/bigfft v0.0.0-20190321074620-2f0d2b0e0001 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1
-	github.com/satori/go.uuid v1.2.0
 	github.com/sergi/go-diff v1.0.0
 	github.com/shurcooL/httpfs v0.0.0-20190527155220-6a4d4a70508b // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
