@@ -8273,6 +8273,23 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CommitDateOptions": {
+      "description": "CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE",
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Author"
+        },
+        "committer": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Committer"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CommitMeta": {
       "type": "object",
       "title": "CommitMeta contains meta information of a commit in terms of API.",
@@ -8413,6 +8430,9 @@
           "description": "content must be base64 encoded",
           "type": "string",
           "x-go-name": "Content"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
         },
         "message": {
           "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
@@ -8971,6 +8991,9 @@
         },
         "committer": {
           "$ref": "#/definitions/Identity"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
         },
         "message": {
           "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
@@ -11302,6 +11325,9 @@
           "description": "content must be base64 encoded",
           "type": "string",
           "x-go-name": "Content"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
         },
         "from_path": {
           "description": "from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL",

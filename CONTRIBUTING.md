@@ -114,10 +114,10 @@ included in the next released version.
 ## Building Gitea
 
 Generally, the go build tools are installed as-needed in the `Makefile`.
-An exception are the tools to build the CSS and images.
+An exception are the tools to build the CSS, JS and images.
 
-- To build CSS: Install [Node.js](https://nodejs.org/en/download/package-manager) at version 8.0 or above
-  with `npm` and then run `npm install` and `make css`.
+- To build CSS and JS: Install [Node.js](https://nodejs.org/en/download/package-manager) at version 10.0 or above
+  with `npm` and then run `npm install`, `make css` and `make js`.
 - To build Images: ImageMagick, inkscape and zopflipng binaries must be
   available in your `PATH` to run `make generate-images`.
 
@@ -166,7 +166,7 @@ import (
 
 To maintain understandable code and avoid circular dependencies it is important to have a good structure of the code. The gitea code is divided into the following parts:
 
-- **integration:** Integrations tests 
+- **integration:** Integrations tests
 - **models:** Contains the data structures used by xorm to construct database tables. It also contains supporting functions to query and update the database. Dependecies to other code in Gitea should be avoided although some modules might be needed (for example for logging).
 - **models/fixtures:** Sample model data used in integration tests.
 - **models/migrations:** Handling of database migrations between versions. PRs that changes a database structure shall also have a migration step.

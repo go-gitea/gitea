@@ -29,6 +29,11 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 
+	if err = issue.LoadRepo(); err != nil {
+		ctx.ServerError("LoadRepo", err)
+		return
+	}
+
 	// Redirect
 	defer ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
 
@@ -80,6 +85,11 @@ func RemoveDependency(ctx *context.Context) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
 		ctx.ServerError("GetIssueByIndex", err)
+		return
+	}
+
+	if err = issue.LoadRepo(); err != nil {
+		ctx.ServerError("LoadRepo", err)
 		return
 	}
 
