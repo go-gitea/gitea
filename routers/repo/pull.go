@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -926,6 +927,21 @@ func CleanUpPullRequest(ctx *context.Context) {
 		log.Error("DeleteBranch: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
 		return
+	}
+
+	if err := repofiles.PushUpdate(
+		pr.HeadRepo,
+		pr.HeadBranch,
+		repofiles.PushUpdateOptions{
+			RefFullName:  git.BranchPrefix + pr.HeadBranch,
+			OldCommitID:  branchCommitID,
+			NewCommitID:  git.EmptySHA,
+			PusherID:     ctx.User.ID,
+			PusherName:   ctx.User.Name,
+			RepoUserName: pr.HeadRepo.Owner.Name,
+			RepoName:     pr.HeadRepo.Name,
+		}); err != nil {
+		log.Error("Update: %v", err)
 	}
 
 	if err := models.AddDeletePRBranchComment(ctx.User, pr.BaseRepo, issue.ID, pr.HeadBranch); err != nil {

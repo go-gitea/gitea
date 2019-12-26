@@ -154,7 +154,7 @@ DEFAULT_THEME = gitea
 ; All available themes. Allow users select personalized themes regardless of the value of `DEFAULT_THEME`.
 THEMES = gitea,arc-green
 ; All available reactions. Allow users react with different emoji's
-: For the whole list look at https://gitea.com/gitea/gitea.com/issues/8
+; For the whole list look at https://gitea.com/gitea/gitea.com/issues/8
 REACTIONS = +1, -1, laugh, hooray, confused, heart, rocket, eyes
 ; Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 DEFAULT_SHOW_FULL_NAME = false
