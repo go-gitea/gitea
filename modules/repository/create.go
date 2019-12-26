@@ -18,7 +18,9 @@ import (
 // CreateRepository creates a repository for the user/organization.
 func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (_ *models.Repository, err error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
-		return nil, models.ErrReachLimitOfRepo{u.MaxRepoCreation}
+		return nil, models.ErrReachLimitOfRepo{
+			Limit: u.MaxRepoCreation,
+		}
 	}
 
 	repo := &models.Repository{
