@@ -976,7 +976,7 @@ func createDelegateHooks(repoPath string) (err error) {
 		}
 		giteaHookTpls = []string{
 			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' pre-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
-			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' update $1 $2 $3\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
+			"",
 			fmt.Sprintf("#!/usr/bin/env %s\n\"%s\" hook --config='%s' post-receive\n", setting.ScriptType, setting.AppPath, setting.CustomConf),
 		}
 	)
@@ -996,9 +996,18 @@ func createDelegateHooks(repoPath string) (err error) {
 			return fmt.Errorf("write old hook file '%s': %v", oldHookPath, err)
 		}
 
+		if len(giteaHookTpls[i]) == 0 {
+			continue
+		}
 		if err = ioutil.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0777); err != nil {
 			return fmt.Errorf("write new hook file '%s': %v", newHookPath, err)
 		}
+	}
+
+	// Remove the old unused update.d/gitea hook as it is empty
+	newHookPath := filepath.Join(hookDir, "update.d", "gitea")
+	if err := os.Remove(newHookPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove unused update hook file '%s': %v", newHookPath, err)
 	}
 
 	return nil

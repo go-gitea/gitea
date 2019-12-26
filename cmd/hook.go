@@ -181,18 +181,7 @@ Gitea or set your environment appropriately.`, "")
 }
 
 func runHookUpdate(c *cli.Context) error {
-	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
-		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
-			fail(`Rejecting changes as Gitea environment not set.
-If you are pushing over SSH you must push with a key managed by
-Gitea or set your environment appropriately.`, "")
-		} else {
-			return nil
-		}
-	}
-
-	setup("hooks/update.log", false)
-
+	// Update is empty and is kept only for backwards compatibility
 	return nil
 }
 
