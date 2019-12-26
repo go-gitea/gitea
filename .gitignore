@@ -67,6 +67,7 @@ coverage.all
 /integrations/mssql.ini
 /node_modules
 /modules/indexer/issues/indexers
+/modules/indexer/code/bleve.index/
 routers/repo/authorized_keys
 /yarn.lock
 /public/js
