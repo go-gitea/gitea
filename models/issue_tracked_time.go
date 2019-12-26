@@ -297,6 +297,11 @@ func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err
 		return 0, err
 	}
 
+	/*
+		ToDo: if xorm understand:
+		_, err = opts.ToSession(e).SetExpr("tracked_time.deleted", true).Update(&TrackedTime{})
+		remove this and add simple statement (don't work for now :(
+	*/
 	query := "UPDATE `tracked_time` SET deleted = ? WHERE `tracked_time`.deleted = ?"
 	args := []interface{}{true, false}
 	if opts.IssueID != 0 {
