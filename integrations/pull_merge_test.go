@@ -61,8 +61,15 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		createPullNotified := make(chan interface{}, 10)
+		deferable := notifierListener.RegisterChannel("NotifyNewPullRequest", createPullNotified, 0, &models.PullRequest{})
+		defer func() {
+			deferable()
+			close(createPullNotified)
+		}()
+
 		mergePullNotified := make(chan interface{}, 10)
-		deferable := notifierListener.RegisterChannel("NotifyMergePullRequest", mergePullNotified, 0, &models.PullRequest{})
+		deferable = notifierListener.RegisterChannel("NotifyMergePullRequest", mergePullNotified, 0, &models.PullRequest{})
 		defer func() {
 			deferable()
 			close(mergePullNotified)
@@ -72,21 +79,37 @@ func TestPullMerge(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
+		var prInterface interface{}
+
 		resp := testPullCreate(t, session, "user1", "repo1", "master", "This is a pull title")
+		select {
+		case prInterface = <-createPullNotified:
+		case <-time.After(500 * time.Millisecond):
+			assert.Fail(t, "Took too long to notify!")
+		}
+		pr := prInterface.(*models.PullRequest)
+		pr.LoadBaseRepo()
+		pr.LoadHeadRepo()
+		pr.BaseRepo.MustOwner()
+		pr.HeadRepo.MustOwner()
+
+		assert.EqualValues(t, "user1", pr.HeadRepo.Owner.Name)
+		assert.EqualValues(t, "repo1", pr.HeadRepo.Name)
+		assert.EqualValues(t, "user2", pr.BaseRepo.Owner.Name)
+		assert.EqualValues(t, "repo1", pr.BaseRepo.Name)
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.EqualValues(t, "pulls", elem[3])
 
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleMerge)
 
-		var prInterface interface{}
 		select {
 		case prInterface = <-mergePullNotified:
 		case <-time.After(500 * time.Millisecond):
 			assert.Fail(t, "Took too long to notify!")
 		}
 
-		pr := prInterface.(*models.PullRequest)
+		pr = prInterface.(*models.PullRequest)
 		pr.LoadBaseRepo()
 		pr.LoadHeadRepo()
 		pr.BaseRepo.MustOwner()
@@ -99,8 +122,13 @@ func TestPullMerge(t *testing.T) {
 
 		time.Sleep(100 * time.Millisecond)
 		select {
-		case prInterface = <-mergePullNotified:
+		case prInterface = <-createPullNotified:
 			assert.Fail(t, "Should only have one pull create notification: %v", prInterface)
+		default:
+		}
+		select {
+		case prInterface = <-mergePullNotified:
+			assert.Fail(t, "Should only have one pull merge notification: %v", prInterface)
 		default:
 		}
 	})
