@@ -129,7 +129,7 @@ func (opts *FindTrackedTimesOptions) ToSession(e Engine) *xorm.Session {
 	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
 		return e.Join("INNER", "issue", "issue.id = tracked_time.issue_id").Where(opts.ToCond())
 	}
-	return x.Where(opts.ToCond())
+	return e.Where(opts.ToCond())
 }
 
 func getTrackedTimes(e Engine, options FindTrackedTimesOptions) (trackedTimes TrackedTimeList, err error) {
@@ -143,7 +143,7 @@ func GetTrackedTimes(opts FindTrackedTimesOptions) (TrackedTimeList, error) {
 }
 
 func getTrackedSeconds(e Engine, opts FindTrackedTimesOptions) (trackedSeconds int64, err error) {
-	return opts.ToSession(e).SumInt(&TrackedTime{}, "time")
+	return opts.ToSession(e).ForUpdate().SumInt(&TrackedTime{}, "time")
 }
 
 // GetTrackedSeconds return sum of seconds
@@ -291,19 +291,17 @@ func DeleteTime(t *TrackedTime) error {
 }
 
 func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err error) {
-	sess := x.NewSession()
-	defer sess.Clone()
 
-	removedTime, err = getTrackedSeconds(sess, opts)
+	removedTime, err = getTrackedSeconds(e, opts)
 	if err != nil {
 		return 0, err
 	}
 
-	_, err = opts.ToSession(sess).SetExpr("deleted", true).Update(&TrackedTime{})
+	_, err = opts.ToSession(e).SetExpr("deleted", true).Update(&TrackedTime{})
 	if err != nil {
 		return 0, err
 	}
-	return removedTime, sess.Commit()
+	return
 }
 
 func deleteTime(e Engine, t *TrackedTime) error {
