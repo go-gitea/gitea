@@ -174,7 +174,7 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 		return fmt.Errorf("git remote add: %v", err)
 	}
 
-	return initRepoCommit(tmpDir, repo.Owner)
+	return initRepoCommit(tmpDir, repo, repo.Owner)
 }
 
 // generateRepository initializes repository from template
