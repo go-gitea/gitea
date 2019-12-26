@@ -65,7 +65,7 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
-	setup("hooks/pre-receive.log")
+	setup("hooks/pre-receive.log", false)
 
 	// the environment setted on serv command
 	isWiki := (os.Getenv(models.EnvRepoIsWiki) == "true")
@@ -131,7 +131,7 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
-	setup("hooks/update.log")
+	setup("hooks/update.log", false)
 
 	return nil
 }
@@ -147,7 +147,7 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
-	setup("hooks/post-receive.log")
+	setup("hooks/post-receive.log", false)
 
 	// the environment setted on serv command
 	repoUser := os.Getenv(models.EnvRepoUsername)
