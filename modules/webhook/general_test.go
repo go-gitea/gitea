@@ -8,8 +8,8 @@ import api "code.gitea.io/gitea/modules/structs"
 
 func issueTestPayLoad() *api.IssuePayload {
 	return &api.IssuePayload{
-		Index:  2,
 		Action: api.HookIssueClosed,
+		Index:  2,
 		Sender: &api.User{
 			UserName: "user1",
 		},
@@ -77,5 +77,48 @@ func pullRequestCommentTestPayLoad() *api.IssueCommentPayload {
 			Body:  "fixes bug #2",
 		},
 		IsPull: true,
+	}
+}
+
+func pullReleaseTestPayLoad() *api.ReleasePayload {
+	return &api.ReleasePayload{
+		Action: api.HookReleasePublished,
+		Sender: &api.User{
+			UserName: "user1",
+		},
+		Repository: &api.Repository{
+			HTMLURL:  "http://localhost:3000/test/repo",
+			Name:     "repo",
+			FullName: "test/repo",
+		},
+		Release: &api.Release{
+			TagName: "v1.0",
+			Target:  "master",
+			Title:   "First stable release",
+			URL:     "http://localhost:3000/api/v1/repos/test/repo/releases/2",
+		},
+	}
+}
+
+func pullRequestTestPayLoad() *api.PullRequestPayload {
+	return &api.PullRequestPayload{
+		Action: api.HookIssueOpened,
+		Index:  2,
+		Sender: &api.User{
+			UserName: "user1",
+		},
+		Repository: &api.Repository{
+			HTMLURL:  "http://localhost:3000/test/repo",
+			Name:     "repo",
+			FullName: "test/repo",
+		},
+		PullRequest: &api.PullRequest{
+			ID:        2,
+			Index:     2,
+			URL:       "http://localhost:3000/test/repo/pulls/12",
+			Title:     "Fix bug",
+			Body:      "fixes bug #2",
+			Mergeable: true,
+		},
 	}
 }
