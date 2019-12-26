@@ -110,7 +110,7 @@ func GlobalInit(ctx context.Context) {
 		// Booting long running goroutines.
 		cron.NewContext()
 		issue_indexer.InitIssueIndexer(false)
-		code_indexer.InitRepoIndexer()
+		code_indexer.Init()
 		mirror_service.InitSyncMirrors()
 		webhook.InitDeliverHooks()
 		pull_service.Init()
