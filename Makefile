@@ -199,7 +199,7 @@ fmt-check:
 
 .PHONY: test
 test:
-	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES) && echo PASS
+	GO111MODULE=on $(GO) test -mod=vendor -tags='sqlite sqlite_unlock_notify' $(PACKAGES)
 
 .PHONY: test\#%
 test\#%:
