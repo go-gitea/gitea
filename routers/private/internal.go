@@ -10,8 +10,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
+	"gitea.com/macaron/binding"
 	"gitea.com/macaron/macaron"
 )
 
@@ -77,11 +79,14 @@ func CheckUnitUser(ctx *macaron.Context) {
 // RegisterRoutes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func RegisterRoutes(m *macaron.Macaron) {
+	bind := binding.Bind
+
 	m.Group("/", func() {
 		m.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
 		m.Post("/ssh/:id/update/:repoid", UpdatePublicKeyInRepo)
-		m.Get("/hook/pre-receive/:owner/:repo", HookPreReceive)
-		m.Get("/hook/post-receive/:owner/:repo", HookPostReceive)
+		m.Post("/hook/pre-receive/:owner/:repo", bind(private.HookOptions{}), HookPreReceive)
+		m.Post("/hook/post-receive/:owner/:repo", bind(private.HookOptions{}), HookPostReceive)
+		m.Post("/hook/set-default-branch/:owner/:repo/:branch", SetDefaultBranch)
 		m.Get("/serv/none/:keyid", ServNoCommand)
 		m.Get("/serv/command/:keyid/:owner/:repo", ServCommand)
 	}, CheckInternalToken)
