@@ -291,17 +291,12 @@ func DeleteTime(t *TrackedTime) error {
 }
 
 func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err error) {
-	tt, err := getTrackedTimes(e, opts)
+	removedTime, err = getTrackedSeconds(e, opts)
 	if err != nil {
-		return
+		return 0, err
 	}
 
-	for _, t := range tt {
-		if err = deleteTime(e, t); err != nil {
-			return
-		}
-		removedTime += t.Time
-	}
+	err = opts.ToSession(e).SetExpr("deleted", true).Commit()
 	return
 }
 
