@@ -104,6 +104,10 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 - `body_outer_post.tmpl`, before the bottom `<footer>` element.
 - `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional Javascript.
 
+### Customizing Privacy Policy and Terms of Service
+
+In the effort of Gitea to comply to GDPR, Gitea now supply *Privacy Policy* and *Terms of Service* page. The legal code in both pages are generic enough for most deployments. But if you want to customize them to your requirements, override by create and edit `custom/public/privacy.html` and `custom/public/tos.html`, respectively.
+
 ## Customizing Gitea mails
 
 The `custom/templates/mail` folder allows changing the body of every mail of Gitea.
