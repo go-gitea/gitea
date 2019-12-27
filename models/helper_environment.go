@@ -10,12 +10,13 @@ import (
 	"strings"
 )
 
-// internalPushingEnvironment returns an os environment to switch off hooks on push
+// InternalPushingEnvironment returns an os environment to switch off hooks on push
 // It is recommended to avoid using this unless you are pushing within a transaction
-func internalPushingEnvironment() []string {
-	return append(os.Environ(),
+// or if you absolutely are sure that post-receive and pre-receive will do nothing
+// We provide the full pushing-environment for other hook providers
+func InternalPushingEnvironment(doer *User, repo *Repository) []string {
+	return append(PushingEnvironment(doer, repo),
 		EnvIsInternal+"=true",
-		"SSH_ORIGINAL_COMMAND=gitea-internal",
 	)
 }
 

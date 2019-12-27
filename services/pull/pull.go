@@ -253,7 +253,8 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 		Remote: tmpRemoteName,
 		Branch: fmt.Sprintf("%s:%s", pr.HeadBranch, headFile),
 		Force:  true,
-		Env:    models.PushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
+		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
+		Env: models.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
 	}); err != nil {
 		return fmt.Errorf("Push: %v", err)
 	}
