@@ -6,6 +6,8 @@
 package repo
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -431,10 +433,31 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		opts.Releases = false
 	}
 
-	repo, err := migrations.MigrateRepository(ctx.User, ctxUser.Name, opts)
-	if err == nil {
-		notification.NotifyCreateRepository(ctx.User, ctxUser, repo)
+	var repo *models.Repository
+	defer func() {
+		if e := recover(); e != nil {
+			var buf bytes.Buffer
+			fmt.Fprintf(&buf, "Handler crashed with error: %v", log.Stack(2))
+			err = errors.New(buf.String())
+		}
 
+		if err == nil {
+			repo.Status = models.RepositoryReady
+			if err := models.UpdateRepositoryStatus(repo.ID, repo.Status); err == nil {
+				notification.NotifyMigrateRepository(ctx.User, ctxUser, repo)
+				return
+			}
+		}
+
+		if repo != nil {
+			if errDelete := models.DeleteRepository(ctx.User, ctxUser.ID, repo.ID); errDelete != nil {
+				log.Error("DeleteRepository: %v", errDelete)
+			}
+		}
+	}()
+
+	repo, err = migrations.MigrateRepository(ctx.User, ctxUser.Name, opts)
+	if err == nil {
 		log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
 		ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
 		return
