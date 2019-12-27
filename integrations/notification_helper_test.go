@@ -60,9 +60,10 @@ func (n *NotifierListener) Deregister(functionName string, callback *func(string
 	n.lock.Unlock()
 }
 
-// RegisterChannel will register a provided channel with function name and return a function to deregister it
-func (n *NotifierListener) RegisterChannel(name string, channel chan<- interface{}, argNumber int, exemplar interface{}) (deregister func()) {
+// RegisterChannel will return a registered channel with function name and return a function to deregister it and close the channel at the end
+func (n *NotifierListener) RegisterChannel(name string, argNumber int, exemplar interface{}) (<-chan interface{}, func()) {
 	t := reflect.TypeOf(exemplar)
+	channel := make(chan interface{}, 10)
 	callback := func(_ string, args [][]byte) {
 		n := reflect.New(t).Elem()
 		err := json.Unmarshal(args[argNumber], n.Addr().Interface())
@@ -73,8 +74,9 @@ func (n *NotifierListener) RegisterChannel(name string, channel chan<- interface
 	}
 	n.Register(name, &callback)
 
-	return func() {
+	return channel, func() {
 		n.Deregister(name, &callback)
+		close(channel)
 	}
 }
 
@@ -95,8 +97,8 @@ func (n *NotifierListener) handle(data ...queue.Data) {
 func TestNotifierListener(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	createPullNotified := make(chan interface{}, 10)
-	deregister := notifierListener.RegisterChannel("NotifyNewPullRequest", createPullNotified, 0, &models.PullRequest{})
+	createPullNotified, deregister := notifierListener.RegisterChannel("NotifyNewPullRequest", 0, &models.PullRequest{})
+
 	bs, _ := json.Marshal(&models.PullRequest{})
 	notifierListener.handle(&base.FunctionCall{
 		Name: "NotifyNewPullRequest",
@@ -113,7 +115,6 @@ func TestNotifierListener(t *testing.T) {
 	<-createPullNotified
 
 	deregister()
-	close(createPullNotified)
 
 	notification.NotifyNewPullRequest(&models.PullRequest{})
 	// would panic if not deregistered

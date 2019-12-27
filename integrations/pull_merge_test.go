@@ -61,19 +61,11 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		createPullNotified := make(chan interface{}, 10)
-		deferable := notifierListener.RegisterChannel("NotifyNewPullRequest", createPullNotified, 0, &models.PullRequest{})
-		defer func() {
-			deferable()
-			close(createPullNotified)
-		}()
+		createPullNotified, deferableCreate := notifierListener.RegisterChannel("NotifyNewPullRequest", 0, &models.PullRequest{})
+		defer deferableCreate()
 
-		mergePullNotified := make(chan interface{}, 10)
-		deferable = notifierListener.RegisterChannel("NotifyMergePullRequest", mergePullNotified, 0, &models.PullRequest{})
-		defer func() {
-			deferable()
-			close(mergePullNotified)
-		}()
+		mergePullNotified, deferableMerge := notifierListener.RegisterChannel("NotifyMergePullRequest", 0, &models.PullRequest{})
+		defer deferableMerge()
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
@@ -136,12 +128,8 @@ func TestPullMerge(t *testing.T) {
 
 func TestPullRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		mergePullNotified := make(chan interface{}, 10)
-		deferable := notifierListener.RegisterChannel("NotifyMergePullRequest", mergePullNotified, 0, &models.PullRequest{})
-		defer func() {
-			deferable()
-			close(mergePullNotified)
-		}()
+		mergePullNotified, deferable := notifierListener.RegisterChannel("NotifyMergePullRequest", 0, &models.PullRequest{})
+		defer deferable()
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
@@ -162,12 +150,9 @@ func TestPullRebase(t *testing.T) {
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		mergePullNotified := make(chan interface{}, 10)
-		deferable := notifierListener.RegisterChannel("NotifyMergePullRequest", mergePullNotified, 0, &models.PullRequest{})
-		defer func() {
-			deferable()
-			close(mergePullNotified)
-		}()
+		mergePullNotified, deferable := notifierListener.RegisterChannel("NotifyMergePullRequest", 0, &models.PullRequest{})
+		defer deferable()
+
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -188,12 +173,8 @@ func TestPullRebaseMerge(t *testing.T) {
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		mergePullNotified := make(chan interface{}, 10)
-		deferable := notifierListener.RegisterChannel("NotifyMergePullRequest", mergePullNotified, 0, &models.PullRequest{})
-		defer func() {
-			deferable()
-			close(mergePullNotified)
-		}()
+		mergePullNotified, deferable := notifierListener.RegisterChannel("NotifyMergePullRequest", 0, &models.PullRequest{})
+		defer deferable()
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
