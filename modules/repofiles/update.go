@@ -520,6 +520,12 @@ func PushUpdates(repo *models.Repository, optsList []*PushUpdateOptions) error {
 			}
 		}
 
+		if opts.NewCommitID != git.EmptySHA {
+			if err = models.RemoveDeletedBranch(repo.ID, opts.Branch); err != nil {
+				log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, opts.Branch, err)
+			}
+		}
+
 		log.Trace("TriggerTask '%s/%s' by %s", repo.Name, opts.Branch, pusher.Name)
 
 		go pull_service.AddTestPullRequestTask(pusher, repo.ID, opts.Branch, true)
