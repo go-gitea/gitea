@@ -1061,7 +1061,7 @@ func initRepoCommit(tmpPath string, repo *Repository, u *User) (err error) {
 
 	if stdout, err := git.NewCommand("push", "origin", "master").
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
-		RunInDirWithEnv(tmpPath, internalPushingEnvironment(u, repo)); err != nil {
+		RunInDirWithEnv(tmpPath, InternalPushingEnvironment(u, repo)); err != nil {
 		log.Error("Failed to push back to master: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git push: %v", err)
 	}
