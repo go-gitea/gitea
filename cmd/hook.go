@@ -59,6 +59,10 @@ var (
 )
 
 func runHookPreReceive(c *cli.Context) error {
+	if os.Getenv(models.EnvIsInternal) == "true" {
+		return nil
+	}
+
 	setup("hooks/pre-receive.log", false)
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
@@ -69,9 +73,6 @@ Gitea or set your environment appropriately.`, "")
 		} else {
 			return nil
 		}
-	}
-	if os.Getenv(models.EnvIsInternal) == "true" {
-		return nil
 	}
 
 	// the environment setted on serv command
@@ -200,6 +201,10 @@ Gitea or set your environment appropriately.`, "")
 }
 
 func runHookPostReceive(c *cli.Context) error {
+	if os.Getenv(models.EnvIsInternal) == "true" {
+		return nil
+	}
+
 	setup("hooks/post-receive.log", false)
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
@@ -210,9 +215,6 @@ Gitea or set your environment appropriately.`, "")
 		} else {
 			return nil
 		}
-	}
-	if os.Getenv(models.EnvIsInternal) == "true" {
-		return nil
 	}
 
 	// the environment setted on serv command
