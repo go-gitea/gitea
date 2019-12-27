@@ -453,10 +453,15 @@ func PushUpdate(repo *models.Repository, branch string, opts models.PushUpdateOp
 			}
 		}
 	} else if !isDelRef {
+		branchName := opts.RefFullName[len(git.BranchPrefix):]
+		if err = models.RemoveDeletedBranch(repo.ID, branchName); err != nil {
+			log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branchName, err)
+		}
+
 		// If is branch reference
 
 		// Clear cache for branch commit count
-		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefFullName[len(git.BranchPrefix):], true))
+		cache.Remove(repo.GetCommitsCountCacheKey(branchName, true))
 
 		newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
 		if err != nil {
