@@ -705,7 +705,6 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IssueWatch"] = iw
-	ctx.Data["AllowedReactions"] = setting.UI.Reactions
 
 	issue.RenderedContent = string(markdown.Render([]byte(issue.Content), ctx.Repo.RepoLink,
 		ctx.Repo.Repository.ComposeMetas()))
