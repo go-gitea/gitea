@@ -48,7 +48,7 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 			oldAvatar := user.Avatar
 
 			if stat, err := os.Stat(filepath.Join(setting.AvatarUploadPath, oldAvatar)); err != nil || !stat.Mode().IsRegular() {
-				if stat != nil && stat.IsDir() {
+				if err == nil {
 					err = fmt.Errorf("Error: \"%s\" is not a regular file", oldAvatar)
 				}
 				log.Warn("[user: %s] os.Stat: %v", user.LowerName, err)
