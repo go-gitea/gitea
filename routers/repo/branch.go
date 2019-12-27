@@ -110,6 +110,22 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
+	// Don't return error below this
+	if err := repofiles.PushUpdate(
+		ctx.Repo.Repository,
+		deletedBranch.Name,
+		repofiles.PushUpdateOptions{
+			RefFullName:  git.BranchPrefix + deletedBranch.Name,
+			OldCommitID:  git.EmptySHA,
+			NewCommitID:  deletedBranch.Commit,
+			PusherID:     ctx.User.ID,
+			PusherName:   ctx.User.Name,
+			RepoUserName: ctx.Repo.Owner.Name,
+			RepoName:     ctx.Repo.Repository.Name,
+		}); err != nil {
+		log.Error("Update: %v", err)
+	}
+
 	ctx.Flash.Success(ctx.Tr("repo.branch.restore_success", deletedBranch.Name))
 }
 
