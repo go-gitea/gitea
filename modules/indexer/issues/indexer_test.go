@@ -5,7 +5,9 @@
 package issues
 
 import (
+	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 	"time"
@@ -23,10 +25,29 @@ func TestMain(m *testing.M) {
 func TestBleveSearchIssues(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
 
-	os.RemoveAll(setting.Indexer.IssueQueueDir)
-	os.RemoveAll(setting.Indexer.IssuePath)
+	tmpIndexerDir, err := ioutil.TempDir("", "issues-indexer")
+	if err != nil {
+		assert.Fail(t, "Unable to create temporary directory: %v", err)
+		return
+	}
+	oldQueueDir := setting.Indexer.IssueQueueDir
+	oldIssuePath := setting.Indexer.IssuePath
+	setting.Indexer.IssueQueueDir = path.Join(tmpIndexerDir, "issues.queue")
+	setting.Indexer.IssuePath = path.Join(tmpIndexerDir, "issues.queue")
+	defer func() {
+		setting.Indexer.IssueQueueDir = oldQueueDir
+		setting.Indexer.IssuePath = oldIssuePath
+		os.RemoveAll(tmpIndexerDir)
+	}()
+
 	setting.Indexer.IssueType = "bleve"
 	InitIssueIndexer(true)
+	defer func() {
+		indexer := holder.get()
+		if bleveIndexer, ok := indexer.(*BleveIndexer); ok {
+			bleveIndexer.Close()
+		}
+	}()
 
 	time.Sleep(5 * time.Second)
 
@@ -45,6 +66,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	ids, err = SearchIssuesByKeyword([]int64{1}, "good")
 	assert.NoError(t, err)
 	assert.EqualValues(t, []int64{1}, ids)
+
 }
 
 func TestDBSearchIssues(t *testing.T) {
