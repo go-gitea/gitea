@@ -59,6 +59,8 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 			if err != nil {
 				_ = sess.Rollback()
 				return fmt.Errorf("[user: %s] %v", user.LowerName, err)
+			} else if newAvatar == oldAvatar {
+				continue
 			}
 
 			user.Avatar = newAvatar
@@ -98,6 +100,9 @@ func copyOldAvatarToNewLocation(userID int64, oldAvatar string) (string, error) 
 	}
 
 	newAvatar := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", userID, md5.Sum(data)))))
+	if newAvatar == oldAvatar {
+		return newAvatar, nil
+	}
 
 	if err := ioutil.WriteFile(filepath.Join(setting.AvatarUploadPath, newAvatar), data, 0666); err != nil {
 		return "", fmt.Errorf("ioutil.WriteFile: %v", err)
