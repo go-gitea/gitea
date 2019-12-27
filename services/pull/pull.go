@@ -242,10 +242,19 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 
 	_ = os.Remove(file)
 
+	if err = pr.LoadIssue(); err != nil {
+		return fmt.Errorf("unable to load issue %d for pr %d: %v", pr.IssueID, pr.ID, err)
+	}
+	if err = pr.Issue.LoadPoster(); err != nil {
+		return fmt.Errorf("unable to load poster %d for pr %d: %v", pr.Issue.PosterID, pr.ID, err)
+	}
+
 	if err = git.Push(headRepoPath, git.PushOptions{
 		Remote: tmpRemoteName,
 		Branch: fmt.Sprintf("%s:%s", pr.HeadBranch, headFile),
 		Force:  true,
+		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
+		Env: models.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
 	}); err != nil {
 		return fmt.Errorf("Push: %v", err)
 	}
