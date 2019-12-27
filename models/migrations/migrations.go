@@ -286,6 +286,8 @@ var migrations = []Migration{
 	NewMigration("Remove authentication credentials from stored URL", sanitizeOriginalURL),
 	// v115 -> v116
 	NewMigration("add user_id prefix to existing user avatar name", renameExistingUserAvatarName),
+	// v116 -> v117
+	NewMigration("Extend TrackedTimes", extendTrackedTimes),
 }
 
 // Migrate database to current version

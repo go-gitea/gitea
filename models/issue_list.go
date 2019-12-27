@@ -429,6 +429,7 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 
 		// select issue_id, sum(time) from tracked_time where issue_id in (<issue ids in current page>) group by issue_id
 		rows, err := e.Table("tracked_time").
+			Where("deleted = ?", false).
 			Select("issue_id, sum(time) as time").
 			In("issue_id", ids[:limit]).
 			GroupBy("issue_id").
