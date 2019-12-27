@@ -297,21 +297,8 @@ func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err
 		return
 	}
 
-	/*
-		ToDo: if xorm understand:
-		_, err = opts.ToSession(e).SetExpr("tracked_time.deleted", true).Update(&TrackedTime{})
-		remove this and add simple statement [ don't work for now :( ]
-	*/
-	tl, err := getTrackedTimes(e, opts)
-	if err != nil {
-		return 0, err
-	}
-	for _, t := range tl {
-		if err = deleteTime(e, t); err != nil {
-			return 0, err
-		}
-	}
-	return removedTime, err
+	_, err = opts.ToSession(e).Table("tracked_time").Cols("deleted").Update(&TrackedTime{Deleted: true})
+	return
 }
 
 func deleteTime(e Engine, t *TrackedTime) error {
