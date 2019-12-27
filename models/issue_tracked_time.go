@@ -143,7 +143,7 @@ func GetTrackedTimes(opts FindTrackedTimesOptions) (TrackedTimeList, error) {
 }
 
 func getTrackedSeconds(e Engine, opts FindTrackedTimesOptions) (trackedSeconds int64, err error) {
-	return opts.ToSession(e).ForUpdate().SumInt(&TrackedTime{}, "time")
+	return opts.ToSession(e).SumInt(&TrackedTime{}, "time")
 }
 
 // GetTrackedSeconds return sum of seconds
