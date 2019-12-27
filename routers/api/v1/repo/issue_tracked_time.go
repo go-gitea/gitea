@@ -6,23 +6,16 @@ package repo
 
 import (
 	"net/http"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func trackedTimesToAPIFormat(trackedTimes []*models.TrackedTime) []*api.TrackedTime {
-	apiTrackedTimes := make([]*api.TrackedTime, len(trackedTimes))
-	for i, trackedTime := range trackedTimes {
-		apiTrackedTimes[i] = trackedTime.APIFormat()
-	}
-	return apiTrackedTimes
-}
-
 // ListTrackedTimes list all the tracked times of an issue
 func ListTrackedTimes(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/issues/{id}/times issue issueTrackedTimes
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/times issue issueTrackedTimes
 	// ---
 	// summary: List an issue's tracked times
 	// produces:
@@ -38,7 +31,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: index
 	//   in: path
 	//   description: index of the issue
 	//   type: integer
@@ -64,20 +57,32 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{IssueID: issue.ID})
+	opts := models.FindTrackedTimesOptions{
+		RepositoryID: ctx.Repo.Repository.ID,
+		IssueID:      issue.ID,
+	}
+
+	if !ctx.IsUserRepoAdmin() && !ctx.User.IsAdmin {
+		opts.UserID = ctx.User.ID
+	}
+
+	trackedTimes, err := models.GetTrackedTimes(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetTrackedTimesByIssue", err)
+		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
 	}
-	apiTrackedTimes := trackedTimesToAPIFormat(trackedTimes)
-	ctx.JSON(http.StatusOK, &apiTrackedTimes)
+	if err = trackedTimes.LoadAttributes(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
 }
 
-// AddTime adds time manual to the given issue
+// AddTime add time manual to the given issue
 func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
-	// swagger:operation Post /repos/{owner}/{repo}/issues/{id}/times issue issueAddTime
+	// swagger:operation Post /repos/{owner}/{repo}/issues/{index}/times issue issueAddTime
 	// ---
-	// summary: Add a tracked time to a issue
+	// summary: Add tracked time to a issue
 	// consumes:
 	// - application/json
 	// produces:
@@ -93,9 +98,9 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: index
 	//   in: path
-	//   description: index of the issue to add tracked time to
+	//   description: index of the issue
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -129,12 +134,177 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
-	trackedTime, err := models.AddTime(ctx.User, issue, form.Time)
+
+	user := ctx.User
+	if form.User != "" {
+		if (ctx.IsUserRepoAdmin() && ctx.User.Name != form.User) || ctx.User.IsAdmin {
+			//allow only RepoAdmin, Admin and User to add time
+			user, err = models.GetUserByName(form.User)
+			if err != nil {
+				ctx.Error(500, "GetUserByName", err)
+			}
+		}
+	}
+
+	created := time.Time{}
+	if !form.Created.IsZero() {
+		created = form.Created
+	}
+
+	trackedTime, err := models.AddTime(user, issue, form.Time, created)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddTime", err)
 		return
 	}
+	if err = trackedTime.LoadAttributes(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		return
+	}
 	ctx.JSON(http.StatusOK, trackedTime.APIFormat())
+}
+
+// ResetIssueTime reset time manual to the given issue
+func ResetIssueTime(ctx *context.APIContext) {
+	// swagger:operation Delete /repos/{owner}/{repo}/issues/{index}/times issue issueResetTime
+	// ---
+	// summary: Reset a tracked time of an issue
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue to add tracked time to
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/error"
+
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(500, "GetIssueByIndex", err)
+		}
+		return
+	}
+
+	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
+		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
+			ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
+			return
+		}
+		ctx.Status(403)
+		return
+	}
+
+	err = models.DeleteIssueUserTimes(issue, ctx.User)
+	if err != nil {
+		if models.IsErrNotExist(err) {
+			ctx.Error(404, "DeleteIssueUserTimes", err)
+		} else {
+			ctx.Error(500, "DeleteIssueUserTimes", err)
+		}
+		return
+	}
+	ctx.Status(204)
+}
+
+// DeleteTime delete a specific time by id
+func DeleteTime(ctx *context.APIContext) {
+	// swagger:operation Delete /repos/{owner}/{repo}/issues/{index}/times/{id} issue issueDeleteTime
+	// ---
+	// summary: Delete specific tracked time
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of time to delete
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/error"
+
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(500, "GetIssueByIndex", err)
+		}
+		return
+	}
+
+	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
+		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
+			ctx.JSON(400, struct{ Message string }{Message: "time tracking disabled"})
+			return
+		}
+		ctx.Status(403)
+		return
+	}
+
+	time, err := models.GetTrackedTimeByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.Error(500, "GetTrackedTimeByID", err)
+		return
+	}
+
+	if !ctx.User.IsAdmin && time.UserID != ctx.User.ID {
+		//Only Admin and User itself can delete their time
+		ctx.Status(403)
+		return
+	}
+
+	err = models.DeleteTime(time)
+	if err != nil {
+		ctx.Error(500, "DeleteTime", err)
+		return
+	}
+	ctx.Status(204)
 }
 
 // ListTrackedTimesByUser  lists all tracked times of the user
@@ -187,11 +357,14 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		UserID:       user.ID,
 		RepositoryID: ctx.Repo.Repository.ID})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetTrackedTimesByUser", err)
+		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
 	}
-	apiTrackedTimes := trackedTimesToAPIFormat(trackedTimes)
-	ctx.JSON(http.StatusOK, &apiTrackedTimes)
+	if err = trackedTimes.LoadAttributes(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
 }
 
 // ListTrackedTimesByRepository lists all tracked times of the repository
@@ -222,14 +395,25 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 		return
 	}
-	trackedTimes, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{
-		RepositoryID: ctx.Repo.Repository.ID})
+
+	opts := models.FindTrackedTimesOptions{
+		RepositoryID: ctx.Repo.Repository.ID,
+	}
+
+	if !ctx.IsUserRepoAdmin() && !ctx.User.IsAdmin {
+		opts.UserID = ctx.User.ID
+	}
+
+	trackedTimes, err := models.GetTrackedTimes(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetTrackedTimesByUser", err)
+		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
 	}
-	apiTrackedTimes := trackedTimesToAPIFormat(trackedTimes)
-	ctx.JSON(http.StatusOK, &apiTrackedTimes)
+	if err = trackedTimes.LoadAttributes(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
 }
 
 // ListMyTrackedTimes lists all tracked times of the current user
@@ -248,6 +432,9 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimesByUser", err)
 		return
 	}
-	apiTrackedTimes := trackedTimesToAPIFormat(trackedTimes)
-	ctx.JSON(http.StatusOK, &apiTrackedTimes)
+	if err = trackedTimes.LoadAttributes(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
 }
