@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 	ini "gopkg.in/ini.v1"
