@@ -54,6 +54,7 @@ type Review struct {
 	Content    string `xorm:"TEXT"`
 	// Official is a review made by an assigned approver (counts towards approval)
 	Official bool `xorm:"NOT NULL DEFAULT false"`
+	Stale    bool `xorm:"NOT NULL DEFAULT false"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -369,4 +370,11 @@ func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
 	}
 
 	return reviews, nil
+}
+
+// MarkReviewsAsStale marks existing reviews as stale
+func MarkReviewsAsStale(issueID int64) (err error) {
+	_, err = x.Exec("UPDATE `review` SET stale=? WHERE issue_id=?", true, issueID)
+
+	return
 }
