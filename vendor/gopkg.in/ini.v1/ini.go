@@ -29,7 +29,7 @@ const (
 
 	// Maximum allowed depth when recursively substituing variable names.
 	depthValues = 99
-	version     = "1.48.0"
+	version     = "1.51.1"
 )
 
 // Version returns current package version literal.
@@ -111,7 +111,14 @@ type LoadOptions struct {
 	KeyValueDelimiters string
 	// PreserveSurroundedQuote indicates whether to preserve surrounded quote (single and double quotes).
 	PreserveSurroundedQuote bool
+	// DebugFunc is called to collect debug information (currently only useful to debug parsing Python-style multiline values).
+	DebugFunc DebugFunc
+	// ReaderBufferSize is the buffer size of the reader in bytes.
+	ReaderBufferSize int
 }
+
+// DebugFunc is the type of function called to log parse events.
+type DebugFunc func(message string)
 
 // LoadSources allows caller to apply customized options for loading from data source(s).
 func LoadSources(opts LoadOptions, source interface{}, others ...interface{}) (_ *File, err error) {

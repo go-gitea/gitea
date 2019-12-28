@@ -4,13 +4,14 @@ package editorconfig
 
 import (
 	"bytes"
-	"io/ioutil"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/blang/semver"
 	"gopkg.in/ini.v1"
 )
 
@@ -41,6 +42,92 @@ const (
 	CharsetUTF8BOM = "utf-8 bom"
 )
 
+// Limits for section name, properties, and values.
+const (
+	MaxPropertyLength = 50
+	MaxSectionLength  = 4096
+	MaxValueLength    = 255
+)
+
+var (
+	v0_9_0 = semver.Version{
+		Major: 0,
+		Minor: 9,
+		Patch: 0,
+	}
+)
+
+// Config holds the configuration
+type Config struct {
+	Path    string
+	Name    string
+	Version string
+}
+
+// NewDefinition builds a definition from a given config
+func NewDefinition(config Config) (*Definition, error) {
+	if config.Name == "" {
+		config.Name = ConfigNameDefault
+	}
+
+	abs, err := filepath.Abs(config.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	config.Path = abs
+
+	return newDefinition(config)
+}
+
+// newDefinition recursively builds the definition
+func newDefinition(config Config) (*Definition, error) {
+	definition := &Definition{}
+	definition.Raw = make(map[string]string)
+
+	if config.Version != "" {
+		version, err := semver.New(config.Version)
+		if err != nil {
+			return nil, err
+		}
+		definition.version = version
+	}
+
+	dir := config.Path
+	for dir != filepath.Dir(dir) {
+		dir = filepath.Dir(dir)
+		ecFile := filepath.Join(dir, config.Name)
+		fp, err := os.Open(ecFile)
+		if os.IsNotExist(err) {
+			continue
+		}
+		defer fp.Close()
+		ec, err := Parse(fp)
+		if err != nil {
+			return nil, err
+		}
+
+		relativeFilename := config.Path
+		if len(dir) < len(relativeFilename) {
+			relativeFilename = relativeFilename[len(dir):]
+		}
+
+		def, err := ec.GetDefinitionForFilename(relativeFilename)
+		if err != nil {
+			return nil, err
+		}
+
+		definition.merge(def)
+
+		if ec.Root {
+			break
+		}
+	}
+
+	return definition, nil
+
+}
+
 // Definition represents a definition inside the .editorconfig file.
 // E.g. a section of the file.
 // The definition is composed of the selector ("*", "*.go", "*.{js.css}", etc),
@@ -48,15 +135,15 @@ const (
 type Definition struct {
 	Selector string `ini:"-" json:"-"`
 
-	Charset                string `ini:"charset" json:"charset,omitempty"`
-	IndentStyle            string `ini:"indent_style" json:"indent_style,omitempty"`
-	IndentSize             string `ini:"indent_size" json:"indent_size,omitempty"`
-	TabWidth               int    `ini:"tab_width" json:"tab_width,omitempty"`
-	EndOfLine              string `ini:"end_of_line" json:"end_of_line,omitempty"`
-	TrimTrailingWhitespace bool   `ini:"trim_trailing_whitespace" json:"trim_trailing_whitespace,omitempty"`
-	InsertFinalNewline     bool   `ini:"insert_final_newline" json:"insert_final_newline,omitempty"`
-
-	Raw map[string]string `ini:"-" json:"-"`
+	Charset                string            `ini:"charset" json:"charset,omitempty"`
+	IndentStyle            string            `ini:"indent_style" json:"indent_style,omitempty"`
+	IndentSize             string            `ini:"indent_size" json:"indent_size,omitempty"`
+	TabWidth               int               `ini:"-" json:"-"`
+	EndOfLine              string            `ini:"end_of_line" json:"end_of_line,omitempty"`
+	TrimTrailingWhitespace *bool             `ini:"-" json:"-"`
+	InsertFinalNewline     *bool             `ini:"-" json:"-"`
+	Raw                    map[string]string `ini:"-" json:"-"`
+	version                *semver.Version
 }
 
 // Editorconfig represents a .editorconfig file.
@@ -67,17 +154,49 @@ type Editorconfig struct {
 	Definitions []*Definition
 }
 
+// Parse parses from a reader.
+func Parse(r io.Reader) (*Editorconfig, error) {
+	iniFile, err := ini.Load(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return newEditorconfig(iniFile)
+}
+
 // ParseBytes parses from a slice of bytes.
+//
+// Deprecated: use Parse instead.
 func ParseBytes(data []byte) (*Editorconfig, error) {
 	iniFile, err := ini.Load(data)
 	if err != nil {
 		return nil, err
 	}
 
+	return newEditorconfig(iniFile)
+}
+
+// ParseFile parses from a file.
+//
+// Deprecated: use Parse instead.
+func ParseFile(path string) (*Editorconfig, error) {
+	iniFile, err := ini.Load(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return newEditorconfig(iniFile)
+}
+
+// newEditorconfig builds the configuration from an INI file.
+func newEditorconfig(iniFile *ini.File) (*Editorconfig, error) {
 	editorConfig := &Editorconfig{}
 	editorConfig.Root = iniFile.Section(ini.DEFAULT_SECTION).Key("root").MustBool(false)
 	for _, sectionStr := range iniFile.SectionStrings() {
 		if sectionStr == ini.DEFAULT_SECTION {
+			continue
+		}
+		if len(sectionStr) > MaxSectionLength {
 			continue
 		}
 		var (
@@ -92,36 +211,55 @@ func ParseBytes(data []byte) (*Editorconfig, error) {
 
 		// Shallow copy all properties
 		for k, v := range iniSection.KeysHash() {
+			if len(k) > MaxPropertyLength || len(v) > MaxValueLength {
+				continue
+			}
 			raw[strings.ToLower(k)] = v
 		}
 
 		definition.Selector = sectionStr
 		definition.Raw = raw
-		definition.normalize()
+		if err := definition.normalize(); err != nil {
+			return nil, err
+		}
 		editorConfig.Definitions = append(editorConfig.Definitions, definition)
 	}
 	return editorConfig, nil
 }
 
-// ParseFile parses from a file.
-func ParseFile(f string) (*Editorconfig, error) {
-	data, err := ioutil.ReadFile(f)
-	if err != nil {
-		return nil, err
+// normalize fixes some values to their lowercaes value
+func (d *Definition) normalize() error {
+	d.Charset = strings.ToLower(d.Charset)
+	d.EndOfLine = strings.ToLower(d.Raw["end_of_line"])
+	d.IndentStyle = strings.ToLower(d.Raw["indent_style"])
+
+	trimTrailingWhitespace, ok := d.Raw["trim_trailing_whitespace"]
+	if ok && trimTrailingWhitespace != "unset" {
+		trim, err := strconv.ParseBool(trimTrailingWhitespace)
+		if err != nil {
+			return fmt.Errorf("trim_trailing_whitespace=%s is not an acceptable value. %s", trimTrailingWhitespace, err)
+		}
+		d.TrimTrailingWhitespace = &trim
 	}
 
-	return ParseBytes(data)
-}
+	insertFinalNewline, ok := d.Raw["insert_final_newline"]
+	if ok && insertFinalNewline != "unset" {
+		insert, err := strconv.ParseBool(insertFinalNewline)
+		if err != nil {
+			return fmt.Errorf("insert_final_newline=%s is not an acceptable value. %s", insertFinalNewline, err)
+		}
+		d.InsertFinalNewline = &insert
+	}
 
-var (
-	regexpBraces = regexp.MustCompile("{.*}")
-)
-
-// normalize fixes some values to their lowercaes value
-func (d *Definition) normalize() {
-	d.Charset = strings.ToLower(d.Charset)
-	d.EndOfLine = strings.ToLower(d.EndOfLine)
-	d.IndentStyle = strings.ToLower(d.IndentStyle)
+	// tab_width from Raw
+	tabWidth, ok := d.Raw["tab_width"]
+	if ok && tabWidth != "unset" {
+		num, err := strconv.Atoi(tabWidth)
+		if err != nil {
+			return fmt.Errorf("tab_width=%s is not an acceptable value. %s", tabWidth, err)
+		}
+		d.TabWidth = num
+	}
 
 	// tab_width defaults to indent_size:
 	// https://github.com/editorconfig/editorconfig/wiki/EditorConfig-Properties#tab_width
@@ -129,8 +267,11 @@ func (d *Definition) normalize() {
 	if err == nil && d.TabWidth <= 0 {
 		d.TabWidth = num
 	}
+
+	return nil
 }
 
+// merge the parent definition into the child definition
 func (d *Definition) merge(md *Definition) {
 	if len(d.Charset) == 0 {
 		d.Charset = md.Charset
@@ -147,11 +288,15 @@ func (d *Definition) merge(md *Definition) {
 	if len(d.EndOfLine) == 0 {
 		d.EndOfLine = md.EndOfLine
 	}
-	if !d.TrimTrailingWhitespace {
-		d.TrimTrailingWhitespace = md.TrimTrailingWhitespace
+	if trimTrailingWhitespace, ok := d.Raw["trim_trailing_whitespace"]; !ok || trimTrailingWhitespace != "unset" {
+		if d.TrimTrailingWhitespace == nil {
+			d.TrimTrailingWhitespace = md.TrimTrailingWhitespace
+		}
 	}
-	if !d.InsertFinalNewline {
-		d.InsertFinalNewline = md.InsertFinalNewline
+	if insertFinalNewline, ok := d.Raw["insert_final_newline"]; !ok || insertFinalNewline != "unset" {
+		if d.InsertFinalNewline == nil {
+			d.InsertFinalNewline = md.InsertFinalNewline
+		}
 	}
 
 	for k, v := range md.Raw {
@@ -166,9 +311,23 @@ func (d *Definition) InsertToIniFile(iniFile *ini.File) {
 	iniSec := iniFile.Section(d.Selector)
 	for k, v := range d.Raw {
 		if k == "insert_final_newline" {
-			iniSec.Key(k).SetValue(strconv.FormatBool(d.InsertFinalNewline))
+			if d.InsertFinalNewline != nil {
+				iniSec.Key(k).SetValue(strconv.FormatBool(*d.InsertFinalNewline))
+			} else {
+				insertFinalNewline, ok := d.Raw["insert_final_newline"]
+				if ok {
+					iniSec.Key(k).SetValue(strings.ToLower(insertFinalNewline))
+				}
+			}
 		} else if k == "trim_trailing_whitespace" {
-			iniSec.Key(k).SetValue(strconv.FormatBool(d.TrimTrailingWhitespace))
+			if d.TrimTrailingWhitespace != nil {
+				iniSec.Key(k).SetValue(strconv.FormatBool(*d.TrimTrailingWhitespace))
+			} else {
+				trimTrailingWhitespace, ok := d.Raw["trim_trailing_whitespace"]
+				if ok {
+					iniSec.Key(k).SetValue(strings.ToLower(trimTrailingWhitespace))
+				}
+			}
 		} else if k == "charset" {
 			iniSec.Key(k).SetValue(d.Charset)
 		} else if k == "end_of_line" {
@@ -176,24 +335,38 @@ func (d *Definition) InsertToIniFile(iniFile *ini.File) {
 		} else if k == "indent_style" {
 			iniSec.Key(k).SetValue(d.IndentStyle)
 		} else if k == "tab_width" {
-			iniSec.Key(k).SetValue(strconv.Itoa(d.TabWidth))
+			tabWidth, ok := d.Raw["tab_width"]
+			if ok && tabWidth == "unset" {
+				iniSec.Key(k).SetValue(tabWidth)
+			} else {
+				iniSec.Key(k).SetValue(strconv.Itoa(d.TabWidth))
+			}
 		} else if k == "indent_size" {
 			iniSec.Key(k).SetValue(d.IndentSize)
 		} else {
 			iniSec.Key(k).SetValue(v)
 		}
 	}
+
 	if _, ok := d.Raw["indent_size"]; !ok {
-		if d.TabWidth > 0 {
+		tabWidth, ok := d.Raw["tab_width"]
+		if ok && tabWidth == "unset" {
+			// do nothing
+		} else if d.TabWidth > 0 {
 			iniSec.Key("indent_size").SetValue(strconv.Itoa(d.TabWidth))
-		} else if d.IndentStyle == IndentStyleTab {
+		} else if d.IndentStyle == IndentStyleTab && (d.version == nil || d.version.GTE(v0_9_0)) {
 			iniSec.Key("indent_size").SetValue(IndentStyleTab)
 		}
 	}
 
-	if _, ok := d.Raw["tab_width"]; !ok && len(d.IndentSize) > 0 {
-		if _, err := strconv.Atoi(d.IndentSize); err == nil {
+	if _, ok := d.Raw["tab_width"]; !ok {
+		if d.IndentSize == "unset" {
 			iniSec.Key("tab_width").SetValue(d.IndentSize)
+		} else {
+			_, err := strconv.Atoi(d.IndentSize)
+			if err == nil {
+				iniSec.Key("tab_width").SetValue(d.Raw["indent_size"])
+			}
 		}
 	}
 }
@@ -238,9 +411,18 @@ func boolToString(b bool) string {
 // Serialize converts the Editorconfig to a slice of bytes, containing the
 // content of the file in the INI format.
 func (e *Editorconfig) Serialize() ([]byte, error) {
+	buffer := bytes.NewBuffer(nil)
+	err := e.Write(buffer)
+	if err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
+}
+
+// Write writes the Editorconfig to the Writer in a compatible INI file.
+func (e *Editorconfig) Write(w io.Writer) error {
 	var (
 		iniFile = ini.Empty()
-		buffer  = bytes.NewBuffer(nil)
 	)
 	iniFile.Section(ini.DEFAULT_SECTION).Comment = "http://editorconfig.org"
 	if e.Root {
@@ -249,20 +431,17 @@ func (e *Editorconfig) Serialize() ([]byte, error) {
 	for _, d := range e.Definitions {
 		d.InsertToIniFile(iniFile)
 	}
-	_, err := iniFile.WriteTo(buffer)
-	if err != nil {
-		return nil, err
-	}
-	return buffer.Bytes(), nil
+	_, err := iniFile.WriteTo(w)
+	return err
 }
 
 // Save saves the Editorconfig to a compatible INI file.
 func (e *Editorconfig) Save(filename string) error {
-	data, err := e.Serialize()
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filename, data, 0666)
+	return e.Write(f)
 }
 
 // GetDefinitionForFilename given a filename, searches
@@ -271,45 +450,19 @@ func (e *Editorconfig) Save(filename string) error {
 // folder with `root = true`, and returns the right editorconfig
 // definition for the given file.
 func GetDefinitionForFilename(filename string) (*Definition, error) {
-	return GetDefinitionForFilenameWithConfigname(filename, ConfigNameDefault)
+	return NewDefinition(Config{
+		Path: filename,
+	})
 }
 
+// GetDefinitionForFilenameWithConfigname given a filename and a configname,
+// searches for configname files, starting from the file folder,
+// walking through the previous folders, until it reaches a
+// folder with `root = true`, and returns the right editorconfig
+// definition for the given file.
 func GetDefinitionForFilenameWithConfigname(filename string, configname string) (*Definition, error) {
-	abs, err := filepath.Abs(filename)
-	if err != nil {
-		return nil, err
-	}
-	definition := &Definition{}
-	definition.Raw = make(map[string]string)
-
-	dir := abs
-	for dir != filepath.Dir(dir) {
-		dir = filepath.Dir(dir)
-		ecFile := filepath.Join(dir, configname)
-		if _, err := os.Stat(ecFile); os.IsNotExist(err) {
-			continue
-		}
-		ec, err := ParseFile(ecFile)
-		if err != nil {
-			return nil, err
-		}
-
-		relativeFilename := filename
-		if len(dir) < len(abs) {
-			relativeFilename = abs[len(dir):]
-		}
-
-		def, err := ec.GetDefinitionForFilename(relativeFilename)
-		if err != nil {
-			return nil, err
-		}
-
-		definition.merge(def)
-
-		if ec.Root {
-			break
-		}
-	}
-
-	return definition, nil
+	return NewDefinition(Config{
+		Path: filename,
+		Name: configname,
+	})
 }
