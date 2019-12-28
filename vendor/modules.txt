@@ -114,7 +114,7 @@ github.com/couchbase/vellum/utf8
 github.com/couchbaselabs/go-couchbase
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/denisenkom/go-mssqldb v0.0.0-20190924004331-208c0a498538
+# github.com/denisenkom/go-mssqldb v0.0.0-20191128021309-1d7a30a10f73
 github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
 github.com/denisenkom/go-mssqldb/internal/decimal
@@ -439,7 +439,7 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
+# golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
 golang.org/x/crypto/argon2
