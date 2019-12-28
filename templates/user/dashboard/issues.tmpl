@@ -52,32 +52,52 @@
 				</div>
 			</div>
 			<div class="twelve wide column content">
-				<div class="ui tiny basic status buttons">
-					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
-						<i class="octicon octicon-issue-opened"></i>
-						{{.i18n.Tr "repo.issues.open_tab" .SearchIssueStats.OpenCount}}
-					</a>
-					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
-						<i class="octicon octicon-issue-closed"></i>
-						{{.i18n.Tr "repo.issues.close_tab" .SearchIssueStats.ClosedCount}}
-					</a>
-				</div>
-				<div class="ui right floated secondary filter menu">
-					<!-- Sort -->
-					<div class="ui dropdown type jump item">
-						<span class="text">
-							{{.i18n.Tr "repo.issues.filter_sort"}}
-							<i class="dropdown icon"></i>
-						</span>
-						<div class="menu">
-							<a class="{{if or (eq .SortType "latest") (not .SortType)}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=latest&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</a>
-							<a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=oldest&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</a>
-							<a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=recentupdate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-							<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastupdate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-							<a class="{{if eq .SortType "mostcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomment&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.mostcomment"}}</a>
-							<a class="{{if eq .SortType "leastcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomment&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.leastcomment"}}</a>
-							<a class="{{if eq .SortType "nearduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=nearduedate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.nearduedate"}}</a>
-							<a class="{{if eq .SortType "farduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=farduedate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.farduedate"}}</a>
+				<div class="ui three column stackable grid">
+					<div class="column">
+						<div class="ui tiny basic status buttons">
+							<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
+								<i class="octicon octicon-issue-opened"></i>
+								{{.i18n.Tr "repo.issues.open_tab" .SearchIssueStats.OpenCount}}
+							</a>
+							<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
+								<i class="octicon octicon-issue-closed"></i>
+								{{.i18n.Tr "repo.issues.close_tab" .SearchIssueStats.ClosedCount}}
+							</a>
+						</div>
+					</div>
+					<div class="column center aligned">
+					{{if .PageIsIssues}}
+						<form class="ui form ignore-dirty">
+							<div class="ui fluid action input">
+								<input type="hidden" name="type" value="{{$.ViewType}}"/>
+								<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}}%2C{{end}}]"/>
+								<input type="hidden" name="sort" value="{{$.SortType}}"/>
+								<input type="hidden" name="state" value="{{$.State}}"/>
+								<div class="ui search action input">
+									<input name="q" value="{{$.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+								</div>
+								<button class="ui blue button" type="submit">{{.i18n.Tr "explore.search"}}</button>
+							</div>
+						</form>
+					{{end}}
+					</div>
+					<div class="column right aligned">
+						<!-- Sort -->
+						<div class="ui dropdown type jump item">
+							<span class="text">
+								{{.i18n.Tr "repo.issues.filter_sort"}}
+								<i class="dropdown icon"></i>
+							</span>
+							<div class="menu">
+								<a class="{{if or (eq .SortType "latest") (not .SortType)}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=latest&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</a>
+								<a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=oldest&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</a>
+								<a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=recentupdate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+								<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastupdate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+								<a class="{{if eq .SortType "mostcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomment&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+								<a class="{{if eq .SortType "leastcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomment&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+								<a class="{{if eq .SortType "nearduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=nearduedate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.nearduedate"}}</a>
+								<a class="{{if eq .SortType "farduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=farduedate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.farduedate"}}</a>
+							</div>
 						</div>
 					</div>
 				</div>
