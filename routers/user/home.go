@@ -457,8 +457,9 @@ func Issues(ctx *context.Context) {
 
 	var forceEmpty bool
 	var issueIDs []int64
+	var keyword string
 	if !isPullList {
-		keyword := strings.Trim(ctx.Query("q"), " ")
+		keyword = strings.Trim(ctx.Query("q"), " ")
 		if bytes.Contains([]byte(keyword), []byte{0x00}) {
 			keyword = ""
 		}
@@ -476,6 +477,7 @@ func Issues(ctx *context.Context) {
 			}
 		}
 	}
+	ctx.Data["Keyword"] = keyword
 
 	var counts map[int64]int64
 	if !forceEmpty {
@@ -558,7 +560,7 @@ func Issues(ctx *context.Context) {
 		}
 	}
 
-	issueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
+	userIssueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
 		UserID:      ctxUser.ID,
 		UserRepoIDs: userRepoIDs,
 		FilterMode:  filterMode,
@@ -566,11 +568,11 @@ func Issues(ctx *context.Context) {
 		IsClosed:    isShowClosed,
 	})
 	if err != nil {
-		ctx.ServerError("GetUserIssueStats", err)
+		ctx.ServerError("GetUserIssueStats User", err)
 		return
 	}
 
-	allIssueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
+	searchIssueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
 		UserID:      ctxUser.ID,
 		UserRepoIDs: userRepoIDs,
 		FilterMode:  filterMode,
@@ -579,25 +581,23 @@ func Issues(ctx *context.Context) {
 		IssueIDs:    issueIDs,
 	})
 	if err != nil {
-		ctx.ServerError("GetUserIssueStats All", err)
+		ctx.ServerError("GetUserIssueStats Search", err)
 		return
 	}
 
-	var shownIssues int
 	var totalIssues int
 	if !isShowClosed {
-		shownIssues = int(issueStats.OpenCount)
-		totalIssues = int(allIssueStats.OpenCount)
+		totalIssues = int(searchIssueStats.OpenCount)
 	} else {
-		shownIssues = int(issueStats.ClosedCount)
-		totalIssues = int(allIssueStats.ClosedCount)
+		totalIssues = int(searchIssueStats.ClosedCount)
 	}
 
 	ctx.Data["Issues"] = issues
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = counts
-	ctx.Data["IssueStats"] = issueStats
+	ctx.Data["UserIssueStats"] = userIssueStats
+	ctx.Data["SearchIssueStats"] = searchIssueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["RepoIDs"] = repoIDs
@@ -615,7 +615,8 @@ func Issues(ctx *context.Context) {
 
 	ctx.Data["ReposParam"] = string(reposParam)
 
-	pager := context.NewPagination(shownIssues, setting.UI.IssuePagingNum, page, 5)
+	//pager := context.NewPagination(shownIssues, setting.UI.IssuePagingNum, page, 5)
+	pager := context.NewPagination(totalIssues, setting.UI.IssuePagingNum, page, 5)
 	pager.AddParam(ctx, "type", "ViewType")
 	pager.AddParam(ctx, "repos", "ReposParam")
 	pager.AddParam(ctx, "sort", "SortType")
