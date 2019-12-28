@@ -30,7 +30,7 @@ require (
 	github.com/cznic/b v0.0.0-20181122101859-a26611c4d92d // indirect
 	github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548 // indirect
 	github.com/cznic/strutil v0.0.0-20181122101858-275e90344537 // indirect
-	github.com/denisenkom/go-mssqldb v0.0.0-20190924004331-208c0a498538
+	github.com/denisenkom/go-mssqldb v0.0.0-20191128021309-1d7a30a10f73
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/editorconfig/editorconfig-core-go/v2 v2.1.1
 	github.com/emirpasic/gods v1.12.0
@@ -96,7 +96,7 @@ require (
 	github.com/urfave/cli v1.20.0
 	github.com/yohcop/openid-go v0.0.0-20160914080427-2c050d2dae53
 	go.etcd.io/bbolt v1.3.3 // indirect
-	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
+	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876
 	golang.org/x/net v0.0.0-20191101175033-0deb6923b6d9
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
