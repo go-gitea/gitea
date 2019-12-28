@@ -81,6 +81,9 @@ func NewFuncMap() []template.FuncMap {
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
+		"AllowedReactions": func() []string {
+			return setting.UI.Reactions
+		},
 		"AvatarLink":    base.AvatarLink,
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
