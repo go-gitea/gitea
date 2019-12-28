@@ -9,8 +9,8 @@ menu:
   sidebar:
     parent: "advanced"
     name: "Customizing Gitea"
-    weight: 9
     identifier: "customizing-gitea"
+    weight: 9
 ---
 
 # Customizing Gitea
@@ -88,6 +88,8 @@ just place it under your "custom/public/" directory (for instance `custom/public
 To match the current style, the link should have the class name "item", and you can use `{{AppSubUrl}}` to get the base URL:
 `<a class="item" href="{{AppSubUrl}}/impressum.html">Impressum</a>`
 
+For more information, see [Adding Legal Pages](/en-us/adding-legal-pages).
+
 You can add new tabs in the same way, putting them in `extra_tabs.tmpl`.
 The exact HTML needed to match the style of other tabs is in the file
 `templates/repo/header.tmpl`
@@ -103,10 +105,6 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 - `body_inner_post.tmpl`, before the end of the main container.
 - `body_outer_post.tmpl`, before the bottom `<footer>` element.
 - `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional Javascript.
-
-### Customizing Privacy Policy and Terms of Service
-
-In the effort of Gitea to comply to GDPR, Gitea now supply *Privacy Policy* and *Terms of Service* page. The legal code in both pages are generic enough for most deployments. But if you want to customize them to your requirements, override by create and edit `custom/public/privacy.html` and `custom/public/tos.html`, respectively.
 
 ## Customizing Gitea mails
 
