@@ -239,6 +239,14 @@ func NewFuncMap() []template.FuncMap {
 		"MirrorFullAddress": mirror_service.AddressNoCredentials,
 		"MirrorUserName":    mirror_service.Username,
 		"MirrorPassword":    mirror_service.Password,
+		"contain": func(s []int64, id int64) bool {
+			for i := 0; i < len(s); i++ {
+				if s[i] == id {
+					return true
+				}
+			}
+			return false
+		},
 	}}
 }
 
