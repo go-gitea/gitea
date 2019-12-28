@@ -525,6 +525,12 @@ func (deletedBranch *DeletedBranch) LoadUser() {
 	deletedBranch.DeletedBy = user
 }
 
+// RemoveDeletedBranch removes all deleted branches
+func RemoveDeletedBranch(repoID int64, branch string) error {
+	_, err := x.Where("repo_id=? AND name=?", repoID, branch).Delete(new(DeletedBranch))
+	return err
+}
+
 // RemoveOldDeletedBranches removes old deleted branches
 func RemoveOldDeletedBranches(ctx context.Context) {
 	// Nothing to do for shutdown or terminate
