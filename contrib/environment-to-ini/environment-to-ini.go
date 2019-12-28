@@ -104,7 +104,7 @@ func runEnvironmentToIni(c *cli.Context) error {
 	} else {
 		log.Warn("Custom config '%s' not found, ignore this if you're running first time", setting.CustomConf)
 	}
-	cfg.NameMapper = ini.AllCapsUnderscore
+	cfg.NameMapper = ini.SnackCase
 
 	prefix := c.String("prefix") + "__"
 
