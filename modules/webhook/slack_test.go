@@ -7,26 +7,32 @@ package webhook
 import (
 	"testing"
 
+	api "code.gitea.io/gitea/modules/structs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestSlackIssuesPayload(t *testing.T) {
-	p := issueTestPayLoad()
-
+func TestSlackIssuesPayloadOpened(t *testing.T) {
+	p := issueTestPayload()
 	sl := &SlackMeta{
 		Username: p.Sender.UserName,
 	}
 
+	p.Action = api.HookIssueOpened
 	pl, err := getSlackIssuesPayload(p, sl)
 	require.Nil(t, err)
 	require.NotNil(t, pl)
+	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue opened: <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
 
+	p.Action = api.HookIssueClosed
+	pl, err = getSlackIssuesPayload(p, sl)
+	require.Nil(t, err)
+	require.NotNil(t, pl)
 	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Issue closed: <http://localhost:3000/test/repo/issues/2|#2 crash> by <https://try.gitea.io/user1|user1>", pl.Text)
 }
 
 func TestSlackIssueCommentPayload(t *testing.T) {
-	p := issueCommentTestPayLoad()
+	p := issueCommentTestPayload()
 
 	sl := &SlackMeta{
 		Username: p.Sender.UserName,
@@ -40,7 +46,7 @@ func TestSlackIssueCommentPayload(t *testing.T) {
 }
 
 func TestSlackPullRequestCommentPayload(t *testing.T) {
-	p := pullRequestCommentTestPayLoad()
+	p := pullRequestCommentTestPayload()
 
 	sl := &SlackMeta{
 		Username: p.Sender.UserName,
@@ -54,7 +60,7 @@ func TestSlackPullRequestCommentPayload(t *testing.T) {
 }
 
 func TestSlackReleasePayload(t *testing.T) {
-	p := pullReleaseTestPayLoad()
+	p := pullReleaseTestPayload()
 
 	sl := &SlackMeta{
 		Username: p.Sender.UserName,
@@ -68,7 +74,7 @@ func TestSlackReleasePayload(t *testing.T) {
 }
 
 func TestSlackPullRequestPayload(t *testing.T) {
-	p := pullRequestTestPayLoad()
+	p := pullRequestTestPayload()
 
 	sl := &SlackMeta{
 		Username: p.Sender.UserName,

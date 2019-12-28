@@ -4,12 +4,13 @@
 
 package webhook
 
-import api "code.gitea.io/gitea/modules/structs"
+import (
+	api "code.gitea.io/gitea/modules/structs"
+)
 
-func issueTestPayLoad() *api.IssuePayload {
+func issueTestPayload() *api.IssuePayload {
 	return &api.IssuePayload{
-		Action: api.HookIssueClosed,
-		Index:  2,
+		Index: 2,
 		Sender: &api.User{
 			UserName: "user1",
 		},
@@ -27,7 +28,7 @@ func issueTestPayLoad() *api.IssuePayload {
 	}
 }
 
-func issueCommentTestPayLoad() *api.IssueCommentPayload {
+func issueCommentTestPayload() *api.IssueCommentPayload {
 	return &api.IssueCommentPayload{
 		Action: api.HookIssueCommentCreated,
 		Sender: &api.User{
@@ -53,7 +54,7 @@ func issueCommentTestPayLoad() *api.IssueCommentPayload {
 	}
 }
 
-func pullRequestCommentTestPayLoad() *api.IssueCommentPayload {
+func pullRequestCommentTestPayload() *api.IssueCommentPayload {
 	return &api.IssueCommentPayload{
 		Action: api.HookIssueCommentCreated,
 		Sender: &api.User{
@@ -80,7 +81,7 @@ func pullRequestCommentTestPayLoad() *api.IssueCommentPayload {
 	}
 }
 
-func pullReleaseTestPayLoad() *api.ReleasePayload {
+func pullReleaseTestPayload() *api.ReleasePayload {
 	return &api.ReleasePayload{
 		Action: api.HookReleasePublished,
 		Sender: &api.User{
@@ -100,7 +101,7 @@ func pullReleaseTestPayLoad() *api.ReleasePayload {
 	}
 }
 
-func pullRequestTestPayLoad() *api.PullRequestPayload {
+func pullRequestTestPayload() *api.PullRequestPayload {
 	return &api.PullRequestPayload{
 		Action: api.HookIssueOpened,
 		Index:  2,

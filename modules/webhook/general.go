@@ -35,7 +35,7 @@ func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter) (str
 
 	switch p.Action {
 	case api.HookIssueOpened:
-		text = fmt.Sprintf("[%s] Issue opened by %s", repoLink, senderLink)
+		text = fmt.Sprintf("[%s] Issue opened: %s by %s", repoLink, titleLink, senderLink)
 		color = orangeColor
 	case api.HookIssueClosed:
 		text = fmt.Sprintf("[%s] Issue closed: %s by %s", repoLink, titleLink, senderLink)

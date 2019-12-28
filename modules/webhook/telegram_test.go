@@ -7,12 +7,14 @@ package webhook
 import (
 	"testing"
 
+	api "code.gitea.io/gitea/modules/structs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetTelegramIssuesPayload(t *testing.T) {
-	p := issueTestPayLoad()
+	p := issueTestPayload()
+	p.Action = api.HookIssueClosed
 
 	pl, err := getTelegramIssuesPayload(p)
 	require.Nil(t, err)
