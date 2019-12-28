@@ -101,6 +101,9 @@
           "201": {
             "$ref": "#/responses/User"
           },
+          "400": {
+            "$ref": "#/responses/error"
+          },
           "403": {
             "$ref": "#/responses/forbidden"
           },
@@ -343,6 +346,12 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/error"
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -803,6 +812,9 @@
           "204": {
             "description": "user is a member"
           },
+          "302": {
+            "description": "redirection to /orgs/{org}/public_members/{username}"
+          },
           "404": {
             "description": "user is not a member"
           }
@@ -926,6 +938,9 @@
         "responses": {
           "204": {
             "description": "membership publicized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       },
@@ -957,6 +972,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -1043,6 +1061,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Team"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -1186,6 +1207,12 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -1447,6 +1474,9 @@
         "responses": {
           "200": {
             "description": "success"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -1595,7 +1625,10 @@
             "$ref": "#/responses/empty"
           },
           "404": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -1641,6 +1674,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -1679,6 +1715,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -1776,6 +1815,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Status"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -2048,6 +2090,9 @@
         "responses": {
           "200": {
             "description": "success"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -2119,6 +2164,12 @@
         "responses": {
           "202": {
             "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -2159,6 +2210,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/GitBlobResponse"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -2321,6 +2375,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/AnnotatedTag"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -2379,6 +2436,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/GitTreeResponse"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -2659,6 +2719,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Hook"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -2886,6 +2949,15 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Issue"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "412": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -2963,6 +3035,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       },
@@ -3056,6 +3131,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/ReactionResponseList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       },
@@ -3105,6 +3183,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/ReactionResponse"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       },
@@ -3154,102 +3235,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/empty"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/issues/{id}/times": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "issue"
-        ],
-        "summary": "List an issue's tracked times",
-        "operationId": "issueTrackedTimes",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "index of the issue",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/TrackedTimeList"
-          }
-        }
-      },
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "issue"
-        ],
-        "summary": "Add a tracked time to a issue",
-        "operationId": "issueAddTime",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "index of the issue to add tracked time to",
-            "name": "id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/AddTimeOption"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/TrackedTime"
-          },
-          "400": {
-            "$ref": "#/responses/error"
           },
           "403": {
-            "$ref": "#/responses/error"
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -3291,6 +3279,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Issue"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -3340,6 +3331,15 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Issue"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "412": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -3436,6 +3436,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Comment"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -3482,6 +3485,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       },
@@ -3539,6 +3545,12 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Comment"
+          },
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -3592,10 +3604,10 @@
             "$ref": "#/responses/IssueDeadline"
           },
           "403": {
-            "description": "Not repo writer"
+            "$ref": "#/responses/forbidden"
           },
           "404": {
-            "description": "Issue not found"
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -3689,6 +3701,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/LabelList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       },
@@ -3738,6 +3753,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/LabelList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       },
@@ -3777,6 +3795,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -3826,6 +3847,12 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -3870,6 +3897,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/ReactionResponseList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       },
@@ -3919,6 +3949,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/ReactionResponse"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       },
@@ -3968,6 +4001,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -4017,7 +4053,7 @@
             "description": "Not repo writer, user does not have rights to toggle stopwatch"
           },
           "404": {
-            "description": "Issue not found"
+            "$ref": "#/responses/notFound"
           },
           "409": {
             "description": "Cannot cancel a non existent stopwatch"
@@ -4070,7 +4106,7 @@
             "description": "Not repo writer, user does not have rights to toggle stopwatch"
           },
           "404": {
-            "description": "Issue not found"
+            "$ref": "#/responses/notFound"
           },
           "409": {
             "description": "Cannot start a stopwatch again if it already exists"
@@ -4123,7 +4159,7 @@
             "description": "Not repo writer, user does not have rights to toggle stopwatch"
           },
           "404": {
-            "description": "Issue not found"
+            "$ref": "#/responses/notFound"
           },
           "409": {
             "description": "Cannot stop a non existent stopwatch"
@@ -4173,7 +4209,7 @@
             "$ref": "#/responses/UserList"
           },
           "404": {
-            "description": "Issue not found"
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -4230,7 +4266,7 @@
             "description": "User can only subscribe itself if he is no admin"
           },
           "404": {
-            "description": "Issue not found"
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -4285,7 +4321,212 @@
             "description": "User can only subscribe itself if he is no admin"
           },
           "404": {
-            "description": "Issue not found"
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/times": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "List an issue's tracked times",
+        "operationId": "issueTrackedTimes",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimeList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Add tracked time to a issue",
+        "operationId": "issueAddTime",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/AddTimeOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTime"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Reset a tracked time of an issue",
+        "operationId": "issueResetTime",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue to add tracked time to",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/times/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Delete specific tracked time",
+        "operationId": "issueDeleteTime",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of time to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4372,6 +4613,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/DeployKey"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -4449,6 +4693,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -4888,6 +5135,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -5011,6 +5261,12 @@
         "responses": {
           "201": {
             "$ref": "#/responses/PullRequest"
+          },
+          "409": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -5101,6 +5357,15 @@
         "responses": {
           "201": {
             "$ref": "#/responses/PullRequest"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "412": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -5194,6 +5459,9 @@
           },
           "405": {
             "$ref": "#/responses/empty"
+          },
+          "409": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5234,6 +5502,9 @@
         "responses": {
           "200": {
             "description": "success"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -5320,6 +5591,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Release"
+          },
+          "409": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5542,6 +5816,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Attachment"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5836,6 +6113,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/StatusList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -5879,8 +6159,11 @@
           }
         ],
         "responses": {
-          "200": {
-            "$ref": "#/responses/StatusList"
+          "201": {
+            "$ref": "#/responses/Status"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -6066,6 +6349,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/TrackedTimeList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -6106,6 +6392,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/TrackedTimeList"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -6177,6 +6466,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "422": {
+            "$ref": "#/responses/invalidTopicsError"
           }
         }
       }
@@ -6217,6 +6509,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "422": {
+            "$ref": "#/responses/invalidTopicsError"
           }
         }
       },
@@ -6255,6 +6550,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "422": {
+            "$ref": "#/responses/invalidTopicsError"
           }
         }
       }
@@ -6446,6 +6744,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/User"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -6478,6 +6779,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -6510,6 +6814,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -6578,6 +6885,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       },
@@ -6618,6 +6928,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -6644,6 +6957,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/TopicListResponse"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -6702,6 +7018,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/EmailList"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -7834,11 +8153,21 @@
         "time"
       ],
       "properties": {
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "time": {
           "description": "time in seconds",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Time"
+        },
+        "user_name": {
+          "description": "User who spent the time (optional)",
+          "type": "string",
+          "x-go-name": "User"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -8060,6 +8389,23 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CommitDateOptions": {
+      "description": "CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE",
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Author"
+        },
+        "committer": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Committer"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CommitMeta": {
       "type": "object",
       "title": "CommitMeta contains meta information of a commit in terms of API.",
@@ -8200,6 +8546,9 @@
           "description": "content must be base64 encoded",
           "type": "string",
           "x-go-name": "Content"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
         },
         "message": {
           "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
@@ -8758,6 +9107,9 @@
         },
         "committer": {
           "$ref": "#/definitions/Identity"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
         },
         "message": {
           "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
@@ -11047,7 +11399,11 @@
           "format": "int64",
           "x-go-name": "ID"
         },
+        "issue": {
+          "$ref": "#/definitions/Issue"
+        },
         "issue_id": {
+          "description": "deprecated (only for backwards compatibility)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "IssueID"
@@ -11059,9 +11415,14 @@
           "x-go-name": "Time"
         },
         "user_id": {
+          "description": "deprecated (only for backwards compatibility)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "UserID"
+        },
+        "user_name": {
+          "type": "string",
+          "x-go-name": "UserName"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -11089,6 +11450,9 @@
           "description": "content must be base64 encoded",
           "type": "string",
           "x-go-name": "Content"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
         },
         "from_path": {
           "description": "from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL",
@@ -11769,6 +12133,20 @@
           "type": "string"
         },
         "url": {
+          "type": "string"
+        }
+      }
+    },
+    "invalidTopicsError": {
+      "description": "APIInvalidTopicsError is error format response to invalid topics",
+      "headers": {
+        "invalidTopics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "message": {
           "type": "string"
         }
       }

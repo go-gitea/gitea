@@ -81,6 +81,9 @@ func NewFuncMap() []template.FuncMap {
 		"LoadTimes": func(startTime time.Time) string {
 			return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 		},
+		"AllowedReactions": func() []string {
+			return setting.UI.Reactions
+		},
 		"AvatarLink":    base.AvatarLink,
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
@@ -548,7 +551,7 @@ func ActionIcon(opType models.ActionType) string {
 		return "issue-opened"
 	case models.ActionCreatePullRequest:
 		return "git-pull-request"
-	case models.ActionCommentIssue:
+	case models.ActionCommentIssue, models.ActionCommentPull:
 		return "comment-discussion"
 	case models.ActionMergePullRequest:
 		return "git-merge"
