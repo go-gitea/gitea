@@ -84,7 +84,7 @@
 									{{if .Attachments}}
 										{{range $attachment := .Attachments}}
 										<li>
-											<a target="_blank" rel="noopener noreferrer" href="{{$.RepoLink}}/releases/download/{{$release.TagName | PathEscape}}/{{$attachment.Name | PathEscape}}">
+											<a target="_blank" rel="noopener noreferrer" href="{{$attachment.DownloadURL}}">
 												<strong><span class="ui image octicon octicon-package" title='{{$attachment.Name}}'></span> {{$attachment.Name}}</strong>
 												<span class="ui text grey right">{{$attachment.Size | FileSize}}</span>
 											</a>
