@@ -5,12 +5,12 @@
 package code
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -23,15 +23,24 @@ func TestMain(m *testing.M) {
 func TestIndexAndSearch(t *testing.T) {
 	models.PrepareTestEnv(t)
 
-	dir := "./bleve.index"
-	os.RemoveAll(dir)
+	dir, err := ioutil.TempDir("", "bleve.index")
+	assert.NoError(t, err)
+	if err != nil {
+		assert.Fail(t, "Unable to create temporary directory")
+		return
+	}
+	defer os.RemoveAll(dir)
 
 	setting.Indexer.RepoIndexerEnabled = true
 	idx, _, err := NewBleveIndexer(dir)
 	if err != nil {
-		idx.Close()
-		log.Fatal("indexer.Init: %v", err)
+		assert.Fail(t, "Unable to create indexer Error: %v", err)
+		if idx != nil {
+			idx.Close()
+		}
+		return
 	}
+	defer idx.Close()
 
 	err = idx.Index(1)
 	assert.NoError(t, err)
