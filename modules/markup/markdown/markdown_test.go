@@ -98,16 +98,12 @@ func TestRender_Images(t *testing.T) {
 func testAnswers(baseURLContent, baseURLImages string) []string {
 	return []string{
 		`<p>Wiki! Enjoy :)</p>
-
 <ul>
 <li><a href="` + baseURLContent + `/Links" rel="nofollow">Links, Language bindings, Engine bindings</a></li>
 <li><a href="` + baseURLContent + `/Tips" rel="nofollow">Tips</a></li>
 </ul>
-
 <p>See commit <a href="http://localhost:3000/gogits/gogs/commit/65f1bf27bc" rel="nofollow"><code>65f1bf27bc</code></a></p>
-
 <p>Ideas and codes</p>
-
 <ul>
 <li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/ocornut/imgui/issues/786" rel="nofollow">ocornut/imgui#786</a></li>
 <li>Bezier widget (by <a href="` + AppURL + `r-lyeh" rel="nofollow">@r-lyeh</a>) <a href="http://localhost:3000/gogits/gogs/issues/786" rel="nofollow">#786</a></li>
@@ -117,13 +113,9 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 </ul>
 `,
 		`<h2 id="user-content-what-is-wine-staging">What is Wine Staging?</h2>
-
 <p><strong>Wine Staging</strong> on website <a href="http://wine-staging.com" rel="nofollow">wine-staging.com</a>.</p>
-
 <h2 id="user-content-quick-links">Quick Links</h2>
-
 <p>Here are some links to the most important topics. You can find the full list of pages at the sidebar.</p>
-
 <table>
 <thead>
 <tr>
@@ -131,7 +123,6 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <th><a href="` + baseURLContent + `/Installation" rel="nofollow">Installation</a></th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td><a href="` + baseURLImages + `/images/icon-usage.png" rel="nofollow"><img src="` + baseURLImages + `/images/icon-usage.png" title="icon-usage.png" alt="images/icon-usage.png"/></a></td>
@@ -141,20 +132,15 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 </table>
 `,
 		`<p><a href="http://www.excelsiorjet.com/" rel="nofollow">Excelsior JET</a> allows you to create native executables for Windows, Linux and Mac OS X.</p>
-
 <ol>
 <li><a href="https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop" rel="nofollow">Package your libGDX application</a>
 <a href="` + baseURLImages + `/images/1.png" rel="nofollow"><img src="` + baseURLImages + `/images/1.png" title="1.png" alt="images/1.png"/></a></li>
 <li>Perform a test run by hitting the Run! button.
 <a href="` + baseURLImages + `/images/2.png" rel="nofollow"><img src="` + baseURLImages + `/images/2.png" title="2.png" alt="images/2.png"/></a></li>
 </ol>
-
 <h2 id="user-content-custom-id">More tests</h2>
-
 <p>(from <a href="https://www.markdownguide.org/extended-syntax/" rel="nofollow">https://www.markdownguide.org/extended-syntax/</a>)</p>
-
 <h3 id="user-content-definition-list">Definition list</h3>
-
 <dl>
 <dt>First Term</dt>
 <dd>This is the definition of the first term.</dd>
@@ -162,27 +148,21 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <dd>This is one definition of the second term.</dd>
 <dd>This is another definition of the second term.</dd>
 </dl>
-
 <h3 id="user-content-footnotes">Footnotes</h3>
-
 <p>Here is a simple footnote,<sup id="fnref:user-content-1"><a href="#fn:user-content-1" rel="nofollow">1</a></sup> and here is a longer one.<sup id="fnref:user-content-bignote"><a href="#fn:user-content-bignote" rel="nofollow">2</a></sup></p>
-
 <div>
-
 <hr/>
-
 <ol>
-<li id="fn:user-content-1">This is the first footnote.</li>
-
-<li id="fn:user-content-bignote"><p>Here is one with multiple paragraphs and code.</p>
-
+<li id="fn:user-content-1">
+<p>This is the first footnote. <a href="#fnref:user-content-1" rel="nofollow">↩︎</a></p>
+</li>
+<li id="fn:user-content-bignote">
+<p>Here is one with multiple paragraphs and code.</p>
 <p>Indent paragraphs to include them in the footnote.</p>
-
 <p><code>{ my code }</code></p>
-
-<p>Add as many paragraphs as you like.</p></li>
+<p>Add as many paragraphs as you like. <a href="#fnref:user-content-bignote" rel="nofollow">↩︎</a></p>
+</li>
 </ol>
-
 </div>
 `,
 	}
@@ -299,15 +279,15 @@ func TestRender_RenderParagraphs(t *testing.T) {
 	test := func(t *testing.T, str string, cnt int) {
 		unix := []byte(str)
 		res := string(RenderRaw(unix, "", false))
-		assert.Equal(t, strings.Count(res, "<p"), cnt)
+		assert.Equal(t, strings.Count(res, "<p"), cnt, "Rendered result for unix should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
 		mac := []byte(strings.ReplaceAll(str, "\n", "\r"))
 		res = string(RenderRaw(mac, "", false))
-		assert.Equal(t, strings.Count(res, "<p"), cnt)
+		assert.Equal(t, strings.Count(res, "<p"), cnt, "Rendered result for mac should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
 		dos := []byte(strings.ReplaceAll(str, "\n", "\r\n"))
 		res = string(RenderRaw(dos, "", false))
-		assert.Equal(t, strings.Count(res, "<p"), cnt)
+		assert.Equal(t, strings.Count(res, "<p"), cnt, "Rendered result for windows should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 	}
 
 	test(t, "\nOne\nTwo\nThree", 1)
