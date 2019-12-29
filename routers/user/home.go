@@ -572,17 +572,22 @@ func Issues(ctx *context.Context) {
 		return
 	}
 
-	searchIssueStats, err := models.GetUserIssueStats(models.UserIssueStatsOptions{
-		UserID:      ctxUser.ID,
-		UserRepoIDs: userRepoIDs,
-		FilterMode:  filterMode,
-		IsPull:      isPullList,
-		IsClosed:    isShowClosed,
-		IssueIDs:    issueIDs,
-	})
-	if err != nil {
-		ctx.ServerError("GetUserIssueStats Search", err)
-		return
+	var searchIssueStats *models.IssueStats
+	if !forceEmpty {
+		searchIssueStats, err = models.GetUserIssueStats(models.UserIssueStatsOptions{
+			UserID:      ctxUser.ID,
+			UserRepoIDs: userRepoIDs,
+			FilterMode:  filterMode,
+			IsPull:      isPullList,
+			IsClosed:    isShowClosed,
+			IssueIDs:    issueIDs,
+		})
+		if err != nil {
+			ctx.ServerError("GetUserIssueStats Search", err)
+			return
+		}
+	} else {
+		searchIssueStats = &models.IssueStats{}
 	}
 
 	var totalIssues int
