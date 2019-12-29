@@ -1574,7 +1574,7 @@ func updateIssueByCols(e Engine, issue *Issue, columns ...string) (err error) {
 	return
 }
 
-// UpdateIssue updates all fields of given issue.
+// UpdateIssueByAPI updates all allowed fields of given issue.
 func UpdateIssueByAPI(issue *Issue) error {
 	// allowed fields to update
 	columns := []string{"name", "is_closed", "content", "milestone_id",
