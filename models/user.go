@@ -793,6 +793,9 @@ func NewGhostUser() *User {
 
 // IsGhost check if user is fake user for a deleted account
 func (u *User) IsGhost() bool {
+	if u == nil {
+		return false
+	}
 	return u.ID == -1 && u.Name == "Ghost"
 }
 
