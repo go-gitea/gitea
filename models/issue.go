@@ -1569,12 +1569,6 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 }
 
 func updateIssue(e Engine, issue *Issue) error {
-	if issue.PosterID <= 0 {
-		_, err := e.Table("`issue`").Where("id = ?", issue.ID).Select("poster_id").Get(&issue.PosterID)
-		if err != nil {
-			return err
-		}
-	}
 	_, err := e.ID(issue.ID).AllCols().Update(issue)
 	if err != nil {
 		return err
