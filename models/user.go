@@ -791,6 +791,11 @@ func NewGhostUser() *User {
 	}
 }
 
+// IsGhost check if user is fake user for a deleted account
+func (u *User) IsGhost() bool {
+	return u.ID == -1 && u.Name == "Ghost"
+}
+
 var (
 	reservedUsernames = []string{
 		"attachments",

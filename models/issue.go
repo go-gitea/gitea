@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -1568,14 +1569,8 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 	return total, ids, nil
 }
 
-func updateIssue(e Engine, issue *Issue) error {
-	if issue.PosterID <= 0 {
-		_, err := e.Table("`issue`").Where("id = ?", issue.ID).Select("poster_id").Get(&issue.PosterID)
-		if err != nil {
-			return err
-		}
-	}
-	_, err := e.ID(issue.ID).AllCols().Update(issue)
+func updateIssueByCols(e Engine, issue *Issue, columns ...string) error {
+	_, err := e.ID(issue.ID).Cols(columns...).Update(issue)
 	if err != nil {
 		return err
 	}
@@ -1583,16 +1578,25 @@ func updateIssue(e Engine, issue *Issue) error {
 }
 
 // UpdateIssue updates all fields of given issue.
-func UpdateIssue(issue *Issue) error {
+func UpdateIssueByAPI(issue *Issue) error {
+	// allowed fields to update
+	columns := []string{"name", "is_closed", "content", "milestone_id",
+		"priority", "num_comments", "ref", "deadline_unix", "created_unix",
+		"updated_unix", "closed_unix", "is_locked"}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if err := updateIssue(sess, issue); err != nil {
+	if err := issue.loadPoster(sess); err != nil {
 		return err
 	}
-	if err := issue.loadPoster(sess); err != nil {
+	if !issue.Poster.IsGhost() {
+		columns = append(columns, "")
+	}
+
+	if err := updateIssueByCols(sess, issue, columns...); err != nil {
 		return err
 	}
 	if err := issue.addCrossReferences(sess, issue.Poster, true); err != nil {

@@ -524,8 +524,8 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		}
 	}
 
-	if err = models.UpdateIssue(issue); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateIssue", err)
+	if err = models.UpdateIssueByAPI(issue); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateIssueByAPI", err)
 		return
 	}
 	if form.State != nil {
