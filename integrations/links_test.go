@@ -35,7 +35,6 @@ func TestLinksNoLogin(t *testing.T) {
 		"/api/v1/swagger",
 		// TODO: follow this page and test every link
 		"/vendor/librejs.html",
-		"/user/avatar/Ghost/-1",
 	}
 
 	for _, link := range links {
@@ -52,6 +51,7 @@ func TestRedirectsNoLogin(t *testing.T) {
 		"/user2/repo1/src/master":                    "/user2/repo1/src/branch/master",
 		"/user2/repo1/src/master/file.txt":           "/user2/repo1/src/branch/master/file.txt",
 		"/user2/repo1/src/master/directory/file.txt": "/user2/repo1/src/branch/master/directory/file.txt",
+		"/user/avatar/Ghost/-1":                      "/img/avatar_default.png",
 	}
 	for link, redirectLink := range redirects {
 		req := NewRequest(t, "GET", link)
