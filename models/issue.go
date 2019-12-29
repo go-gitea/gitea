@@ -1590,7 +1590,7 @@ func UpdateIssueByAPI(issue *Issue) error {
 		return err
 	}
 	if !issue.Poster.IsGhost() {
-		columns = append(columns, "")
+		columns = append(columns, "poster_id")
 	}
 
 	if err := updateIssueByCols(sess, issue, columns...); err != nil {
