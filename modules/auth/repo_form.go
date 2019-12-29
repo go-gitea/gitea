@@ -470,8 +470,9 @@ func (f *CodeCommentForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // SubmitReviewForm for submitting a finished code review
 type SubmitReviewForm struct {
-	Content string
-	Type    string `binding:"Required;In(approve,comment,reject)"`
+	Content  string
+	Type     string `binding:"Required;In(approve,comment,reject)"`
+	CommitID string
 }
 
 // Validate validates the fields

@@ -197,7 +197,7 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 			}
 			if err == nil {
 				for _, pr := range prs {
-					if oldCommitID != "" && oldCommitID != git.EmptySHA && newCommitID != "" && newCommitID != git.EmptySHA {
+					if newCommitID != "" && newCommitID != git.EmptySHA {
 						changed, err := checkIfPRContentChanged(pr, oldCommitID, newCommitID)
 						if err != nil {
 							log.Error("checkIfPRContentChanged: %v", err)
@@ -207,6 +207,9 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 							if err := models.MarkReviewsAsStale(pr.IssueID); err != nil {
 								log.Error("MarkReviewsAsStale: %v", err)
 							}
+						}
+						if err := models.MarkReviewsAsNotStale(pr.IssueID, newCommitID); err != nil {
+							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
 					}
 

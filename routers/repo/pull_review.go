@@ -37,6 +37,7 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 
 	comment, err := pull_service.CreateCodeComment(
 		ctx.User,
+		ctx.Repo.GitRepo,
 		issue,
 		signedLine,
 		form.Content,
@@ -95,7 +96,7 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 		}
 	}
 
-	_, comm, err := pull_service.SubmitReview(ctx.User, issue, reviewType, form.Content)
+	_, comm, err := pull_service.SubmitReview(ctx.User, ctx.Repo.GitRepo, issue, reviewType, form.Content, form.CommitID)
 	if err != nil {
 		if models.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
