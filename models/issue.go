@@ -1590,6 +1590,9 @@ func UpdateIssueByAPI(issue *Issue) error {
 		return err
 	}
 	if !issue.Poster.IsGhost() {
+		if issue.PosterID <= 0 {
+			return fmt.Errorf("Issue %d can't be updated with PosterID %d", issue.Index, issue.PosterID)
+		}
 		columns = append(columns, "poster_id")
 	}
 
