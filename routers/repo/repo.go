@@ -426,7 +426,7 @@ func RedirectDownload(ctx *context.Context) {
 			return
 		}
 		if att != nil {
-			ctx.Redirect(setting.AppSubURL + "/attachments/" + att.UUID)
+			ctx.Redirect(att.DownloadURL())
 			return
 		}
 	}
