@@ -171,7 +171,6 @@ func TestIssues(t *testing.T) {
 	}
 }
 
-//TODO add a test with issue ids
 func TestGetUserIssueStats(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	for _, test := range []struct {
@@ -243,6 +242,20 @@ func TestGetUserIssueStats(t *testing.T) {
 				AssignCount:           2,
 				CreateCount:           2,
 				OpenCount:             0,
+				ClosedCount:           0,
+			},
+		},
+		{
+			UserIssueStatsOptions{
+				UserID:     1,
+				FilterMode: FilterModeCreate,
+				IssueIDs:   []int64{1},
+			},
+			IssueStats{
+				YourRepositoriesCount: 0,
+				AssignCount:           1,
+				CreateCount:           1,
+				OpenCount:             1,
 				ClosedCount:           0,
 			},
 		},
