@@ -273,9 +273,12 @@ func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID st
 	diffBefore := &bytes.Buffer{}
 	diffAfter := &bytes.Buffer{}
 	if err := headGitRepo.GetDiffFromMergeBase(base, oldCommitID, diffBefore); err != nil {
-		return false, fmt.Errorf("GetDiffFromMergeBase: %v", err)
+		// If old commit not found, assume changed.
+		log.Debug("GetDiffFromMergeBase: %v", err)
+		return true, nil
 	}
 	if err := headGitRepo.GetDiffFromMergeBase(base, newCommitID, diffAfter); err != nil {
+		// New commit should be found
 		return false, fmt.Errorf("GetDiffFromMergeBase: %v", err)
 	}
 
