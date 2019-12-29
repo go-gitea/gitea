@@ -35,6 +35,7 @@ func TestLinksNoLogin(t *testing.T) {
 		"/api/v1/swagger",
 		// TODO: follow this page and test every link
 		"/vendor/librejs.html",
+		"/user/avatar/Ghost/-1",
 	}
 
 	for _, link := range links {
