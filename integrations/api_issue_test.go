@@ -66,9 +66,10 @@ func TestAPICreateIssue(t *testing.T) {
 func TestAPIEditIssue(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 	issueBefore := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 10}).(*models.Issue)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: issueBefore.RepoID}).(*models.Repository)
+	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	assert.NoError(t, issueBefore.LoadAttributes())
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -89,7 +90,10 @@ func TestAPIEditIssue(t *testing.T) {
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 	assert.Equal(t, api.StateClosed, issueAfter.State())
 	// check deleted user
-	assert.Equal(t, 100, issueBefore.Poster.ID)
-	assert.Equal(t, 100, apiIssue.Poster.ID)
-	assert.Equal(t, 100, issueAfter.Poster.ID)
+	assert.Equal(t, int64(500), issueAfter.PosterID)
+	assert.NoError(t, issueAfter.LoadAttributes())
+	assert.Equal(t, int64(-1), issueAfter.PosterID)
+	assert.Equal(t, int64(-1), issueBefore.PosterID)
+	assert.Equal(t, int64(-1), apiIssue.Poster.ID)
+
 }
