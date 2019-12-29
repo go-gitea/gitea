@@ -24,7 +24,7 @@ func Avatar(ctx *context.Context) {
 
 	log.Debug("Asked avatar for user %v and size %v", userName, size)
 
-	user := new(models.User)
+	var user *models.User
 	if strings.ToLower(userName) != "ghost" {
 		user, err = models.GetUserByName(userName)
 		if err != nil {
