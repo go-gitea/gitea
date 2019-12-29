@@ -1569,12 +1569,9 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 	return total, ids, nil
 }
 
-func updateIssueByCols(e Engine, issue *Issue, columns ...string) error {
-	_, err := e.ID(issue.ID).Cols(columns...).Update(issue)
-	if err != nil {
-		return err
-	}
-	return nil
+func updateIssueByCols(e Engine, issue *Issue, columns ...string) (err error) {
+	_, err = e.ID(issue.ID).Cols(columns...).Update(issue)
+	return
 }
 
 // UpdateIssue updates all fields of given issue.
