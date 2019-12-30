@@ -50,9 +50,10 @@ func TestIssueAddDuplicateReaction(t *testing.T) {
 		Type:  "heart",
 	})
 	assert.Error(t, err)
-	assert.Nil(t, reaction)
+	assert.Equal(t, ErrReactionAlreadyExist{Reaction: "heart"}, err)
 
-	AssertExistsAndLoadBean(t, &Reaction{Type: "heart", UserID: user1.ID, IssueID: issue1.ID})
+	existingR := AssertExistsAndLoadBean(t, &Reaction{Type: "heart", UserID: user1.ID, IssueID: issue1.ID}).(*Reaction)
+	assert.Equal(t, existingR.ID, reaction.ID)
 }
 
 func TestIssueDeleteReaction(t *testing.T) {
