@@ -44,6 +44,7 @@ func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
 		form.TreePath,
 		form.IsReview,
 		form.Reply,
+		form.LatestCommitID,
 	)
 	if err != nil {
 		ctx.ServerError("CreateCodeComment", err)

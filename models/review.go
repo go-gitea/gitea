@@ -260,7 +260,7 @@ func IsContentEmptyErr(err error) bool {
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, commitSHA string, stale bool) (*Review, *Comment, error) {
+func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool) (*Review, *Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -297,7 +297,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 			Reviewer: doer,
 			Content:  content,
 			Official: official,
-			CommitID: commitSHA,
+			CommitID: commitID,
 			Stale:    stale,
 		})
 		if err != nil {
@@ -326,7 +326,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 		review.Issue = issue
 		review.Content = content
 		review.Type = reviewType
-		review.CommitID = commitSHA
+		review.CommitID = commitID
 		review.Stale = stale
 
 		if _, err := sess.ID(review.ID).Cols("content, type, official, commit_id, stale").Update(review); err != nil {

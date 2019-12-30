@@ -18,7 +18,7 @@ import (
 )
 
 // CreateCodeComment creates a comment on the code line
-func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models.Issue, line int64, content string, treePath string, isReview bool, replyReviewID int64) (*models.Comment, error) {
+func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models.Issue, line int64, content string, treePath string, isReview bool, replyReviewID int64, latestCommitID string) (*models.Comment, error) {
 
 	var (
 		existsReview bool
@@ -73,6 +73,7 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 			Reviewer: doer,
 			Issue:    issue,
 			Official: false,
+			CommitID: latestCommitID,
 		})
 		if err != nil {
 			return nil, err
@@ -94,7 +95,7 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 
 	if !isReview && !existsReview {
 		// Submit the review we've just created so the comment shows up in the issue view
-		if _, _, err = SubmitReview(doer, gitRepo, issue, models.ReviewTypeComment, "", ""); err != nil {
+		if _, _, err = SubmitReview(doer, gitRepo, issue, models.ReviewTypeComment, "", latestCommitID); err != nil {
 			return nil, err
 		}
 	}
@@ -159,7 +160,7 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issue, reviewType models.ReviewType, content, commitSHA string) (*models.Review, *models.Comment, error) {
+func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issue, reviewType models.ReviewType, content, commitID string) (*models.Review, *models.Comment, error) {
 	pr, err := issue.GetPullRequest()
 	if err != nil {
 		return nil, nil, err
@@ -174,17 +175,17 @@ func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issu
 			return nil, nil, err
 		}
 
-		if headCommitID == commitSHA {
+		if headCommitID == commitID {
 			stale = false
 		} else {
-			stale, err = checkIfPRContentChanged(pr, commitSHA, headCommitID)
+			stale, err = checkIfPRContentChanged(pr, commitID, headCommitID)
 			if err != nil {
 				return nil, nil, err
 			}
 		}
 	}
 
-	review, comm, err := models.SubmitReview(doer, issue, reviewType, content, commitSHA, stale)
+	review, comm, err := models.SubmitReview(doer, issue, reviewType, content, commitID, stale)
 	if err != nil {
 		return nil, nil, err
 	}
