@@ -1586,19 +1586,21 @@ func updateIssueByCols(e Engine, issue *Issue, columns ...string) (err error) {
 	return
 }
 
+// allowed fields to update for a issue by API
+var allowedColumnsUpdateIssueByAPI = []string{
+	"name", "is_closed", "content", "milestone_id", "priority",
+	"deadline_unix", "updated_unix", "closed_unix", "is_locked",
+}
+
 // UpdateIssueByAPI updates all allowed fields of given issue.
 func UpdateIssueByAPI(issue *Issue) error {
-	// allowed fields to update
-	columns := []string{"name", "is_closed", "content", "milestone_id", "priority",
-		"deadline_unix", "updated_unix", "closed_unix", "is_locked"}
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err := updateIssueByCols(sess, issue, columns...); err != nil {
+	if err := updateIssueByCols(sess, issue, allowedColumnsUpdateIssueByAPI...); err != nil {
 		return err
 	}
 	if err := issue.addCrossReferences(sess, issue.Poster, true); err != nil {
