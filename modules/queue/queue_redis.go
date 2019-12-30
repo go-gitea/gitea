@@ -49,6 +49,7 @@ type RedisQueueConfiguration struct {
 	QueueLength  int
 	QueueName    string
 	Workers      int
+	MaxWorkers   int
 	BlockTimeout time.Duration
 	BoostTimeout time.Duration
 	BoostWorkers int
@@ -70,14 +71,15 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 
 	var queue = &RedisQueue{
 		pool: &WorkerPool{
-			baseCtx:      ctx,
-			cancel:       cancel,
-			batchLength:  config.BatchLength,
-			handle:       handle,
-			dataChan:     dataChan,
-			blockTimeout: config.BlockTimeout,
-			boostTimeout: config.BoostTimeout,
-			boostWorkers: config.BoostWorkers,
+			baseCtx:            ctx,
+			cancel:             cancel,
+			batchLength:        config.BatchLength,
+			handle:             handle,
+			dataChan:           dataChan,
+			blockTimeout:       config.BlockTimeout,
+			boostTimeout:       config.BoostTimeout,
+			boostWorkers:       config.BoostWorkers,
+			maxNumberOfWorkers: config.MaxWorkers,
 		},
 		queueName: config.QueueName,
 		exemplar:  exemplar,
@@ -102,7 +104,7 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	if err := queue.client.Ping().Err(); err != nil {
 		return nil, err
 	}
-	queue.pool.qid = GetManager().Add(queue, RedisQueueType, config, exemplar, queue.pool.AddWorkers, queue.pool.NumberOfWorkers)
+	queue.pool.qid = GetManager().Add(queue, RedisQueueType, config, exemplar, queue.pool)
 
 	return queue, nil
 }

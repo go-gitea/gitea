@@ -36,6 +36,7 @@ func TestPersistableChannelQueue(t *testing.T) {
 		BatchLength: 2,
 		QueueLength: 20,
 		Workers:     1,
+		MaxWorkers:  10,
 	}, &testData{})
 	assert.NoError(t, err)
 
@@ -89,6 +90,7 @@ func TestPersistableChannelQueue(t *testing.T) {
 		BatchLength: 2,
 		QueueLength: 20,
 		Workers:     1,
+		MaxWorkers:  10,
 	}, &testData{})
 	assert.NoError(t, err)
 

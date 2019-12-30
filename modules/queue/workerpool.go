@@ -14,24 +14,25 @@ import (
 
 // WorkerPool takes
 type WorkerPool struct {
-	lock            sync.Mutex
-	baseCtx         context.Context
-	cancel          context.CancelFunc
-	cond            *sync.Cond
-	qid             int64
-	numberOfWorkers int
-	batchLength     int
-	handle          HandlerFunc
-	dataChan        chan Data
-	blockTimeout    time.Duration
-	boostTimeout    time.Duration
-	boostWorkers    int
+	lock               sync.Mutex
+	baseCtx            context.Context
+	cancel             context.CancelFunc
+	cond               *sync.Cond
+	qid                int64
+	maxNumberOfWorkers int
+	numberOfWorkers    int
+	batchLength        int
+	handle             HandlerFunc
+	dataChan           chan Data
+	blockTimeout       time.Duration
+	boostTimeout       time.Duration
+	boostWorkers       int
 }
 
 // Push pushes the data to the internal channel
 func (p *WorkerPool) Push(data Data) {
 	p.lock.Lock()
-	if p.blockTimeout > 0 && p.boostTimeout > 0 {
+	if p.blockTimeout > 0 && p.boostTimeout > 0 && (p.numberOfWorkers <= p.maxNumberOfWorkers || p.maxNumberOfWorkers < 0) {
 		p.lock.Unlock()
 		p.pushBoost(data)
 	} else {
@@ -63,7 +64,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 			}
 		case <-timer.C:
 			p.lock.Lock()
-			if p.blockTimeout > ourTimeout {
+			if p.blockTimeout > ourTimeout || (p.numberOfWorkers > p.maxNumberOfWorkers && p.maxNumberOfWorkers >= 0) {
 				p.lock.Unlock()
 				p.dataChan <- data
 				return
@@ -71,11 +72,15 @@ func (p *WorkerPool) pushBoost(data Data) {
 			p.blockTimeout *= 2
 			ctx, cancel := context.WithCancel(p.baseCtx)
 			desc := GetManager().GetDescription(p.qid)
+			boost := p.boostWorkers
+			if (boost+p.numberOfWorkers) > p.maxNumberOfWorkers && p.maxNumberOfWorkers >= 0 {
+				boost = p.maxNumberOfWorkers - p.numberOfWorkers
+			}
 			if desc != nil {
-				log.Warn("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, desc.Name, ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
+				log.Warn("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, desc.Name, ourTimeout, boost, p.boostTimeout, p.blockTimeout)
 
 				start := time.Now()
-				pid := desc.RegisterWorkers(p.boostWorkers, start, false, start, cancel)
+				pid := desc.RegisterWorkers(boost, start, false, start, cancel)
 				go func() {
 					<-ctx.Done()
 					desc.RemoveWorkers(pid)
@@ -91,7 +96,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 				p.blockTimeout /= 2
 				p.lock.Unlock()
 			}()
-			p.addWorkers(ctx, p.boostWorkers)
+			p.addWorkers(ctx, boost)
 			p.lock.Unlock()
 			p.dataChan <- data
 		}
@@ -105,7 +110,53 @@ func (p *WorkerPool) NumberOfWorkers() int {
 	return p.numberOfWorkers
 }
 
-// AddWorkers adds workers to the pool
+// MaxNumberOfWorkers returns the maximum number of workers automatically added to the pool
+func (p *WorkerPool) MaxNumberOfWorkers() int {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.maxNumberOfWorkers
+}
+
+// BoostWorkers returns the number of workers for a boost
+func (p *WorkerPool) BoostWorkers() int {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.boostWorkers
+}
+
+// BoostTimeout returns the timeout of the next boost
+func (p *WorkerPool) BoostTimeout() time.Duration {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.boostTimeout
+}
+
+// BlockTimeout returns the timeout til the next boost
+func (p *WorkerPool) BlockTimeout() time.Duration {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	return p.blockTimeout
+}
+
+// SetSettings sets the setable boost values
+func (p *WorkerPool) SetSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	p.maxNumberOfWorkers = maxNumberOfWorkers
+	p.boostWorkers = boostWorkers
+	p.boostTimeout = timeout
+}
+
+// SetMaxNumberOfWorkers sets the maximum number of workers automatically added to the pool
+// Changing this number will not change the number of current workers but will change the limit
+// for future additions
+func (p *WorkerPool) SetMaxNumberOfWorkers(newMax int) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	p.maxNumberOfWorkers = newMax
+}
+
+// AddWorkers adds workers to the pool - this allows the number of workers to go above the limit
 func (p *WorkerPool) AddWorkers(number int, timeout time.Duration) context.CancelFunc {
 	var ctx context.Context
 	var cancel context.CancelFunc

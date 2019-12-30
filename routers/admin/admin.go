@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -421,7 +422,74 @@ func AddWorkers(ctx *context.Context) {
 		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
 		return
 	}
+	if desc.Pool == nil {
+		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
+		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		return
+	}
 	desc.AddWorkers(number, timeout)
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.pool.added"))
+	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+}
+
+// SetQueueSettings sets the maximum number of workers for this queue
+func SetQueueSettings(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	desc := queue.GetManager().GetDescription(qid)
+	if desc == nil {
+		ctx.Status(404)
+		return
+	}
+	if desc.Pool == nil {
+		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
+		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		return
+	}
+
+	maxNumberStr := ctx.Query("max-number")
+	numberStr := ctx.Query("number")
+	timeoutStr := ctx.Query("timeout")
+
+	var err error
+	var maxNumber, number int
+	var timeout time.Duration
+	if len(maxNumberStr) > 0 {
+		maxNumber, err = strconv.Atoi(maxNumberStr)
+		if err != nil {
+			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.maxnumberworkers.error"))
+			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			return
+		}
+		if maxNumber < -1 {
+			maxNumber = -1
+		}
+	} else {
+		maxNumber = desc.MaxNumberOfWorkers()
+	}
+
+	if len(numberStr) > 0 {
+		number, err = strconv.Atoi(numberStr)
+		if err != nil || number < 0 {
+			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.numberworkers.error"))
+			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			return
+		}
+	} else {
+		number = desc.BoostWorkers()
+	}
+
+	if len(timeoutStr) > 0 {
+		timeout, err = time.ParseDuration(timeoutStr)
+		if err != nil {
+			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.timeout.error"))
+			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			return
+		}
+	} else {
+		timeout = desc.Pool.BoostTimeout()
+	}
+
+	desc.SetSettings(maxNumber, number, timeout)
+	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.settings.changed"))
 	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
 }

@@ -25,6 +25,7 @@ type LevelQueueConfiguration struct {
 	QueueLength  int
 	BatchLength  int
 	Workers      int
+	MaxWorkers   int
 	BlockTimeout time.Duration
 	BoostTimeout time.Duration
 	BoostWorkers int
@@ -60,14 +61,15 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 
 	queue := &LevelQueue{
 		pool: &WorkerPool{
-			baseCtx:      ctx,
-			cancel:       cancel,
-			batchLength:  config.BatchLength,
-			handle:       handle,
-			dataChan:     dataChan,
-			blockTimeout: config.BlockTimeout,
-			boostTimeout: config.BoostTimeout,
-			boostWorkers: config.BoostWorkers,
+			baseCtx:            ctx,
+			cancel:             cancel,
+			batchLength:        config.BatchLength,
+			handle:             handle,
+			dataChan:           dataChan,
+			blockTimeout:       config.BlockTimeout,
+			boostTimeout:       config.BoostTimeout,
+			boostWorkers:       config.BoostWorkers,
+			maxNumberOfWorkers: config.MaxWorkers,
 		},
 		queue:      internal,
 		exemplar:   exemplar,
@@ -76,7 +78,7 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 		workers:    config.Workers,
 		name:       config.Name,
 	}
-	queue.pool.qid = GetManager().Add(queue, LevelQueueType, config, exemplar, queue.pool.AddWorkers, queue.pool.NumberOfWorkers)
+	queue.pool.qid = GetManager().Add(queue, LevelQueueType, config, exemplar, queue.pool)
 	return queue, nil
 }
 

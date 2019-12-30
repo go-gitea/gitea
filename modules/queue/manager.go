@@ -28,17 +28,28 @@ type Manager struct {
 
 // Description represents a working queue inheriting from Gitea.
 type Description struct {
-	mutex           sync.Mutex
-	QID             int64
-	Queue           Queue
-	Type            Type
-	Name            string
-	Configuration   interface{}
-	ExemplarType    string
-	addWorkers      func(number int, timeout time.Duration) context.CancelFunc
-	numberOfWorkers func() int
-	counter         int64
-	PoolWorkers     map[int64]*PoolWorkers
+	mutex         sync.Mutex
+	QID           int64
+	Queue         Queue
+	Type          Type
+	Name          string
+	Configuration interface{}
+	ExemplarType  string
+	Pool          PoolManager
+	counter       int64
+	PoolWorkers   map[int64]*PoolWorkers
+}
+
+// PoolManager is a simple interface to get certain details from a worker pool
+type PoolManager interface {
+	AddWorkers(number int, timeout time.Duration) context.CancelFunc
+	NumberOfWorkers() int
+	MaxNumberOfWorkers() int
+	SetMaxNumberOfWorkers(int)
+	BoostTimeout() time.Duration
+	BlockTimeout() time.Duration
+	BoostWorkers() int
+	SetSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration)
 }
 
 // DescriptionList implements the sort.Interface
@@ -76,18 +87,16 @@ func (m *Manager) Add(queue Queue,
 	t Type,
 	configuration,
 	exemplar interface{},
-	addWorkers func(number int, timeout time.Duration) context.CancelFunc,
-	numberOfWorkers func() int) int64 {
+	pool PoolManager) int64 {
 
 	cfg, _ := json.Marshal(configuration)
 	desc := &Description{
-		Queue:           queue,
-		Type:            t,
-		Configuration:   string(cfg),
-		ExemplarType:    reflect.TypeOf(exemplar).String(),
-		PoolWorkers:     make(map[int64]*PoolWorkers),
-		addWorkers:      addWorkers,
-		numberOfWorkers: numberOfWorkers,
+		Queue:         queue,
+		Type:          t,
+		Configuration: string(cfg),
+		ExemplarType:  reflect.TypeOf(exemplar).String(),
+		PoolWorkers:   make(map[int64]*PoolWorkers),
+		Pool:          pool,
 	}
 	m.mutex.Lock()
 	m.counter++
@@ -177,18 +186,59 @@ func (q *Description) RemoveWorkers(pid int64) {
 }
 
 // AddWorkers adds workers to the queue if it has registered an add worker function
-func (q *Description) AddWorkers(number int, timeout time.Duration) {
-	if q.addWorkers != nil {
-		_ = q.addWorkers(number, timeout)
+func (q *Description) AddWorkers(number int, timeout time.Duration) context.CancelFunc {
+	if q.Pool != nil {
+		// the cancel will be added to the pool workers description above
+		return q.Pool.AddWorkers(number, timeout)
 	}
+	return nil
 }
 
 // NumberOfWorkers returns the number of workers in the queue
 func (q *Description) NumberOfWorkers() int {
-	if q.numberOfWorkers != nil {
-		return q.numberOfWorkers()
+	if q.Pool != nil {
+		return q.Pool.NumberOfWorkers()
 	}
 	return -1
+}
+
+// MaxNumberOfWorkers returns the maximum number of workers for the pool
+func (q *Description) MaxNumberOfWorkers() int {
+	if q.Pool != nil {
+		return q.Pool.MaxNumberOfWorkers()
+	}
+	return 0
+}
+
+// BoostWorkers returns the number of workers for a boost
+func (q *Description) BoostWorkers() int {
+	if q.Pool != nil {
+		return q.Pool.BoostWorkers()
+	}
+	return -1
+}
+
+// BoostTimeout returns the timeout of the next boost
+func (q *Description) BoostTimeout() time.Duration {
+	if q.Pool != nil {
+		return q.Pool.BoostTimeout()
+	}
+	return 0
+}
+
+// BlockTimeout returns the timeout til the next boost
+func (q *Description) BlockTimeout() time.Duration {
+	if q.Pool != nil {
+		return q.Pool.BlockTimeout()
+	}
+	return 0
+}
+
+// SetSettings sets the setable boost values
+func (q *Description) SetSettings(maxNumberOfWorkers, boostWorkers int, timeout time.Duration) {
+	if q.Pool != nil {
+		q.Pool.SetSettings(maxNumberOfWorkers, boostWorkers, timeout)
+	}
 }
 
 func (l DescriptionList) Len() int {

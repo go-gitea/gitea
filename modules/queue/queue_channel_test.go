@@ -27,6 +27,7 @@ func TestChannelQueue(t *testing.T) {
 		ChannelQueueConfiguration{
 			QueueLength:  20,
 			Workers:      1,
+			MaxWorkers:   10,
 			BlockTimeout: 1 * time.Second,
 			BoostTimeout: 5 * time.Minute,
 			BoostWorkers: 5,
@@ -62,6 +63,7 @@ func TestChannelQueue_Batch(t *testing.T) {
 			QueueLength:  20,
 			BatchLength:  2,
 			Workers:      1,
+			MaxWorkers:   10,
 			BlockTimeout: 1 * time.Second,
 			BoostTimeout: 5 * time.Minute,
 			BoostWorkers: 5,

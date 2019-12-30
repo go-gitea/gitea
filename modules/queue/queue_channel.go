@@ -21,6 +21,7 @@ type ChannelQueueConfiguration struct {
 	QueueLength  int
 	BatchLength  int
 	Workers      int
+	MaxWorkers   int
 	BlockTimeout time.Duration
 	BoostTimeout time.Duration
 	BoostWorkers int
@@ -50,20 +51,21 @@ func NewChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 	ctx, cancel := context.WithCancel(context.Background())
 	queue := &ChannelQueue{
 		pool: &WorkerPool{
-			baseCtx:      ctx,
-			cancel:       cancel,
-			batchLength:  config.BatchLength,
-			handle:       handle,
-			dataChan:     dataChan,
-			blockTimeout: config.BlockTimeout,
-			boostTimeout: config.BoostTimeout,
-			boostWorkers: config.BoostWorkers,
+			baseCtx:            ctx,
+			cancel:             cancel,
+			batchLength:        config.BatchLength,
+			handle:             handle,
+			dataChan:           dataChan,
+			blockTimeout:       config.BlockTimeout,
+			boostTimeout:       config.BoostTimeout,
+			boostWorkers:       config.BoostWorkers,
+			maxNumberOfWorkers: config.MaxWorkers,
 		},
 		exemplar: exemplar,
 		workers:  config.Workers,
 		name:     config.Name,
 	}
-	queue.pool.qid = GetManager().Add(queue, ChannelQueueType, config, exemplar, queue.pool.AddWorkers, queue.pool.NumberOfWorkers)
+	queue.pool.qid = GetManager().Add(queue, ChannelQueueType, config, exemplar, queue.pool)
 	return queue, nil
 }
 

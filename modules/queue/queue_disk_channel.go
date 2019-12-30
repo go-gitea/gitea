@@ -23,6 +23,7 @@ type PersistableChannelQueueConfiguration struct {
 	Timeout      time.Duration
 	MaxAttempts  int
 	Workers      int
+	MaxWorkers   int
 	BlockTimeout time.Duration
 	BoostTimeout time.Duration
 	BoostWorkers int
@@ -48,6 +49,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 		QueueLength:  config.QueueLength,
 		BatchLength:  config.BatchLength,
 		Workers:      config.Workers,
+		MaxWorkers:   config.MaxWorkers,
 		BlockTimeout: config.BlockTimeout,
 		BoostTimeout: config.BoostTimeout,
 		BoostWorkers: config.BoostWorkers,
@@ -63,6 +65,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 		QueueLength:  config.QueueLength,
 		BatchLength:  config.BatchLength,
 		Workers:      1,
+		MaxWorkers:   6,
 		BlockTimeout: 1 * time.Second,
 		BoostTimeout: 5 * time.Minute,
 		BoostWorkers: 5,
@@ -96,7 +99,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 		},
 		closed: make(chan struct{}),
 	}
-	_ = GetManager().Add(queue, PersistableChannelQueueType, config, exemplar, nil, nil)
+	_ = GetManager().Add(queue, PersistableChannelQueueType, config, exemplar, nil)
 	return queue, nil
 }
 

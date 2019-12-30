@@ -416,6 +416,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Post("/cancel/:pid", admin.MonitorCancel)
 			m.Group("/queue/:qid", func() {
 				m.Get("", admin.Queue)
+				m.Post("/set", admin.SetQueueSettings)
 				m.Post("/add", admin.AddWorkers)
 				m.Post("/cancel/:pid", admin.WorkerCancel)
 			})
