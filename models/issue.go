@@ -1577,23 +1577,13 @@ func updateIssueByCols(e Engine, issue *Issue, columns ...string) (err error) {
 // UpdateIssueByAPI updates all allowed fields of given issue.
 func UpdateIssueByAPI(issue *Issue) error {
 	// allowed fields to update
-	columns := []string{"name", "is_closed", "content", "milestone_id",
-		"priority", "num_comments", "ref", "deadline_unix", "created_unix",
-		"updated_unix", "closed_unix", "is_locked"}
+	columns := []string{"name", "is_closed", "content", "milestone_id", "priority",
+		"deadline_unix", "updated_unix", "closed_unix", "is_locked"}
 
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
-	}
-	if err := issue.loadPoster(sess); err != nil {
-		return err
-	}
-	if !issue.Poster.IsGhost() {
-		if issue.PosterID <= 0 {
-			return fmt.Errorf("Issue %d can't be updated with PosterID %d", issue.Index, issue.PosterID)
-		}
-		columns = append(columns, "poster_id")
 	}
 
 	if err := updateIssueByCols(sess, issue, columns...); err != nil {
