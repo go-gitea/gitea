@@ -29,7 +29,7 @@ type GiteaASTTransformer struct{}
 
 // Transform transforms the given AST tree.
 func (g *GiteaASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
-	ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
@@ -165,11 +165,14 @@ func (r *TaskCheckBoxHTMLRenderer) renderTaskCheckBox(w util.BufWriter, source [
 	if r.XHTML {
 		end = " />"
 	}
-
+	var err error
 	if n.IsChecked {
-		w.WriteString(`<span class="ui fitted disabled checkbox"><input type="checkbox" disabled="disabled"` + end + `<label` + end + `</span>`)
+		_, err = w.WriteString(`<span class="ui fitted disabled checkbox"><input type="checkbox" disabled="disabled"` + end + `<label` + end + `</span>`)
 	} else {
-		w.WriteString(`<span class="ui checked fitted disabled checkbox"><input type="checkbox" checked="" disabled="disabled"` + end + `<label` + end + `</span>`)
+		_, err = w.WriteString(`<span class="ui checked fitted disabled checkbox"><input type="checkbox" checked="" disabled="disabled"` + end + `<label` + end + `</span>`)
+	}
+	if err != nil {
+		return ast.WalkStop, err
 	}
 	return ast.WalkContinue, nil
 }
