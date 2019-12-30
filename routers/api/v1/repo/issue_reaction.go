@@ -114,7 +114,11 @@ func PostIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOpti
 	//   schema:
 	//     "$ref": "#/definitions/EditReactionOption"
 	// responses:
+	//   "200":
+	//     description: reaction already exist
+	//     "$ref": "#/responses/ReactionResponse"
 	//   "201":
+	//     description: reaction created successfully
 	//     "$ref": "#/responses/ReactionResponse"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
@@ -188,19 +192,20 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		if err != nil {
 			if models.IsErrForbiddenIssueReaction(err) {
 				ctx.Error(http.StatusForbidden, err.Error(), err)
+			} else if models.IsErrReactionAlreadyExist(err) {
+				ctx.JSON(http.StatusOK, api.ReactionResponse{
+					User:     ctx.User.APIFormat(),
+					Reaction: reaction.Type,
+					Created:  reaction.CreatedUnix.AsTime(),
+				})
 			} else {
 				ctx.Error(http.StatusInternalServerError, "CreateCommentReaction", err)
 			}
 			return
 		}
-		_, err = reaction.LoadUser()
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "Reaction.LoadUser()", err)
-			return
-		}
 
 		ctx.JSON(http.StatusCreated, api.ReactionResponse{
-			User:     reaction.User.APIFormat(),
+			User:     ctx.User.APIFormat(),
 			Reaction: reaction.Type,
 			Created:  reaction.CreatedUnix.AsTime(),
 		})
@@ -317,7 +322,11 @@ func PostIssueReaction(ctx *context.APIContext, form api.EditReactionOption) {
 	//   schema:
 	//     "$ref": "#/definitions/EditReactionOption"
 	// responses:
+	//   "200":
+	//     description: reaction already exist
+	//     "$ref": "#/responses/ReactionResponse"
 	//   "201":
+	//     description: reaction created successfully
 	//     "$ref": "#/responses/ReactionResponse"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
@@ -386,19 +395,20 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		if err != nil {
 			if models.IsErrForbiddenIssueReaction(err) {
 				ctx.Error(http.StatusForbidden, err.Error(), err)
+			} else if models.IsErrReactionAlreadyExist(err) {
+				ctx.JSON(http.StatusOK, api.ReactionResponse{
+					User:     ctx.User.APIFormat(),
+					Reaction: reaction.Type,
+					Created:  reaction.CreatedUnix.AsTime(),
+				})
 			} else {
 				ctx.Error(http.StatusInternalServerError, "CreateCommentReaction", err)
 			}
 			return
 		}
-		_, err = reaction.LoadUser()
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "Reaction.LoadUser()", err)
-			return
-		}
 
 		ctx.JSON(http.StatusCreated, api.ReactionResponse{
-			User:     reaction.User.APIFormat(),
+			User:     ctx.User.APIFormat(),
 			Reaction: reaction.Type,
 			Created:  reaction.CreatedUnix.AsTime(),
 		})
