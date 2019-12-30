@@ -240,6 +240,16 @@ func (issue *Issue) loadReactions(e Engine) (err error) {
 	return nil
 }
 
+func (issue *Issue) loadMilestone(e Engine) (err error) {
+	if issue.Milestone == nil && issue.MilestoneID > 0 {
+		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
+		if err != nil && !IsErrMilestoneNotExist(err) {
+			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
+		}
+	}
+	return nil
+}
+
 func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadRepo(e); err != nil {
 		return
@@ -253,11 +263,8 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 		return
 	}
 
-	if issue.Milestone == nil && issue.MilestoneID > 0 {
-		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
-		if err != nil && !IsErrMilestoneNotExist(err) {
-			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
-		}
+	if err = issue.loadMilestone(e); err != nil {
+		return
 	}
 
 	if err = issue.loadAssignees(e); err != nil {
@@ -295,6 +302,11 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 // LoadAttributes loads the attribute of this issue.
 func (issue *Issue) LoadAttributes() error {
 	return issue.loadAttributes(x)
+}
+
+// LoadMilestone load milestone of this issue.
+func (issue *Issue) LoadMilestone() error {
+	return issue.loadMilestone(x)
 }
 
 // GetIsRead load the `IsRead` field of the issue
