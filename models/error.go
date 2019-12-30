@@ -1213,7 +1213,7 @@ func IsErrReactionAlreadyExist(err error) bool {
 }
 
 func (err ErrReactionAlreadyExist) Error() string {
-	return fmt.Sprintf("reaction '%s' already exist", err.Reaction)
+	return fmt.Sprintf("reaction '%s' already exists", err.Reaction)
 }
 
 // __________      .__  .__ __________                                     __
