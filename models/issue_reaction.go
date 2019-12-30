@@ -80,9 +80,20 @@ func createReaction(e *xorm.Session, opts *ReactionOptions) (*Reaction, error) {
 		UserID:  opts.Doer.ID,
 		IssueID: opts.Issue.ID,
 	}
+	findOpts := FindReactionsOptions{IssueID: opts.Issue.ID}
 	if opts.Comment != nil {
 		reaction.CommentID = opts.Comment.ID
+		findOpts.CommentID = opts.Comment.ID
 	}
+
+	existingR, err := findReactions(e, findOpts)
+	if err != nil {
+		return nil, err
+	}
+	if len(existingR) > 0 {
+		return existingR[0], ErrReactionAlreadyExist{Reaction: opts.Type}
+	}
+
 	if _, err := e.Insert(reaction); err != nil {
 		return nil, err
 	}
@@ -112,13 +123,13 @@ func CreateReaction(opts *ReactionOptions) (reaction *Reaction, err error) {
 
 	reaction, err = createReaction(sess, opts)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	if err = sess.Commit(); err != nil {
 		return nil, err
 	}
-	return reaction, nil
+	return
 }
 
 // CreateIssueReaction creates a reaction on issue.
