@@ -3130,7 +3130,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/ReactionResponseList"
+            "$ref": "#/responses/ReactionList"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -3183,11 +3183,11 @@
         "responses": {
           "200": {
             "description": "reaction already exist",
-            "$ref": "#/responses/ReactionResponse"
+            "$ref": "#/responses/Reaction"
           },
           "201": {
             "description": "reaction created successfully",
-            "$ref": "#/responses/ReactionResponse"
+            "$ref": "#/responses/Reaction"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -3901,7 +3901,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/ReactionResponseList"
+            "$ref": "#/responses/ReactionList"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -3954,11 +3954,11 @@
         "responses": {
           "200": {
             "description": "reaction already exist",
-            "$ref": "#/responses/ReactionResponse"
+            "$ref": "#/responses/Reaction"
           },
           "201": {
             "description": "reaction created successfully",
-            "$ref": "#/responses/ReactionResponse"
+            "$ref": "#/responses/Reaction"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -10825,7 +10825,7 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "ReactionResponse": {
+    "Reaction": {
       "description": "ReactionResponse contain one reaction",
       "type": "object",
       "properties": {
@@ -11738,12 +11738,6 @@
         }
       }
     },
-    "EditReactionOption": {
-      "description": "EditReactionOption",
-      "schema": {
-        "$ref": "#/definitions/EditReactionOption"
-      }
-    },
     "EmailList": {
       "description": "EmailList",
       "schema": {
@@ -11930,18 +11924,18 @@
         }
       }
     },
-    "ReactionResponse": {
-      "description": "ReactionResponse",
+    "Reaction": {
+      "description": "Reaction",
       "schema": {
-        "$ref": "#/definitions/ReactionResponse"
+        "$ref": "#/definitions/Reaction"
       }
     },
-    "ReactionResponseList": {
-      "description": "ReactionResponseList",
+    "ReactionList": {
+      "description": "ReactionList",
       "schema": {
         "type": "array",
         "items": {
-          "$ref": "#/definitions/ReactionResponse"
+          "$ref": "#/definitions/Reaction"
         }
       }
     },
@@ -12167,7 +12161,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/RepoTopicOptions"
+        "$ref": "#/definitions/EditReactionOption"
       }
     },
     "redirect": {

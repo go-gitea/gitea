@@ -41,7 +41,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/ReactionResponseList"
+	//     "$ref": "#/responses/ReactionList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
@@ -71,9 +71,9 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		return
 	}
 
-	var result []api.ReactionResponse
+	var result []api.Reaction
 	for _, r := range reactions {
-		result = append(result, api.ReactionResponse{
+		result = append(result, api.Reaction{
 			User:     r.User.APIFormat(),
 			Reaction: r.Type,
 			Created:  r.CreatedUnix.AsTime(),
@@ -116,10 +116,10 @@ func PostIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOpti
 	// responses:
 	//   "200":
 	//     description: reaction already exist
-	//     "$ref": "#/responses/ReactionResponse"
+	//     "$ref": "#/responses/Reaction"
 	//   "201":
 	//     description: reaction created successfully
-	//     "$ref": "#/responses/ReactionResponse"
+	//     "$ref": "#/responses/Reaction"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
@@ -193,7 +193,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 			if models.IsErrForbiddenIssueReaction(err) {
 				ctx.Error(http.StatusForbidden, err.Error(), err)
 			} else if models.IsErrReactionAlreadyExist(err) {
-				ctx.JSON(http.StatusOK, api.ReactionResponse{
+				ctx.JSON(http.StatusOK, api.Reaction{
 					User:     ctx.User.APIFormat(),
 					Reaction: reaction.Type,
 					Created:  reaction.CreatedUnix.AsTime(),
@@ -204,7 +204,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 			return
 		}
 
-		ctx.JSON(http.StatusCreated, api.ReactionResponse{
+		ctx.JSON(http.StatusCreated, api.Reaction{
 			User:     ctx.User.APIFormat(),
 			Reaction: reaction.Type,
 			Created:  reaction.CreatedUnix.AsTime(),
@@ -249,7 +249,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/ReactionResponseList"
+	//     "$ref": "#/responses/ReactionList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
@@ -279,9 +279,9 @@ func GetIssueReactions(ctx *context.APIContext) {
 		return
 	}
 
-	var result []api.ReactionResponse
+	var result []api.Reaction
 	for _, r := range reactions {
-		result = append(result, api.ReactionResponse{
+		result = append(result, api.Reaction{
 			User:     r.User.APIFormat(),
 			Reaction: r.Type,
 			Created:  r.CreatedUnix.AsTime(),
@@ -324,10 +324,10 @@ func PostIssueReaction(ctx *context.APIContext, form api.EditReactionOption) {
 	// responses:
 	//   "200":
 	//     description: reaction already exist
-	//     "$ref": "#/responses/ReactionResponse"
+	//     "$ref": "#/responses/Reaction"
 	//   "201":
 	//     description: reaction created successfully
-	//     "$ref": "#/responses/ReactionResponse"
+	//     "$ref": "#/responses/Reaction"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
@@ -396,7 +396,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 			if models.IsErrForbiddenIssueReaction(err) {
 				ctx.Error(http.StatusForbidden, err.Error(), err)
 			} else if models.IsErrReactionAlreadyExist(err) {
-				ctx.JSON(http.StatusOK, api.ReactionResponse{
+				ctx.JSON(http.StatusOK, api.Reaction{
 					User:     ctx.User.APIFormat(),
 					Reaction: reaction.Type,
 					Created:  reaction.CreatedUnix.AsTime(),
@@ -407,7 +407,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 			return
 		}
 
-		ctx.JSON(http.StatusCreated, api.ReactionResponse{
+		ctx.JSON(http.StatusCreated, api.Reaction{
 			User:     ctx.User.APIFormat(),
 			Reaction: reaction.Type,
 			Created:  reaction.CreatedUnix.AsTime(),
