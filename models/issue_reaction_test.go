@@ -161,7 +161,7 @@ func TestIssueCommentReactionCount(t *testing.T) {
 	comment1 := AssertExistsAndLoadBean(t, &Comment{ID: 1}).(*Comment)
 
 	addReaction(t, user1, issue1, comment1, "heart")
-	DeleteCommentReaction(user1, issue1, comment1, "heart")
+	assert.NoError(t, DeleteCommentReaction(user1, issue1, comment1, "heart"))
 
 	AssertNotExistsBean(t, &Reaction{Type: "heart", UserID: user1.ID, IssueID: issue1.ID, CommentID: comment1.ID})
 }
