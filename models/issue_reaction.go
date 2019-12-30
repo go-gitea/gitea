@@ -30,6 +30,7 @@ type Reaction struct {
 type FindReactionsOptions struct {
 	IssueID   int64
 	CommentID int64
+	UserID    int64
 	Reaction  string
 }
 
@@ -46,6 +47,9 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"reaction.comment_id": opts.CommentID})
 	} else if opts.CommentID == -1 {
 		cond = cond.And(builder.Eq{"reaction.comment_id": 0})
+	}
+	if opts.UserID > 0 {
+		cond = cond.And(builder.Eq{"reaction.user_id": opts.UserID})
 	}
 	if opts.Reaction != "" {
 		cond = cond.And(builder.Eq{"reaction.type": opts.Reaction})
@@ -84,7 +88,12 @@ func createReaction(e *xorm.Session, opts *ReactionOptions) (*Reaction, error) {
 		UserID:  opts.Doer.ID,
 		IssueID: opts.Issue.ID,
 	}
-	findOpts := FindReactionsOptions{IssueID: opts.Issue.ID, CommentID: -1, Reaction: opts.Type}
+	findOpts := FindReactionsOptions{
+		IssueID:   opts.Issue.ID,
+		CommentID: -1, // reaction to issue only
+		Reaction:  opts.Type,
+		UserID:    opts.Doer.ID,
+	}
 	if opts.Comment != nil {
 		reaction.CommentID = opts.Comment.ID
 		findOpts.CommentID = opts.Comment.ID
