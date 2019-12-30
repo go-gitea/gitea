@@ -264,7 +264,8 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	}
 
 	ctx.Data["IssueStats"] = issueStats
-	ctx.Data["SelectLabels"] = com.StrTo(selectLabels).MustInt64()
+	ctx.Data["SelLabelIDs"] = labelIDs
+	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["MilestoneID"] = milestoneID
@@ -705,7 +706,6 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IssueWatch"] = iw
-	ctx.Data["AllowedReactions"] = setting.UI.Reactions
 
 	issue.RenderedContent = string(markdown.Render([]byte(issue.Content), ctx.Repo.RepoLink,
 		ctx.Repo.Repository.ComposeMetas()))

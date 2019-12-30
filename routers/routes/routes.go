@@ -97,13 +97,13 @@ func RouterHandler(level log.Level) func(ctx *macaron.Context) {
 	return func(ctx *macaron.Context) {
 		start := time.Now()
 
-		_ = log.GetLogger("router").Log(0, level, "Started %s %s for %s", log.ColoredMethod(ctx.Req.Method), ctx.Req.RequestURI, ctx.RemoteAddr())
+		_ = log.GetLogger("router").Log(0, level, "Started %s %s for %s", log.ColoredMethod(ctx.Req.Method), ctx.Req.URL.RequestURI(), ctx.RemoteAddr())
 
 		rw := ctx.Resp.(macaron.ResponseWriter)
 		ctx.Next()
 
 		status := rw.Status()
-		_ = log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(ctx.Req.Method), ctx.Req.RequestURI, log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(rw.Status())), log.ColoredTime(time.Since(start)))
+		_ = log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(ctx.Req.Method), ctx.Req.URL.RequestURI(), log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(rw.Status())), log.ColoredTime(time.Since(start)))
 	}
 }
 
@@ -385,24 +385,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/keys/delete", userSetting.DeleteKey)
 		m.Get("/organization", userSetting.Organization)
 		m.Get("/repos", userSetting.Repos)
-
-		// redirects from old settings urls to new ones
-		// TODO: can be removed on next major version
-		m.Get("/avatar", func(ctx *context.Context) {
-			ctx.Redirect(setting.AppSubURL+"/user/settings", http.StatusMovedPermanently)
-		})
-		m.Get("/email", func(ctx *context.Context) {
-			ctx.Redirect(setting.AppSubURL+"/user/settings/account", http.StatusMovedPermanently)
-		})
-		m.Get("/delete", func(ctx *context.Context) {
-			ctx.Redirect(setting.AppSubURL+"/user/settings/account", http.StatusMovedPermanently)
-		})
-		m.Get("/openid", func(ctx *context.Context) {
-			ctx.Redirect(setting.AppSubURL+"/user/settings/security", http.StatusMovedPermanently)
-		})
-		m.Get("/account_link", func(ctx *context.Context) {
-			ctx.Redirect(setting.AppSubURL+"/user/settings/security", http.StatusMovedPermanently)
-		})
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
 		ctx.Data["AllThemes"] = setting.UI.Themes

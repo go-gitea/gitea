@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 
+	"code.gitea.io/gitea/modules/log"
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/analysis/analyzer/custom"
 	"github.com/blevesearch/bleve/analysis/token/lowercase"
@@ -182,6 +183,15 @@ func (b *BleveIndexer) Init() (bool, error) {
 
 	b.indexer, err = createIssueIndexer(b.indexDir, issueIndexerLatestVersion)
 	return false, err
+}
+
+// Close will close the bleve indexer
+func (b *BleveIndexer) Close() {
+	if b.indexer != nil {
+		if err := b.indexer.Close(); err != nil {
+			log.Error("Error whilst closing indexer: %v", err)
+		}
+	}
 }
 
 // Index will save the index data
