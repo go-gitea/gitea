@@ -48,7 +48,7 @@ type Indexer interface {
 	Index(issue []*IndexerData) error
 	Delete(ids ...int64) error
 	Search(kw string, repoIDs []int64, limit, start int) (*SearchResult, error)
-	Close() error
+	Close()
 }
 
 type indexerHolder struct {
@@ -156,10 +156,7 @@ func InitIssueIndexer(syncReindex bool) {
 					log.Debug("Closing issue indexer")
 					issueIndexer := holder.get()
 					if issueIndexer != nil {
-						err := issueIndexer.Close()
-						if err != nil {
-							log.Error("Error whilst closing the issue indexer: %v", err)
-						}
+						issueIndexer.Close()
 					}
 					log.Info("PID: %d Issue Indexer closed", os.Getpid())
 				})

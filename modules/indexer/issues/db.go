@@ -26,8 +26,7 @@ func (db *DBIndexer) Delete(ids ...int64) error {
 }
 
 // Close dummy function
-func (db *DBIndexer) Close() error {
-	return nil
+func (db *DBIndexer) Close() {
 }
 
 // Search dummy function
