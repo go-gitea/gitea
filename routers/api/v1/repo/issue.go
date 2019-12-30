@@ -542,7 +542,11 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	// Refetch from database to assign some automatic values
 	issue, err = models.GetIssueByID(issue.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
+		ctx.InternalServerError(err)
+		return
+	}
+	if err = issue.LoadMilestone(); err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 	ctx.JSON(http.StatusCreated, issue.APIFormat())
