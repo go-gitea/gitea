@@ -7,6 +7,7 @@ package models
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -175,6 +176,206 @@ func (pr *PullRequest) GetDefaultMergeMessage() string {
 		}
 	}
 	return fmt.Sprintf("Merge branch '%s' of %s/%s into %s", pr.HeadBranch, pr.MustHeadUserName(), pr.HeadRepo.Name, pr.BaseBranch)
+}
+
+// GetCommitMessages returns the commit messages between head and merge base (if there is one)
+func (pr *PullRequest) GetCommitMessages() string {
+	if err := pr.LoadIssue(); err != nil {
+		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
+		return ""
+	}
+
+	if err := pr.Issue.LoadPoster(); err != nil {
+		log.Error("Cannot load poster %d for pr id %d, index %d Error: %v", pr.Issue.PosterID, pr.ID, pr.Index, err)
+		return ""
+	}
+
+	if pr.HeadRepo == nil {
+		var err error
+		pr.HeadRepo, err = GetRepositoryByID(pr.HeadRepoID)
+		if err != nil {
+			log.Error("GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
+			return ""
+		}
+	}
+
+	gitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		log.Error("Unable to open head repository: Error: %v", err)
+		return ""
+	}
+	defer gitRepo.Close()
+
+	headCommit, err := gitRepo.GetBranchCommit(pr.HeadBranch)
+	if err != nil {
+		log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)
+		return ""
+	}
+
+	mergeBase, err := gitRepo.GetCommit(pr.MergeBase)
+	if err != nil {
+		log.Error("Unable to get merge base commit: %s Error: %v", pr.MergeBase, err)
+		return ""
+	}
+
+	limit := setting.Repository.PullRequest.DefaultMergeMessageCommitsLimit
+
+	list, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, 0)
+	if err != nil {
+		log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
+		return ""
+	}
+
+	maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
+
+	posterSig := pr.Issue.Poster.NewGitSig().String()
+
+	authorsMap := map[string]bool{}
+	authors := make([]string, 0, list.Len())
+	stringBuilder := strings.Builder{}
+	element := list.Front()
+	for element != nil {
+		commit := element.Value.(*git.Commit)
+
+		if maxSize < 0 || stringBuilder.Len() < maxSize {
+			toWrite := []byte(commit.CommitMessage)
+			if len(toWrite) > maxSize-stringBuilder.Len() && maxSize > -1 {
+				toWrite = append(toWrite[:maxSize-stringBuilder.Len()], "..."...)
+			}
+			if _, err := stringBuilder.Write(toWrite); err != nil {
+				log.Error("Unable to write commit message Error: %v", err)
+				return ""
+			}
+
+			if _, err := stringBuilder.WriteRune('\n'); err != nil {
+				log.Error("Unable to write commit message Error: %v", err)
+				return ""
+			}
+		}
+
+		authorString := commit.Author.String()
+		if !authorsMap[authorString] && authorString != posterSig {
+			authors = append(authors, authorString)
+			authorsMap[authorString] = true
+		}
+		element = element.Next()
+	}
+
+	// Consider collecting the remaining authors
+	if limit >= 0 && setting.Repository.PullRequest.DefaultMergeMessageAllAuthors {
+		skip := limit
+		limit = 30
+		for {
+			list, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, skip)
+			if err != nil {
+				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
+				return ""
+
+			}
+			if list.Len() == 0 {
+				break
+			}
+			element := list.Front()
+			for element != nil {
+				commit := element.Value.(*git.Commit)
+
+				authorString := commit.Author.String()
+				if !authorsMap[authorString] && authorString != posterSig {
+					authors = append(authors, authorString)
+					authorsMap[authorString] = true
+				}
+				element = element.Next()
+			}
+
+		}
+	}
+
+	if len(authors) > 0 {
+		if _, err := stringBuilder.WriteRune('\n'); err != nil {
+			log.Error("Unable to write to string builder Error: %v", err)
+			return ""
+		}
+	}
+
+	for _, author := range authors {
+		if _, err := stringBuilder.Write([]byte("Co-authored-by: ")); err != nil {
+			log.Error("Unable to write to string builder Error: %v", err)
+			return ""
+		}
+		if _, err := stringBuilder.Write([]byte(author)); err != nil {
+			log.Error("Unable to write to string builder Error: %v", err)
+			return ""
+		}
+		if _, err := stringBuilder.WriteRune('\n'); err != nil {
+			log.Error("Unable to write to string builder Error: %v", err)
+			return ""
+		}
+	}
+
+	return stringBuilder.String()
+}
+
+// GetApprovers returns the approvers of the pull request
+func (pr *PullRequest) GetApprovers() string {
+
+	stringBuilder := strings.Builder{}
+	if err := pr.getReviewedByLines(&stringBuilder); err != nil {
+		log.Error("Unable to getReviewedByLines: Error: %v", err)
+		return ""
+	}
+
+	return stringBuilder.String()
+}
+
+func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
+	maxReviewers := setting.Repository.PullRequest.DefaultMergeMessageMaxApprovers
+
+	if maxReviewers == 0 {
+		return nil
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	// Note: This doesn't page as we only expect a very limited number of reviews
+	reviews, err := findReviews(sess, FindReviewOptions{
+		Type:         ReviewTypeApprove,
+		IssueID:      pr.IssueID,
+		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,
+	})
+	if err != nil {
+		log.Error("Unable to FindReviews for PR ID %d: %v", pr.ID, err)
+		return err
+	}
+
+	reviewersWritten := 0
+
+	for _, review := range reviews {
+		if maxReviewers > 0 && reviewersWritten > maxReviewers {
+			break
+		}
+
+		if err := review.loadReviewer(sess); err != nil && !IsErrUserNotExist(err) {
+			log.Error("Unable to LoadReviewer[%d] for PR ID %d : %v", review.ReviewerID, pr.ID, err)
+			return err
+		} else if review.Reviewer == nil {
+			continue
+		}
+		if _, err := writer.Write([]byte("Reviewed-by: ")); err != nil {
+			return err
+		}
+		if _, err := writer.Write([]byte(review.Reviewer.NewGitSig().String())); err != nil {
+			return err
+		}
+		if _, err := writer.Write([]byte{'\n'}); err != nil {
+			return err
+		}
+		reviewersWritten++
+	}
+	return sess.Commit()
 }
 
 // GetDefaultSquashMessage returns default message used when squash and merging pull request
