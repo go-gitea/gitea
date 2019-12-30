@@ -130,7 +130,6 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	user3 := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
 	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
-	ghost := NewGhostUser()
 
 	issue1 := AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
 
@@ -140,14 +139,13 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 	addReaction(t, user2, issue1, comment1, "heart")
 	addReaction(t, user3, issue1, comment1, "heart")
 	addReaction(t, user4, issue1, comment1, "+1")
-	addReaction(t, ghost, issue1, comment1, "heart")
 
 	err := comment1.LoadReactions()
 	assert.NoError(t, err)
-	assert.Len(t, comment1.Reactions, 5)
+	assert.Len(t, comment1.Reactions, 4)
 
 	reactions := comment1.Reactions.GroupByType()
-	assert.Len(t, reactions["heart"], 4)
+	assert.Len(t, reactions["heart"], 3)
 	assert.Len(t, reactions["+1"], 1)
 }
 
