@@ -115,10 +115,8 @@ func PostIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOpti
 	//     "$ref": "#/definitions/EditReactionOption"
 	// responses:
 	//   "200":
-	//     description: reaction already exist
 	//     "$ref": "#/responses/Reaction"
 	//   "201":
-	//     description: reaction created successfully
 	//     "$ref": "#/responses/Reaction"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
@@ -323,10 +321,8 @@ func PostIssueReaction(ctx *context.APIContext, form api.EditReactionOption) {
 	//     "$ref": "#/definitions/EditReactionOption"
 	// responses:
 	//   "200":
-	//     description: reaction already exist
 	//     "$ref": "#/responses/Reaction"
 	//   "201":
-	//     description: reaction created successfully
 	//     "$ref": "#/responses/Reaction"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
