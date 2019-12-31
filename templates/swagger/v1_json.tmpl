@@ -8609,11 +8609,7 @@
           "x-go-name": "BranchFilter"
         },
         "config": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "x-go-name": "Config"
+          "$ref": "#/definitions/CreateHookOptionConfig"
         },
         "events": {
           "type": "array",
@@ -8625,13 +8621,24 @@
         "type": {
           "type": "string",
           "enum": [
+            "dingtalk",
+            "discord",
             "gitea",
             "gogs",
+            "msteams",
             "slack",
-            "discord"
+            "telegram"
           ],
           "x-go-name": "Type"
         }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateHookOptionConfig": {
+      "description": "CreateHookOptionConfig has all config options in it\nrequired are \"content_type\" and \"url\" Required",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
