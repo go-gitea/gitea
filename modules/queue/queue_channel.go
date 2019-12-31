@@ -82,7 +82,7 @@ func (c *ChannelQueue) Run(atShutdown, atTerminate func(context.Context, func())
 	}()
 }
 
-// Push will push the indexer data to queue
+// Push will push data into the queue
 func (c *ChannelQueue) Push(data Data) error {
 	if c.exemplar != nil {
 		// Assert data is of same type as r.exemplar
