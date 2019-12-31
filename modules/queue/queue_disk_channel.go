@@ -59,7 +59,7 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 		return nil, err
 	}
 
-	// the level backend only needs temporary workrers to catch up with the previously dropped work
+	// the level backend only needs temporary workers to catch up with the previously dropped work
 	levelCfg := LevelQueueConfiguration{
 		DataDir:      config.DataDir,
 		QueueLength:  config.QueueLength,
