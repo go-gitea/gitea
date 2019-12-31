@@ -1490,7 +1490,9 @@ function setCommentSimpleMDE($editArea) {
       }
     },
     Backspace: (cm) => {
-      cm.getInputField().trigger('input');
+      if (cm.getInputField().trigger) {
+        cm.getInputField().trigger('input');
+      }
       cm.execCommand('delCharBefore');
     }
   });
