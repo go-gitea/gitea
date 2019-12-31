@@ -1,0 +1,1143 @@
+/*!
+ * # Fomantic-UI - Form
+ * http://github.com/fomantic/Fomantic-UI/
+ *
+ *
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ *
+ */
+
+/*******************************
+            Theme
+*******************************/
+
+@type    : 'collection';
+@element : 'form';
+
+@import (multiple) '../../theme.config';
+
+/*******************************
+            Elements
+*******************************/
+
+/*--------------------
+        Form
+---------------------*/
+
+.ui.form {
+  position: relative;
+  max-width: 100%;
+}
+
+/*--------------------
+        Content
+---------------------*/
+
+.ui.form > p {
+  margin: @paragraphMargin;
+}
+
+/*--------------------
+        Field
+---------------------*/
+
+.ui.form .field {
+  clear: both;
+  margin: @fieldMargin;
+}
+
+.ui.form .fields .fields,
+.ui.form .field:last-child,
+.ui.form .fields:last-child .field {
+  margin-bottom: 0;
+}
+
+.ui.form .fields .field {
+  clear: both;
+  margin: 0;
+}
+
+
+/*--------------------
+        Labels
+---------------------*/
+
+.ui.form .field > label {
+  display: block;
+  margin: @labelMargin;
+  color: @labelColor;
+  font-size: @labelFontSize;
+  font-weight: @labelFontWeight;
+  text-transform: @labelTextTransform;
+}
+
+/*--------------------
+    Standard Inputs
+---------------------*/
+
+
+.ui.form textarea,
+.ui.form input:not([type]),
+.ui.form input[type="date"],
+.ui.form input[type="datetime-local"],
+.ui.form input[type="email"],
+.ui.form input[type="number"],
+.ui.form input[type="password"],
+.ui.form input[type="search"],
+.ui.form input[type="tel"],
+.ui.form input[type="time"],
+.ui.form input[type="text"],
+.ui.form input[type="file"],
+.ui.form input[type="url"] {
+  width: @inputWidth;
+  vertical-align: top;
+}
+
+/* Set max height on unusual input */
+.ui.form ::-webkit-datetime-edit,
+.ui.form ::-webkit-inner-spin-button {
+  height: @inputLineHeight;
+}
+
+.ui.form input:not([type]),
+.ui.form input[type="date"],
+.ui.form input[type="datetime-local"],
+.ui.form input[type="email"],
+.ui.form input[type="number"],
+.ui.form input[type="password"],
+.ui.form input[type="search"],
+.ui.form input[type="tel"],
+.ui.form input[type="time"],
+.ui.form input[type="text"],
+.ui.form input[type="file"],
+.ui.form input[type="url"] {
+  font-family: @inputFont;
+  margin: 0;
+  outline: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color:  rgba(255, 255, 255, 0);
+
+  line-height: @inputLineHeight;
+  padding: @inputPadding;
+  font-size: @inputFontSize;
+
+  background: @inputBackground;
+  border: @inputBorder;
+  color: @inputColor;
+  border-radius: @inputBorderRadius;
+  box-shadow: @inputBoxShadow;
+  transition: @inputTransition;
+}
+
+/* Text Area */
+.ui.input textarea,
+.ui.form textarea {
+  margin: 0;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color:  rgba(255, 255, 255, 0);
+
+  padding: @textAreaPadding;
+  background: @textAreaBackground;
+  border: @textAreaBorder;
+  outline: none;
+  color: @inputColor;
+  border-radius: @inputBorderRadius;
+  box-shadow: @inputBoxShadow;
+  transition: @textAreaTransition;
+  font-size: @textAreaFontSize;
+  font-family: @inputFont;
+  line-height: @textAreaLineHeight;
+  resize: @textAreaResize;
+}
+.ui.form textarea:not([rows]) {
+  height: @textAreaHeight;
+  min-height: @textAreaMinHeight;
+  max-height: @textAreaMaxHeight;
+}
+
+.ui.form textarea,
+.ui.form input[type="checkbox"] {
+  vertical-align: @checkboxVerticalAlign;
+}
+
+/*--------------------
+    Checkbox margin
+---------------------*/
+
+.ui.form .fields:not(.grouped):not(.inline) .field:not(:only-child) label + .ui.ui.checkbox {
+  margin-top: @checkboxLabelFieldTopMargin;
+}
+.ui.form .fields:not(.grouped):not(.inline) .field:not(:only-child) .ui.checkbox {
+  margin-top: @inputLineHeight + @checkboxFieldTopMargin;
+}
+.ui.form .fields:not(.grouped):not(.inline) .field:not(:only-child) .ui.toggle.checkbox {
+  margin-top: @inputLineHeight + @checkboxToggleFieldTopMargin;
+}
+.ui.form .fields:not(.grouped):not(.inline) .field:not(:only-child) .ui.slider.checkbox {
+  margin-top: @inputLineHeight + @checkboxSliderFieldTopMargin;
+}
+.ui.ui.form .field .fields .field:not(:only-child) .ui.checkbox {
+  margin-top: @checkboxFieldTopMargin / 2;
+}
+.ui.ui.form .field .fields .field:not(:only-child) .ui.toggle.checkbox {
+  margin-top: @checkboxToggleFieldTopMargin / 2;
+}
+.ui.ui.form .field .fields .field:not(:only-child) .ui.slider.checkbox {
+  margin-top: @checkboxSliderFieldTopMargin / 2;
+}
+
+& when (@variationFormTransparent) {
+  /*--------------------
+        Transparent
+  ---------------------*/
+
+  .ui.form .field .transparent.input:not(.icon) input,
+  .ui.form .field input.transparent,
+  .ui.form .field textarea.transparent {
+    padding: @transparentPadding;
+  }
+
+  .ui.form .field input.transparent,
+  .ui.form .field textarea.transparent {
+    border-color: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+}
+/*--------------------------
+  Input w/ attached Button
+---------------------------*/
+
+.ui.form input.attached {
+  width: auto;
+}
+
+
+/*--------------------
+     Basic Select
+---------------------*/
+
+.ui.form select {
+  display: block;
+  height: auto;
+  width: 100%;
+  background: @selectBackground;
+  border: @selectBorder;
+  border-radius: @selectBorderRadius;
+  box-shadow: @selectBoxShadow;
+  padding: @selectPadding;
+  color: @selectColor;
+  transition: @selectTransition;
+}
+
+/*--------------------
+       Dropdown
+---------------------*/
+
+/* Block */
+.ui.form .field > .selection.dropdown {
+  min-width: auto;
+  width: 100%;
+}
+.ui.form .field > .selection.dropdown > .dropdown.icon {
+  float: right;
+}
+
+& when (@variationFormInline) {
+  /* Inline */
+  .ui.form .inline.fields .field > .selection.dropdown,
+  .ui.form .inline.field > .selection.dropdown {
+    width: auto;
+  }
+  .ui.form .inline.fields .field > .selection.dropdown > .dropdown.icon,
+  .ui.form .inline.field > .selection.dropdown > .dropdown.icon {
+    float: none;
+  }
+}
+
+/*--------------------
+       UI Input
+---------------------*/
+
+/* Block */
+.ui.form .field .ui.input,
+.ui.form .fields .field .ui.input,
+.ui.form .wide.field .ui.input {
+  width: 100%;
+}
+
+& when (@variationFormInline) {
+  /* Inline  */
+  .ui.form .inline.fields .field:not(.wide) .ui.input,
+  .ui.form .inline.field:not(.wide) .ui.input {
+    width: auto;
+    vertical-align: middle;
+  }
+}
+
+/* Auto Input */
+.ui.form .fields .field .ui.input input,
+.ui.form .field .ui.input input {
+  width: auto;
+}
+
+/* Full Width Input */
+.ui.form .ten.fields .ui.input input,
+.ui.form .nine.fields .ui.input input,
+.ui.form .eight.fields .ui.input input,
+.ui.form .seven.fields .ui.input input,
+.ui.form .six.fields .ui.input input,
+.ui.form .five.fields .ui.input input,
+.ui.form .four.fields .ui.input input,
+.ui.form .three.fields .ui.input input,
+.ui.form .two.fields .ui.input input,
+.ui.form .wide.field .ui.input input {
+  flex: 1 0 auto;
+  width: 0;
+}
+
+
+/*--------------------
+   Types of Messages
+---------------------*/
+& when (@variationFormStates) {
+  each(@formStates, {
+    @state: replace(@key, '@', '');
+    .ui.form .@{state}.message,
+    .ui.form .@{state}.message:empty {
+      display: none;
+    }
+  })
+}
+
+/* Assumptions */
+.ui.form .message:first-child {
+  margin-top: 0;
+}
+
+/*--------------------
+   Validation Prompt
+---------------------*/
+
+.ui.form .field .prompt.label {
+  white-space: normal;
+  background: @promptBackground !important;
+  border: @promptBorder !important;
+  color: @promptTextColor !important;
+}
+& when (@variationFormInline) {
+  .ui.form .inline.fields .field .prompt,
+  .ui.form .inline.field .prompt {
+    vertical-align: top;
+    margin: @inlinePromptMargin;
+  }
+  .ui.form .inline.fields .field .prompt:before,
+  .ui.form .inline.field .prompt:before {
+    border-width: 0 0 @inlinePromptBorderWidth @inlinePromptBorderWidth;
+    bottom: auto;
+    right: auto;
+    top: 50%;
+    left: 0;
+  }
+}
+
+
+/*******************************
+            States
+*******************************/
+
+/*--------------------
+      Autofilled
+---------------------*/
+
+.ui.form .field.field input:-webkit-autofill {
+  box-shadow: 0 0 0 100px @inputAutoFillBackground inset !important;
+  border-color: @inputAutoFillBorder !important;
+}
+
+/* Focus */
+.ui.form .field.field input:-webkit-autofill:focus {
+  box-shadow: 0 0 0 100px @inputAutoFillFocusBackground inset !important;
+  border-color: @inputAutoFillFocusBorder !important;
+}
+
+
+
+/*--------------------
+      Placeholder
+---------------------*/
+
+/* browsers require these rules separate */
+.ui.form ::-webkit-input-placeholder {
+  color: @inputPlaceholderColor;
+}
+.ui.form :-ms-input-placeholder {
+  color: @inputPlaceholderColor !important;
+}
+.ui.form ::-moz-placeholder {
+  color: @inputPlaceholderColor;
+}
+
+.ui.form :focus::-webkit-input-placeholder {
+  color: @inputPlaceholderFocusColor;
+}
+.ui.form :focus:-ms-input-placeholder {
+  color: @inputPlaceholderFocusColor !important;
+}
+.ui.form :focus::-moz-placeholder {
+  color: @inputPlaceholderFocusColor;
+}
+
+
+
+/*--------------------
+        Focus
+---------------------*/
+
+.ui.form input:not([type]):focus,
+.ui.form input[type="date"]:focus,
+.ui.form input[type="datetime-local"]:focus,
+.ui.form input[type="email"]:focus,
+.ui.form input[type="number"]:focus,
+.ui.form input[type="password"]:focus,
+.ui.form input[type="search"]:focus,
+.ui.form input[type="tel"]:focus,
+.ui.form input[type="time"]:focus,
+.ui.form input[type="text"]:focus,
+.ui.form input[type="file"]:focus,
+.ui.form input[type="url"]:focus {
+  color: @inputFocusColor;
+  border-color: @inputFocusBorderColor;
+  border-radius: @inputFocusBorderRadius;
+  background: @inputFocusBackground;
+  box-shadow: @inputFocusBoxShadow;
+}
+& when (@variationInputAction) {
+  .ui.form .ui.action.input:not(.left) input:not([type]):focus,
+  .ui.form .ui.action.input:not(.left) input[type="date"]:focus,
+  .ui.form .ui.action.input:not(.left) input[type="datetime-local"]:focus,
+  .ui.form .ui.action.input:not(.left) input[type="email"]:focus,
+  .ui.form .ui.action.input:not(.left) input[type="number"]:focus,
+  .ui.form .ui.action.input:not(.left) input[type="password"]:focus,
+  .ui.form .ui.action.input:not(.left) input[type="search"]:focus,
+  .ui.form .ui.action.input:not(.left) input[type="tel"]:focus,
+  .ui.form .ui.action.input:not(.left) input[type="time"]:focus,
+  .ui.form .ui.action.input:not(.left) input[type="text"]:focus,
+  .ui.form .ui.action.input:not(.left) input[type="file"]:focus,
+  .ui.form .ui.action.input:not(.left) input[type="url"]:focus {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .ui.form .ui.action.input.left input:not([type]),
+  .ui.form .ui.action.input.left input[type="date"],
+  .ui.form .ui.action.input.left input[type="datetime-local"],
+  .ui.form .ui.action.input.left input[type="email"],
+  .ui.form .ui.action.input.left input[type="number"],
+  .ui.form .ui.action.input.left input[type="password"],
+  .ui.form .ui.action.input.left input[type="search"],
+  .ui.form .ui.action.input.left input[type="tel"],
+  .ui.form .ui.action.input.left input[type="time"],
+  .ui.form .ui.action.input.left input[type="text"],
+  .ui.form .ui.action.input.left input[type="file"],
+  .ui.form .ui.action.input.left input[type="url"] {
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+  }
+}
+.ui.form textarea:focus {
+  color: @textAreaFocusColor;
+  border-color: @textAreaFocusBorderColor;
+  border-radius: @textAreaFocusBorderRadius;
+  background: @textAreaFocusBackground;
+  box-shadow: @textAreaFocusBoxShadow;
+  -webkit-appearance: none;
+}
+
+& when (@variationFormStates) {
+  /*--------------------
+          States
+  ---------------------*/
+  each(@formStates, {
+    @state: replace(@key, '@', '');
+    @c: @formStates[@@state][color];
+    @bg: @formStates[@@state][background];
+    @bdc: @formStates[@@state][borderColor];
+
+    /* On Form */
+    .ui.form.@{state} .@{state}.message:not(:empty) {
+      display: block;
+    }
+    .ui.form.@{state} .compact.@{state}.message:not(:empty) {
+      display: inline-block;
+    }
+    .ui.form.@{state} .icon.@{state}.message:not(:empty) {
+      display: flex;
+    }
+
+    /* On Field(s) */
+    .ui.form .fields.@{state} .@{state}.message:not(:empty),
+    .ui.form .field.@{state} .@{state}.message:not(:empty) {
+      display: block;
+    }
+    .ui.form .fields.@{state} .compact.@{state}.message:not(:empty),
+    .ui.form .field.@{state} .compact.@{state}.message:not(:empty) {
+      display: inline-block;
+    }
+    .ui.form .fields.@{state} .icon.@{state}.message:not(:empty),
+    .ui.form .field.@{state} .icon.@{state}.message:not(:empty) {
+      display: flex;
+    }
+
+    .ui.ui.form .fields.@{state} .field label,
+    .ui.ui.form .field.@{state} label,
+    .ui.ui.form .fields.@{state} .field .input,
+    .ui.ui.form .field.@{state} .input {
+      color: @c;
+    }
+
+    .ui.form .fields.@{state} .field .corner.label,
+    .ui.form .field.@{state} .corner.label {
+      border-color: @c;
+      color: @formStates[@@state][cornerLabelColor];
+    }
+
+    .ui.form .fields.@{state} .field textarea,
+    .ui.form .fields.@{state} .field select,
+    .ui.form .fields.@{state} .field input:not([type]),
+    .ui.form .fields.@{state} .field input[type="date"],
+    .ui.form .fields.@{state} .field input[type="datetime-local"],
+    .ui.form .fields.@{state} .field input[type="email"],
+    .ui.form .fields.@{state} .field input[type="number"],
+    .ui.form .fields.@{state} .field input[type="password"],
+    .ui.form .fields.@{state} .field input[type="search"],
+    .ui.form .fields.@{state} .field input[type="tel"],
+    .ui.form .fields.@{state} .field input[type="time"],
+    .ui.form .fields.@{state} .field input[type="text"],
+    .ui.form .fields.@{state} .field input[type="file"],
+    .ui.form .fields.@{state} .field input[type="url"],
+    .ui.form .field.@{state} textarea,
+    .ui.form .field.@{state} select,
+    .ui.form .field.@{state} input:not([type]),
+    .ui.form .field.@{state} input[type="date"],
+    .ui.form .field.@{state} input[type="datetime-local"],
+    .ui.form .field.@{state} input[type="email"],
+    .ui.form .field.@{state} input[type="number"],
+    .ui.form .field.@{state} input[type="password"],
+    .ui.form .field.@{state} input[type="search"],
+    .ui.form .field.@{state} input[type="tel"],
+    .ui.form .field.@{state} input[type="time"],
+    .ui.form .field.@{state} input[type="text"],
+    .ui.form .field.@{state} input[type="file"],
+    .ui.form .field.@{state} input[type="url"] {
+      color: @c;
+      background: @bg;
+      border-color: @formStates[@@state][borderColor];
+      border-radius: @formStates[@@state][borderRadius];
+      box-shadow: @formStates[@@state][boxShadow];
+    }
+
+    .ui.form .field.@{state} textarea:focus,
+    .ui.form .field.@{state} select:focus,
+    .ui.form .field.@{state} input:not([type]):focus,
+    .ui.form .field.@{state} input[type="date"]:focus,
+    .ui.form .field.@{state} input[type="datetime-local"]:focus,
+    .ui.form .field.@{state} input[type="email"]:focus,
+    .ui.form .field.@{state} input[type="number"]:focus,
+    .ui.form .field.@{state} input[type="password"]:focus,
+    .ui.form .field.@{state} input[type="search"]:focus,
+    .ui.form .field.@{state} input[type="tel"]:focus,
+    .ui.form .field.@{state} input[type="time"]:focus,
+    .ui.form .field.@{state} input[type="text"]:focus,
+    .ui.form .field.@{state} input[type="file"]:focus,
+    .ui.form .field.@{state} input[type="url"]:focus {
+      background: @formStates[@@state][inputFocusBackground];
+      border-color: @formStates[@@state][inputFocusBorderColor];
+      color: @formStates[@@state][inputFocusColor];
+
+      box-shadow: @formStates[@@state][inputFocusBoxShadow];
+    }
+
+    /* Preserve Native Select Stylings */
+    .ui.form .field.@{state} select {
+      -webkit-appearance: menulist-button;
+    }
+
+    /*------------------
+        Input State
+    --------------------*/
+    /* Transparent */
+    .ui.form .field.@{state} .transparent.input input,
+    .ui.form .field.@{state} .transparent.input textarea,
+    .ui.form .field.@{state} input.transparent,
+    .ui.form .field.@{state} textarea.transparent {
+      background-color: @formStates[@@state][transparentBackground] !important;
+      color: @formStates[@@state][transparentColor] !important;
+    }
+
+    /* Autofilled */
+    .ui.form .@{state}.@{state} input:-webkit-autofill {
+      box-shadow: 0 0 0 100px @formStates[@@state][inputAutoFillBackground] inset !important;
+      border-color: @formStates[@@state][inputAutoFillBorderColor] !important;
+    }
+
+    /* Placeholder */
+    .ui.form .@{state} ::-webkit-input-placeholder {
+      color: @formStates[@@state][inputPlaceholderColor];
+    }
+    .ui.form .@{state} :-ms-input-placeholder {
+      color: @formStates[@@state][inputPlaceholderColor] !important;
+    }
+    .ui.form .@{state} ::-moz-placeholder {
+      color: @formStates[@@state][inputPlaceholderColor];
+    }
+
+    .ui.form .@{state} :focus::-webkit-input-placeholder {
+      color: @formStates[@@state][inputPlaceholderFocusColor];
+    }
+    .ui.form .@{state} :focus:-ms-input-placeholder {
+      color: @formStates[@@state][inputPlaceholderFocusColor] !important;
+    }
+    .ui.form .@{state} :focus::-moz-placeholder {
+      color: @formStates[@@state][inputPlaceholderFocusColor];
+    }
+
+    /*------------------
+        Dropdown State
+    --------------------*/
+
+    .ui.form .fields.@{state} .field .ui.dropdown,
+    .ui.form .fields.@{state} .field .ui.dropdown .item,
+    .ui.form .field.@{state} .ui.dropdown,
+    .ui.form .field.@{state} .ui.dropdown .text,
+    .ui.form .field.@{state} .ui.dropdown .item {
+      background: @bg;
+      color: @c;
+    }
+    .ui.form .fields.@{state} .field .ui.dropdown,
+    .ui.form .field.@{state} .ui.dropdown {
+      border-color: @bdc !important;
+    }
+    .ui.form .fields.@{state} .field .ui.dropdown:hover,
+    .ui.form .field.@{state} .ui.dropdown:hover {
+      border-color: @bdc !important;
+    }
+    .ui.form .fields.@{state} .field .ui.dropdown:hover .menu,
+    .ui.form .field.@{state} .ui.dropdown:hover .menu {
+      border-color: @bdc;
+    }
+    .ui.form .fields.@{state} .field .ui.multiple.selection.dropdown > .label,
+    .ui.form .field.@{state} .ui.multiple.selection.dropdown > .label {
+      background-color: @formStates[@@state][dropdownLabelBackground];
+      color: @formStates[@@state][dropdownLabelColor];
+    }
+
+    /* Hover */
+    .ui.form .fields.@{state} .field .ui.dropdown .menu .item:hover,
+    .ui.form .field.@{state} .ui.dropdown .menu .item:hover {
+      background-color: @formStates[@@state][dropdownHoverBackground];
+    }
+
+    /* Selected */
+    .ui.form .fields.@{state} .field .ui.dropdown .menu .selected.item,
+    .ui.form .field.@{state} .ui.dropdown .menu .selected.item {
+      background-color: @formStates[@@state][dropdownSelectedBackground];
+    }
+
+    /* Active */
+    .ui.form .fields.@{state} .field .ui.dropdown .menu .active.item,
+    .ui.form .field.@{state} .ui.dropdown .menu .active.item {
+      background-color: @formStates[@@state][dropdownActiveBackground] !important;
+    }
+
+    /*--------------------
+        Checkbox State
+    ---------------------*/
+    .ui.form .fields.@{state} .field .checkbox:not(.toggle):not(.slider) label,
+    .ui.form .field.@{state} .checkbox:not(.toggle):not(.slider) label,
+    .ui.form .fields.@{state} .field .checkbox:not(.toggle):not(.slider) .box,
+    .ui.form .field.@{state} .checkbox:not(.toggle):not(.slider) .box {
+      color: @c;
+    }
+    .ui.form .fields.@{state} .field .checkbox:not(.toggle):not(.slider) label:before,
+    .ui.form .field.@{state} .checkbox:not(.toggle):not(.slider) label:before,
+    .ui.form .fields.@{state} .field .checkbox:not(.toggle):not(.slider) .box:before,
+    .ui.form .field.@{state} .checkbox:not(.toggle):not(.slider) .box:before {
+      background: @bg;
+      border-color: @bdc;
+    }
+    .ui.form .fields.@{state} .field .checkbox label:after,
+    .ui.form .field.@{state} .checkbox label:after,
+    .ui.form .fields.@{state} .field .checkbox .box:after,
+    .ui.form .field.@{state} .checkbox .box:after {
+      color: @c;
+    }
+  })
+}
+
+& when (@variationFormDisabled) {
+  /*--------------------
+         Disabled
+  ---------------------*/
+
+  .ui.form .disabled.fields .field,
+  .ui.form .disabled.field,
+  .ui.form .field :disabled {
+    pointer-events: none;
+    opacity: @disabledOpacity;
+  }
+  .ui.form .field.disabled > label,
+  .ui.form .fields.disabled > label {
+    opacity: @disabledLabelOpacity;
+  }
+  .ui.form .field.disabled :disabled {
+    opacity: 1;
+  }
+}
+
+& when (@variationFormLoading) {
+  /*--------------
+      Loading
+  ---------------*/
+
+  .ui.loading.form {
+    position: relative;
+    cursor: default;
+    pointer-events: none;
+  }
+  .ui.loading.form:before {
+    position: absolute;
+    content: '';
+    top: 0;
+    left: 0;
+    background: @loaderDimmerColor;
+    width: 100%;
+    height: 100%;
+    z-index: @loaderDimmerZIndex;
+  }
+
+  .ui.loading.form.segments:before {
+    border-radius: @defaultBorderRadius;
+  }
+
+  .ui.loading.form:after {
+    position: absolute;
+    content: '';
+    top: 50%;
+    left: 50%;
+
+    margin: @loaderMargin;
+    width: @loaderSize;
+    height: @loaderSize;
+
+    animation: loader @loaderSpeed infinite linear;
+    border: @loaderLineWidth solid @loaderLineColor;
+    border-radius: @circularRadius;
+
+    box-shadow: 0 0 0 1px transparent;
+    visibility: visible;
+    z-index: @loaderLineZIndex;
+  }
+}
+
+/*******************************
+         Element Types
+*******************************/
+
+& when (@variationFormRequired) {
+  /*--------------------
+       Required Field
+  ---------------------*/
+
+  .ui.form .required.fields:not(.grouped) > .field > label:after,
+  .ui.form .required.fields.grouped > label:after,
+  .ui.form .required.field > label:after,
+  .ui.form .required.fields:not(.grouped) > .field > .checkbox:after,
+  .ui.form .required.field > .checkbox:after,
+  .ui.form label.required:after {
+    margin: @requiredMargin;
+    content: @requiredContent;
+    color: @requiredColor;
+  }
+
+  .ui.form .required.fields:not(.grouped) > .field > label:after,
+  .ui.form .required.fields.grouped > label:after,
+  .ui.form .required.field > label:after,
+  .ui.form label.required:after {
+    display: inline-block;
+    vertical-align: top;
+  }
+
+  .ui.form .required.fields:not(.grouped) > .field > .checkbox:after,
+  .ui.form .required.field > .checkbox:after {
+    position: absolute;
+    top: 0;
+    left: 100%;
+  }
+}
+
+
+/*******************************
+           Variations
+*******************************/
+
+& when (@variationFormInverted) {
+  /*--------------------
+      Inverted Colors
+  ---------------------*/
+
+  .ui.inverted.form label,
+  .ui.form .inverted.segment label,
+  .ui.form .inverted.segment .ui.checkbox label,
+  .ui.form .inverted.segment .ui.checkbox .box,
+  .ui.inverted.form .ui.checkbox label,
+  .ui.inverted.form .ui.checkbox .box,
+  .ui.inverted.form .inline.fields > label,
+  .ui.inverted.form .inline.fields .field > label,
+  .ui.inverted.form .inline.fields .field > p,
+  .ui.inverted.form .inline.field > label,
+  .ui.inverted.form .inline.field > p {
+    color: @invertedLabelColor;
+  }
+  .ui.inverted.loading.form {
+    color: @invertedLoaderLineColor;
+  }
+  .ui.inverted.loading.form:before {
+    background: @loaderInvertedDimmerColor;
+  }
+  /* Inverted Field */
+  .ui.inverted.form input:not([type]),
+  .ui.inverted.form input[type="date"],
+  .ui.inverted.form input[type="datetime-local"],
+  .ui.inverted.form input[type="email"],
+  .ui.inverted.form input[type="number"],
+  .ui.inverted.form input[type="password"],
+  .ui.inverted.form input[type="search"],
+  .ui.inverted.form input[type="tel"],
+  .ui.inverted.form input[type="time"],
+  .ui.inverted.form input[type="text"],
+  .ui.inverted.form input[type="file"],
+  .ui.inverted.form input[type="url"] {
+    background: @invertedInputBackground;
+    border-color: @invertedInputBorderColor;
+    color: @invertedInputColor;
+    box-shadow: @invertedInputBoxShadow;
+  }
+}
+
+& when (@variationFormGrouped) {
+  /*--------------------
+       Field Groups
+  ---------------------*/
+
+  /* Grouped Vertically */
+
+  .ui.form .grouped.fields {
+    display: block;
+    margin: @groupedMargin;
+  }
+
+  .ui.form .grouped.fields:last-child {
+    margin-bottom: 0;
+  }
+
+  .ui.form .grouped.fields > label {
+    margin: @groupedLabelMargin;
+    color: @groupedLabelColor;
+    font-size: @groupedLabelFontSize;
+    font-weight: @groupedLabelFontWeight;
+    text-transform: @groupedLabelTextTransform;
+  }
+
+  .ui.form .grouped.fields .field,
+  .ui.form .grouped.inline.fields .field {
+    display: block;
+    margin: @groupedFieldMargin;
+    padding: 0;
+  }
+}
+
+/*--------------------
+        Fields
+---------------------*/
+
+/* Split fields */
+.ui.form .fields {
+  display: flex;
+  flex-direction: row;
+  margin: @fieldsMargin;
+}
+.ui.form .fields > .field {
+  flex: 0 1 auto;
+  padding-left: (@gutterWidth / 2);
+  padding-right: (@gutterWidth / 2);
+}
+.ui.form .fields > .field:first-child {
+  border-left: none;
+  box-shadow: none;
+}
+
+/* Other Combinations */
+.ui.form .two.fields > .fields,
+.ui.form .two.fields > .field {
+  width: @twoColumn;
+}
+.ui.form .three.fields > .fields,
+.ui.form .three.fields > .field {
+  width: @threeColumn;
+}
+.ui.form .four.fields > .fields,
+.ui.form .four.fields > .field {
+  width: @fourColumn;
+}
+.ui.form .five.fields > .fields,
+.ui.form .five.fields > .field {
+  width: @fiveColumn;
+}
+.ui.form .six.fields > .fields,
+.ui.form .six.fields > .field {
+  width: @sixColumn;
+}
+.ui.form .seven.fields > .fields,
+.ui.form .seven.fields > .field {
+  width: @sevenColumn;
+}
+.ui.form .eight.fields > .fields,
+.ui.form .eight.fields > .field {
+  width: @eightColumn;
+}
+.ui.form .nine.fields > .fields,
+.ui.form .nine.fields > .field {
+  width: @nineColumn;
+}
+.ui.form .ten.fields > .fields,
+.ui.form .ten.fields > .field {
+  width: @tenColumn;
+}
+
+/* Swap to full width on mobile */
+@media only screen and (max-width : @largestMobileScreen) {
+  .ui.form .fields {
+    flex-wrap: wrap;
+  }
+
+  .ui[class*="equal width"].form:not(.unstackable) .fields > .field,
+  .ui.form:not(.unstackable) [class*="equal width"].fields:not(.unstackable) > .field,
+  .ui.form:not(.unstackable) .two.fields:not(.unstackable) > .fields,
+  .ui.form:not(.unstackable) .two.fields:not(.unstackable) > .field,
+  .ui.form:not(.unstackable) .three.fields:not(.unstackable) > .fields,
+  .ui.form:not(.unstackable) .three.fields:not(.unstackable) > .field,
+  .ui.form:not(.unstackable) .four.fields:not(.unstackable) > .fields,
+  .ui.form:not(.unstackable) .four.fields:not(.unstackable) > .field,
+  .ui.form:not(.unstackable) .five.fields:not(.unstackable) > .fields,
+  .ui.form:not(.unstackable) .five.fields:not(.unstackable) > .field,
+  .ui.form:not(.unstackable) .six.fields:not(.unstackable) > .fields,
+  .ui.form:not(.unstackable) .six.fields:not(.unstackable) > .field,
+  .ui.form:not(.unstackable) .seven.fields:not(.unstackable) > .fields,
+  .ui.form:not(.unstackable) .seven.fields:not(.unstackable) > .field,
+  .ui.form:not(.unstackable) .eight.fields:not(.unstackable) > .fields,
+  .ui.form:not(.unstackable) .eight.fields:not(.unstackable) > .field,
+  .ui.form:not(.unstackable) .nine.fields:not(.unstackable) > .fields,
+  .ui.form:not(.unstackable) .nine.fields:not(.unstackable) > .field,
+  .ui.form:not(.unstackable) .ten.fields:not(.unstackable) > .fields,
+  .ui.form:not(.unstackable) .ten.fields:not(.unstackable) > .field {
+    width: @oneColumn !important;
+    margin: 0 0 @rowDistance;
+  }
+}
+
+
+/* Sizing Combinations */
+.ui.form .fields .wide.field {
+  width: @oneWide;
+  padding-left: (@gutterWidth / 2);
+  padding-right: (@gutterWidth / 2);
+}
+
+.ui.form .one.wide.field {
+  width: @oneWide !important;
+}
+.ui.form .two.wide.field {
+  width: @twoWide !important;
+}
+.ui.form .three.wide.field {
+  width: @threeWide !important;
+}
+.ui.form .four.wide.field {
+  width: @fourWide !important;
+}
+.ui.form .five.wide.field {
+  width: @fiveWide !important;
+}
+.ui.form .six.wide.field {
+  width: @sixWide !important;
+}
+.ui.form .seven.wide.field {
+  width: @sevenWide !important;
+}
+.ui.form .eight.wide.field {
+  width: @eightWide !important;
+}
+.ui.form .nine.wide.field {
+  width: @nineWide !important;
+}
+.ui.form .ten.wide.field {
+  width: @tenWide !important;
+}
+.ui.form .eleven.wide.field {
+  width: @elevenWide !important;
+}
+.ui.form .twelve.wide.field {
+  width: @twelveWide !important;
+}
+.ui.form .thirteen.wide.field {
+  width: @thirteenWide !important;
+}
+.ui.form .fourteen.wide.field {
+  width: @fourteenWide !important;
+}
+.ui.form .fifteen.wide.field {
+  width: @fifteenWide !important;
+}
+.ui.form .sixteen.wide.field {
+  width: @sixteenWide !important;
+}
+
+/* Swap to full width on mobile */
+@media only screen and (max-width : @largestMobileScreen) {
+  .ui.form:not(.unstackable) .two.fields:not(.unstackable) > .fields,
+  .ui.form:not(.unstackable) .two.fields:not(.unstackable) > .field,
+  .ui.form:not(.unstackable) .three.fields:not(.unstackable) > .fields,
+  .ui.form:not(.unstackable) .three.fields:not(.unstackable) > .field,
+  .ui.form:not(.unstackable) .four.fields:not(.unstackable) > .fields,
+  .ui.form:not(.unstackable) .four.fields:not(.unstackable) > .field,
+  .ui.form:not(.unstackable) .five.fields:not(.unstackable) > .fields,
+  .ui.form:not(.unstackable) .five.fields:not(.unstackable) > .field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .two.wide.field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .three.wide.field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .four.wide.field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .five.wide.field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .six.wide.field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .seven.wide.field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .eight.wide.field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .nine.wide.field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .ten.wide.field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .eleven.wide.field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .twelve.wide.field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .thirteen.wide.field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .fourteen.wide.field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .fifteen.wide.field,
+  .ui.form:not(.unstackable) .fields:not(.unstackable) > .sixteen.wide.field {
+    width: @oneColumn !important;
+  }
+  .ui.form .fields {
+    margin-bottom: 0;
+  }
+}
+
+/*--------------------
+     Equal Width
+---------------------*/
+
+.ui[class*="equal width"].form .fields > .field,
+.ui.form [class*="equal width"].fields > .field {
+  width: 100%;
+  flex: 1 1 auto;
+}
+
+& when (@variationFormInline) {
+  /*--------------------
+      Inline Fields
+  ---------------------*/
+
+  .ui.form .inline.fields {
+    margin: @fieldMargin;
+    align-items: center;
+  }
+  .ui.form .inline.fields .field {
+    margin: 0;
+    padding: @inlineFieldsMargin;
+  }
+
+  /* Inline Label */
+  .ui.form .inline.fields > label,
+  .ui.form .inline.fields .field > label,
+  .ui.form .inline.fields .field > p,
+  .ui.form .inline.field > label,
+  .ui.form .inline.field > p {
+    display: inline-block;
+    width: auto;
+    margin-top: 0;
+    margin-bottom: 0;
+    vertical-align: baseline;
+    font-size: @inlineLabelFontSize;
+    font-weight: @inlineLabelFontWeight;
+    color: @inlineLabelColor;
+    text-transform: @inlineLabelTextTransform;
+  }
+
+  /* Grouped Inline Label */
+  .ui.form .inline.fields > label {
+    margin: @groupedInlineLabelMargin;
+  }
+
+  /* Inline Input */
+  .ui.form .inline.fields .field > input,
+  .ui.form .inline.fields .field > select,
+  .ui.form .inline.field > input,
+  .ui.form .inline.field > select {
+    display: inline-block;
+    width: auto;
+
+    margin-top: 0;
+    margin-bottom: 0;
+
+    vertical-align: middle;
+    font-size: @inlineInputSize;
+  }
+
+  /* Label */
+  .ui.form .inline.fields .field > :first-child,
+  .ui.form .inline.field > :first-child {
+    margin: 0 @inlineLabelDistance 0 0;
+  }
+  .ui.form .inline.fields .field > :only-child,
+  .ui.form .inline.field > :only-child {
+    margin: 0;
+  }
+
+  /* Wide */
+  .ui.form .inline.fields .wide.field {
+    display: flex;
+    align-items: center;
+  }
+  .ui.form .inline.fields .wide.field > input,
+  .ui.form .inline.fields .wide.field > select {
+    width: 100%;
+  }
+}
+
+
+/*--------------------
+        Sizes
+---------------------*/
+
+.ui.form,
+.ui.form .field .dropdown,
+.ui.form .field .dropdown .menu > .item {
+  font-size: @medium;
+}
+& when not (@variationFormSizes = false) {
+  each(@variationFormSizes, {
+    @s: @@value;
+    .ui.@{value}.form,
+    .ui.@{value}.form .field .dropdown,
+    .ui.@{value}.form .field .dropdown .menu > .item {
+      font-size: @s;
+    }
+  })
+}
+
+
+.loadUIOverrides();

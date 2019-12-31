@@ -1,0 +1,47 @@
+/*******************************
+             Rating
+*******************************/
+
+@margin: 0 @relativeMini;
+@whiteSpace: nowrap;
+@verticalAlign: baseline;
+
+@iconCursor: pointer;
+@iconWidth: 1.25em;
+@iconHeight: auto;
+@iconTransition:
+  opacity @defaultDuration @defaultEasing,
+  background @defaultDuration @defaultEasing,
+  text-shadow @defaultDuration @defaultEasing,
+  color @defaultDuration @defaultEasing
+;
+
+
+/*-------------------
+        Types
+--------------------*/
+
+/* Standard */
+@inactiveBackground: transparent;
+@inactiveColor: rgba(0, 0, 0, 0.15);
+
+@selectedBackground: @inactiveBackground;
+@selectedColor: @textColor;
+
+@activeBackground: @inactiveBackground;
+@activeColor: @darkTextColor;
+
+@shadowWidth: 1px;
+
+/*-------------------
+        States
+--------------------*/
+
+@interactiveActiveIconOpacity: 1;
+@interactiveSelectedIconOpacity: 1;
+
+/*-------------------
+      Variations
+--------------------*/
+
+@massive: 2rem;

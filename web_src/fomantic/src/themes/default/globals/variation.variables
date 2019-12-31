@@ -1,0 +1,538 @@
+/***********************************************************
+  Central element variation compilation enablers
+***********************************************************/
+
+/* General */
+@variationAllSizes: mini, tiny, small, large, big, huge, massive;
+
+/*******************************
+           Elements
+*******************************/
+
+/* Button */
+@variationButtonDisabled: true;
+@variationButtonAnimated: true;
+@variationButtonInverted: true;
+@variationButtonSocial: true;
+@variationButtonFloated: true;
+@variationButtonCompact: true;
+@variationButtonBasic: true;
+@variationButtonTertiary: true;
+@variationButtonLabeled: true;
+@variationButtonLabeledIcon: true;
+@variationButtonToggle: true;
+@variationButtonOr: true;
+@variationButtonAttached: true;
+@variationButtonFluid: true;
+@variationButtonCircular: true;
+@variationButtonGroups: true;
+@variationButtonSizes: @variationAllSizes;
+
+/* Container */
+@variationContainerGrid: true;
+@variationContainerRelaxed: true;
+@variationContainerText: true;
+@variationContainerFluid: true;
+@variationContainerAligned: true;
+@variationContainerJustified: true;
+
+/* Divider */
+@variationDividerInverted: true;
+@variationDividerHorizontal: true;
+@variationDividerVertical: true;
+@variationDividerIcon: true;
+@variationDividerHidden: true;
+@variationDividerFitted: true;
+@variationDividerClearing: true;
+@variationDividerSection: true;
+@variationDividerSizes: @variationAllSizes;
+
+/* Header */
+@variationHeaderDisabled: true;
+@variationHeaderInverted: true;
+@variationHeaderSub: true;
+@variationHeaderIcon: true;
+@variationHeaderAligned: true;
+@variationHeaderJustified: true;
+@variationHeaderFloated: true;
+@variationHeaderFitted: true;
+@variationHeaderDividing: true;
+@variationHeaderBlock: true;
+@variationHeaderAttached: true;
+@variationHeaderTags: h1, h2, h3, h4, h5, h6;
+@variationHeaderSizes: @variationAllSizes;
+
+/* Icon */
+@variationIconDisabled: true;
+@variationIconInverted: true;
+@variationIconLoading: true;
+@variationIconFitted: true;
+@variationIconLink: true;
+@variationIconCircular: true;
+@variationIconBordered: true;
+@variationIconRotated: true;
+@variationIconFlipped: true;
+@variationIconCorner: true;
+@variationIconGroups: true;
+@variationIconSizes: @variationAllSizes;
+
+/* Image */
+@variationImageDisabled: true;
+@variationImageCircular: true;
+@variationImageBordered: true;
+@variationImageRounded: true;
+@variationImageInline: true;
+@variationImageAligned: true;
+@variationImageFluid: true;
+@variationImageAvatar: true;
+@variationImageFloated: true;
+@variationImageSpaced: true;
+@variationImageCentered: true;
+@variationImageGroups: true;
+@variationImageSizes: @variationAllSizes;
+
+/* Input */
+@variationInputDisabled: true;
+@variationInputInverted: true;
+@variationInputStates: true;
+@variationInputTransparent: true;
+@variationInputCorner: true;
+@variationInputLoading: true;
+@variationInputIcon: true;
+@variationInputLabeled: true;
+@variationInputAction: true;
+@variationInputFluid: true;
+@variationInputSizes: @variationAllSizes;
+
+/* Label */
+@variationLabelDisabled: true;
+@variationLabelInverted: true;
+@variationLabelImage: true;
+@variationLabelTag: true;
+@variationLabelCorner: true;
+@variationLabelRibbon: true;
+@variationLabelCircular: true;
+@variationLabelPointing: true;
+@variationLabelFloating: true;
+@variationLabelBasic: true;
+@variationLabelAttached: true;
+@variationLabelFluid: true;
+@variationLabelSizes: @variationAllSizes;
+
+/* List */
+@variationListInverted: true;
+@variationListDisabled: true;
+@variationListBulleted: true;
+@variationListOrdered: true;
+@variationListIcon: true;
+@variationListImage: true;
+@variationListFloated: true;
+@variationListLink: true;
+@variationListAligned: true;
+@variationListFitted: true;
+@variationListAnimated: true;
+@variationListHorizontal: true;
+@variationListSuffixed: true;
+@variationListSelection: true;
+@variationListDivided: true;
+@variationListCelled: true;
+@variationListRelaxed: true;
+@variationListSizes: @variationAllSizes;
+
+/* Loader */
+@variationLoaderSpeeds: true;
+@variationLoaderIndeterminate: true;
+@variationLoaderText: true;
+@variationLoaderInline: true;
+@variationLoaderElastic: true;
+@variationLoaderSizes: @variationAllSizes;
+
+/* Placeholder */
+@variationPlaceholderInverted: true;
+@variationPlaceholderImage: true;
+@variationPlaceholderLine: true;
+@variationPlaceholderHeader: true;
+@variationPlaceholderFluid: true;
+@variationPlaceholderLengths: true;
+
+/* Rail */
+@variationRailInternal: true;
+@variationRailDividing: true;
+@variationRailDistance: true;
+@variationRailAttached: true;
+@variationRailSizes: @variationAllSizes;
+
+/* Reveal */
+@variationRevealDisabled: true;
+@variationRevealSlide: true;
+@variationRevealFade: true;
+@variationRevealMove: true;
+@variationRevealRotate: true;
+@variationRevealSizes: @variationAllSizes;
+
+/* Segment */
+@variationSegmentInverted: true;
+@variationSegmentDisabled: true;
+@variationSegmentVertical: true;
+@variationSegmentPlaceholder: true;
+@variationSegmentHorizontal: true;
+@variationSegmentPiled: true;
+@variationSegmentStacked: true;
+@variationSegmentPadded: true;
+@variationSegmentCircular: true;
+@variationSegmentCompact: true;
+@variationSegmentRaised: true;
+@variationSegmentGroups: true;
+@variationSegmentBasic: true;
+@variationSegmentClearing: true;
+@variationSegmentLoading: true;
+@variationSegmentFloating: true;
+@variationSegmentAligned: true;
+@variationSegmentSecondary: true;
+@variationSegmentTertiary: true;
+@variationSegmentAttached: true;
+@variationSegmentFitted: true;
+@variationSegmentSizes: @variationAllSizes;
+
+/* Step */
+@variationStepInverted: true;
+@variationStepDisabled: true;
+@variationStepStackable: true;
+@variationStepVertical: true;
+@variationStepOrdered: true;
+@variationStepFluid: true;
+@variationStepAttached: true;
+@variationStepSizes: @variationAllSizes;
+
+/* Text */
+@variationTextInverted: true;
+@variationTextDisabled: true;
+@variationTextSizes: @variationAllSizes;
+
+
+/*******************************
+           Collections
+*******************************/
+
+/* Breadcrumb */
+@variationBreadcrumbInverted: true;
+@variationBreadcrumbSizes: @variationAllSizes;
+
+/* Form */
+@variationFormInverted: true;
+@variationFormDisabled: true;
+@variationFormTransparent: true;
+@variationFormLoading: true;
+@variationFormStates: true;
+@variationFormRequired: true;
+@variationFormInline: true;
+@variationFormGrouped: true;
+@variationFormSizes: @variationAllSizes;
+
+/* Grid */
+@variationGridInverted: true;
+@variationGridPage: true;
+@variationGridCelled: true;
+@variationGridCentered: true;
+@variationGridRelaxed: true;
+@variationGridPadded: true;
+@variationGridFloated: true;
+@variationGridDivided: true;
+@variationGridAligned: true;
+@variationGridStretched: true;
+@variationGridJustified: true;
+@variationGridReversed: true;
+@variationGridDoubling: true;
+@variationGridStackable: true;
+@variationGridCompact: true;
+
+/* Menu */
+@variationMenuInverted: true;
+@variationMenuSecondary: true;
+@variationMenuPointing: true;
+@variationMenuVertical: true;
+@variationMenuTabular: true;
+@variationMenuPagination: true;
+@variationMenuText: true;
+@variationMenuFluid: true;
+@variationMenuLabeled: true;
+@variationMenuStackable: true;
+@variationMenuFloated: true;
+@variationMenuFitted: true;
+@variationMenuBorderless: true;
+@variationMenuCompact: true;
+@variationMenuFixed: true;
+@variationMenuAttached: true;
+@variationMenuSizes: @variationAllSizes;
+
+/* Message */
+@variationMessageInverted: true;
+@variationMessageCompact: true;
+@variationMessageAttached: true;
+@variationMessageIcon: true;
+@variationMessageFloating: true;
+@variationMessageConsequences: true;
+@variationMessageSizes: @variationAllSizes;
+
+/* Table */
+@variationTableInverted: true;
+@variationTableDisabled: true;
+@variationTableDefinition: true;
+@variationTableStructured: true;
+@variationTablePositive: true;
+@variationTableNegative: true;
+@variationTableError: true;
+@variationTableWarning: true;
+@variationTableActive: true;
+@variationTableStackable: true;
+@variationTableAligned: true;
+@variationTableFixed: true;
+@variationTableSelectable: true;
+@variationTableAttached: true;
+@variationTableStriped: true;
+@variationTableSortable: true;
+@variationTableCollapsing: true;
+@variationTableBasic: true;
+@variationTableCelled: true;
+@variationTablePadded: true;
+@variationTableCompact: true;
+@variationTableMarked: true;
+@variationTableSizes: @variationAllSizes;
+
+
+/*******************************
+             Views
+*******************************/
+
+/* Ad */
+@variationAdLeaderboard: true;
+@variationAdBillboard: true;
+@variationAdPanorama: true;
+@variationAdNetboard: true;
+@variationAdRectangle: true;
+@variationAdSquare: true;
+@variationAdButton: true;
+@variationAdSkyscraper: true;
+@variationAdBanner: true;
+@variationAdMobile: true;
+@variationAdCentered: true;
+@variationAdTest: true;
+
+/* Card */
+@variationCardInverted: true;
+@variationCardHorizontal: true;
+@variationCardRaised: true;
+@variationCardCentered: true;
+@variationCardFluid: true;
+@variationCardLink: true;
+@variationCardDoubling: true;
+@variationCardStackable: true;
+@variationCardSizes: @variationAllSizes;
+
+/* Comment */
+@variationCommentInverted: true;
+@variationCommentThreaded: true;
+@variationCommentMinimal: true;
+@variationCommentSizes: @variationAllSizes;
+
+/* Feed */
+@variationFeedInverted: true;
+@variationFeedSizes: @variationAllSizes;
+
+/* Item */
+@variationItemInverted: true;
+@variationItemAligned: true;
+@variationItemRelaxed: true;
+@variationItemDivided: true;
+@variationItemLink: true;
+@variationItemUnstackable: true;
+@variationItemSizes: @variationAllSizes;
+
+/* Statistic */
+@variationStatisticInverted: true;
+@variationStatisticStackable: true;
+@variationStatisticFloated: true;
+@variationStatisticHorizontal: true;
+@variationStatisticSizes: @variationAllSizes;
+
+
+/*******************************
+            Modules
+*******************************/
+
+/* Accordion */
+@variationAccordionInverted: true;
+@variationAccordionStyled: true;
+@variationAccordionFluid: true;
+
+/* Calendar */
+@variationCalendarDisabled: true;
+
+/* Checkbox */
+@variationCheckboxBox: false;   //.box (instead of label) is an ancient fragment of sui v1 and not even documented in v2.x anymore
+@variationCheckboxDisabled: true;
+@variationCheckboxInverted: true;
+@variationCheckboxRadio: true;
+@variationCheckboxSlider: true;
+@variationCheckboxToggle: true;
+@variationCheckboxIndeterminate: true;
+@variationCheckboxFitted: true;
+@variationCheckboxSizes: @variationAllSizes;
+
+/* Dimmer */
+@variationDimmerInverted: true;
+@variationDimmerDisabled: true;
+@variationDimmerLegacy: true;
+@variationDimmerAligned: true;
+@variationDimmerPage: true;
+@variationDimmerBlurring: true;
+@variationDimmerShades: true;
+@variationDimmerSimple: true;
+@variationDimmerPartially: true;
+
+/* Dropdown */
+@variationDropdownInverted: true;
+@variationDropdownDisabled: true;
+@variationDropdownLabel: true;
+@variationDropdownButton: true;
+@variationDropdownSelection: true;
+@variationDropdownShort: true;
+@variationDropdownLong: true;
+@variationDropdownCompact: true;
+@variationDropdownSearch: true;
+@variationDropdownMultiple: true;
+@variationDropdownInline: true;
+@variationDropdownLoading: true;
+@variationDropdownStates: true;
+@variationDropdownClear: true;
+@variationDropdownLeft: true;
+@variationDropdownUpward: true;
+@variationDropdownSimple: true;
+@variationDropdownScrolling: true;
+@variationDropdownFluid: true;
+@variationDropdownFloating: true;
+@variationDropdownPointing: true;
+@variationDropdownSizes: @variationAllSizes;
+
+/* Embed */
+@variationEmbedRatio: true;
+
+/* Modal */
+@variationModalInverted: true;
+@variationModalBasic: true;
+@variationModalFullscreen: true;
+@variationModalOverlay: true;
+@variationModalAligned: true;
+@variationModalScrolling: true;
+@variationModalLegacy: true;
+@variationModalCloseInside: true;
+@variationModalSizes: @variationAllSizes;
+
+/* Popup */
+@variationPopupInverted: true;
+@variationPopupTooltip: true;
+@variationPopupPosition: true;
+@variationPopupTop: true;
+@variationPopupBottom: true;
+@variationPopupLeft: true;
+@variationPopupRight: true;
+@variationPopupCenter: true;
+@variationPopupLoading: true;
+@variationPopupBasic: true;
+@variationPopupWide: true;
+@variationPopupFluid: true;
+@variationPopupFlowing: true;
+@variationPopupFixed: true;
+@variationPopupSizes: @variationAllSizes;
+
+/* Progress */
+@variationProgressInverted: true;
+@variationProgressDisabled: true;
+@variationProgressIndicating: true;
+@variationProgressIndeterminate: true;
+@variationProgressSliding: true;
+@variationProgressFilling: true;
+@variationProgressSwinging: true;
+@variationProgressMultiple: true;
+@variationProgressSuccess: true;
+@variationProgressWarning: true;
+@variationProgressError: true;
+@variationProgressActive: true;
+@variationProgressAttached: true;
+@variationProgressSpeeds: true;
+@variationProgressSizes: @variationAllSizes;
+
+/* Rating */
+@variationRatingDisabled: true;
+@variationRatingSizes: @variationAllSizes;
+
+/* Search */
+@variationSearchDisabled: true;
+@variationSearchSelection: true;
+@variationSearchCategory: true;
+@variationSearchLoading: true;
+@variationSearchAligned: true;
+@variationSearchFluid: true;
+@variationSearchSizes: @variationAllSizes;
+
+/* Shape */
+@variationShapeCube: true;
+@variationShapeText: true;
+@variationShapeLoading: true;
+
+/* Sidebar */
+@variationSidebarThin: true;
+@variationSidebarWide: true;
+@variationSidebarTop: true;
+@variationSidebarBottom: true;
+@variationSidebarLeft: true;
+@variationSidebarRight: true;
+@variationSidebarOverlay: true;
+@variationSidebarSlideAlong: true;
+@variationSidebarSlideOut: true;
+@variationSidebarScale: true;
+@variationSidebarPush: true;
+@variationSidebarUncover: true;
+
+/* Slider */
+@variationSliderInverted: true;
+@variationSliderDisabled: true;
+@variationSliderReversed: true;
+@variationSliderLabeled: true;
+@variationSliderTicked: true;
+@variationSliderVertical: true;
+@variationSliderBasic: true;
+@variationSliderSizes: small, large, big;
+
+/* Tab */
+@variationTabLoading: true;
+
+/* Toast */
+@variationToastInverted: true;
+@variationToastTop: true;
+@variationToastBottom: true;
+@variationToastLeft: true;
+@variationToastRight: true;
+@variationToastCenter: true;
+@variationToastInfo: true;
+@variationToastWarning: true;
+@variationToastSuccess: true;
+@variationToastError: true;
+@variationToastFloating: true;
+@variationToastProgress: true;
+@variationToastIcon: true;
+@variationToastClose: true;
+@variationToastImage: true;
+@variationToastMessage: true;
+@variationToastCard: true;
+@variationToastActions: true;
+@variationToastVertical: true;
+@variationToastAttached: true;
+
+/* Loading */
+@variationTransitionDisabled: true;
+@variationTransitionLoading: true;
+
+/* Emojis */
+@variationEmojiColons: true;
+@variationEmojiNoColons: true;

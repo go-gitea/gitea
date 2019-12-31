@@ -1,0 +1,129 @@
+/*******************************
+            Progress
+*******************************/
+
+/*-------------------
+       Element
+--------------------*/
+
+@verticalSpacing: 1em;
+@margin: @verticalSpacing 0 (@labelHeight + @verticalSpacing);
+@firstMargin: 0 0 (@labelHeight + @verticalSpacing);
+@lastMargin: 0 0 (@labelHeight);
+
+@background: @strongTransparentBlack;
+@border: none;
+@boxShadow: none;
+@padding: 0;
+@borderRadius: @defaultBorderRadius;
+
+/* Bar */
+@barPosition: relative;
+@barHeight: 1.75em;
+@barBackground: #888888;
+@barBorderRadius: @borderRadius;
+@barTransitionEasing: @defaultEasing;
+@barTransitionDuration: @defaultDuration;
+@barTransition:
+  width @barTransitionDuration @barTransitionEasing,
+  background-color @barTransitionDuration @barTransitionEasing
+;
+@barInitialWidth: 0;
+@barMinWidth: 2em;
+
+/* Progress Bar Label */
+@progressWidth: auto;
+@progressSize: @relativeSmall;
+@progressPosition: absolute;
+@progressTop: 50%;
+@progressRight: 0.5em;
+@progressLeft: auto;
+@progressBottom: auto;
+@progressOffset: -0.5em;
+@progressColor: @invertedLightTextColor;
+@progressTextShadow: none;
+@progressFontWeight: @bold;
+@progressTextAlign: left;
+
+/* Label */
+@labelWidth: 100%;
+@labelHeight: 1.5em;
+@labelSize: 1em;
+@labelPosition: absolute;
+@labelTop: 100%;
+@labelLeft: 0;
+@labelRight: auto;
+@labelBottom: auto;
+@labelOffset: (@labelHeight - 1.3em);
+@labelColor: @textColor;
+@labelTextShadow: none;
+@labelFontWeight: @bold;
+@labelTextAlign: center;
+@labelTransition: color 0.4s @defaultEasing;
+
+/*-------------------
+        Types
+--------------------*/
+
+@indicatingFirstColor: #D95C5C;
+@indicatingSecondColor: #EFBC72;
+@indicatingThirdColor: #E6BB48;
+@indicatingFourthColor: #DDC928;
+@indicatingFifthColor: #B4D95C;
+@indicatingSixthColor: #66DA81;
+
+@indicatingFirstLabelColor: @textColor;
+@indicatingSecondLabelColor: @textColor;
+@indicatingThirdLabelColor: @textColor;
+@indicatingFourthLabelColor: @textColor;
+@indicatingFifthLabelColor: @textColor;
+@indicatingSixthLabelColor: @textColor;
+
+@invertedIndicatingFirstLabelColor: @invertedTextColor;
+@invertedIndicatingSecondLabelColor: @invertedTextColor;
+@invertedIndicatingThirdLabelColor: @invertedTextColor;
+@invertedIndicatingFourthLabelColor: @invertedTextColor;
+@invertedIndicatingFifthLabelColor: @invertedTextColor;
+@invertedIndicatingSixthLabelColor: @invertedTextColor;
+
+/*-------------------
+        States
+--------------------*/
+
+/* Active */
+@activePulseColor: @white;
+@activePulseMaxOpacity: 0.3;
+@activePulseDuration: 2s;
+@activeMinWidth: @barMinWidth;
+
+
+/*-------------------
+      Variations
+--------------------*/
+
+/* Attached */
+@attachedBackground: transparent;
+@attachedHeight: 0.2rem;
+@attachedBorderRadius: @borderRadius;
+
+/* Inverted */
+@invertedBackground: @transparentWhite;
+@invertedBorder: none;
+@invertedBarBackground: @barBackground;
+@invertedProgressColor: @black;
+@invertedLabelColor: @white;
+
+/* Sizing */
+@miniBarHeight: 0.3em;
+@tinyBarHeight: 0.5em;
+@smallBarHeight: 1em;
+@largeBarHeight: 2.5em;
+@bigBarHeight: 3.5em;
+@hugeBarHeight: 4em;
+@massiveBarHeight: 5em;
+
+/* Indeterminate */
+@indeterminatePulseColor: @white;
+@indeterminatePulseDuration: @activePulseDuration;
+@indeterminatePulseDurationSlow: 4s;
+@indeterminatePulseDurationFast: 1s;

@@ -1,0 +1,29 @@
+/* Checkbox */
+@checkboxActiveBackground: @primaryColor;
+@checkboxActiveBorderColor: @primaryColor;
+@checkboxActiveCheckColor: @white;
+
+@checkboxActiveFocusBackground: @primaryColorFocus;
+@checkboxActiveFocusBorderColor: @primaryColorFocus;
+@checkboxActiveFocusCheckColor: @white;
+
+@checkboxTransition: none;
+
+/* Radio */
+@radioActiveBackground: @white;
+@radioActiveBorderColor: @primaryColor;
+@radioActiveBulletColor: @primaryColor;
+
+@radioActiveFocusBackground: @white;
+@radioActiveFocusBorderColor: @primaryColorFocus;
+@radioActiveFocusBulletColor: @primaryColorFocus;
+
+/* Slider */
+@sliderOnLineColor: @primaryColor;
+@sliderOnFocusLineColor: @primaryColorFocus;
+
+/* Handle */
+@handleBackground: @white @subtleGradient;
+@handleBoxShadow:
+  0px 0px 0px 1px @selectedBorderColor inset
+;

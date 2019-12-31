@@ -1,0 +1,74 @@
+/*******************************
+             Form
+*******************************/
+
+/*-------------------
+       Elements
+--------------------*/
+
+
+/* Text */
+@paragraphMargin: 1em 0em;
+
+/* Field */
+@fieldMargin: 0em 0em 1em;
+
+/* Form Label */
+@labelFontSize: @relative11px;
+@labelTextTransform: uppercase;
+
+@groupedLabelTextTransform: none;
+
+/* Input */
+@inputHorizontalPadding: 0.5em;
+@inputBackground: transparent;
+@inputBorder: none;
+@inputBorderRadius: 0em;
+@inputBoxShadow: none;
+@invertedInputColor: @invertedTextColor;
+
+@textAreaPadding: 1em;
+@textAreaBackground: transparent;
+@textAreaFocusBackground: #EEEEEE;
+@textAreaBorder: 1px solid #DDDDDD;
+
+/* Divider */
+@dividerMargin: 1em 0em;
+
+/* Validation Prompt */
+@validationMargin: 0em 0em 0em 1em;
+@validationArrowOffset: -0.3em;
+
+/*-------------------
+        States
+--------------------*/
+
+/* Disabled */
+
+/* Focus */
+@inputFocusPointerSize: 0px;
+@inputErrorPointerSize: 0px;
+
+/* Dropdown Error */
+@dropdownErrorHoverBackground: #FFF2F2;
+@dropdownErrorActiveBackground: #FDCFCF;
+
+/* Focused Error */
+@inputErrorFocusBackground: @negativeBackgroundColor;
+@inputErrorFocusColor: @negativeColorHover;
+@inputErrorFocusBorder: @negativeBorderColor;
+@inputErrorFocusBoxShadow: @inputErrorPointerSize 0em 0em 0em @negativeColorHover inset;
+
+/* Placeholder */
+@inputPlaceholderColor: lighten(@inputColor, 55);
+@inputPlaceholderFocusColor: lighten(@inputColor, 35);
+@inputErrorPlaceholderColor: lighten(@formErrorColor, 10);
+@inputErrorPlaceholderFocusColor: lighten(@formErrorColor, 5);
+
+/* Loading */
+@formLoaderDimmerColor: rgba(255, 255, 255, 0.6);
+@formLoaderPath: "@{imagePath}/loader-large.gif";
+@formLoaderPosition: 50% 50%;
+
+/* (x) Wide Field */
+@gutterWidth: 1.5em;

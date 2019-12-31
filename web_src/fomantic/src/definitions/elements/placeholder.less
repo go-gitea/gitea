@@ -1,0 +1,248 @@
+/*!
+ * # Fomantic-UI - Loader
+ * http://github.com/fomantic/Fomantic-UI/
+ *
+ *
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ *
+ */
+/*******************************
+            Theme
+*******************************/
+
+@type    : 'element';
+@element : 'placeholder';
+
+@import (multiple) '../../theme.config';
+
+/*-------------------
+      Content
+--------------------*/
+
+.ui.placeholder {
+  position: static;
+  overflow: hidden;
+  animation: placeholderShimmer @placeholderLoadingAnimationDuration linear;
+  animation-iteration-count: infinite;
+  background-color: @white;
+  background-image: @placeholderLoadingGradient;
+  background-size: @placeholderLoadingGradientWidth 100%;
+  max-width: @placeholderMaxWidth;
+}
+
+@keyframes placeholderShimmer{
+  0% {
+    background-position: -@placeholderLoadingGradientWidth 0
+  }
+  100% {
+    background-position: @placeholderLoadingGradientWidth 0
+  }
+}
+
+.ui.placeholder + .ui.placeholder {
+  margin-top: @consecutivePlaceholderSpacing;
+}
+.ui.placeholder + .ui.placeholder {
+  animation-delay: @placeholderAnimationInterval;
+}
+.ui.placeholder + .ui.placeholder + .ui.placeholder {
+  animation-delay: (@placeholderAnimationInterval * 2);
+}
+.ui.placeholder + .ui.placeholder + .ui.placeholder + .ui.placeholder {
+  animation-delay: (@placeholderAnimationInterval * 3);
+}
+.ui.placeholder + .ui.placeholder + .ui.placeholder + .ui.placeholder + .ui.placeholder {
+  animation-delay: (@placeholderAnimationInterval * 4);
+}
+
+.ui.placeholder,
+.ui.placeholder > :before,
+.ui.placeholder .image.header:after,
+.ui.placeholder .line,
+.ui.placeholder .line:after {
+  background-color: @white;
+}
+
+.ui.placeholder.hidden {
+  display:none;
+}
+
+& when (@variationPlaceholderImage) {
+  /* Image */
+  .ui.placeholder .image:not(.header):not(.ui):not(.icon) {
+    height: @placeholderImageHeight;
+  }
+  .ui.placeholder .square.image:not(.header) {
+    height: 0;
+    overflow: hidden;
+    /* 1/1 aspect ratio */
+    padding-top: 100%;
+  }
+  .ui.placeholder .rectangular.image:not(.header) {
+    height: 0;
+    overflow: hidden;
+    /* 4/3 aspect ratio */
+    padding-top: 75%;
+  }
+}
+
+& when (@variationPlaceholderLine) or (@variationPlaceholderHeader) {
+  /* Lines */
+  .ui.placeholder .line {
+    position: relative;
+    height: @placeholderLineMargin;
+  }
+  .ui.placeholder .line:before,
+  .ui.placeholder .line:after {
+    top: 100%;
+    position: absolute;
+    content: '';
+    background-color: inherit;
+  }
+  .ui.placeholder .line:before {
+    left: 0;
+  }
+  .ui.placeholder .line:after {
+    right: 0;
+  }
+
+  /* Any Lines */
+  .ui.placeholder .line {
+    margin-bottom: @placeholderLineHeight;
+  }
+  .ui.placeholder .line:before,
+  .ui.placeholder .line:after {
+    height: @placeholderLineHeight;
+  }
+  .ui.placeholder .line:not(:first-child) {
+    margin-top: @placeholderLineHeight;
+  }
+
+  /* Line Outdent */
+  .ui.placeholder .line:nth-child(1):after {
+    width: @placeholderLineOneOutdent;
+  }
+  .ui.placeholder .line:nth-child(2):after {
+    width: @placeholderLineTwoOutdent;
+  }
+  .ui.placeholder .line:nth-child(3):after {
+    width: @placeholderLineThreeOutdent;
+  }
+  .ui.placeholder .line:nth-child(4):after {
+    width: @placeholderLineFourOutdent;
+  }
+  .ui.placeholder .line:nth-child(5):after {
+    width: @placeholderLineFiveOutdent;
+  }
+}
+
+& when (@variationPlaceholderHeader) {
+  /* Header Image + 2 Lines */
+  .ui.placeholder .header {
+    position: relative;
+    overflow: hidden;
+  }
+  /* Header Line 1 & 2*/
+  .ui.placeholder .header .line {
+    margin-bottom: @placeholderHeaderLineHeight;
+  }
+  .ui.placeholder .header .line:before,
+  .ui.placeholder .header .line:after {
+    height: @placeholderHeaderLineHeight;
+  }
+  .ui.placeholder .header .line:not(:first-child) {
+    margin-top: @placeholderHeaderLineHeight;
+  }
+  .ui.placeholder .header .line:after {
+    width: @placeholderHeaderLineOneOutdent;
+  }
+  .ui.placeholder .header .line:nth-child(2):after {
+    width: @placeholderHeaderLineTwoOutdent;
+  }
+
+  & when (@variationPlaceholderImage) {
+    /* Image Header */
+    .ui.placeholder .image.header .line {
+      margin-left: @placeholderImageWidth;
+    }
+    .ui.placeholder .image.header .line:before {
+      width: @placeholderImageTextIndent;
+    }
+    .ui.placeholder .image.header:after {
+      display: block;
+      height: @placeholderLineMargin;
+      content: '';
+      margin-left: @placeholderImageWidth;
+    }
+  }
+}
+
+/* Spacing */
+.ui.placeholder .image .line:first-child,
+.ui.placeholder .paragraph .line:first-child,
+.ui.placeholder .header .line:first-child {
+  height: 0.01px;
+}
+.ui.placeholder .image:not(:first-child):before,
+.ui.placeholder .paragraph:not(:first-child):before,
+.ui.placeholder .header:not(:first-child):before {
+  height: @placeholderSpacing;
+  content: '';
+  display: block;
+}
+
+& when (@variationPlaceholderInverted) {
+  /* Inverted Content Loader */
+  .ui.inverted.placeholder {
+    background-image: @placeholderInvertedLoadingGradient;
+  }
+  .ui.inverted.placeholder,
+  .ui.inverted.placeholder > :before,
+  .ui.inverted.placeholder .image.header:after,
+  .ui.inverted.placeholder .line,
+  .ui.inverted.placeholder .line:after {
+    background-color: @black;
+  }
+}
+
+/*******************************
+            Variations
+*******************************/
+
+
+/*-------------------
+        Sizes
+--------------------*/
+& when (@variationPlaceholderLengths) {
+  .ui.placeholder .full.line.line.line:after {
+    width: @placeholderFullLineOutdent;
+  }
+  .ui.placeholder .very.long.line.line.line:after {
+    width: @placeholderVeryLongLineOutdent;
+  }
+  .ui.placeholder .long.line.line.line:after {
+    width: @placeholderLongLineOutdent;
+  }
+  .ui.placeholder .medium.line.line.line:after {
+    width: @placeholderMediumLineOutdent;
+  }
+  .ui.placeholder .short.line.line.line:after {
+    width: @placeholderShortLineOutdent;
+  }
+  .ui.placeholder .very.short.line.line.line:after {
+    width: @placeholderVeryShortLineOutdent;
+  }
+}
+
+& when (@variationPlaceholderFluid) {
+  /*-------------------
+          Fluid
+  --------------------*/
+
+  .ui.fluid.placeholder {
+    max-width: none;
+  }
+}
+
+.loadUIOverrides();

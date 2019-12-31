@@ -1,0 +1,32 @@
+/*******************************
+            Input
+*******************************/
+
+/* Labeled Input has padding */
+.ui.labeled.input {
+  background-color: @white;
+  border: @borderWidth solid @borderColor;
+  border-radius: @borderRadius !important;
+}
+.ui.labeled.input input {
+  box-shadow: none !important;
+  border: none !important;
+}
+.ui.labeled.input .label {
+  font-weight: normal;
+  align-self: center;
+  font-size: 12px;
+  margin: @2px;
+  border-radius: @borderRadius !important;
+  padding: @relative5px @relative8px !important;
+}
+
+/* GitHub Uses Focus Group with class name added */
+.ui.labeled.input.focused {
+  border-color: @focusBorderColor;
+  box-shadow: @focusBoxShadow;
+}
+.ui.labeled.input.focused .label {
+  background-color: #E1EAF5;
+  color: #4078C0;
+}

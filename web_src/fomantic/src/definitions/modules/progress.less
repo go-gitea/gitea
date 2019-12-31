@@ -1,0 +1,618 @@
+/*!
+ * # Fomantic-UI - Progress Bar
+ * http://github.com/fomantic/Fomantic-UI/
+ *
+ *
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ *
+ */
+
+
+/*******************************
+            Theme
+*******************************/
+
+@type    : 'module';
+@element : 'progress';
+
+@import (multiple) '../../theme.config';
+
+/*******************************
+            Progress
+*******************************/
+
+.ui.progress {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  border: @border;
+  margin: @margin;
+  box-shadow: @boxShadow;
+  background: @background;
+  padding: @padding;
+  border-radius: @borderRadius;
+}
+
+.ui.progress:first-child {
+  margin: @firstMargin;
+}
+.ui.progress:last-child {
+  margin: @lastMargin;
+}
+
+/*******************************
+            Content
+*******************************/
+
+/* Activity Bar */
+.ui.progress .bar {
+  display: block;
+  line-height: 1;
+  position: @barPosition;
+  width: @barInitialWidth;
+  min-width: @barMinWidth;
+  background: @barBackground;
+  border-radius: @barBorderRadius;
+  transition: @barTransition;
+  overflow: hidden;
+}
+.ui.ui.ui.progress:not([data-percent]):not(.indeterminate) .bar,
+.ui.ui.ui.progress[data-percent="0"]:not(.indeterminate) .bar {
+  background:transparent;
+}
+.ui.progress[data-percent="0"] .bar .progress {
+  color: @textColor;
+}
+& when (@variationProgressInverted) {
+  .ui.inverted.progress[data-percent="0"] .bar .progress {
+    color: @invertedTextColor;
+  }
+}
+
+/* Percent Complete */
+.ui.progress .bar > .progress {
+  white-space: nowrap;
+  position: @progressPosition;
+  width: @progressWidth;
+  font-size: @progressSize;
+  top: @progressTop;
+  right: @progressRight;
+  left: @progressLeft;
+  bottom: @progressBottom;
+  color: @progressColor;
+  text-shadow: @progressTextShadow;
+  margin-top: @progressOffset;
+  font-weight: @progressFontWeight;
+  text-align: @progressTextAlign;
+}
+
+/* Label */
+.ui.progress > .label {
+  position: absolute;
+  width: @labelWidth;
+  font-size: @labelSize;
+  top: @labelTop;
+  right: @labelRight;
+  left: @labelLeft;
+  bottom: @labelBottom;
+  color: @labelColor;
+  font-weight: @labelFontWeight;
+  text-shadow: @labelTextShadow;
+  margin-top: @labelOffset;
+  text-align: @labelTextAlign;
+  transition: @labelTransition;
+}
+
+
+/*******************************
+            Types
+*******************************/
+
+& when (@variationProgressIndicating) {
+  /* Indicating */
+  .ui.indicating.progress[data-percent^="1"] .bar,
+  .ui.indicating.progress[data-percent^="2"] .bar {
+    background-color: @indicatingFirstColor;
+  }
+  .ui.indicating.progress[data-percent^="3"] .bar {
+    background-color: @indicatingSecondColor;
+  }
+  .ui.indicating.progress[data-percent^="4"] .bar,
+  .ui.indicating.progress[data-percent^="5"] .bar {
+    background-color: @indicatingThirdColor;
+  }
+  .ui.indicating.progress[data-percent^="6"] .bar {
+    background-color: @indicatingFourthColor;
+  }
+  .ui.indicating.progress[data-percent^="7"] .bar,
+  .ui.indicating.progress[data-percent^="8"] .bar {
+    background-color: @indicatingFifthColor;
+  }
+  .ui.indicating.progress[data-percent^="9"] .bar,
+  .ui.indicating.progress[data-percent^="100"] .bar {
+    background-color: @indicatingSixthColor;
+  }
+
+  /* Indicating Label */
+  .ui.indicating.progress[data-percent^="1"] .label,
+  .ui.indicating.progress[data-percent^="2"] .label {
+    color: @indicatingFirstLabelColor;
+  }
+  .ui.indicating.progress[data-percent^="3"] .label {
+    color: @indicatingSecondLabelColor;
+  }
+  .ui.indicating.progress[data-percent^="4"] .label,
+  .ui.indicating.progress[data-percent^="5"] .label {
+    color: @indicatingThirdLabelColor;
+  }
+  .ui.indicating.progress[data-percent^="6"] .label {
+    color: @indicatingFourthLabelColor;
+  }
+  .ui.indicating.progress[data-percent^="7"] .label,
+  .ui.indicating.progress[data-percent^="8"] .label {
+    color: @indicatingFifthLabelColor;
+  }
+  .ui.indicating.progress[data-percent^="9"] .label,
+  .ui.indicating.progress[data-percent^="100"] .label {
+    color: @indicatingSixthLabelColor;
+  }
+
+  & when (@variationProgressInverted) {
+    /* Inverted Indicating Label */
+    .ui.inverted.indicating.progress[data-percent^="1"] .label,
+    .ui.inverted.indicating.progress[data-percent^="2"] .label {
+      color: @invertedIndicatingFirstLabelColor;
+    }
+    .ui.inverted.indicating.progress[data-percent^="3"] .label {
+      color: @invertedIndicatingSecondLabelColor;
+    }
+    .ui.inverted.indicating.progress[data-percent^="4"] .label,
+    .ui.inverted.indicating.progress[data-percent^="5"] .label {
+      color: @invertedIndicatingThirdLabelColor;
+    }
+    .ui.inverted.indicating.progress[data-percent^="6"] .label {
+      color: @invertedIndicatingFourthLabelColor;
+    }
+    .ui.inverted.indicating.progress[data-percent^="7"] .label,
+    .ui.inverted.indicating.progress[data-percent^="8"] .label {
+      color: @invertedIndicatingFifthLabelColor;
+    }
+    .ui.inverted.indicating.progress[data-percent^="9"] .label,
+    .ui.inverted.indicating.progress[data-percent^="100"] .label {
+      color: @invertedIndicatingSixthLabelColor;
+    }
+  }
+
+  /* Single Digits */
+  .ui.indicating.progress[data-percent="1"] .bar,
+  .ui.indicating.progress[data-percent="2"] .bar,
+  .ui.indicating.progress[data-percent="3"] .bar,
+  .ui.indicating.progress[data-percent="4"] .bar,
+  .ui.indicating.progress[data-percent="5"] .bar,
+  .ui.indicating.progress[data-percent="6"] .bar,
+  .ui.indicating.progress[data-percent="7"] .bar,
+  .ui.indicating.progress[data-percent="8"] .bar,
+  .ui.indicating.progress[data-percent="9"] .bar {
+    background-color: @indicatingFirstColor;
+  }
+  .ui.indicating.progress[data-percent="0"] .label,
+  .ui.indicating.progress[data-percent="1"] .label,
+  .ui.indicating.progress[data-percent="2"] .label,
+  .ui.indicating.progress[data-percent="3"] .label,
+  .ui.indicating.progress[data-percent="4"] .label,
+  .ui.indicating.progress[data-percent="5"] .label,
+  .ui.indicating.progress[data-percent="6"] .label,
+  .ui.indicating.progress[data-percent="7"] .label,
+  .ui.indicating.progress[data-percent="8"] .label,
+  .ui.indicating.progress[data-percent="9"] .label {
+    color: @indicatingFirstLabelColor;
+  }
+  & when (@variationProgressInverted) {
+    .ui.inverted.indicating.progress[data-percent="0"] .label,
+    .ui.inverted.indicating.progress[data-percent="1"] .label,
+    .ui.inverted.indicating.progress[data-percent="2"] .label,
+    .ui.inverted.indicating.progress[data-percent="3"] .label,
+    .ui.inverted.indicating.progress[data-percent="4"] .label,
+    .ui.inverted.indicating.progress[data-percent="5"] .label,
+    .ui.inverted.indicating.progress[data-percent="6"] .label,
+    .ui.inverted.indicating.progress[data-percent="7"] .label,
+    .ui.inverted.indicating.progress[data-percent="8"] .label,
+    .ui.inverted.indicating.progress[data-percent="9"] .label {
+      color: @invertedIndicatingFirstLabelColor;
+    }
+  }
+
+  /* Indicating Success */
+  .ui.ui.indicating.progress.success .label {
+    color: @successHeaderColor;
+  }
+}
+
+& when (@variationProgressMultiple) {
+  /* Multiple */
+  .ui.multiple.progress {
+    display: flex;
+  }
+}
+
+/*******************************
+             States
+*******************************/
+
+& when (@variationProgressSuccess) {
+  /*--------------
+       Success
+  ---------------*/
+
+  .ui.ui.progress.success .bar {
+    background-color: @successColor;
+  }
+  .ui.ui.progress.success .bar,
+  .ui.ui.progress.success .bar::after {
+    animation: none;
+  }
+  .ui.progress.success > .label {
+    color: @successHeaderColor;
+  }
+}
+
+& when (@variationProgressWarning) {
+  /*--------------
+       Warning
+  ---------------*/
+
+  .ui.ui.progress.warning .bar {
+    background-color: @warningColor;
+  }
+  .ui.ui.progress.warning .bar,
+  .ui.ui.progress.warning .bar::after {
+    animation: none;
+  }
+  .ui.progress.warning > .label {
+    color: @warningHeaderColor;
+  }
+}
+
+& when (@variationProgressError) {
+  /*--------------
+       Error
+  ---------------*/
+
+  .ui.ui.progress.error .bar {
+    background-color: @errorColor;
+  }
+  .ui.ui.progress.error .bar,
+  .ui.ui.progress.error .bar::after {
+    animation: none;
+  }
+  .ui.progress.error > .label {
+    color: @errorHeaderColor;
+  }
+}
+
+& when (@variationProgressActive) {
+  /*--------------
+       Active
+  ---------------*/
+
+  .ui.active.progress .bar {
+    position: relative;
+    min-width: @activeMinWidth;
+  }
+  .ui.active.progress .bar::after {
+    content: '';
+    opacity: 0;
+
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: @activePulseColor;
+
+    border-radius: @barBorderRadius;
+
+    animation: progress-active @activePulseDuration @defaultEasing infinite;
+    transform-origin: left;
+  }
+  @keyframes progress-active {
+    0% {
+      opacity: @activePulseMaxOpacity;
+      transform: scale(0, 1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1);
+    }
+  }
+}
+
+& when (@variationProgressDisabled) {
+  /*--------------
+      Disabled
+  ---------------*/
+
+  .ui.disabled.progress {
+    opacity: 0.35;
+  }
+  .ui.ui.disabled.progress .bar,
+  .ui.ui.disabled.progress .bar::after {
+    animation: none;
+  }
+}
+
+
+/*******************************
+           Variations
+*******************************/
+
+& when (@variationProgressInverted) {
+  /*--------------
+      Inverted
+  ---------------*/
+
+  .ui.inverted.progress {
+    background: @invertedBackground;
+    border: @invertedBorder;
+  }
+  .ui.inverted.progress .bar {
+    background: @invertedBarBackground;
+  }
+  .ui.inverted.progress .bar > .progress {
+    color: @invertedProgressColor;
+  }
+  .ui.inverted.progress > .label {
+    color: @invertedLabelColor;
+  }
+  & when (@variationProgressSuccess) {
+    .ui.inverted.progress.success > .label {
+      color: @successColor;
+    }
+  }
+  & when (@variationProgressWarning) {
+    .ui.inverted.progress.warning > .label {
+      color: @warningColor;
+    }
+  }
+  & when (@variationProgressError) {
+    .ui.inverted.progress.error > .label {
+      color: @errorColor;
+    }
+  }
+}
+
+& when (@variationProgressAttached) {
+  /*--------------
+      Attached
+  ---------------*/
+
+  /* bottom attached */
+  .ui.progress.attached {
+    background: @attachedBackground;
+    position: relative;
+    border: none;
+    margin: 0;
+  }
+  .ui.progress.attached,
+  .ui.progress.attached .bar {
+    display: block;
+    height: @attachedHeight;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 0 0 @attachedBorderRadius @attachedBorderRadius;
+  }
+  .ui.progress.attached .bar {
+    border-radius: 0;
+  }
+
+  /* top attached */
+  .ui.progress.top.attached,
+  .ui.progress.top.attached .bar {
+    top: 0;
+    border-radius: @attachedBorderRadius @attachedBorderRadius 0 0;
+  }
+  .ui.progress.top.attached .bar {
+    border-radius: 0;
+  }
+
+  /* Coupling */
+
+  .ui.segment > .ui.attached.progress,
+  .ui.card > .ui.attached.progress {
+    position: absolute;
+    top: auto;
+    left: 0;
+    bottom: 100%;
+    width: 100%;
+  }
+
+  .ui.segment > .ui.bottom.attached.progress,
+  .ui.card > .ui.bottom.attached.progress {
+    top: 100%;
+    bottom: auto;
+  }
+}
+
+/*--------------
+     Colors
+---------------*/
+
+each(@colors, {
+  @color: replace(@key, '@', '');
+  @c: @colors[@@color][color];
+  @l: @colors[@@color][light];
+
+  .ui.indeterminate.@{color}.progress .bar::before,
+  .ui.@{color}.progress .bar,
+  .ui.progress .@{color}.bar {
+    background-color: @c;
+  }
+  & when (@variationProgressInverted) {
+    .ui.inverted.indeterminate.@{color}.progress .bar::before,
+    .ui.@{color}.inverted.progress .bar,
+    .ui.inverted.progress .@{color}.bar {
+      background-color: @l;
+    }
+  }
+})
+
+/*--------------
+     Sizes
+---------------*/
+
+.ui.progress {
+  font-size: @medium;
+}
+.ui.progress .bar {
+  height: @barHeight;
+}
+& when not (@variationProgressSizes = false) {
+  each(@variationProgressSizes, {
+    @h: @{value}BarHeight;
+    @s: @@value;
+    .ui.@{value}.progress  {
+      font-size: @s;
+    }
+    .ui.@{value}.progress .bar {
+      height: @@h;
+    }
+  })
+}
+
+& when (@variationProgressIndeterminate) {
+  /*---------------
+    Indeterminate
+  ----------------*/
+
+  .ui.indeterminate.progress .bar {
+    width: 100%;
+  }
+  .ui.indeterminate.progress .bar .progress,
+  .ui.progress .bar .centered.progress {
+    text-align: center;
+    position: relative;
+  }
+  .ui.indeterminate.progress .bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: @barBorderRadius;
+    animation: progress-pulsating @indeterminatePulseDuration @defaultEasing infinite;
+    transform-origin: center;
+    width: 100%;
+  }
+  & when (@variationProgressSpeeds) {
+    .ui.slow.indeterminate.progress .bar::before {
+      animation-duration: @indeterminatePulseDurationSlow;
+    }
+    .ui.fast.indeterminate.progress .bar::before {
+      animation-duration: @indeterminatePulseDurationFast;
+    }
+  }
+  & when (@variationProgressSwinging) {
+    .ui.swinging.indeterminate.progress .bar::before {
+      transform-origin: left;
+      animation-name: progress-swinging;
+    }
+  }
+  & when (@variationProgressSliding) {
+    .ui.sliding.indeterminate.progress .bar::before {
+      transform-origin: left;
+      animation-name: progress-sliding;
+    }
+  }
+  & when (@variationProgressFilling) {
+    .ui.filling.indeterminate.progress .bar::before {
+      animation-name: progress-filling;
+    }
+  }
+  .ui.indeterminate.progress:not(.sliding):not(.filling):not(.swinging) .bar::before {
+    background: @indeterminatePulseColor;
+  }
+  & when (@variationProgressSliding) or (@variationProgressSwinging)  or (@variationProgressFilling) {
+    .ui.sliding.indeterminate.progress .bar,
+    .ui.swinging.indeterminate.progress .bar,
+    .ui.filling.indeterminate.progress .bar {
+      background: @background;
+    }
+    & when (@variationProgressSliding) or (@variationProgressSwinging) {
+      .ui.sliding.indeterminate.progress .bar .progress,
+      .ui.swinging.indeterminate.progress .bar .progress {
+        color: @invertedProgressColor;
+      }
+    }
+    & when (@variationProgressInverted) {
+      .ui.inverted.sliding.indeterminate.progress .bar,
+      .ui.inverted.swinging.indeterminate.progress .bar,
+      .ui.inverted.filling.indeterminate.progress .bar {
+        background: @invertedBackground;
+      }
+      & when (@variationProgressSliding) or (@variationProgressSwinging) {
+        .ui.inverted.sliding.indeterminate.progress .bar .progress,
+        .ui.inverted.swinging.indeterminate.progress .bar .progress {
+          color: @progressColor;
+        }
+      }
+    }
+    & when (@variationProgressSwinging) {
+      @keyframes progress-swinging {
+        0%, 100% {
+          width:10%;
+          left:-25%;
+        }
+        25%, 65% {
+          width:70%;
+        }
+        50% {
+          width: 10%;
+          left:100%;
+        }
+      }
+    }
+
+    & when (@variationProgressSliding) {
+      @keyframes progress-sliding {
+        0% {
+          width:10%;
+          left:-25%;
+        }
+        50% {
+          width:70%;
+        }
+        100% {
+          width:10%;
+          left:100%;
+        }
+      }
+    }
+
+    & when (@variationProgressFilling) {
+      @keyframes progress-filling {
+        0% {
+          transform: scale(0,1);
+        }
+        80% {
+          transform: scale(1);
+          opacity:1;
+        }
+        100% {
+          opacity:0;
+        }
+      }
+    }
+  }
+  @keyframes progress-pulsating {
+    0% {
+      transform: scale(0,1);
+      opacity:0.7;
+    }
+    100% {
+      transform: scale(1);
+      opacity:0;
+    }
+  }
+}
+
+.loadUIOverrides();

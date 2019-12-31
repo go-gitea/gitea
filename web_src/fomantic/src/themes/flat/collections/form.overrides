@@ -1,0 +1,28 @@
+/*******************************
+           Overrides
+*******************************/
+
+.ui.form input[type="text"],
+.ui.form input[type="email"],
+.ui.form input[type="date"],
+.ui.form input[type="password"],
+.ui.form input[type="number"],
+.ui.form input[type="url"],
+.ui.form input[type="tel"] {
+  border-bottom: 1px solid #DDDDDD;
+}
+
+.ui.form .selection.dropdown {
+  border: none;
+  box-shadow: none !important;
+  border-bottom: 1px solid #DDDDDD;
+  border-radius: 0em !important;
+}
+.ui.form .selection.dropdown > .menu {
+  border-top-width: 1px !important;
+  border-radius: @defaultBorderRadius !important;
+}
+
+.ui.form .ui.icon.input > .icon {
+  width: 1em;
+}

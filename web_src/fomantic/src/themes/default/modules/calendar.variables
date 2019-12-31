@@ -1,0 +1,18 @@
+/*******************************
+           Calendar
+*******************************/
+
+@focusBoxShadow: inset 0 0 0 1px @focusedFormBorderColor;
+@focusInvertedBoxShadow: inset 0 0 0 1px @focusedFormBorderColor;
+
+@todayFontWeight: bold;
+
+@rangeBackground: @transparentBlack;
+@rangeTextColor: @selectedTextColor;
+@rangeBoxShadow: none;
+@rangeInvertedBackground: @transparentWhite;
+@rangeInvertedTextColor: @invertedSelectedTextColor;
+@rangeInvertedBoxShadow: none;
+
+@adjacentTextColor: @mutedTextColor;
+@adjacentBackground: @subtleTransparentBlack;

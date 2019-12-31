@@ -1,0 +1,74 @@
+/*******************************
+             Nag
+*******************************/
+
+/*--------------
+   Collection
+---------------*/
+
+@position: relative;
+@width: 100%;
+@zIndex: 999;
+@margin: 0;
+
+@background: #555555;
+@opacity: 0.95;
+@minHeight: 0;
+@padding: 0.75em 1em;
+@lineHeight: 1em;
+@boxShadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+
+@fontSize: 1rem;
+@textAlign: center;
+@color: @textColor;
+
+@transition: 0.2s background ease;
+
+
+/*--------------
+    Elements
+---------------*/
+
+/* Title */
+@titleColor: @white;
+@titleMargin: 0 0.5em;
+
+@closeSize: 1em;
+@closeMargin: (-@closeSize / 2) 0 0;
+@closeTop: 50%;
+@closeRight: 1em;
+@closeColor: @white;
+@closeTransition: opacity 0.2s ease;
+@closeOpacity: 0.4;
+
+
+/*--------------
+      States
+---------------*/
+
+/* Hover */
+@nagHoverBackground: @background;
+@nagHoverOpacity: 1;
+
+@closeHoverOpacity: 1;
+
+/*--------------
+   Variations
+---------------*/
+
+/* Top / Bottom */
+@top: 0;
+@bottom: 0;
+@borderRadius: @defaultBorderRadius;
+@topBorderRadius: 0 0 @borderRadius @borderRadius;
+@bottomBorderRadius: @borderRadius @borderRadius 0 0;
+
+/* Inverted */
+@invertedBackground: @darkWhite;
+
+/*--------------
+      Plural
+---------------*/
+
+@groupedBorderRadius: 0;
+

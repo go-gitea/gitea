@@ -1,0 +1,77 @@
+/*-------------------
+   Button Variables
+--------------------*/
+
+/* Button Variables */
+@pageFont: Helvetica Neue, Helvetica, Arial, sans-serif;
+@textTransform: none;
+@fontWeight: bold;
+@textColor: #333333;
+
+@textShadow: 0px 1px 0px rgba(255, 255, 255, 0.9);
+@invertedTextShadow: 0px -1px 0px rgba(0, 0, 0, 0.25);
+
+@borderRadius: @relativeBorderRadius;
+
+@verticalPadding: 0.75em;
+@horizontalPadding: 1.15em;
+
+@backgroundColor: #FAFAFA;
+@backgroundImage: linear-gradient(rgba(255, 255, 255, 0.15), rgba(0, 0, 0, 0.1));
+@boxShadow:
+  0 -1px 0 0 rgba(0, 0, 0, 0.05) inset,
+  0 0 0 1px rgba(0, 0, 0, 0.13) inset,
+  0 1px 3px rgba(0, 0, 0, 0.05)
+;
+
+@coloredBackgroundImage: linear-gradient(rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.2));
+@coloredBoxShadow:
+  0 -1px 0 0 rgba(0, 0, 0, 0.05) inset,
+  0 0 0 1px rgba(0, 0, 0, 0.1) inset,
+  0 1px 3px rgba(0, 0, 0, 0.05)
+;
+
+@hoverBackgroundColor: #E0E0E0;
+@hoverBackgroundImage: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.08));
+@hoverBoxShadow: @boxShadow;
+
+@downBackgroundColor: '';
+@downBackgroundImage: '';
+@downBoxShadow:
+  0 -1px 0 0 rgba(0, 0, 0, 0.05) inset,
+  0 0 0 1px rgba(0, 0, 0, 0.13) inset,
+  0 3px 5px rgba(0, 0, 0, 0.15) inset !important
+;
+@activeBackgroundColor: #DFDFDF;
+@activeBackgroundImage: none;
+@activeBoxShadow:
+  0 -1px 0 0 rgba(0, 0, 0, 0.05) inset,
+  0 0 0 1px rgba(0, 0, 0, 0.13) inset,
+  0 3px 5px rgba(0, 0, 0, 0.1) inset !important
+;
+
+@labeledIconBackgroundColor: transparent;
+@labeledIconBorder: transparent;
+@labeledIconPadding: (@horizontalPadding + 2.25em);
+
+@basicFontWeight: bold;
+@basicTextColor: @linkColor;
+@basicHoverTextColor: @linkHoverColor;
+
+@basicHoverBackground: #E0E0E0;
+
+@blue: #3072B3;
+@green: #60B044;
+@black: #5D5D5D;
+
+@primaryColor: @blue;
+@secondaryColor: @black;
+
+@mini: 0.6rem;
+@tiny: 0.7rem;
+@small: 0.85rem;
+@medium: 0.92rem;
+@large: 1rem;
+@big: 1.125rem;
+@huge: 1.25rem;
+@massive: 1.3rem;

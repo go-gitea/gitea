@@ -1,0 +1,98 @@
+/*******************************
+            Comments
+*******************************/
+
+
+/*-------------------
+       View
+--------------------*/
+
+@maxWidth: 650px;
+@margin: 1.5em 0;
+
+/*-------------------
+      Elements
+--------------------*/
+
+/* Comment */
+@commentBackground: none;
+@commentMargin: 0.5em 0 0;
+@commentPadding: 0.5em 0 0;
+@commentDivider: none;
+@commentBorder: none;
+@commentLineHeight: 1.2;
+@firstCommentMargin: 0;
+@firstCommentPadding: 0;
+
+/* Nested Comment */
+@nestedCommentsMargin: 0 0 0.5em 0.5em;
+@nestedCommentsPadding: 1em 0 1em 1em;
+
+@nestedCommentDivider: none;
+@nestedCommentBorder: none;
+@nestedCommentBackground: none;
+
+/* Avatar */
+@avatarDisplay: block;
+@avatarFloat: left;
+@avatarWidth: 2.5em;
+@avatarHeight: auto;
+@avatarSpacing: 1em;
+@avatarMargin: (@commentLineHeight - 1em) 0 0;
+@avatarBorderRadius: 0.25rem;
+
+/* Content */
+@contentMargin: @avatarWidth + @avatarSpacing;
+
+/* Author */
+@authorFontSize: 1em;
+@authorColor: @textColor;
+@authorHoverColor: @linkHoverColor;
+@authorFontWeight: @bold;
+
+/* Metadata */
+@metadataDisplay: inline-block;
+@metadataFontSize: 0.875em;
+@metadataSpacing: 0.5em;
+@metadataContentSpacing: 0.5em;
+@metadataColor: @lightTextColor;
+
+/* Text */
+@textFontSize: 1em;
+@textMargin: 0.25em 0 0.5em;
+@textWordWrap: break-word;
+@textLineHeight: 1.3;
+
+/* Actions */
+@actionFontSize: 0.875em;
+@actionContentDistance: 0.75em;
+@actionLinkColor: @unselectedTextColor;
+@actionLinkHoverColor: @hoveredTextColor;
+
+/* Reply */
+@replyDistance: 1em;
+@replyHeight: 12em;
+@replyFontSize: 1em;
+
+@commentReplyDistance: @replyDistance;
+
+/*-------------------
+      Variations
+--------------------*/
+
+/* Threaded */
+@threadedCommentMargin: -1.5em 0 -1em  (@avatarWidth / 2);
+@threadedCommentPadding: 3em 0 2em 2.25em;
+@threadedCommentBoxShadow: -1px 0 0 @borderColor;
+
+
+/* Minimal */
+@minimalActionPosition: absolute;
+@minimalActionTop: 0;
+@minimalActionRight: 0;
+@minimalActionLeft: auto;
+
+@minimalTransitionDelay: 0.1s;
+@minimalEasing: @defaultEasing;
+@minimalDuration: 0.2s;
+@minimalTransition: opacity @minimalDuration @minimalEasing;

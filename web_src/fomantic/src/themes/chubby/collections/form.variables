@@ -1,0 +1,9 @@
+/*-------------------
+   Form Variables
+--------------------*/
+
+@labelTextTransform: uppercase;
+@labelFontSize: 0.8em;
+
+@inputPadding: 1em 1.2em;
+@inputBorder: 2px solid @borderColor;

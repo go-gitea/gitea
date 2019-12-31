@@ -1,0 +1,9 @@
+/*******************************
+            Progress
+*******************************/
+
+@background: rgba(0, 0, 0, 0.05);
+@boxShadow: 0px 0px 4px rgba(0, 0, 0, 0.1) inset;
+@barBackground: @subtleGradient #888888;
+@border: 1px solid @borderColor;
+@padding: @relative3px;

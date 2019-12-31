@@ -1,0 +1,15 @@
+@background: #F3F3F3;
+
+@boxShadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.1) inset;
+@borderRadius: 4px;
+@verticalPadding: 7px;
+@horizontalPadding: 15px;
+
+@headerFontSize: 1em;
+
+@floatingBoxShadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+
+@iconSize: 1.5em;
+@iconDistance: 1em;
+
+@warningBackgroundColor: #F9EDBE;

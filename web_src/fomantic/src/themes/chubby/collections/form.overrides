@@ -1,0 +1,16 @@
+/*-------------------
+   Form Variables
+--------------------*/
+
+.ui.form .selection.dropdown {
+  padding: 1.1em 1.2em;
+  border-width: 2px;
+}
+.ui.form .selection.dropdown .menu {
+  min-width: calc(100% + 4px);
+  margin: 0 -2px;
+  border-width: 2px;
+}
+.ui.form .selection.dropdown input {
+  padding: inherit;
+}

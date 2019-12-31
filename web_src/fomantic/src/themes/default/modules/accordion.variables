@@ -1,0 +1,100 @@
+/*******************************
+           Accordion
+*******************************/
+
+@boxShadow: none;
+
+/* Title */
+@titleFont: @headerFont;
+@titlePadding: 0.5em 0;
+@titleFontSize: 1em;
+@titleColor: @textColor;
+
+/* Icon */
+@iconOpacity: 1;
+@iconFontSize: 1em;
+@iconFloat: none;
+@iconWidth: 1.25em;
+@iconHeight: 1em;
+@iconDisplay: inline-block;
+@iconMargin: 0 0.25rem 0 0;
+@iconPadding: 0;
+@iconTransition:
+  transform @defaultDuration @defaultEasing,
+  opacity @defaultDuration @defaultEasing
+;
+@iconVerticalAlign: baseline;
+@iconTransform: none;
+
+/* Child Accordion */
+@childAccordionMargin: 1em 0 0;
+@childAccordionPadding: 0;
+
+/* Content */
+@contentMargin: '';
+@contentPadding: 0.5em 0 1em;
+
+/*-------------------
+       Coupling
+--------------------*/
+
+@menuTitlePadding: 0;
+@menuIconFloat: right;
+@menuIconMargin: @lineHeightOffset 0 0 1em;
+@menuIconTransform: rotate(180deg);
+
+
+/*-------------------
+       States
+--------------------*/
+
+@activeIconTransform: rotate(90deg);
+
+/*-------------------
+      Variations
+--------------------*/
+
+/* Styled */
+@styledWidth: 600px;
+@styledBackground: @white;
+@styledBorderRadius: @defaultBorderRadius;
+@styledBoxShadow:
+  @subtleShadow,
+  0 0 0 1px @borderColor
+;
+
+/* Content */
+@styledContentMargin: 0;
+@styledContentPadding: 0.5em 1em 1.5em;
+
+/* Child Content */
+@styledChildContentMargin: 0;
+@styledChildContentPadding: @styledContentPadding;
+
+/* Styled Title */
+@styledTitleMargin: 0;
+@styledTitlePadding: 0.75em 1em;
+@styledTitleFontWeight: @bold;
+@styledTitleColor: @unselectedTextColor;
+@styledTitleTransition: background-color @defaultDuration @defaultEasing;
+@styledTitleBorder: 1px solid @borderColor;
+@styledTitleTransition:
+  background @defaultDuration @defaultEasing,
+  color @defaultDuration @defaultEasing
+;
+
+/* Styled Title States */
+@styledTitleHoverBackground: transparent;
+@styledTitleHoverColor: @textColor;
+@styledActiveTitleBackground: transparent;
+@styledActiveTitleColor: @selectedTextColor;
+
+/* Styled Child Title States */
+@styledHoverChildTitleBackground: @styledTitleHoverBackground;
+@styledHoverChildTitleColor: @styledTitleHoverColor;
+@styledActiveChildTitleBackground: @styledActiveTitleBackground;
+@styledActiveChildTitleColor: @styledActiveTitleColor;
+
+/* Inverted */
+@invertedTitleColor: @invertedTextColor;
+

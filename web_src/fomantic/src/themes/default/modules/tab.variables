@@ -1,0 +1,11 @@
+/*******************************
+              Tab
+*******************************/
+
+/* Loading */
+@loadingMinHeight: 250px;
+@loadingContentPosition: relative;
+@loadingContentOffset: -10000px;
+
+@loaderDistanceFromTop: 50%;
+@loaderSize: 2.5em;

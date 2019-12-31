@@ -1,0 +1,158 @@
+/*!
+ * # Fomantic-UI - Nag
+ * http://github.com/fomantic/Fomantic-UI/
+ *
+ *
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ *
+ */
+
+
+/*******************************
+            Theme
+*******************************/
+
+@type    : 'module';
+@element : 'nag';
+
+@import (multiple) '../../theme.config';
+
+/*******************************
+             Nag
+*******************************/
+
+.ui.nag {
+  display: none;
+  opacity: @opacity;
+  position: @position;
+
+  top: @top;
+  left: 0;
+  z-index: @zIndex;
+
+  min-height: @minHeight;
+  width: @width;
+
+  margin: @margin;
+  padding: @padding;
+
+  background: @background;
+  box-shadow: @boxShadow;
+
+  font-size: @fontSize;
+  text-align: @textAlign;
+  color: @color;
+
+  border-radius: @topBorderRadius;
+  transition: @transition;
+}
+
+a.ui.nag {
+  cursor: pointer;
+}
+
+.ui.nag > .title {
+  display: inline-block;
+  margin: @titleMargin;
+  color: @titleColor;
+}
+
+
+.ui.nag > .close.icon {
+  cursor: pointer;
+  opacity: @closeOpacity;
+
+  position: absolute;
+  top: @closeTop;
+  right: @closeRight;
+
+  font-size: @closeSize;
+
+  margin: @closeMargin;
+  color: @closeColor;
+  transition: @closeTransition;
+}
+
+
+
+/*******************************
+             States
+*******************************/
+
+/* Hover */
+.ui.nag:hover {
+  background: @nagHoverBackground;
+  opacity: @nagHoverOpacity;
+}
+
+.ui.nag .close:hover {
+  opacity: @closeHoverOpacity;
+}
+
+
+/*******************************
+           Variations
+*******************************/
+
+
+/*--------------
+     Static
+---------------*/
+
+.ui.overlay.nag {
+  position: absolute;
+  display: block;
+}
+
+/*--------------
+     Fixed
+---------------*/
+
+.ui.fixed.nag {
+  position: fixed;
+}
+
+/*--------------
+     Bottom
+---------------*/
+
+.ui.bottom.nags,
+.ui.bottom.nag {
+  border-radius: @bottomBorderRadius;
+  top: auto;
+  bottom: @bottom;
+}
+
+/*--------------
+     White
+---------------*/
+
+.ui.inverted.nags .nag,
+.ui.inverted.nag {
+  background-color: @invertedBackground;
+  color: @darkTextColor;
+}
+.ui.inverted.nags .nag .close,
+.ui.inverted.nags .nag .title,
+.ui.inverted.nag .close,
+.ui.inverted.nag .title {
+  color: @lightTextColor;
+}
+
+
+/*******************************
+           Groups
+*******************************/
+
+.ui.nags .nag {
+  border-radius: @groupedBorderRadius !important;
+}
+.ui.nags .nag:last-child {
+  border-radius: @topBorderRadius;
+}
+.ui.bottom.nags .nag:last-child {
+  border-radius: @bottomBorderRadius;
+}
+
+.loadUIOverrides();

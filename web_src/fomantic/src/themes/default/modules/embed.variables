@@ -1,0 +1,53 @@
+/*******************************
+             Video
+*******************************/
+
+/*-------------------
+       Element
+--------------------*/
+
+/* Simple */
+@background: @lightGrey;
+@transitionDuration: 0.5s;
+@transitionEasing: @defaultEasing;
+
+/* Placeholder */
+@placeholderUnderlay: @background;
+
+/* Placeholder Overlayed Background */
+@placeholderBackground: radial-gradient(transparent 45%, rgba(0, 0, 0, 0.3));
+@placeholderBackgroundOpacity: 0.5;
+@placeholderBackgroundTransition: opacity @transitionDuration @transitionEasing;
+
+/* Icon */
+@iconBackground: @veryStrongTransparentBlack;
+@iconSize: 6rem;
+@iconTransition:
+  opacity @transitionDuration @transitionEasing,
+  color @transitionDuration @transitionEasing
+;
+@iconColor: @white;
+@iconShadow:
+  0 2px 10px rgba(34, 36, 38, 0.2)
+;
+@iconZIndex: 10;
+
+/*-------------------
+       States
+--------------------*/
+
+/* Hover */
+@hoverPlaceholderBackground: @placeholderBackground;
+@hoverPlaceholderBackgroundOpacity: 1;
+@hoverIconColor: @white;
+
+
+/*-------------------
+      Variations
+--------------------*/
+
+/* Aspect Ratios */
+@squareRatio: (1/1) * 100%;
+@widescreenRatio: (9/16) * 100%;
+@ultraWidescreenRatio: (9/21) * 100%;
+@standardRatio: (3/4) * 100%;

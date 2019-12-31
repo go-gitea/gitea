@@ -477,6 +477,7 @@ js: node-check $(JS_DEST)
 $(JS_DEST): node_modules $(JS_SOURCES)
 	npx eslint web_src/js webpack.config.js
 	npx webpack
+	cd web_src/fomantic && npx gulp build
 
 .PHONY: css
 css: node-check $(CSS_DEST)

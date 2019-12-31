@@ -1,0 +1,305 @@
+/*!
+ * # Fomantic-UI - Image
+ * http://github.com/fomantic/Fomantic-UI/
+ *
+ *
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ *
+ */
+
+
+/*******************************
+            Theme
+*******************************/
+
+@type    : 'element';
+@element : 'image';
+
+@import (multiple) '../../theme.config';
+
+
+/*******************************
+             Image
+*******************************/
+
+.ui.image {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  max-width: 100%;
+  background-color: @placeholderColor;
+}
+
+img.ui.image {
+  display: block;
+}
+
+.ui.image svg,
+.ui.image img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+
+/*******************************
+            States
+*******************************/
+
+.ui.hidden.images,
+.ui.ui.hidden.image {
+  display: none;
+}
+.ui.hidden.transition.images,
+.ui.hidden.transition.image {
+  display: block;
+  visibility: hidden;
+}
+.ui.images > .hidden.transition {
+  display: inline-block;
+  visibility: hidden;
+}
+
+& when (@variationImageDisabled) {
+  .ui.disabled.images,
+  .ui.disabled.image {
+    cursor: default;
+    opacity: @disabledOpacity;
+  }
+}
+
+
+/*******************************
+          Variations
+*******************************/
+
+& when (@variationImageInline) {
+  /*--------------
+       Inline
+  ---------------*/
+
+  .ui.inline.image,
+  .ui.inline.image svg,
+  .ui.inline.image img {
+    display: inline-block;
+  }
+}
+
+& when (@variationImageAligned) {
+  /*------------------
+    Vertical Aligned
+  -------------------*/
+
+  .ui.top.aligned.images .image,
+  .ui.top.aligned.image,
+  .ui.top.aligned.image svg,
+  .ui.top.aligned.image img {
+    display: inline-block;
+    vertical-align: top;
+  }
+  .ui.middle.aligned.images .image,
+  .ui.middle.aligned.image,
+  .ui.middle.aligned.image svg,
+  .ui.middle.aligned.image img {
+    display: inline-block;
+    vertical-align: middle;
+  }
+  .ui.bottom.aligned.images .image,
+  .ui.bottom.aligned.image,
+  .ui.bottom.aligned.image svg,
+  .ui.bottom.aligned.image img {
+    display: inline-block;
+    vertical-align: bottom;
+  }
+}
+
+& when (@variationImageRounded) {
+  /*--------------
+       Rounded
+  ---------------*/
+
+  .ui.rounded.images .image,
+  .ui.rounded.image,
+  .ui.rounded.images .image > *,
+  .ui.rounded.image > * {
+    border-radius: @roundedBorderRadius;
+  }
+}
+
+& when (@variationImageBordered) {
+  /*--------------
+      Bordered
+  ---------------*/
+
+  .ui.bordered.images .image,
+  .ui.bordered.images img,
+  .ui.bordered.images svg,
+  .ui.bordered.image img,
+  .ui.bordered.image svg,
+  img.ui.bordered.image {
+    border: @imageBorder;
+  }
+}
+
+& when (@variationImageCircular) {
+  /*--------------
+      Circular
+  ---------------*/
+
+  .ui.circular.images,
+  .ui.circular.image {
+    overflow: hidden;
+  }
+
+  .ui.circular.images .image,
+  .ui.circular.image,
+  .ui.circular.images .image > *,
+  .ui.circular.image > * {
+    -webkit-border-radius: @circularRadius;
+    -moz-border-radius: @circularRadius;
+    border-radius: @circularRadius;
+  }
+}
+
+& when (@variationImageFluid) {
+  /*--------------
+       Fluid
+  ---------------*/
+
+  .ui.fluid.images,
+  .ui.fluid.image,
+  .ui.fluid.images img,
+  .ui.fluid.images svg,
+  .ui.fluid.image svg,
+  .ui.fluid.image img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+}
+
+& when (@variationImageAvatar) {
+  /*--------------
+       Avatar
+  ---------------*/
+
+  .ui.avatar.images .image,
+  .ui.avatar.images img,
+  .ui.avatar.images svg,
+  .ui.avatar.image img,
+  .ui.avatar.image svg,
+  .ui.avatar.image {
+    margin-right: @avatarMargin;
+
+    display: inline-block;
+    width: @avatarSize;
+    height: @avatarSize;
+
+    -webkit-border-radius: @circularRadius;
+    -moz-border-radius: @circularRadius;
+    border-radius: @circularRadius;
+  }
+}
+
+& when (@variationImageSpaced) {
+  /*-------------------
+         Spaced
+  --------------------*/
+
+  .ui.spaced.image {
+    display: inline-block !important;
+    margin-left: @spacedDistance;
+    margin-right: @spacedDistance;
+  }
+
+  .ui[class*="left spaced"].image {
+    margin-left: @spacedDistance;
+    margin-right: 0;
+  }
+
+  .ui[class*="right spaced"].image {
+    margin-left: 0;
+    margin-right: @spacedDistance;
+  }
+}
+
+& when (@variationImageFloated) {
+  /*-------------------
+         Floated
+  --------------------*/
+
+  .ui.floated.image,
+  .ui.floated.images {
+    float: left;
+    margin-right: @floatedHorizontalMargin;
+    margin-bottom: @floatedVerticalMargin;
+  }
+  .ui.right.floated.images,
+  .ui.right.floated.image {
+    float: right;
+    margin-right: 0;
+    margin-bottom: @floatedVerticalMargin;
+    margin-left: @floatedHorizontalMargin;
+  }
+
+  .ui.floated.images:last-child,
+  .ui.floated.image:last-child {
+    margin-bottom: 0;
+  }
+}
+
+& when (@variationImageCentered) {
+  .ui.centered.images,
+  .ui.centered.image {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/*--------------
+     Sizes
+---------------*/
+
+.ui.medium.images .image,
+.ui.medium.images img,
+.ui.medium.images svg,
+.ui.medium.image {
+  width: @mediumWidth;
+  height: auto;
+  font-size: @medium;
+}
+& when not (@variationImageSizes = false) {
+  each(@variationImageSizes, {
+    @w: @{value}Width;
+    @s: @@value;
+    .ui.@{value}.images .image,
+    .ui.@{value}.images img,
+    .ui.@{value}.images svg,
+    .ui.@{value}.image {
+      width: @@w;
+      height: auto;
+      font-size: @s;
+    }
+  })
+}
+
+& when (@variationImageGroups) {
+  /*******************************
+                Groups
+  *******************************/
+
+  .ui.images {
+    font-size: 0;
+    margin: 0 -@imageHorizontalMargin 0;
+  }
+
+  .ui.images .image,
+  .ui.images > img,
+  .ui.images > svg {
+    display: inline-block;
+    margin: 0 @imageHorizontalMargin @imageVerticalMargin;
+  }
+}
+
+.loadUIOverrides();

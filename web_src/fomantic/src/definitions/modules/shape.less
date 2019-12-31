@@ -1,0 +1,154 @@
+/*!
+ * # Fomantic-UI - Shape
+ * http://github.com/fomantic/Fomantic-UI/
+ *
+ *
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ *
+ */
+
+
+
+/*******************************
+            Theme
+*******************************/
+
+@type    : 'module';
+@element : 'shape';
+
+@import (multiple) '../../theme.config';
+
+/*******************************
+              Shape
+*******************************/
+
+.ui.shape {
+  position: relative;
+  vertical-align: top;
+  display: @display;
+  perspective: @perspective;
+  transition: @transition;
+}
+
+.ui.shape .sides {
+  transform-style: preserve-3d;
+}
+
+.ui.shape .side {
+  display: none;
+  opacity: 1;
+  width: 100%;
+
+  margin: @sideMargin !important;
+  backface-visibility: @backfaceVisibility;
+}
+
+.ui.shape .side * {
+  backface-visibility: visible !important;
+}
+
+/*******************************
+             Types
+*******************************/
+
+& when (@variationShapeCube) {
+  .ui.cube.shape .side {
+    min-width: @cubeSize;
+    height: @cubeSize;
+
+    padding: @cubePadding;
+
+    background-color: @cubeBackground;
+    color: @cubeTextColor;
+    box-shadow: @cubeBoxShadow;
+  }
+  .ui.cube.shape .side > .content {
+    width: 100%;
+    height: 100%;
+    display: table;
+
+    text-align: @cubeTextAlign;
+    user-select: text;
+  }
+  .ui.cube.shape .side > .content > div {
+    display: table-cell;
+    vertical-align: middle;
+    font-size: @cubeFontSize;
+  }
+}
+
+/*******************************
+          Variations
+*******************************/
+& when (@variationShapeText) {
+  .ui.text.shape.animating .sides {
+    position: static;
+  }
+  .ui.text.shape .side {
+    white-space: nowrap;
+  }
+  .ui.text.shape .side > * {
+    white-space: normal;
+  }
+}
+
+
+/*******************************
+             States
+*******************************/
+
+& when (@variationShapeLoading) {
+  /*--------------
+      Loading
+  ---------------*/
+
+  .ui.loading.shape {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+}
+
+
+/*--------------
+    Animating
+---------------*/
+
+.ui.shape .animating.side {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  z-index: @animatingZIndex;
+}
+.ui.shape .hidden.side {
+  opacity: @hiddenSideOpacity;
+}
+
+
+/*--------------
+      CSS
+---------------*/
+
+.ui.shape.animating .sides {
+  position: absolute;
+  transition: @transition;
+}
+.ui.shape.animating .side {
+  transition: @sideTransition;
+}
+.ui.shape .animating.side *,
+.ui.shape.animating .side * {
+  transition: none;
+}
+
+/*--------------
+     Active
+---------------*/
+
+.ui.shape .active.side {
+  display: block;
+}
+
+.loadUIOverrides();

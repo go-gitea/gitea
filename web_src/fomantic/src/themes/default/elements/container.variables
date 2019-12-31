@@ -1,0 +1,58 @@
+/*******************************
+            Container
+*******************************/
+
+/*-------------------
+       Element
+--------------------*/
+
+/* Minimum Gutter is used to determine  the maximum container width for a given device */
+
+@maxWidth: 100%;
+
+/* Devices */
+@mobileMinimumGutter: 0;
+@mobileWidth: auto;
+@mobileGutter: 1em;
+
+@tabletMinimumGutter: (@emSize  * 1);
+@tabletWidth: @tabletBreakpoint - (@tabletMinimumGutter * 2) - @scrollbarWidth;
+@tabletGutter: auto;
+
+@computerMinimumGutter: (@emSize  * 1.5);
+@computerWidth: @computerBreakpoint - (@computerMinimumGutter * 2) - @scrollbarWidth;
+@computerGutter: auto;
+
+@largeMonitorMinimumGutter: (@emSize  * 2);
+@largeMonitorWidth: @largeMonitorBreakpoint - (@largeMonitorMinimumGutter * 2) - @scrollbarWidth;
+@largeMonitorGutter: auto;
+
+/* Coupling (Add Negative Margin to container size) */
+@gridGutterWidth: 2rem;
+@relaxedGridGutterWidth: 3rem;
+@veryRelaxedGridGutterWidth: 5rem;
+
+@mobileGridWidth: @mobileWidth;
+@tabletGridWidth: e(%("calc(%d + %d)", @tabletWidth, @gridGutterWidth));
+@computerGridWidth: e(%("calc(%d + %d)", @computerWidth, @gridGutterWidth));
+@largeMonitorGridWidth: e(%("calc(%d + %d)", @largeMonitorWidth, @gridGutterWidth));
+
+@mobileRelaxedGridWidth: @mobileWidth;
+@tabletRelaxedGridWidth: e(%("calc(%d + %d)", @tabletWidth, @relaxedGridGutterWidth));
+@computerRelaxedGridWidth: e(%("calc(%d + %d)", @computerWidth, @relaxedGridGutterWidth));
+@largeMonitorRelaxedGridWidth: e(%("calc(%d + %d)", @largeMonitorWidth, @relaxedGridGutterWidth));
+
+@mobileVeryRelaxedGridWidth: @mobileWidth;
+@tabletVeryRelaxedGridWidth: e(%("calc(%d + %d)", @tabletWidth, @veryRelaxedGridGutterWidth));
+@computerVeryRelaxedGridWidth: e(%("calc(%d + %d)", @computerWidth, @veryRelaxedGridGutterWidth));
+@largeMonitorVeryRelaxedGridWidth: e(%("calc(%d + %d)", @largeMonitorWidth, @veryRelaxedGridGutterWidth));
+
+/*-------------------
+       Types
+--------------------*/
+
+/* Text */
+@textWidth: 700px;
+@textFontFamily: @pageFont;
+@textLineHeight: 1.5;
+@textSize: @large;

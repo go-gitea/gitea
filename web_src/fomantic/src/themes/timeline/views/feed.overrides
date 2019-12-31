@@ -1,0 +1,27 @@
+/*******************************
+    User Variable Overrides
+*******************************/
+
+.ui.feed > .event .label {
+  border-left: 3px solid #DDDDDD;
+}
+.ui.feed > .event:last-child .label {
+  border-left-color: transparent;
+}
+
+.ui.feed > .event > .label {
+  margin-left: 1.6em;
+}
+
+.ui.feed > .event > .label > img,
+.ui.feed > .event > .label > .icon {
+  background-color: #009FDA;
+  border-radius: 500rem;
+  color: #FFFFFF;
+  width: 3rem;
+  height: 3rem;
+  line-height: 1.5;
+  left: -1.6rem;
+  opacity: 1;
+  position: relative;
+}

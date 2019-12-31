@@ -1,0 +1,18 @@
+/*******************************
+             Emoji
+*******************************/
+
+/*--------------
+    Path
+---------------*/
+@emojiPath: "https://twemoji.maxcdn.com/v/latest/72x72/";
+@emojiFileType: "png";
+
+/*--------------
+   Definition
+---------------*/
+
+/* Emoji Variables */
+@opacity: 1;
+@loadingDuration: 2s;
+@emojiLineHeight: @headerLineHeight;

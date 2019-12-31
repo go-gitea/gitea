@@ -1,0 +1,7 @@
+/*******************************
+             Loader
+*******************************/
+
+@loaderSpeed: 2s;
+@loaderLineColor: @primaryColor;
+@invertedLoaderLineColor: @lightPrimaryColor;

@@ -1,0 +1,44 @@
+/*******************************
+            Image
+*******************************/
+
+/*-------------------
+       Element
+--------------------*/
+
+@placeholderColor: transparent;
+@roundedBorderRadius: 0.3125em;
+
+@imageHorizontalMargin: 0.25rem;
+@imageVerticalMargin: 0.5rem;
+@imageBorder: 1px solid rgba(0, 0, 0, 0.1);
+
+/*-------------------
+       Types
+--------------------*/
+
+/* Avatar */
+@avatarSize: 2em;
+@avatarMargin: 0.25em;
+
+
+/*-------------------
+       Variations
+--------------------*/
+
+/* Spaced */
+@spacedDistance: 0.5em;
+
+/* Floated */
+@floatedHorizontalMargin: 1em;
+@floatedVerticalMargin: 1em;
+
+/* Size */
+@miniWidth: 35px;
+@tinyWidth: 80px;
+@smallWidth: 150px;
+@mediumWidth: 300px;
+@largeWidth: 450px;
+@bigWidth: 600px;
+@hugeWidth: 800px;
+@massiveWidth: 960px;

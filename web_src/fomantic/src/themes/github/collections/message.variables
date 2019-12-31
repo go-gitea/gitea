@@ -1,0 +1,29 @@
+@background: linear-gradient(rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.05)) #FEFEFE;
+@boxShadow:
+  0px 0px 0px 1px rgba(255, 255, 255, 0.3) inset,
+  0px 0px 0px 1px rgba(0, 0, 0, 0.2) inset
+;
+@verticalPadding: 15px;
+@horizontalPadding: 15px;
+
+@headerFontSize: 1.15em;
+
+@infoTextColor: #264C72;
+@warningTextColor: #613A00;
+@errorTextColor: #991111;
+
+@floatingBoxShadow:
+  0px 0px 0px 1px rgba(0, 0, 0, 0.1) inset,
+  0px 2px 3px 0px rgba(0, 0, 0, 0.1),
+  0px 0px 0px 1px rgba(0, 0, 0, 0.05) inset
+;
+
+@infoBorderColor: #97C1DA;
+@errorBorderColor: #DA9797;
+@warningBorderColor: #DCA874;
+
+@small: 12px;
+@medium: 13px;
+@large: 14px;
+@huge: 16px;
+@massive: 18px;

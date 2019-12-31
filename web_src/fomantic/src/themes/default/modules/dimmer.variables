@@ -1,0 +1,66 @@
+/*******************************
+            Dimmer
+*******************************/
+
+@dimmablePosition: relative;
+@dimmerPosition: absolute;
+
+@backgroundColor: rgba(0, 0, 0 , 0.85);
+@lineHeight: 1;
+@perspective: 2000px;
+@padding: 1em;
+
+@duration: 0.5s;
+@transition:
+  background-color @duration linear
+;
+@zIndex: 1000;
+@textAlign: center;
+@verticalAlign: middle;
+@textColor: @white;
+@overflow: hidden;
+
+@blurredStartFilter: initial;
+@blurredEndFilter: e("blur(5px) grayscale(0.7)");
+@blurredTransition: 800ms filter @defaultEasing;
+
+@blurredBackgroundColor: rgba(0, 0, 0, 0.6);
+@blurredInvertedBackgroundColor: rgba(255, 255, 255, 0.6);
+
+/* Hidden (Default) */
+@hiddenOpacity: 0;
+
+/* Visible */
+@visibleOpacity: 1;
+
+/*-------------------
+        Types
+--------------------*/
+
+/* Page Dimmer*/
+@transformStyle: '';
+@pageDimmerPosition: fixed;
+
+
+/*-------------------
+      Variations
+--------------------*/
+
+/* Inverted */
+@invertedBackgroundColor: rgba(255, 255, 255, 0.85);
+@invertedTextColor: @fullBlack;
+
+/* Simple */
+@simpleZIndex: 1;
+@simpleStartBackgroundColor: rgba(0, 0, 0, 0);
+@simpleEndBackgroundColor: @backgroundColor;
+@simpleInvertedStartBackgroundColor: rgba(255, 255, 255, 0);
+@simpleInvertedEndBackgroundColor: @invertedBackgroundColor;
+
+/* Intensity */
+@veryLightBackgroundColor: rgba(0,0,0,.25);
+@lightBackgroundColor: rgba(0,0,0,.45);
+@mediumBackgroundColor: rgba(0,0,0,.65);
+@veryLightInvertedBackgroundColor: rgba(255,255,255,.25);
+@lightInvertedBackgroundColor: rgba(255,255,255,.45);
+@mediumInvertedBackgroundColor: rgba(255,255,255,.65);

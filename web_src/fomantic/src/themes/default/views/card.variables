@@ -1,0 +1,241 @@
+/*******************************
+             Card
+*******************************/
+
+/*-------------------
+         View
+--------------------*/
+
+/* Shadow */
+@shadowDistance: 1px;
+@shadowBoxShadow: 0 @shadowDistance 3px 0 @solidBorderColor;
+
+/* Card */
+@fontFamily: @pageFont;
+@display: flex;
+@background: @white;
+@borderRadius: @defaultBorderRadius;
+@margin: 1em 0;
+@minHeight: 0;
+@padding: 0;
+@width: 290px;
+@borderWidth: 1px;
+@borderShadow: 0 0 0 @borderWidth @solidBorderColor;
+@boxShadow:
+  @shadowBoxShadow,
+  @borderShadow
+;
+@border: none;
+@zIndex: '';
+@transition:
+  box-shadow @defaultDuration @defaultEasing,
+  transform @defaultDuration @defaultEasing
+;
+
+/* Card Group */
+@horizontalSpacing: 1em;
+@rowSpacing: 1.75em;
+
+@groupMargin: -(@rowSpacing / 2) -(@horizontalSpacing / 2);
+@groupDisplay: flex;
+
+@groupCardFloat: none;
+@groupCardDisplay: flex;
+@groupCardMargin: (@rowSpacing / 2) (@horizontalSpacing / 2);
+
+/* Consecutive Cards */
+@consecutiveGroupDistance: (@rowSpacing / 2);
+
+/*-------------------
+       Content
+--------------------*/
+
+
+/* Image */
+@imageBackground: @transparentBlack;
+@imagePadding: 0;
+@imageBorder: none;
+@imageBoxShadow: none;
+@imageBorder: none;
+
+/* Content */
+@contentDivider: @borderWidth solid @internalBorderColor;
+@contentMargin: 0;
+@contentBackground: none;
+@contentPadding: 1em 1em;
+@contentFontSize: 1em;
+@contentBorderRadius: 0;
+@contentBoxShadow: none;
+@contentBorder: none;
+
+
+/* Header */
+@headerMargin: '';
+@headerFontWeight: @bold;
+@headerFontSize: @relativeBig;
+@headerLineHeightOffset: -(@lineHeight - 1em) / 2;
+@headerColor: @darkTextColor;
+
+/* Metadata */
+@metaFontSize: @relativeMedium;
+@metaSpacing: 0.3em;
+@metaColor: @lightTextColor;
+
+/* Icons */
+@actionOpacity: 0.75;
+@actionHoverOpacity: 1;
+@actionTransition: color @defaultDuration @defaultEasing;
+
+@starColor: #FFB70A;
+@starActiveColor: #FFE623;
+
+@likeColor: #FF2733;
+@likeActiveColor: #FF2733;
+
+/* Links */
+@contentLinkColor: '';
+@contentLinkHoverColor: '';
+@contentLinkTransition: color @defaultDuration @defaultEasing;
+
+@headerLinkColor: @headerColor;
+@headerLinkHoverColor: @linkHoverColor;
+
+@metaLinkColor: @lightTextColor;
+@metaLinkHoverColor: @textColor;
+
+/* Description */
+@descriptionDistance: 0.5em;
+@descriptionColor: rgba(0, 0, 0, 0.68);
+
+/* Content Image */
+@contentImageWidth: '';
+@contentImageVerticalAlign: middle;
+
+/* Avatar Image */
+@avatarSize: 2em;
+@avatarBorderRadius: @circularRadius;
+
+/* Paragraph */
+@paragraphDistance: 0.5em;
+
+/* Dimmer */
+@dimmerZIndex: 10;
+@dimmerColor: '';
+
+/* Additional Content */
+@extraDivider: 1px solid rgba(0, 0, 0, 0.05);
+@extraBackground: none;
+@extraPosition: static;
+@extraWidth: auto;
+@extraTop: 0;
+@extraLeft: 0;
+@extraMargin: 0 0;
+@extraPadding: 0.75em 1em;
+@extraBoxShadow: none;
+@extraColor: @lightTextColor;
+@extraTransition: color @defaultDuration @defaultEasing;
+
+/* Extra Links */
+@extraLinkColor: @unselectedTextColor;
+@extraLinkHoverColor: @linkHoverColor;
+
+/* Buttons */
+@buttonMargin: 0 -@borderWidth;
+@buttonWidth: e(%("calc(100%% + %d)", @borderWidth * 2));
+
+/*-------------------
+      Variations
+--------------------*/
+
+/* Link */
+@linkHoverBackground: @white;
+@linkHoverBorder: @border;
+@linkHoverZIndex: 5;
+@linkHoverRaiseDistance: 3px;
+@linkHoverTransform: translateY(-@linkHoverRaiseDistance);
+
+@shadowHoverBoxShadow: 0 @shadowDistance @linkHoverRaiseDistance 0 @solidSelectedBorderColor;
+@linkHoverBoxShadow:
+  @shadowHoverBoxShadow,
+  @borderShadow
+;
+
+/* Horizontal */
+@horizontalMinWidth: 270px;
+@horizontalWidth: 400px;
+@horizontalImageWidth: 150px;
+
+/* Raised */
+@raisedShadow:
+  @borderShadow,
+  @floatingShadow
+;
+@raisedShadowHover:
+  @borderShadow,
+  @floatingShadowHover
+;
+
+/* Card Count */
+@wideCardSpacing: 1em;
+@cardSpacing: 0.75em;
+@smallCardSpacing: 0.5em;
+
+@oneCardSpacing: 0;
+@twoCardSpacing: @wideCardSpacing;
+@threeCardSpacing: @wideCardSpacing;
+@fourCardSpacing: @cardSpacing;
+@fiveCardSpacing: @cardSpacing;
+@sixCardSpacing: @cardSpacing;
+@sevenCardSpacing: @smallCardSpacing;
+@eightCardSpacing: @smallCardSpacing;
+@nineCardSpacing: @smallCardSpacing;
+@tenCardSpacing: @smallCardSpacing;
+
+@oneCard: @oneColumn;
+@oneCardOffset: 0;
+@twoCard: e(%("calc(%d - %d)", @twoColumn, @twoCardSpacing * 2));
+@twoCardOffset: -@twoCardSpacing;
+@threeCard: e(%("calc(%d - %d)", @threeColumn, @threeCardSpacing * 2));
+@threeCardOffset: -@threeCardSpacing;
+@fourCard: e(%("calc(%d - %d)", @fourColumn, @fourCardSpacing * 2));
+@fourCardOffset: -@fourCardSpacing;
+@fiveCard: e(%("calc(%d - %d)", @fiveColumn, @fiveCardSpacing * 2));
+@fiveCardOffset: -@fiveCardSpacing;
+@sixCard: e(%("calc(%d - %d)", @sixColumn, @sixCardSpacing * 2));
+@sixCardOffset: -@sixCardSpacing;
+@sevenCard: e(%("calc(%d - %d)", @sevenColumn, @sevenCardSpacing * 2));
+@sevenCardOffset: -@sevenCardSpacing;
+@eightCard: e(%("calc(%d - %d)", @eightColumn, @sevenCardSpacing * 2));
+@eightCardOffset: -@sevenCardSpacing;
+@nineCard: e(%("calc(%d - %d)", @nineColumn, @nineCardSpacing * 2));
+@nineCardOffset: -@nineCardSpacing;
+@tenCard: e(%("calc(%d - %d)", @tenColumn, @tenCardSpacing * 2));
+@tenCardOffset: -@tenCardSpacing;
+
+/* Stackable */
+@stackableRowSpacing: 1em;
+@stackableCardSpacing: 1em;
+@stackableMargin: e(%("calc(%d - %d)", @oneColumn, @stackableCardSpacing * 2));
+
+/* Sizes */
+@medium: 1em;
+
+/* Colored */
+@coloredShadowDistance: 2px;
+
+/* Inverted */
+@invertedBackground: @black;
+@invertedContentDivider: @borderWidth solid rgba(255, 255, 255, 0.15);
+@invertedHeaderColor: @invertedTextColor;
+@invertedDescriptionColor: @invertedMutedTextColor;
+@invertedMetaColor: @invertedLightTextColor;
+@invertedMetaLinkColor: @invertedLightTextColor;
+@invertedMetaLinkHoverColor: @invertedHoveredTextColor;
+@invertedExtraColor: @invertedLightTextColor;
+@invertedExtraLinkColor: @invertedUnselectedTextColor;
+@invertedExtraDivider: 1px solid rgba(255, 255, 255, 0.15);
+@invertedLinkHoverBackground: @black;
+@invertedBoxShadow:
+  0 @shadowDistance 3px 0 @solidWhiteBorderColor,
+  0 0 0 @borderWidth @solidWhiteBorderColor
+;

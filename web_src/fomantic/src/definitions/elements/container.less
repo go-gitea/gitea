@@ -1,0 +1,160 @@
+/*!
+ * # Fomantic-UI - Container
+ * http://github.com/fomantic/Fomantic-UI/
+ *
+ *
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ *
+ */
+
+/*******************************
+            Theme
+*******************************/
+
+@type    : 'element';
+@element : 'container';
+
+@import (multiple) '../../theme.config';
+
+/*******************************
+            Container
+*******************************/
+
+/* All Sizes */
+.ui.container {
+  display: block;
+  max-width: @maxWidth;
+}
+
+/* Mobile */
+@media only screen and (max-width: @largestMobileScreen) {
+  .ui.ui.ui.container:not(.fluid) {
+    width: @mobileWidth;
+    margin-left: @mobileGutter;
+    margin-right: @mobileGutter;
+  }
+  & when (@variationContainerGrid) or (@variationContainerRelaxed) {
+    .ui.ui.ui.grid.container {
+      width: @mobileGridWidth;
+    }
+    & when (@variationContainerRelaxed) {
+      .ui.ui.ui.relaxed.grid.container {
+        width: @mobileRelaxedGridWidth;
+      }
+      .ui.ui.ui.very.relaxed.grid.container {
+        width: @mobileVeryRelaxedGridWidth;
+      }
+    }
+  }
+}
+
+/* Tablet */
+@media only screen and (min-width: @tabletBreakpoint) and (max-width: @largestTabletScreen) {
+  .ui.ui.ui.container:not(.fluid) {
+    width: @tabletWidth;
+    margin-left: @tabletGutter;
+    margin-right: @tabletGutter;
+  }
+  & when (@variationContainerGrid) or (@variationContainerRelaxed) {
+    .ui.ui.ui.grid.container {
+      width: @tabletGridWidth;
+    }
+    & when (@variationContainerRelaxed) {
+      .ui.ui.ui.relaxed.grid.container {
+        width: @tabletRelaxedGridWidth;
+      }
+      .ui.ui.ui.very.relaxed.grid.container {
+        width: @tabletVeryRelaxedGridWidth;
+      }
+    }
+  }
+}
+
+/* Small Monitor */
+@media only screen and (min-width: @computerBreakpoint) and (max-width: @largestSmallMonitor) {
+  .ui.ui.ui.container:not(.fluid) {
+    width: @computerWidth;
+    margin-left: @computerGutter;
+    margin-right: @computerGutter;
+  }
+  & when (@variationContainerGrid) or (@variationContainerRelaxed) {
+    .ui.ui.ui.grid.container {
+      width: @computerGridWidth;
+    }
+    & when (@variationContainerRelaxed) {
+      .ui.ui.ui.relaxed.grid.container {
+        width: @computerRelaxedGridWidth;
+      }
+      .ui.ui.ui.very.relaxed.grid.container {
+        width: @computerVeryRelaxedGridWidth;
+      }
+    }
+  }
+}
+
+/* Large Monitor */
+@media only screen and (min-width: @largeMonitorBreakpoint) {
+  .ui.ui.ui.container:not(.fluid) {
+    width: @largeMonitorWidth;
+    margin-left: @largeMonitorGutter;
+    margin-right: @largeMonitorGutter;
+  }
+  & when (@variationContainerGrid) or (@variationContainerRelaxed) {
+    .ui.ui.ui.grid.container {
+      width: @largeMonitorGridWidth;
+    }
+    & when (@variationContainerRelaxed) {
+      .ui.ui.ui.relaxed.grid.container {
+        width: @largeMonitorRelaxedGridWidth;
+      }
+      .ui.ui.ui.very.relaxed.grid.container {
+        width: @largeMonitorVeryRelaxedGridWidth;
+      }
+    }
+  }
+}
+
+/*******************************
+             Types
+*******************************/
+
+& when (@variationContainerText) {
+  /* Text Container */
+  .ui.text.container {
+    font-family: @textFontFamily;
+    max-width: @textWidth;
+    line-height: @textLineHeight;
+    font-size: @textSize;
+  }
+}
+
+& when (@variationContainerFluid) {
+  /* Fluid */
+  .ui.fluid.container {
+    width: 100%;
+  }
+}
+
+/*******************************
+           Variations
+*******************************/
+& when (@variationContainerAligned) {
+  .ui[class*="left aligned"].container {
+    text-align: left;
+  }
+  .ui[class*="center aligned"].container {
+    text-align: center;
+  }
+  .ui[class*="right aligned"].container {
+    text-align: right;
+  }
+}
+& when (@variationContainerJustified) {
+  .ui.justified.container {
+    text-align: justify;
+    hyphens: auto;
+  }
+}
+
+.loadUIOverrides();

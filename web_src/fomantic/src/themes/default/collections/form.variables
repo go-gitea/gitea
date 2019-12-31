@@ -1,0 +1,168 @@
+/*******************************
+             Form
+*******************************/
+
+/*-------------------
+       Elements
+--------------------*/
+
+/* Form */
+@gutterWidth: 1em;
+@rowDistance: 1em;
+
+/* Text */
+@paragraphMargin: @rowDistance 0;
+
+/* Field */
+@fieldMargin: 0 0 @rowDistance;
+
+/* Fields */
+@fieldsMargin: 0 -(@gutterWidth / 2) @rowDistance;
+
+/* Form Label */
+@labelDistance: @4px;
+@labelMargin: 0 0 @labelDistance 0;
+@labelFontSize: @relativeSmall;
+@labelFontWeight: @bold;
+@labelTextTransform: none;
+@labelColor: @textColor;
+
+/* Input */
+@inputFont: @pageFont;
+@inputWidth: 100%;
+@inputFontSize: 1em;
+@inputPadding: (@inputVerticalPadding + ((1em - @inputLineHeight) / 2)) @inputHorizontalPadding;
+@inputBorder: 1px solid @borderColor;
+@inputBorderRadius: @absoluteBorderRadius;
+@inputColor: @textColor;
+@inputTransition:
+  color @defaultDuration @defaultEasing,
+  border-color @defaultDuration @defaultEasing
+;
+@inputBoxShadow: 0 0 0 0 transparent inset;
+
+/* Select */
+@selectBackground: @white;
+@selectBorderRadius: @inputBorderRadius;
+@selectBorder: @inputBorder;
+@selectPadding: 0.62em @inputHorizontalPadding;
+@selectBoxShadow: @inputBoxShadow;
+@selectTransition: @inputTransition;
+@selectColor: @inputColor;
+
+/* Text Area */
+@textAreaPadding: @inputVerticalPadding @inputHorizontalPadding;
+@textAreaHeight: 12em;
+@textAreaResize: vertical;
+@textAreaLineHeight: 1.2857;
+@textAreaMinHeight: 8em;
+@textAreaMaxHeight: 24em;
+@textAreaBackground: @inputBackground;
+@textAreaBorder: @inputBorder;
+@textAreaFontSize: @inputFontSize;
+@textAreaTransition: @inputTransition;
+
+/* Checkbox */
+@checkboxVerticalAlign: top;
+@checkboxLabelFontSize: 1em;
+@checkboxLabelTextTransform: @labelTextTransform;
+@checkboxLabelFieldTopMargin: 0.7em;
+@checkboxFieldTopMargin: 1.2em;
+@checkboxToggleFieldTopMargin: 1em;
+@checkboxSliderFieldTopMargin: 1.4em;
+
+/* Inline Validation Prompt */
+@promptBackground: @white;
+@promptBorderColor: @formErrorBorder;
+@promptBorder: 1px solid @promptBorderColor;
+@promptTextColor: @formErrorColor;
+@inlinePromptMargin: -0.25em 0 -0.5em 0.5em;
+@inlinePromptBorderWidth: 1px;
+
+/*-------------------
+        States
+--------------------*/
+
+/* Focus */
+@inputFocusPointerSize: 0;
+
+/* Input Focus */
+@inputFocusBackground: @inputBackground;
+@inputFocusBorderColor: @focusedFormBorderColor;
+@inputFocusColor: @selectedTextColor;
+@inputFocusBoxShadow: @inputFocusPointerSize 0 0 0 @selectedBorderColor inset;
+@inputFocusBorderRadius: @inputBorderRadius;
+
+/* Text Area Focus */
+@textAreaFocusBackground: @inputFocusBackground;
+@textAreaFocusBorderColor: @inputFocusBorderColor;
+@textAreaFocusColor: @inputFocusColor;
+@textAreaFocusBoxShadow: @inputFocusBoxShadow;
+@textAreaFocusBorderRadius: @inputFocusBorderRadius;
+
+/* Disabled */
+@disabledLabelOpacity: @disabledOpacity;
+
+/* Input states */
+@transparentPadding: @inputPadding;
+
+/* Loading Dimmer */
+@loaderDimmerColor: rgba(255, 255, 255, 0.8);
+@loaderInvertedDimmerColor: rgba(0, 0, 0 , 0.85);
+@loaderDimmerZIndex: 100;
+
+/* Loading Spinner */
+@loaderSize: 3em;
+@loaderLineZIndex: 101;
+
+/*-------------------
+        Types
+--------------------*/
+
+/* Required */
+@requiredContent: '*';
+@requiredColor: @negativeColor;
+@requiredVerticalOffset: -0.2em;
+@requiredDistance: 0.2em;
+@requiredMargin: @requiredVerticalOffset 0 0 @requiredDistance;
+
+/* Inverted */
+@invertedInputBackground: @inputBackground;
+@invertedInputBorderColor: @whiteBorderColor;
+@invertedInputBoxShadow: @inputBoxShadow;
+@invertedInputColor: @inputColor;
+@invertedLabelColor: @invertedTextColor;
+@invertedInputBoxShadow: none;
+
+/*-------------------
+      Variations
+--------------------*/
+
+/* Grouped Fields */
+@groupedMargin: @fieldMargin;
+@groupedFieldMargin: 0.5em 0;
+
+@groupedLabelDistance: @labelDistance;
+@groupedLabelColor: @labelColor;
+@groupedLabelMargin: @labelMargin;
+@groupedLabelFontSize: @labelFontSize;
+@groupedLabelFontWeight: @labelFontWeight;
+@groupedLabelTextTransform: @labelTextTransform;
+
+
+/* Inline */
+@inlineInputSize: @relativeMedium;
+
+@inlineLabelDistance: @relativeTiny;
+@inlineLabelColor: @labelColor;
+@inlineLabelFontSize: @labelFontSize;
+@inlineLabelFontWeight: @labelFontWeight;
+@inlineLabelTextTransform: @labelTextTransform;
+
+@groupedInlineLabelMargin: 0.035714em 1em 0 0;
+
+/*-------------------
+       Groups
+--------------------*/
+
+@inlineFieldsMargin: 0 1em 0 0;

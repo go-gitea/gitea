@@ -1,0 +1,1021 @@
+/*!
+ * # Fomantic-UI - List
+ * http://github.com/fomantic/Fomantic-UI/
+ *
+ *
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ *
+ */
+
+/*******************************
+            Theme
+*******************************/
+
+@type    : 'element';
+@element : 'list';
+
+@import (multiple) '../../theme.config';
+
+/*******************************
+            List
+*******************************/
+
+ul.ui.list,
+ol.ui.list,
+.ui.list {
+  list-style-type: @listStyleType;
+  margin: @margin;
+  padding: @verticalPadding @horizontalPadding;
+}
+
+ul.ui.list:first-child,
+ol.ui.list:first-child,
+.ui.list:first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+ul.ui.list:last-child,
+ol.ui.list:last-child,
+.ui.list:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/*******************************
+            Content
+*******************************/
+
+/* List Item */
+ul.ui.list li,
+ol.ui.list li,
+.ui.list > .item,
+.ui.list .list > .item {
+  display: list-item;
+  table-layout: fixed;
+  list-style-type: @listStyleType;
+  list-style-position: @listStylePosition;
+
+  padding: @itemPadding;
+  line-height: @itemLineHeight;
+}
+
+ul.ui.list > li:first-child:after,
+ol.ui.list > li:first-child:after,
+.ui.list > .list > .item:after,
+.ui.list > .item:after {
+  content: '';
+  display: block;
+  height: 0;
+  clear: both;
+  visibility: hidden;
+}
+
+ul.ui.list li:first-child,
+ol.ui.list li:first-child,
+.ui.list .list > .item:first-child,
+.ui.list > .item:first-child {
+  padding-top: 0;
+}
+ul.ui.list li:last-child,
+ol.ui.list li:last-child,
+.ui.list .list > .item:last-child,
+.ui.list > .item:last-child {
+  padding-bottom: 0;
+}
+
+/* Child List */
+ul.ui.list ul,
+ol.ui.list ol,
+.ui.list .list:not(.icon) {
+  clear: both;
+  margin: 0;
+  padding: @childListPadding;
+}
+
+/* Child Item */
+ul.ui.list ul li,
+ol.ui.list ol li,
+.ui.list .list > .item {
+  padding: @childItemPadding;
+  line-height: @childItemLineHeight;
+}
+
+& when (@variationListIcon) {
+  /* Icon */
+  .ui.list .list > .item > i.icon,
+  .ui.list > .item > i.icon {
+    display: table-cell;
+    min-width: 1.55em;
+    margin: 0;
+    padding-top: @iconOffset;
+    transition: @iconTransition;
+    &:not(.loading) {
+      padding-right: @iconDistance;
+      vertical-align: @iconContentVerticalAlign;
+    }
+  }
+  .ui.list .list > .item > i.icon:only-child,
+  .ui.list > .item > i.icon:only-child {
+    display: inline-block;
+    min-width: auto;
+    vertical-align: @iconVerticalAlign;
+  }
+}
+
+& when (@variationListImage) {
+  /* Image */
+  .ui.list .list > .item > .image,
+  .ui.list > .item > .image {
+    display: table-cell;
+    background-color: transparent;
+    margin: 0;
+    vertical-align: @imageAlign;
+  }
+  .ui.list .list > .item > .image:not(:only-child):not(img),
+  .ui.list > .item > .image:not(:only-child):not(img) {
+    padding-right: @imageDistance;
+  }
+  .ui.list .list > .item > .image img,
+  .ui.list > .item > .image img {
+    vertical-align: @imageAlign;
+  }
+
+  .ui.list .list > .item > img.image,
+  .ui.list .list > .item > .image:only-child,
+  .ui.list > .item > img.image,
+  .ui.list > .item > .image:only-child {
+    display: inline-block;
+  }
+}
+
+/* Content */
+.ui.list .list > .item > .content,
+.ui.list > .item > .content {
+  line-height: @contentLineHeight;
+  color: @contentColor;
+}
+& when (@variationListImage) or (@variationListIcon) {
+  .ui.list .list > .item > .image + .content,
+  .ui.list .list > .item > .icon + .content,
+  .ui.list > .item > .image + .content,
+  .ui.list > .item > .icon + .content {
+    display: table-cell;
+    width: 100%;
+    padding: 0 0 0 @contentDistance;
+    vertical-align: @contentVerticalAlign;
+  }
+}
+& when (@variationListIcon) {
+  .ui.list .list > .item > .loading.icon + .content,
+  .ui.list > .item > .loading.icon + .content {
+    padding-left: e(%("calc(%d + %d)", @iconDistance, @contentDistance));
+  }
+}
+& when (@variationListImage) {
+  .ui.list .list > .item > img.image + .content,
+  .ui.list > .item > img.image + .content {
+    display: inline-block;
+    width: auto;
+  }
+}
+.ui.list .list > .item > .content > .list,
+.ui.list > .item > .content > .list {
+  margin-left: 0;
+  padding-left: 0;
+}
+
+/* Header */
+.ui.list .list > .item .header,
+.ui.list > .item .header {
+  display: block;
+  margin: 0;
+  font-family: @itemHeaderFontFamily;
+  font-weight: @itemHeaderFontWeight;
+  color: @itemHeaderColor;
+}
+
+/* Description */
+.ui.list .list > .item .description,
+.ui.list > .item .description {
+  display: block;
+  color: @itemDescriptionColor;
+}
+
+/* Child Link */
+.ui.list > .item a,
+.ui.list .list > .item a {
+  cursor: pointer;
+}
+
+/* Linking Item */
+.ui.list .list > a.item,
+.ui.list > a.item {
+  cursor: pointer;
+  color: @itemLinkColor;
+}
+.ui.list .list > a.item:hover,
+.ui.list > a.item:hover {
+  color: @itemLinkHoverColor;
+}
+
+& when (@variationListIcon) {
+  /* Linked Item Icons */
+  .ui.list .list > a.item > i.icons,
+  .ui.list > a.item > i.icons,
+  .ui.list .list > a.item > i.icon,
+  .ui.list > a.item > i.icon {
+    color: @itemLinkIconColor;
+  }
+}
+
+/* Header Link */
+.ui.list .list > .item a.header,
+.ui.list > .item a.header {
+  cursor: pointer;
+  color: @itemHeaderLinkColor !important;
+}
+.ui.list .list > .item > a.header:hover,
+.ui.list > .item > a.header:hover {
+  color: @itemHeaderLinkHoverColor !important;
+}
+
+& when (@variationListFloated) {
+  /* Floated Content */
+  .ui[class*="left floated"].list {
+    float: left;
+  }
+  .ui[class*="right floated"].list {
+    float: right;
+  }
+
+  .ui.list .list > .item [class*="left floated"],
+  .ui.list > .item [class*="left floated"] {
+    float: left;
+    margin: @leftFloatMargin;
+  }
+  .ui.list .list > .item [class*="right floated"],
+  .ui.list > .item [class*="right floated"] {
+    float: right;
+    margin: @rightFloatMargin;
+  }
+}
+
+/*******************************
+            Coupling
+*******************************/
+
+.ui.menu .ui.list > .item,
+.ui.menu .ui.list .list > .item {
+  display: list-item;
+  table-layout: fixed;
+  background-color: transparent;
+
+  list-style-type: @listStyleType;
+  list-style-position: @listStylePosition;
+
+  padding: @itemVerticalPadding @itemHorizontalPadding;
+  line-height: @itemLineHeight;
+}
+.ui.menu .ui.list .list > .item:before,
+.ui.menu .ui.list > .item:before {
+  border: none;
+  background: none;
+}
+.ui.menu .ui.list .list > .item:first-child,
+.ui.menu .ui.list > .item:first-child {
+  padding-top: 0;
+}
+.ui.menu .ui.list .list > .item:last-child,
+.ui.menu .ui.list > .item:last-child {
+  padding-bottom: 0;
+}
+
+
+/*******************************
+            Types
+*******************************/
+
+& when (@variationListHorizontal) {
+  /*-------------------
+        Horizontal
+  --------------------*/
+
+  .ui.horizontal.list {
+    display: inline-block;
+    font-size: 0;
+  }
+  .ui.horizontal.list > .item {
+    display: inline-block;
+    margin-right: @horizontalSpacing;
+    font-size: 1rem;
+  }
+  .ui.horizontal.list:not(.celled) > .item:last-child {
+    margin-right: 0;
+    padding-right: 0;
+  }
+  .ui.horizontal.list .list:not(.icon) {
+    padding-left: 0;
+    padding-bottom: 0;
+  }
+  .ui.horizontal.list > .item > .image,
+  .ui.horizontal.list .list > .item > .image,
+  .ui.horizontal.list > .item > .icon,
+  .ui.horizontal.list .list > .item > .icon,
+  .ui.horizontal.list > .item > .content,
+  .ui.horizontal.list .list > .item > .content {
+    vertical-align: @horizontalVerticalAlign;
+  }
+
+  /* Padding on all elements */
+  .ui.horizontal.list > .item:first-child,
+  .ui.horizontal.list > .item:last-child {
+    padding-top: @itemVerticalPadding;
+    padding-bottom: @itemVerticalPadding;
+  }
+  & when (@variationListIcon) {
+    /* Horizontal List */
+    .ui.horizontal.list > .item > i.icon ,
+    .ui.horizontal.list .item > i.icons > i.icon {
+      margin: 0;
+      padding: 0 @horizontalIconDistance 0 0;
+    }
+  }
+  & when (@variationListImage) or (@variationListIcon) {
+    .ui.horizontal.list > .item > .image + .content,
+    .ui.horizontal.list > .item > .icon,
+    .ui.horizontal.list > .item > .icon + .content {
+      float: none;
+      display: inline-block;
+      width: auto;
+    }
+  }
+  & when (@variationListImage) {
+    .ui.horizontal.list > .item > .image {
+      display: inline-block;
+    }
+  }
+}
+
+/*******************************
+             States
+*******************************/
+
+& when (@variationListDisabled) {
+  /*-------------------
+         Disabled
+  --------------------*/
+
+  .ui.list .list > .disabled.item,
+  .ui.list > .disabled.item {
+    pointer-events: none;
+    color: @disabledColor !important;
+  }
+  & when (@variationListInverted) {
+    .ui.inverted.list .list > .disabled.item,
+    .ui.inverted.list > .disabled.item {
+      color: @invertedDisabledColor !important;
+    }
+  }
+}
+
+/*-------------------
+        Hover
+--------------------*/
+& when (@variationListIcon) {
+  .ui.list .list > a.item:hover > .icons,
+  .ui.list > a.item:hover > .icons,
+  .ui.list .list > a.item:hover > .icon,
+  .ui.list > a.item:hover > .icon {
+    color: @itemLinkIconHoverColor;
+  }
+}
+
+/*******************************
+           Variations
+*******************************/
+
+& when (@variationListInverted) {
+  /*-------------------
+         Inverted
+  --------------------*/
+  & when (@variationListIcon) {
+    .ui.inverted.list .list > a.item > .icon,
+    .ui.inverted.list > a.item > .icon {
+      color: @invertedIconLinkColor;
+    }
+  }
+  .ui.inverted.list .list > .item .header,
+  .ui.inverted.list > .item .header {
+    color: @invertedHeaderColor;
+  }
+  .ui.inverted.list .list > .item .description,
+  .ui.inverted.list > .item .description {
+    color: @invertedDescriptionColor;
+  }
+  .ui.inverted.list .list > .item > .content,
+  .ui.inverted.list > .item > .content {
+    color: @invertedContentColor;
+  }
+  /* Item Link */
+  .ui.inverted.list .list > a.item,
+  .ui.inverted.list > a.item {
+    cursor: pointer;
+    color: @invertedItemLinkColor;
+  }
+  .ui.inverted.list .list > a.item:hover,
+  .ui.inverted.list > a.item:hover {
+    color: @invertedItemLinkHoverColor;
+  }
+
+
+  /* Linking Content */
+  .ui.inverted.list .item a:not(.ui) {
+    color: @invertedItemLinkColor !important;
+  }
+  .ui.inverted.list .item a:not(.ui):hover {
+    color: @invertedItemLinkHoverColor !important;
+  }
+}
+
+& when (@variationListAligned) {
+  /*-------------------
+         Aligned
+  --------------------*/
+
+  .ui.list[class*="top aligned"] .image,
+  .ui.list[class*="top aligned"] .content,
+  .ui.list [class*="top aligned"] {
+    vertical-align: top !important;
+  }
+  .ui.list[class*="middle aligned"] .image,
+  .ui.list[class*="middle aligned"] .content,
+  .ui.list [class*="middle aligned"] {
+    vertical-align: middle !important;
+  }
+  .ui.list[class*="bottom aligned"] .image,
+  .ui.list[class*="bottom aligned"] .content,
+  .ui.list [class*="bottom aligned"] {
+    vertical-align: bottom !important;
+  }
+}
+
+& when (@variationListLink) {
+  /*-------------------
+         Link
+  --------------------*/
+
+  .ui.link.list .item,
+  .ui.link.list a.item,
+  .ui.link.list .item a:not(.ui) {
+    color: @linkListItemColor;
+    transition: @linkListTransition;
+  }
+  .ui.link.list.list a.item:hover,
+  .ui.link.list.list .item a:not(.ui):hover {
+    color: @linkListItemHoverColor;
+  }
+  .ui.link.list.list a.item:active,
+  .ui.link.list.list .item a:not(.ui):active {
+    color: @linkListItemDownColor;
+  }
+  .ui.link.list.list .active.item,
+  .ui.link.list.list .active.item a:not(.ui) {
+    color: @linkListItemActiveColor;
+  }
+  & when (@variationListInverted) {
+    /* Inverted */
+    .ui.inverted.link.list .item,
+    .ui.inverted.link.list a.item,
+    .ui.inverted.link.list .item a:not(.ui) {
+      color: @invertedLinkListItemColor;
+    }
+    .ui.inverted.link.list.list a.item:hover,
+    .ui.inverted.link.list.list .item a:not(.ui):hover {
+      color: @invertedLinkListItemHoverColor;
+    }
+    .ui.inverted.link.list.list a.item:active,
+    .ui.inverted.link.list.list .item a:not(.ui):active {
+      color: @invertedLinkListItemDownColor;
+    }
+    .ui.inverted.link.list.list a.active.item,
+    .ui.inverted.link.list.list .active.item a:not(.ui) {
+      color: @invertedLinkListItemActiveColor;
+    }
+  }
+}
+
+& when (@variationListSelection) {
+  /*-------------------
+        Selection
+  --------------------*/
+
+  .ui.selection.list .list > .item,
+  .ui.selection.list > .item {
+    cursor: pointer;
+    background: @selectionListBackground;
+    padding: @selectionListItemVerticalPadding @selectionListItemHorizontalPadding;
+    margin: @selectionListItemMargin;
+    color: @selectionListColor;
+    border-radius: @selectionListItemBorderRadius;
+    transition: @selectionListTransition;
+  }
+  .ui.selection.list .list > .item:last-child,
+  .ui.selection.list > .item:last-child {
+    margin-bottom: 0;
+  }
+  .ui.selection.list .list > .item:hover,
+  .ui.selection.list > .item:hover {
+    background: @selectionListHoverBackground;
+    color: @selectionListHoverColor;
+  }
+  .ui.selection.list .list > .item:active,
+  .ui.selection.list > .item:active {
+    background: @selectionListDownBackground;
+    color: @selectionListDownColor;
+  }
+  .ui.selection.list .list > .item.active,
+  .ui.selection.list > .item.active {
+    background: @selectionListActiveBackground;
+    color: @selectionListActiveColor;
+  }
+
+  & when (@variationListInverted) {
+    /* Inverted */
+    .ui.inverted.selection.list > .item {
+      background: @invertedSelectionListBackground;
+      color: @invertedSelectionListColor;
+    }
+    .ui.inverted.selection.list > .item:hover {
+      background: @invertedSelectionListHoverBackground;
+      color: @invertedSelectionListHoverColor;
+    }
+    .ui.inverted.selection.list > .item:active {
+      background: @invertedSelectionListDownBackground;
+      color: @invertedSelectionListDownColor;
+    }
+    .ui.inverted.selection.list > .item.active {
+      background: @invertedSelectionListActiveBackground;
+      color: @invertedSelectionListActiveColor;
+    }
+  }
+
+  & when (@variationListCelled) or (@variationListDivided) {
+    /* Celled / Divided Selection List */
+    .ui.celled.selection.list .list > .item,
+    .ui.divided.selection.list .list > .item,
+    .ui.celled.selection.list > .item,
+    .ui.divided.selection.list > .item {
+      border-radius: 0;
+    }
+  }
+}
+
+& when (@variationListAnimated) {
+  /*-------------------
+         Animated
+  --------------------*/
+
+  .ui.animated.list > .item {
+    transition: @animatedListTransition;
+  }
+  .ui.animated.list:not(.horizontal) > .item:hover {
+    padding-left: @animatedListIndent;
+  }
+}
+
+& when (@variationListFitted) {
+  /*-------------------
+         Fitted
+  --------------------*/
+  .ui.fitted.list:not(.selection) .list > .item,
+  .ui.fitted.list:not(.selection) > .item {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .ui.fitted.selection.list .list > .item,
+  .ui.fitted.selection.list > .item {
+    margin-left: -@selectionListItemHorizontalPadding;
+    margin-right: -@selectionListItemHorizontalPadding;
+  }
+}
+
+& when (@variationListBulleted) {
+  /*-------------------
+        Bulleted
+  --------------------*/
+
+  ul.ui.list,
+  .ui.bulleted.list {
+    margin-left: @bulletDistance;
+  }
+  ul.ui.list li,
+  .ui.bulleted.list .list > .item,
+  .ui.bulleted.list > .item {
+    position: relative;
+  }
+  ul.ui.list li:before,
+  .ui.bulleted.list .list > .item:before,
+  .ui.bulleted.list > .item:before {
+    user-select: none;
+    pointer-events: none;
+    position: absolute;
+    top: auto;
+    left: auto;
+    font-weight: @normal;
+    margin-left: @bulletOffset;
+    content: @bulletCharacter;
+    opacity: @bulletOpacity;
+    color: @bulletColor;
+    vertical-align: @bulletVerticalAlign;
+  }
+
+  ul.ui.list li:before,
+  .ui.bulleted.list .list > a.item:before,
+  .ui.bulleted.list > a.item:before {
+    color: @bulletLinkColor;
+  }
+
+  ul.ui.list ul,
+  .ui.bulleted.list .list:not(.icon) {
+    padding-left: @bulletChildDistance;
+  }
+
+  & when (@variationListHorizontal) {
+    /* Horizontal Bulleted */
+    ul.ui.horizontal.bulleted.list,
+    .ui.horizontal.bulleted.list {
+      margin-left: 0;
+    }
+    ul.ui.horizontal.bulleted.list li,
+    .ui.horizontal.bulleted.list > .item {
+      margin-left: @horizontalBulletSpacing;
+    }
+    ul.ui.horizontal.bulleted.list li:first-child,
+    .ui.horizontal.bulleted.list > .item:first-child {
+      margin-left: 0;
+    }
+    ul.ui.horizontal.bulleted.list li::before,
+    .ui.horizontal.bulleted.list > .item::before {
+      color: @horizontalBulletColor;
+    }
+    ul.ui.horizontal.bulleted.list li:first-child::before,
+    .ui.horizontal.bulleted.list > .item:first-child::before {
+      display: none;
+    }
+  }
+}
+
+& when (@variationListOrdered) {
+  /*-------------------
+         Ordered
+  --------------------*/
+
+  ol.ui.list,
+  .ui.ordered.list,
+  .ui.ordered.list .list:not(.icon),
+  ol.ui.list ol {
+    counter-reset: ordered;
+    margin-left: @orderedCountDistance;
+    list-style-type: none;
+  }
+  ol.ui.list li,
+  .ui.ordered.list .list > .item,
+  .ui.ordered.list > .item {
+    list-style-type: none;
+    position: relative;
+  }
+  ol.ui.list li:before,
+  .ui.ordered.list .list > .item:before,
+  .ui.ordered.list > .item:before {
+    position: absolute;
+    top: auto;
+    left: auto;
+    user-select: none;
+    pointer-events: none;
+    margin-left: -(@orderedCountDistance);
+    counter-increment: @orderedCountName;
+    content: @orderedCountContent;
+    text-align: @orderedCountTextAlign;
+    color: @orderedCountColor;
+    vertical-align: @orderedCountVerticalAlign;
+    opacity: @orderedCountOpacity;
+  }
+
+  & when (@variationListInverted) {
+    ol.ui.inverted.list li:before,
+    .ui.ordered.inverted.list .list > .item:before,
+    .ui.ordered.inverted.list > .item:before {
+      color: @orderedInvertedCountColor;
+    }
+  }
+
+  /* Value */
+  .ui.ordered.list .list > .item[data-value]:before,
+  .ui.ordered.list > .item[data-value]:before {
+    content: attr(data-value);
+  }
+  ol.ui.list li[value]:before {
+    content: attr(value);
+  }
+
+  /* Child Lists */
+  ol.ui.list ol,
+  .ui.ordered.list .list:not(.icon) {
+    margin-left: @orderedChildCountDistance;
+  }
+  ol.ui.list ol li:before,
+  .ui.ordered.list .list > .item:before {
+    margin-left: @orderedChildCountOffset;
+  }
+
+  & when (@variationListHorizontal) {
+    /* Horizontal Ordered */
+    ol.ui.horizontal.list,
+    .ui.ordered.horizontal.list {
+      margin-left: 0;
+    }
+    ol.ui.horizontal.list li:before,
+    .ui.ordered.horizontal.list .list > .item:before,
+    .ui.ordered.horizontal.list > .item:before {
+      position: static;
+      margin: 0 @horizontalOrderedCountDistance 0 0;
+    }
+  }
+}
+
+& when (@variationListSuffixed) {
+  /* Suffixed Ordered */
+  ol.ui.suffixed.list li:before,
+  .ui.suffixed.ordered.list .list > .item:before,
+  .ui.suffixed.ordered.list > .item:before {
+    content: @orderedCountContentSuffixed;
+  }
+}
+
+& when (@variationListDivided) {
+  /*-------------------
+         Divided
+  --------------------*/
+
+  .ui.divided.list > .item {
+    border-top: @dividedBorder;
+  }
+  .ui.divided.list .list > .item {
+    border-top: @dividedChildListBorder;
+  }
+  .ui.divided.list .item .list > .item {
+    border-top: @dividedChildItemBorder;
+  }
+  .ui.divided.list .list > .item:first-child,
+  .ui.divided.list > .item:first-child {
+    border-top: none;
+  }
+
+  /* Sub Menu */
+  .ui.divided.list:not(.horizontal) .list > .item:first-child {
+    border-top-width: @dividedBorderWidth;
+  }
+
+  & when (@variationListBulleted) {
+    /* Divided bulleted */
+    .ui.divided.bulleted.list:not(.horizontal),
+    .ui.divided.bulleted.list .list:not(.icon) {
+      margin-left: 0;
+      padding-left: 0;
+    }
+    .ui.divided.bulleted.list > .item:not(.horizontal) {
+      padding-left: @bulletDistance;
+    }
+  }
+
+  & when (@variationListOrdered) {
+    /* Divided Ordered */
+    .ui.divided.ordered.list {
+      margin-left: 0;
+    }
+    .ui.divided.ordered.list .list > .item,
+    .ui.divided.ordered.list > .item {
+      padding-left: @orderedCountDistance;
+    }
+    .ui.divided.ordered.list .item .list:not(.icon) {
+      margin-left: 0;
+      margin-right: 0;
+      padding-bottom: @itemVerticalPadding;
+    }
+    .ui.divided.ordered.list .item .list > .item {
+      padding-left: @orderedChildCountDistance;
+    }
+  }
+
+  & when (@variationListSelection) {
+    /* Divided Selection */
+
+    .ui.divided.selection.list .list > .item,
+    .ui.divided.selection.list > .item {
+      margin: 0;
+      border-radius: 0;
+    }
+  }
+
+  & when (@variationListHorizontal) {
+    /* Divided horizontal */
+    .ui.divided.horizontal.list {
+      margin-left: 0;
+    }
+    .ui.divided.horizontal.list > .item {
+      padding-left: @horizontalDividedSpacing;
+    }
+    .ui.divided.horizontal.list > .item:not(:last-child) {
+      padding-right: @horizontalDividedSpacing;
+    }
+    .ui.divided.horizontal.list > .item {
+      border-top: none;
+      border-right: @dividedBorder;
+      margin: 0;
+      line-height: @horizontalDividedLineHeight;
+    }
+    .ui.horizontal.divided.list > .item:last-child {
+      border-right: none;
+    }
+  }
+
+  & when (@variationListInverted) {
+    /* Inverted */
+
+    .ui.divided.inverted.list > .item,
+    .ui.divided.inverted.list > .list,
+    .ui.divided.inverted.horizontal.list > .item {
+      border-color: @dividedInvertedBorderColor;
+    }
+  }
+}
+
+& when (@variationListCelled) {
+  /*-------------------
+          Celled
+  --------------------*/
+
+  .ui.celled.list > .item,
+  .ui.celled.list > .list {
+    border-top: @celledBorder;
+    padding-left: @celledHorizontalPadding;
+    padding-right: @celledHorizontalPadding;
+  }
+  .ui.celled.list > .item:last-child {
+    border-bottom: @celledBorder;
+  }
+
+  /* Padding on all elements */
+  .ui.celled.list > .item:first-child,
+  .ui.celled.list > .item:last-child {
+    padding-top: @itemVerticalPadding;
+    padding-bottom: @itemVerticalPadding;
+  }
+
+  /* Sub Menu */
+  .ui.celled.list .item .list > .item {
+    border-width: 0;
+  }
+  .ui.celled.list .list > .item:first-child {
+    border-top-width: 0;
+  }
+
+  & when (@variationListBulleted) {
+    /* Celled Bulleted */
+    .ui.celled.bulleted.list {
+      margin-left: 0;
+    }
+    .ui.celled.bulleted.list .list > .item,
+    .ui.celled.bulleted.list > .item {
+      padding-left: (@bulletDistance);
+    }
+    .ui.celled.bulleted.list .item .list:not(.icon) {
+      margin-left: -(@bulletDistance);
+      margin-right: -(@bulletDistance);
+      padding-bottom: @itemVerticalPadding;
+    }
+  }
+
+  & when (@variationListOrdered) {
+    /* Celled Ordered */
+    .ui.celled.ordered.list {
+      margin-left: 0;
+    }
+    .ui.celled.ordered.list .list > .item,
+    .ui.celled.ordered.list > .item {
+      padding-left: @orderedCountDistance;
+    }
+    .ui.celled.ordered.list .item .list:not(.icon) {
+      margin-left: 0;
+      margin-right: 0;
+      padding-bottom: @itemVerticalPadding;
+    }
+    .ui.celled.ordered.list .list > .item {
+      padding-left: @orderedChildCountDistance;
+    }
+  }
+
+  & when (@variationListHorizontal) {
+    /* Celled Horizontal */
+    .ui.horizontal.celled.list {
+      margin-left: 0;
+    }
+    .ui.horizontal.celled.list .list > .item,
+    .ui.horizontal.celled.list > .item {
+      border-top: none;
+      border-left: @celledBorder;
+      margin: 0;
+      padding-left: @horizontalCelledSpacing;
+      padding-right: @horizontalCelledSpacing;
+
+      line-height: @horizontalCelledLineHeight;
+    }
+    .ui.horizontal.celled.list .list > .item:last-child,
+    .ui.horizontal.celled.list > .item:last-child {
+      border-bottom: none;
+      border-right: @celledBorder;
+    }
+  }
+
+  & when (@variationListInverted) {
+    /* Inverted */
+    .ui.celled.inverted.list > .item,
+    .ui.celled.inverted.list > .list {
+      border-color: @celledInvertedBorder;
+    }
+    .ui.celled.inverted.horizontal.list .list > .item,
+    .ui.celled.inverted.horizontal.list > .item {
+      border-color: @celledInvertedBorder;
+    }
+    }
+}
+
+& when (@variationListRelaxed) {
+  /*-------------------
+         Relaxed
+  --------------------*/
+
+  .ui.relaxed.list:not(.horizontal) > .item:not(:first-child) {
+    padding-top: @relaxedItemVerticalPadding;
+  }
+  .ui.relaxed.list:not(.horizontal) > .item:not(:last-child) {
+    padding-bottom: @relaxedItemVerticalPadding;
+  }
+
+  & when (@variationListHorizontal) {
+    .ui.horizontal.relaxed.list .list > .item:not(:first-child),
+    .ui.horizontal.relaxed.list > .item:not(:first-child) {
+      padding-left: @relaxedHorizontalPadding;
+    }
+    .ui.horizontal.relaxed.list .list > .item:not(:last-child),
+    .ui.horizontal.relaxed.list > .item:not(:last-child) {
+      padding-right: @relaxedHorizontalPadding;
+    }
+  }
+
+  /* Very Relaxed */
+  .ui[class*="very relaxed"].list:not(.horizontal) > .item:not(:first-child) {
+    padding-top: @veryRelaxedItemVerticalPadding;
+  }
+  .ui[class*="very relaxed"].list:not(.horizontal) > .item:not(:last-child) {
+    padding-bottom: @veryRelaxedItemVerticalPadding;
+  }
+
+  & when (@variationListHorizontal) {
+    .ui.horizontal[class*="very relaxed"].list .list > .item:not(:first-child),
+    .ui.horizontal[class*="very relaxed"].list > .item:not(:first-child) {
+      padding-left: @veryRelaxedHorizontalPadding;
+    }
+    .ui.horizontal[class*="very relaxed"].list .list > .item:not(:last-child),
+    .ui.horizontal[class*="very relaxed"].list > .item:not(:last-child) {
+      padding-right: @veryRelaxedHorizontalPadding;
+    }
+  }
+}
+/*-------------------
+      Sizes
+--------------------*/
+
+.ui.list {
+  font-size: @relativeMedium;
+}
+& when not (@variationListSizes = false) {
+  each(@variationListSizes, {
+    @rs: @{value}ListSize;
+    @s: @@value;
+    .ui.@{value}.list {
+      font-size: @@rs;
+    }
+    & when (@variationListHorizontal) {
+      .ui.@{value}.horizontal.list .list > .item,
+      .ui.@{value}.horizontal.list > .item {
+        font-size: @s;
+      }
+    }
+  })
+}
+
+.loadUIOverrides();
+

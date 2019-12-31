@@ -1,0 +1,160 @@
+/*!
+ * # Fomantic-UI - Video
+ * http://github.com/fomantic/Fomantic-UI/
+ *
+ *
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ *
+ */
+
+
+/*******************************
+            Theme
+*******************************/
+
+@type    : 'module';
+@element : 'embed';
+
+@import (multiple) '../../theme.config';
+
+/*******************************
+            Types
+*******************************/
+
+.ui.embed {
+  position: relative;
+  max-width: 100%;
+  height: 0;
+  overflow: hidden;
+  background: @background;
+  padding-bottom: @widescreenRatio;
+}
+
+/*-----------------
+  Embedded Content
+------------------*/
+
+.ui.embed iframe,
+.ui.embed embed,
+.ui.embed object {
+  position: absolute;
+  border: none;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/*-----------------
+      Embed
+------------------*/
+
+.ui.embed > .embed {
+  display: none;
+}
+
+/*--------------
+   Placeholder
+---------------*/
+
+.ui.embed > .placeholder {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: @placeholderBackground;
+}
+
+/*--------------
+      Icon
+---------------*/
+
+.ui.embed > .icon {
+  cursor: pointer;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+.ui.embed > .icon:after {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  content: '';
+  background: @placeholderBackground;
+  opacity: @placeholderBackgroundOpacity;
+  transition: @placeholderBackgroundTransition;
+}
+.ui.embed > .icon:before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+
+  color: @iconColor;
+  font-size: @iconSize;
+  text-shadow: @iconShadow;
+  transition: @iconTransition;
+  z-index: @iconZIndex;
+}
+
+/*******************************
+            States
+*******************************/
+
+/*--------------
+     Hover
+---------------*/
+
+.ui.embed .icon:hover:after {
+  background: @hoverPlaceholderBackground;
+  opacity: @hoverPlaceholderBackgroundOpacity;
+}
+.ui.embed .icon:hover:before {
+  color: @hoverIconColor;
+}
+
+/*--------------
+     Active
+---------------*/
+
+.ui.active.embed > .icon,
+.ui.active.embed > .placeholder {
+  display: none;
+}
+.ui.active.embed > .embed {
+  display: block;
+}
+
+/*******************************
+          Variations
+*******************************/
+
+& when (@variationEmbedRatio) {
+  .ui.square.embed {
+    padding-bottom: @squareRatio;
+  }
+  .ui[class*="4:3"].embed {
+    padding-bottom: @standardRatio;
+  }
+  .ui[class*="16:9"].embed {
+    padding-bottom: @widescreenRatio;
+  }
+  .ui[class*="21:9"].embed {
+    padding-bottom: @ultraWidescreenRatio;
+  }
+}
+
+.loadUIOverrides();

@@ -1,0 +1,122 @@
+/*!
+ * # Fomantic-UI - Breadcrumb
+ * http://github.com/fomantic/Fomantic-UI/
+ *
+ *
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ *
+ */
+
+/*******************************
+            Theme
+*******************************/
+
+@type    : 'collection';
+@element : 'breadcrumb';
+
+@import (multiple) '../../theme.config';
+
+
+/*******************************
+           Breadcrumb
+*******************************/
+
+.ui.breadcrumb {
+  line-height: @lineHeight;
+  display: @display;
+  margin: @verticalMargin 0;
+  vertical-align: @verticalAlign;
+}
+.ui.breadcrumb:first-child {
+  margin-top: 0;
+}
+.ui.breadcrumb:last-child {
+  margin-bottom: 0;
+}
+
+/*******************************
+          Content
+*******************************/
+
+/* Divider */
+.ui.breadcrumb .divider {
+  display: inline-block;
+  opacity: @dividerOpacity;
+  margin: 0 @dividerSpacing 0;
+
+  font-size: @dividerSize;
+  color: @dividerColor;
+  vertical-align: @dividerVerticalAlign;
+}
+
+/* Link */
+.ui.breadcrumb a {
+  color: @linkColor;
+}
+.ui.breadcrumb a:hover {
+  color: @linkHoverColor;
+}
+
+
+/* Icon Divider */
+.ui.breadcrumb .icon.divider {
+  font-size: @iconDividerSize;
+  vertical-align: @iconDividerVerticalAlign;
+}
+
+/* Section */
+.ui.breadcrumb a.section {
+  cursor: pointer;
+}
+.ui.breadcrumb .section {
+  display: inline-block;
+  margin: @sectionMargin;
+  padding: @sectionPadding;
+}
+
+/* Loose Coupling */
+.ui.breadcrumb.segment {
+  display: inline-block;
+  padding: @segmentPadding;
+}
+
+& when (@variationBreadcrumbInverted) {
+  /* Inverted */
+  .ui.inverted.breadcrumb {
+    color: @invertedColor;
+  }
+  .ui.inverted.breadcrumb > .active.section {
+    color: @invertedActiveColor;
+  }
+  .ui.inverted.breadcrumb > .divider {
+    color: @invertedDividerColor;
+  }
+}
+
+/*******************************
+            States
+*******************************/
+
+.ui.breadcrumb .active.section {
+  font-weight: @activeFontWeight;
+}
+
+
+/*******************************
+           Variations
+*******************************/
+
+.ui.breadcrumb {
+  font-size: @medium;
+}
+& when not (@variationBreadcrumbSizes = false) {
+  each(@variationBreadcrumbSizes, {
+    @s: @@value;
+    .ui.@{value}.breadcrumb {
+      font-size: @s;
+    }
+  })
+}
+
+.loadUIOverrides();

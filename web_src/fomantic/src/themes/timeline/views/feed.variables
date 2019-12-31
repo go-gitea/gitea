@@ -1,0 +1,36 @@
+/*******************************
+             Feed
+*******************************/
+
+/*-------------------
+      Elements
+--------------------*/
+
+@eventMargin: 0em;
+@eventDivider: none;
+@eventPadding: 0em;
+
+/* Event Label */
+@labelWidth: 3em;
+@labelHeight: auto;
+
+@labeledContentMargin: 0.75em 0em 2em 0.75em;
+
+/* Icon */
+@iconLabelBackground: @primaryColor;
+@iconLabelBorderRadius: @circularRadius;
+@iconLabelColor: @white;
+
+/* Metadata Group */
+@metadataDisplay: inline-block;
+@metadataMargin: 1em 0em 0em;
+@metadataBackground: @white @subtleGradient;
+@metadataBorder: 1px solid @solidBorderColor;
+@metadataBorderRadius: 0.25em;
+@metadataBoxShadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+@metadataPadding: 0.5em 1em;
+@metadataColor: rgba(0, 0, 0, 0.6);
+
+/*-------------------
+      Variations
+--------------------*/

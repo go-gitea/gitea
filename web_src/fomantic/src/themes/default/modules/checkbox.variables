@@ -1,0 +1,220 @@
+/*******************************
+            Checkbox
+*******************************/
+
+@checkboxSize: 17px;
+@checkboxColor: @textColor;
+@checkboxLineHeight: @checkboxSize;
+
+
+/* Label */
+@labelDistance: 1.85714em; /* 26px @ 14/em */
+
+/* Checkbox */
+@checkboxBackground: @white;
+@checkboxBorder: 1px solid @solidBorderColor;
+@checkboxBorderRadius: @3px;
+@checkboxTransition:
+  border @defaultDuration @defaultEasing,
+  opacity @defaultDuration @defaultEasing,
+  transform @defaultDuration @defaultEasing,
+  box-shadow @defaultDuration @defaultEasing
+;
+
+/* Checkmark */
+@checkboxCheckFontSize: 14px;
+@checkboxCheckTop: 0;
+@checkboxCheckLeft: 0;
+@checkboxCheckSize: @checkboxSize;
+
+/* Label */
+@labelFontSize: @relativeMedium;
+@labelColor: @textColor;
+@labelTransition: color @defaultDuration @defaultEasing;
+
+/*-------------------
+        States
+--------------------*/
+
+/* Hover */
+@checkboxHoverBackground: @checkboxBackground;
+@checkboxHoverBorderColor: @selectedBorderColor;
+@labelHoverColor: @hoveredTextColor;
+
+/* Pressed */
+@checkboxPressedBackground: @offWhite;
+@checkboxPressedBorderColor: @selectedBorderColor;
+@checkboxPressedColor: @selectedTextColor;
+@labelPressedColor: @selectedTextColor;
+
+/* Focus */
+@checkboxFocusBackground: @white;
+@checkboxFocusBorderColor: @focusedFormMutedBorderColor;
+@checkboxFocusCheckColor: @selectedTextColor;
+@labelFocusColor: @selectedTextColor;
+
+/* Active */
+@labelActiveColor: @selectedTextColor;
+@checkboxActiveBackground: @white;
+@checkboxActiveBorderColor: @selectedBorderColor;
+@checkboxActiveCheckColor: @selectedTextColor;
+@checkboxActiveCheckOpacity: 1;
+
+/* Active Focus */
+@checkboxActiveFocusBackground: @white;
+@checkboxActiveFocusBorderColor: @checkboxFocusBorderColor;
+@checkboxActiveFocusCheckColor: @selectedTextColor;
+
+/* Indeterminate */
+@checkboxIndeterminateBackground: @checkboxActiveBackground;
+@checkboxIndeterminateBorderColor: @checkboxActiveBorderColor;
+@checkboxIndeterminateCheckOpacity: 1;
+@checkboxIndeterminateCheckColor: @checkboxActiveCheckColor;
+
+/* Disabled */
+@disabledCheckboxOpacity: 0.5;
+@disabledCheckboxLabelColor: rgba(0, 0, 0, 1);
+
+/*-------------------
+        Types
+--------------------*/
+
+/* Radio */
+/* Uses px to avoid rounding issues with circles */
+
+@radioSize: 15px;
+@radioTop: 1px;
+@radioLeft: 0;
+@radioLabelDistance: @labelDistance;
+
+@bulletTop: 1px;
+@bulletLeft: 0;
+@bulletScale: (7 / 15); /* 7px as unitless value from radio size */
+@bulletColor: @textColor;
+@bulletRadius: @circularRadius;
+
+@radioFocusBackground: @checkboxFocusBackground;
+@radioFocusBulletColor: @checkboxFocusCheckColor;
+
+@radioActiveBackground: @checkboxActiveBackground;
+@radioActiveBulletColor: @checkboxActiveCheckColor;
+
+@radioActiveFocusBackground: @checkboxActiveFocusBackground;
+@radioActiveFocusBulletColor: @checkboxActiveFocusCheckColor;
+
+/* Slider & Toggle Handle */
+@handleBackground: @white @subtleGradient;
+@handleBoxShadow:
+  @subtleShadow,
+  0 0 0 1px @borderColor inset
+;
+
+/* Slider */
+@sliderHandleSize: 1.5rem;
+@sliderLineWidth: 3.5rem;
+@sliderTransitionDuration: 0.3s;
+
+@sliderHandleOffset: (1rem - @sliderHandleSize) / 2;
+@sliderHandleTransition: left @sliderTransitionDuration @defaultEasing;
+
+@sliderWidth: @sliderLineWidth;
+@sliderHeight: (@sliderHandleSize + @sliderHandleOffset);
+
+@sliderLineHeight: @3px;
+@sliderLineVerticalOffset: 0.4rem;
+@sliderLineColor: @transparentBlack;
+@sliderLineRadius: @circularRadius;
+@sliderLineTransition: background @sliderTransitionDuration @defaultEasing;
+
+@sliderTravelDistance: @sliderLineWidth - @sliderHandleSize;
+
+@sliderLabelDistance: @sliderLineWidth + 1rem;
+@sliderOffLabelColor: @unselectedTextColor;
+
+@sliderLabelLineHeight: 1rem;
+
+/* Slider States */
+@sliderHoverLaneBackground: @veryStrongTransparentBlack;
+@sliderHoverLabelColor: @hoveredTextColor;
+
+@sliderOnLineColor: @lightBlack;
+@sliderOnLabelColor: @selectedTextColor;
+
+@sliderOnFocusLineColor: @lightBlackFocus;
+@sliderOnFocusLabelColor: @sliderOnLabelColor;
+
+
+
+/* Toggle */
+@toggleLaneWidth: 3.5rem;
+@toggleHandleSize: 1.5rem;
+@toggleTransitionDuration: 0.2s;
+
+@toggleWidth: @toggleLaneWidth;
+@toggleHeight: @toggleHandleSize;
+
+@toggleHandleRadius: @circularRadius;
+@toggleHandleOffset: 0;
+@toggleHandleTransition:
+  background @sliderTransitionDuration @defaultEasing,
+  left @sliderTransitionDuration @defaultEasing
+;
+
+@toggleLaneBackground: @transparentBlack;
+@toggleLaneHeight: @toggleHandleSize;
+@toggleLaneBoxShadow: none;
+@toggleLaneVerticalOffset: 0;
+@toggleOffOffset: -0.05rem;
+@toggleOnOffset: (@toggleLaneWidth - @toggleHandleSize) + 0.15rem;
+@toggleCenterOffset: @toggleOnOffset / 2;
+@toggleCenterLaneBackground: @veryStrongTransparentBlack;
+
+@toggleLabelDistance: @toggleLaneWidth + 1rem;
+@toggleLabelLineHeight: 1.5rem;
+@toggleLabelOffset: 0.15em;
+
+
+@toggleFocusColor: @veryStrongTransparentBlack;
+@toggleHoverColor: @toggleFocusColor;
+
+@toggleOffLabelColor: @checkboxColor;
+@toggleOffHandleBoxShadow: @handleBoxShadow;
+
+@toggleOnLabelColor: @selectedTextColor;
+@toggleOnLaneColor: @primaryColor;
+
+@toggleOnHandleBoxShadow: @handleBoxShadow;
+
+@toggleOnFocusLaneColor: @primaryColorFocus;
+@toggleOnFocusLabelColor: @toggleOnLabelColor;
+
+
+
+/*-------------------
+      Variations
+--------------------*/
+
+/* Inverted */
+@checkboxInvertedHoverBackground: @black;
+
+@miniCheckboxSize: @relativeMini;
+@miniCheckboxCircleScale: @miniRaw / 2;
+@miniCheckboxCircleLeft: unit((@miniRaw - @miniCheckboxCircleScale) / 2 + 0.05 , em);
+@tinyCheckboxSize: @relativeTiny;
+@tinyCheckboxCircleScale: @tinyRaw / 2;
+@tinyCheckboxCircleLeft: unit((@tinyRaw - @tinyCheckboxCircleScale) / 2 + 0.05 , em);
+@smallCheckboxSize: @relativeSmall;
+@smallCheckboxCircleScale: @smallRaw / 2;
+@smallCheckboxCircleLeft: unit((@smallRaw - @smallCheckboxCircleScale) / 2 + 0.05 , em);
+@largeCheckboxSize: @relativeLarge;
+@largeCheckboxCircleScale: @largeRaw / 2;
+@largeCheckboxCircleLeft: unit((@largeRaw - @largeCheckboxCircleScale) / 2 + 0.05 , em);
+@bigCheckboxSize: @relativeBig;
+@bigCheckboxCircleScale: @bigRaw / 2;
+@bigCheckboxCircleLeft: unit((@bigRaw - @bigCheckboxCircleScale) / 2 + 0.05 , em);
+@hugeCheckboxSize: @relativeHuge;
+@hugeCheckboxCircleScale: @hugeRaw / 2;
+@hugeCheckboxCircleLeft: unit((@hugeRaw - @hugeCheckboxCircleScale) / 2 + 0.05 , em);
+@massiveCheckboxSize: @relativeMassive;
+@massiveCheckboxCircleScale: @massiveRaw / 2;
+@massiveCheckboxCircleLeft: unit((@massiveRaw - @massiveCheckboxCircleScale) / 2 + 0.05 , em);

@@ -1,0 +1,147 @@
+/*!
+ * # Fomantic-UI - Rail
+ * http://github.com/fomantic/Fomantic-UI/
+ *
+ *
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ *
+ */
+
+/*******************************
+            Theme
+*******************************/
+
+@type    : 'element';
+@element : 'rail';
+
+@import (multiple) '../../theme.config';
+
+/*******************************
+             Rails
+*******************************/
+
+.ui.rail {
+  position: absolute;
+  top: 0;
+  width: @width;
+  height: @height;
+}
+
+.ui.left.rail {
+  left: auto;
+  right: 100%;
+  padding: 0 @splitDistance 0 0;
+  margin: 0 @splitDistance 0 0;
+}
+
+.ui.right.rail {
+  left: 100%;
+  right: auto;
+  padding: 0 0 0 @splitDistance;
+  margin: 0 0 0 @splitDistance;
+}
+
+/*******************************
+           Variations
+*******************************/
+
+& when (@variationRailInternal) {
+  /*--------------
+       Internal
+  ---------------*/
+
+  .ui.left.internal.rail {
+    left: 0;
+    right: auto;
+    padding: 0 0 0 @splitDistance;
+    margin: 0 0 0 @splitDistance;
+  }
+
+  .ui.right.internal.rail {
+    left: auto;
+    right: 0;
+    padding: 0 @splitDistance 0 0;
+    margin: 0 @splitDistance 0 0;
+  }
+}
+
+& when (@variationRailDividing) {
+  /*--------------
+      Dividing
+  ---------------*/
+
+  .ui.dividing.rail {
+    width: @dividingWidth;
+  }
+  .ui.left.dividing.rail {
+    padding: 0 @splitDividingDistance 0 0;
+    margin: 0 @splitDividingDistance 0 0;
+    border-right: @dividingBorder;
+  }
+  .ui.right.dividing.rail {
+    border-left: @dividingBorder;
+    padding: 0 0 0 @splitDividingDistance;
+    margin: 0 0 0 @splitDividingDistance;
+  }
+}
+
+& when (@variationRailDistance) {
+  /*--------------
+      Distance
+  ---------------*/
+
+  .ui.close.rail {
+    width: @closeWidth;
+  }
+  .ui.close.left.rail {
+    padding: 0 @splitCloseDistance 0 0;
+    margin: 0 @splitCloseDistance 0 0;
+  }
+  .ui.close.right.rail {
+    padding: 0 0 0 @splitCloseDistance;
+    margin: 0 0 0 @splitCloseDistance;
+  }
+
+  .ui.very.close.rail {
+    width: @veryCloseWidth;
+  }
+  .ui.very.close.left.rail {
+    padding: 0 @splitVeryCloseDistance 0 0;
+    margin: 0 @splitVeryCloseDistance 0 0;
+  }
+  .ui.very.close.right.rail {
+    padding: 0 0 0 @splitVeryCloseDistance;
+    margin: 0 0 0 @splitVeryCloseDistance;
+  }
+}
+
+& when (@variationRailAttached) {
+  /*--------------
+      Attached
+  ---------------*/
+
+  .ui.attached.left.rail,
+  .ui.attached.right.rail {
+    padding: 0;
+    margin: 0;
+  }
+}
+
+/*--------------
+     Sizing
+---------------*/
+
+.ui.rail {
+  font-size: @medium;
+}
+& when not (@variationRailSizes = false) {
+  each(@variationRailSizes, {
+    @s: @@value;
+    .ui.@{value}.rail {
+      font-size: @s;
+    }
+  })
+}
+
+.loadUIOverrides();

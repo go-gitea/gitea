@@ -1,0 +1,155 @@
+/*******************************
+            Segment
+*******************************/
+
+/*-------------------
+       Element
+--------------------*/
+
+@background: @white;
+@borderWidth: 1px;
+@border: @borderWidth solid @borderColor;
+
+@boxShadow: @subtleShadow;
+@verticalPadding: 1em;
+@horizontalPadding: 1em;
+@padding: @verticalPadding @horizontalPadding;
+
+@verticalMargin: 1rem;
+@horizontalMargin: 0;
+@margin: @verticalMargin @horizontalMargin;
+@borderRadius: @defaultBorderRadius;
+
+/*-------------------
+       Group
+--------------------*/
+
+@groupedMargin: @margin;
+@groupedBorder: @border;
+@groupedBoxShadow: @boxShadow;
+@groupedBorderRadius: @borderRadius;
+
+@nestedGroupMargin: @verticalMargin @verticalMargin;
+
+@groupedSegmentBorder: none;
+@groupedSegmentDivider: @border;
+@groupedSegmentMargin: 0;
+@groupedSegmentWidth: auto;
+@groupedSegmentBoxShadow: none;
+
+/*-------------------
+       Coupling
+--------------------*/
+
+/* Page Grid Segment */
+@pageGridMargin: (2 * @verticalPadding);
+
+/*******************************
+            Types
+*******************************/
+
+/* Placeholder */
+@placeholderBackground: @offWhite;
+@placeholderPadding: @padding;
+@placeholderBorderColor: @borderColor;
+@placeholderBoxShadow: 0 2px 25px 0 rgba(34, 36, 38, 0.05) inset;
+@placeholderMinHeight: 18rem;
+@placeholderContentMaxWidth: 15rem;
+@placeholderContentInlineButtonMargin: 0 @5px 0 0;
+
+
+/* Piled */
+@piledZIndex: auto;
+@piledMargin: 3em;
+@piledBoxShadow: '';
+@piledDegrees: 1.2deg;
+@piledBorder: @border;
+
+/* Circular */
+@circularPadding: 2em;
+
+/* Stacked */
+@stackedHeight: 6px;
+@stackedPageBackground: @subtleTransparentBlack;
+@stackedPadding: @verticalPadding + (0.4em);
+@tallStackedPadding: @verticalPadding + (0.8em);
+
+/*******************************
+            States
+*******************************/
+
+/* Loading Dimmer */
+@loaderDimmerColor: rgba(255, 255, 255, 0.8);
+@loaderInvertedDimmerColor: rgba(0, 0, 0 , 0.85);
+@loaderDimmerZIndex: 100;
+
+/* Loading Spinner */
+@loaderSize: 3em;
+@loaderLineZIndex: 101;
+
+
+/*******************************
+            Variations
+*******************************/
+
+
+/* Raised */
+@raisedBoxShadow: @floatingShadow;
+
+/* Padded */
+@paddedSegmentPadding: 1.5em;
+@veryPaddedSegmentPadding: 3em;
+
+/* Attached */
+@attachedTopOffset: 0;
+@attachedBottomOffset: 0;
+@attachedHorizontalOffset: -@borderWidth;
+@attachedWidth: e(%("calc(100%% + %d)", -@attachedHorizontalOffset * 2));
+@attachedBoxShadow: none;
+@attachedBorder: @borderWidth solid @solidBorderColor;
+@attachedBottomBoxShadow:
+  @boxShadow,
+  @attachedBoxShadow
+;
+
+/* Inverted */
+@invertedBackground: @black;
+
+/* Floated */
+@floatedDistance: 1em;
+
+/* Basic */
+@basicBackground: none transparent;
+@basicBorder: none;
+@basicBoxShadow: none;
+@basicBorderRadius: 0;
+
+/* Colors */
+@coloredBorderSize: 2px;
+
+/* Ordinality */
+@secondaryBackground: @darkWhite;
+@secondaryColor: @mutedTextColor;
+
+@tertiaryBackground:  @midWhite;
+@tertiaryColor: @mutedTextColor;
+
+@secondaryInvertedLightness: 0.2;
+@secondaryInvertedBackground:
+  lighten(@black, (@secondaryInvertedLightness * 100))
+  linear-gradient(
+    rgba(255, 255, 255, @secondaryInvertedLightness) 0,
+    rgba(255, 255, 255, @secondaryInvertedLightness) 100%
+  )
+;
+@secondaryInvertedColor: @invertedMutedTextColor;
+
+@tertiaryInvertedLightness: 0.35;
+@tertiaryInvertedBackground:
+  lighten(@black, (@tertiaryInvertedLightness * 100))
+  linear-gradient(
+    rgba(255, 255, 255, @tertiaryInvertedLightness) 0,
+    rgba(255, 255, 255, @tertiaryInvertedLightness) 100%
+  )
+;
+@tertiaryInvertedColor: @invertedMutedTextColor;

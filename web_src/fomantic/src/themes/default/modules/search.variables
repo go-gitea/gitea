@@ -1,0 +1,169 @@
+/*******************************
+            Search
+*******************************/
+
+/* Search Prompt */
+@promptBackground: @inputBackground;
+@promptVerticalPadding: @inputVerticalPadding;
+@promptHorizontalPadding: @inputHorizontalPadding;
+@promptLineHeight: @inputLineHeight;
+@promptFontSize: @relativeMedium;
+@promptPadding: (@promptVerticalPadding + ((1em - @promptLineHeight) / 2)) @promptHorizontalPadding;
+@promptBorder: 1px solid @borderColor;
+@promptBorderRadius: @circularRadius;
+@promptColor: @textColor;
+@promptTransition:
+  background-color @defaultDuration @defaultEasing,
+  color @defaultDuration @defaultEasing,
+  box-shadow @defaultDuration @defaultEasing,
+  border-color @defaultDuration @defaultEasing
+;
+@promptBoxShadow: 0 0 0 0 transparent inset;
+
+/* Mobile */
+@mobileMaxWidth: e("calc(100vw - 2rem)");
+
+/* Result Box */
+@resultsWidth: 18em;
+@resultsBackground: #FFFFFF;
+@resultsDistance: 0.5em;
+@resultsBorderRadius: @defaultBorderRadius;
+@resultsBorder: 1px solid @solidBorderColor;
+@resultsBoxShadow: @floatingShadow;
+
+/* Result */
+@resultFontSize: 1em;
+@resultVerticalPadding: @relativeTiny;
+@resultHorizontalPadding: @relativeLarge;
+@resultPadding: @resultVerticalPadding @resultHorizontalPadding;
+@resultTextColor: @textColor;
+@resultLineHeight: 1.33;
+@resultDivider: 1px solid @internalBorderColor;
+@resultLastDivider: none;
+
+/* Result Image */
+@resultImageFloat: right;
+@resultImageBackground: none;
+@resultImageWidth: 5em;
+@resultImageHeight: 3em;
+@resultImageBorderRadius: 0.25em;
+@resultImageMargin: 0 6em 0 0;
+
+/* Result Content */
+@resultTitleFont: @headerFont;
+@resultTitleMargin: -@headerLineHeightOffset 0 0;
+@resultTitleFontWeight: @bold;
+@resultTitleFontSize: @relativeMedium;
+@resultTitleColor: @darkTextColor;
+
+/* Description */
+@resultDescriptionFontSize: @relativeSmall;
+@resultDescriptionDistance: 0;
+@resultDescriptionColor: @lightTextColor;
+
+/* Price */
+@resultPriceFloat: right;
+@resultPriceColor: @green;
+
+/* Special Message */
+@messageVerticalPadding: 1em;
+@messageHorizontalPadding: 1em;
+@messageHeaderFontSize: @medium;
+@messageHeaderFontWeight: @bold;
+@messageHeaderColor: @textColor;
+@messageDescriptionDistance: 0.25rem;
+@messageDescriptionFontSize: 1em;
+@messageDescriptionColor: @textColor;
+
+/* All Results Link */
+@actionBorder: none;
+@actionBackground: @darkWhite;
+@actionPadding: @relativeSmall @relativeMedium;
+@actionColor: @textColor;
+@actionFontWeight: @bold;
+@actionAlign: center;
+
+
+/*******************************
+            States
+*******************************/
+
+/* Focus */
+@promptFocusBackground: @promptBackground;
+@promptFocusBorderColor: @selectedBorderColor;
+@promptFocusColor: @selectedTextColor;
+
+/* Hover */
+@resultHoverBackground: @offWhite;
+@actionHoverBackground: #E0E0E0;
+
+/* Loading */
+@invertedLoaderFillColor: rgba(0, 0, 0, 0.15);
+
+/* Active Category */
+@categoryActiveBackground: @darkWhite;
+@categoryNameActiveColor: @textColor;
+
+/* Active Result */
+@resultActiveBorderLeft: @internalBorderColor;
+@resultActiveBackground: @darkWhite;
+@resultActiveBoxShadow: none;
+@resultActiveTitleColor: @darkTextColor;
+@resultActiveDescriptionColor: @darkTextColor;
+@resultsZIndex: 998;
+
+
+/*******************************
+            Types
+*******************************/
+
+/* Selection */
+@selectionPromptBorderRadius: @defaultBorderRadius;
+
+@selectionCloseTop: 0;
+@selectionCloseTransition:
+  color @defaultDuration @defaultEasing,
+  opacity @defaultDuration @defaultEasing
+;
+@selectionCloseRight: 0;
+@selectionCloseIconOpacity: 0.8;
+@selectionCloseIconColor: '';
+@selectionCloseIconHoverOpacity: 1;
+@selectionCloseIconHoverColor: @red;
+
+@selectionCloseIconInputRight: 1.85714em;
+
+/* Category */
+@categoryBackground: @darkWhite;
+@categoryBoxShadow: none;
+@categoryDivider: 1px solid @internalBorderColor;
+@categoryTransition:
+  background @defaultDuration @defaultEasing,
+  border-color @defaultDuration @defaultEasing
+;
+
+@categoryResultsWidth: 28em;
+
+@categoryResultBackground: @white;
+@categoryResultLeftBorder: 1px solid @borderColor;
+@categoryResultDivider: @resultDivider;
+@categoryResultLastDivider: none;
+@categoryResultPadding: @resultPadding;
+@categoryResultTransition: @categoryTransition;
+
+@categoryNameWidth: 100px;
+@categoryNameBackground: transparent;
+@categoryNameFont: @pageFont;
+@categoryNameFontSize: 1em;
+@categoryNameWhitespace: nowrap;
+@categoryNamePadding: 0.4em 1em;
+@categoryNameFontWeight: @bold;
+@categoryNameColor: @lightTextColor;
+
+@miniSearchSize: @relativeMini;
+@tinySearchSize: @relativeTiny;
+@smallSearchSize: @relativeSmall;
+@largeSearchSize: @relativeLarge;
+@bigSearchSize: @relativeBig;
+@hugeSearchSize: @relativeHuge;
+@massiveSearchSize: @relativeMassive;

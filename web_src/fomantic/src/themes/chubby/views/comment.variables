@@ -1,0 +1,46 @@
+/*******************************
+            Comments
+*******************************/
+
+/*-------------------
+      Elements
+--------------------*/
+
+/* Comment */
+@commentBackground: #FFFFFF;
+@commentMargin: 1em 0em 0em;
+@commentPadding: 1em 1.5em;
+@commentBorder: 1px solid rgba(0, 0, 0, 0.1);
+@commentDivider: 1px solid rgba(0, 0, 0, 0.1);
+@firstCommentMargin: 1em;
+@firstCommentPadding: 1em;
+
+/* Nested Comment */
+@nestedCommentsMargin: 0em 0em 0.5em 0.5em;
+@nestedCommentsPadding: 1em 0em 0em 1em;
+@nestedCommentBackground: #F0F0F0;
+
+/* Avatar */
+@avatarWidth: 3.5em;
+@avatarSpacing: 1.5em;
+@avatarBorderRadius: @circularRadius;
+
+/* Content */
+@contentMargin: @avatarWidth + @avatarSpacing;
+
+/* Author */
+@authorFontSize: 1em;
+@authorColor: @primaryColor;
+@authorHoverColor: @primaryColorHover;
+@authorFontWeight: bold;
+
+@metadataDisplay: block;
+@metadataSpacing: 0em;
+@metadataColor: @textColor;
+
+/*-------------------
+      Variations
+--------------------*/
+
+/* Threaded */
+@threadedCommentMargin: -1.5em 0 -1em  (@avatarWidth / 2);

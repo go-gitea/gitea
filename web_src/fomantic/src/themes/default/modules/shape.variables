@@ -1,0 +1,40 @@
+/*******************************
+             Shape
+*******************************/
+
+@display: inline-block;
+
+/* Animating */
+@perspective: 2000px;
+
+@duration: 0.6s;
+@easing: ease-in-out;
+
+@hiddenSideOpacity: 0.6;
+@animatingZIndex: 100;
+
+@transition:
+  transform @duration @easing,
+  left @duration @easing,
+  width @duration @easing,
+  height @duration @easing
+;
+@sideTransition: opacity @duration @easing;
+@backfaceVisibility: hidden;
+
+/* Side */
+@sideMargin: 0;
+
+/*--------------
+      Types
+---------------*/
+
+/* Cube */
+@cubeSize: 15em;
+@cubeBackground: #E6E6E6;
+@cubePadding: 2em;
+@cubeTextColor: @textColor;
+@cubeBoxShadow: 0 0 2px rgba(0, 0, 0, 0.3);
+
+@cubeTextAlign: center;
+@cubeFontSize: 2em;

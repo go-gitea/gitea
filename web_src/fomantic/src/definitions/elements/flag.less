@@ -1,0 +1,52 @@
+/*!
+ * # Fomantic-UI - Flag
+ * http://github.com/fomantic/Fomantic-UI/
+ *
+ *
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ *
+ */
+
+
+/*******************************
+            Theme
+*******************************/
+
+@type    : 'element';
+@element : 'flag';
+
+@import (multiple) '../../theme.config';
+
+
+/*******************************
+             Flag
+*******************************/
+
+i.flag:not(.icon) {
+  display: inline-block;
+
+  width: @width;
+  height: @height;
+
+  line-height: @height;
+  vertical-align: @verticalAlign;
+  margin: 0 @margin 0 0;
+
+  text-decoration: inherit;
+
+  speak: none;
+  -webkit-font-smoothing: antialiased;
+  backface-visibility: hidden;
+}
+
+/* Sprite */
+i.flag:not(.icon):before {
+  display: inline-block;
+  content: '';
+  background: url(@spritePath) no-repeat -108px -1976px;
+  width: @width;
+  height: @height;
+}
+
+.loadUIOverrides();

@@ -1,0 +1,416 @@
+/*!
+ * # Fomantic-UI - Loader
+ * http://github.com/fomantic/Fomantic-UI/
+ *
+ *
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ *
+ */
+/*******************************
+            Theme
+*******************************/
+
+@type    : 'element';
+@element : 'loader';
+
+@import (multiple) '../../theme.config';
+
+/*******************************
+            Loader
+*******************************/
+
+
+/* Standard Size */
+.ui.loader {
+  display: none;
+  position: absolute;
+  top: @loaderTopOffset;
+  left: @loaderLeftOffset;
+  margin: 0;
+  text-align: center;
+  z-index: 1000;
+  transform: translateX(-50%) translateY(-50%);
+}
+
+/* Static Shape */
+.ui.loader:before {
+  position: absolute;
+  content: '';
+  top: 0;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+
+  border-radius: @circularRadius;
+  border: @loaderLineWidth solid @loaderFillColor;
+}
+
+/* Active Shape */
+.ui.loader:after {
+  position: absolute;
+  content: '';
+  top: 0;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+
+  animation: loader @loaderSpeed infinite linear;
+  border: @loaderLineWidth solid @shapeBorderColor;
+  border-radius: @circularRadius;
+
+  box-shadow: 0 0 0 1px transparent;
+}
+
+& when (@variationLoaderSpeeds) {
+  /* Speeds */
+
+  .ui.fast.loading.loading:after,
+  .ui.fast.loading.loading .input > i.icon:after,
+  .ui.fast.loading.loading > i.icon:after,
+  .ui.fast.loader:after {
+    animation-duration: @loaderSpeedFast;
+  }
+
+  .ui.slow.loading.loading:after,
+  .ui.slow.loading.loading .input > i.icon:after,
+  .ui.slow.loading.loading > i.icon:after,
+  .ui.slow.loader:after {
+    animation-duration: @loaderSpeedSlow;
+  }
+}
+
+/* Active Animation */
+@keyframes loader {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/*-------------------
+      Coupling
+--------------------*/
+
+/* Show inside active dimmer */
+.ui.dimmer > .loader {
+  display: block;
+}
+
+/* Black Dimmer */
+.ui.dimmer > .ui.loader {
+  color: @invertedLoaderTextColor;
+}
+.ui.dimmer > .ui.loader:not(.elastic):before {
+  border-color: @invertedLoaderFillColor;
+}
+
+/* White Dimmer (Inverted) */
+.ui.inverted.dimmer > .ui.loader {
+  color: @loaderTextColor;
+}
+.ui.inverted.dimmer > .ui.loader:not(.elastic):before {
+  border-color: @loaderFillColor;
+}
+
+/*******************************
+             Types
+*******************************/
+
+& when (@variationLoaderText) {
+  /*-------------------
+          Text
+  --------------------*/
+
+  .ui.ui.ui.ui.text.loader {
+    width: auto;
+    height: auto;
+    text-align: center;
+    font-style: normal;
+  }
+}
+
+
+/*******************************
+            States
+*******************************/
+& when (@variationLoaderIndeterminate) {
+  .ui.indeterminate.loader:after {
+    animation-direction: @indeterminateDirection;
+    animation-duration: @indeterminateSpeed;
+  }
+}
+
+.ui.loader.active,
+.ui.loader.visible {
+  display: block;
+}
+.ui.loader.disabled,
+.ui.loader.hidden {
+  display: none;
+}
+
+/*******************************
+            Variations
+*******************************/
+
+
+/*-------------------
+        Sizes
+--------------------*/
+
+.ui.loader {
+  width: @medium;
+  height: @medium;
+  font-size: @mediumFontSize;
+}
+.ui.loader:before,
+.ui.loader:after {
+  width: @medium;
+  height: @medium;
+  margin: @mediumOffset;
+}
+& when (@variationLoaderText) {
+  .ui.text.loader {
+    min-width: @medium;
+    padding-top: (@medium + @textDistance);
+  }
+}
+& when not (@variationLoaderSizes = false) {
+  each(@variationLoaderSizes, {
+    @o: @{value}Offset;
+    @f: @{value}FontSize;
+    @s: @@value;
+    .ui.@{value}.loader {
+      width: @s;
+      height: @s;
+      font-size: @@f;
+    }
+    .ui.@{value}.loader:before,
+    .ui.@{value}.loader:after {
+      width: @s;
+      height: @s;
+      margin: @@o;
+    }
+    & when (@variationLoaderText) {
+      .ui.@{value}.text.loader {
+        min-width: @s;
+        padding-top: (@s + @textDistance);
+      }
+    }
+  })
+}
+
+/*-------------------
+       Colors
+--------------------*/
+
+each(@colors, {
+  @color: replace(@key, '@', '');
+  @c: @colors[@@color][color];
+  @l: @colors[@@color][light];
+
+  .ui.@{color}.elastic.loader.loader:before,
+  .ui.@{color}.basic.elastic.loading.button:before,
+  .ui.@{color}.basic.elastic.loading.button:after,
+  .ui.@{color}.elastic.loading.loading.loading:not(.segment):before,
+  .ui.@{color}.elastic.loading.loading.loading .input > i.icon:before,
+  .ui.@{color}.elastic.loading.loading.loading.loading > i.icon:before,
+  .ui.@{color}.loading.loading.loading.loading:not(.usual):not(.button):after,
+  .ui.@{color}.loading.loading.loading.loading .input > i.icon:after,
+  .ui.@{color}.loading.loading.loading.loading > i.icon:after,
+  .ui.@{color}.loader.loader.loader:after {
+    color: @c;
+  }
+  .ui.inverted.@{color}.elastic.loader:before,
+  .ui.inverted.@{color}.elastic.loading.loading.loading:not(.segment):before,
+  .ui.inverted.@{color}.elastic.loading.loading.loading .input > i.icon:before,
+  .ui.inverted.@{color}.elastic.loading.loading.loading > i.icon:before,
+  .ui.inverted.@{color}.loading.loading.loading.loading:not(.usual):after,
+  .ui.inverted.@{color}.loading.loading.loading.loading .input > i.icon:after,
+  .ui.inverted.@{color}.loading.loading.loading.loading > i.icon:after,
+  .ui.inverted.@{color}.loader.loader.loader:after {
+    color: @l;
+  }
+})
+
+.ui.elastic.loader.loader:before,
+.ui.elastic.loading.loading.loading:before,
+.ui.elastic.loading.loading.loading .input > i.icon:before,
+.ui.elastic.loading.loading.loading > i.icon:before,
+.ui.loading.loading.loading.loading:not(.usual):after,
+.ui.loading.loading.loading.loading .input > i.icon:after,
+.ui.loading.loading.loading.loading > i.icon:after,
+.ui.loader.loader.loader:after {
+  border-color: currentColor;
+}
+.ui.elastic.loading.loading.loading.loading.button:not(.inverted):not(.basic):before {
+  color: @invertedLoaderLineColor;
+}
+.ui.elastic.basic.loading.button:before,
+.ui.elastic.basic.loading.button:after {
+  color: @loaderLineColor;
+}
+.ui.double.loading.loading.loading.loading.button:after {
+  border-bottom-color: currentColor;
+}
+
+& when (@variationLoaderInline) {
+  /*-------------------
+         Inline
+  --------------------*/
+
+  .ui.inline.loader {
+    position: relative;
+    vertical-align: @inlineVerticalAlign;
+    margin: @inlineMargin;
+    left: 0;
+    top: 0;
+    transform: none;
+  }
+
+  .ui.inline.loader.active,
+  .ui.inline.loader.visible {
+    display: inline-block;
+  }
+
+  /* Centered Inline */
+  .ui.centered.inline.loader.active,
+  .ui.centered.inline.loader.visible {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.ui.loading.loading.loading.loading.loading.loading:after,
+.ui.loading.loading.loading.loading.loading.loading .input > i.icon:after,
+.ui.loading.loading.loading.loading.loading.loading > i.icon:after,
+.ui.loader.loader.loader.loader.loader:after {
+  border-left-color:transparent;
+  border-right-color:transparent;
+}
+.ui.loading.loading.loading.loading.loading.loading.loading:not(.double):after,
+.ui.loading.loading.loading.loading.loading.loading.loading:not(.double) .input > i.icon:after,
+.ui.loading.loading.loading.loading.loading.loading.loading:not(.double) > i.icon:after,
+.ui.loader.loader.loader.loader.loader.loader:not(.double):after {
+  border-bottom-color: transparent;
+}
+.ui.loading.loading.loading.loading.loading.loading.segment:after,
+.ui.loading.loading.loading.loading.loading.loading.form:after {
+  border-left-color:@loaderFillColor;
+  border-right-color:@loaderFillColor;
+}
+.ui.loading.loading.loading.loading.loading.loading.segment:not(.double):after,
+.ui.loading.loading.loading.loading.loading.loading.form:not(.double):after {
+  border-bottom-color: @loaderFillColor;
+}
+
+& when (@variationLoaderElastic) {
+  /*-------------------
+         Elastic
+  --------------------*/
+
+  .ui.dimmer > .ui.elastic.loader {
+    color: @invertedLoaderLineColor;
+  }
+  .ui.inverted.dimmer > .ui.elastic.loader {
+    color: @loaderLineColor;
+  }
+  .ui.elastic.loading.loading:not(.form):not(.segment):after,
+  .ui.elastic.loading.loading .input > i.icon:after,
+  .ui.elastic.loading.loading > i.icon:after,
+  .ui.elastic.loader.loader:after {
+    animation: loader 1s infinite cubic-bezier(.27, 1.05, .92, .61);
+    animation-delay: 0.3s;
+  }
+  .ui.elastic.loading.loading.loading:not(.form):not(.segment):before,
+  .ui.elastic.loading.loading.loading .input > i.icon:before,
+  .ui.elastic.loading.loading.loading > i.icon:before,
+  .ui.elastic.loader.loader:before {
+    animation: elastic-loader 1s infinite cubic-bezier(.27, 1.05, .92, .61);
+    -moz-animation: currentcolor-elastic-loader 1s infinite cubic-bezier(.27, 1.05, .92, .61);
+    border-right-color: transparent;
+  }
+  & when (@variationLoaderInline) {
+    .ui.elastic.inline.loader:empty {
+      animation: loader 8s infinite linear;
+    }
+  }
+  & when (@variationLoaderSpeeds) {
+    .ui.slow.elastic.loading.loading:not(.form):not(.segment):after,
+    .ui.slow.elastic.loading.loading .input > i.icon:after,
+    .ui.slow.elastic.loading.loading > i.icon:after,
+    .ui.slow.elastic.loader.loader:after {
+      animation-duration: 1.5s;
+      animation-delay: 0.45s;
+    }
+    .ui.slow.elastic.loading.loading.loading:not(.form):not(.segment):before,
+    .ui.slow.elastic.loading.loading.loading .input > i.icon:before,
+    .ui.slow.elastic.loading.loading.loading > i.icon:before,
+    .ui.slow.elastic.loader.loader:before {
+      animation-duration: 1.5s;
+    }
+    .ui.fast.elastic.loading.loading:not(.form):not(.segment):after,
+    .ui.fast.elastic.loading.loading .input > i.icon:after,
+    .ui.fast.elastic.loading.loading > i.icon:after,
+    .ui.fast.elastic.loader.loader:after {
+      animation-duration: 0.66s;
+      animation-delay: 0.20s;
+    }
+    .ui.fast.elastic.loading.loading.loading:not(.form):not(.segment):before,
+    .ui.fast.elastic.loading.loading.loading .input > i.icon:before,
+    .ui.fast.elastic.loading.loading.loading > i.icon:before,
+    .ui.fast.elastic.loader.loader:before {
+      animation-duration: 0.66s;
+    }
+  }
+  @keyframes elastic-loader {
+    0%, 1% {
+      border-left-color: transparent;
+      border-bottom-color: transparent
+    }
+    1.1%, 50% {
+      border-left-color: inherit;
+    }
+    10%, 35.1%{
+      border-bottom-color: transparent;
+    }
+    10.1%, 35%{
+      border-bottom-color: inherit;
+    }
+    50.1%{
+      border-left-color: transparent;
+    }
+    100% {
+      border-left-color: transparent;
+      border-bottom-color: transparent;
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes currentcolor-elastic-loader {
+    0%, 1% {
+      border-left-color: transparent;
+      border-bottom-color: transparent
+    }
+    1.1%, 50% {
+      border-left-color: currentColor;
+    }
+    10%, 35.1%{
+      border-bottom-color: transparent;
+    }
+    10.1%, 35%{
+      border-bottom-color: currentColor;
+    }
+    50.1%{
+      border-left-color: transparent;
+    }
+    100% {
+      border-left-color: transparent;
+      border-bottom-color: transparent;
+      transform: rotate(360deg);
+    }
+  }
+}
+
+.loadUIOverrides();
