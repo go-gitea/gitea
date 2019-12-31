@@ -30,6 +30,8 @@ type Reaction struct {
 type FindReactionsOptions struct {
 	IssueID   int64
 	CommentID int64
+	UserID    int64
+	Reaction  string
 }
 
 func (opts *FindReactionsOptions) toConds() builder.Cond {
@@ -40,6 +42,13 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 	if opts.CommentID > 0 {
 		cond = cond.And(builder.Eq{"reaction.comment_id": opts.CommentID})
 	}
+	if opts.UserID > 0 {
+		cond = cond.And(builder.Eq{"reaction.user_id": opts.UserID})
+	}
+	if opts.Reaction != "" {
+		cond = cond.And(builder.Eq{"reaction.type": opts.Reaction})
+	}
+
 	return cond
 }
 
@@ -57,9 +66,25 @@ func createReaction(e *xorm.Session, opts *ReactionOptions) (*Reaction, error) {
 		UserID:  opts.Doer.ID,
 		IssueID: opts.Issue.ID,
 	}
+	findOpts := FindReactionsOptions{
+		IssueID:   opts.Issue.ID,
+		CommentID: -1, // reaction to issue only
+		Reaction:  opts.Type,
+		UserID:    opts.Doer.ID,
+	}
 	if opts.Comment != nil {
 		reaction.CommentID = opts.Comment.ID
+		findOpts.CommentID = opts.Comment.ID
 	}
+
+	existingR, err := findReactions(e, findOpts)
+	if err != nil {
+		return nil, err
+	}
+	if len(existingR) > 0 {
+		return existingR[0], ErrReactionAlreadyExist{Reaction: opts.Type}
+	}
+
 	if _, err := e.Insert(reaction); err != nil {
 		return nil, err
 	}
@@ -76,19 +101,19 @@ type ReactionOptions struct {
 }
 
 // CreateReaction creates reaction for issue or comment.
-func CreateReaction(opts *ReactionOptions) (reaction *Reaction, err error) {
+func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
 	sess := x.NewSession()
 	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	if err := sess.Begin(); err != nil {
 		return nil, err
 	}
 
-	reaction, err = createReaction(sess, opts)
+	reaction, err := createReaction(sess, opts)
 	if err != nil {
-		return nil, err
+		return reaction, err
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err := sess.Commit(); err != nil {
 		return nil, err
 	}
 	return reaction, nil
