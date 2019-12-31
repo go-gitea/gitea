@@ -123,26 +123,26 @@ type ReactionOptions struct {
 }
 
 // CreateReaction creates reaction for issue or comment.
-func CreateReaction(opts *ReactionOptions) (reaction *Reaction, err error) {
+func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
 	if !setting.UI.ReactionsMap[opts.Type] {
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 
 	sess := x.NewSession()
 	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	if err := sess.Begin(); err != nil {
 		return nil, err
 	}
 
-	reaction, err = createReaction(sess, opts)
+	reaction, err := createReaction(sess, opts)
 	if err != nil {
-		return
+		return reaction, err
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err := sess.Commit(); err != nil {
 		return nil, err
 	}
-	return
+	return reaction, nil
 }
 
 // CreateIssueReaction creates a reaction on issue.
