@@ -316,7 +316,7 @@ func SearchIssuesByKeyword(repoIDs []int64, keyword string) ([]int64, error) {
 	indexer := holder.get()
 
 	if indexer == nil {
-		log.Error("Unable to get indexer!")
+		log.Error("SearchIssuesByKeyword(): unable to get indexer!")
 		return nil, fmt.Errorf("unable to get issue indexer")
 	}
 	res, err := indexer.Search(keyword, repoIDs, 1000, 0)
