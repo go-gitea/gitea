@@ -358,7 +358,7 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["PageIsAdminMonitor"] = true
 	ctx.Data["Processes"] = process.GetManager().Processes()
 	ctx.Data["Entries"] = cron.ListTasks()
-	ctx.Data["Queues"] = queue.GetManager().Descriptions()
+	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
 	ctx.HTML(200, tplMonitor)
 }
 
@@ -374,28 +374,28 @@ func MonitorCancel(ctx *context.Context) {
 // Queue shows details for a specific queue
 func Queue(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
-	desc := queue.GetManager().GetDescription(qid)
-	if desc == nil {
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
 		ctx.Status(404)
 		return
 	}
-	ctx.Data["Title"] = ctx.Tr("admin.monitor.queue", desc.Name)
+	ctx.Data["Title"] = ctx.Tr("admin.monitor.queue", mq.Name)
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Queue"] = desc
+	ctx.Data["Queue"] = mq
 	ctx.HTML(200, tplQueue)
 }
 
 // WorkerCancel cancels a worker group
 func WorkerCancel(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
-	desc := queue.GetManager().GetDescription(qid)
-	if desc == nil {
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
 		ctx.Status(404)
 		return
 	}
 	pid := ctx.ParamsInt64("pid")
-	desc.CancelWorkers(pid)
+	mq.CancelWorkers(pid)
 	ctx.Flash.Info(ctx.Tr("admin.monitor.queue.pool.cancelling"))
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid),
@@ -405,8 +405,8 @@ func WorkerCancel(ctx *context.Context) {
 // AddWorkers adds workers to a worker group
 func AddWorkers(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
-	desc := queue.GetManager().GetDescription(qid)
-	if desc == nil {
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
 		ctx.Status(404)
 		return
 	}
@@ -422,12 +422,12 @@ func AddWorkers(ctx *context.Context) {
 		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
 		return
 	}
-	if desc.Pool == nil {
+	if mq.Pool == nil {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
 		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
 		return
 	}
-	desc.AddWorkers(number, timeout)
+	mq.AddWorkers(number, timeout)
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.pool.added"))
 	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
 }
@@ -435,12 +435,12 @@ func AddWorkers(ctx *context.Context) {
 // SetQueueSettings sets the maximum number of workers for this queue
 func SetQueueSettings(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
-	desc := queue.GetManager().GetDescription(qid)
-	if desc == nil {
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
 		ctx.Status(404)
 		return
 	}
-	if desc.Pool == nil {
+	if mq.Pool == nil {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
 		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
 		return
@@ -464,7 +464,7 @@ func SetQueueSettings(ctx *context.Context) {
 			maxNumber = -1
 		}
 	} else {
-		maxNumber = desc.MaxNumberOfWorkers()
+		maxNumber = mq.MaxNumberOfWorkers()
 	}
 
 	if len(numberStr) > 0 {
@@ -475,7 +475,7 @@ func SetQueueSettings(ctx *context.Context) {
 			return
 		}
 	} else {
-		number = desc.BoostWorkers()
+		number = mq.BoostWorkers()
 	}
 
 	if len(timeoutStr) > 0 {
@@ -486,10 +486,10 @@ func SetQueueSettings(ctx *context.Context) {
 			return
 		}
 	} else {
-		timeout = desc.Pool.BoostTimeout()
+		timeout = mq.Pool.BoostTimeout()
 	}
 
-	desc.SetSettings(maxNumber, number, timeout)
+	mq.SetSettings(maxNumber, number, timeout)
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.settings.changed"))
 	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
 }

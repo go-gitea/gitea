@@ -71,19 +71,19 @@ func (p *WorkerPool) pushBoost(data Data) {
 			}
 			p.blockTimeout *= 2
 			ctx, cancel := context.WithCancel(p.baseCtx)
-			desc := GetManager().GetDescription(p.qid)
+			mq := GetManager().GetManagedQueue(p.qid)
 			boost := p.boostWorkers
 			if (boost+p.numberOfWorkers) > p.maxNumberOfWorkers && p.maxNumberOfWorkers >= 0 {
 				boost = p.maxNumberOfWorkers - p.numberOfWorkers
 			}
-			if desc != nil {
-				log.Warn("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, desc.Name, ourTimeout, boost, p.boostTimeout, p.blockTimeout)
+			if mq != nil {
+				log.Warn("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, mq.Name, ourTimeout, boost, p.boostTimeout, p.blockTimeout)
 
 				start := time.Now()
-				pid := desc.RegisterWorkers(boost, start, false, start, cancel)
+				pid := mq.RegisterWorkers(boost, start, false, start, cancel)
 				go func() {
 					<-ctx.Done()
-					desc.RemoveWorkers(pid)
+					mq.RemoveWorkers(pid)
 					cancel()
 				}()
 			} else {
@@ -171,15 +171,15 @@ func (p *WorkerPool) AddWorkers(number int, timeout time.Duration) context.Cance
 		ctx, cancel = context.WithCancel(p.baseCtx)
 	}
 
-	desc := GetManager().GetDescription(p.qid)
-	if desc != nil {
-		pid := desc.RegisterWorkers(number, start, hasTimeout, end, cancel)
+	mq := GetManager().GetManagedQueue(p.qid)
+	if mq != nil {
+		pid := mq.RegisterWorkers(number, start, hasTimeout, end, cancel)
 		go func() {
 			<-ctx.Done()
-			desc.RemoveWorkers(pid)
+			mq.RemoveWorkers(pid)
 			cancel()
 		}()
-		log.Trace("WorkerPool: %d (for %s) adding %d workers with group id: %d", p.qid, desc.Name, number, pid)
+		log.Trace("WorkerPool: %d (for %s) adding %d workers with group id: %d", p.qid, mq.Name, number, pid)
 	} else {
 		log.Trace("WorkerPool: %d adding %d workers (no group id)", p.qid, number)
 
