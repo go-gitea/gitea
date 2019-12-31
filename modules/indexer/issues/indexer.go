@@ -127,7 +127,7 @@ func InitIssueIndexer(syncReindex bool) {
 			}
 		}
 
-		issueIndexerQueue = setting.CreateQueue("issue_indexer", handler, &IndexerData{})
+		issueIndexerQueue = queue.CreateQueue("issue_indexer", handler, &IndexerData{})
 
 		if issueIndexerQueue == nil {
 			log.Fatal("Unable to create issue indexer queue")

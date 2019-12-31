@@ -123,8 +123,8 @@ func RegisteredTypesAsString() []string {
 	return types
 }
 
-// CreateQueue takes a queue Type and HandlerFunc some options and possibly an exemplar and returns a Queue or an error
-func CreateQueue(queueType Type, handlerFunc HandlerFunc, opts, exemplar interface{}) (Queue, error) {
+// NewQueue takes a queue Type and HandlerFunc some options and possibly an exemplar and returns a Queue or an error
+func NewQueue(queueType Type, handlerFunc HandlerFunc, opts, exemplar interface{}) (Queue, error) {
 	newFn, ok := queuesMap[queueType]
 	if !ok {
 		return nil, fmt.Errorf("Unsupported queue type: %v", queueType)

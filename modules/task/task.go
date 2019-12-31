@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/queue"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 )
 
@@ -31,7 +30,7 @@ func Run(t *models.Task) error {
 
 // Init will start the service to get all unfinished tasks and run them
 func Init() error {
-	taskQueue = setting.CreateQueue("task", handle, &models.Task{})
+	taskQueue = queue.CreateQueue("task", handle, &models.Task{})
 
 	if taskQueue == nil {
 		return fmt.Errorf("Unable to create Task Queue")

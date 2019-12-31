@@ -59,7 +59,7 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 			q.lock.Unlock()
 			log.Fatal("Timedout creating queue %v with cfg %v in %s", q.underlying, q.cfg, q.name)
 		default:
-			queue, err := CreateQueue(q.underlying, handle, q.cfg, exemplar)
+			queue, err := NewQueue(q.underlying, handle, q.cfg, exemplar)
 			if err == nil {
 				q.internal = queue
 				q.lock.Unlock()
@@ -101,7 +101,7 @@ func NewWrappedQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 	}
 	config := configInterface.(WrappedQueueConfiguration)
 
-	queue, err := CreateQueue(config.Underlying, handle, config.Config, exemplar)
+	queue, err := NewQueue(config.Underlying, handle, config.Config, exemplar)
 	if err == nil {
 		// Just return the queue there is no need to wrap
 		return queue, nil

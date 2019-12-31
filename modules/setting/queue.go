@@ -5,7 +5,6 @@
 package setting
 
 import (
-	"encoding/json"
 	"fmt"
 	"path"
 	"strconv"
@@ -13,10 +12,10 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/queue"
 )
 
-type queueSettings struct {
+// QueueSettings represent the settings for a queue from the ini
+type QueueSettings struct {
 	DataDir          string
 	Length           int
 	BatchLength      int
@@ -38,55 +37,11 @@ type queueSettings struct {
 }
 
 // Queue settings
-var Queue = queueSettings{}
+var Queue = QueueSettings{}
 
-// CreateQueue for name with provided handler and exemplar
-func CreateQueue(name string, handle queue.HandlerFunc, exemplar interface{}) queue.Queue {
-	q := getQueueSettings(name)
-	opts := make(map[string]interface{})
-	opts["Name"] = name
-	opts["QueueLength"] = q.Length
-	opts["BatchLength"] = q.BatchLength
-	opts["DataDir"] = q.DataDir
-	opts["Addresses"] = q.Addresses
-	opts["Network"] = q.Network
-	opts["Password"] = q.Password
-	opts["DBIndex"] = q.DBIndex
-	opts["QueueName"] = q.QueueName
-	opts["Workers"] = q.Workers
-	opts["MaxWorkers"] = q.MaxWorkers
-	opts["BlockTimeout"] = q.BlockTimeout
-	opts["BoostTimeout"] = q.BoostTimeout
-	opts["BoostWorkers"] = q.BoostWorkers
-
-	cfg, err := json.Marshal(opts)
-	if err != nil {
-		log.Error("Unable to marshall generic options: %v Error: %v", opts, err)
-		log.Error("Unable to create queue for %s", name, err)
-		return nil
-	}
-
-	returnable, err := queue.CreateQueue(queue.Type(q.Type), handle, cfg, exemplar)
-	if q.WrapIfNecessary && err != nil {
-		log.Warn("Unable to create queue for %s: %v", name, err)
-		log.Warn("Attempting to create wrapped queue")
-		returnable, err = queue.CreateQueue(queue.WrappedQueueType, handle, queue.WrappedQueueConfiguration{
-			Underlying:  queue.Type(q.Type),
-			Timeout:     q.Timeout,
-			MaxAttempts: q.MaxAttempts,
-			Config:      cfg,
-			QueueLength: q.Length,
-		}, exemplar)
-	}
-	if err != nil {
-		log.Error("Unable to create queue for %s: %v", name, err)
-		return nil
-	}
-	return returnable
-}
-
-func getQueueSettings(name string) queueSettings {
-	q := queueSettings{}
+// GetQueueSettings returns the queue settings for the appropriately named queue
+func GetQueueSettings(name string) QueueSettings {
+	q := QueueSettings{}
 	sec := Cfg.Section("queue." + name)
 	// DataDir is not directly inheritable
 	q.DataDir = path.Join(Queue.DataDir, name)
@@ -104,8 +59,7 @@ func getQueueSettings(name string) queueSettings {
 	q.Length = sec.Key("LENGTH").MustInt(Queue.Length)
 	q.BatchLength = sec.Key("BATCH_LENGTH").MustInt(Queue.BatchLength)
 	q.ConnectionString = sec.Key("CONN_STR").MustString(Queue.ConnectionString)
-	validTypes := queue.RegisteredTypesAsString()
-	q.Type = sec.Key("TYPE").In(Queue.Type, validTypes)
+	q.Type = sec.Key("TYPE").MustString(Queue.Type)
 	q.WrapIfNecessary = sec.Key("WRAP_IF_NECESSARY").MustBool(Queue.WrapIfNecessary)
 	q.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(Queue.MaxAttempts)
 	q.Timeout = sec.Key("TIMEOUT").MustDuration(Queue.Timeout)
@@ -131,8 +85,7 @@ func NewQueueService() {
 	Queue.Length = sec.Key("LENGTH").MustInt(20)
 	Queue.BatchLength = sec.Key("BATCH_LENGTH").MustInt(20)
 	Queue.ConnectionString = sec.Key("CONN_STR").MustString(path.Join(AppDataPath, ""))
-	validTypes := queue.RegisteredTypesAsString()
-	Queue.Type = sec.Key("TYPE").In(string(queue.PersistableChannelQueueType), validTypes)
+	Queue.Type = sec.Key("TYPE").MustString("")
 	Queue.Network, Queue.Addresses, Queue.Password, Queue.DBIndex, _ = ParseQueueConnStr(Queue.ConnectionString)
 	Queue.WrapIfNecessary = sec.Key("WRAP_IF_NECESSARY").MustBool(true)
 	Queue.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(10)
