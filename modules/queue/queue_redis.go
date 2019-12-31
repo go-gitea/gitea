@@ -170,7 +170,6 @@ func (r *RedisQueue) readToChan() {
 
 			log.Trace("RedisQueue: %s Task found: %#v", r.name, data)
 			r.pool.Push(data)
-			time.Sleep(time.Millisecond * 10)
 		}
 	}
 }
