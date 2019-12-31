@@ -192,17 +192,28 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	//     "$ref": "#/responses/Team"
 
 	team := ctx.Org.Team
-	team.Description = form.Description
-	unitTypes := models.FindUnitTypes(form.Units...)
-	team.CanCreateOrgRepo = form.CanCreateOrgRepo
+	if err := team.GetUnits(); err != nil {
+		ctx.InternalServerError(err)
+	}
+
+	if form.CanCreateOrgRepo != nil {
+		team.CanCreateOrgRepo = *form.CanCreateOrgRepo
+	}
+
+	if form.Name != "" {
+		team.Name = form.Name
+	}
+
+	if form.Description != "" {
+		team.Description = form.Description
+	}
 
 	isAuthChanged := false
 	isIncludeAllChanged := false
-	if !team.IsOwnerTeam() {
+	if !team.IsOwnerTeam() && form.Permission != "" {
 		// Validate permission level.
 		auth := models.ParseAccessMode(form.Permission)
 
-		team.Name = form.Name
 		if team.Authorize != auth {
 			isAuthChanged = true
 			team.Authorize = auth
@@ -215,14 +226,17 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	}
 
 	if team.Authorize < models.AccessModeOwner {
-		var units = make([]*models.TeamUnit, 0, len(form.Units))
-		for _, tp := range unitTypes {
-			units = append(units, &models.TeamUnit{
-				OrgID: ctx.Org.Team.OrgID,
-				Type:  tp,
-			})
+		if len(form.Units) > 0 {
+			var units = make([]*models.TeamUnit, 0, len(form.Units))
+			unitTypes := models.FindUnitTypes(form.Units...)
+			for _, tp := range unitTypes {
+				units = append(units, &models.TeamUnit{
+					OrgID: ctx.Org.Team.OrgID,
+					Type:  tp,
+				})
+			}
+			team.Units = units
 		}
-		team.Units = units
 	}
 
 	if err := models.UpdateTeam(team, isAuthChanged, isIncludeAllChanged); err != nil {
