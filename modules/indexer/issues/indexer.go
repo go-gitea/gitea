@@ -104,7 +104,7 @@ func InitIssueIndexer(syncReindex bool) {
 		handler := func(data ...queue.Data) {
 			indexer := holder.get()
 			if indexer == nil {
-				log.Error("Unable to get indexer!")
+				log.Error("Issue indexer handler: unable to get indexer!")
 				return
 			}
 
