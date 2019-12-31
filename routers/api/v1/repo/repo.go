@@ -452,7 +452,6 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		if e := recover(); e != nil {
 			var buf bytes.Buffer
 			fmt.Fprintf(&buf, "Handler crashed with error: %v", log.Stack(2))
-
 			err = errors.New(buf.String())
 		}
 
