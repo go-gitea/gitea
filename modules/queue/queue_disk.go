@@ -148,7 +148,6 @@ func (l *LevelQueue) readToChan() {
 
 			log.Trace("LevelQueue %s: Task found: %#v", l.name, data)
 			l.pool.Push(data)
-			time.Sleep(time.Millisecond * 10)
 
 		}
 	}
