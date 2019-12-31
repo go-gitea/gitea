@@ -181,8 +181,12 @@ func (q *ManagedQueue) CancelWorkers(pid int64) {
 // RemoveWorkers deletes pooled workers with pid
 func (q *ManagedQueue) RemoveWorkers(pid int64) {
 	q.mutex.Lock()
+	pw, ok := q.PoolWorkers[pid]
 	delete(q.PoolWorkers, pid)
 	q.mutex.Unlock()
+	if ok && pw.Cancel != nil {
+		pw.Cancel()
+	}
 }
 
 // AddWorkers adds workers to the queue if it has registered an add worker function
