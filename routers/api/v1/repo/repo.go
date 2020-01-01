@@ -433,7 +433,21 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		opts.Releases = false
 	}
 
-	var repo *models.Repository
+	repo, err := models.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+		Name:        opts.RepoName,
+		Description: opts.Description,
+		OriginalURL: opts.CloneAddr,
+		IsPrivate:   opts.Private,
+		IsMirror:    opts.Mirror,
+		Status:      models.RepositoryBeingMigrated,
+	})
+	if err != nil {
+		handleMigrateError(ctx, ctxUser, remoteAddr, err)
+		return
+	}
+
+	opts.MigrateToRepoID = repo.ID
+
 	defer func() {
 		if e := recover(); e != nil {
 			var buf bytes.Buffer
@@ -443,7 +457,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 
 		if err == nil {
 			repo.Status = models.RepositoryReady
-			if err := models.UpdateRepositoryStatus(repo.ID, repo.Status); err == nil {
+			if err := models.UpdateRepositoryCols(repo, "status"); err == nil {
 				notification.NotifyMigrateRepository(ctx.User, ctxUser, repo)
 				return
 			}
@@ -456,13 +470,16 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		}
 	}()
 
-	repo, err = migrations.MigrateRepository(ctx.User, ctxUser.Name, opts)
-	if err == nil {
-		log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
-		ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
+	if _, err = migrations.MigrateRepository(ctx.User, ctxUser.Name, opts); err != nil {
+		handleMigrateError(ctx, ctxUser, remoteAddr, err)
 		return
 	}
 
+	log.Trace("Repository migrated: %s/%s", ctxUser.Name, form.RepoName)
+	ctx.JSON(201, repo.APIFormat(models.AccessModeAdmin))
+}
+
+func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteAddr string, err error) {
 	switch {
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Error(409, "", "The repository with the same name already exists.")
@@ -471,7 +488,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 	case migrations.IsTwoFactorAuthError(err):
 		ctx.Error(422, "", "Remote visit required two factors authentication.")
 	case models.IsErrReachLimitOfRepo(err):
-		ctx.Error(422, "", fmt.Sprintf("You have already reached your limit of %d repositories.", ctxUser.MaxCreationLimit()))
+		ctx.Error(422, "", fmt.Sprintf("You have already reached your limit of %d repositories.", repoOwner.MaxCreationLimit()))
 	case models.IsErrNameReserved(err):
 		ctx.Error(422, "", fmt.Sprintf("The username '%s' is reserved.", err.(models.ErrNameReserved).Name))
 	case models.IsErrNamePatternNotAllowed(err):

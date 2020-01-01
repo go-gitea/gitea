@@ -2811,3 +2811,9 @@ func (repo *Repository) GetOriginalURLHostname() string {
 
 	return u.Host
 }
+
+// UpdateRepositoryCols updates repository's columns
+func UpdateRepositoryCols(repo *Repository, cols ...string) error {
+	_, err := x.ID(repo.ID).Cols(cols...).Update(repo)
+	return err
+}
