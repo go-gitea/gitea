@@ -2,6 +2,9 @@
 	<div class="ui container">
 		<div class="ui left">
 			© Gitea {{if (or .ShowFooterVersion .PageIsAdmin)}}{{.i18n.Tr "version"}}: {{AppVer}}{{end}} {{if ShowFooterTemplateLoadTime}}{{.i18n.Tr "page"}}: <strong>{{LoadTimes .PageStartTime}}</strong> {{.i18n.Tr "template"}}: <strong>{{call .TmplLoadTimes}}</strong>{{end}}
+			<span class="ui right links">
+				{{template "custom/extra_links_footer" .}}
+			</span>
 		</div>
 		<div class="ui right links">
 			{{if .ShowFooterBranding}}
