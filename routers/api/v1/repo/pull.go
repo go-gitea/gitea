@@ -420,8 +420,8 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 		}
 	}
 
-	if err = models.UpdateIssue(issue); err != nil {
-		ctx.Error(500, "UpdateIssue", err)
+	if err = models.UpdateIssueByAPI(issue); err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 	if form.State != nil {

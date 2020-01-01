@@ -547,7 +547,8 @@
   is_private: false
   num_stars: 0
   num_forks: 0
-  num_issues: 0
+  num_issues: 1
+  num_milestones: 1
   is_mirror: false
 
 -

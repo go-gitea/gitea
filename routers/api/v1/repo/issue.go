@@ -352,8 +352,8 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		}
 	}
 
-	if err = models.UpdateIssue(issue); err != nil {
-		ctx.Error(500, "UpdateIssue", err)
+	if err = models.UpdateIssueByAPI(issue); err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 	if form.State != nil {
@@ -372,7 +372,11 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	// Refetch from database to assign some automatic values
 	issue, err = models.GetIssueByID(issue.ID)
 	if err != nil {
-		ctx.Error(500, "GetIssueByID", err)
+		ctx.InternalServerError(err)
+		return
+	}
+	if err = issue.LoadMilestone(); err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 	ctx.JSON(201, issue.APIFormat())
