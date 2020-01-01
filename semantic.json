@@ -1,5 +1,6 @@
 {
-  "base": "web_src/fomantic/",
+  "version": "2.8.3",
+  "base": "web_src/fomantic",
   "paths": {
     "source": {
       "config": "src/theme.config",
@@ -18,5 +19,38 @@
   "permission": false,
   "autoInstall": false,
   "rtl": false,
-  "version": "2.8.3"
+  "admin": false,
+  "components": [
+    "reset",
+    "site",
+    "button",
+    "container",
+    "divider",
+    "header",
+    "icon",
+    "image",
+    "input",
+    "label",
+    "list",
+    "loader",
+    "segment",
+    "breadcrumb",
+    "form",
+    "grid",
+    "menu",
+    "message",
+    "table",
+    "comment",
+    "item",
+    "accordion",
+    "checkbox",
+    "dropdown",
+    "modal",
+    "search",
+    "sidebar",
+    "sticky",
+    "tab",
+    "transition",
+    "text"
+  ]
 }

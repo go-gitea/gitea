@@ -51,6 +51,7 @@ CSS_SOURCES ?= $(shell find web_src/less -type f)
 
 JS_DEST := public/js/index.js
 CSS_DEST := public/css/index.css
+
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 
 JS_DEST_DIR := public/js
@@ -472,15 +473,18 @@ npm-update: node-check node_modules
 	npm install --package-lock
 
 .PHONY: js
-js: node-check $(JS_DEST)
+js: node-check fomantic $(JS_DEST)
 
 $(JS_DEST): node_modules $(JS_SOURCES)
 	npx eslint web_src/js webpack.config.js
 	npx webpack
+
+.PHONY: fomantic
+fomantic:
 	cd web_src/fomantic && npx gulp build
 
 .PHONY: css
-css: node-check $(CSS_DEST)
+css: node-check fomantic $(CSS_DEST)
 
 $(CSS_DEST): node_modules $(CSS_SOURCES)
 	npx stylelint web_src/less
