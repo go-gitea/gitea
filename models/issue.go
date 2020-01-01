@@ -1206,6 +1206,25 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 	return countMap, nil
 }
 
+// GetRepoIDsForIssuesOptions find all repo ids for the given options
+func GetRepoIDsForIssuesOptions(opts *IssuesOptions) ([]int64, error) {
+	//TODO must add unit test
+	repoIDs := make([]int64, 0, 5)
+	sess := x.NewSession()
+	defer sess.Close()
+
+	opts.setupSession(sess)
+
+	if err := sess.GroupBy("issue.repo_id").
+		Distinct("issue.repo_id").
+		Table("issue").
+		Find(&repoIDs); err != nil {
+		return nil, err
+	}
+
+	return repoIDs, nil
+}
+
 // Issues returns a list of issues by given conditions.
 func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	sess := x.NewSession()
