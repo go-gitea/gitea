@@ -1581,17 +1581,6 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 	return total, ids, nil
 }
 
-func updateIssueByCols(e Engine, issue *Issue, columns ...string) (err error) {
-	_, err = e.ID(issue.ID).Cols(columns...).Update(issue)
-	return
-}
-
-// allowed fields to update for a issue by API
-var allowedColumnsUpdateIssueByAPI = []string{
-	"name", "is_closed", "content", "milestone_id", "priority",
-	"deadline_unix", "updated_unix", "closed_unix", "is_locked",
-}
-
 // UpdateIssueByAPI updates all allowed fields of given issue.
 func UpdateIssueByAPI(issue *Issue) error {
 	sess := x.NewSession()
@@ -1600,7 +1589,10 @@ func UpdateIssueByAPI(issue *Issue) error {
 		return err
 	}
 
-	if err := updateIssueByCols(sess, issue, allowedColumnsUpdateIssueByAPI...); err != nil {
+	if _, err := sess.ID(issue.ID).Cols(
+		"name", "is_closed", "content", "milestone_id", "priority",
+		"deadline_unix", "updated_unix", "closed_unix", "is_locked").
+		Update(issue); err != nil {
 		return err
 	}
 	if err := issue.addCrossReferences(sess, issue.Poster, true); err != nil {
