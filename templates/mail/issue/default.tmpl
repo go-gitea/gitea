@@ -12,22 +12,30 @@
 </head>
 
 <body>
-	{{if .IsMention}}<p>@{{.Doer.Name}} mentioned you:</p>{{end}}
+	{{if .IsMention}}<p><b>@{{.Doer.Name}}</b> mentioned you:</p>{{end}}
 	<p>
+		{{if eq .ActionName "close"}}
+			Closed #{{.Issue.Index}}.
+		{{else if eq .ActionName "reopen"}}
+			Reopened #{{.Issue.Index}}.
+		{{else if eq .ActionName "approve"}}
+			<b>@{{.Doer.Name}}</b> approved this pull request.
+		{{else if eq .ActionName "reject"}}
+			<b>@{{.Doer.Name}}</b> requested changes on this pull request.
+		{{else if eq .ActionName "review"}}
+			<b>@{{.Doer.Name}}</b> commented on this pull request.
+		{{end}}
+
 		{{- if eq .Body ""}}
 			{{if eq .ActionName "new"}}
 				Created #{{.Issue.Index}}.
-			{{else if eq .ActionName "close"}}
-				Closed #{{.Issue.Index}}.
-			{{else if eq .ActionName "reopen"}}
-				Reopened #{{.Issue.Index}}.
-			{{else if ne .ReviewComments}}
-				Empty comment on #{{.Issue.Index}}.
 			{{end}}
 		{{else}}
 			{{.Body | Str2html}}
 		{{end -}}
 		{{- range .ReviewComments}}
+			<hr>
+			In {{.TreePath}}:
 			<div class="review">
 				<pre>{{.Patch}}</pre>
 				<div>{{.RenderedContent | Safe}}</div>

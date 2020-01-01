@@ -60,9 +60,14 @@ var (
 
 		// Pull request settings
 		PullRequest struct {
-			WorkInProgressPrefixes []string
-			CloseKeywords          []string
-			ReopenKeywords         []string
+			WorkInProgressPrefixes                   []string
+			CloseKeywords                            []string
+			ReopenKeywords                           []string
+			DefaultMergeMessageCommitsLimit          int
+			DefaultMergeMessageSize                  int
+			DefaultMergeMessageAllAuthors            bool
+			DefaultMergeMessageMaxApprovers          int
+			DefaultMergeMessageOfficialApproversOnly bool
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -127,15 +132,25 @@ var (
 
 		// Pull request settings
 		PullRequest: struct {
-			WorkInProgressPrefixes []string
-			CloseKeywords          []string
-			ReopenKeywords         []string
+			WorkInProgressPrefixes                   []string
+			CloseKeywords                            []string
+			ReopenKeywords                           []string
+			DefaultMergeMessageCommitsLimit          int
+			DefaultMergeMessageSize                  int
+			DefaultMergeMessageAllAuthors            bool
+			DefaultMergeMessageMaxApprovers          int
+			DefaultMergeMessageOfficialApproversOnly bool
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
 			// https://help.github.com/articles/closing-issues-via-commit-messages
-			CloseKeywords:  strings.Split("close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved", ","),
-			ReopenKeywords: strings.Split("reopen,reopens,reopened", ","),
+			CloseKeywords:                            strings.Split("close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved", ","),
+			ReopenKeywords:                           strings.Split("reopen,reopens,reopened", ","),
+			DefaultMergeMessageCommitsLimit:          50,
+			DefaultMergeMessageSize:                  5 * 1024,
+			DefaultMergeMessageAllAuthors:            false,
+			DefaultMergeMessageMaxApprovers:          10,
+			DefaultMergeMessageOfficialApproversOnly: true,
 		},
 
 		// Issue settings
