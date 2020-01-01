@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
@@ -64,7 +65,7 @@ func TestAPICreateIssue(t *testing.T) {
 }
 
 func TestAPIEditIssue(t *testing.T) {
-	defer prepareTestEnv(t)()
+	prepareTestEnv(t)
 
 	issueBefore := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 9}).(*models.Issue)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: issueBefore.RepoID}).(*models.Repository)
@@ -78,18 +79,18 @@ func TestAPIEditIssue(t *testing.T) {
 
 	// update values of issue
 	issueState := "closed"
-	removeDeadline := true
+	removeDeadline := time.Unix(0, 0)
 	milestone := int64(4)
 	body := "new content!"
 	title := "new title from api set"
 
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d?token=%s", owner.Name, repo.Name, issueBefore.Index, token)
 	req := NewRequestWithJSON(t, "PATCH", urlStr, api.EditIssueOption{
-		State:          &issueState,
-		RemoveDeadline: &removeDeadline,
-		Milestone:      &milestone,
-		Body:           &body,
-		Title:          title,
+		State:     &issueState,
+		Deadline:  &removeDeadline,
+		Milestone: &milestone,
+		Body:      &body,
+		Title:     title,
 
 		// ToDo change more
 	})
@@ -97,7 +98,7 @@ func TestAPIEditIssue(t *testing.T) {
 	var apiIssue api.Issue
 	DecodeJSON(t, resp, &apiIssue)
 
-	issueAfter := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 10}).(*models.Issue)
+	issueAfter := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 9}).(*models.Issue)
 
 	// check deleted user
 	assert.Equal(t, int64(500), issueAfter.PosterID)
