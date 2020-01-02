@@ -1758,6 +1758,10 @@ func UpdateIssueByAPI(issue *Issue) error {
 		return err
 	}
 
+	if err := issue.loadPoster(sess); err != nil {
+		return err
+	}
+
 	if err := issue.neuterCrossReferences(sess); err != nil {
 		return err
 	}
