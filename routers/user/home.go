@@ -389,7 +389,7 @@ func Issues(ctx *context.Context) {
 
 	reposQuery := ctx.Query("repos")
 	var repoIDs []int64
-	if(reposQuery != "") {
+	if len(reposQuery) != 0 {
 		if issueReposQueryPattern.MatchString(reposQuery) {
 			// remove "[" and "]" from string
 			reposQuery = reposQuery[1 : len(reposQuery)-1]
