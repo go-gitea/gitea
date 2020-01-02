@@ -5,11 +5,13 @@
 package user
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/v1/convert"
 )
 
 // ListEmails list all of the authenticated user's email addresses
@@ -23,16 +25,17 @@ func ListEmails(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/EmailList"
+
 	emails, err := models.GetEmailAddresses(ctx.User.ID)
 	if err != nil {
-		ctx.Error(500, "GetEmailAddresses", err)
+		ctx.Error(http.StatusInternalServerError, "GetEmailAddresses", err)
 		return
 	}
 	apiEmails := make([]*api.Email, len(emails))
 	for i := range emails {
 		apiEmails[i] = convert.ToEmail(emails[i])
 	}
-	ctx.JSON(200, &apiEmails)
+	ctx.JSON(http.StatusOK, &apiEmails)
 }
 
 // AddEmail add an email address
@@ -55,8 +58,11 @@ func AddEmail(ctx *context.APIContext, form api.CreateEmailOption) {
 	// responses:
 	//   '201':
 	//     "$ref": "#/responses/EmailList"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	if len(form.Emails) == 0 {
-		ctx.Status(422)
+		ctx.Error(http.StatusUnprocessableEntity, "", "Email list empty")
 		return
 	}
 
@@ -71,9 +77,9 @@ func AddEmail(ctx *context.APIContext, form api.CreateEmailOption) {
 
 	if err := models.AddEmailAddresses(emails); err != nil {
 		if models.IsErrEmailAlreadyUsed(err) {
-			ctx.Error(422, "", "Email address has been used: "+err.(models.ErrEmailAlreadyUsed).Email)
+			ctx.Error(http.StatusUnprocessableEntity, "", "Email address has been used: "+err.(models.ErrEmailAlreadyUsed).Email)
 		} else {
-			ctx.Error(500, "AddEmailAddresses", err)
+			ctx.Error(http.StatusInternalServerError, "AddEmailAddresses", err)
 		}
 		return
 	}
@@ -82,7 +88,7 @@ func AddEmail(ctx *context.APIContext, form api.CreateEmailOption) {
 	for i := range emails {
 		apiEmails[i] = convert.ToEmail(emails[i])
 	}
-	ctx.JSON(201, &apiEmails)
+	ctx.JSON(http.StatusCreated, &apiEmails)
 }
 
 // DeleteEmail delete email
@@ -100,8 +106,9 @@ func DeleteEmail(ctx *context.APIContext, form api.DeleteEmailOption) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+
 	if len(form.Emails) == 0 {
-		ctx.Status(204)
+		ctx.Status(http.StatusNoContent)
 		return
 	}
 
@@ -114,8 +121,8 @@ func DeleteEmail(ctx *context.APIContext, form api.DeleteEmailOption) {
 	}
 
 	if err := models.DeleteEmailAddresses(emails); err != nil {
-		ctx.Error(500, "DeleteEmailAddresses", err)
+		ctx.Error(http.StatusInternalServerError, "DeleteEmailAddresses", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }

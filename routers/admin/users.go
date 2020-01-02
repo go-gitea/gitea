@@ -79,12 +79,11 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	}
 
 	u := &models.User{
-		Name:               form.UserName,
-		Email:              form.Email,
-		Passwd:             form.Password,
-		IsActive:           true,
-		LoginType:          models.LoginPlain,
-		MustChangePassword: form.MustChangePassword,
+		Name:      form.UserName,
+		Email:     form.Email,
+		Passwd:    form.Password,
+		IsActive:  true,
+		LoginType: models.LoginPlain,
 	}
 
 	if len(form.LoginType) > 0 {
@@ -95,9 +94,18 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 			u.LoginName = form.LoginName
 		}
 	}
-	if !password.IsComplexEnough(form.Password) {
-		ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserNew, &form)
-		return
+	if u.LoginType == models.LoginNoType || u.LoginType == models.LoginPlain {
+		if len(form.Password) < setting.MinPasswordLength {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
+			return
+		}
+		if !password.IsComplexEnough(form.Password) {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserNew, &form)
+			return
+		}
+		u.MustChangePassword = form.MustChangePassword
 	}
 	if err := models.CreateUser(u); err != nil {
 		switch {
@@ -201,12 +209,17 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 
 	if len(form.Password) > 0 {
 		var err error
-		if u.Salt, err = models.GetUserSalt(); err != nil {
-			ctx.ServerError("UpdateUser", err)
+		if len(form.Password) < setting.MinPasswordLength {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserEdit, &form)
 			return
 		}
 		if !password.IsComplexEnough(form.Password) {
-			ctx.RenderWithErr(ctx.Tr("form.password_complexity"), tplUserEdit, &form)
+			ctx.RenderWithErr(password.BuildComplexityError(ctx), tplUserEdit, &form)
+			return
+		}
+		if u.Salt, err = models.GetUserSalt(); err != nil {
+			ctx.ServerError("UpdateUser", err)
 			return
 		}
 		u.HashPassword(form.Password)

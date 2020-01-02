@@ -11,6 +11,8 @@ import (
 	"unicode"
 )
 
+const defaultServerPort = 1433
+
 type connectParams struct {
 	logFlags                  uint64
 	port                      uint64
@@ -78,7 +80,7 @@ func parseConnectParams(dsn string) (connectParams, error) {
 	p.user = params["user id"]
 	p.password = params["password"]
 
-	p.port = 1433
+	p.port = 0
 	strport, ok := params["port"]
 	if ok {
 		var err error
@@ -183,7 +185,7 @@ func parseConnectParams(dsn string) (connectParams, error) {
 	if ok {
 		p.serverSPN = serverSPN
 	} else {
-		p.serverSPN = fmt.Sprintf("MSSQLSvc/%s:%d", p.host, p.port)
+		p.serverSPN = generateSpn(p.host, resolveServerPort(p.port))
 	}
 
 	workstation, ok := params["workstation id"]
@@ -205,6 +207,9 @@ func parseConnectParams(dsn string) (connectParams, error) {
 	appintent, ok := params["applicationintent"]
 	if ok {
 		if appintent == "ReadOnly" {
+			if p.database == "" {
+				return p, fmt.Errorf("Database must be specified when ApplicationIntent is ReadOnly")
+			}
 			p.typeFlags |= fReadOnlyIntent
 		}
 	}
@@ -450,4 +455,16 @@ func splitConnectionStringOdbc(dsn string) (map[string]string, error) {
 // Normalizes the given string as an ODBC-format key
 func normalizeOdbcKey(s string) string {
 	return strings.ToLower(strings.TrimRightFunc(s, unicode.IsSpace))
+}
+
+func resolveServerPort(port uint64) uint64 {
+	if port == 0 {
+		return defaultServerPort
+	}
+
+	return port
+}
+
+func generateSpn(host string, port uint64) string {
+	return fmt.Sprintf("MSSQLSvc/%s:%d", host, port)
 }

@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/gzip"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
@@ -44,6 +43,7 @@ import (
 	"gitea.com/macaron/captcha"
 	"gitea.com/macaron/cors"
 	"gitea.com/macaron/csrf"
+	"gitea.com/macaron/gzip"
 	"gitea.com/macaron/i18n"
 	"gitea.com/macaron/macaron"
 	"gitea.com/macaron/session"
@@ -97,13 +97,13 @@ func RouterHandler(level log.Level) func(ctx *macaron.Context) {
 	return func(ctx *macaron.Context) {
 		start := time.Now()
 
-		_ = log.GetLogger("router").Log(0, level, "Started %s %s for %s", log.ColoredMethod(ctx.Req.Method), ctx.Req.RequestURI, ctx.RemoteAddr())
+		_ = log.GetLogger("router").Log(0, level, "Started %s %s for %s", log.ColoredMethod(ctx.Req.Method), ctx.Req.URL.RequestURI(), ctx.RemoteAddr())
 
 		rw := ctx.Resp.(macaron.ResponseWriter)
 		ctx.Next()
 
 		status := rw.Status()
-		_ = log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(ctx.Req.Method), ctx.Req.RequestURI, log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(rw.Status())), log.ColoredTime(time.Since(start)))
+		_ = log.GetLogger("router").Log(0, level, "Completed %s %s %v %s in %v", log.ColoredMethod(ctx.Req.Method), ctx.Req.URL.RequestURI(), log.ColoredStatus(status), log.ColoredStatus(status, http.StatusText(rw.Status())), log.ColoredTime(time.Since(start)))
 	}
 }
 
@@ -133,7 +133,7 @@ func NewMacaron() *macaron.Macaron {
 	if setting.EnableGzip {
 		m.Use(gzip.Middleware())
 	}
-	if setting.Protocol == setting.FCGI {
+	if setting.Protocol == setting.FCGI || setting.Protocol == setting.FCGIUnix {
 		m.SetURLPrefix(setting.AppSubURL)
 	}
 	m.Use(public.Custom(
@@ -254,6 +254,13 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}
 	}
 
+	reqMilestonesDashboardPageEnabled := func(ctx *context.Context) {
+		if !setting.Service.ShowMilestonesDashboardPage {
+			ctx.Error(403)
+			return
+		}
+	}
+
 	m.Use(user.GetNotificationCount)
 	m.Use(func(ctx *context.Context) {
 		ctx.Data["UnitWikiGlobalDisabled"] = models.IsUnitGlobalDisabled(models.UnitTypeWiki)
@@ -281,6 +288,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 	m.Combo("/install", routers.InstallInit).Get(routers.Install).
 		Post(bindIgnErr(auth.InstallForm{}), routers.InstallPost)
 	m.Get("/^:type(issues|pulls)$", reqSignIn, user.Issues)
+	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
 	// ***** START: User *****
 	m.Group("/user", func() {
@@ -382,24 +390,6 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/keys/delete", userSetting.DeleteKey)
 		m.Get("/organization", userSetting.Organization)
 		m.Get("/repos", userSetting.Repos)
-
-		// redirects from old settings urls to new ones
-		// TODO: can be removed on next major version
-		m.Get("/avatar", func(ctx *context.Context) {
-			ctx.Redirect(setting.AppSubURL+"/user/settings", http.StatusMovedPermanently)
-		})
-		m.Get("/email", func(ctx *context.Context) {
-			ctx.Redirect(setting.AppSubURL+"/user/settings/account", http.StatusMovedPermanently)
-		})
-		m.Get("/delete", func(ctx *context.Context) {
-			ctx.Redirect(setting.AppSubURL+"/user/settings/account", http.StatusMovedPermanently)
-		})
-		m.Get("/openid", func(ctx *context.Context) {
-			ctx.Redirect(setting.AppSubURL+"/user/settings/security", http.StatusMovedPermanently)
-		})
-		m.Get("/account_link", func(ctx *context.Context) {
-			ctx.Redirect(setting.AppSubURL+"/user/settings/security", http.StatusMovedPermanently)
-		})
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
 		ctx.Data["AllThemes"] = setting.UI.Themes
@@ -427,6 +417,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/config", admin.Config)
 		m.Post("/config/test_mail", admin.SendTestMail)
 		m.Get("/monitor", admin.Monitor)
+		m.Post("/monitor/cancel/:pid", admin.MonitorCancel)
 
 		m.Group("/users", func() {
 			m.Get("", admin.Users)
@@ -560,6 +551,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Group("/:org", func() {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/^:type(issues|pulls)$", user.Issues)
+			m.Get("/milestones", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Get("/members", org.Members)
 			m.Get("/members/action/:action", org.MembersAction)
 
@@ -689,6 +681,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Get("/pointers", repo.LFSPointerFiles)
 				m.Post("/pointers/associate", repo.LFSAutoAssociate)
 				m.Get("/find", repo.LFSFileFind)
+				m.Group("/locks", func() {
+					m.Get("/", repo.LFSLocks)
+					m.Post("/", repo.LFSLockFile)
+					m.Post("/:lid/unlock", repo.LFSUnlock)
+				})
 			})
 
 		}, func(ctx *context.Context) {
@@ -760,6 +757,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
 			Get(repo.SetDiffViewStyle, repo.CompareDiff).
 			Post(context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
+		m.Group("/pull", func() {
+			m.Post("/:index/target_branch", repo.UpdatePullRequestTarget)
+		}, context.RepoMustNotBeArchived())
 
 		m.Group("", func() {
 			m.Group("", func() {
@@ -867,6 +867,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)
+		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
+
+		m.Group("/blob_excerpt", func() {
+			m.Get("/:sha", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
 		m.Group("/pulls/:index", func() {

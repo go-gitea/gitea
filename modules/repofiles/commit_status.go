@@ -23,8 +23,10 @@ func CreateCommitStatus(repo *models.Repository, creator *models.User, sha strin
 		return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
 	}
 	if _, err := gitRepo.GetCommit(sha); err != nil {
+		gitRepo.Close()
 		return fmt.Errorf("GetCommit[%s]: %v", sha, err)
 	}
+	gitRepo.Close()
 
 	if err := models.NewCommitStatus(models.NewCommitStatusOptions{
 		Repo:         repo,

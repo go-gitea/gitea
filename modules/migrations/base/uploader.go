@@ -12,9 +12,11 @@ type Uploader interface {
 	CreateTopics(topic ...string) error
 	CreateMilestones(milestones ...*Milestone) error
 	CreateReleases(releases ...*Release) error
+	SyncTags() error
 	CreateLabels(labels ...*Label) error
 	CreateIssues(issues ...*Issue) error
 	CreateComments(comments ...*Comment) error
 	CreatePullRequests(prs ...*PullRequest) error
 	Rollback() error
+	Close()
 }

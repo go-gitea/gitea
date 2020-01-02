@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	pwd "code.gitea.io/gitea/modules/password"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
@@ -373,19 +374,22 @@ func runRepoSyncReleases(c *cli.Context) error {
 			}
 			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
 
-			if err = models.SyncReleasesWithTags(repo, gitRepo); err != nil {
+			if err = repository.SyncReleasesWithTags(repo, gitRepo); err != nil {
 				log.Warn(" SyncReleasesWithTags: %v", err)
+				gitRepo.Close()
 				continue
 			}
 
 			count, err = getReleaseCount(repo.ID)
 			if err != nil {
 				log.Warn(" GetReleaseCountByRepoID: %v", err)
+				gitRepo.Close()
 				continue
 			}
 
 			log.Trace(" repo %s releases synchronized to tags: from %d to %d",
 				repo.FullName(), oldnum, count)
+			gitRepo.Close()
 		}
 	}
 

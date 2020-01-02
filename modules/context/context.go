@@ -334,6 +334,7 @@ func Contexter() macaron.Handler {
 		ctx.Data["IsLandingPageOrganizations"] = setting.LandingPageURL == setting.LandingPageOrganizations
 
 		ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
+		ctx.Data["ShowMilestonesDashboardPage"] = setting.Service.ShowMilestonesDashboardPage
 		ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
 		ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
 
