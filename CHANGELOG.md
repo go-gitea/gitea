@@ -6,7 +6,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.10.2](https://github.com/go-gitea/gitea/releases/tag/v1.10.2) - 2020-01-02
 * BUGFIXES
-  * Allow only specific Columns to be updated on Issue via (#9539) (#9580)
+  * Allow only specific Columns to be updated on Issue via API (#9539) (#9580)
   * Add ErrReactionAlreadyExist error (#9550) (#9564)
   * Fix bug when migrate from API (#8631) (#9563)
   * Use default avatar for ghost user (#9536) (#9537)
