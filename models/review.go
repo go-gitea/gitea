@@ -127,9 +127,10 @@ func GetReviewByID(id int64) (*Review, error) {
 
 // FindReviewOptions represent possible filters to find reviews
 type FindReviewOptions struct {
-	Type       ReviewType
-	IssueID    int64
-	ReviewerID int64
+	Type         ReviewType
+	IssueID      int64
+	ReviewerID   int64
+	OfficialOnly bool
 }
 
 func (opts *FindReviewOptions) toCond() builder.Cond {
@@ -142,6 +143,9 @@ func (opts *FindReviewOptions) toCond() builder.Cond {
 	}
 	if opts.Type != ReviewTypeUnknown {
 		cond = cond.And(builder.Eq{"type": opts.Type})
+	}
+	if opts.OfficialOnly {
+		cond = cond.And(builder.Eq{"official": true})
 	}
 	return cond
 }
