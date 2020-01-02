@@ -6,6 +6,8 @@
 package markup
 
 import (
+	"bytes"
+	"io"
 	"regexp"
 	"sync"
 
@@ -65,6 +67,12 @@ func ReplaceSanitizer() {
 func Sanitize(s string) string {
 	NewSanitizer()
 	return sanitizer.policy.Sanitize(s)
+}
+
+// SanitizeReader sanitizes a Reader
+func SanitizeReader(r io.Reader) *bytes.Buffer {
+	NewSanitizer()
+	return sanitizer.policy.SanitizeReader(r)
 }
 
 // SanitizeBytes takes a []byte slice that contains a HTML fragment or document and applies policy whitelist.
