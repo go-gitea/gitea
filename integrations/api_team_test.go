@@ -86,12 +86,22 @@ func TestAPITeam(t *testing.T) {
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, teamToEdit.Description, teamToEdit.IncludesAllRepositories,
 		teamToEdit.Permission, teamToEdit.Units)
 
+	// Edit team without Name
+	teamToEditDesc := &api.EditTeamOption{Description: "first team"}
+	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d?token=%s", teamID, token), teamToEditDesc)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiTeam)
+	checkTeamResponse(t, &apiTeam, teamToEdit.Name, teamToEditDesc.Description, teamToEdit.IncludesAllRepositories,
+		teamToEdit.Permission, teamToEdit.Units)
+	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, teamToEditDesc.Description, teamToEdit.IncludesAllRepositories,
+		teamToEdit.Permission, teamToEdit.Units)
+
 	// Read team.
 	teamRead := models.AssertExistsAndLoadBean(t, &models.Team{ID: teamID}).(*models.Team)
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d?token="+token, teamID)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, &apiTeam, teamRead.Name, teamRead.Description, teamRead.IncludesAllRepositories,
+	checkTeamResponse(t, &apiTeam, teamRead.Name, teamToEditDesc.Description, teamRead.IncludesAllRepositories,
 		teamRead.Authorize.String(), teamRead.GetUnitNames())
 
 	// Delete team.
