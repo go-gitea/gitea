@@ -1750,19 +1750,16 @@ func UpdateIssueByAPI(issue *Issue) error {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-
 	if _, err := sess.ID(issue.ID).Cols(
 		"name", "is_closed", "content", "milestone_id", "priority",
 		"deadline_unix", "updated_unix", "closed_unix", "is_locked").
 		Update(issue); err != nil {
 		return err
 	}
-
-	if err := issue.loadPoster(sess); err != nil {
+	if err := issue.neuterCrossReferences(sess); err != nil {
 		return err
 	}
-
-	if err := issue.neuterCrossReferences(sess); err != nil {
+	if err := issue.loadPoster(sess); err != nil {
 		return err
 	}
 	if err := issue.addCrossReferences(sess, issue.Poster); err != nil {
