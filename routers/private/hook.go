@@ -113,7 +113,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 					})
 					return
 				}
-				if !protectBranch.MergeBlockedByRejectedReview(pr) {
+				if protectBranch.MergeBlockedByRejectedReview(pr) {
 					log.Warn("Forbidden: User %d cannot push to protected branch: %s in %-v and pr #%d has requested changes", opts.UserID, branchName, repo, pr.Index)
 					ctx.JSON(http.StatusForbidden, map[string]interface{}{
 						"err": fmt.Sprintf("protected branch %s can not be pushed to and pr #%d has requested changes", branchName, opts.ProtectedBranchID),
