@@ -44,6 +44,7 @@ type ProtectedBranch struct {
 	ApprovalsWhitelistUserIDs []int64            `xorm:"JSON TEXT"`
 	ApprovalsWhitelistTeamIDs []int64            `xorm:"JSON TEXT"`
 	RequiredApprovals         int64              `xorm:"NOT NULL DEFAULT 0"`
+	DismissStaleApprovals     bool               `xorm:"NOT NULL DEFAULT false"`
 	CreatedUnix               timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix               timeutil.TimeStamp `xorm:"updated"`
 }
@@ -154,10 +155,13 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 
 // GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
-	approvals, err := x.Where("issue_id = ?", pr.IssueID).
+	sess := x.Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeApprove).
-		And("official = ?", true).
-		Count(new(Review))
+		And("official = ?", true)
+	if protectBranch.DismissStaleApprovals {
+		sess = sess.And("stale = ?", false)
+	}
+	approvals, err := sess.Count(new(Review))
 	if err != nil {
 		log.Error("GetGrantedApprovalsCount: %v", err)
 		return 0
