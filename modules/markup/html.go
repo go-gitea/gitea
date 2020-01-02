@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -56,8 +57,6 @@ var (
 	//   http://spec.commonmark.org/0.28/#email-address
 	//   https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type%3Demail)
 	emailRegex = regexp.MustCompile("(?:\\s|^|\\(|\\[)([a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9]{2,}(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+)(?:\\s|$|\\)|\\]|\\.(\\s|$))")
-
-	linkRegex, _ = xurls.StrictMatchingScheme("https?://")
 
 	// blackfriday extensions create IDs like fn:user-content-footnote
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
@@ -118,7 +117,7 @@ func CustomLinkURLSchemes(schemes []string) {
 		}
 		withAuth = append(withAuth, s)
 	}
-	linkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
+	common.LinkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
 }
 
 // IsSameDomain checks if given url string has the same hostname as current Gitea instance
@@ -509,6 +508,12 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 				(strings.HasPrefix(val, "‘") && strings.HasSuffix(val, "’")) {
 				const lenQuote = len("‘")
 				val = val[lenQuote : len(val)-lenQuote]
+			} else if (strings.HasPrefix(val, "\"") && strings.HasSuffix(val, "\"")) ||
+				(strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'")) {
+				val = val[1 : len(val)-1]
+			} else if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "’") {
+				const lenQuote = len("‘")
+				val = val[1 : len(val)-lenQuote]
 			}
 			props[key] = val
 		}
@@ -803,7 +808,7 @@ func emailAddressProcessor(ctx *postProcessCtx, node *html.Node) {
 // linkProcessor creates links for any HTTP or HTTPS URL not captured by
 // markdown.
 func linkProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := linkRegex.FindStringIndex(node.Data)
+	m := common.LinkRegex.FindStringIndex(node.Data)
 	if m == nil {
 		return
 	}
@@ -832,7 +837,7 @@ func genDefaultLinkProcessor(defaultLink string) processor {
 
 // descriptionLinkProcessor creates links for DescriptionHTML
 func descriptionLinkProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := linkRegex.FindStringIndex(node.Data)
+	m := common.LinkRegex.FindStringIndex(node.Data)
 	if m == nil {
 		return
 	}

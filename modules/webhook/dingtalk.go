@@ -132,41 +132,14 @@ func getDingtalkPushPayload(p *api.PushPayload) (*DingtalkPayload, error) {
 }
 
 func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
-	var text, title string
-	switch p.Action {
-	case api.HookIssueOpened:
-		title = fmt.Sprintf("[%s] Issue opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueClosed:
-		title = fmt.Sprintf("[%s] Issue closed: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	case api.HookIssueReOpened:
-		title = fmt.Sprintf("[%s] Issue re-opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	case api.HookIssueEdited:
-		title = fmt.Sprintf("[%s] Issue edited: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueAssigned:
-		title = fmt.Sprintf("[%s] Issue assigned to %s: #%d %s", p.Repository.FullName,
-			p.Issue.Assignee.UserName, p.Index, p.Issue.Title)
-	case api.HookIssueUnassigned:
-		title = fmt.Sprintf("[%s] Issue unassigned: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	case api.HookIssueLabelUpdated:
-		title = fmt.Sprintf("[%s] Issue labels updated: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	case api.HookIssueLabelCleared:
-		title = fmt.Sprintf("[%s] Issue labels cleared: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	case api.HookIssueSynchronized:
-		title = fmt.Sprintf("[%s] Issue synchronized: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	case api.HookIssueMilestoned:
-		title = fmt.Sprintf("[%s] Issue milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	case api.HookIssueDemilestoned:
-		title = fmt.Sprintf("[%s] Issue clear milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-	}
+	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text: title + "\r\n\r\n" + text,
+			Text: text + "\r\n\r\n" + attachmentText,
 			//Markdown:    "# " + title + "\n" + text,
-			Title:       title,
+			Title:       issueTitle,
 			HideAvatar:  "0",
 			SingleTitle: "view issue",
 			SingleURL:   p.Issue.URL,
@@ -175,93 +148,29 @@ func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
 }
 
 func getDingtalkIssueCommentPayload(p *api.IssueCommentPayload) (*DingtalkPayload, error) {
-	title := fmt.Sprintf("#%d: %s", p.Issue.Index, p.Issue.Title)
-	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID))
-	var content string
-	switch p.Action {
-	case api.HookIssueCommentCreated:
-		if p.IsPull {
-			title = "New comment on pull request " + title
-		} else {
-			title = "New comment on issue " + title
-		}
-		content = p.Comment.Body
-	case api.HookIssueCommentEdited:
-		if p.IsPull {
-			title = "Comment edited on pull request " + title
-		} else {
-			title = "Comment edited on issue " + title
-		}
-		content = p.Comment.Body
-	case api.HookIssueCommentDeleted:
-		if p.IsPull {
-			title = "Comment deleted on pull request " + title
-		} else {
-			title = "Comment deleted on issue " + title
-		}
-		url = fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index)
-		content = p.Comment.Body
-	}
-
-	title = fmt.Sprintf("[%s] %s", p.Repository.FullName, title)
+	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text:        title + "\r\n\r\n" + content,
-			Title:       title,
+			Text:        text + "\r\n\r\n" + p.Comment.Body,
+			Title:       issueTitle,
 			HideAvatar:  "0",
 			SingleTitle: "view issue comment",
-			SingleURL:   url,
+			SingleURL:   p.Comment.HTMLURL,
 		},
 	}, nil
 }
 
 func getDingtalkPullRequestPayload(p *api.PullRequestPayload) (*DingtalkPayload, error) {
-	var text, title string
-	switch p.Action {
-	case api.HookIssueOpened:
-		title = fmt.Sprintf("[%s] Pull request opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueClosed:
-		if p.PullRequest.HasMerged {
-			title = fmt.Sprintf("[%s] Pull request merged: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		} else {
-			title = fmt.Sprintf("[%s] Pull request closed: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		}
-	case api.HookIssueReOpened:
-		title = fmt.Sprintf("[%s] Pull request re-opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-	case api.HookIssueEdited:
-		title = fmt.Sprintf("[%s] Pull request edited: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueAssigned:
-		list := make([]string, len(p.PullRequest.Assignees))
-		for i, user := range p.PullRequest.Assignees {
-			list[i] = user.UserName
-		}
-		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d %s", p.Repository.FullName,
-			strings.Join(list, ", "),
-			p.Index, p.PullRequest.Title)
-	case api.HookIssueUnassigned:
-		title = fmt.Sprintf("[%s] Pull request unassigned: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-	case api.HookIssueLabelUpdated:
-		title = fmt.Sprintf("[%s] Pull request labels updated: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-	case api.HookIssueLabelCleared:
-		title = fmt.Sprintf("[%s] Pull request labels cleared: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-	case api.HookIssueSynchronized:
-		title = fmt.Sprintf("[%s] Pull request synchronized: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-	case api.HookIssueMilestoned:
-		title = fmt.Sprintf("[%s] Pull request milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-	case api.HookIssueDemilestoned:
-		title = fmt.Sprintf("[%s] Pull request clear milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-	}
+	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text: title + "\r\n\r\n" + text,
+			Text: text + "\r\n\r\n" + attachmentText,
 			//Markdown:    "# " + title + "\n" + text,
-			Title:       title,
+			Title:       issueTitle,
 			HideAvatar:  "0",
 			SingleTitle: "view pull request",
 			SingleURL:   p.PullRequest.HTMLURL,
@@ -327,51 +236,18 @@ func getDingtalkRepositoryPayload(p *api.RepositoryPayload) (*DingtalkPayload, e
 }
 
 func getDingtalkReleasePayload(p *api.ReleasePayload) (*DingtalkPayload, error) {
-	var title, url string
-	switch p.Action {
-	case api.HookReleasePublished:
-		title = fmt.Sprintf("[%s] Release created", p.Release.TagName)
-		url = p.Release.URL
-		return &DingtalkPayload{
-			MsgType: "actionCard",
-			ActionCard: dingtalk.ActionCard{
-				Text:        title,
-				Title:       title,
-				HideAvatar:  "0",
-				SingleTitle: "view release",
-				SingleURL:   url,
-			},
-		}, nil
-	case api.HookReleaseUpdated:
-		title = fmt.Sprintf("[%s] Release updated", p.Release.TagName)
-		url = p.Release.URL
-		return &DingtalkPayload{
-			MsgType: "actionCard",
-			ActionCard: dingtalk.ActionCard{
-				Text:        title,
-				Title:       title,
-				HideAvatar:  "0",
-				SingleTitle: "view release",
-				SingleURL:   url,
-			},
-		}, nil
+	text, _ := getReleasePayloadInfo(p, noneLinkFormatter)
 
-	case api.HookReleaseDeleted:
-		title = fmt.Sprintf("[%s] Release deleted", p.Release.TagName)
-		url = p.Release.URL
-		return &DingtalkPayload{
-			MsgType: "actionCard",
-			ActionCard: dingtalk.ActionCard{
-				Text:        title,
-				Title:       title,
-				HideAvatar:  "0",
-				SingleTitle: "view release",
-				SingleURL:   url,
-			},
-		}, nil
-	}
-
-	return nil, nil
+	return &DingtalkPayload{
+		MsgType: "actionCard",
+		ActionCard: dingtalk.ActionCard{
+			Text:        text,
+			Title:       text,
+			HideAvatar:  "0",
+			SingleTitle: "view release",
+			SingleURL:   p.Release.URL,
+		},
+	}, nil
 }
 
 // GetDingtalkPayload converts a ding talk webhook into a DingtalkPayload

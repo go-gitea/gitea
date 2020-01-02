@@ -37,7 +37,7 @@
 									{{end}}
 								</div>
 							{{end}}
-							{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) "AllowedReactions" $.AllowedReactions}}
+							{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 							{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "diff" false }}
 						</div>
 					{{end}}
@@ -56,7 +56,7 @@
 				{{$reactions := .Reactions.GroupByType}}
 				{{if $reactions}}
 					<div class="ui attached segment reactions">
-						{{template "repo/issue/view_content/reactions" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions "AllowedReactions" $.AllowedReactions}}
+						{{template "repo/issue/view_content/reactions" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID) "Reactions" $reactions}}
 					</div>
 				{{end}}
 				{{if .Attachments}}

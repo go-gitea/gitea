@@ -28,7 +28,7 @@
 					{{end}}
 						{{if not $.Repository.IsArchived}}
 							<div class="ui right actions">
-								{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "AllowedReactions" $.AllowedReactions}}
+								{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 								{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" .Issue "delete" false "diff" false }}
 							</div>
 						{{end}}
@@ -47,7 +47,7 @@
 					{{$reactions := .Issue.Reactions.GroupByType}}
 					{{if $reactions}}
 						<div class="ui attached segment reactions">
-							{{template "repo/issue/view_content/reactions" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions "AllowedReactions" $.AllowedReactions}}
+							{{template "repo/issue/view_content/reactions" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index) "Reactions" $reactions}}
 						</div>
 					{{end}}
 					{{if .Issue.Attachments}}
