@@ -200,17 +200,17 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 		team.CanCreateOrgRepo = *form.CanCreateOrgRepo
 	}
 
-	if form.Name != "" {
+	if len(form.Name) != 0 {
 		team.Name = form.Name
 	}
 
-	if form.Description != "" {
+	if len(form.Description) != 0 {
 		team.Description = form.Description
 	}
 
 	isAuthChanged := false
 	isIncludeAllChanged := false
-	if !team.IsOwnerTeam() && form.Permission != "" {
+	if !team.IsOwnerTeam() && len(form.Permission) != 0 {
 		// Validate permission level.
 		auth := models.ParseAccessMode(form.Permission)
 
