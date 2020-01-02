@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -239,6 +240,16 @@ func (issue *Issue) loadReactions(e Engine) (err error) {
 	return nil
 }
 
+func (issue *Issue) loadMilestone(e Engine) (err error) {
+	if issue.Milestone == nil && issue.MilestoneID > 0 {
+		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
+		if err != nil && !IsErrMilestoneNotExist(err) {
+			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
+		}
+	}
+	return nil
+}
+
 func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadRepo(e); err != nil {
 		return
@@ -252,11 +263,8 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 		return
 	}
 
-	if issue.Milestone == nil && issue.MilestoneID > 0 {
-		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
-		if err != nil && !IsErrMilestoneNotExist(err) {
-			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
-		}
+	if err = issue.loadMilestone(e); err != nil {
+		return
 	}
 
 	if err = issue.loadAssignees(e); err != nil {
@@ -294,6 +302,11 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 // LoadAttributes loads the attribute of this issue.
 func (issue *Issue) LoadAttributes() error {
 	return issue.loadAttributes(x)
+}
+
+// LoadMilestone load milestone of this issue.
+func (issue *Issue) LoadMilestone() error {
+	return issue.loadMilestone(x)
 }
 
 // GetIsRead load the `IsRead` field of the issue
@@ -1568,25 +1581,18 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 	return total, ids, nil
 }
 
-func updateIssue(e Engine, issue *Issue) error {
-	_, err := e.ID(issue.ID).AllCols().Update(issue)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// UpdateIssue updates all fields of given issue.
-func UpdateIssue(issue *Issue) error {
+// UpdateIssueByAPI updates all allowed fields of given issue.
+func UpdateIssueByAPI(issue *Issue) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if err := updateIssue(sess, issue); err != nil {
-		return err
-	}
-	if err := issue.loadPoster(sess); err != nil {
+
+	if _, err := sess.ID(issue.ID).Cols(
+		"name", "is_closed", "content", "milestone_id", "priority",
+		"deadline_unix", "updated_unix", "closed_unix", "is_locked").
+		Update(issue); err != nil {
 		return err
 	}
 	if err := issue.addCrossReferences(sess, issue.Poster, true); err != nil {
