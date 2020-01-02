@@ -86,7 +86,7 @@ func TestAPITeam(t *testing.T) {
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, teamToEdit.Description, teamToEdit.IncludesAllRepositories,
 		teamToEdit.Permission, teamToEdit.Units)
 
-	// Edit team without Name
+	// Edit team Description only
 	teamToEditDesc := &api.EditTeamOption{Description: "first team"}
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d?token=%s", teamID, token), teamToEditDesc)
 	resp = session.MakeRequest(t, req, http.StatusOK)
