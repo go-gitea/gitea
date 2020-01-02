@@ -111,7 +111,7 @@ func GetAttachment(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-	} else { //If we have the repository we check acces
+	} else { //If we have the repository we check access
 		if repository.IsPrivate {
 			if !ctx.IsSigned {
 				ctx.Error(http.StatusNotFound)
