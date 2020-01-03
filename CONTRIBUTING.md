@@ -98,7 +98,7 @@ the same change, be it a bugfix or a feature addition.
 
 The `vendor/` update needs to be justified as part of the PR description,
 and must be verified by the reviewers and/or merger to always reference
-an existing upstream commit.
+an existsing upstream commit.
 
 You can find more information on how to get started with it on the [Modules Wiki](https://github.com/golang/go/wiki/Modules).
 
@@ -180,19 +180,19 @@ To maintain understandable code and avoid circular dependencies it is important 
 ## API v1
 
 The API is documented by [swagger](http://gitea.com/api/swagger) and is based on [GitHub API v3](https://developer.github.com/v3/).
-So if there exist a endpoint on GitHub API it should be the same for gitea. If GitHub dont provide a functionality Gitea does, a own endpoint can cover this. If a information is on Gitea but not on GitHub API a new field is used wich doesnt coldie with GitHub ones.
+Thus, Gitea´s API should use the same endpoints and fields as GitHub´s API as far as possible, unless there are good reasons to deviate. If GitHub doesn't provide...
 
 All expected results (errors, success, fail messages) should be documented ([example](https://github.com/go-gitea/gitea/blob/master/routers/api/v1/repo/issue.go#L319-L327)).
 
-All JSON input types must be defined as struct in `models/structs/` ([example](https://github.com/go-gitea/gitea/blob/master/modules/structs/issue.go#L76-L91)) and reverenced in [routers/api/v1/swagger/options.go](https://github.com/go-gitea/gitea/blob/master/routers/api/v1/swagger/options.go), they can be used then as follow: ([example](https://github.com/go-gitea/gitea/blob/master/routers/api/v1/repo/issue.go#L318)).
+All JSON input types must be defined as struct in `models/structs/` ([example](https://github.com/go-gitea/gitea/blob/master/modules/structs/issue.go#L76-L91)) and referenced in [routers/api/v1/swagger/options.go](https://github.com/go-gitea/gitea/blob/master/routers/api/v1/swagger/options.go), they can be used then as following: ([example](https://github.com/go-gitea/gitea/blob/master/routers/api/v1/repo/issue.go#L318)).
 
-All JSON responces must be defined as struct in `models/structs/` ([example](https://github.com/go-gitea/gitea/blob/master/modules/structs/issue.go#L36-L68)) and reverenced in its category in `routers/api/v1/swagger/` ([example](https://github.com/go-gitea/gitea/blob/master/routers/api/v1/swagger/issue.go#L11-L16)), they can be used the as follow: ([example](https://github.com/go-gitea/gitea/blob/master/routers/api/v1/repo/issue.go#L277-L279))
+All JSON responses must be defined as struct in `models/structs/` ([example](https://github.com/go-gitea/gitea/blob/master/modules/structs/issue.go#L36-L68)) and referenced in its category in `routers/api/v1/swagger/` ([example](https://github.com/go-gitea/gitea/blob/master/routers/api/v1/swagger/issue.go#L11-L16)), they can be used as following: ([example](https://github.com/go-gitea/gitea/blob/master/routers/api/v1/repo/issue.go#L277-L279))
 
  * GET endpoints return status `OK (200)`,
  * POST endpoints return status `Created (201)` and
  * DELETE endpoints return status `No Content (204)`
 
-A endpoint wich change/edit a object expect all fields to be optional (expect ones to identify the object).
+An endpoint which changes/edits a object expects all fields to be optional (except ones to identify the object, which is required).
 
 
 ## Developer Certificate of Origin (DCO)
