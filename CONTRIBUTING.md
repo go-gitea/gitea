@@ -180,7 +180,9 @@ To maintain understandable code and avoid circular dependencies it is important 
 ## API v1
 
 The API is documented by [swagger](http://try.gitea.io/api/swagger) and is based on [GitHub API v3](https://developer.github.com/v3/).
-Thus, Gitea´s API should use the same endpoints and fields as GitHub´s API as much as possible, unless there are good reasons to deviate. If GitHub doesn't provide a functionality Gitea does, an new endpoint can cover this. If information is on Gitea but not on GitHub API a new field is used which doesn't collide with GitHub one.
+Thus, Gitea´s API should use the same endpoints and fields as GitHub´s API as far as possible, unless there are good reasons to deviate.  
+If Gitea provides functionality that GitHub does not, a new endpoint can be created.  
+If information is provided by Gitea that is not provided by the GitHub API, a new field can be used that doesn't collide with any GitHub fields.
 
 Updating an existing API should not remove existing fields unless there is a really good reason to do so.
 The same applies to status responses. If you notice a problem, feel free to leave a comment in the code for future refactoring to APIv2 (which is currently not planned).
