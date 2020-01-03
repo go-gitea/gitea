@@ -494,6 +494,23 @@
         }
       }
     },
+    "/notifications/new": {
+      "get": {
+        "tags": [
+          "notification"
+        ],
+        "summary": "Check if unread notifications exist",
+        "operationId": "notifyNewAvailable",
+        "responses": {
+          "204": {
+            "description": "No unread notification"
+          },
+          "302": {
+            "description": "Unread notification found"
+          }
+        }
+      }
+    },
     "/notifications/threads/{id}": {
       "get": {
         "consumes": [

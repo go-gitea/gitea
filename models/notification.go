@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -292,6 +293,20 @@ func notificationsForUser(e Engine, user *User, statuses []NotificationStatus, p
 
 	err = sess.Find(&notifications)
 	return
+}
+
+// UnreadAvailable check if unread notifications exist
+func UnreadAvailable(user *User) bool {
+	return unreadAvailable(x, user.ID)
+}
+
+func unreadAvailable(e Engine, userID int64) bool {
+	exist, err := e.Where("user_id = ?", userID).And("status = ?", NotificationStatusUnread).Get(new(Notification))
+	if err != nil {
+		log.Error("newsAvailable", err)
+		return false
+	}
+	return exist
 }
 
 // APIFormat converts a Notification to api.NotificationThread
