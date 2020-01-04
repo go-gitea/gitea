@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -30,13 +31,15 @@ type redisClient interface {
 
 // RedisQueue redis queue
 type RedisQueue struct {
-	pool      *WorkerPool
-	client    redisClient
-	queueName string
-	closed    chan struct{}
-	exemplar  interface{}
-	workers   int
-	name      string
+	pool       *WorkerPool
+	client     redisClient
+	queueName  string
+	closed     chan struct{}
+	terminated chan struct{}
+	exemplar   interface{}
+	workers    int
+	name       string
+	lock       sync.Mutex
 }
 
 // RedisQueueConfiguration is the configuration for the redis queue
@@ -195,19 +198,29 @@ func (r *RedisQueue) Push(data Data) error {
 // Shutdown processing from this queue
 func (r *RedisQueue) Shutdown() {
 	log.Trace("Shutdown: %s", r.name)
+	r.lock.Lock()
 	select {
 	case <-r.closed:
 	default:
 		close(r.closed)
 	}
+	r.lock.Unlock()
 }
 
 // Terminate this queue and close the queue
 func (r *RedisQueue) Terminate() {
 	log.Trace("Terminating: %s", r.name)
 	r.Shutdown()
-	if err := r.client.Close(); err != nil {
-		log.Error("Error whilst closing internal redis client in %s: %v", r.name, err)
+	r.lock.Lock()
+	select {
+	case <-r.terminated:
+		r.lock.Unlock()
+	default:
+		close(r.terminated)
+		r.lock.Unlock()
+		if err := r.client.Close(); err != nil {
+			log.Error("Error whilst closing internal redis client in %s: %v", r.name, err)
+		}
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -38,6 +39,7 @@ type LevelQueue struct {
 	queue      *levelqueue.Queue
 	closed     chan struct{}
 	terminated chan struct{}
+	lock       sync.Mutex
 	exemplar   interface{}
 	workers    int
 	name       string
@@ -173,6 +175,8 @@ func (l *LevelQueue) Push(data Data) error {
 
 // Shutdown this queue and stop processing
 func (l *LevelQueue) Shutdown() {
+	l.lock.Lock()
+	defer l.lock.Unlock()
 	log.Trace("LevelQueue: %s Shutdown", l.name)
 	select {
 	case <-l.closed:
@@ -185,10 +189,13 @@ func (l *LevelQueue) Shutdown() {
 func (l *LevelQueue) Terminate() {
 	log.Trace("LevelQueue: %s Terminating", l.name)
 	l.Shutdown()
+	l.lock.Lock()
 	select {
 	case <-l.terminated:
+		l.lock.Unlock()
 	default:
 		close(l.terminated)
+		l.lock.Unlock()
 		if err := l.queue.Close(); err != nil && err.Error() != "leveldb: closed" {
 			log.Error("Error whilst closing internal queue in %s: %v", l.name, err)
 		}
