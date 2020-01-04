@@ -194,13 +194,14 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	team := ctx.Org.Team
 	if err := team.GetUnits(); err != nil {
 		ctx.InternalServerError(err)
+		return
 	}
 
 	if form.CanCreateOrgRepo != nil {
 		team.CanCreateOrgRepo = *form.CanCreateOrgRepo
 	}
 
-	if len(form.Name) != 0 {
+	if len(form.Name) > 0 {
 		team.Name = form.Name
 	}
 
