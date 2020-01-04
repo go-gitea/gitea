@@ -16,5 +16,5 @@ type Comment struct {
 	Created     time.Time
 	Updated     time.Time
 	Content     string
-	Reactions   *Reactions
+	Reactions   []*Reaction
 }

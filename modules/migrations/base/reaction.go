@@ -5,13 +5,9 @@
 
 package base
 
-// Reactions represents a summary of reactions.
-type Reactions struct {
-	TotalCount int
-	PlusOne    int
-	MinusOne   int
-	Laugh      int
-	Confused   int
-	Heart      int
-	Hooray     int
+// Reaction represents a reaction to an issue/pr/comment.
+type Reaction struct {
+	UserID   int64
+	UserName string
+	Content  string
 }

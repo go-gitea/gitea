@@ -22,5 +22,5 @@ type Issue struct {
 	Updated     time.Time
 	Closed      *time.Time
 	Labels      []*Label
-	Reactions   *Reactions
+	Reactions   []*Reaction
 }
