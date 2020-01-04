@@ -112,15 +112,14 @@ func GetAttachment(ctx *context.Context) {
 			return
 		}
 	} else { //If we have the repository we check access
-		if repository.IsPrivate {
-			if !ctx.IsSigned {
-				ctx.Error(http.StatusNotFound)
-				return
-			}
-			if !repository.CheckUnitUser(ctx.User.ID, ctx.User.IsAdmin, unitType) {
-				ctx.Error(http.StatusForbidden)
-				return
-			}
+		perm, err := models.GetUserRepoPermission(repository, ctx.User)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err.Error())
+			return
+		}
+		if !perm.CanRead(unitType) {
+			ctx.Error(http.StatusNotFound)
+			return
 		}
 	}
 
