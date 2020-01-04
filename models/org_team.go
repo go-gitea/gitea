@@ -590,7 +590,7 @@ func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
 		return ErrTeamAlreadyExist{t.OrgID, t.LowerName}
 	}
 
-	if _, err = sess.ID(t.ID).AllCols().Update(t); err != nil {
+	if _, err = sess.Where("team.id = ?", t.ID).AllCols().Update(t); err != nil {
 		return fmt.Errorf("update: %v", err)
 	}
 
