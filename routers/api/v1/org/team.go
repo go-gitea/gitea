@@ -204,8 +204,8 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 		team.Name = form.Name
 	}
 
-	if len(form.Description) != 0 {
-		team.Description = form.Description
+	if form.Description != nil {
+		team.Description = *form.Description
 	}
 
 	isAuthChanged := false
@@ -219,9 +219,9 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 			team.Authorize = auth
 		}
 
-		if team.IncludesAllRepositories != form.IncludesAllRepositories {
+		if form.IncludesAllRepositories != nil {
 			isIncludeAllChanged = true
-			team.IncludesAllRepositories = form.IncludesAllRepositories
+			team.IncludesAllRepositories = *form.IncludesAllRepositories
 		}
 	}
 
