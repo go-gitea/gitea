@@ -23,7 +23,7 @@ Gitea source code ships with sample pages, available in `contrib/legal` director
 cp $GOPATH/src/code.gitea.io/gitea/contrib/legal/privacy.html.sample /path/to/custom/public/
 ```
 
-Now you can hack the page to your requirements.
+Now you need to edit the page to meet your requirements.
 
 ## Make it Visible
 
