@@ -420,18 +420,11 @@ func InsertReviews(reviews []*Review) error {
 		for _, c := range review.Comments {
 			c.ReviewID = review.ID
 		}
-	}
 
-	if err := sess.Commit(); err != nil {
-		return err
-	}
-	sess.Close()
-
-	for _, review := range reviews {
-		if _, err := x.NoAutoTime().Insert(review.Comments); err != nil {
+		if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	return sess.Commit()
 }
