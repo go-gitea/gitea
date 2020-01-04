@@ -10,7 +10,7 @@ import "time"
 const (
 	ReviewStatePending        = "PENDING"
 	ReviewStateApproved       = "APPROVED"
-	ReviewStateRequestChanges = "REQUEST_CHANGES"
+	ReviewStateRequestChanges = "CHANGES_REQUESTED"
 	ReviewStateComment        = "COMMENT"
 )
 
