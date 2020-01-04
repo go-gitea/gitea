@@ -202,8 +202,11 @@ func (p *WorkerPool) addWorkers(ctx context.Context, number int) {
 
 			p.lock.Lock()
 			p.numberOfWorkers--
-			if p.numberOfWorkers <= 0 {
+			if p.numberOfWorkers == 0 {
+				p.cond.Broadcast()
+			} else if p.numberOfWorkers < 0 {
 				// numberOfWorkers can't go negative but...
+				log.Warn("Number of Workers < 0 for QID %d - this shouldn't happen", p.qid)
 				p.numberOfWorkers = 0
 				p.cond.Broadcast()
 			}
