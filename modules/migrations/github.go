@@ -363,13 +363,15 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		// get reactions
 		var reactions []*base.Reaction
 		for i := 0; ; i++ {
-			res, _, err := g.client.Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, issue.GetNumber(), &github.ListOptions{
+			g.sleep()
+			res, resp, err := g.client.Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, issue.GetNumber(), &github.ListOptions{
 				Page:    i,
 				PerPage: perPage,
 			})
 			if err != nil {
 				return nil, false, err
 			}
+			g.rate = &resp.Rate
 			if len(res) == 0 {
 				break
 			}
@@ -429,13 +431,15 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 			// get reactions
 			var reactions []*base.Reaction
 			for i := 0; ; i++ {
-				res, _, err := g.client.Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListOptions{
+				g.sleep()
+				res, resp, err := g.client.Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListOptions{
 					Page:    i,
 					PerPage: 100,
 				})
 				if err != nil {
 					return nil, err
 				}
+				g.rate = &resp.Rate
 				if len(res) == 0 {
 					break
 				}
@@ -541,13 +545,15 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 		// get reactions
 		var reactions []*base.Reaction
 		for i := 0; ; i++ {
-			res, _, err := g.client.Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, pr.GetNumber(), &github.ListOptions{
+			g.sleep()
+			res, resp, err := g.client.Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, pr.GetNumber(), &github.ListOptions{
 				Page:    i,
 				PerPage: perPage,
 			})
 			if err != nil {
 				return nil, err
 			}
+			g.rate = &resp.Rate
 			if len(res) == 0 {
 				break
 			}
