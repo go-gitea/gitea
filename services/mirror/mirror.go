@@ -410,7 +410,7 @@ func syncMirror(repoID string) {
 
 		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID, newCommitID)
 
-		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, result.refName, oldCommitID, newCommitID, models.ListToPushCommits(commits))
+		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, result.refName, oldCommitID, newCommitID, theCommits)
 	}
 
 	// Get latest commit date and update to current repository updated time

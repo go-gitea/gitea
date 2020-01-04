@@ -325,7 +325,7 @@ function initCommentForm() {
     return;
   }
 
-  setCommentSimpleMDE($('.comment.form textarea'));
+  setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
   initImagePaste($('.comment.form textarea'));

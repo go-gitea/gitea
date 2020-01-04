@@ -7,161 +7,83 @@ package markdown
 
 import (
 	"bytes"
-	"io"
-	"strings"
+	"sync"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	giteautil "code.gitea.io/gitea/modules/util"
 
-	"github.com/russross/blackfriday/v2"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/renderer"
+	"github.com/yuin/goldmark/renderer/html"
+	"github.com/yuin/goldmark/util"
 )
 
-// Renderer is a extended version of underlying render object.
-type Renderer struct {
-	blackfriday.Renderer
-	URLPrefix string
-	IsWiki    bool
+var converter goldmark.Markdown
+var once = sync.Once{}
+
+var urlPrefixKey = parser.NewContextKey()
+var isWikiKey = parser.NewContextKey()
+
+// NewGiteaParseContext creates a parser.Context with the gitea context set
+func NewGiteaParseContext(urlPrefix string, isWiki bool) parser.Context {
+	pc := parser.NewContext(parser.WithIDs(newPrefixedIDs()))
+	pc.Set(urlPrefixKey, urlPrefix)
+	pc.Set(isWikiKey, isWiki)
+	return pc
 }
-
-var byteMailto = []byte("mailto:")
-
-var htmlEscaper = [256][]byte{
-	'&': []byte("&amp;"),
-	'<': []byte("&lt;"),
-	'>': []byte("&gt;"),
-	'"': []byte("&quot;"),
-}
-
-func escapeHTML(w io.Writer, s []byte) {
-	var start, end int
-	for end < len(s) {
-		escSeq := htmlEscaper[s[end]]
-		if escSeq != nil {
-			_, _ = w.Write(s[start:end])
-			_, _ = w.Write(escSeq)
-			start = end + 1
-		}
-		end++
-	}
-	if start < len(s) && end <= len(s) {
-		_, _ = w.Write(s[start:end])
-	}
-}
-
-// RenderNode is a default renderer of a single node of a syntax tree. For
-// block nodes it will be called twice: first time with entering=true, second
-// time with entering=false, so that it could know when it's working on an open
-// tag and when on close. It writes the result to w.
-//
-// The return value is a way to tell the calling walker to adjust its walk
-// pattern: e.g. it can terminate the traversal by returning Terminate. Or it
-// can ask the walker to skip a subtree of this node by returning SkipChildren.
-// The typical behavior is to return GoToNext, which asks for the usual
-// traversal to the next node.
-func (r *Renderer) RenderNode(w io.Writer, node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
-	switch node.Type {
-	case blackfriday.Image:
-		prefix := r.URLPrefix
-		if r.IsWiki {
-			prefix = util.URLJoin(prefix, "wiki", "raw")
-		}
-		prefix = strings.Replace(prefix, "/src/", "/media/", 1)
-		link := node.LinkData.Destination
-		if len(link) > 0 && !markup.IsLink(link) {
-			lnk := string(link)
-			lnk = util.URLJoin(prefix, lnk)
-			lnk = strings.Replace(lnk, " ", "+", -1)
-			link = []byte(lnk)
-		}
-		node.LinkData.Destination = link
-		// Render link around image only if parent is not link already
-		if node.Parent != nil && node.Parent.Type != blackfriday.Link {
-			if entering {
-				_, _ = w.Write([]byte(`<a href="`))
-				escapeHTML(w, link)
-				_, _ = w.Write([]byte(`">`))
-				return r.Renderer.RenderNode(w, node, entering)
-			}
-			s := r.Renderer.RenderNode(w, node, entering)
-			_, _ = w.Write([]byte(`</a>`))
-			return s
-		}
-		return r.Renderer.RenderNode(w, node, entering)
-	case blackfriday.Link:
-		// special case: this is not a link, a hash link or a mailto:, so it's a
-		// relative URL
-		link := node.LinkData.Destination
-		if len(link) > 0 && !markup.IsLink(link) &&
-			link[0] != '#' && !bytes.HasPrefix(link, byteMailto) &&
-			node.LinkData.Footnote == nil {
-			lnk := string(link)
-			if r.IsWiki {
-				lnk = util.URLJoin("wiki", lnk)
-			}
-			link = []byte(util.URLJoin(r.URLPrefix, lnk))
-		}
-		node.LinkData.Destination = link
-		return r.Renderer.RenderNode(w, node, entering)
-	case blackfriday.Text:
-		isListItem := false
-		for n := node.Parent; n != nil; n = n.Parent {
-			if n.Type == blackfriday.Item {
-				isListItem = true
-				break
-			}
-		}
-		if isListItem {
-			text := node.Literal
-			switch {
-			case bytes.HasPrefix(text, []byte("[ ] ")):
-				_, _ = w.Write([]byte(`<span class="ui fitted disabled checkbox"><input type="checkbox" disabled="disabled" /><label /></span>`))
-				text = text[3:]
-			case bytes.HasPrefix(text, []byte("[x] ")):
-				_, _ = w.Write([]byte(`<span class="ui checked fitted disabled checkbox"><input type="checkbox" checked="" disabled="disabled" /><label /></span>`))
-				text = text[3:]
-			}
-			node.Literal = text
-		}
-	}
-	return r.Renderer.RenderNode(w, node, entering)
-}
-
-const (
-	blackfridayExtensions = 0 |
-		blackfriday.NoIntraEmphasis |
-		blackfriday.Tables |
-		blackfriday.FencedCode |
-		blackfriday.Strikethrough |
-		blackfriday.NoEmptyLineBeforeBlock |
-		blackfriday.DefinitionLists |
-		blackfriday.Footnotes |
-		blackfriday.HeadingIDs |
-		blackfriday.AutoHeadingIDs
-	blackfridayHTMLFlags = 0 |
-		blackfriday.Smartypants
-)
 
 // RenderRaw renders Markdown to HTML without handling special links.
 func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
-	renderer := &Renderer{
-		Renderer: blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{
-			Flags:                blackfridayHTMLFlags,
-			FootnoteAnchorPrefix: "user-content-",
-			HeadingIDPrefix:      "user-content-",
-		}),
-		URLPrefix: urlPrefix,
-		IsWiki:    wikiMarkdown,
+	once.Do(func() {
+		converter = goldmark.New(
+			goldmark.WithExtensions(extension.Table,
+				extension.Strikethrough,
+				extension.TaskList,
+				extension.DefinitionList,
+				common.FootnoteExtension,
+				extension.NewTypographer(
+					extension.WithTypographicSubstitutions(extension.TypographicSubstitutions{
+						extension.EnDash: nil,
+						extension.EmDash: nil,
+					}),
+				),
+			),
+			goldmark.WithParserOptions(
+				parser.WithAttribute(),
+				parser.WithAutoHeadingID(),
+				parser.WithASTTransformers(
+					util.Prioritized(&GiteaASTTransformer{}, 10000),
+				),
+			),
+			goldmark.WithRendererOptions(
+				html.WithUnsafe(),
+			),
+		)
+
+		// Override the original Tasklist renderer!
+		converter.Renderer().AddOptions(
+			renderer.WithNodeRenderers(
+				util.Prioritized(NewTaskCheckBoxHTMLRenderer(), 1000),
+			),
+		)
+
+		if setting.Markdown.EnableHardLineBreak {
+			converter.Renderer().AddOptions(html.WithHardWraps())
+		}
+	})
+
+	pc := NewGiteaParseContext(urlPrefix, wikiMarkdown)
+	var buf bytes.Buffer
+	if err := converter.Convert(giteautil.NormalizeEOL(body), &buf, parser.WithContext(pc)); err != nil {
+		log.Error("Unable to render: %v", err)
 	}
 
-	exts := blackfridayExtensions
-	if setting.Markdown.EnableHardLineBreak {
-		exts |= blackfriday.HardLineBreak
-	}
-
-	// Need to normalize EOL to UNIX LF to have consistent results in rendering
-	body = blackfriday.Run(util.NormalizeEOL(body), blackfriday.WithRenderer(renderer), blackfriday.WithExtensions(exts))
-	return markup.SanitizeBytes(body)
+	return markup.SanitizeReader(&buf).Bytes()
 }
 
 var (
@@ -174,8 +96,7 @@ func init() {
 }
 
 // Parser implements markup.Parser
-type Parser struct {
-}
+type Parser struct{}
 
 // Name implements markup.Parser
 func (Parser) Name() string {
