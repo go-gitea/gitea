@@ -204,6 +204,13 @@
 							</div>
 						{{end}}
 					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="block_on_rejected_reviews" type="checkbox" {{if .Branch.BlockOnRejectedReviews}}checked{{end}}>
+							<label for="block_on_rejected_reviews">{{.i18n.Tr "repo.settings.block_rejected_reviews"}}</label>
+							<p class="help">{{.i18n.Tr "repo.settings.block_rejected_reviews_desc"}}</p>
+						</div>
+					</div>					
 				</div>
 
 				<div class="ui divider"></div>
