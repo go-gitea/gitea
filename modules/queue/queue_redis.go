@@ -91,7 +91,7 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 		name:      config.Name,
 	}
 	if len(dbs) == 0 {
-		return nil, errors.New("no redis host found")
+		return nil, errors.New("no redis host specified")
 	} else if len(dbs) == 1 {
 		queue.client = redis.NewClient(&redis.Options{
 			Network:  config.Network,
