@@ -606,8 +606,7 @@ func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
 			Delete(new(TeamUnit)); err != nil {
 			return err
 		}
-
-		if _, err = sess.Insert(&t.Units); err != nil {
+		if _, err = sess.Cols("org_id", "team_id", "type").Insert(&t.Units); err != nil {
 			errRollback := sess.Rollback()
 			if errRollback != nil {
 				log.Error("UpdateTeam sess.Rollback: %v", errRollback)
