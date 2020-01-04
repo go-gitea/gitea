@@ -72,28 +72,30 @@ func TestAPITeam(t *testing.T) {
 
 	// Edit team.
 	teamToEdit := &api.EditTeamOption{
-		Name:                    "teamone",
-		Description:             "team 1",
-		IncludesAllRepositories: false,
-		Permission:              "admin",
-		Units:                   []string{"repo.code", "repo.pulls", "repo.releases"},
+		Name:       "teamone",
+		Permission: "admin",
+		Units:      []string{"repo.code", "repo.pulls", "repo.releases"},
 	}
+	*teamToEdit.Description = "team 1"
+	*teamToEdit.IncludesAllRepositories = false
+
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d?token=%s", teamID, token), teamToEdit)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, &apiTeam, teamToEdit.Name, teamToEdit.Description, teamToEdit.IncludesAllRepositories,
+	checkTeamResponse(t, &apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
 		teamToEdit.Permission, teamToEdit.Units)
-	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, teamToEdit.Description, teamToEdit.IncludesAllRepositories,
+	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
 		teamToEdit.Permission, teamToEdit.Units)
 
 	// Edit team Description only
-	teamToEditDesc := &api.EditTeamOption{Description: "first team"}
+	var teamToEditDesc api.EditTeamOption
+	*teamToEditDesc.Description = "first team"
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d?token=%s", teamID, token), teamToEditDesc)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, &apiTeam, teamToEdit.Name, teamToEditDesc.Description, teamToEdit.IncludesAllRepositories,
+	checkTeamResponse(t, &apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
 		teamToEdit.Permission, teamToEdit.Units)
-	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, teamToEditDesc.Description, teamToEdit.IncludesAllRepositories,
+	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
 		teamToEdit.Permission, teamToEdit.Units)
 
 	// Read team.
@@ -101,7 +103,7 @@ func TestAPITeam(t *testing.T) {
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d?token="+token, teamID)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, &apiTeam, teamRead.Name, teamToEditDesc.Description, teamRead.IncludesAllRepositories,
+	checkTeamResponse(t, &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
 		teamRead.Authorize.String(), teamRead.GetUnitNames())
 
 	// Delete team.
