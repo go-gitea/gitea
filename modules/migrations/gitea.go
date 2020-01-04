@@ -50,6 +50,7 @@ type GiteaLocalUploader struct {
 	gitRepo        *git.Repository
 	prHeadCache    map[string]struct{}
 	userMap        map[int64]int64 // external user id mapping to user id
+	prCache        map[int64]*models.PullRequest
 	gitServiceType structs.GitServiceType
 }
 
@@ -62,6 +63,7 @@ func NewGiteaLocalUploader(ctx context.Context, doer *models.User, repoOwner, re
 		repoName:    repoName,
 		prHeadCache: make(map[string]struct{}),
 		userMap:     make(map[int64]int64),
+		prCache:     make(map[int64]*models.PullRequest),
 	}
 }
 
@@ -710,13 +712,13 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 
 func convertReviewState(state string) models.ReviewType {
 	switch state {
-	case "PENDING":
+	case base.ReviewStatePending:
 		return models.ReviewTypePending
-	case "APPROVE":
+	case base.ReviewStateApproved:
 		return models.ReviewTypeApprove
-	case "REQUEST_CHANGES":
+	case base.ReviewStateRequestChanges:
 		return models.ReviewTypeReject
-	case "COMMENT":
+	case base.ReviewStateComment:
 		return models.ReviewTypeComment
 	default:
 		return models.ReviewTypePending
@@ -769,10 +771,14 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			cm.OriginalAuthorID = review.ReviewerID
 		}
 
-		// TODO: cache pr
-		pr, err := models.GetPullRequestByID(issueID)
-		if err != nil {
-			return err
+		// get pr
+		pr, ok := g.prCache[issueID]
+		if !ok {
+			pr, err := models.GetPullRequestByID(issueID)
+			if err != nil {
+				return err
+			}
+			g.prCache[issueID] = pr
 		}
 
 		for _, comment := range review.Comments {

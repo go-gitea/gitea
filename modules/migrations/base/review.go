@@ -6,6 +6,14 @@ package base
 
 import "time"
 
+// enumerate all review states
+const (
+	ReviewStatePending        = "PENDING"
+	ReviewStateApproved       = "APPROVED"
+	ReviewStateRequestChanges = "REQUEST_CHANGES"
+	ReviewStateComment        = "COMMENT"
+)
+
 // Review is a standard review information
 type Review struct {
 	ID           int64
@@ -16,7 +24,7 @@ type Review struct {
 	CommitID     string
 	Content      string
 	CreatedAt    time.Time
-	State        string // PENDING, APPROVE, REQUEST_CHANGES, or COMMENT
+	State        string // PENDING, APPROVED, REQUEST_CHANGES, or COMMENT
 	Comments     []*ReviewComment
 }
 
