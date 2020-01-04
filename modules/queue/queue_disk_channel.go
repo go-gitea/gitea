@@ -122,7 +122,12 @@ func (p *PersistableChannelQueue) Push(data Data) error {
 func (p *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
 	p.lock.Lock()
 	if p.internal == nil {
-		p.setInternal(atShutdown, p.ChannelQueue.pool.handle, p.exemplar)
+		err := p.setInternal(atShutdown, p.ChannelQueue.pool.handle, p.exemplar)
+		p.lock.Unlock()
+		if err != nil {
+			log.Fatal("Unable to create internal queue for %s Error: %v", p.Name(), err)
+			return
+		}
 	} else {
 		p.lock.Unlock()
 	}
