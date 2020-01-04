@@ -369,3 +369,21 @@ func hasAccess(e Engine, userID int64, repo *Repository) (bool, error) {
 func HasAccess(userID int64, repo *Repository) (bool, error) {
 	return hasAccess(x, userID, repo)
 }
+
+// FilterOutRepoIdsWithoutUnitAccess filter out repos where user has no access to repositories
+func FilterOutRepoIdsWithoutUnitAccess(u *User, repoIDs []int64, units ...UnitType) ([]int64, error) {
+	for i, rID := range repoIDs {
+		repo, err := GetRepositoryByID(rID)
+		if err != nil {
+			return nil, err
+		}
+		perm, err := GetUserRepoPermission(repo, u)
+		if err != nil {
+			return nil, err
+		}
+		if !perm.CanReadAny(units...) {
+			repoIDs = append(repoIDs[:i], repoIDs[i+1:]...)
+		}
+	}
+	return repoIDs, nil
+}
