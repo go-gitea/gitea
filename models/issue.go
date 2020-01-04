@@ -1595,6 +1595,11 @@ func UpdateIssueByAPI(issue *Issue) error {
 		Update(issue); err != nil {
 		return err
 	}
+
+	if err := issue.loadPoster(sess); err != nil {
+		return err
+	}
+
 	if err := issue.addCrossReferences(sess, issue.Poster, true); err != nil {
 		return err
 	}
