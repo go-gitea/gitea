@@ -1,6 +1,7 @@
 const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
 const { SourceMapDevToolPlugin } = require('webpack');
+const VueLoaderPlugin = require('vue-loader/lib/plugin');
 
 module.exports = {
   mode: 'production',
@@ -29,6 +30,11 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.vue$/,
+        exclude: /node_modules/,
+        loader: 'vue-loader'
+      },
+      {
         test: /\.js$/,
         exclude: /node_modules/,
         use: {
@@ -49,7 +55,8 @@ module.exports = {
                 {
                   regenerator: true,
                 }
-              ]
+              ],
+              '@babel/plugin-proposal-object-rest-spread',
             ],
           }
         }
@@ -61,6 +68,7 @@ module.exports = {
     ]
   },
   plugins: [
+    new VueLoaderPlugin(),
     new SourceMapDevToolPlugin({
       filename: '[name].js.map',
       exclude: [
