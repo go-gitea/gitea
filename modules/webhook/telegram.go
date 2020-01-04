@@ -125,7 +125,7 @@ func getTelegramPushPayload(p *api.PushPayload) (*TelegramPayload, error) {
 }
 
 func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
-	text, _, attachmentText, _ := getIssuesPayloadInfo(p, htmlLinkFormatter)
+	text, _, attachmentText, _ := getIssuesPayloadInfo(p, htmlLinkFormatter, true)
 
 	return &TelegramPayload{
 		Message: text + "\n\n" + attachmentText,
@@ -133,7 +133,7 @@ func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
 }
 
 func getTelegramIssueCommentPayload(p *api.IssueCommentPayload) (*TelegramPayload, error) {
-	text, _, _ := getIssueCommentPayloadInfo(p, htmlLinkFormatter)
+	text, _, _ := getIssueCommentPayloadInfo(p, htmlLinkFormatter, true)
 
 	return &TelegramPayload{
 		Message: text + "\n" + p.Comment.Body,
@@ -141,7 +141,7 @@ func getTelegramIssueCommentPayload(p *api.IssueCommentPayload) (*TelegramPayloa
 }
 
 func getTelegramPullRequestPayload(p *api.PullRequestPayload) (*TelegramPayload, error) {
-	text, _, attachmentText, _ := getPullRequestPayloadInfo(p, htmlLinkFormatter)
+	text, _, attachmentText, _ := getPullRequestPayloadInfo(p, htmlLinkFormatter, true)
 
 	return &TelegramPayload{
 		Message: text + "\n" + attachmentText,
@@ -166,7 +166,7 @@ func getTelegramRepositoryPayload(p *api.RepositoryPayload) (*TelegramPayload, e
 }
 
 func getTelegramReleasePayload(p *api.ReleasePayload) (*TelegramPayload, error) {
-	text, _ := getReleasePayloadInfo(p, htmlLinkFormatter)
+	text, _ := getReleasePayloadInfo(p, htmlLinkFormatter, true)
 
 	return &TelegramPayload{
 		Message: text + "\n",
