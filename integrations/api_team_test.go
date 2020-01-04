@@ -71,13 +71,15 @@ func TestAPITeam(t *testing.T) {
 	teamID := apiTeam.ID
 
 	// Edit team.
+	editDescription := "team 1"
+	editFalse := false
 	teamToEdit := &api.EditTeamOption{
-		Name:       "teamone",
-		Permission: "admin",
-		Units:      []string{"repo.code", "repo.pulls", "repo.releases"},
+		Name:                    "teamone",
+		Description:             &editDescription,
+		Permission:              "admin",
+		IncludesAllRepositories: &editFalse,
+		Units:                   []string{"repo.code", "repo.pulls", "repo.releases"},
 	}
-	*teamToEdit.Description = "team 1"
-	*teamToEdit.IncludesAllRepositories = false
 
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d?token=%s", teamID, token), teamToEdit)
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -88,8 +90,8 @@ func TestAPITeam(t *testing.T) {
 		teamToEdit.Permission, teamToEdit.Units)
 
 	// Edit team Description only
-	var teamToEditDesc api.EditTeamOption
-	*teamToEditDesc.Description = "first team"
+	editDescription = "first team"
+	teamToEditDesc := api.EditTeamOption{Description: &editDescription}
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d?token=%s", teamID, token), teamToEditDesc)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiTeam)
