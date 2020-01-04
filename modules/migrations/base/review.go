@@ -8,10 +8,10 @@ import "time"
 
 // enumerate all review states
 const (
-	ReviewStatePending        = "PENDING"
-	ReviewStateApproved       = "APPROVED"
-	ReviewStateRequestChanges = "CHANGES_REQUESTED"
-	ReviewStateComment        = "COMMENT"
+	ReviewStatePending          = "PENDING"
+	ReviewStateApproved         = "APPROVED"
+	ReviewStateChangesRequested = "CHANGES_REQUESTED"
+	ReviewStateCommented        = "COMMENTED"
 )
 
 // Review is a standard review information

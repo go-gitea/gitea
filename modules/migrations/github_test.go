@@ -426,8 +426,30 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			ReviewerName: "lunny",
 			CommitID:     "2be9101c543658591222acbee3eb799edfc3853d",
 			CreatedAt:    time.Date(2020, 01, 04, 06, 07, 06, 0, time.UTC),
-			State:        base.ReviewStateRequestChanges,
+			State:        base.ReviewStateChangesRequested,
 			Content:      "Don't add more reviews",
+		},
+		{
+			ID:           338349019,
+			IssueIndex:   4,
+			ReviewerID:   81045,
+			ReviewerName: "lunny",
+			CommitID:     "2be9101c543658591222acbee3eb799edfc3853d",
+			CreatedAt:    time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
+			State:        base.ReviewStateCommented,
+			Comments: []*base.ReviewComment{
+				{
+					ID:        363029944,
+					Content:   "test a single comment.",
+					TreePath:  "LICENSE",
+					Position:  4,
+					CommitID:  "2be9101c543658591222acbee3eb799edfc3853d",
+					PosterID:  81045,
+					Reactions: &base.Reactions{},
+					CreatedAt: time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
+					UpdatedAt: time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
+				},
+			},
 		},
 	}, reviews)
 }
