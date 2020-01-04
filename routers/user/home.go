@@ -389,21 +389,23 @@ func Issues(ctx *context.Context) {
 
 	reposQuery := ctx.Query("repos")
 	var repoIDs []int64
-	if issueReposQueryPattern.MatchString(reposQuery) {
-		// remove "[" and "]" from string
-		reposQuery = reposQuery[1 : len(reposQuery)-1]
-		//for each ID (delimiter ",") add to int to repoIDs
-		for _, rID := range strings.Split(reposQuery, ",") {
-			// Ensure nonempty string entries
-			if rID != "" && rID != "0" {
-				rIDint64, err := strconv.ParseInt(rID, 10, 64)
-				if err == nil {
-					repoIDs = append(repoIDs, rIDint64)
+	if len(reposQuery) != 0 {
+		if issueReposQueryPattern.MatchString(reposQuery) {
+			// remove "[" and "]" from string
+			reposQuery = reposQuery[1 : len(reposQuery)-1]
+			//for each ID (delimiter ",") add to int to repoIDs
+			for _, rID := range strings.Split(reposQuery, ",") {
+				// Ensure nonempty string entries
+				if rID != "" && rID != "0" {
+					rIDint64, err := strconv.ParseInt(rID, 10, 64)
+					if err == nil {
+						repoIDs = append(repoIDs, rIDint64)
+					}
 				}
 			}
+		} else {
+			log.Error("issueReposQueryPattern not match with query")
 		}
-	} else {
-		log.Error("issueReposQueryPattern not match with query")
 	}
 
 	isShowClosed := ctx.Query("state") == "closed"

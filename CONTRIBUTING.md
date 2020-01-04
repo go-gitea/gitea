@@ -12,6 +12,7 @@
   - [Code review](#code-review)
   - [Styleguide](#styleguide)
   - [Design guideline](#design-guideline)
+  - [API v1](#api-v1)
   - [Developer Certificate of Origin (DCO)](#developer-certificate-of-origin-dco)
   - [Release Cycle](#release-cycle)
   - [Maintainers](#maintainers)
@@ -176,6 +177,43 @@ To maintain understandable code and avoid circular dependencies it is important 
 - **services:** Support functions for common routing operations. Uses models and modules to handle the request.
 - **templates:** Golang templates for generating the html output.
 - **vendor:** External code that Gitea depends on.
+
+## API v1
+
+The API is documented by [swagger](http://try.gitea.io/api/swagger) and is based on [GitHub API v3](https://developer.github.com/v3/).
+Thus, Gitea´s API should use the same endpoints and fields as GitHub´s API as far as possible, unless there are good reasons to deviate.  
+If Gitea provides functionality that GitHub does not, a new endpoint can be created.  
+If information is provided by Gitea that is not provided by the GitHub API, a new field can be used that doesn't collide with any GitHub fields.
+
+Updating an existing API should not remove existing fields unless there is a really good reason to do so.
+The same applies to status responses. If you notice a problem, feel free to leave a comment in the code for future refactoring to APIv2 (which is currently not planned).
+
+All expected results (errors, success, fail messages) should be documented
+([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/repo/issue.go#L319-L327)).
+
+All JSON input types must be defined as a struct in `models/structs/`
+([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/modules/structs/issue.go#L76-L91))
+and referenced in
+[routers/api/v1/swagger/options.go](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/swagger/options.go).  
+They can then be used like the following:
+([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/repo/issue.go#L318)).
+
+All JSON responses must be defined as a struct in `models/structs/`
+([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/modules/structs/issue.go#L36-L68))
+and referenced in its category in `routers/api/v1/swagger/`
+([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/swagger/issue.go#L11-L16))  
+They can be used like the following:
+([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/repo/issue.go#L277-L279))
+
+In general, HTTP methods are chosen as follows:
+ * **GET** endpoints return requested object and status **OK (200)**
+ * **DELETE** endpoints return status **No Content (204)**
+ * **POST** endpoints return status **Created (201)**, used to **create** new objects (e.g. a User)
+ * **PUT** endpoints return status **No Content (204)**, used to **add/assign** existing Obejcts (e.g. User) to something (e.g. Org-Team)
+ * **PATCH** endpoints return changed object and status **OK (200)**, used to **edit/change** an existing object
+
+
+An endpoint which changes/edits an object expects all fields to be optional (except ones to identify the object, which are required).
 
 
 ## Developer Certificate of Origin (DCO)
