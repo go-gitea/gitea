@@ -38,6 +38,7 @@ var (
 		EnablePushCreateUser                    bool
 		EnablePushCreateOrg                     bool
 		DisabledRepoUnits                       []string
+		DefaultRepoUnits                        []string
 
 		// Repository editor settings
 		Editor struct {
@@ -100,6 +101,7 @@ var (
 		EnablePushCreateUser:                    false,
 		EnablePushCreateOrg:                     false,
 		DisabledRepoUnits:                       []string{},
+		DefaultRepoUnits:                        []string{},
 
 		// Repository editor settings
 		Editor: struct {

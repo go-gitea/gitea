@@ -79,6 +79,12 @@ var (
 		UnitTypeWiki,
 	}
 
+	// NotAllowedDefaultRepoUnits contains units that can't be default
+	NotAllowedDefaultRepoUnits = []UnitType{
+		UnitTypeExternalWiki,
+		UnitTypeExternalTracker,
+	}
+
 	// MustRepoUnits contains the units could not be disabled currently
 	MustRepoUnits = []UnitType{
 		UnitTypeCode,
@@ -90,6 +96,24 @@ var (
 )
 
 func loadUnitConfig() {
+	setDefaultRepoUnits := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
+	// Default repo units set if setting is not empty
+	if len(setDefaultRepoUnits) > 0 {
+		// MustRepoUnits required as default
+		DefaultRepoUnits = make([]UnitType, len(MustRepoUnits))
+		copy(DefaultRepoUnits, MustRepoUnits)
+		for _, defaultU := range setDefaultRepoUnits {
+			if !defaultU.CanBeDefault() {
+				log.Warn("Not allowed as default unit: %s", defaultU.String())
+				continue
+			}
+			// MustRepoUnits already added
+			if defaultU.CanDisable() {
+				DefaultRepoUnits = append(DefaultRepoUnits, defaultU)
+			}
+		}
+	}
+
 	DisabledRepoUnits = FindUnitTypes(setting.Repository.DisabledRepoUnits...)
 	// Check that must units are not disabled
 	for i, disabledU := range DisabledRepoUnits {
@@ -123,10 +147,20 @@ func (u *UnitType) UnitGlobalDisabled() bool {
 	return IsUnitGlobalDisabled(*u)
 }
 
-// CanDisable returns if this unit type could be disabled.
+// CanDisable checks if this unit type can be disabled.
 func (u *UnitType) CanDisable() bool {
 	for _, mu := range MustRepoUnits {
 		if *u == mu {
+			return false
+		}
+	}
+	return true
+}
+
+// CanBeDefault checks if the unit type can be a default repo unit
+func (u *UnitType) CanBeDefault() bool {
+	for _, nadU := range NotAllowedDefaultRepoUnits {
+		if *u == nadU {
 			return false
 		}
 	}
