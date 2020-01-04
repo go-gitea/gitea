@@ -266,7 +266,7 @@ func getMSTeamsPushPayload(p *api.PushPayload) (*MSTeamsPayload, error) {
 }
 
 func getMSTeamsIssuesPayload(p *api.IssuePayload) (*MSTeamsPayload, error) {
-	text, _, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter)
+	text, _, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
 
 	return &MSTeamsPayload{
 		Type:       "MessageCard",
@@ -308,7 +308,7 @@ func getMSTeamsIssuesPayload(p *api.IssuePayload) (*MSTeamsPayload, error) {
 }
 
 func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload, error) {
-	text, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter)
+	text, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter, false)
 
 	return &MSTeamsPayload{
 		Type:       "MessageCard",
@@ -350,7 +350,7 @@ func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload,
 }
 
 func getMSTeamsPullRequestPayload(p *api.PullRequestPayload) (*MSTeamsPayload, error) {
-	text, _, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter)
+	text, _, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
 	return &MSTeamsPayload{
 		Type:       "MessageCard",
@@ -503,7 +503,7 @@ func getMSTeamsRepositoryPayload(p *api.RepositoryPayload) (*MSTeamsPayload, err
 }
 
 func getMSTeamsReleasePayload(p *api.ReleasePayload) (*MSTeamsPayload, error) {
-	text, color := getReleasePayloadInfo(p, noneLinkFormatter)
+	text, color := getReleasePayloadInfo(p, noneLinkFormatter, false)
 
 	return &MSTeamsPayload{
 		Type:       "MessageCard",
