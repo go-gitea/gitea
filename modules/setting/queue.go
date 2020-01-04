@@ -45,10 +45,14 @@ func GetQueueSettings(name string) QueueSettings {
 	sec := Cfg.Section("queue." + name)
 	// DataDir is not directly inheritable
 	q.DataDir = path.Join(Queue.DataDir, name)
+	// QueueName is not directly inheritable either
+	q.QueueName = name + Queue.QueueName
 	for _, key := range sec.Keys() {
 		switch key.Name() {
 		case "DATADIR":
 			q.DataDir = key.MustString(q.DataDir)
+		case "QUEUE_NAME":
+			q.QueueName = key.MustString(q.QueueName)
 		}
 	}
 	if !path.IsAbs(q.DataDir) {
@@ -68,7 +72,6 @@ func GetQueueSettings(name string) QueueSettings {
 	q.BlockTimeout = sec.Key("BLOCK_TIMEOUT").MustDuration(Queue.BlockTimeout)
 	q.BoostTimeout = sec.Key("BOOST_TIMEOUT").MustDuration(Queue.BoostTimeout)
 	q.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(Queue.BoostWorkers)
-	q.QueueName = sec.Key("QUEUE_NAME").MustString(Queue.QueueName)
 
 	q.Network, q.Addresses, q.Password, q.DBIndex, _ = ParseQueueConnStr(q.ConnectionString)
 	return q
@@ -95,18 +98,7 @@ func NewQueueService() {
 	Queue.BlockTimeout = sec.Key("BLOCK_TIMEOUT").MustDuration(1 * time.Second)
 	Queue.BoostTimeout = sec.Key("BOOST_TIMEOUT").MustDuration(5 * time.Minute)
 	Queue.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(5)
-	Queue.QueueName = sec.Key("QUEUE_NAME").MustString(Queue.QueueName)
-
-	hasWorkers := false
-	for _, key := range Cfg.Section("queue.notification").Keys() {
-		if key.Name() == "WORKERS" {
-			hasWorkers = true
-			break
-		}
-	}
-	if !hasWorkers {
-		Cfg.Section("queue.notification").Key("WORKERS").SetValue("5")
-	}
+	Queue.QueueName = sec.Key("QUEUE_NAME").MustString("_queue")
 
 	// Now handle the old issue_indexer configuration
 	section := Cfg.Section("queue.issue_indexer")
