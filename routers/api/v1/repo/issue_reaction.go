@@ -55,7 +55,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanRead(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+	if !ctx.Repo.CanRead(models.UnitTypeIssues) {
 		ctx.Error(http.StatusForbidden, "GetIssueCommentReactions", errors.New("no permission to get reactions"))
 		return
 	}
@@ -179,7 +179,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue() failed", err)
 	}
 
-	if comment.Issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+	if comment.Issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		ctx.Error(http.StatusForbidden, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
 		return
 	}
@@ -261,7 +261,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanRead(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+	if !ctx.Repo.CanRead(models.UnitTypeIssues) {
 		ctx.Error(http.StatusForbidden, "GetIssueReactions", errors.New("no permission to get reactions"))
 		return
 	}
@@ -380,7 +380,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		ctx.Error(http.StatusForbidden, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
 		return
 	}
