@@ -432,7 +432,7 @@ func AddWorkers(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
 }
 
-// SetQueueSettings sets the maximum number of workers for this queue
+// SetQueueSettings sets the maximum number of workers and other settings for this queue
 func SetQueueSettings(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
