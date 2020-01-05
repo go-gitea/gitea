@@ -90,6 +90,18 @@ strip-suffix = $(firstword $(subst ., ,$(1)))
 .PHONY: all
 all: build
 
+.PHONY: help
+help:
+	@echo "Make Routines:"
+	@echo " - \"\"           equivalent to \"build\""
+	@echo " - build        creates the entire project"
+	@echo " - clean        delete integration files and build files but not css and js files"
+	@echo " - clean-all    delete all generated files (integration test, build, css and js files)"
+	@echo " - css          rebuild only css files"
+	@echo " - js           rebuild only js files"
+	@echo " - test         run unit test"
+	@echo " - test-sqlite  run integration test for sqlite"
+
 include docker/Makefile
 
 .PHONY: go-check
