@@ -1,5 +1,6 @@
-INI [![Build Status](https://travis-ci.org/go-ini/ini.svg?branch=master)](https://travis-ci.org/go-ini/ini) [![Sourcegraph](https://img.shields.io/badge/view%20on-Sourcegraph-brightgreen.svg)](https://sourcegraph.com/github.com/go-ini/ini)
-===
+# INI
+
+[![Build Status](https://img.shields.io/travis/go-ini/ini/master.svg?style=for-the-badge&logo=travis)](https://travis-ci.org/go-ini/ini) [![Sourcegraph](https://img.shields.io/badge/view%20on-Sourcegraph-brightgreen.svg?style=for-the-badge&logo=sourcegraph)](https://sourcegraph.com/github.com/go-ini/ini)
 
 ![](https://avatars0.githubusercontent.com/u/10216035?v=3&s=200)
 
