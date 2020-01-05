@@ -104,7 +104,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 		OrderBy:  models.SearchOrderByAlphabetically,
 		Page:     ctx.QueryInt("page"),
 		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		Private:  true,
+		Visible:  []api.VisibleType{api.VisibleTypePublic, api.VisibleTypeLimited, api.VisibleTypePrivate},
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchOrganizations", err)
