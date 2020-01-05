@@ -500,6 +500,9 @@ func CheckPrReadyToMerge(pr *models.PullRequest) (err error) {
 		if err = pr.LoadProtectedBranch(); err != nil {
 			return fmt.Errorf("LoadProtectedBranch: %v", err)
 		}
+		if pr.ProtectedBranch == nil {
+			return nil
+		}
 	}
 
 	isPass, err := IsPullCommitStatusPass(pr)
