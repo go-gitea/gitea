@@ -227,7 +227,7 @@ func getDiscordPushPayload(p *api.PushPayload, meta *DiscordMeta) (*DiscordPaylo
 }
 
 func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPayload, error) {
-	text, _, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter)
+	text, _, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
 
 	return &DiscordPayload{
 		Username:  meta.Username,
@@ -249,7 +249,7 @@ func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPa
 }
 
 func getDiscordIssueCommentPayload(p *api.IssueCommentPayload, discord *DiscordMeta) (*DiscordPayload, error) {
-	text, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter)
+	text, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter, false)
 
 	return &DiscordPayload{
 		Username:  discord.Username,
@@ -271,7 +271,7 @@ func getDiscordIssueCommentPayload(p *api.IssueCommentPayload, discord *DiscordM
 }
 
 func getDiscordPullRequestPayload(p *api.PullRequestPayload, meta *DiscordMeta) (*DiscordPayload, error) {
-	text, _, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter)
+	text, _, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
 	return &DiscordPayload{
 		Username:  meta.Username,
@@ -368,7 +368,7 @@ func getDiscordRepositoryPayload(p *api.RepositoryPayload, meta *DiscordMeta) (*
 }
 
 func getDiscordReleasePayload(p *api.ReleasePayload, meta *DiscordMeta) (*DiscordPayload, error) {
-	text, color := getReleasePayloadInfo(p, noneLinkFormatter)
+	text, color := getReleasePayloadInfo(p, noneLinkFormatter, false)
 
 	return &DiscordPayload{
 		Username:  meta.Username,
