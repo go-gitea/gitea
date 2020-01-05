@@ -583,6 +583,11 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 	pr.Issue.Repo = ctx.Repo.Repository
+	err = pr.LoadProtectedBranch()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadProtectedBranch", err)
+		return
+	}
 
 	if ctx.IsSigned {
 		// Update issue-user.
@@ -597,20 +602,28 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
+	if !pr.ProtectedBranch.CanUserMerge(ctx.User.ID) {
+		ctx.Error(http.StatusMethodNotAllowed, "Merge", "Not in merge whitelist")
+		return
+	}
+
 	if !pr.CanAutoMerge() || pr.HasMerged || pr.IsWorkInProgress() {
 		ctx.Status(http.StatusMethodNotAllowed)
 		return
 	}
 
-	isPass, err := pull_service.IsPullCommitStatusPass(pr)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "IsPullCommitStatusPass", err)
-		return
-	}
-
-	if !isPass && !ctx.IsUserRepoAdmin() {
-		ctx.Status(http.StatusMethodNotAllowed)
-		return
+	if err := pull_service.CheckPrReadyToMerge(pr); err != nil {
+		if form.ForceMerge != nil && *form.ForceMerge {
+			if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.User); err != nil {
+				ctx.Error(http.StatusInternalServerError, "IsUserRepoAdmin", err)
+				return
+			} else if !isRepoAdmin {
+				ctx.Error(http.StatusMethodNotAllowed, "Merge", "Only repository admin can merge if not all checks are ok (force merge)")
+			}
+		} else {
+			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
+			return
+		}
 	}
 
 	if len(form.Do) == 0 {

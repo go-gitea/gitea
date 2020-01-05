@@ -931,14 +931,24 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		prConfig := prUnit.PullRequestsConfig()
+		err = pull.LoadProtectedBranch()
+		if err != nil {
+			ctx.ServerError("LoadProtectedBranch", err)
+			return
+		}
 
-		ctx.Data["AllowMerge"] = ctx.Repo.CanWrite(models.UnitTypeCode)
-		if err := pull.CheckUserAllowedToMerge(ctx.User); err != nil {
+		ctx.Data["AllowMerge"] = pull.ProtectedBranch.CanUserMerge(ctx.User.ID)
+		if err := pull_service.CheckPrReadyToMerge(pull); err != nil {
 			if !models.IsErrNotAllowedToMerge(err) {
 				ctx.ServerError("CheckUserAllowedToMerge", err)
 				return
 			}
-			ctx.Data["AllowMerge"] = false
+			if isRepoAdmin, err := models.IsUserRepoAdmin(pull.BaseRepo, ctx.User); err != nil {
+				ctx.ServerError("IsUserRepoAdmin", err)
+				return
+			} else if !isRepoAdmin {
+				ctx.Data["AllowMerge"] = false
+			}
 		}
 
 		// Check correct values and select default

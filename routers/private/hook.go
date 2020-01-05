@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/util"
+	pull_service "code.gitea.io/gitea/services/pull"
 
 	"gitea.com/macaron/macaron"
 )
@@ -98,6 +99,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 				canPush = protectBranch.CanUserPush(opts.UserID)
 			}
 			if !canPush && opts.ProtectedBranchID > 0 {
+				// Manual merge
 				pr, err := models.GetPullRequestByID(opts.ProtectedBranchID)
 				if err != nil {
 					log.Error("Unable to get PullRequest %d Error: %v", opts.ProtectedBranchID, err)
@@ -106,19 +108,26 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 					})
 					return
 				}
-				if !protectBranch.HasEnoughApprovals(pr) {
-					log.Warn("Forbidden: User %d cannot push to protected branch: %s in %-v and pr #%d does not have enough approvals", opts.UserID, branchName, repo, pr.Index)
+				if !protectBranch.CanUserMerge(opts.UserID) {
+					log.Warn("Forbidden: User %d cannot push to protected branch: %s in %-v and not allowed to merge pr #%d", opts.UserID, branchName, repo, pr.Index)
 					ctx.JSON(http.StatusForbidden, map[string]interface{}{
-						"err": fmt.Sprintf("protected branch %s can not be pushed to and pr #%d does not have enough approvals", branchName, opts.ProtectedBranchID),
+						"err": fmt.Sprintf("protected branch %s can not be pushed to", branchName),
 					})
 					return
 				}
-				if protectBranch.MergeBlockedByRejectedReview(pr) {
-					log.Warn("Forbidden: User %d cannot push to protected branch: %s in %-v and pr #%d has requested changes", opts.UserID, branchName, repo, pr.Index)
-					ctx.JSON(http.StatusForbidden, map[string]interface{}{
-						"err": fmt.Sprintf("protected branch %s can not be pushed to and pr #%d has requested changes", branchName, opts.ProtectedBranchID),
+				// Manual merge only allowed if PR is ready (even if admin)
+				if err := pull_service.CheckPrReadyToMerge(pr); err != nil {
+					if models.IsErrNotAllowedToMerge(err) {
+						log.Warn("Forbidden: USer %d cannot push to protected branch %s in %-v and pr #%d: %s", opts.UserID, branchName, repo, pr.Index, err.Error())
+						ctx.JSON(http.StatusForbidden, map[string]interface{}{
+							"err": fmt.Sprintf("protected branch %s can not be pushed to and pr #%d is not ready to be merged: %s", branchName, opts.ProtectedBranchID, err.Error()),
+						})
+						return
+					}
+					log.Error("Unable to check if mergable: protected branch %s in %-v and pr #%d. Error: %v", opts.UserID, branchName, repo, pr.Index, err)
+					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+						"err": fmt.Sprintf("Unable to get PullRequest %d Error: %v", opts.ProtectedBranchID, err),
 					})
-					return
 				}
 			} else if !canPush {
 				log.Warn("Forbidden: User %d cannot push to protected branch: %s in %-v", opts.UserID, branchName, repo)

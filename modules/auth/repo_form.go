@@ -447,6 +447,7 @@ type MergePullRequestForm struct {
 	Do                string `binding:"Required;In(merge,rebase,rebase-merge,squash)"`
 	MergeTitleField   string
 	MergeMessageField string
+	ForceMerge        *bool `json:"force_merge,omitempty"`
 }
 
 // Validate validates the fields

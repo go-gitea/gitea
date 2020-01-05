@@ -30,6 +30,7 @@ import (
 )
 
 // Merge merges pull request to base repository.
+// Caller chall check PR is ready to be merged (review and status checks)
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
 func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, mergeStyle models.MergeStyle, message string) (err error) {
 	binVersion, err := git.BinVersion()
@@ -52,11 +53,6 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return err
 	}
 	prConfig := prUnit.PullRequestsConfig()
-
-	if err := pr.CheckUserAllowedToMerge(doer); err != nil {
-		log.Error("CheckUserAllowedToMerge(%v): %v", doer, err)
-		return fmt.Errorf("CheckUserAllowedToMerge: %v", err)
-	}
 
 	// Check if merge style is correct and allowed
 	if !prConfig.IsMergeStyleAllowed(mergeStyle) {
@@ -470,4 +466,41 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	}
 
 	return out.String(), nil
+}
+
+// CheckPrReadyToMerge checks whether the PR is ready to be merged (reviews and status checks)
+func CheckPrReadyToMerge(pr *models.PullRequest) (err error) {
+	if pr.BaseRepo == nil {
+		if err = pr.GetBaseRepo(); err != nil {
+			return fmt.Errorf("GetBaseRepo: %v", err)
+		}
+	}
+	if pr.ProtectedBranch == nil {
+		if err = pr.LoadProtectedBranch(); err != nil {
+			return fmt.Errorf("LoadProtectedBranch: %v", err)
+		}
+	}
+
+	isPass, err := IsPullCommitStatusPass(pr)
+	if err != nil {
+		return err
+	}
+	if !isPass {
+		return models.ErrNotAllowedToMerge{
+			Reason: "Not all required status checks successfull",
+		}
+	}
+
+	if enoughApprovals := pr.ProtectedBranch.HasEnoughApprovals(pr); !enoughApprovals {
+		return models.ErrNotAllowedToMerge{
+			Reason: "Does not have enough approvals",
+		}
+	}
+	if rejected := pr.ProtectedBranch.MergeBlockedByRejectedReview(pr); rejected {
+		return models.ErrNotAllowedToMerge{
+			Reason: "There are requested changes",
+		}
+	}
+
+	return nil
 }
