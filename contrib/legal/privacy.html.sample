@@ -94,7 +94,7 @@
 
   <p>Transmission of data on Your Gitea Instance is encrypted using SSH, HTTPS (TLS), and git repository content is encrypted at rest. We manage our own cages and racks at top-tier data centers with high level of physical and network security, and when data is stored with a third-party storage provider, it is encrypted.</p>
 
-  <p><b>Disclaimer:</b> No method of transmission, or method of electronic storage, is 100% secure, therefore, we cannote guarantee its absolute security.</p>
+  <p><b>Disclaimer:</b> No method of transmission, or method of electronic storage, is 100% secure, therefore, we cannot guarantee absolute security.</p>
 
   <h2>Cookies and Tracking Usage</h2>
 
