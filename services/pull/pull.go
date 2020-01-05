@@ -255,13 +255,13 @@ func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID st
 	defer headGitRepo.Close()
 
 	// Add a temporary remote.
-	tmpRemote := com.ToStr(time.Now().UnixNano())
+	tmpRemote := "checkIfPRContentChanged-" + com.ToStr(time.Now().UnixNano())
 	if err = headGitRepo.AddRemote(tmpRemote, models.RepoPath(pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name), true); err != nil {
-		return false, fmt.Errorf("AddRemote: %v", err)
+		return false, fmt.Errorf("AddRemote: %s/%s-%s: %v", pr.HeadRepo.OwnerName, pr.HeadRepo.Name, tmpRemote, err)
 	}
 	defer func() {
 		if err := headGitRepo.RemoveRemote(tmpRemote); err != nil {
-			log.Error("checkIfPRContentChanged: RemoveRemote: %s", err)
+			log.Error("checkIfPRContentChanged: RemoveRemote: %s/%s-%s: %v", pr.HeadRepo.OwnerName, pr.HeadRepo.Name, tmpRemote, err)
 		}
 	}()
 	// To synchronize repo and get a base ref
