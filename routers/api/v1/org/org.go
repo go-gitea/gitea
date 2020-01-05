@@ -70,7 +70,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 func GetAll(ctx *context.APIContext) {
 	// swagger:operation Get /orgs organization orgGetAll
 	// ---
-	// summary: Get all public organizations
+	// summary: Get list of organizations
 	// produces:
 	// - application/json
 	// parameters:
