@@ -487,7 +487,7 @@ func CheckPrReadyToMerge(pr *models.PullRequest) (err error) {
 	}
 	if !isPass {
 		return models.ErrNotAllowedToMerge{
-			Reason: "Not all required status checks successfull",
+			Reason: "Not all required status checks successful",
 		}
 	}
 
