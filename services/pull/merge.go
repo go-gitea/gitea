@@ -468,6 +468,27 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	return out.String(), nil
 }
 
+// IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
+func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *models.User) (bool, error) {
+	if p.IsAdmin() {
+		return true, nil
+	}
+	if !p.CanWrite(models.UnitTypeCode) {
+		return false, nil
+	}
+
+	err := pr.LoadProtectedBranch()
+	if err != nil {
+		return false, err
+	}
+
+	if pr.ProtectedBranch == nil || pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // CheckPrReadyToMerge checks whether the PR is ready to be merged (reviews and status checks)
 func CheckPrReadyToMerge(pr *models.PullRequest) (err error) {
 	if pr.BaseRepo == nil {

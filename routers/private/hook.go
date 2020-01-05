@@ -108,7 +108,31 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 					})
 					return
 				}
-				if !protectBranch.CanUserMerge(opts.UserID) {
+				user, err := models.GetUserByID(opts.UserID)
+				if err != nil {
+					log.Error("Unable to get User id %d Error: %v", opts.UserID, err)
+					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+						"err": fmt.Sprintf("Unable to get User id %d Error: %v", opts.UserID, err),
+					})
+					return
+				}
+				perm, err := models.GetUserRepoPermission(repo, user)
+				if err != nil {
+					log.Error("Unable to get Repo permission of repo %s/%s of User %s", repo.OwnerName, repo.Name, user.Name, err)
+					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+						"err": fmt.Sprintf("Unable to get Repo permission of repo %s/%s of User %s: %v", repo.OwnerName, repo.Name, user.Name, err),
+					})
+					return
+				}
+				allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, perm, user)
+				if err != nil {
+					log.Error("Error calculating if allowed to merge: %v", err)
+					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+						"err": fmt.Sprintf("Error calculating if allowed to merge: %v", err),
+					})
+					return
+				}
+				if !allowedMerge {
 					log.Warn("Forbidden: User %d cannot push to protected branch: %s in %-v and not allowed to merge pr #%d", opts.UserID, branchName, repo, pr.Index)
 					ctx.JSON(http.StatusForbidden, map[string]interface{}{
 						"err": fmt.Sprintf("protected branch %s can not be pushed to", branchName),

@@ -903,6 +903,7 @@ func ViewIssue(ctx *context.Context) {
 		pull := issue.PullRequest
 		pull.Issue = issue
 		canDelete := false
+		ctx.Data["AllowMerge"] = false
 
 		if ctx.IsSigned {
 			if err := pull.GetHeadRepo(); err != nil {
@@ -922,6 +923,11 @@ func ViewIssue(ctx *context.Context) {
 						ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index) + "/cleanup"
 					}
 				}
+				ctx.Data["AllowMerge"], err = pull_service.IsUserAllowedToMerge(pull, perm, ctx.User)
+				if err != nil {
+					ctx.ServerError("IsUserAllowedToMerge", err)
+					return
+				}
 			}
 		}
 
@@ -937,7 +943,6 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 
-		ctx.Data["AllowMerge"] = pull.ProtectedBranch.CanUserMerge(ctx.User.ID)
 		if err := pull_service.CheckPrReadyToMerge(pull); err != nil {
 			if !models.IsErrNotAllowedToMerge(err) {
 				ctx.ServerError("CheckUserAllowedToMerge", err)

@@ -580,13 +580,13 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 	}
 
 	pr := issue.PullRequest
-	err := pr.LoadProtectedBranch()
+
+	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.User)
 	if err != nil {
-		ctx.ServerError("LoadProtectedBranch", err)
+		ctx.ServerError("IsUserAllowedToMerge", err)
 		return
 	}
-
-	if !pr.ProtectedBranch.CanUserMerge(ctx.User.ID) {
+	if !allowedMerge {
 		ctx.NotFound("MergePullRequest", nil)
 		return
 	}

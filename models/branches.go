@@ -91,8 +91,8 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 	return in
 }
 
-// CanUserMerge returns if some user could merge a pull request to this protected branch
-func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
+// IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
+func (protectBranch *ProtectedBranch) IsUserMergeWhitelisted(userID int64) bool {
 	if !protectBranch.EnableMergeWhitelist {
 		return true
 	}

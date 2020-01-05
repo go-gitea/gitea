@@ -583,11 +583,6 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 	pr.Issue.Repo = ctx.Repo.Repository
-	err = pr.LoadProtectedBranch()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadProtectedBranch", err)
-		return
-	}
 
 	if ctx.IsSigned {
 		// Update issue-user.
@@ -602,8 +597,19 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if !pr.ProtectedBranch.CanUserMerge(ctx.User.ID) {
-		ctx.Error(http.StatusMethodNotAllowed, "Merge", "Not in merge whitelist")
+	perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+		return
+	}
+
+	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, perm, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "IsUSerAllowedToMerge", err)
+		return
+	}
+	if allowedMerge {
+		ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
 		return
 	}
 
