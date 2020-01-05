@@ -221,11 +221,15 @@ func loadBranches(ctx *context.Context) []*Branch {
 				ctx.ServerError("pr.LoadIssue", err)
 				return nil
 			}
-			if err := pr.LoadBaseRepo(); err != nil {
+			if pr.BaseRepoID == ctx.Repo.Repository.ID {
+				pr.HeadRepo = ctx.Repo.Repository
+			} else 	if err := pr.LoadBaseRepo(); err != nil {
 				ctx.ServerError("pr.LoadBaseRepo", err)
 				return nil
 			}
-			if err := pr.LoadHeadRepo(); err != nil {
+			if pr.HeadRepoID == ctx.Repo.Repository.ID {
+				pr.HeadRepo = ctx.Repo.Repository
+			} else if err := pr.LoadHeadRepo(); err != nil {
 				ctx.ServerError("pr.LoadHeadRepo", err)
 				return nil
 			}
