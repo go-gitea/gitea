@@ -35,7 +35,7 @@
 
    <h3>With your Consent</h3>
 
-   <p>We share your User Personal Information, if you consent, after letting you know what information will be shared, with whom, and why. For example, if you allow third party applications to access your Account using <a href="https://docs.gitea.io/en-us/oauth2-provider/">OAuth2 providers</a>, we share all informations associated with your Account, including private repos and organizations. You may also direct us through your action on Your Gitea Instance to share your User Personal Information, such as when joining an Organization.</p>
+   <p>We share your User Personal Information, if you consent, after letting you know what information will be shared, with whom, and why. For example, if you allow third party applications to access your Account using <a href="https://docs.gitea.io/en-us/oauth2-provider/">OAuth2 providers</a>, we share all information associated with your Account, including private repos and organizations. You may also direct us through your action on Your Gitea Instance to share your User Personal Information, such as when joining an Organization.</p>
 
    <h3>With Service Providers</h3>
 
