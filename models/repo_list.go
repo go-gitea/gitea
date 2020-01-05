@@ -228,7 +228,7 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 		}
 
 		if opts.AllPublic {
-			accessCond = accessCond.Or(builder.Eq{"is_private": false}).And(builder.In("owner_id", builder.Select("`user`.id").From("`user`").Where(builder.Lte{"`user`.visibility": 1})))
+			accessCond = accessCond.Or(builder.Eq{"is_private": false}).And(builder.In("owner_id", builder.Select("`user`.id").From("`user`").Where(builder.Lte{"`user`.visibility": structs.VisibleTypePrivate})))
 		}
 
 		cond = cond.And(accessCond)
