@@ -2271,7 +2271,7 @@ function initTemplateSearch() {
   const checkTemplate = function () {
     const $templateUnits = $('#template_units');
     const $nonTemplate = $('#non_template');
-    if ($repoTemplate.val() !== '') {
+    if ($repoTemplate.val() !== '' && $repoTemplate.val() !== '0') {
       $templateUnits.show();
       $nonTemplate.hide();
     } else {
