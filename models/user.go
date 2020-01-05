@@ -1474,6 +1474,7 @@ type SearchUserOptions struct {
 	PageSize      int   // Can be smaller than or equal to setting.UI.ExplorePagingNum
 	IsActive      util.OptionalBool
 	SearchByEmail bool // Search by email as well as username/full name
+	Visible       *structs.VisibleType
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
@@ -1495,6 +1496,10 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 	if !opts.Private {
 		// user not logged in and so they won't be allowed to see non-public orgs
 		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
+	}
+
+	if opts.Visible != nil {
+		cond = cond.And(builder.Lte{"visibility": opts.Visible})
 	}
 
 	if opts.OwnerID > 0 {

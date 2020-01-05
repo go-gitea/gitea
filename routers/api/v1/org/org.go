@@ -88,13 +88,22 @@ func GetAll(ctx *context.APIContext) {
 
 	//ToDo Find a light way to return private and limited Orts to if user is auth
 
-	publicOrgs, _, err := models.SearchUsers(&models.SearchUserOptions{
+	opts := &models.SearchUserOptions{
 		Type:     models.UserTypeOrganization,
 		OrderBy:  models.SearchOrderByAlphabetically,
 		Page:     ctx.QueryInt("page"),
 		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		Private:  false,
-	})
+		Private:  true,
+	}
+	visible := api.VisibleTypePublic
+	if ctx.User.IsAdmin {
+		visible = api.VisibleTypePrivate
+	} else if ctx.IsSigned {
+		visible = api.VisibleTypeLimited
+	}
+	opts.Visible = &visible
+
+	publicOrgs, _, err := models.SearchUsers(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchOrganizations", err)
 		return
