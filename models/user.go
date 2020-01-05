@@ -1494,6 +1494,8 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 	if len(opts.Visible) > 0 {
 		cond = cond.And(builder.In("visibility", opts.Visible))
+	} else {
+		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
 	}
 
 	if opts.OwnerID > 0 {
