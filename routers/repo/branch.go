@@ -223,7 +223,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 			}
 			if pr.BaseRepoID == ctx.Repo.Repository.ID {
 				pr.HeadRepo = ctx.Repo.Repository
-			} else 	if err := pr.LoadBaseRepo(); err != nil {
+			} else if err := pr.LoadBaseRepo(); err != nil {
 				ctx.ServerError("pr.LoadBaseRepo", err)
 				return nil
 			}
