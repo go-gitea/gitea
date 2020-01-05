@@ -372,7 +372,8 @@ func HasAccess(userID int64, repo *Repository) (bool, error) {
 
 // FilterOutRepoIdsWithoutUnitAccess filter out repos where user has no access to repositories
 func FilterOutRepoIdsWithoutUnitAccess(u *User, repoIDs []int64, units ...UnitType) ([]int64, error) {
-	for i, rID := range repoIDs {
+	i := 0
+	for _, rID := range repoIDs {
 		repo, err := GetRepositoryByID(rID)
 		if err != nil {
 			return nil, err
@@ -381,9 +382,10 @@ func FilterOutRepoIdsWithoutUnitAccess(u *User, repoIDs []int64, units ...UnitTy
 		if err != nil {
 			return nil, err
 		}
-		if !perm.CanReadAny(units...) {
-			repoIDs = append(repoIDs[:i], repoIDs[i+1:]...)
+		if perm.CanReadAny(units...) {
+			repoIDs[i] = rID
+			i++
 		}
 	}
-	return repoIDs, nil
+	return repoIDs[:i], nil
 }
