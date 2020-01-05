@@ -177,7 +177,7 @@ func TestSearchRepository(t *testing.T) {
 			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, AllPublic: true, Template: util.OptionalBoolFalse},
 			count: 25},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborative",
-			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true, Template: util.OptionalBoolFalse},
+			opts:  &SearchRepoOptions{Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true, AllLimited: true, Template: util.OptionalBoolFalse},
 			count: 30},
 		{name: "AllPublic/PublicAndPrivateRepositoriesOfUserIncludingCollaborativeByName",
 			opts:  &SearchRepoOptions{Keyword: "test", Page: 1, PageSize: 10, OwnerID: 15, Private: true, AllPublic: true},
