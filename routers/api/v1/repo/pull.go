@@ -608,7 +608,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		ctx.Error(http.StatusInternalServerError, "IsUSerAllowedToMerge", err)
 		return
 	}
-	if allowedMerge {
+	if !allowedMerge {
 		ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
 		return
 	}
