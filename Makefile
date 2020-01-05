@@ -107,6 +107,7 @@ help:
 	@echo " - swagger-validate  check if the swagger spec is valide"
 	@echo " - revive            run code linter revive"
 	@echo " - misspell          check if a word is written wrong"
+	@echo " - vet               examines Go source code and reports suspicious constructs"
 	@echo " - test              run unit test"
 	@echo " - test-sqlite       run integration test for sqlite"
 
