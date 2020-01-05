@@ -638,19 +638,20 @@ func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var ids []int64
 
-	sess := x.Table("repository").
+	if err := x.Table("repository").
 		Cols("repository.id").
 		Join("INNER", "team_user", "repository.owner_id = team_user.org_id").
-		Join("INNER", "team_repo", "repository.is_private != ? OR (team_user.team_id = team_repo.team_id AND repository.id = team_repo.repo_id)", true)
-
-	if len(units) > 0 {
-		sess = sess.Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id")
-		sess = sess.In("team_unit.type", units)
+		Join("INNER", "team_repo", "repository.is_private != ? OR (team_user.team_id = team_repo.team_id AND repository.id = team_repo.repo_id)", true).
+		Where("team_user.uid = ?", u.ID).
+		GroupBy("repository.id").Find(&ids); err != nil {
+		return nil, err
 	}
 
-	return ids, sess.
-		Where("team_user.uid = ?", u.ID).
-		GroupBy("repository.id").Find(&ids)
+	if len(units) > 0 {
+		return FilterOutRepoIdsWithoutUnitAccess(u, ids, units...)
+	}
+
+	return ids, nil
 }
 
 // GetAccessRepoIDs returns all repositories IDs where user's or user is a team member organizations
