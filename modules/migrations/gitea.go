@@ -774,7 +774,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		// get pr
 		pr, ok := g.prCache[issueID]
 		if !ok {
-			pr, err := models.GetPullRequestByID(issueID)
+			var err error
+			pr, err = models.GetPullRequestByIssueID(issueID)
 			if err != nil {
 				return err
 			}
@@ -794,14 +795,16 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			patch := gitdiff.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 
 			var c = models.Comment{
-				Type:      models.CommentTypeCode,
-				PosterID:  comment.PosterID,
-				IssueID:   issueID,
-				Content:   comment.Content,
-				Line:      line,
-				TreePath:  comment.TreePath,
-				CommitSHA: comment.CommitID,
-				Patch:     patch,
+				Type:        models.CommentTypeCode,
+				PosterID:    comment.PosterID,
+				IssueID:     issueID,
+				Content:     comment.Content,
+				Line:        line,
+				TreePath:    comment.TreePath,
+				CommitSHA:   comment.CommitID,
+				Patch:       patch,
+				CreatedUnix: timeutil.TimeStamp(comment.CreatedAt.Unix()),
+				UpdatedUnix: timeutil.TimeStamp(comment.UpdatedAt.Unix()),
 			}
 
 			if userid > 0 {
