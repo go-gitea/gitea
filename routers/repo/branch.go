@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/util"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 const (
@@ -33,6 +34,7 @@ type Branch struct {
 	CommitsAhead      int
 	CommitsBehind     int
 	LatestPullRequest *models.PullRequest
+	MergeMovedOn      bool
 }
 
 // Branches render repository branch page
@@ -213,11 +215,50 @@ func loadBranches(ctx *context.Context) []*Branch {
 			ctx.ServerError("GetLatestPullRequestByHeadInfo", err)
 			return nil
 		}
+		mergeMovedOn := false
 		if pr != nil {
 			if err := pr.LoadIssue(); err != nil {
 				ctx.ServerError("pr.LoadIssue", err)
 				return nil
 			}
+			if err := pr.LoadBaseRepo(); err != nil {
+				ctx.ServerError("pr.LoadBaseRepo", err)
+				return nil
+			}
+			if err := pr.LoadHeadRepo(); err != nil {
+				ctx.ServerError("pr.LoadHeadRepo", err)
+				return nil
+			}
+			if pr.HasMerged && pr.HeadRepo != nil {
+				headRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+				if err != nil {
+					ctx.ServerError("OpenRepository", err)
+					return nil
+				}
+				defer headRepo.Close()
+				baseRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+				if err != nil {
+					ctx.ServerError("OpenRepository", err)
+					return nil
+				}
+				defer baseRepo.Close()
+				pullCommit, err := baseRepo.GetRefCommitID(pr.GetGitRefName())
+				if err != nil && err != plumbing.ErrReferenceNotFound {
+					ctx.ServerError("GetBranchCommitID", err)
+					return nil
+				}
+				if err == nil {
+					headCommit, err := headRepo.GetBranchCommitID(pr.HeadBranch)
+					if err != nil && err != plumbing.ErrReferenceNotFound {
+						ctx.ServerError("GetBranchCommitID", err)
+						return nil
+					} else if err == nil && headCommit != pullCommit {
+						// the head has moved on from the merge - we shouldn't delete
+						mergeMovedOn = true
+					}
+				}
+			}
+
 		}
 
 		isIncluded := divergence.Ahead == 0 && ctx.Repo.Repository.DefaultBranch != branchName
@@ -230,6 +271,7 @@ func loadBranches(ctx *context.Context) []*Branch {
 			CommitsAhead:      divergence.Ahead,
 			CommitsBehind:     divergence.Behind,
 			LatestPullRequest: pr,
+			MergeMovedOn:      mergeMovedOn,
 		}
 	}
 

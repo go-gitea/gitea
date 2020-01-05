@@ -975,15 +975,27 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 			defer headRepo.Close()
-			commit, err := headRepo.GetBranchCommitID(pull.HeadBranch)
+			baseRepo, err := git.OpenRepository(pull.BaseRepo.RepoPath())
+			if err != nil {
+				ctx.ServerError("OpenRepository", err)
+				return
+			}
+			defer baseRepo.Close()
+			pullCommit, err := baseRepo.GetRefCommitID(pull.GetGitRefName())
 			if err != nil && err != plumbing.ErrReferenceNotFound {
 				ctx.ServerError("GetBranchCommitID", err)
 				return
-			} else if err == nil && commit != pull.MergedCommitID {
-				// the head has moved on from the merge - we shouldn't delete
-				canDelete = false
 			}
-
+			if err == nil {
+				headCommit, err := headRepo.GetBranchCommitID(pull.HeadBranch)
+				if err != nil && err != plumbing.ErrReferenceNotFound {
+					ctx.ServerError("GetBranchCommitID", err)
+					return
+				} else if err == nil && headCommit != pullCommit {
+					// the head has moved on from the merge - we shouldn't delete
+					canDelete = false
+				}
+			}
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 
