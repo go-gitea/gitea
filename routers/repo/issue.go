@@ -29,6 +29,7 @@ import (
 	comment_service "code.gitea.io/gitea/services/comments"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 
 	"github.com/unknwon/com"
 )
@@ -965,6 +966,24 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["IsBlockedByApprovals"] = !pull.ProtectedBranch.HasEnoughApprovals(pull)
 			ctx.Data["IsBlockedByRejection"] = pull.ProtectedBranch.MergeBlockedByRejectedReview(pull)
 			ctx.Data["GrantedApprovals"] = cnt
+		}
+		if pull.HasMerged && pull.HeadRepo != nil {
+			// && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch) {
+			headRepo, err := git.OpenRepository(pull.HeadRepo.RepoPath())
+			if err != nil {
+				ctx.ServerError("OpenRepository", err)
+				return
+			}
+			defer headRepo.Close()
+			commit, err := headRepo.GetBranchCommitID(pull.HeadBranch)
+			if err != nil && err != plumbing.ErrReferenceNotFound {
+				ctx.ServerError("GetBranchCommitID", err)
+				return
+			} else if err == nil && commit != pull.MergedCommitID {
+				// the head has moved on from the merge - we shouldn't delete
+				canDelete = false
+			}
+
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
 
