@@ -101,7 +101,7 @@ help:
 	@echo " - clean-all         delete all generated files (integration test, build, css and js files)"
 	@echo " - css               rebuild only css files"
 	@echo " - js                rebuild only js files"
-	@echo " - generate          equivalent to \"css js\""
+	@echo " - generate          run \"make css js\" and \"go generate\""
 	@echo " - fmt               format the code"
 	@echo " - generate-swagger  generate the swagger spec from code comments"
 	@echo " - swagger-validate  check if the swagger spec is valide"
