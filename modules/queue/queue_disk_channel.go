@@ -74,14 +74,16 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 
 	levelQueue, err := NewLevelQueue(handle, levelCfg, exemplar)
 	if err == nil {
-		return &PersistableChannelQueue{
+		queue := &PersistableChannelQueue{
 			ChannelQueue: channelQueue.(*ChannelQueue),
 			delayedStarter: delayedStarter{
 				internal: levelQueue.(*LevelQueue),
 				name:     config.Name,
 			},
 			closed: make(chan struct{}),
-		}, nil
+		}
+		_ = GetManager().Add(queue, PersistableChannelQueueType, config, exemplar, nil)
+		return queue, nil
 	}
 	if IsErrInvalidConfiguration(err) {
 		// Retrying ain't gonna make this any better...
