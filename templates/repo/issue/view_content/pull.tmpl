@@ -253,6 +253,11 @@
 								{{$.i18n.Tr "repo.pulls.no_merge_helper"}}
 							</div>
 						{{end}}
+					{{else}}
+						<div class="item text grey">
+							<span class="octicon octicon-info"></span>
+							{{$.i18n.Tr "repo.pulls.no_merge_access"}}
+						</div>
 					{{end}}
 				{{end}}
 			{{else}}
