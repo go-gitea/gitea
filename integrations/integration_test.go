@@ -153,18 +153,53 @@ func initIntegrationTest() {
 		if err != nil {
 			log.Fatalf("sql.Open: %v", err)
 		}
-		rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", setting.Database.Name))
+		dbrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", setting.Database.Name))
 		if err != nil {
 			log.Fatalf("db.Query: %v", err)
 		}
-		defer rows.Close()
+		defer dbrows.Close()
 
-		if rows.Next() {
+		if !dbrows.Next() {
+			if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
+				log.Fatalf("db.Exec: CREATE DATABASE: %v", err)
+			}
+		}
+		// Check if we need to setup a specific schema
+		if len(setting.Database.Schema) == 0 {
 			break
 		}
-		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
-			log.Fatalf("db.Exec: %v", err)
+		db.Close()
+
+		db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		// This is a different db object; requires a different Close()
+		defer db.Close()
+		if err != nil {
+			log.Fatalf("sql.Open: %v", err)
 		}
+		schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
+		if err != nil {
+			log.Fatalf("db.Query: %v", err)
+		}
+		defer schrows.Close()
+
+		if !schrows.Next() {
+			// Create and setup a DB schema
+			if _, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema)); err != nil {
+				log.Fatalf("db.Exec: CREATE SCHEMA: %v", err)
+			}
+		}
+
+		// Make the user's default search path the created schema; this will affect new connections
+		if _, err = db.Exec(fmt.Sprintf(`ALTER USER "%s" SET search_path = %s`, setting.Database.User, setting.Database.Schema)); err != nil {
+			log.Fatalf("db.Exec: ALTER USER SET search_path: %v", err)
+		}
+
+		// Make the current connection's search the created schema
+		if _, err = db.Exec(fmt.Sprintf(`SET search_path = %s`, setting.Database.Schema)); err != nil {
+			log.Fatalf("db.Exec: ALTER USER SET search_path: %v", err)
+		}
+
 	case setting.Database.UseMSSQL:
 		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
 		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
