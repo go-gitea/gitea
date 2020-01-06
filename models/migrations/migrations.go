@@ -288,6 +288,8 @@ var migrations = []Migration{
 	NewMigration("add user_id prefix to existing user avatar name", renameExistingUserAvatarName),
 	// v116 -> v117
 	NewMigration("Extend TrackedTimes", extendTrackedTimes),
+	// v117 -> v118
+	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
 }
 
 // Migrate database to current version

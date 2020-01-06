@@ -177,7 +177,6 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 
 	commentType := models.CommentTypeComment
 	if ctx.Comment != nil {
-		prefix = "Re: "
 		commentType = ctx.Comment.Type
 		link = ctx.Issue.HTMLURL() + "#" + ctx.Comment.HashTag()
 	} else {
@@ -189,12 +188,15 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 		reviewType = ctx.Comment.Review.Type
 	}
 
-	fallback = prefix + fallbackMailSubject(ctx.Issue)
-
 	// This is the body of the new issue or comment, not the mail body
 	body := string(markup.RenderByType(markdown.MarkupName, []byte(ctx.Content), ctx.Issue.Repo.HTMLURL(), ctx.Issue.Repo.ComposeMetas()))
 
 	actType, actName, tplName := actionToTemplate(ctx.Issue, ctx.ActionType, commentType, reviewType)
+
+	if actName != "new" {
+		prefix = "Re: "
+	}
+	fallback = prefix + fallbackMailSubject(ctx.Issue)
 
 	if ctx.Comment != nil && ctx.Comment.Review != nil {
 		reviewComments = make([]*models.Comment, 0, 10)
@@ -247,7 +249,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
 		// Set Message-ID on first message so replies know what to reference
-		if ctx.Comment == nil {
+		if actName == "new" {
 			msg.SetHeader("Message-ID", "<"+ctx.Issue.ReplyReference()+">")
 		} else {
 			msg.SetHeader("In-Reply-To", "<"+ctx.Issue.ReplyReference()+">")
