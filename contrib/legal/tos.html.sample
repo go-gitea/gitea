@@ -13,7 +13,6 @@
 
   <h2>Definitions</h2>
 
-  <p>
    <ol>
     <li>An "Account" represents your legal relationship with Your Gitea Instance. A “User Account” represents an individual User’s authorization to log in to and use the Service and serves as a User’s identity on Your Gitea Instance. “Organizations” are shared workspaces that may be associated with a single entity or with one or more Users where multiple Users can collaborate across many projects at once. A User Account can be a member of any number of Organizations.</li>
 
@@ -29,7 +28,6 @@
 
     <li>The "Website" refers to Your Gitea Instance's website at <a href="https://gitea.io">gitea.io</a>, including its subdomains and other websites owned by Your Gitea Instance.</li>
    </ol>
-  </p>
 
   <h2>Account Terms</h2>
 
