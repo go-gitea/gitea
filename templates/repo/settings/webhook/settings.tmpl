@@ -153,6 +153,16 @@
 				</div>
 			</div>
 		</div>
+		<!-- Pull Request Comment -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="pull_request_comment" type="checkbox" tabindex="0" {{if .Webhook.PullRequestComment}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_pull_request_comment"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_pull_request_comment_desc"}}</span>
+				</div>
+			</div>
+		</div>
 		<!-- Pull Request Review -->
 		<div class="seven wide column">
 			<div class="field">

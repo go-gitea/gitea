@@ -336,34 +336,52 @@ func (m *webhookNotifier) NotifyIssueChangeContent(doer *models.User, issue *mod
 }
 
 func (m *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
-	if err := c.LoadPoster(); err != nil {
+	var err error
+
+	if err = c.LoadPoster(); err != nil {
 		log.Error("LoadPoster: %v", err)
 		return
 	}
-	if err := c.LoadIssue(); err != nil {
+	if err = c.LoadIssue(); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return
 	}
 
-	if err := c.Issue.LoadAttributes(); err != nil {
+	if err = c.Issue.LoadAttributes(); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return
 	}
 
 	mode, _ := models.AccessLevel(doer, c.Issue.Repo)
-	if err := webhook_module.PrepareWebhooks(c.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
-		Action:  api.HookIssueCommentEdited,
-		Issue:   c.Issue.APIFormat(),
-		Comment: c.APIFormat(),
-		Changes: &api.ChangesPayload{
-			Body: &api.ChangesFromPayload{
-				From: oldContent,
+	if c.Issue.IsPull {
+		err = webhook_module.PrepareWebhooks(c.Issue.Repo, models.HookEventPullRequestComment, &api.IssueCommentPayload{
+			Action:  api.HookIssueCommentEdited,
+			Issue:   c.Issue.APIFormat(),
+			Comment: c.APIFormat(),
+			Changes: &api.ChangesPayload{
+				Body: &api.ChangesFromPayload{
+					From: oldContent,
+				},
 			},
-		},
-		Repository: c.Issue.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-		IsPull:     c.Issue.IsPull,
-	}); err != nil {
+			Repository: c.Issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		})
+	} else {
+		err = webhook_module.PrepareWebhooks(c.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+			Action:  api.HookIssueCommentEdited,
+			Issue:   c.Issue.APIFormat(),
+			Comment: c.APIFormat(),
+			Changes: &api.ChangesPayload{
+				Body: &api.ChangesFromPayload{
+					From: oldContent,
+				},
+			},
+			Repository: c.Issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		})
+	}
+
+	if err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", c.ID, err)
 	}
 }
@@ -371,45 +389,72 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 func (m *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment) {
 	mode, _ := models.AccessLevel(doer, repo)
-	if err := webhook_module.PrepareWebhooks(repo, models.HookEventIssueComment, &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentCreated,
-		Issue:      issue.APIFormat(),
-		Comment:    comment.APIFormat(),
-		Repository: repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-		IsPull:     issue.IsPull,
-	}); err != nil {
+
+	var err error
+	if issue.IsPull {
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequestComment, &api.IssueCommentPayload{
+			Action:     api.HookIssueCommentCreated,
+			Issue:      issue.APIFormat(),
+			Comment:    comment.APIFormat(),
+			Repository: repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		})
+	} else {
+		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+			Action:     api.HookIssueCommentCreated,
+			Issue:      issue.APIFormat(),
+			Comment:    comment.APIFormat(),
+			Repository: repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		})
+	}
+
+	if err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
 	}
 }
 
 func (m *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models.Comment) {
-	if err := comment.LoadPoster(); err != nil {
+	var err error
+
+	if err = comment.LoadPoster(); err != nil {
 		log.Error("LoadPoster: %v", err)
 		return
 	}
-	if err := comment.LoadIssue(); err != nil {
+	if err = comment.LoadIssue(); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return
 	}
 
-	if err := comment.Issue.LoadAttributes(); err != nil {
+	if err = comment.Issue.LoadAttributes(); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return
 	}
 
 	mode, _ := models.AccessLevel(doer, comment.Issue.Repo)
 
-	if err := webhook_module.PrepareWebhooks(comment.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
-		Action:     api.HookIssueCommentDeleted,
-		Issue:      comment.Issue.APIFormat(),
-		Comment:    comment.APIFormat(),
-		Repository: comment.Issue.Repo.APIFormat(mode),
-		Sender:     doer.APIFormat(),
-		IsPull:     comment.Issue.IsPull,
-	}); err != nil {
+	if comment.Issue.IsPull {
+		err = webhook_module.PrepareWebhooks(comment.Issue.Repo, models.HookEventPullRequestComment, &api.IssueCommentPayload{
+			Action:     api.HookIssueCommentDeleted,
+			Issue:      comment.Issue.APIFormat(),
+			Comment:    comment.APIFormat(),
+			Repository: comment.Issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		})
+	} else {
+		err = webhook_module.PrepareWebhooks(comment.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
+			Action:     api.HookIssueCommentDeleted,
+			Issue:      comment.Issue.APIFormat(),
+			Comment:    comment.APIFormat(),
+			Repository: comment.Issue.Repo.APIFormat(mode),
+			Sender:     doer.APIFormat(),
+		})
+	}
+
+	if err != nil {
 		log.Error("PrepareWebhooks [comment_id: %d]: %v", comment.ID, err)
 	}
+
 }
 
 func (m *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
@@ -595,11 +640,11 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review
 
 	switch review.Type {
 	case models.ReviewTypeApprove:
-		reviewHookType = models.HookEventPullRequestApproved
+		reviewHookType = models.HookEventPullRequestReviewApproved
 	case models.ReviewTypeComment:
 		reviewHookType = models.HookEventPullRequestComment
 	case models.ReviewTypeReject:
-		reviewHookType = models.HookEventPullRequestRejected
+		reviewHookType = models.HookEventPullRequestReviewRejected
 	default:
 		// unsupported review webhook type here
 		log.Error("Unsupported review webhook type")
@@ -617,7 +662,7 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review
 		return
 	}
 	if err := webhook_module.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
-		Action:      api.HookIssueSynchronized,
+		Action:      api.HookIssueReviewed,
 		Index:       review.Issue.Index,
 		PullRequest: pr.APIFormat(),
 		Repository:  review.Issue.Repo.APIFormat(mode),

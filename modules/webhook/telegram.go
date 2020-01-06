@@ -132,8 +132,8 @@ func getTelegramIssuesPayload(p *api.IssuePayload) (*TelegramPayload, error) {
 	}, nil
 }
 
-func getTelegramIssueCommentPayload(p *api.IssueCommentPayload) (*TelegramPayload, error) {
-	text, _, _ := getIssueCommentPayloadInfo(p, htmlLinkFormatter, true)
+func getTelegramIssueCommentPayload(p *api.IssueCommentPayload, isPull bool) (*TelegramPayload, error) {
+	text, _, _ := getIssueCommentPayloadInfo(p, htmlLinkFormatter, isPull, true)
 
 	return &TelegramPayload{
 		Message: text + "\n" + p.Comment.Body,
@@ -142,6 +142,25 @@ func getTelegramIssueCommentPayload(p *api.IssueCommentPayload) (*TelegramPayloa
 
 func getTelegramPullRequestPayload(p *api.PullRequestPayload) (*TelegramPayload, error) {
 	text, _, attachmentText, _ := getPullRequestPayloadInfo(p, htmlLinkFormatter, true)
+
+	return &TelegramPayload{
+		Message: text + "\n" + attachmentText,
+	}, nil
+}
+
+func getTelegramPullRequestApprovalPayload(p *api.PullRequestPayload, event models.HookEventType) (*TelegramPayload, error) {
+	var text, attachmentText string
+	switch p.Action {
+	case api.HookIssueReviewed:
+		action, err := parseHookPullRequestEventType(event)
+		if err != nil {
+			return nil, err
+		}
+
+		text = fmt.Sprintf("[%s] Pull request review %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
+		attachmentText = p.Review.Content
+
+	}
 
 	return &TelegramPayload{
 		Message: text + "\n" + attachmentText,
@@ -184,14 +203,19 @@ func GetTelegramPayload(p api.Payloader, event models.HookEventType, meta string
 		return getTelegramDeletePayload(p.(*api.DeletePayload))
 	case models.HookEventFork:
 		return getTelegramForkPayload(p.(*api.ForkPayload))
-	case models.HookEventIssues:
+	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getTelegramIssuesPayload(p.(*api.IssuePayload))
 	case models.HookEventIssueComment:
-		return getTelegramIssueCommentPayload(p.(*api.IssueCommentPayload))
+		return getTelegramIssueCommentPayload(p.(*api.IssueCommentPayload), false)
 	case models.HookEventPush:
 		return getTelegramPushPayload(p.(*api.PushPayload))
-	case models.HookEventPullRequest:
+	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
+		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
 		return getTelegramPullRequestPayload(p.(*api.PullRequestPayload))
+	case models.HookEventPullRequestComment:
+		return getTelegramIssueCommentPayload(p.(*api.IssueCommentPayload), true)
+	case models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewComment:
+		return getTelegramPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
 	case models.HookEventRepository:
 		return getTelegramRepositoryPayload(p.(*api.RepositoryPayload))
 	case models.HookEventRelease:

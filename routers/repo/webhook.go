@@ -150,6 +150,7 @@ func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
 			PullRequestAssign:    form.PullRequestAssign,
 			PullRequestLabel:     form.PullRequestLabel,
 			PullRequestMilestone: form.PullRequestMilestone,
+			PullRequestComment:   form.PullRequestComment,
 			PullRequestReview:    form.PullRequestReview,
 			PullRequestSync:      form.PullRequestSync,
 			Repository:           form.Repository,

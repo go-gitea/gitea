@@ -154,14 +154,14 @@ func getReleasePayloadInfo(p *api.ReleasePayload, linkFormatter linkFormatter, w
 	return text, color
 }
 
-func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFormatter, withSender bool) (string, string, int) {
+func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFormatter, isPull, withSender bool) (string, string, int) {
 	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	issueTitle := fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title)
 
 	var text, typ, titleLink string
 	color := yellowColor
 
-	if p.IsPull {
+	if isPull {
 		typ = "pull request"
 		titleLink = linkFormatter(p.Comment.PRURL, issueTitle)
 	} else {
@@ -172,7 +172,7 @@ func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFo
 	switch p.Action {
 	case api.HookIssueCommentCreated:
 		text = fmt.Sprintf("[%s] New comment on %s %s", repoLink, typ, titleLink)
-		if p.IsPull {
+		if isPull {
 			color = greenColorLight
 		} else {
 			color = orangeColorLight

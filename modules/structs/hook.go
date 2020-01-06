@@ -240,7 +240,6 @@ type IssueCommentPayload struct {
 	Changes    *ChangesPayload        `json:"changes,omitempty"`
 	Repository *Repository            `json:"repository"`
 	Sender     *User                  `json:"sender"`
-	IsPull     bool                   `json:"is_pull"`
 }
 
 // SetSecret modifies the secret of the IssueCommentPayload
@@ -374,6 +373,8 @@ const (
 	HookIssueMilestoned HookIssueAction = "milestoned"
 	// HookIssueDemilestoned is an issue action for when a milestone is cleared on an issue.
 	HookIssueDemilestoned HookIssueAction = "demilestoned"
+	// HookIssueReviewed is an issue action for when a pull request is reviewed
+	HookIssueReviewed HookIssueAction = "reviewed"
 )
 
 // IssuePayload represents the payload information that is sent along with an issue event.
