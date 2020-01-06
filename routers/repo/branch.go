@@ -187,6 +187,12 @@ func loadBranches(ctx *context.Context) []*Branch {
 		return nil
 	}
 
+	repoIDToRepo := map[int64]*models.Repository{}
+	repoIDToRepo[ctx.Repo.Repository.ID] = ctx.Repo.Repository
+
+	repoIDToGitRepo := map[int64]*git.Repository{}
+	repoIDToGitRepo[ctx.Repo.Repository.ID] = ctx.Repo.GitRepo
+
 	branches := make([]*Branch, len(rawBranches))
 	for i := range rawBranches {
 		commit, err := rawBranches[i].GetCommit()
@@ -221,31 +227,45 @@ func loadBranches(ctx *context.Context) []*Branch {
 				ctx.ServerError("pr.LoadIssue", err)
 				return nil
 			}
-			if pr.BaseRepoID == ctx.Repo.Repository.ID {
-				pr.HeadRepo = ctx.Repo.Repository
+			if repo, ok := repoIDToRepo[pr.BaseRepoID]; ok {
+				pr.HeadRepo = repo
 			} else if err := pr.LoadBaseRepo(); err != nil {
 				ctx.ServerError("pr.LoadBaseRepo", err)
 				return nil
+			} else {
+				repoIDToRepo[pr.BaseRepoID] = pr.BaseRepo
 			}
-			if pr.HeadRepoID == ctx.Repo.Repository.ID {
-				pr.HeadRepo = ctx.Repo.Repository
+
+			if repo, ok := repoIDToRepo[pr.HeadRepoID]; ok {
+				pr.HeadRepo = repo
 			} else if err := pr.LoadHeadRepo(); err != nil {
 				ctx.ServerError("pr.LoadHeadRepo", err)
 				return nil
+			} else {
+				repoIDToRepo[pr.HeadRepoID] = pr.HeadRepo
 			}
+
 			if pr.HasMerged && pr.HeadRepo != nil {
-				headRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
-				if err != nil {
-					ctx.ServerError("OpenRepository", err)
-					return nil
+				headRepo, ok := repoIDToGitRepo[pr.HeadRepoID]
+				if !ok {
+					headRepo, err = git.OpenRepository(pr.HeadRepo.RepoPath())
+					if err != nil {
+						ctx.ServerError("OpenRepository", err)
+						return nil
+					}
+					defer headRepo.Close()
+					repoIDToGitRepo[pr.HeadRepoID] = headRepo
 				}
-				defer headRepo.Close()
-				baseRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-				if err != nil {
-					ctx.ServerError("OpenRepository", err)
-					return nil
+				baseRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
+				if !ok {
+					baseRepo, err = git.OpenRepository(pr.BaseRepo.RepoPath())
+					if err != nil {
+						ctx.ServerError("OpenRepository", err)
+						return nil
+					}
+					defer baseRepo.Close()
+					repoIDToGitRepo[pr.BaseRepoID] = baseRepo
 				}
-				defer baseRepo.Close()
 				pullCommit, err := baseRepo.GetRefCommitID(pr.GetGitRefName())
 				if err != nil && err != plumbing.ErrReferenceNotFound {
 					ctx.ServerError("GetBranchCommitID", err)
