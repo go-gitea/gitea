@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+
 	"gopkg.in/ini.v1"
 
 	"github.com/stretchr/testify/assert"
