@@ -381,6 +381,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())
 	if err != nil {
 		ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitRefName()), err)
+		return nil
 	}
 
 	commitStatuses, err := models.GetLatestCommitStatus(repo, sha, 0)
@@ -404,6 +405,10 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 		ctx.Data["IsRequiredStatusCheckSuccess"] = pull_service.IsCommitStatusContextSuccess(commitStatuses, pull.ProtectedBranch.StatusCheckContexts)
 	}
+
+	ctx.Data["HeadBranchMovedOn"] = headBranchSha != sha
+	ctx.Data["HeadBranchCommitID"] = headBranchSha
+	ctx.Data["PullHeadCommitID"] = sha
 
 	if pull.HeadRepo == nil || !headBranchExist || headBranchSha != sha {
 		ctx.Data["IsPullRequestBroken"] = true

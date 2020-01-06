@@ -29,7 +29,6 @@ import (
 	comment_service "code.gitea.io/gitea/services/comments"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
-	"gopkg.in/src-d/go-git.v4/plumbing"
 
 	"github.com/unknwon/com"
 )
@@ -967,36 +966,10 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["IsBlockedByRejection"] = pull.ProtectedBranch.MergeBlockedByRejectedReview(pull)
 			ctx.Data["GrantedApprovals"] = cnt
 		}
-		if pull.HasMerged && pull.HeadRepo != nil {
-			headRepo, err := git.OpenRepository(pull.HeadRepo.RepoPath())
-			if err != nil {
-				ctx.ServerError("OpenRepository", err)
-				return
-			}
-			defer headRepo.Close()
-			baseRepo, err := git.OpenRepository(pull.BaseRepo.RepoPath())
-			if err != nil {
-				ctx.ServerError("OpenRepository", err)
-				return
-			}
-			defer baseRepo.Close()
-			pullCommit, err := baseRepo.GetRefCommitID(pull.GetGitRefName())
-			if err != nil && err != plumbing.ErrReferenceNotFound {
-				ctx.ServerError("GetBranchCommitID", err)
-				return
-			}
-			if err == nil {
-				headCommit, err := headRepo.GetBranchCommitID(pull.HeadBranch)
-				if err != nil && err != plumbing.ErrReferenceNotFound {
-					ctx.ServerError("GetBranchCommitID", err)
-					return
-				} else if err == nil && headCommit != pullCommit {
-					// the head has moved on from the merge - we shouldn't delete
-					canDelete = false
-				}
-			}
-		}
-		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
+		ctx.Data["IsPullBranchDeletable"] = canDelete &&
+			pull.HeadRepo != nil &&
+			git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch) &&
+			(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
 
 		ctx.Data["PullReviewers"], err = models.GetReviewersByIssueID(issue.ID)
 		if err != nil {
