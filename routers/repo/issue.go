@@ -923,11 +923,20 @@ func ViewIssue(ctx *context.Context) {
 						ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index) + "/cleanup"
 					}
 				}
-				ctx.Data["AllowMerge"], err = pull_service.IsUserAllowedToMerge(pull, perm, ctx.User)
-				if err != nil {
-					ctx.ServerError("IsUserAllowedToMerge", err)
-					return
-				}
+			}
+
+			if err := pull.GetBaseRepo(); err != nil {
+				log.Error("GetBaseRepo: %v", err)
+			}
+			perm, err := models.GetUserRepoPermission(pull.BaseRepo, ctx.User)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
+			}
+			ctx.Data["AllowMerge"], err = pull_service.IsUserAllowedToMerge(pull, perm, ctx.User)
+			if err != nil {
+				ctx.ServerError("IsUserAllowedToMerge", err)
+				return
 			}
 		}
 
@@ -937,24 +946,6 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		prConfig := prUnit.PullRequestsConfig()
-		err = pull.LoadProtectedBranch()
-		if err != nil {
-			ctx.ServerError("LoadProtectedBranch", err)
-			return
-		}
-
-		if err := pull_service.CheckPrReadyToMerge(pull); err != nil {
-			if !models.IsErrNotAllowedToMerge(err) {
-				ctx.ServerError("CheckUserAllowedToMerge", err)
-				return
-			}
-			if isRepoAdmin, err := models.IsUserRepoAdmin(pull.BaseRepo, ctx.User); err != nil {
-				ctx.ServerError("IsUserRepoAdmin", err)
-				return
-			} else if !isRepoAdmin {
-				ctx.Data["AllowMerge"] = false
-			}
-		}
 
 		// Check correct values and select default
 		if ms, ok := ctx.Data["MergeStyle"].(models.MergeStyle); !ok ||
