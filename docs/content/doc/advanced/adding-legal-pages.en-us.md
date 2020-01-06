@@ -23,7 +23,9 @@ Gitea source code ships with sample pages, available in `contrib/legal` director
 cp $GOPATH/src/code.gitea.io/gitea/contrib/legal/privacy.html.sample /path/to/custom/public/
 ```
 
-Now you need to edit the page to meet your requirements.
+Now you need to edit the page to meet your requirements. In particular you must change the email addresses, web addresses and references to "Your Gitea Instance" to match your situation.
+
+You absolutely must not place a general ToS or privacy statement that implies that the gitea project is responsible for your server.
 
 ## Make it Visible
 
