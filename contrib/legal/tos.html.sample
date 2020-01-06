@@ -26,7 +26,7 @@
 
     <li>The "User", "You", and "Your" refers to individual person or institution (organizations or company) that has visited or using the Service; that have access or use any part of the Account; or that directs to use the Account to perform its function. Please note that additional terms may apply for Accounts related to business or government.</li>
 
-    <li>The "Website" refers to Your Gitea Instance's website at <a href="https://gitea.io">gitea.io</a>, including its subdomains and other websites owned by Your Gitea Instance.</li>
+    <li>The "Website" refers to Your Gitea Instance's website at <a href="https://your-gitea-instance">your-gitea-instance</a>, including its subdomains and other websites owned by Your Gitea Instance.</li>
    </ol>
 
   <h2>Account Terms</h2>
@@ -124,7 +124,7 @@
 
   <h2>Copyright Infringement and DMCA Policy</h2>
 
-  <p>If you are copyright owner and believe that content on our website violates your copyright, please contact us at <a href="mailto:copyright@gitea.io">copyright@gitea.io</a>. Please note that before sending a takedown notice, consider legal uses (such as fair use and licensed use); and legal consequences for sending false notices.</p>
+  <p>If you are copyright owner and believe that content on our website violates your copyright, please contact us at <a href="mailto:copyright@your-gitea-instance">copyright@your-gitea-instance</a>. Please note that before sending a takedown notice, consider legal uses (such as fair use and licensed use); and legal consequences for sending false notices.</p>
 
   <h2>Intellectual Properties and COPYING</h2>
 
