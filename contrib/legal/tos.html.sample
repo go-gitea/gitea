@@ -105,7 +105,6 @@
 
   <h2>Private Repositories</h2>
 
-  <p>
    <ol>
     <li>Some Accounts may have private repositories, which allow the User to control access to Content.</li>
 
@@ -122,7 +121,6 @@
 
     <li>You may choose to enable additional access to your private repositories. For example: You may enable various Your Gitea Instance services or features that require additional rights to Your Content in private repositories. These rights may vary depending on the service or feature, but Your Gitea Instance will continue to treat your private repository Content as confidential. If those services or features require rights in addition to those we need to provide the Your Gitea Instance Service, we will provide an explanation of those rights.</li>
    </ol>
-  </p>
 
   <h2>Copyright Infringement and DMCA Policy</h2>
 
