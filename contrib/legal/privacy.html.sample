@@ -92,7 +92,7 @@
 
   <p>In the event of a data breach that affects your User Personal Information, we will act promptly to mitigate the impact of a breach and notify any affected Users without undue delay.</p>
 
-  <p>Transmission of data on Your Gitea Instance is encrypted using SSH, HTTPS (TLS), and git repository content is encrypted at rest. We manage our own cages and racks at top-tier data centers with high level of physical and network security, and when data is stored with a third-party storage provider, it is encrypted.</p>
+  <p>Transmission of data on Your Gitea Instance is encrypted using SSH, HTTPS (TLS), and git repository content is encrypted at rest. We host Your Gitea Instance at our hosting partner, which they provide data centers with high level of physical and network security.</p>
 
   <p><b>Disclaimer:</b> No method of transmission, or method of electronic storage, is 100% secure, therefore, we cannot guarantee absolute security.</p>
 
