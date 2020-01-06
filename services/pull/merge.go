@@ -30,7 +30,7 @@ import (
 )
 
 // Merge merges pull request to base repository.
-// Caller chall check PR is ready to be merged (review and status checks)
+// Caller should check PR is ready to be merged (review and status checks)
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
 func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, mergeStyle models.MergeStyle, message string) (err error) {
 	binVersion, err := git.BinVersion()

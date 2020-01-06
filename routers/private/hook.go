@@ -133,7 +133,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 					return
 				}
 				if !allowedMerge {
-					log.Warn("Forbidden: User %d cannot push to protected branch: %s in %-v and not allowed to merge pr #%d", opts.UserID, branchName, repo, pr.Index)
+					log.Warn("Forbidden: User %d can not push to protected branch: %s in %-v and not allowed to merge pr #%d", opts.UserID, branchName, repo, pr.Index)
 					ctx.JSON(http.StatusForbidden, map[string]interface{}{
 						"err": fmt.Sprintf("protected branch %s can not be pushed to", branchName),
 					})
@@ -142,7 +142,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 				// Manual merge only allowed if PR is ready (even if admin)
 				if err := pull_service.CheckPrReadyToMerge(pr); err != nil {
 					if models.IsErrNotAllowedToMerge(err) {
-						log.Warn("Forbidden: USer %d cannot push to protected branch %s in %-v and pr #%d: %s", opts.UserID, branchName, repo, pr.Index, err.Error())
+						log.Warn("Forbidden: User %d can not push to protected branch %s in %-v and pr #%d: %s", opts.UserID, branchName, repo, pr.Index, err.Error())
 						ctx.JSON(http.StatusForbidden, map[string]interface{}{
 							"err": fmt.Sprintf("protected branch %s can not be pushed to and pr #%d is not ready to be merged: %s", branchName, opts.ProtectedBranchID, err.Error()),
 						})
