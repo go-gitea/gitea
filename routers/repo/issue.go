@@ -968,7 +968,6 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["GrantedApprovals"] = cnt
 		}
 		if pull.HasMerged && pull.HeadRepo != nil {
-			// && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch) {
 			headRepo, err := git.OpenRepository(pull.HeadRepo.RepoPath())
 			if err != nil {
 				ctx.ServerError("OpenRepository", err)
