@@ -54,6 +54,7 @@ const (
 	LandingPageHome          LandingPage = "/"
 	LandingPageExplore       LandingPage = "/explore"
 	LandingPageOrganizations LandingPage = "/explore/organizations"
+	LandingPageLogin         LandingPage = "/user/login"
 )
 
 // enumerates all the types of captchas
@@ -648,6 +649,8 @@ func NewContext() {
 		LandingPageURL = LandingPageExplore
 	case "organizations":
 		LandingPageURL = LandingPageOrganizations
+	case "login":
+		LandingPageURL = LandingPageLogin
 	default:
 		LandingPageURL = LandingPageHome
 	}
