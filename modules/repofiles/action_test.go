@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testCorrectRepoAction(t *testing.T, opts CommitRepoActionOptions, actionBean *models.Action) {
+func testCorrectRepoAction(t *testing.T, opts *CommitRepoActionOptions, actionBean *models.Action) {
 	models.AssertNotExistsBean(t, actionBean)
 	assert.NoError(t, CommitRepoAction(opts))
 	models.AssertExistsAndLoadBean(t, actionBean)
@@ -121,7 +121,7 @@ func TestCommitRepoAction(t *testing.T) {
 		s.action.Repo = repo
 		s.action.IsPrivate = repo.IsPrivate
 
-		testCorrectRepoAction(t, s.commitRepoActionOptions, &s.action)
+		testCorrectRepoAction(t, &s.commitRepoActionOptions, &s.action)
 	}
 }
 

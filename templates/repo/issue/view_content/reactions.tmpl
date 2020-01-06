@@ -10,6 +10,6 @@
 		{{len $value}}
 	</a>
 {{end}}
-{{if $.AllowedReactions}}
-	{{template "repo/issue/view_content/add_reaction" Dict "ctx" $.ctx "ActionURL" .ActionURL "AllowedReactions" $.AllowedReactions}}
+{{if AllowedReactions}}
+	{{template "repo/issue/view_content/add_reaction" Dict "ctx" $.ctx "ActionURL" .ActionURL}}
 {{end}}

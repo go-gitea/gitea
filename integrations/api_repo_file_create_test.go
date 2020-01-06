@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -36,6 +37,10 @@ func getCreateFileOptions() api.CreateFileOptions {
 			Committer: api.Identity{
 				Name:  "John Doe",
 				Email: "johndoe@example.com",
+			},
+			Dates: api.CommitDateOptions{
+				Author:    time.Unix(946684810, 0),
+				Committer: time.Unix(978307190, 0),
 			},
 		},
 		Content: contentEncoded,
@@ -80,12 +85,14 @@ func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileRespon
 					Name:  "Anne Doe",
 					Email: "annedoe@example.com",
 				},
+				Date: "2000-01-01T00:00:10Z",
 			},
 			Committer: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "John Doe",
 					Email: "johndoe@example.com",
 				},
+				Date: "2000-12-31T23:59:50Z",
 			},
 			Message: "Updates README.md\n",
 		},
@@ -139,6 +146,10 @@ func TestAPICreateFile(t *testing.T) {
 			assert.EqualValues(t, expectedFileResponse.Commit.HTMLURL, fileResponse.Commit.HTMLURL)
 			assert.EqualValues(t, expectedFileResponse.Commit.Author.Email, fileResponse.Commit.Author.Email)
 			assert.EqualValues(t, expectedFileResponse.Commit.Author.Name, fileResponse.Commit.Author.Name)
+			assert.EqualValues(t, expectedFileResponse.Commit.Author.Date, fileResponse.Commit.Author.Date)
+			assert.EqualValues(t, expectedFileResponse.Commit.Committer.Email, fileResponse.Commit.Committer.Email)
+			assert.EqualValues(t, expectedFileResponse.Commit.Committer.Name, fileResponse.Commit.Committer.Name)
+			assert.EqualValues(t, expectedFileResponse.Commit.Committer.Date, fileResponse.Commit.Committer.Date)
 			gitRepo.Close()
 		}
 

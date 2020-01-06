@@ -6,7 +6,7 @@ package issues
 
 import "code.gitea.io/gitea/models"
 
-// DBIndexer implements Indexer inteface to use database's like search
+// DBIndexer implements Indexer interface to use database's like search
 type DBIndexer struct {
 }
 

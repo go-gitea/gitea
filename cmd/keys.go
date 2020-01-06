@@ -62,7 +62,7 @@ func runKeys(c *cli.Context) error {
 		return errors.New("No key type and content provided")
 	}
 
-	setup("keys.log")
+	setup("keys.log", false)
 
 	authorizedString, err := private.AuthorizedPublicKeyByContent(content)
 	if err != nil {
