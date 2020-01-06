@@ -1,7 +1,0 @@
-/*******************************
-           Overrides
-*******************************/
-
-.ui.styled.accordion .accordion .active.title {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-}

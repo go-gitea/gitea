@@ -1,8 +1,0 @@
-/*******************************
-    User Variable Overrides
-*******************************/
-
-@background: #F8F8F8;
-
-@cellVerticalPadding: @relative6px;
-@cellHorizontalPadding: @relative8px;

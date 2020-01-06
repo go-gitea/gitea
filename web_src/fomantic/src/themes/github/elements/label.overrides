@@ -1,9 +1,0 @@
-/*******************************
-         Site Overrides
-*******************************/
-
-/* Notification Label on GitHub */
-.ui.floating.blue.label {
-  border: 2px solid #f3f3f3 !important;
-  background-image: linear-gradient(#7aa1d3, #4078c0) !important;
-}

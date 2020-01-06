@@ -23,6 +23,8 @@
     "eslint": "6.8.0",
     "eslint-config-airbnb-base": "14.0.0",
     "eslint-plugin-import": "2.19.1",
+    "fomantic-ui": "2.8.3",
+    "gulp": "4.0.2",
     "less": "3.10.3",
     "postcss-cli": "7.1.0",
     "style-loader": "1.1.2",
