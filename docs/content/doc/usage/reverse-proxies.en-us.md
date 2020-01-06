@@ -14,7 +14,7 @@ menu:
 ---
 
 ##  Using Nginx as a reverse proxy
-If you want Nginx to serve your Gitea instance, you can the following `server` section inside the `http` section of `nginx.conf`:
+If you want Nginx to serve your Gitea instance, add the following `server` section to the `http` section of `nginx.conf`:
 
 ```
 server {
@@ -128,6 +128,8 @@ If you want Apache HTTPD to serve your Gitea instance, you can add the following
 ```
 
 Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`
+
+If you wish to use Let's Encrypt with webroot validation, add the line `ProxyPass /.well-known !` before `ProxyPass` to disable proxying these requests to Gitea.
 
 ## Using Apache HTTPD with a sub-path as a reverse proxy
 

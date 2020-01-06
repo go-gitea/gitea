@@ -6,6 +6,8 @@
 package admin
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -39,6 +41,7 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -64,14 +67,14 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrNameReserved(err) ||
 			models.IsErrNamePatternNotAllowed(err) {
-			ctx.Error(422, "", err)
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(500, "CreateOrganization", err)
+			ctx.Error(http.StatusInternalServerError, "CreateOrganization", err)
 		}
 		return
 	}
 
-	ctx.JSON(201, convert.ToOrganization(org))
+	ctx.JSON(http.StatusCreated, convert.ToOrganization(org))
 }
 
 //GetAllOrgs API for getting information of all the organizations
@@ -95,6 +98,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 	//     "$ref": "#/responses/OrganizationList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+
 	users, _, err := models.SearchUsers(&models.SearchUserOptions{
 		Type:     models.UserTypeOrganization,
 		OrderBy:  models.SearchOrderByAlphabetically,
@@ -103,12 +107,12 @@ func GetAllOrgs(ctx *context.APIContext) {
 		Private:  true,
 	})
 	if err != nil {
-		ctx.Error(500, "SearchOrganizations", err)
+		ctx.Error(http.StatusInternalServerError, "SearchOrganizations", err)
 		return
 	}
 	orgs := make([]*api.Organization, len(users))
 	for i := range users {
 		orgs[i] = convert.ToOrganization(users[i])
 	}
-	ctx.JSON(200, &orgs)
+	ctx.JSON(http.StatusOK, &orgs)
 }

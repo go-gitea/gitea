@@ -119,5 +119,11 @@ type swaggerParameterBodies struct {
 	DeleteFileOptions api.DeleteFileOptions
 
 	// in:body
+	CommitDateOptions api.CommitDateOptions
+
+	// in:body
 	RepoTopicOptions api.RepoTopicOptions
+
+	// in:body
+	EditReactionOption api.EditReactionOption
 }

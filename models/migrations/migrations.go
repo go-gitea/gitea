@@ -282,6 +282,14 @@ var migrations = []Migration{
 	NewMigration("remove release attachments which repository deleted", removeAttachmentMissedRepo),
 	// v113 -> v114
 	NewMigration("new feature: change target branch of pull requests", featureChangeTargetBranch),
+	// v114 -> v115
+	NewMigration("Remove authentication credentials from stored URL", sanitizeOriginalURL),
+	// v115 -> v116
+	NewMigration("add user_id prefix to existing user avatar name", renameExistingUserAvatarName),
+	// v116 -> v117
+	NewMigration("Extend TrackedTimes", extendTrackedTimes),
+	// v117 -> v118
+	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
 }
 
 // Migrate database to current version

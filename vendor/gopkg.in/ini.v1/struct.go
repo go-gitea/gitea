@@ -155,23 +155,45 @@ func wrapStrictError(err error, isStrict bool) error {
 // but it does not return error for failing parsing,
 // because we want to use default value that is already assigned to struct.
 func setWithProperType(t reflect.Type, key *Key, field reflect.Value, delim string, allowShadow, isStrict bool) error {
-	switch t.Kind() {
+	vt := t
+	isPtr := t.Kind() == reflect.Ptr
+	if isPtr {
+		vt = t.Elem()
+	}
+	switch vt.Kind() {
 	case reflect.String:
-		if len(key.String()) == 0 {
-			return nil
+		stringVal := key.String()
+		if isPtr {
+			field.Set(reflect.ValueOf(&stringVal))
+		} else if len(stringVal) > 0 {
+			field.SetString(key.String())
 		}
-		field.SetString(key.String())
 	case reflect.Bool:
 		boolVal, err := key.Bool()
 		if err != nil {
 			return wrapStrictError(err, isStrict)
 		}
-		field.SetBool(boolVal)
+		if isPtr {
+			field.Set(reflect.ValueOf(&boolVal))
+		} else {
+			field.SetBool(boolVal)
+		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		durationVal, err := key.Duration()
-		// Skip zero value
-		if err == nil && int64(durationVal) > 0 {
-			field.Set(reflect.ValueOf(durationVal))
+		// ParseDuration will not return err for `0`, so check the type name
+		if vt.Name() == "Duration" {
+			durationVal, err := key.Duration()
+			if err != nil {
+				if intVal, err := key.Int64(); err == nil {
+					field.SetInt(intVal)
+					return nil
+				}
+				return wrapStrictError(err, isStrict)
+			}
+			if isPtr {
+				field.Set(reflect.ValueOf(&durationVal))
+			} else if int64(durationVal) > 0 {
+				field.Set(reflect.ValueOf(durationVal))
+			}
 			return nil
 		}
 
@@ -179,13 +201,23 @@ func setWithProperType(t reflect.Type, key *Key, field reflect.Value, delim stri
 		if err != nil {
 			return wrapStrictError(err, isStrict)
 		}
-		field.SetInt(intVal)
+		if isPtr {
+			pv := reflect.New(t.Elem())
+			pv.Elem().SetInt(intVal)
+			field.Set(pv)
+		} else {
+			field.SetInt(intVal)
+		}
 	//	byte is an alias for uint8, so supporting uint8 breaks support for byte
 	case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		durationVal, err := key.Duration()
 		// Skip zero value
 		if err == nil && uint64(durationVal) > 0 {
-			field.Set(reflect.ValueOf(durationVal))
+			if isPtr {
+				field.Set(reflect.ValueOf(&durationVal))
+			} else {
+				field.Set(reflect.ValueOf(durationVal))
+			}
 			return nil
 		}
 
@@ -193,33 +225,38 @@ func setWithProperType(t reflect.Type, key *Key, field reflect.Value, delim stri
 		if err != nil {
 			return wrapStrictError(err, isStrict)
 		}
-		field.SetUint(uintVal)
+		if isPtr {
+			pv := reflect.New(t.Elem())
+			pv.Elem().SetUint(uintVal)
+			field.Set(pv)
+		} else {
+			field.SetUint(uintVal)
+		}
 
 	case reflect.Float32, reflect.Float64:
 		floatVal, err := key.Float64()
 		if err != nil {
 			return wrapStrictError(err, isStrict)
 		}
-		field.SetFloat(floatVal)
+		if isPtr {
+			pv := reflect.New(t.Elem())
+			pv.Elem().SetFloat(floatVal)
+			field.Set(pv)
+		} else {
+			field.SetFloat(floatVal)
+		}
 	case reflectTime:
 		timeVal, err := key.Time()
 		if err != nil {
 			return wrapStrictError(err, isStrict)
 		}
-		field.Set(reflect.ValueOf(timeVal))
+		if isPtr {
+			field.Set(reflect.ValueOf(&timeVal))
+		} else {
+			field.Set(reflect.ValueOf(timeVal))
+		}
 	case reflect.Slice:
 		return setSliceWithProperType(key, field, delim, allowShadow, isStrict)
-	case reflect.Ptr:
-		switch t.Elem().Kind() {
-		case reflect.Bool:
-			boolVal, err := key.Bool()
-			if err != nil {
-				return wrapStrictError(err, isStrict)
-			}
-			field.Set(reflect.ValueOf(&boolVal))
-		default:
-			return fmt.Errorf("unsupported type '%s'", t)
-		}
 	default:
 		return fmt.Errorf("unsupported type '%s'", t)
 	}
@@ -280,7 +317,6 @@ func (s *Section) mapTo(val reflect.Value, isStrict bool) error {
 				continue
 			}
 		}
-
 		if key, err := s.GetKey(fieldName); err == nil {
 			delim := parseDelim(tpField.Tag.Get("delim"))
 			if err = setWithProperType(tpField.Type, key, field, delim, allowShadow, isStrict); err != nil {

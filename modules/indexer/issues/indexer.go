@@ -38,7 +38,7 @@ type SearchResult struct {
 	Hits  []Match
 }
 
-// Indexer defines an inteface to indexer issues contents
+// Indexer defines an interface to indexer issues contents
 type Indexer interface {
 	Init() (bool, error)
 	Index(issue []*IndexerData) error
