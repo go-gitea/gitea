@@ -382,6 +382,39 @@ REPO_INDEXER_INCLUDE =
 ; A comma separated list of glob patterns to exclude from the index; ; default is empty
 REPO_INDEXER_EXCLUDE =
 
+[queue]
+; Specific queues can be individually configured with [queue.name]. [queue] provides defaults
+;
+; General queue queue type, currently support: persistable-channel, channel, level, redis, dummy
+; default to persistable-channel
+TYPE = persistable-channel
+; data-dir for storing persistable queues and level queues, individual queues will be named by their type
+DATADIR = queues/
+; Default queue length before a channel queue will block
+LENGTH = 20
+; Batch size to send for batched queues
+BATCH_LENGTH = 20
+; Connection string for redis queues this will store the redis connection string.
+CONN_STR = "addrs=127.0.0.1:6379 db=0"
+; Provide the suffix of the default redis queue name - specific queues can be overriden within in their [queue.name] sections.
+QUEUE_NAME = "_queue"
+; If the queue cannot be created at startup - level queues may need a timeout at startup - wrap the queue:
+WRAP_IF_NECESSARY = true
+; Attempt to create the wrapped queue at max
+MAX_ATTEMPTS = 10
+; Timeout queue creation
+TIMEOUT = 15m30s
+; Create a pool with this many workers
+WORKERS = 1
+; Dynamically scale the worker pool to at this many workers
+MAX_WORKERS = 10
+; Add boost workers when the queue blocks for BLOCK_TIMEOUT
+BLOCK_TIMEOUT = 1s
+; Remove the boost workers after BOOST_TIMEOUT
+BOOST_TIMEOUT = 5m
+; During a boost add BOOST_WORKERS
+BOOST_WORKERS = 5
+
 [admin]
 ; Disallow regular (non-admin) users from creating organizations.
 DISABLE_REGULAR_ORG_CREATION = false
