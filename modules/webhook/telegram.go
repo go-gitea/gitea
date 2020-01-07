@@ -157,7 +157,7 @@ func getTelegramPullRequestApprovalPayload(p *api.PullRequestPayload, event mode
 			return nil, err
 		}
 
-		text = fmt.Sprintf("[%s] Pull request review %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
+		text = fmt.Sprintf("[%s] Pull request review %s: #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
 		attachmentText = p.Review.Content
 
 	}
