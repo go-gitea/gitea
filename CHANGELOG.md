@@ -45,6 +45,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Sign merges, CRUD, Wiki and Repository initialisation with gpg key (#7631)
   * Add basic repository lfs management (#7199)
 * BUGFIXES
+  * Clean up old reverences on branch delete (#9201)
   * Hide public repos owned by private orgs (#9609)
   * Fix access issues on milestone and issue overview pages. (#9603)
   * Fix error logged when repos qs is empty (#9591)
