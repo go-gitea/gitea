@@ -240,6 +240,7 @@ type IssueCommentPayload struct {
 	Changes    *ChangesPayload        `json:"changes,omitempty"`
 	Repository *Repository            `json:"repository"`
 	Sender     *User                  `json:"sender"`
+	IsPull     bool                   `json:"is_pull"`
 }
 
 // SetSecret modifies the secret of the IssueCommentPayload

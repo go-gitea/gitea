@@ -147,8 +147,8 @@ func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
 	}, nil
 }
 
-func getDingtalkIssueCommentPayload(p *api.IssueCommentPayload, isPull bool) (*DingtalkPayload, error) {
-	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter, isPull, true)
+func getDingtalkIssueCommentPayload(p *api.IssueCommentPayload) (*DingtalkPayload, error) {
+	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter, true)
 
 	return &DingtalkPayload{
 		MsgType: "actionCard",
@@ -263,15 +263,13 @@ func GetDingtalkPayload(p api.Payloader, event models.HookEventType, meta string
 		return getDingtalkForkPayload(p.(*api.ForkPayload))
 	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getDingtalkIssuesPayload(p.(*api.IssuePayload))
-	case models.HookEventIssueComment:
-		return getDingtalkIssueCommentPayload(p.(*api.IssueCommentPayload), false)
+	case models.HookEventIssueComment, models.HookEventPullRequestComment:
+		return getDingtalkIssueCommentPayload(p.(*api.IssueCommentPayload))
 	case models.HookEventPush:
 		return getDingtalkPushPayload(p.(*api.PushPayload))
 	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
 		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
 		return getDingtalkPullRequestPayload(p.(*api.PullRequestPayload))
-	case models.HookEventPullRequestComment:
-		return getDingtalkIssueCommentPayload(p.(*api.IssueCommentPayload), true)
 	case models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewComment:
 		return getDingtalkPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
 	case models.HookEventRepository:

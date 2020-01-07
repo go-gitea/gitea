@@ -307,8 +307,8 @@ func getMSTeamsIssuesPayload(p *api.IssuePayload) (*MSTeamsPayload, error) {
 	}, nil
 }
 
-func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload, isPull bool) (*MSTeamsPayload, error) {
-	text, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter, isPull, false)
+func getMSTeamsIssueCommentPayload(p *api.IssueCommentPayload) (*MSTeamsPayload, error) {
+	text, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter, false)
 
 	return &MSTeamsPayload{
 		Type:       "MessageCard",
@@ -557,15 +557,13 @@ func GetMSTeamsPayload(p api.Payloader, event models.HookEventType, meta string)
 		return getMSTeamsForkPayload(p.(*api.ForkPayload))
 	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getMSTeamsIssuesPayload(p.(*api.IssuePayload))
-	case models.HookEventIssueComment:
-		return getMSTeamsIssueCommentPayload(p.(*api.IssueCommentPayload), false)
+	case models.HookEventIssueComment, models.HookEventPullRequestComment:
+		return getMSTeamsIssueCommentPayload(p.(*api.IssueCommentPayload))
 	case models.HookEventPush:
 		return getMSTeamsPushPayload(p.(*api.PushPayload))
 	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
 		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
 		return getMSTeamsPullRequestPayload(p.(*api.PullRequestPayload))
-	case models.HookEventPullRequestComment:
-		return getMSTeamsIssueCommentPayload(p.(*api.IssueCommentPayload), true)
 	case models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewComment:
 		return getMSTeamsPullRequestApprovalPayload(p.(*api.PullRequestPayload), event)
 	case models.HookEventRepository:

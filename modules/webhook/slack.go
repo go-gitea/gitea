@@ -166,8 +166,8 @@ func getSlackIssuesPayload(p *api.IssuePayload, slack *SlackMeta) (*SlackPayload
 	return pl, nil
 }
 
-func getSlackIssueCommentPayload(p *api.IssueCommentPayload, slack *SlackMeta, isPull bool) (*SlackPayload, error) {
-	text, issueTitle, color := getIssueCommentPayloadInfo(p, SlackLinkFormatter, isPull, true)
+func getSlackIssueCommentPayload(p *api.IssueCommentPayload, slack *SlackMeta) (*SlackPayload, error) {
+	text, issueTitle, color := getIssueCommentPayloadInfo(p, SlackLinkFormatter, true)
 
 	return &SlackPayload{
 		Channel:  slack.Channel,
@@ -331,15 +331,13 @@ func GetSlackPayload(p api.Payloader, event models.HookEventType, meta string) (
 		return getSlackForkPayload(p.(*api.ForkPayload), slack)
 	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getSlackIssuesPayload(p.(*api.IssuePayload), slack)
-	case models.HookEventIssueComment:
-		return getSlackIssueCommentPayload(p.(*api.IssueCommentPayload), slack, false)
+	case models.HookEventIssueComment, models.HookEventPullRequestComment:
+		return getSlackIssueCommentPayload(p.(*api.IssueCommentPayload), slack)
 	case models.HookEventPush:
 		return getSlackPushPayload(p.(*api.PushPayload), slack)
 	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
 		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
 		return getSlackPullRequestPayload(p.(*api.PullRequestPayload), slack)
-	case models.HookEventPullRequestComment:
-		return getSlackIssueCommentPayload(p.(*api.IssueCommentPayload), slack, true)
 	case models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewComment:
 		return getSlackPullRequestApprovalPayload(p.(*api.PullRequestPayload), slack, event)
 	case models.HookEventRepository:

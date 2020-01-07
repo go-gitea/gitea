@@ -365,6 +365,7 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 			},
 			Repository: c.Issue.Repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
+			IsPull:     true,
 		})
 	} else {
 		err = webhook_module.PrepareWebhooks(c.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
@@ -378,6 +379,7 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 			},
 			Repository: c.Issue.Repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
+			IsPull:     false,
 		})
 	}
 
@@ -398,6 +400,7 @@ func (m *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *mode
 			Comment:    comment.APIFormat(),
 			Repository: repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
+			IsPull:     true,
 		})
 	} else {
 		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
@@ -406,6 +409,7 @@ func (m *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *mode
 			Comment:    comment.APIFormat(),
 			Repository: repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
+			IsPull:     false,
 		})
 	}
 
@@ -440,6 +444,7 @@ func (m *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models
 			Comment:    comment.APIFormat(),
 			Repository: comment.Issue.Repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
+			IsPull:     true,
 		})
 	} else {
 		err = webhook_module.PrepareWebhooks(comment.Issue.Repo, models.HookEventIssueComment, &api.IssueCommentPayload{
@@ -448,6 +453,7 @@ func (m *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models
 			Comment:    comment.APIFormat(),
 			Repository: comment.Issue.Repo.APIFormat(mode),
 			Sender:     doer.APIFormat(),
+			IsPull:     false,
 		})
 	}
 

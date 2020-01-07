@@ -248,8 +248,8 @@ func getDiscordIssuesPayload(p *api.IssuePayload, meta *DiscordMeta) (*DiscordPa
 	}, nil
 }
 
-func getDiscordIssueCommentPayload(p *api.IssueCommentPayload, discord *DiscordMeta, isPull bool) (*DiscordPayload, error) {
-	text, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter, isPull, false)
+func getDiscordIssueCommentPayload(p *api.IssueCommentPayload, discord *DiscordMeta) (*DiscordPayload, error) {
+	text, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter, false)
 
 	return &DiscordPayload{
 		Username:  discord.Username,
@@ -407,15 +407,13 @@ func GetDiscordPayload(p api.Payloader, event models.HookEventType, meta string)
 		return getDiscordForkPayload(p.(*api.ForkPayload), discord)
 	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
 		return getDiscordIssuesPayload(p.(*api.IssuePayload), discord)
-	case models.HookEventIssueComment:
-		return getDiscordIssueCommentPayload(p.(*api.IssueCommentPayload), discord, false)
+	case models.HookEventIssueComment, models.HookEventPullRequestComment:
+		return getDiscordIssueCommentPayload(p.(*api.IssueCommentPayload), discord)
 	case models.HookEventPush:
 		return getDiscordPushPayload(p.(*api.PushPayload), discord)
 	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
 		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
 		return getDiscordPullRequestPayload(p.(*api.PullRequestPayload), discord)
-	case models.HookEventPullRequestComment:
-		return getDiscordIssueCommentPayload(p.(*api.IssueCommentPayload), discord, true)
 	case models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewComment:
 		return getDiscordPullRequestApprovalPayload(p.(*api.PullRequestPayload), discord, event)
 	case models.HookEventRepository:
