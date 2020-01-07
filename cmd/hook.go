@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -101,6 +102,37 @@ Gitea or set your environment appropriately.`, "")
 	total := 0
 	lastline := 0
 
+	commsChan := make(chan string, 10)
+	tickerChan := make(chan struct{})
+	go func() {
+		sb := strings.Builder{}
+		hasWritten := false
+		ticker := time.NewTicker(1 * time.Second)
+	loop:
+		for {
+			select {
+			case s, ok := <-commsChan:
+				if ok {
+					sb.WriteString(s)
+				} else if hasWritten {
+					hasWritten = true
+					os.Stdout.WriteString(sb.String())
+					os.Stdout.Sync()
+					sb.Reset()
+					break loop
+				}
+			case <-ticker.C:
+				hasWritten = true
+				os.Stdout.WriteString(sb.String())
+				os.Stdout.Sync()
+				sb.Reset()
+			}
+		}
+		sb.Reset()
+		ticker.Stop()
+		close(tickerChan)
+	}()
+
 	for scanner.Scan() {
 		// TODO: support news feeds for wiki
 		if isWiki {
@@ -124,12 +156,10 @@ Gitea or set your environment appropriately.`, "")
 			newCommitIDs[count] = newCommitID
 			refFullNames[count] = refFullName
 			count++
-			fmt.Fprintf(os.Stdout, "*")
-			os.Stdout.Sync()
+			commsChan <- "*"
 
 			if count >= hookBatchSize {
 				fmt.Fprintf(os.Stdout, " Checking %d branches\n", count)
-				os.Stdout.Sync()
 
 				hookOptions.OldCommitIDs = oldCommitIDs
 				hookOptions.NewCommitIDs = newCommitIDs
@@ -139,20 +169,22 @@ Gitea or set your environment appropriately.`, "")
 				case http.StatusOK:
 					// no-op
 				case http.StatusInternalServerError:
+					close(commsChan)
+					<-tickerChan
 					fail("Internal Server Error", msg)
 				default:
+					close(commsChan)
+					<-tickerChan
 					fail(msg, "")
 				}
 				count = 0
 				lastline = 0
 			}
 		} else {
-			fmt.Fprintf(os.Stdout, ".")
-			os.Stdout.Sync()
+			commsChan <- "."
 		}
 		if lastline >= hookBatchSize {
-			fmt.Fprintf(os.Stdout, "\n")
-			os.Stdout.Sync()
+			commsChan <- "\n"
 			lastline = 0
 		}
 	}
@@ -162,25 +194,28 @@ Gitea or set your environment appropriately.`, "")
 		hookOptions.NewCommitIDs = newCommitIDs[:count]
 		hookOptions.RefFullNames = refFullNames[:count]
 
-		fmt.Fprintf(os.Stdout, " Checking %d branches\n", count)
+		commsChan <- fmt.Sprintf(" Checking %d branches\n", count)
 		os.Stdout.Sync()
 
 		statusCode, msg := private.HookPreReceive(username, reponame, hookOptions)
 		switch statusCode {
 		case http.StatusInternalServerError:
+			close(commsChan)
+			<-tickerChan
 			fail("Internal Server Error", msg)
 		case http.StatusForbidden:
+			close(commsChan)
+			<-tickerChan
 			fail(msg, "")
 		}
 	} else if lastline > 0 {
-		fmt.Fprintf(os.Stdout, "\n")
-		os.Stdout.Sync()
+		commsChan <- "\n"
 		lastline = 0
 	}
 
-	fmt.Fprintf(os.Stdout, "Checked %d references in total\n", total)
-	os.Stdout.Sync()
-
+	commsChan <- fmt.Sprintf("Checked %d references in total\n", total)
+	close(commsChan)
+	<-tickerChan
 	return nil
 }
 
@@ -205,6 +240,37 @@ Gitea or set your environment appropriately.`, "")
 			return nil
 		}
 	}
+
+	commsChan := make(chan string, 10)
+	tickerChan := make(chan struct{})
+	go func() {
+		sb := strings.Builder{}
+		hasWritten := false
+		ticker := time.NewTicker(1 * time.Second)
+	loop:
+		for {
+			select {
+			case s, ok := <-commsChan:
+				if ok {
+					sb.WriteString(s)
+				} else if hasWritten {
+					hasWritten = true
+					os.Stdout.WriteString(sb.String())
+					os.Stdout.Sync()
+					sb.Reset()
+					break loop
+				}
+			case <-ticker.C:
+				hasWritten = true
+				os.Stdout.WriteString(sb.String())
+				os.Stdout.Sync()
+				sb.Reset()
+			}
+		}
+		sb.Reset()
+		ticker.Stop()
+		close(tickerChan)
+	}()
 
 	// the environment setted on serv command
 	repoUser := os.Getenv(models.EnvRepoUsername)
@@ -241,7 +307,7 @@ Gitea or set your environment appropriately.`, "")
 			continue
 		}
 
-		fmt.Fprintf(os.Stdout, ".")
+		commsChan <- "."
 		oldCommitIDs[count] = string(fields[0])
 		newCommitIDs[count] = string(fields[1])
 		refFullNames[count] = string(fields[2])
@@ -250,16 +316,16 @@ Gitea or set your environment appropriately.`, "")
 		}
 		count++
 		total++
-		os.Stdout.Sync()
 
 		if count >= hookBatchSize {
-			fmt.Fprintf(os.Stdout, " Processing %d references\n", count)
-			os.Stdout.Sync()
+			commsChan <- fmt.Sprintf(" Processing %d references\n", count)
 			hookOptions.OldCommitIDs = oldCommitIDs
 			hookOptions.NewCommitIDs = newCommitIDs
 			hookOptions.RefFullNames = refFullNames
 			resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
 			if resp == nil {
+				close(commsChan)
+				<-tickerChan
 				hookPrintResults(results)
 				fail("Internal Server Error", err)
 			}
@@ -274,12 +340,15 @@ Gitea or set your environment appropriately.`, "")
 			// We need to tell the repo to reset the default branch to master
 			err := private.SetDefaultBranch(repoUser, repoName, "master")
 			if err != nil {
+				close(commsChan)
+				<-tickerChan
 				fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
 			}
 		}
-		fmt.Fprintf(os.Stdout, "Processed %d references in total\n", total)
-		os.Stdout.Sync()
+		commsChan <- fmt.Sprintf("Processed %d references in total\n", total)
 
+		close(commsChan)
+		<-tickerChan
 		hookPrintResults(results)
 		return nil
 	}
@@ -288,19 +357,19 @@ Gitea or set your environment appropriately.`, "")
 	hookOptions.NewCommitIDs = newCommitIDs[:count]
 	hookOptions.RefFullNames = refFullNames[:count]
 
-	fmt.Fprintf(os.Stdout, " Processing %d references\n", count)
-	os.Stdout.Sync()
+	commsChan <- fmt.Sprintf(" Processing %d references\n", count)
 
 	resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
 	if resp == nil {
+		close(commsChan)
+		<-tickerChan
 		hookPrintResults(results)
 		fail("Internal Server Error", err)
 	}
 	wasEmpty = wasEmpty || resp.RepoWasEmpty
 	results = append(results, resp.Results...)
 
-	fmt.Fprintf(os.Stdout, "Processed %d references in total\n", total)
-	os.Stdout.Sync()
+	commsChan <- fmt.Sprintf("Processed %d references in total\n", total)
 
 	if wasEmpty && masterPushed {
 		// We need to tell the repo to reset the default branch to master
@@ -310,6 +379,8 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
+	close(commsChan)
+	<-tickerChan
 	hookPrintResults(results)
 
 	return nil
