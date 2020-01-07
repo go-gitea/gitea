@@ -931,7 +931,10 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["IsBlockedByApprovals"] = pull.ProtectedBranch.RequiredApprovals > 0 && cnt < pull.ProtectedBranch.RequiredApprovals
 			ctx.Data["GrantedApprovals"] = cnt
 		}
-		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
+		ctx.Data["IsPullBranchDeletable"] = canDelete &&
+			pull.HeadRepo != nil &&
+			git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch) &&
+			(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
 
 		ctx.Data["PullReviewersWithType"], err = models.GetReviewersByPullID(issue.ID)
 		if err != nil {
