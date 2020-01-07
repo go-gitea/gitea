@@ -238,10 +238,10 @@ func loadBranches(ctx *context.Context) []*Branch {
 
 			if repo, ok := repoIDToRepo[pr.HeadRepoID]; ok {
 				pr.HeadRepo = repo
-			} else if err := pr.LoadHeadRepo(); err != nil {
+			} else if err := pr.LoadHeadRepo(); err != nil && !models.IsErrRepoNotExist(err) {
 				ctx.ServerError("pr.LoadHeadRepo", err)
 				return nil
-			} else {
+			} else if pr.HeadRepo != nil {
 				repoIDToRepo[pr.HeadRepoID] = pr.HeadRepo
 			}
 
