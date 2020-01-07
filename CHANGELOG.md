@@ -4,6 +4,26 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.10.2](https://github.com/go-gitea/gitea/releases/tag/v1.10.2) - 2020-01-02
+* BUGFIXES
+  * Allow only specific Columns to be updated on Issue via API (#9539) (#9580)
+  * Add ErrReactionAlreadyExist error (#9550) (#9564)
+  * Fix bug when migrate from API (#8631) (#9563)
+  * Use default avatar for ghost user (#9536) (#9537)
+  * Fix repository issues pagination bug when there are more than one label filter (#9512) (#9528)
+  * Fix deleted branch not removed when push the branch again (#9516) (#9524)
+  * Fix missing repository status when migrating repository via API (#9511)
+  * Trigger webhook when deleting a branch after merging a PR (#9510)
+  * Fix paging on /repos/{owner}/{repo}/git/trees/{sha} API endpoint (#9482)
+  * Fix NewCommitStatus (#9434) (#9435)
+  * Use OriginalURL instead of CloneAddr in migration logging (#9418) (#9420)
+  * Fix Slack webhook payload title generation to work with Mattermost (#9404)
+  * DefaultBranch needs to be prefixed by BranchPrefix (#9356) (#9359)
+  * Fix issue indexer not triggered when migrating a repository (#9333)
+  * Fix bug that release attachment files not deleted when deleting repository (#9322) (#9329)
+  * Fix migration releases (#9319) (#9326) (#9328)
+  * Fix File Edit: Author/Committer interchanged (#9297) (#9300)
+
 ## [1.10.1](https://github.com/go-gitea/gitea/releases/tag/v1.10.1) - 2019-12-05
 * BUGFIXES
   * Fix max length check and limit in multiple repo forms (#9148) (#9204)

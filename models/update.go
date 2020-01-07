@@ -24,6 +24,7 @@ const (
 	EnvPusherID     = "GITEA_PUSHER_ID"
 	EnvKeyID        = "GITEA_KEY_ID"
 	EnvIsDeployKey  = "GITEA_IS_DEPLOY_KEY"
+	EnvIsInternal   = "GITEA_INTERNAL_PUSH"
 )
 
 // CommitToPushCommit transforms a git.Commit to PushCommit type.
@@ -103,10 +104,10 @@ func pushUpdateDeleteTags(e Engine, repo *Repository, tags []string) error {
 	if _, err := e.
 		Where("repo_id = ? AND is_tag = ?", repo.ID, false).
 		In("lower_tag_name", lowerTags).
-		SetExpr("is_draft", true).
-		SetExpr("num_commits", 0).
-		SetExpr("sha1", "").
-		Update(new(Release)); err != nil {
+		Cols("is_draft", "num_commits", "sha1").
+		Update(&Release{
+			IsDraft: true,
+		}); err != nil {
 		return fmt.Errorf("Update: %v", err)
 	}
 

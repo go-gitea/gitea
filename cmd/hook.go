@@ -59,6 +59,12 @@ var (
 )
 
 func runHookPreReceive(c *cli.Context) error {
+	if os.Getenv(models.EnvIsInternal) == "true" {
+		return nil
+	}
+
+	setup("hooks/pre-receive.log", false)
+
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
 			fail(`Rejecting changes as Gitea environment not set.
@@ -68,8 +74,6 @@ Gitea or set your environment appropriately.`, "")
 			return nil
 		}
 	}
-
-	setup("hooks/pre-receive.log", false)
 
 	// the environment setted on serv command
 	isWiki := (os.Getenv(models.EnvRepoIsWiki) == "true")
@@ -181,22 +185,17 @@ Gitea or set your environment appropriately.`, "")
 }
 
 func runHookUpdate(c *cli.Context) error {
-	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
-		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
-			fail(`Rejecting changes as Gitea environment not set.
-If you are pushing over SSH you must push with a key managed by
-Gitea or set your environment appropriately.`, "")
-		} else {
-			return nil
-		}
-	}
-
-	setup("hooks/update.log", false)
-
+	// Update is empty and is kept only for backwards compatibility
 	return nil
 }
 
 func runHookPostReceive(c *cli.Context) error {
+	if os.Getenv(models.EnvIsInternal) == "true" {
+		return nil
+	}
+
+	setup("hooks/post-receive.log", false)
+
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
 			fail(`Rejecting changes as Gitea environment not set.
@@ -206,8 +205,6 @@ Gitea or set your environment appropriately.`, "")
 			return nil
 		}
 	}
-
-	setup("hooks/post-receive.log", false)
 
 	// the environment setted on serv command
 	repoUser := os.Getenv(models.EnvRepoUsername)

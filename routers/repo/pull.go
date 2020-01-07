@@ -423,7 +423,6 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 	ctx.Data["NumCommits"] = compareInfo.Commits.Len()
 	ctx.Data["NumFiles"] = compareInfo.NumFiles
-	ctx.Data["AllowedReactions"] = setting.UI.Reactions
 	return compareInfo
 }
 
