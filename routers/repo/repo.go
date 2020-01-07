@@ -180,6 +180,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		return
 	}
 
+	var repo *models.Repository
 	var err error
 	if form.RepoTemplate > 0 {
 		opts := models.GenerateRepoOptions{
@@ -209,14 +210,14 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 			return
 		}
 
-		repo, err := repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
+		repo, err = repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
 			return
 		}
 	} else {
-		repo, err := repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+		repo, err = repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
 			Name:        form.RepoName,
 			Description: form.Description,
 			Gitignores:  form.Gitignores,

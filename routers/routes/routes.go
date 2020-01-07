@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"net/http"
-	"os"
 	"path"
 	"text/template"
 	"time"
@@ -411,8 +410,16 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("", adminReq, admin.Dashboard)
 		m.Get("/config", admin.Config)
 		m.Post("/config/test_mail", admin.SendTestMail)
-		m.Get("/monitor", admin.Monitor)
-		m.Post("/monitor/cancel/:pid", admin.MonitorCancel)
+		m.Group("/monitor", func() {
+			m.Get("", admin.Monitor)
+			m.Post("/cancel/:pid", admin.MonitorCancel)
+			m.Group("/queue/:qid", func() {
+				m.Get("", admin.Queue)
+				m.Post("/set", admin.SetQueueSettings)
+				m.Post("/add", admin.AddWorkers)
+				m.Post("/cancel/:pid", admin.WorkerCancel)
+			})
+		})
 
 		m.Group("/users", func() {
 			m.Get("", admin.Users)
@@ -474,34 +481,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 			m.Get("/following", user.Following)
 		})
 
-		m.Get("/attachments/:uuid", func(ctx *context.Context) {
-			attach, err := models.GetAttachmentByUUID(ctx.Params(":uuid"))
-			if err != nil {
-				if models.IsErrAttachmentNotExist(err) {
-					ctx.Error(404)
-				} else {
-					ctx.ServerError("GetAttachmentByUUID", err)
-				}
-				return
-			}
-
-			fr, err := os.Open(attach.LocalPath())
-			if err != nil {
-				ctx.ServerError("Open", err)
-				return
-			}
-			defer fr.Close()
-
-			if err := attach.IncreaseDownloadCount(); err != nil {
-				ctx.ServerError("Update", err)
-				return
-			}
-
-			if err = repo.ServeData(ctx, attach.Name, fr); err != nil {
-				ctx.ServerError("ServeData", err)
-				return
-			}
-		})
+		m.Get("/attachments/:uuid", repo.GetAttachment)
 	}, ignSignIn)
 
 	m.Group("/attachments", func() {
