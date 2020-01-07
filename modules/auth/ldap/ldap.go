@@ -427,7 +427,7 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 		return nil, err
 	}
 
-	results := []*SearchResult{}
+	results := make([]*SearchResult, 0, len(sr.Entries))
 
 	for _, v := range sr.Entries {
 		result := ls.ProcessUserEntry(v, l)
