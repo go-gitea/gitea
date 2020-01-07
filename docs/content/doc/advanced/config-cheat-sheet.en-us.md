@@ -186,7 +186,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.
 - `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars.
 - `ENABLE_GZIP`: **false**: Enables application-level GZIP support.
-- `LANDING_PAGE`: **home**: Landing page for unauthenticated users  \[home, explore\].
+- `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login\].
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
 - `LFS_CONTENT_PATH`: **./data/lfs**: Where to store LFS files.
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
