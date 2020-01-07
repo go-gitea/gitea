@@ -36,7 +36,7 @@ func CreateQueue(name string, handle HandlerFunc, exemplar interface{}) Queue {
 	opts["Network"] = q.Network
 	opts["Password"] = q.Password
 	opts["DBIndex"] = q.DBIndex
-	opts["QueueName"] = q.QueueName
+	opts["RedisQueueName"] = q.RedisQueueName
 	opts["Workers"] = q.Workers
 	opts["MaxWorkers"] = q.MaxWorkers
 	opts["BlockTimeout"] = q.BlockTimeout

@@ -24,7 +24,7 @@ type QueueSettings struct {
 	Network          string
 	Addresses        string
 	Password         string
-	QueueName        string
+	RedisQueueName   string
 	DBIndex          int
 	WrapIfNecessary  bool
 	MaxAttempts      int
@@ -45,14 +45,14 @@ func GetQueueSettings(name string) QueueSettings {
 	sec := Cfg.Section("queue." + name)
 	// DataDir is not directly inheritable
 	q.DataDir = path.Join(Queue.DataDir, name)
-	// QueueName is not directly inheritable either
-	q.QueueName = name + Queue.QueueName
+	// RedisQueueName is not directly inheritable either
+	q.RedisQueueName = name + Queue.RedisQueueName
 	for _, key := range sec.Keys() {
 		switch key.Name() {
 		case "DATADIR":
 			q.DataDir = key.MustString(q.DataDir)
-		case "QUEUE_NAME":
-			q.QueueName = key.MustString(q.QueueName)
+		case "REDIS_QUEUE_NAME":
+			q.RedisQueueName = key.MustString(q.RedisQueueName)
 		}
 	}
 	if !path.IsAbs(q.DataDir) {
@@ -98,7 +98,7 @@ func NewQueueService() {
 	Queue.BlockTimeout = sec.Key("BLOCK_TIMEOUT").MustDuration(1 * time.Second)
 	Queue.BoostTimeout = sec.Key("BOOST_TIMEOUT").MustDuration(5 * time.Minute)
 	Queue.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(5)
-	Queue.QueueName = sec.Key("QUEUE_NAME").MustString("_queue")
+	Queue.RedisQueueName = sec.Key("REDIS_QUEUE_NAME").MustString("_queue")
 
 	// Now handle the old issue_indexer configuration
 	section := Cfg.Section("queue.issue_indexer")
