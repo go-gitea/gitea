@@ -226,6 +226,7 @@ relation to port exhaustion.
 
 - `ISSUE_INDEXER_TYPE`: **bleve**: Issue indexer type, currently support: bleve or db, if it's db, below issue indexer item will be invalid.
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search.
+- The next 4 configuration values are deprecated and should be set in `queue.issue_indexer` however are kept for backwards compatibility:
 - `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: Issue indexer queue, currently supports:`channel`, `levelqueue`, `redis`.
 - `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this will be the queue will be saved path.
 - `ISSUE_INDEXER_QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: When `ISSUE_INDEXER_QUEUE_TYPE` is `redis`, this will store the redis connection string.
@@ -238,6 +239,24 @@ relation to port exhaustion.
 - `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
 - `STARTUP_TIMEOUT`: **30s**: If the indexer takes longer than this timeout to start - fail. (This timeout will be added to the hammer time above for child processes - as bleve will not start until the previous parent is shutdown.) Set to zero to never timeout.
+
+## Queue (`queue` and `queue.*`)
+
+- `TYPE`: **persistable-channel**: General queue type, currently support: `persistable-channel`, `channel`, `level`, `redis`, `dummy`
+- `DATADIR`: **queues/**: Base DataDir for storing persistent and level queues. `DATADIR` for inidividual queues can be set in `queue.name` sections but will default to `DATADIR/`**`name`**.
+- `LENGTH`: **20**: Maximal queue size before channel queues block
+- `BATCH_LENGTH`: **20**: Batch data before passing to the handler
+- `CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Connection string for the redis queue type.
+- `QUEUE_NAME`: **_queue**: The suffix for default redis queue name. Individual queues will default to **`name`**`QUEUE_NAME` but can be overriden in the specific `queue.name` section.
+- `WRAP_IF_NECESSARY`: **true**: Will wrap queues with a timeoutable queue if the selected queue is not ready to be created - (Only relevant for the level queue.)
+- `MAX_ATTEMPTS`: **10**: Maximum number of attempts to create the wrapped queue
+- `TIMEOUT`: **GRACEFUL_HAMMER_TIME + 30s**: Timeout the creation of the wrapped queue if it takes longer than this to create.
+- Queues by default come with a dynamically scaling worker pool. The following settings configure this:
+- `WORKERS`: **1**: Number of initial workers for the queue.
+- `MAX_WORKERS`: **10**: Maximum number of worker go-routines for the queue.
+- `BLOCK_TIMEOUT`: **1s**: If the queue blocks for this time, boost the number of workers - the `BLOCK_TIMEOUT` will then be doubled before boosting again whilst the boost is ongoing.
+- `BOOST_TIMEOUT`: **5m**: Boost workers will timeout after this long.
+- `BOOST_WORKERS`: **5**: This many workers will be added to the worker pool if there is a boost.
 
 ## Admin (`admin`)
 - `DEFAULT_EMAIL_NOTIFICATIONS`: **enabled**: Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
@@ -614,6 +633,7 @@ You may redefine `ELEMENT`, `ALLOW_ATTR`, and `REGEXP` multiple times; each time
 
 ## Task (`task`)
 
+-  Task queue configuration has been moved to `queue.task` however, the below configuration values are kept for backwards compatibilityx:
 - `QUEUE_TYPE`: **channel**: Task queue type, could be `channel` or `redis`.
 - `QUEUE_LENGTH`: **1000**: Task queue length, available only when `QUEUE_TYPE` is `channel`.
 - `QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: Task queue connection string, available only when `QUEUE_TYPE` is `redis`. If there redis needs a password, use `addrs=127.0.0.1:6379 password=123 db=0`.
