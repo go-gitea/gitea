@@ -221,11 +221,11 @@ func loadBranches(ctx *context.Context) []*Branch {
 			ctx.ServerError("GetLatestPullRequestByHeadInfo", err)
 			return nil
 		}
-		pr.HeadRepo = ctx.Repo.Repository
 		headCommit := commit.ID.String()
 
 		mergeMovedOn := false
 		if pr != nil {
+			pr.HeadRepo = ctx.Repo.Repository
 			if err := pr.LoadIssue(); err != nil {
 				ctx.ServerError("pr.LoadIssue", err)
 				return nil
