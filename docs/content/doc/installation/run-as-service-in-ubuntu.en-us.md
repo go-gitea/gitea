@@ -19,12 +19,7 @@ You can run Gitea as service, using either systemd or supervisor. The steps belo
 
 #### Using systemd
 
-Run the below command in a terminal:
-```
-sudo vim /etc/systemd/system/gitea.service
-```
-
-Copy the sample [gitea.service](https://github.com/go-gitea/gitea/blob/master/contrib/systemd/gitea.service).
+Copy the sample [gitea.service](https://github.com/go-gitea/gitea/blob/master/contrib/systemd/gitea.service) to `/etc/systemd/system/gitea.service`, then edit the file with your favorite editor (such as `vim`).
 
 Uncomment any service that needs to be enabled on this host, such as MySQL.
 
@@ -51,16 +46,12 @@ Create a log dir for the supervisor logs:
 mkdir /home/git/gitea/log/supervisor
 ```
 
-Open supervisor config file in a file editor:
-```
-sudo vim /etc/supervisor/supervisord.conf
-```
-
 Append the configuration from the sample
-[supervisord config](https://github.com/go-gitea/gitea/blob/master/contrib/supervisor/gitea).
+[supervisord config](https://github.com/go-gitea/gitea/blob/master/contrib/supervisor/gitea) to `/etc/supervisor/supervisord.conf`.
 
-Change the user (git) and home (/home/git) settings to match the deployment
-environment. Change the PORT or remove the -p flag if default port is used.
+Using your favorite editor (such as `vim`), change the user (git) and home
+(/home/git) settings to match the deployment environment. Change the PORT
+or remove the -p flag if default port is used.
 
 Lastly enable and start supervisor at boot:
 ```
