@@ -171,7 +171,6 @@ func TestPatch(pr *models.PullRequest) error {
 				scanner := bufio.NewScanner(stderrReader)
 				for scanner.Scan() {
 					line := scanner.Text()
-					fmt.Printf("%s\n", line)
 					if strings.HasPrefix(line, prefix) {
 						conflict = true
 						filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
