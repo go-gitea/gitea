@@ -56,7 +56,6 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 	exists, err = e.
 		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
-		And("is_watching = ?", true).
 		Get(iw)
 	return
 }
