@@ -122,7 +122,7 @@ func (pr *PullRequest) LoadHeadRepo() error {
 		if has, err := x.ID(pr.HeadRepoID).Get(&repo); err != nil {
 			return err
 		} else if !has {
-			return ErrRepoNotExist{ID: pr.BaseRepoID}
+			return ErrRepoNotExist{ID: pr.HeadRepoID}
 		}
 		pr.HeadRepo = &repo
 	}

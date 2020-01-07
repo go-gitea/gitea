@@ -142,6 +142,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		Keyword:            keyword,
 		OwnerID:            opts.OwnerID,
 		AllPublic:          true,
+		AllLimited:         true,
 		TopicOnly:          topicOnly,
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
