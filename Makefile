@@ -487,10 +487,9 @@ node_modules/fomantic-ui/src: node-check node_modules
 # TODO(das7pad): replace with resolve.alias when building fomantic with webpack
 node_modules/fomantic-ui/src/theme.config: node_modules/fomantic-ui/src
 node_modules/fomantic-ui/src/theme.config: web_src/fomantic/theme.config.less
-	@diff=$$(diff '$<' '$@'); \
-	if [ -n "$$diff" ]; then \
-		cp -f $< $@; \
-	fi;
+ifeq (,$(wildcard $@))
+	cp $< $@
+endif
 
 $(FOMANTIC_DEST_DIR): node_modules/fomantic-ui/src
 $(FOMANTIC_DEST_DIR): node_modules/fomantic-ui/src/theme.config
