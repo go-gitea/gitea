@@ -44,19 +44,19 @@ type RedisQueue struct {
 
 // RedisQueueConfiguration is the configuration for the redis queue
 type RedisQueueConfiguration struct {
-	Network        string
-	Addresses      string
-	Password       string
-	DBIndex        int
-	BatchLength    int
-	QueueLength    int
-	RedisQueueName string
-	Workers        int
-	MaxWorkers     int
-	BlockTimeout   time.Duration
-	BoostTimeout   time.Duration
-	BoostWorkers   int
-	Name           string
+	Network      string
+	Addresses    string
+	Password     string
+	DBIndex      int
+	BatchLength  int
+	QueueLength  int
+	QueueName    string
+	Workers      int
+	MaxWorkers   int
+	BlockTimeout time.Duration
+	BoostTimeout time.Duration
+	BoostWorkers int
+	Name         string
 }
 
 // NewRedisQueue creates single redis or cluster redis queue
@@ -84,7 +84,7 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 			boostWorkers:       config.BoostWorkers,
 			maxNumberOfWorkers: config.MaxWorkers,
 		},
-		queueName: config.RedisQueueName,
+		queueName: config.QueueName,
 		exemplar:  exemplar,
 		closed:    make(chan struct{}),
 		workers:   config.Workers,
