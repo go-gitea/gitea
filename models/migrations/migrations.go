@@ -290,6 +290,8 @@ var migrations = []Migration{
 	NewMigration("Extend TrackedTimes", extendTrackedTimes),
 	// v117 -> v118
 	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
+	// v118 -> v119
+	NewMigration("Expand webhooks for more granularity", expandWebhooks),
 }
 
 // Migrate database to current version

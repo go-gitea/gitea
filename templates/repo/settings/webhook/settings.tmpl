@@ -23,6 +23,10 @@
 	</div>
 
 	<div class="events fields ui grid" {{if not .Webhook.ChooseEvents}}style="display:none"{{end}}>
+		<!-- Repository Events -->
+		<div class="fourteen wide column">
+			<label>{{.i18n.Tr "repo.settings.event_header_repository"}}</label>
+		</div>
 		<!-- Create -->
 		<div class="seven wide column">
 			<div class="field">
@@ -62,6 +66,31 @@
 					<span class="help">{{.i18n.Tr "repo.settings.event_push_desc"}}</span>
 				</div>
 			</div>
+		</div>
+		<!-- Repository -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="repository" type="checkbox" tabindex="0" {{if .Webhook.Repository}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_repository"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_repository_desc"}}</span>
+				</div>
+			</div>
+		</div>
+		<!-- Release -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="release" type="checkbox" tabindex="0" {{if .Webhook.Release}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.settings.event_release"}}</label>
+					<span class="help">{{.i18n.Tr "repo.settings.event_release_desc"}}</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Issue Events -->
+		<div class="fourteen wide column">
+			<label>{{.i18n.Tr "repo.settings.event_header_issue"}}</label>
 		</div>
 		<!-- Issues -->
 		<div class="seven wide column">
@@ -112,6 +141,11 @@
 					<span class="help">{{.i18n.Tr "repo.settings.event_issue_comment_desc"}}</span>
 				</div>
 			</div>
+		</div>
+
+		<!-- Pull Request Events -->
+		<div class="fourteen wide column">
+			<label>{{.i18n.Tr "repo.settings.event_header_pull_request"}}</label>
 		</div>
 		<!-- Pull Request -->
 		<div class="seven wide column">
@@ -180,26 +214,6 @@
 					<input class="hidden" name="pull_request_sync" type="checkbox" tabindex="0" {{if .Webhook.PullRequestSync}}checked{{end}}>
 					<label>{{.i18n.Tr "repo.settings.event_pull_request_sync"}}</label>
 					<span class="help">{{.i18n.Tr "repo.settings.event_pull_request_sync_desc"}}</span>
-				</div>
-			</div>
-		</div>
-		<!-- Repository -->
-		<div class="seven wide column">
-			<div class="field">
-				<div class="ui checkbox">
-					<input class="hidden" name="repository" type="checkbox" tabindex="0" {{if .Webhook.Repository}}checked{{end}}>
-					<label>{{.i18n.Tr "repo.settings.event_repository"}}</label>
-					<span class="help">{{.i18n.Tr "repo.settings.event_repository_desc"}}</span>
-				</div>
-			</div>
-		</div>
-		<!-- Release -->
-		<div class="seven wide column">
-			<div class="field">
-				<div class="ui checkbox">
-					<input class="hidden" name="release" type="checkbox" tabindex="0" {{if .Webhook.Release}}checked{{end}}>
-					<label>{{.i18n.Tr "repo.settings.event_release"}}</label>
-					<span class="help">{{.i18n.Tr "repo.settings.event_release_desc"}}</span>
 				</div>
 			</div>
 		</div>
