@@ -133,30 +133,30 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 					return
 				}
 				if !allowedMerge {
-					log.Warn("Forbidden: User %d can not push to protected branch: %s in %-v and not allowed to merge pr #%d", opts.UserID, branchName, repo, pr.Index)
+					log.Warn("Forbidden: User %d is not allowed to push to protected branch: %s in %-v and is not allowed to merge pr #%d", opts.UserID, branchName, repo, pr.Index)
 					ctx.JSON(http.StatusForbidden, map[string]interface{}{
-						"err": fmt.Sprintf("protected branch %s can not be pushed to", branchName),
+						"err": fmt.Sprintf("Not allowed to push to protected branch %s", branchName),
 					})
 					return
 				}
 				// Manual merge only allowed if PR is ready (even if admin)
 				if err := pull_service.CheckPrReadyToMerge(pr); err != nil {
 					if models.IsErrNotAllowedToMerge(err) {
-						log.Warn("Forbidden: User %d can not push to protected branch %s in %-v and pr #%d: %s", opts.UserID, branchName, repo, pr.Index, err.Error())
+						log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", opts.UserID, branchName, repo, pr.Index, err.Error())
 						ctx.JSON(http.StatusForbidden, map[string]interface{}{
-							"err": fmt.Sprintf("protected branch %s can not be pushed to and pr #%d is not ready to be merged: %s", branchName, opts.ProtectedBranchID, err.Error()),
+							"err": fmt.Sprintf("Not allowed to push to protected branch %s and pr #%d is not ready to be merged: %s", branchName, opts.ProtectedBranchID, err.Error()),
 						})
 						return
 					}
 					log.Error("Unable to check if mergable: protected branch %s in %-v and pr #%d. Error: %v", opts.UserID, branchName, repo, pr.Index, err)
 					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-						"err": fmt.Sprintf("Unable to get PullRequest %d Error: %v", opts.ProtectedBranchID, err),
+						"err": fmt.Sprintf("Unable to get status of pull request %d. Error: %v", opts.ProtectedBranchID, err),
 					})
 				}
 			} else if !canPush {
-				log.Warn("Forbidden: User %d cannot push to protected branch: %s in %-v", opts.UserID, branchName, repo)
+				log.Warn("Forbidden: User %d is not allowed to push to protected branch: %s in %-v", opts.UserID, branchName, repo)
 				ctx.JSON(http.StatusForbidden, map[string]interface{}{
-					"err": fmt.Sprintf("protected branch %s can not be pushed to", branchName),
+					"err": fmt.Sprintf("Not allowed to push to protected branch %s", branchName),
 				})
 				return
 			}
