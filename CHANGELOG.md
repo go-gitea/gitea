@@ -381,7 +381,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Upgrade xorm to v0.8.0 (#8536)
   * Upgrade gopkg.in/ini.v1 (#8500)
   * Update CodeMirror to version 5.49.0 (#8381)
-  * Wiki - editor - enable side-by-side button (#7242)
+  * Wiki editor: enable side-by-side button (#7242)
 
 ## [1.10.2](https://github.com/go-gitea/gitea/releases/tag/v1.10.2) - 2020-01-02
 * BUGFIXES
