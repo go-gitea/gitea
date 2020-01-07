@@ -13,7 +13,7 @@ menu:
     identifier: "linux-service"
 ---
 
-### Run as service in Ubuntu 16.04 LTS
+### Run Gitea as Linux service
 
 #### Using systemd
 
