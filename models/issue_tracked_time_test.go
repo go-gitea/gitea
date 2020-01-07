@@ -1,7 +1,12 @@
+// Copyright 2019 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package models
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,14 +21,14 @@ func TestAddTime(t *testing.T) {
 	assert.NoError(t, err)
 
 	//3661 = 1h 1min 1s
-	trackedTime, err := AddTime(user3, issue1, 3661)
+	trackedTime, err := AddTime(user3, issue1, 3661, time.Now())
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), trackedTime.UserID)
 	assert.Equal(t, int64(1), trackedTime.IssueID)
 	assert.Equal(t, int64(3661), trackedTime.Time)
 
 	tt := AssertExistsAndLoadBean(t, &TrackedTime{UserID: 3, IssueID: 1}).(*TrackedTime)
-	assert.Equal(t, tt.Time, int64(3661))
+	assert.Equal(t, int64(3661), tt.Time)
 
 	comment := AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddTimeManual, PosterID: 3, IssueID: 1}).(*Comment)
 	assert.Equal(t, comment.Content, "1h 1min 1s")
@@ -36,7 +41,7 @@ func TestGetTrackedTimes(t *testing.T) {
 	times, err := GetTrackedTimes(FindTrackedTimesOptions{IssueID: 1})
 	assert.NoError(t, err)
 	assert.Len(t, times, 1)
-	assert.Equal(t, times[0].Time, int64(400))
+	assert.Equal(t, int64(400), times[0].Time)
 
 	times, err = GetTrackedTimes(FindTrackedTimesOptions{IssueID: -1})
 	assert.NoError(t, err)
@@ -45,8 +50,8 @@ func TestGetTrackedTimes(t *testing.T) {
 	// by User
 	times, err = GetTrackedTimes(FindTrackedTimesOptions{UserID: 1})
 	assert.NoError(t, err)
-	assert.Len(t, times, 1)
-	assert.Equal(t, times[0].Time, int64(400))
+	assert.Len(t, times, 3)
+	assert.Equal(t, int64(400), times[0].Time)
 
 	times, err = GetTrackedTimes(FindTrackedTimesOptions{UserID: 3})
 	assert.NoError(t, err)
@@ -55,15 +60,15 @@ func TestGetTrackedTimes(t *testing.T) {
 	// by Repo
 	times, err = GetTrackedTimes(FindTrackedTimesOptions{RepositoryID: 2})
 	assert.NoError(t, err)
-	assert.Len(t, times, 1)
-	assert.Equal(t, times[0].Time, int64(1))
+	assert.Len(t, times, 3)
+	assert.Equal(t, int64(1), times[0].Time)
 	issue, err := GetIssueByID(times[0].IssueID)
 	assert.NoError(t, err)
 	assert.Equal(t, issue.RepoID, int64(2))
 
 	times, err = GetTrackedTimes(FindTrackedTimesOptions{RepositoryID: 1})
 	assert.NoError(t, err)
-	assert.Len(t, times, 4)
+	assert.Len(t, times, 5)
 
 	times, err = GetTrackedTimes(FindTrackedTimesOptions{RepositoryID: 10})
 	assert.NoError(t, err)
@@ -83,10 +88,15 @@ func TestTotalTimes(t *testing.T) {
 
 	total, err = TotalTimes(FindTrackedTimesOptions{IssueID: 2})
 	assert.NoError(t, err)
-	assert.Len(t, total, 1)
+	assert.Len(t, total, 2)
 	for user, time := range total {
-		assert.Equal(t, int64(2), user.ID)
-		assert.Equal(t, "1h 1min 2s", time)
+		if user.ID == 2 {
+			assert.Equal(t, "1h 1min 2s", time)
+		} else if user.ID == 1 {
+			assert.Equal(t, "20s", time)
+		} else {
+			assert.Error(t, assert.AnError)
+		}
 	}
 
 	total, err = TotalTimes(FindTrackedTimesOptions{IssueID: 5})
@@ -99,5 +109,5 @@ func TestTotalTimes(t *testing.T) {
 
 	total, err = TotalTimes(FindTrackedTimesOptions{IssueID: 4})
 	assert.NoError(t, err)
-	assert.Len(t, total, 0)
+	assert.Len(t, total, 2)
 }

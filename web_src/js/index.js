@@ -325,7 +325,7 @@ function initCommentForm() {
     return;
   }
 
-  setCommentSimpleMDE($('.comment.form textarea'));
+  setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
   initImagePaste($('.comment.form textarea'));
@@ -1490,7 +1490,9 @@ function setCommentSimpleMDE($editArea) {
       }
     },
     Backspace: (cm) => {
-      cm.getInputField().trigger('input');
+      if (cm.getInputField().trigger) {
+        cm.getInputField().trigger('input');
+      }
       cm.execCommand('delCharBefore');
     }
   });
@@ -2269,7 +2271,7 @@ function initTemplateSearch() {
   const checkTemplate = function () {
     const $templateUnits = $('#template_units');
     const $nonTemplate = $('#non_template');
-    if ($repoTemplate.val() !== '') {
+    if ($repoTemplate.val() !== '' && $repoTemplate.val() !== '0') {
       $templateUnits.show();
       $nonTemplate.hide();
     } else {
@@ -2472,21 +2474,10 @@ $(document).ready(() => {
 
   // Set anchor.
   $('.markdown').each(function () {
-    const headers = {};
     $(this).find('h1, h2, h3, h4, h5, h6').each(function () {
       let node = $(this);
-      const val = encodeURIComponent(node.text().toLowerCase().replace(/[^\u00C0-\u1FFF\u2C00-\uD7FF\w\- ]/g, '').replace(/[ ]/g, '-'));
-      let name = val;
-      if (headers[val] > 0) {
-        name = `${val}-${headers[val]}`;
-      }
-      if (headers[val] === undefined) {
-        headers[val] = 1;
-      } else {
-        headers[val] += 1;
-      }
-      node = node.wrap(`<div id="${name}" class="anchor-wrap" ></div>`);
-      node.append(`<a class="anchor" href="#${name}"><span class="octicon octicon-link"></span></a>`);
+      node = node.wrap('<div class="anchor-wrap"></div>');
+      node.append(`<a class="anchor" href="#${encodeURIComponent(node.attr('id'))}"><span class="octicon octicon-link"></span></a>`);
     });
   });
 

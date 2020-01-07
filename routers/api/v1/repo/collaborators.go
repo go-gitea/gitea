@@ -7,6 +7,7 @@ package repo
 
 import (
 	"errors"
+	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -35,16 +36,17 @@ func ListCollaborators(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
+
 	collaborators, err := ctx.Repo.Repository.GetCollaborators()
 	if err != nil {
-		ctx.Error(500, "ListCollaborators", err)
+		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
 	}
 	users := make([]*api.User, len(collaborators))
 	for i, collaborator := range collaborators {
 		users[i] = convert.ToUser(collaborator.User, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
-	ctx.JSON(200, users)
+	ctx.JSON(http.StatusOK, users)
 }
 
 // IsCollaborator check if a user is a collaborator of a repository
@@ -74,23 +76,26 @@ func IsCollaborator(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 	//   "404":
-	//     "$ref": "#/responses/empty"
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	user, err := models.GetUserByName(ctx.Params(":collaborator"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Error(422, "", err)
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(500, "GetUserByName", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 		}
 		return
 	}
 	isColab, err := ctx.Repo.Repository.IsCollaborator(user.ID)
 	if err != nil {
-		ctx.Error(500, "IsCollaborator", err)
+		ctx.Error(http.StatusInternalServerError, "IsCollaborator", err)
 		return
 	}
 	if isColab {
-		ctx.Status(204)
+		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.NotFound()
 	}
@@ -126,34 +131,37 @@ func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	collaborator, err := models.GetUserByName(ctx.Params(":collaborator"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Error(422, "", err)
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(500, "GetUserByName", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 		}
 		return
 	}
 
 	if !collaborator.IsActive {
-		ctx.Error(500, "InactiveCollaborator", errors.New("collaborator's account is inactive"))
+		ctx.Error(http.StatusInternalServerError, "InactiveCollaborator", errors.New("collaborator's account is inactive"))
 		return
 	}
 
 	if err := ctx.Repo.Repository.AddCollaborator(collaborator); err != nil {
-		ctx.Error(500, "AddCollaborator", err)
+		ctx.Error(http.StatusInternalServerError, "AddCollaborator", err)
 		return
 	}
 
 	if form.Permission != nil {
 		if err := ctx.Repo.Repository.ChangeCollaborationAccessMode(collaborator.ID, models.ParseAccessMode(*form.Permission)); err != nil {
-			ctx.Error(500, "ChangeCollaborationAccessMode", err)
+			ctx.Error(http.StatusInternalServerError, "ChangeCollaborationAccessMode", err)
 			return
 		}
 	}
 
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // DeleteCollaborator delete a collaborator from a repository
@@ -182,19 +190,22 @@ func DeleteCollaborator(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
 	collaborator, err := models.GetUserByName(ctx.Params(":collaborator"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Error(422, "", err)
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(500, "GetUserByName", err)
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 		}
 		return
 	}
 
 	if err := ctx.Repo.Repository.DeleteCollaboration(collaborator.ID); err != nil {
-		ctx.Error(500, "DeleteCollaboration", err)
+		ctx.Error(http.StatusInternalServerError, "DeleteCollaboration", err)
 		return
 	}
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
