@@ -290,7 +290,8 @@ ENABLE_GZIP = false
 ENABLE_PPROF = false
 ; PPROF_DATA_PATH, use an absolute path when you start gitea as service
 PPROF_DATA_PATH = data/tmp/pprof
-; Landing page, can be "home", "explore", or "organizations"
+; Landing page, can be "home", "explore", "organizations" or "login"
+; The "login" choice is not a security measure but just a UI flow change, use REQUIRE_SIGNIN_VIEW to force users to log in.
 LANDING_PAGE = home
 ; Enables git-lfs support. true or false, default is false.
 LFS_START_SERVER = false
