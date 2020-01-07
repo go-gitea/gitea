@@ -44,12 +44,6 @@ environment variable; this can be used to override the default path to something
 
 **Note:** Gitea must perform a full restart to see configuration changes.
 
-## Customizing /robots.txt
-
-To make Gitea serve a custom `/robots.txt` (default: empty 404), create a file called
-`robots.txt` in the `custom` folder (or `CustomPath`) with
-[expected contents](http://www.robotstxt.org/).
-
 ## Serving custom public files
 
 To make Gitea serve custom public files (like pages and images), use the folder

@@ -410,8 +410,16 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("", adminReq, admin.Dashboard)
 		m.Get("/config", admin.Config)
 		m.Post("/config/test_mail", admin.SendTestMail)
-		m.Get("/monitor", admin.Monitor)
-		m.Post("/monitor/cancel/:pid", admin.MonitorCancel)
+		m.Group("/monitor", func() {
+			m.Get("", admin.Monitor)
+			m.Post("/cancel/:pid", admin.MonitorCancel)
+			m.Group("/queue/:qid", func() {
+				m.Get("", admin.Queue)
+				m.Post("/set", admin.SetQueueSettings)
+				m.Post("/add", admin.AddWorkers)
+				m.Post("/cancel/:pid", admin.WorkerCancel)
+			})
+		})
 
 		m.Group("/users", func() {
 			m.Get("", admin.Users)
