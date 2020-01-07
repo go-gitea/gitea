@@ -15,6 +15,8 @@ menu:
 
 ### Run Gitea as Linux service
 
+You can run Gitea as service, using either systemd or supervisor. The steps below tested on Ubuntu 16.04, but those should work on any Linux distributions (with little modification).
+
 #### Using systemd
 
 Run the below command in a terminal:
