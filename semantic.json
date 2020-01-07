@@ -9,7 +9,7 @@
       "themes": "src/themes/"
     },
     "output": {
-      "packaged": "../../public/fomantic",
+      "packaged": "../../public/fomantic/",
       "uncompressed": "../../public/fomantic/components/",
       "compressed": "../../public/fomantic/components/",
       "themes": "../../public/fomantic/themes/"
