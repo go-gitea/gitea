@@ -90,7 +90,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add SyncTags to uploader interface (#9326)
   * Fix bug that release attachment files not deleted when deleting repository (#9322)
   * Only sync tags after all migration release batches are completed (#9319)
-  * File Edit: Author/Committer interchanged [BugFix] (#9297)
+  * File Edit: Author/Committer interchanged (#9297)
   * prebuild CSS/JS before xgo release binaries (#9293)
   * Log: Ensure FLAGS=none shows no flags (#9287)
   * Make Diff Detail on Pull Request Changed File UI always on Top (#9280)
