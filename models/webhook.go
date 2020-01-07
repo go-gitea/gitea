@@ -223,7 +223,7 @@ func (w *Webhook) HasPullRequestCommentEvent() bool {
 		(w.ChooseEvents && w.HookEvents.PullRequestComment)
 }
 
-// HasPullRequestReviewEvent returns true if hook enabled pull request review event.
+// HasPullRequestApprovedEvent returns true if hook enabled pull request review event.
 func (w *Webhook) HasPullRequestApprovedEvent() bool {
 	return w.SendEverything ||
 		(w.ChooseEvents && w.HookEvents.PullRequestReview)
@@ -235,7 +235,7 @@ func (w *Webhook) HasPullRequestRejectedEvent() bool {
 		(w.ChooseEvents && w.HookEvents.PullRequestReview)
 }
 
-// HasPullRequestCommentEvent returns true if hook enabled pull request review event.
+// HasPullRequestReviewCommentEvent returns true if hook enabled pull request review event.
 func (w *Webhook) HasPullRequestReviewCommentEvent() bool {
 	return w.SendEverything ||
 		(w.ChooseEvents && w.HookEvents.PullRequestReview)
