@@ -22,7 +22,6 @@
 					:search-limit="searchLimit"
 					:suburl="suburl"
 					:uid="uid"
-					:more-repos-link="'{{.ContextUser.HomeLink}}'"
 					{{if not .ContextUser.IsOrganization}}
 					:organizations="[
 						{{range .ContextUser.Orgs}}
@@ -94,7 +93,7 @@
 										</a>
 									</li>
 									<li v-if="showMoreReposLink">
-										<a :href="moreReposLink">{{.i18n.Tr "home.show_more_repos"}}</a>
+										<a @click="searchMoreRepos">{{.i18n.Tr "home.show_more_repos"}}</a>
 									</li>
 								</ul>
 							</div>
