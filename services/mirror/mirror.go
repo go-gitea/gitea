@@ -253,7 +253,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		}
 	}
 
-	branches, err := m.Repo.GetBranches()
+	branches, err := repo_service.GetBranches(m.Repo)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
 		return nil, false

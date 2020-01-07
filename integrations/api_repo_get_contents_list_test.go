@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -71,7 +72,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 
 	// Make a new branch in repo1
 	newBranch := "test_branch"
-	repo1.CreateNewBranch(user2, repo1.DefaultBranch, newBranch)
+	repo_service.CreateNewBranch(user2, repo1, repo1.DefaultBranch, newBranch)
 	// Get the commit ID of the default branch
 	gitRepo, _ := git.OpenRepository(repo1.RepoPath())
 	defer gitRepo.Close()

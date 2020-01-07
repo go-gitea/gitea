@@ -95,7 +95,7 @@ func ListBranches(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/BranchList"
 
-	branches, err := ctx.Repo.Repository.GetBranches()
+	branches, err := repo_service.GetBranches(ctx.Repo.Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranches", err)
 		return
