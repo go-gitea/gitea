@@ -222,8 +222,8 @@ func loadBranches(ctx *context.Context) []*Branch {
 			return nil
 		}
 		pr.HeadRepo = ctx.Repo.Repository
-		headGitRepo := ctx.Repo.GitRepo
-		
+		headCommit := commit.ID.String()
+
 		mergeMovedOn := false
 		if pr != nil {
 			if err := pr.LoadIssue(); err != nil {
@@ -255,15 +255,9 @@ func loadBranches(ctx *context.Context) []*Branch {
 					ctx.ServerError("GetBranchCommitID", err)
 					return nil
 				}
-				if err == nil {
-					headCommit, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
-					if err != nil && err != plumbing.ErrReferenceNotFound {
-						ctx.ServerError("GetBranchCommitID", err)
-						return nil
-					} else if err == nil && headCommit != pullCommit {
-						// the head has moved on from the merge - we shouldn't delete
-						mergeMovedOn = true
-					}
+				if err == nil && headCommit != pullCommit {
+					// the head has moved on from the merge - we shouldn't delete
+					mergeMovedOn = true
 				}
 			}
 
