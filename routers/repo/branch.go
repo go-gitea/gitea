@@ -221,6 +221,9 @@ func loadBranches(ctx *context.Context) []*Branch {
 			ctx.ServerError("GetLatestPullRequestByHeadInfo", err)
 			return nil
 		}
+		pr.HeadRepo = ctx.Repo.Repository
+		headGitRepo := ctx.Repo.GitRepo
+		
 		mergeMovedOn := false
 		if pr != nil {
 			if err := pr.LoadIssue(); err != nil {
@@ -236,43 +239,24 @@ func loadBranches(ctx *context.Context) []*Branch {
 				repoIDToRepo[pr.BaseRepoID] = pr.BaseRepo
 			}
 
-			if repo, ok := repoIDToRepo[pr.HeadRepoID]; ok {
-				pr.HeadRepo = repo
-			} else if err := pr.LoadHeadRepo(); err != nil && !models.IsErrRepoNotExist(err) {
-				ctx.ServerError("pr.LoadHeadRepo", err)
-				return nil
-			} else if pr.HeadRepo != nil {
-				repoIDToRepo[pr.HeadRepoID] = pr.HeadRepo
-			}
-
-			if pr.HasMerged && pr.HeadRepo != nil {
-				headRepo, ok := repoIDToGitRepo[pr.HeadRepoID]
+			if pr.HasMerged {
+				baseGitRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
 				if !ok {
-					headRepo, err = git.OpenRepository(pr.HeadRepo.RepoPath())
+					baseGitRepo, err = git.OpenRepository(pr.BaseRepo.RepoPath())
 					if err != nil {
 						ctx.ServerError("OpenRepository", err)
 						return nil
 					}
-					defer headRepo.Close()
-					repoIDToGitRepo[pr.HeadRepoID] = headRepo
+					defer baseGitRepo.Close()
+					repoIDToGitRepo[pr.BaseRepoID] = baseGitRepo
 				}
-				baseRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
-				if !ok {
-					baseRepo, err = git.OpenRepository(pr.BaseRepo.RepoPath())
-					if err != nil {
-						ctx.ServerError("OpenRepository", err)
-						return nil
-					}
-					defer baseRepo.Close()
-					repoIDToGitRepo[pr.BaseRepoID] = baseRepo
-				}
-				pullCommit, err := baseRepo.GetRefCommitID(pr.GetGitRefName())
+				pullCommit, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
 				if err != nil && err != plumbing.ErrReferenceNotFound {
 					ctx.ServerError("GetBranchCommitID", err)
 					return nil
 				}
 				if err == nil {
-					headCommit, err := headRepo.GetBranchCommitID(pr.HeadBranch)
+					headCommit, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
 					if err != nil && err != plumbing.ErrReferenceNotFound {
 						ctx.ServerError("GetBranchCommitID", err)
 						return nil
