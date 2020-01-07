@@ -581,12 +581,12 @@ const (
 	HookEventPullRequestLabel          HookEventType = "pull_request_label"
 	HookEventPullRequestMilestone      HookEventType = "pull_request_milestone"
 	HookEventPullRequestComment        HookEventType = "pull_request_comment"
-	HookEventPullRequestSync           HookEventType = "pull_request_sync"
-	HookEventRepository                HookEventType = "repository"
-	HookEventRelease                   HookEventType = "release"
 	HookEventPullRequestReviewApproved HookEventType = "pull_request_review_approved"
 	HookEventPullRequestReviewRejected HookEventType = "pull_request_review_rejected"
 	HookEventPullRequestReviewComment  HookEventType = "pull_request_review_comment"
+	HookEventPullRequestSync           HookEventType = "pull_request_sync"
+	HookEventRepository                HookEventType = "repository"
+	HookEventRelease                   HookEventType = "release"
 )
 
 // HookRequest represents hook task request information.
