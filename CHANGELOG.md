@@ -185,7 +185,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add ActionCommentPull action (#9456)
   * Response for context on retry database connection (#9444)
   * Refactor webhooks to reduce code duplication (#9422)
-  * chore: update couchbase deps for new license (#9419)
+  * update couchbase deps for new license (#9419)
   * Add .ignore file for search tools (#9417)
   * Remove unsued struct (#9405)
   * Hide not allowed Reactions (#9387)
