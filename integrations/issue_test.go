@@ -11,8 +11,10 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
@@ -87,7 +89,12 @@ func TestViewIssuesKeyword(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-
+	issue := models.AssertExistsAndLoadBean(t, &models.Issue{
+		RepoID: repo.ID,
+		Index:  1,
+	}).(*models.Issue)
+	issues.UpdateIssueIndexer(issue)
+	time.Sleep(time.Second * 1)
 	const keyword = "first"
 	req := NewRequestf(t, "GET", "%s/issues?q=%s", repo.RelLink(), keyword)
 	resp := MakeRequest(t, req, http.StatusOK)
