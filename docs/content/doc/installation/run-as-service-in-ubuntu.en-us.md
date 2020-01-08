@@ -32,6 +32,10 @@ sudo systemctl enable gitea
 sudo systemctl start gitea
 ```
 
+If you have systemd version 220 or later, you can enable and immediately start Gitea at once by:
+```
+sudo systemctl enable gitea --now
+```
 
 #### Using supervisor
 
@@ -57,4 +61,9 @@ Lastly enable and start supervisor at boot:
 ```
 sudo systemctl enable supervisor
 sudo systemctl start supervisor
+```
+
+If you have systemd version 220 or later, you can enable and immediately start supervisor by:
+```
+sudo systemctl enable supervisor --now
 ```
