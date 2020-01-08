@@ -29,7 +29,7 @@ You absolutely must not place a general ToS or privacy statement that implies th
 
 ## Make it Visible
 
-Create or append to `/path/to/custom/templates/custom/extra_links.tmpl`:
+Create or append to `/path/to/custom/templates/custom/extra_links_footer.tmpl`:
 
 ```go
 <a class="item" href="{{AppSubUrl}}/privacy.html">Privacy Policy</a>
