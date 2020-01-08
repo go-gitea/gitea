@@ -28,10 +28,8 @@ PORT or remove the -p flag if default port is used.
 
 Enable and start Gitea at boot:
 ```
-sudo systemctl enable gitea && sudo systemctl start gitea
-
-# for systemd 220 and later
-sudo systemctl enable gitea --now
+sudo systemctl enable gitea
+sudo systemctl start gitea
 ```
 
 
@@ -57,8 +55,6 @@ or remove the -p flag if default port is used.
 
 Lastly enable and start supervisor at boot:
 ```
-sudo systemctl enable supervisor && sudo systemctl start supervisor
-
-# for systemd 220 and later
-sudo systemctl enable supervisor --now
+sudo systemctl enable supervisor
+sudo systemctl start supervisor
 ```
