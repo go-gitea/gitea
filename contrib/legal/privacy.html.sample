@@ -19,15 +19,17 @@
 
   <ol>
    <li>Registration information (username, email, password, etc.)</li>
-   <li>Profile information for your Account (such as your full name, biography, website, and location.)</li>
+   <li>Profile information for your Account (such as your full name, biography, website, gpg key, and location.)</li>
    <li>Usage information (pages you view, your IP address, referring site, session information, and request date and time.)</li>
    <li>Device information (its IP address, client application information, language preference, operating system and application version, device type, ID, model and manufacturer.)</li>
+   <li>Git data that you upload to a repository</li>
    <li>Cookies and Similar Technologies</li>
   </ol>
 
   <p>We may also collect User Personal Information from third-parties (vendors, partners, or affiliates). We don't purchase them from third-party data brokers, though.</p>
 
-  <p>However, we don't intentionally collect sensitive information (such as racial or ethnic origin, political affiliations, religious/philosophical beliefs, biometric data, etc.) If you choose to store any of such data on our servers, you are responsible for complying with any regulations regarding them.</p>
+  <p>However, we don't intentionally collect sensitive information (such as racial or ethnic origin, political affiliations, religious/philosophical beliefs, biometric data, etc.)</p>
+<!--If you choose to store any of such data on our servers, you are responsible for complying with any regulations regarding them.-->
 
   <h2>How We Share Information We Collect?</h2>
 
