@@ -177,12 +177,11 @@ type userAccess struct {
 
 // updateUserAccess updates an access map so that user has at least mode
 func updateUserAccess(accessMap map[int64]*userAccess, user *User, mode AccessMode) {
-	ua, ok := accessMap[user.ID]
-	if !ok {
+	if ua, ok := accessMap[user.ID]; ok {
+		ua.Mode = maxAccessMode(ua.Mode, mode)
+	} else {
 		ua = &userAccess{User: user, Mode: mode}
 		accessMap[user.ID] = ua
-	} else {
-		ua.Mode = maxAccessMode(ua.Mode, mode)
 	}
 }
 
