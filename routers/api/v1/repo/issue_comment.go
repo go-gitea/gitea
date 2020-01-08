@@ -250,6 +250,15 @@ func GetIssueComment(ctx *context.APIContext) {
 		return
 	}
 
+	if err = comment.LoadIssue(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
 	if comment.Type != models.CommentTypeComment {
 		ctx.Status(http.StatusNoContent)
 		return
