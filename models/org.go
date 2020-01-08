@@ -432,7 +432,7 @@ func hasOrgVisible(e Engine, org *User, user *User) bool {
 		return true
 	}
 
-	if org.IsOrganization() && (org.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !org.IsUserPartOfOrg(user.ID) {
+	if org.IsOrganization() && (org.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !org.isUserPartOfOrg(e, user.ID) {
 		return false
 	}
 	return true
