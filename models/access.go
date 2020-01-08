@@ -170,24 +170,40 @@ func maxAccessMode(modes ...AccessMode) AccessMode {
 	return max
 }
 
+type userAccess struct {
+	User *User
+	Mode AccessMode
+}
+
+// updateUserAccess updates an access map so that user has at least mode
+func updateUserAccess(accessMap map[int64]userAccess, user *User, mode AccessMode) {
+	ua, ok := accessMap[user.ID]
+	if !ok {
+		ua = userAccess{User: user, Mode: mode}
+		accessMap[user.ID] = ua
+	} else {
+		ua.Mode = maxAccessMode(ua.Mode, mode)
+	}
+}
+
 // FIXME: do cross-comparison so reduce deletions and additions to the minimum?
-func (repo *Repository) refreshAccesses(e Engine, accessMap map[*User]AccessMode) (err error) {
+func (repo *Repository) refreshAccesses(e Engine, accessMap map[int64]userAccess) (err error) {
 	minMode := AccessModeRead
 	if !repo.IsPrivate {
 		minMode = AccessModeWrite
 	}
 
-	// merge accessMap contents into a single ID-keyed map to eliminate duplicates
-	idMap := make(map[int64]AccessMode, len(accessMap))
-	for user, mode := range accessMap {
-		if mode < minMode && !user.IsRestricted {
+	// build a map of the actual entries we want to create
+	entryMap := make(map[int64]AccessMode, len(accessMap))
+	for userID, ua := range accessMap {
+		if ua.Mode < minMode && !ua.User.IsRestricted {
 			continue
 		}
-		idMap[user.ID] = maxAccessMode(idMap[user.ID], mode)
+		entryMap[userID] = ua.Mode
 	}
 
-	newAccesses := make([]Access, 0, len(idMap))
-	for userID, mode := range idMap {
+	newAccesses := make([]Access, 0, len(entryMap))
+	for userID, mode := range entryMap {
 		newAccesses = append(newAccesses, Access{
 			UserID: userID,
 			RepoID: repo.ID,
@@ -205,13 +221,13 @@ func (repo *Repository) refreshAccesses(e Engine, accessMap map[*User]AccessMode
 }
 
 // refreshCollaboratorAccesses retrieves repository collaborations with their access modes.
-func (repo *Repository) refreshCollaboratorAccesses(e Engine, accessMap map[*User]AccessMode) error {
+func (repo *Repository) refreshCollaboratorAccesses(e Engine, accessMap map[int64]userAccess) error {
 	collaborators, err := repo.getCollaborators(e)
 	if err != nil {
 		return fmt.Errorf("getCollaborations: %v", err)
 	}
 	for _, c := range collaborators {
-		accessMap[c.User] = maxAccessMode(accessMap[c.User], c.Collaboration.Mode)
+		updateUserAccess(accessMap, c.User, c.Collaboration.Mode)
 	}
 	return nil
 }
@@ -220,7 +236,7 @@ func (repo *Repository) refreshCollaboratorAccesses(e Engine, accessMap map[*Use
 // except the team whose ID is given. It is used to assign a team ID when
 // remove repository from that team.
 func (repo *Repository) recalculateTeamAccesses(e Engine, ignTeamID int64) (err error) {
-	accessMap := make(map[*User]AccessMode, 20)
+	accessMap := make(map[int64]userAccess, 20)
 
 	if err = repo.getOwner(e); err != nil {
 		return err
@@ -253,7 +269,7 @@ func (repo *Repository) recalculateTeamAccesses(e Engine, ignTeamID int64) (err 
 			return fmt.Errorf("getMembers '%d': %v", t.ID, err)
 		}
 		for _, m := range t.Members {
-			accessMap[m] = maxAccessMode(accessMap[m], t.Authorize)
+			updateUserAccess(accessMap, m, t.Authorize)
 		}
 	}
 
@@ -314,7 +330,7 @@ func (repo *Repository) recalculateAccesses(e Engine) error {
 		return repo.recalculateTeamAccesses(e, 0)
 	}
 
-	accessMap := make(map[*User]AccessMode, 20)
+	accessMap := make(map[int64]userAccess, 20)
 	if err := repo.refreshCollaboratorAccesses(e, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
