@@ -20,7 +20,7 @@ Some jurisdictions (such as EU), requires certain legal pages (e.g. Privacy Poli
 Gitea source code ships with sample pages, available in `contrib/legal` directory. Copy them to `custom/public/`. For example, to add Privacy Policy:
 
 ```
-cp $GOPATH/src/code.gitea.io/gitea/contrib/legal/privacy.html.sample /path/to/custom/public/
+cp $GOPATH/src/code.gitea.io/gitea/contrib/legal/privacy.html.sample /path/to/custom/public/privacy.html
 ```
 
 Now you need to edit the page to meet your requirements. In particular you must change the email addresses, web addresses and references to "Your Gitea Instance" to match your situation.
