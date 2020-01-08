@@ -13,7 +13,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Hide some user information via API if user have no enough permission (#8655)
   * Move startpage/homepage translation to crowdin (#8596)
   * Allow Protected Branches to Whitelist Deploy Keys (#8483)
-* FEATURE
+* FEATURES
   * Webhooks should only show sender if it makes sense (#9601)
   * Provide Default messages for merges (#9393)
   * Add description to labels on create issue (#9392)
@@ -45,6 +45,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Sign merges, CRUD, Wiki and Repository initialisation with gpg key (#7631)
   * Add basic repository lfs management (#7199)
 * BUGFIXES
+  * Disable remove button on repository teams when have access to all (#9640)
   * Clean up old references on branch delete (#9614)
   * Hide public repos owned by private orgs (#9609)
   * Fix access issues on milestone and issue overview pages. (#9603)
@@ -173,7 +174,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add missed close in ServeBlobLFS (#8527)
   * Fix migrate mirror 500 bug (#8526)
   * Fix password complexity regex for special characters (on master) (#8525)
-* ENHANCEMENT
+* ENHANCEMENTS
   * Add a /user/login landing page option (#9622)
   * Some more e-mail notification fixes (#9596)
   * Add branch protection option to block merge on requested changes. (#9592)
