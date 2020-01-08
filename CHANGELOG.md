@@ -439,7 +439,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Be more strict with git arguments (#7715)
   * Extract the username and password from the mirror url (#7651)
   * reserve .well-known username (#7637)
-* FEATURE
+* FEATURES
   * Org/Members: display 2FA members states + optimize sql requests (#7621)
   * SetDefaultBranch on pushing to empty repository (#7610)
   * Adds side-by-side diff for images (#6784)
@@ -598,7 +598,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * fix post parameter - on issue list - unset assignee (#7380)
   * fix/define autochecked checkboxes on issue list in firefox (#7320)
   * only return head: null if source branch was deleted (#6705)
-* ENHANCEMENT
+* ENHANCEMENTS
   * Add nofollow to sign in links (#8509)
   * vendor: update mvdan.cc/xurls/v2 to v2.1.0 (#8495)
   * Update milestone issues numbers when save milestone and other code improvements (#8411)
@@ -792,7 +792,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix adding default Telegram webhook (#7972) (#7992)
   * Abort synchronization from LDAP source if there is some error (#7965)
   * Fix deformed emoji in commit message (#8071)
-* ENHANCEMENT
+* ENHANCEMENTS
   * Keep blame view buttons sequence consistent with normal view when viewing a file (#8007) (#8009)
 
 ## [1.9.2](https://github.com/go-gitea/gitea/releases/tag/v1.9.2) - 2019-08-22
@@ -804,7 +804,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * SECURITY
   * Fix No PGP signature on 1.9.1 tag (#7874)
   * Release built with go 1.12.9 to fix security fixes in golang std lib, ref: https://groups.google.com/forum/#!msg/golang-announce/oeMaeUnkvVE/a49yvTLqAAAJ
-* ENHANCEMENT
+* ENHANCEMENTS
   * Fix pull creation with empty changes (#7920) (#7926)
 * BUILD
   * Drone/docker: prepare multi-arch release + provide arm64 image (#7571) (#7884)
@@ -845,7 +845,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Reserve .well-known username (#7638)
   * Do not leak secrets via timing side channel (#7364)
   * Ensure that decryption of cookie actually suceeds (#7363)
-* FEATURE
+* FEATURES
   * Content API for Creating, Updating, Deleting Files (#6314)
   * Enable tls-alpn-01: Use certmanager provided TLSConfig for LetsEncrypt (#7229)
   * Add command to convert mysql database from utf8 to utf8mb4 (#7144)
@@ -1036,7 +1036,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix bug manifest.json will not request with cookie so that session will created every request (#6372)
   * Disable benchmarking during tag events on DroneIO (#6365)
   * Comments list performance optimization (#5305)
-* ENHANCEMENT
+* ENHANCEMENTS
   * Update Drone docker generation to standard format (#7480) (#7496) (#7504)
   * Add API Endpoint for Repo Edit (#7006)
   * Add state param to milestone listing API (#7131)
@@ -1256,8 +1256,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Releases API paging (#5831)
   * Allow Macaron to be set to log through to gitea.log (#5667)
   * Don't close issues via commits on non-default branch (#5622)
-* FEATURE
-  * Add regenerate secret feature for oauth2 (#6291)
+* FEATURES
+  * Add regenerate secret FEATURES for oauth2 (#6291)
   * Expose issue stopwatch toggling via API (#5970)
   * Add other session providers (#5963)
   * Pull request conflict files detection (#5951)
@@ -1267,7 +1267,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Discord Oauth2 support (#4476)
   * Allow to set organization visibility (public, internal, private) (#1763)
   * Added URL mapping for Release attachments like on github.com (#1707)
-* ENHANCEMENT
+* ENHANCEMENTS
   * Add support for client basic auth for exchanging access tokens (#6293)
   * Add ability to sort issues by due date (#6206) (#6244)
   * Style tweaks to issue selection (#6196)
@@ -1557,7 +1557,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BREAKING
   * Restrict permission check on repositories and fix some problems (#5314)
   * Show only opened milestones on issues page milestone filter (#5051)
-* FEATURE
+* FEATURES
   * Implement git refs API for listing references (branches, tags and other) (#5354)
   * Approvals at Branch Protection (#5350)
   * Add raw blob endpoint to get objects by SHA ID (#5334)
@@ -1642,7 +1642,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * LDAP via simple auth separate bind user and search base (#5055)
   * Fix markdown image with link (#4675)
   * Fix to 3819 - Filtering issues by tags on main screen issues (#3824)
-* ENHANCEMENT
+* ENHANCEMENTS
   * Delete organization endpoint added (#5601)
   * Update Licenses (#5558)
   * Support reverse proxy providing email (#5554)
@@ -1752,7 +1752,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Make cookies HttpOnly and obey COOKIE_SECURE flag (#4706)
   * Don't disclose emails of all users when sending out emails (#4664)
   * Check that repositories can only be migrated to own user or organizations (#4366)
-* FEATURE
+* FEATURES
   * Add comment replies (#5147) (#5104)
   * Pull request review/approval and comment on code (#3748)
   * Added dependencies for issues (#2196) (#2531)
@@ -1765,7 +1765,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add push webhook support for mirrored repositories (#4127)
   * Add csv file render support defaultly (#4105)
   * Add Recaptcha functionality to Gitea (#4044)
-* ENHANCEMENT
+* ENHANCEMENTS
   * Fix milestones sorted wrongly (#4987)
   * Allow api to create tags for releases if they don't exist (#4890)
   * Fix #4877 to follow the OpenID Connect Audiences spec (#4878)
@@ -1947,7 +1947,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix bugs when too many IN variables (#4594) (#4597)
   * Push whitelist now doesn't apply to branch deletion (#4601) (#4640)
   * Site admin could create repos even MAX_CREATION_LIMIT=0 (#4645) (#4650)
-* FEATURE
+* FEATURES
   * Add cli commands to regen hooks & keys (#3979)
   * Add support for FIDO U2F (#3971)
   * Added user language setting (#3875)
@@ -1961,7 +1961,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add repository setting to enable/disable health checks (#3607)
   * Emoji Autocomplete (#3433)
   * Implements generator cli for secrets (#3531)
-* ENHANCEMENT
+* ENHANCEMENTS
   * Add more webhooks support and refactor webhook templates directory (#3929)
   * Add new option to allow only OAuth2/OpenID user registration (#3910)
   * Add option to use paged LDAP search when synchronizing users (#3895)
@@ -2045,7 +2045,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix escaping changed title in comments (#3530) (#3534)
   * Escape search query (#3486) (#3488)
   * Sanitize logs for mirror sync (#3057)
-* FEATURE
+* FEATURES
   * Serve .patch and .diff for pull requests (#3305, #3293)
   * Add repo-sync-releases admin command (#3254)
   * Support default private when creating or migrating repository (#3239)
@@ -2108,7 +2108,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix go-get, src and raw urls to new scheme (#2978)
   * Fix error when add user has full name to team (#2973)
   * Fix memcache support when value is returned as string always (#2924)
-* ENHANCEMENT
+* ENHANCEMENTS
   * Use GiteaServer as the user agent for http requests (#3404)
   * Delete indexer DB entries when (re)creating index (#3385)
   * Change how merged PR commit info are prepared (#3368)
@@ -2167,7 +2167,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.3.0](https://github.com/go-gitea/gitea/releases/tag/v1.3.0) - 2017-11-29
 * BREAKING
   * Make URL scheme unambiguous (#2408)
-* FEATURE
+* FEATURES
   * Add branch overiew page (#2108)
   * Code/repo search (#2582)
   * Add Activity page to repository (#2674)
@@ -2271,7 +2271,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix typos in app.ini (#2732)
   * Fix duplicated rel attribute (#2549)
   * Fix tests code to prevent some runtime errors (#2381)
-* ENHANCEMENT
+* ENHANCEMENTS
   * Memory usage improvements and lower minimal git requirement to 1.7.2 (#3013) (#3028)
   * Set OpenID support on by default when installing new instance (#3010) (#3027)
   * Use api.TrackedTime in API (#2807)
@@ -2417,7 +2417,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Sanitation fix from Gogs (#1461)
 * BREAKING
   * Rename /forget_password url to /forgot_password (#1219)
-* FEATURE
+* FEATURES
   * Logo: Add task to generate images from SVG and change to new logo (#2194)
   * Status-API (#1332)
   * Show commit status icon in commits table (#1688)
@@ -2444,7 +2444,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add change-password admin command (#1304)
   * Only use issue and wiki on repo. (#1297)
   * Allow push to init a wiki repo (#1279)
-* ENHANCEMENT
+* ENHANCEMENTS
   * Make time diff translatable (#2057)
   * Smaller watch, star, and fork buttons (#2052)
   * Display config file path on admin panel (#2030)
@@ -2939,7 +2939,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 * BREAKING
   * The SSH keys can potentially break, make sure to regenerate the authorized keys
-* FEATURE
+* FEATURES
   * Git LFSv2 support [#122](https://github.com/go-gitea/gitea/pull/122)
   * API endpoints for repo watching [#191](https://github.com/go-gitea/gitea/pull/191)
   * Search within private repos [#222](https://github.com/go-gitea/gitea/pull/222)
@@ -2991,7 +2991,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Don't rewrite non-gitea public keys [#906](https://github.com/go-gitea/gitea/pull/906)
   * Use fingerprint to check instead content for public key [#911](https://github.com/go-gitea/gitea/pull/911)
   * Fix random avatars [#1147](https://github.com/go-gitea/gitea/pull/1147)
-* ENHANCEMENT
+* ENHANCEMENTS
   * Refactored process manager [#75](https://github.com/go-gitea/gitea/pull/75)
   * Restrict rights to create new orgs [#193](https://github.com/go-gitea/gitea/pull/193)
   * Added label and milestone sorting [#199](https://github.com/go-gitea/gitea/pull/199)
@@ -3053,7 +3053,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 * BREAKING
   * We have various changes on the API, scripting against API must be updated
-* FEATURE
+* FEATURES
   * Show last login for admins [#121](https://github.com/go-gitea/gitea/pull/121)
 * BUGFIXES
   * Fixed sender of notifications [#2](https://github.com/go-gitea/gitea/pull/2)
@@ -3066,7 +3066,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Replace tabs with spaces on wiki title [#371](https://github.com/go-gitea/gitea/pull/371)
   * Fixed vulnerability on labels and releases [#409](https://github.com/go-gitea/gitea/pull/409)
   * Fixed issue comment API [#449](https://github.com/go-gitea/gitea/pull/449)
-* ENHANCEMENT
+* ENHANCEMENTS
   * Use proper import path for libravatar [#3](https://github.com/go-gitea/gitea/pull/3)
   * Integrated DroneCI for tests and builds [#24](https://github.com/go-gitea/gitea/issues/24)
   * Integrated dependency manager [#29](https://github.com/go-gitea/gitea/issues/29)
