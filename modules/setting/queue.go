@@ -45,7 +45,7 @@ func GetQueueSettings(name string) QueueSettings {
 	q := QueueSettings{}
 	sec := Cfg.Section("queue." + name)
 	// DataDir is not directly inheritable
-	q.DataDir = path.Join(Queue.DataDir, name)
+	q.DataDir = filepath.Join(Queue.DataDir, name)
 	// QueueName is not directly inheritable either
 	q.QueueName = name + Queue.QueueName
 	for _, key := range sec.Keys() {
