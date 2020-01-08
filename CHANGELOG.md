@@ -1257,7 +1257,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Allow Macaron to be set to log through to gitea.log (#5667)
   * Don't close issues via commits on non-default branch (#5622)
 * FEATURES
-  * Add regenerate secret FEATURES for oauth2 (#6291)
+  * Add regenerate secret feature for oauth2 (#6291)
   * Expose issue stopwatch toggling via API (#5970)
   * Add other session providers (#5963)
   * Pull request conflict files detection (#5951)
