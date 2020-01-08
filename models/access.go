@@ -176,10 +176,10 @@ type userAccess struct {
 }
 
 // updateUserAccess updates an access map so that user has at least mode
-func updateUserAccess(accessMap map[int64]userAccess, user *User, mode AccessMode) {
+func updateUserAccess(accessMap map[int64]*userAccess, user *User, mode AccessMode) {
 	ua, ok := accessMap[user.ID]
 	if !ok {
-		ua = userAccess{User: user, Mode: mode}
+		ua = &userAccess{User: user, Mode: mode}
 		accessMap[user.ID] = ua
 	} else {
 		ua.Mode = maxAccessMode(ua.Mode, mode)
@@ -187,7 +187,7 @@ func updateUserAccess(accessMap map[int64]userAccess, user *User, mode AccessMod
 }
 
 // FIXME: do cross-comparison so reduce deletions and additions to the minimum?
-func (repo *Repository) refreshAccesses(e Engine, accessMap map[int64]userAccess) (err error) {
+func (repo *Repository) refreshAccesses(e Engine, accessMap map[int64]*userAccess) (err error) {
 	minMode := AccessModeRead
 	if !repo.IsPrivate {
 		minMode = AccessModeWrite
@@ -221,7 +221,7 @@ func (repo *Repository) refreshAccesses(e Engine, accessMap map[int64]userAccess
 }
 
 // refreshCollaboratorAccesses retrieves repository collaborations with their access modes.
-func (repo *Repository) refreshCollaboratorAccesses(e Engine, accessMap map[int64]userAccess) error {
+func (repo *Repository) refreshCollaboratorAccesses(e Engine, accessMap map[int64]*userAccess) error {
 	collaborators, err := repo.getCollaborators(e)
 	if err != nil {
 		return fmt.Errorf("getCollaborations: %v", err)
@@ -236,7 +236,7 @@ func (repo *Repository) refreshCollaboratorAccesses(e Engine, accessMap map[int6
 // except the team whose ID is given. It is used to assign a team ID when
 // remove repository from that team.
 func (repo *Repository) recalculateTeamAccesses(e Engine, ignTeamID int64) (err error) {
-	accessMap := make(map[int64]userAccess, 20)
+	accessMap := make(map[int64]*userAccess, 20)
 
 	if err = repo.getOwner(e); err != nil {
 		return err
@@ -330,7 +330,7 @@ func (repo *Repository) recalculateAccesses(e Engine) error {
 		return repo.recalculateTeamAccesses(e, 0)
 	}
 
-	accessMap := make(map[int64]userAccess, 20)
+	accessMap := make(map[int64]*userAccess, 20)
 	if err := repo.refreshCollaboratorAccesses(e, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
