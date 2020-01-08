@@ -180,8 +180,7 @@ func updateUserAccess(accessMap map[int64]*userAccess, user *User, mode AccessMo
 	if ua, ok := accessMap[user.ID]; ok {
 		ua.Mode = maxAccessMode(ua.Mode, mode)
 	} else {
-		ua = &userAccess{User: user, Mode: mode}
-		accessMap[user.ID] = ua
+		accessMap[user.ID] = &userAccess{User: user, Mode: mode}
 	}
 }
 
