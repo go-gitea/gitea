@@ -406,8 +406,7 @@ func (n *Notification) loadUser(e Engine) (err error) {
 
 // GetRepo returns the repo of the notification
 func (n *Notification) GetRepo() (*Repository, error) {
-	err := n.loadRepo(x)
-	return n.Repository, err
+	return n.Repository, n.loadRepo(x)
 }
 
 // GetIssue returns the issue of the notification
