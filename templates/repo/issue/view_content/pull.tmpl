@@ -13,6 +13,11 @@
 							{{else}}grey{{end}}">
 							<span class="octicon octicon-{{.Type.Icon}}"></span>
 						</span>
+						{{if .Stale}}
+						<span class="type-icon text grey">
+							<i class="octicon icon fa-hourglass-end"></i>
+						</span>
+						{{end}}
 						<a class="ui avatar image" href="{{.Reviewer.HomeLink}}">
 							<img src="{{.Reviewer.RelAvatarLink}}">
 						</a>
