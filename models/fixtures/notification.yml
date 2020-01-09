@@ -7,7 +7,7 @@
   updated_by: 2
   issue_id: 1
   created_unix: 946684800
-  updated_unix: 946684800
+  updated_unix: 946684820
 
 -
   id: 2
@@ -17,8 +17,8 @@
   source: 1 # issue
   updated_by: 1
   issue_id: 2
-  created_unix: 946684800
-  updated_unix: 946684800
+  created_unix: 946685800
+  updated_unix: 946685820
 
 -
   id: 3
@@ -27,9 +27,9 @@
   status: 3 # pinned
   source: 1 # issue
   updated_by: 1
-  issue_id: 2
-  created_unix: 946684800
-  updated_unix: 946684800
+  issue_id: 3
+  created_unix: 946686800
+  updated_unix: 946686800
 
 -
   id: 4
@@ -38,6 +38,17 @@
   status: 1 # unread
   source: 1 # issue
   updated_by: 1
-  issue_id: 2
-  created_unix: 946684800
-  updated_unix: 946684800
+  issue_id: 5
+  created_unix: 946687800
+  updated_unix: 946687800
+
+-
+  id: 5
+  user_id: 2
+  repo_id: 2
+  status: 1 # unread
+  source: 1 # issue
+  updated_by: 5
+  issue_id: 4
+  created_unix: 946688800
+  updated_unix: 946688820
