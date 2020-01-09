@@ -125,7 +125,6 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 	}
 
 	if gt != nil {
-
 		if err := os.Remove(gt.Path); err != nil {
 			return fmt.Errorf("remove .giteatemplate: %v", err)
 		}
