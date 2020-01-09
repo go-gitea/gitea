@@ -376,23 +376,21 @@ func (issue *Issue) apiFormat(e Engine) *api.Issue {
 		apiLabels[i] = issue.Labels[i].APIFormat()
 	}
 
-	issue.loadMilestone(e)
 	issue.loadPoster(e)
 	issue.loadRepo(e)
 	apiIssue := &api.Issue{
-		ID:        issue.ID,
-		URL:       issue.APIURL(),
-		HTMLURL:   issue.HTMLURL(),
-		Index:     issue.Index,
-		Poster:    issue.Poster.APIFormat(),
-		Title:     issue.Title,
-		Body:      issue.Content,
-		Labels:    apiLabels,
-		Milestone: issue.Milestone.APIFormat(),
-		State:     issue.State(),
-		Comments:  issue.NumComments,
-		Created:   issue.CreatedUnix.AsTime(),
-		Updated:   issue.UpdatedUnix.AsTime(),
+		ID:       issue.ID,
+		URL:      issue.APIURL(),
+		HTMLURL:  issue.HTMLURL(),
+		Index:    issue.Index,
+		Poster:   issue.Poster.APIFormat(),
+		Title:    issue.Title,
+		Body:     issue.Content,
+		Labels:   apiLabels,
+		State:    issue.State(),
+		Comments: issue.NumComments,
+		Created:  issue.CreatedUnix.AsTime(),
+		Updated:  issue.UpdatedUnix.AsTime(),
 	}
 
 	apiIssue.Repo = &api.RepositoryMeta{
@@ -405,11 +403,12 @@ func (issue *Issue) apiFormat(e Engine) *api.Issue {
 		apiIssue.Closed = issue.ClosedUnix.AsTimePtr()
 	}
 
+	issue.loadMilestone(e)
 	if issue.Milestone != nil {
 		apiIssue.Milestone = issue.Milestone.APIFormat()
 	}
-	issue.loadAssignees(e)
 
+	issue.loadAssignees(e)
 	if len(issue.Assignees) > 0 {
 		for _, assignee := range issue.Assignees {
 			apiIssue.Assignees = append(apiIssue.Assignees, assignee.APIFormat())
