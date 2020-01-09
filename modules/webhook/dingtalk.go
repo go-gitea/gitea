@@ -142,7 +142,7 @@ func getDingtalkIssuesPayload(p *api.IssuePayload) (*DingtalkPayload, error) {
 			Title:       issueTitle,
 			HideAvatar:  "0",
 			SingleTitle: "view issue",
-			SingleURL:   p.Issue.URL,
+			SingleURL:   p.Issue.HTMLURL,
 		},
 	}, nil
 }
