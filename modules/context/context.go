@@ -122,7 +122,7 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 		}
 
 		u, err := url.Parse(loc)
-		if err != nil || (u.Scheme != "" && !strings.HasPrefix(strings.ToLower(loc), strings.ToLower(setting.AppURL))) {
+		if err != nil || ((u.Scheme != "" || u.Host != "") && !strings.HasPrefix(strings.ToLower(loc), strings.ToLower(setting.AppURL))) {
 			continue
 		}
 
