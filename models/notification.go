@@ -411,8 +411,7 @@ func (n *Notification) GetRepo() (*Repository, error) {
 
 // GetIssue returns the issue of the notification
 func (n *Notification) GetIssue() (*Issue, error) {
-	err := n.loadIssue(x)
-	return n.Issue, err
+	return n.Issue, n.loadIssue(x)
 }
 
 // HTMLURL formats a URL-string to the notification
