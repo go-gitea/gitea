@@ -604,17 +604,15 @@ func RegisterRoutes(m *macaron.Macaron) {
 		}, reqToken())
 
 		// Repositories
-		m.Post("/org/:org/repos", reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
-
-		m.Group("/repos", func() {
-			m.Get("/search", repo.Search)
-		})
-
-		m.Get("/repos/issues/search", repo.SearchIssues)
+		m.Post("/org/:org/repos", reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepoDeprecated)
 
 		m.Combo("/repositories/:id", reqToken()).Get(repo.GetByID)
 
 		m.Group("/repos", func() {
+			m.Get("/search", repo.Search)
+
+			m.Get("/issues/search", repo.SearchIssues)
+
 			m.Post("/migrate", reqToken(), bind(auth.MigrateRepoForm{}), repo.Migrate)
 
 			m.Group("/:username/:reponame", func() {
@@ -824,10 +822,11 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Get("/users/:username/orgs", org.ListUserOrgs)
 		m.Post("/orgs", reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Group("/orgs/:orgname", func() {
-			m.Get("/repos", user.ListOrgRepos)
 			m.Combo("").Get(org.Get).
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)
+			m.Combo("/repos").Get(user.ListOrgRepos).
+				Post(reqToken(), bind(api.CreateRepoOption{}), repo.CreateOrgRepo)
 			m.Group("/members", func() {
 				m.Get("", org.ListMembers)
 				m.Combo("/:username").Get(org.IsMember).
