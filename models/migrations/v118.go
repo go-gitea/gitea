@@ -4,14 +4,23 @@
 
 package migrations
 
-import "xorm.io/xorm"
+import (
+	"xorm.io/xorm"
+)
 
-func addIsRestricted(x *xorm.Engine) error {
-	// User see models/user.go
-	type User struct {
-		ID           int64 `xorm:"pk autoincr"`
-		IsRestricted bool  `xorm:"NOT NULL DEFAULT false"`
+func addReviewCommitAndStale(x *xorm.Engine) error {
+	type Review struct {
+		CommitID string `xorm:"VARCHAR(40)"`
+		Stale    bool   `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync2(new(User))
+	type ProtectedBranch struct {
+		DismissStaleApprovals bool `xorm:"NOT NULL DEFAULT false"`
+	}
+
+	// Old reviews will have commit ID set to "" and not stale
+	if err := x.Sync2(new(Review)); err != nil {
+		return err
+	}
+	return x.Sync2(new(ProtectedBranch))
 }

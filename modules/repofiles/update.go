@@ -477,7 +477,7 @@ func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) 
 
 	log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
-	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true)
+	go pull_service.AddTestPullRequestTask(pusher, repo.ID, branch, true, opts.OldCommitID, opts.NewCommitID)
 
 	if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
 		log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
@@ -528,7 +528,7 @@ func PushUpdates(repo *models.Repository, optsList []*PushUpdateOptions) error {
 
 		log.Trace("TriggerTask '%s/%s' by %s", repo.Name, opts.Branch, pusher.Name)
 
-		go pull_service.AddTestPullRequestTask(pusher, repo.ID, opts.Branch, true)
+		go pull_service.AddTestPullRequestTask(pusher, repo.ID, opts.Branch, true, opts.OldCommitID, opts.NewCommitID)
 
 		if err = models.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
 			log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)

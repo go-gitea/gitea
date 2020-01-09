@@ -196,7 +196,7 @@ func (repo *Repository) refreshAccesses(e Engine, accessMap map[int64]*userAcces
 		if ua.Mode < minMode && !ua.User.IsRestricted {
 			continue
 		}
-		
+
 		newAccesses = append(newAccesses, Access{
 			UserID: userID,
 			RepoID: repo.ID,
