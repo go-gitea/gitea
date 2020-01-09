@@ -112,3 +112,9 @@ func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 	return NewCommand("format-patch", "--binary", "--stdout", base+"..."+head).
 		RunInDirPipeline(repo.Path, w, nil)
 }
+
+// GetDiffFromMergeBase generates and return patch data from merge base to head
+func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) error {
+	return NewCommand("diff", "-p", "--binary", base+"..."+head).
+		RunInDirPipeline(repo.Path, w, nil)
+}

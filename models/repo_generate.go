@@ -124,41 +124,43 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 		return fmt.Errorf("checkGiteaTemplate: %v", err)
 	}
 
-	if err := os.Remove(gt.Path); err != nil {
-		return fmt.Errorf("remove .giteatemplate: %v", err)
-	}
+	if gt != nil {
+		if err := os.Remove(gt.Path); err != nil {
+			return fmt.Errorf("remove .giteatemplate: %v", err)
+		}
 
-	// Avoid walking tree if there are no globs
-	if len(gt.Globs()) > 0 {
-		tmpDirSlash := strings.TrimSuffix(filepath.ToSlash(tmpDir), "/") + "/"
-		if err := filepath.Walk(tmpDirSlash, func(path string, info os.FileInfo, walkErr error) error {
-			if walkErr != nil {
-				return walkErr
-			}
-
-			if info.IsDir() {
-				return nil
-			}
-
-			base := strings.TrimPrefix(filepath.ToSlash(path), tmpDirSlash)
-			for _, g := range gt.Globs() {
-				if g.Match(base) {
-					content, err := ioutil.ReadFile(path)
-					if err != nil {
-						return err
-					}
-
-					if err := ioutil.WriteFile(path,
-						[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
-						0644); err != nil {
-						return err
-					}
-					break
+		// Avoid walking tree if there are no globs
+		if len(gt.Globs()) > 0 {
+			tmpDirSlash := strings.TrimSuffix(filepath.ToSlash(tmpDir), "/") + "/"
+			if err := filepath.Walk(tmpDirSlash, func(path string, info os.FileInfo, walkErr error) error {
+				if walkErr != nil {
+					return walkErr
 				}
+
+				if info.IsDir() {
+					return nil
+				}
+
+				base := strings.TrimPrefix(filepath.ToSlash(path), tmpDirSlash)
+				for _, g := range gt.Globs() {
+					if g.Match(base) {
+						content, err := ioutil.ReadFile(path)
+						if err != nil {
+							return err
+						}
+
+						if err := ioutil.WriteFile(path,
+							[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
+							0644); err != nil {
+							return err
+						}
+						break
+					}
+				}
+				return nil
+			}); err != nil {
+				return err
 			}
-			return nil
-		}); err != nil {
-			return err
 		}
 	}
 
