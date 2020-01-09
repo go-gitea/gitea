@@ -1498,7 +1498,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
 	}
 
-	if opts.Actor != nil && opts.Type == UserTypeOrganization {
+	if opts.Actor != nil {
 		var exprCond builder.Cond
 		if setting.Database.UseMySQL {
 			exprCond = builder.Expr("org_user.org_id = user.id")
