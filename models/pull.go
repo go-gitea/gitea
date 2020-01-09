@@ -35,6 +35,7 @@ const (
 	PullRequestStatusChecking
 	PullRequestStatusMergeable
 	PullRequestStatusManuallyMerged
+	PullRequestStatusError
 )
 
 // PullRequest represents relation between pull request and repositories.
