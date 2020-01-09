@@ -79,6 +79,9 @@ func (g *GiteaASTTransformer) Transform(node *ast.Document, reader text.Reader, 
 				}
 				link = []byte(giteautil.URLJoin(pc.Get(urlPrefixKey).(string), lnk))
 			}
+			if len(link) > 0 && link[0] == '#' {
+				link = []byte("#user-content-" + string(link)[1:])
+			}
 			v.Destination = link
 		}
 		return ast.WalkContinue, nil
