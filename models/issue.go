@@ -843,6 +843,20 @@ func (issue *Issue) GetLastEventLabel() string {
 	return "repo.issues.opened_by"
 }
 
+// GetLastComment return last comment for the current issue.
+func (issue *Issue) GetLastComment() (*Comment, error) {
+	var c Comment
+	exist, err := x.Where("type = ?", CommentTypeComment).
+		And("issue_id = ?", issue.ID).Desc("id").Get(&c)
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
+		return nil, nil
+	}
+	return &c, nil
+}
+
 // GetLastEventLabelFake returns the localization label for the current issue without providing a link in the username.
 func (issue *Issue) GetLastEventLabelFake() string {
 	if issue.IsClosed {
