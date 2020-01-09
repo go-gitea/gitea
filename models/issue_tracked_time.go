@@ -100,10 +100,12 @@ func (tl TrackedTimeList) APIFormat() api.TrackedTimeList {
 
 // FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.
 type FindTrackedTimesOptions struct {
-	IssueID      int64
-	UserID       int64
-	RepositoryID int64
-	MilestoneID  int64
+	IssueID           int64
+	UserID            int64
+	RepositoryID      int64
+	MilestoneID       int64
+	CreatedAfterUnix  int64
+	CreatedBeforeUnix int64
 }
 
 // ToCond will convert each condition into a xorm-Cond
@@ -120,6 +122,12 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 	}
 	if opts.MilestoneID != 0 {
 		cond = cond.And(builder.Eq{"issue.milestone_id": opts.MilestoneID})
+	}
+	if opts.CreatedAfterUnix != 0 {
+		cond = cond.And(builder.Gte{"tracked_time.created_unix": opts.CreatedAfterUnix})
+	}
+	if opts.CreatedBeforeUnix != 0 {
+		cond = cond.And(builder.Lte{"tracked_time.created_unix": opts.CreatedBeforeUnix})
 	}
 	return cond
 }

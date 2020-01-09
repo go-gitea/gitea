@@ -5,10 +5,14 @@
 package pull
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"path"
+	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -16,6 +20,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	issue_service "code.gitea.io/gitea/services/issue"
+
+	"github.com/unknwon/com"
 )
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -168,7 +174,7 @@ func addHeadRepoTasks(prs []*models.PullRequest) {
 
 // AddTestPullRequestTask adds new test tasks by given head/base repository and head/base branch,
 // and generate new patch for testing as needed.
-func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSync bool) {
+func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSync bool, oldCommitID, newCommitID string) {
 	log.Trace("AddTestPullRequestTask [head_repo_id: %d, head_branch: %s]: finding pull requests", repoID, branch)
 	graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
 		// There is no sensible way to shut this down ":-("
@@ -191,6 +197,22 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 			}
 			if err == nil {
 				for _, pr := range prs {
+					if newCommitID != "" && newCommitID != git.EmptySHA {
+						changed, err := checkIfPRContentChanged(pr, oldCommitID, newCommitID)
+						if err != nil {
+							log.Error("checkIfPRContentChanged: %v", err)
+						}
+						if changed {
+							// Mark old reviews as stale if diff to mergebase has changed
+							if err := models.MarkReviewsAsStale(pr.IssueID); err != nil {
+								log.Error("MarkReviewsAsStale: %v", err)
+							}
+						}
+						if err := models.MarkReviewsAsNotStale(pr.IssueID, newCommitID); err != nil {
+							log.Error("MarkReviewsAsNotStale: %v", err)
+						}
+					}
+
 					pr.Issue.PullRequest = pr
 					notification.NotifyPullRequestSynchronized(doer, pr)
 				}
@@ -209,6 +231,78 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 			AddToTaskQueue(pr)
 		}
 	})
+}
+
+// checkIfPRContentChanged checks if diff to target branch has changed by push
+// A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
+func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
+
+	if err = pr.GetHeadRepo(); err != nil {
+		return false, fmt.Errorf("GetHeadRepo: %v", err)
+	} else if pr.HeadRepo == nil {
+		// corrupt data assumed changed
+		return true, nil
+	}
+
+	if err = pr.GetBaseRepo(); err != nil {
+		return false, fmt.Errorf("GetBaseRepo: %v", err)
+	}
+
+	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		return false, fmt.Errorf("OpenRepository: %v", err)
+	}
+	defer headGitRepo.Close()
+
+	// Add a temporary remote.
+	tmpRemote := "checkIfPRContentChanged-" + com.ToStr(time.Now().UnixNano())
+	if err = headGitRepo.AddRemote(tmpRemote, models.RepoPath(pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name), true); err != nil {
+		return false, fmt.Errorf("AddRemote: %s/%s-%s: %v", pr.HeadRepo.OwnerName, pr.HeadRepo.Name, tmpRemote, err)
+	}
+	defer func() {
+		if err := headGitRepo.RemoveRemote(tmpRemote); err != nil {
+			log.Error("checkIfPRContentChanged: RemoveRemote: %s/%s-%s: %v", pr.HeadRepo.OwnerName, pr.HeadRepo.Name, tmpRemote, err)
+		}
+	}()
+	// To synchronize repo and get a base ref
+	_, base, err := headGitRepo.GetMergeBase(tmpRemote, pr.BaseBranch, pr.HeadBranch)
+	if err != nil {
+		return false, fmt.Errorf("GetMergeBase: %v", err)
+	}
+
+	diffBefore := &bytes.Buffer{}
+	diffAfter := &bytes.Buffer{}
+	if err := headGitRepo.GetDiffFromMergeBase(base, oldCommitID, diffBefore); err != nil {
+		// If old commit not found, assume changed.
+		log.Debug("GetDiffFromMergeBase: %v", err)
+		return true, nil
+	}
+	if err := headGitRepo.GetDiffFromMergeBase(base, newCommitID, diffAfter); err != nil {
+		// New commit should be found
+		return false, fmt.Errorf("GetDiffFromMergeBase: %v", err)
+	}
+
+	diffBeforeLines := bufio.NewScanner(diffBefore)
+	diffAfterLines := bufio.NewScanner(diffAfter)
+
+	for diffBeforeLines.Scan() && diffAfterLines.Scan() {
+		if strings.HasPrefix(diffBeforeLines.Text(), "index") && strings.HasPrefix(diffAfterLines.Text(), "index") {
+			// file hashes can change without the diff changing
+			continue
+		} else if strings.HasPrefix(diffBeforeLines.Text(), "@@") && strings.HasPrefix(diffAfterLines.Text(), "@@") {
+			// the location of the difference may change
+			continue
+		} else if !bytes.Equal(diffBeforeLines.Bytes(), diffAfterLines.Bytes()) {
+			return true, nil
+		}
+	}
+
+	if diffBeforeLines.Scan() || diffAfterLines.Scan() {
+		// Diffs not of equal length
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // PushToBaseRepo pushes commits from branches of head repository to

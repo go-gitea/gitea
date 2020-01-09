@@ -70,6 +70,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/admin"
 	"code.gitea.io/gitea/routers/api/v1/misc"
+	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
@@ -512,6 +513,16 @@ func RegisterRoutes(m *macaron.Macaron) {
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
 
+		// Notifications
+		m.Group("/notifications", func() {
+			m.Combo("").
+				Get(notify.ListNotifications).
+				Put(notify.ReadNotifications)
+			m.Combo("/threads/:id").
+				Get(notify.GetThread).
+				Patch(notify.ReadThread)
+		}, reqToken())
+
 		// Users
 		m.Group("/users", func() {
 			m.Get("/search", user.Search)
@@ -610,6 +621,9 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), context.RepoRef(), repo.Edit)
+				m.Combo("/notifications").
+					Get(reqToken(), notify.ListRepoNotifications).
+					Put(reqToken(), notify.ReadRepoNotifications)
 				m.Group("/hooks", func() {
 					m.Combo("").Get(repo.ListHooks).
 						Post(bind(api.CreateHookOption{}), repo.CreateHook)
@@ -654,7 +668,7 @@ func RegisterRoutes(m *macaron.Macaron) {
 				m.Group("/times", func() {
 					m.Combo("").Get(repo.ListTrackedTimesByRepository)
 					m.Combo("/:timetrackingusername").Get(repo.ListTrackedTimesByUser)
-				}, mustEnableIssues)
+				}, mustEnableIssues, reqToken())
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
@@ -688,12 +702,12 @@ func RegisterRoutes(m *macaron.Macaron) {
 							m.Delete("/:id", reqToken(), repo.DeleteIssueLabel)
 						})
 						m.Group("/times", func() {
-							m.Combo("", reqToken()).
+							m.Combo("").
 								Get(repo.ListTrackedTimes).
 								Post(bind(api.AddTimeOption{}), repo.AddTime).
 								Delete(repo.ResetIssueTime)
-							m.Delete("/:id", reqToken(), repo.DeleteTime)
-						})
+							m.Delete("/:id", repo.DeleteTime)
+						}, reqToken())
 						m.Combo("/deadline").Post(reqToken(), bind(api.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 						m.Group("/stopwatch", func() {
 							m.Post("/start", reqToken(), repo.StartIssueStopwatch)
