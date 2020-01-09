@@ -290,6 +290,8 @@ var migrations = []Migration{
 	NewMigration("Extend TrackedTimes", extendTrackedTimes),
 	// v117 -> v118
 	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
+	// v118 -> v119
+	NewMigration("Add commit id and stale to reviews", addReviewCommitAndStale),
 }
 
 // Migrate database to current version

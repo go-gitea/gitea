@@ -381,6 +381,7 @@ func (issue *Issue) apiFormat(e Engine) *api.Issue {
 	apiIssue := &api.Issue{
 		ID:       issue.ID,
 		URL:      issue.APIURL(),
+		HTMLURL:  issue.HTMLURL(),
 		Index:    issue.Index,
 		Poster:   issue.Poster.APIFormat(),
 		Title:    issue.Title,
