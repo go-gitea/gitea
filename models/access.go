@@ -191,21 +191,16 @@ func (repo *Repository) refreshAccesses(e Engine, accessMap map[int64]*userAcces
 		minMode = AccessModeWrite
 	}
 
-	// build a map of the actual entries we want to create
-	entryMap := make(map[int64]AccessMode, len(accessMap))
+	newAccesses := make([]Access, 0, len(accessMap))
 	for userID, ua := range accessMap {
 		if ua.Mode < minMode && !ua.User.IsRestricted {
 			continue
 		}
-		entryMap[userID] = ua.Mode
-	}
-
-	newAccesses := make([]Access, 0, len(entryMap))
-	for userID, mode := range entryMap {
+		
 		newAccesses = append(newAccesses, Access{
 			UserID: userID,
 			RepoID: repo.ID,
-			Mode:   mode,
+			Mode:   ua.Mode,
 		})
 	}
 
