@@ -782,6 +782,7 @@ type FindCommentsOptions struct {
 	IssueID  int64
 	ReviewID int64
 	Since    int64
+	Before   int64
 	Type     CommentType
 }
 
@@ -798,6 +799,9 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	}
 	if opts.Since > 0 {
 		cond = cond.And(builder.Gte{"comment.updated_unix": opts.Since})
+	}
+	if opts.Before > 0 {
+		cond = cond.And(builder.Lte{"comment.updated_unix": opts.Before})
 	}
 	if opts.Type != CommentTypeUnknown {
 		cond = cond.And(builder.Eq{"comment.type": opts.Type})
