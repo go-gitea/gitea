@@ -376,21 +376,23 @@ func (issue *Issue) apiFormat(e Engine) *api.Issue {
 		apiLabels[i] = issue.Labels[i].APIFormat()
 	}
 
+	issue.loadMilestone(e)
 	issue.loadPoster(e)
 	issue.loadRepo(e)
 	apiIssue := &api.Issue{
-		ID:       issue.ID,
-		URL:      issue.APIURL(),
-		HTMLURL:  issue.HTMLURL(),
-		Index:    issue.Index,
-		Poster:   issue.Poster.APIFormat(),
-		Title:    issue.Title,
-		Body:     issue.Content,
-		Labels:   apiLabels,
-		State:    issue.State(),
-		Comments: issue.NumComments,
-		Created:  issue.CreatedUnix.AsTime(),
-		Updated:  issue.UpdatedUnix.AsTime(),
+		ID:        issue.ID,
+		URL:       issue.APIURL(),
+		HTMLURL:   issue.HTMLURL(),
+		Index:     issue.Index,
+		Poster:    issue.Poster.APIFormat(),
+		Title:     issue.Title,
+		Body:      issue.Content,
+		Labels:    apiLabels,
+		Milestone: issue.Milestone.APIFormat(),
+		State:     issue.State(),
+		Comments:  issue.NumComments,
+		Created:   issue.CreatedUnix.AsTime(),
+		Updated:   issue.UpdatedUnix.AsTime(),
 	}
 
 	apiIssue.Repo = &api.RepositoryMeta{
