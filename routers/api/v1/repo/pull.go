@@ -618,7 +618,11 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if err := pull_service.CheckPrReadyToMerge(pr); err != nil {
+	if err := pull_service.CheckPRReadyToMerge(pr); err != nil {
+		if !models.IsErrNotAllowedToMerge(err) {
+			ctx.Error(http.StatusInternalServerError, "CheckPRReadyToMerge", err)
+			return
+		}
 		if form.ForceMerge != nil && *form.ForceMerge {
 			if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.User); err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsUserRepoAdmin", err)

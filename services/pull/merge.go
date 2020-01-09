@@ -489,8 +489,8 @@ func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *mod
 	return false, nil
 }
 
-// CheckPrReadyToMerge checks whether the PR is ready to be merged (reviews and status checks)
-func CheckPrReadyToMerge(pr *models.PullRequest) (err error) {
+// CheckPRReadyToMerge checks whether the PR is ready to be merged (reviews and status checks)
+func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
 	if pr.BaseRepo == nil {
 		if err = pr.GetBaseRepo(); err != nil {
 			return fmt.Errorf("GetBaseRepo: %v", err)

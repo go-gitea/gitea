@@ -140,7 +140,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 					return
 				}
 				// Manual merge only allowed if PR is ready (even if admin)
-				if err := pull_service.CheckPrReadyToMerge(pr); err != nil {
+				if err := pull_service.CheckPRReadyToMerge(pr); err != nil {
 					if models.IsErrNotAllowedToMerge(err) {
 						log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", opts.UserID, branchName, repo, pr.Index, err.Error())
 						ctx.JSON(http.StatusForbidden, map[string]interface{}{
