@@ -6,9 +6,11 @@ package webhook
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
@@ -49,7 +51,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(doer *models.User, issue *model
 		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 			Action:      api.HookIssueLabelCleared,
 			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
+			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
 			Repository:  issue.Repo.APIFormat(mode),
 			Sender:      doer.APIFormat(),
 		})
@@ -135,7 +137,7 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *mo
 		issue.PullRequest.Issue = issue
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
+			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
 			Repository:  issue.Repo.APIFormat(mode),
 			Sender:      doer.APIFormat(),
 		}
@@ -187,7 +189,7 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *model
 					From: oldTitle,
 				},
 			},
-			PullRequest: issue.PullRequest.APIFormat(),
+			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
 			Repository:  issue.Repo.APIFormat(mode),
 			Sender:      doer.APIFormat(),
 		})
@@ -222,7 +224,7 @@ func (m *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *mode
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
+			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
 			Repository:  issue.Repo.APIFormat(mode),
 			Sender:      doer.APIFormat(),
 		}
@@ -291,7 +293,7 @@ func (m *webhookNotifier) NotifyNewPullRequest(pull *models.PullRequest) {
 	if err := webhook_module.PrepareWebhooks(pull.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Issue.Index,
-		PullRequest: pull.APIFormat(),
+		PullRequest: convert.ToAPIPullRequest(pull),
 		Repository:  pull.Issue.Repo.APIFormat(mode),
 		Sender:      pull.Issue.Poster.APIFormat(),
 	}); err != nil {
@@ -312,7 +314,7 @@ func (m *webhookNotifier) NotifyIssueChangeContent(doer *models.User, issue *mod
 					From: oldContent,
 				},
 			},
-			PullRequest: issue.PullRequest.APIFormat(),
+			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
 			Repository:  issue.Repo.APIFormat(mode),
 			Sender:      doer.APIFormat(),
 		})
@@ -439,7 +441,7 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *mode
 		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 			Action:      api.HookIssueLabelUpdated,
 			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
+			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
 			Repository:  issue.Repo.APIFormat(models.AccessModeNone),
 			Sender:      doer.APIFormat(),
 		})
@@ -481,7 +483,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *m
 		err = webhook_module.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 			Action:      hookAction,
 			Index:       issue.Index,
-			PullRequest: issue.PullRequest.APIFormat(),
+			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
 			Repository:  issue.Repo.APIFormat(mode),
 			Sender:      doer.APIFormat(),
 		})
@@ -499,7 +501,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *m
 	}
 }
 
-func (m *webhookNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+func (m *webhookNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
 	apiPusher := pusher.APIFormat()
 	apiCommits, err := commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
 	if err != nil {
@@ -547,7 +549,7 @@ func (*webhookNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mod
 	// Merge pull request calls issue.changeStatus so we need to handle separately.
 	apiPullRequest := &api.PullRequestPayload{
 		Index:       pr.Issue.Index,
-		PullRequest: pr.APIFormat(),
+		PullRequest: convert.ToAPIPullRequest(pr),
 		Repository:  pr.Issue.Repo.APIFormat(mode),
 		Sender:      doer.APIFormat(),
 		Action:      api.HookIssueClosed,
@@ -580,7 +582,7 @@ func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(doer *models.User,
 				From: oldBranch,
 			},
 		},
-		PullRequest: issue.PullRequest.APIFormat(),
+		PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
 		Repository:  issue.Repo.APIFormat(mode),
 		Sender:      doer.APIFormat(),
 	})
@@ -619,7 +621,7 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review
 	if err := webhook_module.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
 		Index:       review.Issue.Index,
-		PullRequest: pr.APIFormat(),
+		PullRequest: convert.ToAPIPullRequest(pr),
 		Repository:  review.Issue.Repo.APIFormat(mode),
 		Sender:      review.Reviewer.APIFormat(),
 		Review: &api.ReviewPayload{
@@ -674,7 +676,7 @@ func (m *webhookNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *m
 	if err := webhook_module.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
 		Index:       pr.Issue.Index,
-		PullRequest: pr.Issue.PullRequest.APIFormat(),
+		PullRequest: convert.ToAPIPullRequest(pr),
 		Repository:  pr.Issue.Repo.APIFormat(models.AccessModeNone),
 		Sender:      doer.APIFormat(),
 	}); err != nil {
@@ -727,7 +729,7 @@ func (m *webhookNotifier) NotifyDeleteRelease(doer *models.User, rel *models.Rel
 	sendReleaseHook(doer, rel, api.HookReleaseDeleted)
 }
 
-func (m *webhookNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+func (m *webhookNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
 	apiPusher := pusher.APIFormat()
 	apiCommits, err := commits.ToAPIPayloadCommits(repo.RepoPath(), repo.HTMLURL())
 	if err != nil {
