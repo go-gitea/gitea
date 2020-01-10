@@ -34,6 +34,7 @@ type ReviewComment struct {
 	InReplyTo int64
 	Content   string
 	TreePath  string
+	DiffHunk  string
 	Position  int
 	CommitID  string
 	PosterID  int64

@@ -789,17 +789,19 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 			patchBuf := new(bytes.Buffer)
 			if err := gitdiff.GetRawDiffForFile(g.gitRepo.Path, pr.MergeBase, headCommitID, gitdiff.RawDiffNormal, comment.TreePath, patchBuf); err != nil {
-				return fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", err, g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath)
+				return fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
 			}
-			line := int64(comment.Position)
-			patch := gitdiff.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+
+			_, _, line, _ := gitdiff.ParseDiffHunkString(comment.DiffHunk)
+
+			patch := gitdiff.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 
 			var c = models.Comment{
 				Type:        models.CommentTypeCode,
 				PosterID:    comment.PosterID,
 				IssueID:     issueID,
 				Content:     comment.Content,
-				Line:        line,
+				Line:        int64(line + comment.Position - 1),
 				TreePath:    comment.TreePath,
 				CommitSHA:   comment.CommitID,
 				Patch:       patch,

@@ -417,6 +417,20 @@ func InsertReviews(reviews []*Review) error {
 			return err
 		}
 
+		if _, err := sess.NoAutoTime().Insert(&Comment{
+			Type:             CommentTypeReview,
+			Content:          review.Content,
+			PosterID:         review.ReviewerID,
+			OriginalAuthor:   review.OriginalAuthor,
+			OriginalAuthorID: review.OriginalAuthorID,
+			IssueID:          review.IssueID,
+			ReviewID:         review.ID,
+			CreatedUnix:      review.CreatedUnix,
+			UpdatedUnix:      review.UpdatedUnix,
+		}); err != nil {
+			return err
+		}
+
 		for _, c := range review.Comments {
 			c.ReviewID = review.ID
 		}

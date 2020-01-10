@@ -418,10 +418,14 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 
 // GetComments returns comments according issueNumber
 func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, error) {
-	var allComments = make([]*base.Comment, 0, 100)
+	var (
+		allComments = make([]*base.Comment, 0, 100)
+		created     = "created"
+		asc         = "asc"
+	)
 	opt := &github.IssueListCommentsOptions{
-		Sort:      "created",
-		Direction: "asc",
+		Sort:      created,
+		Direction: asc,
 		ListOptions: github.ListOptions{
 			PerPage: 100,
 		},
@@ -635,6 +639,7 @@ func convertGithubReviewComments(cs []*github.PullRequestComment) []*base.Review
 			InReplyTo: c.GetInReplyTo(),
 			Content:   c.GetBody(),
 			TreePath:  c.GetPath(),
+			DiffHunk:  c.GetDiffHunk(),
 			Position:  c.GetPosition(),
 			CommitID:  c.GetCommitID(),
 			PosterID:  c.GetUser().GetID(),
