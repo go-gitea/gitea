@@ -17,7 +17,7 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 1}).(*models.PullRequest)
 	assert.NoError(t, pr.LoadAttributes())
 	assert.NoError(t, pr.LoadIssue())
-	apiPullRequest := ToPullRequest(pr)
+	apiPullRequest := ToAPIPullRequest(pr)
 	assert.NotNil(t, apiPullRequest)
 	assert.Nil(t, apiPullRequest.Head)
 }

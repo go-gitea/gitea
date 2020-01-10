@@ -103,7 +103,7 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 			ctx.Error(http.StatusInternalServerError, "GetHeadRepo", err)
 			return
 		}
-		apiPrs[i] = convert.ToPullRequest(prs[i])
+		apiPrs[i] = convert.ToAPIPullRequest(prs[i])
 	}
 
 	ctx.SetLinkHeader(int(maxResults), models.ItemsPerPage)
@@ -158,7 +158,7 @@ func GetPullRequest(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetHeadRepo", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToPullRequest(pr))
+	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(pr))
 }
 
 // CreatePullRequest does what it says
@@ -322,7 +322,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	notification.NotifyNewPullRequest(pr)
 
 	log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
-	ctx.JSON(http.StatusCreated, convert.ToPullRequest(pr))
+	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(pr))
 }
 
 // EditPullRequest does what it says
@@ -480,7 +480,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	}
 
 	// TODO this should be 200, not 201
-	ctx.JSON(http.StatusCreated, convert.ToPullRequest(pr))
+	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(pr))
 }
 
 // IsPullRequestMerged checks if a PR exists given an index

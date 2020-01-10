@@ -11,10 +11,10 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// ToPullRequest assumes following fields have been assigned with valid values:
+// ToAPIPullRequest assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
-func ToPullRequest(pr *models.PullRequest) *api.PullRequest {
+func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 	var (
 		baseBranch *git.Branch
 		headBranch *git.Branch
