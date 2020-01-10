@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -109,7 +110,7 @@ func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions)
 			ctx.Error(http.StatusInternalServerError, "GetHeadRepo", err)
 			return
 		}
-		apiPrs[i] = prs[i].APIFormat()
+		apiPrs[i] = convert.ToAPIPullRequest(prs[i])
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -164,7 +165,7 @@ func GetPullRequest(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetHeadRepo", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, pr.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(pr))
 }
 
 // CreatePullRequest does what it says
@@ -328,7 +329,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	notification.NotifyNewPullRequest(pr)
 
 	log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
-	ctx.JSON(http.StatusCreated, pr.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(pr))
 }
 
 // EditPullRequest does what it says
@@ -486,7 +487,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	}
 
 	// TODO this should be 200, not 201
-	ctx.JSON(http.StatusCreated, pr.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(pr))
 }
 
 // IsPullRequestMerged checks if a PR exists given an index
