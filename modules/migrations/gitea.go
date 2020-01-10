@@ -775,7 +775,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		pr, ok := g.prCache[issueID]
 		if !ok {
 			var err error
-			pr, err = models.GetPullRequestByIssueID(issueID)
+			pr, err = models.GetPullRequestByIssueIDWithNoAttributes(issueID)
 			if err != nil {
 				return err
 			}
