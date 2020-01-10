@@ -17,7 +17,6 @@ import (
 // PullRequestsOptions holds the options for PRs
 type PullRequestsOptions struct {
 	ListOptions
-	Page        int
 	State       string
 	SortType    string
 	Labels      []string
