@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/modules/convert"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
