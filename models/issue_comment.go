@@ -8,6 +8,7 @@ package models
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -84,6 +85,8 @@ const (
 	CommentTypeUnlock
 	// Change pull request's target branch
 	CommentTypeChangeTargetBranch
+	// Delete time manual for time tracking
+	CommentTypeDeleteTimeManual
 )
 
 // CommentTag defines comment tag type
@@ -100,7 +103,7 @@ const (
 // Comment represents a comment in commit and issue page.
 type Comment struct {
 	ID               int64       `xorm:"pk autoincr"`
-	Type             CommentType `xorm:"index"`
+	Type             CommentType `xorm:"INDEX"`
 	PosterID         int64       `xorm:"INDEX"`
 	Poster           *User       `xorm:"-"`
 	OriginalAuthor   string
@@ -231,6 +234,22 @@ func (c *Comment) HTMLURL() string {
 		}
 	}
 	return fmt.Sprintf("%s#%s", c.Issue.HTMLURL(), c.HashTag())
+}
+
+// APIURL formats a API-string to the issue-comment
+func (c *Comment) APIURL() string {
+	err := c.LoadIssue()
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadIssue(%d): %v", c.IssueID, err)
+		return ""
+	}
+	err = c.Issue.loadRepo(x)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
+		return ""
+	}
+
+	return c.Issue.Repo.APIURL() + "/" + path.Join("issues/comments", fmt.Sprint(c.ID))
 }
 
 // IssueURL formats a URL-string to the issue

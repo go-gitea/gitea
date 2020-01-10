@@ -217,6 +217,74 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 	ctx.JSON(http.StatusCreated, comment.APIFormat())
 }
 
+// GetIssueComment Get a comment by ID
+func GetIssueComment(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issues/comments/{id} issue issueGetComment
+	// ---
+	// summary: Get a comment
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the comment
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Comment"
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		if models.IsErrCommentNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetCommentByID", err)
+		}
+		return
+	}
+
+	if err = comment.LoadIssue(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
+	if comment.Type != models.CommentTypeComment {
+		ctx.Status(http.StatusNoContent)
+		return
+	}
+
+	if err := comment.LoadPoster(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "comment.LoadPoster", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, comment.APIFormat())
+}
+
 // EditIssueComment modify a comment of an issue
 func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/issues/comments/{id} issue issueEditComment
@@ -250,6 +318,13 @@ func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Comment"
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	editIssueComment(ctx, form)
 }
 
@@ -296,6 +371,8 @@ func EditIssueCommentDeprecated(ctx *context.APIContext, form api.EditIssueComme
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	editIssueComment(ctx, form)
 }
@@ -356,6 +433,8 @@ func DeleteIssueComment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	deleteIssueComment(ctx)
 }
@@ -393,6 +472,8 @@ func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	deleteIssueComment(ctx)
 }

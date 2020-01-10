@@ -287,7 +287,7 @@ func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
 
 	assert.NoError(t, miles.LoadTotalTrackedTimes())
 
-	assert.Equal(t, miles[0].TotalTrackedTime, int64(3662))
+	assert.Equal(t, int64(3682), miles[0].TotalTrackedTime)
 }
 
 func TestCountMilestonesByRepoIDs(t *testing.T) {
@@ -361,7 +361,7 @@ func TestLoadTotalTrackedTime(t *testing.T) {
 
 	assert.NoError(t, milestone.LoadTotalTrackedTime())
 
-	assert.Equal(t, milestone.TotalTrackedTime, int64(3662))
+	assert.Equal(t, int64(3682), milestone.TotalTrackedTime)
 }
 
 func TestGetMilestonesStats(t *testing.T) {

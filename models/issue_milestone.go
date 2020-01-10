@@ -10,8 +10,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"xorm.io/builder"
 
+	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
@@ -153,6 +153,7 @@ func (milestones MilestoneList) loadTotalTrackedTimes(e Engine) error {
 	rows, err := e.Table("issue").
 		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
 		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
+		Where("tracked_time.deleted = ?", false).
 		Select("milestone_id, sum(time) as time").
 		In("milestone_id", milestones.getMilestoneIDs()).
 		GroupBy("milestone_id").
@@ -187,6 +188,7 @@ func (m *Milestone) loadTotalTrackedTime(e Engine) error {
 	has, err := e.Table("issue").
 		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
 		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
+		Where("tracked_time.deleted = ?", false).
 		Select("milestone_id, sum(time) as time").
 		Where("milestone_id = ?", m.ID).
 		GroupBy("milestone_id").

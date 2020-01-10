@@ -284,6 +284,14 @@ var migrations = []Migration{
 	NewMigration("new feature: change target branch of pull requests", featureChangeTargetBranch),
 	// v114 -> v115
 	NewMigration("Remove authentication credentials from stored URL", sanitizeOriginalURL),
+	// v115 -> v116
+	NewMigration("add user_id prefix to existing user avatar name", renameExistingUserAvatarName),
+	// v116 -> v117
+	NewMigration("Extend TrackedTimes", extendTrackedTimes),
+	// v117 -> v118
+	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
+	// v118 -> v119
+	NewMigration("Add commit id and stale to reviews", addReviewCommitAndStale),
 }
 
 // Migrate database to current version

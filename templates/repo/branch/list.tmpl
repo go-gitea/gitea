@@ -84,6 +84,12 @@
 												<button id="new-pull-request" class="ui compact basic button">{{$.i18n.Tr "repo.pulls.compare_changes"}}</button>
 											</a>
 											{{end}}
+										{{else if and .LatestPullRequest.HasMerged .MergeMovedOn}}
+											{{if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
+											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}">
+												<button id="new-pull-request" class="ui compact basic button">{{$.i18n.Tr "repo.pulls.compare_changes"}}</button>
+											</a>
+											{{end}}
 										{{else}}
 											<a href="{{$.RepoLink}}/pulls/{{.LatestPullRequest.Issue.Index}}">#{{.LatestPullRequest.Issue.Index}}</a>
 											{{if .LatestPullRequest.HasMerged}}

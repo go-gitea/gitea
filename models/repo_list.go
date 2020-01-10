@@ -121,7 +121,8 @@ type SearchRepoOptions struct {
 	Private         bool // Include private repositories in results
 	StarredByID     int64
 	IsProfile       bool
-	AllPublic       bool // Include also all public repositories
+	AllPublic       bool // Include also all public repositories of users and public organisations
+	AllLimited      bool // Include also all public repositories of limited organisations
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
 	// False -> incude just non-collaborative
@@ -227,7 +228,11 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 		}
 
 		if opts.AllPublic {
-			accessCond = accessCond.Or(builder.Eq{"is_private": false})
+			accessCond = accessCond.Or(builder.Eq{"is_private": false}.And(builder.In("owner_id", builder.Select("`user`.id").From("`user`").Where(builder.Eq{"`user`.visibility": structs.VisibleTypePublic}))))
+		}
+
+		if opts.AllLimited {
+			accessCond = accessCond.Or(builder.Eq{"is_private": false}.And(builder.In("owner_id", builder.Select("`user`.id").From("`user`").Where(builder.Eq{"`user`.visibility": structs.VisibleTypeLimited}))))
 		}
 
 		cond = cond.And(accessCond)

@@ -15,7 +15,7 @@ import (
 func RequireRepoAdmin() macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.IsSigned || !ctx.Repo.IsAdmin() {
-			ctx.NotFound(ctx.Req.RequestURI, nil)
+			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
 			return
 		}
 	}
@@ -25,7 +25,7 @@ func RequireRepoAdmin() macaron.Handler {
 func RequireRepoWriter(unitType models.UnitType) macaron.Handler {
 	return func(ctx *Context) {
 		if !ctx.Repo.CanWrite(unitType) {
-			ctx.NotFound(ctx.Req.RequestURI, nil)
+			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
 			return
 		}
 	}
@@ -39,7 +39,7 @@ func RequireRepoWriterOr(unitTypes ...models.UnitType) macaron.Handler {
 				return
 			}
 		}
-		ctx.NotFound(ctx.Req.RequestURI, nil)
+		ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
 	}
 }
 
@@ -63,7 +63,7 @@ func RequireRepoReader(unitType models.UnitType) macaron.Handler {
 						ctx.Repo.Permission)
 				}
 			}
-			ctx.NotFound(ctx.Req.RequestURI, nil)
+			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
 			return
 		}
 	}
@@ -96,6 +96,6 @@ func RequireRepoReaderOr(unitTypes ...models.UnitType) macaron.Handler {
 			args = append(args, ctx.Repo.Repository, ctx.Repo.Permission)
 			log.Trace(format, args...)
 		}
-		ctx.NotFound(ctx.Req.RequestURI, nil)
+		ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
 	}
 }

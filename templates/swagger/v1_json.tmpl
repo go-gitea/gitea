@@ -439,6 +439,143 @@
         }
       }
     },
+    "/notifications": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notification"
+        ],
+        "summary": "List users's notification threads",
+        "operationId": "notifyGetList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "If true, show notifications marked as read. Default value is false",
+            "name": "all",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/NotificationThreadList"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notification"
+        ],
+        "summary": "Mark notification threads as read",
+        "operationId": "notifyReadList",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Describes the last point that notifications were checked. Anything updated since this time will not be updated.",
+            "name": "last_read_at",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "205": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/notifications/threads/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notification"
+        ],
+        "summary": "Get notification thread by ID",
+        "operationId": "notifyGetThread",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of notification thread",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/NotificationThread"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notification"
+        ],
+        "summary": "Mark notification thread as read by ID",
+        "operationId": "notifyReadThread",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of notification thread",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "205": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/org/{org}/repos": {
       "post": {
         "consumes": [
@@ -451,7 +588,8 @@
           "organization"
         ],
         "summary": "Create a repository in an organization",
-        "operationId": "createOrgRepo",
+        "operationId": "createOrgRepoDeprecated",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -1063,6 +1201,47 @@
         "responses": {
           "200": {
             "$ref": "#/responses/RepositoryList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Create a repository in an organization",
+        "operationId": "createOrgRepo",
+        "deprecated": true,
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateRepoOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -3136,6 +3315,57 @@
       }
     },
     "/repos/{owner}/{repo}/issues/comments/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Get a comment",
+        "operationId": "issueGetComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Comment"
+          },
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
       "delete": {
         "tags": [
           "issue"
@@ -3172,6 +3402,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -3221,6 +3454,15 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Comment"
+          },
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -3236,7 +3478,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Get a list reactions of a issue comment",
+        "summary": "Get a list of reactions from a comment of an issue",
         "operationId": "issueGetCommentReactions",
         "parameters": [
           {
@@ -3264,7 +3506,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/ReactionResponseList"
+            "$ref": "#/responses/ReactionList"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -3281,7 +3523,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Add a reaction to a comment of a issue comment",
+        "summary": "Add a reaction to a comment of an issue",
         "operationId": "issuePostCommentReaction",
         "parameters": [
           {
@@ -3315,8 +3557,11 @@
           }
         ],
         "responses": {
+          "200": {
+            "$ref": "#/responses/Reaction"
+          },
           "201": {
-            "$ref": "#/responses/ReactionResponse"
+            "$ref": "#/responses/Reaction"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -3333,7 +3578,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Remove a reaction from a comment of a issue comment",
+        "summary": "Remove a reaction from a comment of an issue",
         "operationId": "issueDeleteCommentReaction",
         "parameters": [
           {
@@ -3376,7 +3621,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/issues/{id}/times": {
+    "/repos/{owner}/{repo}/issues/{index}": {
       "get": {
         "produces": [
           "application/json"
@@ -3384,8 +3629,8 @@
         "tags": [
           "issue"
         ],
-        "summary": "List an issue's tracked times",
-        "operationId": "issueTrackedTimes",
+        "summary": "Get an issue",
+        "operationId": "issueGetIssue",
         "parameters": [
           {
             "type": "integer",
@@ -3399,105 +3644,6 @@
             "name": "limit",
             "in": "query"
           },
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "index of the issue",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/TrackedTimeList"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      },
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "issue"
-        ],
-        "summary": "Add a tracked time to a issue",
-        "operationId": "issueAddTime",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "index of the issue to add tracked time to",
-            "name": "id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/AddTimeOption"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/TrackedTime"
-          },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/issues/{index}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "issue"
-        ],
-        "summary": "Get an issue",
-        "operationId": "issueGetIssue",
-        "parameters": [
           {
             "type": "string",
             "description": "owner of the repo",
@@ -3733,6 +3879,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -3796,6 +3945,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -4113,7 +4265,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Get a list reactions of a issue",
+        "summary": "Get a list reactions of an issue",
         "operationId": "issueGetIssueReactions",
         "parameters": [
           {
@@ -4153,7 +4305,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/ReactionResponseList"
+            "$ref": "#/responses/ReactionList"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -4170,7 +4322,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Add a reaction to a comment of a issue",
+        "summary": "Add a reaction to an issue",
         "operationId": "issuePostIssueReaction",
         "parameters": [
           {
@@ -4204,8 +4356,11 @@
           }
         ],
         "responses": {
+          "200": {
+            "$ref": "#/responses/Reaction"
+          },
           "201": {
-            "$ref": "#/responses/ReactionResponse"
+            "$ref": "#/responses/Reaction"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -4222,7 +4377,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Remove a reaction from a comment of a issue",
+        "summary": "Remove a reaction from an issue",
         "operationId": "issueDeleteIssueReaction",
         "parameters": [
           {
@@ -4591,6 +4746,225 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/times": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "List an issue's tracked times",
+        "operationId": "issueTrackedTimes",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show times updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show times updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTimeList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Add tracked time to a issue",
+        "operationId": "issueAddTime",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/AddTimeOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TrackedTime"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Reset a tracked time of an issue",
+        "operationId": "issueResetTime",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue to add tracked time to",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/issues/{index}/times/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Delete specific tracked time",
+        "operationId": "issueDeleteTime",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of time to delete",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -5242,6 +5616,103 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/notifications": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notification"
+        ],
+        "summary": "List users's notification threads on a specific repo",
+        "operationId": "notifyGetRepoList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "If true, show notifications marked as read. Default value is false",
+            "name": "all",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/NotificationThreadList"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notification"
+        ],
+        "summary": "Mark notification threads as read on a specific repo",
+        "operationId": "notifyReadRepoList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Describes the last point that notifications were checked. Anything updated since this time will not be updated.",
+            "name": "last_read_at",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "205": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls": {
       "get": {
         "produces": [
@@ -5414,6 +5885,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PullRequest"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -6486,6 +6960,26 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "optional filter by user",
+            "name": "user",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show times updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show times updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6494,6 +6988,9 @@
           },
           "400": {
             "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -6504,10 +7001,11 @@
           "application/json"
         ],
         "tags": [
-          "user"
+          "repository"
         ],
         "summary": "List a user's tracked times in a repo",
         "operationId": "userTrackedTimes",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -6537,6 +7035,9 @@
           },
           "400": {
             "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -7937,6 +8438,17 @@
             "type": "integer",
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show times updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show times updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
             "in": "query"
           }
         ],
@@ -8591,11 +9103,21 @@
         "time"
       ],
       "properties": {
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
         "time": {
           "description": "time in seconds",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Time"
+        },
+        "user_name": {
+          "description": "User who spent the time (optional)",
+          "type": "string",
+          "x-go-name": "User"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -8817,6 +9339,23 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CommitDateOptions": {
+      "description": "CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE",
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Author"
+        },
+        "committer": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Committer"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CommitMeta": {
       "type": "object",
       "title": "CommitMeta contains meta information of a commit in terms of API.",
@@ -8958,6 +9497,9 @@
           "type": "string",
           "x-go-name": "Content"
         },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
+        },
         "message": {
           "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
           "type": "string",
@@ -9017,11 +9559,7 @@
           "x-go-name": "BranchFilter"
         },
         "config": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          },
-          "x-go-name": "Config"
+          "$ref": "#/definitions/CreateHookOptionConfig"
         },
         "events": {
           "type": "array",
@@ -9033,13 +9571,24 @@
         "type": {
           "type": "string",
           "enum": [
+            "dingtalk",
+            "discord",
             "gitea",
             "gogs",
+            "msteams",
             "slack",
-            "discord"
+            "telegram"
           ],
           "x-go-name": "Type"
         }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateHookOptionConfig": {
+      "description": "CreateHookOptionConfig has all config options in it\nrequired are \"content_type\" and \"url\" Required",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
@@ -9515,6 +10064,9 @@
         },
         "committer": {
           "$ref": "#/definitions/Identity"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
         },
         "message": {
           "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
@@ -10571,6 +11123,10 @@
           "format": "date-time",
           "x-go-name": "Deadline"
         },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
         "id": {
           "type": "integer",
           "format": "int64",
@@ -10842,6 +11398,64 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NotificationSubject": {
+      "description": "NotificationSubject contains the notification subject (Issue/Pull/Commit)",
+      "type": "object",
+      "properties": {
+        "latest_comment_url": {
+          "type": "string",
+          "x-go-name": "LatestCommentURL"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NotificationThread": {
+      "description": "NotificationThread expose Notification on API",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "pinned": {
+          "type": "boolean",
+          "x-go-name": "Pinned"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
+        },
+        "subject": {
+          "$ref": "#/definitions/NotificationSubject"
+        },
+        "unread": {
+          "type": "boolean",
+          "x-go-name": "Unread"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "UpdatedAt"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -11220,8 +11834,8 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "ReactionResponse": {
-      "description": "ReactionResponse contain one reaction",
+    "Reaction": {
+      "description": "Reaction contain one reaction",
       "type": "object",
       "properties": {
         "content": {
@@ -11804,7 +12418,11 @@
           "format": "int64",
           "x-go-name": "ID"
         },
+        "issue": {
+          "$ref": "#/definitions/Issue"
+        },
         "issue_id": {
+          "description": "deprecated (only for backwards compatibility)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "IssueID"
@@ -11816,9 +12434,14 @@
           "x-go-name": "Time"
         },
         "user_id": {
+          "description": "deprecated (only for backwards compatibility)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "UserID"
+        },
+        "user_name": {
+          "type": "string",
+          "x-go-name": "UserName"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -11846,6 +12469,9 @@
           "description": "content must be base64 encoded",
           "type": "string",
           "x-go-name": "Content"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
         },
         "from_path": {
           "description": "from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL",
@@ -12121,12 +12747,6 @@
         }
       }
     },
-    "EditReactionOption": {
-      "description": "EditReactionOption",
-      "schema": {
-        "$ref": "#/definitions/EditReactionOption"
-      }
-    },
     "EmailList": {
       "description": "EmailList",
       "schema": {
@@ -12268,6 +12888,21 @@
         }
       }
     },
+    "NotificationThread": {
+      "description": "NotificationThread",
+      "schema": {
+        "$ref": "#/definitions/NotificationThread"
+      }
+    },
+    "NotificationThreadList": {
+      "description": "NotificationThreadList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/NotificationThread"
+        }
+      }
+    },
     "Organization": {
       "description": "Organization",
       "schema": {
@@ -12313,18 +12948,18 @@
         }
       }
     },
-    "ReactionResponse": {
-      "description": "ReactionResponse",
+    "Reaction": {
+      "description": "Reaction",
       "schema": {
-        "$ref": "#/definitions/ReactionResponse"
+        "$ref": "#/definitions/Reaction"
       }
     },
-    "ReactionResponseList": {
-      "description": "ReactionResponseList",
+    "ReactionList": {
+      "description": "ReactionList",
       "schema": {
         "type": "array",
         "items": {
-          "$ref": "#/definitions/ReactionResponse"
+          "$ref": "#/definitions/Reaction"
         }
       }
     },
@@ -12550,7 +13185,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/RepoTopicOptions"
+        "$ref": "#/definitions/EditReactionOption"
       }
     },
     "redirect": {

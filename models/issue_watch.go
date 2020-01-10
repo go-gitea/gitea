@@ -4,7 +4,9 @@
 
 package models
 
-import "code.gitea.io/gitea/modules/timeutil"
+import (
+	"code.gitea.io/gitea/modules/timeutil"
+)
 
 // IssueWatch is connection request for receiving issue notification.
 type IssueWatch struct {
@@ -46,17 +48,18 @@ func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
 	return nil
 }
 
-// GetIssueWatch returns an issue watch by user and issue
+// GetIssueWatch returns all IssueWatch objects from db by user and issue
+// the current Web-UI need iw object for watchers AND explicit non-watchers
 func GetIssueWatch(userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
 	return getIssueWatch(x, userID, issueID)
 }
 
+// Return watcher AND explicit non-watcher if entry in db exist
 func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
 	iw = new(IssueWatch)
 	exists, err = e.
 		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
-		And("is_watching = ?", true).
 		Get(iw)
 	return
 }
