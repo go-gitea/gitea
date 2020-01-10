@@ -177,5 +177,9 @@ func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID string, us
 		return err
 	}
 
-	return UpdateReleasesMigrationsByType(tp, externalUserID, userID)
+	if err := UpdateReleasesMigrationsByType(tp, externalUserID, userID); err != nil {
+		return err
+	}
+
+	return UpdateReactionsMigrationsByType(tp, externalUserID, userID)
 }

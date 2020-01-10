@@ -235,7 +235,7 @@ func (list ReactionList) HasUser(userID int64) bool {
 		return false
 	}
 	for _, reaction := range list {
-		if reaction.UserID == userID {
+		if reaction.OriginalAuthor == "" && reaction.UserID == userID {
 			return true
 		}
 	}
@@ -254,6 +254,9 @@ func (list ReactionList) GroupByType() map[string]ReactionList {
 func (list ReactionList) getUserIDs() []int64 {
 	userIDs := make(map[int64]struct{}, len(list))
 	for _, reaction := range list {
+		if reaction.OriginalAuthor == "" {
+			continue
+		}
 		if _, ok := userIDs[reaction.UserID]; !ok {
 			userIDs[reaction.UserID] = struct{}{}
 		}
@@ -261,7 +264,7 @@ func (list ReactionList) getUserIDs() []int64 {
 	return keysInt64(userIDs)
 }
 
-func (list ReactionList) loadUsers(e Engine) ([]*User, error) {
+func (list ReactionList) loadUsers(e Engine, repo *Repository) ([]*User, error) {
 	if len(list) == 0 {
 		return nil, nil
 	}
@@ -276,7 +279,9 @@ func (list ReactionList) loadUsers(e Engine) ([]*User, error) {
 	}
 
 	for _, reaction := range list {
-		if user, ok := userMaps[reaction.UserID]; ok {
+		if reaction.OriginalAuthor != "" {
+			reaction.User = NewReplaceUser(fmt.Sprintf("%s(%s)", reaction.OriginalAuthor, repo.OriginalServiceType.Name()))
+		} else if user, ok := userMaps[reaction.UserID]; ok {
 			reaction.User = user
 		} else {
 			reaction.User = NewGhostUser()
@@ -286,8 +291,8 @@ func (list ReactionList) loadUsers(e Engine) ([]*User, error) {
 }
 
 // LoadUsers loads reactions' all users
-func (list ReactionList) LoadUsers() ([]*User, error) {
-	return list.loadUsers(x)
+func (list ReactionList) LoadUsers(repo *Repository) ([]*User, error) {
+	return list.loadUsers(x, repo)
 }
 
 // GetFirstUsers returns first reacted user display names separated by comma

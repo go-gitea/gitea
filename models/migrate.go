@@ -143,6 +143,7 @@ func InsertIssueComments(comments []*Comment) error {
 		}
 
 		for _, reaction := range comment.Reactions {
+			reaction.IssueID = comment.IssueID
 			reaction.CommentID = comment.ID
 		}
 		if _, err := sess.Insert(comment.Reactions); err != nil {
