@@ -42,7 +42,7 @@ func ListHooks(ctx *context.APIContext) {
 	org := ctx.Org.Organization
 	orgHooks, err := models.GetWebhooksByOrgID(&models.SearchWebhooksOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		OrgID: org.ID,
+		OrgID:       org.ID,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAllWebhooksByOrgID", err)

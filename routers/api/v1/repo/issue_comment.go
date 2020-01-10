@@ -125,9 +125,9 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 
 	comments, err := models.FindComments(models.FindCommentsOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		RepoID: ctx.Repo.Repository.ID,
-		Since:  since.Unix(),
-		Type:   models.CommentTypeComment,
+		RepoID:      ctx.Repo.Repository.ID,
+		Since:       since.Unix(),
+		Type:        models.CommentTypeComment,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindComments", err)
