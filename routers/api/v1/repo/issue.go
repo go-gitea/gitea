@@ -39,10 +39,6 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
 	//   type: string
-	// - name: page
-	//   in: query
-	//   description: page number of requested issues
-	//   type: integer
 	// - name: q
 	//   in: query
 	//   description: search string
@@ -52,6 +48,10 @@ func SearchIssues(ctx *context.APIContext) {
 	//   description: repository to prioritize in the results
 	//   type: integer
 	//   format: int64
+	// - name: page
+	//   in: query
+	//   description: page number of requested issues
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"
@@ -167,14 +167,6 @@ func ListIssues(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: page
-	//   in: query
-	//   description: page number of results to return (1-based)
-	//   type: integer
-	// - name: limit
-	//   in: query
-	//   description: page size of results, maximum page size is 50
-	//   type: integer
 	// - name: owner
 	//   in: path
 	//   description: owner of the repo
@@ -197,6 +189,14 @@ func ListIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: search string
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/IssueList"

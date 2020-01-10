@@ -41,6 +41,11 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: username
+	//   type: string
+	//   in: path
+	//   description: username of the user
+	//   required: true
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -49,11 +54,6 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results, maximum page size is 50
 	//   type: integer
-	// - name: username
-	//   type: string
-	//   in: path
-	//   description: username of the user
-	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"

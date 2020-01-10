@@ -25,6 +25,11 @@ func ListTeams(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -33,11 +38,6 @@ func ListTeams(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results, maximum page size is 50
 	//   type: integer
-	// - name: org
-	//   in: path
-	//   description: name of the organization
-	//   type: string
-	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
@@ -303,6 +303,12 @@ func GetTeamMembers(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team
+	//   type: integer
+	//   format: int64
+	//   required: true
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -311,12 +317,6 @@ func GetTeamMembers(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results, maximum page size is 50
 	//   type: integer
-	// - name: id
-	//   in: path
-	//   description: id of the team
-	//   type: integer
-	//   format: int64
-	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserList"
@@ -468,6 +468,12 @@ func GetTeamRepos(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: id
+	//   in: path
+	//   description: id of the team
+	//   type: integer
+	//   format: int64
+	//   required: true
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -476,12 +482,6 @@ func GetTeamRepos(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results, maximum page size is 50
 	//   type: integer
-	// - name: id
-	//   in: path
-	//   description: id of the team
-	//   type: integer
-	//   format: int64
-	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
@@ -640,13 +640,13 @@ func SearchTeam(ctx *context.APIContext) {
 	//   in: query
 	//   description: include search within team description (defaults to true)
 	//   type: boolean
-	// - name: limit
-	//   in: query
-	//   description: limit size of results
-	//   type: integer
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
 	//   type: integer
 	// responses:
 	//   "200":

@@ -36,6 +36,11 @@ func ListGPGKeys(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -44,11 +49,6 @@ func ListGPGKeys(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results, maximum page size is 50
 	//   type: integer
-	// - name: username
-	//   in: path
-	//   description: username of user
-	//   type: string
-	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"

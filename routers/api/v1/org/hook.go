@@ -22,6 +22,11 @@ func ListHooks(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -30,11 +35,6 @@ func ListHooks(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results, maximum page size is 50
 	//   type: integer
-	// - name: org
-	//   in: path
-	//   description: name of the organization
-	//   type: string
-	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"

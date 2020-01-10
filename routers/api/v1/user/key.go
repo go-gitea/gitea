@@ -137,14 +137,6 @@ func ListPublicKeys(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: page
-	//   in: query
-	//   description: page number of results to return (1-based)
-	//   type: integer
-	// - name: limit
-	//   in: query
-	//   description: page size of results, maximum page size is 50
-	//   type: integer
 	// - name: username
 	//   in: path
 	//   description: username of user
@@ -154,6 +146,14 @@ func ListPublicKeys(ctx *context.APIContext) {
 	//   in: query
 	//   description: fingerprint of the key
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PublicKeyList"

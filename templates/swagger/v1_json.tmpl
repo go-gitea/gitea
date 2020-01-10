@@ -752,6 +752,13 @@
         "operationId": "orgListHooks",
         "parameters": [
           {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -762,13 +769,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "name of the organization",
-            "name": "org",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -935,6 +935,13 @@
         "operationId": "orgListMembers",
         "parameters": [
           {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -945,13 +952,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "name of the organization",
-            "name": "org",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -1040,6 +1040,13 @@
         "operationId": "orgListPublicMembers",
         "parameters": [
           {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -1050,13 +1057,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "name of the organization",
-            "name": "org",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -1179,6 +1179,13 @@
         "operationId": "orgListRepos",
         "parameters": [
           {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -1189,13 +1196,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "name of the organization",
-            "name": "org",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -1258,6 +1258,13 @@
         "operationId": "orgListTeams",
         "parameters": [
           {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -1268,13 +1275,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "name of the organization",
-            "name": "org",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -1353,14 +1353,14 @@
           },
           {
             "type": "integer",
-            "description": "limit size of results",
-            "name": "limit",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
             "in": "query"
           },
           {
             "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -1409,12 +1409,6 @@
             "in": "query"
           },
           {
-            "type": "integer",
-            "description": "page number of requested issues",
-            "name": "page",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "search string",
             "name": "q",
@@ -1425,6 +1419,12 @@
             "format": "int64",
             "description": "repository to prioritize in the results",
             "name": "priority_repo_id",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of requested issues",
+            "name": "page",
             "in": "query"
           }
         ],
@@ -1533,18 +1533,6 @@
             "in": "query"
           },
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "type of repository to search for. Supported values are \"fork\", \"source\", \"mirror\" and \"collaborative\"",
             "name": "mode",
@@ -1566,6 +1554,18 @@
             "type": "string",
             "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\", ignored if \"sort\" is not specified.",
             "name": "order",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -1819,18 +1819,6 @@
         "operationId": "repoListCollaborators",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -1843,6 +1831,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -1999,18 +1999,6 @@
         "operationId": "repoGetAllCommits",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -2028,6 +2016,18 @@
             "type": "string",
             "description": "SHA or branch to start listing commits from (usually 'master')",
             "name": "sha",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -2380,18 +2380,6 @@
         "operationId": "listForks",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -2404,6 +2392,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -2738,18 +2738,6 @@
         "operationId": "repoListHooks",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -2762,6 +2750,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -3162,18 +3162,6 @@
         "operationId": "issueListIssues",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -3203,6 +3191,18 @@
             "type": "string",
             "description": "search string",
             "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -3275,18 +3275,6 @@
         "operationId": "issueGetRepoComments",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -3304,6 +3292,18 @@
             "type": "string",
             "description": "if provided, only comments updated since the provided time are returned.",
             "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -3632,18 +3632,6 @@
         "summary": "Get an issue",
         "operationId": "issueGetIssue",
         "parameters": [
-          {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
           {
             "type": "string",
             "description": "owner of the repo",
@@ -4269,18 +4257,6 @@
         "operationId": "issueGetIssueReactions",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -4301,6 +4277,18 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -4594,18 +4582,6 @@
         "operationId": "issueSubscriptions",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -4626,6 +4602,18 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -4795,6 +4783,18 @@
             "format": "date-time",
             "description": "Only show times updated before the given time. This is a timestamp in RFC 3339 format",
             "name": "before",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -4981,18 +4981,6 @@
         "operationId": "repoListKeys",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -5016,6 +5004,18 @@
             "type": "string",
             "description": "fingerprint of the key",
             "name": "fingerprint",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -5162,18 +5162,6 @@
         "operationId": "issueListLabels",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -5186,6 +5174,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -5374,18 +5374,6 @@
         "operationId": "issueGetMilestonesList",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -5403,6 +5391,18 @@
             "type": "string",
             "description": "Milestone state, Recognised values are open, closed and all. Defaults to \"open\"",
             "name": "state",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -5725,18 +5725,6 @@
         "operationId": "repoListPullRequests",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -5791,6 +5779,18 @@
             "collectionFormat": "multi",
             "description": "Label IDs",
             "name": "labels",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -6101,18 +6101,6 @@
         "operationId": "repoListReleases",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -6125,6 +6113,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6604,18 +6604,6 @@
         "operationId": "repoListStargazers",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -6628,6 +6616,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6670,12 +6670,6 @@
             "required": true
           },
           {
-            "type": "integer",
-            "description": "page number of results",
-            "name": "page",
-            "in": "query"
-          },
-          {
             "enum": [
               "oldest",
               "recentupdate",
@@ -6699,6 +6693,12 @@
             "type": "string",
             "description": "type of state",
             "name": "state",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results",
+            "name": "page",
             "in": "query"
           }
         ],
@@ -6772,18 +6772,6 @@
         "operationId": "repoListSubscribers",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -6796,6 +6784,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6936,18 +6936,6 @@
         "operationId": "repoTrackedTimes",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -6979,6 +6967,18 @@
             "format": "date-time",
             "description": "Only show times updated before the given time. This is a timestamp in RFC 3339 format",
             "name": "before",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -7054,18 +7054,6 @@
         "operationId": "repoListTopics",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "owner of the repo",
             "name": "owner",
@@ -7078,6 +7066,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -7355,6 +7355,14 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
+            "description": "id of the team",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
             "in": "query"
@@ -7364,14 +7372,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the team",
-            "name": "id",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -7501,6 +7501,14 @@
         "parameters": [
           {
             "type": "integer",
+            "format": "int64",
+            "description": "id of the team",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
             "in": "query"
@@ -7510,14 +7518,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the team",
-            "name": "id",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -8429,15 +8429,6 @@
         "operationId": "userCurrentTrackedTimes",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
             "type": "string",
             "format": "date-time",
             "description": "Only show times updated after the given time. This is a timestamp in RFC 3339 format",
@@ -8585,6 +8576,13 @@
         "operationId": "userListFollowers",
         "parameters": [
           {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -8595,13 +8593,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "username of user",
-            "name": "username",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -8623,6 +8614,13 @@
         "operationId": "userListFollowing",
         "parameters": [
           {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -8633,13 +8631,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "username of user",
-            "name": "username",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -8661,6 +8652,13 @@
         "operationId": "userListGPGKeys",
         "parameters": [
           {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -8671,13 +8669,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "username of user",
-            "name": "username",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -8728,18 +8719,6 @@
         "operationId": "userListKeys",
         "parameters": [
           {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results, maximum page size is 50",
-            "name": "limit",
-            "in": "query"
-          },
-          {
             "type": "string",
             "description": "username of user",
             "name": "username",
@@ -8750,6 +8729,18 @@
             "type": "string",
             "description": "fingerprint of the key",
             "name": "fingerprint",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
             "in": "query"
           }
         ],
@@ -8772,6 +8763,13 @@
         "operationId": "orgListUserOrgs",
         "parameters": [
           {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -8782,13 +8780,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "username of user",
-            "name": "username",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -8810,6 +8801,13 @@
         "operationId": "userListRepos",
         "parameters": [
           {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -8820,13 +8818,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "username of user",
-            "name": "username",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -8848,6 +8839,13 @@
         "operationId": "userListStarred",
         "parameters": [
           {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -8858,13 +8856,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "username of user",
-            "name": "username",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -8886,6 +8877,13 @@
         "operationId": "userListSubscriptions",
         "parameters": [
           {
+            "type": "string",
+            "description": "username of the user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -8896,13 +8894,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "username of the user",
-            "name": "username",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {
@@ -8924,6 +8915,13 @@
         "operationId": "userGetTokens",
         "parameters": [
           {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -8934,13 +8932,6 @@
             "description": "page size of results, maximum page size is 50",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "type": "string",
-            "description": "username of user",
-            "name": "username",
-            "in": "path",
-            "required": true
           }
         ],
         "responses": {

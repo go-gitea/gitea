@@ -89,11 +89,6 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	//   description: sha of the commit
 	//   type: string
 	//   required: true
-	// - name: page
-	//   in: query
-	//   description: page number of results
-	//   type: integer
-	//   required: false
 	// - name: sort
 	//   in: query
 	//   description: type of sort
@@ -105,6 +100,11 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	//   description: type of state
 	//   type: string
 	//   enum: [pending, success, error, failure, warning]
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results
+	//   type: integer
 	//   required: false
 	// responses:
 	//   "200":
@@ -138,11 +138,6 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   description: name of branch/tag/commit
 	//   type: string
 	//   required: true
-	// - name: page
-	//   in: query
-	//   description: page number of results
-	//   type: integer
-	//   required: false
 	// - name: sort
 	//   in: query
 	//   description: type of sort
@@ -154,6 +149,11 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   description: type of state
 	//   type: string
 	//   enum: [pending, success, error, failure, warning]
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results
+	//   type: integer
 	//   required: false
 	// responses:
 	//   "200":

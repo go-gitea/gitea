@@ -91,14 +91,6 @@ func Search(ctx *context.APIContext) {
 	//   in: query
 	//   description: include template repositories this user has access to (defaults to true)
 	//   type: boolean
-	// - name: page
-	//   in: query
-	//   description: page number of results to return (1-based)
-	//   type: integer
-	// - name: limit
-	//   in: query
-	//   description: page size of results, maximum page size is 50
-	//   type: integer
 	// - name: mode
 	//   in: query
 	//   description: type of repository to search for. Supported values are
@@ -119,6 +111,14 @@ func Search(ctx *context.APIContext) {
 	//   description: sort order, either "asc" (ascending) or "desc" (descending).
 	//                Default is "asc", ignored if "sort" is not specified.
 	//   type: string
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/SearchResults"

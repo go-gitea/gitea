@@ -24,14 +24,6 @@ func ListHooks(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: page
-	//   in: query
-	//   description: page number of results to return (1-based)
-	//   type: integer
-	// - name: limit
-	//   in: query
-	//   description: page size of results, maximum page size is 50
-	//   type: integer
 	// - name: owner
 	//   in: path
 	//   description: owner of the repo
@@ -42,6 +34,14 @@ func ListHooks(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/HookList"
