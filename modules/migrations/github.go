@@ -362,7 +362,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 
 		// get reactions
 		var reactions []*base.Reaction
-		for i := 0; ; i++ {
+		for i := 1; ; i++ {
 			g.sleep()
 			res, resp, err := g.client.Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, issue.GetNumber(), &github.ListOptions{
 				Page:    i,
@@ -430,7 +430,7 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 
 			// get reactions
 			var reactions []*base.Reaction
-			for i := 0; ; i++ {
+			for i := 1; ; i++ {
 				g.sleep()
 				res, resp, err := g.client.Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListOptions{
 					Page:    i,
@@ -544,7 +544,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 
 		// get reactions
 		var reactions []*base.Reaction
-		for i := 0; ; i++ {
+		for i := 1; ; i++ {
 			g.sleep()
 			res, resp, err := g.client.Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, pr.GetNumber(), &github.ListOptions{
 				Page:    i,
