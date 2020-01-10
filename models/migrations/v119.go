@@ -4,14 +4,13 @@
 
 package migrations
 
-import "xorm.io/xorm"
+import (
+	"code.gitea.io/gitea/modules/structs"
 
-func addIsRestricted(x *xorm.Engine) error {
-	// User see models/user.go
-	type User struct {
-		ID           int64 `xorm:"pk autoincr"`
-		IsRestricted bool  `xorm:"NOT NULL DEFAULT false"`
-	}
+	"xorm.io/xorm"
+)
 
-	return x.Sync2(new(User))
+func fixMigratedRepositoryServiceType(x *xorm.Engine) error {
+	_, err := x.Exec("UPDATE repository SET original_service_type = ? WHERE original_url LIKE 'https://github.com/%'", structs.GithubService)
+	return err
 }

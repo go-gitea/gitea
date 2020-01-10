@@ -293,6 +293,8 @@ var migrations = []Migration{
 	// v118 -> v119
 	NewMigration("Add commit id and stale to reviews", addReviewCommitAndStale),
 	// v119 -> v120
+	NewMigration("Fix migrated repositories' git service type", fixMigratedRepositoryServiceType),
+	// v120 -> v121
 	NewMigration("add is_restricted column for users table", addIsRestricted),
 }
 
