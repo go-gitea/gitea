@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // ListTopics returns list of current topics for repo
@@ -46,11 +47,8 @@ func ListTopics(ctx *context.APIContext) {
 	//     "$ref": "#/responses/TopicNames"
 
 	topics, err := models.FindTopics(&models.FindTopicOptions{
-		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		},
-		RepoID: ctx.Repo.Repository.ID,
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
 	})
 	if err != nil {
 		log.Error("ListTopics failed: %v", err)

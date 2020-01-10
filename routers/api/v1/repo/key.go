@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
@@ -80,10 +81,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 	if fingerprint != "" || keyID != 0 {
 		keys, err = models.SearchDeployKeys(ctx.Repo.Repository.ID, keyID, fingerprint)
 	} else {
-		keys, err = models.ListDeployKeys(ctx.Repo.Repository.ID, models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		})
+		keys, err = models.ListDeployKeys(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
 	}
 
 	if err != nil {

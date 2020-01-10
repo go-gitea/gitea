@@ -7,10 +7,10 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // ListSubscribers list a repo's subscribers (i.e. watchers)
@@ -43,10 +43,7 @@ func ListSubscribers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	subscribers, err := ctx.Repo.Repository.GetWatchers(models.ListOptions{
-		Page:     ctx.QueryInt("page"),
-		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-	})
+	subscribers, err := ctx.Repo.Repository.GetWatchers(utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetWatchers", err)
 		return

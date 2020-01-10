@@ -11,8 +11,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	comment_service "code.gitea.io/gitea/services/comments"
 )
 
@@ -124,10 +124,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	}
 
 	comments, err := models.FindComments(models.FindCommentsOptions{
-		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		},
+		ListOptions: utils.GetListOptions(ctx),
 		RepoID: ctx.Repo.Repository.ID,
 		Since:  since.Unix(),
 		Type:   models.CommentTypeComment,

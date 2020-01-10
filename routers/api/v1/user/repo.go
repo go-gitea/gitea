@@ -9,19 +9,16 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // listUserRepos - List the repositories owned by the given user.
 func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 	repos, err := models.GetUserRepositories(&models.SearchRepoOptions{
-		UserID:  u.ID,
-		Private: private,
-		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		},
+		UserID:      u.ID,
+		Private:     private,
+		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)
@@ -96,12 +93,9 @@ func ListMyRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/RepositoryList"
 
 	ownRepos, err := models.GetUserRepositories(&models.SearchRepoOptions{
-		UserID:  ctx.User.ID,
-		Private: true,
-		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		},
+		UserID:      ctx.User.ID,
+		Private:     true,
+		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)

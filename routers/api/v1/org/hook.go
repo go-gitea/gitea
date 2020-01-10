@@ -41,10 +41,7 @@ func ListHooks(ctx *context.APIContext) {
 
 	org := ctx.Org.Organization
 	orgHooks, err := models.GetWebhooksByOrgID(&models.SearchWebhooksOptions{
-		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		},
+		ListOptions: utils.GetListOptions(ctx),
 		OrgID: org.ID,
 	})
 	if err != nil {

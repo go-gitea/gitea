@@ -13,14 +13,12 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 func listUserOrgs(ctx *context.APIContext, u *models.User, all bool) {
 	if err := u.GetOrganizations(&models.SearchOrganizationsOptions{
-		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		},
+		ListOptions: utils.GetListOptions(ctx),
 		All: all,
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetOrganizations", err)

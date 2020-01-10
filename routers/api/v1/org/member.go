@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // listMembers list an organization's members
@@ -22,10 +23,7 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 	members, _, err := models.FindOrgMembers(&models.FindOrgMembersOpts{
 		OrgID:      ctx.Org.Organization.ID,
 		PublicOnly: publicOnly,
-		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		},
+		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)

@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 func listGPGKeys(ctx *context.APIContext, uid int64, listOptions models.ListOptions) {
@@ -57,10 +58,7 @@ func ListGPGKeys(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	listGPGKeys(ctx, user.ID, models.ListOptions{
-		Page:     ctx.QueryInt("page"),
-		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-	})
+	listGPGKeys(ctx, user.ID, utils.GetListOptions(ctx))
 }
 
 //ListMyGPGKeys get the GPG key list of the authenticated user
@@ -83,10 +81,7 @@ func ListMyGPGKeys(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
 
-	listGPGKeys(ctx, ctx.User.ID, models.ListOptions{
-		Page:     ctx.QueryInt("page"),
-		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-	})
+	listGPGKeys(ctx, ctx.User.ID, utils.GetListOptions(ctx))
 }
 
 //GetGPGKey get the GPG key based on a id

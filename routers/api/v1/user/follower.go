@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 func responseAPIUsers(ctx *context.APIContext, users []*models.User) {
@@ -22,10 +23,7 @@ func responseAPIUsers(ctx *context.APIContext, users []*models.User) {
 }
 
 func listUserFollowers(ctx *context.APIContext, u *models.User) {
-	users, err := u.GetFollowers(models.ListOptions{
-		Page:     ctx.QueryInt("page"),
-		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-	})
+	users, err := u.GetFollowers(utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserFollowers", err)
 		return
@@ -89,10 +87,7 @@ func ListFollowers(ctx *context.APIContext) {
 }
 
 func listUserFollowing(ctx *context.APIContext, u *models.User) {
-	users, err := u.GetFollowing(models.ListOptions{
-		Page:     ctx.QueryInt("page"),
-		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-	})
+	users, err := u.GetFollowing(utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetFollowing", err)
 		return

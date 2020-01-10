@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -80,10 +79,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	}
 
 	opts := models.FindTrackedTimesOptions{
-		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		},
+		ListOptions:  utils.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
 		IssueID:      issue.ID,
 	}
@@ -469,10 +465,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	}
 
 	opts := models.FindTrackedTimesOptions{
-		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		},
+		ListOptions:  utils.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
 	}
 
@@ -546,11 +539,8 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	//     "$ref": "#/responses/TrackedTimeList"
 
 	opts := models.FindTrackedTimesOptions{
-		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		},
-		UserID: ctx.User.ID,
+		ListOptions: utils.GetListOptions(ctx),
+		UserID:      ctx.User.ID,
 	}
 
 	var err error

@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // CreateOrg api for create organization
@@ -102,10 +103,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 	users, _, err := models.SearchUsers(&models.SearchUserOptions{
 		Type:    models.UserTypeOrganization,
 		OrderBy: models.SearchOrderByAlphabetically,
-		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		},
+		ListOptions: utils.GetListOptions(ctx),
 		Private: true,
 	})
 	if err != nil {
