@@ -161,7 +161,7 @@ func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) 
 
 	statuses := make([]*CommitStatus, 0, opts.PageSize)
 	findSession := listCommitStatusesStatement(repo, sha, opts)
-	countSession = opts.setSessionPagination(findSession)
+	findSession = opts.setSessionPagination(findSession)
 	sortCommitStatusesSession(findSession, opts.SortType)
 	return statuses, maxResults, findSession.Find(&statuses)
 }
