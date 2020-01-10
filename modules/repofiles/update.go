@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -549,7 +550,7 @@ func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, o
 		if isNewRef && isDelRef {
 			return nil, fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 		}
-		var commits = &models.PushCommits{}
+		var commits = &repository.PushCommits{}
 		if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 			// If is tag reference
 			tagName := opts.RefFullName[len(git.TagPrefix):]
@@ -584,7 +585,7 @@ func createCommitRepoActions(repo *models.Repository, gitRepo *git.Repository, o
 				}
 			}
 
-			commits = models.ListToPushCommits(l)
+			commits = repository.ListToPushCommits(l)
 		}
 		actions = append(actions, &CommitRepoActionOptions{
 			PusherName:  opts.PusherName,
@@ -609,7 +610,7 @@ func createCommitRepoActionOption(repo *models.Repository, gitRepo *git.Reposito
 		return nil, fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 	}
 
-	var commits = &models.PushCommits{}
+	var commits = &repository.PushCommits{}
 	if strings.HasPrefix(opts.RefFullName, git.TagPrefix) {
 		// If is tag reference
 		tagName := opts.RefFullName[len(git.TagPrefix):]
@@ -620,7 +621,7 @@ func createCommitRepoActionOption(repo *models.Repository, gitRepo *git.Reposito
 		} else {
 			// Clear cache for tag commit count
 			cache.Remove(repo.GetCommitsCountCacheKey(tagName, true))
-			if err := models.PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
+			if err := repository.PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
 				return nil, fmt.Errorf("PushUpdateAddTag: %v", err)
 			}
 		}
@@ -649,7 +650,7 @@ func createCommitRepoActionOption(repo *models.Repository, gitRepo *git.Reposito
 			}
 		}
 
-		commits = models.ListToPushCommits(l)
+		commits = repository.ListToPushCommits(l)
 	}
 
 	return &CommitRepoActionOptions{
