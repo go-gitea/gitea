@@ -194,12 +194,13 @@ func CreateMigrateTask(doer, u *User, opts base.MigrateOptions) (*Task, error) {
 	}
 
 	repo, err := CreateRepository(doer, u, CreateRepoOptions{
-		Name:        opts.RepoName,
-		Description: opts.Description,
-		OriginalURL: opts.OriginalURL,
-		IsPrivate:   opts.Private,
-		IsMirror:    opts.Mirror,
-		Status:      RepositoryBeingMigrated,
+		Name:           opts.RepoName,
+		Description:    opts.Description,
+		OriginalURL:    opts.OriginalURL,
+		GitServiceType: opts.GitServiceType,
+		IsPrivate:      opts.Private,
+		IsMirror:       opts.Mirror,
+		Status:         RepositoryBeingMigrated,
 	})
 	if err != nil {
 		task.EndTime = timeutil.TimeStampNow()

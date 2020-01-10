@@ -1071,17 +1071,18 @@ func initRepoCommit(tmpPath string, repo *Repository, u *User) (err error) {
 
 // CreateRepoOptions contains the create repository options
 type CreateRepoOptions struct {
-	Name        string
-	Description string
-	OriginalURL string
-	Gitignores  string
-	IssueLabels string
-	License     string
-	Readme      string
-	IsPrivate   bool
-	IsMirror    bool
-	AutoInit    bool
-	Status      RepositoryStatus
+	Name           string
+	Description    string
+	OriginalURL    string
+	GitServiceType structs.GitServiceType
+	Gitignores     string
+	IssueLabels    string
+	License        string
+	Readme         string
+	IsPrivate      bool
+	IsMirror       bool
+	AutoInit       bool
+	Status         RepositoryStatus
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
@@ -1369,6 +1370,7 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 		LowerName:                       strings.ToLower(opts.Name),
 		Description:                     opts.Description,
 		OriginalURL:                     opts.OriginalURL,
+		OriginalServiceType:             opts.GitServiceType,
 		IsPrivate:                       opts.IsPrivate,
 		IsFsckEnabled:                   !opts.IsMirror,
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,
