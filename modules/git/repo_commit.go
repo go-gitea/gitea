@@ -7,7 +7,6 @@ package git
 
 import (
 	"bytes"
-	"code.gitea.io/gitea/models"
 	"container/list"
 	"fmt"
 	"strconv"
@@ -199,16 +198,10 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 // CommitsRangeSize the default commits range size
 var CommitsRangeSize = 50
 
-func (repo *Repository) commitsByRange(id SHA1, listOptions *models.ListOptions) (*list.List, error) {
-	var stdout []byte
-	var err error
-	if listOptions == nil {
-		stdout, err = NewCommand("log", id.String(), prettyLogFormat).RunInDirBytes(repo.Path)
-	} else {
-		stdout, err = NewCommand("log", id.String(), "--skip="+strconv.Itoa((listOptions.Page-1)*listOptions.PageSize),
-			"--max-count="+strconv.Itoa(listOptions.PageSize), prettyLogFormat).RunInDirBytes(repo.Path)
-	}
-	
+func (repo *Repository) commitsByRange(id SHA1, page, pageSize int) (*list.List, error) {
+	stdout, err := NewCommand("log", id.String(), "--skip="+strconv.Itoa((page-1)*pageSize),
+		"--max-count="+strconv.Itoa(pageSize), prettyLogFormat).RunInDirBytes(repo.Path)
+
 	if err != nil {
 		return nil, err
 	}

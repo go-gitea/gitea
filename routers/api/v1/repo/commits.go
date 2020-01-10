@@ -166,7 +166,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	pageCount := int(math.Ceil(float64(commitsCountTotal) / float64(listOptions.PageSize)))
 
 	// Query commits
-	commits, err := baseCommit.CommitsByRange(listOptions)
+	commits, err := baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize)
 	if err != nil {
 		ctx.ServerError("CommitsByRange", err)
 		return

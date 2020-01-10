@@ -345,8 +345,8 @@ func GetAllUsers(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	users, _, err := models.SearchUsers(&models.SearchUserOptions{
-		Type:    models.UserTypeIndividual,
-		OrderBy: models.SearchOrderByAlphabetically,
+		Type:        models.UserTypeIndividual,
+		OrderBy:     models.SearchOrderByAlphabetically,
 		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {

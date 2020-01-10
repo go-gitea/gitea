@@ -55,7 +55,7 @@ func Members(ctx *context.Context) {
 	opts.ListOptions.PageSize = setting.UI.MembersPagingNum
 	members, membersIsPublic, err := models.FindOrgMembers(&opts)
 	if err != nil {
-		ctx.ServerError("GetAllMembers", err)
+		ctx.ServerError("GetMembers", err)
 		return
 	}
 	ctx.Data["Page"] = pager

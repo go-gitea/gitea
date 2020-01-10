@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	"fmt"
 	"net/http"
 
@@ -103,9 +104,12 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	//   required: false
 	// - name: page
 	//   in: query
-	//   description: page number of results
+	//   description: page number of results to return (1-based)
 	//   type: integer
-	//   required: false
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/StatusList"
@@ -152,9 +156,12 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   required: false
 	// - name: page
 	//   in: query
-	//   description: page number of results
+	//   description: page number of results to return (1-based)
 	//   type: integer
-	//   required: false
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/StatusList"
@@ -202,9 +209,9 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	repo := ctx.Repo.Repository
 
 	statuses, _, err := models.GetCommitStatuses(repo, sha, &models.CommitStatusOptions{
-		Page:     ctx.QueryInt("page"),
-		SortType: ctx.QueryTrim("sort"),
-		State:    ctx.QueryTrim("state"),
+		ListOptions: utils.GetListOptions(ctx),
+		SortType:    ctx.QueryTrim("sort"),
+		State:       ctx.QueryTrim("state"),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetCommitStatuses", fmt.Errorf("GetCommitStatuses[%s, %s, %d]: %v", repo.FullName(), sha, ctx.QueryInt("page"), err))

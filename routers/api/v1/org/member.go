@@ -21,8 +21,8 @@ import (
 func listMembers(ctx *context.APIContext, publicOnly bool) {
 	var members []*models.User
 	members, _, err := models.FindOrgMembers(&models.FindOrgMembersOpts{
-		OrgID:      ctx.Org.Organization.ID,
-		PublicOnly: publicOnly,
+		OrgID:       ctx.Org.Organization.ID,
+		PublicOnly:  publicOnly,
 		ListOptions: utils.GetListOptions(ctx),
 	})
 	if err != nil {

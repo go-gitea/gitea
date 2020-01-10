@@ -19,7 +19,7 @@ import (
 func listUserOrgs(ctx *context.APIContext, u *models.User, all bool) {
 	if err := u.GetOrganizations(&models.SearchOrganizationsOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		All: all,
+		All:         all,
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetOrganizations", err)
 		return
