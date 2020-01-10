@@ -140,7 +140,7 @@ func TestGetActiveWebhooksByOrgID(t *testing.T) {
 
 func TestGetWebhooksByOrgID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	hooks, err := GetWebhooksByOrgID(&SearchWebhooksOptions{OrgID: 3})
+	hooks, err := GetWebhooksByOrgID(3, ListOptions{})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(3), hooks[0].ID)

@@ -78,12 +78,6 @@ type HookEvent struct {
 	HookEvents `json:"events"`
 }
 
-// SearchWebhooksOptions holds the search options
-type SearchWebhooksOptions struct {
-	ListOptions
-	OrgID int64
-}
-
 // HookStatus is the status of a web hook
 type HookStatus int
 
@@ -306,12 +300,12 @@ func getActiveWebhooksByOrgID(e Engine, orgID int64) (ws []*Webhook, err error) 
 }
 
 // GetWebhooksByOrgID returns paginated webhooks for an organization.
-func GetWebhooksByOrgID(opts *SearchWebhooksOptions) (ws []*Webhook, err error) {
-	if opts.Page == 0 {
-		err = x.Find(&ws, &Webhook{OrgID: opts.OrgID})
+func GetWebhooksByOrgID(orgID int64, listOptions ListOptions) (ws []*Webhook, err error) {
+	if listOptions.Page == 0 {
+		err = x.Find(&ws, &Webhook{OrgID: orgID})
 		return ws, err
 	}
-	err = opts.getPaginatedSession().Find(&ws, &Webhook{OrgID: opts.OrgID})
+	err = listOptions.getPaginatedSession().Find(&ws, &Webhook{OrgID: orgID})
 	return ws, err
 }
 
