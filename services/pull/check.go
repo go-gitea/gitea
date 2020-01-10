@@ -201,7 +201,9 @@ func TestPullRequests(ctx context.Context) {
 			} else if err = TestPatch(pr); err != nil {
 				log.Error("testPatch[%d]: %v", pr.ID, err)
 				pr.Status = models.PullRequestStatusError
-				pr.UpdateCols("status")
+				if err := pr.UpdateCols("status"); err != nil {
+					log.Error("update pr [%d] status to PullRequestStatusError failed: %v", pr.ID, err)
+				}
 				continue
 			}
 			checkAndUpdateStatus(pr)

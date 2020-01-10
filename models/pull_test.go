@@ -182,7 +182,7 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 		BaseBranch: "baseBranch",
 		HeadBranch: "headBranch",
 	}
-	pr.UpdateCols("head_branch")
+	assert.NoError(t, pr.UpdateCols("head_branch"))
 
 	pr = AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.Equal(t, "master", pr.BaseBranch)
