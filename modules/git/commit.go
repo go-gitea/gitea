@@ -8,6 +8,7 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"code.gitea.io/gitea/models"
 	"container/list"
 	"fmt"
 	"image"
@@ -297,8 +298,8 @@ func (c *Commit) CommitsCount() (int64, error) {
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
-func (c *Commit) CommitsByRange(page, pageSize int) (*list.List, error) {
-	return c.repo.commitsByRange(c.ID, page, pageSize)
+func (c *Commit) CommitsByRange(listOptions models.ListOptions) (*list.List, error) {
+	return c.repo.commitsByRange(c.ID, listOptions)
 }
 
 // CommitsBefore returns all the commits before current revision

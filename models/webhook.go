@@ -300,13 +300,15 @@ func getActiveWebhooksByOrgID(e Engine, orgID int64) (ws []*Webhook, err error) 
 }
 
 // GetWebhooksByOrgID returns paginated webhooks for an organization.
-func GetWebhooksByOrgID(orgID int64, listOptions ListOptions) (ws []*Webhook, err error) {
+func GetWebhooksByOrgID(orgID int64, listOptions ListOptions) ([]*Webhook, error) {
 	if listOptions.Page == 0 {
-		err = x.Find(&ws, &Webhook{OrgID: orgID})
-		return ws, err
+		var ws []*Webhook
+		return ws, x.Find(&ws, &Webhook{OrgID: orgID})
 	}
-	err = listOptions.getPaginatedSession().Find(&ws, &Webhook{OrgID: orgID})
-	return ws, err
+
+	sess := listOptions.getPaginatedSession()
+	ws := make([]*Webhook, 0, listOptions.PageSize)
+	return ws, sess.Find(&ws, &Webhook{OrgID: orgID})
 }
 
 // GetDefaultWebhook returns admin-default webhook by given ID.

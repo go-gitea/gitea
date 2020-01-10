@@ -5,12 +5,12 @@
 package utils
 
 import (
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/convert"
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 )
 
 // UserID user ID of authenticated user, or 0 if not authenticated

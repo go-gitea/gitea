@@ -42,7 +42,7 @@ func ListHooks(ctx *context.APIContext) {
 	org := ctx.Org.Organization
 	orgHooks, err := models.GetWebhooksByOrgID(org.ID, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetAllWebhooksByOrgID", err)
+		ctx.Error(http.StatusInternalServerError, "GetWebhooksByOrgID", err)
 		return
 	}
 	hooks := make([]*api.Hook, len(orgHooks))
