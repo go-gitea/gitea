@@ -590,7 +590,8 @@ func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
 		return ErrTeamAlreadyExist{t.OrgID, t.LowerName}
 	}
 
-	if _, err = sess.ID(t.ID).AllCols().Update(t); err != nil {
+	if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",
+		"can_create_org_repo", "authorize", "includes_all_repositories").Update(t); err != nil {
 		return fmt.Errorf("update: %v", err)
 	}
 
@@ -605,8 +606,7 @@ func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
 			Delete(new(TeamUnit)); err != nil {
 			return err
 		}
-
-		if _, err = sess.Insert(&t.Units); err != nil {
+		if _, err = sess.Cols("org_id", "team_id", "type").Insert(&t.Units); err != nil {
 			errRollback := sess.Rollback()
 			if errRollback != nil {
 				log.Error("UpdateTeam sess.Rollback: %v", errRollback)

@@ -7,6 +7,7 @@ package setting
 import (
 	"fmt"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -44,7 +45,7 @@ func GetQueueSettings(name string) QueueSettings {
 	q := QueueSettings{}
 	sec := Cfg.Section("queue." + name)
 	// DataDir is not directly inheritable
-	q.DataDir = path.Join(Queue.DataDir, name)
+	q.DataDir = filepath.Join(Queue.DataDir, name)
 	// QueueName is not directly inheritable either
 	q.QueueName = name + Queue.QueueName
 	for _, key := range sec.Keys() {
@@ -55,8 +56,8 @@ func GetQueueSettings(name string) QueueSettings {
 			q.QueueName = key.MustString(q.QueueName)
 		}
 	}
-	if !path.IsAbs(q.DataDir) {
-		q.DataDir = path.Join(AppDataPath, q.DataDir)
+	if !filepath.IsAbs(q.DataDir) {
+		q.DataDir = filepath.Join(AppDataPath, q.DataDir)
 	}
 	sec.Key("DATADIR").SetValue(q.DataDir)
 	// The rest are...
@@ -82,8 +83,8 @@ func GetQueueSettings(name string) QueueSettings {
 func NewQueueService() {
 	sec := Cfg.Section("queue")
 	Queue.DataDir = sec.Key("DATADIR").MustString("queues/")
-	if !path.IsAbs(Queue.DataDir) {
-		Queue.DataDir = path.Join(AppDataPath, Queue.DataDir)
+	if !filepath.IsAbs(Queue.DataDir) {
+		Queue.DataDir = filepath.Join(AppDataPath, Queue.DataDir)
 	}
 	Queue.Length = sec.Key("LENGTH").MustInt(20)
 	Queue.BatchLength = sec.Key("BATCH_LENGTH").MustInt(20)
