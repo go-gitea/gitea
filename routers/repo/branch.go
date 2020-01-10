@@ -15,9 +15,9 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 	"gopkg.in/src-d/go-git.v4/plumbing"
-	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -176,7 +176,7 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 }
 
 func loadBranches(ctx *context.Context) []*Branch {
-	rawBranches, err := repo_service.GetBranches(ctx.Repo.Repository)
+	rawBranches, err := repo_module.GetBranches(ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return nil
@@ -325,9 +325,9 @@ func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
 
 	var err error
 	if ctx.Repo.IsViewBranch {
-		err = repo_service.CreateNewBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_module.CreateNewBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
 	} else {
-		err = repo_service.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_module.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
 	}
 	if err != nil {
 		if models.IsErrTagAlreadyExists(err) {
