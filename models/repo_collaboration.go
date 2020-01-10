@@ -211,18 +211,13 @@ func (repo *Repository) removeIssueAssignees(e Engine, userID int64) error {
 		return fmt.Errorf("removeIssueAssignees: Unable to load owner for repo: %d Error: %v", repo.ID, err)
 	}
 
-	if repo.Owner.IsOrganization() {
+	perm, err := getUserRepoPermission(e, repo, repo.Owner)
+	if err != nil {
+		return err
+	}
 
-		teams, err := repo.Owner.GetUserTeams(userID)
-		if err != nil {
-			return fmt.Errorf("GetUserTeams: Unable to get user teams: Error: %v", err)
-		}
-
-		for i := range teams {
-			if teams[i].HasRepository(repo.ID) && teams[i].IsMember(userID) {
-				return nil
-			}
-		}
+	if perm.CanWrite(UnitTypeIssues) {
+		return nil
 	}
 
 	assignee := &IssueAssignees{
