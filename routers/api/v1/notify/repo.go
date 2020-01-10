@@ -51,6 +51,14 @@ func ListRepoNotifications(ctx *context.APIContext) {
 	//   type: string
 	//   format: date-time
 	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results, maximum page size is 50
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/NotificationThreadList"
@@ -61,6 +69,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 		return
 	}
 	opts := models.FindNotificationOptions{
+		ListOptions:       utils.GetListOptions(ctx),
 		UserID:            ctx.User.ID,
 		RepoID:            ctx.Repo.Repository.ID,
 		UpdatedBeforeUnix: before,

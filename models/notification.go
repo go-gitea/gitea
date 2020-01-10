@@ -67,6 +67,7 @@ type Notification struct {
 
 // FindNotificationOptions represent the filters for notifications. If an ID is 0 it will be ignored.
 type FindNotificationOptions struct {
+	ListOptions
 	UserID            int64
 	RepoID            int64
 	IssueID           int64
@@ -101,7 +102,7 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 
 // ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
 func (opts *FindNotificationOptions) ToSession(e Engine) *xorm.Session {
-	return e.Where(opts.ToCond())
+	return opts.setSessionPagination(e.Where(opts.ToCond()))
 }
 
 func getNotifications(e Engine, options FindNotificationOptions) (nl NotificationList, err error) {

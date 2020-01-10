@@ -472,6 +472,18 @@
             "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
             "name": "before",
             "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -5662,6 +5674,18 @@
             "format": "date-time",
             "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
             "name": "before",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
             "in": "query"
           }
         ],
