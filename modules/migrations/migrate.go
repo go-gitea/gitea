@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -28,10 +29,10 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 }
 
 // MigrateRepository migrate repository according MigrateOptions
-func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
+func MigrateRepository(ctx context.Context, doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
 	var (
 		downloader base.Downloader
-		uploader   = NewGiteaLocalUploader(doer, ownerName, opts.RepoName)
+		uploader   = NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
 		theFactory base.DownloaderFactory
 	)
 
@@ -58,7 +59,7 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 		opts.PullRequests = false
 		opts.GitServiceType = structs.PlainGitService
 		downloader = NewPlainGitDownloader(ownerName, opts.RepoName, opts.CloneAddr)
-		log.Trace("Will migrate from git: %s", opts.CloneAddr)
+		log.Trace("Will migrate from git: %s", opts.OriginalURL)
 	} else if opts.GitServiceType == structs.NotMigrated {
 		opts.GitServiceType = theFactory.GitServiceType()
 	}
@@ -69,12 +70,14 @@ func MigrateRepository(doer *models.User, ownerName string, opts base.MigrateOpt
 		downloader = base.NewRetryDownloader(downloader, setting.Migrations.MaxAttempts, setting.Migrations.RetryBackoff)
 	}
 
+	downloader.SetContext(ctx)
+
 	if err := migrateRepository(downloader, uploader, opts); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
 
-		if err2 := models.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.CloneAddr, err)); err2 != nil {
+		if err2 := models.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
 			log.Error("create respotiry notice failed: ", err2)
 		}
 		return nil, err

@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,6 +36,7 @@ var (
 
 // GiteaLocalUploader implements an Uploader to gitea sites
 type GiteaLocalUploader struct {
+	ctx            context.Context
 	doer           *models.User
 	repoOwner      string
 	repoName       string
@@ -49,8 +51,9 @@ type GiteaLocalUploader struct {
 }
 
 // NewGiteaLocalUploader creates an gitea Uploader via gitea API v1
-func NewGiteaLocalUploader(doer *models.User, repoOwner, repoName string) *GiteaLocalUploader {
+func NewGiteaLocalUploader(ctx context.Context, doer *models.User, repoOwner, repoName string) *GiteaLocalUploader {
 	return &GiteaLocalUploader{
+		ctx:         ctx,
 		doer:        doer,
 		repoOwner:   repoOwner,
 		repoName:    repoName,
@@ -98,12 +101,13 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	var r *models.Repository
 	if opts.MigrateToRepoID <= 0 {
 		r, err = models.CreateRepository(g.doer, owner, models.CreateRepoOptions{
-			Name:        g.repoName,
-			Description: repo.Description,
-			OriginalURL: repo.OriginalURL,
-			IsPrivate:   opts.Private,
-			IsMirror:    opts.Mirror,
-			Status:      models.RepositoryBeingMigrated,
+			Name:           g.repoName,
+			Description:    repo.Description,
+			OriginalURL:    repo.OriginalURL,
+			GitServiceType: opts.GitServiceType,
+			IsPrivate:      opts.Private,
+			IsMirror:       opts.Mirror,
+			Status:         models.RepositoryBeingMigrated,
 		})
 	} else {
 		r, err = models.GetRepositoryByID(opts.MigrateToRepoID)

@@ -10,15 +10,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -66,13 +64,16 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 		}
 	}
 
-	indexTmpPath := filepath.Join(os.TempDir(), "gitea-"+pr.BaseRepo.Name+"-"+strconv.Itoa(time.Now().Nanosecond()))
-	defer os.Remove(indexTmpPath)
+	indexTmpPath, err := ioutil.TempDir(os.TempDir(), "gitea-"+pr.BaseRepo.Name)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create temp dir for repository %s: %v", pr.BaseRepo.RepoPath(), err)
+	}
+	defer os.RemoveAll(indexTmpPath)
 
 	headFile := pr.GetGitRefName()
 
 	// Check if a pull request is merged into BaseBranch
-	_, err := git.NewCommand("merge-base", "--is-ancestor", headFile, pr.BaseBranch).RunInDirWithEnv(pr.BaseRepo.RepoPath(), []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
+	_, err = git.NewCommand("merge-base", "--is-ancestor", headFile, pr.BaseBranch).RunInDirWithEnv(pr.BaseRepo.RepoPath(), []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
 	if err != nil {
 		// Errors are signaled by a non-zero status that is not 1
 		if strings.Contains(err.Error(), "exit status 1") {
@@ -145,6 +146,15 @@ func manuallyMerged(pr *models.PullRequest) bool {
 			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
 			return false
 		}
+
+		baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+		if err != nil {
+			log.Error("OpenRepository[%s] : %v", pr.BaseRepo.RepoPath(), err)
+			return false
+		}
+
+		notification.NotifyMergePullRequest(pr, merger, baseGitRepo)
+
 		log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
 		return true
 	}
@@ -184,10 +194,16 @@ func TestPullRequests(ctx context.Context) {
 			if err != nil {
 				log.Error("GetPullRequestByID[%s]: %v", prID, err)
 				continue
+			} else if pr.Status != models.PullRequestStatusChecking {
+				continue
 			} else if manuallyMerged(pr) {
 				continue
 			} else if err = TestPatch(pr); err != nil {
 				log.Error("testPatch[%d]: %v", pr.ID, err)
+				pr.Status = models.PullRequestStatusError
+				if err := pr.UpdateCols("status"); err != nil {
+					log.Error("update pr [%d] status to PullRequestStatusError failed: %v", pr.ID, err)
+				}
 				continue
 			}
 			checkAndUpdateStatus(pr)

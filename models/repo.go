@@ -967,6 +967,7 @@ func CreateDelegateHooks(repoPath string) error {
 
 // createDelegateHooks creates all the hooks scripts for the repo
 func createDelegateHooks(repoPath string) (err error) {
+
 	var (
 		hookNames = []string{"pre-receive", "update", "post-receive"}
 		hookTpls  = []string{
@@ -992,10 +993,16 @@ func createDelegateHooks(repoPath string) (err error) {
 		}
 
 		// WARNING: This will override all old server-side hooks
+		if err = os.Remove(oldHookPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("unable to pre-remove old hook file '%s' prior to rewriting: %v ", oldHookPath, err)
+		}
 		if err = ioutil.WriteFile(oldHookPath, []byte(hookTpls[i]), 0777); err != nil {
 			return fmt.Errorf("write old hook file '%s': %v", oldHookPath, err)
 		}
 
+		if err = os.Remove(newHookPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("unable to pre-remove new hook file '%s' prior to rewriting: %v", newHookPath, err)
+		}
 		if err = ioutil.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0777); err != nil {
 			return fmt.Errorf("write new hook file '%s': %v", newHookPath, err)
 		}
@@ -1005,7 +1012,7 @@ func createDelegateHooks(repoPath string) (err error) {
 }
 
 // initRepoCommit temporarily changes with work directory.
-func initRepoCommit(tmpPath string, u *User) (err error) {
+func initRepoCommit(tmpPath string, repo *Repository, u *User) (err error) {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	sig := u.NewGitSig()
@@ -1054,7 +1061,7 @@ func initRepoCommit(tmpPath string, u *User) (err error) {
 
 	if stdout, err := git.NewCommand("push", "origin", "master").
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
-		RunInDir(tmpPath); err != nil {
+		RunInDirWithEnv(tmpPath, InternalPushingEnvironment(u, repo)); err != nil {
 		log.Error("Failed to push back to master: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git push: %v", err)
 	}
@@ -1064,17 +1071,18 @@ func initRepoCommit(tmpPath string, u *User) (err error) {
 
 // CreateRepoOptions contains the create repository options
 type CreateRepoOptions struct {
-	Name        string
-	Description string
-	OriginalURL string
-	Gitignores  string
-	IssueLabels string
-	License     string
-	Readme      string
-	IsPrivate   bool
-	IsMirror    bool
-	AutoInit    bool
-	Status      RepositoryStatus
+	Name           string
+	Description    string
+	OriginalURL    string
+	GitServiceType structs.GitServiceType
+	Gitignores     string
+	IssueLabels    string
+	License        string
+	Readme         string
+	IsPrivate      bool
+	IsMirror       bool
+	AutoInit       bool
+	Status         RepositoryStatus
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
@@ -1198,13 +1206,11 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 		return err
 	}
 
-	tmpDir := filepath.Join(os.TempDir(), "gitea-"+repo.Name+"-"+com.ToStr(time.Now().Nanosecond()))
-
 	// Initialize repository according to user's choice.
 	if opts.AutoInit {
-
-		if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-			return fmt.Errorf("Failed to create dir %s: %v", tmpDir, err)
+		tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-"+repo.Name)
+		if err != nil {
+			return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.repoPath(e), err)
 		}
 
 		defer os.RemoveAll(tmpDir)
@@ -1214,7 +1220,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 		}
 
 		// Apply changes and commit.
-		if err = initRepoCommit(tmpDir, u); err != nil {
+		if err = initRepoCommit(tmpDir, repo, u); err != nil {
 			return fmt.Errorf("initRepoCommit: %v", err)
 		}
 	}
@@ -1364,6 +1370,7 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 		LowerName:                       strings.ToLower(opts.Name),
 		Description:                     opts.Description,
 		OriginalURL:                     opts.OriginalURL,
+		OriginalServiceType:             opts.GitServiceType,
 		IsPrivate:                       opts.IsPrivate,
 		IsFsckEnabled:                   !opts.IsMirror,
 		CloseIssuesViaCommitInAnyBranch: setting.Repository.DefaultCloseIssuesViaCommitsInAnyBranch,

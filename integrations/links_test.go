@@ -51,6 +51,7 @@ func TestRedirectsNoLogin(t *testing.T) {
 		"/user2/repo1/src/master":                    "/user2/repo1/src/branch/master",
 		"/user2/repo1/src/master/file.txt":           "/user2/repo1/src/branch/master/file.txt",
 		"/user2/repo1/src/master/directory/file.txt": "/user2/repo1/src/branch/master/directory/file.txt",
+		"/user/avatar/Ghost/-1":                      "/img/avatar_default.png",
 	}
 	for link, redirectLink := range redirects {
 		req := NewRequest(t, "GET", link)

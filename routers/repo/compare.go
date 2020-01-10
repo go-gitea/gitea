@@ -433,6 +433,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
 	renderAttachmentSettings(ctx)

@@ -124,41 +124,43 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 		return fmt.Errorf("checkGiteaTemplate: %v", err)
 	}
 
-	if err := os.Remove(gt.Path); err != nil {
-		return fmt.Errorf("remove .giteatemplate: %v", err)
-	}
+	if gt != nil {
+		if err := os.Remove(gt.Path); err != nil {
+			return fmt.Errorf("remove .giteatemplate: %v", err)
+		}
 
-	// Avoid walking tree if there are no globs
-	if len(gt.Globs()) > 0 {
-		tmpDirSlash := strings.TrimSuffix(filepath.ToSlash(tmpDir), "/") + "/"
-		if err := filepath.Walk(tmpDirSlash, func(path string, info os.FileInfo, walkErr error) error {
-			if walkErr != nil {
-				return walkErr
-			}
-
-			if info.IsDir() {
-				return nil
-			}
-
-			base := strings.TrimPrefix(filepath.ToSlash(path), tmpDirSlash)
-			for _, g := range gt.Globs() {
-				if g.Match(base) {
-					content, err := ioutil.ReadFile(path)
-					if err != nil {
-						return err
-					}
-
-					if err := ioutil.WriteFile(path,
-						[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
-						0644); err != nil {
-						return err
-					}
-					break
+		// Avoid walking tree if there are no globs
+		if len(gt.Globs()) > 0 {
+			tmpDirSlash := strings.TrimSuffix(filepath.ToSlash(tmpDir), "/") + "/"
+			if err := filepath.Walk(tmpDirSlash, func(path string, info os.FileInfo, walkErr error) error {
+				if walkErr != nil {
+					return walkErr
 				}
+
+				if info.IsDir() {
+					return nil
+				}
+
+				base := strings.TrimPrefix(filepath.ToSlash(path), tmpDirSlash)
+				for _, g := range gt.Globs() {
+					if g.Match(base) {
+						content, err := ioutil.ReadFile(path)
+						if err != nil {
+							return err
+						}
+
+						if err := ioutil.WriteFile(path,
+							[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
+							0644); err != nil {
+							return err
+						}
+						break
+					}
+				}
+				return nil
+			}); err != nil {
+				return err
 			}
-			return nil
-		}); err != nil {
-			return err
 		}
 	}
 
@@ -174,15 +176,14 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 		return fmt.Errorf("git remote add: %v", err)
 	}
 
-	return initRepoCommit(tmpDir, repo.Owner)
+	return initRepoCommit(tmpDir, repo, repo.Owner)
 }
 
 // generateRepository initializes repository from template
 func generateRepository(e Engine, repo, templateRepo, generateRepo *Repository) (err error) {
-	tmpDir := filepath.Join(os.TempDir(), "gitea-"+repo.Name+"-"+com.ToStr(time.Now().Nanosecond()))
-
-	if err := os.MkdirAll(tmpDir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", tmpDir, err)
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-"+repo.Name)
+	if err != nil {
+		return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.repoPath(e), err)
 	}
 
 	defer func() {

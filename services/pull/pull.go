@@ -5,10 +5,14 @@
 package pull
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"path"
+	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -16,6 +20,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	issue_service "code.gitea.io/gitea/services/issue"
+
+	"github.com/unknwon/com"
 )
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -42,6 +48,94 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	}
 
 	notification.NotifyNewPullRequest(pr)
+
+	return nil
+}
+
+// ChangeTargetBranch changes the target branch of this pull request, as the given user.
+func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch string) (err error) {
+	// Current target branch is already the same
+	if pr.BaseBranch == targetBranch {
+		return nil
+	}
+
+	if pr.Issue.IsClosed {
+		return models.ErrIssueIsClosed{
+			ID:     pr.Issue.ID,
+			RepoID: pr.Issue.RepoID,
+			Index:  pr.Issue.Index,
+		}
+	}
+
+	if pr.HasMerged {
+		return models.ErrPullRequestHasMerged{
+			ID:         pr.ID,
+			IssueID:    pr.Index,
+			HeadRepoID: pr.HeadRepoID,
+			BaseRepoID: pr.BaseRepoID,
+			HeadBranch: pr.HeadBranch,
+			BaseBranch: pr.BaseBranch,
+		}
+	}
+
+	// Check if branches are equal
+	branchesEqual, err := pr.IsHeadEqualWithBranch(targetBranch)
+	if err != nil {
+		return err
+	}
+	if branchesEqual {
+		return models.ErrBranchesEqual{
+			HeadBranchName: pr.HeadBranch,
+			BaseBranchName: targetBranch,
+		}
+	}
+
+	// Check if pull request for the new target branch already exists
+	existingPr, err := models.GetUnmergedPullRequest(pr.HeadRepoID, pr.BaseRepoID, pr.HeadBranch, targetBranch)
+	if existingPr != nil {
+		return models.ErrPullRequestAlreadyExists{
+			ID:         existingPr.ID,
+			IssueID:    existingPr.Index,
+			HeadRepoID: existingPr.HeadRepoID,
+			BaseRepoID: existingPr.BaseRepoID,
+			HeadBranch: existingPr.HeadBranch,
+			BaseBranch: existingPr.BaseBranch,
+		}
+	}
+	if err != nil && !models.IsErrPullRequestNotExist(err) {
+		return err
+	}
+
+	// Set new target branch
+	oldBranch := pr.BaseBranch
+	pr.BaseBranch = targetBranch
+
+	// Refresh patch
+	if err := TestPatch(pr); err != nil {
+		return err
+	}
+
+	// Update target branch, PR diff and status
+	// This is the same as checkAndUpdateStatus in check service, but also updates base_branch
+	if pr.Status == models.PullRequestStatusChecking {
+		pr.Status = models.PullRequestStatusMergeable
+	}
+	if err := pr.UpdateCols("status, conflicted_files, base_branch"); err != nil {
+		return err
+	}
+
+	// Create comment
+	options := &models.CreateCommentOptions{
+		Type:   models.CommentTypeChangeTargetBranch,
+		Doer:   doer,
+		Repo:   pr.Issue.Repo,
+		Issue:  pr.Issue,
+		OldRef: oldBranch,
+		NewRef: targetBranch,
+	}
+	if _, err = models.CreateComment(options); err != nil {
+		return fmt.Errorf("CreateChangeTargetBranchComment: %v", err)
+	}
 
 	return nil
 }
@@ -80,7 +174,7 @@ func addHeadRepoTasks(prs []*models.PullRequest) {
 
 // AddTestPullRequestTask adds new test tasks by given head/base repository and head/base branch,
 // and generate new patch for testing as needed.
-func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSync bool) {
+func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSync bool, oldCommitID, newCommitID string) {
 	log.Trace("AddTestPullRequestTask [head_repo_id: %d, head_branch: %s]: finding pull requests", repoID, branch)
 	graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
 		// There is no sensible way to shut this down ":-("
@@ -103,6 +197,22 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 			}
 			if err == nil {
 				for _, pr := range prs {
+					if newCommitID != "" && newCommitID != git.EmptySHA {
+						changed, err := checkIfPRContentChanged(pr, oldCommitID, newCommitID)
+						if err != nil {
+							log.Error("checkIfPRContentChanged: %v", err)
+						}
+						if changed {
+							// Mark old reviews as stale if diff to mergebase has changed
+							if err := models.MarkReviewsAsStale(pr.IssueID); err != nil {
+								log.Error("MarkReviewsAsStale: %v", err)
+							}
+						}
+						if err := models.MarkReviewsAsNotStale(pr.IssueID, newCommitID); err != nil {
+							log.Error("MarkReviewsAsNotStale: %v", err)
+						}
+					}
+
 					pr.Issue.PullRequest = pr
 					notification.NotifyPullRequestSynchronized(doer, pr)
 				}
@@ -121,6 +231,78 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 			AddToTaskQueue(pr)
 		}
 	})
+}
+
+// checkIfPRContentChanged checks if diff to target branch has changed by push
+// A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
+func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
+
+	if err = pr.GetHeadRepo(); err != nil {
+		return false, fmt.Errorf("GetHeadRepo: %v", err)
+	} else if pr.HeadRepo == nil {
+		// corrupt data assumed changed
+		return true, nil
+	}
+
+	if err = pr.GetBaseRepo(); err != nil {
+		return false, fmt.Errorf("GetBaseRepo: %v", err)
+	}
+
+	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	if err != nil {
+		return false, fmt.Errorf("OpenRepository: %v", err)
+	}
+	defer headGitRepo.Close()
+
+	// Add a temporary remote.
+	tmpRemote := "checkIfPRContentChanged-" + com.ToStr(time.Now().UnixNano())
+	if err = headGitRepo.AddRemote(tmpRemote, models.RepoPath(pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name), true); err != nil {
+		return false, fmt.Errorf("AddRemote: %s/%s-%s: %v", pr.HeadRepo.OwnerName, pr.HeadRepo.Name, tmpRemote, err)
+	}
+	defer func() {
+		if err := headGitRepo.RemoveRemote(tmpRemote); err != nil {
+			log.Error("checkIfPRContentChanged: RemoveRemote: %s/%s-%s: %v", pr.HeadRepo.OwnerName, pr.HeadRepo.Name, tmpRemote, err)
+		}
+	}()
+	// To synchronize repo and get a base ref
+	_, base, err := headGitRepo.GetMergeBase(tmpRemote, pr.BaseBranch, pr.HeadBranch)
+	if err != nil {
+		return false, fmt.Errorf("GetMergeBase: %v", err)
+	}
+
+	diffBefore := &bytes.Buffer{}
+	diffAfter := &bytes.Buffer{}
+	if err := headGitRepo.GetDiffFromMergeBase(base, oldCommitID, diffBefore); err != nil {
+		// If old commit not found, assume changed.
+		log.Debug("GetDiffFromMergeBase: %v", err)
+		return true, nil
+	}
+	if err := headGitRepo.GetDiffFromMergeBase(base, newCommitID, diffAfter); err != nil {
+		// New commit should be found
+		return false, fmt.Errorf("GetDiffFromMergeBase: %v", err)
+	}
+
+	diffBeforeLines := bufio.NewScanner(diffBefore)
+	diffAfterLines := bufio.NewScanner(diffAfter)
+
+	for diffBeforeLines.Scan() && diffAfterLines.Scan() {
+		if strings.HasPrefix(diffBeforeLines.Text(), "index") && strings.HasPrefix(diffAfterLines.Text(), "index") {
+			// file hashes can change without the diff changing
+			continue
+		} else if strings.HasPrefix(diffBeforeLines.Text(), "@@") && strings.HasPrefix(diffAfterLines.Text(), "@@") {
+			// the location of the difference may change
+			continue
+		} else if !bytes.Equal(diffBeforeLines.Bytes(), diffAfterLines.Bytes()) {
+			return true, nil
+		}
+	}
+
+	if diffBeforeLines.Scan() || diffAfterLines.Scan() {
+		// Diffs not of equal length
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // PushToBaseRepo pushes commits from branches of head repository to
@@ -154,10 +336,19 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 
 	_ = os.Remove(file)
 
+	if err = pr.LoadIssue(); err != nil {
+		return fmt.Errorf("unable to load issue %d for pr %d: %v", pr.IssueID, pr.ID, err)
+	}
+	if err = pr.Issue.LoadPoster(); err != nil {
+		return fmt.Errorf("unable to load poster %d for pr %d: %v", pr.Issue.PosterID, pr.ID, err)
+	}
+
 	if err = git.Push(headRepoPath, git.PushOptions{
 		Remote: tmpRemoteName,
 		Branch: fmt.Sprintf("%s:%s", pr.HeadBranch, headFile),
 		Force:  true,
+		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
+		Env: models.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
 	}); err != nil {
 		return fmt.Errorf("Push: %v", err)
 	}

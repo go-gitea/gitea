@@ -8,6 +8,7 @@ package models
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -82,6 +83,10 @@ const (
 	CommentTypeLock
 	// Unlocks a previously locked issue
 	CommentTypeUnlock
+	// Change pull request's target branch
+	CommentTypeChangeTargetBranch
+	// Delete time manual for time tracking
+	CommentTypeDeleteTimeManual
 )
 
 // CommentTag defines comment tag type
@@ -98,7 +103,7 @@ const (
 // Comment represents a comment in commit and issue page.
 type Comment struct {
 	ID               int64       `xorm:"pk autoincr"`
-	Type             CommentType `xorm:"index"`
+	Type             CommentType `xorm:"INDEX"`
 	PosterID         int64       `xorm:"INDEX"`
 	Poster           *User       `xorm:"-"`
 	OriginalAuthor   string
@@ -116,6 +121,8 @@ type Comment struct {
 	Assignee         *User `xorm:"-"`
 	OldTitle         string
 	NewTitle         string
+	OldRef           string
+	NewRef           string
 	DependentIssueID int64
 	DependentIssue   *Issue `xorm:"-"`
 
@@ -227,6 +234,22 @@ func (c *Comment) HTMLURL() string {
 		}
 	}
 	return fmt.Sprintf("%s#%s", c.Issue.HTMLURL(), c.HashTag())
+}
+
+// APIURL formats a API-string to the issue-comment
+func (c *Comment) APIURL() string {
+	err := c.LoadIssue()
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("LoadIssue(%d): %v", c.IssueID, err)
+		return ""
+	}
+	err = c.Issue.loadRepo(x)
+	if err != nil { // Silently dropping errors :unamused:
+		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
+		return ""
+	}
+
+	return c.Issue.Repo.APIURL() + "/" + path.Join("issues/comments", fmt.Sprint(c.ID))
 }
 
 // IssueURL formats a URL-string to the issue
@@ -495,7 +518,7 @@ func (c *Comment) CodeCommentURL() string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.HTMLURL(), c.HashTag())
 }
 
-func createCommentWithNoAction(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
+func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err error) {
 	var LabelID int64
 	if opts.Label != nil {
 		LabelID = opts.Label.ID
@@ -517,6 +540,8 @@ func createCommentWithNoAction(e *xorm.Session, opts *CreateCommentOptions) (_ *
 		Content:          opts.Content,
 		OldTitle:         opts.OldTitle,
 		NewTitle:         opts.NewTitle,
+		OldRef:           opts.OldRef,
+		NewRef:           opts.NewRef,
 		DependentIssueID: opts.DependentIssueID,
 		TreePath:         opts.TreePath,
 		ReviewID:         opts.ReviewID,
@@ -589,55 +614,6 @@ func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Co
 	return updateIssueCols(e, opts.Issue, "updated_unix")
 }
 
-func sendCreateCommentAction(e *xorm.Session, opts *CreateCommentOptions, comment *Comment) (err error) {
-	// Compose comment action, could be plain comment, close or reopen issue/pull request.
-	// This object will be used to notify watchers in the end of function.
-	act := &Action{
-		ActUserID: opts.Doer.ID,
-		ActUser:   opts.Doer,
-		Content:   fmt.Sprintf("%d|%s", opts.Issue.Index, strings.Split(opts.Content, "\n")[0]),
-		RepoID:    opts.Repo.ID,
-		Repo:      opts.Repo,
-		Comment:   comment,
-		CommentID: comment.ID,
-		IsPrivate: opts.Repo.IsPrivate,
-	}
-	// Check comment type.
-	switch opts.Type {
-	case CommentTypeCode:
-		if comment.ReviewID != 0 {
-			if comment.Review == nil {
-				if err := comment.loadReview(e); err != nil {
-					return err
-				}
-			}
-			if comment.Review.Type <= ReviewTypePending {
-				return nil
-			}
-		}
-		fallthrough
-	case CommentTypeComment:
-		act.OpType = ActionCommentIssue
-	case CommentTypeReopen:
-		act.OpType = ActionReopenIssue
-		if opts.Issue.IsPull {
-			act.OpType = ActionReopenPullRequest
-		}
-	case CommentTypeClose:
-		act.OpType = ActionCloseIssue
-		if opts.Issue.IsPull {
-			act.OpType = ActionClosePullRequest
-		}
-	}
-	// Notify watchers for whatever action comes in, ignore if no action type.
-	if act.OpType > 0 {
-		if err = notifyWatchers(e, act); err != nil {
-			log.Error("notifyWatchers: %v", err)
-		}
-	}
-	return nil
-}
-
 func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
 	var content string
 	var commentType CommentType
@@ -667,7 +643,7 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 		Issue:   issue,
 		Content: content,
 	}
-	comment, err := createCommentWithNoAction(e, opts)
+	comment, err := createComment(e, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -692,7 +668,7 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 		Issue:            issue,
 		DependentIssueID: dependentIssue.ID,
 	}
-	if _, err = createCommentWithNoAction(e, opts); err != nil {
+	if _, err = createComment(e, opts); err != nil {
 		return
 	}
 
@@ -703,7 +679,7 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 		Issue:            dependentIssue,
 		DependentIssueID: issue.ID,
 	}
-	_, err = createCommentWithNoAction(e, opts)
+	_, err = createComment(e, opts)
 	return
 }
 
@@ -722,6 +698,8 @@ type CreateCommentOptions struct {
 	RemovedAssignee  bool
 	OldTitle         string
 	NewTitle         string
+	OldRef           string
+	NewRef           string
 	CommitID         int64
 	CommitSHA        string
 	Patch            string
@@ -745,31 +723,7 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 		return nil, err
 	}
 
-	comment, err = createCommentWithNoAction(sess, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = sendCreateCommentAction(sess, opts, comment); err != nil {
-		return nil, err
-	}
-
-	if err = sess.Commit(); err != nil {
-		return nil, err
-	}
-
-	return comment, nil
-}
-
-// CreateCommentWithNoAction creates comment of issue or commit with no action created
-func CreateCommentWithNoAction(opts *CreateCommentOptions) (comment *Comment, err error) {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return nil, err
-	}
-
-	comment, err = createCommentWithNoAction(sess, opts)
+	comment, err = createComment(sess, opts)
 	if err != nil {
 		return nil, err
 	}
