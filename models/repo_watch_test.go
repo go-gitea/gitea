@@ -59,7 +59,7 @@ func TestRepository_GetWatchers(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	watchers, err := repo.GetWatchers(ListOptions{Page: 1, PageSize: ItemsPerPage})
+	watchers, err := repo.GetWatchers(ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, repo.NumWatches)
 	for _, watcher := range watchers {
