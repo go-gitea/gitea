@@ -172,6 +172,7 @@ type ProtectBranchForm struct {
 	ApprovalsWhitelistUsers  string
 	ApprovalsWhitelistTeams  string
 	BlockOnRejectedReviews   bool
+	DismissStaleApprovals    bool
 }
 
 // Validate validates the fields
@@ -456,12 +457,13 @@ func (f *MergePullRequestForm) Validate(ctx *macaron.Context, errs binding.Error
 
 // CodeCommentForm form for adding code comments for PRs
 type CodeCommentForm struct {
-	Content  string `binding:"Required"`
-	Side     string `binding:"Required;In(previous,proposed)"`
-	Line     int64
-	TreePath string `form:"path" binding:"Required"`
-	IsReview bool   `form:"is_review"`
-	Reply    int64  `form:"reply"`
+	Content        string `binding:"Required"`
+	Side           string `binding:"Required;In(previous,proposed)"`
+	Line           int64
+	TreePath       string `form:"path" binding:"Required"`
+	IsReview       bool   `form:"is_review"`
+	Reply          int64  `form:"reply"`
+	LatestCommitID string
 }
 
 // Validate validates the fields
@@ -471,8 +473,9 @@ func (f *CodeCommentForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 
 // SubmitReviewForm for submitting a finished code review
 type SubmitReviewForm struct {
-	Content string
-	Type    string `binding:"Required;In(approve,comment,reject)"`
+	Content  string
+	Type     string `binding:"Required;In(approve,comment,reject)"`
+	CommitID string
 }
 
 // Validate validates the fields

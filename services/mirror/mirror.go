@@ -403,7 +403,7 @@ func syncMirror(repoID string) {
 			continue
 		}
 
-		theCommits := models.ListToPushCommits(commits)
+		theCommits := repository.ListToPushCommits(commits)
 		if len(theCommits.Commits) > setting.UI.FeedMaxCommitNum {
 			theCommits.Commits = theCommits.Commits[:setting.UI.FeedMaxCommitNum]
 		}
