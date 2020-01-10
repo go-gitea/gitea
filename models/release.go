@@ -203,13 +203,11 @@ func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) (rels []*Releas
 		Desc("created_unix", "id").
 		Where(opts.toConds(repoID))
 
-	if opts.PageSize == 0 {
-		err = sess.Find(&rels)
-		return rels, err
+	if opts.PageSize != 0 {
+		sess = opts.setSessionPagination(sess)
 	}
 
-	err = opts.setSessionPagination(sess).Find(&rels)
-	return rels, err
+	return rels, sess.Find(&rels)
 }
 
 // GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
