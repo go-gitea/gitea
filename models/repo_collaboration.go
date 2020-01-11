@@ -228,7 +228,7 @@ func (repo *Repository) removeIssueAssignees(e Engine, userID int64) error {
 	}
 
 	_, err = e.
-		Join("INNER", "issue", "`issue`.id = `issues_assignees`.issue_id AND `issue`.repo_id = ?", repo.ID).
+		Join("INNER", "issue", "`issue`.id = `issue_assignees`.issue_id AND `issue`.repo_id = ?", repo.ID).
 		Delete(assignee)
 	if err != nil {
 		return fmt.Errorf("Delete.. Could not delete assignees %v", err)
