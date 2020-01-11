@@ -22,7 +22,7 @@ type Reaction struct {
 	IssueID          int64  `xorm:"INDEX UNIQUE(s) NOT NULL"`
 	CommentID        int64  `xorm:"INDEX UNIQUE(s)"`
 	UserID           int64  `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	OriginalAuthorID int64  `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	OriginalAuthorID int64  `xorm:"INDEX UNIQUE(s) NOT NULL DEFAULT(0)"`
 	OriginalAuthor   string
 	User             *User              `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
