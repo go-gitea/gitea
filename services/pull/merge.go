@@ -374,8 +374,10 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 			return err
 		}
 		close := (ref.RefAction == references.XRefActionCloses)
-		if err = issue_service.ChangeStatus(ref.Issue, doer, close); err != nil {
-			return err
+		if close != ref.Issue.IsClosed {
+			if err = issue_service.ChangeStatus(ref.Issue, doer, close); err != nil {
+				return err
+			}
 		}
 	}
 
