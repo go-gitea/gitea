@@ -62,7 +62,6 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 			queue, err := NewQueue(q.underlying, handle, q.cfg, exemplar)
 			if err == nil {
 				q.internal = queue
-				q.lock.Unlock()
 				break
 			}
 			if err.Error() != "resource temporarily unavailable" {
