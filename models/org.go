@@ -774,7 +774,7 @@ func (org *User) accessibleReposEnv(e Engine, userID int64) (AccessibleReposEnvi
 
 func (env *accessibleReposEnv) cond() builder.Cond {
 	var cond = builder.NewCond()
-	if env.user != nil && !env.user.IsRestricted {
+	if env.user == nil || !env.user.IsRestricted {
 		cond = cond.Or(builder.Eq{
 			"`repository`.owner_id":   env.org.ID,
 			"`repository`.is_private": false,
