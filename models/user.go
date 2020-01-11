@@ -503,7 +503,7 @@ func (u *User) ValidatePassword(passwd string) bool {
 
 // IsPasswordSet checks if the password is set or left empty
 func (u *User) IsPasswordSet() bool {
-	return u.ValidatePassword("")
+	return !u.ValidatePassword("")
 }
 
 // UploadAvatar saves custom avatar for user.
