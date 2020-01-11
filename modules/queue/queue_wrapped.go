@@ -28,7 +28,6 @@ type WrappedQueueConfiguration struct {
 }
 
 type delayedStarter struct {
-	lock        sync.Mutex
 	internal    Queue
 	underlying  Type
 	cfg         interface{}
@@ -89,6 +88,7 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 // WrappedQueue wraps a delayed starting queue
 type WrappedQueue struct {
 	delayedStarter
+	lock     sync.Mutex
 	handle   HandlerFunc
 	exemplar interface{}
 	channel  chan Data
