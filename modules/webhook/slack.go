@@ -47,10 +47,11 @@ type SlackPayload struct {
 
 // SlackAttachment contains the slack message
 type SlackAttachment struct {
-	Fallback string `json:"fallback"`
-	Color    string `json:"color"`
-	Title    string `json:"title"`
-	Text     string `json:"text"`
+	Fallback  string `json:"fallback"`
+	Color     string `json:"color"`
+	Title     string `json:"title"`
+	TitleLink string `json:"title_link"`
+	Text      string `json:"text"`
 }
 
 // SetSecret sets the slack secret
@@ -143,75 +144,30 @@ func getSlackForkPayload(p *api.ForkPayload, slack *SlackMeta) (*SlackPayload, e
 }
 
 func getSlackIssuesPayload(p *api.IssuePayload, slack *SlackMeta) (*SlackPayload, error) {
-	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
-	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index),
-		fmt.Sprintf("#%d %s", p.Index, p.Issue.Title))
-	repoLink := SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-	var text, title, attachmentText string
-	switch p.Action {
-	case api.HookIssueOpened:
-		text = fmt.Sprintf("[%s] Issue submitted by %s", repoLink, senderLink)
-		title = titleLink
-		attachmentText = SlackTextFormatter(p.Issue.Body)
-	case api.HookIssueClosed:
-		text = fmt.Sprintf("[%s] Issue closed: %s by %s", repoLink, titleLink, senderLink)
-	case api.HookIssueReOpened:
-		text = fmt.Sprintf("[%s] Issue re-opened: %s by %s", repoLink, titleLink, senderLink)
-	case api.HookIssueEdited:
-		text = fmt.Sprintf("[%s] Issue edited: %s by %s", repoLink, titleLink, senderLink)
-		attachmentText = SlackTextFormatter(p.Issue.Body)
-	case api.HookIssueAssigned:
-		text = fmt.Sprintf("[%s] Issue assigned to %s: %s by %s", repoLink,
-			SlackLinkFormatter(setting.AppURL+p.Issue.Assignee.UserName, p.Issue.Assignee.UserName),
-			titleLink, senderLink)
-	case api.HookIssueUnassigned:
-		text = fmt.Sprintf("[%s] Issue unassigned: %s by %s", repoLink, titleLink, senderLink)
-	case api.HookIssueLabelUpdated:
-		text = fmt.Sprintf("[%s] Issue labels updated: %s by %s", repoLink, titleLink, senderLink)
-	case api.HookIssueLabelCleared:
-		text = fmt.Sprintf("[%s] Issue labels cleared: %s by %s", repoLink, titleLink, senderLink)
-	case api.HookIssueSynchronized:
-		text = fmt.Sprintf("[%s] Issue synchronized: %s by %s", repoLink, titleLink, senderLink)
-	case api.HookIssueMilestoned:
-		text = fmt.Sprintf("[%s] Issue milestoned: #%s %s", repoLink, titleLink, senderLink)
-	case api.HookIssueDemilestoned:
-		text = fmt.Sprintf("[%s] Issue milestone cleared: #%s %s", repoLink, titleLink, senderLink)
-	}
+	text, issueTitle, attachmentText, color := getIssuesPayloadInfo(p, SlackLinkFormatter, true)
 
-	return &SlackPayload{
+	pl := &SlackPayload{
 		Channel:  slack.Channel,
 		Text:     text,
 		Username: slack.Username,
 		IconURL:  slack.IconURL,
-		Attachments: []SlackAttachment{{
-			Color: slack.Color,
-			Title: title,
-			Text:  attachmentText,
-		}},
-	}, nil
+	}
+	if attachmentText != "" {
+		attachmentText = SlackTextFormatter(attachmentText)
+		issueTitle = SlackTextFormatter(issueTitle)
+		pl.Attachments = []SlackAttachment{{
+			Color:     fmt.Sprintf("%x", color),
+			Title:     issueTitle,
+			TitleLink: p.Issue.HTMLURL,
+			Text:      attachmentText,
+		}}
+	}
+
+	return pl, nil
 }
 
 func getSlackIssueCommentPayload(p *api.IssueCommentPayload, slack *SlackMeta) (*SlackPayload, error) {
-	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
-	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, models.CommentHashTag(p.Comment.ID)),
-		fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title))
-	repoLink := SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-	var text, title, attachmentText string
-	switch p.Action {
-	case api.HookIssueCommentCreated:
-		text = fmt.Sprintf("[%s] New comment created by %s", repoLink, senderLink)
-		title = titleLink
-		attachmentText = SlackTextFormatter(p.Comment.Body)
-	case api.HookIssueCommentEdited:
-		text = fmt.Sprintf("[%s] Comment edited by %s", repoLink, senderLink)
-		title = titleLink
-		attachmentText = SlackTextFormatter(p.Comment.Body)
-	case api.HookIssueCommentDeleted:
-		text = fmt.Sprintf("[%s] Comment deleted by %s", repoLink, senderLink)
-		title = SlackLinkFormatter(fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index),
-			fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title))
-		attachmentText = SlackTextFormatter(p.Comment.Body)
-	}
+	text, issueTitle, color := getIssueCommentPayloadInfo(p, SlackLinkFormatter, true)
 
 	return &SlackPayload{
 		Channel:  slack.Channel,
@@ -219,26 +175,16 @@ func getSlackIssueCommentPayload(p *api.IssueCommentPayload, slack *SlackMeta) (
 		Username: slack.Username,
 		IconURL:  slack.IconURL,
 		Attachments: []SlackAttachment{{
-			Color: slack.Color,
-			Title: title,
-			Text:  attachmentText,
+			Color:     fmt.Sprintf("%x", color),
+			Title:     issueTitle,
+			TitleLink: p.Comment.HTMLURL,
+			Text:      SlackTextFormatter(p.Comment.Body),
 		}},
 	}, nil
 }
 
 func getSlackReleasePayload(p *api.ReleasePayload, slack *SlackMeta) (*SlackPayload, error) {
-	repoLink := SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-	refLink := SlackLinkFormatter(p.Repository.HTMLURL+"/src/"+p.Release.TagName, p.Release.TagName)
-	var text string
-
-	switch p.Action {
-	case api.HookReleasePublished:
-		text = fmt.Sprintf("[%s] new release %s published by %s", repoLink, refLink, p.Sender.UserName)
-	case api.HookReleaseUpdated:
-		text = fmt.Sprintf("[%s] new release %s updated by %s", repoLink, refLink, p.Sender.UserName)
-	case api.HookReleaseDeleted:
-		text = fmt.Sprintf("[%s] new release %s deleted by %s", repoLink, refLink, p.Sender.UserName)
-	}
+	text, _ := getReleasePayloadInfo(p, SlackLinkFormatter, true)
 
 	return &SlackPayload{
 		Channel:  slack.Channel,
@@ -293,68 +239,35 @@ func getSlackPushPayload(p *api.PushPayload, slack *SlackMeta) (*SlackPayload, e
 }
 
 func getSlackPullRequestPayload(p *api.PullRequestPayload, slack *SlackMeta) (*SlackPayload, error) {
-	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
-	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index),
-		fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
-	repoLink := SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-	var text, title, attachmentText string
-	switch p.Action {
-	case api.HookIssueOpened:
-		text = fmt.Sprintf("[%s] Pull request submitted by %s", repoLink, senderLink)
-		title = titleLink
-		attachmentText = SlackTextFormatter(p.PullRequest.Body)
-	case api.HookIssueClosed:
-		if p.PullRequest.HasMerged {
-			text = fmt.Sprintf("[%s] Pull request merged: %s by %s", repoLink, titleLink, senderLink)
-		} else {
-			text = fmt.Sprintf("[%s] Pull request closed: %s by %s", repoLink, titleLink, senderLink)
-		}
-	case api.HookIssueReOpened:
-		text = fmt.Sprintf("[%s] Pull request re-opened: %s by %s", repoLink, titleLink, senderLink)
-	case api.HookIssueEdited:
-		text = fmt.Sprintf("[%s] Pull request edited: %s by %s", repoLink, titleLink, senderLink)
-		attachmentText = SlackTextFormatter(p.PullRequest.Body)
-	case api.HookIssueAssigned:
-		list := make([]string, len(p.PullRequest.Assignees))
-		for i, user := range p.PullRequest.Assignees {
-			list[i] = SlackLinkFormatter(setting.AppURL+user.UserName, user.UserName)
-		}
-		text = fmt.Sprintf("[%s] Pull request assigned to %s: %s by %s", repoLink,
-			strings.Join(list, ", "),
-			titleLink, senderLink)
-	case api.HookIssueUnassigned:
-		text = fmt.Sprintf("[%s] Pull request unassigned: %s by %s", repoLink, titleLink, senderLink)
-	case api.HookIssueLabelUpdated:
-		text = fmt.Sprintf("[%s] Pull request labels updated: %s by %s", repoLink, titleLink, senderLink)
-	case api.HookIssueLabelCleared:
-		text = fmt.Sprintf("[%s] Pull request labels cleared: %s by %s", repoLink, titleLink, senderLink)
-	case api.HookIssueSynchronized:
-		text = fmt.Sprintf("[%s] Pull request synchronized: %s by %s", repoLink, titleLink, senderLink)
-	case api.HookIssueMilestoned:
-		text = fmt.Sprintf("[%s] Pull request milestoned: #%s %s", repoLink, titleLink, senderLink)
-	case api.HookIssueDemilestoned:
-		text = fmt.Sprintf("[%s] Pull request milestone cleared: #%s %s", repoLink, titleLink, senderLink)
-	}
+	text, issueTitle, attachmentText, color := getPullRequestPayloadInfo(p, SlackLinkFormatter, true)
 
-	return &SlackPayload{
+	pl := &SlackPayload{
 		Channel:  slack.Channel,
 		Text:     text,
 		Username: slack.Username,
 		IconURL:  slack.IconURL,
-		Attachments: []SlackAttachment{{
-			Color: slack.Color,
-			Title: title,
-			Text:  attachmentText,
-		}},
-	}, nil
+	}
+	if attachmentText != "" {
+		attachmentText = SlackTextFormatter(p.PullRequest.Body)
+		issueTitle = SlackTextFormatter(issueTitle)
+		pl.Attachments = []SlackAttachment{{
+			Color:     fmt.Sprintf("%x", color),
+			Title:     issueTitle,
+			TitleLink: p.PullRequest.URL,
+			Text:      attachmentText,
+		}}
+	}
+
+	return pl, nil
 }
 
 func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackMeta, event models.HookEventType) (*SlackPayload, error) {
 	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
-	titleLink := SlackLinkFormatter(fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index),
-		fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title))
+	title := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
+	titleLink := fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index)
 	repoLink := SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-	var text, title, attachmentText string
+	var text string
+
 	switch p.Action {
 	case api.HookIssueSynchronized:
 		action, err := parseHookPullRequestEventType(event)
@@ -362,7 +275,7 @@ func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackM
 			return nil, err
 		}
 
-		text = fmt.Sprintf("[%s] Pull request review %s : %s by %s", repoLink, action, titleLink, senderLink)
+		text = fmt.Sprintf("[%s] Pull request review %s: [%s](%s) by %s", repoLink, action, title, titleLink, senderLink)
 	}
 
 	return &SlackPayload{
@@ -370,11 +283,6 @@ func getSlackPullRequestApprovalPayload(p *api.PullRequestPayload, slack *SlackM
 		Text:     text,
 		Username: slack.Username,
 		IconURL:  slack.IconURL,
-		Attachments: []SlackAttachment{{
-			Color: slack.Color,
-			Title: title,
-			Text:  attachmentText,
-		}},
 	}, nil
 }
 
@@ -382,6 +290,7 @@ func getSlackRepositoryPayload(p *api.RepositoryPayload, slack *SlackMeta) (*Sla
 	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	repoLink := SlackLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	var text, title, attachmentText string
+
 	switch p.Action {
 	case api.HookRepoCreated:
 		text = fmt.Sprintf("[%s] Repository created by %s", repoLink, senderLink)
@@ -396,9 +305,10 @@ func getSlackRepositoryPayload(p *api.RepositoryPayload, slack *SlackMeta) (*Sla
 		Username: slack.Username,
 		IconURL:  slack.IconURL,
 		Attachments: []SlackAttachment{{
-			Color: slack.Color,
-			Title: title,
-			Text:  attachmentText,
+			Color:     slack.Color,
+			Title:     title,
+			TitleLink: title,
+			Text:      attachmentText,
 		}},
 	}, nil
 }

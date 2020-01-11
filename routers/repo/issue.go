@@ -21,13 +21,14 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	comment_service "code.gitea.io/gitea/services/comments"
 	issue_service "code.gitea.io/gitea/services/issue"
+	pull_service "code.gitea.io/gitea/services/pull"
 
 	"github.com/unknwon/com"
 )
@@ -263,7 +264,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	ctx.Data["IssueStats"] = issueStats
-	ctx.Data["SelectLabels"] = com.StrTo(selectLabels).MustInt64()
+	ctx.Data["SelLabelIDs"] = labelIDs
+	ctx.Data["SelectLabels"] = selectLabels
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["MilestoneID"] = milestoneID
@@ -660,8 +662,37 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 	return models.CommentTagNone, nil
 }
 
+func getBranchData(ctx *context.Context, issue *models.Issue) {
+	ctx.Data["BaseBranch"] = nil
+	ctx.Data["HeadBranch"] = nil
+	ctx.Data["HeadUserName"] = nil
+	ctx.Data["BaseName"] = ctx.Repo.Repository.OwnerName
+	if issue.IsPull {
+		pull := issue.PullRequest
+		ctx.Data["BaseBranch"] = pull.BaseBranch
+		ctx.Data["HeadBranch"] = pull.HeadBranch
+		ctx.Data["HeadUserName"] = pull.MustHeadUserName()
+	}
+}
+
 // ViewIssue render issue view page
 func ViewIssue(ctx *context.Context) {
+	if ctx.Params(":type") == "issues" {
+		// If issue was requested we check if repo has external tracker and redirect
+		extIssueUnit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
+		if err == nil && extIssueUnit != nil {
+			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
+				metas := ctx.Repo.Repository.ComposeMetas()
+				metas["index"] = ctx.Params(":index")
+				ctx.Redirect(com.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas))
+				return
+			}
+		} else if err != nil && !models.IsErrUnitTypeNotExist(err) {
+			ctx.ServerError("GetUnit", err)
+			return
+		}
+	}
+
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -699,7 +730,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireDropzone"] = true
 	ctx.Data["RequireTribute"] = true
-	// ctx.Data["IsProjectsEnabled"] = settings.
+	ctx.Data["IsProjectsEnabled"] = settings.Repository.EnableKanbanBoard
 
 	renderAttachmentSettings(ctx)
 
@@ -732,7 +763,6 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 	ctx.Data["IssueWatch"] = iw
-	ctx.Data["AllowedReactions"] = setting.UI.Reactions
 
 	issue.RenderedContent = string(markdown.Render([]byte(issue.Content), ctx.Repo.RepoLink,
 		ctx.Repo.Repository.ComposeMetas()))
@@ -948,6 +978,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 	}
 
+	getBranchData(ctx, issue)
 	if issue.IsPull {
 		pull := issue.PullRequest
 		pull.Issue = issue
@@ -1011,10 +1042,14 @@ func ViewIssue(ctx *context.Context) {
 		}
 		if pull.ProtectedBranch != nil {
 			cnt := pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
-			ctx.Data["IsBlockedByApprovals"] = pull.ProtectedBranch.RequiredApprovals > 0 && cnt < pull.ProtectedBranch.RequiredApprovals
+			ctx.Data["IsBlockedByApprovals"] = !pull.ProtectedBranch.HasEnoughApprovals(pull)
+			ctx.Data["IsBlockedByRejection"] = pull.ProtectedBranch.MergeBlockedByRejectedReview(pull)
 			ctx.Data["GrantedApprovals"] = cnt
 		}
-		ctx.Data["IsPullBranchDeletable"] = canDelete && pull.HeadRepo != nil && git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch)
+		ctx.Data["IsPullBranchDeletable"] = canDelete &&
+			pull.HeadRepo != nil &&
+			git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch) &&
+			(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
 
 		ctx.Data["PullReviewers"], err = models.GetReviewersByIssueID(issue.ID)
 		if err != nil {
@@ -1225,13 +1260,11 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 
-			removed, comment, err := issue_service.ToggleAssignee(issue, ctx.User, assigneeID)
+			_, _, err = issue_service.ToggleAssignee(issue, ctx.User, assigneeID)
 			if err != nil {
 				ctx.ServerError("ToggleAssignee", err)
 				return
 			}
-
-			notification.NotifyIssueChangeAssignee(ctx.User, issue, assignee, removed, comment)
 		}
 	}
 	ctx.JSON(200, map[string]interface{}{
@@ -1321,7 +1354,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issue.Index))
+		ctx.Redirect(issue.HTMLURL())
 		return
 	}
 
@@ -1348,12 +1381,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 
 				// Regenerate patch and test conflict.
 				if pr == nil {
-					if err = issue.PullRequest.UpdatePatch(); err != nil {
-						ctx.ServerError("UpdatePatch", err)
-						return
-					}
-
-					issue.PullRequest.AddToTaskQueue()
+					pull_service.AddToTaskQueue(issue.PullRequest)
 				}
 			}
 
@@ -1529,14 +1557,12 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		if !util.IsStringInSlice(form.Content, setting.UI.Reactions) {
-			err := fmt.Errorf("ChangeIssueReaction: '%s' is not an allowed reaction", form.Content)
-			ctx.ServerError(err.Error(), err)
-			return
-		}
-
 		reaction, err := models.CreateIssueReaction(ctx.User, issue, form.Content)
 		if err != nil {
+			if models.IsErrForbiddenIssueReaction(err) {
+				ctx.ServerError("ChangeIssueReaction", err)
+				return
+			}
 			log.Info("CreateIssueReaction: %s", err)
 			break
 		}
@@ -1630,14 +1656,12 @@ func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
 
 	switch ctx.Params(":action") {
 	case "react":
-		if !util.IsStringInSlice(form.Content, setting.UI.Reactions) {
-			err := fmt.Errorf("ChangeIssueReaction: '%s' is not an allowed reaction", form.Content)
-			ctx.ServerError(err.Error(), err)
-			return
-		}
-
 		reaction, err := models.CreateCommentReaction(ctx.User, comment.Issue, comment, form.Content)
 		if err != nil {
+			if models.IsErrForbiddenIssueReaction(err) {
+				ctx.ServerError("ChangeIssueReaction", err)
+				return
+			}
 			log.Info("CreateCommentReaction: %s", err)
 			break
 		}

@@ -44,10 +44,6 @@ func TestFindAllIssueReferences(t *testing.T) {
 			},
 		},
 		{
-			"#123 no, this is a title.",
-			[]testResult{},
-		},
-		{
 			" #124 yes, this is a reference.",
 			[]testResult{
 				{124, "", "", "124", false, XRefActionNone, &RefSpan{Start: 0, End: 4}, nil},

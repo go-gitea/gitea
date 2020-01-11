@@ -16,6 +16,9 @@ else
 	ifeq ($(UNAME_S),Darwin)
 		SED_INPLACE := sed -i ''
 	endif
+	ifeq ($(UNAME_S),FreeBSD)
+		SED_INPLACE := sed -i ''
+	endif
 endif
 
 GOFILES := $(shell find . -name "*.go" -type f ! -path "./vendor/*" ! -path "*/bindata.go")
@@ -24,7 +27,7 @@ GOFMT ?= gofmt -s
 GOFLAGS := -v
 EXTRA_GOFLAGS ?=
 
-MAKE_VERSION := $(shell make -v | head -n 1)
+MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
 
 ifneq ($(DRONE_TAG),)
 	VERSION ?= $(subst v,,$(DRONE_TAG))
@@ -89,6 +92,25 @@ all: build
 
 include docker/Makefile
 
+.PHONY: help
+help:
+	@echo "Make Routines:"
+	@echo " - \"\"                equivalent to \"build\""
+	@echo " - build             creates the entire project"
+	@echo " - clean             delete integration files and build files but not css and js files"
+	@echo " - clean-all         delete all generated files (integration test, build, css and js files)"
+	@echo " - css               rebuild only css files"
+	@echo " - js                rebuild only js files"
+	@echo " - generate          run \"make css js\" and \"go generate\""
+	@echo " - fmt               format the code"
+	@echo " - generate-swagger  generate the swagger spec from code comments"
+	@echo " - swagger-validate  check if the swagger spec is valide"
+	@echo " - revive            run code linter revive"
+	@echo " - misspell          check if a word is written wrong"
+	@echo " - vet               examines Go source code and reports suspicious constructs"
+	@echo " - test              run unit test"
+	@echo " - test-sqlite       run integration test for sqlite"
+
 .PHONY: go-check
 go-check:
 	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.?[0-9]+?\.?[0-9]?\s' | tr '.' ' ');))
@@ -128,7 +150,7 @@ vet:
 	$(GO) vet $(PACKAGES)
 
 .PHONY: generate
-generate:
+generate: js css
 	GO111MODULE=on $(GO) generate -mod=vendor $(PACKAGES)
 
 .PHONY: generate-swagger
@@ -384,20 +406,14 @@ check: test
 install: $(wildcard *.go)
 	$(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
 
-.PHONY: go
-go: go-check $(EXECUTABLE)
-
-.PHONY: go-all
-go-all: go-check generate go
-
 .PHONY: build
-build: js css go-all
+build: go-check generate $(EXECUTABLE)
 
 $(EXECUTABLE): $(GO_SOURCES)
 	GO111MODULE=on $(GO) build -mod=vendor $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
+release: generate release-dirs release-windows release-linux release-darwin release-copy release-compress release-check
 
 .PHONY: release-dirs
 release-dirs:
@@ -469,9 +485,9 @@ css: node-check $(CSS_DEST)
 
 $(CSS_DEST): node_modules $(CSS_SOURCES)
 	npx stylelint web_src/less
-	npx lessc --clean-css="--s0 -b" web_src/less/index.less public/css/index.css
-	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc --clean-css="--s0 -b" web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
-	npx postcss --use autoprefixer --no-map --replace public/css/*
+	npx lessc web_src/less/index.less public/css/index.css
+	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
+	npx postcss --use autoprefixer --use cssnano --no-map --replace public/css/*
 
 .PHONY: javascripts
 javascripts:

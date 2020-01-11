@@ -61,7 +61,7 @@ func TestGetByCommentOrIssueID(t *testing.T) {
 	// count of attachments from issue ID
 	attachments, err := GetAttachmentsByIssueID(1)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(attachments))
+	assert.Equal(t, 1, len(attachments))
 
 	attachments, err = GetAttachmentsByCommentID(1)
 	assert.NoError(t, err)
@@ -73,7 +73,7 @@ func TestDeleteAttachments(t *testing.T) {
 
 	count, err := DeleteAttachmentsByIssue(4, false)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, count)
+	assert.Equal(t, 2, count)
 
 	count, err = DeleteAttachmentsByComment(2, false)
 	assert.NoError(t, err)
@@ -115,4 +115,44 @@ func TestUpdateAttachment(t *testing.T) {
 	assert.NoError(t, UpdateAttachment(attach))
 
 	AssertExistsAndLoadBean(t, &Attachment{Name: "new_name"})
+}
+
+func TestGetAttachmentsByUUIDs(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	attachList, err := GetAttachmentsByUUIDs([]string{"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", "not-existing-uuid"})
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(attachList))
+	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attachList[0].UUID)
+	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", attachList[1].UUID)
+	assert.Equal(t, int64(1), attachList[0].IssueID)
+	assert.Equal(t, int64(5), attachList[1].IssueID)
+}
+
+func TestLinkedRepository(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	testCases := []struct {
+		name             string
+		attachID         int64
+		expectedRepo     *Repository
+		expectedUnitType UnitType
+	}{
+		{"LinkedIssue", 1, &Repository{ID: 1}, UnitTypeIssues},
+		{"LinkedComment", 3, &Repository{ID: 1}, UnitTypeIssues},
+		{"LinkedRelease", 9, &Repository{ID: 1}, UnitTypeReleases},
+		{"Notlinked", 10, nil, -1},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			attach, err := GetAttachmentByID(tc.attachID)
+			assert.NoError(t, err)
+			repo, unitType, err := attach.LinkedRepository()
+			assert.NoError(t, err)
+			if tc.expectedRepo != nil {
+				assert.Equal(t, tc.expectedRepo.ID, repo.ID)
+			}
+			assert.Equal(t, tc.expectedUnitType, unitType)
+
+		})
+	}
 }

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/org"
 	"code.gitea.io/gitea/routers/repo"
 )
 
@@ -83,7 +84,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	if ctxUser.IsOrganization() {
-		showOrgProfile(ctx)
+		org.Home(ctx)
 		return
 	}
 

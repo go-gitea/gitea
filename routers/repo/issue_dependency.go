@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -30,8 +29,13 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 
+	if err = issue.LoadRepo(); err != nil {
+		ctx.ServerError("LoadRepo", err)
+		return
+	}
+
 	// Redirect
-	defer ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex), http.StatusSeeOther)
+	defer ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
 
 	// Dependency
 	dep, err := models.GetIssueByID(depID)
@@ -84,8 +88,13 @@ func RemoveDependency(ctx *context.Context) {
 		return
 	}
 
+	if err = issue.LoadRepo(); err != nil {
+		ctx.ServerError("LoadRepo", err)
+		return
+	}
+
 	// Redirect
-	ctx.Redirect(fmt.Sprintf("%s/issues/%d", ctx.Repo.RepoLink, issueIndex), http.StatusSeeOther)
+	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
 
 	// Dependency Type
 	depTypeStr := ctx.Req.PostForm.Get("dependencyType")

@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -243,6 +244,16 @@ func (issue *Issue) loadReactions(e Engine) (err error) {
 	return nil
 }
 
+func (issue *Issue) loadMilestone(e Engine) (err error) {
+	if issue.Milestone == nil && issue.MilestoneID > 0 {
+		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
+		if err != nil && !IsErrMilestoneNotExist(err) {
+			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
+		}
+	}
+	return nil
+}
+
 func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadRepo(e); err != nil {
 		return
@@ -256,11 +267,8 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 		return
 	}
 
-	if issue.Milestone == nil && issue.MilestoneID > 0 {
-		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
-		if err != nil && !IsErrMilestoneNotExist(err) {
-			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
-		}
+	if err = issue.loadMilestone(e); err != nil {
+		return
 	}
 
 	if issue.ProjectID > 0 && issue.Project == nil {
@@ -305,6 +313,11 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 // LoadAttributes loads the attribute of this issue.
 func (issue *Issue) LoadAttributes() error {
 	return issue.loadAttributes(x)
+}
+
+// LoadMilestone load milestone of this issue.
+func (issue *Issue) LoadMilestone() error {
+	return issue.loadMilestone(x)
 }
 
 // GetIsRead load the `IsRead` field of the issue
@@ -379,6 +392,7 @@ func (issue *Issue) apiFormat(e Engine) *api.Issue {
 	apiIssue := &api.Issue{
 		ID:       issue.ID,
 		URL:      issue.APIURL(),
+		HTMLURL:  issue.HTMLURL(),
 		Index:    issue.Index,
 		Poster:   issue.Poster.APIFormat(),
 		Title:    issue.Title,
@@ -611,16 +625,23 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 	return nil
 }
 
-func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (err error) {
+func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (*Comment, error) {
 	// Reload the issue
 	currentIssue, err := getIssueByID(e, issue.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Nothing should be performed if current status is same as target status
 	if currentIssue.IsClosed == isClosed {
-		return nil
+		if !issue.IsPull {
+			return nil, ErrIssueWasClosed{
+				ID: issue.ID,
+			}
+		}
+		return nil, ErrPullWasClosed{
+			ID: issue.ID,
+		}
 	}
 
 	// Check for open dependencies
@@ -628,11 +649,11 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 		// only check if dependencies are enabled and we're about to close an issue, otherwise reopening an issue would fail when there are unsatisfied dependencies
 		noDeps, err := issueNoDependenciesLeft(e, issue)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if !noDeps {
-			return ErrDependenciesLeft{issue.ID}
+			return nil, ErrDependenciesLeft{issue.ID}
 		}
 	}
 
@@ -644,22 +665,22 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 	}
 
 	if err = updateIssueCols(e, issue, "is_closed", "closed_unix"); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Update issue count of labels
 	if err = issue.getLabels(e); err != nil {
-		return err
+		return nil, err
 	}
 	for idx := range issue.Labels {
 		if err = updateLabel(e, issue.Labels[idx]); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	// Update issue count of milestone
 	if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
-		return err
+		return nil, err
 	}
 
 	// New action comment
@@ -668,43 +689,39 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 		cmtType = CommentTypeReopen
 	}
 
-	var opts = &CreateCommentOptions{
+	return createComment(e, &CreateCommentOptions{
 		Type:  cmtType,
 		Doer:  doer,
 		Repo:  issue.Repo,
 		Issue: issue,
-	}
-	comment, err := createCommentWithNoAction(e, opts)
-	if err != nil {
-		return err
-	}
-	return sendCreateCommentAction(e, opts, comment)
+	})
 }
 
 // ChangeStatus changes issue status to open or closed.
-func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
+func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (*Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
+	if err := sess.Begin(); err != nil {
+		return nil, err
 	}
 
-	if err = issue.loadRepo(sess); err != nil {
-		return err
+	if err := issue.loadRepo(sess); err != nil {
+		return nil, err
 	}
-	if err = issue.loadPoster(sess); err != nil {
-		return err
+	if err := issue.loadPoster(sess); err != nil {
+		return nil, err
 	}
 
-	if err = issue.changeStatus(sess, doer, isClosed); err != nil {
-		return err
+	comment, err := issue.changeStatus(sess, doer, isClosed)
+	if err != nil {
+		return nil, err
 	}
 
 	if err = sess.Commit(); err != nil {
-		return fmt.Errorf("Commit: %v", err)
+		return nil, fmt.Errorf("Commit: %v", err)
 	}
 
-	return nil
+	return comment, nil
 }
 
 // ChangeTitle changes the title of this issue, as the given user.
@@ -732,7 +749,7 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 		OldTitle: oldTitle,
 		NewTitle: issue.Title,
 	}
-	if _, err = createCommentWithNoAction(sess, opts); err != nil {
+	if _, err = createComment(sess, opts); err != nil {
 		return fmt.Errorf("createComment: %v", err)
 	}
 	if err = issue.addCrossReferences(sess, doer, true); err != nil {
@@ -760,7 +777,7 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 		Issue:     issue,
 		CommitSHA: branchName,
 	}
-	if _, err = createCommentWithNoAction(sess, opts); err != nil {
+	if _, err = createComment(sess, opts); err != nil {
 		return err
 	}
 
@@ -837,6 +854,20 @@ func (issue *Issue) GetLastEventLabel() string {
 	return "repo.issues.opened_by"
 }
 
+// GetLastComment return last comment for the current issue.
+func (issue *Issue) GetLastComment() (*Comment, error) {
+	var c Comment
+	exist, err := x.Where("type = ?", CommentTypeComment).
+		And("issue_id = ?", issue.ID).Desc("id").Get(&c)
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
+		return nil, nil
+	}
+	return &c, nil
+}
+
 // GetLastEventLabelFake returns the localization label for the current issue without providing a link in the username.
 func (issue *Issue) GetLastEventLabelFake() string {
 	if issue.IsClosed {
@@ -902,7 +933,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			OldMilestoneID: 0,
 			MilestoneID:    opts.Issue.MilestoneID,
 		}
-		if _, err = createCommentWithNoAction(e, opts); err != nil {
+		if _, err = createComment(e, opts); err != nil {
 			return err
 		}
 	}
@@ -1581,27 +1612,25 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 	return total, ids, nil
 }
 
-func updateIssue(e Engine, issue *Issue) error {
-	_, err := e.ID(issue.ID).AllCols().Update(issue)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// UpdateIssue updates all fields of given issue.
-func UpdateIssue(issue *Issue) error {
+// UpdateIssueByAPI updates all allowed fields of given issue.
+func UpdateIssueByAPI(issue *Issue) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if err := updateIssue(sess, issue); err != nil {
+
+	if _, err := sess.ID(issue.ID).Cols(
+		"name", "is_closed", "content", "milestone_id", "priority",
+		"deadline_unix", "updated_unix", "closed_unix", "is_locked").
+		Update(issue); err != nil {
 		return err
 	}
+
 	if err := issue.loadPoster(sess); err != nil {
 		return err
 	}
+
 	if err := issue.addCrossReferences(sess, issue.Poster, true); err != nil {
 		return err
 	}

@@ -7,6 +7,7 @@ package models
 
 import (
 	"container/list"
+	"context"
 	"crypto/md5"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -520,7 +521,11 @@ func (u *User) UploadAvatar(data []byte) error {
 	}
 
 	u.UseCustomAvatar = true
-	u.Avatar = fmt.Sprintf("%x", md5.Sum(data))
+	// Different users can upload same image as avatar
+	// If we prefix it with u.ID, it will be separated
+	// Otherwise, if any of the users delete his avatar
+	// Other users will lose their avatars too.
+	u.Avatar = fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
 	if err = updateUser(sess, u); err != nil {
 		return fmt.Errorf("updateUser: %v", err)
 	}
@@ -633,19 +638,20 @@ func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var ids []int64
 
-	sess := x.Table("repository").
+	if err := x.Table("repository").
 		Cols("repository.id").
 		Join("INNER", "team_user", "repository.owner_id = team_user.org_id").
-		Join("INNER", "team_repo", "repository.is_private != ? OR (team_user.team_id = team_repo.team_id AND repository.id = team_repo.repo_id)", true)
-
-	if len(units) > 0 {
-		sess = sess.Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id")
-		sess = sess.In("team_unit.type", units)
+		Join("INNER", "team_repo", "repository.is_private != ? OR (team_user.team_id = team_repo.team_id AND repository.id = team_repo.repo_id)", true).
+		Where("team_user.uid = ?", u.ID).
+		GroupBy("repository.id").Find(&ids); err != nil {
+		return nil, err
 	}
 
-	return ids, sess.
-		Where("team_user.uid = ?", u.ID).
-		GroupBy("repository.id").Find(&ids)
+	if len(units) > 0 {
+		return FilterOutRepoIdsWithoutUnitAccess(u, ids, units...)
+	}
+
+	return ids, nil
 }
 
 // GetAccessRepoIDs returns all repositories IDs where user's or user is a team member organizations
@@ -784,6 +790,14 @@ func NewGhostUser() *User {
 		Name:      "Ghost",
 		LowerName: "ghost",
 	}
+}
+
+// IsGhost check if user is fake user for a deleted account
+func (u *User) IsGhost() bool {
+	if u == nil {
+		return false
+	}
+	return u.ID == -1 && u.Name == "Ghost"
 }
 
 var (
@@ -1695,7 +1709,7 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []str
 }
 
 // SyncExternalUsers is used to synchronize users with external authorization source
-func SyncExternalUsers() {
+func SyncExternalUsers(ctx context.Context) {
 	log.Trace("Doing: SyncExternalUsers")
 
 	ls, err := LoginSources()
@@ -1709,6 +1723,12 @@ func SyncExternalUsers() {
 	for _, s := range ls {
 		if !s.IsActived || !s.IsSyncEnabled {
 			continue
+		}
+		select {
+		case <-ctx.Done():
+			log.Warn("SyncExternalUsers: Aborted due to shutdown before update of %s", s.Name)
+			return
+		default:
 		}
 
 		if s.IsLDAP() {
@@ -1727,6 +1747,12 @@ func SyncExternalUsers() {
 				log.Error("SyncExternalUsers: %v", err)
 				return
 			}
+			select {
+			case <-ctx.Done():
+				log.Warn("SyncExternalUsers: Aborted due to shutdown before update of %s", s.Name)
+				return
+			default:
+			}
 
 			sr, err := s.LDAP().SearchEntries()
 			if err != nil {
@@ -1735,6 +1761,19 @@ func SyncExternalUsers() {
 			}
 
 			for _, su := range sr {
+				select {
+				case <-ctx.Done():
+					log.Warn("SyncExternalUsers: Aborted due to shutdown at update of %s before completed update of users", s.Name)
+					// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
+					if sshKeysNeedUpdate {
+						err = RewriteAllPublicKeys()
+						if err != nil {
+							log.Error("RewriteAllPublicKeys: %v", err)
+						}
+					}
+					return
+				default:
+				}
 				if len(su.Username) == 0 {
 					continue
 				}
@@ -1817,6 +1856,13 @@ func SyncExternalUsers() {
 				if err != nil {
 					log.Error("RewriteAllPublicKeys: %v", err)
 				}
+			}
+
+			select {
+			case <-ctx.Done():
+				log.Warn("SyncExternalUsers: Aborted due to shutdown at update of %s before delete users", s.Name)
+				return
+			default:
 			}
 
 			// Deactivate users not present in LDAP
