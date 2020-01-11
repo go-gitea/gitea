@@ -173,6 +173,7 @@ type ProtectBranchForm struct {
 	ApprovalsWhitelistTeams  string
 	BlockOnRejectedReviews   bool
 	DismissStaleApprovals    bool
+	RequireSignedCommits     bool
 }
 
 // Validate validates the fields
