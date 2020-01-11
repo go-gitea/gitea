@@ -10,8 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/gitea/modules/structs"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // DeleteRepoFileOptions holds the repository delete file options

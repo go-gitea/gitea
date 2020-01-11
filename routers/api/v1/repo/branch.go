@@ -11,8 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/gitea/modules/structs"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // GetBranch get a branch of a repository

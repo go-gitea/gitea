@@ -43,15 +43,21 @@ func checkBranchName(repo *models.Repository, name string) error {
 
 	for _, branch := range branches {
 		if branch.Name == name {
-			return models.ErrBranchAlreadyExists{branch.Name}
+			return models.ErrBranchAlreadyExists{
+				BranchName: branch.Name,
+			}
 		} else if (len(branch.Name) < len(name) && branch.Name+"/" == name[0:len(branch.Name)+1]) ||
 			(len(branch.Name) > len(name) && name+"/" == branch.Name[0:len(name)+1]) {
-			return models.ErrBranchNameConflict{branch.Name}
+			return models.ErrBranchNameConflict{
+				BranchName: branch.Name,
+			}
 		}
 	}
 
 	if _, err := gitRepo.GetTag(name); err == nil {
-		return models.ErrTagAlreadyExists{name}
+		return models.ErrTagAlreadyExists{
+			TagName: name,
+		}
 	}
 
 	return nil
