@@ -353,7 +353,7 @@ Gitea or set your environment appropriately.`, "")
 			hookOptions.RefFullNames = refFullNames
 			resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
 			if resp == nil {
-				dWriter.Close()
+				_ = dWriter.Close()
 				hookPrintResults(results)
 				fail("Internal Server Error", err)
 			}
@@ -373,7 +373,7 @@ Gitea or set your environment appropriately.`, "")
 		}
 		fmt.Fprintf(out, "Processed %d references in total\n", total)
 
-		dWriter.Close()
+		_ = dWriter.Close()
 		hookPrintResults(results)
 		return nil
 	}
@@ -386,7 +386,7 @@ Gitea or set your environment appropriately.`, "")
 
 	resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
 	if resp == nil {
-		dWriter.Close()
+		_ = dWriter.Close()
 		hookPrintResults(results)
 		fail("Internal Server Error", err)
 	}
@@ -402,7 +402,7 @@ Gitea or set your environment appropriately.`, "")
 			fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
 		}
 	}
-	dWriter.Close()
+	_ = dWriter.Close()
 	hookPrintResults(results)
 
 	return nil
