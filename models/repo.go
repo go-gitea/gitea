@@ -250,9 +250,32 @@ func (repo *Repository) MustOwner() *User {
 	return repo.mustOwner(x)
 }
 
+<<<<<<< HEAD
 // FullName returns the repository full name
 func (repo *Repository) FullName() string {
 	return repo.OwnerName + "/" + repo.Name
+=======
+// MustOwnerName always returns valid owner name to avoid
+// conceptually impossible error handling.
+// It returns "error" and logs error details when error
+// occurs.
+func (repo *Repository) MustOwnerName() string {
+	return repo.mustOwnerName(x)
+}
+
+// MustOwnerNameCtx is similiar MustOwnerName but with a database context
+func (repo *Repository) MustOwnerNameCtx(ctx DBContext) string {
+	return repo.mustOwnerName(ctx.e)
+}
+
+// FullName returns the repository full name
+func (repo *Repository) FullName() string {
+	return repo.fullName(x)
+}
+
+func (repo *Repository) fullName(e Engine) string {
+	return repo.mustOwnerName(e) + "/" + repo.Name
+>>>>>>> Fix DBContext
 }
 
 // HTMLURL returns the repository HTML URL
@@ -691,7 +714,12 @@ func (repo *Repository) RelLink() string {
 
 // Link returns the repository link
 func (repo *Repository) Link() string {
-	return setting.AppSubURL + "/" + repo.FullName()
+	return repo.LinkCtx(DefaultDBContext())
+}
+
+// LinkCtx is similiar with Link but with database context
+func (repo *Repository) LinkCtx(ctx DBContext) string {
+	return setting.AppSubURL + "/" + repo.fullName(ctx.e)
 }
 
 // ComposeCompareURL returns the repository comparison URL

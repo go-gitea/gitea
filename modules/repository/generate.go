@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-func generateExpansion(src string, templateRepo, generateRepo *models.Repository) string {
+func generateExpansion(ctx models.DBContext, src string, templateRepo, generateRepo *models.Repository) string {
 	return os.Expand(src, func(key string) string {
 		switch key {
 		case "REPO_NAME":
@@ -34,9 +34,9 @@ func generateExpansion(src string, templateRepo, generateRepo *models.Repository
 		case "TEMPLATE_OWNER":
 			return templateRepo.OwnerName
 		case "REPO_LINK":
-			return generateRepo.Link()
+			return generateRepo.LinkCtx(ctx)
 		case "TEMPLATE_LINK":
-			return templateRepo.Link()
+			return templateRepo.LinkCtx(ctx)
 		case "REPO_HTTPS_URL":
 			return generateRepo.CloneLink().HTTPS
 		case "TEMPLATE_HTTPS_URL":
@@ -129,7 +129,7 @@ func generateRepoCommit(ctx models.DBContext, repo, templateRepo, generateRepo *
 					}
 
 					if err := ioutil.WriteFile(path,
-						[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
+						[]byte(generateExpansion(ctx, string(content), templateRepo, generateRepo)),
 						0644); err != nil {
 						return err
 					}
