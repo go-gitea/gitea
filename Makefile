@@ -506,11 +506,11 @@ generate-stylesheets:
 
 .PHONY: swagger-ui
 swagger-ui:
-	rm -Rf public/vendor/assets/swagger-ui
-	git clone --depth=10 -b v3.13.4 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
-	mv $(TMPDIR)/swagger-ui/dist public/vendor/assets/swagger-ui
+	rm public/vendor/assets/swagger-ui/*
+	git clone --depth=10 -b v3.24.3 --single-branch https://github.com/swagger-api/swagger-ui.git $(TMPDIR)/swagger-ui
+	mv $(TMPDIR)/swagger-ui/dist/{swagger-ui-bundle.js,swagger-ui.css,favicon,index}* public/vendor/assets/swagger-ui
 	rm -Rf $(TMPDIR)/swagger-ui
-	$(SED_INPLACE) "s;http://petstore.swagger.io/v2/swagger.json;../../../swagger.v1.json;g" public/vendor/assets/swagger-ui/index.html
+	$(SED_INPLACE) "s;https://petstore.swagger.io/v2/swagger.json;../../../swagger.v1.json;g" public/vendor/assets/swagger-ui/index.html
 
 .PHONY: update-translations
 update-translations:
