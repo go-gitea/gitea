@@ -318,7 +318,6 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	// swagger:operation POST /orgs/{org}/repos organization createOrgRepo
 	// ---
 	// summary: Create a repository in an organization
-	// deprecated: true
 	// consumes:
 	// - application/json
 	// produces:
