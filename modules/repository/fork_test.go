@@ -5,16 +5,11 @@
 package repository
 
 import (
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", ".."))
-}
 
 func TestForkRepository(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
