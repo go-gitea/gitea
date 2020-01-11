@@ -600,6 +600,16 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 
 	pr := issue.PullRequest
 
+	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.User)
+	if err != nil {
+		ctx.ServerError("IsUserAllowedToMerge", err)
+		return
+	}
+	if !allowedMerge {
+		ctx.NotFound("MergePullRequest", nil)
+		return
+	}
+
 	if !pr.CanAutoMerge() || pr.HasMerged {
 		ctx.NotFound("MergePullRequest", nil)
 		return
@@ -611,15 +621,19 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 		return
 	}
 
-	isPass, err := pull_service.IsPullCommitStatusPass(pr)
-	if err != nil {
-		ctx.ServerError("IsPullCommitStatusPass", err)
-		return
-	}
-	if !isPass && !ctx.IsUserRepoAdmin() {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_status_check"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
-		return
+	if err := pull_service.CheckPRReadyToMerge(pr); err != nil {
+		if !models.IsErrNotAllowedToMerge(err) {
+			ctx.ServerError("Merge PR status", err)
+			return
+		}
+		if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.User); err != nil {
+			ctx.ServerError("IsUserRepoAdmin", err)
+			return
+		} else if !isRepoAdmin {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			return
+		}
 	}
 
 	if ctx.HasError() {

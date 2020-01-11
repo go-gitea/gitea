@@ -93,8 +93,8 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 	return in
 }
 
-// CanUserMerge returns if some user could merge a pull request to this protected branch
-func (protectBranch *ProtectedBranch) CanUserMerge(userID int64) bool {
+// IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
+func (protectBranch *ProtectedBranch) IsUserMergeWhitelisted(userID int64) bool {
 	if !protectBranch.EnableMergeWhitelist {
 		return true
 	}
@@ -343,27 +343,6 @@ func (repo *Repository) IsProtectedBranchForPush(branchName string, doer *User) 
 		return true, err
 	} else if has {
 		return !protectedBranch.CanUserPush(doer.ID), nil
-	}
-
-	return false, nil
-}
-
-// IsProtectedBranchForMerging checks if branch is protected for merging
-func (repo *Repository) IsProtectedBranchForMerging(pr *PullRequest, branchName string, doer *User) (bool, error) {
-	if doer == nil {
-		return true, nil
-	}
-
-	protectedBranch := &ProtectedBranch{
-		RepoID:     repo.ID,
-		BranchName: branchName,
-	}
-
-	has, err := x.Get(protectedBranch)
-	if err != nil {
-		return true, err
-	} else if has {
-		return !protectedBranch.CanUserMerge(doer.ID) || !protectedBranch.HasEnoughApprovals(pr) || protectedBranch.MergeBlockedByRejectedReview(pr), nil
 	}
 
 	return false, nil

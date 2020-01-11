@@ -101,35 +101,31 @@
 					<span class="octicon octicon-x"></span>
 					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" .WorkInProgressPrefix | Str2html}}
 				</div>
-			{{else if .IsBlockedByApprovals}}
-				<div class="item text red">
-					<span class="octicon octicon-x"></span>
-				{{$.i18n.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .Issue.PullRequest.ProtectedBranch.RequiredApprovals}}
-				</div>
-			{{else if .IsBlockedByRejection}}
-				<div class="item text red">
-					<span class="octicon octicon-x"></span>
-				{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
-				</div>
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item text yellow">
 					<span class="octicon octicon-sync"></span>
 					{{$.i18n.Tr "repo.pulls.is_checking"}}
 				</div>
-			{{else if and (not .Issue.PullRequest.CanAutoMerge) .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}
-				<div class="item text red">
-					<span class="octicon octicon-x"></span>
-					{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
-				</div>
 			{{else if .Issue.PullRequest.CanAutoMerge}}
-				{{if and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}
-				<div class="item text red">
-					<span class="octicon octicon-x"></span>
-					{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
-				</div>
+				{{if .IsBlockedByApprovals}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+					{{$.i18n.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .Issue.PullRequest.ProtectedBranch.RequiredApprovals}}
+					</div>
+				{{else if .IsBlockedByRejection}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+					{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
+					</div>
+				{{else if and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+						{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
+					</div>
 				{{end}}
-				{{if or $.IsRepoAdmin (not .EnableStatusCheck) .IsRequiredStatusCheckSuccess}}
-					{{if and $.IsRepoAdmin .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}
+				{{$notAllOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess))}}	
+				{{if or $.IsRepoAdmin (not $notAllOk)}}
+					{{if $notAllOk}}
 						<div class="item text yellow">
 							<span class="octicon octicon-primitive-dot"></span>
 							{{$.i18n.Tr "repo.pulls.required_status_check_administrator"}}
@@ -216,7 +212,7 @@
 								</form>
 							</div>
 							{{end}}
-							<div class="ui green buttons merge-button">
+							<div class="ui {{if $notAllOk}}red{{else}}green{{end}} buttons merge-button">
 								<button class="ui button" data-do="{{.MergeStyle}}">
 									<span class="octicon octicon-git-merge"></span>
 									<span class="button-text">
@@ -262,17 +258,40 @@
 								{{$.i18n.Tr "repo.pulls.no_merge_helper"}}
 							</div>
 						{{end}}
+					{{else}}
+						<div class="item text grey">
+							<span class="octicon octicon-info"></span>
+							{{$.i18n.Tr "repo.pulls.no_merge_access"}}
+						</div>
 					{{end}}
 				{{end}}
 			{{else}}
-				<div class="item text red">
-					<span class="octicon octicon-x"></span>
-					{{$.i18n.Tr "repo.pulls.cannot_auto_merge_desc"}}
-				</div>
-				<div class="item text grey">
-					<span class="octicon octicon-info"></span>
-					{{$.i18n.Tr "repo.pulls.cannot_auto_merge_helper"}}
-				</div>
+				{{/* Merge conflict without specific file. Suggest manual merge, only if all reviews and status checks OK. */}}
+				{{if .IsBlockedByApprovals}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+					{{$.i18n.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .Issue.PullRequest.ProtectedBranch.RequiredApprovals}}
+					</div>
+				{{else if .IsBlockedByRejection}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+					{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
+					</div>
+				{{else if and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+						{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
+					</div>
+				{{else}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_desc"}}
+					</div>
+					<div class="item text grey">
+						<span class="octicon octicon-info"></span>
+						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_helper"}}
+					</div>
+				{{end}}
 			{{end}}
 		</div>
 	</div>

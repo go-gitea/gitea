@@ -51,7 +51,7 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 		EnableStatusCheck:   bp.EnableStatusCheck,
 		StatusCheckContexts: bp.StatusCheckContexts,
 		UserCanPush:         bp.CanUserPush(user.ID),
-		UserCanMerge:        bp.CanUserMerge(user.ID),
+		UserCanMerge:        bp.IsUserMergeWhitelisted(user.ID),
 	}
 }
 
