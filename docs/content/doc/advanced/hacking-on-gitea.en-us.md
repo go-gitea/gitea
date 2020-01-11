@@ -66,6 +66,18 @@ cd "$GOPATH/src/code.gitea.io/gitea"
 This will clone the Gitea source code to: `"$GOPATH/src/code.gitea.io/gitea"`, or if `$GOPATH`
 is not set `"$HOME/go/src/code.gitea.io/gitea"`.
 
+Alternatively, you can manually clone the source code by:
+
+```
+git clone https://github.com/go-gitea/gitea.git $GOPATH/src/code.gitea.io/gitea
+```
+
+If `$GOPATH` is not set:
+
+```
+git clone https://github.com/go-gitea/gitea.git $HOME/go/src/code.gitea.io/gitea
+```
+
 ## Forking Gitea
 
 As stated above, you cannot clone Gitea to an arbitrary path. Download the master Gitea source
