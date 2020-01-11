@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -59,6 +60,81 @@ var (
 	}
 )
 
+type delayWriter struct {
+	internal io.Writer
+	buf      *bytes.Buffer
+	timer    *time.Timer
+}
+
+func newDelayWriter(internal io.Writer, delay time.Duration) *delayWriter {
+	timer := time.NewTimer(delay)
+	return &delayWriter{
+		internal: internal,
+		buf:      &bytes.Buffer{},
+		timer:    timer,
+	}
+}
+
+func (d *delayWriter) Write(p []byte) (n int, err error) {
+	if d.buf != nil {
+		select {
+		case <-d.timer.C:
+			_, err := d.internal.Write(d.buf.Bytes())
+			if err != nil {
+				return 0, err
+			}
+			d.buf = nil
+			return d.internal.Write(p)
+		default:
+			return d.buf.Write(p)
+		}
+	}
+	return d.internal.Write(p)
+}
+
+func (d *delayWriter) WriteString(s string) (n int, err error) {
+	if d.buf != nil {
+		select {
+		case <-d.timer.C:
+			_, err := d.internal.Write(d.buf.Bytes())
+			if err != nil {
+				return 0, err
+			}
+			d.buf = nil
+			return d.internal.Write([]byte(s))
+		default:
+			return d.buf.WriteString(s)
+		}
+	}
+	return d.internal.Write([]byte(s))
+}
+
+func (d *delayWriter) Close() error {
+	if d == nil {
+		return nil
+	}
+	stopped := d.timer.Stop()
+	if stopped {
+		return nil
+	}
+	<-d.timer.C
+	if d.buf == nil {
+		return nil
+	}
+	_, err := d.internal.Write(d.buf.Bytes())
+	return err
+}
+
+type nilWriter struct{}
+
+func (n *nilWriter) Write(p []byte) (int, error) {
+	return len(p), nil
+}
+
+func (n *nilWriter) WriteString(s string) (int, error) {
+	return len(s), nil
+}
+
 func runHookPreReceive(c *cli.Context) error {
 	if os.Getenv(models.EnvIsInternal) == "true" {
 		return nil
@@ -102,36 +178,17 @@ Gitea or set your environment appropriately.`, "")
 	total := 0
 	lastline := 0
 
-	commsChan := make(chan string, 10)
-	tickerChan := make(chan struct{})
-	go func() {
-		sb := strings.Builder{}
-		hasWritten := false
-		ticker := time.NewTicker(1 * time.Second)
-	loop:
-		for {
-			select {
-			case s, ok := <-commsChan:
-				if ok {
-					sb.WriteString(s)
-				} else if hasWritten {
-					hasWritten = true
-					os.Stdout.WriteString(sb.String())
-					os.Stdout.Sync()
-					sb.Reset()
-					break loop
-				}
-			case <-ticker.C:
-				hasWritten = true
-				os.Stdout.WriteString(sb.String())
-				os.Stdout.Sync()
-				sb.Reset()
-			}
+	var out io.Writer
+	out = &nilWriter{}
+	if setting.Git.VerbosePush {
+		if setting.Git.VerbosePushDelay > 0 {
+			dWriter := newDelayWriter(os.Stdout, setting.Git.VerbosePushDelay)
+			defer dWriter.Close()
+			out = dWriter
+		} else {
+			out = os.Stdout
 		}
-		sb.Reset()
-		ticker.Stop()
-		close(tickerChan)
-	}()
+	}
 
 	for scanner.Scan() {
 		// TODO: support news feeds for wiki
@@ -156,10 +213,10 @@ Gitea or set your environment appropriately.`, "")
 			newCommitIDs[count] = newCommitID
 			refFullNames[count] = refFullName
 			count++
-			commsChan <- "*"
+			fmt.Fprintf(out, "*")
 
 			if count >= hookBatchSize {
-				fmt.Fprintf(os.Stdout, " Checking %d branches\n", count)
+				fmt.Fprintf(out, " Checking %d branches\n", count)
 
 				hookOptions.OldCommitIDs = oldCommitIDs
 				hookOptions.NewCommitIDs = newCommitIDs
@@ -169,22 +226,18 @@ Gitea or set your environment appropriately.`, "")
 				case http.StatusOK:
 					// no-op
 				case http.StatusInternalServerError:
-					close(commsChan)
-					<-tickerChan
 					fail("Internal Server Error", msg)
 				default:
-					close(commsChan)
-					<-tickerChan
 					fail(msg, "")
 				}
 				count = 0
 				lastline = 0
 			}
 		} else {
-			commsChan <- "."
+			fmt.Fprintf(out, ".")
 		}
 		if lastline >= hookBatchSize {
-			commsChan <- "\n"
+			fmt.Fprintf(out, "\n")
 			lastline = 0
 		}
 	}
@@ -194,28 +247,21 @@ Gitea or set your environment appropriately.`, "")
 		hookOptions.NewCommitIDs = newCommitIDs[:count]
 		hookOptions.RefFullNames = refFullNames[:count]
 
-		commsChan <- fmt.Sprintf(" Checking %d branches\n", count)
-		os.Stdout.Sync()
+		fmt.Fprintf(out, " Checking %d branches\n", count)
 
 		statusCode, msg := private.HookPreReceive(username, reponame, hookOptions)
 		switch statusCode {
 		case http.StatusInternalServerError:
-			close(commsChan)
-			<-tickerChan
 			fail("Internal Server Error", msg)
 		case http.StatusForbidden:
-			close(commsChan)
-			<-tickerChan
 			fail(msg, "")
 		}
 	} else if lastline > 0 {
-		commsChan <- "\n"
+		fmt.Fprintf(out, "\n")
 		lastline = 0
 	}
 
-	commsChan <- fmt.Sprintf("Checked %d references in total\n", total)
-	close(commsChan)
-	<-tickerChan
+	fmt.Fprintf(out, "Checked %d references in total\n", total)
 	return nil
 }
 
@@ -241,36 +287,18 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
-	commsChan := make(chan string, 10)
-	tickerChan := make(chan struct{})
-	go func() {
-		sb := strings.Builder{}
-		hasWritten := false
-		ticker := time.NewTicker(1 * time.Second)
-	loop:
-		for {
-			select {
-			case s, ok := <-commsChan:
-				if ok {
-					sb.WriteString(s)
-				} else if hasWritten {
-					hasWritten = true
-					os.Stdout.WriteString(sb.String())
-					os.Stdout.Sync()
-					sb.Reset()
-					break loop
-				}
-			case <-ticker.C:
-				hasWritten = true
-				os.Stdout.WriteString(sb.String())
-				os.Stdout.Sync()
-				sb.Reset()
-			}
+	var out io.Writer
+	var dWriter *delayWriter
+	out = &nilWriter{}
+	if setting.Git.VerbosePush {
+		if setting.Git.VerbosePushDelay > 0 {
+			dWriter = newDelayWriter(os.Stdout, setting.Git.VerbosePushDelay)
+			defer dWriter.Close()
+			out = dWriter
+		} else {
+			out = os.Stdout
 		}
-		sb.Reset()
-		ticker.Stop()
-		close(tickerChan)
-	}()
+	}
 
 	// the environment setted on serv command
 	repoUser := os.Getenv(models.EnvRepoUsername)
@@ -307,7 +335,7 @@ Gitea or set your environment appropriately.`, "")
 			continue
 		}
 
-		commsChan <- "."
+		fmt.Fprintf(out, ".")
 		oldCommitIDs[count] = string(fields[0])
 		newCommitIDs[count] = string(fields[1])
 		refFullNames[count] = string(fields[2])
@@ -318,14 +346,13 @@ Gitea or set your environment appropriately.`, "")
 		total++
 
 		if count >= hookBatchSize {
-			commsChan <- fmt.Sprintf(" Processing %d references\n", count)
+			fmt.Fprintf(out, " Processing %d references\n", count)
 			hookOptions.OldCommitIDs = oldCommitIDs
 			hookOptions.NewCommitIDs = newCommitIDs
 			hookOptions.RefFullNames = refFullNames
 			resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
 			if resp == nil {
-				close(commsChan)
-				<-tickerChan
+				dWriter.Close()
 				hookPrintResults(results)
 				fail("Internal Server Error", err)
 			}
@@ -340,15 +367,12 @@ Gitea or set your environment appropriately.`, "")
 			// We need to tell the repo to reset the default branch to master
 			err := private.SetDefaultBranch(repoUser, repoName, "master")
 			if err != nil {
-				close(commsChan)
-				<-tickerChan
 				fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
 			}
 		}
-		commsChan <- fmt.Sprintf("Processed %d references in total\n", total)
+		fmt.Fprintf(out, "Processed %d references in total\n", total)
 
-		close(commsChan)
-		<-tickerChan
+		dWriter.Close()
 		hookPrintResults(results)
 		return nil
 	}
@@ -357,19 +381,18 @@ Gitea or set your environment appropriately.`, "")
 	hookOptions.NewCommitIDs = newCommitIDs[:count]
 	hookOptions.RefFullNames = refFullNames[:count]
 
-	commsChan <- fmt.Sprintf(" Processing %d references\n", count)
+	fmt.Fprintf(out, " Processing %d references\n", count)
 
 	resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
 	if resp == nil {
-		close(commsChan)
-		<-tickerChan
+		dWriter.Close()
 		hookPrintResults(results)
 		fail("Internal Server Error", err)
 	}
 	wasEmpty = wasEmpty || resp.RepoWasEmpty
 	results = append(results, resp.Results...)
 
-	commsChan <- fmt.Sprintf("Processed %d references in total\n", total)
+	fmt.Fprintf(out, "Processed %d references in total\n", total)
 
 	if wasEmpty && masterPushed {
 		// We need to tell the repo to reset the default branch to master
@@ -378,9 +401,7 @@ Gitea or set your environment appropriately.`, "")
 			fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
 		}
 	}
-
-	close(commsChan)
-	<-tickerChan
+	dWriter.Close()
 	hookPrintResults(results)
 
 	return nil
