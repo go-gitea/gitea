@@ -70,7 +70,7 @@ func SearchIssues(ctx *context.APIContext) {
 	opts := &models.SearchRepoOptions{
 		PageSize:    15,
 		Private:     false,
-		Keyword:     "",
+		AllPublic:   true,
 		TopicOnly:   false,
 		Collaborate: util.OptionalBoolNone,
 		UserIsAdmin: ctx.IsUserSiteAdmin(),
@@ -78,8 +78,8 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 	if ctx.IsSigned {
 		opts.Private = true
+		opts.AllLimited = true
 		opts.UserID = ctx.User.ID
-		opts.OwnerID = ctx.User.ID
 	}
 	issueCount := 0
 	for page := 1; ; page++ {
