@@ -25,8 +25,8 @@ func alphanumIssueLink(baseURL, class, name string) string {
 }
 
 // numericLink an HTML to a numeric-style issue
-func numericIssueLink(baseURL, class string, index int) string {
-	return link(util.URLJoin(baseURL, strconv.Itoa(index)), class, fmt.Sprintf("#%d", index))
+func numericIssueLink(baseURL, class string, index int, marker string) string {
+	return link(util.URLJoin(baseURL, strconv.Itoa(index)), class, fmt.Sprintf("%s%d", marker, index))
 }
 
 // link an HTML link
@@ -75,8 +75,12 @@ func TestRender_IssueIndexPattern(t *testing.T) {
 	test("#abcd")
 	test("test#1234")
 	test("#1234test")
-	test(" test #1234test")
+	test("#abcd")
+	test("test!1234")
+	test("!1234test")
+	test(" test !1234test")
 	test("/home/gitea/#1234")
+	test("/home/gitea/!1234")
 
 	// should not render issue mention without leading space
 	test("test#54321 issue")
@@ -90,42 +94,54 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	// numeric: render inputs with valid mentions
-	test := func(s, expectedFmt string, indices ...int) {
+	test := func(s, expectedFmt, marker string, indices ...int) {
+		var path, prefix string
+		if marker == "!" {
+			path = "pulls"
+			prefix = "http://localhost:3000/someUser/someRepo/pulls/"
+		} else {
+			path = "issues"
+			prefix = "https://someurl.com/someUser/someRepo/"
+		}
+
 		links := make([]interface{}, len(indices))
 		for i, index := range indices {
-			links[i] = numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), "issue", index)
+			links[i] = numericIssueLink(util.URLJoin(setting.AppSubURL, path), "issue", index, marker)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNil, &postProcessCtx{metas: localMetas})
 
 		for i, index := range indices {
-			links[i] = numericIssueLink("https://someurl.com/someUser/someRepo/", "issue", index)
+			links[i] = numericIssueLink(prefix, "issue", index, marker)
 		}
 		expectedNum := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNum, &postProcessCtx{metas: numericMetas})
 	}
 
 	// should render freestanding mentions
-	test("#1234 test", "%s test", 1234)
-	test("test #8 issue", "test %s issue", 8)
-	test("test issue #1234", "test issue %s", 1234)
-	test("fixes issue #1234.", "fixes issue %s.", 1234)
+	test("#1234 test", "%s test", "#", 1234)
+	test("test #8 issue", "test %s issue", "#", 8)
+	test("!1234 test", "%s test", "!", 1234)
+	test("test !8 issue", "test %s issue", "!", 8)
+	test("test issue #1234", "test issue %s", "#", 1234)
+	test("fixes issue #1234.", "fixes issue %s.", "#", 1234)
 
 	// should render mentions in parentheses / brackets
-	test("(#54321 issue)", "(%s issue)", 54321)
-	test("[#54321 issue]", "[%s issue]", 54321)
-	test("test (#9801 extra) issue", "test (%s extra) issue", 9801)
-	test("test (#1)", "test (%s)", 1)
+	test("(#54321 issue)", "(%s issue)", "#", 54321)
+	test("[#54321 issue]", "[%s issue]", "#", 54321)
+	test("test (#9801 extra) issue", "test (%s extra) issue", "#", 9801)
+	test("test (!9801 extra) issue", "test (%s extra) issue", "!", 9801)
+	test("test (#1)", "test (%s)", "#", 1)
 
 	// should render multiple issue mentions in the same line
-	test("#54321 #1243", "%s %s", 54321, 1243)
-	test("wow (#54321 #1243)", "wow (%s %s)", 54321, 1243)
-	test("(#4)(#5)", "(%s)(%s)", 4, 5)
-	test("#1 (#4321) test", "%s (%s) test", 1, 4321)
+	test("#54321 #1243", "%s %s", "#", 54321, 1243)
+	test("wow (#54321 #1243)", "wow (%s %s)", "#", 54321, 1243)
+	test("(#4)(#5)", "(%s)(%s)", "#", 4, 5)
+	test("#1 (#4321) test", "%s (%s) test", "#", 1, 4321)
 
 	// should render with :
-	test("#1234: test", "%s: test", 1234)
-	test("wow (#54321: test)", "wow (%s: test)", 54321)
+	test("#1234: test", "%s: test", "#", 1234)
+	test("wow (#54321: test)", "wow (%s: test)", "#", 54321)
 }
 
 func TestRender_IssueIndexPattern3(t *testing.T) {
@@ -201,7 +217,7 @@ func TestRender_AutoLink(t *testing.T) {
 
 	// render valid issue URLs
 	test(util.URLJoin(setting.AppSubURL, "issues", "3333"),
-		numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), "issue", 3333))
+		numericIssueLink(util.URLJoin(setting.AppSubURL, "issues"), "issue", 3333, "#"))
 
 	// render valid commit URLs
 	tmp := util.URLJoin(AppSubURL, "commit", "d8a994ef243349f321568f9e36d5c3f444b99cae")

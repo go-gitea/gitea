@@ -438,3 +438,44 @@
   type: 3
   config: "{\"IgnoreWhitespaceConflicts\":false,\"AllowMerge\":true,\"AllowRebase\":true,\"AllowRebaseMerge\":true,\"AllowSquash\":true}"
   created_unix: 946684810
+
+-
+  id: 64
+  repo_id: 44
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 65
+  repo_id: 45
+  type: 1
+  config: "{}"
+  created_unix: 946684810
+
+-
+  id: 66
+  repo_id: 46
+  type: 7
+  config: "{\"ExternalTrackerURL\":\"https://tracker.com\",\"ExternalTrackerFormat\":\"https://tracker.com/{user}/{repo}/issues/{index}\",\"ExternalTrackerStyle\":\"\"}"
+  created_unix: 946684810
+
+-
+  id: 67
+  repo_id: 47
+  type: 7
+  config: "{\"ExternalTrackerURL\":\"https://tracker.com\",\"ExternalTrackerFormat\":\"https://tracker.com/{user}/{repo}/issues/{index}\",\"ExternalTrackerStyle\":\"numeric\"}"
+  created_unix: 946684810
+
+-
+  id: 68
+  repo_id: 48
+  type: 7
+  config: "{\"ExternalTrackerURL\":\"https://tracker.com\",\"ExternalTrackerFormat\":\"https://tracker.com/{user}/{repo}/issues/{index}\",\"ExternalTrackerStyle\":\"alphanumeric\"}"
+  created_unix: 946684810
+-
+  id: 69
+  repo_id: 2
+  type: 2
+  config: "{}"
+  created_unix: 946684810

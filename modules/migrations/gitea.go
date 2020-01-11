@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -21,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -34,6 +36,7 @@ var (
 
 // GiteaLocalUploader implements an Uploader to gitea sites
 type GiteaLocalUploader struct {
+	ctx            context.Context
 	doer           *models.User
 	repoOwner      string
 	repoName       string
@@ -48,8 +51,9 @@ type GiteaLocalUploader struct {
 }
 
 // NewGiteaLocalUploader creates an gitea Uploader via gitea API v1
-func NewGiteaLocalUploader(doer *models.User, repoOwner, repoName string) *GiteaLocalUploader {
+func NewGiteaLocalUploader(ctx context.Context, doer *models.User, repoOwner, repoName string) *GiteaLocalUploader {
 	return &GiteaLocalUploader{
+		ctx:         ctx,
 		doer:        doer,
 		repoOwner:   repoOwner,
 		repoName:    repoName,
@@ -97,12 +101,13 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	var r *models.Repository
 	if opts.MigrateToRepoID <= 0 {
 		r, err = models.CreateRepository(g.doer, owner, models.CreateRepoOptions{
-			Name:        g.repoName,
-			Description: repo.Description,
-			OriginalURL: repo.OriginalURL,
-			IsPrivate:   opts.Private,
-			IsMirror:    opts.Mirror,
-			Status:      models.RepositoryBeingMigrated,
+			Name:           g.repoName,
+			Description:    repo.Description,
+			OriginalURL:    repo.OriginalURL,
+			GitServiceType: opts.GitServiceType,
+			IsPrivate:      opts.Private,
+			IsMirror:       opts.Mirror,
+			Status:         models.RepositoryBeingMigrated,
 		})
 	} else {
 		r, err = models.GetRepositoryByID(opts.MigrateToRepoID)
@@ -111,7 +116,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		return err
 	}
 
-	r, err = models.MigrateRepositoryGitData(g.doer, owner, r, structs.MigrateRepoOption{
+	r, err = repository.MigrateRepositoryGitData(g.doer, owner, r, structs.MigrateRepoOption{
 		RepoName:       g.repoName,
 		Description:    repo.Description,
 		OriginalURL:    repo.OriginalURL,
@@ -129,6 +134,13 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	}
 	g.gitRepo, err = git.OpenRepository(r.RepoPath())
 	return err
+}
+
+// Close closes this uploader
+func (g *GiteaLocalUploader) Close() {
+	if g.gitRepo != nil {
+		g.gitRepo.Close()
+	}
 }
 
 // CreateTopics creates topics
@@ -252,38 +264,42 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			}
 
 			// download attachment
-			resp, err := http.Get(asset.URL)
+			err = func() error {
+				resp, err := http.Get(asset.URL)
+				if err != nil {
+					return err
+				}
+				defer resp.Body.Close()
+
+				localPath := attach.LocalPath()
+				if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
+					return fmt.Errorf("MkdirAll: %v", err)
+				}
+
+				fw, err := os.Create(localPath)
+				if err != nil {
+					return fmt.Errorf("Create: %v", err)
+				}
+				defer fw.Close()
+
+				_, err = io.Copy(fw, resp.Body)
+				return err
+			}()
 			if err != nil {
 				return err
 			}
-			defer resp.Body.Close()
-
-			localPath := attach.LocalPath()
-			if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
-				return fmt.Errorf("MkdirAll: %v", err)
-			}
-
-			fw, err := os.Create(localPath)
-			if err != nil {
-				return fmt.Errorf("Create: %v", err)
-			}
-			defer fw.Close()
-
-			if _, err := io.Copy(fw, resp.Body); err != nil {
-				return err
-			}
-
 			rel.Attachments = append(rel.Attachments, &attach)
 		}
 
 		rels = append(rels, &rel)
 	}
-	if err := models.InsertReleases(rels...); err != nil {
-		return err
-	}
 
-	// sync tags to releases in database
-	return models.SyncReleasesWithTags(g.repo, g.gitRepo)
+	return models.InsertReleases(rels...)
+}
+
+// SyncTags syncs releases with tags in the database
+func (g *GiteaLocalUploader) SyncTags() error {
+	return repository.SyncReleasesWithTags(g.repo, g.gitRepo)
 }
 
 // CreateIssues creates issues
@@ -468,21 +484,24 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	}
 
 	// download patch file
-	resp, err := http.Get(pr.PatchURL)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	pullDir := filepath.Join(g.repo.RepoPath(), "pulls")
-	if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
-		return nil, err
-	}
-	f, err := os.Create(filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number)))
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	_, err = io.Copy(f, resp.Body)
+	err := func() error {
+		resp, err := http.Get(pr.PatchURL)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		pullDir := filepath.Join(g.repo.RepoPath(), "pulls")
+		if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
+			return err
+		}
+		f, err := os.Create(filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number)))
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		_, err = io.Copy(f, resp.Body)
+		return err
+	}()
 	if err != nil {
 		return nil, err
 	}
@@ -496,8 +515,8 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	if err != nil {
 		return nil, err
 	}
-	defer p.Close()
 	_, err = p.WriteString(pr.Head.SHA)
+	p.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -531,8 +550,8 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 					if err != nil {
 						return nil, err
 					}
-					defer b.Close()
 					_, err = b.WriteString(pr.Head.SHA)
+					b.Close()
 					if err != nil {
 						return nil, err
 					}

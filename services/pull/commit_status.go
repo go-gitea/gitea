@@ -55,6 +55,7 @@ func IsPullCommitStatusPass(pr *models.PullRequest) (bool, error) {
 	if err != nil {
 		return false, errors.Wrap(err, "OpenRepository")
 	}
+	defer headGitRepo.Close()
 
 	if !headGitRepo.IsBranchExist(pr.HeadBranch) {
 		return false, errors.New("Head branch does not exist, can not merge")

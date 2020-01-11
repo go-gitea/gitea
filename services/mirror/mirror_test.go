@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/structs"
 	release_service "code.gitea.io/gitea/services/release"
 
@@ -46,11 +47,12 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	mirror, err := models.MigrateRepositoryGitData(user, user, mirrorRepo, opts)
+	mirror, err := repository.MigrateRepositoryGitData(user, user, mirrorRepo, opts)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(repoPath)
 	assert.NoError(t, err)
+	defer gitRepo.Close()
 
 	findOptions := models.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
 	initCount, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
@@ -75,6 +77,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	assert.True(t, ok)
 
 	count, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
+	assert.NoError(t, err)
 	assert.EqualValues(t, initCount+1, count)
 
 	release, err := models.GetRelease(repo.ID, "v0.2")
@@ -85,5 +88,6 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	assert.True(t, ok)
 
 	count, err = models.GetReleaseCountByRepoID(mirror.ID, findOptions)
+	assert.NoError(t, err)
 	assert.EqualValues(t, initCount, count)
 }

@@ -56,7 +56,7 @@ steps:
 
   - name: pre-build
     pull: always
-    image: webhippie/nodejs:latest
+    image: node:10 # this step is kept at the lowest version of node that we support
     commands:
       - make css
       - make js
@@ -68,6 +68,7 @@ steps:
       GO111MODULE: on
       GOPROXY: off
     commands:
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
 
   - name: build-linux-386
@@ -79,14 +80,15 @@ steps:
       GOOS: linux
       GOARCH: 386
     commands:
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
 
   - name: build
     pull: always
     image: golang:1.13
     commands:
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - make clean
-      - make generate
       - make golangci-lint
       - make revive
       - make swagger-check
@@ -324,7 +326,7 @@ steps:
 
   - name: update
     pull: default
-    image: alpine:3.10
+    image: alpine:3.11
     commands:
       - mv ./options/locale/locale_en-US.ini ./options/
       - "sed -i -e 's/=\"/=/g' -e 's/\"$$//g' ./options/locale/*.ini"
@@ -390,8 +392,9 @@ steps:
     pull: always
     image: techknowlogick/xgo:latest
     commands:
+      - apt update && apt -y install curl
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
-      - make generate
       - make release
     environment:
       GOPROXY: off
@@ -411,8 +414,6 @@ steps:
         from_secret: gpgsign_key
       GPGSIGN_PASSPHRASE:
         from_secret: gpgsign_passphrase
-    depends_on:
-      - static
 
   - name: release-branch-release
     pull: always
@@ -430,8 +431,6 @@ steps:
         from_secret: aws_access_key_id
       AWS_SECRET_ACCESS_KEY:
         from_secret: aws_secret_access_key
-    depends_on:
-      - gpg-sign
     when:
       branch:
         - "release/*"
@@ -454,8 +453,6 @@ steps:
         from_secret: aws_access_key_id
       AWS_SECRET_ACCESS_KEY:
         from_secret: aws_secret_access_key
-    depends_on:
-      - gpg-sign
     when:
       branch:
         - master
@@ -492,8 +489,9 @@ steps:
     pull: always
     image: techknowlogick/xgo:latest
     commands:
+      - apt update && apt -y install curl
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
-      - make generate
       - make release
     environment:
       GOPROXY: off
@@ -513,8 +511,6 @@ steps:
         from_secret: gpgsign_key
       GPGSIGN_PASSPHRASE:
         from_secret: gpgsign_passphrase
-    depends_on:
-      - static
 
   - name: release
     pull: always
@@ -532,8 +528,6 @@ steps:
         from_secret: aws_access_key_id
       AWS_SECRET_ACCESS_KEY:
         from_secret: aws_secret_access_key
-    depends_on:
-      - gpg-sign
 
   - name: github
     pull: always
@@ -544,8 +538,6 @@ steps:
     environment:
       GITHUB_TOKEN:
         from_secret: github_token
-    depends_on:
-      - gpg-sign
 
 ---
 kind: pipeline
@@ -646,8 +638,6 @@ steps:
       event:
         exclude:
         - pull_request
-
-
 
 ---
 kind: pipeline
@@ -753,6 +743,9 @@ platform:
 workspace:
   base: /go
   path: src/code.gitea.io/gitea
+
+clone:
+  disable: true
 
 when:
   status:

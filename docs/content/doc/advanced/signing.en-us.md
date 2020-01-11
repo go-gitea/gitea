@@ -136,6 +136,7 @@ The possible options are:
 * `basesigned`: Only sign if the parent commit in the base repo is signed.
 * `headsigned`: Only sign if the head commit in the head branch is signed.
 * `commitssigned`: Only sign if all the commits in the head branch to the merge point are signed.
+* `approved`: Only sign approved merges to a protected branch.
 * `always`: Always sign
 
 Options other than `never` and `always` can be combined as a comma

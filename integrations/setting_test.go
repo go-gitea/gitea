@@ -14,7 +14,7 @@ import (
 )
 
 func TestSettingShowUserEmailExplore(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	showUserEmail := setting.UI.ShowUserEmail
 	setting.UI.ShowUserEmail = true
@@ -42,7 +42,7 @@ func TestSettingShowUserEmailExplore(t *testing.T) {
 }
 
 func TestSettingShowUserEmailProfile(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	showUserEmail := setting.UI.ShowUserEmail
 	setting.UI.ShowUserEmail = true
@@ -81,7 +81,7 @@ func TestSettingShowUserEmailProfile(t *testing.T) {
 }
 
 func TestSettingLandingPage(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	landingPage := setting.LandingPageURL
 
@@ -98,6 +98,11 @@ func TestSettingLandingPage(t *testing.T) {
 	req = NewRequest(t, "GET", "/")
 	resp = MakeRequest(t, req, http.StatusFound)
 	assert.Equal(t, "/explore/organizations", resp.Header().Get("Location"))
+
+	setting.LandingPageURL = setting.LandingPageLogin
+	req = NewRequest(t, "GET", "/")
+	resp = MakeRequest(t, req, http.StatusFound)
+	assert.Equal(t, "/user/login", resp.Header().Get("Location"))
 
 	setting.LandingPageURL = landingPage
 }

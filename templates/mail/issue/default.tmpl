@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>{{.Subject}}</title>
+
+	<style>
+		.footer { font-size:small; color:#666;}
+		{{if .ReviewComments}}
+			.review { padding-left: 1em; margin: 1em 0; }
+			.review > pre { padding: 1em; border-left: 1px solid grey; }
+		{{end}}
+	</style>
+
+</head>
+
+<body>
+	{{if .IsMention}}<p><b>@{{.Doer.Name}}</b> mentioned you:</p>{{end}}
+	<p>
+		{{if eq .ActionName "close"}}
+			Closed #{{.Issue.Index}}.
+		{{else if eq .ActionName "reopen"}}
+			Reopened #{{.Issue.Index}}.
+		{{else if eq .ActionName "merge"}}
+			Merged #{{.Issue.Index}} into {{.Issue.PullRequest.BaseBranch}}.
+		{{else if eq .ActionName "approve"}}
+			<b>@{{.Doer.Name}}</b> approved this pull request.
+		{{else if eq .ActionName "reject"}}
+			<b>@{{.Doer.Name}}</b> requested changes on this pull request.
+		{{else if eq .ActionName "review"}}
+			<b>@{{.Doer.Name}}</b> commented on this pull request.
+		{{end}}
+
+		{{- if eq .Body ""}}
+			{{if eq .ActionName "new"}}
+				Created #{{.Issue.Index}}.
+			{{end}}
+		{{else}}
+			{{.Body | Str2html}}
+		{{end -}}
+		{{- range .ReviewComments}}
+			<hr>
+			In {{.TreePath}}:
+			<div class="review">
+				<pre>{{.Patch}}</pre>
+				<div>{{.RenderedContent | Safe}}</div>
+			</div>
+		{{end -}}		
+	</p>
+	<div class="footer">
+	<p>
+		---
+		<br>
+		<a href="{{.Link}}">View it on {{AppName}}</a>.
+	</p>
+	</div>
+</body>
+</html>

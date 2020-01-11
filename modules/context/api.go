@@ -39,6 +39,13 @@ type APIValidationError struct {
 	URL     string `json:"url"`
 }
 
+// APIInvalidTopicsError is error format response to invalid topics
+// swagger:response invalidTopicsError
+type APIInvalidTopicsError struct {
+	Topics  []string `json:"invalidTopics"`
+	Message string   `json:"message"`
+}
+
 //APIEmpty is an empty response
 // swagger:response empty
 type APIEmpty struct{}
@@ -186,7 +193,16 @@ func ReferencesGitRepo(allowEmpty bool) macaron.Handler {
 				return
 			}
 			ctx.Repo.GitRepo = gitRepo
+			// We opened it, we should close it
+			defer func() {
+				// If it's been set to nil then assume someone else has closed it.
+				if ctx.Repo.GitRepo != nil {
+					ctx.Repo.GitRepo.Close()
+				}
+			}()
 		}
+
+		ctx.Next()
 	}
 }
 

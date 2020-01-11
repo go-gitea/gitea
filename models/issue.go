@@ -1,4 +1,5 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -239,6 +240,16 @@ func (issue *Issue) loadReactions(e Engine) (err error) {
 	return nil
 }
 
+func (issue *Issue) loadMilestone(e Engine) (err error) {
+	if issue.Milestone == nil && issue.MilestoneID > 0 {
+		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
+		if err != nil && !IsErrMilestoneNotExist(err) {
+			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
+		}
+	}
+	return nil
+}
+
 func (issue *Issue) loadAttributes(e Engine) (err error) {
 	if err = issue.loadRepo(e); err != nil {
 		return
@@ -252,11 +263,8 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 		return
 	}
 
-	if issue.Milestone == nil && issue.MilestoneID > 0 {
-		issue.Milestone, err = getMilestoneByRepoID(e, issue.RepoID, issue.MilestoneID)
-		if err != nil && !IsErrMilestoneNotExist(err) {
-			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
-		}
+	if err = issue.loadMilestone(e); err != nil {
+		return
 	}
 
 	if err = issue.loadAssignees(e); err != nil {
@@ -294,6 +302,11 @@ func (issue *Issue) loadAttributes(e Engine) (err error) {
 // LoadAttributes loads the attribute of this issue.
 func (issue *Issue) LoadAttributes() error {
 	return issue.loadAttributes(x)
+}
+
+// LoadMilestone load milestone of this issue.
+func (issue *Issue) LoadMilestone() error {
+	return issue.loadMilestone(x)
 }
 
 // GetIsRead load the `IsRead` field of the issue
@@ -368,6 +381,7 @@ func (issue *Issue) apiFormat(e Engine) *api.Issue {
 	apiIssue := &api.Issue{
 		ID:       issue.ID,
 		URL:      issue.APIURL(),
+		HTMLURL:  issue.HTMLURL(),
 		Index:    issue.Index,
 		Poster:   issue.Poster.APIFormat(),
 		Title:    issue.Title,
@@ -600,16 +614,23 @@ func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
 	return nil
 }
 
-func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (err error) {
+func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (*Comment, error) {
 	// Reload the issue
 	currentIssue, err := getIssueByID(e, issue.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Nothing should be performed if current status is same as target status
 	if currentIssue.IsClosed == isClosed {
-		return nil
+		if !issue.IsPull {
+			return nil, ErrIssueWasClosed{
+				ID: issue.ID,
+			}
+		}
+		return nil, ErrPullWasClosed{
+			ID: issue.ID,
+		}
 	}
 
 	// Check for open dependencies
@@ -617,11 +638,11 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 		// only check if dependencies are enabled and we're about to close an issue, otherwise reopening an issue would fail when there are unsatisfied dependencies
 		noDeps, err := issueNoDependenciesLeft(e, issue)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if !noDeps {
-			return ErrDependenciesLeft{issue.ID}
+			return nil, ErrDependenciesLeft{issue.ID}
 		}
 	}
 
@@ -633,56 +654,63 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 	}
 
 	if err = updateIssueCols(e, issue, "is_closed", "closed_unix"); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Update issue count of labels
 	if err = issue.getLabels(e); err != nil {
-		return err
+		return nil, err
 	}
 	for idx := range issue.Labels {
 		if err = updateLabel(e, issue.Labels[idx]); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	// Update issue count of milestone
 	if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
-		return err
+		return nil, err
 	}
 
 	// New action comment
-	if _, err = createStatusComment(e, doer, issue); err != nil {
-		return err
+	cmtType := CommentTypeClose
+	if !issue.IsClosed {
+		cmtType = CommentTypeReopen
 	}
 
-	return nil
+	return createComment(e, &CreateCommentOptions{
+		Type:  cmtType,
+		Doer:  doer,
+		Repo:  issue.Repo,
+		Issue: issue,
+	})
 }
 
 // ChangeStatus changes issue status to open or closed.
-func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
+func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (*Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
+	if err := sess.Begin(); err != nil {
+		return nil, err
 	}
 
-	if err = issue.loadRepo(sess); err != nil {
-		return err
+	if err := issue.loadRepo(sess); err != nil {
+		return nil, err
 	}
-	if err = issue.loadPoster(sess); err != nil {
-		return err
+	if err := issue.loadPoster(sess); err != nil {
+		return nil, err
 	}
 
-	if err = issue.changeStatus(sess, doer, isClosed); err != nil {
-		return err
+	comment, err := issue.changeStatus(sess, doer, isClosed)
+	if err != nil {
+		return nil, err
 	}
 
 	if err = sess.Commit(); err != nil {
-		return fmt.Errorf("Commit: %v", err)
+		return nil, fmt.Errorf("Commit: %v", err)
 	}
 
-	return nil
+	return comment, nil
 }
 
 // ChangeTitle changes the title of this issue, as the given user.
@@ -702,15 +730,18 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
 
-	if _, err = createChangeTitleComment(sess, doer, issue.Repo, issue, oldTitle, issue.Title); err != nil {
-		return fmt.Errorf("createChangeTitleComment: %v", err)
+	var opts = &CreateCommentOptions{
+		Type:     CommentTypeChangeTitle,
+		Doer:     doer,
+		Repo:     issue.Repo,
+		Issue:    issue,
+		OldTitle: oldTitle,
+		NewTitle: issue.Title,
 	}
-
-	if err = issue.neuterCrossReferences(sess); err != nil {
-		return err
+	if _, err = createComment(sess, opts); err != nil {
+		return fmt.Errorf("createComment: %v", err)
 	}
-
-	if err = issue.addCrossReferences(sess, doer); err != nil {
+	if err = issue.addCrossReferences(sess, doer, true); err != nil {
 		return err
 	}
 
@@ -728,7 +759,14 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if _, err := createDeleteBranchComment(sess, doer, repo, issue, branchName); err != nil {
+	var opts = &CreateCommentOptions{
+		Type:      CommentTypeDeleteBranch,
+		Doer:      doer,
+		Repo:      repo,
+		Issue:     issue,
+		CommitSHA: branchName,
+	}
+	if _, err = createComment(sess, opts); err != nil {
 		return err
 	}
 
@@ -768,10 +806,8 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	if err = updateIssueCols(sess, issue, "content"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
-	if err = issue.neuterCrossReferences(sess); err != nil {
-		return err
-	}
-	if err = issue.addCrossReferences(sess, doer); err != nil {
+
+	if err = issue.addCrossReferences(sess, doer, true); err != nil {
 		return err
 	}
 
@@ -805,6 +841,20 @@ func (issue *Issue) GetLastEventLabel() string {
 		return "repo.issues.closed_by"
 	}
 	return "repo.issues.opened_by"
+}
+
+// GetLastComment return last comment for the current issue.
+func (issue *Issue) GetLastComment() (*Comment, error) {
+	var c Comment
+	exist, err := x.Where("type = ?", CommentTypeComment).
+		And("issue_id = ?", issue.ID).Desc("id").Get(&c)
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
+		return nil, nil
+	}
+	return &c, nil
 }
 
 // GetLastEventLabelFake returns the localization label for the current issue without providing a link in the username.
@@ -864,7 +914,15 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			return err
 		}
 
-		if _, err = createMilestoneComment(e, doer, opts.Repo, opts.Issue, 0, opts.Issue.MilestoneID); err != nil {
+		var opts = &CreateCommentOptions{
+			Type:           CommentTypeMilestone,
+			Doer:           doer,
+			Repo:           opts.Repo,
+			Issue:          opts.Issue,
+			OldMilestoneID: 0,
+			MilestoneID:    opts.Issue.MilestoneID,
+		}
+		if _, err = createComment(e, opts); err != nil {
 			return err
 		}
 	}
@@ -922,7 +980,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	if err = opts.Issue.loadAttributes(e); err != nil {
 		return err
 	}
-	return opts.Issue.addCrossReferences(e, doer)
+	return opts.Issue.addCrossReferences(e, doer, false)
 }
 
 // NewIssue creates new issue with labels for repository.
@@ -1075,7 +1133,8 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 	case "priority":
 		sess.Desc("issue.priority")
 	case "nearduedate":
-		sess.Asc("issue.deadline_unix")
+		// 253370764800 is 01/01/9999 @ 12:00am (UTC)
+		sess.OrderBy("CASE WHEN issue.deadline_unix = 0 THEN 253370764800 ELSE issue.deadline_unix END ASC")
 	case "farduedate":
 		sess.Desc("issue.deadline_unix")
 	case "priorityrepo":
@@ -1196,6 +1255,19 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	return issues, nil
 }
 
+// GetParticipantsIDsByIssueID returns the IDs of all users who participated in comments of an issue,
+// but skips joining with `user` for performance reasons.
+// User permissions must be verified elsewhere if required.
+func GetParticipantsIDsByIssueID(issueID int64) ([]int64, error) {
+	userIDs := make([]int64, 0, 5)
+	return userIDs, x.Table("comment").
+		Cols("poster_id").
+		Where("issue_id = ?", issueID).
+		And("type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
+		Distinct("poster_id").
+		Find(&userIDs)
+}
+
 // GetParticipantsByIssueID returns all users who are participated in comments of an issue.
 func GetParticipantsByIssueID(issueID int64) ([]*User, error) {
 	return getParticipantsByIssueID(x, issueID)
@@ -1293,8 +1365,12 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 				log.Warn("Malformed Labels argument: %s", opts.Labels)
 			} else {
 				for i, labelID := range labelIDs {
-					sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
-						fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+					if labelID > 0 {
+						sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
+							fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+					} else {
+						sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label WHERE label_id = ?)", -labelID)
+					}
 				}
 			}
 		}
@@ -1344,7 +1420,7 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 // UserIssueStatsOptions contains parameters accepted by GetUserIssueStats.
 type UserIssueStatsOptions struct {
 	UserID      int64
-	RepoID      int64
+	RepoIDs     []int64
 	UserRepoIDs []int64
 	FilterMode  int
 	IsPull      bool
@@ -1358,19 +1434,19 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 
 	cond := builder.NewCond()
 	cond = cond.And(builder.Eq{"issue.is_pull": opts.IsPull})
-	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
+	if len(opts.RepoIDs) > 0 {
+		cond = cond.And(builder.In("issue.repo_id", opts.RepoIDs))
 	}
 
 	switch opts.FilterMode {
 	case FilterModeAll:
-		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
 			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
+		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
 			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
@@ -1392,14 +1468,14 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 			return nil, err
 		}
 	case FilterModeCreate:
-		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
-			And("poster_id = ?", opts.UserID).
+		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+			And("issue.poster_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = x.Where(cond).And("is_closed = ?", true).
-			And("poster_id = ?", opts.UserID).
+		stats.ClosedCount, err = x.Where(cond).And("issue.is_closed = ?", true).
+			And("issue.poster_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
@@ -1520,31 +1596,26 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 	return total, ids, nil
 }
 
-func updateIssue(e Engine, issue *Issue) error {
-	_, err := e.ID(issue.ID).AllCols().Update(issue)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// UpdateIssue updates all fields of given issue.
-func UpdateIssue(issue *Issue) error {
+// UpdateIssueByAPI updates all allowed fields of given issue.
+func UpdateIssueByAPI(issue *Issue) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if err := updateIssue(sess, issue); err != nil {
+
+	if _, err := sess.ID(issue.ID).Cols(
+		"name", "is_closed", "content", "milestone_id", "priority",
+		"deadline_unix", "updated_unix", "closed_unix", "is_locked").
+		Update(issue); err != nil {
 		return err
 	}
-	if err := issue.neuterCrossReferences(sess); err != nil {
-		return err
-	}
+
 	if err := issue.loadPoster(sess); err != nil {
 		return err
 	}
-	if err := issue.addCrossReferences(sess, issue.Poster); err != nil {
+
+	if err := issue.addCrossReferences(sess, issue.Poster, true); err != nil {
 		return err
 	}
 	return sess.Commit()

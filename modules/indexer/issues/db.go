@@ -6,7 +6,7 @@ package issues
 
 import "code.gitea.io/gitea/models"
 
-// DBIndexer implements Indexer inteface to use database's like search
+// DBIndexer implements Indexer interface to use database's like search
 type DBIndexer struct {
 }
 
@@ -23,6 +23,10 @@ func (db *DBIndexer) Index(issue []*IndexerData) error {
 // Delete dummy function
 func (db *DBIndexer) Delete(ids ...int64) error {
 	return nil
+}
+
+// Close dummy function
+func (db *DBIndexer) Close() {
 }
 
 // Search dummy function

@@ -18,7 +18,7 @@ import (
 )
 
 func TestLinksNoLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	var links = []string{
 		"/explore/repos",
@@ -44,13 +44,14 @@ func TestLinksNoLogin(t *testing.T) {
 }
 
 func TestRedirectsNoLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	var redirects = map[string]string{
 		"/user2/repo1/commits/master":                "/user2/repo1/commits/branch/master",
 		"/user2/repo1/src/master":                    "/user2/repo1/src/branch/master",
 		"/user2/repo1/src/master/file.txt":           "/user2/repo1/src/branch/master/file.txt",
 		"/user2/repo1/src/master/directory/file.txt": "/user2/repo1/src/branch/master/directory/file.txt",
+		"/user/avatar/Ghost/-1":                      "/img/avatar_default.png",
 	}
 	for link, redirectLink := range redirects {
 		req := NewRequest(t, "GET", link)
@@ -72,19 +73,26 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"/api/swagger",
 		"/api/v1/swagger",
 		"/issues",
-		"/issues?type=your_repositories&repo=0&sort=&state=open",
-		"/issues?type=assigned&repo=0&sort=&state=open",
-		"/issues?type=created_by&repo=0&sort=&state=open",
-		"/issues?type=your_repositories&repo=0&sort=&state=closed",
-		"/issues?type=assigned&repo=0&sort=&state=closed",
-		"/issues?type=created_by&repo=0&sort=&state=closed",
+		"/issues?type=your_repositories&repos=[0]&sort=&state=open",
+		"/issues?type=assigned&repos=[0]&sort=&state=open",
+		"/issues?type=your_repositories&repos=[0]&sort=&state=closed",
+		"/issues?type=assigned&repos=[]&sort=&state=closed",
+		"/issues?type=assigned&sort=&state=open",
+		"/issues?type=created_by&repos=[1,2]&sort=&state=closed",
+		"/issues?type=created_by&repos=[1,2]&sort=&state=open",
 		"/pulls",
-		"/pulls?type=your_repositories&repo=0&sort=&state=open",
-		"/pulls?type=assigned&repo=0&sort=&state=open",
-		"/pulls?type=created_by&repo=0&sort=&state=open",
-		"/pulls?type=your_repositories&repo=0&sort=&state=closed",
-		"/pulls?type=assigned&repo=0&sort=&state=closed",
-		"/pulls?type=created_by&repo=0&sort=&state=closed",
+		"/pulls?type=your_repositories&repos=[2]&sort=&state=open",
+		"/pulls?type=assigned&repos=[]&sort=&state=open",
+		"/pulls?type=created_by&repos=[0]&sort=&state=open",
+		"/pulls?type=your_repositories&repos=[0]&sort=&state=closed",
+		"/pulls?type=assigned&repos=[0]&sort=&state=closed",
+		"/pulls?type=created_by&repos=[0]&sort=&state=closed",
+		"/milestones",
+		"/milestones?sort=mostcomplete&state=closed",
+		"/milestones?type=your_repositories&sort=mostcomplete&state=closed",
+		"/milestones?sort=&repos=[1]&state=closed",
+		"/milestones?sort=&repos=[1]&state=open",
+		"/milestones?repos=[0]&sort=mostissues&state=open",
 		"/notifications",
 		"/repo/create",
 		"/repo/migrate",
@@ -144,7 +152,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 }
 
 func TestLinksLogin(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	testLinksAsUser("user2", t)
 }

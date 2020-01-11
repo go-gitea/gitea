@@ -110,7 +110,7 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 
 	//If no query params path or id
-	lockList, err := models.GetLFSLockByRepoID(repository.ID)
+	lockList, err := models.GetLFSLockByRepoID(repository.ID, 0, 0)
 	if err != nil {
 		ctx.JSON(500, api.LFSLockError{
 			Message: "unable to list locks : " + err.Error(),
@@ -220,7 +220,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	}
 
 	//TODO handle body json cursor and limit
-	lockList, err := models.GetLFSLockByRepoID(repository.ID)
+	lockList, err := models.GetLFSLockByRepoID(repository.ID, 0, 0)
 	if err != nil {
 		ctx.JSON(500, api.LFSLockError{
 			Message: "unable to list locks : " + err.Error(),

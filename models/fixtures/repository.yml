@@ -10,7 +10,7 @@
   num_closed_pulls: 0
   num_milestones: 3
   num_closed_milestones: 1
-  num_watches: 3
+  num_watches: 4
   status: 0
 
 -
@@ -547,7 +547,8 @@
   is_private: false
   num_stars: 0
   num_forks: 0
-  num_issues: 0
+  num_issues: 1
+  num_milestones: 1
   is_mirror: false
 
 -
@@ -559,5 +560,68 @@
   num_stars: 0
   num_forks: 0
   num_issues: 0
+  is_mirror: false
+  status: 0
+
+-
+  id: 44
+  owner_id: 27
+  lower_name: template1
+  name: template1
+  is_private: false
+  is_template: true
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+-
+  id: 45
+  owner_id: 27
+  lower_name: template2
+  name: template2
+  is_private: false
+  is_template: true
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+-
+  id: 46
+  owner_id: 26
+  lower_name: repo_external_tracker
+  name: repo_external_tracker
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+-
+  id: 47
+  owner_id: 26
+  lower_name: repo_external_tracker_numeric
+  name: repo_external_tracker_numeric
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  is_mirror: false
+  status: 0
+
+-
+  id: 48
+  owner_id: 26
+  lower_name: repo_external_tracker_alpha
+  name: repo_external_tracker_alpha
+  is_private: false
+  num_stars: 0
+  num_forks: 0
+  num_issues: 0
+  num_pulls: 1
   is_mirror: false
   status: 0

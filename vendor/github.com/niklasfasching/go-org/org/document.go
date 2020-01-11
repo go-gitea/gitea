@@ -90,7 +90,7 @@ func New() *Configuration {
 }
 
 // String returns the pretty printed Org mode string for the given nodes (see OrgWriter).
-func String(nodes []Node) string { return orgWriter.nodesAsString(nodes...) }
+func String(nodes []Node) string { return orgWriter.WriteNodesAsString(nodes...) }
 
 // Write is called after with an instance of the Writer interface to export a parsed Document into another format.
 func (d *Document) Write(w Writer) (out string, err error) {

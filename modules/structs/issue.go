@@ -38,6 +38,7 @@ type RepositoryMeta struct {
 type Issue struct {
 	ID               int64      `json:"id"`
 	URL              string     `json:"url"`
+	HTMLURL          string     `json:"html_url"`
 	Index            int64      `json:"number"`
 	Poster           *User      `json:"user"`
 	OriginalAuthor   string     `json:"original_author"`
@@ -99,7 +100,8 @@ type EditIssueOption struct {
 	Milestone *int64   `json:"milestone"`
 	State     *string  `json:"state"`
 	// swagger:strfmt date-time
-	Deadline *time.Time `json:"due_date"`
+	Deadline       *time.Time `json:"due_date"`
+	RemoveDeadline *bool      `json:"unset_due_date"`
 }
 
 // EditDeadlineOption options for creating a deadline
@@ -114,10 +116,4 @@ type EditDeadlineOption struct {
 type IssueDeadline struct {
 	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
-}
-
-// EditPriorityOption options for updating priority
-type EditPriorityOption struct {
-	// required:true
-	Priority int `json:"priority"`
 }
