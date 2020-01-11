@@ -263,7 +263,7 @@ func (repo *Repository) MustOwnerName() string {
 	return repo.mustOwnerName(x)
 }
 
-// MustOwnerNameCtx is similiar MustOwnerName but with a database context
+// MustOwnerNameCtx is similar MustOwnerName but with a database context
 func (repo *Repository) MustOwnerNameCtx(ctx DBContext) string {
 	return repo.mustOwnerName(ctx.e)
 }
@@ -717,7 +717,7 @@ func (repo *Repository) Link() string {
 	return repo.LinkCtx(DefaultDBContext())
 }
 
-// LinkCtx is similiar with Link but with database context
+// LinkCtx is similar with Link but with database context
 func (repo *Repository) LinkCtx(ctx DBContext) string {
 	return setting.AppSubURL + "/" + repo.fullName(ctx.e)
 }
