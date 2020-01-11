@@ -205,18 +205,21 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 
 func (repo *Repository) removeIssueAssignees(e Engine, userID int64) error {
 
-	err := repo.GetOwner()
+	user, err := GetUserByID(userID)
 	if err != nil {
-		// Very weird case
-		return fmt.Errorf("removeIssueAssignees: Unable to load owner for repo: %d Error: %v", repo.ID, err)
+		return err
 	}
 
-	perm, err := getUserRepoPermission(e, repo, repo.Owner)
+	perm, err := getUserRepoPermission(e, repo, user)
 	if err != nil {
 		return err
 	}
 
 	if perm.CanWrite(UnitTypeIssues) {
+		return nil
+	}
+
+	if canBeAssigned, err := CanBeAssigned(user, repo, true); canBeAssigned && err == nil {
 		return nil
 	}
 
