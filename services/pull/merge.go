@@ -30,6 +30,7 @@ import (
 )
 
 // Merge merges pull request to base repository.
+// Caller should check PR is ready to be merged (review and status checks)
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
 func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, mergeStyle models.MergeStyle, message string) (err error) {
 	binVersion, err := git.BinVersion()
@@ -52,11 +53,6 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return err
 	}
 	prConfig := prUnit.PullRequestsConfig()
-
-	if err := pr.CheckUserAllowedToMerge(doer); err != nil {
-		log.Error("CheckUserAllowedToMerge(%v): %v", doer, err)
-		return fmt.Errorf("CheckUserAllowedToMerge: %v", err)
-	}
 
 	// Check if merge style is correct and allowed
 	if !prConfig.IsMergeStyleAllowed(mergeStyle) {
@@ -472,4 +468,65 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	}
 
 	return out.String(), nil
+}
+
+// IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
+func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *models.User) (bool, error) {
+	if p.IsAdmin() {
+		return true, nil
+	}
+	if !p.CanWrite(models.UnitTypeCode) {
+		return false, nil
+	}
+
+	err := pr.LoadProtectedBranch()
+	if err != nil {
+		return false, err
+	}
+
+	if pr.ProtectedBranch == nil || pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// CheckPRReadyToMerge checks whether the PR is ready to be merged (reviews and status checks)
+func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
+	if pr.BaseRepo == nil {
+		if err = pr.GetBaseRepo(); err != nil {
+			return fmt.Errorf("GetBaseRepo: %v", err)
+		}
+	}
+	if pr.ProtectedBranch == nil {
+		if err = pr.LoadProtectedBranch(); err != nil {
+			return fmt.Errorf("LoadProtectedBranch: %v", err)
+		}
+		if pr.ProtectedBranch == nil {
+			return nil
+		}
+	}
+
+	isPass, err := IsPullCommitStatusPass(pr)
+	if err != nil {
+		return err
+	}
+	if !isPass {
+		return models.ErrNotAllowedToMerge{
+			Reason: "Not all required status checks successful",
+		}
+	}
+
+	if enoughApprovals := pr.ProtectedBranch.HasEnoughApprovals(pr); !enoughApprovals {
+		return models.ErrNotAllowedToMerge{
+			Reason: "Does not have enough approvals",
+		}
+	}
+	if rejected := pr.ProtectedBranch.MergeBlockedByRejectedReview(pr); rejected {
+		return models.ErrNotAllowedToMerge{
+			Reason: "There are requested changes",
+		}
+	}
+
+	return nil
 }
