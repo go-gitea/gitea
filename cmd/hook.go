@@ -122,6 +122,7 @@ func (d *delayWriter) Close() error {
 		return nil
 	}
 	_, err := d.internal.Write(d.buf.Bytes())
+	d.buf = nil
 	return err
 }
 
