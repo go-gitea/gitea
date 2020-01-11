@@ -74,14 +74,41 @@ func RepoMustNotBeArchived() macaron.Handler {
 	}
 }
 
+// CanCommitToBranchResults represents the results of CanCommitToBranch
+type CanCommitToBranchResults struct {
+	CanCommitToBranch bool
+	EditorEnabled     bool
+	UserCanPush       bool
+	RequireSigned     bool
+	WillSign          bool
+	SigningKey        string
+}
+
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected for push
-func (r *Repository) CanCommitToBranch(doer *models.User) (bool, error) {
-	protectedBranch, err := r.Repository.IsProtectedBranchForPush(r.BranchName, doer)
+func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResults, error) {
+	protectedBranch, err := models.GetProtectedBranchBy(r.Repository.ID, r.BranchName)
+
 	if err != nil {
-		return false, err
+		return CanCommitToBranchResults{}, err
 	}
-	return r.CanEnableEditor() && !protectedBranch, nil
+	userCanPush := protectedBranch.CanUserPush(doer.ID)
+
+	sign, keyID := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+
+	canCommit := r.CanEnableEditor() && userCanPush
+	if protectedBranch.RequireSignedCommits {
+		canCommit = canCommit && sign
+	}
+
+	return CanCommitToBranchResults{
+		CanCommitToBranch: canCommit,
+		EditorEnabled:     r.CanEnableEditor(),
+		UserCanPush:       userCanPush,
+		RequireSigned:     protectedBranch.RequireSignedCommits,
+		WillSign:          sign,
+		SigningKey:        keyID,
+	}, nil
 }
 
 // CanUseTimetracker returns whether or not a user can use the timetracker.
