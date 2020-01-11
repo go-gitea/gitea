@@ -7,6 +7,7 @@ package integrations
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -25,18 +26,40 @@ func TestAPIListRepoComments(t *testing.T) {
 	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments",
-		repoOwner.Name, repo.Name)
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments", repoOwner.Name, repo.Name))
+	req := NewRequest(t, "GET", link.String())
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var apiComments []*api.Comment
 	DecodeJSON(t, resp, &apiComments)
+	assert.Len(t, apiComments, 2)
 	for _, apiComment := range apiComments {
 		c := &models.Comment{ID: apiComment.ID}
 		models.AssertExistsAndLoadBean(t, c,
 			models.Cond("type = ?", models.CommentTypeComment))
 		models.AssertExistsAndLoadBean(t, &models.Issue{ID: c.IssueID, RepoID: repo.ID})
 	}
+
+	//test before and since filters
+	query := url.Values{}
+	before := "2000-01-01T00:00:11+00:00" //unix: 946684811
+	since := "2000-01-01T00:00:12+00:00"  //unix: 946684812
+	query.Add("before", before)
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiComments)
+	assert.Len(t, apiComments, 1)
+	assert.EqualValues(t, 2, apiComments[0].ID)
+
+	query.Del("before")
+	query.Add("since", since)
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiComments)
+	assert.Len(t, apiComments, 1)
+	assert.EqualValues(t, 3, apiComments[0].ID)
 }
 
 func TestAPIListIssueComments(t *testing.T) {
