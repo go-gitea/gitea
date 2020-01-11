@@ -92,12 +92,17 @@ func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResu
 	if err != nil {
 		return CanCommitToBranchResults{}, err
 	}
-	userCanPush := protectedBranch.CanUserPush(doer.ID)
+	userCanPush := true
+	requireSigned := false
+	if protectedBranch != nil {
+		userCanPush = protectedBranch.CanUserPush(doer.ID)
+		requireSigned = protectedBranch.RequireSignedCommits
+	}
 
 	sign, keyID := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
 
 	canCommit := r.CanEnableEditor() && userCanPush
-	if protectedBranch.RequireSignedCommits {
+	if requireSigned {
 		canCommit = canCommit && sign
 	}
 
@@ -105,7 +110,7 @@ func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResu
 		CanCommitToBranch: canCommit,
 		EditorEnabled:     r.CanEnableEditor(),
 		UserCanPush:       userCanPush,
-		RequireSigned:     protectedBranch.RequireSignedCommits,
+		RequireSigned:     requireSigned,
 		WillSign:          sign,
 		SigningKey:        keyID,
 	}, nil
