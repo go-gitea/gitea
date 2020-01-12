@@ -70,7 +70,7 @@ func (pr *PullRequest) MustHeadUserName() string {
 		log.Error("LoadHeadRepo: %v", err)
 		return ""
 	}
-	return pr.HeadRepo.MustOwnerName()
+	return pr.HeadRepo.OwnerName
 }
 
 // Note: don't try to get Issue because will end up recursive querying.

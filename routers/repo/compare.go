@@ -361,10 +361,8 @@ func parseBaseRepoInfo(ctx *context.Context, repo *models.Repository) error {
 	if err := repo.GetBaseRepo(); err != nil {
 		return err
 	}
-	if err := repo.BaseRepo.GetOwnerName(); err != nil {
-		return err
-	}
-	baseGitRepo, err := git.OpenRepository(models.RepoPath(repo.BaseRepo.OwnerName, repo.BaseRepo.Name))
+
+	baseGitRepo, err := git.OpenRepository(repo.BaseRepo.RepoPath())
 	if err != nil {
 		return err
 	}
