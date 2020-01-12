@@ -480,18 +480,10 @@ $(JS_DEST): node_modules $(JS_SOURCES)
 	npx webpack
 
 .PHONY: fomantic
-fomantic: $(FOMANTIC_DEST_DIR)
-node_modules/fomantic-ui/src: node-check node_modules
+fomantic: node-check $(FOMANTIC_DEST_DIR)
 
-# TODO(das7pad): replace with resolve.alias when building fomantic with webpack
-node_modules/fomantic-ui/src/theme.config: node_modules/fomantic-ui/src
-node_modules/fomantic-ui/src/theme.config: web_src/fomantic/theme.config.less
-ifeq (,$(wildcard $@))
-	cp $< $@
-endif
-
-$(FOMANTIC_DEST_DIR): node_modules/fomantic-ui/src
-$(FOMANTIC_DEST_DIR): node_modules/fomantic-ui/src/theme.config
+$(FOMANTIC_DEST_DIR): node_modules semantic.json web_src/fomantic/theme.config.less
+	cp web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
 	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 
 .PHONY: css
