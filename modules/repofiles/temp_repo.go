@@ -219,7 +219,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 
 	// Determine if we should sign
 	if version.Compare(binVersion, "1.7.9", ">=") {
-		sign, keyID := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
+		sign, keyID, _ := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
 		if sign {
 			args = append(args, "-S"+keyID)
 		} else if version.Compare(binVersion, "2.0.0", ">=") {

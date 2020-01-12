@@ -1044,7 +1044,7 @@ func initRepoCommit(tmpPath string, repo *Repository, u *User) (err error) {
 	}
 
 	if version.Compare(binVersion, "1.7.9", ">=") {
-		sign, keyID := SignInitialCommit(tmpPath, u)
+		sign, keyID, _ := SignInitialCommit(tmpPath, u)
 		if sign {
 			args = append(args, "-S"+keyID)
 		} else if version.Compare(binVersion, "2.0.0", ">=") {

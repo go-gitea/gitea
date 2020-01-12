@@ -48,6 +48,7 @@
 	{{else if .IsBlockedByApprovals}}red
 	{{else if .IsBlockedByRejection}}red
 	{{else if and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}red
+	{{else if and .RequireSigned (not .WillSign)}}}red
 	{{else if .Issue.PullRequest.IsChecking}}yellow
 	{{else if .Issue.PullRequest.CanAutoMerge}}green
 	{{else}}red{{end}}"><span class="mega-octicon octicon-git-merge"></span></a>
@@ -122,9 +123,14 @@
 						<span class="octicon octicon-x"></span>
 						{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
 					</div>
+				{{else if and .RequireSigned (not .WillSign)}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+						{{$.i18n.Tr "repo.pulls.require_signed_wont_sign"}}
+					</div>
 				{{end}}
-				{{$notAllOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess))}}	
-				{{if or $.IsRepoAdmin (not $notAllOk)}}
+				{{$notAllOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .RequireSigned (not .WillSign)) (and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess))}}
+				{{if and (or $.IsRepoAdmin (not $notAllOk)) (or (not .RequireSigned) .WillSign)}}
 					{{if $notAllOk}}
 						<div class="item text yellow">
 							<span class="octicon octicon-primitive-dot"></span>
@@ -281,6 +287,11 @@
 					<div class="item text red">
 						<span class="octicon octicon-x"></span>
 						{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
+					</div>
+				{{else if and .RequireSigned (not .WillSign)}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+						{{$.i18n.Tr "repo.pulls.require_signed_wont_sign"}}
 					</div>
 				{{else}}
 					<div class="item text red">

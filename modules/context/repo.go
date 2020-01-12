@@ -82,6 +82,7 @@ type CanCommitToBranchResults struct {
 	RequireSigned     bool
 	WillSign          bool
 	SigningKey        string
+	WontSignReason    string
 }
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
@@ -99,11 +100,20 @@ func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResu
 		requireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	sign, keyID := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+	sign, keyID, err := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
 
 	canCommit := r.CanEnableEditor() && userCanPush
 	if requireSigned {
 		canCommit = canCommit && sign
+	}
+	wontSignReason := ""
+	if err != nil {
+		if models.IsErrWontSign(err) {
+			wontSignReason = string(err.(*models.ErrWontSign).Reason)
+			err = nil
+		} else {
+			wontSignReason = "error"
+		}
 	}
 
 	return CanCommitToBranchResults{
@@ -113,7 +123,8 @@ func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResu
 		RequireSigned:     requireSigned,
 		WillSign:          sign,
 		SigningKey:        keyID,
-	}, nil
+		WontSignReason:    wontSignReason,
+	}, err
 }
 
 // CanUseTimetracker returns whether or not a user can use the timetracker.
