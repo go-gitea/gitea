@@ -1185,7 +1185,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 			notification.NotifyIssueChangeStatus(ctx.User, issue, isClosed)
 		}
 		if issue.StateType != state {
-			if err := issue.ChangeState(ctx.User, state); err != nil {
+			if err := issue.ChangeState(state); err != nil {
 				ctx.ServerError("ChangeState", err)
 				return
 			}
@@ -1311,7 +1311,7 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 					}
 
 					if issue.StateType != state {
-						if err := issue.ChangeState(ctx.User, state); err != nil {
+						if err := issue.ChangeState(state); err != nil {
 							ctx.ServerError("ChangeState", err)
 							return
 						}

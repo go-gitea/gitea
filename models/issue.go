@@ -874,14 +874,14 @@ func (issue *Issue) changeState(e *xorm.Session, state api.StateType) (err error
 }
 
 // ChangeState changes issue state to open, in-progress, review or closed.
-func (issue *Issue) ChangeState(doer *User, state api.StateType) (err error) {
+func (issue *Issue) ChangeState(state api.StateType) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = issue.changeState(sess, doer, state); err != nil {
+	if err = issue.changeState(sess, state); err != nil {
 		return err
 	}
 
