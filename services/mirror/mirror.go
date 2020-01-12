@@ -217,7 +217,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	}
 	gitRepo.Close()
 
-	if err := m.Repo.UpdateSize(); err != nil {
+	if err := m.Repo.UpdateSize(models.DefaultDBContext()); err != nil {
 		log.Error("Failed to update size for mirror repository: %v", err)
 	}
 

@@ -5,6 +5,7 @@
 package task
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -12,7 +13,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/queue"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // taskQueue is a global queue of tasks
@@ -52,10 +55,56 @@ func handle(data ...queue.Data) {
 
 // MigrateRepository add migration repository to task
 func MigrateRepository(doer, u *models.User, opts base.MigrateOptions) error {
-	task, err := models.CreateMigrateTask(doer, u, opts)
+	task, err := CreateMigrateTask(doer, u, opts)
 	if err != nil {
 		return err
 	}
 
 	return taskQueue.Push(task)
+}
+
+// CreateMigrateTask creates a migrate task
+func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.Task, error) {
+	bs, err := json.Marshal(&opts)
+	if err != nil {
+		return nil, err
+	}
+
+	var task = models.Task{
+		DoerID:         doer.ID,
+		OwnerID:        u.ID,
+		Type:           structs.TaskTypeMigrateRepo,
+		Status:         structs.TaskStatusQueue,
+		PayloadContent: string(bs),
+	}
+
+	if err := models.CreateTask(&task); err != nil {
+		return nil, err
+	}
+
+	repo, err := repo_module.CreateRepository(doer, u, models.CreateRepoOptions{
+		Name:           opts.RepoName,
+		Description:    opts.Description,
+		OriginalURL:    opts.OriginalURL,
+		GitServiceType: opts.GitServiceType,
+		IsPrivate:      opts.Private,
+		IsMirror:       opts.Mirror,
+		Status:         models.RepositoryBeingMigrated,
+	})
+	if err != nil {
+		task.EndTime = timeutil.TimeStampNow()
+		task.Status = structs.TaskStatusFailed
+		err2 := task.UpdateCols("end_time", "status")
+		if err2 != nil {
+			log.Error("UpdateCols Failed: %v", err2.Error())
+		}
+		return nil, err
+	}
+
+	task.RepoID = repo.ID
+	if err = task.UpdateCols("repo_id"); err != nil {
+		return nil, err
+	}
+
+	return &task, nil
 }

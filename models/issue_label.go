@@ -22,9 +22,9 @@ var labelColorPattern = regexp.MustCompile("#([a-fA-F0-9]{6})")
 // GetLabelTemplateFile loads the label template file by given name,
 // then parses and returns a list of name-color pairs and optionally description.
 func GetLabelTemplateFile(name string) ([][3]string, error) {
-	data, err := getRepoInitFile("label", name)
+	data, err := GetRepoInitFile("label", name)
 	if err != nil {
-		return nil, fmt.Errorf("getRepoInitFile: %v", err)
+		return nil, fmt.Errorf("GetRepoInitFile: %v", err)
 	}
 
 	lines := strings.Split(string(data), "\n")
@@ -175,8 +175,8 @@ func initalizeLabels(e Engine, repoID int64, labelTemplate string) error {
 }
 
 // InitalizeLabels adds a label set to a repository using a template
-func InitalizeLabels(repoID int64, labelTemplate string) error {
-	return initalizeLabels(x, repoID, labelTemplate)
+func InitalizeLabels(ctx DBContext, repoID int64, labelTemplate string) error {
+	return initalizeLabels(ctx.e, repoID, labelTemplate)
 }
 
 func newLabel(e Engine, label *Label) error {
