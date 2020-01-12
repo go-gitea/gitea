@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -93,7 +94,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
 // AddTime add time manual to the given issue
@@ -178,7 +179,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, trackedTime.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToTrackedTime(trackedTime))
 }
 
 // ResetIssueTime reset time manual to the given issue
@@ -399,7 +400,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
 // ListTrackedTimesByRepository lists all tracked times of the repository
@@ -486,7 +487,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
 // ListMyTrackedTimes lists all tracked times of the current user
@@ -530,5 +531,5 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, trackedTimes.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
