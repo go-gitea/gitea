@@ -287,7 +287,7 @@ steps:
 
 ---
 kind: pipeline
-name: testing-pgsql-arm64
+name: testing-mysql8-arm64
 
 platform:
   os: linux
