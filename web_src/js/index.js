@@ -22,6 +22,9 @@ if (typeof (Dropzone) !== 'undefined') {
   Dropzone.autoDiscover = false;
 }
 
+// Silence fomantic's error logging when tabs are used without a target content element
+$.fn.tab.settings.silent = true;
+
 function initCommentPreviewTab($form) {
   const $tabMenu = $form.find('.tabular.menu');
   $tabMenu.find('.item').tab();
