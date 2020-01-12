@@ -730,7 +730,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireDropzone"] = true
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["IsProjectsEnabled"] = settings.Repository.EnableKanbanBoard
+	ctx.Data["IsProjectsEnabled"] = setting.Repository.EnableKanbanBoard
 
 	renderAttachmentSettings(ctx)
 
