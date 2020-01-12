@@ -51,7 +51,10 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"reaction.comment_id": 0})
 	}
 	if opts.UserID > 0 {
-		cond = cond.And(builder.Eq{"reaction.user_id": opts.UserID})
+		cond = cond.And(builder.Eq{
+			"reaction.user_id":            opts.UserID,
+			"reaction.original_author_id": 0,
+		})
 	}
 	if opts.Reaction != "" {
 		cond = cond.And(builder.Eq{"reaction.type": opts.Reaction})
@@ -175,7 +178,7 @@ func deleteReaction(e *xorm.Session, opts *ReactionOptions) error {
 	if opts.Comment != nil {
 		reaction.CommentID = opts.Comment.ID
 	}
-	_, err := e.Delete(reaction)
+	_, err := e.Where("original_author_id = 0").Delete(reaction)
 	return err
 }
 
