@@ -311,6 +311,8 @@ steps:
       rebuild: true
       mount:
         - ./node_modules
+    depends_on:
+      - build
 
 ---
 kind: pipeline
