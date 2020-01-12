@@ -162,22 +162,6 @@ func (u *UnitType) CanBeDefault() bool {
 	return true
 }
 
-// GetContradictingUnits return units that can't be active at same time as this unit
-func (u *UnitType) GetContradictingUnits() []UnitType {
-	switch *u {
-	case UnitTypeIssues:
-		return []UnitType{UnitTypeExternalTracker}
-	case UnitTypeExternalTracker:
-		return []UnitType{UnitTypeIssues}
-	case UnitTypeWiki:
-		return []UnitType{UnitTypeExternalWiki}
-	case UnitTypeExternalWiki:
-		return []UnitType{UnitTypeWiki}
-	default:
-		return nil
-	}
-}
-
 // Unit is a section of one repository
 type Unit struct {
 	Type    UnitType

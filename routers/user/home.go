@@ -157,6 +157,12 @@ func Dashboard(ctx *context.Context) {
 
 // Milestones render the user milestones page
 func Milestones(ctx *context.Context) {
+	if models.UnitTypeIssues.UnitGlobalDisabled() && models.UnitTypePullRequests.UnitGlobalDisabled() {
+		log.Debug("Milestones overview page not available as both issues and pull requests are globally disabled")
+		ctx.Status(404)
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("milestones")
 	ctx.Data["PageIsMilestonesDashboard"] = true
 
@@ -347,7 +353,7 @@ func Issues(ctx *context.Context) {
 	isPullList := ctx.Params(":type") == "pulls"
 	if isPullList {
 		if models.UnitTypePullRequests.UnitGlobalDisabled() {
-			log.Debug("Pull request overview page not available due to unit global disabled.")
+			log.Debug("Pull request overview page not available as it is globally disabled.")
 			ctx.Status(404)
 			return
 		}
@@ -356,7 +362,7 @@ func Issues(ctx *context.Context) {
 		ctx.Data["PageIsPulls"] = true
 	} else {
 		if models.UnitTypeIssues.UnitGlobalDisabled() {
-			log.Debug("Issues overview page not available due go unit global disabled.")
+			log.Debug("Issues overview page not available as it is globally disabled.")
 			ctx.Status(404)
 			return
 		}

@@ -16,7 +16,7 @@
 		{{if not .UnitPullsGlobalDisabled}}
 		<a class="item {{if .PageIsPulls}}active{{end}}" href="{{AppSubUrl}}/pulls">{{.i18n.Tr "pull_requests"}}</a>
 		{{end}}
-		{{if not .UnitIssuesGlobalDisabled}}
+		{{if not (and .UnitIssuesGlobalDisabled .UnitPullsGlobalDisabled)}}
 		{{if .ShowMilestonesDashboardPage}}<a class="item {{if .PageIsMilestonesDashboard}}active{{end}}" href="{{AppSubUrl}}/milestones">{{.i18n.Tr "milestones"}}</a>{{end}}
 		{{end}}
 		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
