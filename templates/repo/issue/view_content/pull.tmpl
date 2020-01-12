@@ -130,7 +130,7 @@
 					</div>
 					<div class="item text yellow">
 						<i class="icon unlock grey"></i>
-						{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
+						<span>{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}</span>
 					</div>
 				{{end}}
 				{{$notAllOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .RequireSigned (not .WillSign)) (and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess))}}
@@ -149,12 +149,12 @@
 					{{if .WillSign}}
 						<div class="item text green">
 							<i class="icon lock green"></i>
-							{{$.i18n.Tr "repo.signing.will_sign" .SigningKey}}
+							<span>{{$.i18n.Tr "repo.signing.will_sign" .SigningKey}}</span>
 						</div>
 					{{else}}
 						<div class="item text yellow">
 							<i class="icon unlock grey"></i>
-							{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
+							<span>{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}</span>
 						</div>
 					{{end}}
 					{{if .AllowMerge}}

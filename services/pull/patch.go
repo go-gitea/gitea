@@ -162,7 +162,7 @@ func TestPatch(pr *models.PullRequest) error {
 		RunInDirTimeoutEnvFullPipelineFunc(
 			nil, -1, tmpBasePath,
 			nil, stderrWriter, nil,
-			func(ctx context.Context, cancel context.CancelFunc) {
+			func(ctx context.Context, cancel context.CancelFunc) error {
 				_ = stderrWriter.Close()
 				const prefix = "error: patch failed:"
 				const errorPrefix = "error: "
@@ -199,6 +199,7 @@ func TestPatch(pr *models.PullRequest) error {
 					}
 				}
 				_ = stderrReader.Close()
+				return nil
 			})
 
 	if err != nil {

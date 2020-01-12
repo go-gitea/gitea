@@ -7,9 +7,9 @@ package private
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -25,6 +25,96 @@ import (
 
 	"gitea.com/macaron/macaron"
 )
+
+func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	if err != nil {
+		log.Error("Unable to create os.Pipe in %s", repo.Path)
+		return err
+	}
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
+
+	err = git.NewCommand("rev-list", oldCommitID+"..."+newCommitID).
+		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
+			stdoutWriter, nil, nil,
+			func(ctx context.Context, cancel context.CancelFunc) error {
+				_ = stdoutWriter.Close()
+				err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
+				if err != nil {
+					log.Error("%v", err)
+					cancel()
+				}
+				_ = stdoutReader.Close()
+				return err
+			})
+	if err != nil && !isErrUnverifiedCommit(err) {
+		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
+	}
+	return err
+}
+
+func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository, env []string) error {
+	scanner := bufio.NewScanner(input)
+	for scanner.Scan() {
+		line := scanner.Text()
+		err := readAndVerifyCommit(line, repo, env)
+		if err != nil {
+			log.Error("%v", err)
+			return err
+		}
+	}
+	return scanner.Err()
+}
+
+func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	if err != nil {
+		log.Error("Unable to create pipe in %s: %v", repo.Path, err)
+		return err
+	}
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
+	hash := plumbing.NewHash(sha)
+
+	return git.NewCommand("cat-file", "commit", sha).
+		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
+			stdoutWriter, nil, nil,
+			func(ctx context.Context, cancel context.CancelFunc) error {
+				_ = stdoutWriter.Close()
+				commit, err := git.CommitFromReader(repo, hash, stdoutReader)
+				if err != nil {
+					return err
+				}
+				log.Info("have commit %s", commit.ID.String())
+				verification := models.ParseCommitWithSignature(commit)
+				if !verification.Verified {
+					log.Info("unverified commit %s", commit.ID.String())
+					cancel()
+					return &errUnverifiedCommit{
+						commit.ID.String(),
+					}
+				}
+				return nil
+			})
+}
+
+type errUnverifiedCommit struct {
+	sha string
+}
+
+func (e *errUnverifiedCommit) Error() string {
+	return fmt.Sprintf("Unverified commit: %s", e.sha)
+}
+
+func isErrUnverifiedCommit(err error) bool {
+	_, ok := err.(*errUnverifiedCommit)
+	return ok
+}
 
 // HookPreReceive checks whether a individual commit is acceptable
 func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
@@ -49,6 +139,21 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 	}
 	defer gitRepo.Close()
 
+	// Generate git environment for checking commits
+	env := os.Environ()
+	if opts.GitAlternativeObjectDirectories != "" {
+		env = append(env,
+			private.GitAlternativeObjectDirectories+"="+opts.GitAlternativeObjectDirectories)
+	}
+	if opts.GitObjectDirectory != "" {
+		env = append(env,
+			private.GitObjectDirectory+"="+opts.GitObjectDirectory)
+	}
+	if opts.GitQuarantinePath != "" {
+		env = append(env,
+			private.GitQuarantinePath+"="+opts.GitQuarantinePath)
+	}
+
 	for i := range opts.OldCommitIDs {
 		oldCommitID := opts.OldCommitIDs[i]
 		newCommitID := opts.NewCommitIDs[i]
@@ -64,7 +169,7 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 			return
 		}
 		if protectBranch != nil && protectBranch.IsProtected() {
-			// check and deletion
+			// detect and prevent deletion
 			if newCommitID == git.EmptySHA {
 				log.Warn("Forbidden: Branch: %s in %-v is protected from deletion", branchName, repo)
 				ctx.JSON(http.StatusForbidden, map[string]interface{}{
@@ -75,20 +180,6 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 
 			// detect force push
 			if git.EmptySHA != oldCommitID {
-				env := os.Environ()
-				if opts.GitAlternativeObjectDirectories != "" {
-					env = append(env,
-						private.GitAlternativeObjectDirectories+"="+opts.GitAlternativeObjectDirectories)
-				}
-				if opts.GitObjectDirectory != "" {
-					env = append(env,
-						private.GitObjectDirectory+"="+opts.GitObjectDirectory)
-				}
-				if opts.GitQuarantinePath != "" {
-					env = append(env,
-						private.GitQuarantinePath+"="+opts.GitQuarantinePath)
-				}
-
 				output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), env)
 				if err != nil {
 					log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
@@ -108,148 +199,21 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 
 			// Require signed commits
 			if protectBranch.RequireSignedCommits {
-				env := os.Environ()
-				if opts.GitAlternativeObjectDirectories != "" {
-					env = append(env,
-						private.GitAlternativeObjectDirectories+"="+opts.GitAlternativeObjectDirectories)
-				}
-				if opts.GitObjectDirectory != "" {
-					env = append(env,
-						private.GitObjectDirectory+"="+opts.GitObjectDirectory)
-				}
-				if opts.GitQuarantinePath != "" {
-					env = append(env,
-						private.GitQuarantinePath+"="+opts.GitQuarantinePath)
-				}
-
-				stdoutReader, stdoutWriter, err := os.Pipe()
+				err := verifyCommits(oldCommitID, newCommitID, gitRepo, env)
 				if err != nil {
-					log.Error("Unable to create pipe: %v", err)
-					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-						"err": fmt.Sprintf("Unable to create pipe: %v", err),
-					})
-					return
-				}
-				defer func() {
-					_ = stdoutReader.Close()
-					_ = stdoutWriter.Close()
-				}()
-
-				stderr := new(bytes.Buffer)
-				commits := make([]*git.Commit, 0, 10)
-
-				var finalErr error
-				if err := git.NewCommand("rev-list", oldCommitID+"..."+newCommitID).
-					RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.RepoPath(),
-						stdoutWriter, stderr, nil,
-						func(ctx context.Context, cancel context.CancelFunc) {
-							_ = stdoutWriter.Close()
-							scanner := bufio.NewScanner(stdoutReader)
-							for scanner.Scan() {
-								line := scanner.Text()
-								// TODO: Consider whether we really want to read these completely in to memory
-								var commitStr string
-								commitStr, finalErr = git.NewCommand("cat-file", "commit", line).RunInDirWithEnv(repo.RepoPath(), env)
-								if finalErr != nil {
-									cancel()
-								}
-								commits = append(commits, &git.Commit{
-									ID:            plumbing.NewHash(line),
-									CommitMessage: commitStr,
-								})
-							}
-							_ = stdoutReader.Close()
-						}); err != nil {
-					if finalErr != nil {
-						err = finalErr
-					}
-					log.Error("Unable to check commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
-					ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-						"err": fmt.Sprintf("Unable to check commits from %s to %s: %v", oldCommitID, newCommitID, err),
-					})
-					return
-				}
-
-				// TODO: We should batch read a few commits in at a time: use -n and --skip
-				// Now parse the commitStrs
-				for _, commit := range commits {
-					payloadSB := new(strings.Builder)
-					signatureSB := new(strings.Builder)
-					messageSB := new(strings.Builder)
-					message := false
-					pgpsig := false
-
-					scanner := bufio.NewScanner(strings.NewReader(commit.CommitMessage))
-					for scanner.Scan() {
-						line := scanner.Bytes()
-						if pgpsig {
-							if len(line) > 0 && line[0] == ' ' {
-								line = bytes.TrimLeft(line, " ")
-								_, _ = signatureSB.Write(line)
-								_ = signatureSB.WriteByte('\n')
-								continue
-							} else {
-								pgpsig = false
-							}
-						}
-
-						if !message {
-							trimmed := bytes.TrimSpace(line)
-							if len(trimmed) == 0 {
-								message = true
-								_, _ = payloadSB.WriteString("\n")
-								continue
-							}
-
-							split := bytes.SplitN(trimmed, []byte{' '}, 2)
-
-							switch string(split[0]) {
-							case "tree":
-								commit.Tree = *git.NewTree(gitRepo, plumbing.NewHash(string(split[1])))
-								_, _ = payloadSB.Write(line)
-								_ = payloadSB.WriteByte('\n')
-							case "parent":
-								commit.Parents = append(commit.Parents, plumbing.NewHash(string(split[1])))
-								_, _ = payloadSB.Write(line)
-								_ = payloadSB.WriteByte('\n')
-							case "author":
-								commit.Author = &git.Signature{}
-								commit.Author.Decode(split[1])
-								_, _ = payloadSB.Write(line)
-								_ = payloadSB.WriteByte('\n')
-							case "committer":
-								commit.Committer = &git.Signature{}
-								commit.Committer.Decode(split[1])
-								_, _ = payloadSB.Write(line)
-								_ = payloadSB.WriteByte('\n')
-							case "gpgsig":
-								_, _ = signatureSB.Write(split[1])
-								_ = signatureSB.WriteByte('\n')
-								pgpsig = true
-							}
-						} else {
-							_, _ = messageSB.Write(line)
-							_ = messageSB.WriteByte('\n')
-						}
-					}
-					commit.CommitMessage = messageSB.String()
-					_, _ = payloadSB.WriteString(commit.CommitMessage)
-					commit.Signature = &git.CommitGPGSignature{
-						Signature: signatureSB.String(),
-						Payload:   payloadSB.String(),
-					}
-					if len(commit.Signature.Signature) == 0 {
-						commit.Signature = nil
-					}
-
-					verification := models.ParseCommitWithSignature(commit)
-					if !verification.Verified {
-						log.Warn("Forbidden: Branch: %s in %-v is protected from unverified commit %s", branchName, repo, commit.ID.String())
-						ctx.JSON(http.StatusForbidden, map[string]interface{}{
-							"err": fmt.Sprintf("branch %s is protected from unverified commit %s", branchName, commit.ID.String()),
+					if !isErrUnverifiedCommit(err) {
+						log.Error("Unable to check commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
+						ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+							"err": fmt.Sprintf("Unable to check commits from %s to %s: %v", oldCommitID, newCommitID, err),
 						})
 						return
 					}
+					unverifiedCommit := err.(*errUnverifiedCommit).sha
+					log.Warn("Forbidden: Branch: %s in %-v is protected from unverified commit %s", branchName, repo, unverifiedCommit)
+					ctx.JSON(http.StatusForbidden, map[string]interface{}{
+						"err": fmt.Sprintf("branch %s is protected from unverified commit %s", branchName, unverifiedCommit),
+					})
+					return
 				}
 			}
 
