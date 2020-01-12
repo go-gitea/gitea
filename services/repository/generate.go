@@ -8,20 +8,21 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	repo_module "code.gitea.io/gitea/modules/repository"
 )
 
 // GenerateRepository generates a repository from a template
 func GenerateRepository(doer, owner *models.User, templateRepo *models.Repository, opts models.GenerateRepoOptions) (_ *models.Repository, err error) {
 	var generateRepo *models.Repository
 	if err = models.WithTx(func(ctx models.DBContext) error {
-		generateRepo, err = models.GenerateRepository(ctx, doer, owner, templateRepo, opts)
+		generateRepo, err = repo_module.GenerateRepository(ctx, doer, owner, templateRepo, opts)
 		if err != nil {
 			return err
 		}
 
 		// Git Content
 		if opts.GitContent && !templateRepo.IsEmpty {
-			if err = models.GenerateGitContent(ctx, templateRepo, generateRepo); err != nil {
+			if err = repo_module.GenerateGitContent(ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}

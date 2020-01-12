@@ -10,11 +10,12 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	repo_module "code.gitea.io/gitea/modules/repository"
 )
 
 // CreateRepository creates a repository for the user/organization.
 func CreateRepository(doer, owner *models.User, opts models.CreateRepoOptions) (*models.Repository, error) {
-	repo, err := models.CreateRepository(doer, owner, opts)
+	repo, err := repo_module.CreateRepository(doer, owner, opts)
 	if err != nil {
 		if repo != nil {
 			if errDelete := models.DeleteRepository(doer, owner.ID, repo.ID); errDelete != nil {
@@ -31,7 +32,7 @@ func CreateRepository(doer, owner *models.User, opts models.CreateRepoOptions) (
 
 // ForkRepository forks a repository
 func ForkRepository(doer, u *models.User, oldRepo *models.Repository, name, desc string) (*models.Repository, error) {
-	repo, err := models.ForkRepository(doer, u, oldRepo, name, desc)
+	repo, err := repo_module.ForkRepository(doer, u, oldRepo, name, desc)
 	if err != nil {
 		if repo != nil {
 			if errDelete := models.DeleteRepository(doer, u.ID, repo.ID); errDelete != nil {
