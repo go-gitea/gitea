@@ -8,11 +8,13 @@ import (
 	"xorm.io/xorm"
 )
 
-func addRequireSignedCommits(x *xorm.Engine) error {
-
-	type ProtectedBranch struct {
-		RequireSignedCommits bool `xorm:"NOT NULL DEFAULT false"`
+func addOwnerNameOnRepository(x *xorm.Engine) error {
+	type Repository struct {
+		OwnerName string
 	}
-
-	return x.Sync2(new(ProtectedBranch))
+	if err := x.Sync2(new(Repository)); err != nil {
+		return err
+	}
+	_, err := x.Exec("UPDATE repository SET owner_name = (SELECT name FROM `user` WHERE `user`.id = repository.owner_id)")
+	return err
 }

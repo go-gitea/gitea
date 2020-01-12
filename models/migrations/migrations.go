@@ -295,6 +295,8 @@ var migrations = []Migration{
 	// v119 -> v120
 	NewMigration("Fix migrated repositories' git service type", fixMigratedRepositoryServiceType),
 	// v120 -> v121
+	NewMigration("Add owner_name on table repository", addOwnerNameOnRepository),
+	// v121 -> v122
 	NewMigration("Add Require Signed Commits to ProtectedBranch", addRequireSignedCommits),
 }
 

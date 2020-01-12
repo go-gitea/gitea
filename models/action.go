@@ -145,7 +145,7 @@ func (a *Action) GetActAvatar() string {
 // GetRepoUserName returns the name of the action repository owner.
 func (a *Action) GetRepoUserName() string {
 	a.loadRepo()
-	return a.Repo.MustOwner().Name
+	return a.Repo.OwnerName
 }
 
 // ShortRepoUserName returns the name of the action repository owner
