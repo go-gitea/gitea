@@ -34,9 +34,17 @@
 			</div>
 			<div class="twelve wide column content">
 				<div class="ui tiny basic status buttons">
-					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort={{$.SortType}}&state=open">
+					<a class="ui {{if eq .State "open"}}green active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort={{$.SortType}}&state=open">
 						<i class="octicon octicon-issue-opened"></i>
 						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
+					</a>
+					<a class="ui {{if eq .State "in-progress"}}green active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort={{$.SortType}}&state=in-progress">
+						<i class="octicon octicon-issue-opened"></i>
+						{{.i18n.Tr "repo.issues.in_progress_tab" .IssueStats.InProgressCount}}
+					</a>
+					<a class="ui {{if eq .State "review"}}green active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort={{$.SortType}}&state=review">
+						<i class="octicon octicon-issue-opened"></i>
+						{{.i18n.Tr "repo.issues.review_tab" .IssueStats.ReviewCount}}
 					</a>
 					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repo={{.RepoID}}&sort={{$.SortType}}&state=closed">
 						<i class="octicon octicon-issue-closed"></i>

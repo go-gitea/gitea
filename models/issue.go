@@ -42,12 +42,13 @@ type Issue struct {
 	MilestoneID      int64      `xorm:"INDEX"`
 	Milestone        *Milestone `xorm:"-"`
 	Priority         int
-	AssigneeID       int64        `xorm:"-"`
-	Assignee         *User        `xorm:"-"`
-	IsClosed         bool         `xorm:"INDEX"`
-	IsRead           bool         `xorm:"-"`
-	IsPull           bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
-	PullRequest      *PullRequest `xorm:"-"`
+	StateType        api.StateType `xorm:"VARCHAR(11) INDEX DEFAULT 'open'"`
+	AssigneeID       int64         `xorm:"-"`
+	Assignee         *User         `xorm:"-"`
+	IsClosed         bool          `xorm:"INDEX"`
+	IsRead           bool          `xorm:"-"`
+	IsPull           bool          `xorm:"INDEX"` // Indicates whether is a pull request or not.
+	PullRequest      *PullRequest  `xorm:"-"`
 	NumComments      int
 	Ref              string
 
@@ -355,10 +356,7 @@ func (issue *Issue) PatchURL() string {
 
 // State returns string representation of issue status.
 func (issue *Issue) State() api.StateType {
-	if issue.IsClosed {
-		return api.StateClosed
-	}
-	return api.StateOpen
+	return issue.StateType
 }
 
 // APIFormat assumes some fields assigned with values:
@@ -756,11 +754,13 @@ func (issue *Issue) changeStatus(e *xorm.Session, doer *User, isClosed bool) (er
 	issue.IsClosed = isClosed
 	if isClosed {
 		issue.ClosedUnix = timeutil.TimeStampNow()
+		issue.StateType = api.StateClosed
 	} else {
 		issue.ClosedUnix = 0
+		issue.StateType = api.StateOpen
 	}
 
-	if err = updateIssueCols(e, issue, "is_closed", "closed_unix"); err != nil {
+	if err = updateIssueCols(e, issue, "is_closed", "closed_unix", "state_type"); err != nil {
 		return err
 	}
 
@@ -848,6 +848,47 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (err error) {
 	} else {
 		go HookQueue.Add(issue.Repo.ID)
 	}
+
+	return nil
+}
+
+func (issue *Issue) changeState(e *xorm.Session, state api.StateType) (err error) {
+	// Reload the issue
+	currentIssue, err := getIssueByID(e, issue.ID)
+	if err != nil {
+		return err
+	}
+
+	// Nothing should be performed if current state is same as target state
+	if currentIssue.StateType == state {
+		return nil
+	}
+
+	issue.StateType = state
+
+	if err = updateIssueCols(e, issue, "state_type"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ChangeState changes issue state to open, in-progress, review or closed.
+func (issue *Issue) ChangeState(doer *User, state api.StateType) (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	if err = issue.changeState(sess, doer, state); err != nil {
+		return err
+	}
+
+	if err = sess.Commit(); err != nil {
+		return fmt.Errorf("Commit: %v", err)
+	}
+	sess.Close()
 
 	return nil
 }
@@ -1018,6 +1059,7 @@ type NewIssueOptions struct {
 
 func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
+	opts.Issue.StateType = api.StateOpen
 
 	if opts.Issue.MilestoneID > 0 {
 		milestone, err := getMilestoneByRepoID(e, opts.Issue.RepoID, opts.Issue.MilestoneID)
@@ -1280,6 +1322,7 @@ type IssuesOptions struct {
 	MilestoneID int64
 	Page        int
 	PageSize    int
+	StateType   api.StateType
 	IsClosed    util.OptionalBool
 	IsPull      util.OptionalBool
 	LabelIDs    []int64
@@ -1331,6 +1374,8 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		// In case repository IDs are provided but actually no repository has issue.
 		sess.In("issue.repo_id", opts.RepoIDs)
 	}
+
+	sess.And("issue.state_type=?", opts.StateType)
 
 	switch opts.IsClosed {
 	case util.OptionalBoolTrue:
@@ -1461,11 +1506,11 @@ func UpdateIssueMentions(ctx DBContext, issueID int64, mentions []*User) error {
 
 // IssueStats represents issue statistic information.
 type IssueStats struct {
-	OpenCount, ClosedCount int64
-	YourRepositoriesCount  int64
-	AssignCount            int64
-	CreateCount            int64
-	MentionCount           int64
+	OpenCount, InProgressCount, ReviewCount, ClosedCount int64
+	YourRepositoriesCount                                int64
+	AssignCount                                          int64
+	CreateCount                                          int64
+	MentionCount                                         int64
 }
 
 // Filter modes.
@@ -1553,7 +1598,19 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 
 	var err error
 	stats.OpenCount, err = countSession(opts).
-		And("issue.is_closed = ?", false).
+		And("issue.state_type = ?", api.StateOpen).
+		Count(new(Issue))
+	if err != nil {
+		return stats, err
+	}
+	stats.InProgressCount, err = countSession(opts).
+		And("issue.state_type = ?", api.StateInProgress).
+		Count(new(Issue))
+	if err != nil {
+		return stats, err
+	}
+	stats.ReviewCount, err = countSession(opts).
+		And("issue.state_type = ?", api.StateReview).
 		Count(new(Issue))
 	if err != nil {
 		return stats, err
@@ -1588,6 +1645,21 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	switch opts.FilterMode {
 	case FilterModeAll:
 		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+			And("state_type = ?", api.StateOpen).
+			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.InProgressCount, err = x.Where(cond).And("is_closed = ?", false).
+			And("state_type = ?", api.StateInProgress).
+			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ReviewCount, err = x.Where(cond).And("is_closed = ?", false).
+			And("state_type = ?", api.StateReview).
 			And(builder.In("issue.repo_id", opts.UserRepoIDs)).
 			Count(new(Issue))
 		if err != nil {
@@ -1601,6 +1673,23 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		}
 	case FilterModeAssign:
 		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+			And("state_type = ?", api.StateOpen).
+			Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+			And("issue_assignees.assignee_id = ?", opts.UserID).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.InProgressCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+			And("state_type = ?", api.StateInProgress).
+			Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+			And("issue_assignees.assignee_id = ?", opts.UserID).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ReviewCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+			And("state_type = ?", api.StateReview).
 			Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
 			And("issue_assignees.assignee_id = ?", opts.UserID).
 			Count(new(Issue))
@@ -1616,6 +1705,21 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		}
 	case FilterModeCreate:
 		stats.OpenCount, err = x.Where(cond).And("is_closed = ?", false).
+			And("state_type = ?", api.StateOpen).
+			And("poster_id = ?", opts.UserID).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.InProgressCount, err = x.Where(cond).And("is_closed = ?", false).
+			And("state_type = ?", api.StateInProgress).
+			And("poster_id = ?", opts.UserID).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ReviewCount, err = x.Where(cond).And("is_closed = ?", false).
+			And("state_type = ?", api.StateReview).
 			And("poster_id = ?", opts.UserID).
 			Count(new(Issue))
 		if err != nil {
@@ -1629,6 +1733,23 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		}
 	case FilterModeMention:
 		stats.OpenCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+			And("state_type = ?", api.StateOpen).
+			Join("INNER", "issue_user", "issue.id = issue_user.issue_id and issue_user.is_mentioned = ?", true).
+			And("issue_user.uid = ?", opts.UserID).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.InProgressCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+			And("state_type = ?", api.StateInProgress).
+			Join("INNER", "issue_user", "issue.id = issue_user.issue_id and issue_user.is_mentioned = ?", true).
+			And("issue_user.uid = ?", opts.UserID).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ReviewCount, err = x.Where(cond).And("issue.is_closed = ?", false).
+			And("state_type = ?", api.StateReview).
 			Join("INNER", "issue_user", "issue.id = issue_user.issue_id and issue_user.is_mentioned = ?", true).
 			And("issue_user.uid = ?", opts.UserID).
 			Count(new(Issue))

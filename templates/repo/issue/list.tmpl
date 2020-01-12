@@ -27,11 +27,19 @@
 		</div>
 		<div class="ui divider"></div>
 		<div id="issue-filters" class="ui stackable grid">
-			<div class="six wide column">
+			<div class="seven wide column">
 				<div class="ui tiny basic status buttons">
-					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
+					<a class="ui {{if eq .State "open"}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
 						<i class="octicon octicon-issue-opened"></i>
 						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
+					</a>
+					<a class="ui {{if eq .State "in-progress"}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=in-progress&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
+						<i class="octicon octicon-issue-opened"></i>
+						{{.i18n.Tr "repo.issues.in_progress_tab" .IssueStats.InProgressCount}}
+					</a>
+					<a class="ui {{if eq .State "review"}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=review&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
+						<i class="octicon octicon-issue-opened"></i>
+						{{.i18n.Tr "repo.issues.review_tab" .IssueStats.ReviewCount}}
 					</a>
 					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
 						<i class="octicon octicon-issue-closed"></i>
@@ -39,7 +47,7 @@
 					</a>
 				</div>
 			</div>
-			<div class="ten wide right aligned column">
+			<div class="nine wide right aligned column">
 				<div class="ui secondary filter stackable menu labels">
 					<!-- Label -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item" style="margin-left: auto">
@@ -120,11 +128,19 @@
 			</div>
 		</div>
 		<div id="issue-actions" class="ui stackable grid hide">
-			<div class="six wide column">
+			<div class="seven wide column">
 				<div class="ui tiny basic status buttons">
-					<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
+					<a class="ui {{if eq .State "open"}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
 						<i class="octicon octicon-issue-opened"></i>
 						{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
+					</a>
+					<a class="ui {{if eq .State "in-progress"}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=in-progress&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
+						<i class="octicon octicon-issue-opened"></i>
+						{{.i18n.Tr "repo.issues.in_progress_tab" .IssueStats.InProgressCount}}
+					</a>
+					<a class="ui {{if eq .State "review"}}green active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=review&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
+						<i class="octicon octicon-issue-opened"></i>
+						{{.i18n.Tr "repo.issues.review_tab" .IssueStats.ReviewCount}}
 					</a>
 					<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
 						<i class="octicon octicon-issue-closed"></i>
@@ -140,10 +156,17 @@
 				<div class="ui secondary filter stackable menu">
 					{{if not .Repository.IsArchived}}
 					<!-- Action Button -->
-					{{if .IsShowClosed}}
+					{{if eq .State "in-progress"}}
+						<div class="ui green active basic button issue-action" data-action="review" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.i18n.Tr "repo.issues.action_review"}}</div>
+						<div class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.i18n.Tr "repo.issues.action_close"}}</div>
+					{{else if eq .State "review"}}
+						<div class="ui green active basic button issue-action" data-action="in-progress" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.i18n.Tr "repo.issues.action_in_progress"}}</div>
+						<div class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.i18n.Tr "repo.issues.action_close"}}</div>
+					{{else if eq .State "closed"}}
 						<div class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.i18n.Tr "repo.issues.action_open"}}</div>
 					{{else}}
-						<div class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.i18n.Tr "repo.issues.action_close"}}</div>
+						<div class="ui green active basic button issue-action" data-action="in-progress" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.i18n.Tr "repo.issues.action_in_progress"}}</div>
+						<div class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status">{{.i18n.Tr "repo.issues.action_close"}}</div>
 					{{end}}
 					<!-- Labels -->
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">

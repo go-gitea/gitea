@@ -326,7 +326,7 @@ func (f *CreateIssueForm) Validate(ctx *macaron.Context, errs binding.Errors) bi
 // CreateCommentForm form for creating comment
 type CreateCommentForm struct {
 	Content string
-	Status  string `binding:"OmitEmpty;In(reopen,close)"`
+	Status  string `binding:"OmitEmpty;In(reopen,in-progress,review,close)"`
 	Files   []string
 }
 

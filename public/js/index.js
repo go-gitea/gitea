@@ -262,7 +262,7 @@ function initRepoStatusChecker() {
                             location.reload();
                             return
                         }
-            
+
                         setTimeout(function () {
                             initRepoStatusChecker()
                         }, 2000);
@@ -931,15 +931,37 @@ function initRepository() {
 
         // Change status
         const $statusButton = $('#status-button');
+        const $statusButtonInProgress = $('#status-button-in-progress');
+        const $statusButtonReview = $('#status-button-review');
+        const $statusButtonClose = $('#status-button-close');
+
         $('#comment-form .edit_area').keyup(function () {
             if ($(this).val().length == 0) {
                 $statusButton.text($statusButton.data('status'))
+                $statusButtonInProgress.text($statusButtonInProgress.data('status'))
+                $statusButtonReview.text($statusButtonReview.data('status'))
+                $statusButtonClose.text($statusButtonClose.data('status'))
             } else {
                 $statusButton.text($statusButton.data('status-and-comment'))
+                $statusButtonInProgress.text($statusButtonInProgress.data('status-and-comment'))
+                $statusButtonReview.text($statusButtonReview.data('status-and-comment'))
+                $statusButtonClose.text($statusButtonClose.data('status-and-comment'))
             }
         });
         $statusButton.click(function () {
             $('#status').val($statusButton.data('status-val'));
+            $('#comment-form').submit();
+        });
+        $statusButtonInProgress.click(function () {
+            $('#status').val($statusButtonInProgress.data('status-val'));
+            $('#comment-form').submit();
+        });
+        $statusButtonReview.click(function () {
+            $('#status').val($statusButtonReview.data('status-val'));
+            $('#comment-form').submit();
+        });
+        $statusButtonClose.click(function () {
+            $('#status').val($statusButtonClose.data('status-val'));
             $('#comment-form').submit();
         });
 

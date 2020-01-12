@@ -107,6 +107,11 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	var err error
 	viewType := ctx.Query("type")
 	sortType := ctx.Query("sort")
+	stateType := ctx.Query("state")
+	if stateType == "" {
+		stateType = "open"
+	}
+
 	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned"}
 	if !com.IsSliceContainsStr(types, viewType) {
 		viewType = "all"
@@ -201,6 +206,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 			MilestoneID: milestoneID,
 			Page:        pager.Paginater.Current(),
 			PageSize:    setting.UI.IssuePagingNum,
+			StateType:   api.StateType(stateType),
 			IsClosed:    util.OptionalBoolOf(isShowClosed),
 			IsPull:      isPullOption,
 			LabelIDs:    labelIDs,
@@ -269,11 +275,7 @@ func issues(ctx *context.Context, milestoneID int64, isPullOption util.OptionalB
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["Keyword"] = keyword
-	if isShowClosed {
-		ctx.Data["State"] = "closed"
-	} else {
-		ctx.Data["State"] = "open"
-	}
+	ctx.Data["State"] = stateType
 
 	pager.AddParam(ctx, "q", "Keyword")
 	pager.AddParam(ctx, "type", "ViewType")
@@ -1144,12 +1146,21 @@ func UpdateIssueStatus(ctx *context.Context) {
 		return
 	}
 
+	var state api.StateType
 	var isClosed bool
 	switch action := ctx.Query("action"); action {
 	case "open":
 		isClosed = false
+		state = api.StateOpen
+	case "in-progress":
+		isClosed = false
+		state = api.StateInProgress
+	case "review":
+		isClosed = false
+		state = api.StateReview
 	case "close":
 		isClosed = true
+		state = api.StateClosed
 	default:
 		log.Warn("Unrecognized action: %s", action)
 	}
@@ -1172,6 +1183,12 @@ func UpdateIssueStatus(ctx *context.Context) {
 			}
 
 			notification.NotifyIssueChangeStatus(ctx.User, issue, isClosed)
+		}
+		if issue.StateType != state {
+			if err := issue.ChangeState(ctx.User, state); err != nil {
+				ctx.ServerError("ChangeState", err)
+				return
+			}
 		}
 	}
 	ctx.JSON(200, map[string]interface{}{
@@ -1225,11 +1242,23 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 		return
 	}
 
+	var state api.StateType
+	switch form.Status {
+	case "reopen":
+		state = api.StateOpen
+	case "in-progress":
+		state = api.StateInProgress
+	case "review":
+		state = api.StateReview
+	case "close":
+		state = api.StateClosed
+	}
+
 	var comment *models.Comment
 	defer func() {
 		// Check if issue admin/poster changes the status of issue.
 		if (ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) &&
-			(form.Status == "reopen" || form.Status == "close") &&
+			(form.Status == "reopen" || form.Status == "close" || form.Status == "in-progress" || form.Status == "review") &&
 			!(issue.IsPull && issue.PullRequest.HasMerged) {
 
 			// Duplication and conflict check should apply to reopen pull request.
@@ -1279,6 +1308,13 @@ func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
 					if err := stopTimerIfAvailable(ctx.User, issue); err != nil {
 						ctx.ServerError("CreateOrStopIssueStopwatch", err)
 						return
+					}
+
+					if issue.StateType != state {
+						if err := issue.ChangeState(ctx.User, state); err != nil {
+							ctx.ServerError("ChangeState", err)
+							return
+						}
 					}
 
 					log.Trace("Issue [%d] status changed to closed: %v", issue.ID, issue.IsClosed)

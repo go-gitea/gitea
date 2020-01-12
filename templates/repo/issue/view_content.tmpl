@@ -90,15 +90,32 @@
 							<input id="status" name="status" type="hidden">
 							<div class="text right">
 								{{if and (or .IsIssueWriter .IsIssuePoster) (not .DisableStatusChange)}}
-									{{if .Issue.IsClosed}}
-										<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
-											{{.i18n.Tr "repo.issues.reopen_issue"}}
-										</div>
-									{{else}}
-										<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
-											{{.i18n.Tr "repo.issues.close_issue"}}
-										</div>
-									{{end}}
+										{{if eq .Issue.StateType "open"}}
+											<div id="status-button-in-progress" class="ui green basic button status-button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.in_progress_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.in_progress_comment_issue"}}" data-status-val="in-progress">
+												{{.i18n.Tr "repo.issues.in_progress_issue"}}
+											</div>
+											<div id="status-button-close" class="ui red basic button status-button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+												{{.i18n.Tr "repo.issues.close_issue"}}
+											</div>
+										{{else if eq .Issue.StateType "in-progress"}}
+											<div id="status-button-review" class="ui green basic button status-button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.review_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.review_comment_issue"}}" data-status-val="review">
+												{{.i18n.Tr "repo.issues.review_issue"}}
+											</div>
+											<div id="status-button-close" class="ui red basic button status-button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+												{{.i18n.Tr "repo.issues.close_issue"}}
+											</div>
+										{{else if eq .Issue.StateType "review"}}
+											<div id="status-button-in-progress" class="ui green basic button status-button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.in_progress_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.in_progress_comment_issue"}}" data-status-val="in-progress">
+												{{.i18n.Tr "repo.issues.in_progress_issue"}}
+											</div>
+											<div id="status-button-close" class="ui red basic button status-button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+												{{.i18n.Tr "repo.issues.close_issue"}}
+											</div>
+										{{else}}
+											<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
+												{{.i18n.Tr "repo.issues.reopen_issue"}}
+											</div>
+										{{end}}
 								{{end}}
 								<button class="ui green button" tabindex="5">
 									{{.i18n.Tr "repo.issues.create_comment"}}

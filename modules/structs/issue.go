@@ -14,6 +14,10 @@ type StateType string
 const (
 	// StateOpen pr is opend
 	StateOpen StateType = "open"
+	// StateInProgress pr is in-progress
+	StateInProgress StateType = "in-progress"
+	// StateReview pr is review
+	StateReview StateType = "review"
 	// StateClosed pr is closed
 	StateClosed StateType = "closed"
 	// StateAll is all
@@ -41,10 +45,10 @@ type Issue struct {
 	Milestone        *Milestone `json:"milestone"`
 	Assignee         *User      `json:"assignee"`
 	Assignees        []*User    `json:"assignees"`
-	// Whether the issue is open or closed
+	// Whether the issue is open, in-progress, review or closed
 	//
 	// type: string
-	// enum: open,closed
+	// enum: open, in-progress, review, closed
 	State    StateType `json:"state"`
 	Comments int       `json:"comments"`
 	// swagger:strfmt date-time

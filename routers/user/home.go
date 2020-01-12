@@ -7,6 +7,7 @@ package user
 
 import (
 	"bytes"
+	api "code.gitea.io/gitea/modules/structs"
 	"fmt"
 	"sort"
 	"strings"
@@ -196,7 +197,10 @@ func Issues(ctx *context.Context) {
 
 	repoID := ctx.QueryInt64("repo")
 	isShowClosed := ctx.Query("state") == "closed"
-
+	stateType := ctx.Query("state")
+	if stateType == "" {
+		stateType = "open"
+	}
 	// Get repositories.
 	var err error
 	var userRepoIDs []int64
@@ -227,9 +231,10 @@ func Issues(ctx *context.Context) {
 	}
 
 	opts := &models.IssuesOptions{
-		IsClosed: util.OptionalBoolOf(isShowClosed),
-		IsPull:   util.OptionalBoolOf(isPullList),
-		SortType: sortType,
+		StateType: api.StateType(stateType),
+		IsClosed:  util.OptionalBoolOf(isShowClosed),
+		IsPull:    util.OptionalBoolOf(isPullList),
+		SortType:  sortType,
 	}
 
 	if repoID > 0 {
@@ -369,12 +374,7 @@ func Issues(ctx *context.Context) {
 	ctx.Data["SortType"] = sortType
 	ctx.Data["RepoID"] = repoID
 	ctx.Data["IsShowClosed"] = isShowClosed
-
-	if isShowClosed {
-		ctx.Data["State"] = "closed"
-	} else {
-		ctx.Data["State"] = "open"
-	}
+	ctx.Data["State"] = stateType
 
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 	pager.AddParam(ctx, "type", "ViewType")
