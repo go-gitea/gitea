@@ -1,6 +1,6 @@
 ---
 kind: pipeline
-name: compatibility
+name: compliance
 
 platform:
   os: linux
@@ -589,7 +589,7 @@ workspace:
   path: src/code.gitea.io/gitea
 
 depends_on:
-  - compatibility
+  - compliance
 
 trigger:
   ref:
@@ -661,7 +661,7 @@ workspace:
   path: src/code.gitea.io/gitea
 
 depends_on:
-  - compatibility
+  - compliance
 
 trigger:
   ref:
