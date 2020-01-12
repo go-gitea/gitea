@@ -194,10 +194,16 @@ func TestPullRequests(ctx context.Context) {
 			if err != nil {
 				log.Error("GetPullRequestByID[%s]: %v", prID, err)
 				continue
+			} else if pr.Status != models.PullRequestStatusChecking {
+				continue
 			} else if manuallyMerged(pr) {
 				continue
 			} else if err = TestPatch(pr); err != nil {
 				log.Error("testPatch[%d]: %v", pr.ID, err)
+				pr.Status = models.PullRequestStatusError
+				if err := pr.UpdateCols("status"); err != nil {
+					log.Error("Unable to update status of pr %d: %v", pr.ID, err)
+				}
 				continue
 			}
 			checkAndUpdateStatus(pr)

@@ -35,6 +35,7 @@ const (
 	PullRequestStatusChecking
 	PullRequestStatusMergeable
 	PullRequestStatusManuallyMerged
+	PullRequestStatusError
 )
 
 // PullRequest represents relation between pull request and repositories.
@@ -513,7 +514,7 @@ func (pr *PullRequest) apiFormat(e Engine) *api.PullRequest {
 	}
 
 	if pr.Status != PullRequestStatusChecking {
-		mergeable := pr.Status != PullRequestStatusConflict && !pr.IsWorkInProgress()
+		mergeable := !(pr.Status == PullRequestStatusConflict || pr.Status == PullRequestStatusError) && !pr.IsWorkInProgress()
 		apiPullRequest.Mergeable = mergeable
 	}
 	if pr.HasMerged {
