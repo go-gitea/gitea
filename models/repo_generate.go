@@ -107,7 +107,7 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 	)
 
 	// Clone to temporary path and do the init commit.
-	templateRepoPath := templateRepo.repoPath(e)
+	templateRepoPath := templateRepo.RepoPath()
 	if err := git.Clone(templateRepoPath, tmpDir, git.CloneRepoOptions{
 		Depth: 1,
 	}); err != nil {
@@ -168,7 +168,7 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 		return err
 	}
 
-	repoPath := repo.repoPath(e)
+	repoPath := repo.RepoPath()
 	if stdout, err := git.NewCommand("remote", "add", "origin", repoPath).
 		SetDescription(fmt.Sprintf("generateRepoCommit (git remote add): %s to %s", templateRepoPath, tmpDir)).
 		RunInDirWithEnv(tmpDir, env); err != nil {
@@ -183,7 +183,7 @@ func generateRepoCommit(e Engine, repo, templateRepo, generateRepo *Repository, 
 func generateRepository(e Engine, repo, templateRepo, generateRepo *Repository) (err error) {
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-"+repo.Name)
 	if err != nil {
-		return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.repoPath(e), err)
+		return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.RepoPath(), err)
 	}
 
 	defer func() {
@@ -263,13 +263,13 @@ func GenerateTopics(ctx DBContext, templateRepo, generateRepo *Repository) error
 
 // GenerateGitHooks generates git hooks from a template repository
 func GenerateGitHooks(ctx DBContext, templateRepo, generateRepo *Repository) error {
-	generateGitRepo, err := git.OpenRepository(generateRepo.repoPath(ctx.e))
+	generateGitRepo, err := git.OpenRepository(generateRepo.RepoPath())
 	if err != nil {
 		return err
 	}
 	defer generateGitRepo.Close()
 
-	templateGitRepo, err := git.OpenRepository(templateRepo.repoPath(ctx.e))
+	templateGitRepo, err := git.OpenRepository(templateRepo.RepoPath())
 	if err != nil {
 		return err
 	}
@@ -365,9 +365,9 @@ func generateExpansion(src string, templateRepo, generateRepo *Repository) strin
 		case "TEMPLATE_DESCRIPTION":
 			return templateRepo.Description
 		case "REPO_OWNER":
-			return generateRepo.MustOwnerName()
+			return generateRepo.OwnerName
 		case "TEMPLATE_OWNER":
-			return templateRepo.MustOwnerName()
+			return templateRepo.OwnerName
 		case "REPO_LINK":
 			return generateRepo.Link()
 		case "TEMPLATE_LINK":

@@ -43,7 +43,7 @@ func FullPushingEnvironment(author, committer *User, repo *Repository, repoName 
 		"GIT_COMMITTER_NAME="+committerSig.Name,
 		"GIT_COMMITTER_EMAIL="+committerSig.Email,
 		EnvRepoName+"="+repoName,
-		EnvRepoUsername+"="+repo.MustOwnerName(),
+		EnvRepoUsername+"="+repo.OwnerName,
 		EnvRepoIsWiki+"="+isWiki,
 		EnvPusherName+"="+committer.Name,
 		EnvPusherID+"="+fmt.Sprintf("%d", committer.ID),
