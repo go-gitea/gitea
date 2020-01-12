@@ -6,6 +6,7 @@ package queue
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -33,6 +34,7 @@ type PersistableChannelQueueConfiguration struct {
 type PersistableChannelQueue struct {
 	*ChannelQueue
 	delayedStarter
+	lock   sync.Mutex
 	closed chan struct{}
 }
 

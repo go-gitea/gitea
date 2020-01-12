@@ -4,14 +4,17 @@
 
 package migrations
 
-import "xorm.io/xorm"
+import (
+	"xorm.io/xorm"
+)
 
-func addIsRestricted(x *xorm.Engine) error {
-	// User see models/user.go
-	type User struct {
-		ID           int64 `xorm:"pk autoincr"`
-		IsRestricted bool  `xorm:"NOT NULL DEFAULT false"`
+func addOwnerNameOnRepository(x *xorm.Engine) error {
+	type Repository struct {
+		OwnerName string
 	}
-
-	return x.Sync2(new(User))
+	if err := x.Sync2(new(Repository)); err != nil {
+		return err
+	}
+	_, err := x.Exec("UPDATE repository SET owner_name = (SELECT name FROM `user` WHERE `user`.id = repository.owner_id)")
+	return err
 }

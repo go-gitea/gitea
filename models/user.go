@@ -504,7 +504,7 @@ func (u *User) ValidatePassword(passwd string) bool {
 
 // IsPasswordSet checks if the password is set or left empty
 func (u *User) IsPasswordSet() bool {
-	return len(u.Passwd) > 0
+	return !u.ValidatePassword("")
 }
 
 // UploadAvatar saves custom avatar for user.
@@ -1470,7 +1470,7 @@ type SearchUserOptions struct {
 	UID           int64
 	OrderBy       SearchOrderBy
 	Page          int
-	Private       bool  // Include private orgs in search
+	Visible       []structs.VisibleType
 	Actor         *User // The user doing the search
 	PageSize      int   // Can be smaller than or equal to setting.UI.ExplorePagingNum
 	IsActive      util.OptionalBool
@@ -1493,8 +1493,9 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		cond = cond.And(keywordCond)
 	}
 
-	if !opts.Private {
-		// user not logged in and so they won't be allowed to see non-public orgs
+	if len(opts.Visible) > 0 {
+		cond = cond.And(builder.In("visibility", opts.Visible))
+	} else {
 		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
 	}
 
