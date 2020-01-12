@@ -348,6 +348,8 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		allowSquash = config.AllowSquash
 	}
 
+	repo.mustOwner(e)
+
 	return &api.Repository{
 		ID:                        repo.ID,
 		Owner:                     repo.Owner.APIFormat(),
