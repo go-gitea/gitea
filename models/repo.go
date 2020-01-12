@@ -2474,6 +2474,7 @@ func ForkRepository(doer, owner *User, oldRepo *Repository, name, desc string) (
 	repo := &Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,
+		OwnerName:     owner.Name,
 		Name:          name,
 		LowerName:     strings.ToLower(name),
 		Description:   desc,
