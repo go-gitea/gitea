@@ -44,6 +44,15 @@ services:
     image: gitea/test-openldap:latest
 
 steps:
+  - name: restore-cache
+    image: drillster/drone-volume-cache
+    volumes:
+    - name: cache_node_modules
+      path: /cache/node_modules
+    settings:
+      restore: true
+      mount:
+        - ./node_modules
   - name: fetch-tags
     pull: default
     image: docker:git
@@ -292,6 +301,16 @@ steps:
       event:
         - push
         - pull_request
+
+  - name: rebuild-cache
+    image: drillster/drone-volume-cache
+    volumes:
+    - name: cache_node_modules
+      path: /cache/node_modules
+    settings:
+      rebuild: true
+      mount:
+        - ./node_modules
 
 ---
 kind: pipeline
