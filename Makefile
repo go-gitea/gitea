@@ -181,10 +181,6 @@ errcheck:
 	fi
 	errcheck $(PACKAGES)
 
-.PHONY: lint
-lint:
-	@echo 'make lint is depricated. Use "make revive" if you want to use the old lint tool, or "make golangci-lint" to run a complete code check.'
-
 .PHONY: revive
 revive:
 	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
@@ -279,7 +275,6 @@ test-mysql\#%: integrations.mysql.test generate-ini-mysql
 test-mysql-migration: migrations.mysql.test generate-ini-mysql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql.ini ./migrations.mysql.test
 
-
 generate-ini-mysql8:
 	sed -e 's|{{TEST_MYSQL8_HOST}}|${TEST_MYSQL8_HOST}|g' \
 		-e 's|{{TEST_MYSQL8_DBNAME}}|${TEST_MYSQL8_DBNAME}|g' \
@@ -298,7 +293,6 @@ test-mysql8\#%: integrations.mysql8.test generate-ini-mysql8
 .PHONY: test-mysql8-migration
 test-mysql8-migration: migrations.mysql8.test generate-ini-mysql8
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mysql8.ini ./migrations.mysql8.test
-
 
 generate-ini-pgsql:
 	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
@@ -319,7 +313,6 @@ test-pgsql\#%: integrations.pgsql.test generate-ini-pgsql
 test-pgsql-migration: migrations.pgsql.test generate-ini-pgsql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./migrations.pgsql.test
 
-
 generate-ini-mssql:
 	sed -e 's|{{TEST_MSSQL_HOST}}|${TEST_MSSQL_HOST}|g' \
 		-e 's|{{TEST_MSSQL_DBNAME}}|${TEST_MSSQL_DBNAME}|g' \
@@ -339,7 +332,6 @@ test-mssql\#%: integrations.mssql.test generate-ini-mssql
 test-mssql-migration: migrations.mssql.test generate-ini-mssql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test
 
-
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
@@ -355,7 +347,6 @@ bench-mssql: integrations.mssql.test generate-ini-mssql
 .PHONY: bench-pgsql
 bench-pgsql: integrations.pgsql.test generate-ini-pgsql
 	GITEA_ROOT=${CURDIR} GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
-
 
 .PHONY: integration-test-coverage
 integration-test-coverage: integrations.cover.test generate-ini-mysql
@@ -488,21 +479,6 @@ $(CSS_DEST): node_modules $(CSS_SOURCES)
 	npx lessc web_src/less/index.less public/css/index.css
 	$(foreach file, $(filter-out web_src/less/themes/_base.less, $(wildcard web_src/less/themes/*)),npx lessc web_src/less/themes/$(notdir $(file)) > public/css/theme-$(notdir $(call strip-suffix,$(file))).css;)
 	npx postcss --use autoprefixer --use cssnano --no-map --replace public/css/*
-
-.PHONY: javascripts
-javascripts:
-	echo "'make javascripts' is deprecated, please use 'make js'"
-	$(MAKE) js
-
-.PHONY: stylesheets-check
-stylesheets-check:
-	echo "'make stylesheets-check' is deprecated, please use 'make css'"
-	$(MAKE) css
-
-.PHONY: generate-stylesheets
-generate-stylesheets:
-	echo "'make generate-stylesheets' is deprecated, please use 'make css'"
-	$(MAKE) css
 
 .PHONY: swagger-ui
 swagger-ui:
