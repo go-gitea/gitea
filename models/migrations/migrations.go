@@ -294,6 +294,8 @@ var migrations = []Migration{
 	NewMigration("Add commit id and stale to reviews", addReviewCommitAndStale),
 	// v119 -> v120
 	NewMigration("Fix migrated repositories' git service type", fixMigratedRepositoryServiceType),
+	// v120 -> v121
+	NewMigration("Add owner_name on table repository", addOwnerNameOnRepository),
 }
 
 // Migrate database to current version

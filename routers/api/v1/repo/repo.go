@@ -22,8 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
@@ -451,10 +451,10 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
-	var gitServiceType = structs.PlainGitService
+	var gitServiceType = api.PlainGitService
 	u, err := url.Parse(remoteAddr)
 	if err == nil && strings.EqualFold(u.Host, "github.com") {
-		gitServiceType = structs.GithubService
+		gitServiceType = api.GithubService
 	}
 
 	var opts = migrations.MigrateOptions{
@@ -483,7 +483,7 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		opts.Releases = false
 	}
 
-	repo, err := models.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+	repo, err := repo_module.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    form.CloneAddr,

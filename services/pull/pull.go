@@ -256,7 +256,7 @@ func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID st
 
 	// Add a temporary remote.
 	tmpRemote := "checkIfPRContentChanged-" + com.ToStr(time.Now().UnixNano())
-	if err = headGitRepo.AddRemote(tmpRemote, models.RepoPath(pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name), true); err != nil {
+	if err = headGitRepo.AddRemote(tmpRemote, pr.BaseRepo.RepoPath(), true); err != nil {
 		return false, fmt.Errorf("AddRemote: %s/%s-%s: %v", pr.HeadRepo.OwnerName, pr.HeadRepo.Name, tmpRemote, err)
 	}
 	defer func() {
