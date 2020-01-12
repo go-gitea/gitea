@@ -109,15 +109,6 @@ steps:
         exclude:
           - pull_request
 
-  - name: tag-pre-condition
-    pull: always
-    image: alpine/git
-    commands:
-      - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
-    when:
-      event:
-        - tag
-
   - name: build
     pull: always
     image: golang:1.13
@@ -158,6 +149,17 @@ steps:
       event:
         - push
         - pull_request
+
+  - name: tag-pre-condition
+    pull: always
+    image: alpine/git
+    commands:
+      - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
+    depends_on:
+      - build
+    when:
+      event:
+        - tag
 
   - name: tag-test
     pull: always
