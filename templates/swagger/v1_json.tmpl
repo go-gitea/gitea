@@ -1154,7 +1154,6 @@
         ],
         "summary": "Create a repository in an organization",
         "operationId": "createOrgRepo",
-        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -10746,6 +10745,10 @@
         },
         "MergeTitleField": {
           "type": "string"
+        },
+        "force_merge": {
+          "type": "boolean",
+          "x-go-name": "ForceMerge"
         }
       },
       "x-go-name": "MergePullRequestForm",

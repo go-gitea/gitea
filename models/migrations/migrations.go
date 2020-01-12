@@ -295,6 +295,8 @@ var migrations = []Migration{
 	// v119 -> v120
 	NewMigration("Fix migrated repositories' git service type", fixMigratedRepositoryServiceType),
 	// v120 - v121
+	NewMigration("Add owner_name on table repository", addOwnerNameOnRepository),
+	// v120 -> v121
 	NewMigration("add projects info to repository table", addProjectsInfo),
 }
 

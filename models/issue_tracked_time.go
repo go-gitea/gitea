@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -60,25 +59,6 @@ func (t *TrackedTime) loadAttributes(e Engine) (err error) {
 	return
 }
 
-// APIFormat converts TrackedTime to API format
-func (t *TrackedTime) APIFormat() (apiT *api.TrackedTime) {
-	apiT = &api.TrackedTime{
-		ID:       t.ID,
-		IssueID:  t.IssueID,
-		UserID:   t.UserID,
-		UserName: t.User.Name,
-		Time:     t.Time,
-		Created:  t.Created,
-	}
-	if t.Issue != nil {
-		apiT.Issue = t.Issue.APIFormat()
-	}
-	if t.User != nil {
-		apiT.UserName = t.User.Name
-	}
-	return
-}
-
 // LoadAttributes load Issue, User
 func (tl TrackedTimeList) LoadAttributes() (err error) {
 	for _, t := range tl {
@@ -87,15 +67,6 @@ func (tl TrackedTimeList) LoadAttributes() (err error) {
 		}
 	}
 	return
-}
-
-// APIFormat converts TrackedTimeList to API format
-func (tl TrackedTimeList) APIFormat() api.TrackedTimeList {
-	result := make([]*api.TrackedTime, 0, len(tl))
-	for _, t := range tl {
-		result = append(result, t.APIFormat())
-	}
-	return result
 }
 
 // FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.

@@ -22,6 +22,7 @@ func TestMetas(t *testing.T) {
 
 	repo := &Repository{Name: "testRepo"}
 	repo.Owner = &User{Name: "testOwner"}
+	repo.OwnerName = repo.Owner.Name
 
 	repo.Units = nil
 
@@ -130,19 +131,6 @@ func TestGetUserFork(t *testing.T) {
 	repo, err = repo.GetUserFork(13)
 	assert.NoError(t, err)
 	assert.Nil(t, repo)
-}
-
-func TestForkRepository(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	// user 13 has already forked repo10
-	user := AssertExistsAndLoadBean(t, &User{ID: 13}).(*User)
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
-
-	fork, err := ForkRepository(user, user, repo, "test", "test")
-	assert.Nil(t, fork)
-	assert.Error(t, err)
-	assert.True(t, IsErrForkAlreadyExist(err))
 }
 
 func TestRepoAPIURL(t *testing.T) {

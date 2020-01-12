@@ -600,20 +600,43 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
+	perm, err := models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+		return
+	}
+
+	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, perm, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "IsUSerAllowedToMerge", err)
+		return
+	}
+	if !allowedMerge {
+		ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
+		return
+	}
+
 	if !pr.CanAutoMerge() || pr.HasMerged || pr.IsWorkInProgress() {
 		ctx.Status(http.StatusMethodNotAllowed)
 		return
 	}
 
-	isPass, err := pull_service.IsPullCommitStatusPass(pr)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "IsPullCommitStatusPass", err)
-		return
-	}
-
-	if !isPass && !ctx.IsUserRepoAdmin() {
-		ctx.Status(http.StatusMethodNotAllowed)
-		return
+	if err := pull_service.CheckPRReadyToMerge(pr); err != nil {
+		if !models.IsErrNotAllowedToMerge(err) {
+			ctx.Error(http.StatusInternalServerError, "CheckPRReadyToMerge", err)
+			return
+		}
+		if form.ForceMerge != nil && *form.ForceMerge {
+			if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.User); err != nil {
+				ctx.Error(http.StatusInternalServerError, "IsUserRepoAdmin", err)
+				return
+			} else if !isRepoAdmin {
+				ctx.Error(http.StatusMethodNotAllowed, "Merge", "Only repository admin can merge if not all checks are ok (force merge)")
+			}
+		} else {
+			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
+			return
+		}
 	}
 
 	if len(form.Do) == 0 {

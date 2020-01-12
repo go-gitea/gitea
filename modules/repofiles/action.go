@@ -138,9 +138,11 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 					continue
 				}
 			}
-
-			if err := changeIssueStatus(refRepo, refIssue, doer, ref.Action == references.XRefActionCloses); err != nil {
-				return err
+			close := (ref.Action == references.XRefActionCloses)
+			if close != refIssue.IsClosed {
+				if err := changeIssueStatus(refRepo, refIssue, doer, close); err != nil {
+					return err
+				}
 			}
 		}
 	}

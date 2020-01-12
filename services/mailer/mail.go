@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"html/template"
 	"mime"
-	"path"
 	"regexp"
 	"strings"
 	texttmpl "text/template"
@@ -142,7 +141,7 @@ func SendRegisterNotifyMail(locale Locale, u *models.User) {
 
 // SendCollaboratorMail sends mail notification to new collaborator.
 func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
-	repoName := path.Join(repo.Owner.Name, repo.Name)
+	repoName := repo.FullName()
 	subject := fmt.Sprintf("%s added you to %s", doer.DisplayName(), repoName)
 
 	data := map[string]interface{}{

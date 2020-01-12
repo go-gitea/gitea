@@ -164,16 +164,16 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 		return
 	}
 
-	if repo.Owner == nil {
-		repo.mustOwner(e)
-	}
-
 	var isCollaborator bool
 	if user != nil {
 		isCollaborator, err = repo.isCollaborator(e, user.ID)
 		if err != nil {
 			return perm, err
 		}
+	}
+
+	if err = repo.getOwner(e); err != nil {
+		return
 	}
 
 	// Prevent strangers from checking out public repo of private orginization
@@ -271,7 +271,7 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 	return
 }
 
-// IsUserRepoAdmin return ture if user has admin right of a repo
+// IsUserRepoAdmin return true if user has admin right of a repo
 func IsUserRepoAdmin(repo *Repository, user *User) (bool, error) {
 	return isUserRepoAdmin(x, repo, user)
 }
