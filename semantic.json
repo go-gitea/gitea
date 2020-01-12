@@ -42,6 +42,8 @@
     "menu",
     "message",
     "modal",
+    "popup",
+    "progress",
     "reset",
     "search",
     "segment",
