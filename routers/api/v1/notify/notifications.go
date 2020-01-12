@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 // NewAvailable check if unread notifications exist
@@ -20,10 +21,12 @@ func NewAvailable(ctx *context.APIContext) {
 	//   "204":
 	//     description: No unread notification
 	//   "302":
-	//     description: Unread notification found
+	//    "$ref": "#/responses/NotificationCount"
 
-	if models.UnreadAvailable(ctx.User) {
-		ctx.Status(http.StatusFound)
+	count := models.CountUnread(ctx.User)
+
+	if count > 0 {
+		ctx.JSON(http.StatusFound, api.NotificationCount{New: count})
 	} else {
 		ctx.Status(http.StatusNoContent)
 	}

@@ -506,7 +506,7 @@
             "description": "No unread notification"
           },
           "302": {
-            "description": "Unread notification found"
+            "$ref": "#/responses/NotificationCount"
           }
         }
       }
@@ -10928,6 +10928,18 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "NotificationCount": {
+      "description": "NotificationCount number of unread notifications",
+      "type": "object",
+      "properties": {
+        "new": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "New"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "NotificationSubject": {
       "description": "NotificationSubject contains the notification subject (Issue/Pull/Commit)",
       "type": "object",
@@ -12412,6 +12424,12 @@
         "items": {
           "$ref": "#/definitions/Milestone"
         }
+      }
+    },
+    "NotificationCount": {
+      "description": "Number of unread notifications",
+      "schema": {
+        "$ref": "#/definitions/NotificationCount"
       }
     },
     "NotificationThread": {

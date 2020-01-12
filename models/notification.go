@@ -295,16 +295,16 @@ func notificationsForUser(e Engine, user *User, statuses []NotificationStatus, p
 	return
 }
 
-// UnreadAvailable check if unread notifications exist
-func UnreadAvailable(user *User) bool {
-	return unreadAvailable(x, user.ID)
+// CountUnread count unread notifications for a user
+func CountUnread(user *User) int64 {
+	return countUnread(x, user.ID)
 }
 
-func unreadAvailable(e Engine, userID int64) bool {
-	exist, err := e.Where("user_id = ?", userID).And("status = ?", NotificationStatusUnread).Get(new(Notification))
+func countUnread(e Engine, userID int64) int64 {
+	exist, err := e.Where("user_id = ?", userID).And("status = ?", NotificationStatusUnread).Count(new(Notification))
 	if err != nil {
-		log.Error("newsAvailable", err)
-		return false
+		log.Error("countUnread", err)
+		return 0
 	}
 	return exist
 }
