@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-func generateExpansion(ctx models.DBContext, src string, templateRepo, generateRepo *models.Repository) string {
+func generateExpansion(src string, templateRepo, generateRepo *models.Repository) string {
 	return os.Expand(src, func(key string) string {
 		switch key {
 		case "REPO_NAME":
@@ -34,9 +34,9 @@ func generateExpansion(ctx models.DBContext, src string, templateRepo, generateR
 		case "TEMPLATE_OWNER":
 			return templateRepo.OwnerName
 		case "REPO_LINK":
-			return generateRepo.LinkCtx(ctx)
+			return generateRepo.Link()
 		case "TEMPLATE_LINK":
-			return templateRepo.LinkCtx(ctx)
+			return templateRepo.Link()
 		case "REPO_HTTPS_URL":
 			return generateRepo.CloneLink().HTTPS
 		case "TEMPLATE_HTTPS_URL":
@@ -72,7 +72,7 @@ func checkGiteaTemplate(tmpDir string) (*models.GiteaTemplate, error) {
 	return gt, nil
 }
 
-func generateRepoCommit(ctx models.DBContext, repo, templateRepo, generateRepo *models.Repository, tmpDir string) error {
+func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmpDir string) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
@@ -129,7 +129,7 @@ func generateRepoCommit(ctx models.DBContext, repo, templateRepo, generateRepo *
 					}
 
 					if err := ioutil.WriteFile(path,
-						[]byte(generateExpansion(ctx, string(content), templateRepo, generateRepo)),
+						[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
 						0644); err != nil {
 						return err
 					}
@@ -169,7 +169,7 @@ func generateGitContent(ctx models.DBContext, repo, templateRepo, generateRepo *
 		}
 	}()
 
-	if err = generateRepoCommit(ctx, repo, templateRepo, generateRepo, tmpDir); err != nil {
+	if err = generateRepoCommit(repo, templateRepo, generateRepo, tmpDir); err != nil {
 		return fmt.Errorf("generateRepoCommit: %v", err)
 	}
 
