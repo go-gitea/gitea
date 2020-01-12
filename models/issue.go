@@ -403,11 +403,12 @@ func (issue *Issue) apiFormat(e Engine) *api.Issue {
 		apiIssue.Closed = issue.ClosedUnix.AsTimePtr()
 	}
 
+	issue.loadMilestone(e)
 	if issue.Milestone != nil {
 		apiIssue.Milestone = issue.Milestone.APIFormat()
 	}
-	issue.loadAssignees(e)
 
+	issue.loadAssignees(e)
 	if len(issue.Assignees) > 0 {
 		for _, assignee := range issue.Assignees {
 			apiIssue.Assignees = append(apiIssue.Assignees, assignee.APIFormat())

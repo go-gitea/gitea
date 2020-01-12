@@ -292,6 +292,10 @@ var migrations = []Migration{
 	NewMigration("Add block on rejected reviews branch protection", addBlockOnRejectedReviews),
 	// v118 -> v119
 	NewMigration("Add commit id and stale to reviews", addReviewCommitAndStale),
+	// v119 -> v120
+	NewMigration("Fix migrated repositories' git service type", fixMigratedRepositoryServiceType),
+	// v120 -> v121
+	NewMigration("Add owner_name on table repository", addOwnerNameOnRepository),
 }
 
 // Migrate database to current version

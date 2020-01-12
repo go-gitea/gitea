@@ -15,6 +15,7 @@ import (
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/user"
 )
@@ -248,10 +249,10 @@ func ExploreUsers(ctx *context.Context) {
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:        models.UserTypeIndividual,
+		Type:     models.UserTypeIndividual,
 		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
-		IsActive:    util.OptionalBoolTrue,
-		Private:     true,
+		IsActive: util.OptionalBoolTrue,
+		Visible:  []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
 	}, tplExploreUsers)
 }
 
@@ -267,12 +268,17 @@ func ExploreOrganizations(ctx *context.Context) {
 		ownerID = ctx.User.ID
 	}
 
-	RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:        models.UserTypeOrganization,
+	opts := models.SearchUserOptions{
+		Type:     models.UserTypeOrganization,
 		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
-		Private:     ctx.User != nil,
-		OwnerID:     ownerID,
-	}, tplExploreOrganizations)
+		OwnerID:  ownerID,
+	}
+	if ctx.User != nil {
+		opts.Visible = []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate}
+	} else {
+		opts.Visible = []structs.VisibleType{structs.VisibleTypePublic}
+	}
+	RenderUserSearch(ctx, &opts, tplExploreOrganizations)
 }
 
 // ExploreCode render explore code page

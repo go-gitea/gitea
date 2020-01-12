@@ -70,7 +70,7 @@ func (pr *PullRequest) MustHeadUserName() string {
 		log.Error("LoadHeadRepo: %v", err)
 		return ""
 	}
-	return pr.HeadRepo.MustOwnerName()
+	return pr.HeadRepo.OwnerName
 }
 
 // Note: don't try to get Issue because will end up recursive querying.
@@ -478,31 +478,6 @@ const (
 	// MergeStyleSquash squash commits into single commit before merging
 	MergeStyleSquash MergeStyle = "squash"
 )
-
-// CheckUserAllowedToMerge checks whether the user is allowed to merge
-func (pr *PullRequest) CheckUserAllowedToMerge(doer *User) (err error) {
-	if doer == nil {
-		return ErrNotAllowedToMerge{
-			"Not signed in",
-		}
-	}
-
-	if pr.BaseRepo == nil {
-		if err = pr.GetBaseRepo(); err != nil {
-			return fmt.Errorf("GetBaseRepo: %v", err)
-		}
-	}
-
-	if protected, err := pr.BaseRepo.IsProtectedBranchForMerging(pr, pr.BaseBranch, doer); err != nil {
-		return fmt.Errorf("IsProtectedBranch: %v", err)
-	} else if protected {
-		return ErrNotAllowedToMerge{
-			"The branch is protected",
-		}
-	}
-
-	return nil
-}
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
 func (pr *PullRequest) SetMerged() (err error) {

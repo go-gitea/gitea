@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers"
 )
 
@@ -24,10 +25,10 @@ func Organizations(ctx *context.Context) {
 	ctx.Data["PageIsAdminOrganizations"] = true
 
 	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type: models.UserTypeOrganization,
+		Type:     models.UserTypeOrganization,
 		ListOptions: models.ListOptions{
-			PageSize: setting.UI.Admin.UserPagingNum,
+			PageSize: setting.UI.Admin.OrgPagingNum,
 		},
-		Private: true,
+		Visible:  []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
 	}, tplOrgs)
 }
