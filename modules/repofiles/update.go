@@ -458,7 +458,7 @@ func PushUpdate(repo *models.Repository, branch string, opts PushUpdateOptions) 
 	}
 	defer gitRepo.Close()
 
-	if err = repo.UpdateSize(); err != nil {
+	if err = repo.UpdateSize(models.DefaultDBContext()); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -498,7 +498,7 @@ func PushUpdates(repo *models.Repository, optsList []*PushUpdateOptions) error {
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
-	if err = repo.UpdateSize(); err != nil {
+	if err = repo.UpdateSize(models.DefaultDBContext()); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
