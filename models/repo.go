@@ -406,6 +406,7 @@ func (repo *Repository) getUnits(e Engine) (err error) {
 	}
 
 	repo.Units, err = getUnitsByRepoID(e, repo.ID)
+	log.Trace("repo.Units: %-+v", repo.Units)
 	return err
 }
 
@@ -812,47 +813,6 @@ func (repo *Repository) CanUserDelete(user *User) (bool, error) {
 	}
 
 	return false, nil
-}
-
-// allowEnableUnit check if unit can't be enabled due to being global disabled
-func (repo *Repository) allowEnableUnit(ut UnitType, isAdmin bool) bool {
-	if isAdmin {
-		// Site admin can activate even if global disabled
-		return true
-	}
-	if repo.UnitEnabled(ut) {
-		// If unit already active, it can be kept active
-		return true
-	}
-	if ut.UnitGlobalDisabled() {
-		return false
-	}
-	return true
-}
-
-// AllowEnableInternalWiki returns true if the enabling internal wiki can be allowed (not global disabled)
-func (repo *Repository) AllowEnableInternalWiki(isAdmin bool) bool {
-	return repo.allowEnableUnit(UnitTypeWiki, isAdmin)
-}
-
-// AllowEnableExternalWiki returns true if the enabling external wiki can be allowed (not global disabled)
-func (repo *Repository) AllowEnableExternalWiki(isAdmin bool) bool {
-	return repo.allowEnableUnit(UnitTypeExternalWiki, isAdmin)
-}
-
-// AllowEnableInternalIssues returns true if the enabling internal issues can be allowed (not global disabled)
-func (repo *Repository) AllowEnableInternalIssues(isAdmin bool) bool {
-	return repo.allowEnableUnit(UnitTypeIssues, isAdmin)
-}
-
-// AllowEnableExternalTracker returns true if the enabling internal wiki can be allowed (not global disabled)
-func (repo *Repository) AllowEnableExternalTracker(isAdmin bool) bool {
-	return repo.allowEnableUnit(UnitTypeExternalTracker, isAdmin)
-}
-
-// AllowEnablePulls returns true if the enabling internal wiki can be allowed (not global disabled and possible for repo)
-func (repo *Repository) AllowEnablePulls(isAdmin bool) bool {
-	return repo.CanEnablePulls() && repo.allowEnableUnit(UnitTypePullRequests, isAdmin)
 }
 
 // CanEnablePulls returns true if repository meets the requirements of accepting pulls.
@@ -1777,14 +1737,19 @@ func UpdateRepositoryUpdatedTime(repoID int64, updateTime time.Time) error {
 }
 
 // UpdateRepositoryUnits updates a repository's units
-func UpdateRepositoryUnits(repo *Repository, units []RepoUnit) (err error) {
+func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes []UnitType) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if _, err = sess.Where("repo_id = ?", repo.ID).Delete(new(RepoUnit)); err != nil {
+	// Delete existing settings of units before adding again
+	for _, u := range units {
+		deleteUnitTypes = append(deleteUnitTypes, u.Type)
+	}
+
+	if _, err = sess.Where("repo_id = ?", repo.ID).In("type", deleteUnitTypes).Delete(new(RepoUnit)); err != nil {
 		return err
 	}
 

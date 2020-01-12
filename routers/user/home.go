@@ -346,7 +346,7 @@ var issueReposQueryPattern = regexp.MustCompile(`^\[\d+(,\d+)*,?\]$`)
 func Issues(ctx *context.Context) {
 	isPullList := ctx.Params(":type") == "pulls"
 	if isPullList {
-		if models.IsUnitGlobalDisabled(models.UnitTypePullRequests) {
+		if models.UnitTypePullRequests.UnitGlobalDisabled() {
 			log.Debug("Pull request overview page not available due to unit global disabled.")
 			ctx.Status(404)
 			return
@@ -355,7 +355,7 @@ func Issues(ctx *context.Context) {
 		ctx.Data["Title"] = ctx.Tr("pull_requests")
 		ctx.Data["PageIsPulls"] = true
 	} else {
-		if models.IsUnitGlobalDisabled(models.UnitTypeIssues) {
+		if models.UnitTypeIssues.UnitGlobalDisabled() {
 			log.Debug("Issues overview page not available due go unit global disabled.")
 			ctx.Status(404)
 			return

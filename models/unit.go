@@ -132,19 +132,14 @@ func loadUnitConfig() {
 	}
 }
 
-// IsUnitGlobalDisabled checks if unit type is global disabled
-func IsUnitGlobalDisabled(u UnitType) bool {
+// UnitGlobalDisabled checks if unit type is global disabled
+func (u UnitType) UnitGlobalDisabled() bool {
 	for _, ud := range DisabledRepoUnits {
 		if u == ud {
 			return true
 		}
 	}
 	return false
-}
-
-// UnitGlobalDisabled checks if unit type is global disabled
-func (u *UnitType) UnitGlobalDisabled() bool {
-	return IsUnitGlobalDisabled(*u)
 }
 
 // CanDisable checks if this unit type can be disabled.

@@ -144,7 +144,7 @@
 				{{$isWikiEnabled := or (.Repository.UnitEnabled $.UnitTypeWiki) (.Repository.UnitEnabled $.UnitTypeExternalWiki)}}
 				<div class="inline field">
 					<label>{{.i18n.Tr "repo.wiki"}}</label>
-					{{if and ($.UnitTypeWiki.UnitGlobalDisabled) ($.UnitTypeExternalWiki.UnitGlobalDisabled)}}
+					{{if and (.UnitTypeWiki.UnitGlobalDisabled) (.UnitTypeExternalWiki.UnitGlobalDisabled)}}
 					<div class="ui checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
 					{{else}}
 					<div class="ui checkbox">
@@ -155,7 +155,7 @@
 				</div>
 				<div class="field {{if not $isWikiEnabled}}disabled{{end}}" id="wiki_box">
 					<div class="field">
-						{{if $.UnitTypeWiki.UnitGlobalDisabled}}
+						{{if .UnitTypeWiki.UnitGlobalDisabled}}
 						<div class="ui radio checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
 						{{else}}
 						<div class="ui radio checkbox">
@@ -165,7 +165,7 @@
 						</div>
 					</div>
 					<div class="field">
-						{{if $.UnitTypeWiki.UnitGlobalDisabled}}
+						{{if .UnitTypeExternalWiki.UnitGlobalDisabled}}
 						<div class="ui radio checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
 						{{else}}
 						<div class="ui radio checkbox">
@@ -186,7 +186,7 @@
 				{{$isIssuesEnabled := or (.Repository.UnitEnabled $.UnitTypeIssues) (.Repository.UnitEnabled $.UnitTypeExternalTracker)}}
 				<div class="inline field">
 					<label>{{.i18n.Tr "repo.issues"}}</label>
-					{{if or ($.UnitTypeIssues.UnitGlobalDisabled) ($.UnitTypeExternalTracker.UnitGlobalDisabled)}}
+					{{if and (.UnitTypeIssues.UnitGlobalDisabled) (.UnitTypeExternalTracker.UnitGlobalDisabled)}}
 					<div class="ui checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
 					{{else}}
 					<div class="ui checkbox">
@@ -197,7 +197,7 @@
 				</div>
 				<div class="field {{if not $isIssuesEnabled}}disabled{{end}}" id="issue_box">
 					<div class="field">
-						{{if $.UnitTypeIssues.UnitGlobalDisabled}}
+						{{if .UnitTypeIssues.UnitGlobalDisabled}}
 						<div class="ui radio checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
 						{{else}}
 						<div class="ui radio checkbox">
@@ -229,7 +229,7 @@
 							</div>
 					</div>
 					<div class="field">
-						{{if $.UnitTypeExternalWiki.UnitGlobalDisabled}}
+						{{if .UnitTypeExternalTracker.UnitGlobalDisabled}}
 						<div class="ui radio checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
 						{{else}}
 						<div class="ui radio checkbox">
@@ -275,7 +275,7 @@
 					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.pulls"}}</label>
-						{{if $.UnitTypePullRequests.UnitGlobalDisabled}}
+						{{if .UnitTypePullRequests.UnitGlobalDisabled}}
 						<div class="ui checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
 						{{else}}
 						<div class="ui checkbox">
