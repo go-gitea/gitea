@@ -249,10 +249,10 @@ func ExploreUsers(ctx *context.Context) {
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:     models.UserTypeIndividual,
+		Type:        models.UserTypeIndividual,
 		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
-		IsActive: util.OptionalBoolTrue,
-		Visible:  []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
+		IsActive:    util.OptionalBoolTrue,
+		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
 	}, tplExploreUsers)
 }
 
@@ -269,9 +269,9 @@ func ExploreOrganizations(ctx *context.Context) {
 	}
 
 	opts := models.SearchUserOptions{
-		Type:     models.UserTypeOrganization,
+		Type:        models.UserTypeOrganization,
 		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
-		OwnerID:  ownerID,
+		OwnerID:     ownerID,
 	}
 	if ctx.User != nil {
 		opts.Visible = []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate}

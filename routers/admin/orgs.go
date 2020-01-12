@@ -25,10 +25,10 @@ func Organizations(ctx *context.Context) {
 	ctx.Data["PageIsAdminOrganizations"] = true
 
 	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type:     models.UserTypeOrganization,
+		Type: models.UserTypeOrganization,
 		ListOptions: models.ListOptions{
 			PageSize: setting.UI.Admin.OrgPagingNum,
 		},
-		Visible:  []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
+		Visible: []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
 	}, tplOrgs)
 }
