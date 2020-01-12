@@ -149,9 +149,9 @@ const (
 
 // Repository represents a git repository.
 type Repository struct {
-	ID                  int64                  `xorm:"pk autoincr"`
-	OwnerID             int64                  `xorm:"UNIQUE(s) index"`
-	OwnerName           string                 `xorm:"-"`
+	ID                  int64 `xorm:"pk autoincr"`
+	OwnerID             int64 `xorm:"UNIQUE(s) index"`
+	OwnerName           string
 	Owner               *User                  `xorm:"-"`
 	LowerName           string                 `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name                string                 `xorm:"INDEX NOT NULL"`
@@ -252,17 +252,9 @@ func (repo *Repository) MustOwner() *User {
 	return repo.mustOwner(x)
 }
 
-// MustOwnerName always returns valid owner name to avoid
-// conceptually impossible error handling.
-// It returns "error" and logs error details when error
-// occurs.
-func (repo *Repository) MustOwnerName() string {
-	return repo.mustOwnerName(x)
-}
-
 // FullName returns the repository full name
 func (repo *Repository) FullName() string {
-	return repo.MustOwnerName() + "/" + repo.Name
+	return repo.OwnerName + "/" + repo.Name
 }
 
 // HTMLURL returns the repository HTML URL
@@ -294,7 +286,7 @@ func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) 
 func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool) *api.Repository {
 	var parent *api.Repository
 
-	cloneLink := repo.cloneLink(e, false)
+	cloneLink := repo.cloneLink(false)
 	permission := &api.Permission{
 		Admin: mode >= AccessModeAdmin,
 		Push:  mode >= AccessModeWrite,
@@ -355,6 +347,8 @@ func (repo *Repository) innerAPIFormat(e Engine, mode AccessMode, isParent bool)
 		allowRebaseMerge = config.AllowRebaseMerge
 		allowSquash = config.AllowSquash
 	}
+
+	repo.mustOwner(e)
 
 	return &api.Repository{
 		ID:                        repo.ID,
@@ -533,46 +527,11 @@ func (repo *Repository) mustOwner(e Engine) *User {
 	return repo.Owner
 }
 
-func (repo *Repository) getOwnerName(e Engine) error {
-	if len(repo.OwnerName) > 0 {
-		return nil
-	}
-
-	if repo.Owner != nil {
-		repo.OwnerName = repo.Owner.Name
-		return nil
-	}
-
-	u := new(User)
-	has, err := e.ID(repo.OwnerID).Cols("name").Get(u)
-	if err != nil {
-		return err
-	} else if !has {
-		return ErrUserNotExist{repo.OwnerID, "", 0}
-	}
-	repo.OwnerName = u.Name
-	return nil
-}
-
-// GetOwnerName returns the repository owner name
-func (repo *Repository) GetOwnerName() error {
-	return repo.getOwnerName(x)
-}
-
-func (repo *Repository) mustOwnerName(e Engine) string {
-	if err := repo.getOwnerName(e); err != nil {
-		log.Error("Error loading repository owner name: %v", err)
-		return "error"
-	}
-
-	return repo.OwnerName
-}
-
 // ComposeMetas composes a map of metas for properly rendering issue links and external issue trackers.
 func (repo *Repository) ComposeMetas() map[string]string {
 	if repo.RenderingMetas == nil {
 		metas := map[string]string{
-			"user":     repo.MustOwner().Name,
+			"user":     repo.OwnerName,
 			"repo":     repo.Name,
 			"repoPath": repo.RepoPath(),
 		}
@@ -588,6 +547,7 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			}
 		}
 
+		repo.MustOwner()
 		if repo.Owner.IsOrganization() {
 			teams := make([]string, 0, 5)
 			_ = x.Table("team_repo").
@@ -597,7 +557,7 @@ func (repo *Repository) ComposeMetas() map[string]string {
 				OrderBy("team.lower_name").
 				Find(&teams)
 			metas["teams"] = "," + strings.Join(teams, ",") + ","
-			metas["org"] = repo.Owner.LowerName
+			metas["org"] = strings.ToLower(repo.OwnerName)
 		}
 
 		repo.RenderingMetas = metas
@@ -711,13 +671,9 @@ func (repo *Repository) getTemplateRepo(e Engine) (err error) {
 	return err
 }
 
-func (repo *Repository) repoPath(e Engine) string {
-	return RepoPath(repo.mustOwnerName(e), repo.Name)
-}
-
 // RepoPath returns the repository path
 func (repo *Repository) RepoPath() string {
-	return repo.repoPath(x)
+	return RepoPath(repo.OwnerName, repo.Name)
 }
 
 // GitConfigPath returns the path to a repository's git config/ directory
@@ -742,7 +698,7 @@ func (repo *Repository) Link() string {
 
 // ComposeCompareURL returns the repository comparison URL
 func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) string {
-	return fmt.Sprintf("%s/%s/compare/%s...%s", repo.MustOwner().Name, repo.Name, oldCommitID, newCommitID)
+	return fmt.Sprintf("%s/compare/%s...%s", repo.FullName(), oldCommitID, newCommitID)
 }
 
 // UpdateDefaultBranch updates the default branch
@@ -757,7 +713,7 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 }
 
 func (repo *Repository) updateSize(e Engine) error {
-	size, err := util.GetDirectorySize(repo.repoPath(e))
+	size, err := util.GetDirectorySize(repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("UpdateSize: %v", err)
 	}
@@ -912,7 +868,7 @@ func ComposeHTTPSCloneURL(owner, repo string) string {
 	return fmt.Sprintf("%s%s/%s.git", setting.AppURL, url.PathEscape(owner), url.PathEscape(repo))
 }
 
-func (repo *Repository) cloneLink(e Engine, isWiki bool) *CloneLink {
+func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 	repoName := repo.Name
 	if isWiki {
 		repoName += ".wiki"
@@ -923,22 +879,21 @@ func (repo *Repository) cloneLink(e Engine, isWiki bool) *CloneLink {
 		sshUser = setting.SSH.BuiltinServerUser
 	}
 
-	repo.Owner = repo.mustOwner(e)
 	cl := new(CloneLink)
 	if setting.SSH.Port != 22 {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s:%d/%s/%s.git", sshUser, setting.SSH.Domain, setting.SSH.Port, repo.Owner.Name, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s:%d/%s/%s.git", sshUser, setting.SSH.Domain, setting.SSH.Port, repo.OwnerName, repoName)
 	} else if setting.Repository.UseCompatSSHURI {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, setting.SSH.Domain, repo.Owner.Name, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, setting.SSH.Domain, repo.OwnerName, repoName)
 	} else {
-		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, setting.SSH.Domain, repo.Owner.Name, repoName)
+		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, setting.SSH.Domain, repo.OwnerName, repoName)
 	}
-	cl.HTTPS = ComposeHTTPSCloneURL(repo.Owner.Name, repoName)
+	cl.HTTPS = ComposeHTTPSCloneURL(repo.OwnerName, repoName)
 	return cl
 }
 
 // CloneLink returns clone URLs of repository.
 func (repo *Repository) CloneLink() (cl *CloneLink) {
-	return repo.cloneLink(x, false)
+	return repo.cloneLink(false)
 }
 
 // CheckCreateRepository check if could created a repository
@@ -1137,7 +1092,7 @@ func prepareRepoCommit(e Engine, repo *Repository, tmpDir, repoPath string, opts
 		return fmt.Errorf("getRepoInitFile[%s]: %v", opts.Readme, err)
 	}
 
-	cloneLink := repo.cloneLink(e, false)
+	cloneLink := repo.cloneLink(false)
 	match := map[string]string{
 		"Name":           repo.Name,
 		"Description":    repo.Description,
@@ -1210,7 +1165,7 @@ func initRepository(e Engine, repoPath string, u *User, repo *Repository, opts C
 	if opts.AutoInit {
 		tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-"+repo.Name)
 		if err != nil {
-			return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.repoPath(e), err)
+			return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.RepoPath(), err)
 		}
 
 		defer os.RemoveAll(tmpDir)
@@ -1366,6 +1321,7 @@ func CreateRepository(doer, u *User, opts CreateRepoOptions) (_ *Repository, err
 	repo := &Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,
+		OwnerName:                       u.Name,
 		Name:                            opts.Name,
 		LowerName:                       strings.ToLower(opts.Name),
 		Description:                     opts.Description,
@@ -1485,6 +1441,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	// new owner.
 	repo.OwnerID = newOwner.ID
 	repo.Owner = newOwner
+	repo.OwnerName = newOwner.Name
 
 	// Update repository.
 	if _, err := sess.ID(repo.ID).Update(repo); err != nil {
@@ -1683,7 +1640,7 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		daemonExportFile := path.Join(repo.repoPath(e), `git-daemon-export-ok`)
+		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
 		if repo.IsPrivate && com.IsExist(daemonExportFile) {
 			if err = os.Remove(daemonExportFile); err != nil {
 				log.Error("Failed to remove %s: %v", daemonExportFile, err)
@@ -1905,7 +1862,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	// FIXME: Remove repository files should be executed after transaction succeed.
-	repoPath := repo.repoPath(sess)
+	repoPath := repo.RepoPath()
 	removeAllWithNotice(sess, "Delete repository files", repoPath)
 
 	err = repo.deleteWiki(sess)
@@ -2290,7 +2247,7 @@ func GitGcRepos() error {
 					SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName())).
 					RunInDirTimeout(
 						time.Duration(setting.Git.Timeout.GC)*time.Second,
-						RepoPath(repo.Owner.Name, repo.Name)); err != nil {
+						repo.RepoPath()); err != nil {
 					log.Error("Repository garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout, err)
 					return fmt.Errorf("Repository garbage collection failed: Error: %v", err)
 				}
@@ -2517,6 +2474,7 @@ func ForkRepository(doer, owner *User, oldRepo *Repository, name, desc string) (
 	repo := &Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,
+		OwnerName:     owner.Name,
 		Name:          name,
 		LowerName:     strings.ToLower(name),
 		Description:   desc,
@@ -2543,7 +2501,7 @@ func ForkRepository(doer, owner *User, oldRepo *Repository, name, desc string) (
 
 	repoPath := RepoPath(owner.Name, repo.Name)
 	if stdout, err := git.NewCommand(
-		"clone", "--bare", oldRepo.repoPath(sess), repoPath).
+		"clone", "--bare", oldRepo.RepoPath(), repoPath).
 		SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", oldRepo.FullName(), repo.FullName())).
 		RunInDirTimeout(10*time.Minute, ""); err != nil {
 		log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, oldRepo, stdout, err)
