@@ -117,7 +117,10 @@ func (d *delayWriter) Close() error {
 	if stopped {
 		return nil
 	}
-	<-d.timer.C
+	select {
+	case <-d.timer.C:
+	default:
+	}
 	if d.buf == nil {
 		return nil
 	}
