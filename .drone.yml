@@ -396,12 +396,6 @@ depends_on:
   - translations
 
 steps:
-  - name: fetch-tags
-    pull: default
-    image: docker:git
-    commands:
-      - git fetch --tags --force
-
   - name: static
     pull: always
     image: techknowlogick/xgo:latest
@@ -490,15 +484,9 @@ trigger:
     - tag
 
 depends_on:
-  - build
+  - testing
 
 steps:
-  - name: fetch-tags
-    pull: default
-    image: docker:git
-    commands:
-      - git fetch --tags --force
-
   - name: static
     pull: always
     image: techknowlogick/xgo:latest
