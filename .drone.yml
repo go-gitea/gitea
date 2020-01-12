@@ -169,8 +169,6 @@ steps:
   - name: test-sqlite
     pull: always
     image: golang:1.13
-    depends_on:
-      - build
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -179,6 +177,8 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata
+    depends_on:
+      - build
 
   - name: test-mysql
     pull: always
