@@ -62,13 +62,13 @@ func (repo *Repository) GetIndexerStatus() error {
 // UpdateIndexerStatus updates indexer status
 func (repo *Repository) UpdateIndexerStatus(sha string) error {
 	if err := repo.GetIndexerStatus(); err != nil {
-		return fmt.Errorf("UpdateIndexerStatus: Unable to getIndexerStatus for repo: %s/%s Error: %v", repo.MustOwnerName(), repo.Name, err)
+		return fmt.Errorf("UpdateIndexerStatus: Unable to getIndexerStatus for repo: %s Error: %v", repo.FullName(), err)
 	}
 	if len(repo.IndexerStatus.CommitSha) == 0 {
 		repo.IndexerStatus.CommitSha = sha
 		_, err := x.Insert(repo.IndexerStatus)
 		if err != nil {
-			return fmt.Errorf("UpdateIndexerStatus: Unable to insert repoIndexerStatus for repo: %s/%s Sha: %s Error: %v", repo.MustOwnerName(), repo.Name, sha, err)
+			return fmt.Errorf("UpdateIndexerStatus: Unable to insert repoIndexerStatus for repo: %s Sha: %s Error: %v", repo.FullName(), sha, err)
 		}
 		return nil
 	}
@@ -76,7 +76,7 @@ func (repo *Repository) UpdateIndexerStatus(sha string) error {
 	_, err := x.ID(repo.IndexerStatus.ID).Cols("commit_sha").
 		Update(repo.IndexerStatus)
 	if err != nil {
-		return fmt.Errorf("UpdateIndexerStatus: Unable to update repoIndexerStatus for repo: %s/%s Sha: %s Error: %v", repo.MustOwnerName(), repo.Name, sha, err)
+		return fmt.Errorf("UpdateIndexerStatus: Unable to update repoIndexerStatus for repo: %s Sha: %s Error: %v", repo.FullName(), sha, err)
 	}
 	return nil
 }
