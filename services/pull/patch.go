@@ -55,8 +55,8 @@ func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch bool) error 
 	}
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
 	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, "tracking", w, patch); err != nil {
-		log.Error("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
-		return fmt.Errorf("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
+		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	return nil
 }
@@ -108,8 +108,8 @@ func TestPatch(pr *models.PullRequest) error {
 
 	if err := gitRepo.GetDiff(pr.MergeBase, "tracking", tmpPatchFile); err != nil {
 		tmpPatchFile.Close()
-		log.Error("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
-		return fmt.Errorf("Unable to get patch file from %s to %s in %s/%s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.MustOwner().Name, pr.BaseRepo.Name, err)
+		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
 	stat, err := tmpPatchFile.Stat()
 	if err != nil {

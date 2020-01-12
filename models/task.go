@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -169,55 +167,14 @@ func FindTasks(opts FindTaskOptions) ([]*Task, error) {
 	return tasks, err
 }
 
+// CreateTask creates a task on database
+func CreateTask(task *Task) error {
+	return createTask(x, task)
+}
+
 func createTask(e Engine, task *Task) error {
 	_, err := e.Insert(task)
 	return err
-}
-
-// CreateMigrateTask creates a migrate task
-func CreateMigrateTask(doer, u *User, opts base.MigrateOptions) (*Task, error) {
-	bs, err := json.Marshal(&opts)
-	if err != nil {
-		return nil, err
-	}
-
-	var task = Task{
-		DoerID:         doer.ID,
-		OwnerID:        u.ID,
-		Type:           structs.TaskTypeMigrateRepo,
-		Status:         structs.TaskStatusQueue,
-		PayloadContent: string(bs),
-	}
-
-	if err := createTask(x, &task); err != nil {
-		return nil, err
-	}
-
-	repo, err := CreateRepository(doer, u, CreateRepoOptions{
-		Name:           opts.RepoName,
-		Description:    opts.Description,
-		OriginalURL:    opts.OriginalURL,
-		GitServiceType: opts.GitServiceType,
-		IsPrivate:      opts.Private,
-		IsMirror:       opts.Mirror,
-		Status:         RepositoryBeingMigrated,
-	})
-	if err != nil {
-		task.EndTime = timeutil.TimeStampNow()
-		task.Status = structs.TaskStatusFailed
-		err2 := task.UpdateCols("end_time", "status")
-		if err2 != nil {
-			log.Error("UpdateCols Failed: %v", err2.Error())
-		}
-		return nil, err
-	}
-
-	task.RepoID = repo.ID
-	if err = task.UpdateCols("repo_id"); err != nil {
-		return nil, err
-	}
-
-	return &task, nil
 }
 
 // FinishMigrateTask updates database when migrate task finished
