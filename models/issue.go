@@ -1237,7 +1237,6 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 
 // GetRepoIDsForIssuesOptions find all repo ids for the given options
 func GetRepoIDsForIssuesOptions(opts *IssuesOptions) ([]int64, error) {
-	//TODO must add unit test
 	repoIDs := make([]int64, 0, 5)
 	sess := x.NewSession()
 	defer sess.Close()

@@ -462,9 +462,6 @@ func Issues(ctx *context.Context) {
 				ctx.ServerError("GetRepoIDsForIssuesOptions", err)
 				return
 			}
-			for _, searchRepoID := range searchRepoIDs {
-				log.Error("repo id to search %d", searchRepoID)
-			}
 			issueIDsFromSearch, err = issue_indexer.SearchIssuesByKeyword(searchRepoIDs, keyword)
 			if err != nil {
 				ctx.ServerError("SearchIssuesByKeyword", err)
@@ -595,17 +592,10 @@ func Issues(ctx *context.Context) {
 	}
 
 	var shownIssues int
-	//var totalIssues int
 	if !isShowClosed {
-		//totalIssues = int(userIssueStats.OpenCount)
-		//log.Error("open totalIssues %d", totalIssues)
 		shownIssues = int(shownIssueStats.OpenCount)
-		log.Error("open shownIssues %d", shownIssues)
 	} else {
-		//totalIssues = int(userIssueStats.ClosedCount)
-		//log.Error("closed totalIssues %d", totalIssues)
 		shownIssues = int(shownIssueStats.ClosedCount)
-		log.Error("closed shownIssues %d", shownIssues)
 	}
 
 	ctx.Data["Issues"] = issues
@@ -613,6 +603,7 @@ func Issues(ctx *context.Context) {
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = counts
 	ctx.Data["IssueStats"] = userIssueStats
+	ctx.Data["ShownIssueStats"] = shownIssueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["RepoIDs"] = repoIDs
@@ -631,6 +622,7 @@ func Issues(ctx *context.Context) {
 	ctx.Data["ReposParam"] = string(reposParam)
 
 	pager := context.NewPagination(shownIssues, setting.UI.IssuePagingNum, page, 5)
+	pager.AddParam(ctx, "q", "Keyword")
 	pager.AddParam(ctx, "type", "ViewType")
 	pager.AddParam(ctx, "repos", "ReposParam")
 	pager.AddParam(ctx, "sort", "SortType")

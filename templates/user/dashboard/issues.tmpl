@@ -57,11 +57,11 @@
 						<div class="ui tiny basic status buttons">
 							<a class="ui {{if not .IsShowClosed}}green active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
 								<i class="octicon octicon-issue-opened"></i>
-								{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
+								{{.i18n.Tr "repo.issues.open_tab" .ShownIssueStats.OpenCount}}
 							</a>
 							<a class="ui {{if .IsShowClosed}}red active{{end}} basic button" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
 								<i class="octicon octicon-issue-closed"></i>
-								{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
+								{{.i18n.Tr "repo.issues.close_tab" .ShownIssueStats.ClosedCount}}
 							</a>
 						</div>
 					</div>

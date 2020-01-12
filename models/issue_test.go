@@ -300,6 +300,36 @@ func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
 	assert.EqualValues(t, []int64{1}, ids)
 }
 
+func TestGetRepoIDsForIssuesOptions(t *testing.T) {
+	//TODO
+	assert.NoError(t, PrepareTestDatabase())
+	for _, test := range []struct {
+		Opts            IssuesOptions
+		ExpectedRepoIDs []int64
+	}{
+		{
+			IssuesOptions{
+				AssigneeID: 1,
+			},
+			[]int64{1, 3},
+		},
+		{
+			IssuesOptions{
+				RepoIDs: []int64{1, 3},
+			},
+			[]int64{1, 3},
+		},
+	} {
+		repoIDs, err := GetRepoIDsForIssuesOptions(&test.Opts)
+		assert.NoError(t, err)
+		if assert.Len(t, repoIDs, len(test.ExpectedRepoIDs)) {
+			for i, repoID := range repoIDs {
+				assert.EqualValues(t, test.ExpectedRepoIDs[i], repoID)
+			}
+		}
+	}
+}
+
 func testInsertIssue(t *testing.T, title, content string) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
