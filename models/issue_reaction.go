@@ -254,7 +254,7 @@ func (list ReactionList) GroupByType() map[string]ReactionList {
 func (list ReactionList) getUserIDs() []int64 {
 	userIDs := make(map[int64]struct{}, len(list))
 	for _, reaction := range list {
-		if reaction.OriginalAuthor == "" {
+		if reaction.OriginalAuthor != "" {
 			continue
 		}
 		if _, ok := userIDs[reaction.UserID]; !ok {

@@ -210,17 +210,17 @@ func TestGitHubDownloadRepo(t *testing.T) {
 				{
 					UserID:   1669571,
 					UserName: "mrsdizzie",
+					Content:  "-1",
+				},
+				{
+					UserID:   1669571,
+					UserName: "mrsdizzie",
 					Content:  "confused",
 				},
 				{
 					UserID:   1669571,
 					UserName: "mrsdizzie",
 					Content:  "hooray",
-				},
-				{
-					UserID:   1669571,
-					UserName: "mrsdizzie",
-					Content:  "+1",
 				},
 				{
 					UserID:   1669571,
