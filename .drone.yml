@@ -4,7 +4,7 @@ name: compliance
 
 platform:
   os: linux
-  arch: amd64
+  arch: arm64
 
 workspace:
   base: /go
