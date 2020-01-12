@@ -214,6 +214,7 @@ func GenerateRepository(ctx DBContext, doer, owner *User, templateRepo *Reposito
 	generateRepo := &Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,
+		OwnerName:     owner.Name,
 		Name:          opts.Name,
 		LowerName:     strings.ToLower(opts.Name),
 		Description:   opts.Description,
