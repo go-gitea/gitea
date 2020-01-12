@@ -25,7 +25,6 @@ steps:
       GO111MODULE: on
       GOPROXY: off
     commands:
-      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
 
   - name: build-linux-386
@@ -37,7 +36,6 @@ steps:
       GOOS: linux
       GOARCH: 386
     commands:
-      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
 
   - name: check
