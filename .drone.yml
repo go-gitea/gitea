@@ -83,9 +83,9 @@ steps:
       - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
 
-  - name: golangci/golangci-lint:v1.22.2
+  - name: golangci-lint
     pull: always
-    image: golang:1.13
+    image: golangci/golangci-lint:v1.22.2
     commands:
       - golangci-lint run -v --timeout 5m
 
