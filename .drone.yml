@@ -398,6 +398,12 @@ depends_on:
   - translations
 
 steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
   - name: static
     pull: always
     image: techknowlogick/xgo:latest
@@ -489,6 +495,12 @@ depends_on:
   - testing
 
 steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
   - name: static
     pull: always
     image: techknowlogick/xgo:latest
@@ -634,6 +646,12 @@ trigger:
   - "refs/tags/**"
 
 steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
   - name: publish
     pull: always
     image: plugins/docker:linux-amd64
@@ -704,6 +722,12 @@ trigger:
   ref:
   - refs/heads/master
   - "refs/tags/**"
+steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
 
   - name: publish
     pull: always
