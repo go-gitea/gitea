@@ -21,6 +21,8 @@ var (
 		MaxGitDiffLines           int
 		MaxGitDiffLineCharacters  int
 		MaxGitDiffFiles           int
+		VerbosePush               bool
+		VerbosePushDelay          time.Duration
 		GCArgs                    []string `ini:"GC_ARGS" delim:" "`
 		EnableAutoGitWireProtocol bool
 		Timeout                   struct {
@@ -36,6 +38,8 @@ var (
 		MaxGitDiffLines:           1000,
 		MaxGitDiffLineCharacters:  5000,
 		MaxGitDiffFiles:           100,
+		VerbosePush:               true,
+		VerbosePushDelay:          5 * time.Second,
 		GCArgs:                    []string{},
 		EnableAutoGitWireProtocol: true,
 		Timeout: struct {
