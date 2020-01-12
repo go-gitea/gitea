@@ -128,6 +128,10 @@
 						<span class="octicon octicon-x"></span>
 						{{$.i18n.Tr "repo.pulls.require_signed_wont_sign"}}
 					</div>
+					<div class="item text yellow">
+						<i class="icon unlock grey"></i>
+						{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
+					</div>
 				{{end}}
 				{{$notAllOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .RequireSigned (not .WillSign)) (and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess))}}
 				{{if and (or $.IsRepoAdmin (not $notAllOk)) (or (not .RequireSigned) .WillSign)}}
@@ -140,6 +144,17 @@
 						<div class="item text green">
 							<span class="octicon octicon-check"></span>
 							{{$.i18n.Tr "repo.pulls.can_auto_merge_desc"}}
+						</div>
+					{{end}}
+					{{if .WillSign}}
+						<div class="item text green">
+							<i class="icon lock green"></i>
+							{{$.i18n.Tr "repo.signing.will_sign" .SigningKey}}
+						</div>
+					{{else}}
+						<div class="item text yellow">
+							<i class="icon unlock grey"></i>
+							{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
 						</div>
 					{{end}}
 					{{if .AllowMerge}}
