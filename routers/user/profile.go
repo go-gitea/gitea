@@ -191,7 +191,7 @@ func Profile(ctx *context.Context) {
 		total = int(count)
 	case "projects":
 
-		ctx.Data["ClosedProjects"], err = models.GetProjects(models.ProjectSearchOptions{
+		ctx.Data["OpenProjects"], err = models.GetProjects(models.ProjectSearchOptions{
 			// RepoID: repo.ID,
 			Page: -1,
 			// IsClosed: uti,

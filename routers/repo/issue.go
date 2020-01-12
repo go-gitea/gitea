@@ -355,7 +355,7 @@ func retrieveProjects(ctx *context.Context, repo *models.Repository) {
 	ctx.Data["OpenProjects"], err = models.GetProjects(models.ProjectSearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
-		IsClosed: util.OptionalBoolTrue,
+		IsClosed: util.OptionalBoolFalse,
 		Type:     models.RepositoryType,
 	})
 	if err != nil {
@@ -366,7 +366,7 @@ func retrieveProjects(ctx *context.Context, repo *models.Repository) {
 	ctx.Data["ClosedProjects"], err = models.GetProjects(models.ProjectSearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
-		IsClosed: util.OptionalBoolFalse,
+		IsClosed: util.OptionalBoolTrue,
 		Type:     models.RepositoryType,
 	})
 	if err != nil {
@@ -569,7 +569,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 
 			valid, err := models.CanBeAssigned(assignee, repo, isPull)
 			if err != nil {
-				ctx.ServerError("GetUserRepoPermission", err)
+				ctx.ServerError("CanBeAssigned", err)
 				return nil, nil, 0, 0
 			}
 
@@ -672,6 +672,7 @@ func getBranchData(ctx *context.Context, issue *models.Issue) {
 		ctx.Data["BaseBranch"] = pull.BaseBranch
 		ctx.Data["HeadBranch"] = pull.HeadBranch
 		ctx.Data["HeadUserName"] = pull.MustHeadUserName()
+		ctx.Data["RequireSimpleMDE"] = true
 	}
 }
 
