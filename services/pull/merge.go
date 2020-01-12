@@ -470,6 +470,23 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 	return out.String(), nil
 }
 
+// IsSignedIfRequired check if merge will be signed if required
+func IsSignedIfRequired(pr *models.PullRequest, doer *models.User) (bool, error) {
+	if pr.ProtectedBranch == nil {
+		if err := pr.LoadProtectedBranch(); err != nil {
+			return false, err
+		}
+	}
+
+	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.RequireSignedCommits {
+		return true, nil
+	}
+
+	sign, _, err := pr.SignMerge(doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
+
+	return sign, err
+}
+
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
 func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *models.User) (bool, error) {
 	if p.IsAdmin() {
