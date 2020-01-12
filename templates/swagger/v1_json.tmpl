@@ -425,6 +425,143 @@
         }
       }
     },
+    "/notifications": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notification"
+        ],
+        "summary": "List users's notification threads",
+        "operationId": "notifyGetList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "If true, show notifications marked as read. Default value is false",
+            "name": "all",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/NotificationThreadList"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notification"
+        ],
+        "summary": "Mark notification threads as read",
+        "operationId": "notifyReadList",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Describes the last point that notifications were checked. Anything updated since this time will not be updated.",
+            "name": "last_read_at",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "205": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/notifications/threads/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notification"
+        ],
+        "summary": "Get notification thread by ID",
+        "operationId": "notifyGetThread",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of notification thread",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/NotificationThread"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notification"
+        ],
+        "summary": "Mark notification thread as read by ID",
+        "operationId": "notifyReadThread",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of notification thread",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "205": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/org/{org}/repos": {
       "post": {
         "consumes": [
@@ -437,7 +574,8 @@
           "organization"
         ],
         "summary": "Create a repository in an organization",
-        "operationId": "createOrgRepo",
+        "operationId": "createOrgRepoDeprecated",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -468,6 +606,35 @@
       }
     },
     "/orgs": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get list of organizations",
+        "operationId": "orgGetAll",
+        "parameters": [
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results, maximum page size is 50",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OrganizationList"
+          }
+        }
+      },
       "post": {
         "consumes": [
           "application/json"
@@ -1001,6 +1168,46 @@
         "responses": {
           "200": {
             "$ref": "#/responses/RepositoryList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Create a repository in an organization",
+        "operationId": "createOrgRepo",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateRepoOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -3002,6 +3209,57 @@
       }
     },
     "/repos/{owner}/{repo}/issues/comments/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "Get a comment",
+        "operationId": "issueGetComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Comment"
+          },
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
       "delete": {
         "tags": [
           "issue"
@@ -3038,6 +3296,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -3087,6 +3348,15 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Comment"
+          },
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -3102,7 +3372,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Get a list reactions of a issue comment",
+        "summary": "Get a list of reactions from a comment of an issue",
         "operationId": "issueGetCommentReactions",
         "parameters": [
           {
@@ -3147,7 +3417,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Add a reaction to a comment of a issue comment",
+        "summary": "Add a reaction to a comment of an issue",
         "operationId": "issuePostCommentReaction",
         "parameters": [
           {
@@ -3202,7 +3472,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Remove a reaction from a comment of a issue comment",
+        "summary": "Remove a reaction from a comment of an issue",
         "operationId": "issueDeleteCommentReaction",
         "parameters": [
           {
@@ -3491,6 +3761,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -3554,6 +3827,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -3871,7 +4147,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Get a list reactions of a issue",
+        "summary": "Get a list reactions of an issue",
         "operationId": "issueGetIssueReactions",
         "parameters": [
           {
@@ -3916,7 +4192,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Add a reaction to a comment of a issue",
+        "summary": "Add a reaction to an issue",
         "operationId": "issuePostIssueReaction",
         "parameters": [
           {
@@ -3971,7 +4247,7 @@
         "tags": [
           "issue"
         ],
-        "summary": "Remove a reaction from a comment of a issue",
+        "summary": "Remove a reaction from an issue",
         "operationId": "issueDeleteIssueReaction",
         "parameters": [
           {
@@ -4364,6 +4640,20 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show times updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show times updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
+            "in": "query"
           }
         ],
         "responses": {
@@ -4474,7 +4764,7 @@
             "$ref": "#/responses/error"
           },
           "403": {
-            "$ref": "#/responses/error"
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -4532,7 +4822,7 @@
             "$ref": "#/responses/error"
           },
           "403": {
-            "$ref": "#/responses/error"
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -5148,6 +5438,103 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/notifications": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notification"
+        ],
+        "summary": "List users's notification threads on a specific repo",
+        "operationId": "notifyGetRepoList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "If true, show notifications marked as read. Default value is false",
+            "name": "all",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/NotificationThreadList"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "notification"
+        ],
+        "summary": "Mark notification threads as read on a specific repo",
+        "operationId": "notifyReadRepoList",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Describes the last point that notifications were checked. Anything updated since this time will not be updated.",
+            "name": "last_read_at",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "205": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls": {
       "get": {
         "produces": [
@@ -5314,6 +5701,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PullRequest"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -6350,6 +6740,26 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "optional filter by user",
+            "name": "user",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show times updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show times updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6358,6 +6768,9 @@
           },
           "400": {
             "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -6368,10 +6781,11 @@
           "application/json"
         ],
         "tags": [
-          "user"
+          "repository"
         ],
         "summary": "List a user's tracked times in a repo",
         "operationId": "userTrackedTimes",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -6401,6 +6815,9 @@
           },
           "400": {
             "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       }
@@ -7616,6 +8033,22 @@
         ],
         "summary": "List the current user's tracked times",
         "operationId": "userCurrentTrackedTimes",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show times updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show times updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "$ref": "#/responses/TrackedTimeList"
@@ -10179,6 +10612,10 @@
           "format": "date-time",
           "x-go-name": "Deadline"
         },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
         "id": {
           "type": "integer",
           "format": "int64",
@@ -10337,6 +10774,10 @@
         },
         "MergeTitleField": {
           "type": "string"
+        },
+        "force_merge": {
+          "type": "boolean",
+          "x-go-name": "ForceMerge"
         }
       },
       "x-go-name": "MergePullRequestForm",
@@ -10450,6 +10891,64 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NotificationSubject": {
+      "description": "NotificationSubject contains the notification subject (Issue/Pull/Commit)",
+      "type": "object",
+      "properties": {
+        "latest_comment_url": {
+          "type": "string",
+          "x-go-name": "LatestCommentURL"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NotificationThread": {
+      "description": "NotificationThread expose Notification on API",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "pinned": {
+          "type": "boolean",
+          "x-go-name": "Pinned"
+        },
+        "repository": {
+          "$ref": "#/definitions/Repository"
+        },
+        "subject": {
+          "$ref": "#/definitions/NotificationSubject"
+        },
+        "unread": {
+          "type": "boolean",
+          "x-go-name": "Unread"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "UpdatedAt"
+        },
+        "url": {
+          "type": "string",
+          "x-go-name": "URL"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -11879,6 +12378,21 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Milestone"
+        }
+      }
+    },
+    "NotificationThread": {
+      "description": "NotificationThread",
+      "schema": {
+        "$ref": "#/definitions/NotificationThread"
+      }
+    },
+    "NotificationThreadList": {
+      "description": "NotificationThreadList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/NotificationThread"
         }
       }
     },

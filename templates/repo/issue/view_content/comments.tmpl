@@ -360,19 +360,21 @@
 												<img src="{{.Poster.RelAvatarLink}}">
 											</a>
 											<div class="content">
-												<a class="author" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
-												<div class="metadata">
-													<span class="date">{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdSubStr | Safe}}</span>
-												</div>
-												<div class="text">
-													<div class="render-content markdown has-emoji">
-													{{if .RenderedContent}}
-														{{.RenderedContent|Str2html}}
-													{{else}}
-														<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
-													{{end}}
+												<div class="code-comment-content">
+													<a class="author" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+													<div class="metadata">
+														<span class="date">{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdSubStr | Safe}}</span>
 													</div>
-													<div class="raw-content hide">{{.Content}}</div>
+													<div class="text">
+														<div class="render-content markdown has-emoji">
+														{{if .RenderedContent}}
+															{{.RenderedContent|Str2html}}
+														{{else}}
+															<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
+														{{end}}
+														</div>
+														<div class="raw-content hide">{{.Content}}</div>
+													</div>
 												</div>
 											</div>
 										</div>

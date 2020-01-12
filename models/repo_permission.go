@@ -164,16 +164,16 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 		return
 	}
 
-	if repo.Owner == nil {
-		repo.mustOwner(e)
-	}
-
 	var isCollaborator bool
 	if user != nil {
 		isCollaborator, err = repo.isCollaborator(e, user.ID)
 		if err != nil {
 			return perm, err
 		}
+	}
+
+	if err = repo.getOwner(e); err != nil {
+		return
 	}
 
 	// Prevent strangers from checking out public repo of private orginization
@@ -271,7 +271,7 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 	return
 }
 
-// IsUserRepoAdmin return ture if user has admin right of a repo
+// IsUserRepoAdmin return true if user has admin right of a repo
 func IsUserRepoAdmin(repo *Repository, user *User) (bool, error) {
 	return isUserRepoAdmin(x, repo, user)
 }
@@ -368,4 +368,24 @@ func hasAccess(e Engine, userID int64, repo *Repository) (bool, error) {
 // HasAccess returns true if user has access to repo
 func HasAccess(userID int64, repo *Repository) (bool, error) {
 	return hasAccess(x, userID, repo)
+}
+
+// FilterOutRepoIdsWithoutUnitAccess filter out repos where user has no access to repositories
+func FilterOutRepoIdsWithoutUnitAccess(u *User, repoIDs []int64, units ...UnitType) ([]int64, error) {
+	i := 0
+	for _, rID := range repoIDs {
+		repo, err := GetRepositoryByID(rID)
+		if err != nil {
+			return nil, err
+		}
+		perm, err := GetUserRepoPermission(repo, u)
+		if err != nil {
+			return nil, err
+		}
+		if perm.CanReadAny(units...) {
+			repoIDs[i] = rID
+			i++
+		}
+	}
+	return repoIDs[:i], nil
 }

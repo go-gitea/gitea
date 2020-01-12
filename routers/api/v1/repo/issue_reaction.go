@@ -13,11 +13,11 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// GetIssueCommentReactions list reactions of a issue comment
+// GetIssueCommentReactions list reactions of a comment from an issue
 func GetIssueCommentReactions(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/comments/{id}/reactions issue issueGetCommentReactions
 	// ---
-	// summary: Get a list reactions of a issue comment
+	// summary: Get a list of reactions from a comment of an issue
 	// consumes:
 	// - application/json
 	// produces:
@@ -55,7 +55,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanRead(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+	if !ctx.Repo.CanRead(models.UnitTypeIssues) {
 		ctx.Error(http.StatusForbidden, "GetIssueCommentReactions", errors.New("no permission to get reactions"))
 		return
 	}
@@ -83,11 +83,11 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, result)
 }
 
-// PostIssueCommentReaction add a reaction to a comment of a issue
+// PostIssueCommentReaction add a reaction to a comment of an issue
 func PostIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOption) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/comments/{id}/reactions issue issuePostCommentReaction
 	// ---
-	// summary: Add a reaction to a comment of a issue comment
+	// summary: Add a reaction to a comment of an issue
 	// consumes:
 	// - application/json
 	// produces:
@@ -124,11 +124,11 @@ func PostIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOpti
 	changeIssueCommentReaction(ctx, form, true)
 }
 
-// DeleteIssueCommentReaction list reactions of a issue comment
+// DeleteIssueCommentReaction remove a reaction from a comment of an issue
 func DeleteIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOption) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/issues/comments/{id}/reactions issue issueDeleteCommentReaction
 	// ---
-	// summary: Remove a reaction from a comment of a issue comment
+	// summary: Remove a reaction from a comment of an issue
 	// consumes:
 	// - application/json
 	// produces:
@@ -179,7 +179,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue() failed", err)
 	}
 
-	if comment.Issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+	if comment.Issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		ctx.Error(http.StatusForbidden, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
 		return
 	}
@@ -219,11 +219,11 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 	}
 }
 
-// GetIssueReactions list reactions of a issue comment
+// GetIssueReactions list reactions of an issue
 func GetIssueReactions(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/reactions issue issueGetIssueReactions
 	// ---
-	// summary: Get a list reactions of a issue
+	// summary: Get a list reactions of an issue
 	// consumes:
 	// - application/json
 	// produces:
@@ -261,7 +261,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 		return
 	}
 
-	if !ctx.Repo.CanRead(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+	if !ctx.Repo.CanRead(models.UnitTypeIssues) {
 		ctx.Error(http.StatusForbidden, "GetIssueReactions", errors.New("no permission to get reactions"))
 		return
 	}
@@ -289,11 +289,11 @@ func GetIssueReactions(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, result)
 }
 
-// PostIssueReaction add a reaction to a comment of a issue
+// PostIssueReaction add a reaction to an issue
 func PostIssueReaction(ctx *context.APIContext, form api.EditReactionOption) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/reactions issue issuePostIssueReaction
 	// ---
-	// summary: Add a reaction to a comment of a issue
+	// summary: Add a reaction to an issue
 	// consumes:
 	// - application/json
 	// produces:
@@ -330,11 +330,11 @@ func PostIssueReaction(ctx *context.APIContext, form api.EditReactionOption) {
 	changeIssueReaction(ctx, form, true)
 }
 
-// DeleteIssueReaction list reactions of a issue comment
+// DeleteIssueReaction remove a reaction from an issue
 func DeleteIssueReaction(ctx *context.APIContext, form api.EditReactionOption) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/reactions issue issueDeleteIssueReaction
 	// ---
-	// summary: Remove a reaction from a comment of a issue
+	// summary: Remove a reaction from an issue
 	// consumes:
 	// - application/json
 	// produces:
@@ -380,7 +380,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		return
 	}
 
-	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) && !ctx.User.IsAdmin {
+	if issue.IsLocked && !ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		ctx.Error(http.StatusForbidden, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
 		return
 	}

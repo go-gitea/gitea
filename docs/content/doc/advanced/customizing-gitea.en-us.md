@@ -44,12 +44,6 @@ environment variable; this can be used to override the default path to something
 
 **Note:** Gitea must perform a full restart to see configuration changes.
 
-## Customizing /robots.txt
-
-To make Gitea serve a custom `/robots.txt` (default: empty 404), create a file called
-`robots.txt` in the `custom` folder (or `CustomPath`) with
-[expected contents](http://www.robotstxt.org/).
-
 ## Serving custom public files
 
 To make Gitea serve custom public files (like pages and images), use the folder
@@ -80,10 +74,10 @@ Dont forget to restart your gitea to apply the changes.
 
 ### Adding links and tabs
 
-If all you want is to add extra links to the top navigation bar, or extra tabs to the repository view, you can put them in `extra_links.tmpl` and `extra_tabs.tmpl` inside your `custom/templates/custom/` directory.
+If all you want is to add extra links to the top navigation bar or footer, or extra tabs to the repository view, you can put them in `extra_links.tmpl` (links added to the navbar), `extra_links_footer.tmpl` (links added to the left side of footer), and `extra_tabs.tmpl` inside your `custom/templates/custom/` directory.
 
 For instance, let's say you are in Germany and must add the famously legally-required "Impressum"/about page, listing who is responsible for the site's content:
-just place it under your "custom/public/" directory (for instance `custom/public/impressum.html`) and put a link to it in `custom/templates/custom/extra_links.tmpl`.
+just place it under your "custom/public/" directory (for instance `custom/public/impressum.html`) and put a link to it in either `custom/templates/custom/extra_links.tmpl` or `custom/templates/custom/extra_links_footer.tmpl`.
 
 To match the current style, the link should have the class name "item", and you can use `{{AppSubUrl}}` to get the base URL:
 `<a class="item" href="{{AppSubUrl}}/impressum.html">Impressum</a>`

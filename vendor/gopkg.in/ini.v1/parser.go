@@ -25,7 +25,9 @@ import (
 	"unicode"
 )
 
-var pythonMultiline = regexp.MustCompile("^(\\s+)([^\n]+)")
+const minReaderBufferSize = 4096
+
+var pythonMultiline = regexp.MustCompile(`^([\t\f ]+)(.*)`)
 
 type parserOptions struct {
 	IgnoreContinuation          bool
@@ -35,6 +37,8 @@ type parserOptions struct {
 	UnescapeValueDoubleQuotes   bool
 	UnescapeValueCommentSymbols bool
 	PreserveSurroundedQuote     bool
+	DebugFunc                   DebugFunc
+	ReaderBufferSize            int
 }
 
 type parser struct {
@@ -46,9 +50,20 @@ type parser struct {
 	comment *bytes.Buffer
 }
 
+func (p *parser) debug(format string, args ...interface{}) {
+	if p.options.DebugFunc != nil {
+		p.options.DebugFunc(fmt.Sprintf(format, args...))
+	}
+}
+
 func newParser(r io.Reader, opts parserOptions) *parser {
+	size := opts.ReaderBufferSize
+	if size < minReaderBufferSize {
+		size = minReaderBufferSize
+	}
+
 	return &parser{
-		buf:     bufio.NewReader(r),
+		buf:     bufio.NewReaderSize(r, size),
 		options: opts,
 		count:   1,
 		comment: &bytes.Buffer{},
@@ -285,33 +300,55 @@ func (p *parser) readPythonMultilines(line string, bufferSize int) (string, erro
 	parserBufferPeekResult, _ := p.buf.Peek(bufferSize)
 	peekBuffer := bytes.NewBuffer(parserBufferPeekResult)
 
+	indentSize := 0
 	for {
 		peekData, peekErr := peekBuffer.ReadBytes('\n')
 		if peekErr != nil {
 			if peekErr == io.EOF {
+				p.debug("readPythonMultilines: io.EOF, peekData: %q, line: %q", string(peekData), line)
 				return line, nil
 			}
+
+			p.debug("readPythonMultilines: failed to peek with error: %v", peekErr)
 			return "", peekErr
 		}
 
+		p.debug("readPythonMultilines: parsing %q", string(peekData))
+
 		peekMatches := pythonMultiline.FindStringSubmatch(string(peekData))
+		p.debug("readPythonMultilines: matched %d parts", len(peekMatches))
+		for n, v := range peekMatches {
+			p.debug("   %d: %q", n, v)
+		}
+
+		// Return if not a Python multiline value.
 		if len(peekMatches) != 3 {
+			p.debug("readPythonMultilines: end of value, got: %q", line)
 			return line, nil
 		}
 
-		// NOTE: Return if not a python-ini multi-line value.
-		currentIdentSize := len(peekMatches[1])
-		if currentIdentSize <= 0 {
+		// Determine indent size and line prefix.
+		currentIndentSize := len(peekMatches[1])
+		if indentSize < 1 {
+			indentSize = currentIndentSize
+			p.debug("readPythonMultilines: indent size is %d", indentSize)
+		}
+
+		// Make sure each line is indented at least as far as first line.
+		if currentIndentSize < indentSize {
+			p.debug("readPythonMultilines: end of value, current indent: %d, expected indent: %d, line: %q", currentIndentSize, indentSize, line)
 			return line, nil
 		}
 
-		// NOTE: Just advance the parser reader (buffer) in-sync with the peek buffer.
-		_, err := p.readUntil('\n')
+		// Advance the parser reader (buffer) in-sync with the peek buffer.
+		_, err := p.buf.Discard(len(peekData))
 		if err != nil {
+			p.debug("readPythonMultilines: failed to skip to the end, returning error")
 			return "", err
 		}
 
-		line += fmt.Sprintf("\n%s", peekMatches[2])
+		// Handle indented empty line.
+		line += "\n" + peekMatches[1][indentSize:] + peekMatches[2]
 	}
 }
 
@@ -325,6 +362,8 @@ func (f *File) parse(reader io.Reader) (err error) {
 		UnescapeValueDoubleQuotes:   f.options.UnescapeValueDoubleQuotes,
 		UnescapeValueCommentSymbols: f.options.UnescapeValueCommentSymbols,
 		PreserveSurroundedQuote:     f.options.PreserveSurroundedQuote,
+		DebugFunc:                   f.options.DebugFunc,
+		ReaderBufferSize:            f.options.ReaderBufferSize,
 	})
 	if err = p.BOM(); err != nil {
 		return fmt.Errorf("BOM: %v", err)
@@ -348,8 +387,8 @@ func (f *File) parse(reader io.Reader) (err error) {
 	// the size of the parser buffer is found.
 	// TODO(unknwon): When Golang 1.10 is the lowest version supported, replace with `parserBufferSize := p.buf.Size()`.
 	parserBufferSize := 0
-	// NOTE: Peek 1kb at a time.
-	currentPeekSize := 1024
+	// NOTE: Peek 4kb at a time.
+	currentPeekSize := minReaderBufferSize
 
 	if f.options.AllowPythonMultilineValues {
 		for {

@@ -7,6 +7,7 @@ package base
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/repository"
 )
 
 // NullNotifier implements a blank notifier
@@ -116,7 +117,7 @@ func (*NullNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, 
 }
 
 // NotifyPushCommits notifies commits pushed to notifiers
-func (*NullNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+func (*NullNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
 }
 
 // NotifyCreateRef notifies branch or tag creation to notifiers
@@ -136,7 +137,7 @@ func (*NullNotifier) NotifyTransferRepository(doer *models.User, repo *models.Re
 }
 
 // NotifySyncPushCommits places a place holder function
-func (*NullNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *models.PushCommits) {
+func (*NullNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, refName, oldCommitID, newCommitID string, commits *repository.PushCommits) {
 }
 
 // NotifySyncCreateRef places a place holder function

@@ -83,6 +83,33 @@ func TestAPICreateComment(t *testing.T) {
 	models.AssertExistsAndLoadBean(t, &models.Comment{ID: updatedComment.ID, IssueID: issue.ID, Content: commentBody})
 }
 
+func TestAPIGetComment(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	comment := models.AssertExistsAndLoadBean(t, &models.Comment{ID: 2}).(*models.Comment)
+	assert.NoError(t, comment.LoadIssue())
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: comment.Issue.RepoID}).(*models.Repository)
+	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+
+	session := loginUser(t, repoOwner.Name)
+	token := getTokenForLoggedInUser(t, session)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d?token=%s", repoOwner.Name, repo.Name, comment.ID, token)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+
+	var apiComment api.Comment
+	DecodeJSON(t, resp, &apiComment)
+
+	assert.NoError(t, comment.LoadPoster())
+	expect := comment.APIFormat()
+
+	assert.Equal(t, expect.ID, apiComment.ID)
+	assert.Equal(t, expect.Poster.FullName, apiComment.Poster.FullName)
+	assert.Equal(t, expect.Body, apiComment.Body)
+	assert.Equal(t, expect.Created.Unix(), apiComment.Created.Unix())
+}
+
 func TestAPIEditComment(t *testing.T) {
 	defer prepareTestEnv(t)()
 	const newCommentBody = "This is the new comment body"

@@ -22,8 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
@@ -283,11 +283,12 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 	CreateUserRepo(ctx, ctx.User, opt)
 }
 
-// CreateOrgRepo create one repository of the organization
-func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
-	// swagger:operation POST /org/{org}/repos organization createOrgRepo
+// CreateOrgRepoDeprecated create one repository of the organization
+func CreateOrgRepoDeprecated(ctx *context.APIContext, opt api.CreateRepoOption) {
+	// swagger:operation POST /org/{org}/repos organization createOrgRepoDeprecated
 	// ---
 	// summary: Create a repository in an organization
+	// deprecated: true
 	// consumes:
 	// - application/json
 	// produces:
@@ -307,6 +308,36 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//     "$ref": "#/responses/Repository"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
+	CreateOrgRepo(ctx, opt)
+}
+
+// CreateOrgRepo create one repository of the organization
+func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
+	// swagger:operation POST /orgs/{org}/repos organization createOrgRepo
+	// ---
+	// summary: Create a repository in an organization
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of organization
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateRepoOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Repository"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
@@ -420,10 +451,10 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		return
 	}
 
-	var gitServiceType = structs.PlainGitService
+	var gitServiceType = api.PlainGitService
 	u, err := url.Parse(remoteAddr)
 	if err == nil && strings.EqualFold(u.Host, "github.com") {
-		gitServiceType = structs.GithubService
+		gitServiceType = api.GithubService
 	}
 
 	var opts = migrations.MigrateOptions{
@@ -452,13 +483,14 @@ func Migrate(ctx *context.APIContext, form auth.MigrateRepoForm) {
 		opts.Releases = false
 	}
 
-	repo, err := models.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
-		Name:        opts.RepoName,
-		Description: opts.Description,
-		OriginalURL: form.CloneAddr,
-		IsPrivate:   opts.Private,
-		IsMirror:    opts.Mirror,
-		Status:      models.RepositoryBeingMigrated,
+	repo, err := repo_module.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+		Name:           opts.RepoName,
+		Description:    opts.Description,
+		OriginalURL:    form.CloneAddr,
+		GitServiceType: gitServiceType,
+		IsPrivate:      opts.Private,
+		IsMirror:       opts.Mirror,
+		Status:         models.RepositoryBeingMigrated,
 	})
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, remoteAddr, err)

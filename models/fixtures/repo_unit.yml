@@ -473,3 +473,9 @@
   type: 7
   config: "{\"ExternalTrackerURL\":\"https://tracker.com\",\"ExternalTrackerFormat\":\"https://tracker.com/{user}/{repo}/issues/{index}\",\"ExternalTrackerStyle\":\"alphanumeric\"}"
   created_unix: 946684810
+-
+  id: 69
+  repo_id: 2
+  type: 2
+  config: "{}"
+  created_unix: 946684810

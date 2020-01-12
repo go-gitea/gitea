@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -59,7 +60,7 @@ func changeIssueStatus(repo *models.Repository, issue *models.Issue, doer *model
 }
 
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
-func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*models.PushCommit, branchName string) error {
+func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*repository.PushCommit, branchName string) error {
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
@@ -137,9 +138,11 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*m
 					continue
 				}
 			}
-
-			if err := changeIssueStatus(refRepo, refIssue, doer, ref.Action == references.XRefActionCloses); err != nil {
-				return err
+			close := (ref.Action == references.XRefActionCloses)
+			if close != refIssue.IsClosed {
+				if err := changeIssueStatus(refRepo, refIssue, doer, close); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -154,7 +157,7 @@ type CommitRepoActionOptions struct {
 	RefFullName string
 	OldCommitID string
 	NewCommitID string
-	Commits     *models.PushCommits
+	Commits     *repository.PushCommits
 }
 
 // CommitRepoAction adds new commit action to the repository, and prepare
@@ -216,10 +219,10 @@ func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
 			if opts.NewCommitID == git.EmptySHA {
 				opType = models.ActionDeleteTag
 			}
-			opts.Commits = &models.PushCommits{}
+			opts.Commits = &repository.PushCommits{}
 		} else if opts.NewCommitID == git.EmptySHA {
 			opType = models.ActionDeleteBranch
-			opts.Commits = &models.PushCommits{}
+			opts.Commits = &repository.PushCommits{}
 		} else {
 			// if not the first commit, set the compare URL.
 			if opts.OldCommitID == git.EmptySHA {

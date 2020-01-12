@@ -3,12 +3,15 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<title>{{.Subject}}</title>
-	{{if .ReviewComments}}
+
 	<style>
-		.review { padding-left: 1em; margin: 1em 0; }
-		.review > pre { padding: 1em; border-left: 1px solid grey; }
+		.footer { font-size:small; color:#666;}
+		{{if .ReviewComments}}
+			.review { padding-left: 1em; margin: 1em 0; }
+			.review > pre { padding: 1em; border-left: 1px solid grey; }
+		{{end}}
 	</style>
-	{{end}}
+
 </head>
 
 <body>
@@ -18,6 +21,8 @@
 			Closed #{{.Issue.Index}}.
 		{{else if eq .ActionName "reopen"}}
 			Reopened #{{.Issue.Index}}.
+		{{else if eq .ActionName "merge"}}
+			Merged #{{.Issue.Index}} into {{.Issue.PullRequest.BaseBranch}}.
 		{{else if eq .ActionName "approve"}}
 			<b>@{{.Doer.Name}}</b> approved this pull request.
 		{{else if eq .ActionName "reject"}}
@@ -42,10 +47,12 @@
 			</div>
 		{{end -}}		
 	</p>
+	<div class="footer">
 	<p>
 		---
 		<br>
 		<a href="{{.Link}}">View it on {{AppName}}</a>.
 	</p>
+	</div>
 </body>
 </html>

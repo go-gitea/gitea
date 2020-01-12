@@ -20,7 +20,7 @@ gitea.com/macaron/gzip
 gitea.com/macaron/i18n
 # gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
 gitea.com/macaron/inject
-# gitea.com/macaron/macaron v1.3.3-0.20190821202302-9646c0587edb
+# gitea.com/macaron/macaron v1.4.0
 gitea.com/macaron/macaron
 # gitea.com/macaron/session v0.0.0-20190821211443-122c47c5f705
 gitea.com/macaron/session
@@ -414,7 +414,7 @@ github.com/tstranex/u2f
 # github.com/unknwon/cae v0.0.0-20190822084630-55a0b64484a1
 github.com/unknwon/cae
 github.com/unknwon/cae/zip
-# github.com/unknwon/com v0.0.0-20190804042917-757f69c95f3e
+# github.com/unknwon/com v1.0.1
 github.com/unknwon/com
 # github.com/unknwon/i18n v0.0.0-20190805065654-5c6446a380b6
 github.com/unknwon/i18n
@@ -547,7 +547,7 @@ gopkg.in/alexcesaro/quotedprintable.v3
 gopkg.in/asn1-ber.v1
 # gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 gopkg.in/gomail.v2
-# gopkg.in/ini.v1 v1.48.0
+# gopkg.in/ini.v1 v1.51.1
 gopkg.in/ini.v1
 # gopkg.in/ldap.v3 v3.0.2
 gopkg.in/ldap.v3

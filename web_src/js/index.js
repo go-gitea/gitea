@@ -22,6 +22,9 @@ if (typeof (Dropzone) !== 'undefined') {
   Dropzone.autoDiscover = false;
 }
 
+// Silence fomantic's error logging when tabs are used without a target content element
+$.fn.tab.settings.silent = true;
+
 function initCommentPreviewTab($form) {
   const $tabMenu = $form.find('.tabular.menu');
   $tabMenu.find('.item').tab();
@@ -2271,7 +2274,7 @@ function initTemplateSearch() {
   const checkTemplate = function () {
     const $templateUnits = $('#template_units');
     const $nonTemplate = $('#non_template');
-    if ($repoTemplate.val() !== '') {
+    if ($repoTemplate.val() !== '' && $repoTemplate.val() !== '0') {
       $templateUnits.show();
       $nonTemplate.hide();
     } else {

@@ -503,7 +503,7 @@ func (u *User) ValidatePassword(passwd string) bool {
 
 // IsPasswordSet checks if the password is set or left empty
 func (u *User) IsPasswordSet() bool {
-	return len(u.Passwd) > 0
+	return !u.ValidatePassword("")
 }
 
 // UploadAvatar saves custom avatar for user.
@@ -640,19 +640,20 @@ func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 	var ids []int64
 
-	sess := x.Table("repository").
+	if err := x.Table("repository").
 		Cols("repository.id").
 		Join("INNER", "team_user", "repository.owner_id = team_user.org_id").
-		Join("INNER", "team_repo", "repository.is_private != ? OR (team_user.team_id = team_repo.team_id AND repository.id = team_repo.repo_id)", true)
-
-	if len(units) > 0 {
-		sess = sess.Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id")
-		sess = sess.In("team_unit.type", units)
+		Join("INNER", "team_repo", "repository.is_private != ? OR (team_user.team_id = team_repo.team_id AND repository.id = team_repo.repo_id)", true).
+		Where("team_user.uid = ?", u.ID).
+		GroupBy("repository.id").Find(&ids); err != nil {
+		return nil, err
 	}
 
-	return ids, sess.
-		Where("team_user.uid = ?", u.ID).
-		GroupBy("repository.id").Find(&ids)
+	if len(units) > 0 {
+		return FilterOutRepoIdsWithoutUnitAccess(u, ids, units...)
+	}
+
+	return ids, nil
 }
 
 // GetAccessRepoIDs returns all repositories IDs where user's or user is a team member organizations
@@ -1471,7 +1472,7 @@ type SearchUserOptions struct {
 	UID           int64
 	OrderBy       SearchOrderBy
 	Page          int
-	Private       bool  // Include private orgs in search
+	Visible       []structs.VisibleType
 	OwnerID       int64 // id of user for visibility calculation
 	PageSize      int   // Can be smaller than or equal to setting.UI.ExplorePagingNum
 	IsActive      util.OptionalBool
@@ -1494,8 +1495,9 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		cond = cond.And(keywordCond)
 	}
 
-	if !opts.Private {
-		// user not logged in and so they won't be allowed to see non-public orgs
+	if len(opts.Visible) > 0 {
+		cond = cond.And(builder.In("visibility", opts.Visible))
+	} else {
 		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
 	}
 

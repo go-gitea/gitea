@@ -5,7 +5,7 @@ groups:
     labels:
       - kind/breaking
   - 
-    name: FEATURE
+    name: FEATURES
     labels:
       - kind/feature
   -
@@ -13,7 +13,7 @@ groups:
     labels:
       - kind/bug
   - 
-    name: ENHANCEMENT
+    name: ENHANCEMENTS
     labels:
       - kind/enhancement
       - kind/refactor

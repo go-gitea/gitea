@@ -13,6 +13,11 @@
 							{{else}}grey{{end}}">
 							<span class="octicon octicon-{{.Type.Icon}}"></span>
 						</span>
+						{{if .Stale}}
+						<span class="type-icon text grey">
+							<i class="octicon icon fa-hourglass-end"></i>
+						</span>
+						{{end}}
 						<a class="ui avatar image" href="{{.Reviewer.HomeLink}}">
 							<img src="{{.Reviewer.RelAvatarLink}}">
 						</a>
@@ -41,6 +46,7 @@
 	{{else if .IsFilesConflicted}}grey
 	{{else if .IsPullRequestBroken}}red
 	{{else if .IsBlockedByApprovals}}red
+	{{else if .IsBlockedByRejection}}red
 	{{else if and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}red
 	{{else if .Issue.PullRequest.IsChecking}}yellow
 	{{else if .Issue.PullRequest.CanAutoMerge}}green
@@ -71,7 +77,7 @@
 						{{$.i18n.Tr "repo.pulls.reopen_to_merge"}}
 					{{end}}
 				</div>
-				{{if .IsPullBranchDeletable}}
+				{{if and .IsPullBranchDeletable ( not .IsPullRequestBroken )}}
 					<div class="ui divider"></div>
 					<div>
 						<a class="delete-button ui red button" href="" data-url="{{.DeleteBranchLink}}">{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</a>
@@ -95,30 +101,31 @@
 					<span class="octicon octicon-x"></span>
 					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" .WorkInProgressPrefix | Str2html}}
 				</div>
-			{{else if .IsBlockedByApprovals}}
-				<div class="item text red">
-					<span class="octicon octicon-x"></span>
-				{{$.i18n.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .Issue.PullRequest.ProtectedBranch.RequiredApprovals}}
-				</div>
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item text yellow">
 					<span class="octicon octicon-sync"></span>
 					{{$.i18n.Tr "repo.pulls.is_checking"}}
 				</div>
-			{{else if and (not .Issue.PullRequest.CanAutoMerge) .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}
-				<div class="item text red">
-					<span class="octicon octicon-x"></span>
-					{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
-				</div>
 			{{else if .Issue.PullRequest.CanAutoMerge}}
-				{{if and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}
-				<div class="item text red">
-					<span class="octicon octicon-x"></span>
-					{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
-				</div>
+				{{if .IsBlockedByApprovals}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+					{{$.i18n.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .Issue.PullRequest.ProtectedBranch.RequiredApprovals}}
+					</div>
+				{{else if .IsBlockedByRejection}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+					{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
+					</div>
+				{{else if and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+						{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
+					</div>
 				{{end}}
-				{{if or $.IsRepoAdmin (not .EnableStatusCheck) .IsRequiredStatusCheckSuccess}}
-					{{if and $.IsRepoAdmin .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}
+				{{$notAllOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess))}}	
+				{{if or $.IsRepoAdmin (not $notAllOk)}}
+					{{if $notAllOk}}
 						<div class="item text yellow">
 							<span class="octicon octicon-primitive-dot"></span>
 							{{$.i18n.Tr "repo.pulls.required_status_check_administrator"}}
@@ -142,7 +149,7 @@
 										<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultMergeMessage}}">
 									</div>
 									<div class="field">
-										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">{{$approvers}}</textarea>
+										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
 									</div>
 									<button class="ui green button" type="submit" name="do" value="merge">
 										{{$.i18n.Tr "repo.pulls.merge_pull_request"}}
@@ -174,7 +181,7 @@
 										<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultMergeMessage}}">
 									</div>
 									<div class="field">
-										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">{{$approvers}}</textarea>
+										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
 									</div>
 									<button class="ui green button" type="submit" name="do" value="rebase-merge">
 										{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
@@ -194,7 +201,7 @@
 										<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultSquashMessage}}">
 									</div>
 									<div class="field">
-										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">{{$commitMessages}}{{$approvers}}</textarea>
+										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">{{$commitMessages}}Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
 									</div>
 									<button class="ui green button" type="submit" name="do" value="squash">
 										{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}
@@ -205,7 +212,7 @@
 								</form>
 							</div>
 							{{end}}
-							<div class="ui green buttons merge-button">
+							<div class="ui {{if $notAllOk}}red{{else}}green{{end}} buttons merge-button">
 								<button class="ui button" data-do="{{.MergeStyle}}">
 									<span class="octicon octicon-git-merge"></span>
 									<span class="button-text">
@@ -251,17 +258,40 @@
 								{{$.i18n.Tr "repo.pulls.no_merge_helper"}}
 							</div>
 						{{end}}
+					{{else}}
+						<div class="item text grey">
+							<span class="octicon octicon-info"></span>
+							{{$.i18n.Tr "repo.pulls.no_merge_access"}}
+						</div>
 					{{end}}
 				{{end}}
 			{{else}}
-				<div class="item text red">
-					<span class="octicon octicon-x"></span>
-					{{$.i18n.Tr "repo.pulls.cannot_auto_merge_desc"}}
-				</div>
-				<div class="item text grey">
-					<span class="octicon octicon-info"></span>
-					{{$.i18n.Tr "repo.pulls.cannot_auto_merge_helper"}}
-				</div>
+				{{/* Merge conflict without specific file. Suggest manual merge, only if all reviews and status checks OK. */}}
+				{{if .IsBlockedByApprovals}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+					{{$.i18n.Tr "repo.pulls.blocked_by_approvals" .GrantedApprovals .Issue.PullRequest.ProtectedBranch.RequiredApprovals}}
+					</div>
+				{{else if .IsBlockedByRejection}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+					{{$.i18n.Tr "repo.pulls.blocked_by_rejection"}}
+					</div>
+				{{else if and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess)}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+						{{$.i18n.Tr "repo.pulls.required_status_check_failed"}}
+					</div>
+				{{else}}
+					<div class="item text red">
+						<span class="octicon octicon-x"></span>
+						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_desc"}}
+					</div>
+					<div class="item text grey">
+						<span class="octicon octicon-info"></span>
+						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_helper"}}
+					</div>
+				{{end}}
 			{{end}}
 		</div>
 	</div>
