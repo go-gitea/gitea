@@ -401,6 +401,15 @@ depends_on:
   - translations
 
 steps:
+  - name: restore-cache
+    image: drillster/drone-volume-cache
+    volumes:
+    - name: cache_node_modules
+      path: /cache/node_modules
+    settings:
+      restore: true
+      mount:
+        - ./node_modules
   - name: fetch-tags
     pull: default
     image: docker:git
@@ -498,6 +507,15 @@ depends_on:
   - testing
 
 steps:
+  - name: restore-cache
+    image: drillster/drone-volume-cache
+    volumes:
+    - name: cache_node_modules
+      path: /cache/node_modules
+    settings:
+      restore: true
+      mount:
+        - ./node_modules
   - name: fetch-tags
     pull: default
     image: docker:git
@@ -627,6 +645,16 @@ steps:
         exclude:
           - pull_request
 
+  - name: restore-cache
+    image: drillster/drone-volume-cache
+    volumes:
+    - name: cache_node_modules
+      path: /cache/node_modules
+    settings:
+      restore: true
+      mount:
+        - ./node_modules
+
   - name: dryrun
     pull: always
     image: plugins/docker:linux-amd64
@@ -689,6 +717,16 @@ steps:
       event:
         exclude:
           - pull_request
+
+  - name: restore-cache
+    image: drillster/drone-volume-cache
+    volumes:
+    - name: cache_node_modules
+      path: /cache/node_modules
+    settings:
+      restore: true
+      mount:
+        - ./node_modules
 
   - name: dryrun
     pull: always
