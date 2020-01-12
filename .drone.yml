@@ -167,6 +167,8 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata
+    depends_on:
+      - tag-pre-condition
     when:
       event:
         - tag
@@ -188,8 +190,6 @@ steps:
   - name: test-mysql
     pull: always
     image: golang:1.13
-    depends_on:
-      - build
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -199,6 +199,8 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+    depends_on:
+      - build
     when:
       branch:
         - master
@@ -209,8 +211,6 @@ steps:
   - name: tag-test-mysql
     pull: always
     image: golang:1.13
-    depends_on:
-      - build
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -220,6 +220,8 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+    depends_on:
+      - build
     when:
       event:
         - tag
@@ -227,8 +229,6 @@ steps:
   - name: test-mysql8
     pull: always
     image: golang:1.13
-    depends_on:
-      - build
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -238,12 +238,12 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+    depends_on:
+      - build
 
   - name: test-pgsql
     pull: always
     image: golang:1.13
-    depends_on:
-      - build
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -253,12 +253,12 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+    depends_on:
+      - build
 
   - name: test-mssql
     pull: always
     image: golang:1.13
-    depends_on:
-      - build
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -268,6 +268,8 @@ steps:
       GOPROXY: off
       TAGS: bindata
       TEST_LDAP: 1
+    depends_on:
+      - build
 
   - name: generate-coverage
     pull: always
@@ -304,7 +306,7 @@ steps:
       event:
         - push
         - pull_request
-          
+
 ---
 kind: pipeline
 name: translations
