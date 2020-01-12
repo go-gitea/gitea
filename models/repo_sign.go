@@ -90,6 +90,7 @@ func (e *ErrWontSign) Error() string {
 	return fmt.Sprintf("wont sign: %s", e.Reason)
 }
 
+// IsErrWontSign checks if an error is a ErrWontSign
 func IsErrWontSign(err error) bool {
 	_, ok := err.(*ErrWontSign)
 	return ok
