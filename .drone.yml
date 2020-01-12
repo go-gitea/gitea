@@ -1,6 +1,6 @@
 ---
 kind: pipeline
-name: init
+name: compatibility
 
 platform:
   os: linux
@@ -9,40 +9,6 @@ platform:
 workspace:
   base: /go
   path: src/code.gitea.io/gitea
-
-steps:
-  - name: fetch-tags
-    pull: default
-    image: docker:git
-    commands:
-      - git fetch --tags --force
-    when:
-      event:
-        exclude:
-          - pull_request
-
-  - name: tag-pre-condition
-    pull: always
-    image: alpine/git
-    commands:
-      - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
-    when:
-      event:
-        - tag
----
-kind: pipeline
-name: build
-
-platform:
-  os: linux
-  arch: amd64
-
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
-depends_on:
-  - init
 
 steps:
   - name: pre-build
@@ -74,18 +40,16 @@ steps:
       - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
 
-  - name: generate-build
+  - name: check
     pull: always
     image: golang:1.13
     commands:
-      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
       - make clean
       - make golangci-lint
       - make revive
       - make swagger-check
       - make swagger-validate
       - make test-vendor
-      - make build
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
@@ -102,9 +66,6 @@ platform:
 workspace:
   base: /go
   path: src/code.gitea.io/gitea
-
-depends_on:
-  - init
 
 services:
   - name: mysql
@@ -140,6 +101,36 @@ services:
     image: gitea/test-openldap:latest
 
 steps:
+  - name: fetch-tags
+    pull: default
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+    when:
+      event:
+        exclude:
+          - pull_request
+
+  - name: tag-pre-condition
+    pull: always
+    image: alpine/git
+    commands:
+      - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
+    when:
+      event:
+        - tag
+
+  - name: build
+    pull: always
+    image: golang:1.13
+    commands:
+      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
+      - make build
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+
   - name: unit-test
     pull: always
     image: golang:1.13
@@ -185,6 +176,8 @@ steps:
   - name: test-sqlite
     pull: always
     image: golang:1.13
+    depends_on:
+      - build
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -197,6 +190,8 @@ steps:
   - name: test-mysql
     pull: always
     image: golang:1.13
+    depends_on:
+      - build
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -216,6 +211,8 @@ steps:
   - name: tag-test-mysql
     pull: always
     image: golang:1.13
+    depends_on:
+      - build
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -232,6 +229,8 @@ steps:
   - name: test-mysql8
     pull: always
     image: golang:1.13
+    depends_on:
+      - build
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -245,6 +244,8 @@ steps:
   - name: test-pgsql
     pull: always
     image: golang:1.13
+    depends_on:
+      - build
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -258,6 +259,8 @@ steps:
   - name: test-mssql
     pull: always
     image: golang:1.13
+    depends_on:
+      - build
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -321,9 +324,6 @@ trigger:
     - master
   event:
     - push
-
-depends_on:
-  - init
 
 steps:
   - name: download
@@ -591,7 +591,7 @@ workspace:
   path: src/code.gitea.io/gitea
 
 depends_on:
-  - build
+  - compatibility
 
 trigger:
   ref:
@@ -663,7 +663,7 @@ workspace:
   path: src/code.gitea.io/gitea
 
 depends_on:
-  - build
+  - compatibility
 
 trigger:
   ref:
