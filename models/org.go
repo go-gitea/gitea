@@ -752,11 +752,10 @@ func (org *User) accessibleReposEnv(e Engine, userID int64) (AccessibleReposEnvi
 	var user *User
 
 	if userID > 0 {
-		u, err := getUserByID(e, userID)
+		user, err := getUserByID(e, userID)
 		if err != nil {
 			return nil, err
 		}
-		user = u
 	}
 
 	teamIDs, err := org.getUserTeamIDs(e, userID)
