@@ -92,6 +92,25 @@ all: build
 
 include docker/Makefile
 
+.PHONY: help
+help:
+	@echo "Make Routines:"
+	@echo " - \"\"                equivalent to \"build\""
+	@echo " - build             creates the entire project"
+	@echo " - clean             delete integration files and build files but not css and js files"
+	@echo " - clean-all         delete all generated files (integration test, build, css and js files)"
+	@echo " - css               rebuild only css files"
+	@echo " - js                rebuild only js files"
+	@echo " - generate          run \"make css js\" and \"go generate\""
+	@echo " - fmt               format the code"
+	@echo " - generate-swagger  generate the swagger spec from code comments"
+	@echo " - swagger-validate  check if the swagger spec is valide"
+	@echo " - revive            run code linter revive"
+	@echo " - misspell          check if a word is written wrong"
+	@echo " - vet               examines Go source code and reports suspicious constructs"
+	@echo " - test              run unit test"
+	@echo " - test-sqlite       run integration test for sqlite"
+
 .PHONY: go-check
 go-check:
 	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell go version | grep -Eo '[0-9]+\.?[0-9]+?\.?[0-9]?\s' | tr '.' ' ');))
@@ -539,6 +558,6 @@ pr:
 golangci-lint:
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.20.0; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.22.2; \
 	fi
 	golangci-lint run --timeout 5m

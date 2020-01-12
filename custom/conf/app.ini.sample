@@ -76,6 +76,16 @@ WORK_IN_PROGRESS_PREFIXES=WIP:,[WIP]
 CLOSE_KEYWORDS=close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved
 ; List of keywords used in Pull Request comments to automatically reopen a related issue
 REOPEN_KEYWORDS=reopen,reopens,reopened
+; In the default merge message for squash commits include at most this many commits
+DEFAULT_MERGE_MESSAGE_COMMITS_LIMIT=50
+; In the default merge message for squash commits limit the size of the commit messages to this
+DEFAULT_MERGE_MESSAGE_SIZE=5120
+; In the default merge message for squash commits walk all commits to include all authors in the Co-authored-by otherwise just use those in the limited list
+DEFAULT_MERGE_MESSAGE_ALL_AUTHORS=false
+; In default merge messages limit the number of approvers listed as Reviewed-by: to this many
+DEFAULT_MERGE_MESSAGE_MAX_APPROVERS=10
+; In default merge messages only include approvers who are official
+DEFAULT_MERGE_MESSAGE_OFFICIAL_APPROVERS_ONLY=true
 
 [repository.issue]
 ; List of reasons why a Pull Request or Issue can be locked
@@ -280,7 +290,8 @@ ENABLE_GZIP = false
 ENABLE_PPROF = false
 ; PPROF_DATA_PATH, use an absolute path when you start gitea as service
 PPROF_DATA_PATH = data/tmp/pprof
-; Landing page, can be "home", "explore", or "organizations"
+; Landing page, can be "home", "explore", "organizations" or "login"
+; The "login" choice is not a security measure but just a UI flow change, use REQUIRE_SIGNIN_VIEW to force users to log in.
 LANDING_PAGE = home
 ; Enables git-lfs support. true or false, default is false.
 LFS_START_SERVER = false
@@ -370,6 +381,39 @@ MAX_FILE_SIZE = 1048576
 REPO_INDEXER_INCLUDE =
 ; A comma separated list of glob patterns to exclude from the index; ; default is empty
 REPO_INDEXER_EXCLUDE =
+
+[queue]
+; Specific queues can be individually configured with [queue.name]. [queue] provides defaults
+;
+; General queue queue type, currently support: persistable-channel, channel, level, redis, dummy
+; default to persistable-channel
+TYPE = persistable-channel
+; data-dir for storing persistable queues and level queues, individual queues will be named by their type
+DATADIR = queues/
+; Default queue length before a channel queue will block
+LENGTH = 20
+; Batch size to send for batched queues
+BATCH_LENGTH = 20
+; Connection string for redis queues this will store the redis connection string.
+CONN_STR = "addrs=127.0.0.1:6379 db=0"
+; Provide the suffix of the default redis queue name - specific queues can be overriden within in their [queue.name] sections.
+QUEUE_NAME = "_queue"
+; If the queue cannot be created at startup - level queues may need a timeout at startup - wrap the queue:
+WRAP_IF_NECESSARY = true
+; Attempt to create the wrapped queue at max
+MAX_ATTEMPTS = 10
+; Timeout queue creation
+TIMEOUT = 15m30s
+; Create a pool with this many workers
+WORKERS = 1
+; Dynamically scale the worker pool to at this many workers
+MAX_WORKERS = 10
+; Add boost workers when the queue blocks for BLOCK_TIMEOUT
+BLOCK_TIMEOUT = 1s
+; Remove the boost workers after BOOST_TIMEOUT
+BOOST_TIMEOUT = 5m
+; During a boost add BOOST_WORKERS
+BOOST_WORKERS = 5
 
 [admin]
 ; Disallow regular (non-admin) users from creating organizations.

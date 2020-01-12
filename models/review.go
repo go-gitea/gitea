@@ -53,7 +53,9 @@ type Review struct {
 	IssueID    int64  `xorm:"index"`
 	Content    string `xorm:"TEXT"`
 	// Official is a review made by an assigned approver (counts towards approval)
-	Official bool `xorm:"NOT NULL DEFAULT false"`
+	Official bool   `xorm:"NOT NULL DEFAULT false"`
+	CommitID string `xorm:"VARCHAR(40)"`
+	Stale    bool   `xorm:"NOT NULL DEFAULT false"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -125,9 +127,10 @@ func GetReviewByID(id int64) (*Review, error) {
 
 // FindReviewOptions represent possible filters to find reviews
 type FindReviewOptions struct {
-	Type       ReviewType
-	IssueID    int64
-	ReviewerID int64
+	Type         ReviewType
+	IssueID      int64
+	ReviewerID   int64
+	OfficialOnly bool
 }
 
 func (opts *FindReviewOptions) toCond() builder.Cond {
@@ -140,6 +143,9 @@ func (opts *FindReviewOptions) toCond() builder.Cond {
 	}
 	if opts.Type != ReviewTypeUnknown {
 		cond = cond.And(builder.Eq{"type": opts.Type})
+	}
+	if opts.OfficialOnly {
+		cond = cond.And(builder.Eq{"official": true})
 	}
 	return cond
 }
@@ -165,6 +171,8 @@ type CreateReviewOptions struct {
 	Issue    *Issue
 	Reviewer *User
 	Official bool
+	CommitID string
+	Stale    bool
 }
 
 // IsOfficialReviewer check if reviewer can make official reviews in issue (counts towards required approvals)
@@ -196,6 +204,8 @@ func createReview(e Engine, opts CreateReviewOptions) (*Review, error) {
 		ReviewerID: opts.Reviewer.ID,
 		Content:    opts.Content,
 		Official:   opts.Official,
+		CommitID:   opts.CommitID,
+		Stale:      opts.Stale,
 	}
 	if _, err := e.Insert(review); err != nil {
 		return nil, err
@@ -254,7 +264,7 @@ func IsContentEmptyErr(err error) bool {
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content string) (*Review, *Comment, error) {
+func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool) (*Review, *Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -291,6 +301,8 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 			Reviewer: doer,
 			Content:  content,
 			Official: official,
+			CommitID: commitID,
+			Stale:    stale,
 		})
 		if err != nil {
 			return nil, nil, err
@@ -318,8 +330,10 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content strin
 		review.Issue = issue
 		review.Content = content
 		review.Type = reviewType
+		review.CommitID = commitID
+		review.Stale = stale
 
-		if _, err := sess.ID(review.ID).Cols("content, type, official").Update(review); err != nil {
+		if _, err := sess.ID(review.ID).Cols("content, type, official, commit_id, stale").Update(review); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -369,4 +383,18 @@ func GetReviewersByIssueID(issueID int64) (reviews []*Review, err error) {
 	}
 
 	return reviews, nil
+}
+
+// MarkReviewsAsStale marks existing reviews as stale
+func MarkReviewsAsStale(issueID int64) (err error) {
+	_, err = x.Exec("UPDATE `review` SET stale=? WHERE issue_id=?", true, issueID)
+
+	return
+}
+
+// MarkReviewsAsNotStale marks existing reviews as not stale for a giving commit SHA
+func MarkReviewsAsNotStale(issueID int64, commitID string) (err error) {
+	_, err = x.Exec("UPDATE `review` SET stale=? WHERE issue_id=? AND commit_id=?", false, issueID, commitID)
+
+	return
 }

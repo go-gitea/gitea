@@ -403,14 +403,14 @@ func syncMirror(repoID string) {
 			continue
 		}
 
-		theCommits := models.ListToPushCommits(commits)
+		theCommits := repository.ListToPushCommits(commits)
 		if len(theCommits.Commits) > setting.UI.FeedMaxCommitNum {
 			theCommits.Commits = theCommits.Commits[:setting.UI.FeedMaxCommitNum]
 		}
 
 		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID, newCommitID)
 
-		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, result.refName, oldCommitID, newCommitID, models.ListToPushCommits(commits))
+		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, result.refName, oldCommitID, newCommitID, theCommits)
 	}
 
 	// Get latest commit date and update to current repository updated time

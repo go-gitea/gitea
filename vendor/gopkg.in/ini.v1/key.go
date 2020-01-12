@@ -147,10 +147,15 @@ func (k *Key) transformValue(val string) string {
 		noption := vr[2 : len(vr)-2]
 
 		// Search in the same section.
+		// If not found or found the key itself, then search again in default section.
 		nk, err := k.s.GetKey(noption)
 		if err != nil || k == nk {
-			// Search again in default section.
 			nk, _ = k.s.f.Section("").GetKey(noption)
+			if nk == nil {
+				// Stop when no results found in the default section,
+				// and returns the value as-is.
+				break
+			}
 		}
 
 		// Substitute by new value and take off leading '%(' and trailing ')s'.

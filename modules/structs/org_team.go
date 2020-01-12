@@ -35,12 +35,12 @@ type CreateTeamOption struct {
 // EditTeamOption options for editing a team
 type EditTeamOption struct {
 	// required: true
-	Name                    string `json:"name" binding:"Required;AlphaDashDot;MaxSize(30)"`
-	Description             string `json:"description" binding:"MaxSize(255)"`
-	IncludesAllRepositories bool   `json:"includes_all_repositories"`
+	Name                    string  `json:"name" binding:"AlphaDashDot;MaxSize(30)"`
+	Description             *string `json:"description" binding:"MaxSize(255)"`
+	IncludesAllRepositories *bool   `json:"includes_all_repositories"`
 	// enum: read,write,admin
 	Permission string `json:"permission"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.ext_wiki"]
 	Units            []string `json:"units"`
-	CanCreateOrgRepo bool     `json:"can_create_org_repo"`
+	CanCreateOrgRepo *bool    `json:"can_create_org_repo"`
 }

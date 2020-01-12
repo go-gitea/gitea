@@ -189,9 +189,13 @@ func Milestones(ctx *context.Context) {
 			ctx.ServerError("env.RepoIDs", err)
 			return
 		}
+		userRepoIDs, err = models.FilterOutRepoIdsWithoutUnitAccess(ctx.User, userRepoIDs, models.UnitTypeIssues, models.UnitTypePullRequests)
+		if err != nil {
+			ctx.ServerError("FilterOutRepoIdsWithoutUnitAccess", err)
+			return
+		}
 	} else {
-		unitType := models.UnitTypeIssues
-		userRepoIDs, err = ctxUser.GetAccessRepoIDs(unitType)
+		userRepoIDs, err = ctxUser.GetAccessRepoIDs(models.UnitTypeIssues, models.UnitTypePullRequests)
 		if err != nil {
 			ctx.ServerError("ctxUser.GetAccessRepoIDs", err)
 			return
@@ -202,27 +206,30 @@ func Milestones(ctx *context.Context) {
 	}
 
 	var repoIDs []int64
-	if issueReposQueryPattern.MatchString(reposQuery) {
-		// remove "[" and "]" from string
-		reposQuery = reposQuery[1 : len(reposQuery)-1]
-		//for each ID (delimiter ",") add to int to repoIDs
-		reposSet := false
-		for _, rID := range strings.Split(reposQuery, ",") {
-			// Ensure nonempty string entries
-			if rID != "" && rID != "0" {
-				reposSet = true
-				rIDint64, err := strconv.ParseInt(rID, 10, 64)
-				if err == nil && com.IsSliceContainsInt64(userRepoIDs, rIDint64) {
-					repoIDs = append(repoIDs, rIDint64)
+	if len(reposQuery) != 0 {
+		if issueReposQueryPattern.MatchString(reposQuery) {
+			// remove "[" and "]" from string
+			reposQuery = reposQuery[1 : len(reposQuery)-1]
+			//for each ID (delimiter ",") add to int to repoIDs
+			reposSet := false
+			for _, rID := range strings.Split(reposQuery, ",") {
+				// Ensure nonempty string entries
+				if rID != "" && rID != "0" {
+					reposSet = true
+					rIDint64, err := strconv.ParseInt(rID, 10, 64)
+					// If the repo id specified by query is not parseable or not accessible by user, just ignore it.
+					if err == nil && com.IsSliceContainsInt64(userRepoIDs, rIDint64) {
+						repoIDs = append(repoIDs, rIDint64)
+					}
 				}
 			}
+			if reposSet && len(repoIDs) == 0 {
+				// force an empty result
+				repoIDs = []int64{-1}
+			}
+		} else {
+			log.Warn("issueReposQueryPattern not match with query")
 		}
-		if reposSet && len(repoIDs) == 0 {
-			// force an empty result
-			repoIDs = []int64{-1}
-		}
-	} else {
-		log.Error("issueReposQueryPattern not match with query")
 	}
 
 	if len(repoIDs) == 0 {
@@ -257,26 +264,6 @@ func Milestones(ctx *context.Context) {
 			}
 		}
 		showReposMap[rID] = repo
-
-		// Check if user has access to given repository.
-		perm, err := models.GetUserRepoPermission(repo, ctxUser)
-		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", fmt.Errorf("[%d]%v", rID, err))
-			return
-		}
-
-		if !perm.CanRead(models.UnitTypeIssues) {
-			if log.IsTrace() {
-				log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
-					"User in repo has Permissions: %-+v",
-					ctxUser,
-					models.UnitTypeIssues,
-					repo,
-					perm)
-			}
-			ctx.Status(404)
-			return
-		}
 	}
 
 	showRepos := models.RepositoryListOfMap(showReposMap)
@@ -346,9 +333,11 @@ var issueReposQueryPattern = regexp.MustCompile(`^\[\d+(,\d+)*,?\]$`)
 // Issues render the user issues page
 func Issues(ctx *context.Context) {
 	isPullList := ctx.Params(":type") == "pulls"
+	unitType := models.UnitTypeIssues
 	if isPullList {
 		ctx.Data["Title"] = ctx.Tr("pull_requests")
 		ctx.Data["PageIsPulls"] = true
+		unitType = models.UnitTypePullRequests
 	} else {
 		ctx.Data["Title"] = ctx.Tr("issues")
 		ctx.Data["PageIsIssues"] = true
@@ -390,21 +379,23 @@ func Issues(ctx *context.Context) {
 
 	reposQuery := ctx.Query("repos")
 	var repoIDs []int64
-	if issueReposQueryPattern.MatchString(reposQuery) {
-		// remove "[" and "]" from string
-		reposQuery = reposQuery[1 : len(reposQuery)-1]
-		//for each ID (delimiter ",") add to int to repoIDs
-		for _, rID := range strings.Split(reposQuery, ",") {
-			// Ensure nonempty string entries
-			if rID != "" && rID != "0" {
-				rIDint64, err := strconv.ParseInt(rID, 10, 64)
-				if err == nil {
-					repoIDs = append(repoIDs, rIDint64)
+	if len(reposQuery) != 0 {
+		if issueReposQueryPattern.MatchString(reposQuery) {
+			// remove "[" and "]" from string
+			reposQuery = reposQuery[1 : len(reposQuery)-1]
+			//for each ID (delimiter ",") add to int to repoIDs
+			for _, rID := range strings.Split(reposQuery, ",") {
+				// Ensure nonempty string entries
+				if rID != "" && rID != "0" {
+					rIDint64, err := strconv.ParseInt(rID, 10, 64)
+					if err == nil {
+						repoIDs = append(repoIDs, rIDint64)
+					}
 				}
 			}
+		} else {
+			log.Warn("issueReposQueryPattern not match with query")
 		}
-	} else {
-		log.Error("issueReposQueryPattern not match with query")
 	}
 
 	isShowClosed := ctx.Query("state") == "closed"
@@ -423,11 +414,12 @@ func Issues(ctx *context.Context) {
 			ctx.ServerError("env.RepoIDs", err)
 			return
 		}
-	} else {
-		unitType := models.UnitTypeIssues
-		if isPullList {
-			unitType = models.UnitTypePullRequests
+		userRepoIDs, err = models.FilterOutRepoIdsWithoutUnitAccess(ctx.User, userRepoIDs, unitType)
+		if err != nil {
+			ctx.ServerError("FilterOutRepoIdsWithoutUnitAccess", err)
+			return
 		}
+	} else {
 		userRepoIDs, err = ctxUser.GetAccessRepoIDs(unitType)
 		if err != nil {
 			ctx.ServerError("ctxUser.GetAccessRepoIDs", err)

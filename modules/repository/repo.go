@@ -214,10 +214,61 @@ func SyncReleasesWithTags(repo *models.Repository, gitRepo *git.Repository) erro
 	}
 	for _, tagName := range tags {
 		if _, ok := existingRelTags[strings.ToLower(tagName)]; !ok {
-			if err := models.PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
-				return fmt.Errorf("pushUpdateAddTag: %s: %v", tagName, err)
+			if err := PushUpdateAddTag(repo, gitRepo, tagName); err != nil {
+				return fmt.Errorf("pushUpdateAddTag: %v", err)
 			}
 		}
 	}
 	return nil
+}
+
+// PushUpdateAddTag must be called for any push actions to add tag
+func PushUpdateAddTag(repo *models.Repository, gitRepo *git.Repository, tagName string) error {
+	tag, err := gitRepo.GetTag(tagName)
+	if err != nil {
+		return fmt.Errorf("GetTag: %v", err)
+	}
+	commit, err := tag.Commit()
+	if err != nil {
+		return fmt.Errorf("Commit: %v", err)
+	}
+
+	sig := tag.Tagger
+	if sig == nil {
+		sig = commit.Author
+	}
+	if sig == nil {
+		sig = commit.Committer
+	}
+
+	var author *models.User
+	var createdAt = time.Unix(1, 0)
+
+	if sig != nil {
+		author, err = models.GetUserByEmail(sig.Email)
+		if err != nil && !models.IsErrUserNotExist(err) {
+			return fmt.Errorf("GetUserByEmail: %v", err)
+		}
+		createdAt = sig.When
+	}
+
+	commitsCount, err := commit.CommitsCount()
+	if err != nil {
+		return fmt.Errorf("CommitsCount: %v", err)
+	}
+
+	var rel = models.Release{
+		RepoID:       repo.ID,
+		TagName:      tagName,
+		LowerTagName: strings.ToLower(tagName),
+		Sha1:         commit.ID.String(),
+		NumCommits:   commitsCount,
+		CreatedUnix:  timeutil.TimeStamp(createdAt.Unix()),
+		IsTag:        true,
+	}
+	if author != nil {
+		rel.PublisherID = author.ID
+	}
+
+	return models.SaveOrUpdateTag(repo, &rel)
 }
