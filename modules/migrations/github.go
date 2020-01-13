@@ -385,6 +385,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			Milestone:   milestone,
 			State:       *issue.State,
 			Created:     *issue.CreatedAt,
+			Updated:     *issue.UpdatedAt,
 			Labels:      labels,
 			Reactions:   reactions,
 			Closed:      issue.ClosedAt,
@@ -428,6 +429,7 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 				PosterEmail: email,
 				Content:     *comment.Body,
 				Created:     *comment.CreatedAt,
+				Updated:     *comment.UpdatedAt,
 				Reactions:   reactions,
 			})
 		}
