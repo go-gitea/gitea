@@ -594,39 +594,6 @@ steps:
 
 ---
 kind: pipeline
-name: docker-linux-dry-run
-
-platform:
-  os: linux
-  arch: arm64
-
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
-depends_on:
-  - compliance
-
-trigger:
-  ref:
-  - "refs/pull/**"
-
-steps:
-  - name: dryrun
-    pull: always
-    image: plugins/docker:linux-arm64
-    settings:
-      dry_run: true
-      repo: gitea/gitea
-      tags: linux-arm64
-      build_args:
-        - GOPROXY=off
-    when:
-      event:
-        - pull_request
-
----
-kind: pipeline
 name: docker-linux-amd64-release
 
 platform:
@@ -668,6 +635,39 @@ steps:
     when:
       event:
         exclude:
+        - pull_request
+
+---
+kind: pipeline
+name: docker-linux-arm64-dry-run
+
+platform:
+  os: linux
+  arch: arm64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+depends_on:
+  - compliance
+
+trigger:
+  ref:
+  - "refs/pull/**"
+
+steps:
+  - name: dryrun
+    pull: always
+    image: plugins/docker:linux-arm64
+    settings:
+      dry_run: true
+      repo: gitea/gitea
+      tags: linux-arm64
+      build_args:
+        - GOPROXY=off
+    when:
+      event:
         - pull_request
 
 ---
