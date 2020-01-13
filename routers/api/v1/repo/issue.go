@@ -237,6 +237,9 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	listOptions := utils.GetListOptions(ctx)
+	if ctx.QueryInt("limit") == 0 {
+		listOptions.PageSize = setting.UI.IssuePagingNum
+	}
 
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.

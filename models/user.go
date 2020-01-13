@@ -1489,7 +1489,6 @@ type SearchUserOptions struct {
 	Type          UserType
 	UID           int64
 	OrderBy       SearchOrderBy
-	Private       bool // Include private orgs in search
 	Visible       []structs.VisibleType
 	OwnerID       int64 // id of user for visibility calculation
 	IsActive      util.OptionalBool
