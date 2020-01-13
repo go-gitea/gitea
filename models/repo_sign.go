@@ -5,7 +5,6 @@
 package models
 
 import (
-	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -78,22 +77,6 @@ func signingKey(repoPath string) string {
 	}
 
 	return setting.Repository.Signing.SigningKey
-}
-
-// ErrWontSign explains the first reason why a commit would not be signed
-// There may be other reasons - this is just the first reason found
-type ErrWontSign struct {
-	Reason signingMode
-}
-
-func (e *ErrWontSign) Error() string {
-	return fmt.Sprintf("wont sign: %s", e.Reason)
-}
-
-// IsErrWontSign checks if an error is a ErrWontSign
-func IsErrWontSign(err error) bool {
-	_, ok := err.(*ErrWontSign)
-	return ok
 }
 
 // PublicSigningKey gets the public signing key within a provided repository directory
