@@ -70,7 +70,7 @@ func ListGPGKeys(uid int64, listOptions ListOptions) ([]*GPGKey, error) {
 		sess = listOptions.setSessionPagination(sess)
 	}
 
-	var keys []*GPGKey
+	keys := make([]*GPGKey, 0, 2)
 	return keys, sess.Find(&keys)
 }
 

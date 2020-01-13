@@ -576,7 +576,7 @@ func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
 		return keys, sess.Find(&keys)
 	}
 
-	var keys []*PublicKey
+	keys := make([]*PublicKey, 0, 5)
 	return keys, sess.Find(&keys)
 }
 
@@ -989,7 +989,7 @@ func listDeployKeys(e Engine, repoID int64, listOptions ListOptions) ([]*DeployK
 		return keys, sess.Find(&keys)
 	}
 
-	var keys []*DeployKey
+	keys := make([]*DeployKey, 0, 5)
 	return keys, sess.Find(&keys)
 }
 

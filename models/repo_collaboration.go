@@ -55,7 +55,7 @@ func (repo *Repository) AddCollaborator(u *User) error {
 
 func (repo *Repository) getCollaborations(e Engine, listOptions ListOptions) ([]*Collaboration, error) {
 	if listOptions.Page == 0 {
-		var collaborations []*Collaboration
+		collaborations := make([]*Collaboration, 0, 8)
 		return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
 	}
 

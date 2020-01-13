@@ -447,7 +447,7 @@ func (u *User) GetFollowers(listOptions ListOptions) ([]*User, error) {
 		return users, sess.Find(&users)
 	}
 
-	var users []*User
+	users := make([]*User, 0, 8)
 	return users, sess.Find(&users)
 }
 
@@ -469,7 +469,7 @@ func (u *User) GetFollowing(listOptions ListOptions) ([]*User, error) {
 		return users, sess.Find(&users)
 	}
 
-	var users []*User
+	users := make([]*User, 0, 8)
 	return users, sess.Find(&users)
 }
 
@@ -1580,7 +1580,7 @@ func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 		return repos, sess.Find(&repos)
 	}
 
-	var repos []*Repository
+	repos := make([]*Repository, 0, 10)
 	return repos, sess.Find(&repos)
 }
 
@@ -1600,7 +1600,7 @@ func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 		return repos, sess.Find(&repos)
 	}
 
-	var repos []*Repository
+	repos := make([]*Repository, 0, 10)
 	return repos, sess.Find(&repos)
 }
 

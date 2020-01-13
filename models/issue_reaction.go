@@ -87,7 +87,7 @@ func findReactions(e Engine, opts FindReactionsOptions) ([]*Reaction, error) {
 		return reactions, e.Find(&reactions)
 	}
 
-	var reactions []*Reaction
+	reactions := make([]*Reaction, 0, 10)
 	return reactions, e.Find(&reactions)
 }
 

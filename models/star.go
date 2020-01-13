@@ -74,7 +74,7 @@ func (repo *Repository) GetStargazers(opts ListOptions) ([]*User, error) {
 		return users, sess.Find(&users)
 	}
 
-	var users []*User
+	users := make([]*User, 0, 8)
 	return users, sess.Find(&users)
 }
 

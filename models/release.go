@@ -198,7 +198,7 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 }
 
 // GetReleasesByRepoID returns a list of releases of repository.
-func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) (rels []*Release, err error) {
+func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, error) {
 	sess := x.
 		Desc("created_unix", "id").
 		Where(opts.toConds(repoID))
@@ -207,6 +207,7 @@ func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) (rels []*Releas
 		sess = opts.setSessionPagination(sess)
 	}
 
+	rels := make([]*Release, 0, opts.PageSize)
 	return rels, sess.Find(&rels)
 }
 

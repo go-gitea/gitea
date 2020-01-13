@@ -90,7 +90,7 @@ func ListAccessTokens(uid int64, listOptions ListOptions) ([]*AccessToken, error
 		return tokens, sess.Find(&tokens)
 	}
 
-	var tokens []*AccessToken
+	tokens := make([]*AccessToken, 0, 5)
 	return tokens, sess.Find(&tokens)
 }
 

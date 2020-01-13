@@ -2210,7 +2210,7 @@ func CopyLFS(ctx DBContext, newRepo, oldRepo *Repository) error {
 // GetForks returns all the forks of the repository
 func (repo *Repository) GetForks(listOptions ListOptions) ([]*Repository, error) {
 	if listOptions.Page == 0 {
-		var forks []*Repository
+		forks := make([]*Repository, 0, repo.NumForks)
 		return forks, x.Find(&forks, &Repository{ForkID: repo.ID})
 	}
 

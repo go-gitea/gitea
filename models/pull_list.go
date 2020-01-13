@@ -94,7 +94,6 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 		return nil, maxResults, err
 	}
 
-	var prs []*PullRequest
 	findSession, err := listPullRequestStatement(baseRepoID, opts)
 	sortIssuesSession(findSession, opts.SortType, 0)
 	if err != nil {
@@ -102,6 +101,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 		return nil, maxResults, err
 	}
 	findSession = opts.setSessionPagination(findSession)
+	prs := make([]*PullRequest, 0, opts.PageSize)
 	return prs, maxResults, findSession.Find(&prs)
 }
 

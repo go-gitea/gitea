@@ -276,7 +276,7 @@ func getActiveWebhooksByRepoID(e Engine, repoID int64) ([]*Webhook, error) {
 // GetWebhooksByRepoID returns all webhooks of a repository.
 func GetWebhooksByRepoID(repoID int64, listOptions ListOptions) ([]*Webhook, error) {
 	if listOptions.Page == 0 {
-		var webhooks []*Webhook
+		webhooks := make([]*Webhook, 0, 5)
 		return webhooks, x.Find(&webhooks, &Webhook{RepoID: repoID})
 	}
 
@@ -302,7 +302,7 @@ func getActiveWebhooksByOrgID(e Engine, orgID int64) (ws []*Webhook, err error) 
 // GetWebhooksByOrgID returns paginated webhooks for an organization.
 func GetWebhooksByOrgID(orgID int64, listOptions ListOptions) ([]*Webhook, error) {
 	if listOptions.Page == 0 {
-		var ws []*Webhook
+		webhooks := make([]*Webhook, 0, 5)
 		return ws, x.Find(&ws, &Webhook{OrgID: orgID})
 	}
 
