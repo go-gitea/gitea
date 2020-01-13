@@ -1,5 +1,60 @@
 ---
 kind: pipeline
+name: compliance
+
+platform:
+  os: linux
+  arch: arm64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+steps:
+  - name: pre-build
+    pull: always
+    image: node:10 # this step is kept at the lowest version of node that we support
+    commands:
+      - make css
+      - make js
+
+  - name: build-without-gcc
+    pull: always
+    image: golang:1.11 # this step is kept as the lowest version of golang that we support
+    environment:
+      GO111MODULE: on
+      GOPROXY: off
+    commands:
+      - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
+
+  - name: build-linux-386
+    pull: always
+    image: golang:1.13
+    environment:
+      GO111MODULE: on
+      GOPROXY: off
+      GOOS: linux
+      GOARCH: 386
+    commands:
+      - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
+
+  - name: check
+    pull: always
+    image: golang:1.13
+    commands:
+      - make clean
+      - make golangci-lint
+      - make revive
+      - make swagger-check
+      - make swagger-validate
+      - make test-vendor
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+
+---
+kind: pipeline
 name: testing
 
 platform:
@@ -54,51 +109,11 @@ steps:
         exclude:
           - pull_request
 
-  - name: pre-build
-    pull: always
-    image: node:10 # this step is kept at the lowest version of node that we support
-    commands:
-      - make css
-      - make js
-
-  - name: build-without-gcc
-    pull: always
-    image: golang:1.11 # this step is kept as the lowest version of golang that we support
-    environment:
-      GO111MODULE: on
-      GOPROXY: off
-    commands:
-      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
-      - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
-
-  - name: build-linux-386
-    pull: always
-    image: golang:1.13
-    environment:
-      GO111MODULE: on
-      GOPROXY: off
-      GOOS: linux
-      GOARCH: 386
-    commands:
-      - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
-      - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
-
-  - name: golangci-lint
-    pull: always
-    image: golangci/golangci-lint:v1.22.2
-    commands:
-      - golangci-lint run -v --timeout 5m
-
   - name: build
     pull: always
     image: golang:1.13
     commands:
       - curl -sL https://deb.nodesource.com/setup_12.x | bash - && apt -y install nodejs
-      - make clean
-      - make revive
-      - make swagger-check
-      - make swagger-validate
-      - make test-vendor
       - make build
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
@@ -113,8 +128,6 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify
-    depends_on:
-      - build
     when:
       branch:
         - master
@@ -130,8 +143,6 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify
-    depends_on:
-      - build
     when:
       branch:
         - "release/*"
@@ -583,7 +594,7 @@ steps:
 
 ---
 kind: pipeline
-name: docker-linux-amd64
+name: docker-linux-amd64-release
 
 platform:
   os: linux
@@ -600,7 +611,6 @@ trigger:
   ref:
   - refs/heads/master
   - "refs/tags/**"
-  - "refs/pull/**"
 
 steps:
   - name: fetch-tags
@@ -608,23 +618,6 @@ steps:
     image: docker:git
     commands:
       - git fetch --tags --force
-    when:
-      event:
-        exclude:
-          - pull_request
-
-  - name: dryrun
-    pull: always
-    image: plugins/docker:linux-amd64
-    settings:
-      dry_run: true
-      repo: gitea/gitea
-      tags: linux-amd64
-      build_args:
-        - GOPROXY=off
-    when:
-      event:
-        - pull_request
 
   - name: publish
     pull: always
@@ -646,7 +639,40 @@ steps:
 
 ---
 kind: pipeline
-name: docker-linux-arm64
+name: docker-linux-arm64-dry-run
+
+platform:
+  os: linux
+  arch: arm64
+
+workspace:
+  base: /go
+  path: src/code.gitea.io/gitea
+
+depends_on:
+  - compliance
+
+trigger:
+  ref:
+  - "refs/pull/**"
+
+steps:
+  - name: dryrun
+    pull: always
+    image: plugins/docker:linux-arm64
+    settings:
+      dry_run: true
+      repo: gitea/gitea
+      tags: linux-arm64
+      build_args:
+        - GOPROXY=off
+    when:
+      event:
+        - pull_request
+
+---
+kind: pipeline
+name: docker-linux-arm64-release
 
 platform:
   os: linux
@@ -663,31 +689,12 @@ trigger:
   ref:
   - refs/heads/master
   - "refs/tags/**"
-  - "refs/pull/**"
-
 steps:
   - name: fetch-tags
     pull: default
     image: docker:git
     commands:
       - git fetch --tags --force
-    when:
-      event:
-        exclude:
-          - pull_request
-
-  - name: dryrun
-    pull: always
-    image: plugins/docker:linux-arm64
-    settings:
-      dry_run: true
-      repo: gitea/gitea
-      tags: linux-arm64
-      build_args:
-        - GOPROXY=off
-    when:
-      event:
-        - pull_request
 
   - name: publish
     pull: always
@@ -734,8 +741,8 @@ trigger:
   - "refs/tags/**"
 
 depends_on:
-  - docker-linux-amd64
-  - docker-linux-arm64
+  - docker-linux-amd64-release
+  - docker-linux-arm64-release
 
 ---
 kind: pipeline
@@ -762,8 +769,8 @@ depends_on:
   - translations
   - release-version
   - release-master
-  - docker-linux-amd64
-  - docker-linux-arm64
+  - docker-linux-amd64-release
+  - docker-linux-arm64-release
   - docker-manifest
   - docs
 
