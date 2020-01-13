@@ -114,7 +114,7 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 		if err != nil {
 			return fmt.Errorf("GetMSTeamsPayload: %v", err)
 		}
-	case WORKWECHAT:
+	case models.WORKWECHAT:
 		payloader, err = GetWorkwechatPayload(p, event, w.Meta)
 		if err != nil {
 			return fmt.Errorf("GetWorkwechatPayload: %v", err)

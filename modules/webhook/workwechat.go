@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/git"
-	api "code.gitea.io/sdk/gitea"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 type (
@@ -41,6 +43,15 @@ type (
 		ChatID string `json:"chatid"`
 	}
 )
+
+// GetWorkwechatHook returns workwechat metadata
+func GetWorkwechatHook(w *models.Webhook) *WorkwechatMeta {
+	we := &WorkwechatMeta{}
+	if err := json.Unmarshal([]byte(w.Meta), we); err != nil {
+		log.Error("webhook.GetWorkwechatHook(%d): %v", w.ID, err)
+	}
+	return we
+}
 
 // SetSecret sets the workwechat secret
 func (p *WorkwechatPayload) SetSecret(_ string) {}
@@ -252,23 +263,23 @@ func GetWorkwechatPayload(p api.Payloader, event models.HookEventType, meta stri
 		return s, errors.New("GetWorkwechatPayload meta json:" + err.Error())
 	}
 	switch event {
-	case HookEventCreate:
+	case models.HookEventCreate:
 		return getWorkwechatCreatePayload(p.(*api.CreatePayload), workwechatMeta)
-	case HookEventDelete:
+	case models.HookEventDelete:
 		return getWorkwechatDeletePayload(p.(*api.DeletePayload), workwechatMeta)
-	case HookEventFork:
+	case models.HookEventFork:
 		return getWorkwechatForkPayload(p.(*api.ForkPayload), workwechatMeta)
-	case HookEventIssues:
+	case models.HookEventIssues:
 		return getWorkwechatIssuesPayload(p.(*api.IssuePayload), workwechatMeta)
-	case HookEventIssueComment:
+	case models.HookEventIssueComment:
 		return getWorkwechatIssueCommentPayload(p.(*api.IssueCommentPayload), workwechatMeta)
-	case HookEventPush:
+	case models.HookEventPush:
 		return getWorkwechatPushPayload(p.(*api.PushPayload), workwechatMeta)
-	case HookEventPullRequest:
+	case models.HookEventPullRequest:
 		return getWorkwechatPullRequestPayload(p.(*api.PullRequestPayload), workwechatMeta)
-	case HookEventRepository:
+	case models.HookEventRepository:
 		return getWorkwechatRepositoryPayload(p.(*api.RepositoryPayload), workwechatMeta)
-	case HookEventRelease:
+	case models.HookEventRelease:
 		return getWorkwechatReleasePayload(p.(*api.ReleasePayload), workwechatMeta)
 	}
 

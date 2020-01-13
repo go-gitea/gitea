@@ -506,7 +506,7 @@ func WorkwechatHooksNewPost(ctx *context.Context, form auth.NewWorkwechatHookFor
 		ctx.HTML(200, orCtx.NewTemplate)
 		return
 	}
-	meta, err := json.Marshal(&models.WorkwechatMeta{
+	meta, err := json.Marshal(&webhook.WorkwechatMeta{
 		ChatID: form.ChatID,
 	})
 	if err != nil {
@@ -887,7 +887,7 @@ func WorkwechatHooksEditPost(ctx *context.Context, form auth.NewWorkwechatHookFo
 		ctx.HTML(200, orCtx.NewTemplate)
 		return
 	}
-	meta, err := json.Marshal(&models.WorkwechatMeta{
+	meta, err := json.Marshal(&webhook.WorkwechatMeta{
 		ChatID: form.ChatID,
 	})
 	if err != nil {
