@@ -124,7 +124,7 @@
 					</div>
 				{{end}}
 				{{$notAllOk := or .IsBlockedByApprovals .IsBlockedByRejection (and .EnableStatusCheck (not .IsRequiredStatusCheckSuccess))}}	
-				{{if or $.IsRepoAdmin (not $notAllOk)}}
+				{{if or (not $notAllOk) (and $.IsRepoAdmin .AllowMerge)}}
 					{{if $notAllOk}}
 						<div class="item text yellow">
 							<span class="octicon octicon-primitive-dot"></span>
