@@ -297,6 +297,8 @@ var migrations = []Migration{
 	// v120 -> v121
 	NewMigration("Add owner_name on table repository", addOwnerNameOnRepository),
 	// v121 -> v122
+	NewMigration("add is_restricted column for users table", addIsRestricted),
+	// v122 -> v123
 	NewMigration("Add Require Signed Commits to ProtectedBranch", addRequireSignedCommits),
 }
 
