@@ -38,16 +38,14 @@ Gitea</a>
 
 ## Download
 
-First, retrieve the source code. The easiest way is to use the Go tool. Use the
-following commands to fetch the source and switch into the source directory.
-Go is quite opinionated about where it expects its source code, and simply
-cloning the Gitea repository to an arbitrary path is likely to lead to
-problems - the fixing of which is out of scope for this document.
+First, retrieve the source code. Go 1.11 introduce `modules` as dependency manager, using dependencies listed in `go.mod` file at root of source directory. This make Gitea sources can be cloned to arbitrary path inside `$GOPATH/src` by:
 
 ```bash
-go get -d -u code.gitea.io/gitea
-cd "$GOPATH/src/code.gitea.io/gitea"
+git clone https://github.com/go-gitea/gitea.git
+cd "/path/to/gitea"
 ```
+
+**Note**: If Gitea sources are cloned to `$GOPATH/src/code.gitea.io/gitea`, Go will run in old `GOPATH` mode for compatibility.
 
 Decide which version of Gitea to build and install. Currently, there are
 multiple options to choose from. The `master` branch represents the current
