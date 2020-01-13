@@ -153,142 +153,46 @@ func getWorkwechatPushPayload(p *api.PushPayload, meta *WorkwechatMeta) (*Workwe
 }
 
 func getWorkwechatIssuesPayload(p *api.IssuePayload, meta *WorkwechatMeta) (*WorkwechatPayload, error) {
-	var text, title string
-	switch p.Action {
-	case api.HookIssueOpened:
-		title = fmt.Sprintf("[%s] Issue opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueClosed:
-		title = fmt.Sprintf("[%s] Issue closed: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueReOpened:
-		title = fmt.Sprintf("[%s] Issue re-opened: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueEdited:
-		title = fmt.Sprintf("[%s] Issue edited: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueAssigned:
-		title = fmt.Sprintf("[%s] Issue assigned to %s: #%d %s", p.Repository.FullName,
-			p.Issue.Assignee.UserName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueUnassigned:
-		title = fmt.Sprintf("[%s] Issue unassigned: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueLabelUpdated:
-		title = fmt.Sprintf("[%s] Issue labels updated: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueLabelCleared:
-		title = fmt.Sprintf("[%s] Issue labels cleared: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueSynchronized:
-		title = fmt.Sprintf("[%s] Issue synchronized: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueMilestoned:
-		title = fmt.Sprintf("[%s] Issue milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	case api.HookIssueDemilestoned:
-		title = fmt.Sprintf("[%s] Issue clear milestone: #%d %s", p.Repository.FullName, p.Index, p.Issue.Title)
-		text = p.Issue.Body
-	}
+	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter)
 
 	return &WorkwechatPayload{
 		ChatID:  meta.ChatID,
 		MsgType: "textcard",
 		TextCard: TextCard{
-			Description: title + "\r\n\r\n" + text,
-			//Markdown:    "# " + title + "\n" + text,
-			Title:      title,
-			ButtonText: "view issue",
-			URL:        p.Issue.URL,
+			Description: title + "\r\n\r\n" + attachmentText,
+			Title:       issueTitle,
+			ButtonText:  "view issue",
+			URL:         p.Issue.URL,
 		},
 	}, nil
 }
 
 func getWorkwechatIssueCommentPayload(p *api.IssueCommentPayload, meta *WorkwechatMeta) (*WorkwechatPayload, error) {
-	title := fmt.Sprintf("#%d %s", p.Issue.Index, p.Issue.Title)
-	url := fmt.Sprintf("%s/issues/%d#%s", p.Repository.HTMLURL, p.Issue.Index, CommentHashTag(p.Comment.ID))
-	var content string
-	switch p.Action {
-	case api.HookIssueCommentCreated:
-		title = "New comment: " + title
-		content = p.Comment.Body
-	case api.HookIssueCommentEdited:
-		title = "Comment edited: " + title
-		content = p.Comment.Body
-	case api.HookIssueCommentDeleted:
-		title = "Comment deleted: " + title
-		url = fmt.Sprintf("%s/issues/%d", p.Repository.HTMLURL, p.Issue.Index)
-		content = p.Comment.Body
-	}
+	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter)
 
 	return &WorkwechatPayload{
 		ChatID:  meta.ChatID,
 		MsgType: "textcard",
 		TextCard: TextCard{
-			Description: title + "\r\n\r\n" + content,
-			Title:       title,
+			Description: text + "\r\n\r\n" + p.Comment.Body,
+			Title:       issueTitle,
 			ButtonText:  "view issue comment",
-			URL:         url,
+			URL:         p.Comment.HTMLURL,
 		},
 	}, nil
 }
 
 func getWorkwechatPullRequestPayload(p *api.PullRequestPayload, meta *WorkwechatMeta) (*WorkwechatPayload, error) {
-	var text, title string
-	switch p.Action {
-	case api.HookIssueOpened:
-		title = fmt.Sprintf("[%s] Pull request opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueClosed:
-		if p.PullRequest.HasMerged {
-			title = fmt.Sprintf("[%s] Pull request merged: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		} else {
-			title = fmt.Sprintf("[%s] Pull request closed: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		}
-		text = p.PullRequest.Body
-	case api.HookIssueReOpened:
-		title = fmt.Sprintf("[%s] Pull request re-opened: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueEdited:
-		title = fmt.Sprintf("[%s] Pull request edited: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueAssigned:
-		list, err := MakeAssigneeList(&Issue{ID: p.PullRequest.ID})
-		if err != nil {
-			return &WorkwechatPayload{}, err
-		}
-		title = fmt.Sprintf("[%s] Pull request assigned to %s: #%d %s", p.Repository.FullName,
-			list, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueUnassigned:
-		title = fmt.Sprintf("[%s] Pull request unassigned: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueLabelUpdated:
-		title = fmt.Sprintf("[%s] Pull request labels updated: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueLabelCleared:
-		title = fmt.Sprintf("[%s] Pull request labels cleared: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueSynchronized:
-		title = fmt.Sprintf("[%s] Pull request synchronized: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueMilestoned:
-		title = fmt.Sprintf("[%s] Pull request milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	case api.HookIssueDemilestoned:
-		title = fmt.Sprintf("[%s] Pull request clear milestone: #%d %s", p.Repository.FullName, p.Index, p.PullRequest.Title)
-		text = p.PullRequest.Body
-	}
+	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter)
 
 	return &WorkwechatPayload{
 		ChatID:  meta.ChatID,
 		MsgType: "textcard",
 		TextCard: TextCard{
-			Description: title + "\r\n\r\n" + text,
-			//Markdown:    "# " + title + "\n" + text,
-			Title:      title,
-			ButtonText: "view pull request",
-			URL:        p.PullRequest.HTMLURL,
+			Description: text + "\r\n\r\n" + attachmentText,
+			Title:       issueTitle,
+			ButtonText:  "view pull request",
+			URL:         p.PullRequest.HTMLURL,
 		},
 	}, nil
 }
@@ -325,51 +229,18 @@ func getWorkwechatRepositoryPayload(p *api.RepositoryPayload, meta *WorkwechatMe
 }
 
 func getWorkwechatReleasePayload(p *api.ReleasePayload, meta *WorkwechatMeta) (*WorkwechatPayload, error) {
-	var title, url string
-	switch p.Action {
-	case api.HookReleasePublished:
-		title = fmt.Sprintf("[%s] Release created", p.Release.TagName)
-		url = p.Release.URL
-		return &WorkwechatPayload{
-			ChatID:  meta.ChatID,
-			MsgType: "textcard",
-			TextCard: TextCard{
-				Description: title,
-				Title:       title,
-				ButtonText:  "view release",
-				URL:         url,
-			},
-		}, nil
-	case api.HookReleaseUpdated:
-		title = fmt.Sprintf("[%s] Release updated", p.Release.TagName)
-		url = p.Release.URL
-		return &WorkwechatPayload{
-			ChatID:  meta.ChatID,
-			MsgType: "textcard",
-			TextCard: TextCard{
-				Description: title,
-				Title:       title,
-				ButtonText:  "view release",
-				URL:         url,
-			},
-		}, nil
+	text, _ := getReleasePayloadInfo(p, noneLinkFormatter)
 
-	case api.HookReleaseDeleted:
-		title = fmt.Sprintf("[%s] Release deleted", p.Release.TagName)
-		url = p.Release.URL
-		return &WorkwechatPayload{
-			ChatID:  meta.ChatID,
-			MsgType: "textcard",
-			TextCard: TextCard{
-				Description: title,
-				Title:       title,
-				ButtonText:  "view release",
-				URL:         url,
-			},
-		}, nil
-	}
-
-	return nil, nil
+	return &WorkwechatPayload{
+		ChatID:  meta.ChatID,
+		MsgType: "textcard",
+		TextCard: TextCard{
+			Description: text,
+			Title:       text,
+			ButtonText:  "view release",
+			URL:         p.Release.URL,
+		},
+	}, nil
 }
 
 // GetWorkwechatPayload converts a work wechat webhook into a WorkwechatPayload
