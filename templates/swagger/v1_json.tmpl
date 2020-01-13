@@ -3196,8 +3196,16 @@
           },
           {
             "type": "string",
+            "format": "date-time",
             "description": "if provided, only comments updated since the provided time are returned.",
             "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "if provided, only comments updated before the provided time are returned.",
+            "name": "before",
             "in": "query"
           }
         ],
@@ -3652,8 +3660,16 @@
           },
           {
             "type": "string",
+            "format": "date-time",
             "description": "if provided, only comments updated since the specified time are returned.",
             "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "if provided, only comments updated before the provided time are returned.",
+            "name": "before",
             "in": "query"
           }
         ],
