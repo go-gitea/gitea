@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/repository"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -100,13 +101,14 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 
 	var r *models.Repository
 	if opts.MigrateToRepoID <= 0 {
-		r, err = models.CreateRepository(g.doer, owner, models.CreateRepoOptions{
-			Name:        g.repoName,
-			Description: repo.Description,
-			OriginalURL: repo.OriginalURL,
-			IsPrivate:   opts.Private,
-			IsMirror:    opts.Mirror,
-			Status:      models.RepositoryBeingMigrated,
+		r, err = repo_module.CreateRepository(g.doer, owner, models.CreateRepoOptions{
+			Name:           g.repoName,
+			Description:    repo.Description,
+			OriginalURL:    repo.OriginalURL,
+			GitServiceType: opts.GitServiceType,
+			IsPrivate:      opts.Private,
+			IsMirror:       opts.Mirror,
+			Status:         models.RepositoryBeingMigrated,
 		})
 	} else {
 		r, err = models.GetRepositoryByID(opts.MigrateToRepoID)
