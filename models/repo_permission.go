@@ -202,7 +202,7 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 	}
 
 	// plain user
-	perm.AccessMode, err = accessLevel(e, user.ID, repo)
+	perm.AccessMode, err = accessLevel(e, user, repo)
 	if err != nil {
 		return
 	}
@@ -250,8 +250,8 @@ func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permiss
 			}
 		}
 
-		// for a public repo on an organization, user have read permission on non-team defined units.
-		if !found && !repo.IsPrivate {
+		// for a public repo on an organization, a non-restricted user has read permission on non-team defined units.
+		if !found && !repo.IsPrivate && !user.IsRestricted {
 			if _, ok := perm.UnitsMode[u.Type]; !ok {
 				perm.UnitsMode[u.Type] = AccessModeRead
 			}
@@ -284,7 +284,7 @@ func isUserRepoAdmin(e Engine, repo *Repository, user *User) (bool, error) {
 		return true, nil
 	}
 
-	mode, err := accessLevel(e, user.ID, repo)
+	mode, err := accessLevel(e, user, repo)
 	if err != nil {
 		return false, err
 	}

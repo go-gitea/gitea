@@ -73,13 +73,12 @@ func SearchIssues(ctx *context.APIContext) {
 		AllPublic:   true,
 		TopicOnly:   false,
 		Collaborate: util.OptionalBoolNone,
-		UserIsAdmin: ctx.IsUserSiteAdmin(),
 		OrderBy:     models.SearchOrderByRecentUpdated,
+		Actor:       ctx.User,
 	}
 	if ctx.IsSigned {
 		opts.Private = true
 		opts.AllLimited = true
-		opts.UserID = ctx.User.ID
 	}
 	issueCount := 0
 	for page := 1; ; page++ {
