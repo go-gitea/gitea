@@ -75,7 +75,7 @@ services:
 
   - name: mysql8
     pull: default
-    image: mysql/mysql-server:8.0
+    image: mysql:8.0
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: testgitea
