@@ -432,16 +432,18 @@ const (
 	DINGTALK
 	TELEGRAM
 	MSTEAMS
+	WORKWECHAT
 )
 
 var hookTaskTypes = map[string]HookTaskType{
-	"gitea":    GITEA,
-	"gogs":     GOGS,
-	"slack":    SLACK,
-	"discord":  DISCORD,
-	"dingtalk": DINGTALK,
-	"telegram": TELEGRAM,
-	"msteams":  MSTEAMS,
+	"gitea":      GITEA,
+	"gogs":       GOGS,
+	"slack":      SLACK,
+	"discord":    DISCORD,
+	"dingtalk":   DINGTALK,
+	"telegram":   TELEGRAM,
+	"msteams":    MSTEAMS,
+	"workwechat": WORKWECHAT,
 }
 
 // ToHookTaskType returns HookTaskType by given name.
@@ -466,6 +468,8 @@ func (t HookTaskType) Name() string {
 		return "telegram"
 	case MSTEAMS:
 		return "msteams"
+	case WORKWECHAT:
+		return "workwechat"
 	}
 	return ""
 }

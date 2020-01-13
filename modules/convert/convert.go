@@ -190,6 +190,9 @@ func ToHook(repoLink string, w *models.Webhook) *api.Hook {
 		config["username"] = s.Username
 		config["icon_url"] = s.IconURL
 		config["color"] = s.Color
+	} else if w.HookTaskType == models.WORKWECHAT {
+		s := w.GetWorkwechatHook()
+		config["chatid"] = s.ChatID
 	}
 
 	return &api.Hook{
