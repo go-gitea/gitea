@@ -26,18 +26,7 @@ required to build the JavaScript and CSS files. The minimum supported Node.js
 version is 10 and the latest LTS version is recommended.
 
 **Note**: When executing make tasks that require external tools, like
-`ma
-The easiest way is to use the Go tool. Use the
-following commands to fetch the source and switch into the source directory.
-Go is quite opinionated about where it expects its source code, and simply
-cloning the Gitea repository to an arbitrary path is likely to lead to
-problems - the fixing of which is out of scope for this document.
-
-```bash
-go get -d -u code.gitea.io/gitea
-cd "$GOPATH/src/code.gitea.io/gitea"
-```
-ke misspell-check`, Gitea will automatically download and build these as
+`make misspell-check`, Gitea will automatically download and build these as
 necessary. To be able to use these, you must have the `"$GOPATH/bin"` directory
 on the executable path. If you don't add the go bin directory to the
 executable path, you will have to manage this yourself.
