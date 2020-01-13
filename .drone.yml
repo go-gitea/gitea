@@ -55,7 +55,7 @@ steps:
 
 ---
 kind: pipeline
-name: testing-amd64
+name: testing
 
 platform:
   os: linux
