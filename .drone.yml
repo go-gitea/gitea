@@ -55,7 +55,7 @@ steps:
 
 ---
 kind: pipeline
-name: testing
+name: testing-amd64
 
 platform:
   os: linux
@@ -435,7 +435,8 @@ trigger:
     - push
 
 depends_on:
-  - testing
+  - testing-amd64
+  - testing-arm64
   - translations
 
 steps:
@@ -533,7 +534,8 @@ trigger:
     - tag
 
 depends_on:
-  - testing
+  - testing-arm64
+  - testing-amd64
 
 steps:
   - name: fetch-tags
@@ -646,7 +648,8 @@ workspace:
   path: src/code.gitea.io/gitea
 
 depends_on:
-  - testing
+  - testing-amd64
+  - testing-arm64
 
 trigger:
   ref:
@@ -724,7 +727,8 @@ workspace:
   path: src/code.gitea.io/gitea
 
 depends_on:
-  - testing
+  - testing-amd64
+  - testing-arm64
 
 trigger:
   ref:
@@ -806,7 +810,8 @@ when:
     - failure
 
 depends_on:
-  - testing
+  - testing-amd64
+  - testing-arm64
   - translations
   - release-version
   - release-master
