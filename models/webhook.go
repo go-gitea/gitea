@@ -302,7 +302,7 @@ func getActiveWebhooksByOrgID(e Engine, orgID int64) (ws []*Webhook, err error) 
 // GetWebhooksByOrgID returns paginated webhooks for an organization.
 func GetWebhooksByOrgID(orgID int64, listOptions ListOptions) ([]*Webhook, error) {
 	if listOptions.Page == 0 {
-		webhooks := make([]*Webhook, 0, 5)
+		ws := make([]*Webhook, 0, 5)
 		return ws, x.Find(&ws, &Webhook{OrgID: orgID})
 	}
 
