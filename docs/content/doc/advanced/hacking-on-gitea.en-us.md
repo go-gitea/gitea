@@ -50,31 +50,24 @@ is the relevant line - but this may change.)
 
 ## Downloading and cloning the Gitea source code
 
-Go is quite opinionated about where it expects its source code, and simply
-cloning the Gitea repository to an arbitrary path is likely to lead to
-problems - the fixing of which is out of scope for this document. Further, some
-internal packages are referenced using their respective GitHub URL and at
-present we use `vendor/` directories.
+Go 1.11 introduce *modules* as dependency manager. This allow Gitea sources to be cloned in arbitrary paths outside `$GOPATH/src`. Go will download dependencies listed in `go.mod` file at root of source tree to `$GOPATH/pkg/mod` during Gitea build.
 
-The recommended method of obtaining the source code is by using the `go get` command:
+Clone Gitea sources by:
 
-```bash
-go get -d code.gitea.io/gitea
-cd "$GOPATH/src/code.gitea.io/gitea"
+```
+git clone https://github.com/go-gitea/gitea.git
 ```
 
-This will clone the Gitea source code to: `"$GOPATH/src/code.gitea.io/gitea"`, or if `$GOPATH`
-is not set `"$HOME/go/src/code.gitea.io/gitea"`.
+**Note**: If Gitea sources are cloned to `$GOPATH/src/code.gitea.io/gitea`, Go will run in old `GOPATH` mode for compatibility.
 
 ## Forking Gitea
 
-As stated above, you cannot clone Gitea to an arbitrary path. Download the master Gitea source
-code as above. Then, fork the [Gitea repository](https://github.com/go-gitea/gitea) on GitHub,
+Download the master Gitea source code as above. Then, fork the [Gitea repository](https://github.com/go-gitea/gitea) on GitHub,
 and either switch the git remote origin for your fork or add your fork as another remote:
 
 ```bash
 # Rename original Gitea origin to upstream
-cd "$GOPATH/src/code.gitea.io/gitea"
+cd "/path/to/gitea"
 git remote rename origin upstream
 git remote add origin "git@github.com:$GITHUB_USERNAME/gitea.git"
 git fetch --all --prune
@@ -84,7 +77,7 @@ or:
 
 ```bash
 # Add new remote for our fork
-cd "$GOPATH/src/code.gitea.io/gitea"
+cd "/path/to/gitea"
 git remote add "$FORK_NAME" "git@github.com:$GITHUB_USERNAME/gitea.git"
 git fetch --all --prune
 ```
